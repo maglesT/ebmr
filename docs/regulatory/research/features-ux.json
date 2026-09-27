@@ -1,0 +1,890 @@
+{
+ "vendors": [
+  {
+   "name": "Koerber Pharma - Werum PAS-X MES (with PAS-X Savvy analytics, PAS-X Cell & Gene; on-prem and cloud/SaaS variants)",
+   "notable_capabilities": "VERIFIED [Vs = search-result snippets of Koerber's own pages, 2025-2026]: PAS-X MES controls, monitors and documents production in real time, guiding operators through approved workflows while coordinating materials, equipment, process steps and production data; electronic batch recording executes master batch records (MBRs) as electronic batch records (EBRs) fully digitally, with Koerber claiming up to 20% fewer batch deviations because of fewer transcription errors; review by exception through automatic data evaluation so QA focuses only on 'conspicuous data'; Manufacturing Dashboards for PAS-X MES users built into the cloud-native PAS-X Savvy platform (equipment usage, exception monitoring, batch-record review times); a dedicated Werum PAS-X Cell & Gene solution; marketing claim 'up to 98% higher quality' (blog title, context unverified). UNVERIFIED [U, vendor site egress-blocked]: generally regarded as the market-share leader in pharma/biotech MES with global multi-site template roll-outs; graphical MBR designer with reusable, pre-validated building blocks on an ISA-88 structure; modules for weighing & dispensing, material flow/warehouse, equipment management (status, cleaning, calibration, logbooks), exception handling, batch review and release, KPI/OEE; ERP (SAP) and automation integration layers; relational DB back-end. Typical watch-outs reported by users: long MBR design effort and heavy upgrade projects when customized."
+  },
+  {
+   "name": "Siemens - Opcenter Execution Pharma",
+   "notable_capabilities": "UNVERIFIED [U, vendor site egress-blocked]: successor of SIMATIC IT eBR; ISA-88-structured graphical MBR/workflow authoring with reusable operation libraries; guided eBR execution; weigh & dispense; material management and genealogy; equipment and electronic logbook management; exception management with review by exception; native integration with SIMATIC Batch / PCS 7 / PCS neo so automated phases write into the same batch record; SAP integration; part of the Siemens Xcelerator/Opcenter portfolio (Opcenter Quality, Opcenter Intelligence, APS scheduling); cloud delivery and generative-AI 'Industrial Copilot' offerings announced by Siemens for operations - confirm GxP validation status and draft EU Annex 22 fit before relying on them."
+  },
+  {
+   "name": "Rockwell Automation - FactoryTalk PharmaSuite (plus Plex SaaS MES)",
+   "notable_capabilities": "UNVERIFIED [U]: Recipe & Workflow Designer with SFC-style graphical authoring and reusable building blocks/phases; eBR execution with exception management and review by exception; weigh & dispense; configurable equipment status models (state graphs for clean/dirty/in-use/expired, calibration status); material tracking and genealogy; tight coupling to FactoryTalk Batch (ISA-88) and Logix/PlantPAx control; SAP integration. Plex is Rockwell's cloud MES for lighter/less regulated use cases."
+  },
+  {
+   "name": "Emerson - Syncade MES (with DeltaV / DeltaV Batch)",
+   "notable_capabilities": "UNVERIFIED [U]: modular suite - recipe/work-instruction authoring, weigh & dispense, equipment tracking, material management and genealogy, logbooks, document management, review by exception; strongest where combined with DeltaV DCS and DeltaV Batch (ISA-88) so automated and manual steps share one batch record; DeltaV Workflow Management as a lighter eBR option for DeltaV sites. Emerson reportedly completed full ownership of AspenTech in 2025 (verify)."
+  },
+  {
+   "name": "AspenTech - Aspen Production Execution Manager (APEM)",
+   "notable_capabilities": "UNVERIFIED [U]: electronic batch records and work instructions for pharma, biotech and specialty chemicals; procedure designer, e-signatures, integration with Aspen InfoPlus.21 historian and DCSs; now within Emerson (verify). The task pairs 'AspenTech/POMS' - no corporate relationship between AspenTech and POMS could be verified in this session."
+  },
+  {
+   "name": "POMS - POMSnet (next-generation 'Aquila' platform - verify)",
+   "notable_capabilities": "UNVERIFIED [U]: life-sciences MES used by biotech, pharma and CDMOs: eBR with guided execution, weigh & dispense, inventory and genealogy, equipment management, exception/deviation handling with review by exception, ERP/LIMS/QMS integration. Ownership and current roadmap not verified."
+  },
+  {
+   "name": "MasterControl - Manufacturing Excellence (Mx)",
+   "notable_capabilities": "UNVERIFIED [U]: cloud-native validated SaaS 'production records' built from structured, data-driven templates (positioned explicitly against paper-on-glass), field-level limits and calculations, exception-based review, equipment/production logbooks, work instructions; native links to MasterControl Quality Excellence (document control, training records usable for qualification gating, deviations/CAPA, change control) and asset/calibration management; vendor-supplied validation packages; aimed at small-to-mid and scaling multi-site companies."
+  },
+  {
+   "name": "Apprentice.io - Tempo",
+   "notable_capabilities": "UNVERIFIED [U]: cloud-native manufacturing platform for pharma, biotech and CDMOs: structured recipe authoring and tech transfer (recipe as data shared between sponsor and CDMO), tablet-first guided execution, weigh & dispense, equipment/instrument integration, exceptions and review by exception, real-time collaboration; AI-assisted authoring/assistance advertised (check validation status and draft EU Annex 22 constraints before use in GMP-critical steps)."
+  },
+  {
+   "name": "Tulip - Frontline Operations Platform (GxP use)",
+   "notable_capabilities": "UNVERIFIED [U]: no-code/low-code apps for eBR, eDHR, electronic logbooks, line clearance, weigh & dispense ('composable MES'); Part 11 features (e-signature widget, record history/audit trail, app versioning with approval workflow for change control); Edge IO/Edge MC gateways and connectors (OPC UA, MQTT, HTTP, SQL) for scales, printers, scanners; analytics and AI copilot features. Trade-off: fast and flexible, but customer-built apps shift design and validation responsibility to the regulated company (GAMP Cat 4/5 mix) and review-by-exception, genealogy and equipment-status logic must be engineered by the customer."
+  },
+  {
+   "name": "Sepasoft - MES modules for Inductive Automation Ignition",
+   "notable_capabilities": "UNVERIFIED [U]: Batch Procedure (ISA-88 batch engine: procedure/unit procedure/operation/phase editor, master and control recipes, batch queue, phase logic in Ignition), electronic batch record reporting, Track & Trace (lot genealogy with trace graphs on an ISA-95 material model), Settings & Changeover (versioned recipes/setpoints), OEE/Downtime, SPC, Document Management, Business Connector and SAP interface. OPC UA-native, integrator-friendly licensing; Part 11 compliance (audit trail, e-signatures, access control) depends on integrator configuration and validation."
+  },
+  {
+   "name": "Other platforms seen in pharma eBR/MES evaluations (adjacent or newer entrants)",
+   "notable_capabilities": "UNVERIFIED [U] - confirm existence/scope before use: SAP Digital Manufacturing (cloud MES with production process designer, data collection, work instructions; pharma eBR depth to be assessed); AVEVA MES and AVEVA Batch Management (ISA-88 batch control with Part 11 features); GE Vernova Proficy Batch Execution/Workflow; Dassault Systemes DELMIA Apriso (regulated packaging/devices); Honeywell cloud MES offering linked to TrackWise QMS; L7 Informatics ESP (unified LIMS/ELN/MES, strong in cell & gene therapy); Vimachem (low-code pharma MES/eBR/eLogbook); Veeva Vault Batch Release (aggregates MES/LIMS/QMS/ERP data for disposition - not an execution system); Critical Manufacturing MES (medtech/semiconductor focus)."
+  },
+  {
+   "name": "India-based eBMR vendors (AmpleLogic, Caliber Technologies, Sarjen Systems, Leucine)",
+   "notable_capabilities": "UNVERIFIED [U, vendor sites egress-blocked]: AmpleLogic (Hyderabad) - eBMR/eBPR on a low-code platform alongside eLogbook, QMS, DMS, LIMS; Caliber Technologies (Hyderabad) - CaliberBRM batch record management with eLogbook, LIMS and QMS suites; Sarjen Systems (Ahmedabad) - eBMR, eLogbook, DMS/QMS; Leucine (Mumbai/US) - cleaning validation (MACO/HBEL) plus digital work-instruction/eBMR/eLogbook apps. Typical positioning: lower cost, fast configuration, good fit for Indian formulation plants moving off paper under revised Schedule M (GSR 922(E), 28 Dec 2023 - verify). Diligence points: depth of ISA-88/95 modelling, automation/scale integration, review-by-exception design, multi-site scalability, Part 11/Annex 11 evidence and US FDA/EU inspection track record of reference sites."
+  }
+ ],
+ "core_features": [
+  {
+   "name": "MBR authoring on the ISA-88 procedural model with graph-based procedure logic",
+   "description": "Author MBRs as structured, executable recipes: Procedure > Unit Procedure > Operation > Phase, with procedure logic stored as a directed graph of Steps, Transitions and Links including parallel/serial divergence and convergence and synchronization links (BatchML V0701 LinkType values ControlLink, TransferLink, SynchronizationLink, ParallelDivergent, ParallelConvergent, SerialDivergent, SerialConvergent; RecipeElementType Procedure, UnitRecipe, UnitProcedure, Operation, Phase, Allocation, Begin, End [V]). Reusable, versioned building blocks (phase library): identify/charge material, weigh, equipment check/assign, line clearance, IPC entry, sample, timer/hold, calculation, instruction/acknowledge, label print, yield, reconciliation, sign-off. Header fields: MBR ID + version, product code/name, strength, dosage form, site/line/equipment classes, nominal/min/max batch size and scaling rule, theoretical yield and min/max % per phase, expiry/retest rule, effective dates, linked SOP/spec IDs, change-control reference. Formula lines: component code/name specific enough to show special quality characteristics, quantity per batch and per unit, UoM, tolerance, overage/excess statement, potency/assay/LOD adjustment rule with compensating excipient, dispensing sequence. Authoring-time linting: unreachable or dead-end steps, unintended cycles, missing signatures on critical steps, inverted limits, unit mismatches, calculations with missing inputs or circular references, parameters lacking precision/rounding rules.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.186(a),(b)(1)-(9) and 211.100(a) [V2 eCFR mirror]; USP <1029> batch-record content [V2]; ISA-88 Parts 1-2 as implemented in BatchML V0701 [V]; EU GMP Ch.4 manufacturing formula/processing instructions [U]"
+  },
+  {
+   "name": "Parameter, limit and specification model",
+   "description": "Typed parameters (numeric, integer, text, enumeration, boolean, date-time, duration, material, equipment, attachment) with UoM, stored vs displayed precision, explicit rounding rule applied before limit comparison (USP General Notices 7.20 Rounding Rules for compendial comparisons [V2 reference]), explicit limit semantics (inclusive/exclusive, NLT/NMT), multi-level limits (registered specification, PAR, NOR/alert, action), CPP/CQA/criticality flag that drives verification and review rules, entry mode (manual, scale, instrument, automation, calculated), required verification (none, second person, QA), and trust level of the data source. ISA-88 ParameterType ProcessInput/ProcessOutput/ProcessParameter [V].",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.186(b)(4),(6),(7),(9); 211.110(b) specifications consistent with final specs and derived from process data [V2]; EU Annex 11 \u00a75, \u00a76 [V2]"
+  },
+  {
+   "name": "MBR lifecycle, versioning and approval workflow",
+   "description": "States Draft > In Review > Approved > Effective > Superseded/Retired (plus Withdrawn). Rules: preparer and independent checker/approver must be different people; QCU approval; e-signatures with meaning; approved content sealed by hash and linked to signatures, immutable thereafter; every change is a new version referencing an approved change record; effective date and site applicability; version diff viewer (graph and parameter diff); batch orders pin exact version and hash; defined policy for in-flight batches when a new version becomes effective (continue on pinned version unless QA mandates change via deviation/change control); retire only when no open orders reference the version; translations versioned and approved together with the MBR.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.186(a) (prepared, dated, signed by one person and independently checked, dated, signed by a second) and 211.100(a) [V2]; 21 CFR 11.10(k)(2), 11.50, 11.70 [V2]; EU Annex 11 \u00a710 [V2]; FDA DI Q&A Dec 2018 (workflows such as creating electronic MPCRs must be validated; e-signatures acceptable for MPCRs) [U]"
+  },
+  {
+   "name": "Change-control linkage and where-used / impact analysis",
+   "description": "Every MBR and master-data version references an approved change record in the QMS (bidirectional link and status). Where-used across MBRs, building blocks, materials, equipment classes, label templates, calculation formulas, SOP references and training curricula; impact report listing affected MBRs, open batch orders and in-process batches before approval; automatic trigger of retraining when an MBR/SOP version changes (operators blocked from the new version until trained). Implemented over a dependency graph (see Data architecture).",
+   "priority": "must",
+   "regulatory_driver": "EU Annex 11 \u00a710 [V2]; 21 CFR 211.100(a) and 211.22(c) QCU approval of procedures/specifications [V2]; ICH Q10 change management [U]"
+  },
+  {
+   "name": "MBR verification by simulation / test execution",
+   "description": "Execute draft MBRs in a segregated sandbox with test materials/equipment and scripted data, deliberately forcing limit violations, timer breaches and status blocks to verify exception behaviour, calculations (with stored test vectors) and report rendering before approval; results attached to the MBR approval package; sandbox data can never enter GMP records.",
+   "priority": "should",
+   "regulatory_driver": "EU Annex 11 \u00a74 validation [V2]; GAMP 5 2nd ed. (Cat 4 configuration verification) [V2s]; FDA DI Q&A 2018 (workflow validation) [U]"
+  },
+  {
+   "name": "Global template, site recipe and master data hierarchy (multi-site)",
+   "description": "Global building-block library and dosage-form templates (e.g., direct compression, wet granulation, film coating, aseptic fill, terminal sterilization, lyophilization) with governed site localization (site recipes/MBRs), site-specific equipment classes and materials mapped to global codes, ISA-95 hierarchy scoping (Enterprise, Site, Area, ProcessCell, Unit, ProductionLine, WorkCell ... EquipmentModule, ControlModule [V]); template adoption metrics; controlled promotion of templates between sites.",
+   "priority": "must",
+   "regulatory_driver": "EU Annex 11 \u00a710 [V2]; ISA-88 general/site/master recipe concept (Part 3) [U]; ISA-95 Part 2 equipment hierarchy [V via B2MML]"
+  },
+  {
+   "name": "Batch order creation, control-recipe generation and issuance",
+   "description": "Create from ERP process order (ISA-95/B2MML or ERP API) or manually, with checks: unique batch number (format rules, never reused), effective approved MBR version for product/site/line, batch size within validated range (quantities re-scaled with defined rounding), component availability and status, planned equipment availability. Generate the control recipe and record issuance as the electronic equivalent of an accurate reproduction of the master record checked for accuracy, dated and signed (sign issuance against the MBR version hash). Sub-orders/sublots: tablets (dispensing, granulation, blending, compression sublots, coating pans, packaging orders); injectables (compounding, filtration, filling per line, lyo loads, capping, inspection, packaging). Cancel/abort only with reason and signature; never delete.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.188(a) [V2]; 211.130(c) lot number permitting history determination [V2]; EU GMP Ch.4 4.20 (record based on currently approved formula/instructions) [U]"
+  },
+  {
+   "name": "Batch and step state machines",
+   "description": "Batch: Created > Released to floor > In execution (with Held/Paused sub-states) > Execution complete > Production review > QA review > Dispositioned (Released/Rejected/On hold) > Archived; Abort/Cancel with reason. Step: Not ready > Ready (prerequisites met) > In progress > Completed/Verified, or Skipped-by-exception. Automated units follow ISA-88 batch states Idle, Running, Complete, Pausing, Paused, Holding, Held, Restarting, Stopping, Stopped, Aborting, Aborted [V BatchML]; job-order commands Start, Stop, Hold, Restart, Abort, Reset, Pause, Resume [V B2MML]. Transitions are server-enforced and audit-trailed; illegal transitions impossible.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(f) operational checks enforcing permitted sequencing [V2]; 211.192 [V2]"
+  },
+  {
+   "name": "Guided execution with enforced sequencing and prerequisites",
+   "description": "One step at a time over the control-recipe graph; prerequisites evaluated when the step opens AND re-evaluated at data commit/signature (closes time-of-check/time-of-use gaps): equipment status, cleaning and calibration validity, room/line clearance, material status and expiry, operator training/qualification, predecessor completion, time windows and hold times. Skipping or re-ordering only via an authorized, recorded exception; parallel branches for concurrent activities; step-level locking so two users cannot execute the same step; pause/hold/resume and shift handover with context; contemporaneous server time stamps (NTP-synchronized, UTC stored, local displayed) and terminal/device identity captured with every entry.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(f),(h) [V2]; 211.100(b) procedures followed and documented at the time of performance [V2]; 211.188(b) [V2]; USP <1029> contemporaneous recording [V2]; EU Annex 11 \u00a712.4 [V2]"
+  },
+  {
+   "name": "Data capture types and ALCOA+ controls",
+   "description": "Entry types: numeric with live limit check and fixed units, controlled lists, barcode/RFID scans, device capture from scales/instruments/automation (preferred), calculated values, photos/attachments, acknowledgements with explicit meaning. Each value stores who, when (server time), where (terminal), source (manual/device/interface with device ID), original value, units, precision. Corrections never overwrite: new version with mandatory reason, old value stays visible; 'N/A' needs a reason; no back-dating (manual activity times only inside a configured window, with reason, flagged); late entries flagged; mandatory fields enforced before step completion; no free text where structured data are required; never pre-fill measured values with targets.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(e) (changes shall not obscure previously recorded information) [V2]; EU Annex 11 \u00a76, \u00a79, \u00a712.4 [V2]; USP <1029> corrections must not obscure the original entry [V2]; PIC/S PI 041-1 (in force 1 July 2021) [V2s date]; MHRA GXP DI 2018, WHO TRS 1033 Annex 4 [U]"
+  },
+  {
+   "name": "Second-person verification and independence rules",
+   "description": "Configurable per step/parameter: Performed-by plus Verified-by with independence rules (verifier is not the performer, must be qualified for the step, must re-authenticate personally - badge plus password or own device - within a time window, cannot verify own entries under another role). Automated-equipment alternative where the equipment is validated under 211.68: only one person checks that the equipment performed correctly (weighing/subdividing, component addition, yield calculation, cleaning/maintenance logs). For critical manually entered data, either a second-person check or validated electronic means. Batch record identifies persons performing and directly supervising/checking each significant step.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.101(c),(d); 211.103; 211.182; 211.68(c); 211.188(b)(11) [V2]; EU Annex 11 \u00a76 [V2]"
+  },
+  {
+   "name": "Weigh & dispense (dispensary)",
+   "description": "Dispensing orders/kits from the control recipe; booth/room status (cleaned, LAF on, previous material cleared); scale checks before use: scale ID, calibration and daily performance check valid, level, correct range for target (minimum-weight rule per USP <41> [U]), tare captured, stable reading required (OPC UA Weighing 'WeightStable' [V]), gross/net/tare recorded (OPC UA WeightType Gross/Net/Tare [V]), tolerance evaluation (ToleranceState In/Under/Over/UnderOrOver [V]). Source container scan: status must be Released, block Quarantine/Rejected/Expired/Retest-overdue/restricted-to-other-product, FEFO suggestion. Potency/assay/LOD-adjusted targets with compensating excipient; multi-container and partial dispensing; over-dispense handling (return or re-dispense via exception); manual weight entry only as exception with reason and verification. Label per dispensed container with component name/code, receiving/control number, weight/measure and batch identity (product name, strength, lot). Second person or automated verification. Remainders returned to inventory. Every event creates genealogy edges (source container > dispensed container > batch).",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.101(b),(c); 211.68; 211.84(a) (lots withheld until released by QCU); 211.188(b)(3),(4) [V2]; EU Annex 11 \u00a75 [V2]; USP <41>/<1251> [U]"
+  },
+  {
+   "name": "Material status, expiry and retest enforcement at every consumption point",
+   "description": "Lot/sublot/container status and disposition synchronized in near real time from ERP/LIMS/QMS (ISA-95 MaterialLot and MaterialSubLot carry separate Status and Disposition elements [V]); block consumption of Quarantine/Rejected/Expired/Retest-overdue or product/site-restricted material at dispensing, charging, packaging-component and label issue; re-check at commit; intermediate/bulk hold-time expiry; show status with colour + icon + text; unsuitable in-process material automatically quarantined.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.84(a); 211.101(c)(1); 211.110(c),(d) [V2]; 211.87, 211.89, 211.137 [U]"
+  },
+  {
+   "name": "Equipment management and status state machine",
+   "description": "Equipment master with unique ID recorded in the batch record; ISA-95 equipment hierarchy [V]; equipment classes/capabilities matched to MBR equipment requirements; status model such as Clean > In use (batch) > Dirty > Cleaning > Clean-verified, with clean-hold and dirty-hold expiry timers, plus Maintenance, Calibration overdue, Qualification expired, Blocked/Quarantined, Retired; product-changeover rules (same-product campaign vs full clean; HBEL-based cleaning); removal of previous batch identification and inspection for cleanliness immediately before use as steps; calibration/PM due dates from CMMS; use blocked unless the required state is met; electronic status boards replace paper status tags; containers and lines identified with contents and processing phase.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.67(a),(b)(1)-(6),(c); 211.68(a); 211.105(a),(b); 211.182 [V2]; EU GMP Ch.3, Annex 15 cleaning-validation hold times [U]"
+  },
+  {
+   "name": "Electronic logbooks (equipment, room, instrument)",
+   "description": "Chronological logs of use, cleaning, sanitizing, maintenance and inspection showing date, time, product and lot of each batch processed, dated and signed/initialed by the performer (and verifier where required); automatic entries generated from eBR execution to avoid double documentation; manual entries for non-batch activities; review/approval workflow; dedicated-equipment option where logs form part of the batch record; room sanitization and disinfectant-rotation tracking.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.182, 211.67(c) [V2]; USP <1029> equipment records [V2]; EU Annex 11 \u00a79 [V2]"
+  },
+  {
+   "name": "In-process controls with limit checking and SPC",
+   "description": "IPC tasks scheduled by time or quantity (e.g., every 30 min or every N units); automatic capture from balances, hardness/thickness testers, checkweighers, particle counters where possible; per-value and aggregate evaluation (individual vs mean limits, RSD); immediate response on violation (alert, block continuation, required action, automatic exception); missed IPC frequency = exception; SPC charts with trend rules for operators and QA. Tablets: weight variation, disintegration, adequacy of mixing/blend uniformity, dissolution where applicable, hardness, thickness, friability, LOD, appearance, metal-detector challenge at start/interval/end. Injectables: fill weight/volume, pH/density of bulk, bioburden before filtration/sterilisation, filter integrity, stopper/seal checks, CCI, visual inspection results.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.110(a)(1)-(6) (weight variation, disintegration, adequacy of mixing, dissolution, clarity/completeness/pH, bioburden) and (b)-(d); 211.188(b)(5) [V2]; Annex 1 8.86, 10.3 [V2]"
+  },
+  {
+   "name": "Calculations engine",
+   "description": "Formulas declared in the MBR (versioned and approved with it), unit-aware, with explicit rounding and significant-figure rules; evaluated server-side in dependency (topological) order with cycle detection at authoring time; formula, inputs and result shown to user and reviewer; potency-adjusted quantities, yields, reconciliations, durations/hold times, statistics (mean, SD, RSD), mass balance; results read-only - overriding a calculated value is an exception; corrections of inputs propagate with audit trail; validated calculation library with stored test vectors.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.103; 211.68(b) (input/output checks) [V2]; EU Annex 11 \u00a75 [V2]; GAMP 5 2nd ed. M4 notes Cat 5 calculation/logic errors 'can be difficult to detect and may persist for months or years' [V2s]"
+  },
+  {
+   "name": "Yield, reconciliation and label accountability",
+   "description": "Theoretical yield per phase from the MBR; actual yield and % of theoretical computed automatically; min/max yield limits outside which investigation is mandatory; packaging-component and label reconciliation (issued, used, destroyed, returned) against preset limits based on historical data; excess coded labeling destroyed and recorded; 100% electronic label examination can waive reconciliation for cut/roll labels; samples, rejects, retained samples accounted for in mass balance.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.103; 211.125(a)-(f); 211.186(b)(7); 211.188(b)(7),(8); 211.192 [V2]; EU GMP Ch.4 4.20 yields [U]"
+  },
+  {
+   "name": "Line/area clearance and room status",
+   "description": "Structured line-clearance checklists before and after each processing and packaging/labeling operation (previous product and unsuitable materials removed), optional photo evidence, performed-by + verified-by, results in the batch record; packaging materials examined for suitability and correctness before use; room status (cleaned/sanitized, EM status, differential pressure OK for sterile areas) as step prerequisite; physical/spatial separation checks against mix-ups.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.130(a),(d),(e); 211.188(b)(6) [V2]"
+  },
+  {
+   "name": "Sampling management",
+   "description": "Sampling steps generate sample IDs/labels, quantities, containers, purpose (release, IPC, stability, retention, EM), chain of custody; automatic LIMS registration; sample quantities deducted in yield/mass balance; results returned and evaluated against specifications; data model aligned to ISA-88 Part 4 Sample / SampleTest / SampleTestResult (TestDisposition, ExpectedResults) [V BatchML].",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.188(b)(10); 211.84(c) sample identification [V2]; 211.110 [V2]"
+  },
+  {
+   "name": "Time limits, hold times and timers",
+   "description": "Phase time limits; hold times for intermediates (wet granulate, blend, coating suspension, bulk solution), equipment clean/dirty hold, sterile hold; injectables: maximum time from start of solution preparation to sterilisation/filtration through the end of aseptic filling and other aseptic durations; terminally sterilised: maximum time between preparation and filling. Timers use monotonic server time independent of time zone/DST; pre-expiry warnings to operator and supervisor; hard stop or automatic exception when exceeded; justification and documentation required for any deviation from limits.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.111 [V2]; EU/PIC/S Annex 1 (2022) 8.5, 8.18 [V2]; Annex 15 hold times [U]"
+  },
+  {
+   "name": "Inline exceptions and deviation integration",
+   "description": "Every departure (limit violation, sequence override, manual override of device capture, equipment/material status override, timer breach, repeated weighing/testing, substitution, forced completion, flagged comment) creates an exception object: type, risk-based severity, full context (step, values, limits, user, time), mandatory justification, immediate notification (supervisor/QA), required path (acknowledge, supervisor approval to continue, QA approval, or escalation to a QMS deviation with bidirectional ID and status sync). Batch disposition is blocked while exceptions/deviations are open. Injectables: interventions and stoppages captured with time, duration and operators involved.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.100(b) (any deviation shall be recorded and justified); 211.192 [V2]; Annex 1 8.16-8.17 [V2]; EU GMP Ch.4 4.20 deviation notes [U]"
+  },
+  {
+   "name": "CAPA / investigation linkage using genealogy",
+   "description": "Deviations, OOS and investigations linked to batches, steps, equipment, material lots and CAPA/change records; one-click scope expansion to other batches of the same product and other products that may be associated (shared equipment, shared input lots, same room/time window) via genealogy and equipment-use graphs; written record of conclusions and follow-up linked back to each affected batch.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.192 (investigation shall extend to other batches and other drug products that may have been associated) [V2]; ICH Q10 CAPA [U]"
+  },
+  {
+   "name": "Review by exception (RBE) and production review",
+   "description": "System builds a per-batch exception register (all exceptions, automation alarms, deviations, comments, corrections of GMP data from the audit trail, manual entries replacing device capture, late entries, re-weighs/re-tests, overridden holds) plus a compliance summary. Reviewers must disposition each item (accept, query back to production, escalate); non-exception data are trusted only because validated controls enforced them (limits, validated interfaces, sequencing) - RBE criteria come from a documented risk assessment, are validated, and are periodically re-verified by sampling full-record reviews. Audit-trail entries for critical data are reviewed with the record before approval. Reviewer can always browse the full record; review status tracked per item and section; controlled correction loop (correction with reason, never re-execution). Staged review: production supervisor then QA.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.192 [V2]; EU GMP Ch.4 note under 4.20: for continuously monitored and controlled validated processes, automatically generated reports may be limited to compliance summaries and exception/OOS reports [V2s]; EU Annex 11 \u00a79 (audit trails regularly reviewed) [V2]; FDA DI Q&A Dec 2018 (review audit trails of critical data with each record before final approval) [U]; Annex 1 8.45, 10.10 [V2]"
+  },
+  {
+   "name": "QA disposition and QP certification",
+   "description": "Disposition cockpit aggregates: record completion and review status, open exceptions/deviations/CAPA/change links, LIMS results/CoA vs specification, input-lot release status (genealogy completeness), reconciliation, label/serialization status, and for injectables sterilisation, filtration, lyophilisation, EM and APS status. Decisions Release / Reject / Hold (conditional release only if SOP defines it) with e-signature meaning; EU QP certification as a distinct role and signature (system allows only QPs to certify and records who certified); status pushed to ERP. Hard blocks: incomplete mandatory steps, unreviewed exceptions, open deviations not QA-assessed, pending results, unreleased input lots, unresolved offline entries, failed APS on the line since the last successful APS.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.22(a), 211.192 [V2]; EU Annex 11 \u00a715 [V2]; EU GMP Annex 16 [U]; Annex 1 8.45, 9.46, 10.10 [V2]"
+  },
+  {
+   "name": "Electronic signatures (Part 11 Subpart C / Annex 11 \u00a714)",
+   "description": "Manifestation shows printed name, date/time and meaning (performed, verified, reviewed, approved, released, certified) on screen and in every rendering/printout; signature bound to record content by hash so it cannot be excised, copied or transferred; two distinct components (ID + password) - first signing in a continuous session uses all components, later signings at least one private component; outside continuous sessions all components each time; biometrics only if unusable by others; unique ID/password combinations, periodic revision, deauthorization of lost tokens, transaction safeguards with immediate and urgent alerting on attempted misuse, periodic token/card testing; signer must hold the required role and current qualification at signing time; no signing on behalf of others; signature policies per step; certification of e-signature equivalence to FDA (procedural).",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.50, 11.70, 11.200(a),(b), 11.300(a)-(e) [V2]; 11.100 [U]; EU Annex 11 \u00a714 (same impact as handwritten, permanently linked, time and date) [V2]"
+  },
+  {
+   "name": "Audit trail and audit-trail review tooling",
+   "description": "Secure, computer-generated, time-stamped audit trail of create/modify/delete for all GMP records, master data, MBRs, configuration and user/role changes, with old/new values, user, time and mandatory reason for GMP data changes; prior values never obscured; retained at least as long as the record; cannot be edited or disabled by anyone (changes to audit settings are themselves audited). Viewer filterable by batch/step/user/data type/time; printouts indicate data changed since original entry; audit-trail review workflow with reviewer sign-off; tamper-evidence via hash chaining or DB ledger features (e.g., SQL Server 2022 / Azure SQL ledger tables with SHA-256 Merkle-tree database digests and verification [V]).",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(e) [V2]; EU Annex 11 \u00a78.2, \u00a79, \u00a712.3, \u00a712.4 [V2]; FDA DI Q&A 2018 [U]"
+  },
+  {
+   "name": "Access control, segregation of duties and security",
+   "description": "Unique personal accounts only (no shared/generic); RBAC scoped by site/area; segregation of duties (MBR author is not approver; executor is not verifier; executor is not QA disposition for the same batch; system administrators have no GMP data-entry or approval rights); SSO/AD with local re-authentication for signatures; lockout and alerting; session timeout with warning and extend option balanced by fast badge re-login; device/terminal registration; periodic access reviews; records of creation/change/cancellation of access; OT/IT segmentation for scale/PLC/edge connectivity.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(d),(g),(h), 11.300 [V2]; EU Annex 11 \u00a712.1-\u00a712.4 [V2]; draft revised Annex 11 (consultation 7 Jul-7 Oct 2025) adds identity & access management and cybersecurity content [V2s]; ISA/IEC 62443 [U]"
+  },
+  {
+   "name": "Training and qualification gating",
+   "description": "Before a user can execute, verify or sign a step: role check + current training on the exact MBR/SOP versions referenced (from LMS) + task/equipment qualifications (dispensary, tablet press, filling line) + for aseptic areas gowning qualification, APS participation and visual-inspection qualification (at least annually, with defect library). Expired or pending training blocks the action (or allows supervised override only where the SOP permits, creating an exception). Record qualification evidence per ISA-88 Part 4 ResourceQualificationsManifest (QualificationStatus, EffectiveTimeStamp, ExpirationTimeStamp) [V].",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.25(a)-(c); 11.10(i) [V2]; Annex 1 8.31 [V2]; Annex 1 \u00a77 personnel [U]"
+  },
+  {
+   "name": "Label management and controlled printing",
+   "description": "Versioned, approved label templates bound to live data (material, lot, quantity, status, expiry/retest, batch, container ID); GS1 Application Identifiers where applicable: (01) GTIN N14 with check digit, (10) batch/lot X..20, (17) expiry N6 YYMMDD (day may be 00), (21) serial X..20, (11) production date, (00) SSCC N18, (7003) expiry date+time [V]; print audit (who, when, how many, which printer); reprint only with reason and authorization; voided labels recorded; issued labeling examined against the MBR; reconciliation; returned labeling stored to prevent mix-ups; optional scanner/camera verification of printed codes.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.101(b); 211.125(a)-(f); 211.130; 211.188(b)(8) [V2]; GS1 General Specifications via GS1 Barcode Syntax Dictionary [V]"
+  },
+  {
+   "name": "Batch record rendering, report and archive",
+   "description": "Complete human-readable batch record (all entries with units and limits, signature manifestations, exceptions and dispositions, audit-trail extracts, attachments, genealogy summary) generated on demand as PDF/A with the rendering-template version recorded; certified true copies; printouts flag data changed since original entry; accurate and complete copies in human-readable and electronic form for inspectors; ready retrieval throughout retention; archive with integrity checks and tested restore; identical re-rendering years later; retention at least 1 year after batch expiry (longer per company/EU rules).",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(b),(c) [V2]; 211.180(a),(c),(d) [V2]; EU Annex 11 \u00a77.1, \u00a77.2, \u00a78.1, \u00a78.2, \u00a717 [V2]"
+  },
+  {
+   "name": "Material genealogy and lot traceability",
+   "description": "Record every material movement and transformation as immutable edges between material lot/sublot/container nodes and execution nodes (batch, unit procedure, step) with quantity, UoM, MaterialUse (e.g., Consumed, Produced, By-product/Co-product Produced, Destructive/Returned/Retained Sample [V B2MML]), time, equipment and user; ISA-95 MaterialLot/MaterialSubLot with assembly relationships (AssemblyType Physical/Logical, AssemblyRelationship Permanent/Transient [V]); backward and forward trace in seconds (all finished lots containing supplier lot X; all inputs of finished lot Y) including packaging materials and labels, with link to serialization aggregation (SSCC/serials held in L3/L4); trace snapshot frozen at disposition; mass-balance checks; partial containers, returns, rework and samples all modelled.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.188(b)(3); 211.192; 211.130(c) [V2]; EU GMP Ch.4 4.20 [U]"
+  },
+  {
+   "name": "Data architecture: graph-shaped domain model on an ACID system of record (direct answer to 'are graph data structures or graph databases a good idea?')",
+   "description": "VERDICT: graph data STRUCTURES - yes, essential; a standalone graph DATABASE as the GxP system of record - generally no; a graph database as a derived, rebuildable read model - optional (could) for enterprise-scale genealogy/impact analytics. WHY GRAPHS FIT: (1) ISA-88 procedure logic is a directed graph of Steps, Transitions and Links with parallel/serial branches and synchronization [V BatchML]; (2) ISA-95 itself defines graph models - Workflow Specification nodes and connections with dependency types NotFollow, PossibleParallel, NotInParallel, AtStart, AfterStart, AfterEnd, NoLaterAfterStart, NoEarlierAfterStart, NoLaterAfterEnd, NoEarlierAfterEnd [V B2MML, based on ISA-95.00.04-2018], and Resource Relationship Networks of From/To resource connections (RelationshipType Logical/Physical, RelationshipForm Permanent/Transient) [V]; (3) lot genealogy is a DAG between material and execution nodes [V MaterialLot/SubLot assembly model]; (4) equipment hierarchies/trains, calculation dependencies (topological order, cycle detection), master-data where-used and deviation-batch-CAPA-change links are graphs. WHY NOT A GRAPH DB AS SYSTEM OF RECORD: core eBR data (step entries, e-signatures, audit trail, state transitions) are transactional and append-mostly and need ACID, constraints, point-in-time recovery and validated backup/restore/archive (Annex 11 \u00a77, \u00a717 [V2]) plus reporting; GxP audit trails (who/what/when/why, old/new values) must be built at application level regardless of DB - e.g., Neo4j query.log and security.log are Enterprise-only operational logs, not GxP audit trails [V]; a second DB platform adds validation, DR, skills and dual-write risk without need, since typical eBMR genealogy (thousands to tens of thousands of batches per site per year, 10-100 inputs each, 5-10 levels deep) is comfortably handled by recursive SQL. HOW: one transactional store (PostgreSQL/Oracle/SQL Server) with explicit node/edge tables (immutable edges; corrections as compensating edges with reason); traverse with WITH RECURSIVE (PostgreSQL provides SEARCH DEPTH/BREADTH FIRST and CYCLE detection clauses; its docs use the bill-of-materials sub-parts example [V]) or in-database graph features (SQL Server node/edge tables with MATCH, SHORTEST_PATH and edge constraints since 2017 [V]; Apache AGE adds openCypher to PostgreSQL 11-18 in the same transactional engine [V]); optional closure table/materialized trace for sub-second recall queries; freeze trace snapshot at disposition; store each approved MBR procedure graph as an immutable, content-hashed document validated at authoring (reachability, no unintended cycles, every path reaches End). Event sourcing (append-only execution events with projections) fits 'record changes shall not obscure previously recorded information' [V2]. WHEN A GRAPH DB IS JUSTIFIED: enterprise/supply-chain/serialization genealogy at 10^8+ edges or ad-hoc multi-hop pattern analytics (knowledge graph linking deviations, suppliers, equipment, batches) - feed it via transactional outbox/CDC, keep it non-authoritative (source of truth stays in the eBR, analogous to GAMP 5 D10 'source of truth vs source of origin' [V2s]), make it rebuildable, reconcile counts, and validate it to the extent its outputs drive GxP decisions (e.g., recall scope). Prefer standard languages to limit lock-in (openCypher [V]; ISO GQL 39075:2024 and SQL/PGQ 9075-16:2023 [U]).",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(a),(c),(e); 211.188(b)(3); 211.192 [V2]; EU Annex 11 \u00a74.8, \u00a77, \u00a79, \u00a717 [V2]; GAMP 5 2nd ed. M4 (database managers are Cat 1 infrastructure) and D10 [V2s]; ISA-88 Part 2 / ISA-95 Parts 2 & 4 object models [V via B2MML/BatchML V0701]"
+  },
+  {
+   "name": "Integrations: ERP, LIMS, QMS, LMS, CMMS, automation/historian, devices, serialization",
+   "description": "ERP (process orders, BOM, material master, goods issue/receipt, batch status/characteristics, e.g., SAP S/4HANA [U]) via ISA-95 B2MML V0701 (based on ISA-95.00.02/.04/.05-2018 [V]) or ERP APIs; LIMS (sample registration, results, specifications, CoA); QMS (deviations, CAPA, change control); LMS (training status); CMMS (calibration/PM); SCADA/DCS/historian via OPC UA - ISA-95 Job Control V2 (2.0.0, 2024-01-31) for job orders/responses, PackML (1.01, 2020-10-08) for packaging machines, LADS (1.0.0, 2023-11-30) for lab devices [V]; scales via OPC UA Weighing/Scales V2 (2.00, 2025-03-01) [V]; label printers; barcode scanners; serialization L3 via OPEN-SCS OPC UA (1.00, 2019-02-04: job orders, serial-number states, aggregation, EPCIS-aligned) [V] and L4 via GS1 EPCIS 2.0 (JSON/JSON-LD and REST bindings) [V repo]. Engineering rules: guaranteed delivery (outbox), idempotency keys, reconciliation reports, error queues with GMP-impact triage, interface audit logs attributed to service identities, built-in checks for correct and secure data exchange, migration checks that data are not altered in value or meaning.",
+   "priority": "must",
+   "regulatory_driver": "EU Annex 11 \u00a74.8, \u00a75 [V2]; 21 CFR 211.68(b) [V2]; DSCSA / EU FMD Delegated Regulation 2016/161 for serialization [U]"
+  },
+  {
+   "name": "Business continuity, offline and edge operation",
+   "description": "Documented and tested continuity: HA cluster, DR with defined RPO/RTO, controlled paper fallback (pre-generated, uniquely numbered forms for current steps, issued and reconciled, later transcribed with verification and linked to the electronic record), and/or per-line edge nodes that queue entries with local time source, sequence numbers and signatures, forwarding on reconnection with conflict detection. Offline entries and offline e-signatures are flagged and re-validated at sync (e.g., account disabled or training expired before the offline timestamp raises an exception); offline mode limited to defined step types and durations; clock-drift monitoring.",
+   "priority": "must",
+   "regulatory_driver": "EU Annex 11 \u00a716 (provisions for continuity, e.g., manual or alternative system) and \u00a77 [V2]; 21 CFR 11.10(e) [V2]"
+  },
+  {
+   "name": "Multi-site, multi-language, multi-time-zone platform",
+   "description": "Site/area/line data scoping and partitioning; per-site deployment or central cloud with site edge for WAN outages; global dashboards; languages for UI and MBR text (translations versioned/approved; record stores the language shown to the operator); UTC storage with local display and zone shown in signature manifestations; validated UoM conversions; locale-safe numeric/date entry (decimal comma vs point, DD/MM vs MM/DD) with parsed-value echo; data-residency options; rollout templates and site onboarding kits.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.50(a)(2) date and time of signature [V2]; EU Annex 11 \u00a74, \u00a710 [V2]"
+  },
+  {
+   "name": "Validation and configuration-management support",
+   "description": "Configuration objects (MBRs, master data, workflows, roles, exception rules, label templates) versioned, audit-trailed and promotable between dev/test/prod under change control; configuration baselines and diff reports; automated regression suites with retained evidence; clear separation of configuration from custom code (GAMP 5 2nd ed.: most systems mix Cat 3 core, Cat 4 workflow configuration, Cat 5 bespoke interfaces [V2s]); supplier documentation leverage; periodic-review reports; risk-based assurance per CSA principles.",
+   "priority": "must",
+   "regulatory_driver": "EU Annex 11 \u00a74, \u00a710, \u00a711 [V2]; GAMP 5 2nd ed. (2022) [V2s]; FDA Computer Software Assurance final guidance, FR 2025-18468, 24 Sep 2025 (device scope, persuasive for pharma) [V2s]"
+  },
+  {
+   "name": "Cross-cutting business-rule invariants (anti-loophole rule set)",
+   "description": "(1) No deletion of GMP data; only status changes or corrections with reason. (2) Every rule enforced server-side; never trust client/edge validation. (3) Prerequisites re-validated at commit/sign time. (4) Independence: performer is not verifier; MBR author is not approver; nobody approves their own exception; executor is not QA disposition for the same batch. (5) Signer must hold role and current qualification at signing time; no signing for others. (6) Disposition impossible with incomplete mandatory steps, open/unreviewed exceptions, non-assessed deviations, unreviewed critical audit-trail entries, missing results, unreleased input lots, open reconciliation, unresolved offline entries. (7) Server UTC timestamps and monotonic durations; manual times only within a window, with reason. (8) Material status/expiry/retest/product restriction checked at each consumption; a container cannot be consumed beyond its remaining quantity; container IDs unique. (9) Equipment status/cleaning/calibration/hold-time checked at start and at completion. (10) Explicit inclusive/exclusive limits and rounding before comparison. (11) Calculations only from recorded values; overriding a result is an exception. (12) Batches start only on an effective MBR version pinned by hash. (13) Label reprints controlled and reconciled. (14) Idempotent integrations (no double goods issue). (15) Every override creates an exception. (16) Audit trail cannot be disabled; configuration changes audited. (17) Step locking and optimistic concurrency. (18) Locale-safe numeric parsing with echo-back. (19) Minimum retention enforced before any archival purge.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 11.10(d),(e),(f),(g),(h); 211.100(b); 211.101; 211.186(a); 211.192; 211.180(a) [V2]; EU Annex 11 \u00a75, \u00a76, \u00a79, \u00a712, \u00a714 [V2]"
+  },
+  {
+   "name": "Dashboards and KPIs",
+   "description": "Batch cycle time by phase; review cycle time (end of execution to QA release); right-first-time (% batches without exceptions/deviations); exceptions per batch by type/area/step (to target MBR fixes); deviation ageing; equipment utilization/OEE for tablet presses, packaging lines and fillers; WIP and hold-time risk boards. Koerber markets comparable metrics (equipment usage, exception monitoring, batch-record review times) in PAS-X Savvy dashboards [Vs].",
+   "priority": "should",
+   "regulatory_driver": "21 CFR 211.180(e) annual product review data use [V2]; ICH Q10 process performance monitoring and management review [U]"
+  },
+  {
+   "name": "Notifications and task inbox",
+   "description": "Role- and qualification-aware inbox of pending steps, verifications, exception approvals, reviews and signatures across batches; push notifications for timer expiry, blocked batches and QA approvals; escalation rules; no GMP decision can be made from a notification without opening full context.",
+   "priority": "should",
+   "regulatory_driver": "21 CFR 211.111 (time limits) [V2]; Annex 1 8.18 [V2]"
+  },
+  {
+   "name": "Inspection readiness and search",
+   "description": "Global search by batch, material lot, equipment, user, deviation; instant retrieval of batch record PDF, audit trail export, genealogy trace, linked deviations/CAPA and training evidence; read-only inspector role; export in human-readable and electronic formats.",
+   "priority": "should",
+   "regulatory_driver": "21 CFR 11.10(b), 211.180(c) (records readily available for authorized inspection) [V2]"
+  },
+  {
+   "name": "INJECTABLES: aseptic interventions and stoppages log",
+   "description": "Authorized list of qualified inherent and corrective interventions configured per line; each intervention/stoppage recorded in the batch record with type, time, duration and operators involved, linked to EM samples (glove monitoring after critical interventions, outer gloves replaced) and to exceptions when not on the authorized list; aggregate review at disposition.",
+   "priority": "must",
+   "regulatory_driver": "EU/PIC/S Annex 1 (2022) 8.16, 8.17, 9.25 [V2]"
+  },
+  {
+   "name": "INJECTABLES: sterilisation cycle records (autoclave, dry-heat/depyrogenation, SIP, terminal sterilisation)",
+   "description": "Each cycle has a unique identifier; load pattern and routine operating parameters from the validated cycle; cycle data/chart pulled from controller or historian (OPC UA), evaluated automatically against acceptance criteria; failed or deviating cycles (e.g., longer/shorter phases) create investigations; sterilisation records reviewed and approved as part of batch certification/release and linked to all sterilised items (components, equipment, product) via genealogy.",
+   "priority": "must",
+   "regulatory_driver": "Annex 1 8.40, 8.41, 8.45 [V2]"
+  },
+  {
+   "name": "INJECTABLES: sterile filtration and filter integrity",
+   "description": "Filter IDs/lots and housings; pre-use post-sterilisation integrity test (PUPSIT) and post-use non-destructive integrity test before removal from the housing, captured from the integrity tester; filtration CPPs in the batch record (minimum time to filter a known volume, pressure difference, maximum filtration time/contact time, maximum operating pressure, flow rate, maximum volume); filter single-batch/one-working-day use limits enforced; bioburden sample immediately before the final sterilising filter against defined limits.",
+   "priority": "must",
+   "regulatory_driver": "Annex 1 8.85(ii), 8.86, 8.87, 8.94, 10.3 [V2]"
+  },
+  {
+   "name": "INJECTABLES: lyophilisation",
+   "description": "Loading pattern and load/unload records; lyophiliser sterilisation before each load where manual loading/unloading occurs without barrier separation (applicable from 25 Aug 2024) and re-sterilisation after maintenance/cleaning; transfer of partially stoppered containers under grade A at all times; vent/integrity filter sterilised before each use with integrity results part of batch certification; cycle recipe and parameters captured from SCADA and evaluated; stoppering and unloading records.",
+   "priority": "must",
+   "regulatory_driver": "Annex 1 8.122, 8.123, 8.124, 8.126(ii) [V2]"
+  },
+  {
+   "name": "INJECTABLES: EM, personnel monitoring and APS linkage for disposition",
+   "description": "EM results (viable and total particles) with alert/action limits and required responses; continuous grade A particle monitoring (0.5 and 5 micron) correlated to the filling period; personnel monitoring (gloves after critical interventions, gloves and gown on each exit from grade B); APS status per line/shift (initial 3 consecutive, periodic twice a year; target zero growth; any contaminated unit fails the APS and all product made on the line since the last successful APS is quarantined pending resolution); EM data and trends reviewed as part of batch certification/release.",
+   "priority": "must",
+   "regulatory_driver": "Annex 1 9.9, 9.13, 9.17, 9.25, 9.38, 9.46, 10.10 [V2]"
+  },
+  {
+   "name": "INJECTABLES: 100% visual inspection and container-closure integrity",
+   "description": "Inspection results by method (manual, semi-automated, automated), rejects by defect category, AQL sampling results, inspector identity and qualification status (qualified at least annually with defect library, with corrective lenses if normally worn); 100% integrity testing for fusion-closed small containers (<100 ml), ampoules and BFS with validated methods (visual inspection is not an acceptable integrity test); sampled CCI for other closures; reconciliation of inspected, accepted and rejected units.",
+   "priority": "must",
+   "regulatory_driver": "Annex 1 8.22, 8.23, 8.25, 8.30, 8.31 [V2]"
+  },
+  {
+   "name": "TABLETS: granulation, blending, compression and coating specifics",
+   "description": "Granulation end-point parameters (e.g., power/torque, spray rate, inlet/outlet temperature, LOD), blend time/speed and blend-uniformity sampling, potency-adjusted dispensing with compensating excipient, compression press data (force, speed, weight control, rejects) via OPC UA, IPC schedules for weight, hardness, thickness, friability, disintegration, metal-detector challenge tests, coating weight gain and spray parameters, sublot/pan genealogy, dust/cross-contamination and HBEL-based changeover cleaning. Largest risk areas are manual calculations and frequency-based IPC adherence - automate both.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.101, 211.103, 211.110(a)(1)-(4) [V2]; EU GMP Ch.3/Ch.5 cross-contamination [U]"
+  },
+  {
+   "name": "PACKAGING (both editions): line clearance, artwork/label verification and serialization",
+   "description": "Packaging orders linked to bulk lots; line clearance before/after; component and printed-material issuance and examination; online verification of variable data (batch, expiry, GTIN, serial) by scanners/cameras; serialization job creation to L3 (OPEN-SCS), commissioning/aggregation reports and serial-number reconciliation; label/leaflet/carton reconciliation within historical limits; samples and rejects accounted.",
+   "priority": "must",
+   "regulatory_driver": "21 CFR 211.125, 211.130, 211.188(b)(6),(8) [V2]; DSCSA / EU FMD (Reg. 2016/161) / Indian traceability rules [U]"
+  },
+  {
+   "name": "Continuous manufacturing support (tablets)",
+   "description": "Time-window, residence-time-distribution based genealogy and diversion records linking input material to output sublots, state-of-control flags and PAT data references; relevant if continuous direct compression is in scope.",
+   "priority": "could",
+   "regulatory_driver": "ICH Q13 [U]; 21 CFR 211.188(b)(3) [V2]"
+  }
+ ],
+ "helpful_extras": [
+  {
+   "name": "Right-first-time and exception analytics",
+   "description": "Live dashboards of exceptions per batch/step/area, RFT %, review cycle time and top recurring exceptions with drill-down to the step and MBR version.",
+   "value": "Directs MBR and process fixes that cut deviations and shorten review; Koerber sells this pattern as PAS-X Savvy manufacturing dashboards [Vs]."
+  },
+  {
+   "name": "Predictive batch and review ETA",
+   "description": "ML on historical step durations predicts batch end time, hold-time breach risk and QA review completion; strictly non-GxP decision support.",
+   "value": "Better scheduling and fewer hold-time exceedances without touching the validated record."
+  },
+  {
+   "name": "Digital batch-status twin / live floor board",
+   "description": "Real-time Gantt of unit procedures, equipment occupancy, running timers, material staging and who is on which step, across lines and sites.",
+   "value": "Supervisors see bottlenecks and at-risk timers before they become deviations."
+  },
+  {
+   "name": "Scan-everything with GS1 parsing",
+   "description": "2D scanning of materials, containers, equipment, rooms, documents and user badges; automatic parsing of GS1 AIs (01), (10), (17), (21), (00) with format and check-digit validation [V].",
+   "value": "Eliminates transcription errors and typing with gloves; speeds identity verification."
+  },
+  {
+   "name": "Hands-free / voice confirmation for gowned operators",
+   "description": "Voice or foot-pedal acknowledgement for non-critical confirmations in grade A/B, with read-back; never for e-signatures or measured values.",
+   "value": "Fewer glove contacts with screens (contamination control) and faster flow."
+  },
+  {
+   "name": "Compliant AI-assisted review",
+   "description": "Static, locked ML anomaly scoring or LLM summaries of a batch record presented as advisory flags; reviewer decides and signs; prompts/outputs logged; model version under change control; validated per GAMP 5 D11 (data partitioning, performance monitoring, human-in-the-loop) [V2s]. Draft EU Annex 22 (July 2025) limits critical GMP use to static deterministic models and keeps generative AI/LLMs out of critical applications [V2s].",
+   "value": "Faster, more consistent reviews while accountability stays with the qualified reviewer."
+  },
+  {
+   "name": "AI-assisted MBR digitization",
+   "description": "Parse legacy paper MBRs/SOPs into draft structured building blocks and parameters; mandatory side-by-side diff against the source and normal dual review/approval.",
+   "value": "Accelerates paper-to-electronic conversion; hallucination risk controlled by review."
+  },
+  {
+   "name": "Governed template and building-block library",
+   "description": "Global, versioned library per dosage form (direct compression, wet granulation, coating, aseptic fill, lyophilization, terminal sterilization) with where-used and adoption metrics.",
+   "value": "Consistency across sites, faster MBR creation, reuse of verification evidence."
+  },
+  {
+   "name": "Simulation / training mode",
+   "description": "Sandbox executions with training batches, watermarked and segregated from GMP data; completion can be recorded as training evidence.",
+   "value": "Operator proficiency before go-live or MBR changes without polluting GMP records."
+  },
+  {
+   "name": "Batch comparison and golden-batch overlay",
+   "description": "Compare parameters, timings, IPC trends and exceptions across batches or against a golden batch.",
+   "value": "Faster investigations and continued process verification."
+  },
+  {
+   "name": "Genealogy graph visualization and mock-recall simulator",
+   "description": "Interactive forward/backward trace graph with status colouring (quarantined, rejected, released), progressive expansion, time-to-trace KPI and export for the recall file.",
+   "value": "Recall readiness and faster 211.192 scope expansion."
+  },
+  {
+   "name": "Graph-based change-impact explorer",
+   "description": "Visual where-used and impact of changing a material, building block, equipment class, label template or SOP across MBRs and open batches.",
+   "value": "Safer, faster change control decisions."
+  },
+  {
+   "name": "Optional graph read-model for enterprise analytics",
+   "description": "Non-authoritative graph database (e.g., openCypher/GQL capable) fed by outbox/CDC from the eBR store, rebuildable and reconciled, for cross-site genealogy, supplier-deviation-equipment knowledge graphs and serialization-scale traces.",
+   "value": "Deep multi-hop analytics without putting GxP records into a second system of record."
+  },
+  {
+   "name": "Mobile electronic logbooks and room status boards",
+   "description": "Tablet/phone logbook entries for cleaning, maintenance, sanitization with status boards at room entrances.",
+   "value": "Retires paper logbooks and status tags; equipment status becomes enforceable."
+  },
+  {
+   "name": "Rich-media work instructions",
+   "description": "Version-controlled images, video and 3D for complex set-ups (e.g., filling-machine format parts, press tooling).",
+   "value": "Fewer set-up errors and shorter training."
+  },
+  {
+   "name": "Smart timers and escalations",
+   "description": "Hold-time and time-limit countdowns with push alerts to supervisors and wearables.",
+   "value": "Prevents 211.111/Annex 1 8.18 limit breaches."
+  },
+  {
+   "name": "Camera-based verification",
+   "description": "OCR/OCV of printed batch/expiry on labels and cartons; photo evidence for line clearance.",
+   "value": "Fewer mix-ups; objective evidence for reviewers."
+  },
+  {
+   "name": "Environmental-monitoring mobile sampling (injectables)",
+   "description": "Sampling-point maps, plate labels, chain of custody and results linked to the batch filling window.",
+   "value": "EM data ready at disposition (Annex 1 10.10) [V2]."
+  },
+  {
+   "name": "Tamper-evident audit ledger",
+   "description": "Hash-chained audit records or database ledger (e.g., SQL Server 2022 ledger digests with verification [V]) with periodic digest anchoring.",
+   "value": "Stronger, demonstrable data-integrity assurance."
+  },
+  {
+   "name": "Operator cockpit",
+   "description": "Single queue of everything a user is qualified and scheduled to do across batches, including verifications requested by peers.",
+   "value": "Less idle time and fewer missed verifications."
+  },
+  {
+   "name": "Paper-fallback kit generator",
+   "description": "On outage, prints uniquely numbered controlled forms for in-progress steps and tracks their reconciliation back into the electronic record.",
+   "value": "Controlled business continuity (Annex 11 \u00a716) [V2]."
+  },
+  {
+   "name": "Recipe/record export in ISA-88/ISA-95 formats",
+   "description": "Export MBRs and batch records as BatchML/B2MML V0701 [V] for tech transfer, CDMO-sponsor exchange and long-term archive.",
+   "value": "Reduces vendor lock-in; eases site transfers."
+  },
+  {
+   "name": "Cleaning-validation calculator linked to equipment trains",
+   "description": "MACO/HBEL-based limits and changeover decisions tied to equipment status and product sequence.",
+   "value": "Faster, defensible changeover decisions (esp. multi-product tablet plants) [U]."
+  },
+  {
+   "name": "Material staging with AGV/AMR integration",
+   "description": "Automated transport tasks triggered from dispensing/kitting with scan-based hand-offs.",
+   "value": "Less manual handling; tighter genealogy events."
+  },
+  {
+   "name": "CPV / APR data feed",
+   "description": "Structured batch data streamed to historian/data lake for continued process verification and annual product review.",
+   "value": "Uses eBR data for 211.180(e) annual review [V2] and CPV without manual extraction."
+  },
+  {
+   "name": "Locale-safe numeric entry and on-the-fly language switch",
+   "description": "Per-user language, site locale parsing with echo-back of interpreted value and unit.",
+   "value": "Prevents 10x/decimal errors in multi-site deployments."
+  }
+ ],
+ "ux_principles": [
+  {
+   "principle": "One step at a time with persistent context",
+   "detail": "Execution screen shows exactly one actionable step: title, step n of N, instruction, required inputs with limits and units, primary next action. A fixed header always shows product, batch, unit procedure, room/equipment, logged-in user, running timers and connectivity state. Parallel branches appear as separate tasks, not a long scrolling form.",
+   "source": "21 CFR 11.10(f) permitted sequencing [V2]; ISA-88 step model [V BatchML]; design practice [U]"
+  },
+  {
+   "principle": "Prevent errors rather than report them (poka-yoke)",
+   "detail": "Constrain input (scan instead of type, device capture, pick lists, numeric keypad with fixed unit), validate at entry with immediate in/out feedback, disable impossible actions, hard-stop only where risk demands and always provide a governed exception path; show what the system will commit before signature.",
+   "source": "WCAG 2.2 SC 3.3.4 Error Prevention (reversible, checked, confirmed) [V]; EU Annex 11 \u00a75, \u00a76 [V2]"
+  },
+  {
+   "principle": "Scanner-first, keyboard-last",
+   "detail": "Every material container, equipment item, room, document and user badge carries a barcode/RFID; scanning is the default identity check; manual keying of identities is an exception with reason and verification; GS1 AIs parsed with check-digit validation.",
+   "source": "21 CFR 211.101(b),(c) identity verification [V2]; GS1 Barcode Syntax Dictionary [V]"
+  },
+  {
+   "principle": "Gloved-touch sizing and spacing",
+   "detail": "Baseline all targets at least 44x44 CSS px (WCAG AAA) with generous spacing; for cleanroom double gloves design primary actions around 15-20 mm physical (roughly 60-80 CSS px) [U recommendation]; no small icons as sole affordance; avoid drag and multi-finger gestures (single-tap alternatives).",
+   "source": "WCAG 2.2 SC 2.5.8 Target Size (Minimum) 24x24 CSS px AA and SC 2.5.5 Target Size (Enhanced) 44x44 AAA [V]; Material Design 48dp minimum touch target [V]; SC 2.5.7 Dragging Movements [U]"
+  },
+  {
+   "principle": "Minimal typing and no redundant entry",
+   "detail": "Auto-populate or offer selection for information already entered in the same process (e.g., lot numbers scanned earlier), predefined reason codes with optional comment, numeric keypads; the security exception covers deliberate re-authentication at signing.",
+   "source": "WCAG 2.2 SC 3.3.7 Redundant Entry (exceptions: essential, security, no longer valid) [V]"
+  },
+  {
+   "principle": "Never pre-fill measured or observed values",
+   "detail": "Defaults allowed only for contextual data (e.g., current room); targets are displayed beside the input, never copied into the actual-value field; device values are captured, not typed.",
+   "source": "21 CFR 11.10(e) and ALCOA+ expectations in PIC/S PI 041-1 [V2/U]"
+  },
+  {
+   "principle": "Redundant state coding: colour + icon + text",
+   "detail": "Consistent palette (e.g., neutral for normal, blue active, amber attention, red out-of-limit/blocked, green complete/in-spec) always paired with icon and text label; muted normal state so abnormal states stand out; minimum 3:1 contrast for component states and graphics, 4.5:1 for text.",
+   "source": "WCAG 2.2 SC 1.4.11 Non-text Contrast 3:1 [V]; SC 1.4.1 Use of Color and 1.4.3 Contrast [U]; ANSI/ISA-101 HMI philosophy [U]"
+  },
+  {
+   "principle": "Limits next to inputs with live evaluation",
+   "detail": "Show target, range and unit adjacent to each entry; evaluate as the value is captured; for aggregate IPCs show running mean/RSD and a mini control chart.",
+   "source": "21 CFR 211.110 [V2]; design practice [U]"
+  },
+  {
+   "principle": "Signature dialogs that show meaning and content",
+   "detail": "Dialog shows the signer's printed name, the meaning (e.g., 'Verified by'), a summary of exactly what is being signed (values, limits, exceptions), date/time; requires deliberate action and the Part 11 components; never pre-fills passwords; offer a non-cognitive alternative (badge + biometric/security key) or allow password managers where feasible; list every item when one signature covers several items with the same meaning.",
+   "source": "21 CFR 11.50, 11.200 [V2]; EU Annex 11 \u00a714 [V2]; WCAG 2.2 SC 3.3.8 Accessible Authentication (Minimum) [V]"
+  },
+  {
+   "principle": "Always show who is logged in; fast, safe user switching",
+   "detail": "Persistent identity banner; badge tap to switch user; automatic lock of shared cleanroom terminals after inactivity; entries impossible under another person's session.",
+   "source": "21 CFR 11.10(d),(g), 11.300 [V2]; EU Annex 11 \u00a712 [V2]"
+  },
+  {
+   "principle": "Humane, safe session timeouts",
+   "detail": "Warn before timeout and allow extension with a simple action; badge re-login restores context and in-progress (uncommitted) data.",
+   "source": "WCAG 2.2 SC 2.2.1 Timing Adjustable (warn, at least 20 s to extend, extend at least 10 times) [V]"
+  },
+  {
+   "principle": "Legibility at arm's length through visors",
+   "detail": "Large base font (larger for values and limits), high contrast, no dense grids during execution, units and significant figures consistent, anti-glare screens mounted at the point of use.",
+   "source": "WCAG 2.2 contrast criteria [V/U]; design practice [U]"
+  },
+  {
+   "principle": "Visible timers and hold-time countdowns",
+   "detail": "Every active time limit or hold time is visible in the header with remaining time, colour escalation and pre-expiry alerts to operator and supervisor.",
+   "source": "21 CFR 211.111 [V2]; Annex 1 8.18 [V2]"
+  },
+  {
+   "principle": "Actionable, in-context exceptions",
+   "detail": "When a check fails, state what failed, expected vs actual, why it matters and the next permitted actions (retake, call supervisor, raise exception, stop); capture justification immediately; never a generic error.",
+   "source": "21 CFR 211.100(b) [V2]; WCAG 2.2 SC 3.3.1 Error Identification and 3.3.3 Error Suggestion [U]"
+  },
+  {
+   "principle": "Graceful interruption, offline transparency",
+   "detail": "Pause/resume and handover preserve context; uncommitted data persisted locally and clearly marked; connectivity and sync status always visible; nothing silently lost.",
+   "source": "EU Annex 11 \u00a716 [V2]"
+  },
+  {
+   "principle": "Locale-safe numeric and date entry",
+   "detail": "Parse per site locale (decimal comma vs point), echo the interpreted value with unit before commit, unambiguous date format (e.g., 27-SEP-2026) in records.",
+   "source": "Design practice for multi-site deployments [U]"
+  },
+  {
+   "principle": "Consistency across building blocks and sites",
+   "detail": "The same building block always looks and behaves the same; a shared design system across modules (execution, W&D, logbooks, review) reduces training and errors.",
+   "source": "Design practice; ISO 9241-110 interaction principles [U]"
+  },
+  {
+   "principle": "QA review screen: exception-first, context-rich, full record reachable",
+   "detail": "Exception list grouped by severity/category with filters and mandatory-review markers; each item shows expected vs actual, who/when, justification, linked deviation, audit-trail snippet, MBR instruction and attachments side by side; actions accept/query/escalate; bulk acknowledge only for low-risk categories with a reason; progress indicator; signature enabled only when all mandatory items are dispositioned; full record navigator (timeline and step tree) and audit-trail viewer always available; data changed after original entry highlighted.",
+   "source": "21 CFR 211.192 [V2]; EU Annex 11 \u00a78.2, \u00a79 [V2]; EU GMP Ch.4 note under 4.20 [V2s]"
+  },
+  {
+   "principle": "MBR authoring: visual graph plus structured forms, linting, simulation and diff",
+   "detail": "Dual view (PFC/SFC canvas and outline tree) with operator preview of each step; drag building blocks from a governed library into typed parameter forms; IDE-style validation panel (unreachable steps, cycles, missing signatures, unit mismatches, inverted limits); simulate as operator with forced failures; version diff (graph and parameters); where-used panel; review mode highlighting changes since last approved version; plain-language instruction guidelines.",
+   "source": "ISA-88 Part 2 procedure logic [V BatchML]; 21 CFR 211.186(a) [V2]"
+  },
+  {
+   "principle": "Genealogy visualization that scales",
+   "detail": "Start from the searched lot, expand level by level, collapse repetitive nodes, colour by status, filter by material type/time, show quantities on edges, export to PDF for the recall file.",
+   "source": "21 CFR 211.192 [V2]; design practice [U]"
+  },
+  {
+   "principle": "Accessibility baseline WCAG 2.2 AA everywhere",
+   "detail": "Apply to shop-floor and office screens (keyboard use and screen readers matter for review/office roles); focused components never hidden by sticky headers or on-screen keyboards.",
+   "source": "WCAG 2.2 (current edition dated 2024-12-12) [V]; SC 2.4.11 Focus Not Obscured (Minimum) AA [V]"
+  },
+  {
+   "principle": "Human-factors engineering with gowned users",
+   "detail": "Task analysis per role; use-error analysis for critical tasks (weigh, charge, sign, release); formative usability tests in a simulated cleanroom with real gowns, double gloves, visors and scanners; measure task time, error and workaround rates before go-live.",
+   "source": "IEC 62366-1 method (device standard used as method reference) and ISO 9241-210 [U]"
+  },
+  {
+   "principle": "Cleanroom-appropriate hardware and placement",
+   "detail": "Sealed (IP65+) panel PCs/tablets resistant to IPA/sporicides/VHP, glove-capable touch, fixed mounts at point of use, tethered 2D imagers capable of reading damaged or direct-part marks, badge readers; avoid personal devices in grade A/B; consider screens outside isolators viewed through windows.",
+   "source": "Annex 1 (2022) premises/equipment cleanability expectations [U]; design practice [U]"
+  },
+  {
+   "principle": "Notification discipline",
+   "detail": "Prioritize and rationalize alerts; route by role; avoid modal pop-up storms that train users to click through; every alert has an owner and required response.",
+   "source": "ISA-18.2 alarm-management principles [U]"
+  }
+ ],
+ "user_roles": [
+  {
+   "role": "Production operator (tablets: granulation, blending, compression, coating; injectables: compounding, component preparation/washing/depyrogenation, filling, lyophilizer loading, capping)",
+   "responsibilities": "Executes control-recipe steps in sequence; scans materials, equipment and rooms; captures or confirms device data; performs IPCs; records interventions and stoppages (injectables); raises exceptions with justification; signs 'Performed by'. Cannot verify own work, approve exceptions above own authority, edit master data or disposition batches.",
+   "key_screens": "Operator cockpit/task inbox; step execution screen (instruction, inputs, limits, timers); scan dialogs; IPC entry with live limit evaluation and mini SPC chart; exception capture dialog; e-signature dialog; equipment/room status view; shift handover summary; offline/sync indicator."
+  },
+  {
+   "role": "Dispensary (weigh & dispense) operator",
+   "responsibilities": "Executes dispensing orders; verifies booth/room and scale status; scans source containers (status/expiry); weighs within tolerance with stable readings; prints and applies container labels; returns remainders; stages kits.",
+   "key_screens": "Dispensing order list; scale-connected weighing screen (live gauge with tolerance band, tare/gross/net, stability indicator); container scan with status/expiry; label print/reprint-with-reason; kit staging checklist."
+  },
+  {
+   "role": "Aseptic-area operator (injectables)",
+   "responsibilities": "As production operator plus: works only while gowning/APS qualification is valid; records authorized interventions with time, duration and operators; follows glove-monitoring and exit rules; observes time limits.",
+   "key_screens": "Filling execution screen with time-limit header; intervention logging; EM sampling prompts; qualification status indicator."
+  },
+  {
+   "role": "Packaging / line operator",
+   "responsibilities": "Line clearance, component and printed-material issuance checks, serialization job start, online verification checks, reconciliation counts.",
+   "key_screens": "Packaging order and line-clearance checklist; label/artwork verification results; serialization job status; reconciliation screen."
+  },
+  {
+   "role": "Second-person verifier / witness",
+   "responsibilities": "Independently verifies critical manual entries, component additions, weighings, yield calculations and line clearance; must be qualified and independent of the performer; signs 'Verified by'.",
+   "key_screens": "Verification queue; side-by-side performed data vs requirement; personal re-authentication/e-signature."
+  },
+  {
+   "role": "Shift supervisor / production lead",
+   "responsibilities": "Assigns work; monitors progress and timers; approves operational exceptions within authority; manages holds/pauses and handovers; performs first (production) review; activates business-continuity mode when needed.",
+   "key_screens": "Live floor board / batch-status twin; exception approval queue; hold-time risk board; production review screen; staff qualification matrix."
+  },
+  {
+   "role": "Head of production (EU person responsible for production)",
+   "responsibilities": "Co-approves MBRs with QA; approves completed batch processing records; owns production KPIs and right-first-time improvement.",
+   "key_screens": "MBR approval workspace; production approval of batch records; KPI dashboards (cycle time, RFT, exceptions per batch)."
+  },
+  {
+   "role": "QA on the shop floor (QA operations)",
+   "responsibilities": "Real-time approval of critical exceptions; line-clearance verification; AQL and sampling oversight; witnessing where SOPs require.",
+   "key_screens": "Mobile QA inbox; exception detail with full context; line-clearance verification; sampling task list."
+  },
+  {
+   "role": "QA batch-record reviewer",
+   "responsibilities": "Reviews the exception register and critical-data audit-trail entries; confirms deviations are linked and closed or assessed; checks reconciliations, yields and result completeness; queries production; signs 'Reviewed by'.",
+   "key_screens": "Review-by-exception workspace (filters, severity, context panel, audit-trail viewer, attachments, MBR instruction side by side); full-record navigator/timeline; query/return workflow; review checklist and signature."
+  },
+  {
+   "role": "QA disposition authority (US quality control unit) / EU Qualified Person / equivalent authorized person elsewhere",
+   "responsibilities": "Approves or rejects the batch; the QP certifies per Annex 16, with the system allowing only QPs to certify and recording who certified; for injectables confirms sterilisation, filtration, lyophilisation, EM and APS status.",
+   "key_screens": "Disposition cockpit (readiness checklist and blocking items), CoA/LIMS results, genealogy completeness, deviation/CAPA status, EM/APS panel, release/reject/certify signature."
+  },
+  {
+   "role": "QC analyst / microbiology and EM technician",
+   "responsibilities": "Receives and tests samples in LIMS; performs EM sampling and plate reads; filter integrity and bioburden tests; results flow into the batch context.",
+   "key_screens": "Sample receipt and chain of custody; EM mobile sampling app; results in batch context."
+  },
+  {
+   "role": "MBR author (MS&T / technical services / process engineer)",
+   "responsibilities": "Builds MBRs from approved process descriptions using library building blocks; defines parameters, limits, calculations, signature and verification rules; runs simulations; prepares change documentation.",
+   "key_screens": "Graphical MBR designer (PFC/SFC canvas plus outline tree); building-block library; parameter/limit forms; calculation editor with test vectors; linting panel; simulation runner; version diff; where-used."
+  },
+  {
+   "role": "MBR reviewer / approver (independent checker, QA approver)",
+   "responsibilities": "Independently checks and approves MBR versions; cannot approve a version they authored; confirms change-control linkage and training impact.",
+   "key_screens": "Review mode highlighting changes since last approved version; review checklist; comments; approval e-signature."
+  },
+  {
+   "role": "Master data steward",
+   "responsibilities": "Maintains material master/specifications, equipment master/classes, label templates, reason codes, UoM and site hierarchy under change control.",
+   "key_screens": "Master-data editors with approval workflow; where-used; audit trail."
+  },
+  {
+   "role": "Warehouse / logistics operator",
+   "responsibilities": "Receives, stages and kits materials; moves containers; returns partial containers; every movement scanned (genealogy edges); respects material status.",
+   "key_screens": "Staging/kitting lists; container movement scan; inventory by location with status."
+  },
+  {
+   "role": "Maintenance, calibration and cleaning technician",
+   "responsibilities": "Executes cleaning, preventive maintenance and calibration; updates equipment status; makes logbook entries.",
+   "key_screens": "Equipment status board; cleaning execution with hold-time timers; calibration/PM due list (from CMMS); eLogbook."
+  },
+  {
+   "role": "Training coordinator",
+   "responsibilities": "Maps curricula to MBR/SOP versions and roles; ensures training is complete before effective dates.",
+   "key_screens": "Qualification matrix; impacted-users report on MBR/SOP change."
+  },
+  {
+   "role": "System administrator (IT/OT)",
+   "responsibilities": "Provisions users/roles per approved requests; deploys configuration under change control; backups/restore, monitoring, time synchronization; no GMP data entry or approval; all admin actions audit-trailed.",
+   "key_screens": "User and role administration with approval trail; configuration release manager; system health; admin audit trail."
+  },
+  {
+   "role": "System owner / process owner / data owner",
+   "responsibilities": "Accountable for validated state, periodic review, access reviews, review-by-exception rule catalogue and data governance.",
+   "key_screens": "Periodic review report; access review; RBE rule catalogue and effectiveness metrics; KPI dashboards."
+  },
+  {
+   "role": "CSV / validation and data-integrity lead",
+   "responsibilities": "Risk assessments, assurance/test strategy (GAMP 5, CSA), audit-trail review design, RBE and interface validation, periodic DI audits.",
+   "key_screens": "Requirements-risk-test traceability; test evidence repository; configuration baseline and diff reports."
+  },
+  {
+   "role": "Auditor / regulatory inspector (read-only)",
+   "responsibilities": "Reviews records and audit trails; needs accurate, complete copies in human-readable and electronic form.",
+   "key_screens": "Inspection workspace: batch record viewer/PDF, audit-trail viewer and export, genealogy trace, deviations list."
+  },
+  {
+   "role": "Site and global operations management",
+   "responsibilities": "Monitors cross-site performance; approves global templates and standards.",
+   "key_screens": "Multi-site KPI dashboards; template adoption; deviation and exception trends."
+  },
+  {
+   "role": "Technical / integration service accounts (non-human)",
+   "responsibilities": "Machine-to-machine interfaces (ERP, LIMS, OPC UA, printers) with least privilege, no interactive login, rotated credentials; actions attributed to service identity and source system.",
+   "key_screens": "Interface monitor, message logs, error queue with GMP-impact triage."
+  }
+ ],
+ "standards": [
+  {
+   "name": "ISA-88 / IEC 61512 Batch Control (Parts 1-4) and ISA-TR88.00.02 (PackML)",
+   "relevance": "Basis of MBR structure: procedural model (Procedure, Unit Procedure, Operation, Phase), physical and process models, recipe types (general, site, master, control) and recipe contents (header, formula, equipment requirements, procedure). Part 2 procedure logic = Steps/Transitions/Links (ControlLink, TransferLink, SynchronizationLink, Parallel/Serial Divergent/Convergent), ParameterType ProcessInput/ProcessOutput/ProcessParameter, batch states Idle to Aborted [V BatchML V0701, 'based upon ISA-S88.01-1995 and ANSI/ISA-88.00.02-2001']. Part 4 batch production record model: Change (RecordReference, PrechangeData, Reason), Event (Value, PreviousValue, PersonID, ComputerID), PersonnelIdentification, ResourceQualifications (QualificationStatus, expiry), Samples/SampleTests/Results, recursive BPR [V BatchML-BatchProductionRecord.xsd]. PackML states/tags via OPC UA PackML 1.01 referencing ANSI/ISA TR88.00.02-2015 [V]. Current ISA editions of each part (e.g., Part 2 revision) [U - verify on isa.org]."
+  },
+  {
+   "name": "ISA-95 / IEC 62264 Enterprise-Control System Integration",
+   "relevance": "Defines ERP (Level 4) vs MES/MOM (Level 3) boundary and object models: equipment hierarchy levels (Enterprise, Site, Area, ProcessCell, Unit, ProductionLine, WorkCell, ProductionUnit, StorageZone, StorageUnit, WorkCenter, WorkUnit, EquipmentModule, ControlModule) [V]; MaterialClass/Definition/Lot/SubLot with separate Status and Disposition and assembly relationships [V]; MaterialUse values for genealogy [V]; Part 4 workflow specification graph with dependency types [V]; resource relationship networks [V]; job order commands Start/Stop/Hold/Restart/Abort/Reset/Pause/Resume [V]. B2MML V0701 cites ISA-95.00.02-2018, ISA-95.00.04-2018 and ISA-95.00.05-2018 [V]; editions of other parts [U]."
+  },
+  {
+   "name": "MESA B2MML / BatchML Version 0701 (2023)",
+   "relevance": "Royalty-free XML (and JSON) schemas implementing ISA-95 and ISA-88; use for ERP-MES messages (orders, material lots, performance) and for MBR/batch-record export, tech transfer and archiving; reduces lock-in [V github.com/MESAInternational/B2MML-BatchML]."
+  },
+  {
+   "name": "ISPE GAMP 5 Second Edition (2022)",
+   "relevance": "Risk-based lifecycle and critical thinking; alignment with FDA CDRH computerized systems assurance concepts; Agile; cloud/OSS; IT infrastructure (M11); software categories (M4: Cat 1 infrastructure incl. database managers, Cat 3 standard, Cat 4 configured workflows, Cat 5 custom; most systems mix categories; categories are not the sole determinant of rigor); D11 AI/ML (static vs dynamic models, data partitioning, human-in-the-loop, performance monitoring); D10 distributed ledgers (source of truth vs source of origin) [V2s via GitHub copy]. Publication month July 2022 [U]."
+  },
+  {
+   "name": "ISPE GAMP good-practice guides relevant to MES/eBR",
+   "relevance": "GAMP GPG Manufacturing Execution Systems - A Strategic and Program Management Approach (2010); GAMP Guide Records & Data Integrity (2017); GAMP RDI GPG Data Integrity - Manufacturing Records (2019); GAMP RDI GPG Data Integrity by Design (2020); GAMP Guide Artificial Intelligence (2025) - all [U], ispe.org not reachable this session."
+  },
+  {
+   "name": "OPC UA (IEC 62541) and companion specifications",
+   "relevance": "Vendor-neutral device/automation integration: ISA-95 Job Control V2 (ModelUri ISA95-JOBCONTROL_V2, 2.0.0, 2024-01-31) for MES-to-control job orders/responses; Weighing/Scales V2 (2.00, 2025-03-01: Gross/Net/Tare, WeightStable, LegalForTrade, TareMode, ToleranceState) for dispensing; PackML (1.01, 2020-10-08) for packaging lines; LADS (1.0.0, 2023-11-30) for lab/analytical devices; OPEN-SCS serialization (1.00, 2019-02-04: job orders, serial-number states, aggregation, EPCIS-aligned) for L2/L3 serialization [V nodesets on github.com/OPCFoundation/UA-Nodeset]. OPC spec document numbers (e.g., 40200, 10031-4, 30050, 30500) [U]."
+  },
+  {
+   "name": "GS1 standards (General Specifications / Barcode Syntax Dictionary, DataMatrix, EPCIS/CBV 2.0, Digital Link)",
+   "relevance": "Label content and scan parsing: AI (01) GTIN N14 with check digit, (10) batch/lot X..20, (17) expiry N6 YYMMDD (day may be 00), (21) serial X..20, (11) production date, (00) SSCC N18, (7003) expiry date and time [V]; EPCIS 2.0 with JSON/JSON-LD and REST bindings for L4 event exchange, ratified standard published at ref.gs1.org [V repo; ratification date U]."
+  },
+  {
+   "name": "W3C WCAG 2.2 (Recommendation; current edition dated 2024-12-12)",
+   "relevance": "Accessibility baseline: 2.5.8 Target Size (Minimum) 24x24 CSS px AA; 2.5.5 Target Size (Enhanced) 44x44 AAA; 2.2.1 Timing Adjustable A; 3.3.4 Error Prevention AA; 3.3.7 Redundant Entry A; 3.3.8 Accessible Authentication (Minimum) AA; 2.4.11 Focus Not Obscured (Minimum) AA; 1.4.11 Non-text Contrast 3:1 AA [V w3c/wcag sources]. ISO/IEC 40500 adoption of 2.2 [U]."
+  },
+  {
+   "name": "21 CFR Part 11 - Electronic Records; Electronic Signatures (text per eCFR mirror dated 2025-02-06)",
+   "relevance": "11.10(a)-(k) closed-system controls (validation, copies, retention, access, audit trails, sequencing checks, authority checks, device checks, training, accountability, documentation control); 11.50 signature manifestations; 11.70 signature/record linking; 11.200 signature components; 11.300 ID/password controls [V2]. No later amendment known [U]."
+  },
+  {
+   "name": "21 CFR Part 211 - CGMP for Finished Pharmaceuticals (text per eCFR mirror dated 2025-02-06)",
+   "relevance": "211.22, 211.25, 211.67, 211.68, 211.84, 211.100, 211.101, 211.103, 211.105, 211.110, 211.111, 211.125, 211.130, 211.180, 211.182, 211.186, 211.188, 211.192 define batch-record content, verifications, logs, yields, time limits, labeling control and QCU review [V2]; 211.113 aseptic controls [U]."
+  },
+  {
+   "name": "EU GMP Annex 11 Computerised Systems (2011) and draft revision (consultation 7 Jul - 7 Oct 2025)",
+   "relevance": "Current text: \u00a71 risk management, \u00a74.8 migration checks, \u00a75 data-exchange checks, \u00a76 accuracy checks for critical manual data, \u00a77 storage/backups, \u00a78.2 printouts showing changed data, \u00a79 audit trails (reason for change, regularly reviewed), \u00a710 change control, \u00a711 periodic evaluation, \u00a712 security, \u00a714 e-signatures, \u00a715 batch release by QPs only, \u00a716 business continuity, \u00a717 archiving [V2 via GitHub copies]. Draft revision: much expanded (about 19 pages), new identity & access management and cybersecurity content, detailed audit-trail and cloud requirements [V2s]; final adoption status as of 2026-09 [U]."
+  },
+  {
+   "name": "EU GMP Annex 22 Artificial Intelligence (draft, published for consultation July 2025)",
+   "relevance": "For AI features: critical GMP applications restricted to static, deterministic models; dynamic/adaptive models excluded; generative AI/LLMs not to be used in critical GMP applications, allowed in non-critical uses with qualified human oversight [V2s]; final status [U]."
+  },
+  {
+   "name": "EU GMP Chapter 4 Documentation (2011) and draft revision (July 2025)",
+   "relevance": "4.20 batch processing record content and approval; note permitting compliance summaries and exception/OOS reports for continuously monitored, validated processes - the regulatory hook for review by exception [V2s]; draft revision on data governance/hybrid records [U details]."
+  },
+  {
+   "name": "EU / PIC/S GMP Annex 1 Manufacture of Sterile Medicinal Products (2022; point 8.123 applicable from 25 Aug 2024)",
+   "relevance": "Injectables edition drivers: 8.5, 8.16-8.18 (interventions, stoppages, time limits), 8.22-8.25 (CCI), 8.30-8.31 (100% visual inspection, annual inspector qualification), 8.40-8.45 (sterilisation parameters and per-cycle records reviewed at certification), 8.85-8.87 and 8.94 (filtration CPPs, PUPSIT, post-use test, filter use limits), 8.122-8.126 (lyophilisation), 9.9-9.13 (EM limits/responses), 9.17 (continuous grade A particle monitoring), 9.25 (glove monitoring), 9.38 and 9.46 (APS frequency and failure consequences), 10.3 (bioburden limits), 10.10 (EM data reviewed at batch release) [V2 via PIC/S text copy]."
+  },
+  {
+   "name": "EU GMP Annex 15 (2015) and Annex 16 (2016)",
+   "relevance": "Cleaning validation and hold times, process validation; QP certification and batch release responsibilities [U]."
+  },
+  {
+   "name": "FDA guidance",
+   "relevance": "Computer Software Assurance for Production and Quality System Software - final, Federal Register notice 2025-18468 of 24 Sep 2025, device-scoped but widely used as a reference for risk-based assurance [V2s; a February 2026 update is claimed by one secondary source - U]; Part 11 Scope and Application (Aug 2003) [U]; Data Integrity and Compliance With Drug CGMP Q&A (Dec 2018): audit trails of critical data reviewed with each record before final approval, workflows must be validated, e-signatures acceptable for MPCRs [U]."
+  },
+  {
+   "name": "Data-integrity guidance and pharmacopeial documentation chapters",
+   "relevance": "PIC/S PI 041-1 (in force 1 July 2021) [V2s]; MHRA GXP Data Integrity Guidance (March 2018) and WHO TRS 1033 Annex 4 (2021) [U]; USP <1029> Good Documentation Guidelines (official 1 May 2018, currently official 17 Feb 2025): corrections must not obscure the original entry, contemporaneous recording, batch-record content [V2]; USP General Notices 7.20 Rounding Rules [V2 reference]; USP <41> Balances / <1251> Weighing [U]."
+  },
+  {
+   "name": "India - revised Schedule M (Drugs Rules 1945), CDSCO",
+   "relevance": "Revised GMP notified as GSR 922(E) dated 28 Dec 2023, aligned with WHO/PIC/S (PQS, QRM, computerised systems), with staggered compliance for MSMEs (reportedly extended to 31 Dec 2025) [U - verify on cdsco.gov.in]; Indian QR/barcode traceability rules for APIs and top brands [U]."
+  },
+  {
+   "name": "ICH Q9(R1), Q10, Q13, Q7",
+   "relevance": "Risk management for exception rules and RBE; PQS change management and CAPA linkage; continuous manufacturing traceability; API GMP [U editions]."
+  },
+  {
+   "name": "ANSI/ISA-101 (HMI), ISA-18.2 (alarm management), ISA/IEC 62443 (IACS security)",
+   "relevance": "Shop-floor display philosophy (muted normal state, salient abnormal states), rationalized notifications, OT security zoning for scale/PLC/edge integration [U editions]."
+  },
+  {
+   "name": "Human-factors methods: IEC 62366-1, ISO 9241-110 / -210",
+   "relevance": "Structured use-error analysis and formative/summative usability testing adapted to gowned operators (IEC 62366-1 is a device standard used here only as a method reference) [U]."
+  },
+  {
+   "name": "Graph query standards and features: openCypher, ISO/IEC 39075 GQL, ISO/IEC 9075-16 SQL/PGQ, SQL Server graph, PostgreSQL recursive CTEs",
+   "relevance": "If graph models are queried: Apache AGE brings openCypher to PostgreSQL 11-18 [V]; SQL Server node/edge tables with MATCH/SHORTEST_PATH since 2017 [V]; PostgreSQL WITH RECURSIVE with SEARCH and CYCLE clauses [V]; GQL (2024) and SQL/PGQ (2023) ISO standards [U]. Prefer standard syntax to limit lock-in."
+  },
+  {
+   "name": "Serialization regulations: US DSCSA, EU FMD (Delegated Regulation (EU) 2016/161)",
+   "relevance": "Drive L3/L4 integration, aggregation and label content in packaging steps [U]."
+  },
+  {
+   "name": "Material Design touch-target guidance",
+   "relevance": "48dp minimum touch target is the mainstream mobile baseline [V material-components docs]; gloved cleanroom use needs larger targets."
+  }
+ ],
+ "pitfalls": [
+  "Paper-on-glass: digitizing paper forms 1:1 (free-text fields, page-like layouts, signatures on pages rather than on data) gives no structured data, no enforceable limits, no real review by exception and little return; design MBRs as data (typed parameters, limits, device capture) from day one.",
+  "Over-customization: Cat 5 code inside a configurable Cat 4 product creates validation debt and blocks upgrades; GAMP 5 2nd ed. warns Cat 5 calculation/logic errors 'can be difficult to detect and may persist for months or years' [V2s]; prefer configuration and a governed building-block library.",
+  "Review by exception as an afterthought: exception rules not risk-assessed or validated, so either too noisy (QA reverts to full review) or too sparse (manual entries, corrections and overrides slip through); RBE must include review of critical-data audit-trail entries before approval and periodic verification that non-exception data really are controlled (Annex 11 \u00a79 [V2]; FDA DI Q&A 2018 [U]).",
+  "Trusting interface/automation data without validated interfaces and device checks (21 CFR 11.10(h), Annex 11 \u00a75 [V2]) - this silently invalidates RBE assumptions.",
+  "Hard stops without a governed exception path push operators into workarounds, side notes or deliberately wrong entries; soft warnings get clicked through. Every check needs defined severity, response and escalation.",
+  "Time-of-check/time-of-use gaps: checking material, equipment or training status only when a step opens, not when data are committed or signed.",
+  "Weak identity hygiene: shared/generic accounts, supervisors signing for absent operators, sessions left open on shared cleanroom terminals, admins with GMP data-entry rights, ability to change system or device clocks (21 CFR 11.10(d),(g), 11.300; Annex 11 \u00a712 [V2]).",
+  "No designed business continuity: untested offline/paper fallback and no reconciliation procedure, so outages stop production or create uncontrolled hybrid records (Annex 11 \u00a716 [V2]).",
+  "Undefined hybrid state (part paper, part electronic) without an agreed record of truth per data element and without controlled issuance and reconciliation of paper parts.",
+  "Big-bang multi-site rollout without harmonized processes, global MBR standards and master-data governance (UoM, material codes, equipment classes, reason codes); each site builds its own style and the global template collapses.",
+  "Underestimating MBR authoring and verification effort: the MBR is effectively software; without authoring standards, simulation runs and real peer review, cycle times balloon and post-go-live deviations follow.",
+  "Ignoring shop-floor ergonomics: gloves, visors, gowning, device placement, Wi-Fi inside isolators and steel rooms, barcode label print quality, slow screen response - each one drives workarounds.",
+  "Integration fragility: no guaranteed delivery, idempotency or reconciliation with ERP/LIMS/QMS causes duplicate or missing goods movements and status mismatches; interface errors lack GMP-impact triage.",
+  "MBR versioning mistakes: batches executed on superseded versions, uncontrolled in-flight change handling, translations not version-controlled with the MBR.",
+  "Equipment and room status not integrated, so the eBR cannot enforce cleaning, calibration and hold-time rules and paper logbooks persist in parallel (21 CFR 211.67, 211.182 [V2]).",
+  "Performance and data-volume blind spots: audit-trail growth, 1000+ page batch reports, multi-year genealogy queries and peak-shift concurrency not load-tested; slow systems erode contemporaneous recording.",
+  "Archiving and system retirement not planned: records must remain complete, readable and retrievable for the whole retention period (211.180(a) at least 1 year after expiry [V2]; Annex 11 \u00a717 [V2]) even after a vendor change.",
+  "Validation that is document-heavy but risk-blind, or the reverse; apply GAMP 5 2nd ed. critical thinking and CSA principles (FDA final guidance 24 Sep 2025, device-scoped [V2s]) while keeping strong evidence for calculations, limits, e-signatures, audit trail and interfaces.",
+  "Graph database as the GxP system of record without need: dual-write inconsistency, extra validation/backup/DR/archival scope, scarce skills and no native GxP audit trail (e.g., Neo4j query/security logs are Enterprise-only operational logs [V]); keep graphs in the transactional store (recursive SQL or in-DB graph features) or as a derived, rebuildable projection.",
+  "Genealogy modelling errors: mutable edges (corrections overwrite history), missing edges for partial containers, returns, rework and samples, no cycle checks, time-zone errors in event ordering - all lead to wrong recall scope.",
+  "AI used as a decision-maker: generative AI/LLMs making or auto-approving GMP-critical decisions conflicts with draft EU Annex 22 (static deterministic models only for critical use; GenAI/LLMs kept out of critical applications) [V2s]; unvalidated, drifting or unlogged AI output in the record.",
+  "Vendor lock-in and upgrade paralysis: proprietary recipe formats without export (consider BatchML/B2MML [V]), heavy customizations, SaaS without supplier audits, quality agreements and exit plans.",
+  "Serialization/packaging integration gaps (L3/L4) and weak label control cause line stoppages or mix-ups; uncontrolled reprints (21 CFR 211.125 [V2]).",
+  "Locale defects in multi-site deployments: decimal comma vs point, DD/MM vs MM/DD, unit conversions and translated instructions that change meaning.",
+  "Treating eBR as an IT project: too few super-users, too little operator involvement in design and training, leading to resistance and parallel paper.",
+  "Injectables: Annex 1 data (interventions with time/duration/operators 8.17, time limits 8.18, PUPSIT/post-use integrity 8.87, per-cycle sterilisation records 8.45, EM/APS status 9.46 and 10.10 [V2]) left in side systems or paper, so disposition still depends on manual collation.",
+  "Tablets: potency adjustment with compensating excipient, IPC sampling frequency/aggregate statistics and press data integration left as manual calculations/entries - the highest-risk area for calculation errors.",
+  "Clock and timestamp integrity: unsynchronized PLC, edge, historian and server clocks produce non-contemporaneous or out-of-order records; monitor NTP drift and record the time source.",
+  "Verification caveat for this dataset: vendor capabilities (except the Koerber snippets) and several guidance dates are tagged [U] because WebSearch was exhausted and primary/vendor domains were egress-blocked in this session; confirm them before relying on them in selection or compliance decisions."
+ ],
+ "sources": [
+  "SESSION NOTE: WebSearch budget was exhausted after 1 query and WebFetch to ecfr.gov, fda.gov, health.ec.europa.eu, picscheme.org, ispe.org, w3.org, isa.org and all vendor sites was blocked by the egress proxy. Verification was done against GitHub-hosted artifacts. Tags: [V] = verified against the standard owner's own artifact or official docs source on GitHub; [V2] = verified against a verbatim GitHub mirror/copy of the primary regulatory text; [V2s] = corroborated only by secondary commentary; [Vs] = vendor page seen only as search-result snippet; [U] = unverified training knowledge (cutoff mid-2026) - verify before use.",
+  "[Vs] https://www.koerber.com/en/insights-and-events/pas-x-mes-digital-pharma-production (review by exception through automatic data evaluation)",
+  "[Vs] https://www.koerber-pharma.com/en/blog/boosting-efficiency-and-productivity-with-electronic-batch-recording-ebr (MBR executed as EBR; up to 20% fewer batch deviations)",
+  "[Vs] https://www.koerber.com/en/about-us/news-and-press/software-pharma-open-conference-pas-x-mes-system (Manufacturing Dashboards in cloud-native PAS-X Savvy)",
+  "[Vs] https://zamann-pharma.com/2026/07/28/koerber-pharma-software-in-year-pas-x-mes-and-gmp-compliance-guide/ (PAS-X MES controls, monitors, documents in real time)",
+  "[Vs] https://www.koerber-pharma.com/en/solutions/software/werum-pas-x-cell-gene-solution",
+  "[Vs] https://www.koerber-pharma.com/en/blog/up-to-98-higher-quality-using-pas-x-mes-for-digital-pharmaceutical-production",
+  "[Vs, content not fetched] https://www.koerber-pharma.com/en/solutions/software/werum-pas-x-mes-suite/werum-pas-x-mbr-design-execution",
+  "[V2] eCFR mirror (snapshot 2025-02-06): https://raw.githubusercontent.com/lucas-amberg/ecfr-analyzer/main/public/ecfr/2025-02-06/21/I/C/211/J/211.188/211.188.md (same path pattern used for 211.186, 211.192, 211.180, 211.182; F/211.100, 211.101, 211.103, 211.105, 211.110, 211.111; G/211.125, 211.130; D/211.67, 211.68; B/211.22, 211.25; E/211.84)",
+  "[V2] eCFR mirror Part 11: https://raw.githubusercontent.com/lucas-amberg/ecfr-analyzer/main/public/ecfr/2025-02-06/21/I/A/11/B/11.10/11.10.md (also B/11.50, B/11.70, C/11.200, C/11.300)",
+  "[V2] https://raw.githubusercontent.com/AlextheYounga/ecfr/master/ecfr/title-21-Food-Drugs/chapter-I-Food-Drug-Administration-Department-Health-Human-Services/subchapter-C-Drugs-General/part-211-Current-Good-Manufacturing-Practice-Finished-Pharmaceuticals/subpart-J-Records-Reports/section-211.188.md",
+  "[not fetched - primary] https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11 and https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211",
+  "[V2] EU Annex 11 text copies: https://raw.githubusercontent.com/prowler-cloud/prowler/master/prowler/compliance/aws/gxp_eu_annex_11_aws.json and https://raw.githubusercontent.com/raoulbia-ai/gpt-gxp/master/data/json/EU_annex11_computerised_systems.json",
+  "[not fetched - primary] https://health.ec.europa.eu/system/files/2016-11/annex11_01-2011_en_0.pdf and https://health.ec.europa.eu/medicinal-products/eudralex/eudralex-volume-4_en",
+  "[V2s] Draft Annex 11 revision / Annex 22 dates and scope: https://github.com/pjfitzgibbons/contoso-health-partners/blob/main/PLAN.md and https://github.com/drj0e/undraft/blob/main/docs/review-log.md",
+  "[V2s] EU GMP Ch.4 4.20 exception-report note: https://raw.githubusercontent.com/immu4989/awesome-agentic-usecases/main/docs/WAVE16_RESEARCH_NOTES.md (primary not fetched: https://health.ec.europa.eu/system/files/2016-11/chapter4_01-2011_en_0.pdf)",
+  "[V2] PIC/S Annex 1 (2022) text copy: https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/PICS/PICS-Annex1/sections/section-08a-production-aseptic-sterilisation.html",
+  "[V2] https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/PICS/PICS-Annex1/sections/section-08c-production-filtration-lyo-bfs-ffs.html",
+  "[V2] https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/PICS/PICS-Annex1/sections/section-09-environmental-monitoring.html",
+  "[V2] https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/PICS/PICS-Annex1/sections/section-10-quality-control.html",
+  "[V2s] GAMP 5 2nd ed. copy: https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/ISPE/ISPE-GAMP5/sections/section-00-intro-key-concepts.html, .../section-03b-m3-m4-qrm-categories.html, .../section-06b-d10-d11-blockchain-ai.html (primary not fetched: https://ispe.org/publications/guidance-documents/gamp-5-guide-2nd-edition)",
+  "[V2] USP <1029> copy: https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/knowledge/USP/USP-1029-Complete.md",
+  "[V2 reference] USP General Notices 7.20 Rounding Rules cited in https://github.com/Eaglemamba/SterileGMP-Knowledge-Hub/blob/main/ISPE/ISPE-CTC/source/sec08-text.txt",
+  "[V2s] FDA CSA final guidance notice (not fetched): https://www.federalregister.gov/documents/2025/09/24/2025-18468/computer-software-assurance-for-production-and-quality-system-software-guidance-for-industry-and ; https://www.fda.gov/regulatory-information/search-fda-guidance-documents/computer-software-assurance-production-and-quality-system-software",
+  "[not fetched - U] FDA DI Q&A: https://www.fda.gov/regulatory-information/search-fda-guidance-documents/data-integrity-and-compliance-drug-cgmp-questions-and-answers",
+  "[not fetched - U] PIC/S PI 041-1: https://picscheme.org/docview/4234 ; CDSCO: https://cdsco.gov.in",
+  "[V] https://github.com/MESAInternational/B2MML-BatchML ; schemas: https://raw.githubusercontent.com/MESAInternational/B2MML-BatchML/master/Schema/BatchML-BatchProductionRecord.xsd, .../BatchML-BatchInformation.xsd, .../B2MML-Material.xsd, .../B2MML-WorkflowSpecification.xsd, .../B2MML-ResourceRelationshipNetwork.xsd, .../B2MML-Common.xsd",
+  "[V] https://github.com/OPCFoundation/UA-Nodeset ; https://raw.githubusercontent.com/OPCFoundation/UA-Nodeset/latest/Scales/Opc.Ua.Scales.NodeSet2.xml ; .../OpenSCS/Opc.Ua.OPENSCS.NodeSet2.xml ; .../ISA95-JOBCONTROL/opc.ua.isa95-jobcontrol.nodeset2.xml ; .../PackML/Opc.Ua.PackML.NodeSet2.xml ; .../LADS/Opc.Ua.LADS.NodeSet2.xml",
+  "[V] https://raw.githubusercontent.com/gs1/gs1-syntax-dictionary/main/gs1-syntax-dictionary.txt ; https://github.com/gs1/EPCIS (ratified text at https://ref.gs1.org/standards/epcis, not fetched)",
+  "[V] WCAG 2.2 sources: https://raw.githubusercontent.com/w3c/wcag/main/guidelines/sc/22/target-size-minimum.html ; .../sc/21/target-size-enhanced.html ; .../sc/20/timing-adjustable.html ; .../sc/20/error-prevention-legal-financial-data.html ; .../sc/22/accessible-authentication-minimum.html ; .../sc/22/redundant-entry.html ; .../sc/22/focus-not-obscured-minimum.html ; .../sc/21/non-text-contrast.html ; edition date from https://github.com/w3c/wcag/blob/main/guidelines/respec-config.js (publishDate 2024-12-12); official https://www.w3.org/TR/WCAG22/ not fetched",
+  "[V] https://github.com/material-components/material-components-android/blob/master/docs/components/Slider.md (48dp minimum touch target)",
+  "[V] Graph/DB facts: https://raw.githubusercontent.com/apache/age/master/README.md ; https://raw.githubusercontent.com/MicrosoftDocs/sql-docs/live/docs/relational-databases/graphs/sql-graph-overview.md ; https://raw.githubusercontent.com/MicrosoftDocs/sql-docs/live/docs/relational-databases/security/ledger/ledger-overview.md ; https://raw.githubusercontent.com/postgres/postgres/master/doc/src/sgml/queries.sgml ; https://raw.githubusercontent.com/neo4j/neo4j/dev/README.asciidoc ; https://raw.githubusercontent.com/neo4j/docs-operations/dev/modules/ROOT/pages/monitoring/logging.adoc",
+  "[not fetched - U] Vendor primary pages to verify: https://www.siemens.com (Opcenter Execution Pharma), https://www.rockwellautomation.com (FactoryTalk PharmaSuite), https://www.emerson.com (Syncade), https://www.aspentech.com, https://www.poms.com, https://www.mastercontrol.com, https://www.apprentice.io, https://tulip.co, https://www.sepasoft.com, https://amplelogic.com, https://www.caliberuniversal.com, https://www.sarjen.com, https://www.leucine.io",
+  "[not fetched - U] Standards bodies to verify editions: https://www.isa.org/standards-and-publications/isa-standards/isa-88-standards ; https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard ; https://opcfoundation.org ; https://www.gs1.org ; https://www.ich.org"
+ ]
+}

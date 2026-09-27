@@ -1,0 +1,1627 @@
+{
+ "variants": [
+  "AF-VIAL-LIQ: Aseptically filled solution in vials. Sequence: sterilizing filtration, aseptic filling and stoppering in Grade A (isolator, closed/open RABS or conventional A-in-B), then capping as an aseptic or clean process under Grade A air supply. Sources: EU GMP Annex 1 (2022) 8.7-8.29, FDA aseptic guidance (2004).",
+  "AF-AMP: Aseptically filled glass ampoules, fusion (flame) sealed. Annex 1 8.22 makes 100% integrity testing mandatory for fusion-sealed containers of 100 mL or less, and visual inspection does not count as an integrity test.",
+  "AF-PFS: Aseptically filled prefilled syringes and cartridges from ready-to-use nested tubs. Steps: tub and bag surface decontamination on transfer, filling, plunger stoppering by vacuum or vent tube, then secondary assembly (plunger rod, backstop, needle-safety device, labels). The assembled syringe is a combination product in the US (21 CFR Part 4) and a drug-device combination in the EU.",
+  "AF-LYO: Aseptically filled and lyophilized in vials. Steps: partial stoppering, Grade A transfer and loading, freeze-drying, in-chamber stoppering under sterile-filtered gas, unloading and capping. Annex 1 8.121-8.126 treats the lyophilizer as an extension of the aseptic process.",
+  "TS-MH-SVP: Terminally sterilized small-volume parenterals (vials or ampoules) by moist heat. Bulk is prepared in Grade D (Grade C if at unusual risk) and filled in Grade C (Grade A with C background if at unusual risk). Sterilization uses saturated steam, air-steam mixture or superheated water. Ph. Eur. 5.1.1 sets minimum F0 at 8 min in the slowest-to-heat position; the reference cycle is 121 \u00b0C for 15 min.",
+  "TS-MH-LVP: Terminally sterilized large-volume parenterals (bags or bottles, including FFS/BFS) using air-overpressure or superheated-water cycles. Annex 1 8.22 requires 100% integrity testing for fusion-sealed units of 100 mL or less; reduced sampling above 100 mL needs justification. Annex 1 8.62 requires cycle design that prevents container distortion.",
+  "AC-SUSP/EMUL (brief): Aseptically compounded non-filterable suspensions and emulsions. All components and equipment are sterilized and the product is compounded and filled in Grade A with Grade B background (Annex 1 8.11, 8.13). Lipid emulsions may instead be terminally sterilized. Emulsion critical quality attributes are globule size (USP <729>: MDD <500 nm, PFAT5 \u22640.05%) and homogeneity during filling.",
+  "OPTIONAL (not detailed): aseptic BFS (Annex 1 8.105-8.120) and sterile powder filling. These use the same framework, with extra CPPs for extrusion, parison and powder handling.",
+  "SPECIAL RECORD TYPE: Aseptic Process Simulation (media fill) batch record for each aseptic variant. PDA TR22 (Revised 2025) says it should use the same format and data requirements as the commercial record, and be electronic if the commercial record is electronic."
+ ],
+ "unit_operations": [
+  {
+   "name": "Batch record issuance and sterility-assurance pre-start gate",
+   "purpose": "Create the executed BMR/BPR from the approved, effective master for the exact product, batch size, line and market(s). Block any GMP step until all sterility-assurance preconditions are verified: APS coverage, personnel qualification, cleanroom/utility/equipment status, and EM readiness.",
+   "sequence_order": 1,
+   "bmr_records": [
+    "Master record ID/version/effective date, product name, strength, dosage form, container-closure system, nominal fill volume, batch size (L or kg and theoretical units), unique batch number, intended market(s) (these select the EU/US rule pack), site/line/rooms with cleanroom grade and barrier type (isolator / closed RABS / open RABS / conventional A in B) [21 CFR 211.186(b), 211.188(a); EU GMP Ch.4 4.17/4.20]",
+    "Statement that the executed record is an accurate reproduction of the master, checked, dated and e-signed [21 CFR 211.188(a)]",
+    "Last successful APS (media fill) covering this line, process type, container/closure bracket, line-speed range, maximum filling duration, maximum number of personnel and each planned shift: APS IDs, dates, next due date (~6 months) [Annex 1 9.36, 9.38; FDA 2004 IX.A.2]",
+    "Grade A/B personnel roster: gowning qualification date and expiry (reassessed at least annually, with visual and microbial assessment), last successful APS participation (at least annually), training on this MBR and its SOPs, any disqualification status [Annex 1 7.4-7.6, 9.38; FDA 2004 V.A, IX.A.2]",
+    "Cleanroom and clean-air equipment status: last requalification (Grade A/B \u22646 months, Grade C/D \u226412 months), final-filter integrity, open maintenance work orders and return-to-use approvals for sterility-critical equipment [Annex 1 4.32, 5.6, 5.7]",
+    "Instrument and equipment status: calibration due dates (balances, particle counters, sterilizer control/monitor probes, filter integrity testers, pH/osmometer/densitometer), worst-case heat-sterilization load revalidated within 12 months [Annex 1 8.39; 21 CFR 211.68(a), 211.160(b)(4)]",
+    "Utilities status: WFI released (latest microbiological/endotoxin results, continuous TOC and conductivity in limits, loop temperature e.g. circulation >70 \u00b0C), clean steam periodic quality tests (condensate meets WFI monograph; non-condensable gases, dryness, superheat), process gas quality and point-of-use sterilizing filter status [Annex 1 6.10-6.19]",
+    "Room cleaning/disinfection status, including date of last sporicidal disinfection, disinfectant lot and in-use expiry (disinfectants must be sterile for Grade A/B) [Annex 1 4.33-4.35]",
+    "EM plan instantiated for the batch (locations, methods, frequencies, incubation conditions), media lots growth-promotion tested, continuous particle counters online [Annex 1 9.4-9.5, 9.17, 10.9]",
+    "Room/line clearance: previous product, batch and documents removed; checklist, performer, verifier [EU GMP Ch.5 5.40 (not independently verified here); 21 CFR 211.130(e)]",
+    "Open deviations, change controls and CAPA affecting the line or product, each acknowledged with a QA decision"
+   ],
+   "critical_process_parameters": [
+    "None (administrative gate). The gate conditions are hard stops: valid APS coverage, qualified personnel, requalified cleanrooms, calibrated critical instruments, released utilities."
+   ],
+   "in_process_controls": [
+    {
+     "test": "APS coverage check",
+     "frequency": "At batch creation and at start of each aseptic shift/session",
+     "typical_limit_or_reference": "Successful APS within the periodic window (twice a year, roughly every 6 months, per line, process and shift), covering container size, line speed, duration, interventions and personnel count [Annex 1 9.36, 9.38; FDA 2004 IX.A.2]",
+     "action_on_failure": "Block batch start; no ad-hoc override; deviation plus QA decision per procedure"
+    },
+    {
+     "test": "Operator entry qualification check (badge/room-entry integration)",
+     "frequency": "Every entry into Grade B and before any Grade A intervention",
+     "typical_limit_or_reference": "Gowning qualification current (\u226412 months), APS participation \u226412 months, not disqualified [Annex 1 7.4, 7.6, 9.38]",
+     "action_on_failure": "Deny unsupervised entry. Exceptional supervised entry of an unqualified person only per written procedure, recorded with an impact assessment [Annex 1 7.5]"
+    },
+    {
+     "test": "Facility/equipment/utility readiness check",
+     "frequency": "At batch start and at each shift change",
+     "typical_limit_or_reference": "All requalifications/calibrations in date, no active critical alarm, WFI released [Annex 1 4.16, 5.2, 6.12]",
+     "action_on_failure": "Block start; deviation if bypassed"
+    }
+   ],
+   "signatures_required": [
+    "QA document control: issuance of executed record",
+    "Production supervisor: acceptance and pre-start check",
+    "Second person (QA where required by SOP): line clearance verification",
+    "Person verifying automated gate results (automated equipment under 21 CFR 211.68(c))"
+   ],
+   "special_checks": [
+    "Only an approved, effective master for that batch size can be instantiated [21 CFR 211.186(a)].",
+    "Region rule pack by market. For multi-market batches the strictest rule applies: EU zero-growth APS acceptance (Annex 1 9.46) vs FDA 2004 graded criteria; EU PUPSIT expectation (8.87) vs FDA 'can be performed' (IX.B); EU Grade A-D limits vs FDA ISO 5-8 Table 1.",
+    "DEVIATION TRIGGERS: batch started with an expired APS, qualification, requalification or calibration; unqualified person entered; critical alarm open; unreleased WFI used.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download ; https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211"
+   ],
+   "time_limits_or_hold_times": [
+    "APS periodic revalidation ~6 months per line/process/shift; each operator in at least one successful APS every 12 months [Annex 1 9.38]",
+    "Cleanroom requalification: A/B \u22646 months, C/D \u226412 months [Annex 1 4.32]",
+    "Gowning requalification at least annually [Annex 1 7.4; FDA 2004 V.A]"
+   ],
+   "variant_applicability": "All variants. APS and Grade A/B personnel gates apply to aseptic variants (AF-*, AC-*). For TS-* the gate covers Grade C/D status, EM, sterilizer qualification and utilities."
+  },
+  {
+   "name": "Dispensing and weighing (API, excipients, WFI, process gases)",
+   "purpose": "Dispense released components in the correct quantities with complete traceability and second-person verification. Apply potency and overage calculations.",
+   "sequence_order": 2,
+   "bmr_records": [
+    "Per component: material code/name, supplier and supplier lot, internal receiving/control number, QC release status, retest/expiry date, required quantity (calculated), tolerance, gross/tare/net weights, balance ID and daily check result, dispensing room and grade, date/time, dispensed by, verified by [21 CFR 211.101(b)-(d), 211.188(b)(3)-(4), 211.84(a); EU Ch.4 4.20]",
+    "Dispensed-container label: component name/code, receiving/control number, weight or measure, and the batch it is dispensed for (product name, strength, lot) [21 CFR 211.101(b)(1)-(4)]",
+    "Inputs to the potency-adjusted API calculation (assay as-is or anhydrous, water/solvent content, salt-to-base factor, approved overage) and the calculated quantity. Calculation is independently verified, or performed by validated automated equipment [21 CFR 211.101(a), 211.186(b)(4)-(5), 211.68]",
+    "Microbiological/endotoxin status of components liable to objectionable contamination (including WFI and excipients) [21 CFR 211.84(d)(6); FDA 2004 VI.A]",
+    "Sterile components for aseptic compounding (sterile API/excipient): sterility and endotoxin CoA, sterilization method, container integrity check at transfer [Annex 1 8.11(ii)]",
+    "WFI draw: system and point of use, quantity (load cell or flowmeter), temperature at point of use",
+    "Process gas (N2/CO2): identity, supply and point-of-use filter ID"
+   ],
+   "critical_process_parameters": [
+    "Correct quantity of each component, including potency adjustment and overage",
+    "Protection conditions for sensitive materials (light, temperature, inert atmosphere)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Net weight vs target",
+     "frequency": "Each dispensed container",
+     "typical_limit_or_reference": "Target \u00b1 MBR tolerance (company-defined, e.g. \u00b10.5% API, \u00b11-2% excipients; illustrative, not regulatory)",
+     "action_on_failure": "Re-dispense; out-of-tolerance addition \u2192 deviation [21 CFR 211.100(b)]"
+    },
+    {
+     "test": "Identity/lot barcode scan against BOM",
+     "frequency": "Each container",
+     "typical_limit_or_reference": "Exact match of material, lot, release status and retest date [21 CFR 211.84(a), 211.101(c)(1)]",
+     "action_on_failure": "Hard block; deviation if overridden"
+    }
+   ],
+   "signatures_required": [
+    "Dispenser (performed)",
+    "Second-person verifier of release status, weight and container identity [21 CFR 211.101(c)]. One person may suffice where automated equipment under 211.68 performs the weighing",
+    "Calculation verifier (second person or validated system check)"
+   ],
+   "special_checks": [
+    "Sterile powders are weighed and transferred only in Grade A via RTP/alpha-beta port or equivalent validated transfer [Annex 1 4.11, 8.11].",
+    "DEVIATION TRIGGERS: out-of-tolerance weight; unreleased or expired lot used; label/identity mismatch; calculation discrepancy.",
+    "Sources: https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211 ; https://www.fda.gov/media/71026/download"
+   ],
+   "time_limits_or_hold_times": [
+    "Maximum hold of dispensed materials before compounding, with storage conditions (company-defined, validated)."
+   ],
+   "variant_applicability": "All variants. Sterile-component handling applies to AC-SUSP/EMUL and sterile additions."
+  },
+  {
+   "name": "Primary container preparation: washing and dry-heat depyrogenation (vials/ampoules/cartridges) or RTU nested-container transfer (PFS/RTU)",
+   "purpose": "Deliver clean, sterile, non-pyrogenic containers to Grade A within validated hold times.",
+   "sequence_order": 3,
+   "bmr_records": [
+    "Container code, supplier lot, quantity issued, washer ID and program, WFI final-rinse confirmation (FDA: final rinse water should meet WFI), rinse pressures/temperatures, compressed air (filtered) pressure, number washed, breakage events, start/end time [FDA 2004 VI.B.1; Annex 1 8.2]",
+    "Depyrogenation tunnel: ID, program, hot-zone setpoint and actual min/max temperature, cooling-zone temperature, belt speed setpoint/actual (dwell), zone \u0394P/airflow profile, container exit temperature, Grade A particle counts in cooling/exit zone, alarms and stops, FD value if calculated, date of last HEPA integrity test (at least biannual) [Annex 1 8.66-8.67; USP <1228.1>]",
+    "Batch dry-heat oven (if used): cycle ID, load pattern, temperature/time at coldest position, chamber overpressure, chart/report [Annex 1 8.70; Ph. Eur. 5.1.1]",
+    "RTU nested tubs/bags (PFS, RTU vials): supplier lot, sterilization certificate (method/dose/date) and expiry, outer packaging integrity inspection, de-bagging location/grade, surface decontamination record for tub transfer (e-beam dose or VHP cycle ID), number of tubs/nests [Annex 1 8.46-8.48, 8.138]",
+    "Time out of tunnel/decontamination to start of filling (sterile-hold clock)"
+   ],
+   "critical_process_parameters": [
+    "Tunnel hot-zone temperature (minimum and maximum)",
+    "Belt speed / dwell time in sterilizing zone",
+    "Airflow/pressure-difference profile correlated with heat distribution and penetration",
+    "Heat penetration of containers (validated FD/FH)",
+    "Washer final rinse quality and pressure",
+    "Tub decontamination dose or VHP concentration/time"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Hot-zone temperature and belt speed",
+     "frequency": "Continuous (recorded)",
+     "typical_limit_or_reference": "Within validated ranges (process validated for \u22653 log10 endotoxin reduction per Annex 1 8.68 / FDA 2004 VI.B.1; USP <1228.1> (2024) uses FD with Tref 250 \u00b0C, z 50 \u00b0C, and post-process endotoxin NMT 0.1 EU/sample in confirmation studies)",
+     "action_on_failure": "Tunnel auto-stop and reject containers in the affected window; investigate non-conforming cycle [Annex 1 8.41]"
+    },
+    {
+     "test": "Total particles at tunnel exit / Grade A zone",
+     "frequency": "Continuous",
+     "typical_limit_or_reference": "Grade A: \u22643,520/m\u00b3 \u22650.5 \u00b5m, \u226429/m\u00b3 \u22655 \u00b5m in operation [Annex 1 Table 5]",
+     "action_on_failure": "Alarm, containers at risk quarantined, investigation [Annex 1 9.13]"
+    },
+    {
+     "test": "Tunnel/room \u0394P profile",
+     "frequency": "Continuous",
+     "typical_limit_or_reference": "Validated profile maintaining Grade A protection [Annex 1 8.67]",
+     "action_on_failure": "Stop, assess heating profile impact, deviation"
+    },
+    {
+     "test": "Glass breakage response",
+     "frequency": "Each event",
+     "typical_limit_or_reference": "Remove the SOP-defined number of containers around the break (USP <1790> 4.x breakage handling)",
+     "action_on_failure": "Record event and units removed; trend"
+    }
+   ],
+   "signatures_required": [
+    "Operator (set-up/run)",
+    "Supervisor: review of tunnel/oven printout or electronic record",
+    "QA: cycle records reviewed at batch disposition"
+   ],
+   "special_checks": [
+    "EU/US DIFFERENCE: Annex 1 8.68 requires validation to show a minimum 3 log10 endotoxin reduction. USP <1228.1> (official 1 Mar 2024) may accept time-temperature (FD) evidence without a spiked 3-log challenge. Configure per market; strictest applies.",
+    "Tunnel parts contacting sterilized components must be sterilized or disinfected. A conveyor must not pass from Grade A/B to a lower grade unless continually sterilized [Annex 1 5.8, 8.67].",
+    "DEVIATION TRIGGERS: temperature below minimum or belt speed above maximum; HEPA test overdue; Grade A particle excursion at exit; hold time exceeded; RTU sterilization certificate missing or expired.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://doi.org/10.31003/USPNF_M8098_02_01 ; https://www.fda.gov/media/71026/download"
+   ],
+   "time_limits_or_hold_times": [
+    "Maximum hold between washing, drying and depyrogenation/sterilization [Annex 1 8.18(i)]",
+    "Maximum hold of depyrogenated/sterilized containers before and during filling [Annex 1 8.18(ii); FDA 2004 VI.B.1]",
+    "Illustrative industry practice (unverified): depyrogenated vials held in Grade A for 24-72 h, or as validated"
+   ],
+   "variant_applicability": "AF-VIAL-LIQ, AF-AMP, AF-LYO (tunnel/oven). AF-PFS and RTU presentations use the RTU tub transfer path. TS-*: containers cleaned by a validated process controlling particles, endotoxin and bioburden (Annex 1 8.2); depyrogenation per product/container risk."
+  },
+  {
+   "name": "Closure preparation: stoppers/plungers (washing, siliconization, steam sterilization, drying, or RTU) and caps/seals",
+   "purpose": "Provide sterile, non-pyrogenic, dry closures (low moisture for lyophilized products) to Grade A within validated hold times.",
+   "sequence_order": 4,
+   "bmr_records": [
+    "Closure code, supplier lot, type (ready-to-sterilize or ready-to-use, steam or gamma sterilized), supplier CoA incl. endotoxin/bioburden, quantity issued [21 CFR 211.84, 211.94(c)-(d)]",
+    "In-house processing: washer/processor ID, program, WFI final rinse, silicone type/lot and quantity, sterilization cycle ID (unique), load pattern ID, chamber drain temperature trace, exposure time/temperature/pressure, drying phase (vacuum pulses/time), cycle pass/fail, bag/wrap integrity after unloading, sterile-hold expiry [Annex 1 8.44-8.46, 8.56-8.58; FDA 2004 VI.B.1]",
+    "Residual moisture of stoppers for lyophilized products (KF result vs limit)",
+    "Caps/overseals: type, colour, lot, printed cautionary statement per USP <7>; sterilization record if capping is aseptic [Annex 1 8.27]"
+   ],
+   "critical_process_parameters": [
+    "Steam sterilization temperature/time/pressure and air removal",
+    "Drying time/vacuum (residual moisture)",
+    "Siliconization level",
+    "Time between washing, drying and sterilizing (bioburden/endotoxin growth risk)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Sterilization cycle conformity",
+     "frequency": "Each cycle",
+     "typical_limit_or_reference": "Within validated parameters; unique cycle ID; record reviewed and approved as part of batch certification [Annex 1 8.41, 8.45]",
+     "action_on_failure": "Reject load; re-process only per validated procedure; investigate"
+    },
+    {
+     "test": "Load dryness and packaging integrity on unloading",
+     "frequency": "Each load",
+     "typical_limit_or_reference": "Dry, undamaged, integral barrier [Annex 1 8.56-8.57]",
+     "action_on_failure": "Remove item from manufacturing area, investigate [Annex 1 8.57]"
+    },
+    {
+     "test": "Residual moisture (lyo stoppers)",
+     "frequency": "Each sterilized load",
+     "typical_limit_or_reference": "Product/validation-specific limit (company-defined)",
+     "action_on_failure": "Additional drying per validated cycle or reject"
+    }
+   ],
+   "signatures_required": [
+    "Operator",
+    "Verifier (load pattern, cycle ID)",
+    "QA review of sterilization record at release [Annex 1 8.45]"
+   ],
+   "special_checks": [
+    "Differentiate sterilized from non-sterilized items by label or electronic tracking with product, batch and status [Annex 1 8.44].",
+    "Rubber is a poor heat conductor: routine loads must match validated heat-penetration patterns [FDA 2004 VI.B.1, IX.C.1].",
+    "DEVIATION TRIGGERS: cycle outside validated parameters; wet or damaged packs; hold time exceeded; missing supplier sterilization evidence for RTU closures.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download"
+   ],
+   "time_limits_or_hold_times": [
+    "Washing \u2192 drying \u2192 sterilization hold minimized and validated [Annex 1 8.18(i); FDA 2004 VI.B.1]",
+    "Sterile hold before use in sealed packaging [Annex 1 8.46]"
+   ],
+   "variant_applicability": "AF-VIAL-LIQ, AF-LYO (low-moisture stoppers), AF-PFS (plungers/tip caps, usually RTU), TS-* (clean closures; sterility achieved by terminal cycle). Not applicable to fusion-sealed AF-AMP."
+  },
+  {
+   "name": "Equipment/product-path preparation and sterilization; single-use systems; isolator/RABS decontamination; lyophilizer sterilization",
+   "purpose": "Sterilize every direct and indirect product-contact surface and the barrier environment, with validated, fully recorded cycles and hold times.",
+   "sequence_order": 5,
+   "bmr_records": [
+    "CIP: circuit/recipe, detergent concentration, temperatures, times, final-rinse WFI conductivity/TOC",
+    "Assembly list of product-contact parts (filling needles, pumps, manifolds, stopper bowl and tracks, filter housings, tubing), part IDs, wrapping, assembled by [Annex 1 5.5]",
+    "Autoclave porous/hard-goods load: sterilizer ID, unique cycle ID, program, validated load pattern ID, item list, drain temperature throughout exposure, exposure time/temperature/pressure, equilibration time, pass/fail, BIs/CIs if used, daily air-removal (Bowie-Dick) test result, weekly vacuum leak test status, dryness/integrity check at unloading, sterile-hold expiry [Annex 1 8.38, 8.45, 8.50, 8.56-8.61; FDA 2004 IX.C.1 (batch records document adherence to validated load patterns)]",
+    "SIP: system/circuit ID, temperature at condensate drains/cold points, time at or above setpoint, pressure, manual valve manipulations performed, post-SIP positive pressure or sterile vent filter status, vent filter post-use integrity test [Annex 1 8.58, 8.63, 8.88; FDA 2004 IX.C.2]",
+    "Single-use systems: item code/lot, supplier certificate of conformance and sterilization proof, expiry, outer packaging/pouch inspection on receipt and before use, connections made (intrinsic sterile connection device type), integrity/pressure test if required [Annex 1 8.129, 8.134, 8.138]",
+    "Isolator: VHP (or other sporicide) cycle ID and parameters (concentration, time, temperature, RH, aeration end-point residual), BI/CI results where required, isolator leak test status, glove-port integrity test results at the beginning (and end) of batch/campaign, decontamination hold expiry [Annex 1 4.21(i), 4.22(i), 8.18(iii)]",
+    "RABS: sporicidal disinfection record, gloves sterilized before installation and sterilized/bio-decontaminated before each campaign, visual glove check each use, door-opening log [Annex 1 4.21(ii), 4.22(ii)]",
+    "Lyophilizer: sterilization (SIP) cycle ID/date, re-sterilization after maintenance/cleaning, sterile hold status, integrity maintained [Annex 1 8.122-8.124]"
+   ],
+   "critical_process_parameters": [
+    "Sterilization temperature/time/pressure and F0 at slowest-to-heat point",
+    "Air removal (porous loads) and condensate drainage",
+    "SIP cold-point temperature/time",
+    "VHP concentration/exposure and aeration residual",
+    "Glove/isolator leak-test pressure decay"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Autoclave/SIP cycle parameter conformity",
+     "frequency": "Each cycle",
+     "typical_limit_or_reference": "Within validated ranges. Independent duplex control/monitoring probes must detect non-conforming cycles [Annex 1 8.41, 8.50]",
+     "action_on_failure": "Reject load / re-sterilize per validated procedure; investigate; items not released to Grade A"
+    },
+    {
+     "test": "Air-removal test (Bowie-Dick type) / air detector",
+     "frequency": "Normally daily (before first porous load)",
+     "typical_limit_or_reference": "Pass [Annex 1 8.61]",
+     "action_on_failure": "Sterilizer out of use until repaired and passing"
+    },
+    {
+     "test": "Sterilizer vacuum leak test",
+     "frequency": "Periodically, normally weekly",
+     "typical_limit_or_reference": "Within leak-rate specification [Annex 1 8.60]",
+     "action_on_failure": "Out of use; impact assessment for loads since last pass"
+    },
+    {
+     "test": "Isolator glove-port integrity test",
+     "frequency": "Minimum at beginning and end of each batch or campaign; visual check each use [Annex 1 4.21(i)]",
+     "typical_limit_or_reference": "Pressure-decay/leak criterion of the validated tester",
+     "action_on_failure": "Replace glove. An end-of-batch failure triggers a deviation and batch impact assessment: interventions made through that port, glove prints, EM"
+    },
+    {
+     "test": "H2O2 residual after aeration",
+     "frequency": "Each decontamination cycle",
+     "typical_limit_or_reference": "Below validated product-safe level (e.g. \u22641 ppm is common; product-specific, unverified)",
+     "action_on_failure": "Extend aeration; do not start"
+    }
+   ],
+   "signatures_required": [
+    "Operator (assembly, loading, cycle start)",
+    "Second person (load pattern and item list verification)",
+    "Supervisor/engineer (cycle record review)",
+    "QA (approval of sterilization records at batch certification) [Annex 1 8.45]"
+   ],
+   "special_checks": [
+    "Equipment should normally be sterilized between batches unless alternate intervals are validated [FDA 2004 IX.C].",
+    "Unplanned maintenance on sterility-critical equipment needs a recorded sterility impact assessment and approved return to use [Annex 1 5.6-5.7].",
+    "Direct and indirect product-contact parts must be sterilized [Annex 1 5.5].",
+    "DEVIATION TRIGGERS: failed or non-conforming cycle; overdue Bowie-Dick or leak test; glove integrity failure; sterile/decontamination hold expired; SUS without sterilization proof or with damaged packaging.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download ; https://doi.org/10.31003/USPNF_M7409_02_01"
+   ],
+   "time_limits_or_hold_times": [
+    "Dirty-hold and clean-hold before sterilization [Annex 1 8.18(i)]",
+    "Sterilized equipment hold before use and during filling/assembly [Annex 1 8.18(ii), 8.46]",
+    "Decontaminated isolator/RABS hold before use [Annex 1 8.18(iii)]",
+    "Lyophilizer sterile hold, challenged in APS [Annex 1 8.122]",
+    "Illustrative industry practice (unverified): sterilized wrapped parts 72 h to 7 days, or as validated"
+   ],
+   "variant_applicability": "All aseptic variants. TS-* use cleaned (not necessarily sterilized) filling equipment unless the CCS requires otherwise. Lyophilizer items apply to AF-LYO."
+  },
+  {
+   "name": "Compounding / bulk solution preparation",
+   "purpose": "Prepare a homogeneous bulk at the correct concentration, pH, density and osmolality with controlled oxygen, bioburden and endotoxin. Start the product time-limit clock.",
+   "sequence_order": 6,
+   "bmr_records": [
+    "Vessel ID with clean (and, if required, sterile) status and expiry; agitator ID/speed; load cell ID",
+    "T0 = start of product preparation (date/time; e.g. first WFI or first component into vessel, per MBR definition). Starts the product time-limit clock [Annex 1 8.18(iv), 8.36; FDA 2004 VIII]",
+    "WFI: initial quantity, point-of-use temperature at addition (product-specific; WFI loop itself e.g. circulated >70 \u00b0C), POU/system sample reference [Annex 1 6.10, 6.13]",
+    "Each addition: order, material, lot, quantity, time, added by, verified by [21 CFR 211.101(d), 211.188(b)(3)-(4)]",
+    "Dissolution/mixing time and visual clarity checks",
+    "Nitrogen sparging/overlay: gas source, point-of-use 0.22 \u00b5m filter ID, flow/pressure, start/end time, dissolved-oxygen readings [Annex 1 6.18-6.19]",
+    "pH measurement(s): meter ID/calibration, value, acid/base adjustment lot, volume added, repeat reading",
+    "Final q.s.: target and actual net weight (or volume), temperature at q.s.",
+    "Density (g/mL at stated temperature; densitometer ID), osmolality (osmometer ID) [USP <785>], appearance",
+    "Bulk samples: assay, pH, density, osmolality, bioburden (pre-filtration, representative of worst case e.g. end of hold), endotoxin; sample IDs and times [Annex 1 8.93, 10.3; FDA 2004 X.C]",
+    "Bulk hold: start/end, temperature, N2 blanket, light protection; bulk yield (actual net vs theoretical)",
+    "Room and grade: Grade C for solutions to be sterile-filtered (Table 4); Grade D for terminally sterilized products, or Grade C when at high/unusual risk [Annex 1 8.1, Table 3]"
+   ],
+   "critical_process_parameters": [
+    "Quantity and order of addition of each component",
+    "WFI temperature at addition and bulk temperature during mixing",
+    "Mixing speed and time (homogeneity)",
+    "pH adjustment within allowed acid/base volume",
+    "N2 sparge rate/time (oxygen-sensitive products)",
+    "Final weight/volume at q.s.",
+    "Pre-filtration hold time (bioburden/endotoxin growth)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "pH",
+     "frequency": "After dissolution; after each adjustment; final",
+     "typical_limit_or_reference": "Product/MA-specific range [21 CFR 211.110(a)(5)]",
+     "action_on_failure": "Adjust within approved limits and re-measure. Adjustment beyond approved limits \u2192 deviation [21 CFR 211.100(b)]"
+    },
+    {
+     "test": "Density",
+     "frequency": "Final bulk",
+     "typical_limit_or_reference": "Product-specific; the measured value drives fill-weight targets",
+     "action_on_failure": "Re-measure; if out of range investigate compounding error; hold"
+    },
+    {
+     "test": "Osmolality",
+     "frequency": "Final bulk",
+     "typical_limit_or_reference": "Product-specific (e.g. near-isotonic ~270-330 mOsm/kg for many IV products; illustrative, unverified) [USP <785>]",
+     "action_on_failure": "Hold; investigate"
+    },
+    {
+     "test": "In-process assay",
+     "frequency": "Final bulk",
+     "typical_limit_or_reference": "Company release-to-filtration limit (e.g. 98.0-102.0% of target; illustrative)",
+     "action_on_failure": "Hold. Any correction only per approved procedure with QU approval [21 CFR 211.115]"
+    },
+    {
+     "test": "Clarity/appearance",
+     "frequency": "Final bulk",
+     "typical_limit_or_reference": "Clear, free of visible particles (solutions) [21 CFR 211.110(a)(5)]",
+     "action_on_failure": "Hold; investigate"
+    },
+    {
+     "test": "Dissolved oxygen (oxygen-sensitive products)",
+     "frequency": "During/at end of sparge and before filtration",
+     "typical_limit_or_reference": "Product-specific (e.g. \u22641-2 mg/L; illustrative, unverified)",
+     "action_on_failure": "Continue sparging within time limits; else deviation"
+    },
+    {
+     "test": "Pre-filtration bioburden",
+     "frequency": "Every batch (sample from bulk and immediately before the final sterilizing filter, or before the first filter if redundant)",
+     "typical_limit_or_reference": "Defined limit related to the sterilization method [Annex 1 8.93, 10.3; FDA 2004 X.C]. EU expectation typically NMT 10 CFU/100 mL before sterile filtration (EMA sterilisation guideline 2019, not verified here; corroborated by PDA TR90 2023)",
+     "action_on_failure": "Result is retrospective: it must be reviewed before release; exceedance \u2192 investigation and impact on filter validation, possible rejection"
+    },
+    {
+     "test": "Bulk endotoxin (risk-based)",
+     "frequency": "Per batch or per CCS",
+     "typical_limit_or_reference": "Alert/action derived from finished-product limit K/M [USP <85>] and input levels",
+     "action_on_failure": "Investigate. Note: sterilizing filtration and moist heat do not remove endotoxin [FDA 2004 VII]"
+    }
+   ],
+   "signatures_required": [
+    "Operator (each step)",
+    "Second-person verifier for each component addition [21 CFR 211.101(d)]",
+    "IPC analyst (pH, density, osmolality)",
+    "Supervisor (bulk completion and yield)"
+   ],
+   "special_checks": [
+    "WFI continuous TOC/conductivity monitoring, and at least one representative WFI sample every day of use [Annex 1 6.13, 6.15].",
+    "Gases in direct product contact are filtered at point of use by a \u22640.22 \u00b5m sterilizing-grade filter. Batch-basis gas filters (e.g. overlay) are integrity-tested and reviewed at release [Annex 1 6.19].",
+    "DEVIATION TRIGGERS: wrong order or quantity of addition; pH adjustment beyond allowed range; T0-based limit exceeded; bulk hold temperature excursion; WFI out of specification; IPC failure.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download ; https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211"
+   ],
+   "time_limits_or_hold_times": [
+    "T0 (start of preparation) \u2192 sterilizing filtration \u2192 end of aseptic filling: product-specific validated maximum [Annex 1 8.18(iv); FDA 2004 VIII; 21 CFR 211.111]",
+    "TS products: maximum permissible time between preparation and filling [Annex 1 8.5], and between start of preparation and sterilization [Annex 1 8.36]",
+    "Pre-filtration holding time as a validated filtration parameter [Annex 1 8.85(ii)]",
+    "Illustrative industry values (unverified; must come from bioburden/endotoxin hold studies): compounding start \u2192 end of sterile filtration often \u22648-12 h at room temperature; compounding start \u2192 end of filling often \u226424 h (longer only if validated)"
+   ],
+   "variant_applicability": "All liquid variants. For AF-LYO the bulk is filterable solution. For AC-SUSP/EMUL see the aseptic compounding step."
+  },
+  {
+   "name": "Aseptic compounding of non-filterable products (suspensions/emulsions) - variant-specific",
+   "purpose": "Produce a sterile, homogeneous suspension or emulsion from separately sterilized components where final sterilizing filtration is impossible.",
+   "sequence_order": 7,
+   "bmr_records": [
+    "Sterilization records of all product-contact equipment; sterile raw materials/intermediates with sterility and endotoxin evidence; aseptic additions (time, operator, Grade A) [Annex 1 8.11(i)-(iii), 8.13]",
+    "Homogenizer/microfluidizer ID, pressure, number of passes, temperature, time",
+    "Particle size distribution (suspensions) or MDD and PFAT5 (lipid injectable emulsions)",
+    "Content uniformity/homogeneity samples at start, middle and end of filling; continuous agitation during filling (speed)",
+    "Sterile bulk hold time and conditions"
+   ],
+   "critical_process_parameters": [
+    "Homogenization pressure/passes/temperature",
+    "Order and rate of aseptic addition",
+    "Agitation during hold and filling",
+    "Temperature"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Globule size (lipid emulsions)",
+     "frequency": "Bulk and finished product",
+     "typical_limit_or_reference": "Intensity-weighted MDD <500 nm; PFAT5 (volume % of fat in globules >5 \u00b5m) \u22640.05% [USP <729>]",
+     "action_on_failure": "Hold; investigate homogenization; reject if out of specification"
+    },
+    {
+     "test": "Particle size / resuspendability (suspensions)",
+     "frequency": "Bulk; start/middle/end of fill",
+     "typical_limit_or_reference": "Product specification (MA)",
+     "action_on_failure": "Hold; investigate"
+    },
+    {
+     "test": "Homogeneity (assay across fill)",
+     "frequency": "Start/middle/end of filling",
+     "typical_limit_or_reference": "Product specification",
+     "action_on_failure": "Investigate agitation; batch impact"
+    }
+   ],
+   "signatures_required": [
+    "Aseptic operator(s)",
+    "Verifier of each aseptic addition",
+    "Supervisor",
+    "QA oversight of aseptic operations [Annex 1 8.19]"
+   ],
+   "special_checks": [
+    "The APS must cover all additional aseptic steps of non-filterable formulations [Annex 1 9.33(ii)]. FDA 2004 Appendix 3: formulation-stage process simulations at least twice per year.",
+    "DEVIATION TRIGGERS: any exposure of sterile materials outside Grade A; homogenizer parameter excursion; hold time exceeded.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://doi.org/10.31003/USPNF_M99505_02_01 ; https://www.fda.gov/media/71026/download"
+   ],
+   "time_limits_or_hold_times": [
+    "Sterile bulk hold before filling [Annex 1 8.18(v)]",
+    "Aseptic processing time [Annex 1 8.18(vi)]"
+   ],
+   "variant_applicability": "AC-SUSP/EMUL only (brief coverage). Terminally sterilized emulsions follow the TS path."
+  },
+  {
+   "name": "Sterilizing filtration (including bioburden-reduction prefiltration, PUPSIT and post-use integrity testing)",
+   "purpose": "Render the bulk sterile by filtration through a validated sterilizing-grade (\u22640.22 \u00b5m) filter train and prove filter integrity before and after use.",
+   "sequence_order": 8,
+   "bmr_records": [
+    "Validated filter train configuration ID (prefilters, serial/redundant sterilizing filters, vent filters) [Annex 1 8.81, 8.91-8.92]",
+    "Each filter: manufacturer, catalogue/part no., lot, serial no., pore rating, area; housing/capsule ID; sterilization record (autoclave/SIP cycle ID) or supplier gamma certificate for SUS [Annex 1 8.79, 8.134]",
+    "Wetting fluid, flush volume and flush disposal",
+    "Pre-use post-sterilization integrity test (PUPSIT): test type (bubble point / diffusive flow / pressure hold / water intrusion), test gas, test pressure, temperature, stabilization time, measured value, specification (validated, correlated to bacterial retention; product-wet or water-wet), pass/fail, number of retests, tester ID/calibration, electronic result file with hash [Annex 1 8.82(vi), 8.87; PDA TR26 Revised 2025]",
+    "Pre-filtration bioburden sample ID/time (immediately prior to final sterile filtration; before first filter if redundant) [Annex 1 8.93]",
+    "Filtration: start/end time, volume filtered, inlet pressure, differential pressure, flow rate, temperature, total filter contact time, minimum time to filter a known volume [Annex 1 8.85(ii), 8.86; Ph. Eur. 5.1.1 routine control parameters]",
+    "Receiving sterile vessel/bag ID, its sterilization record, vent filter ID",
+    "Post-use integrity test, performed before removal from housing: same data fields; redundant filter tested if primary fails [Annex 1 8.87, 8.91-8.92]",
+    "Critical vent/gas filter post-use integrity test results (product vessel vents, gas overlay filters used per batch) [Annex 1 6.19, 8.88]",
+    "Filter disposal confirmation after single batch (or validated campaign duration) [Annex 1 8.94-8.95]"
+   ],
+   "critical_process_parameters": [
+    "Maximum pre-filtration bioburden",
+    "Maximum differential pressure and flow rate",
+    "Maximum filtration time / total contact time",
+    "Maximum filtered volume per filter area",
+    "Temperature",
+    "Integrity-test specification (bubble point minimum or diffusive-flow maximum at test pressure)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "PUPSIT / pre-use integrity test",
+     "frequency": "Before filtration, after filter sterilization",
+     "typical_limit_or_reference": "Validated specification correlated to bacterial retention [Annex 1 8.87]. EU: expected unless omission is justified by a documented risk assessment covering filter sterilization, supply chain, packaging, product fouling and prefiltration [Annex 1 8.87(i)-(iii)]. US: 'can be performed prior to processing' [FDA 2004 IX.B]",
+     "action_on_failure": "Run the validated failure-analysis decision tree (re-wet and retest, more aggressive wetting, lower-surface-tension reference fluid; maximum number of repetitions pre-defined) [PDA TR26 Revised 2025 7.6]. Confirmed failure: replace filter and do not filter. Deviation if procedure not followed"
+    },
+    {
+     "test": "Post-use integrity test",
+     "frequency": "After filtration, before removing the filter from its housing",
+     "typical_limit_or_reference": "Validated specification (product-wet or water-wet) [Annex 1 8.87; FDA 2004 IX.B: should be routinely performed post-use; Ph. Eur. 5.1.1]",
+     "action_on_failure": "Decision tree as above. A true failure means the batch cannot be released as sterile; reject or re-filter only if validated/registered with QU approval [21 CFR 211.115; PDA TR26 7.5]. Redundant set-up: test the redundant filter and investigate the primary failure [Annex 1 8.92]. Serial validated system: all filters must pass [Annex 1 8.91]"
+    },
+    {
+     "test": "Differential pressure / flow / filtration time",
+     "frequency": "Continuous",
+     "typical_limit_or_reference": "Validated maxima [Annex 1 8.85-8.86]",
+     "action_on_failure": "Stop; document and investigate any significant difference from validated parameters [Annex 1 8.86]"
+    },
+    {
+     "test": "Pre-filtration bioburden",
+     "frequency": "Each batch",
+     "typical_limit_or_reference": "Established limit (FDA 2004 X.C); EU typically NMT 10 CFU/100 mL (EMA 2019 guideline, not verified here; PDA TR90)",
+     "action_on_failure": "Investigation. Filter-validation challenge margin (\u226510^7 CFU/cm\u00b2 B. diminuta) assessed"
+    }
+   ],
+   "signatures_required": [
+    "Operator (assembly, test execution)",
+    "Second-person verifier of integrity-test result, or automated transfer from a validated tester with one person checking [21 CFR 211.68(c)]",
+    "Supervisor",
+    "QA: review of all filter integrity results before release [Annex 1 6.19, 8.124]"
+   ],
+   "special_checks": [
+    "Final filtration as close to point of fill as possible; connections after the final filter made aseptically in Grade A or by SIP/ISCD [Annex 1 8.14, 8.80, 8.128].",
+    "Identical filter (polymer, pore rating) to the validated one [FDA 2004 IX.B].",
+    "Integrity-test method by area (PDA TR26 2025 Table 7.1.1-1, approximate): <0.03 m\u00b2 bubble point; 0.03-1.8 m\u00b2 bubble point or diffusive flow; >1.8 m\u00b2 combined.",
+    "DEVIATION TRIGGERS: PUPSIT/post-use failure after decision tree; retest count exceeded; filter discarded before test; \u0394P/flow/time/volume outside validated limits; wrong filter type; T0 limit exceeded; missing gas/vent filter test.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download ; https://doi.org/10.31003/USPNF_M7413_02_01 ; PDA TR26 (Revised 2025) https://www.pda.org"
+   ],
+   "time_limits_or_hold_times": [
+    "Pre-filtration holding time [Annex 1 8.85(ii)]",
+    "Maximum filtration time / fluid contact time; a single filter not used more than one working day unless validated [Annex 1 8.85(ii), 8.94; FDA 2004 VIII]",
+    "Sterile filtrate hold before filling [Annex 1 8.18(v)]",
+    "Overall T0 \u2192 end of filling [Annex 1 8.18(iv)]"
+   ],
+   "variant_applicability": "Sterilizing filtration: AF-VIAL-LIQ, AF-AMP, AF-PFS, AF-LYO. TS-*: bioburden-reduction filtration 'where possible' with a maximum time to filling [Annex 1 8.5]. Not applicable to the final product of AC-SUSP/EMUL (components filtered separately)."
+  },
+  {
+   "name": "Aseptic line set-up, gowning/entry and pre-fill checks",
+   "purpose": "Assemble sterilized equipment and introduce sterile components into Grade A without contamination, with complete EM and intervention coverage from the start of set-up.",
+   "sequence_order": 9,
+   "bmr_records": [
+    "Gowning/entry log: person, time in/out, qualification status at entry, sterilized garment lot and within hold time, packaging checked intact, maximum wear time [Annex 1 7.11, 7.15]",
+    "Persons present vs maximum permitted number [Annex 1 7.2]",
+    "Transfer of each sterilized item into Grade A/B: item ID, sterilization cycle ID, sterile expiry, wrap integrity check, exterior disinfection, approved transfer list [Annex 1 4.12(ii), 8.47-8.48]",
+    "Aseptic assembly steps as inherent interventions: start/end times, operators [Annex 1 8.12, 8.16-8.17]",
+    "EM from start of set-up: continuous total particle monitoring, continuous viable air monitoring (active air and/or settle plates, with placement/removal times) [Annex 1 9.16, 9.24]",
+    "Fill-system set-up: pump/needle configuration, set-up fill weights (units consumed and their disposition), nitrogen overlay connection and filter ID, stopper bowl loaded (lot), line-speed setpoint",
+    "Barrier status before start: isolator pressure/decon hold valid, RABS doors closed, UDAF running; critical alarms clear; authorization to start filling"
+   ],
+   "critical_process_parameters": [
+    "Grade A conditions (UDAF, first air, pressure cascade)",
+    "Integrity of sterile packaging at transfer",
+    "Correct assembly (per validated instructions)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Set-up fill weight per needle",
+     "frequency": "Until n consecutive in-limit results per needle (per MBR)",
+     "typical_limit_or_reference": "Target \u00b1 action limits (see filling step)",
+     "action_on_failure": "Adjust; set-up units discarded and counted"
+    },
+    {
+     "test": "Particle counter and alarm functional check",
+     "frequency": "Before set-up",
+     "typical_limit_or_reference": "Counter online, \u226528.3 L/min sampling, alarms active [Annex 1 9.17]",
+     "action_on_failure": "Do not start"
+    }
+   ],
+   "signatures_required": [
+    "Aseptic operators (each assembly/transfer)",
+    "Line lead (pre-fill checklist)",
+    "QA or qualified observer for regular observation of aseptic operations [Annex 1 8.19, 9.27]"
+   ],
+   "special_checks": [
+    "Unwrapping, assembly and filling-line set-up are treated as aseptic processes in Grade A with Grade B background (isolator background per 4.20) [Annex 1 8.12].",
+    "Only approved items transferred; unapproved items need pre-approved exception with risk assessment and specific disinfection/monitoring [Annex 1 4.12(ii)].",
+    "DEVIATION TRIGGERS: unqualified entrant; expired garment/sterile item; broken sterile barrier; EM not running at set-up; personnel above maximum.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+   ],
+   "time_limits_or_hold_times": [
+    "Sterilized item in-use/hold limits [Annex 1 8.18(ii)]",
+    "Settle plate exposure \u22644 h per plate [Annex 1 Table 6 note a]",
+    "Maximum operator time in cleanroom / gown wear time [Annex 1 7.15, 9.36(ix)]"
+   ],
+   "variant_applicability": "Aseptic variants (AF-*, AC-*). TS-* filling set-up follows a clean (non-aseptic) procedure in Grade C."
+  },
+  {
+   "name": "Aseptic filling and closing (vial stoppering, ampoule fusion sealing, PFS filling/plunger placement)",
+   "purpose": "Fill the exact dose into sterile containers and close them in Grade A. Capture every intervention, stoppage, EM result and IPC needed to demonstrate asepsis.",
+   "sequence_order": 10,
+   "bmr_records": [
+    "Filling start/end date-time, line speed setpoint/actual, machine counters (containers in, filled, rejected by reason)",
+    "Fill-weight checks: time, needle/pump, gross, tare, net, calculated volume via density, operator or balance-interface ID [21 CFR 211.110(a)]",
+    "Inert-gas overlay/headspace oxygen results (if applicable)",
+    "Stopper presence/seating verification results; ampoule sealing parameters (gas/oxygen flow, flame settings) and seal checks; PFS plunger placement method, depth/position and bubble-size checks",
+    "Intervention log for each event: approved intervention ID/description, category (inherent/corrective), critical (Grade A) yes/no, start and end time, duration, operators, units removed per SOP, extent of line clearance, glove change, glove print sample ID [Annex 1 8.16-8.17, 9.25; FDA 2004 XII; PDA TR22 2025]",
+    "Line stoppages: start/end, cause",
+    "Non-qualified interventions: QA authorization, risk assessment, deviation number [Annex 1 8.16]",
+    "EM during filling: continuous particle data (0.5 and 5 \u00b5m) with alarm events; active air sample IDs/times/volumes; settle plate placement/removal; end-of-operation surface/contact plates; personnel monitoring (gloves after critical interventions and at each Grade B exit, gowns) [Annex 1 9.16-9.18, 9.22-9.26]",
+    "Glove or gown tears/damage events [PDA PtC No.1 Revised 2023]",
+    "Differential-pressure, HVAC, door-interlock and isolator/RABS alarms; any power disruption, however momentary [Annex 1 4.16; FDA 2004 XII]",
+    "Sterility samples: IDs and positions (beginning, end, after critical interventions/excursions) [Annex 1 10.6(i); FDA 2004 XI.B]",
+    "End of filling: residual bulk, line losses, containers reconciled at filler"
+   ],
+   "critical_process_parameters": [
+    "Fill volume/weight per container",
+    "Line speed (exposure time)",
+    "Stopper insertion/seating (vials) or sealing parameters (ampoules/BFS)",
+    "Headspace gas composition (inert-gassed products)",
+    "Grade A environmental conditions (UDAF velocity guidance 0.36-0.54 m/s at working position, first air, \u0394P \u226510 Pa guidance between grades)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Fill weight / volume",
+     "frequency": "Start (all needles), then at defined intervals per needle (typically every 15-30 min; illustrative), after every adjustment, intervention or stoppage. Alternatively 100% in-process checkweighing",
+     "typical_limit_or_reference": "Target = (labeled volume + recommended excess per USP <1151>, e.g. 10 mL label \u2192 0.50 mL mobile / 0.70 mL viscous) \u00d7 density. Individual units must deliver the labeled volume [USP <697>]. Alert/action limits company-defined (e.g. \u00b11-2%; illustrative)",
+     "action_on_failure": "Adjust and re-check; segregate and assess units since last in-limit check; reject out-of-limit units. Action-limit breach \u2192 deviation"
+    },
+    {
+     "test": "Stopper presence/position (vials) / plunger position (PFS)",
+     "frequency": "100% automated detection",
+     "typical_limit_or_reference": "All defective units rejected [Annex 1 8.28; FDA 2004 IV.E]",
+     "action_on_failure": "Automatic reject. A manual fix is a corrective intervention (log)"
+    },
+    {
+     "test": "Grade A total particle monitoring",
+     "frequency": "Continuous for full duration incl. set-up, \u226528.3 L/min",
+     "typical_limit_or_reference": "Action \u22643,520/m\u00b3 (\u22650.5 \u00b5m) and \u226429/m\u00b3 (\u22655 \u00b5m) in operation; alert levels from qualification/trends [Annex 1 Table 5, 9.9-9.10, 9.16-9.17]. FDA ISO 5: \u22643,520/m\u00b3 \u22650.5 \u00b5m within ~1 ft of work site [FDA 2004 IV.A]",
+     "action_on_failure": "Alarm, root-cause investigation, product impact assessment incl. batches produced between monitoring and reporting [Annex 1 9.13]"
+    },
+    {
+     "test": "Viable EM (air, settle, contact, glove)",
+     "frequency": "Continuous viable air in Grade A for full duration; gloves after critical interventions and at each Grade B exit; surfaces at end [Annex 1 9.24-9.25]. FDA: gloves daily or with each lot [FDA 2004 V.C]",
+     "typical_limit_or_reference": "Grade A: any growth \u2192 investigation. Grade B action: 10 CFU/m\u00b3 air, 5 CFU/4 h settle, 5 CFU/contact plate, 5 CFU/glove. Grade C: 100/50/25. Grade D: 200/100/50 [Annex 1 Table 6]. FDA action levels: ISO 5 1 CFU/m\u00b3 and 1 CFU/4 h; ISO 7 10 CFU/m\u00b3 and 5 CFU/4 h [FDA 2004 Table 1]",
+     "action_on_failure": "Species-level ID for Grade A/B isolates [Annex 1 9.31]; investigation completed before release of impacted batches (PDA TR13 2022 5.x); release gate [Annex 1 10.10]"
+    },
+    {
+     "test": "Headspace oxygen (if inert-gassed)",
+     "frequency": "Start, periodically (e.g. hourly; illustrative), end",
+     "typical_limit_or_reference": "Product-specific (e.g. \u22642-5% O2; illustrative, unverified), non-destructive laser headspace analysis",
+     "action_on_failure": "Adjust gassing, segregate units, deviation if action limit"
+    }
+   ],
+   "signatures_required": [
+    "Aseptic operators (interventions attributed individually)",
+    "Line lead/supervisor (IPC review, stoppages)",
+    "QA: authorization of non-qualified interventions (in advance, exceptional) and review of intervention log [Annex 1 8.16]",
+    "Verifier for any manually entered fill weights (unless balance-interfaced)"
+   ],
+   "special_checks": [
+    "Every intervention must be drawn from the authorized list of qualified inherent and corrective interventions that has been evaluated in APS [Annex 1 8.16, 9.34].",
+    "Outer gloves replaced after glove sampling following critical interventions; gowns replaced after gown sampling [Annex 1 9.25]. Gloves not sanitized immediately before sampling [FDA 2004 V.C].",
+    "Line clearance rules after defined interventions [FDA 2004 XII]. Open-door RABS interventions logged and followed by disinfection [FDA CP 7356.002A].",
+    "Grade A air must not be obstructed; movement slow and controlled [Annex 1 7.18].",
+    "DEVIATION TRIGGERS: non-qualified or undocumented intervention; intervention longer than its defined maximum duration; Grade A particle action exceedance; any Grade A viable growth; glove tear during critical operation; fill-weight action limit; \u0394P alarm; power interruption; filling-time or aseptic-processing-time limit exceeded; personnel above maximum.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download ; https://doi.org/10.31003/USPNF_M98730_04_01"
+   ],
+   "time_limits_or_hold_times": [
+    "Filling time [Annex 1 8.18(vii)]",
+    "Aseptic processing time [Annex 1 8.18(vi)]",
+    "Sterile bulk hold before/during filling [Annex 1 8.18(v)]",
+    "T0 \u2192 end of aseptic filling product maximum [Annex 1 8.18(iv)]",
+    "Maximum exposure of open containers and maximum intervention durations (company-defined, APS-qualified)"
+   ],
+   "variant_applicability": "AF-VIAL-LIQ, AF-AMP (fusion sealing), AF-PFS (nested tub filling, vacuum/vent-tube stoppering), AF-LYO (partial stoppering), AC-SUSP/EMUL. TS-*: filling in Grade C, or Grade A with C background when at unusual risk [Annex 1 8.3-8.4]; aseptic intervention categories not required, but stoppages, fill weights, EM and time limits are still recorded."
+  },
+  {
+   "name": "Lyophilization (Grade A transfer/loading, freeze-drying cycle, in-chamber stoppering, unloading)",
+   "purpose": "Dry the partially stoppered product under maintained sterility and record the cycle for batch certification.",
+   "sequence_order": 11,
+   "bmr_records": [
+    "Lyophilizer ID; sterilization cycle ID and date; re-sterilization after maintenance/cleaning; sterile-hold status. If manually loaded/unloaded without barrier separation, sterilized before each load (Annex 1 8.123, in operation from 25 Aug 2024) [Annex 1 8.122-8.123]",
+    "Leak rate / vacuum integrity test at start of every cycle: measured value vs specified maximum [Annex 1 8.124]",
+    "Vent/backfill filter: sterilized before each use; integrity test result included in batch certification [Annex 1 8.124]",
+    "Trays and vial support rings: sterile, inspected for damage/deformation [Annex 1 8.122, 8.125]",
+    "Transfer of partially stoppered vials under Grade A (cart/UDAF/conveyor ID), loading start/end times, operators [Annex 1 8.126(ii)-(iv)]",
+    "Loading pattern: shelf map, trays per shelf, vials per tray, product-temperature probe positions [Annex 1 8.126(i)]",
+    "Recipe ID/version; setpoints vs actual traces for freezing (shelf temperature, ramps, holds), annealing, primary drying (shelf temperature, chamber pressure by capacitance manometer, Pirani, condenser temperature), secondary drying; product temperatures; end-of-primary-drying determination (Pirani/CM convergence or pressure-rise test); total cycle time",
+    "Alarms/events (vacuum loss, refrigeration, power), with operator acknowledgement and impact assessment",
+    "Backfill gas (sterile-filtered N2) and stoppering pressure; hydraulic stoppering force; release to atmosphere",
+    "Unloading start/end; vials loaded vs unloaded vs broken/fallen; post-unload Grade A handling if stoppering incomplete [Annex 1 8.126(v)]",
+    "Cycle report (electronic or printout) reviewed and signed, with audit trail"
+   ],
+   "critical_process_parameters": [
+    "Shelf temperature (freezing, primary, secondary)",
+    "Chamber pressure",
+    "Phase durations",
+    "Product temperature relative to collapse/eutectic temperature",
+    "Condenser temperature",
+    "Backfill pressure and stoppering force",
+    "Chamber leak rate"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Chamber leak rate",
+     "frequency": "Start of every cycle",
+     "typical_limit_or_reference": "\u2264 specified maximum permitted air leakage (equipment/validation-specific) [Annex 1 8.124]",
+     "action_on_failure": "Do not start; repair; re-sterilize; deviation if product already loaded"
+    },
+    {
+     "test": "Cycle parameters vs validated recipe",
+     "frequency": "Continuous",
+     "typical_limit_or_reference": "Within validated ranges",
+     "action_on_failure": "Alarm; deviation; product impact assessment (collapse/meltback, moisture)"
+    },
+    {
+     "test": "Vent filter post-use integrity",
+     "frequency": "Each cycle",
+     "typical_limit_or_reference": "Pass [Annex 1 8.124]",
+     "action_on_failure": "Investigation; batch sterility assurance assessment"
+    },
+    {
+     "test": "Residual moisture (KF), cake appearance, reconstitution time",
+     "frequency": "Per batch, sampled across shelves/positions",
+     "typical_limit_or_reference": "Product specification",
+     "action_on_failure": "Hold; investigate"
+    }
+   ],
+   "signatures_required": [
+    "Operators (loading/unloading)",
+    "Second person (load pattern verification)",
+    "Process engineer/supervisor (cycle review)",
+    "QA (review for certification)"
+   ],
+   "special_checks": [
+    "Lyophilization is an extension of the aseptic process; all control measures per CCS [Annex 1 8.121].",
+    "The APS must represent transport, loading, a representative chamber dwell, unloading and sealing. It uses air (not N2) to break vacuum, the maximum sterilization-to-use interval, the maximum filtration-to-lyo time and the largest number of trays [Annex 1 9.33(vi)-(vii)].",
+    "DEVIATION TRIGGERS: leak test failure; unsterilized or expired lyophilizer; partially stoppered vials outside Grade A; cycle parameter excursion; vent filter failure; vial count mismatch.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download"
+   ],
+   "time_limits_or_hold_times": [
+    "Maximum time from filling to loading, and maximum loading duration with chamber open (worst case in APS) [Annex 1 9.33(vii)]",
+    "Lyophilizer sterile hold before use [Annex 1 8.122]",
+    "Maximum hold of stoppered, uncapped vials before capping (validated)"
+   ],
+   "variant_applicability": "AF-LYO only."
+  },
+  {
+   "name": "Capping / crimping",
+   "purpose": "Secure the closure with an overseal without compromising the container before crimping. Reject units with missing or displaced stoppers before capping.",
+   "sequence_order": 12,
+   "bmr_records": [
+    "Capping machine ID; mode: aseptic (sterilized caps in Grade A) or clean process outside the aseptic core with Grade A air supply in \u2265Grade D background [Annex 1 8.27]",
+    "Cap/seal type, colour, lot; cap sterilization record if aseptic; verification of ferrule/cap cautionary statement and colour per product labeling (USP <7>: only cautionary statements on the top surface; black closures only for Potassium Chloride Injection Concentrate)",
+    "Stopper presence/height detection system status and challenge results; count of units rejected before capping [Annex 1 8.28]",
+    "Crimp settings (force/pressure, head height); crimp quality check results (visual/rotation/torque or residual seal force)",
+    "Manual interventions at the capping station; local extraction running [Annex 1 8.26, 8.29]",
+    "Counts in / capped / rejected"
+   ],
+   "critical_process_parameters": [
+    "Crimping force/pressure",
+    "Stopper height detection sensitivity",
+    "Grade A air supply protection until crimped"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Stopper height/presence detector challenge",
+     "frequency": "Start and end of run and at defined intervals (company-defined)",
+     "typical_limit_or_reference": "Challenge units (raised/missing stopper) are 100% rejected [Annex 1 8.28]",
+     "action_on_failure": "Stop; repair; re-inspect or re-challenge units processed since last successful challenge; deviation"
+    },
+    {
+     "test": "Crimp quality (visual, cap rotation/torque or RSF)",
+     "frequency": "Start and periodically per head (e.g. hourly; illustrative)",
+     "typical_limit_or_reference": "Validated crimp range (company-defined)",
+     "action_on_failure": "Adjust; segregate units since last passing check; CCI assessment"
+    },
+    {
+     "test": "Cap type/colour/print verification",
+     "frequency": "Start, each cap-lot change, end",
+     "typical_limit_or_reference": "Matches master record",
+     "action_on_failure": "Stop; segregate"
+    }
+   ],
+   "signatures_required": [
+    "Operator",
+    "Verifier (cap material and settings)",
+    "Supervisor"
+   ],
+   "special_checks": [
+    "Manual capping must be in Grade A with B background or in an isolator [Annex 1 8.27].",
+    "FDA: local protection until crimping; on-line detection of improperly seated stoppers [FDA 2004 IV.E].",
+    "DEVIATION TRIGGERS: loss of Grade A air supply; failed detector challenge; wrong cap; stoppered-uncapped hold exceeded.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download"
+   ],
+   "time_limits_or_hold_times": [
+    "Maximum time stoppered vials may wait before crimping (validated)"
+   ],
+   "variant_applicability": "AF-VIAL-LIQ, AF-LYO, vials in TS-SVP. Not applicable to ampoules, PFS or bags."
+  },
+  {
+   "name": "Terminal moist-heat sterilization of filled containers",
+   "purpose": "Achieve SAL \u226410^-6 in the final sealed container by a validated, controlled cycle with full load traceability.",
+   "sequence_order": 13,
+   "bmr_records": [
+    "Load/sub-batch ID, number of units per load, validated loading pattern ID (within min/max load), container type. Only a single container size and single product lot per load [USP <1229.2>; Annex 1 8.38]",
+    "Pre-sterilization bioburden sample (each batch; worst-case filled units; spore resistance screening for BB/BI cycles) [Annex 1 10.3-10.4; USP <1229.2>]",
+    "Time from start of preparation / end of filling to start of sterilization [Annex 1 8.5, 8.36]",
+    "Sterilizer ID, unique cycle ID, program; independent duplex control and monitoring probes; reference/load probe positions (in-container for \u2265100 mL containers mapped for cold spots) [Annex 1 8.50-8.52; USP <1229.2>]",
+    "Temperature, pressure (incl. air overpressure) and time traces; equilibration and exposure time; F0 per monitored position (min/max); heating/cooling rates [Annex 1 8.59, 8.62]",
+    "Cooling medium sterilized (spray/cooling water) [Annex 1 8.53]",
+    "Load monitor or BI/CI results where required (parametric release) [FDA 2010 parametric release guidance; Annex 1 8.54, Annex 17]",
+    "Periodic tests status (weekly leak test if vacuum phase) [Annex 1 8.60]",
+    "Cycle pass/fail, alarms, chart/report reviewed and signed; unloading inspection (deformation, leakers, counts); sterilized/unsterilized segregation labels or electronic status [Annex 1 8.44-8.45]"
+   ],
+   "critical_process_parameters": [
+    "Exposure temperature and time, or delivered F0 at slowest-heating location (minimum and maximum)",
+    "Pressure/air overpressure (container integrity)",
+    "Heating/cooling rates",
+    "Load configuration",
+    "Pre-sterilization bioburden (population and resistance) for BB/BI or bioburden-based cycles"
+   ],
+   "in_process_controls": [
+    {
+     "test": "F0 at slowest-to-heat position",
+     "frequency": "Each cycle, each monitored probe",
+     "typical_limit_or_reference": "Ph. Eur. 5.1.1: reference cycle 15 min at 121 \u00b0C; minimum acceptable temperature 110 \u00b0C; minimum F0 \u22658 min in slowest-to-heat position. Overkill cycles are commonly higher (\u226512-15 min; illustrative). A maximum F0 is also set for product degradation",
+     "action_on_failure": "Cycle fail: load quarantined, investigation [Annex 1 8.41]. Re-sterilization only if validated and approved (reprocessing needs QU approval) [21 CFR 211.115]"
+    },
+    {
+     "test": "Exposure temperature band and time",
+     "frequency": "Continuous",
+     "typical_limit_or_reference": "Validated band (e.g. 121-124 \u00b0C; illustrative)",
+     "action_on_failure": "As above"
+    },
+    {
+     "test": "Pre-sterilization bioburden",
+     "frequency": "Each batch (and each load where required)",
+     "typical_limit_or_reference": "Validated maximum; organisms identified and their resistance assessed where relevant [Annex 1 10.4]",
+     "action_on_failure": "Investigation; PNSU re-evaluation"
+    }
+   ],
+   "signatures_required": [
+    "Operator (loading/unloading, cycle start)",
+    "Verifier (load pattern and unit counts)",
+    "QA (sterilization record approval for certification) [Annex 1 8.45]"
+   ],
+   "special_checks": [
+    "Sub-batches (loads) each need their own sterility test samples from worst-case (coolest) locations [Annex 1 10.6(ii) and note].",
+    "Parametric release (if authorized): sterility test replaced by acceptance of critical parameters plus a load monitor in each load [FDA 2010 guidance; CPG 460.800; USP <1222>; EU Annex 17].",
+    "DEVIATION TRIGGERS: F0/temperature/time below minimum or above maximum; probe disagreement; load pattern not validated; mixed lots in one load; time-to-sterilization exceeded; cooling water not sterile; unit count mismatch; leakers.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://doi.org/10.31003/USPNF_M7411_03_01 ; Ph. Eur. 5.1.1 (11.0) https://pheur.edqm.eu"
+   ],
+   "time_limits_or_hold_times": [
+    "Maximum time preparation \u2192 filling \u2192 start of sterilization [Annex 1 8.5, 8.36]",
+    "Illustrative industry values (unverified): end of filling \u2192 start of sterilization often \u22648-12 h"
+   ],
+   "variant_applicability": "TS-MH-SVP, TS-MH-LVP. Optional post-aseptic terminal heat treatment for aseptic products [Annex 1 8.34, glossary]."
+  },
+  {
+   "name": "100% visual inspection (manual / semi-automated / automated) and AQL acceptance sampling",
+   "purpose": "Remove every container with visible particulates or other defects and prove batch quality by statistically based acceptance sampling and trending.",
+   "sequence_order": 14,
+   "bmr_records": [
+    "Inspection method (MVI/SAI/AVI), booth/machine ID, AVI recipe/version [Annex 1 8.31-8.32]",
+    "Light intensity measured at inspection point (2,000-3,750 lux for clear glass; higher for amber/plastic, e.g. 8,000-10,000 lux), black and white backgrounds [USP <790>; USP <1790>; Ph. Eur. 2.9.20]",
+    "Inspector IDs with qualification status (at least annual, including eyesight/visual acuity; defect-library test set) [Annex 1 8.31; USP <1790> 7.8-7.9]",
+    "Inspection time/rate (reference 5 s per background = ~10 s per container), documented breaks (e.g. at least hourly) [USP <790>; USP <1790>]",
+    "AVI challenge-set results before start-up, at regular intervals and at end [Annex 1 8.32]",
+    "Units received; units accepted; rejects by defect category (critical/major/minor) and defect type code from the defect library (e.g. glass/fiber/other particle, crack, missing stopper/cap, crimp, fill level, cake defect, cosmetic); per-inspector counts [Annex 1 8.30, 8.33]",
+    "Second-stage inspection or false-reject review (if procedural), reinspection records (QA approval, reason, count) [USP <1790> 3.3]",
+    "AQL sampling: plan (ANSI/ASQ Z1.4 or ISO 2859-1, General Inspection Level II, single sampling, normal), lot size, code letter, sample size, AQL per category, accept/reject numbers, defects found, inspector [USP <790>; USP <1790> 3.2]",
+    "Supplemental destructive inspection for limited-visibility products (lyophilized, amber, suspensions): sample size (e.g. S-3/S-4 plans, n=20, Ac 0 for 0.65% AQL for lots 200-10,000), results [USP <790>; USP <1790> Table 2]",
+    "Reject rates vs alert/action limits per category"
+   ],
+   "critical_process_parameters": [
+    "Light intensity and background",
+    "Inspection time per container/rate",
+    "Container handling (swirl/invert without bubbles)",
+    "AVI sensitivity settings (validated to be equal to or better than manual inspection)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Illuminance check",
+     "frequency": "Start of each session/shift and periodically",
+     "typical_limit_or_reference": "2,000-3,750 lux (clear glass) [USP <790>; Ph. Eur. 2.9.20]",
+     "action_on_failure": "Stop; correct; re-inspect units since last passing check"
+    },
+    {
+     "test": "AVI challenge with defect standards",
+     "frequency": "Before start-up, at regular intervals, end [Annex 1 8.32]",
+     "typical_limit_or_reference": "All reject-zone standards (\u226570% PoD) rejected; false reject within limit",
+     "action_on_failure": "Stop; re-inspect units since last successful challenge; deviation"
+    },
+    {
+     "test": "100% inspection reject rate by category",
+     "frequency": "End of 100% inspection (and interim for long runs)",
+     "typical_limit_or_reference": "Alert/action limits from historical data per category/type [Annex 1 8.30; USP <1790> 3.1]",
+     "action_on_failure": "Investigation; possible reinspection per approved procedure; market impact assessment for adverse trends [Annex 1 8.33]"
+    },
+    {
+     "test": "AQL acceptance inspection",
+     "frequency": "After each 100% inspection (and after any reinspection, tightened)",
+     "typical_limit_or_reference": "Visible particulates: AQL 0.65% (Z1.4 GIL II, normal, single) [USP <790>]. Typical AQL ranges: critical 0.010-0.10% (accept number usually 0), major 0.10-0.65%, minor 1.0-4.0%; sample size chosen for the most critical category [USP <1790> Table 1]",
+     "action_on_failure": "Investigation. Any critical defect found after 100% inspection triggers investigation of the inspection process [Annex 1 8.30]. Reinspection only if the inspection process is shown capable, limited in number, with tightened sampling [USP <1790> 3.2-3.3]"
+    }
+   ],
+   "signatures_required": [
+    "Each inspector (counts attributed)",
+    "Inspection supervisor",
+    "QA AQL inspector (independent)",
+    "QA approval for reinspection"
+   ],
+   "special_checks": [
+    "Every container showing visible particulates must be rejected [USP <1>].",
+    "Defect library maintained and used for training [Annex 1 8.30].",
+    "DEVIATION TRIGGERS: unqualified inspector; lux out of range; AVI challenge failure; reject rate above action limit; AQL failure; critical defect found in AQL; unreconciled counts; reinspection without QA approval.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://doi.org/10.31003/USPNF_M7197_01_01 ; https://doi.org/10.31003/USPNF_M7198_07_01"
+   ],
+   "time_limits_or_hold_times": [
+    "Hold of unlabeled (bright stock) units under identification controls [21 CFR 211.130(b)]",
+    "Cumulative time out of refrigeration for cold-chain products (product-specific)"
+   ],
+   "variant_applicability": "All variants (all parenteral containers must be inspected individually) [Annex 1 8.30]. Supplemental destructive testing is mainly for AF-LYO, amber containers and suspensions/emulsions."
+  },
+  {
+   "name": "Container closure integrity (CCI) testing",
+   "purpose": "Confirm each fusion-sealed container, or a validated sample of other closures, is integral. Visual inspection alone is not an integrity test.",
+   "sequence_order": 15,
+   "bmr_records": [
+    "Container/closure type; CCI method (deterministic preferred: vacuum decay, HVLD, laser headspace analysis, helium leak; probabilistic: dye/microbial ingress); instrument ID and calibration [USP <1207>, <1207.1>, <1207.2>]",
+    "Positive control (calibrated leak / laser-drilled defect) and negative control results at start and end of run",
+    "Sampling plan: 100% for glass ampoules, BFS units and fusion-closed containers \u2264100 mL. Reduced sampling for fusion-closed >100 mL only if justified. Scientifically justified sampling for other closure types [Annex 1 8.22-8.23]",
+    "Per-unit or per-sample results, leakers identified, dispositions",
+    "Vacuum-sealed containers: maintenance-of-vacuum test after a pre-determined period, before certification [Annex 1 8.24]"
+   ],
+   "critical_process_parameters": [
+    "Test sensitivity vs maximum allowable leakage limit (e.g. <6\u00d710^-6 mbar\u00b7L/s helium for rigid containers per USP <1207>)",
+    "Test parameters (vacuum level, voltage, test time)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "System suitability (positive/negative controls)",
+     "frequency": "Start and end of each run/shift",
+     "typical_limit_or_reference": "Detects defect at method LOD; no false rejects on negatives",
+     "action_on_failure": "Invalidate run; retest units since last passing control"
+    },
+    {
+     "test": "CCI of units",
+     "frequency": "100% (fusion-sealed \u2264100 mL) or per sampling plan",
+     "typical_limit_or_reference": "Pass; zero leakers in sampled plan (company-defined)",
+     "action_on_failure": "Investigation; escalate to 100% testing; batch rejection if systemic"
+    }
+   ],
+   "signatures_required": [
+    "Operator/analyst",
+    "Supervisor",
+    "QA review"
+   ],
+   "special_checks": [
+    "Visual inspection is not an acceptable integrity test [Annex 1 8.22].",
+    "Transport stresses (decompression, temperature) considered in CCI validation [Annex 1 8.25].",
+    "DEVIATION TRIGGERS: control failure; any leaker in sample; untested fused units.",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://doi.org/10.31003/USPNF_M99926_01_01"
+   ],
+   "time_limits_or_hold_times": [
+    "For vacuum-sealed containers: pre-determined interval before vacuum-maintenance test [Annex 1 8.24]"
+   ],
+   "variant_applicability": "AF-AMP and fusion-sealed TS-MH-LVP/BFS: 100%. Vials/PFS: sampling or in-line 100% where implemented. AF-LYO under partial vacuum: vacuum maintenance."
+  },
+  {
+   "name": "QC sampling for release (sterility, endotoxin, particulate, content) and reserve/retention samples",
+   "purpose": "Take representative and worst-case samples tied to process events, in pharmacopoeial quantities.",
+   "sequence_order": 16,
+   "bmr_records": [
+    "Sample plan version; each sample ID, type, quantity, time and process position (beginning/middle/end of fill, after critical interventions or excursions, each lyo load, worst-case load positions, each TS sub-batch) [Annex 1 10.6; FDA 2004 XI.B]",
+    "Sterility sample count per USP <71> Table 3 (parenterals: \u2264100 containers \u2192 10% or 4, whichever greater; 101-500 \u2192 10; >500 \u2192 2% or 20, whichever less; LVP \u2192 2% or 10, whichever less; double the number if contents are insufficient for both media) and quantity per medium per Table 2 (<1 mL whole contents; 1-40 mL half the contents, not less than 1 mL; >40-100 mL 20 mL; >100 mL 10%, not less than 20 mL)",
+    "Endotoxin samples (limit = K/M; K = 5 EU/kg, 0.2 EU/kg intrathecal) [USP <85>]",
+    "Subvisible particulate samples (LO limits \u2264100 mL: \u22646,000 \u226510 \u00b5m and \u2264600 \u226525 \u00b5m per container; >100 mL: \u226425/mL and \u22643/mL) [USP <788>]; for therapeutic proteins USP <787>",
+    "Container content / extractable volume samples [USP <697>; Ph. Eur. 2.9.17]",
+    "Reserve samples: \u22652\u00d7 quantity for all tests except sterility and pyrogen, retained 1 year after expiry, stored per labeling [21 CFR 211.170(b)]",
+    "Chain of custody; external surface decontamination of sterility samples must not affect the test [Annex 1 10.8]"
+   ],
+   "critical_process_parameters": [
+    "Representativeness and worst-case coverage of samples"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Sample plan completeness check",
+     "frequency": "At each triggering event and at batch end",
+     "typical_limit_or_reference": "All event-driven samples present (start/end/interventions/loads/sub-batches) [Annex 1 10.6]",
+     "action_on_failure": "Block batch completion; deviation"
+    }
+   ],
+   "signatures_required": [
+    "Sampler",
+    "Verifier (count/label)",
+    "QC receipt"
+   ],
+   "special_checks": [
+    "Sterility test is the last in a series of controls and cannot make a non-compliant process acceptable [Annex 1 10.5]. Sampling statistics: USP-based plan detects 10% contamination ~9 times in 10 [FDA 2004 XI.B].",
+    "Short shelf-life products may be released before a sterility result per risk-based controls [Annex 1 10.7; 21 CFR 211.165(a) radiopharmaceuticals].",
+    "DEVIATION TRIGGERS: missing event-driven samples; insufficient quantity; broken chain of custody.",
+    "Sources: https://doi.org/10.31003/USPNF_M98810_01_01 ; https://doi.org/10.31003/USPNF_M98830_02_01 ; https://doi.org/10.31003/USPNF_M99586_02_01"
+   ],
+   "time_limits_or_hold_times": [
+    "Sample storage/transport conditions and time to test (method validation)"
+   ],
+   "variant_applicability": "All variants."
+  },
+  {
+   "name": "Labeling and secondary packaging (Batch Packaging Record) incl. serialization, aggregation, device assembly and cold chain",
+   "purpose": "Label and pack inspected units correctly with full reconciliation, verified coding and serialization, and controlled temperature exposure.",
+   "sequence_order": 17,
+   "bmr_records": [
+    "Packaging order, packaging master version, line ID, bulk (inspected) lot and finished lot linkage [EU Ch.4 4.21; 21 CFR 211.130(c)]",
+    "Line clearance before start and after end: checklist, performer, verifier [21 CFR 211.130(e); EU Ch.5]",
+    "Printed materials issued: item code, lot, artwork version, quantity; examination for identity and conformity [21 CFR 211.122, 211.125(b), 211.130(d)]",
+    "Printed specimens of labels, cartons and leaflets with batch/expiry overprint attached [21 CFR 211.188(b)(8); EU Ch.4 4.21]",
+    "Coding verification (batch, expiry) at start, at defined intervals and at end; printer monitoring [21 CFR 211.122(h)]",
+    "Vision/barcode checks: linear barcode with NDC on unit label for US Rx products [21 CFR 201.25]; 2D DataMatrix grading [EU 2016/161 Art. 5-6, 14]",
+    "Serialization: product code (GTIN/NDC), serial numbers commissioned, rejected/decommissioned, sampled; aggregation hierarchy; upload to EU repositories before release [EU 2016/161 Art. 4, 15, 33]; US product identifier = NDC-based SNI with serial \u226420 characters, lot, expiry, human-readable and machine-readable [21 U.S.C. 360eee(14),(20)]",
+    "Anti-tampering device applied and verified (EU) [EU 2016/161 Art. 3(b)]",
+    "PFS/cartridges: plunger rod insertion, backstop, needle-safety/autoinjector assembly checks (combination product: 21 CFR Part 4)",
+    "Cold chain: per tray/lot time-out-of-refrigeration start/stop and cumulative total vs limit",
+    "Counts: units received from inspection, packed, samples, rejected, destroyed; label reconciliation; destruction of batch-coded excess [21 CFR 211.125(c)-(d)]",
+    "Finished-product labeling examination: representative sample, results recorded [21 CFR 211.134, 211.188(b)(13)]"
+   ],
+   "critical_process_parameters": [
+    "Correct label/artwork/version",
+    "Legible, correct variable data (batch, expiry, serial)",
+    "Temperature exposure (time out of refrigeration)",
+    "Device assembly forces/positions (PFS)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Line clearance",
+     "frequency": "Before start and at end",
+     "typical_limit_or_reference": "No previous product, labels or documents [21 CFR 211.130(e)]",
+     "action_on_failure": "Block start"
+    },
+    {
+     "test": "Variable data and code verification",
+     "frequency": "Start, periodic (e.g. each reel change / 30-60 min; illustrative), end",
+     "typical_limit_or_reference": "Matches batch record [21 CFR 211.122(h)]",
+     "action_on_failure": "Stop; segregate since last good check; deviation"
+    },
+    {
+     "test": "Vision system challenge (OCR/OCV, barcode, missing leaflet)",
+     "frequency": "Start, shift, end",
+     "typical_limit_or_reference": "All challenge defects rejected [EU Ch.5 5.57-5.58]",
+     "action_on_failure": "Stop; re-verify units"
+    },
+    {
+     "test": "Serialization 100% verification and aggregation completeness",
+     "frequency": "Every pack/case",
+     "typical_limit_or_reference": "Readable, correct, unique serials; grading meets EU Art. 6 parameters",
+     "action_on_failure": "Reject/decommission; investigate duplicates"
+    },
+    {
+     "test": "Label reconciliation",
+     "frequency": "End of packaging run",
+     "typical_limit_or_reference": "Issued = used + destroyed + returned, within narrow preset limits based on history. Waived for cut/roll labeling with 100% electronic verification [21 CFR 211.125(c), 211.122(g)(2)]",
+     "action_on_failure": "Investigation per 211.192 before release"
+    },
+    {
+     "test": "Time out of refrigeration",
+     "frequency": "Continuous per tray/lot",
+     "typical_limit_or_reference": "Product-specific cumulative limit (stability-supported)",
+     "action_on_failure": "Deviation; stability impact assessment"
+    }
+   ],
+   "signatures_required": [
+    "Packaging operators",
+    "Line lead (line clearance, material verification)",
+    "Verifier (second person for hand-applied labels) [21 CFR 211.122(g)(3)]",
+    "QA (line clearance approval per SOP; BPR review)"
+   ],
+   "special_checks": [
+    "USP <7> ferrule/cap rules: only cautionary statements on the top (circular) surface; neuromuscular blockers must carry a paralyzing-agent warning on ferrule and cap; black closure only for Potassium Chloride Injection Concentrate. Verified only against a translated USP 44 copy; confirm against current USP.",
+    "Unused batch-coded materials destroyed and recorded [21 CFR 211.125(d)].",
+    "DEVIATION TRIGGERS: failed line clearance; wrong or unreleased material; coding error; reconciliation outside limits; duplicate or unreadable serials; TOR exceeded; tampering suspected (EU Art. 18: do not release, inform authority).",
+    "Sources: https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211 ; https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-201/subpart-A/section-201.25 ; https://eur-lex.europa.eu/eli/reg_del/2016/161/oj ; https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title21-section360eee"
+   ],
+   "time_limits_or_hold_times": [
+    "Cumulative time out of refrigeration (product-specific)",
+    "Serialization data retention: records of UI operations kept \u22651 year after expiry or 5 years after release, whichever is longer [EU 2016/161 Art. 15]"
+   ],
+   "variant_applicability": "All variants (market-specific serialization and labeling rules)."
+  },
+  {
+   "name": "Batch record review, sterility-assurance release gate and QU release / QP certification",
+   "purpose": "Holistic review of production, environmental, support-system and QC data before disposition.",
+   "sequence_order": 18,
+   "bmr_records": [
+    "Completion check: all steps executed and signed, no open entries [21 CFR 211.188, 211.192]",
+    "Deviations/investigations closed, including scope extension to other batches and products [21 CFR 211.192; Annex 1 3.2]",
+    "EM and trend data reviewed for the batch window (viable and non-viable, personnel), incubation complete, species IDs [Annex 1 9.3, 10.10; FDA 2004 XII; FDA CP 7356.002A]",
+    "Intervention log reviewed, including any non-qualified intervention [Annex 1 8.16; CP 7356.002A]",
+    "APS coverage confirmed for line/shift/process [Annex 1 9.38]",
+    "All sterilization/depyrogenation/decontamination records approved [Annex 1 8.45]",
+    "All filter integrity results (product, vent, gas, lyophilizer) reviewed [Annex 1 6.19, 8.87, 8.124]",
+    "Bioburden results considered [Annex 1 10.3]",
+    "Support-system data (HVAC/HEPA, WFI, steam generator) and batch alarm report reviewed [FDA 2004 XII]",
+    "Time-limit compliance summary; yields and reconciliations within limits [21 CFR 211.103, 211.186(b)(7)]",
+    "QC results (sterility or parametric-release criteria, endotoxin, particulate, visual inspection AQL, CCI, assay) and CoA",
+    "Packaging record, label reconciliation and serialization upload confirmation",
+    "Disposition: QU approval [21 CFR 211.22, 211.192]; EU QP certification [EU Annex 16] with confirmation that release persons had access to all sterility information [Annex 1 3.1(vii)]"
+   ],
+   "critical_process_parameters": [
+    "Not applicable (review step)"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Automated release-gate checklist",
+     "frequency": "Before disposition",
+     "typical_limit_or_reference": "All sterility-assurance gates green [Annex 1 3.2, 8.45, 10.3, 10.10; FDA 2004 XII]",
+     "action_on_failure": "Release blocked; open items routed to owners"
+    }
+   ],
+   "signatures_required": [
+    "Production review",
+    "QA reviewer",
+    "QA approver (quality unit)",
+    "Qualified Person (EU) with certification statement"
+   ],
+   "special_checks": [
+    "The eBMR must show that the holistic review of EM/support systems was done before release [FDA CP 7356.002A].",
+    "DEVIATION TRIGGERS: any gate not met; late EM result after release (\u2192 recall assessment).",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download ; https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211"
+   ],
+   "time_limits_or_hold_times": [
+    "Sterility test incubation \u226514 days before result [USP <71>]"
+   ],
+   "variant_applicability": "All variants."
+  },
+  {
+   "name": "Aseptic Process Simulation (media fill) batch record - special record type",
+   "purpose": "Periodically verify aseptic process capability. The APS result feeds the line, shift and operator qualification gates and the impact analysis for commercial batches.",
+   "sequence_order": 19,
+   "bmr_records": [
+    "APS protocol ID, worst-case design rationale (container size, line speed, maximum duration, personnel, hold times, interventions and frequencies, shift change, campaign start/end) [Annex 1 9.33-9.36; FDA 2004 IX.A.1]",
+    "Media (e.g. soybean-casein digest), lot, growth promotion; media filtration/sterilization records and filter integrity",
+    "Inert gas replaced by air unless anaerobic simulation intended [Annex 1 9.33(iii), 9.36(v)]",
+    "Every intervention (inherent/corrective), type, time, duration, operators, box/tray number; stoppages [Annex 1 9.47; PDA TR22 Revised 2025 5.3]",
+    "EM throughout the run as for routine production [Annex 1 9.36(xi)]",
+    "Units filled; units removed per SOP-defined interventions (never more than in production); set-up units incubated separately [Annex 1 9.41; FDA 2004 IX.A.8]",
+    "Reconciliation: rejected at filling (by category), incubated, QC samples, pre-incubation inspection counts, 7-day and 14-day inspection counts (must match) [PDA TR22 2025; Annex 1 9.47]",
+    "Incubation: \u226514 days; FDA 20-35 \u00b0C, \u00b12.5 \u00b0C of target; if two temperatures, \u22657 days at each, lower first [FDA 2004 IX.A.8]; conditions scientifically justified [Annex 1 9.44]",
+    "Inspection by trained, qualified personnel; positive controls [Annex 1 9.45]",
+    "Result and participants list (updates operator APS qualification)"
+   ],
+   "critical_process_parameters": [
+    "Representativeness of worst-case conditions and interventions",
+    "Media fill volume sufficient to contact all surfaces"
+   ],
+   "in_process_controls": [
+    {
+     "test": "Unit reconciliation",
+     "frequency": "At each stage and after incubation",
+     "typical_limit_or_reference": "Target 100% accountability [PDA TR22 2025]",
+     "action_on_failure": "Investigation of APS validity"
+    },
+    {
+     "test": "Contaminated units",
+     "frequency": "At incubation inspections",
+     "typical_limit_or_reference": "EU: target zero; any contaminated unit = failed APS [Annex 1 9.46]. FDA 2004: <5,000 units: 0 (1 \u2192 revalidation after investigation); 5,000-10,000: 1 \u2192 investigation, consider repeat; 2 \u2192 revalidation; >10,000: 1 \u2192 investigation; 2 \u2192 revalidation",
+     "action_on_failure": "Investigation; \u22653 consecutive successful repeat APS; review of all batches since last successful APS; quarantine products made on the line after the failure; operator restrictions; resume only after successful revalidation [Annex 1 9.46]"
+    }
+   ],
+   "signatures_required": [
+    "APS operators",
+    "QC microbiologist (inspection)",
+    "QA (protocol/report approval)"
+   ],
+   "special_checks": [
+    "Impact scope is not limited to the line. Example: a failure attributed to a lyophilizer impacts all products processed in that unit regardless of fill line; intermittent equipment faults may require review of all batches within expiry [PDA TR22 Revised 2025 section 9-10].",
+    "An APS may be aborted only where procedures would require commercial lots to be handled equally [Annex 1 9.48].",
+    "Sources: https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download ; PDA TR22 (Revised 2025) https://www.pda.org"
+   ],
+   "time_limits_or_hold_times": [
+    "Periodic APS ~6 months per line/process/shift; initial 3 consecutive; each operator yearly [Annex 1 9.38]; manual aseptic processes: each operator 3 initial, then 1 per ~6 months [Annex 1 9.39]"
+   ],
+   "variant_applicability": "All aseptic variants (AF-*, AC-*)."
+  }
+ ],
+ "batch_level_records": [
+  "Header/identity: product, strength, dosage form, container-closure, nominal fill, batch number, batch size (volume/mass and theoretical units), master record ID/version, market(s), site/line/rooms (grade, barrier type), manufacturing and expiry dates with the shelf-life start rule [21 CFR 211.186, 211.188; EU Ch.4 4.17/4.20].",
+  "Material genealogy: API and excipient lots, WFI system and POU samples, process gases, primary packaging lots (vials/ampoules/syringe tubs/stoppers/plungers/seals), filters (lot and serial), SUS assemblies, disinfectant lots, media lots, printed materials [21 CFR 211.188(b)(3)].",
+  "Equipment and room register with clean, sterile and calibration status at time of use; sterilizer, tunnel, lyophilizer and isolator cycle IDs linked [21 CFR 211.182, 211.188(b)(2); Annex 1 8.45].",
+  "Personnel register: everyone who entered Grade A/B or performed or verified steps, with gowning qualification, APS participation and training status at time of action [Annex 1 7.4-7.6; 21 CFR 211.188(b)(11)].",
+  "Time-limit ledger: each clock (T0 compounding \u2192 filtration \u2192 end of fill; sterile holds; exposure; filling time; lyo loading; time to sterilization; TOR) with start, end, limit and status [Annex 1 8.18, 8.5, 8.36; 21 CFR 211.111].",
+  "Intervention and stoppage log (inherent/corrective, critical, non-qualified with QA authorization) [Annex 1 8.16-8.17; FDA 2004 XII].",
+  "EM summary for the batch window: continuous Grade A particles (0.5 and 5 \u00b5m) with alarms; viable air/settle/contact/glove/gown results; excursions, investigations, species IDs [Annex 1 9.x, 10.10].",
+  "Alarm and event log: \u0394P, HVAC, door interlocks, isolator pressure/glove breaches, equipment alarms, power disruptions [Annex 1 4.16, 5.2; FDA 2004 XII].",
+  "Sterilization, depyrogenation, decontamination and SIP records, each with unique cycle ID, pass/fail, approval [Annex 1 8.45].",
+  "Filter integrity summary: pre-use/PUPSIT and post-use results for every sterilizing, vent and gas filter [Annex 1 6.19, 8.87-8.88, 8.124].",
+  "Utilities summary: WFI TOC/conductivity trends, micro/endotoxin results, clean steam quality, process gas monitoring [Annex 1 6.x; FDA 2004 XII].",
+  "IPC summary: pH, density, osmolality, DO/headspace O2, fill weights (SPC), bioburden, bulk endotoxin, lyo moisture, crimp checks.",
+  "Yield and reconciliation statements at each stage (bulk, fill, lyo, cap, inspection, packaging, labels, serial numbers) [21 CFR 211.103, 211.188(b)(7); EU Ch.4 4.20/4.21].",
+  "Visual inspection summary (100% results by category, AQL results, reinspection) and CCI summary [Annex 1 8.22-8.33].",
+  "Sample register (sterility by event/position, endotoxin, particulate, content, reserve/retention, EM samples) [Annex 1 10.6; 21 CFR 211.170].",
+  "Links to deviations, investigations (with scope to other batches), CAPA and change controls [21 CFR 211.192; Annex 1 3.2].",
+  "Labeling specimens, coding verification and serialization/aggregation reports with repository upload confirmation [21 CFR 211.188(b)(8); EU 2016/161 Art. 15, 33].",
+  "APS coverage statement (IDs of the last successful APS for line/process/shift) and CCS references for key controls [Annex 1 2.3-2.6, 9.38].",
+  "QC results/CoA, QU disposition [21 CFR 211.192] and EU QP certification [EU Annex 16].",
+  "Complete audit trail and e-signature manifestations (printed name, date/time, meaning) for all GMP entries [21 CFR Part 11; EU Annex 11 (2011; July 2025 draft pending)]."
+ ],
+ "yield_and_reconciliation_rules": [
+  "Bulk yield (%) = actual net bulk (kg or L at q.s.) / theoretical bulk \u00d7 100. Master sets min/max; outside limits \u2192 investigation before proceeding [21 CFR 211.103, 211.186(b)(7), 211.192].",
+  "Filling yield (%) = units filled and accepted at filler / theoretical units \u00d7 100. Theoretical units come from available bulk and target fill volume (see calculations). Outside limits \u2192 investigation.",
+  "Filler unit accountability: containers issued to line = units passed to next step + filler rejects by reason (weight, missing stopper, broken) + set-up/adjustment units + destructive IPC units + samples + broken/lost + unused returned. Unexplained difference must be zero or within a small count tolerance justified in the master; otherwise deviation.",
+  "Units removed during interventions must match the numbers the SOP specifies for that intervention type (also for APS) [FDA 2004 IX.A.8; Annex 1 9.41].",
+  "Lyophilization: vials loaded = vials unloaded + broken/fallen (recorded with shelf position) + removed samples.",
+  "Capping: units in = capped units + rejects (missing/displaced stopper, crimp rejects).",
+  "Terminal sterilization: units per load reconciled in = out (+ leakers/damaged) for every load/sub-batch.",
+  "Visual inspection: units received = accepted + rejects per category/type + AQL samples (returned or destroyed) + QC samples + destroyed. Reject rates compared with alert/action limits per category; exceedance \u2192 investigation [Annex 1 8.30, 8.33; USP <1790> 3.1].",
+  "Packaging: units received from inspection = packed + samples + rejected + destroyed. Printed components: issued = used + destroyed + returned, within narrow preset limits based on historical data; discrepancies investigated per 211.192 [21 CFR 211.125(c)]. EU: reconciliation may be omitted only with robust, justified electronic controls [EU Ch.4 4.21(h)]. Roll/cut labeling with 100% electronic verification waives label reconciliation [21 CFR 211.125(c), 211.122(g)(2)].",
+  "Serial numbers: commissioned = packed/aggregated + decommissioned (destroyed/sampled/rejected) + unused/returned to pool. Must reconcile before upload/release [EU 2016/161 Art. 15, 33].",
+  "Overall batch yield (%) = finished packed units / theoretical units \u00d7 100, with master min/max; any value outside limits \u2192 investigation extending to other batches [21 CFR 211.192].",
+  "APS reconciliation: filled = rejected at filling (categorized) + non-incubated QC samples + incubated units. Incubated count equal at receipt, 7-day and 14-day inspection. Target 100% accountability [PDA TR22 Revised 2025; Annex 1 9.47].",
+  "Reprocessing (e.g. re-filtration) or reinspection only per approved procedure with QU approval, recorded as a separate step with its own yield [21 CFR 211.115; USP <1790> 3.3]. For sterile products the default configuration should be 'reprocessing disabled' unless validated and registered."
+ ],
+ "calculations": [
+  {
+   "name": "Potency-adjusted API quantity",
+   "formula": "m_API = (C_label \u00d7 V_batch) \u00d7 (100 / Assay_as_is%) \u00d7 (MW_salt / MW_base) \u00d7 (1 + overage%/100). If assay is on anhydrous basis: divide additionally by (1 \u2212 water%/100).",
+   "notes": "C_label = labeled concentration of active moiety (e.g. mg/mL). The overage must be stated and justified in the master [21 CFR 211.101(a), 211.186(b)(5)]. Calculation verified by a second person or a validated system [21 CFR 211.103 by analogy, 211.68]."
+  },
+  {
+   "name": "Mass-volume conversion via density",
+   "formula": "V = m / \u03c1 ; m = V \u00d7 \u03c1 (\u03c1 in g/mL at the stated measurement temperature)",
+   "notes": "Measured bulk density at the final q.s. drives fill-weight targets. Use the same temperature basis as the density specification."
+  },
+  {
+   "name": "Target fill volume and fill weight",
+   "formula": "V_target = V_label + V_excess ; W_net_target = V_target \u00d7 \u03c1 ; W_gross_target = W_net_target + tare_container(+closure if weighed stoppered). Alert/action limits: W_net_target \u00d7 (1 \u00b1 a%) and (1 \u00b1 b%), with a < b (company-defined).",
+   "notes": "Recommended excess per USP <1151> (mobile / viscous): 0.5 mL: 0.10/0.12; 1.0 mL: 0.10/0.15; 2.0 mL: 0.15/0.25; 5.0 mL: 0.30/0.50; 10.0 mL: 0.50/0.70; 20.0 mL: 0.60/0.90; 30.0 mL: 0.80/1.20; \u226550 mL: 2%/3%. Checked only against a translated USP 44 copy; re-check against current USP. Container content testing per USP <697> / Ph. Eur. 2.9.17. Example: 10 mL label, mobile, \u03c1 = 1.012 g/mL \u2192 10.50 mL \u2192 10.626 g net."
+  },
+  {
+   "name": "Theoretical number of units",
+   "formula": "N_theo = floor( (V_bulk_net \u2212 V_holdup_filters_lines \u2212 V_QC_bulk_samples \u2212 V_planned_setup_purge) / V_target )",
+   "notes": "All deductions are fixed in the master; alternatively the master states batch size in units. Example: (105.0 \u2212 2.0 \u2212 0.3 \u2212 0.2) L / 0.0105 L = 9,761 units."
+  },
+  {
+   "name": "Stage yield (%)",
+   "formula": "Yield% = (Actual output at stage / Theoretical output at stage) \u00d7 100",
+   "notes": "Computed at each appropriate phase and verified [21 CFR 211.103]. Master holds min/max percentages beyond which a 211.192 investigation is required [211.186(b)(7)]."
+  },
+  {
+   "name": "Unit reconciliation / accountability (%)",
+   "formula": "Accountability% = (Accepted + \u03a3 Rejects_by_reason + Samples(QC, IPC destructive, AQL destroyed, retention) + Broken/Destroyed + Returned) / Units_in \u00d7 100 ; Unexplained = Units_in \u2212 (numerator sum)",
+   "notes": "Applied at filler, lyo, capping, TS load, inspection and packaging. Target 100% with zero or justified count tolerance."
+  },
+  {
+   "name": "Label/printed-component reconciliation",
+   "formula": "Reconciliation% = (Used + Destroyed_coded + Destroyed_damaged + Returned_uncoded) / Issued \u00d7 100 ; Discrepancy = Issued \u2212 (Used + Destroyed + Returned). Also compare Used with units labeled.",
+   "notes": "Limits: narrow preset limits based on historical data [21 CFR 211.125(c)]; EU Ch.4 4.21."
+  },
+  {
+   "name": "F0 (moist heat lethality)",
+   "formula": "L(t) = 10^((T(t) \u2212 T_ref)/z) ; F0 = \u03a3 L(t_i) \u00d7 \u0394t (trapezoid integration), with z = 10 \u00b0C and T_ref = 121.1 \u00b0C (PDA TR1) or 121 \u00b0C (Ph. Eur. 5.1.1 / USP <1229.2>)",
+   "notes": "Integration commonly starts and ends at a defined minimum temperature (e.g. 100 \u00b0C) [PDA TR1 Revised 2007 3.1.3]. 1 \u00b0C below reference gives L \u2248 0.79. 25.9 min at 116 \u00b0C \u2248 F0 8 min [PDA TR1]. Ph. Eur. 5.1.1 requires minimum F0 \u22658 min at the slowest-to-heat position and minimum process temperature 110 \u00b0C. Make T_ref configurable per market/SOP and record it with the result."
+  },
+  {
+   "name": "Biological lethality and PNSU",
+   "formula": "F_bio = D_121 \u00d7 (log10 N0 \u2212 log10 N) [Ph. Eur. 5.1.1] ; log10 N_final = log10 N0 \u2212 F / D [USP <1229.2>] ; requirement: PNSU \u2264 10^-6",
+   "notes": "N0 = bioburden per container (or BI population); D = D-value at reference temperature. Overkill = \u226512 log10 reduction of organisms with D \u22651 min [Annex 1 glossary]."
+  },
+  {
+   "name": "Dry-heat depyrogenation equivalence (FD/FH)",
+   "formula": "FD = \u03a3 10^((T_i \u2212 250 \u00b0C)/z) \u00d7 \u0394t, with z = 50 \u00b0C (USP <1228.1>; z range 45-55 \u00b0C)",
+   "notes": "Annex 1 8.68: validation must show a suitable FH value and a minimum 3 log10 endotoxin reduction. USP <1228.1> (2024): confirmation samples NMT 0.1 EU per sample. Record the calculated FD for the coldest monitored position."
+  },
+  {
+   "name": "Bubble point (capillary) relation",
+   "formula": "P_BP = 4 \u00d7 k \u00d7 \u03b3 \u00d7 cos\u03b8 / d",
+   "notes": "k = pore shape factor, \u03b3 = wetting-liquid surface tension, \u03b8 = contact angle, d = largest pore diameter. Explains why wetting fluid and temperature change BP, and hence why product-wet specs must be derived [PDA TR26 Revised 2025 Appendix I]."
+  },
+  {
+   "name": "Product-wet integrity test specifications",
+   "formula": "PBP_min = WBP_min \u00d7 (PBP_avg / WBP_avg) ; TP_pw = MTP_ww \u00d7 (PBP_avg / WBP_avg) ; DFL_pw = DFL_ww \u00d7 (DF_pw / DF_ww)",
+   "notes": "Pass criteria: measured BP \u2265 PBP_min (or WBP_min if water-wet); diffusive flow at test pressure \u2264 DFL. Diffusive-flow test pressure is typically \u226480% of BP. Specs must correlate to bacterial retention (B. diminuta \u226510^7 CFU/cm\u00b2) [PDA TR26 Revised 2025 7.4; Annex 1 8.87; FDA 2004 IX.B]."
+  },
+  {
+   "name": "Diffusive flow vs pressure decay",
+   "formula": "Fick: N = D \u00d7 H \u00d7 \u0394P \u00d7 \u03c6 / L ; approximate conversion: Q_diff (mL/min at ambient) \u2248 (\u0394P_decay / P_atm) \u00d7 V_upstream / t",
+   "notes": "V_upstream = upstream test volume (mL); t = test time (min); \u0394P and P_atm in the same units. Example: 0.02 bar drop in 10 min, V = 500 mL \u2192 \u22480.99 mL/min. Exact exponential form in PDA TR26 Appendix II Eq. 14."
+  },
+  {
+   "name": "Lyophilizer leak rate",
+   "formula": "Leak rate (mbar\u00b7L/s) = \u0394P (mbar) \u00d7 V_chamber+condenser (L) / \u0394t (s), measured with the chamber isolated at test vacuum",
+   "notes": "Maximum permitted leakage specified and checked at the start of every cycle [Annex 1 8.124]; equipment-specific limit."
+  },
+  {
+   "name": "Endotoxin limit and maximum valid dilution",
+   "formula": "EL = K / M ; MVD = (EL \u00d7 C) / \u03bb",
+   "notes": "K = 5 EU/kg (non-intrathecal), 0.2 EU/kg (intrathecal); radiopharmaceuticals 175/V (intrathecal 14/V); per-m\u00b2 products K = 100 EU/m\u00b2. M = maximum bolus dose per kg (or maximum dose in one hour for infusions). C = sample concentration; \u03bb = lysate sensitivity [USP <85>]. Body weight convention (70 kg per FDA Q&A 2012) not verified here."
+  },
+  {
+   "name": "Sterility test number of units (USP <71> Table 3, parenterals)",
+   "formula": "n_per_medium = N \u2264 100: max(ceil(0.10 \u00d7 N), 4) ; 100 < N \u2264 500: 10 ; N > 500: min(ceil(0.02 \u00d7 N), 20) ; LVP: min(ceil(0.02 \u00d7 N), 10) ; double n if one container cannot supply both media",
+   "notes": "Quantity per medium per Table 2. Example: N = 12,000 vials of 5 mL \u2192 20 per medium (2.5 mL each if split; otherwise 40 containers)."
+  },
+  {
+   "name": "Visual inspection qualification metrics",
+   "formula": "%PoD = (times rejected / times inspected) \u00d7 100 ; RZE = mean of %PoD over units with %PoD > 70% ; false reject rate target < 5%",
+   "notes": "Reject zone \u226570% PoD, accept zone <30% PoD, gray zone 30-70% [USP <1790> 7.4-7.8]."
+  },
+  {
+   "name": "AQL sampling lookup",
+   "formula": "Sample size code letter = f(lot size, General Inspection Level II) from ANSI/ASQ Z1.4 (ISO 2859-1) Table I ; (n, Ac, Re) = f(code letter, AQL) from Table II-A (single, normal). Use n for the most critical category and the accept numbers for other categories at that n.",
+   "notes": "Visible particulates AQL 0.65% [USP <790>]. Critical 0.010-0.10%, major 0.10-0.65%, minor 1.0-4.0% [USP <1790> Table 1]. Implement as a validated lookup table, not a formula."
+  },
+  {
+   "name": "Contamination recovery rate (EM trending)",
+   "formula": "CRR% = (number of samples with any growth / total samples of that type and area in period) \u00d7 100",
+   "notes": "USP <1116> suggested initial CRR: isolator/closed RABS <0.1%; ISO 5 <1%; ISO 6 <3%; ISO 7 <5%; ISO 8 <10% (per sample type)."
+  },
+  {
+   "name": "Elapsed time vs time limits",
+   "formula": "Elapsed = t_event_end \u2212 t_clock_start ; Remaining = Limit \u2212 Elapsed ; pre-alarm at Remaining \u2264 X% of Limit",
+   "notes": "Clocks per Annex 1 8.18(i)-(vii), 8.5, 8.36, 8.46; 21 CFR 211.111. Use a synchronized, trusted time source."
+  },
+  {
+   "name": "Cumulative time out of refrigeration (TOR)",
+   "formula": "TOR_total = \u03a3 (t_return_i \u2212 t_removal_i) for all excursions of a unit/tray/lot",
+   "notes": "Limit from product stability data (product-specific; not a pharmacopoeial value)."
+  }
+ ],
+ "edition_specific_features": [
+  {
+   "feature": "Sterility-assurance pre-start gate engine",
+   "why": "Blocks batch start when APS coverage (line/process/shift/container bracket/speed/duration/personnel), cleanroom requalification, calibration, utilities release or EM readiness is missing. Removes the most common 'started anyway' loophole.",
+   "regulatory_basis": "Annex 1 4.32, 6.12, 9.36, 9.38; FDA 2004 IX.A.2; 21 CFR 211.100. https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf ; https://www.fda.gov/media/71026/download"
+  },
+  {
+   "feature": "Gowning qualification, APS participation and training check at room entry (badge/interlock integration), with maximum occupancy, supervised-entry workflow for unqualified persons, and automatic disqualification (adverse personnel-monitoring trend, failed APS)",
+   "why": "Unsupervised Grade A/B access must be limited to qualified operators. Disqualification must be enforced, not just recorded.",
+   "regulatory_basis": "Annex 1 7.2, 7.4-7.6, 7.15; FDA 2004 V.A, V.C. https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+  },
+  {
+   "feature": "Intervention logging from an approved intervention catalogue: inherent/corrective, critical flag, maximum duration, units to remove, line clearance extent, required glove print/glove change. One-tap start/stop timestamps, operator attribution, box/tray number. Non-qualified interventions require prior QA e-authorization and auto-create a deviation",
+   "why": "Interventions and stoppages must be in the batch record with time, duration and operators. Non-qualified ones need QU authorization and are considered at disposition. Same data feeds APS design (frequency and risk).",
+   "regulatory_basis": "Annex 1 8.16-8.17, 9.25, 9.34, 9.47; FDA 2004 XII; PDA TR22 (Revised 2025) 4.1.3; FDA CP 7356.002A. https://www.fda.gov/media/71026/download"
+  },
+  {
+   "feature": "EM integration and batch linkage: continuous Grade A/B particle stream with alert/action alarms; viable sample registration (location, time, method, media lot, operator) auto-linked to batch, room, zone and interventions; LIMS result import with species ID enforcement for A/B. Excursions automatically linked to every batch whose exposure window overlaps, including batches between monitoring and reporting",
+   "why": "EM data must be reviewed for release, and excursions must be assessed for all impacted batches. Manual cross-referencing is error-prone at multi-site scale.",
+   "regulatory_basis": "Annex 1 9.3, 9.13, 9.16-9.17, 9.24, 9.31, 10.10; FDA 2004 X.A, XII; PDA TR13 (Revised 2022). https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+  },
+  {
+   "feature": "Multi-clock time-limit engine: T0 compounding \u2192 filtration \u2192 end of fill; sterile holds per item; decontaminated barrier hold; open-container exposure; filling time; lyo loading; time to terminal sterilization; settle-plate exposure \u22644 h; gown wear time; TOR. Pre-alarms, hard stops and automatic deviation on breach",
+   "why": "Annex 1 requires defined and validated maxima for each aspect. 21 CFR 211.111 requires justified, documented deviations from time limits.",
+   "regulatory_basis": "Annex 1 8.5, 8.18(i)-(vii), 8.36, 8.46, Table 6 note a; 21 CFR 211.111; FDA 2004 VIII. https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211"
+  },
+  {
+   "feature": "Item-level sterile status and hold-time tracking (electronic labels/RFID/barcodes) for sterilized parts, components, garments, SUS and trays, with states clean/sterile/expired/used and blocking of expired items at scan",
+   "why": "Clear differentiation of sterilized from non-sterilized items and enforcement of maximum hold times. Electronic tracking is explicitly allowed.",
+   "regulatory_basis": "Annex 1 7.11, 8.44, 8.46, 8.48. https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+  },
+  {
+   "feature": "Sterilization/depyrogenation/decontamination/SIP cycle-record capture via equipment interfaces (OPC UA/SCADA). Unique cycle ID, recipe, setpoints vs actuals, independent monitor-probe data, automatic F0/FD computation, load-pattern verification against validated patterns, BI/CI results, chart/report attachment with checksum, review-by-exception, QA approval",
+   "why": "Each cycle needs a unique identifier, and its conformity must be reviewed at certification. Batch records must document adherence to validated load patterns and any manual valve manipulations.",
+   "regulatory_basis": "Annex 1 8.38-8.45, 8.50-8.53, 8.58, 8.63, 8.67, 8.70; FDA 2004 IX.C.1-2. https://www.fda.gov/media/71026/download"
+  },
+  {
+   "feature": "Filter management: catalogue of validated filter trains, filter serial scanning, integrity-tester file import, PUPSIT/pre-use and post-use results, validated failure-analysis decision tree with maximum retest count, redundant/serial-train logic, vent/gas/lyophilizer filter tests, single-use/working-day limit, release gate",
+   "why": "Filter integrity is a batch-release item. Retest loops are a classic data-integrity loophole unless they are proceduralized and counted.",
+   "regulatory_basis": "Annex 1 6.19, 8.82(vi), 8.86-8.95, 8.124; FDA 2004 IX.B; PDA TR26 (Revised 2025) 7.5-7.6; Ph. Eur. 5.1.1. https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+  },
+  {
+   "feature": "Fill weight/volume IPC module: balance/checkweigher integration, density-based volume conversion, per-needle sampling scheduler with overdue alarms, SPC charts, automatic 'units since last good check' segregation logic",
+   "why": "Dose accuracy is a critical IPC and manual transcription is error-prone. Automated in-line weight checks also reduce Grade A interventions.",
+   "regulatory_basis": "21 CFR 211.110(a); FDA 2004 IV.E (on-line weight check reduces interventions); USP <697>, <1151>. https://www.fda.gov/media/71026/download"
+  },
+  {
+   "feature": "Lyophilization data capture: recipe version, pre-cycle leak test, loading map (shelf/tray/probe), trends of shelf/product temperature and CM/Pirani pressure, alarms with acknowledgement, end-point determination, backfill/stoppering data, vent filter integrity; comparison to validated design space",
+   "why": "The lyophilizer is an extension of aseptic processing. Leak rate and filter integrity are release items.",
+   "regulatory_basis": "Annex 1 8.121-8.126, 9.33(vi)-(vii). https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+  },
+  {
+   "feature": "Visual inspection module: inspector qualification/eye-test validity check, lux verification, pacing/rate capture, defect-library codes (critical/major/minor), AVI challenge scheduling, per-category alert/action limits, AQL plan calculator (Z1.4 GIL II), reinspection workflow with QA approval and tightened sampling, cross-batch defect trending",
+   "why": "100% inspection, defect trending and qualified inspectors are explicit requirements. Reinspection must be limited and controlled.",
+   "regulatory_basis": "Annex 1 8.30-8.33; USP <790>, <1790> (official 1 May 2024); Ph. Eur. 2.9.20; USP <1>. https://doi.org/10.31003/USPNF_M7198_07_01"
+  },
+  {
+   "feature": "CCI module: 100% results for fusion-sealed containers, sampling plans for others, method controls, vacuum-maintenance tests for vacuum-sealed containers, link to capping and crimp data",
+   "why": "Fusion-sealed small containers need 100% integrity testing, and visual inspection is not an integrity test.",
+   "regulatory_basis": "Annex 1 8.22-8.25; USP <1207> series. https://doi.org/10.31003/USPNF_M99926_01_01"
+  },
+  {
+   "feature": "Terminal sterilization load builder: single product lot and container size per load, validated pattern/min-max, sub-batch IDs, per-load sterility/bioburden samples at worst-case positions. Optional parametric-release configuration (load monitor and critical parameters as release criteria)",
+   "why": "Loads define sub-batches for sterility testing. Parametric release replaces the sterility test with parameter compliance and needs rigorous data capture.",
+   "regulatory_basis": "Annex 1 8.38, 8.54, 10.4, 10.6(ii); USP <1229.2> (2022), <1222>; FDA Parametric Release guidance (Feb 2010); EU Annex 17 (not verified here)."
+  },
+  {
+   "feature": "Event-driven sampling planner: sterility samples at beginning/end and after critical interventions or excursions, per lyo load and per sub-batch, with USP <71> quantity calculator. Bioburden before final filter; reserve samples",
+   "why": "Samples must represent the worst-case parts of the batch. Missing event-driven samples must block completion.",
+   "regulatory_basis": "Annex 1 8.93, 10.3, 10.6; FDA 2004 XI.B; USP <71>; 21 CFR 211.170. https://doi.org/10.31003/USPNF_M98810_01_01"
+  },
+  {
+   "feature": "Unit accountability engine across fill \u2192 lyo \u2192 capping \u2192 sterilization \u2192 inspection \u2192 packaging \u2192 serialization, with configurable limits and automatic deviation",
+   "why": "Unexplained discrepancies (yield or counts) must be investigated before release. Units removed at interventions must match SOP counts.",
+   "regulatory_basis": "21 CFR 211.103, 211.125(c), 211.186(b)(7), 211.192; EU Ch.4 4.20/4.21; FDA 2004 IX.A.8. https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211"
+  },
+  {
+   "feature": "APS (media fill) record type. Reuses commercial building blocks plus APS-specific fields (worst-case design, intervention plan, media, incubation 7/14-day reads, reconciliation). Results update line/shift/operator qualifications. A failed APS triggers quarantine and impact review",
+   "why": "PDA TR22 2025 expects the APS batch record to be electronic when commercial records are. Annex 1 9.46 prescribes actions on failure.",
+   "regulatory_basis": "Annex 1 9.32-9.49; FDA 2004 IX.A; PDA TR22 (Revised 2025)."
+  },
+  {
+   "feature": "Barrier-system records: isolator VHP cycles and decontamination hold, glove-port integrity at start/end of batch or campaign, isolator leak tests, RABS glove sterilization and open-door intervention log with post-exposure disinfection",
+   "why": "Glove breaches and door openings are major contamination routes and must be traceable to batches.",
+   "regulatory_basis": "Annex 1 4.18-4.22; FDA 2004 Appendix 1; FDA CP 7356.002A. https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+  },
+  {
+   "feature": "Alarm, event and utilities integration into the batch record: \u0394P, HVAC, door interlocks, power disruptions, WFI TOC/conductivity, clean steam and gas monitoring. Critical alarms need immediate review and cannot be silently overridden",
+   "why": "Support-system data and alarm reports are essential release elements, and any power disruption affecting quality must be in the batch record.",
+   "regulatory_basis": "Annex 1 4.16, 5.2, 6.12-6.19; FDA 2004 IV.C, XII; FDA CP 7356.002A."
+  },
+  {
+   "feature": "Contamination-event impact analysis (genealogy/impact graph): from any event (EM action excursion, failed APS, failed sterilizer/SIP/tunnel cycle, failed filter integrity test, WFI excursion, HEPA failure, glove breach, operator disqualification) traverse to all potentially impacted batches, products and sites, then auto-quarantine unreleased stock and support recall decisions",
+   "why": "Investigations must extend to other batches and products. For APS failures the scope may cross lines (e.g. a shared lyophilizer) or go back to all batches within expiry for intermittent faults. These are multi-hop, many-to-many traversals.",
+   "regulatory_basis": "21 CFR 211.192; Annex 1 3.2, 6.12, 9.13, 9.46; PDA TR22 (Revised 2025) sections 9-10."
+  },
+  {
+   "feature": "Release/QP sterility-assurance dashboard auto-populated from the record: EM/trends, interventions, APS coverage, sterilization records, filter tests, bioburden, utilities, alarms, time limits, yields, VI/CCI, QC results. Hard gates before QU release or QP certification",
+   "why": "Release persons must have access to all sterility-relevant information, and a holistic review must be documented.",
+   "regulatory_basis": "Annex 1 3.1(vii), 6.19, 8.45, 8.124, 10.3, 10.10; FDA 2004 XII; 21 CFR 211.192; EU Annex 16."
+  },
+  {
+   "feature": "Market/region rule packs with strictest-applicable merge (EU/PIC/S vs US FDA and optional WHO/India). Covers PUPSIT expectation, APS acceptance criteria, EM limit tables (Grades A-D vs ISO 5-8), depyrogenation validation criterion, F0 reference temperature, visual inspection AQL, serialization (FMD vs DSCSA), labeling barcodes, QP vs QU release",
+   "why": "One product may be supplied to several markets, and requirements differ in specific, known places.",
+   "regulatory_basis": "Annex 1 8.68, 8.87, 9.46, Tables 5-6; FDA 2004 Table 1, IX.A.9, IX.B; USP <1228.1>; EU 2016/161; 21 U.S.C. 360eee; 21 CFR 201.25."
+  },
+  {
+   "feature": "Cleanroom-appropriate UX: disinfectable/sporicide-resistant tablets and terminals supplied only for cleanroom use, large glove-friendly targets, scan-first entry (barcode/RFID), voice or foot-pedal event marking for interventions, no paper in Grade A/B, offline-tolerant execution with controlled re-synchronization",
+   "why": "Paper and uncleanable devices add particle and microbial risk. Electronic devices are acceptable only if suitably designed for cleaning and disinfection, and fast entry reduces exposure time.",
+   "regulatory_basis": "Annex 1 4.7, 7.9, 8.8; Annex 11 (2011) / 21 CFR Part 11 for records."
+  },
+  {
+   "feature": "CCS traceability: each master-record control (limit, frequency, hold time, intervention) references its CCS element and validation report. Change control flags CCS impact before and after implementation",
+   "why": "The CCS must define critical control points and be kept up to date, and changes must be assessed for CCS impact.",
+   "regulatory_basis": "Annex 1 2.3-2.6, 8.7. https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+  },
+  {
+   "feature": "Injectable labeling and serialization controls: unit-label linear NDC barcode (US), ferrule/cap cautionary-statement rules, EU unique identifier plus anti-tampering device, DSCSA product identifier, aggregation, repository upload before release, serial reconciliation",
+   "why": "Injectables are typically hospital-used and serialized, and label mix-ups on small vials and syringes are high-risk.",
+   "regulatory_basis": "21 CFR 201.25, 211.122, 211.125, 211.130; EU 2016/161 Art. 4-7, 14-18, 33; 21 U.S.C. 360eee(14),(20); USP <7> (translated-copy check only)."
+  },
+  {
+   "feature": "Cold-chain / time-out-of-refrigeration tracking per tray/lot through inspection and packaging, with cumulative limits and stability-linked deviations",
+   "why": "Many injectables (biologics, some small molecules) have strict excursion budgets, and inspection and packaging are the longest ambient exposures.",
+   "regulatory_basis": "Annex 1 3.1(vi) (storage per registered conditions); product-specific stability data (no pharmacopoeial TOR limit exists)."
+  },
+  {
+   "feature": "Review-by-exception for validated, continuously monitored steps (cycle data, EM streams) with non-suppressible escalation of sterility-critical exceptions",
+   "why": "Reduces reviewer load at multi-site scale without hiding critical events. EU Chapter 4 allows exception-based automatic batch reports for validated, continuously monitored processes.",
+   "regulatory_basis": "EU GMP Ch.4 note to 4.20 (per sibling research, not independently verified); Annex 1 5.2 (critical alarms reviewed immediately)."
+  }
+ ],
+ "pharmacopoeial_references": [
+  {
+   "chapter": "USP <1>",
+   "title": "Injections and Implanted Drug Products (Parenterals) - Product Quality Tests",
+   "relevance": "Universal tests: every final container inspected and every container with visible particulates rejected; <788> subvisible particulates; <71> sterility; <85>/<151> endotoxin/pyrogen; <697> container content; CCI per <1207> series; labeling per <7>. Verified (official 1 May 2024; as official on 12 Feb 2025). https://doi.org/10.31003/USPNF_M98730_04_01"
+  },
+  {
+   "chapter": "USP <7>",
+   "title": "Labeling",
+   "relevance": "Ferrule/cap overseal rules (cautionary statements only on top surface; paralyzing-agent warning; black closures only for Potassium Chloride Injection Concentrate). Checked only against a translated USP 44 copy; re-check against current official text."
+  },
+  {
+   "chapter": "USP <71>",
+   "title": "Sterility Tests",
+   "relevance": "Tables 2-3 (quantity per medium; number of units vs batch size), incubation \u226514 days, invalidation rules. Verified (official before 2013; current as of 12 Feb 2025; harmonized with Ph. Eur. 2.6.1). https://doi.org/10.31003/USPNF_M98810_01_01"
+  },
+  {
+   "chapter": "USP <85>",
+   "title": "Bacterial Endotoxins Test",
+   "relevance": "EL = K/M (K 5 EU/kg; 0.2 EU/kg intrathecal; radiopharmaceuticals 175/V); MVD = EL \u00d7 C / \u03bb. Verified (official 1 May 2018). https://doi.org/10.31003/USPNF_M98830_02_01"
+  },
+  {
+   "chapter": "USP <86>",
+   "title": "Bacterial Endotoxins Test Using Recombinant Reagents",
+   "relevance": "Recombinant factor C / cascade reagents as an alternative to LAL. Official status and date NOT verified here."
+  },
+  {
+   "chapter": "USP <151>",
+   "title": "Pyrogen Test",
+   "relevance": "Alternative where BET is not suitable (official 1 May 2017, copy seen)."
+  },
+  {
+   "chapter": "USP <381> / <382>",
+   "title": "Elastomeric Components in Injectable Pharmaceutical Product Packaging/Delivery Systems / Functional Suitability",
+   "relevance": "Stopper/plunger incoming specifications and functional suitability. <381> official 1 Dec 2020 (copy seen). <382> official date NOT verified."
+  },
+  {
+   "chapter": "USP <660> / <659>",
+   "title": "Containers - Glass / Packaging and Storage Requirements",
+   "relevance": "Primary container specifications and storage definitions. <660> official 1 Oct 2023; <659> official 1 Apr 2021 (copies seen)."
+  },
+  {
+   "chapter": "USP <697>",
+   "title": "Container Content for Injections",
+   "relevance": "Extractable volume test, harmonized with Ph. Eur. 2.9.17/JP. Basis for fill-volume targets together with <1151> excess volumes. Checked only against a translated USP 44 copy."
+  },
+  {
+   "chapter": "USP <729>",
+   "title": "Globule Size Distribution in Lipid Injectable Emulsions",
+   "relevance": "MDD <500 nm; PFAT5 \u22640.05%. Verified (official 1 Aug 2019). https://doi.org/10.31003/USPNF_M99505_02_01"
+  },
+  {
+   "chapter": "USP <785> / <791>",
+   "title": "Osmolality and Osmolarity / pH",
+   "relevance": "Compounding IPC methods. <785> official 1 Dec 2020; <791> official 1 Aug 2024 (copies seen)."
+  },
+  {
+   "chapter": "USP <787> / <788>",
+   "title": "Subvisible Particulate Matter in Therapeutic Protein Injections / Particulate Matter in Injections",
+   "relevance": "<788> LO: \u2264100 mL containers \u22646,000 (\u226510 \u00b5m) and \u2264600 (\u226525 \u00b5m) per container; >100 mL \u226425/mL and \u22643/mL. Microscopic: \u22643,000/\u2264300 per container and \u226412/\u22642 per mL. <787> allows small-volume testing for proteins with the same per-container limits. Verified (<788> official 1 May 2013; <787> 1 May 2021). https://doi.org/10.31003/USPNF_M99586_02_01"
+  },
+  {
+   "chapter": "USP <790>",
+   "title": "Visible Particulates in Injections",
+   "relevance": "Inspection conditions (2,000-3,750 lux, black/white backgrounds, ~5 s each). Batch-release sampling after 100% inspection: ANSI/ASQ Z1.4 GIL II normal single, AQL 0.65%. Product in distribution: 20 units. Verified (official 1 May 2016). https://doi.org/10.31003/USPNF_M7197_01_01"
+  },
+  {
+   "chapter": "USP <1790>",
+   "title": "Visual Inspection of Injections",
+   "relevance": "Defect classes and AQL ranges (critical 0.010-0.10%, major 0.10-0.65%, minor 1.0-4.0%); reject-rate limits; reinspection; Knapp PoD zones; inspector qualification and annual requalification; hourly breaks; S-3/S-4 supplemental plans. Verified (official 1 May 2024). https://doi.org/10.31003/USPNF_M7198_07_01"
+  },
+  {
+   "chapter": "USP <797>",
+   "title": "Pharmaceutical Compounding - Sterile Preparations",
+   "relevance": "NOT APPLICABLE to this eBMR. Scope is compounded sterile preparations (pharmacy compounding). Industrial manufacture is governed by 21 CFR 210/211 and EU GMP/Annex 1. Useful only as background (official 1 May 2024 revision; scope verified). https://doi.org/10.31003/USPNF_M99925_08_01"
+  },
+  {
+   "chapter": "USP <1116>",
+   "title": "Microbiological Control and Monitoring of Aseptic Processing Environments",
+   "relevance": "Contamination recovery rates for trending (isolator <0.1%; ISO 5 <1%; ISO 6 <3%; ISO 7 <5%; ISO 8 <10%). Verified. https://doi.org/10.31003/USPNF_M99835_01_01"
+  },
+  {
+   "chapter": "USP <1151>",
+   "title": "Pharmaceutical Dosage Forms",
+   "relevance": "Recommended excess volumes for injections (e.g. 10 mL: 0.50 mobile / 0.70 viscous; \u226550 mL: 2%/3%). Checked only against a translated USP 44 copy."
+  },
+  {
+   "chapter": "USP <1207>, <1207.1>, <1207.2>, <1207.3>",
+   "title": "Package Integrity Evaluation - Sterile Products (and method selection/technologies/seal quality)",
+   "relevance": "Deterministic vs probabilistic methods; MALL (e.g. <6\u00d710^-6 mbar\u00b7L/s helium for rigid containers). <1207> official 1 Aug 2016; <1207.1> 1 Dec 2020; <1207.2> 1 Aug 2016. https://doi.org/10.31003/USPNF_M99926_01_01"
+  },
+  {
+   "chapter": "USP <1211>",
+   "title": "Sterility Assurance",
+   "relevance": "SAL concepts and sterility assurance framework (official 1 Mar 2019; copy seen). https://doi.org/10.31003/USPNF_M99930_05_01"
+  },
+  {
+   "chapter": "USP <1222>",
+   "title": "Terminally Sterilized Pharmaceutical Products - Parametric Release",
+   "relevance": "Parametric release option for TS products (referenced by <1229.2>). Text NOT verified here."
+  },
+  {
+   "chapter": "USP <1228>, <1228.1>, <1228.5>",
+   "title": "Depyrogenation; Dry Heat Depyrogenation; Endotoxin Indicators",
+   "relevance": "FD with Tref 250 \u00b0C, z 50 \u00b0C; tunnel load mapping \u22655 sensors across the belt per section; confirmation NMT 0.1 EU per sample; a spiked 3-log challenge may not be required (contrast with Annex 1 8.68). <1228.1> official 1 Mar 2024, verified. https://doi.org/10.31003/USPNF_M8098_02_01"
+  },
+  {
+   "chapter": "USP <1229>, <1229.1>, <1229.2>, <1229.4>, <1229.5>, <55>",
+   "title": "Sterilization of Compendial Articles; Steam by Direct Contact; Moist Heat of Aqueous Liquids; Sterilizing Filtration of Liquids; Biological Indicators",
+   "relevance": "Overkill vs BB/BI vs bioburden methods; F0 (121 \u00b0C, z 10); PNSU equation; container cold-spot mapping \u2265100 mL; one product lot per load; filtration process parameters and integrity testing. <1229> 1 Aug 2022, <1229.1> 1 Aug 2013, <1229.2> 1 Aug 2022, <1229.4> 1 May 2018, <1229.5> 1 Aug 2022, <55> 1 Nov 2019. https://doi.org/10.31003/USPNF_M7411_03_01 ; https://doi.org/10.31003/USPNF_M7413_02_01"
+  },
+  {
+   "chapter": "USP <1231>, <643>, <645>",
+   "title": "Water for Pharmaceutical Purposes; Total Organic Carbon; Water Conductivity",
+   "relevance": "WFI microbial action level \u226410 CFU/100 mL unless justified; TOC limit response 0.50 mg/L C; Stage 1 conductivity 1.3 \u00b5S/cm at 25 \u00b0C. Verified (<1231> 1 Dec 2021; <643> 1 Sep 2021; <645> 1 May 2014). WFI endotoxin 0.25 EU/mL (monograph) not verified here."
+  },
+  {
+   "chapter": "Ph. Eur. 5.1.1",
+   "title": "Methods of Preparation of Sterile Products",
+   "relevance": "SAL \u226410^-6; steam reference 121 \u00b0C/15 min; minimum temperature 110 \u00b0C; minimum F0 \u22658 min at slowest-to-heat position; F_bio equation; dry heat \u2265160 \u00b0C/2 h reference; depyrogenation >220 \u00b0C with 3-log endotoxin reduction; filtration \u22640.22 \u00b5m with routine records (pre-sterilisation bioburden, pre- and post-filtration integrity, duration, volume, \u0394P). Verified against Ph. Eur. 11.0 text; the current 12th-edition text was not verified."
+  },
+  {
+   "chapter": "Ph. Eur. 2.6.1 / 2.6.14 / 2.9.19 / 2.9.20 / 2.9.17",
+   "title": "Sterility; Bacterial Endotoxins; Particulate Contamination (subvisible, visible); Extractable Volume",
+   "relevance": "Harmonized counterparts of USP <71>/<85>/<788>/<697>. 2.9.20 (01/2020): 2,000-3,750 lux, ~5 s white then black (verified). Others seen as Ph. Eur. 11.0 copies; 2.9.17 not verified."
+  },
+  {
+   "chapter": "Ph. Eur. 5.1.5 / 5.1.10 / 5.1.12 / 2.6.32",
+   "title": "F0 concept; Guidelines for BET; Depyrogenation of items; Recombinant factor C test",
+   "relevance": "Supporting chapters for F0 calculation, endotoxin limits, depyrogenation and rFC. NOT verified in this task."
+  }
+ ],
+ "sources": [
+  "VERIFICATION METHOD (read first): the primary regulator sites (health.ec.europa.eu, ecfr.gov, fda.gov, picscheme.org, who.int, ema.europa.eu, usp.org, ich.org, cdsco.gov.in) were blocked by this environment's egress proxy, and the session WebSearch budget was already used up. 'VERIFIED' below means checked against a full-text copy of the named edition obtained from raw.githubusercontent.com (mainly github.com/Eaglemamba/SterileGMP-Knowledge-Hub) or a statute mirror. Primary URLs are given for citation. Several PDA/USP copies there are licensed documents, so they were used only to confirm facts, not reproduced.",
+  "EU GMP Annex 1 Manufacture of Sterile Medicinal Products (published 25 Aug 2022; in operation 25 Aug 2023; point 8.123 (lyophilizer sterilization frequency, not trays) postponed to 25 Aug 2024). Relied on: 2022 text. https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf. VERIFIED full text via the identical PIC/S PS/INF 26/2022 (Rev. 1, 9 Sep 2022) copy: https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/PICS/PICS-Annex1/source/PICS-Annex1-full-text.txt. Clause corrections vs the task brief: aseptic time limits are 8.18 (not 8.44/8.49; 8.44 = sterilized/non-sterilized differentiation, 8.49 = non-sterilizable items). CCI = 8.21-8.25. Capping = 8.26-8.29. Visual inspection = 8.30-8.33.",
+  "FDA Guidance for Industry: Sterile Drug Products Produced by Aseptic Processing - CGMP (Sept 2004). Still the current version as far as could be checked: PDA PtC No.12 (2025) still cites the 2004 guidance. https://www.fda.gov/media/71026/download. VERIFIED via full-text copy https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/FDA/FDA-Aseptic/source/FDA-Aseptic-full-text.txt",
+  "21 CFR Part 211 (eCFR; text includes amendments through 89 FR 51769, 18 Jun 2024): 211.42(c)(10), 211.67, 211.68, 211.84(d)(6), 211.94, 211.100, 211.101, 211.103, 211.110, 211.111, 211.113(b), 211.115, 211.122, 211.125, 211.130, 211.134, 211.165, 211.167, 211.170, 211.182, 211.186, 211.188, 211.192. https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211. VERIFIED via eCFR XML copy https://raw.githubusercontent.com/DevDesai444/deficiency-chatbot/master/rulebook/ecfr/title-21/part-211.xml",
+  "21 CFR 201.25 Bar code label requirements. https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-201/subpart-A/section-201.25. VERIFIED via eCFR snapshot 2025-02-06: https://raw.githubusercontent.com/lucas-amberg/ecfr-analyzer/main/public/ecfr/2025-02-06/21/I/C/201/A/201.25/201.25.md",
+  "FDA Compliance Program 7356.002A Sterile Drug Process Inspections (revision of 11 Sep 2015; a later revision was not checked). Batch-record review items: EM/support-system review, interventions documented, complete sterilization information. https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/compliance-manuals/compliance-program-manual. VERIFIED via copy https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/FDA/FDA-ProcessInspection/source/FDA-7356-002A-full-text.txt",
+  "FDA draft guidance 'Considerations for Complying With 21 CFR 211.110' (notice 6 Jan 2025, 90 FR 563, doc 2024-31356). https://www.federalregister.gov/documents/2025/01/06/2024-31356/considerations-for-complying-with-21-cfr-211110-draft-guidance-for-industry-availability. Existence VERIFIED via mirror; content and final status NOT reviewed.",
+  "FDA Guidance: Submission of Documentation in Applications for Parametric Release of Human and Veterinary Drug Products Terminally Sterilized by Moist Heat Processes (Feb 2010). Load monitor per load; critical parameters; CPG 460.800. VERIFIED via copy https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/FDA/FDA-ParametricRelease/source/FDA-ParametricRelease-full-text.txt",
+  "FDA Guidance: Container and Closure System Integrity Testing in Lieu of Sterility Testing as a Component of the Stability Protocol for Sterile Products (Feb 2008). Copy seen: https://raw.githubusercontent.com/Eaglemamba/SterileGMP-Knowledge-Hub/main/FDA/FDA-CCIT/source/FDA-CCIT-full-text.txt",
+  "USP-NF general chapters, printouts marked 'Currently Official on 12-Feb-2025' (official dates in pharmacopoeial_references). Changes after Feb 2025 NOT verified. <1> https://doi.org/10.31003/USPNF_M98730_04_01 ; <71> https://doi.org/10.31003/USPNF_M98810_01_01 ; <85> https://doi.org/10.31003/USPNF_M98830_02_01 ; <788> https://doi.org/10.31003/USPNF_M99586_02_01 ; <787> https://doi.org/10.31003/USPNF_M6497_02_01 ; <790> https://doi.org/10.31003/USPNF_M7197_01_01 ; <1790> https://doi.org/10.31003/USPNF_M7198_07_01 ; <1207> https://doi.org/10.31003/USPNF_M99926_01_01 ; <1211> https://doi.org/10.31003/USPNF_M99930_05_01 ; <1228.1> https://doi.org/10.31003/USPNF_M8098_02_01 ; <1229> https://doi.org/10.31003/USPNF_M7408_02_01 ; <1229.2> https://doi.org/10.31003/USPNF_M7411_03_01 ; <1229.4> https://doi.org/10.31003/USPNF_M7413_02_01 ; <1116> https://doi.org/10.31003/USPNF_M99835_01_01 ; <729> https://doi.org/10.31003/USPNF_M99505_02_01 ; <797> https://doi.org/10.31003/USPNF_M99925_08_01 ; <1231> https://doi.org/10.31003/USPNF_M99956_07_01",
+  "European Pharmacopoeia 11.0 texts: 5.1.1 Methods of preparation of sterile products; 2.9.20 (01/2020); 2.6.1; 2.6.14; 2.9.19. https://pheur.edqm.eu. VERIFIED against 11.0 copies. The current 12th-edition supplement text was NOT verified.",
+  "PDA Technical Report No. 1 (Revised 2007) Validation of Moist Heat Sterilization Processes. Lethal rate L = 10^((T\u2212Tref)/z); F0 with Tref 121.1 \u00b0C and z 10 \u00b0C. VERIFIED copy. Latest revision beyond 2007 not found. https://www.pda.org",
+  "PDA Technical Report No. 22 (Revised 2025, ISBN 978-1-945584-55-8) Process Simulation for Aseptically Filled Products. Intervention documentation, APS reconciliation, zero-positive acceptance, impact scope beyond one line. VERIFIED copy; the latest version found. https://www.pda.org",
+  "PDA Technical Report No. 26 (Revised 2025) Sterilizing Filtration of Liquids. Supersedes the 2008 revision. PUPSIT considerations, failure-analysis decision tree, product-wet specification equations, redundant/serial filter rules. VERIFIED copy. https://www.pda.org",
+  "PDA Technical Report No. 13 (Revised 2022) Fundamentals of an EM Program: complete the investigation before releasing batches impacted by an action-limit excursion in critical aseptic steps. PDA TR90 (2023) Contamination Control Strategy Development: DP bulk \u226410 CFU/100 mL before sterile filtration. PDA Points to Consider No.1 Aseptic Processing (Revised 2023): glove tears recorded in the batch record. PDA PtC No.12 RABS (2025). All VERIFIED copies. https://www.pda.org",
+  "EMA Guideline on the sterilisation of the medicinal product, active substance, excipient and primary container (EMA/CHMP/CVMP/QWP/850374/2015; published 8 Mar 2019, effective 1 Oct 2019). https://www.ema.europa.eu/en/sterilisation-medicinal-product-active-substance-excipient-primary-container-scientific-guideline. NOT VERIFIED (blocked). The NMT 10 CFU/100 mL pre-filtration expectation is corroborated by PDA TR90 (2023).",
+  "Commission Delegated Regulation (EU) 2016/161 (safety features; consolidated as of 1 Jan 2022). Art. 3-7, 14-18, 33. https://eur-lex.europa.eu/eli/reg_del/2016/161/oj. VERIFIED via mirror https://raw.githubusercontent.com/legalize-dev/legalize-eu/main/eu/32016R0161.md",
+  "DSCSA definitions 21 U.S.C. 360eee(14) product identifier and (20) standardized numerical identifier (NDC + serial \u226420 characters). https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title21-section360eee. VERIFIED via mirror (release point 119-73, 26 Mar 2026): https://raw.githubusercontent.com/legalize-dev/legalize-us/main/us/USC-T21-S360eee.md. DSCSA enhanced-security exemption end dates NOT verified.",
+  "EU GMP Chapter 4 Documentation (2011, in force); drafts of Chapter 4, Annex 11 and new Annex 22 published 7 Jul 2025 (consultation closed 7 Oct 2025; not final as of the latest evidence); EU Chapter 1 draft (3 Sep 2025); EU Annex 16 (2015/2016); ICH Q9(R1) (Jan 2023). Taken from sibling research files in this workflow (scratchpad/research/*.jsonl), NOT independently verified here. Chapter 4 URL: https://health.ec.europa.eu/document/download/104b3eb8-81a7-4858-9419-cb06562adb66_en?filename=chapter4_01-2011_en.pdf",
+  "PIC/S GMP Guide PE 009-17 (25 Aug 2023; incorporates revised Annex 1). A third-party index lists PE 009-18 (Intro, Part I, Part II, Annexes) dated 23 Sep 2026 and PI 006-4 (Q&V recommendations) dated 1 Oct 2026. https://picscheme.org/docview/11333 ; index: https://raw.githubusercontent.com/MINHOYEOM/grm-api-intake/main/web/data/library/pics.json. NOT VERIFIED; content of PE 009-18 unknown.",
+  "WHO TRS 1044 Annex 2 (2022) WHO GMP for sterile pharmaceutical products (aligned with EU Annex 1 2022). https://www.who.int/publications/m/item/trs1044-annex2. NOT VERIFIED (blocked).",
+  "India Revised Schedule M (G.S.R. 922(E), 28 Dec 2023; MSME extension G.S.R. 127(E) 11 Feb 2025; in force for all manufacturers from 1 Jan 2026 per sibling research). https://cdsco.gov.in. NOT independently verified; sterile-product-specific clauses not reviewed.",
+  "ISO 14644-1:2015 (classification, referenced by Annex 1 4.25-4.28) and ISO 17665 (moist heat; 2024 revision believed current). NOT verified.",
+  "Context file: user-supplied example tablet BMR analysis (scratchpad/research/sample-bmr-analysis.md). Structural reference only; the scope noted there is FDA/EU."
+ ],
+ "open_questions": [
+  "DATA-MODEL NOTE for the user's question 'is a graph-based data structure or database a good idea for it?'. The injectables edition is where graph-shaped relationships concentrate. Typical many-to-many chains: (a) EM sample \u2192 room/zone/time window \u2192 all batches exposed, including batches produced between monitoring and reporting [Annex 1 9.13]; (b) APS run \u2192 line + process + shift + container bracket + shared equipment \u2192 all batches since the last successful APS. PDA TR22 (2025) says a lyophilizer-related failure spans every line using that unit, and intermittent faults can mean all batches within expiry. (c) Sterilizer/SIP/tunnel cycle \u2192 items and component lots in the load \u2192 many batches; (d) filter lot/serial \u2192 batches; (e) operator \u2192 interventions \u2192 batches (disqualification or glove-print hits); (f) WFI/clean-steam excursion \u2192 batches using that water since the last good result [Annex 1 6.12]; (g) isolator glove port \u2192 interventions made through it \u2192 batch. These are variable-depth (typically 2-6 hop) impact traversals that 21 CFR 211.192 and Annex 1 3.2 require to be complete and justified.",
+  "Recommendation to test in synthesis: keep the GMP system of record in an ACID relational or event-sourced store with Part 11/Annex 11 audit trails and e-signatures. Add a derived, rebuildable graph projection (a property-graph database or an in-database graph extension / recursive SQL) for impact analysis, genealogy and investigation UIs. A separate graph database as system of record would add validation burden, dual-write consistency risk and audit-trail complexity. Whether a derived graph index is itself GxP-relevant (it drives quarantine decisions) must be settled: if it drives automated quarantine, it needs validation (GAMP 5 category) and reconciliation checks against the system of record.",
+  "Has the EU/PIC/S Annex 1 text changed at all in PIC/S PE 009-18 (listed 23 Sep 2026) or via any EC Q&A on Annex 1? Not verifiable here because the primary sites were blocked.",
+  "FDA 2004 aseptic guidance: confirm no revision or draft was issued in 2025-2026 (none found; PDA 2025 documents still cite the 2004 version).",
+  "FDA draft guidance 'Inspection of Injectable Products for Visible Particulates' (Dec 2021): finalized or not? Status not verified. It would affect AQL/reinspection configuration for the US.",
+  "FDA draft guidance on 21 CFR 211.110 (Jan 2025): finalized? Content not reviewed. It may affect how in-process controls and 'significant phases' are defined in the master data model.",
+  "USP changes after 12 Feb 2025 not verified. Check: <71> revision proposals; <86> recombinant BET official status; <382> official date; <1790>, <790> further revisions; <1207> series updates.",
+  "Ph. Eur. 12th/13th edition texts of 5.1.1, 2.9.17, 2.9.20, 5.1.12 (depyrogenation) and 2.6.32 (rFC) not verified. The rabbit pyrogen test removal programme was not checked.",
+  "EMA sterilisation guideline (2019) content not verified: exact wording on pre-filtration bioburden (NMT 10 CFU/100 mL), maximum filtration time, and moist-heat decision trees (F0 \u22658 min).",
+  "EU Annex 17 (parametric release) and Annex 16 content for terminally sterilized products not verified in this task.",
+  "Market scope conflict: sibling research notes the scope changed to 'US FDA and EU only', but the task brief also lists WHO/CDSCO. Confirm whether WHO TRS 1044 Annex 2 and India Revised Schedule M sterile clauses must be rule-packed.",
+  "Company-specific values that must come from each site's validation and CCS (the illustrative numbers above are not regulatory): time limits, fill-weight alert/action limits and check frequency, headspace O2/DO limits, crimp/RSF limits, H2O2 residual, lyophilizer leak-rate limit, yield and reconciliation limits, VI reject alert/action levels, TOR budgets.",
+  "F0 reference temperature: 121 \u00b0C (Ph. Eur. 5.1.1, USP <1229.2>) vs 121.1 \u00b0C (PDA TR1). Which convention does each site use in validation? The eBMR must store the convention with every F0 value.",
+  "Depyrogenation acceptance: Annex 1 8.68 (minimum 3 log10 reduction in validation) vs USP <1228.1> (2024; FD-based, NMT 0.1 EU per sample, spiking may be unnecessary). Multi-market products must meet the EU criterion.",
+  "APS acceptance: EU zero-growth (any positive fails) vs FDA 2004 graded criteria. Confirm the strictest-applicable policy for multi-market lines.",
+  "PUPSIT: EU expects it unless omission is justified by risk assessment; FDA does not require it. Confirm per product/market and whether registered dossiers commit to PUPSIT (PDA TR26 2025: if registered with PUPSIT, redundant filters both need PUPSIT).",
+  "Shelf-life start date rule (EU Note for Guidance on start of shelf-life vs US practice) for injectables with long hold before release. Not verified.",
+  "Combination products (PFS with safety devices/autoinjectors): extent of 21 CFR Part 4 / Part 820 (QMSR effective 2 Feb 2026) records in the BPR, and EU MDR Art. 117. Not researched here.",
+  "EU GMP Chapter 4 / Annex 11 finalization date: if final texts publish during development, the signature, data-governance and audit-trail requirements may change (drafts from Jul 2025)."
+ ]
+}

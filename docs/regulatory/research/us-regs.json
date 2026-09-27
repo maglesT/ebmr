@@ -1,0 +1,1102 @@
+{
+ "requirements": [
+  {
+   "id": "US-210-01",
+   "source": "21 CFR Part 210 - CGMP in Manufacturing, Processing, Packing, or Holding of Drugs; General",
+   "clause": "210.3(b) definitions: batch; lot; lot number, control number, or batch number; actual yield; theoretical yield; percentage of theoretical yield",
+   "requirement": "A lot/control/batch number is any distinctive combination of letters, numbers, or symbols from which the complete history of the manufacture, processing, packing, holding, and distribution of a batch or lot of drug product or other material can be determined. Percentage of theoretical yield is the ratio of actual yield (at any appropriate phase) to theoretical yield (at the same phase), stated as a percentage. Theoretical yield is the quantity that would be produced at a phase based on the quantity of components used, in the absence of any loss or error (theoretical-yield wording from regulation text knowledge; lot-number and percentage definitions confirmed).",
+   "applies_to": "both",
+   "system_implications": "(1) Lot numbers must be unique per site+material (enforced by a uniqueness constraint) and carry a globally unique internal key so multi-site genealogy never collides. (2) Every lot number must resolve to its complete history: effective MBR version, executed BPR, every step/signature, every component and intermediate lot consumed, equipment and rooms used, IPC/QC results, deviations/investigations, packaging, serialization, disposition, and distribution shipments. (3) Genealogy must support backward (finished lot -> all inputs, any depth) and forward (component lot -> all intermediates, finished lots, shipments) traversal, including splits, merges, rework/reprocessing and inter-site transfers. This definition is the main regulatory driver for a graph-shaped genealogy model (see US-GEN-01). (4) Yield formulas per phase are defined in the MBR (numerator, denominator, units, rounding) and computed by the system; users cannot type a yield percentage.",
+   "verification_test": "Negative: create a second lot with an existing number for the same site/material -> rejected and logged. Positive: for a randomly selected finished lot, run the 'complete history' report and reconcile 100% of consumed lots, equipment IDs, persons, results and shipments against the source transactions. Forward-trace a component lot and compare with an independent inventory-ledger query. Yield: seed quantities and compare the system result with an independent hand calculation to the specified precision.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-210/section-210.3",
+   "verified": true
+  },
+  {
+   "id": "US-211-22",
+   "source": "21 CFR Part 211",
+   "clause": "211.22(a), (c), (d) - Responsibilities of quality control unit",
+   "requirement": "The QCU has the responsibility and authority to approve or reject all components, drug product containers, closures, in-process materials, packaging material, labeling, and drug products, and the authority to review production records to assure that no errors have occurred or, if errors occurred, that they have been fully investigated. The QCU approves or rejects all procedures or specifications that affect identity, strength, quality, and purity. QCU responsibilities and procedures must be in writing and followed.",
+   "applies_to": "both",
+   "system_implications": "Material and batch disposition (Released, Rejected, Quarantine, and Conditional Release if an approved SOP allows it) is a Quality-only permission. Production roles can never change the status of any material, intermediate or batch. MBR/recipe/specification activation requires a QA approval e-signature. Segregation of duties is enforced by default: a user who executed or verified steps on a batch cannot sign QA disposition for that batch. Disposition is an e-signature with an explicit meaning ('Approved for release' / 'Rejected'). Status is a single source of truth consumed by dispensing, packaging and shipping, which all apply hard stops against it.",
+   "verification_test": "Negative role tests: a production user sets a lot to Released -> denied and the attempt is audit-logged. A user who performed any step on batch X tries to QA-release batch X -> denied. An MBR without a QA signature cannot become Effective. Positive: a QA release allows shipment in the integrated WMS/ERP.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-B/section-211.22",
+   "verified": true
+  },
+  {
+   "id": "US-211-25",
+   "source": "21 CFR Part 211 (plus 21 CFR 11.10(i))",
+   "clause": "211.25(a)-(c) - Personnel qualifications",
+   "requirement": "Each person engaged in manufacture, processing, packing or holding must have the education, training and experience to perform the assigned functions. Training covers the particular operations performed and CGMP (including the regulations and the SOPs they require), is given by qualified individuals, and is repeated often enough to keep employees current. Supervisors must be qualified, and there must be an adequate number of qualified personnel.",
+   "applies_to": "both",
+   "system_implications": "Before a user can execute, verify, review or approve an MBR step, the system checks that the user holds a current qualification for that operation, SOP version, equipment and MBR (through an LMS integration or an internal curriculum). A missing or expired qualification is a hard stop that names the missing item. A supervisor cannot sign on the user's behalf and there is no override. The system stores a snapshot of the qualification evidence (curriculum item, version, completion date) with each executed signature. Aseptic edition: the user must also hold a current gowning qualification and have taken part in a successful aseptic process simulation (media fill) for the line/role.",
+   "verification_test": "Expire a user's SOP training; the user attempts to execute and to verify a step -> both blocked. Renew the training -> allowed. The executed-step record shows the qualification evidence as it stood at execution time. After a new SOP version with a retraining flag, users trained only on the old version are blocked.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-B/section-211.25",
+   "verified": true
+  },
+  {
+   "id": "US-211-28",
+   "source": "21 CFR Part 211",
+   "clause": "211.28(a)-(d) - Personnel responsibilities",
+   "requirement": "Personnel wear clean clothing appropriate to their duties and protective apparel (head, face, hand, arm coverings) as needed to protect product. Only personnel authorized by supervisory personnel may enter limited-access areas. Persons with an apparent illness or open lesions that may affect product quality are excluded from direct contact with components, containers, closures, in-process materials and product until the condition is corrected or cleared.",
+   "applies_to": "both",
+   "system_implications": "Injectables: the eBMR records, or imports from access control, who entered Grade A/B (ISO 5/7) areas during the batch and when. Only persons with a current gowning qualification can be assigned to aseptic steps. This personnel-presence list is part of the batch record and supports EM excursion investigations. Tablets: area access authorization is checked for restricted rooms such as potent compound suites (configurable).",
+   "verification_test": "An operator without gowning qualification cannot be assigned to an aseptic step. The batch report lists everyone present in aseptic operations with entry/exit timestamps. A test access event appears in the batch record.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-B/section-211.28",
+   "verified": true
+  },
+  {
+   "id": "US-211-42",
+   "source": "21 CFR Part 211",
+   "clause": "211.42(c)(10)(i)-(vi) - Aseptic processing areas",
+   "requirement": "Aseptic processing areas must have: floors, walls and ceilings of smooth, hard, easily cleanable surfaces; temperature and humidity controls; HEPA-filtered air under positive pressure (laminar or not); a system for monitoring environmental conditions; a system for cleaning and disinfecting the room and equipment to produce aseptic conditions; and a system for maintaining any equipment used to control the aseptic conditions.",
+   "applies_to": "injectables",
+   "system_implications": "The eBMR must record, or interface to: room/zone cleaning and disinfection status (agent, lot, contact time, performer, clean-hold expiry); differential pressure, temperature and RH within limits during the batch window (from BMS/EMS); and execution of the batch-specific EM sampling plan (viable air, surfaces, settle plates, personnel glove/gown), with results linked to the batch when available. Any EMS/BMS alarm during the batch time window is attached to the batch automatically for review. The aseptic filling step cannot start unless the room/line status is 'Released for aseptic operation'.",
+   "verification_test": "Inject a simulated differential-pressure alarm during the fill window -> it appears in the batch review-by-exception list. Try to start filling in a room with expired disinfection status -> blocked. The batch EM plan shows completed/missing samples and the batch cannot be released while samples or results are missing.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-C/section-211.42",
+   "verified": true
+  },
+  {
+   "id": "US-211-63-67",
+   "source": "21 CFR Part 211",
+   "clause": "211.63 (equipment design, size, location); 211.67(a)-(c) (equipment cleaning and maintenance)",
+   "requirement": "Equipment must be of appropriate design, adequate size and suitable location. Equipment and utensils are cleaned, maintained and, as appropriate, sanitized and/or sterilized at intervals that prevent malfunction or contamination. Written procedures cover: assignment of responsibility; schedules; methods, equipment and materials, including disassembly/reassembly; removal or obliteration of previous batch identification; protection of clean equipment before use; and inspection of equipment for cleanliness immediately before use. Records of maintenance, cleaning, sanitizing and inspection are kept per 211.180 and 211.182.",
+   "applies_to": "both",
+   "system_implications": "The equipment master has a state machine (Dirty, Cleaning, Clean, In Use, Maintenance, Out of Service, Calibration Due) with configurable clean-hold and dirty-hold time limits and campaign rules. At step start the operator scans the equipment ID and the system checks: state = Clean, clean-hold time not expired, allowed for this product (dedicated/campaign/product-change cleaning level), and preventive maintenance and calibration current. A pre-use cleanliness inspection e-signature is mandatory and recorded in the BPR. At release from use, the equipment becomes Dirty and the dirty-hold timer starts. Cleaning runs from an electronic cleaning record (method version, agents, performer, verifier) that removes the previous batch identification (status label reprint).",
+   "verification_test": "Scan equipment in Dirty state -> blocked. Clean-hold expired -> blocked. Equipment last used for product A where the changeover requires a validated full clean -> blocked until the correct cleaning type is recorded. After batch completion the state is automatically Dirty and a logbook entry exists.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-D/section-211.67",
+   "verified": true
+  },
+  {
+   "id": "US-211-68A",
+   "source": "21 CFR Part 211",
+   "clause": "211.68(a) - Automatic, mechanical, and electronic equipment: calibration/checks",
+   "requirement": "Automatic, mechanical or electronic equipment, including computers and related systems, used in manufacture, processing, packing and holding must perform satisfactorily. It is routinely calibrated, inspected or checked under a written program designed to assure proper performance, and written records of those calibration checks and inspections are maintained.",
+   "applies_to": "both",
+   "system_implications": "The instrument/scale master holds calibration due dates and any required daily or pre-use checks (for example, balance check weights with acceptance tolerance). Using an instrument whose calibration is overdue, or whose daily check is missing or failed, is a hard stop. The BPR records instrument ID, calibration due date and check result for every measurement. Weights come directly from the balance interface (gross/tare/net, unit, balance ID, timestamp, raw device string). Manual keying is only allowed in a documented fallback mode, which triggers two-person verification (see US-211-68C).",
+   "verification_test": "Set a balance calibration due date in the past -> weighing blocked. Skip the daily check -> blocked. Confirm the manual-entry field is unavailable while the device interface is healthy. Confirm the raw device output is stored and matches the displayed value.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-D/section-211.68",
+   "verified": true
+  },
+  {
+   "id": "US-211-68B",
+   "source": "21 CFR Part 211",
+   "clause": "211.68(b) - Computer controls, input/output verification, backup",
+   "requirement": "Appropriate controls over computer or related systems must assure that changes to master production and control records or other records are made only by authorized personnel. Computer input and output of formulas and other records or data must be checked for accuracy, at a degree and frequency based on the system's complexity and reliability. A backup file of data entered must be kept, except where data such as calculations are eliminated by computerization, in which case a written record of the program and validation data is kept. Hard copy or alternative backup systems must ensure backup data are exact, complete, and secure from alteration, inadvertent erasure or loss.",
+   "applies_to": "both",
+   "system_implications": "RBAC plus a versioned change-control workflow for MBRs and GMP master data (materials, specs, limits, equipment, label data); no direct database edits. Every interface (ERP, LIMS, WMS, scales, PLC/SCADA/historian, serialization L3/L4, label printers, vision systems) is validated with input/output accuracy checks: schema validation, message acknowledgment, checksums/hashes, idempotency keys, reconciliation reports, and a dead-letter queue that raises alarms. Calculations run in a versioned, validated formula engine, and the formula version is stored with each result. Backups are automated, encrypted, immutable (WORM/object-lock) true copies that include metadata, audit trails and signatures. They are retained for the full records-retention period, and restore tests run periodically. These are separate from transient disaster-recovery snapshots (per the FDA DI Q&A definition of backup).",
+   "verification_test": "An unauthorized user edits the MBR or master data -> denied. Interface tests with malformed, duplicate and out-of-order messages -> rejected or de-duplicated and alarmed, with no silent data loss. Restore a backup to an isolated environment and hash-compare records, audit trails and signatures with production. Independently recalculate a sample of calculations.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-D/section-211.68",
+   "verified": true
+  },
+  {
+   "id": "US-211-68C",
+   "source": "21 CFR Part 211; 2008 final rule 'Amendments to the CGMP Regulations for Finished Pharmaceuticals' (Sept 8, 2008)",
+   "clause": "211.68(c) - Automated equipment satisfying one-person/second-person requirements",
+   "requirement": "Automated equipment used for the operations in 211.101(c) or (d), 211.103, 211.182 or 211.188(b)(11) can satisfy the requirements that one person performs an operation and another checks it, provided the equipment is used in conformity with 211.68 and one person checks that the equipment performed the operation properly. The 2008 rule codified FDA's long-standing view that the machine replaces the first person and one person verifies it.",
+   "applies_to": "both",
+   "system_implications": "Each MBR step carries a configuration flag, 'automated performance eligible' (for example: validated barcode + scale + status check for dispensing, automated yield calculation, automated CIP/SIP). In automated mode the system stores the device ID and raw data and requires one human verification e-signature with the meaning 'Verified automated operation'. If automation is unavailable (device offline, manual keying, barcode override), the system automatically escalates to two-person mode (performer + independent verifier), and the fallback is flagged in review-by-exception. The verifier in automated mode must still be a qualified person with the verification permission.",
+   "verification_test": "With the scale online, dispensing requires one verifier. Disconnect the scale -> the step switches to manual mode and requires a second, different person. The batch report shows which mode was used for each step, and fallback events are listed for QA.",
+   "url": "https://www.federalregister.gov/documents/2008/09/08/E8-20709/amendments-to-the-current-good-manufacturing-practice-regulations-for-finished-pharmaceuticals",
+   "verified": true
+  },
+  {
+   "id": "US-211-100",
+   "source": "21 CFR Part 211",
+   "clause": "211.100(a)-(b) - Written procedures; deviations",
+   "requirement": "Written production and process control procedures, including any changes, are drafted, reviewed and approved by the appropriate units and reviewed and approved by the QCU. They must be followed and documented at the time of performance, and any deviation from the written procedures must be recorded and justified.",
+   "applies_to": "both",
+   "system_implications": "Contemporaneous capture: every entry is time-stamped by the server from a trusted, NTP-synchronized source, and users can never type or edit the execution timestamp. Each entry is committed durably when submitted (see US-DI-07). A 'late entry' is allowed only with a mandatory reason, stores both actual event time (if known) and entry time, and is flagged for QA. Step sequence is enforced (11.10(f)). Any departure from the MBR (out-of-range parameter, skipped/added step, material or equipment substitution, time-limit breach, instruction not followed) forces a deviation/event record with justification, linked to the QMS, before the step can be completed or the batch progress. A batch cannot move to Released while deviations are open, unless an approved SOP explicitly allows it and QA records a justification.",
+   "verification_test": "Enter an out-of-limit value -> the system requires a deviation before continuing. Attempt to set a timestamp -> not possible. A late entry requires a reason and is flagged. Close a batch with an open deviation -> blocked. The deviation is visible in the batch report.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.100",
+   "verified": true
+  },
+  {
+   "id": "US-211-101A",
+   "source": "21 CFR Part 211",
+   "clause": "211.101(a) - Formulation to not less than 100% of labeled active",
+   "requirement": "The batch must be formulated with the intent to provide not less than 100 percent of the labeled or established amount of active ingredient.",
+   "applies_to": "both",
+   "system_implications": "The MBR supports potency-adjusted dispensing: target API quantity = label claim x batch size / (assay of the specific QC-released lot, corrected as defined, e.g. as-is vs anhydrous/LOD/salt factor), taken from released LIMS/CoA data rather than typed in. Overages are allowed only when declared and justified in the MPCR (211.186(b)(5)). Compensating excipient adjustment (e.g., filler q.s.) is calculated by the formula engine. The system rejects any MBR or dispensing target that would yield less than 100% of label claim. Injectables: q.s. to final volume/weight with density handling.",
+   "verification_test": "Use an API lot with assay 98.5% -> the target weight increases correctly and the filler decreases. Configure an MBR whose API target is below 100% -> approval validation fails. Change the API lot mid-dispense -> the target recalculates and the change is audit-trailed.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.101",
+   "verified": true
+  },
+  {
+   "id": "US-211-101B",
+   "source": "21 CFR Part 211",
+   "clause": "211.101(b) - Weighing/subdividing and identification of new containers",
+   "requirement": "Components are weighed, measured or subdivided as appropriate. If a component is moved from its original container to another, the new container is identified with: (1) component name or item code; (2) receiving or control number; (3) weight or measure in the new container; (4) the batch for which it was dispensed, including product name, strength and lot number.",
+   "applies_to": "both",
+   "system_implications": "The system auto-prints dispensing labels containing all four data elements plus a unique container ID barcode, built only from system data (no free text). Reprints need a reason, are audit-trailed and mark the earlier label as void. The container ID becomes the key for charge-in verification and genealogy edges (component lot -> dispensed container -> batch step).",
+   "verification_test": "Dispense and inspect the label for all required fields. A reprint requires a reason and increments a reprint counter. At charge-in, scanning a container dispensed for a different batch or step -> rejected.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.101",
+   "verified": true
+  },
+  {
+   "id": "US-211-101C",
+   "source": "21 CFR Part 211",
+   "clause": "211.101(c) - Supervision of dispensing; second-person examination",
+   "requirement": "Weighing, measuring or subdividing of components must be adequately supervised. Each container of component dispensed to manufacturing is examined by a second person to assure that (1) the component was released by the QCU, (2) the weight or measure is correct as stated in the batch records, and (3) the containers are properly identified. If these operations are done by automated equipment under 211.68, only one person is needed to assure (c)(1)-(c)(3).",
+   "applies_to": "both",
+   "system_implications": "Hard stops: material status must be Released and within its retest/expiry date (211.84/211.87); quarantined, rejected, expired or retest-due lots cannot be dispensed. The captured weight must fall within the MBR tolerance. Container identity is checked by scan. The verifier e-signature must come from a different natural person than the performer; the system compares identities across all sessions and blocks a verifier who performed any part of the same dispense. With validated automation, one verifier is enough (US-211-68C). The dispensing record stores both identities, the timestamps and the three verification outcomes.",
+   "verification_test": "Same user performs and verifies -> blocked. Scan a quarantined lot -> blocked. Retest date passed -> blocked. Weight outside tolerance -> blocked, or a deviation is required per configuration. A verifier on a second terminal must re-authenticate with their own credentials.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.101",
+   "verified": true
+  },
+  {
+   "id": "US-211-101D",
+   "source": "21 CFR Part 211",
+   "clause": "211.101(d) - Addition of components",
+   "requirement": "Each component is either added to the batch by one person and verified by a second person, or, if added by automated equipment under 211.68, verified by only one person.",
+   "applies_to": "both",
+   "system_implications": "The charge-in step requires scanning every dispensed container (container ID must match this batch, step and material) in the order and at the process point set by the MBR. The step cannot complete while any required container is missing, and extra or unplanned containers are rejected. A performer signature and a verifier signature from two different users are required (one verifier if automated). Policy option (recommended; not specified by regulation): the verifier must sign within a configurable time window of the addition, from a terminal registered to that room, to support contemporaneous witnessing.",
+   "verification_test": "Scan the wrong container -> rejected. Omit one container -> the step cannot complete. The verifier is the same as the performer -> blocked. A verifier signature from a terminal outside the room -> blocked (if the policy is enabled).",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.101",
+   "verified": true
+  },
+  {
+   "id": "US-211-103",
+   "source": "21 CFR Part 211",
+   "clause": "211.103 - Calculation of yield",
+   "requirement": "Actual yields and percentages of theoretical yield are determined at the end of each appropriate phase of manufacturing, processing, packaging or holding. The calculation is either done by one person and independently verified by a second, or, if done by automated equipment under 211.68, independently verified by one person.",
+   "applies_to": "both",
+   "system_implications": "The MBR defines yield checkpoints with a theoretical-yield basis and min/max % limits (211.186(b)(7)). Tablets: dispensed vs granulate, dried granulate, final blend, cores, coated tablets, packaged units. Injectables: compounded volume/weight, filtered bulk, units filled, units accepted after 100% inspection, units labeled/packed. The system calculates each yield (automated) and requires one independent verifier who did not enter the underlying quantities. A result outside the limits automatically creates a discrepancy/investigation (211.192) and blocks release. Manual override of a calculated yield is impossible, and correcting an underlying quantity recalculates the yield with an audit trail.",
+   "verification_test": "Enter quantities that give 94.0% against limits of 95.0-101.0% -> an investigation is auto-created and release is blocked. The verifier is the same as the data enterer -> blocked. Independently recalculate the displayed yields.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.103",
+   "verified": true
+  },
+  {
+   "id": "US-211-105",
+   "source": "21 CFR Part 211",
+   "clause": "211.105(a)-(b) - Equipment identification",
+   "requirement": "All compounding and storage containers, processing lines and major equipment used during production of a batch are properly identified at all times to show their contents and, when necessary, the phase of processing. Major equipment is identified by a distinctive identification number or code that is recorded in the batch production record to show the specific equipment used for each batch. Where only one piece of a given type exists in a facility, its name may be used instead.",
+   "applies_to": "both",
+   "system_implications": "Every major equipment unit, vessel, IBC, tank and line has a unique ID with a barcode/RFID. Each step records the specific unit ID, not just the equipment class, validated against the classes/units the MBR allows. The system prints or displays equipment status labels (product, lot, phase, status) and updates them on each state change. Portable containers (IBCs, bins, tanks) are tracked as genealogy nodes (lot -> container -> step).",
+   "verification_test": "Try to complete a step with an equipment ID not allowed by the MBR -> rejected. The BPR shows unit-level IDs for every major equipment use. The status label content matches the system state after each transition.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.105",
+   "verified": true
+  },
+  {
+   "id": "US-211-110",
+   "source": "21 CFR Part 211",
+   "clause": "211.110(a)-(d) - Sampling and testing of in-process materials and drug products",
+   "requirement": "Written procedures describe the in-process controls, tests or examinations on appropriate samples of in-process materials from each batch, to monitor output and validate the performance of processes that may cause variability. They include, but are not limited to: (1) tablet or capsule weight variation; (2) disintegration time; (3) adequacy of mixing to assure uniformity and homogeneity; (4) dissolution time and rate; (5) clarity, completeness or pH of solutions; (6) bioburden testing. In-process specifications must be consistent with final product specifications and, where possible, derived from process averages and variability using suitable statistics. In-process materials are tested and approved or rejected by the QCU during production (e.g., at the start or end of significant phases or after long storage). Rejected in-process materials are quarantined.",
+   "applies_to": "both",
+   "system_implications": "The MBR defines an IPC plan: test, trigger (time-based, count-based or event-based), sample size, limits (alert/action/specification), instrument, and reaction rules. The eBMR schedules IPCs with countdown timers and escalates missed checks. Direct instrument capture (checkweigher, hardness/thickness tester, disintegration tester, pH meter, in-line NIR) is preferred. All individual values are stored, not just the mean. Out-of-limit results trigger an immediate alert, the MBR-defined reaction (adjust/hold/segregate the affected portion) and a deviation. Intermediates and bulk carry a QCU disposition status (Quarantine -> Approved/Rejected by QA e-signature) that gates the next phase when the MBR requires it, and rejected in-process material is status-blocked. Tablets: weight variation, thickness, hardness, friability, disintegration, blend uniformity/stratified sampling, LOD. Injectables: pH, appearance/clarity, density, pre-filtration bioburden, fill weight/volume checks, stopper/seal checks.",
+   "verification_test": "Let an IPC pass its due time -> alarm, then a deviation if still not done. Enter a value outside the action limit -> the reaction is required and a deviation is created. Try to start compression with final blend status Quarantine when the MBR requires QA approval -> blocked. Confirm individual values are stored and match the instrument files.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.110",
+   "verified": true
+  },
+  {
+   "id": "US-211-110-DG",
+   "source": "FDA draft guidance 'Considerations for Complying With 21 CFR 211.110' (January 2025)",
+   "clause": "Whole guidance (draft; FR notice Jan 6, 2025; comments closed Apr 7, 2025)",
+   "requirement": "FDA's draft current thinking (nonbinding): in-process sampling and testing may use in-line, at-line and on-line measurement and process models, including for advanced manufacturing (continuous manufacturing, 3D printing). Because current process models cannot guarantee their underlying assumptions stay valid at all times (for example during unplanned disturbances), control strategies that rely solely on a process model are insufficient to satisfy 211.110. Not finalized as of the search date.",
+   "applies_to": "both",
+   "system_implications": "The IPC data model must support PAT and soft-sensor results as first-class in-process records: instrument/model ID and version, model diagnostics/validity status, raw spectra or inputs, sampling interface location, timestamps, and a link to material genealogy (time-based segments for continuous processes). The system must provide a confirmatory path (physical or at-line test) when a model is outside its validity domain, and must never accept a model output as the only basis for in-process acceptance. Model versions are controlled master data under change control. For continuous manufacturing, lot definition is time/quantity based (210.3 'lot') and diversion events must be recorded against the affected time segments.",
+   "verification_test": "Configure an NIR blend-uniformity model and simulate a failed model diagnostic -> the system requires the alternative test and flags the segment. A model version change without change control -> blocked. A diversion event links to the correct time segment and quantity.",
+   "url": "https://www.federalregister.gov/documents/2025/01/06/2024-31356/considerations-for-complying-with-21-cfr-211110-draft-guidance-for-industry-availability",
+   "verified": true
+  },
+  {
+   "id": "US-211-111",
+   "source": "21 CFR Part 211",
+   "clause": "211.111 - Time limitations on production",
+   "requirement": "When appropriate, time limits for completing each phase of production are established to assure product quality. Deviating from them may be acceptable if quality is not compromised, but the deviation must be justified and documented.",
+   "applies_to": "both",
+   "system_implications": "The MBR defines named timers between start and end events. Tablets: wet-mass hold, granulation-to-drying, blend hold, coating-suspension hold, bulk hold before packaging. Injectables: start of compounding to sterilizing filtration, total filtration duration, sterilized equipment/component expiry before use, product exposure on the line, total aseptic filling duration, time between stoppering and capping, lyophilizer loading time, bulk hold. Timers run server-side (they survive client or network loss), warn before expiry, and on breach auto-create a deviation that needs justification and QA assessment. A breached timer is visible in review-by-exception and blocks release until dispositioned.",
+   "verification_test": "Simulate elapsed time beyond a limit -> a deviation is auto-created and the batch is flagged. Restart the client and server mid-timer -> the elapsed time is still correct (computed from persisted server timestamps). Pre-expiry warnings are delivered to the assigned role.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.111",
+   "verified": true
+  },
+  {
+   "id": "US-211-113",
+   "source": "21 CFR Part 211",
+   "clause": "211.113(a)-(b) - Control of microbiological contamination",
+   "requirement": "(a) Written procedures to prevent objectionable microorganisms in drug products not required to be sterile are established and followed. (b) Written procedures to prevent microbiological contamination of drug products purporting to be sterile are established and followed, and include validation of all aseptic and sterilization processes.",
+   "applies_to": "both",
+   "system_implications": "Tablets: enforce hold times and microbial controls defined in the MBR (e.g., aqueous granulation hold limits, purified water use-point sampling reference) and link water-system/utility status. Injectables: before sterilized items can be consumed, the system checks that each sterilization/depyrogenation/SIP cycle used a validated recipe ID and version for that load pattern and passed its acceptance criteria. Before aseptic operations start, the system checks that the filling line has a current successful aseptic process simulation, that assigned operators are APS-qualified, and that filters, sterilized equipment and components are within their validated hold times. Any failure is a hard stop.",
+   "verification_test": "A failed autoclave cycle record -> sterilized items cannot be issued to the aseptic area. Line APS status expired or failed -> filling blocked. An operator not included in a successful APS -> cannot be assigned. The validated recipe/version mismatch for the load pattern -> blocked.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.113",
+   "verified": true
+  },
+  {
+   "id": "US-211-115",
+   "source": "21 CFR Part 211",
+   "clause": "211.115(a)-(b) - Reprocessing",
+   "requirement": "Written procedures prescribe a system for reprocessing batches that do not conform to standards or specifications, and the steps that ensure reprocessed batches will conform. Reprocessing may not be performed without QCU review and approval.",
+   "applies_to": "both",
+   "system_implications": "Reprocessing (and rework, if the company distinguishes them) can only be started from a QA-approved reprocessing instruction (MBR variant or protocol) linked to the non-conforming batch and its investigation. It creates a child execution record and genealogy edges (original lot -> reprocess -> resulting lot), so the resulting lot's history includes the original batch record. Production cannot initiate it alone. Reprocessed batches are flagged for enhanced testing and review and appear in APR data.",
+   "verification_test": "Start reprocessing without QA approval -> blocked. The genealogy of the reprocessed lot includes the original batch and investigation. The flag appears on the release checklist.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-F/section-211.115",
+   "verified": true
+  },
+  {
+   "id": "US-211-122",
+   "source": "21 CFR Part 211",
+   "clause": "211.122(a)-(h) - Materials examination and usage criteria (labeling and packaging)",
+   "requirement": "Written procedures cover receipt, identification, storage, handling, sampling, examination and/or testing of labeling and packaging materials, which are approved or rejected. Labeling for each product, strength, dosage form or quantity of contents is stored separately with access limited to authorized personnel. Obsolete and outdated labels and labeling are destroyed. Gang-printed labeling for different products, strengths or net contents is prohibited unless differentiated by size, shape or color. When cut labeling is used, one of these special controls applies: (1) lines dedicated to each strength of each product; (2) electronic or electromechanical 100% examination for correct labeling; or (3) for hand-applied labeling, 100% visual examination performed by one person and independently verified by a second. Printing devices on or associated with the lines must be monitored so that all imprinting matches the print specified in the batch production record.",
+   "applies_to": "both",
+   "system_implications": "The packaging-material master links each item to an artwork version with QA approval. Only Released items of the current effective artwork version can be issued, and superseded versions are status-blocked and routed to destruction. Electronic 100% verification (vision/code readers): record device ID, recipe, and challenge-test results (known-good and known-bad samples) at start, at defined intervals and at end, plus counts inspected and rejected; a failed challenge blocks line start or continuation. Hand-applied labeling under (g)(3) records performer and an independent verifier. Variable-data printing (lot, expiry, NDC/GTIN, serial number, price if any) is compared electronically with the BPR data at start, at intervals and at end, and any mismatch stops the line. The first approved printed sample is captured as a specimen (211.188(b)(8)).",
+   "verification_test": "Issue a superseded artwork version -> blocked. Vision challenge with a known-bad label that is not rejected -> the line cannot start. Printed expiry differs from the BPR -> alarm and line stop. Gang-printed item flagged without differentiation -> blocked at master data approval.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-G/section-211.122",
+   "verified": true
+  },
+  {
+   "id": "US-211-125",
+   "source": "21 CFR Part 211",
+   "clause": "211.125(a)-(f) - Labeling issuance and reconciliation",
+   "requirement": "Strict control is exercised over labeling issued for labeling operations. Labeling issued for a batch is carefully examined for identity and conformity to the labeling in the master or batch records, and the results are documented. Procedures reconcile the quantities of labeling issued, used and returned, and require evaluation of discrepancies between the quantity of product finished and the quantity of labeling issued when they fall outside narrow preset limits based on historical operating data; such discrepancies are investigated per 211.192. Reconciliation is waived for cut or roll labeling if a 100% examination is done per 211.122(g)(2). All excess labeling bearing lot or control numbers is destroyed. Returned labeling is stored to prevent mixups and ensure identification. Written issuance procedures are followed.",
+   "applies_to": "both",
+   "system_implications": "The issuance transaction records the counted quantity (or roll count/meters converted to units), the issuer and a verifier, and an examination step against the MBR specimen. The reconciliation form is computed by the system: Issued = Applied to finished units + Rejected/damaged + QC/retention samples + Returned to store + Destroyed. Product-to-label reconciliation is also computed. Reconciliation limits are configured per product/pack in the MBR with a recorded rationale (historical data reference) and change only under change control. Results outside the limits auto-create an investigation and block release. Destruction of lot-coded labeling is recorded with a witness. Returned uncoded labeling gets location and status tracking. The waiver applies only when the MBR declares 211.122(g)(2) electronic 100% examination and challenge records exist for the run.",
+   "verification_test": "Counts that differ by more than the limit -> investigation required and release blocked. Counts within the limit -> pass. Attempting to return lot-printed labels to stock -> forced destruction. Claiming the waiver without vision challenge records -> not accepted.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-G/section-211.125",
+   "verified": true
+  },
+  {
+   "id": "US-211-130",
+   "source": "21 CFR Part 211",
+   "clause": "211.130(a)-(e) - Packaging and labeling operations",
+   "requirement": "Written procedures must assure correct labels, labeling and packaging materials are used, including: (a) prevention of mixups and cross-contamination by physical or spatial separation from operations on other products; (b) identification and handling of filled containers set aside unlabeled for future labeling, to prevent mislabeling; (c) identification of the drug product with a lot or control number that permits determination of the batch's manufacturing and control history; (d) examination of packaging and labeling materials for suitability and correctness before packaging operations, documented in the BPR; (e) inspection of packaging and labeling facilities immediately before use, to assure that all drug products from previous operations and all unsuitable materials have been removed, with results documented in the BPR.",
+   "applies_to": "both",
+   "system_implications": "A line-clearance checklist (configurable per line and room) is executed and e-signed before start (performer plus verifier per SOP) and after completion (211.188(b)(6)), and packaging cannot start without a completed pre-use clearance. A line may only have one active packaging order, lot and strength (spatial separation rule). Material verification at line start scans every packaging component against the packaging MBR bill of materials and artwork version. Unlabeled filled containers (e.g., unlabeled vials awaiting labeling, bulk tablets in drums) are tracked as quarantined intermediates with lot identity, quantity and container labels, and reconciled when later labeled. The lot number printed on each unit is the BPR lot number (no manual entry).",
+   "verification_test": "Start packaging with no clearance record -> blocked. Scan a wrong carton code -> blocked. Try to open a second order on the same line -> blocked. Unlabeled-vial inventory reconciles to the later labeling run and discrepancies are flagged.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-G/section-211.130",
+   "verified": true
+  },
+  {
+   "id": "US-211-132",
+   "source": "21 CFR Part 211",
+   "clause": "211.132 - Tamper-evident packaging for OTC human drug products",
+   "requirement": "Each manufacturer and packer who packages an OTC drug product for retail sale (except dermatological, dentifrice, insulin or lozenge products) must use a tamper-evident package if the product is accessible to the public while held for sale; the labeling must carry the required tamper-evident statement.",
+   "applies_to": "tablets",
+   "system_implications": "For products flagged OTC, the packaging MBR must include tamper-evident feature controls, such as induction-seal integrity checks, torque checks and shrink-band presence (vision), and verification of the required tamper-evidence labeling statement. The MBR cannot be approved without these steps for OTC products.",
+   "verification_test": "Create an OTC packaging MBR without a tamper-evident check -> approval validation fails. A seal-integrity IPC failure triggers segregation and a deviation.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-G/section-211.132",
+   "verified": true
+  },
+  {
+   "id": "US-211-134",
+   "source": "21 CFR Part 211",
+   "clause": "211.134(a)-(c) - Drug product inspection",
+   "requirement": "Packaged and labeled products are examined during finishing operations to provide assurance that containers and packages in the lot carry the correct label. A representative sample of units is collected at the end of finishing and visually examined for correct labeling. Results are recorded in the batch production or control records.",
+   "applies_to": "both",
+   "system_implications": "Scheduled in-process label checks and a mandatory end-of-run representative sample examination step, with sample size per SOP (e.g., an AQL plan), examiner identity and result. A failure puts the lot on hold and opens an investigation. Results are included in the BPR (211.188(b)(13)).",
+   "verification_test": "Skip the end-of-run examination -> the packaging order cannot complete. Record a failure -> hold status and an investigation are created automatically.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-G/section-211.134",
+   "verified": true
+  },
+  {
+   "id": "US-211-137",
+   "source": "21 CFR Part 211",
+   "clause": "211.137(a)-(c) - Expiration dating",
+   "requirement": "Each drug product bears an expiration date determined by stability testing (211.166), related to any storage conditions stated on the labeling. If the product is reconstituted at the time of dispensing, the labeling bears expiration information for both the reconstituted and unreconstituted product. Exemptions exist, e.g., certain OTC products.",
+   "applies_to": "both",
+   "system_implications": "The expiry rule (shelf-life months, reference event such as the date of first API addition or date of filling per company SOP, rounding such as last day of month) is product master data under change control. The expiry date is calculated once by the system and pushed identically to label print data, the BPR, ERP/WMS and serialization/DSCSA product identifier data; manual entry is prohibited. For lyophilized or powder-for-reconstitution injectables, artwork verification includes both unreconstituted and reconstituted (in-use) expiry statements. The BPR shows the storage-condition statement used.",
+   "verification_test": "Compare expiry across BPR, printed label image, serialization commissioning events and ERP for a test lot -> identical. Changing shelf life without change control -> blocked. A reconstitution product artwork missing the in-use statement -> artwork approval blocked.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-G/section-211.137",
+   "verified": true
+  },
+  {
+   "id": "US-211-84-89",
+   "source": "21 CFR Part 211",
+   "clause": "211.84(a), 211.87, 211.89 - Testing, approval, retesting, and rejection of components, containers and closures",
+   "requirement": "Each lot of components, containers and closures is withheld from use until sampled, tested or examined as appropriate and released for use by the QCU. Approved materials are retested or re-examined as needed (e.g., after long storage or exposure to adverse conditions) and approved or rejected. Rejected materials are identified and controlled under a quarantine system that prevents their use.",
+   "applies_to": "both",
+   "system_implications": "Status-driven hard stops at every consumption point (dispensing, line-side issue, packaging component scan). Retest and expiry dates are enforced automatically: at the retest date the status reverts to Quarantine/Retest Required and the lot cannot be used until QA re-approves it. Rejected lots cannot be allocated or dispensed. Status changes are QA-only with e-signature. Partial containers inherit the lot status.",
+   "verification_test": "The retest date passes overnight -> the next morning's dispense of that lot is blocked. A rejected lot cannot be reserved for any order. A production user cannot change status.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-E/section-211.84",
+   "verified": true
+  },
+  {
+   "id": "US-211-94-72",
+   "source": "21 CFR Part 211",
+   "clause": "211.94(c)-(d) (containers/closures: clean, sterilized, depyrogenated, validated) and 211.72 (filters for injectables)",
+   "requirement": "Containers and closures are clean and, where the nature of the drug requires, sterilized and processed to remove pyrogenic properties, and depyrogenation processes are validated. Specifications, test methods and cleaning/sterilizing/depyrogenation methods are written and followed. Filters for liquid filtration of injectables must not release fibers. Where fiber-releasing filters are unavoidable, an additional non-fiber-releasing filter with a maximum nominal pore size of 0.2 micron (0.45 micron if manufacturing conditions dictate) must be used afterwards.",
+   "applies_to": "injectables",
+   "system_implications": "The BPR captures component preparation: washer run, depyrogenation tunnel run or oven cycle ID with validated recipe and result, sterilization cycle IDs for stoppers and equipment, and expiry of sterilized/depyrogenated items (hold time) at the point of use. Filters are verified by scan against the MBR-specified part number and pore size, and the filter lot is recorded. Pre-use (if performed) and post-use integrity test results are captured from the integrity tester with the raw report. A failed post-use integrity test is a critical event that blocks release pending investigation.",
+   "verification_test": "Scan a 0.45 micron filter where the MBR specifies 0.2 micron -> blocked. A failed post-use integrity test -> the batch is flagged and release is impossible without an investigation outcome. Using stoppers past their sterilized hold time -> blocked.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-D/section-211.72",
+   "verified": true
+  },
+  {
+   "id": "US-211-150-196",
+   "source": "21 CFR Part 211",
+   "clause": "211.150 (distribution procedures) and 211.196 (distribution records)",
+   "requirement": "Procedures ensure the oldest approved stock is distributed first (temporary, appropriate deviation permitted) and that the distribution of each lot can be readily determined to facilitate recall. Distribution records contain product name and strength, dosage form description, consignee name and address, date and quantity shipped, and lot or control number.",
+   "applies_to": "both",
+   "system_implications": "The released-lot status flows from the eBMR to WMS/ERP. Shipment records are ingested as genealogy edges (lot -> shipment -> consignee) so a forward trace from any component, equipment or batch ends at consignees for recall scoping. FEFO deviations are recorded with reason.",
+   "verification_test": "A forward trace from a component lot lists every consignee with quantities, matching an ERP extract. Shipping a non-oldest lot requires a reason.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.196",
+   "verified": true
+  },
+  {
+   "id": "US-211-160-167",
+   "source": "21 CFR Part 211",
+   "clause": "211.160(a) (lab controls documented at time of performance), 211.165(a)-(f) (testing and release for distribution), 211.167(a) (sterile/pyrogen-free testing)",
+   "requirement": "Laboratory controls are followed and documented at the time of performance, and deviations are recorded and justified. Before release, each batch has an appropriate laboratory determination of conformance to final specifications, including the identity and strength of each active ingredient. Batches required to be free of objectionable microorganisms are tested as necessary. Sampling and testing plans are written. Acceptance criteria must ensure batches meet each specification and appropriate statistical quality control criteria as a condition of approval and release. Test methods are validated for accuracy, sensitivity, specificity and reproducibility. Products that fail specifications are rejected (reprocessing is possible under 211.115). Each batch purporting to be sterile and/or pyrogen-free is tested appropriately under written procedures.",
+   "applies_to": "both",
+   "system_implications": "The release gate (batch disposition) only allows the QA release e-signature when all mandatory criteria are met: BPR complete and QA-reviewed; all deviations and investigations closed or QA-assessed as not impacting; all required QC results complete and within specification (from LIMS, with specification version matching the MBR); label reconciliation, yields and DSCSA serialization reconciliation within limits. For aseptic products, sterility, endotoxin, container-closure/visual inspection results and EM/personnel monitoring review must also be complete. A terminally sterilized product with FDA-approved parametric release follows a separate criteria set (US-TS-01). Any exception to the gate exists only as a configured, SOP-backed 'conditional release for further processing/shipping under quarantine' with a recorded justification. A rejected batch can never be released without a new approved reprocess path.",
+   "verification_test": "A missing sterility result -> release blocked. An OOS result -> release blocked. Specification version mismatch between LIMS and MBR -> blocked. With all criteria met, QA can release, and the release record lists the evaluated criteria.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-I/section-211.165",
+   "verified": true
+  },
+  {
+   "id": "US-211-180",
+   "source": "21 CFR Part 211",
+   "clause": "211.180(a)-(d) - Records retention, availability, and true copies",
+   "requirement": "(a) Production, control and distribution records associated with a batch are retained for at least 1 year after the batch's expiration date (3 years after distribution for certain OTC products exempt from expiration dating under 211.137). (b) Records for components, containers, closures and labeling are retained at least 1 year after the expiration date of the last lot of product using them (or 3 years after distribution for exempt OTC). (c) All records, or copies, are readily available for authorized inspection during the retention period at the establishment where the activities occurred, and can be photocopied or otherwise reproduced; records that can be immediately retrieved from another location by computer or other electronic means meet this requirement. (d) Records may be kept as originals or as true copies (accurate reproductions).",
+   "applies_to": "both",
+   "system_implications": "A retention engine computes the retention end date per record from genealogy. For a batch record: expiry + 1 year (or distribution + 3 years for exempt OTC). For shared records (component lot records, equipment logs, MBR versions, training, audit trails): the latest retention end of all dependent batches. Purge before that date is impossible, and legal holds override purge. Central multi-site hosting is acceptable if every site can retrieve its records immediately (defined retrieval SLA). Export produces true copies: PDF/A with signature manifestations and audit trail, plus native structured data and metadata. A migration strategy preserves content, meaning, metadata and audit trails across technology refreshes over retention periods that may exceed 10 years.",
+   "verification_test": "Try to delete or archive-purge a batch record before its retention end -> blocked. For a component lot used in two batches with different expiries, retention follows the later one. Run a retrieval drill at each site within the SLA. Migration dry run: hash-compare records and audit trails before and after.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.180",
+   "verified": true
+  },
+  {
+   "id": "US-211-180E",
+   "source": "21 CFR Part 211",
+   "clause": "211.180(e) - Annual product review",
+   "requirement": "Written records are maintained so their data can be used to evaluate, at least annually, the quality standards of each drug product and to determine whether specifications or procedures need to change. Procedures include review of a representative number of approved and rejected batches and their records, and review of complaints, recalls, returned or salvaged products, and investigations under 211.192.",
+   "applies_to": "both",
+   "system_implications": "All CPPs, IPCs, yields, deviations, reprocessing and release decisions are stored as structured, typed data with units and specification version, not free text, and are queryable across batches, sites and time for APR/PQR and CPV (US-PV-01). The system provides APR data extracts with provenance (source record IDs and hashes), and links to complaints, recalls and returns by lot.",
+   "verification_test": "Generate an APR dataset for one product across two sites and reconcile its batch count and yield statistics against source records.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.180",
+   "verified": true
+  },
+  {
+   "id": "US-211-182",
+   "source": "21 CFR Part 211",
+   "clause": "211.182 - Equipment cleaning and use log",
+   "requirement": "A written record of major equipment cleaning, maintenance (except routine maintenance such as lubrication and adjustments) and use is included in individual equipment logs showing the date, time, product and lot number of each batch processed. For equipment dedicated to one product, individual logs are not required if lots follow in numerical order and are made in numerical sequence, but the cleaning, maintenance and use records must then be part of the batch record. The persons performing and double-checking cleaning and maintenance (or, if done by automated equipment under 211.68, only the person verifying the automated work) date and sign or initial the log. Entries are in chronological order.",
+   "applies_to": "both",
+   "system_implications": "The electronic equipment logbook is populated automatically from eBMR events (use start/stop with product and lot), cleaning records (performer plus a different verifier, or one verifier for a validated automated CIP/SIP cycle) and maintenance work orders (via CMMS interface). Entries are ordered by actual event time. Late or out-of-sequence entries require a reason and are flagged, and the original chronology is preserved. Entries are immutable with an audit-trailed correction mechanism. For dedicated equipment, the logbook extract is embedded in the batch report and the system checks the numerical lot sequence.",
+   "verification_test": "The logbook shows each batch with date, time, product and lot, matching the BPRs. The same person as performer and verifier of manual cleaning -> blocked. A late entry is flagged. On dedicated equipment, an out-of-sequence lot number triggers a warning/deviation.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.182",
+   "verified": true
+  },
+  {
+   "id": "US-211-184",
+   "source": "21 CFR Part 211",
+   "clause": "211.184(a)-(e) - Component, drug product container, closure, and labeling records",
+   "requirement": "Records include: (a) identity and quantity of each shipment of each lot of components, containers, closures and labeling; supplier name; supplier lot number(s) if known; receiving code (211.80); date of receipt. (b) Results of any test or examination and the conclusions drawn. (c) An individual inventory record of each component, container and closure, and for each component a reconciliation of the use of each lot, with enough information to determine any batch or lot of drug product associated with each component, container and closure. (d) Documentation of examination and review of labels and labeling for conformity with specifications. (e) Disposition of rejected materials.",
+   "applies_to": "both",
+   "system_implications": "An append-only inventory ledger per container/lot records receipt, sampling, status changes, dispensing, returns, waste and adjustments (with reason and verifier). A lot reconciliation report is computed: received = consumed + sampled + returned to vendor + destroyed + on hand, with adjustments explained. Genealogy edges from every consumption transaction support forward traceability (component lot -> all drug product lots), which 211.184(c) makes mandatory.",
+   "verification_test": "Reconciliation of a test lot balances to zero with every adjustment explained. A forward trace from the component lot equals the set of batches that consumed it according to the ledger.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.184",
+   "verified": true
+  },
+  {
+   "id": "US-211-186A",
+   "source": "21 CFR Part 211 (with FDA DI Q&A on electronic signatures)",
+   "clause": "211.186(a) - Master production and control records: preparation and approval",
+   "requirement": "To assure batch uniformity, master production and control records for each drug product, including each batch size, are prepared, dated and signed (full signature, handwritten) by one person and independently checked, dated and signed by a second person. MPCR preparation is described in, and follows, a written procedure. Per the FDA DI Q&A, a Part 11-compliant electronic signature satisfies the 'full signature, handwritten' requirement.",
+   "applies_to": "both",
+   "system_implications": "The MBR authoring workflow requires an Author e-signature ('Prepared'), an independent Checker e-signature ('Checked'; must differ from the author), and QA approval ('Approved', per 211.22(c)/211.100(a)), with an effective date. Versioning and supersession are handled with a redline comparison between versions. Only Effective versions can issue batch records, and in-flight batches stay on their issued version. The MBR is defined per approved batch size. Scaling is allowed only to pre-approved batch sizes, or within an explicitly approved and validated range (see open question), never ad hoc. Changes go through change control with impact assessment.",
+   "verification_test": "The author tries to sign as checker -> blocked. A Draft MBR cannot issue a batch. A batch size not in the approved list -> issuance blocked. Version history shows who prepared, checked and approved each version and when.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.186",
+   "verified": true
+  },
+  {
+   "id": "US-211-186B",
+   "source": "21 CFR Part 211",
+   "clause": "211.186(b)(1)-(9) - MPCR content",
+   "requirement": "The MPCR includes: (1) product name and strength and a description of the dosage form; (2) name and weight or measure of each active ingredient per dosage unit or per unit weight/measure, and the total weight or measure of any dosage unit; (3) a complete list of components designated by names or codes specific enough to indicate any special quality characteristic; (4) an accurate statement of the weight or measure of each component, using the same weight system for each, with reasonable variations permitted if justified in the MPCR; (5) a statement of any calculated excess of a component; (6) a statement of theoretical weight or measure at appropriate phases of processing; (7) a statement of theoretical yield, including the maximum and minimum percentages beyond which a 211.192 investigation is required; (8) a description of containers, closures and packaging materials, including a specimen or copy of each label and all other labeling, signed and dated by the person(s) responsible for approving that labeling; (9) complete manufacturing and control instructions, sampling and testing procedures, specifications, special notations and precautions. (Items 3, 5 and 6 confirmed verbatim; the others are from the regulation text.)",
+   "applies_to": "both",
+   "system_implications": "The MBR data model has mandatory structured fields for all nine elements. Validation rules block approval if any element is missing: a single unit system per component (metric); overage fields with justification text; yield limits mandatory at each yield checkpoint; label specimens linked to approved artwork with approver signatures; instructions as structured steps with parameters and limits, IPC/sampling plans and specification references; hazard/precaution notations. Component codes must reference material master records carrying quality grade (e.g., 'WFI', 'low-endotoxin', 'micronized').",
+   "verification_test": "Try to approve an MBR missing yield limits, a label specimen or an overage justification -> approval blocked with a list of missing elements. Mixed units for one component -> blocked.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.186",
+   "verified": true
+  },
+  {
+   "id": "US-211-188A",
+   "source": "21 CFR Part 211 (with FDA DI Q&A on control of blank forms)",
+   "clause": "211.188(a) - BPR: accurate reproduction of the MPCR",
+   "requirement": "A batch production and control record is prepared for each batch with complete information on its production and control, including an accurate reproduction of the appropriate master production or control record, checked for accuracy, dated and signed. The FDA DI Q&A recommends controlled issuance and reconciliation of blank forms, keeping incomplete or erroneous forms with justification for replacement.",
+   "applies_to": "both",
+   "system_implications": "A batch record instance is generated only from the Effective MBR version; the MBR version ID and content hash are stored in the instance. An issuance e-signature ('Issued/verified accurate reproduction') is required. Once issued, instruction content is frozen: later MBR changes do not alter it, and any batch-specific change needs a controlled, QA-approved amendment. Batch record instances are uniquely numbered and reconciled (issued vs executed vs voided). Voided or reissued instances are kept with reason and approver, never deleted.",
+   "verification_test": "Change the MBR after issuance -> the issued instance is unchanged, and the hash still matches the version it was issued from. Issuing from a Draft -> blocked. Voiding an instance keeps it visible with a reason. The issuance reconciliation report has no gaps.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.188",
+   "verified": true
+  },
+  {
+   "id": "US-211-188B",
+   "source": "21 CFR Part 211",
+   "clause": "211.188(b)(1)-(13) - BPR: documentation of each significant step",
+   "requirement": "Documentation that each significant step was accomplished, including: (1) dates; (2) identity of individual major equipment and lines used; (3) specific identification of each batch of component or in-process material used; (4) weights and measures of components used; (5) in-process and laboratory control results; (6) inspection of the packaging and labeling area before and after use; (7) statement of actual yield and percentage of theoretical yield at appropriate phases; (8) complete labeling control records, including specimens or copies of all labeling used; (9) description of drug product containers and closures; (10) any sampling performed; (11) identification of the persons performing and directly supervising or checking each significant step, or, if a significant step is performed by automated equipment under 211.68, the person checking it; (12) any investigation under 211.192; (13) results of examinations under 211.134.",
+   "applies_to": "both",
+   "system_implications": "Steps are flagged as 'significant' in the MBR, and each flagged step requires a performer signature plus a verifier/supervisor signature from a different user (or automated execution plus one checker). The batch report must render all 13 data categories. A completeness engine blocks 'Production complete' if any category is missing: sampling events with sample IDs linked to LIMS, label specimens (image of the first printed label or scan), container/closure descriptions from master data, and investigations linked. Dates and times come from server timestamps.",
+   "verification_test": "Execute a full test batch. The completeness report shows all 13 elements. A significant step signed by only one person -> cannot complete. Removing a label specimen -> 'Production complete' blocked.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.188",
+   "verified": true
+  },
+  {
+   "id": "US-211-192",
+   "source": "21 CFR Part 211",
+   "clause": "211.192 - Production record review; investigation of discrepancies",
+   "requirement": "All production and control records, including packaging and labeling, are reviewed and approved by the QCU for compliance with approved written procedures before a batch is released or distributed. Any unexplained discrepancy (including a percentage of theoretical yield outside the MPCR limits) or failure of a batch or its components to meet specifications is thoroughly investigated, whether or not the batch has been distributed. The investigation extends to other batches of the same product and other products that may have been associated with the failure or discrepancy. A written record of the investigation includes the conclusions and follow-up.",
+   "applies_to": "both",
+   "system_implications": "A QA review workbench does review-by-exception. It lists every deviation, out-of-limit value, late entry, correction of critical data (from the audit trail, per the DI Q&A), manual fallback/override, alarm, timer breach and open item. Each exception must be individually acknowledged or dispositioned before release. The full record stays viewable, because review-by-exception supplements full-record access and does not replace it. The investigation module (or QMS link) has a mandatory impact-assessment step. The system supplies impact queries: other batches sharing component lots, intermediate lots, equipment (and the previous/next product), rooms, personnel, utilities, time windows, APS or EM excursions, and other products made on the same equipment. Investigations require conclusion and follow-up/CAPA fields. Post-distribution investigations can be linked to distributed lots and their consignees.",
+   "verification_test": "Seed a batch with one exception of each type -> all appear and release is blocked until each is dispositioned. The impact query for a component lot or equipment returns the correct set of batches, verified against an independent query. An investigation cannot close without conclusion and follow-up.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.192",
+   "verified": true
+  },
+  {
+   "id": "US-211-194",
+   "source": "21 CFR Part 211",
+   "clause": "211.194(a)(1)-(8) - Laboratory records (applies to in-process tests executed within the eBMR)",
+   "requirement": "Laboratory records include complete data from all tests needed to assure compliance with specifications: sample description (source, quantity, lot, date); the method; sample weight or measure; a complete record of all data, including graphs, charts and spectra from properly identified instrumentation; all calculations; results and how they compare with standards; initials or signature of the person performing each test and the date(s); and initials or signature of a second person showing the original records were reviewed for accuracy, completeness and compliance.",
+   "applies_to": "both",
+   "system_implications": "For IPCs executed in the eBMR (weights, hardness, pH, fill volume), the system stores raw instrument output (files or strings) linked to instrument ID, sample ID and the step, the calculation with formula version, the result vs limits, and performer and date. A second-person review of IPC data is required where the SOP classifies the test as a laboratory test. Result-only entry is not allowed when the instrument can transmit raw data. Invalidated or repeated measurements are retained with justification (US-DI-10).",
+   "verification_test": "A pH IPC stores the meter's raw record and calibration reference. Deleting a replicate is impossible; invalidating one requires a reason and QA visibility.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.194",
+   "verified": true
+  },
+  {
+   "id": "US-211-198",
+   "source": "21 CFR Part 211",
+   "clause": "211.198(a)-(b) - Complaint files",
+   "requirement": "Written procedures cover all written and oral complaints, with QCU review of any complaint involving possible failure to meet specifications and a determination of the need for a 211.192 investigation. The record includes, where known, product name and strength, lot number, complainant name, nature of the complaint and reply. It includes the investigation findings and follow-up, or the reason no investigation was needed and the name of the person who decided that. Retention: at least 1 year after product expiry or 1 year after the complaint was received, whichever is longer (3 years after distribution for exempt OTC). The retention wording is from the regulation text and was not re-verified in this pass.",
+   "applies_to": "both",
+   "system_implications": "A complaint lot lookup must immediately retrieve the full BPR, genealogy, deviations and distribution for the lot, and the eBMR exposes an API for the QMS complaint module. Complaint-to-lot links feed APR (211.180(e)) and extend batch-record retention if the complaint's retention end is later.",
+   "verification_test": "From a complaint referencing a lot, open the BPR, genealogy and shipments within the defined SLA. Retention recalculates when a late complaint is linked.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.198",
+   "verified": true
+  },
+  {
+   "id": "US-11-01",
+   "source": "21 CFR Part 11",
+   "clause": "11.1(a),(b),(e); 11.2; 11.3(b) definitions (closed system, open system, electronic record, electronic signature, digital signature, biometrics, handwritten signature)",
+   "requirement": "Part 11 sets the criteria under which FDA considers electronic records and signatures, and handwritten signatures executed to electronic records, trustworthy, reliable and generally equivalent to paper records and handwritten signatures. It applies to records in electronic form that are created, modified, maintained, archived, retrieved or transmitted under any FDA records requirement. Computer systems (hardware and software), controls and attendant documentation are readily available for, and subject to, FDA inspection. A closed system is one where system access is controlled by the persons responsible for the content of its electronic records; an open system is one where it is not.",
+   "applies_to": "both",
+   "system_implications": "Every 211 record held in the eBMR is a Part 11 record. Validation documentation, configuration specifications, SOPs and supplier documentation must be inspection-ready at each site (11.1(e)). Classify the deployment as a closed system: for vendor-hosted or multi-tenant SaaS, access control, identity provisioning and privileged access must stay under the regulated company's control (contractually and technically), with vendor/admin access logged and approved. If that cannot be demonstrated, apply 11.30 open-system controls (encryption plus digital signatures).",
+   "verification_test": "Documentation review: system classification rationale (closed/open), access-control ownership and a privileged-access log demonstrating that the regulated company controls access. An inspection-readiness drill produces validation and configuration documents on request.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-A/section-11.1",
+   "verified": true
+  },
+  {
+   "id": "US-11-10A",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(a) - Validation",
+   "requirement": "Validation of systems to ensure accuracy, reliability, consistent intended performance, and the ability to discern invalid or altered records.",
+   "applies_to": "both",
+   "system_implications": "Risk-based validation (see US-CSA-01) with traceability from the URS (this requirement set) to test evidence. Technical means to discern altered records: cryptographic content hashes on each record version and signature, a hash-chained append-only audit trail, and a scheduled integrity-verification job that recomputes chains and alarms on mismatch. Site-specific configuration baselines are compared against the validated baseline to detect configuration drift.",
+   "verification_test": "In a test environment, tamper directly with a database row, bypassing the application -> the integrity job detects it and raises a critical alert naming the record. The traceability matrix covers 100% of the high-risk requirements.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10B",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(b) - Accurate and complete copies",
+   "requirement": "The ability to generate accurate and complete copies of records in both human-readable and electronic form, suitable for FDA inspection, review and copying.",
+   "applies_to": "both",
+   "system_implications": "One-click export of the complete batch record: human-readable (PDF/A including all data, signature manifestations, deviations, attachments and the audit trail) and electronic (structured JSON/XML/CSV with metadata, plus native attachments). Exports are themselves logged (who, when, what). For dynamic data (process trends, chromatograms, lyophilizer cycle data), provide the data plus a viewer and the static rendering. Supports FDA records requests under FD&C Act 704(a)(4) and remote regulatory assessments.",
+   "verification_test": "Export a batch and compare it field by field with the database. Confirm signatures show name, date/time and meaning, and that the audit trail is included and complete. Export time for a large batch meets the SLA.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10C",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(c) - Protection of records",
+   "requirement": "Protection of records to enable their accurate and ready retrieval throughout the records retention period.",
+   "applies_to": "both",
+   "system_implications": "Immutable storage for finalized records (object lock/WORM), geo-redundant backups, periodic restore tests, and format-longevity policy (open formats such as PDF/A and JSON with schema versions). Periodic readability tests of the oldest archived records. Documented and validated data migrations with before/after hash reconciliation. Retention is tied to US-211-180.",
+   "verification_test": "Annual retrieval test of records older than N years. The restore test proves the recovery point and recovery time objectives. Migration reconciliation report shows zero mismatches.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10D",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(d) - Limiting system access",
+   "requirement": "Limiting system access to authorized individuals.",
+   "applies_to": "both",
+   "system_implications": "Unique named accounts only, with no generic or shared accounts (see US-DI-04). Identity provider/SSO integration with MFA is acceptable. Joiner/mover/leaver provisioning tied to HR, with immediate disablement on termination. Periodic access recertification by area owners. Session inactivity timeout and auto-lock on shop-floor terminals. Break-glass accounts are sealed, alarmed and reviewed.",
+   "verification_test": "A terminated user in HR is disabled in the eBMR within the defined time. An inactive session locks after the configured period. An access-review report is produced and signed.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10E",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(e) - Audit trails",
+   "requirement": "Use of secure, computer-generated, time-stamped audit trails that independently record the date and time of operator entries and actions that create, modify or delete electronic records. Record changes must not obscure previously recorded information. Audit trail documentation is retained at least as long as the subject records and is available for FDA review and copying.",
+   "applies_to": "both",
+   "system_implications": "The audit trail is generated server-side, independent of the application UI, and is append-only. Each entry captures: who (unique user ID plus printed name at the time), what (record, field, old value, new value), when (UTC server timestamp plus site time zone), why (reason for change, mandatory for any modification of GMP data after initial commit, chosen from a controlled list plus free text), and where (terminal/device ID). Nobody, including administrators, can edit, delete or disable audit trails on GMP objects; audit configuration changes are themselves audited and alarmed. Corrections create new record versions and the original value stays visible. GMP records are never physically deleted in normal operation; they are voided or invalidated with a reason. Audit trail retention equals record retention. The audit trail is searchable, filterable by batch, step, user and critical data, and exportable. Hash chaining provides tamper evidence. Record-level and system-level events (logins, failed logins, permission changes, configuration changes) are captured too, per the DI Q&A definition.",
+   "verification_test": "Modify a value -> the audit shows old and new values, user, timestamp, reason and device. An administrator tries to disable or purge the audit trail -> not possible, or the attempt is alarmed and audited. A database-level tamper is detected by the hash-chain check. The audit trail of an archived batch is still retrievable.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10F",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(f) - Operational system checks",
+   "requirement": "Use of operational system checks to enforce permitted sequencing of steps and events, as appropriate.",
+   "applies_to": "both",
+   "system_implications": "An MBR execution state machine enforces step order (with MBR-declared parallel branches) and prerequisites: line clearance, equipment status, material status, IPC due, timer states, QA gates. The batch lifecycle (Issued -> In Execution -> Production Complete -> Under QA Review -> Released/Rejected, with Hold and Cancelled) has guarded transitions. Out-of-sequence execution is only possible via a deviation path with QA approval, and is recorded.",
+   "verification_test": "Attempt step N+1 before step N -> blocked. Attempt release before review -> blocked. The deviation path for out-of-sequence execution requires QA e-signature and appears in the review list.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10G",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(g) - Authority checks",
+   "requirement": "Use of authority checks to ensure that only authorized individuals can use the system, electronically sign a record, access the operation or the computer system input or output device, alter a record, or perform the operation at hand.",
+   "applies_to": "both",
+   "system_implications": "Fine-grained, least-privilege permissions per action (execute, verify, supervise, QA review, approve MBR, change master data, configure, administer), scoped by legal entity, site, area, product and line. Signature meanings are bound to roles (a user without QA role cannot sign 'Approved for release'). Segregation-of-duties rules: performer is not verifier; author is not checker; executor is not QA approver for the same batch; administrator is not a GMP data user on the same system unless an approved exception with a second reviewer applies (per the DI Q&A). Cross-site data isolation is enforced by default.",
+   "verification_test": "A permission-matrix test suite runs positive and negative tests per role and action, including cross-site isolation and signature-meaning binding.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10H",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(h) - Device checks",
+   "requirement": "Use of device (e.g., terminal) checks to determine, as appropriate, the validity of the source of data input or operational instruction.",
+   "applies_to": "both",
+   "system_implications": "Registered devices only: terminals, tablets, scales, instruments and PLC/SCADA connectors carry device identities (certificates or IDs) and are assigned to a room or line. Data is accepted only from a device registered to the location of the executing step. Each value stores its source device ID. Operational instructions sent to equipment (recipe download) go only to the registered equipment for that step.",
+   "verification_test": "Data from an unregistered or relocated scale -> rejected with an alert. A terminal registered to room A cannot execute steps assigned to room B (if configured).",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-10IJK",
+   "source": "21 CFR Part 11",
+   "clause": "11.10(i) training; 11.10(j) accountability policies; 11.10(k)(1)-(2) systems documentation controls",
+   "requirement": "(i) Persons who develop, maintain or use electronic record/signature systems have the education, training and experience for their tasks. (j) Written policies hold individuals accountable and responsible for actions initiated under their electronic signatures, to deter record and signature falsification. (k) Adequate controls over the distribution of, access to and use of system operation and maintenance documentation, and revision and change control procedures that maintain an audit trail of the time-sequenced development and modification of systems documentation.",
+   "applies_to": "both",
+   "system_implications": "(i) Training records cover end users, key users, administrators and vendor developers (supplier qualification). (j) Before first signing, each user electronically acknowledges the e-signature accountability statement, and the acknowledgment is recorded and a prerequisite for signing; it is refreshed periodically. (k) System documentation (URS, configuration specifications, SOPs, admin manuals) lives in a controlled document system. Configuration changes are versioned with diffs and linked to change records, and the system's own configuration audit trail is retained.",
+   "verification_test": "A new user cannot sign before acknowledging the accountability statement. A configuration change without a change record ID -> blocked (where enforced). Configuration diff history is available for any date.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  },
+  {
+   "id": "US-11-30",
+   "source": "21 CFR Part 11",
+   "clause": "11.30 - Controls for open systems",
+   "requirement": "Persons using open systems to create, modify, maintain or transmit electronic records use procedures and controls that ensure authenticity, integrity and, as appropriate, confidentiality from creation to receipt. These include the 11.10 controls as appropriate, plus measures such as document encryption and appropriate digital signature standards.",
+   "applies_to": "both",
+   "system_implications": "Apply to any record flow crossing organizational boundaries or the public internet outside the company's access control: CMO/CDMO data exchange, DSCSA EPCIS exchange with trading partners, remote vendor support, FDA submissions. Use TLS 1.2+ in transit, encryption at rest, message-level signing (e.g., signed payloads or digital signatures) for data exchanged with third parties, and certificate management.",
+   "verification_test": "Interface security tests: unsigned or tampered messages from a partner are rejected. Encryption is verified in transit and at rest.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.30",
+   "verified": true
+  },
+  {
+   "id": "US-11-50",
+   "source": "21 CFR Part 11",
+   "clause": "11.50(a)-(b) - Signature manifestations",
+   "requirement": "Signed electronic records contain information associated with the signing that clearly indicates: (1) the printed name of the signer; (2) the date and time the signature was executed; and (3) the meaning of the signature (such as review, approval, responsibility or authorship). These items are subject to the same controls as electronic records and are included in any human-readable form of the record (electronic display or printout).",
+   "applies_to": "both",
+   "system_implications": "Every signature is displayed and printed with: full printed name (not just the user ID), date and time including time zone (store UTC; show site-local with offset), and a meaning from a controlled list bound to the step ('Performed by', 'Verified by', 'Supervised/Checked by', 'Reviewed by QA', 'Approved for release', 'Rejected', 'Prepared', 'Checked', 'Approved'). The manifestation is stored immutably with the signature at signing time, not re-derived from the mutable user table, so later name changes do not alter historic signatures. Manifestations appear on every screen and report view of the signed data.",
+   "verification_test": "Sign a step and view it on screen, in the batch report PDF and in the export -> all three elements appear. Rename the user -> historic signatures still show the original printed name. Signatures across time zones show the correct local time and offset.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.50",
+   "verified": true
+  },
+  {
+   "id": "US-11-70",
+   "source": "21 CFR Part 11",
+   "clause": "11.70 - Signature/record linking",
+   "requirement": "Electronic signatures, and handwritten signatures executed to electronic records, are linked to their records so that the signatures cannot be excised, copied or otherwise transferred to falsify an electronic record by ordinary means.",
+   "applies_to": "both",
+   "system_implications": "Each signature record binds the signer identity, meaning, timestamp and a cryptographic hash of the exact signed content (the record version). A later permitted correction of signed data automatically marks the signature 'superseded by change' and requires re-signing (the performer's or verifier's as applicable), with the audit trail kept. Signatures cannot be moved or copied between records, and the integrity job detects any such tampering. Hybrid wet-ink signatures on printouts are avoided. If unavoidable, the scanned signed page is indexed to the record ID and content hash and the hybrid process is covered by an SOP.",
+   "verification_test": "Correct a signed value -> the signature status becomes superseded and re-sign is required. Copying a signature row to another record in the test database -> the integrity check fails. Hash verification succeeds for untouched records.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.70",
+   "verified": true
+  },
+  {
+   "id": "US-11-100",
+   "source": "21 CFR Part 11 (11.100(c)(1) as amended by the technical amendment of March 2, 2023)",
+   "clause": "11.100(a)-(c) - Electronic signatures: general requirements",
+   "requirement": "(a) Each electronic signature is unique to one individual and is not reused by or reassigned to anyone else. (b) Before an organization establishes, assigns, certifies or otherwise sanctions an individual's electronic signature or any element of it, the organization verifies the individual's identity. (c) Persons using electronic signatures certify to FDA, before or at the time of use, that their electronic signatures are intended to be the legally binding equivalent of handwritten signatures. The certification is signed with a traditional handwritten signature and, after the 2023 amendment, submitted in electronic or paper form as described on FDA's 'Letters of Non-Repudiation Agreement' web page. Additional certification or testimony is provided on FDA request.",
+   "applies_to": "both",
+   "system_implications": "User IDs are never reused or reassigned, even after deactivation; enforced by a permanent uniqueness registry across all sites and tenants. Account activation requires a recorded identity-verification step (who verified, method, date). A go-live checklist per legal entity records the non-repudiation letter submission (date, scope: company-wide or individual). Signature credentials are personal: no proxy signing or delegated signing on behalf of another person.",
+   "verification_test": "Create a new account with the ID of a deactivated user -> blocked. Activate an account without an identity-verification record -> blocked. Configuration shows NRL status per legal entity.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-11/subpart-C/section-11.100",
+   "verified": true
+  },
+  {
+   "id": "US-11-200",
+   "source": "21 CFR Part 11",
+   "clause": "11.200(a)(1)-(3), (b) - Electronic signature components and controls",
+   "requirement": "Non-biometric e-signatures use at least two distinct identification components, such as an ID code and password. When an individual executes a series of signings during a single, continuous period of controlled system access, the first signing uses all components and subsequent signings use at least one component that only that individual can execute and that is designed for use only by that individual. Signings not performed during a single, continuous period of controlled access each use all components. E-signatures are used only by their genuine owners, and are administered so that attempted use by anyone other than the owner requires the collaboration of two or more individuals. Biometric e-signatures are designed so they cannot be used by anyone other than their genuine owners.",
+   "applies_to": "both",
+   "system_implications": "The signing dialog re-authenticates at the moment of signing (user ID + password, or an SSO step-up with a second factor). The 'continuous period of controlled access' is defined strictly: any lock, timeout, logout or terminal switch ends it. Recommendation: require both components for all critical signatures (verification, QA review, release, MBR approval), because shop-floor terminals are shared. A verifier signs in the same dialog with their own full credentials; the performer's session can never supply the verifier's signature. No 'remember password'. Administrators cannot see passwords, and admin-set passwords force a change at first use (so misuse needs collusion). Biometric options, such as badge plus fingerprint in cleanrooms where typing is impractical, need liveness and anti-spoofing evidence.",
+   "verification_test": "Sign twice in one session -> the second signing requires at least the password. After timeout or lock -> both components required. Try to record a verifier signature using the performer's session -> requires the verifier's own ID and password. An admin-reset password cannot be used to sign before it is changed.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-C/section-11.200",
+   "verified": true
+  },
+  {
+   "id": "US-11-300",
+   "source": "21 CFR Part 11",
+   "clause": "11.300(a)-(e) - Controls for identification codes/passwords",
+   "requirement": "Controls include: (a) keeping each combined ID code and password unique so no two individuals share the same combination; (b) periodically checking, recalling or revising ID code and password issuances (e.g., password aging); (c) loss-management procedures to electronically deauthorize lost, stolen, missing or compromised tokens, cards and other devices, and to issue replacements under suitable, rigorous controls; (d) transaction safeguards to prevent unauthorized use of passwords and/or ID codes, and to detect and report any attempted unauthorized use in an immediate and urgent manner to the system security unit and, as appropriate, organizational management; (e) initial and periodic testing of tokens or cards that bear or generate ID or password information, to ensure they work and have not been altered without authorization. Items (a)-(d) were confirmed verbatim; (e) is from the regulation text.",
+   "applies_to": "both",
+   "system_implications": "Password policy: complexity, history, and aging or a documented risk-based equivalent (e.g., NIST SP 800-63B with compromised-password screening), with the rationale recorded. Account lockout after N failed login or signature attempts. Real-time security alerting (SIEM) on repeated failures, signature attempts on locked accounts, and anomalous access, routed to the security unit with acknowledgment tracking and escalation to management. Immediate revocation of lost badges or tokens, with replacement issued only after identity verification. Periodic badge and token functional tests.",
+   "verification_test": "N failed signature attempts -> the account locks and an alert reaches the security unit within the defined minutes. A revoked badge cannot authenticate. Token test records exist.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-C/section-11.300",
+   "verified": true
+  },
+  {
+   "id": "US-P11G-01",
+   "source": "FDA Guidance 'Part 11, Electronic Records; Electronic Signatures - Scope and Application' (August 2003)",
+   "clause": "Sections III.A-III.C (narrow interpretation of scope; enforcement discretion; predicate rules)",
+   "requirement": "FDA interprets Part 11's scope narrowly. Part 11 applies to predicate-rule records kept electronically in place of paper; to records kept electronically in addition to paper and relied on for regulated activities (business practice decides); to records submitted electronically; and to e-signatures intended as handwritten equivalents. FDA exercises enforcement discretion on the validation, audit trail, record retention and record copying requirements, but predicate rules (e.g., 211.68, 211.180) still apply. Audit trails are particularly appropriate where users are expected to create, modify or delete regulated records during normal operation. FDA intends to enforce all other provisions, including access limits, operational, authority and device checks, training, accountability policies, documentation controls, open-system controls, and all e-signature requirements (11.50, 11.70, 11.100, 11.200, 11.300). Enforcement discretion also applies to legacy systems operational before August 20, 1997, under certain circumstances.",
+   "applies_to": "both",
+   "system_implications": "Enforcement discretion is not a design basis. The eBMR is the primary record for regulated activity and users routinely create and modify GMP data, so implement every 11.10 control, including validation and full audit trails; the DI Q&A (2018) and 211.68 independently expect them. Document in an SOP or system specification that the electronic record is the official record, and treat printouts as copies. Avoid hybrid paper and electronic processes, or define them explicitly with linking controls (11.70).",
+   "verification_test": "Documentation check: a record-type inventory stating the official record per data type. A risk assessment justifies any control not implemented (none expected for GMP batch data).",
+   "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/part-11-electronic-records-electronic-signatures-scope-and-application",
+   "verified": true
+  },
+  {
+   "id": "US-DI-01",
+   "source": "FDA Guidance 'Data Integrity and Compliance With Drug CGMP: Questions and Answers' (December 2018)",
+   "clause": "Q1 definitions: data integrity (ALCOA), metadata, audit trail, static vs dynamic record, backup, computer or related systems",
+   "requirement": "Data integrity means completeness, consistency and accuracy of data; complete, consistent and accurate data are attributable, legible, contemporaneously recorded, original or a true copy, and accurate (ALCOA). Metadata is the contextual information needed to understand data and must be kept with it. An audit trail is a secure, computer-generated, time-stamped electronic record that allows reconstruction of events relating to the creation, modification or deletion of an electronic record, including record-level and system-level actions. Static records are fixed; dynamic records allow interaction (e.g., reprocessing). A backup is a true copy of the original record kept securely throughout the retention period, including associated metadata, in the original format or a compatible one; this is distinct from temporary disaster-recovery copies.",
+   "applies_to": "both",
+   "system_implications": "The data model keeps each value with its metadata (units, precision, instrument, specification version, context step, timestamps, user). Dynamic data (trend and historian data, lyophilizer cycles, PAT spectra) is kept in native, reprocessable form with a viewer, not only as images. The backup design follows US-211-68B. The ALCOA attributes map to controls: attributable (unique users, device IDs), legible (rendering, no overwrite), contemporaneous (server timestamps, immediate commit), original (first capture preserved), accurate (validated calculations and interfaces).",
+   "verification_test": "For sample records, confirm the metadata is complete and the native dynamic data can be re-rendered. Confirm the backup contains metadata and audit trails.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-02",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on validation of CGMP workflows (each workflow is an intended use to be validated)",
+   "requirement": "FDA expects each CGMP workflow on a computer system (e.g., creation of an electronic MPCR) to be validated for its intended use, citing 211.63, 211.68(b) and 211.110(a). Validating the system or platform alone is not sufficient. (Topic confirmed through secondary summaries of the guidance; the wording is paraphrased from the guidance text.)",
+   "applies_to": "both",
+   "system_implications": "Validation covers configured workflows, not just the software product: every MBR template or building block, each site-specific configuration, interface and report used for GMP decisions (e.g., review-by-exception rules, release gate criteria, calculations). MBRs themselves need verification (a test or 'dry-run' execution, recipe verification) before they become Effective. This is a validated MBR lifecycle and should be built into the product as an MBR simulation or dry-run mode that produces no GMP records.",
+   "verification_test": "An MBR cannot become Effective without a linked verification record from dry-run execution. Validation evidence exists for each GMP report and review-by-exception rule.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-03",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on restricting access to CGMP computer systems; system administrator independence",
+   "requirement": "Access to CGMP computer systems is restricted to authorized personnel. Firms should technically restrict the ability to alter specifications, process parameter data, and manufacturing or testing methods where possible. FDA suggests assigning the system administrator role, including rights to alter files and settings, to personnel independent from those responsible for record content. Where that is not possible, secondary review of settings and content is recommended.",
+   "applies_to": "both",
+   "system_implications": "Separate administrative (IT/config) roles from GMP data roles, and let no single account hold both at a site by default. Specification limits, process parameters and MBR content can only change through the MBR/master-data change workflow, never through admin tools. Any exception (e.g., a small site where one person must hold both roles) requires documented approval and triggers mandatory secondary review of that person's configuration changes. Privileged activity is logged and reviewed periodically.",
+   "verification_test": "Try to grant admin and QA/production roles to one account at the same site -> blocked, or requires exception approval. Change a specification limit through the admin console -> impossible. The privileged-activity review report is produced.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-04",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on shared login accounts",
+   "requirement": "FDA is concerned about shared login accounts because they prevent identification of a unique individual, so the system would not conform to parts 211 and 212, and audit trails cannot be relied on to show who entered or changed data when logins are shared.",
+   "applies_to": "both",
+   "system_implications": "No generic, shared or role accounts for GMP actions, including shop-floor 'line' logins. Fast user switching on shared terminals (badge tap plus PIN/password) makes individual login practical. Machine or service accounts for interfaces are non-interactive, cannot sign, and are attributed to the device or interface. Kiosk-mode terminals still require individual authentication for every GMP entry.",
+   "verification_test": "Scan the user directory for generic accounts -> none with GMP permissions. A service account attempting a signature -> blocked. On a shared terminal, each entry is attributed to the individual who authenticated.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-05",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on control of blank forms",
+   "requirement": "Blank forms (including worksheets, laboratory notebooks and MPCRs) should be controlled by the quality unit or another document-control method. For example, numbered sets of blank forms may be issued and reconciled when all issued forms are complete. Incomplete or erroneous forms should be kept as part of the permanent record with written justification for their replacement.",
+   "applies_to": "both",
+   "system_implications": "The electronic equivalent is controlled issuance of batch record instances, logbooks and ad-hoc forms (e.g., deviation forms, rework sheets). Each instance is uniquely numbered, generated from an approved template version, and reconciled (issued vs completed vs voided). Voided instances stay with a reason and approver. Uncontrolled attachments (uploading unapproved spreadsheets or forms as records) are prohibited; attachments must come from controlled templates or be clearly marked as supporting information.",
+   "verification_test": "The reconciliation report shows every issued instance accounted for. Voiding requires a reason and QA approval and the voided instance remains retrievable.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-06",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on audit trail review: who and how often",
+   "requirement": "FDA recommends that audit trails capturing changes to critical data be reviewed with each record and before final approval of the record. Other audit trails (e.g., system-level) are reviewed on a schedule based on system complexity and intended use. Audit trails are part of the associated records, so personnel responsible for record review under CGMP (e.g., 211.22(a), 211.101(c)-(d), 211.103, 211.182, 211.186(a), 211.192, 211.194(a)(8)) should review the audit trails of changes to that data as they review the rest of the record.",
+   "applies_to": "both",
+   "system_implications": "The MBR designer flags critical data per step (e.g., weights, API lot, IPC results, yields, time/temperature, EM results, label data). The review workbench presents a filtered audit trail of every change to critical data after initial entry (old value, new value, who, when, reason) as a mandatory review section, and QA must acknowledge it before release. Verifiers at step level also see prior changes for the data they verify. A system-level audit trail review (logins, permission changes, configuration changes, failed signatures) runs periodically with a recorded review and outcome. Summary views must not hide individual changes, and full audit trail drill-down is always available.",
+   "verification_test": "Change a critical value after initial entry -> it appears in the QA release review section and release is blocked until acknowledged. The periodic system audit-trail review record exists with reviewer and findings.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-07",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on when electronic data become a CGMP record (save at time of performance; no temporary memory)",
+   "requirement": "When generated to satisfy a CGMP requirement, all data become a CGMP record. Data must be documented or saved at the time of performance. Storing data electronically in temporary memory, in a way that allows manipulation, before creating a permanent record is not acceptable; data automatically saved only to temporary memory do not meet CGMP documentation or retention requirements. A LIMS or Electronic Batch Record (EBR) system can be designed to save automatically after each separate entry, similar to indelibly recording each entry contemporaneously on a paper batch record, combined with a procedure requiring entry at the time of performance.",
+   "applies_to": "both",
+   "system_implications": "Each field entry or observation is committed durably to the server-side record (with audit trail) when the user submits it, not when the page, step or batch is saved. Offline or edge clients (for cleanrooms with poor connectivity) must write to a tamper-evident, append-only local journal with a trusted timestamp and sync to the server without allowing edits in between. Any edit after commit is a change with an audit trail and reason. No 'draft' state for GMP observations that lets values be changed silently before 'submit step'. Data from instruments is captured automatically at generation.",
+   "verification_test": "Enter a value, then kill the browser or network before completing the step -> the value is persisted and visible with its timestamp. Change it afterwards -> the audit trail shows the original. Offline mode: entries survive device reboot and sync with the original timestamps, and local tampering is detected.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-08",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on electronic copies as accurate reproductions / true copies; static printouts of dynamic records",
+   "requirement": "Electronic copies can be used as true copies of paper or electronic records if they preserve the content and meaning of the original data, including associated metadata and the static or dynamic nature of the original records. A printout or static record does not preserve the dynamic nature of a dynamic electronic record, so it would fail CGMP requirements as a replacement.",
+   "applies_to": "both",
+   "system_implications": "Archival and export must preserve dynamic data natively (e.g., historian time-series, lyophilizer cycle data, vision-system images, PAT spectra) together with metadata, not just PDF renderings. Paper-to-electronic scans (for any legacy or hybrid inputs) go through a verified true-copy process (verifier signature attesting completeness and legibility). The originals may only be destroyed if the copy is verified and the SOP allows it.",
+   "verification_test": "Restore an archived batch and re-render its trend data interactively. A scanned-document workflow requires a true-copy verification signature.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-09",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on electronic signatures in place of handwritten signatures for MPCRs",
+   "requirement": "Electronic signatures with appropriate controls can be used instead of handwritten signatures or initials in any CGMP-required record. When a regulation such as 211.186(a) specifies 'full signature, handwritten', an electronic signature with appropriate controls that securely link it to the record satisfies the requirement (Part 11).",
+   "applies_to": "both",
+   "system_implications": "The system may be fully paperless for MPCR preparation, checking and approval, BPR execution and release, provided the Part 11 signature controls (US-11-50, US-11-70, US-11-100, US-11-200, US-11-300) are implemented. Initials fields (e.g., 211.182 'sign or initial') are satisfied by the same e-signature mechanism.",
+   "verification_test": "MBR approval and batch release are completed end to end with e-signatures, and all signature controls pass their tests.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-10",
+   "source": "FDA DI Q&A (Dec 2018)",
+   "clause": "Q on invalidation/exclusion of CGMP data from decision making",
+   "requirement": "CGMP data may only be excluded from decision making with a valid, documented, scientific justification. All data, including excluded or invalidated data, must be retained and available for QU review; data cannot be deleted or selectively reported.",
+   "applies_to": "both",
+   "system_implications": "Invalidating an entry or IPC measurement (e.g., a mis-weighed tablet or instrument error) never deletes it. The data point is marked invalid with a mandatory scientific justification, user and timestamp, is visible in the record and the review-by-exception list, and requires QA concurrence where the SOP says so. Statistics show both included and excluded counts. Repeated-measurement ('test into compliance') patterns are flagged, e.g., multiple repeats of an IPC until it passes.",
+   "verification_test": "Invalidate a value -> it stays visible and marked with the justification, and appears in the QA review list. Three repeats of the same IPC -> an automatic flag.",
+   "url": "https://www.fda.gov/media/119570/download",
+   "verified": true
+  },
+  {
+   "id": "US-DI-11",
+   "source": "FDA DI Q&A (Dec 2018); FDA Guidance 'Conducting Remote Regulatory Assessments - Questions and Answers' (final, June 2025)",
+   "clause": "DI Q&A Q on FDA investigator access to electronic records; RRA guidance (FD&C Act 704(a)(4) records requests)",
+   "requirement": "FDA investigators may review all CGMP records, including electronic records, metadata and audit trails, during inspections. FDA may request records in advance of or instead of inspections (704(a)(4)) and conduct remote regulatory assessments. The final RRA Q&A (June 26, 2025) replaced the January 2024 revised draft. (The investigator-access point is from knowledge of the DI Q&A; the RRA status is confirmed.)",
+   "applies_to": "both",
+   "system_implications": "Provide a read-only 'inspector view' role (time-limited, audited) with full access to batch records, audit trails and metadata. Provide rapid, complete export packages (US-11-10B) and secure transfer for 704(a)(4) requests. Log what was provided to FDA and when.",
+   "verification_test": "Create an inspector account -> it can view but not change anything and is auto-disabled at expiry. A records-request package for five batches is generated within the SLA and includes audit trails.",
+   "url": "https://www.federalregister.gov/documents/2025/06/26/2025-11754/conducting-remote-regulatory-assessments-questions-and-answers-guidance-for-industry-availability",
+   "verified": true
+  },
+  {
+   "id": "US-CSA-01",
+   "source": "FDA Guidance 'Computer Software Assurance for Production and Quality (Management) System Software' - final Sept 24, 2025; revised final Feb 3, 2026 (aligned to QMSR)",
+   "clause": "Risk-based assurance framework: intended use; process-risk determination (high vs not high); assurance activities (scripted, unscripted: ad hoc, error-guessing, exploratory; vendor evidence; monitoring); assurance record",
+   "requirement": "FDA recommends a risk-based approach to establish confidence that automation used in production or the quality system performs as intended. Identify intended use; determine whether a feature is high process risk (failure could compromise product quality/safety) or not; choose proportionate assurance activities (scripted testing for high-risk features; unscripted or exploratory testing, leveraging vendor activities, etc., for lower risk); and keep a record of intended use, risk determination, assurance activities, issues and their disposition, conclusion, date and responsible person. The guidance was issued by CDRH and CBER for medical device production/quality system software. It supersedes Section 6 of 'General Principles of Software Validation'. The Feb 2026 revision aligns it with the QMSR (effective Feb 2, 2026) and reportedly adds explicit consideration of revalidation when software is updated (from a secondary source).",
+   "applies_to": "both",
+   "system_implications": "For a drug eBMR, CSA is not binding under 21 CFR 211 (it is a CDRH/CBER device guidance), but it is a recognized risk-based model FDA endorses and can support the 211.68 and 11.10(a) validation approach. Classify eBMR features by process risk. High-risk features (scripted testing plus independent review): material status hard stops; weighing and dispense calculations (potency adjustment); dual-verification enforcement; yield and reconciliation calculations and limits; label and variable-data verification; release gate; e-signature controls; audit trail; timers; interfaces that carry GMP data; data integrity and hashing; retention and purge prevention. Not-high-risk features (unscripted/exploratory, with objective evidence): UI layout, non-GMP dashboards, help text. Automate regression suites for multi-site configurations and for every vendor release. Keep the CSA-style assurance record per release.",
+   "verification_test": "The validation plan contains a risk classification of all URS items. Each high-risk item has scripted test evidence. Each vendor release has a documented assurance record (intended use, risk, activities, issues, conclusion, date, name).",
+   "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/computer-software-assurance-production-and-quality-system-software",
+   "verified": true
+  },
+  {
+   "id": "US-ASP-01",
+   "source": "FDA Guidance 'Sterile Drug Products Produced by Aseptic Processing - CGMP' (September 2004)",
+   "clause": "Time limits for aseptic processing phases (Section on time limitations/validation)",
+   "requirement": "Time limits should be established for each phase of aseptic processing. These include the period between the start of bulk product compounding and its sterilization, filtration processes, product exposure on the processing line, and storage of sterilized equipment, containers and closures. Total filtration time should be limited to an established maximum to prevent microorganisms from penetrating the filter. Time limits should be supported by data, and bioburden and endotoxin load should be assessed when setting them (e.g., for the formulation stage).",
+   "applies_to": "injectables",
+   "system_implications": "The injectables MBR must require timers for at least: compounding start -> sterilizing filtration start; total filtration duration; sterilized equipment/components/closures expiry (from end of sterilization to use); product exposure on the line (e.g., fill start -> end, open-vial exposure); and stoppered -> capped. Timer limits reference validation study IDs. A breach auto-creates a deviation (US-211-111) and blocks release until dispositioned.",
+   "verification_test": "An injectables MBR without the mandatory timer set -> approval blocked. Exceed the filtration time limit -> deviation created and batch flagged.",
+   "url": "https://www.fda.gov/media/71026/download",
+   "verified": true
+  },
+  {
+   "id": "US-ASP-02",
+   "source": "FDA Guidance 'Sterile Drug Products Produced by Aseptic Processing' (Sept 2004)",
+   "clause": "Section IX.A - Process simulations (media fills): frequency, interventions, acceptance criteria",
+   "requirement": "Aseptic processes are validated by process simulations. The guidance sets initial qualification with multiple (three) successful runs and semi-annual requalification per line and shift. Simulations should include activities and interventions representative of each shift and shift changeover. Acceptance: when filling fewer than 5,000 units, no contaminated units should be detected, and one contaminated unit is cause for revalidation after investigation. For 5,000-10,000 units, one contaminated unit should result in an investigation including consideration of a repeat media fill, and two are cause for revalidation after investigation. For more than 10,000 units, one contaminated unit should result in an investigation, and two are cause for revalidation after investigation.",
+   "applies_to": "injectables",
+   "system_implications": "Support an 'Aseptic Process Simulation' batch type in the injectables edition with its own MBR: media and its growth promotion, units filled, incubation, inspection, contaminated-unit identification. Record every intervention performed, with type, time, operator and count. Keep a line/operator APS qualification status driven by results (US-211-113). Interventions during commercial batches are recorded in the BPR with type, time and personnel, so they can be checked against those qualified in the APS; an intervention type not qualified in the APS is flagged as a deviation.",
+   "verification_test": "A failed APS (e.g., 2 positives in 12,000 units) -> the line status becomes Not Qualified and commercial filling is blocked. A commercial batch intervention type not in the APS-qualified list -> deviation.",
+   "url": "https://www.fda.gov/media/71026/download",
+   "verified": true
+  },
+  {
+   "id": "US-ASP-03",
+   "source": "FDA Guidance 'Sterile Drug Products Produced by Aseptic Processing' (Sept 2004)",
+   "clause": "Section IV / Table 1 (air classifications) and Section X.A (environmental monitoring program: alert/action levels, trending, investigations)",
+   "requirement": "The critical zone should meet ISO 5 (3,520 particles >= 0.5 micron per cubic meter, in operation). The area adjacent to the aseptic line should be at least ISO 7, with ISO 8 for less critical activities. Table 1 gives microbiological action levels. From recollection of the guidance, not re-verified: ISO 5 active air 1 cfu/m3 and settling plates (90 mm, 4 h) 1 cfu; ISO 6 7 and 3; ISO 7 10 and 5; ISO 8 100 and 50. The EM program should include alert/action levels, trending, investigation of excursions, and evaluation of their impact on batches.",
+   "applies_to": "injectables",
+   "system_implications": "An EM data model links each sample (location, grade, type, time, operator for personnel samples) to the batch and time window. Limits are configured per grade from site SOPs, which may be stricter (e.g., EU Annex 1 'no growth' in Grade A). An action-level excursion in Grade A/ISO 5 during the batch window auto-creates an event requiring an investigation and batch impact assessment before release. Continuous particle monitoring alarms in the batch window are attached to the batch.",
+   "verification_test": "Enter an ISO 5 viable result above the action level for a location and time inside the batch window -> an event is created and release is blocked until assessed. Adverse trends generate alerts.",
+   "url": "https://www.fda.gov/media/71026/download",
+   "verified": false
+  },
+  {
+   "id": "US-ASP-04",
+   "source": "FDA Guidance 'Sterile Drug Products Produced by Aseptic Processing' (Sept 2004)",
+   "clause": "Section XII - Batch Record Review: Process Control Documentation",
+   "requirement": "The guidance has a dedicated section on batch record review for aseptic processing (confirmed section title). From recollection of the text, not re-verified because the document could not be fetched: before batch release, the QCU review should cover all in-process and laboratory control results together with process-control documentation for the aseptic operation. That documentation includes environmental and personnel monitoring data, interventions and deviations during filling, sterilization and depyrogenation records for equipment, containers and closures, filter integrity results, and adherence to time limits. Discrepancies and excursions should be investigated and their impact on the batch assessed.",
+   "applies_to": "injectables",
+   "system_implications": "The injectables release gate (US-211-160-167) includes an 'Aseptic process control review' checklist that is generated automatically from linked data: EM and personnel monitoring results complete and within limits or investigated; interventions reviewed; all sterilization/depyrogenation cycles for items used passed; filter integrity passed; all timers within limits; APS status valid on the fill date; particle monitoring alarms reviewed. QA must acknowledge each section.",
+   "verification_test": "A batch with one pending EM result -> the aseptic review section is incomplete and release is blocked. All sections complete -> QA can proceed.",
+   "url": "https://www.fda.gov/media/71026/download",
+   "verified": false
+  },
+  {
+   "id": "US-ASP-05",
+   "source": "FDA Guidance 'Sterile Drug Products Produced by Aseptic Processing' (Sept 2004)",
+   "clause": "Sections on filtration efficacy and sterilization of equipment, containers and closures (integrity testing; qualification/validation of cycles)",
+   "requirement": "From recollection of the guidance, not re-verified: sterilizing-grade filter integrity testing can be done before processing and should be done routinely after use to detect filter leaks or perforations during processing. Sterilization and depyrogenation cycles for equipment, containers and closures should be validated and each run's physical parameters recorded and reviewed.",
+   "applies_to": "injectables",
+   "system_implications": "Integrity tester integration captures test type (bubble point, diffusion/forward flow, pressure hold), limits, result, filter lot and instrument ID. Post-use integrity is mandatory in the MBR for sterilizing filters. Sterilizer/tunnel cycle data (time, temperature, pressure, F0, load pattern ID, validated recipe version) is linked to each load and the items it released. A failed or missing record blocks item use or batch release.",
+   "verification_test": "Missing post-use integrity result -> release blocked. Cycle data outside validated parameters -> the load's items are blocked.",
+   "url": "https://www.fda.gov/media/71026/download",
+   "verified": false
+  },
+  {
+   "id": "US-TS-01",
+   "source": "FDA Guidance 'Submission of Documentation in Applications for Parametric Release of Human and Veterinary Drug Products Terminally Sterilized by Moist Heat Processes' (Feb 2010); CPG Sec. 490.200",
+   "clause": "Parametric release data and monitoring positions; 211.167(a) sterility testing otherwise required",
+   "requirement": "FDA has accepted parametric release for moist-heat terminally sterilized products since 1985, where approved in the application. Positions in the load should be identified so the load's exposure to the sterilization process is measured and recorded against defined criteria for parametric release, with the location and number of monitors described and justified in the application. A Class 5 chemical indicator is recommended for most applications. Without an approved parametric release, 211.167(a) requires sterility testing of each batch.",
+   "applies_to": "injectables",
+   "system_implications": "The product master has a 'release mode' attribute: sterility test or approved parametric release (with the application reference). In parametric mode, the release gate requires: the validated cycle and load pattern used; all critical parameters (time at temperature, temperature, pressure, F0 at each specified monitoring position) within limits from the sterilizer's raw data; chemical indicator results; and pre-sterilization bioburden where required. Any failed parameter means the batch cannot be released parametrically, and sterility-test release is not an allowed substitute unless the application permits it. Terminal sterilization loads are linked to the units, trays and positions they contain.",
+   "verification_test": "One probe below the F0 minimum -> the parametric release criterion fails and release is blocked. A product without approved parametric release -> the gate requires a sterility result.",
+   "url": "https://www.fda.gov/media/71461/download",
+   "verified": true
+  },
+  {
+   "id": "US-LYO-01",
+   "source": "FDA 'Guide to Inspections of Lyophilization of Parenterals' (July 1993); 21 CFR 211.137(c)",
+   "clause": "Lyophilization cycle and controls; cycle validation; lyophilizer sterilization",
+   "requirement": "The FDA investigator guide covers the lyophilization cycle and its controls, cycle validation, and lyophilizer sterilization and design. Records of cycle data are reviewed against the validated/filed cycle (details are from recollection; the guide is a 1993 inspection reference, not a guidance). For reconstituted products, labeling bears both reconstituted and unreconstituted expiration information (211.137(c)).",
+   "applies_to": "injectables",
+   "system_implications": "Integrate the lyophilizer SCADA/historian: recipe ID and version, and per-phase setpoints and actuals (shelf temperature, chamber pressure, condenser temperature, product thermocouple/wireless probe temperatures, pressure-rise or comparative pressure tests, phase durations). Record loading pattern and time, stoppering, and chamber sterilization/leak-test status before loading. Excursions against validated ranges auto-create deviations. Loading/unloading times feed time-limit timers. Store native cycle data as dynamic records (US-DI-08).",
+   "verification_test": "Replay a cycle file with a shelf-temperature excursion -> deviation created. A chamber with no valid SIP/leak test -> loading blocked.",
+   "url": "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/inspection-technical-guides/lyophilization-parenterals",
+   "verified": false
+  },
+  {
+   "id": "US-VI-01",
+   "source": "FDA draft guidance 'Inspection of Injectable Products for Visible Particulates' (Dec 2021; still draft as of 2026 per search)",
+   "clause": "100% visual inspection plus AQL sampling; lifecycle inspection program",
+   "requirement": "FDA's draft recommends a holistic program in which every unit of an injectable is inspected (100% inspection, manual, semi-automated or automated), followed by statistical sampling (AQL) of accepted units to verify batch quality. Meeting a USP compendial standard alone is generally not sufficient for CGMP. USP <790> frames the 'essentially free' expectation with a sampling plan (AQL 0.65 cited in secondary sources). Defects should be classified, trended and investigated.",
+   "applies_to": "injectables",
+   "system_implications": "The inspection step in the BPR records: units presented, units accepted, and rejects by defect category (critical, major, minor; particle type such as fiber, glass or metal; container/closure defects), inspector IDs and qualification status (manual inspection), and machine recipe and challenge-set results (automated). It then records the AQL sample size, acceptance and rejection numbers, and results. The system calculates the reject rate against alert/action limits. AQL failure -> reinspection only if allowed by SOP, with a deviation, and reinspection counts are recorded separately. Units accounted for: filled = accepted + rejected + samples + destroyed, within limits.",
+   "verification_test": "Enter reject counts above the action limit -> deviation. AQL result exceeding the acceptance number -> batch hold. The unit accountability equation must balance.",
+   "url": "https://www.fda.gov/media/154868/download",
+   "verified": true
+  },
+  {
+   "id": "US-PV-01",
+   "source": "FDA Guidance 'Process Validation: General Principles and Practices' (January 2011, Revision 1)",
+   "clause": "Stage 2 (PPQ) and Stage 3 (Continued Process Verification) - data collection and trending",
+   "requirement": "Stage 3 provides ongoing assurance in routine production that the process stays in a state of control. FDA recommends continued monitoring and sampling of process parameters and quality attributes at the level established during process qualification until enough data exist for significant variability estimates. It recommends that a statistician or person with adequate statistical training develop the data collection plan and analysis methods, that intra-batch and inter-batch variation be evaluated, and that variation be detected through timely assessment of defect complaints, OOS findings, process deviation reports, process yield variations, batch records, incoming raw material records and adverse event reports.",
+   "applies_to": "both",
+   "system_implications": "The eBMR must capture CPPs and CQAs as structured, typed, time-stamped data with units and limits, not free text or scanned PDFs, so they can be trended: intra-batch (time series within a run, e.g., compression force, fill weights) and inter-batch (across batches and sites). The MBR supports a PPQ mode (enhanced sampling plans, protocol reference) and a routine mode with CPV sampling levels. CPV data exports and SPC charts (control limits, Nelson/Western Electric rules) are available with provenance. Material attributes from incoming lots are linked for multivariate analysis.",
+   "verification_test": "A PPQ batch executes the enhanced sampling plan and data link to the protocol. A CPV dashboard shows correct control charts, recomputed independently for a sample dataset.",
+   "url": "https://www.fda.gov/files/drugs/published/Process-Validation--General-Principles-and-Practices.pdf",
+   "verified": true
+  },
+  {
+   "id": "US-DSCSA-01",
+   "source": "FD&C Act sec. 581(14), 582(a)(9), 582(b)(2) (DSCSA); FDA Guidance 'Product Identifiers Under the DSCSA: Questions and Answers' (final, June 2021)",
+   "clause": "Product identifier definition; data carriers; manufacturer obligation to affix to each package and homogeneous case",
+   "requirement": "The product identifier is a standardized graphic containing the standardized numerical identifier (NDC plus a unique alphanumeric serial number of up to 20 characters), lot number and expiration date, in both human-readable and machine-readable form. On packages it must be a 2-dimensional data matrix barcode; on homogeneous cases, a linear or 2D data matrix barcode (case carrier rule from the statute's text). Since Nov 27, 2017, manufacturers must affix or imprint a product identifier on each package and homogeneous case of product intended to be introduced in a transaction into commerce. The guidance allows human-readable elements to appear in different locations on the label if space requires.",
+   "applies_to": "both",
+   "system_implications": "Applies to Rx finished dosage forms (tablets and injectables); OTC is generally outside DSCSA 'product'. The packaging BPR records the serialization order: the NDC/GTIN, the lot and expiry (from the BPR, not typed in), serial number range or list requested/allocated, commissioned, packed, rejected/decommissioned, sampled, and destroyed. Each printed/verified code is graded (ISO/IEC 15415 for 2D) by the line's vision system, and results are stored. Serial reconciliation equation per lot: commissioned = packed into saleable units + decommissioned (rejects, destroyed, samples, damaged), within zero tolerance for unexplained serials. Aggregation (unit -> bundle -> case -> pallet) parent-child records are stored if the company aggregates (US-DSCSA-03). The lot and expiry in the 2D code must equal the BPR values, with an automated consistency check before release.",
+   "verification_test": "Print an intentionally wrong expiry on a test unit -> the vision system rejects it and the line stops. The serial reconciliation report for the test lot balances with zero unexplained serials. Release is blocked if reconciliation fails or commissioning events are missing.",
+   "url": "https://www.fda.gov/media/116304/download",
+   "verified": true
+  },
+  {
+   "id": "US-DSCSA-02",
+   "source": "FD&C Act sec. 582(b)(1), 582(b)(4) (DSCSA manufacturer requirements)",
+   "clause": "Transaction information/statement; verification of suspect/illegitimate product; response to verification requests; record retention",
+   "requirement": "Manufacturers provide transaction information and statements to subsequent owners and keep them for at least 6 years. They must verify product at package level (including the standardized numerical identifier) when they determine product is suspect or when FDA requests it. They must respond to verification requests from authorized trading partners within 24 hours (secondary-source confirmation). Illegitimate product must be quarantined, investigated and notified (Form 3911 to FDA and trading partners within 24 hours per statute), and investigation records are kept at least 6 years. The 24-hour notification and 6-year retention for investigations are partly from statutory text knowledge.",
+   "applies_to": "both",
+   "system_implications": "The packaging record and serialization repository must support a serial -> lot -> BPR lookup in seconds, to answer verification router requests (e.g., VRS) and to check whether a serial was commissioned, decommissioned or shipped. The retention engine must apply the 6-year DSCSA minimum in addition to 211.180 periods (retention = the longer of the two). Suspect-product investigations link to the lot's batch record and genealogy.",
+   "verification_test": "Query a random commissioned serial -> the correct lot, expiry and status are returned within the SLA. A decommissioned serial returns 'not verified/decommissioned'. The retention calculation uses max(211.180, 6 years).",
+   "url": "https://www.fda.gov/drugs/drug-supply-chain-security-act-dscsa/waivers-and-exemptions-beyond-stabilization-period",
+   "verified": true
+  },
+  {
+   "id": "US-DSCSA-03",
+   "source": "FD&C Act sec. 582(g)(1) enhanced drug distribution security; FDA Guidances 'Enhanced Drug Distribution Security at the Package Level Under the DSCSA' (final, Aug 2023) and 'DSCSA Standards for the Interoperable Exchange of Information for Tracing' (final, Sept 2023); FDA exemptions",
+   "clause": "Package-level interoperable electronic tracing; EPCIS; exemptions timeline",
+   "requirement": "Since Nov 27, 2023 (with a one-year stabilization period to Nov 27, 2024), transaction information must include the product identifier at package level and be exchanged securely, interoperably and electronically. FDA recommends the GS1 EPCIS standard. FDA's exemption for eligible manufacturers and repackagers ended May 27, 2025 (wholesale distributors Aug 27, 2025; dispensers with 26+ FTE Nov 27, 2025; small dispensers exempt to Nov 27, 2026). Manufacturers are therefore fully subject to the enhanced requirements as of Sept 2026. The package-level guidance discusses use of aggregation/inference by trading partners; statute does not explicitly mandate aggregation (interpretation; verify with regulatory counsel).",
+   "applies_to": "both",
+   "system_implications": "The packaging eBMR (or the linked L3 line serialization system) must produce EPCIS-compatible commissioning, aggregation, decommissioning and shipping events tied to the batch. The parent-child aggregation hierarchy must be accurate: a vision-verified aggregation step, rework/unpack/repack events recorded, and aggregation errors treated as deviations. Batch release should include a serialization/aggregation completeness check so no unreconciled or unaggregated saleable units exist. The genealogy model must represent the aggregation hierarchy as containment edges (see US-GEN-01).",
+   "verification_test": "Build a pallet, unpack a case, and repack -> the EPCIS event history is correct and the final hierarchy is consistent. Release is blocked if any saleable unit is not aggregated when the product is configured for aggregation.",
+   "url": "https://www.federalregister.gov/documents/2023/08/31/2023-18831/enhanced-drug-distribution-security-at-the-package-level-under-the-drug-supply-chain-security-act",
+   "verified": true
+  },
+  {
+   "id": "US-LBL-01",
+   "source": "21 CFR Part 201",
+   "clause": "201.18 - Drugs; significance of control numbers",
+   "requirement": "The lot number on a drug's label should be capable of yielding the complete manufacturing history of the package. An incorrect lot number may be regarded as causing the article to be misbranded.",
+   "applies_to": "both",
+   "system_implications": "The printed lot number is sourced only from the BPR lot master: no manual keying on label printers, and the printer receives lot data from the eBMR/L3 over a validated interface. Printed-lot verification is done by vision. Lot numbers resolve to full genealogy (US-210-01). Packaging lots split across multiple packaging orders or sites need explicit sub-lot or packaging-lot linkage so each package lot still yields the complete history.",
+   "verification_test": "Try to override the lot number at the printer HMI -> not possible, or detected by the vision check against the BPR. A package lot lookup returns full history, including bulk and intermediate lots.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-201/subpart-A/section-201.18",
+   "verified": true
+  },
+  {
+   "id": "US-LBL-02",
+   "source": "21 CFR 201.25 (bar code label requirements) as revised by FDA final rule 'Revising the National Drug Code Format and Drug Label Barcode Requirements' (published March 5, 2026)",
+   "clause": "201.25(c) barcode content and symbology; NDC format (12-digit, 6-4-2) and transition",
+   "requirement": "Drug products subject to the bar code rule must carry a barcode containing at least the NDC. Before the 2026 rule, only a linear barcode meeting EAN/UCC or HIBCC standards (or another approved standard) was allowed. The March 5, 2026 final rule standardizes all FDA-assigned NDCs to 12 digits (6-digit labeler, 4-digit product, 2-digit package), effective March 7, 2033. It adds a further transition to March 6, 2036 for labeling updates and depletion of old labels, after which drugs with 10-digit NDCs introduced into commerce may face action. It revises 201.25 to allow linear or nonlinear (e.g., 2D Data Matrix) barcodes that meet recognized standards.",
+   "applies_to": "both",
+   "system_implications": "Product and packaging master data must support both 10-digit (current) and 12-digit NDC formats, the NDC-to-GTIN mapping for each, effective-dated NDC changes per SKU, and label artwork versions tied to NDC format. Label and serialization templates must support linear and 2D carriers and verify the encoded NDC equals the master data. Keep historical lots correct: a lot's recorded NDC must never be rewritten when the master NDC changes (effective-dated, immutable per batch).",
+   "verification_test": "Change a SKU to a 12-digit NDC effective on a future date -> batches before it keep the old NDC and later batches pick up the new NDC, GTIN and artwork version. Vision verification decodes the NDC from the 2D code and matches master data.",
+   "url": "https://www.federalregister.gov/documents/2026/03/05/2026-04368/revising-the-national-drug-code-format-and-drug-label-barcode-requirements",
+   "verified": true
+  },
+  {
+   "id": "US-CP-01",
+   "source": "21 CFR Part 4 (CGMP for combination products), as amended to align with the QMSR (amendments effective Feb 2, 2026 per the medical gases rule summary)",
+   "clause": "4.4(b) streamlined approach for drug-led combination products (e.g., prefilled syringes, autoinjectors)",
+   "requirement": "Drug-device combination products manufactured under Part 211 must also meet specified device QS/QMSR provisions (historically 820.20 management responsibility, 820.30 design controls, 820.50 purchasing controls, 820.100 CAPA, 820.170 installation, 820.200 servicing). The exact post-QMSR cross-references were not verified in this pass.",
+   "applies_to": "injectables",
+   "system_implications": "The injectables edition must handle prefilled syringes and autoinjectors: device component genealogy (plunger rod, autoinjector subassembly lots), assembly and labeling steps, device functional IPCs (break-loose/glide force, activation) and design-output linkage. MBR change control must reference design control records where applicable. Confirm the current Part 4 wording after the QMSR alignment.",
+   "verification_test": "A combination product MBR requires device component lots and functional test IPCs, and genealogy includes device subassembly lots.",
+   "url": "https://www.federalregister.gov/documents/2024/06/18/2024-13190/current-good-manufacturing-practice-certification-postmarketing-safety-reporting-and-labeling",
+   "verified": false
+  },
+  {
+   "id": "US-GEN-01",
+   "source": "Composite requirement (derived): 21 CFR 210.3 (lot number = complete history), 211.184(c), 211.188(b)(3), 211.130(c), 211.192 (extend investigation to associated batches/products), 211.150/211.196 (distribution for recall), 211.182 (equipment use sequence), 201.18, DSCSA 581/582 (serial -> lot; aggregation)",
+   "clause": "Bidirectional genealogy and traceability across materials, equipment, rooms, people, time, packaging hierarchy and distribution",
+   "requirement": "The regulations collectively require that, for any lot, the complete manufacturing, control, packing, holding and distribution history can be determined (backward trace), and that from any component lot, equipment, discrepancy or failure all associated batches, other products and consignees can be identified (forward trace and impact analysis for investigations and recalls). DSCSA adds package-level serial identity and parent-child aggregation that must map back to the lot and batch record.",
+   "applies_to": "both",
+   "system_implications": "This answers the user's question on graph-based data structures and databases; the recommendation below is engineering judgment, not regulatory text. Genealogy is inherently a directed, time-stamped multigraph. Nodes: material lots, sublots/containers, batches/steps, equipment units, rooms, persons, sterilizer loads, EM samples, serial numbers, cases, pallets, shipments, consignees, deviations. Edges: consumed-by, produced, split/merge, used-equipment, performed-by, sterilized-in, aggregated-into, shipped-in, relates-to-investigation. Queries are variable-depth (multi-stage API -> granulate -> tablets -> coated -> packaged; rework; blending of several intermediate lots; inter-site transfers), so graph modelling fits naturally. The same regulations also require ACID transactional hard stops (211.84, 211.101), an immutable append-only audit trail (11.10(e)), signatures cryptographically bound to record content (11.70), backup and restore as true copies (211.68(b)), retention of 10+ years with readable exports (11.10(b),(c); 211.180), and full validation (211.68, 11.10(a)). Recommended pattern: (1) The system of record is an ACID store (relational, e.g., PostgreSQL, or equivalent) with an append-only, hash-chained event/transaction ledger. Genealogy edges are written in the same transaction as the business event (e.g., a consumption record), so the graph can never disagree with the batch record and there is no dual-write inconsistency. (2) Most genealogy queries run fine as recursive queries (SQL recursive CTEs, or SQL/PGQ property-graph queries where the RDBMS supports them) on indexed edge tables. DSCSA aggregation is shallow (unit -> bundle -> case -> pallet) but high-volume (millions of serials per batch), which relational parent-pointer tables handle well. (3) If scale or latency across many sites needs a dedicated graph database for investigation or recall analytics, make it a derived, read-only, rebuildable projection (CQRS) fed from the ledger via outbox/CDC. Add automated reconciliation (edge counts and hashes per lot) and treat it as GMP-relevant, validated software if its outputs drive GMP decisions such as investigation scope or recall lists. Never make it the sole store of signed records unless it provides equivalent Part 11 audit trail, immutability, point-in-time recovery and long-term export, which most graph databases do not offer natively. (4) Keep genealogy bitemporal (valid time and recording time), so the graph 'as known at release' can be reconstructed after later corrections. (5) Use globally unique IDs with site-scoped business lot numbers to support multi-site graphs, and partition operational data by site with a global genealogy index. 211.180(c) permits central electronic retrieval. (6) The MBR/recipe structure (ISA-88 procedure -> unit procedure -> operation -> phase, with parallel branches) is a DAG that can live as versioned structured documents inside the relational store; it does not require a graph database.",
+   "verification_test": "(a) Backward and forward trace for seeded complex scenarios (split, merge, rework, inter-site transfer, repack) returns the exact expected node sets. (b) Reconciliation job: the graph projection (if used) equals ledger-derived edges for 100% of lots, and any drift raises an alert. (c) Impact query performance: forward trace from a high-usage excipient lot across 3 years and N sites completes within the SLA. (d) Point-in-time query reproduces the genealogy as of the release timestamp after a later correction. (e) Rebuild the projection from the ledger in a test environment and compare hashes.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211/subpart-J/section-211.184",
+   "verified": true
+  },
+  {
+   "id": "US-GEN-02",
+   "source": "Composite requirement (derived): 21 CFR 11.10(a),(c),(e); 11.50; 11.70; 211.68(b); 211.100(b); 211.180; FDA DI Q&A (2018)",
+   "clause": "Record integrity architecture: immutability, contemporaneous commit, timestamps, signature binding",
+   "requirement": "Records must be attributable and contemporaneous, changes must not obscure prior values, audit trails must be computer-generated, time-stamped and retained as long as the record, signatures must be inseparably linked to the records they sign, and backups must be exact and secure from alteration or loss.",
+   "applies_to": "both",
+   "system_implications": "Engineering judgment derived from the cited rules. Use an event-sourced or append-only versioned record store for GMP data: each entry is an immutable event carrying user, device, UTC server timestamp, site time zone, reason for any change, and a content hash chained to the previous event. The 'current' batch record view is a projection of these events. Signatures reference the hash of the exact record version. A trusted time source (NTP stratum with drift monitoring) must be used, and time-sync failures are alarms. Clock drift on edge devices beyond a threshold blocks data capture. Store UTC and render site-local time with offset (important for multi-site and daylight-saving changes). Database administrators must not be able to alter GMP tables without detection (separation of DBA duties, database activity monitoring, hash verification).",
+   "verification_test": "Daylight-saving transition test: events around the change keep a correct order and correct displayed local times. Simulated NTP failure raises an alarm and stops capture on edge devices past the drift threshold. DBA-level update is detected by hash verification and database activity monitoring.",
+   "url": "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10",
+   "verified": true
+  }
+ ],
+ "latest_revisions": [
+  {
+   "document": "21 CFR Part 211 - CGMP for Finished Pharmaceuticals",
+   "version_or_date": "eCFR current (Title 21 reported up to date as of 2026-09-23). Most recent Part 211 amendment: conforming edits from the medical gases final rule (published 2024-06-18, effective 2025-12-18) that removed designated medical gases from Part 211 (now Part 213). eBMR-critical text last substantively amended by the 2008-09-08 final rule (211.68(c), 211.101(c)-(d), 211.103, 211.182, 211.188(b)(11), 211.113(b), 211.110(a)(6), 211.72, 211.94, 211.67).",
+   "status": "In force",
+   "notes": "No 2025-2026 proposed rule to amend drug CGMP for finished pharmaceuticals was found. eCFR could not be fetched directly (egress blocked); text was verified through search-result extracts of ecfr.gov, law.cornell.edu and govinfo.gov."
+  },
+  {
+   "document": "21 CFR Part 210 - CGMP General (definitions)",
+   "version_or_date": "eCFR current (2026); conforming medical gases amendments effective 2025-12-18",
+   "status": "In force",
+   "notes": "210.3 definitions for lot number and percentage of theoretical yield confirmed."
+  },
+  {
+   "document": "21 CFR Part 11 - Electronic Records; Electronic Signatures",
+   "version_or_date": "Final rule 1997-03-20 (effective 1997-08-20); technical amendment 2023-03-02 (11.100(c)(1): certification may be submitted in electronic or paper form per FDA 'Letters of Non-Repudiation Agreement' page); eCFR point-in-time 2026-06-16 shows no substantive change",
+   "status": "In force",
+   "notes": "No 2023-2026 proposal to revise Part 11 substantively was found."
+  },
+  {
+   "document": "FDA Guidance: Part 11, Electronic Records; Electronic Signatures - Scope and Application",
+   "version_or_date": "August 2003 (FR notice 2003-09-05)",
+   "status": "Final, current",
+   "notes": "Still referenced by FDA as current. The Oct 2024 clinical-investigations Q&A supplements it for clinical use only."
+  },
+  {
+   "document": "FDA Guidance: Electronic Systems, Electronic Records, and Electronic Signatures in Clinical Investigations: Questions and Answers",
+   "version_or_date": "Final, October 2024 (FR 2024-10-02)",
+   "status": "Final (clinical scope)",
+   "notes": "Not a CGMP guidance; informative only for e-signature and IT service-provider interpretations."
+  },
+  {
+   "document": "FDA Guidance: Data Integrity and Compliance With Drug CGMP: Questions and Answers",
+   "version_or_date": "Final, December 2018 (FR 2018-12-13)",
+   "status": "Final, current",
+   "notes": "No revision or new draft found for 2023-2026. The EU is separately revising GMP Chapter 4 (draft July 2025), which is outside US scope."
+  },
+  {
+   "document": "FDA Guidance: Computer Software Assurance for Production and Quality (Management) System Software",
+   "version_or_date": "Draft Sept 2022 -> Final 2025-09-24 -> Revised final 2026-02-03 (supersedes Sept 2025; aligned to the QMSR effective 2026-02-02)",
+   "status": "Final (CDRH/CBER, device scope)",
+   "notes": "Supersedes Section 6 of 'General Principles of Software Validation' (2002). Not issued by CDER; for drug eBMR it is an informative risk-based model under 211.68 and 11.10(a). The Feb 2026 details (e.g., revalidation on software update) come from secondary sources."
+  },
+  {
+   "document": "FDA Guidance: Sterile Drug Products Produced by Aseptic Processing - CGMP",
+   "version_or_date": "September 2004",
+   "status": "Final, current",
+   "notes": "No FDA revision or official draft found. A web claim of a '2025 draft APS guidance' came from an unreliable source and is not verified. Section XII 'Batch Record Review: Process Control Documentation' exists, but its content could not be fetched."
+  },
+  {
+   "document": "FDA Guidance: Process Validation: General Principles and Practices",
+   "version_or_date": "January 2011, Revision 1",
+   "status": "Final, current",
+   "notes": "No revision found."
+  },
+  {
+   "document": "FDA Draft Guidance: Considerations for Complying With 21 CFR 211.110",
+   "version_or_date": "Draft, January 2025 (FR 2025-01-06; comments closed 2025-04-07)",
+   "status": "Draft (not finalized as of Sept 2026 per search)",
+   "notes": "Covers in-process controls, PAT and process models, and advanced manufacturing."
+  },
+  {
+   "document": "FDA Guidance: Submission of Documentation in Applications for Parametric Release (moist heat terminal sterilization); CPG Sec. 490.200",
+   "version_or_date": "February 2010",
+   "status": "Final",
+   "notes": "Applies to terminally sterilized injectables with approved parametric release."
+  },
+  {
+   "document": "FDA Draft Guidance: Inspection of Injectable Products for Visible Particulates",
+   "version_or_date": "Draft, December 2021",
+   "status": "Draft (not finalized as of 2026 per search)",
+   "notes": "Covers 100% inspection plus AQL and states that a compendial standard alone is not sufficient for CGMP."
+  },
+  {
+   "document": "FDA Guide to Inspections of Lyophilization of Parenterals",
+   "version_or_date": "July 1993",
+   "status": "Investigator reference (not guidance)",
+   "notes": "CDER presented on lyophilization deficiencies on 2026-04-23 (Generic Drugs Forum slides); not a guidance."
+  },
+  {
+   "document": "FDA Guidance: Conducting Remote Regulatory Assessments - Questions and Answers",
+   "version_or_date": "Final, June 2025 (FR 2025-06-26)",
+   "status": "Final",
+   "notes": "Replaces the Jan 2024 revised draft. Relevant to rapid electronic record production (704(a)(4))."
+  },
+  {
+   "document": "DSCSA (FD&C Act sec. 581-585) and FDA exemptions",
+   "version_or_date": "Enhanced requirements 2023-11-27; stabilization to 2024-11-27; exemptions: manufacturers/repackagers to 2025-05-27, wholesale distributors to 2025-08-27, dispensers with 26+ FTE to 2025-11-27, small dispensers to 2026-11-27",
+   "status": "In force for manufacturers",
+   "notes": "Guidances: Product Identifiers Q&A (final June 2021); Enhanced Drug Distribution Security at the Package Level (final Aug 2023); DSCSA Standards for Interoperable Exchange (final Sept 2023, EPCIS)."
+  },
+  {
+   "document": "FDA Final Rule: Revising the National Drug Code Format and Drug Label Barcode Requirements (21 CFR 201.25 and NDC rules)",
+   "version_or_date": "Published 2026-03-05; effective 2033-03-07; labeling transition to 2036-03-06",
+   "status": "Final (future effective)",
+   "notes": "Moves NDCs to 12 digits (6-4-2) and allows linear or nonlinear (2D) barcodes. Affects packaging master data and serialization."
+  },
+  {
+   "document": "21 CFR 201.18 (significance of control numbers)",
+   "version_or_date": "eCFR current",
+   "status": "In force",
+   "notes": "The lot number must yield the complete manufacturing history of the package."
+  },
+  {
+   "document": "Medical gases final rule (Parts 4, 16, 201, 210, 211, 213, 230, 314, 514)",
+   "version_or_date": "Published 2024-06-18; effective 2025-12-18 (Part 4 amendments effective 2026-02-02)",
+   "status": "In force",
+   "notes": "Removes medical gases from Part 211, so it is not relevant to tablets or injectables except that Part 4 (combination products) amendments affect prefilled syringes. Verify the Part 4 text."
+  }
+ ],
+ "open_questions": [
+  "Tool limitation: WebFetch was blocked for every domain (ecfr.gov, fda.gov, federalregister.gov, govinfo.gov, law.cornell.edu). All verification relied on WebSearch result extracts of those primary sources. Before design sign-off, a human should open eCFR Part 211 and Part 11, the DI Q&A PDF (fda.gov/media/119570) and the aseptic guidance PDF (fda.gov/media/71026), and confirm clause wording, especially items marked verified=false (US-ASP-03, US-ASP-04, US-ASP-05, US-LYO-01, US-CP-01).",
+  "User question (graph databases): the regulations require bidirectional, variable-depth genealogy, which fits a graph model. They also require ACID hard stops, immutable audit trails, signatures bound to records, long-term retention and validation, which fit an ACID ledger. Recommended: a relational/ACID system of record with genealogy edge tables written in the same transaction, plus an optional validated, rebuildable graph projection for analytics (see US-GEN-01). Decisions needed: (a) is a dedicated graph DB justified by expected scale (number of sites, lots per year, serials per batch, recall-query latency target)? (b) if yes, will its outputs drive GMP decisions (investigation scope, recall lists)? If so, it must be validated and continuously reconciled against the system of record.",
+  "Is the eBMR delivered as multi-tenant SaaS or single-tenant/customer-hosted? This determines the closed vs open system classification under 11.3/11.30, who controls privileged access, and how the vendor's administrators are kept out of GMP data (DI Q&A admin independence).",
+  "211.186(a) requires MPCRs 'for each drug product, including each batch size thereof'. Will the design allow scalable recipes (one MBR covering an approved range of batch sizes), or require a separately approved MBR per batch size? FDA text supports per-size approval. A scalable range needs explicit QA approval of each size or range and justification.",
+  "Audit trail review: which data elements are 'critical data' whose changes must be reviewed before final approval (DI Q&A)? This must be defined per MBR template. Also decide whether a review-by-exception UI will be validated as the primary review tool, with full record access always available.",
+  "Automated verification under 211.68(c): which operations will be validated as 'automated' so a single verifier suffices (barcode + scale dispensing, automated yield, CIP/SIP, vision-verified labeling)? What is the escalation behavior when automation fails?",
+  "Two-person verification: should the verifier be required to be physically present (same room and terminal) and sign within a time window? FDA regulations do not specify this. Also decide whether remote or video-based verification will be allowed; no FDA statement endorsing it was found.",
+  "E-signature 'continuous period of controlled system access' (11.200(a)(1)(i)): define the session timeout and whether to require full re-authentication for every signature on shared shop-floor terminals (recommended for verification and release signatures).",
+  "CSA applicability: the CSA guidance (final Sept 2025, revised Feb 3, 2026) is a CDRH/CBER device guidance. Confirm the organization's CDER-facing validation policy (e.g., GAMP 5 2nd ed. plus a CSA-style risk approach), and confirm whether CDER has adopted or referenced CSA for drug manufacturing. None was found.",
+  "DSCSA aggregation: the statute does not explicitly require aggregation, but enhanced package-level tracing is in force for manufacturers after the exemption ended May 27, 2025. Confirm with trading partners and regulatory counsel whether aggregation will be mandatory in the packaging eBMR for all Rx SKUs.",
+  "NDC 12-digit transition (final rule March 5, 2026; effective March 7, 2033): confirm the GS1 US GTIN construction for 12-digit NDCs and how existing GTINs map, so serialization and label master data can support both formats with effective dating.",
+  "Aseptic guidance (2004) Section XII and the EM Table 1 action levels could not be retrieved verbatim. Confirm the exact FDA expectations for EM and personnel-monitoring data review before release. Decide whether to adopt stricter EU Annex 1 (2022) limits as the global default for a multi-market injectables edition (outside this US topic).",
+  "Visible particulate inspection guidance is still a draft (Dec 2021). Decide whether to design to the draft's lifecycle and AQL expectations now (recommended) and monitor for finalization.",
+  "211.110 draft guidance (Jan 2025): if the tablets edition will support continuous manufacturing or PAT-based release of in-process material, confirm the final guidance text when issued, especially limits on relying on process models.",
+  "Combination products (prefilled syringes/autoinjectors) in the injectables edition: verify the current 21 CFR Part 4 text after the QMSR alignment effective Feb 2, 2026, and which device QMSR elements (design controls, purchasing, CAPA) the eBMR must interface with.",
+  "Retention: will the organization adopt a uniform retention period (e.g., the maximum of 211.180, DSCSA 6 years, and ex-US requirements) to simplify multi-site records management, or compute it per record from genealogy as described in US-211-180?",
+  "Hybrid records: will any site run hybrid paper/electronic batch records during rollout? If so, 11.70 linking and DI Q&A true-copy and blank-form controls must be designed for the transition period.",
+  "Time handling for multi-site: confirm the policy of storing UTC and displaying site-local time with offset in signature manifestations (11.50), and the treatment of daylight-saving transitions in timers (211.111) and equipment logs (211.182 chronological order)."
+ ]
+}

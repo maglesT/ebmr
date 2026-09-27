@@ -1,0 +1,572 @@
+                                                                                             Ref. Ares(2015)283689 - 23/01/2015
+
+
+CHAPTER 5 PRODUCTION
+                                 EUROPEAN COMMISSION
+                                 HEALTH AND CONSUMERS DIRECTORATE-GENERAL
+
+                                 Health systems and products
+                                 Medicinal products – quality, safety and efficacy
+
+
+
+
+                                                                                        Brussels, 13 August 2014
+
+
+                                                      EudraLex
+
+
+                  The Rules Governing Medicinal Products in the European Union
+
+                                               Volume 4
+                                          EU Guidelines for
+                                   Good Manufacturing Practice for
+                           Medicinal Products for Human and Veterinary Use
+
+                                                     Part 1
+                                              Chapter 5: Production
+
+
+Legal basis for publishing the detailed guidelines: Article 47 of Directive 2001/83/EC on
+the Community code relating to medicinal products for human use and Article 51 of Directive
+2001/82/EC on the Community code relating to veterinary medicinal products. This document
+provides guidance for the interpretation of the principles and guidelines of good
+manufacturing practice (GMP) for medicinal products as laid down in Directive 2003/94/EC
+for medicinal products for human use and Directive 91/412/EEC for veterinary use.
+
+
+Status of the document: Revisiona.
+
+
+Reasons for changes: Changes have been made to sections 17 to 21, including adding a new
+section, to improve the guidance on prevention of cross-contamination and to refer to
+toxicological assessment. Changes were also introduced in sections 27 to 30, including adding
+a new section, on the qualification of suppliers in order to reflect the legal obligation of
+manufacturing authorisation holders to ensure that active substances are produced in
+accordance with GMP. The changes include supply chain traceability. Sections 35 and 36 are
+inserted to clarify and harmonise expectations of manufacturers regarding the testing of
+starting materials while section 71 introduces guidance on notification of restrictions in
+supply.
+
+
+Deadline for coming into operation: 1 March 2015. However, the toxicological evaluation
+mentioned in section 20 has to be carried out:
+
+a
+  In January 2015 the deadline for coming into operation was adapted with regard to the toxicological evaluation
+to align with the coming effect of the EMA guideline on setting health based exposure limits for use in risk
+identification in the manufacture of different medicinal products in shared facilities. Furthermore, correction of
+the reference in footnote 2 took place.
+    Commission Européenne, B-1049 Bruxelles / Europese Commissie, B-1049 Brussel – Belgium. Telephone: (32-2) 299 11 11
+                                                          1
+   from 1 June 2015 onwards for any medicinal product newly introduced into shared
+    manufacturing facilities;
+   before 1 December 2015 for medicinal products already produced in a shared
+    manufacturing facility producing only medicinal products for human use or producing
+    both medicinal products for human use and veterinary medicinal products on 31 May
+    2015;
+   before 1 June 2016 for veterinary medicinal products already produced in a shared
+    manufacturing facility producing only veterinary medicinal products on 31 May 2015.
+
+
+
+
+                                         2
+Principle
+Production operations must follow clearly defined procedures; they must comply with the
+principles of Good Manufacturing Practice in order to obtain products of the requisite quality
+and be in accordance with the relevant manufacturing and marketing authorisations.
+
+General
+
+5.1   Production should be performed and supervised by competent people.
+
+5.2   All handling of materials and products, such as receipt and quarantine, sampling,
+      storage, labelling, dispensing, processing, packaging and distribution should be done in
+      accordance with written procedures or instructions and, where necessary, recorded.
+
+5.3   All incoming materials should be checked to ensure that the consignment corresponds
+      to the order. Containers should be cleaned where necessary and labelled with the
+      prescribed data.
+
+5.4   Damage to containers and any other problem which might adversely affect the quality
+      of a material should be investigated, recorded and reported to the Quality Control
+      Department.
+
+5.5   Incoming materials and finished products should be physically or administratively
+      quarantined immediately after receipt or processing, until they have been released for
+      use or distribution.
+
+5.6   Intermediate and bulk products purchased as such should be handled on receipt as
+      though they were starting materials.
+
+5.7   All materials and products should be stored under the appropriate conditions established
+      by the manufacturer and in an orderly fashion to permit batch segregation and stock
+      rotation.
+
+5.8   Checks on yields, and reconciliation of quantities, should be carried out as necessary to
+      ensure that there are no discrepancies outside acceptable limits.
+
+5.9   Operations on different products should not be carried out simultaneously or
+      consecutively in the same room unless there is no risk of mix-up or cross-
+      contamination.
+
+5.10 At every stage of processing, products and materials should be protected from microbial
+     and other contamination.
+
+5.11 When working with dry materials and products, special precautions should be taken to
+     prevent the generation and dissemination of dust. This applies particularly to the
+     handling of highly active or sensitising materials.
+
+5.12 At all times during processing, all materials, bulk containers, major items of equipment
+     and where appropriate rooms used should be labelled or otherwise identified with an
+     indication of the product or material being processed, its strength (where applicable)
+     and batch number. Where applicable, this indication should also mention the stage of
+     production.
+                                               3
+5.13 Labels applied to containers, equipment or premises should be clear, unambiguous and
+     in the company’s agreed format. It is often helpful in addition to the wording on the
+     labels to use colours to indicate status (for example, quarantined, accepted, rejected,
+     clean).
+
+5.14 Checks should be carried out to ensure that pipelines and other pieces of equipment
+     used for the transportation of products from one area to another are connected in a
+     correct manner.
+
+5.15 Any deviation from instructions or procedures should be avoided as far as possible. If a
+     deviation occurs, it should be approved in writing by a competent person, with the
+     involvement of the Quality Control department when appropriate.
+
+5.16 Access to production premises should be restricted to authorised personnel.
+
+Prevention of cross-contamination in production
+
+5.17 Normally, the production of non-medicinal products should be avoided in areas and
+     with equipment destined for the production of medicinal products but, where justified,
+     could be allowed where the measures to prevent cross-contamination with medicinal
+     products described below and in Chapter 3 can be applied. The production and/or
+     storage of technical poisons, such as pesticides (except where these are used for
+     manufacture of medicinal products) and herbicides, should not be allowed in areas used
+     for the manufacture and / or storage of medicinal products.
+
+5.18 Contamination of a starting material or of a product by another material or product
+     should be prevented. This risk of accidental cross-contamination resulting from the
+     uncontrolled release of dust, gases, vapours, aerosols, genetic material or organisms
+     from active substances, other starting materials, and products in process, from residues
+     on equipment, and from operators’ clothing should be assessed. The significance of this
+     risk varies with the nature of the contaminant and that of the product being
+     contaminated. Products in which cross-contamination is likely to be most significant
+     are those administered by injection and those given over a long time. However,
+     contamination of all products poses a risk to patient safety dependent on the nature and
+     extent of contamination.
+5.19 Cross-contamination should be prevented by attention to design of the premises and
+     equipment as described in Chapter 3. This should be supported by attention to process
+     design and implementation of any relevant technical or organizational measures,
+     including effective and reproducible cleaning processes to control risk of cross-
+     contamination.
+
+ 5.20 A Quality Risk Management process, which includes a potency and toxicological
+     evaluation, should be used to assess and control the cross-contamination risks presented
+     by the products manufactured. Factors including; facility/equipment design and use,
+     personnel and material flow, microbiological controls, physico-chemical characteristics
+     of the active substance, process characteristics, cleaning processes and analytical
+     capabilities relative to the relevant limits established from the evaluation of the products
+     should also be taken into account. The outcome of the Quality Risk Management
+     process should be the basis for determining the necessity for and extent to which
+     premises and equipment should be dedicated to a particular product or product family.
+     This may include dedicating specific product contact parts or dedication of the entire
+     manufacturing facility. It may be acceptable to confine manufacturing activities to a
+                                               4
+      segregated, self contained production area within a multiproduct facility, where
+      justified.
+
+5.21 The outcome of the Quality Risk Management process should be the basis for
+     determining the extent of technical and organisational measures required to control risks
+     for cross-contamination. These could include, but are not limited to, the following:
+
+      Technical Measures
+
+      i.   Dedicated manufacturing facility (premises and equipment);
+     ii.   Self-contained production areas having separate processing equipment and
+           separate heating, ventilation and air-conditioning (HVAC) systems. It may also be
+           desirable to isolate certain utilities from those used in other areas;
+    iii.   Design of manufacturing process, premises and equipment to minimize
+           opportunities for cross-contamination during processing, maintenance and
+           cleaning;
+    iv.    Use of “closed systems” for processing and material/product transfer between
+           equipment;
+     v.    Use of physical barrier systems, including isolators, as containment measures;
+    vi.    Controlled removal of dust close to source of the contaminant e.g. through
+           localised extraction;
+    vii.   Dedication of equipment, dedication of product contact parts or dedication of
+           selected parts which are harder to clean (e.g. filters), dedication of maintenance
+           tools;
+   viii.   Use of single use disposable technologies;
+     ix.   Use of equipment designed for ease of cleaning;
+     x.    Appropriate use of air-locks and pressure cascade to confine potential airborne
+           contaminant within a specified area;
+    xi.    Minimising the risk of contamination caused by recirculation or re-entry of
+           untreated or insufficiently treated air;
+    xii.   Use of automatic clean in place systems of validated effectiveness;
+   xiii.   For common general wash areas, separation of equipment washing, drying and
+           storage areas.
+
+      Organisational Measures
+
+      i.   Dedicating the whole manufacturing facility or a self contained production area on
+           a campaign basis (dedicated by separation in time) followed by a cleaning process
+           of validated effectiveness;
+     ii.   Keeping specific protective clothing inside areas where products with high risk of
+           cross-contamination are processed;
+    iii.   Cleaning verification after each product campaign should be considered as a
+           detectability tool to support effectiveness of the Quality Risk Management
+           approach for products deemed to present higher risk;
+
+
+                                              5
+    iv.    Depending on the contamination risk, verification of cleaning of non product
+           contact surfaces and monitoring of air within the manufacturing area and/or
+           adjoining areas in order to demonstrate effectiveness of control measures against
+           airborne contamination or contamination by mechanical transfer;
+     v.    Specific measures for waste handling, contaminated rinsing water and soiled
+           gowning;
+    vi.    Recording of spills, accidental events or deviations from procedures;
+    vii.   Design of cleaning processes for premises and equipment such that the cleaning
+           processes in themselves do not present a cross-contamination risk;
+   viii.   Design of detailed records for cleaning processes to assure completion of cleaning
+           in accordance with approved procedures and use of cleaning status labels on
+           equipment and manufacturing areas;
+    ix.    Use of common general wash areas on a campaign basis;
+     x.    Supervision of working behaviour to ensure training effectiveness and compliance
+           with the relevant procedural controls.
+
+5.22 Measures to prevent cross-contamination and their effectiveness should be reviewed
+     periodically according to set procedures.
+
+Validation
+
+5.23 Validation studies should reinforce Good Manufacturing Practice and be conducted in
+     accordance with defined procedures. Results and conclusions should be recorded.
+
+5.24 When any new manufacturing formula or method of preparation is adopted, steps should
+     be taken to demonstrate its suitability for routine processing. The defined process, using
+     the materials and equipment specified, should be shown to yield a product consistently
+     of the required quality.
+
+5.25 Significant amendments to the manufacturing process, including any change in
+     equipment or materials, which may affect product quality and/or the reproducibility of
+     the process, should be validated.
+
+5.26 Processes and procedures should undergo periodic critical re-validation to ensure that
+     they remain capable of achieving the intended results.
+
+Starting materials
+
+5.27 The selection, qualification, approval and maintenance of suppliers of starting materials,
+     together with their purchase and acceptance, should be documented as part of the
+     pharmaceutical quality system. The level of supervision should be proportionate to the
+     risks posed by the individual materials, taking account of their source, manufacturing
+     process, supply chain complexity and the final use to which the material is put in the
+     medicinal product. The supporting evidence for each supplier / material approval should
+     be maintained. Staff involved in these activities should have a current knowledge of the
+     suppliers, the supply chain and the associated risks involved. Where possible, starting
+     materials should be purchased directly from the manufacturer of the starting material.
+
+
+                                               6
+5.28 The quality requirements established by the manufacturer for the starting materials
+     should be discussed and agreed with the suppliers. Appropriate aspects of the
+     production, testing and control, including handling, labelling, packaging and
+     distribution requirements, complaints, recalls and rejection procedures should be
+     documented in a formal quality agreement or specification.
+
+5.29 For the approval and maintenance of suppliers of active substances and excipients, the
+     following is required:
+
+       Active substances1
+
+       Supply chain traceability should be established and the associated risks, from active
+       substance starting materials to the finished medicinal product, should be formally
+       assessed and periodically verified. Appropriate measures should be put in place to
+       reduce risks to the quality of the active substance.
+
+       The supply chain and traceability records for each active substance (including active
+       substance starting materials) should be available and be retained by the EEA based
+       manufacturer or importer of the medicinal product.
+
+       Audits should be carried out at the manufacturers and distributors of active substances
+       to confirm that they comply with the relevant good manufacturing practice and good
+       distribution practice requirements. The holder of the manufacturing authorisation shall
+       verify such compliance either by himself or through an entity acting on his behalf under
+       a contract. For veterinary medicinal products, audits should be conducted based on risk.
+
+       Audits should be of an appropriate duration and scope to ensure that a full and clear
+       assessment of GMP is made; consideration should be given to potential cross-
+       contamination from other materials on site. The report should fully reflect what was
+       done and seen on the audit with any deficiencies clearly identified. Any required
+       corrective and preventive actions should be implemented.
+
+       Further audits should be undertaken at intervals defined by the quality risk management
+       process to ensure the maintenance of standards and continued use of the approved
+       supply chain.
+
+       Excipients
+
+       Excipients and excipient suppliers should be controlled appropriately based on the
+       results of a formalised quality risk assessment in accordance with the European
+       Commission ‘Guidelines on the formalised risk assessment for ascertaining the
+       appropriate Good Manufacturing Practice for excipients of medicinal products for
+       human use’.
+
+5.30 For each delivery of starting material the containers should be checked for integrity of
+     package, including tamper evident seal where relevant, and for correspondence between
+     the delivery note, the purchase order, the supplier’s labels and approved manufacturer
+     and supplier information maintained by the medicinal product manufacturer. The
+     receiving checks on each delivery should be documented.
+
+
+1
+ Specific requirements apply to the importation of active substances to be used in the manufacture of medicinal
+products for human use in article 46b of Directive 2001/83/EC.
+                                                       7
+5.31 If one material delivery is made up of different batches, each batch must be considered
+     as separate for sampling, testing and release.
+
+5.32 Starting materials in the storage area should be appropriately labelled (see section 13).
+     Labels should bear at least the following information:
+
+       i.    The designated name of the product and the internal code reference where
+             applicable;
+      ii.    A batch number given at receipt;
+     iii.    Where appropriate, the status of the contents (e.g. in quarantine, on test, released,
+             rejected);
+      iv.    Where appropriate, an expiry date or a date beyond which retesting is necessary.
+       When fully computerised storage systems are used, all the above information need not
+       necessarily be in a legible form on the label.
+
+5.33 There should be appropriate procedures or measures to assure the identity of the
+     contents of each container of starting material. Bulk containers from which samples
+     have been drawn should be identified (see Chapter 6).
+
+5.34 Only starting materials which have been released by the Quality Control department and
+     which are within their retest period should be used.
+
+5.35 Manufacturers of finished products are responsible for any testing of starting materials2
+     as described in the marketing authorisation dossier. They can utilise partial or full test
+     results from the approved starting material manufacturer but must, as a minimum,
+     perform identification testing3 of each batch according to Annex 8.
+
+5.36 The rationale for the outsourcing of this testing should be justified and documented and
+     the following requirements should be fulfilled:
+
+       i.    Special attention should be paid to the distribution controls (transport,
+             wholesaling, storage and delivery) in order to maintain the quality characteristics
+             of the starting materials and to ensure that test results remain applicable to the
+             delivered material;
+      ii.    The medicinal product manufacturer should perform audits, either itself or via
+             third parties, at appropriate intervals based on risk at the site(s) carrying out the
+             testing (including sampling) of the starting materials in order to assure compliance
+             with Good Manufacturing Practice and with the specifications and testing methods
+             described in the marketing authorisation dossier;
+     iii.    The certificate of analysis provided by the starting material manufacturer/supplier
+             should be signed by a designated person with appropriate qualifications and
+             experience. The signature assures that each batch has been checked for compliance
+             with the agreed product specification unless this assurance is provided separately;
+
+      iv.    The medicinal product manufacturer should have appropriate experience in dealing
+             with the starting material manufacturer (including experience via a supplier)
+
+2
+  A similar approach should apply to packaging materials as stated in section 5.45.
+3
+  Identity testing of starting materials should be performed according to the methods and the specifications of the
+relevant marketing authorisation dossier.
+
+                                                         8
+           including assessment of batches previously received and the history of compliance
+           before reducing in-house testing. Any significant change in the manufacturing or
+           testing processes should be considered;
+
+     v.    The medicinal product manufacturer should also perform (or via a separately
+           approved contract laboratory) a full analysis at appropriate intervals based on risk
+           and compare the results with the material manufacturer or supplier’s certificate of
+           analysis in order to check the reliability of the latter. Should this testing identify
+           any discrepancy then an investigation should be performed and appropriate
+           measures taken. The acceptance of certificates of analysis from the material
+           manufacturer or supplier should be discontinued until these measures are
+           completed.
+
+5.37 Starting materials should only be dispensed by designated persons, following a written
+     procedure, to ensure that the correct materials are accurately weighed or measured into
+     clean and properly labelled containers.
+
+5.38 Each dispensed material and its weight or volume should be independently checked and
+     the check recorded.
+
+5.39 Materials dispensed for each batch should be kept together and conspicuously labelled
+     as such.
+
+Processing operations: intermediate and bulk products
+
+5.40 Before any processing operation is started, steps should be taken to ensure that the work
+     area and equipment are clean and free from any starting materials, products, product
+     residues or documents not required for the current operation.
+
+5.41 Intermediate and bulk products should be kept under appropriate conditions.
+
+5.42 Critical processes should be validated (see "Validation" in this Chapter).
+
+5.43 Any necessary in-process controls and environmental controls should be carried out and
+     recorded.
+
+5.44 Any significant deviation from the expected yield should be recorded and investigated.
+
+Packaging materials
+
+5.45 The selection, qualification, approval and maintenance of suppliers of primary and
+     printed packaging materials shall be accorded attention similar to that given to starting
+     materials.
+
+5.46 Particular attention should be paid to printed materials. They should be stored in
+     adequately secure conditions such as to exclude unauthorised access. Cut labels and
+     other loose printed materials should be stored and transported in separate closed
+     containers so as to avoid mix-ups. Packaging materials should be issued for use only by
+     authorised personnel following an approved and documented procedure.
+
+
+
+
+                                               9
+5.47 Each delivery or batch of printed or primary packaging material should be given a
+     specific reference number or identification mark.
+
+5.48 Outdated or obsolete primary packaging material or printed packaging material should
+     be destroyed and this disposal recorded.
+
+Packaging operations
+
+5.49 When setting up a programme for the packaging operations, particular attention should
+     be given to minimising the risk of cross-contamination, mix-ups or substitutions.
+     Different products should not be packaged in close proximity unless there is physical
+     segregation.
+
+5.50 Before packaging operations are begun, steps should be taken to ensure that the work
+     area, packaging lines, printing machines and other equipment are clean and free from
+     any products, materials or documents previously used, if these are not required for the
+     current operation. The line-clearance should be performed according to an appropriate
+     check-list.
+
+5.51 The name and batch number of the product being handled should be displayed at each
+     packaging station or line.
+
+5.52 All products and packaging materials to be used should be checked on delivery to the
+     packaging department for quantity, identity and conformity with the Packaging
+     Instructions.
+
+5.53 Containers for filling should be clean before filling. Attention should be given to avoid
+     and remove any contaminants such as glass fragments and metal particles.
+
+5.54 Normally, filling and sealing should be followed as quickly as possible by labelling. If it
+     is not the case, appropriate procedures should be applied to ensure that no mix-ups or
+     mislabelling can occur.
+
+5.55 The correct performance of any printing operation (for example code numbers, expiry
+     dates) to be done separately or in the course of the packaging should be checked and
+     recorded. Attention should be paid to printing by hand which should be re-checked at
+     regular intervals.
+
+5.56 Special care should be taken when using cut-labels and when over-printing is carried
+     out off-line. Roll-feed labels are normally preferable to cut-labels, in helping to avoid
+     mix-ups.
+
+5.57 Checks should be made to ensure that any electronic code readers, label counters or
+     similar devices are operating correctly.
+
+5.58 Printed and embossed information on packaging materials should be distinct and
+     resistant to fading or erasing.
+
+5.59 On-line control of the product during packaging should include at least checking the
+     following:
+
+      i.   General appearance of the packages;
+     ii.   Whether the packages are complete;
+                                               10
+     iii.   Whether the correct products and packaging materials are used;
+     iv.    Whether any over-printing is correct;
+      v.    Correct functioning of line monitors.
+      Samples taken away from the packaging line should not be returned.
+
+5.60 Products which have been involved in an unusual event should only be reintroduced
+     into the process after special inspection, investigation and approval by authorised
+     personnel. Detailed record should be kept of this operation.
+
+5.61 Any significant or unusual discrepancy observed during reconciliation of the amount of
+     bulk product and printed packaging materials and the number of units produced should
+     be investigated and satisfactorily accounted for before release.
+
+5.62 Upon completion of a packaging operation, any unused batch-coded packaging
+     materials should be destroyed and the destruction recorded. A documented procedure
+     should be followed if un-coded printed materials are returned to stock.
+
+Finished products
+
+5.63 Finished products should be held in quarantine until their final release under conditions
+     established by the manufacturer.
+
+5.64 The evaluation of finished products and documentation which is necessary before
+     release of product for sale is described in Chapter 6 (Quality Control).
+
+5.65 After release, finished products should be stored as usable stock under conditions
+     established by the manufacturer.
+
+Rejected, recovered and returned materials
+
+5.66 Rejected materials and products should be clearly marked as such and stored separately
+     in restricted areas. They should either be returned to the suppliers or, where appropriate,
+     reprocessed or destroyed. Whatever action is taken should be approved and recorded by
+     authorised personnel.
+
+5.67 The reprocessing of rejected products should be exceptional. It is only permitted if the
+     quality of the final product is not affected, if the specifications are met and if it is done
+     in accordance with a defined and authorised procedure after evaluation of the risks
+     involved. Record should be kept of the reprocessing.
+
+5.68 The recovery of all or part of earlier batches which conform to the required quality by
+     incorporation into a batch of the same product at a defined stage of manufacture should
+     be authorised beforehand. This recovery should be carried out in accordance with a
+     defined procedure after evaluation of the risks involved, including any possible effect
+     on shelf life. The recovery should be recorded.
+
+5.69 The need for additional testing of any finished product which has been reprocessed, or
+     into which a recovered product has been incorporated, should be considered by the
+     Quality Control Department.
+
+
+                                                11
+5.70 Products returned from the market and which have left the control of the manufacturer
+     should be destroyed unless without doubt their quality is satisfactory; they may be
+     considered for re-sale, re-labelling or recovery in a subsequent batch only after they
+     have been critically assessed by the Quality Control Department in accordance with a
+     written procedure. The nature of the product, any special storage conditions it requires,
+     its condition and history, and the time elapsed since it was issued should all be taken
+     into account in this assessment. Where any doubt arises over the quality of the product,
+     it should not be considered suitable for re-issue or re-use, although basic chemical
+     reprocessing to recover active ingredient may be possible. Any action taken should be
+     appropriately recorded.
+
+Product shortage due to manufacturing constraints
+
+5.71 The manufacturer should report to the marketing authorisation holder (MAH) any
+     constraints in manufacturing operations which may result in abnormal restriction in the
+     supply. This should be done in a timely manner to facilitate reporting of the restriction
+     in supply by the MAH, to the relevant competent authorities, in accordance with its
+     legal obligations4.
+
+
+
+
+4
+    Articles 23a and 81 of Directive 2001/83/EC
+                                                  12
+

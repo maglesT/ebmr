@@ -1,0 +1,389 @@
+                  EUROPEAN COMMISSION
+                  HEALTH AND CONSUMERS DIRECTORATE-GENERAL
+
+                  Public Health and Risk Assessment
+                  Pharmaceuticals
+
+
+
+                                                      Brussels,
+                                                      SANCO/C8/AM/sl/ares(2010)1064587
+
+
+
+
+                                    EudraLex
+            The Rules Governing Medicinal Products in the European Union
+
+                                       Volume 4
+                             Good Manufacturing Practice
+                   Medicinal Products for Human and Veterinary Use
+
+                                   Chapter 4: Documentation
+
+
+
+Legal basis for publishing the detailed guidelines: Article 47 of Directive 2001/83/EC on
+the Community code relating to medicinal products for human use and Article 51 of Directive
+2001/82/EC on the Community code relating to veterinary medicinal products. This document
+provides guidance for the interpretation of the principles and guidelines of good
+manufacturing practice (GMP) for medicinal products as laid down in Directive 2003/94/EC
+for medicinal products for human use and Directive 91/412/EEC for veterinary use.
+
+Status of the document: revision 1
+
+Reasons for changes: the sections on "generation and control of documentation" and
+"retention of documents" have been revised, in the light of the increasing use of electronic
+documents within the GMP environment.
+
+
+Deadline for coming into operation: 30 June 2011
+
+
+
+
+                Commission Européenne, B-1049 Bruxelles / Europese Commissie,
+                                 B-1049 Brussel - Belgium
+                                Telephone: (32-2) 299 11 11
+Table of Contents
+
+Principle
+Required GMP Documentation
+Generation and Control of Documentation
+Good Documentation Practices
+Retention of Documents
+Specifications
+Manufacturing Formula and Processing Instructions
+Procedures and records
+
+Principle
+Good documentation constitutes an essential part of the quality assurance system and is key to
+operating in compliance with GMP requirements. The various types of documents and media
+used should be fully defined in the manufacturer's Quality Management System.
+Documentation may exist in a variety of forms, including paper-based, electronic or
+photographic media. The main objective of the system of documentation utilized must be to
+establish, control, monitor and record all activities which directly or indirectly impact on all
+aspects of the quality of medicinal products. The Quality Management System should include
+sufficient instructional detail to facilitate a common understanding of the requirements, in
+addition to providing for sufficient recording of the various processes and evaluation of any
+observations, so that ongoing application of the requirements may be demonstrated.
+
+There are two primary types of documentation used to manage and record GMP compliance:
+instructions (directions, requirements) and records/reports. Appropriate good documentation
+practice should be applied with respect to the type of document.
+
+Suitable controls should be implemented to ensure the accuracy, integrity, availability and
+legibility of documents. Instruction documents should be free from errors and available in
+writing. The term ‘written’ means recorded, or documented on media from which data may be
+rendered in a human readable form.
+
+Required GMP documentation (by type):
+Site Master File: A document describing the GMP related activities of the manufacturer.
+
+Instructions (directions, or requirements) type:
+
+       Specifications Describe in detail the requirements with which the products or
+       materials used or obtained during manufacture have to conform. They serve as a basis
+       for quality evaluation.
+
+       Manufacturing Formulae, Processing, Packaging and Testing Instructions:
+       Provide detail all the starting materials, equipment and computerised systems (if any)
+       to be used and specify all processing, packaging, sampling and testing instructions. In-
+       process controls and process analytical technologies to be employed should be
+       specified where relevant, together with acceptance criteria.
+
+       Procedures: (Otherwise known as Standard Operating Procedures, or SOPs), give
+       directions for performing certain operations.
+       Protocols: Give instructions for performing and recording certain discreet operations.
+
+       Technical Agreements: Are agreed between contract givers and acceptors for outsourced
+       activities.
+
+Record/Report type:
+       Records: Provide evidence of various actions taken to demonstrate compliance with
+       instructions, e.g. activities, events, investigations, and in the case of manufactured
+       batches a history of each batch of product, including its distribution. Records include
+       the raw data which is used to generate other records. For electronic records regulated
+       users should define which data are to be used as raw data. At least, all data on which
+       quality decisions are based should be defined as raw data
+       Certificates of Analysis: Provide a summary of testing results on samples of
+       products or materials1 together with the evaluation for compliance to a stated
+       specification.
+
+       Reports: Document the conduct of particular exercises, projects or investigations,
+       together with results, conclusions and recommendations.
+
+
+Generation and Control of Documentation
+4.1     All types of document should be defined and adhered to. The requirements apply
+equally to all forms of document media types. Complex systems need to be understood, well
+documented, validated, and adequate controls should be in place. Many documents
+(instructions and/or records) may exist in hybrid forms, i.e. some elements as electronic and
+others as paper based. Relationships and control measures for master documents, official
+copies, data handling and records need to be stated for both hybrid and homogenous systems.
+Appropriate controls for electronic documents such as templates, forms, and master
+documents should be implemented. Appropriate controls should be in place to ensure the
+integrity of the record throughout the retention period.
+
+4.2    Documents should be designed, prepared, reviewed, and distributed with care. They
+should comply with the relevant parts of Product Specification Files, Manufacturing and
+Marketing Authorisation dossiers, as appropriate. The reproduction of working documents
+from master documents should not allow any error to be introduced through the reproduction
+process.
+
+4.3    Documents containing instructions should be approved, signed and dated by
+appropriate and authorised persons. Documents should have unambiguous contents and be
+uniquely identifiable. The effective date should be defined.
+
+4.4    Documents containing instructions should be laid out in an orderly fashion and be
+easy to check. The style and language of documents should fit with their intended use.
+Standard Operating Procedures, Work Instructions and Methods should be written in an
+imperative mandatory style.
+
+
+
+1
+  Alternatively the certification may be based, in-whole or in-part, on the assessment of real
+time data (summaries and exception reports) from batch related process analytical technology
+(PAT), parameters or metrics as per the approved marketing authorisation dossier.
+4.5    Documents within the Quality Management System should be regularly reviewed and
+kept up-to-date.
+
+4.6     Documents should not be hand-written; although, where documents require the entry
+of data, sufficient space should be provided for such entries.
+
+Good Documentation Practices
+4.7   Handwritten entries should be made in clear, legible, indelible way.
+
+4.8    Records should be made or completed at the time each action is taken and in such a
+way that all significant activities concerning the manufacture of medicinal products are
+traceable.
+
+4.9     Any alteration made to the entry on a document should be signed and dated; the
+alteration should permit the reading of the original information. Where appropriate, the reason
+for the alteration should be recorded.
+
+Retention of Documents
+4.10 It should be clearly defined which record is related to each manufacturing activity and
+where this record is located. Secure controls must be in place to ensure the integrity of the
+record throughout the retention period and validated where appropriate.
+
+4.11 Specific requirements apply to batch documentation which must be kept for one year
+after expiry of the batch to which it relates or at least five years after certification of the batch
+by the Qualified Person, whichever is the longer. For investigational medicinal products, the
+batch documentation must be kept for at least five years after the completion or formal
+discontinuation of the last clinical trial in which the batch was used. Other requirements for
+retention of documentation may be described in legislation in relation to specific types of
+product (e.g. Advanced Therapy Medicinal Products) and specify that longer retention periods
+be applied to certain documents.
+
+4.12 For other types of documentation, the retention period will depend on the business
+activity which the documentation supports. Critical documentation, including raw data (for
+example relating to validation or stability), which supports information in the Marketing
+Authorisation should be retained whilst the authorization remains in force. It may be
+considered acceptable to retire certain documentation (e.g. raw data supporting validation
+reports or stability reports) where the data has been superseded by a full set of new data.
+Justification for this should be documented and should take into account the requirements for
+retention of batch documentation; for example, in the case of process validation data, the
+accompanying raw data should be retained for a period at least as long as the records for all
+batches whose release has been supported on the basis of that validation exercise.
+
+The following section gives some examples of required documents. The quality management
+system should describe all documents required to ensure product quality and patient safety.
+
+Specifications
+4.13 There should be appropriately authorised and dated specifications for starting and
+packaging materials, and finished products.
+Specifications for starting and packaging materials
+4.14 Specifications for starting and primary or printed packaging materials should include or
+      provide reference to, if applicable:
+     a) A description of the materials, including:
+             - The designated name and the internal code reference;
+             - The reference, if any, to a pharmacopoeial monograph;
+             - The approved suppliers and, if reasonable, the original producer of the material;
+             - A specimen of printed materials;
+     b) Directions for sampling and testing;
+     c) Qualitative and quantitative requirements with acceptance limits;
+     d) Storage conditions and precautions;
+     e) The maximum period of storage before re-examination.
+
+Specifications for intermediate and bulk products
+4.15 Specifications for intermediate and bulk products should be available for critical steps
+or if these are purchased or dispatched. The specifications should be similar to specifications
+for starting materials or for finished products, as appropriate.
+
+Specifications for finished products
+4.16 Specifications for finished products should include or provide reference to:
+     a) The designated name of the product and the code reference where applicable;
+     b) The formula;
+     c) A description of the pharmaceutical form and package details;
+     d) Directions for sampling and testing
+     e) The qualitative and quantitative requirements, with the acceptance limits;
+     f) The storage conditions and any special handling precautions, where applicable;
+     g) The shelf-life.
+
+Manufacturing Formula and Processing Instructions
+Approved, written Manufacturing Formula and Processing Instructions should exist for each
+product and batch size to be manufactured.
+
+4.17 The Manufacturing Formula should include:
+     a) The name of the product, with a product reference code relating to its specification;
+     b) A description of the pharmaceutical form, strength of the product and batch size;
+     c) A list of all starting materials to be used, with the amount of each, described; mention
+     should be made of any substance that may disappear in the course of processing;
+     d) A statement of the expected final yield with the acceptable limits, and of relevant
+     intermediate yields, where applicable
+
+4.18 The Processing Instructions should include:
+     a) A statement of the processing location and the principal equipment to be used;
+     b) The methods, or reference to the methods, to be used for preparing the critical
+     equipment (e.g. cleaning, assembling, calibrating, sterilising);
+     c) Checks that the equipment and work station are clear of previous products,
+     documents or materials not required for the planned process, and that equipment is
+     clean and suitable for use;
+     d) Detailed stepwise processing instructions [e.g. checks on materials, pre-treatments,
+     sequence for adding materials, critical process parameters (time, temp etc)];
+     e) The instructions for any in-process controls with their limits;
+     f) Where necessary, the requirements for bulk storage of the products; including the
+     container, labeling and special storage conditions where applicable;
+     g) Any special precautions to be observed.
+
+Packaging Instructions
+4.19 Approved Packaging Instructions for each product, pack size and type should exist.
+These should include, or have a reference to, the following:
+     a) Name of the product; including the batch number of bulk and finished product
+     b) Description of its pharmaceutical form, and strength where applicable;
+     c) The pack size expressed in terms of the number, weight or volume of the product in
+     the final container;
+     d) A complete list of all the packaging materials required, including quantities, sizes and
+     types, with the code or reference number relating to the specifications of each
+     packaging material;
+     e) Where appropriate, an example or reproduction of the relevant printed packaging
+     materials, and specimens indicating where to apply batch number references, and shelf
+     life of the product;
+     f) Checks that the equipment and work station are clear of previous products,
+     documents or materials not required for the planned packaging operations (line
+     clearance), and that equipment is clean and suitable for use.
+     g) Special precautions to be observed, including a careful examination of the area and
+     equipment in order to ascertain the line clearance before operations begin;
+     h) A description of the packaging operation, including any significant subsidiary
+     operations, and equipment to be used;
+     i) Details of in-process controls with instructions for sampling and acceptance limits.
+
+Batch Processing Record
+4.20 A Batch Processing Record should be kept for each batch processed. It should be
+based on the relevant parts of the currently approved Manufacturing Formula and Processing
+Instructions, and should contain the following information:
+     a) The name and batch number of the product;
+     b) Dates and times of commencement, of significant intermediate stages and of
+        completion of production;
+     c) Identification (initials) of the operator(s) who performed each significant step of the
+        process and, where appropriate, the name of any person who checked these
+        operations;
+     d) The batch number and/or analytical control number as well as the quantities of each
+        starting material actually weighed (including the batch number and amount of any
+        recovered or reprocessed material added);
+     e) Any relevant processing operation or event and major equipment used;
+     f) A record of the in-process controls and the initials of the person(s) carrying them
+        out, and the results obtained;
+     g) The product yield obtained at different and pertinent stages of manufacture;
+     h) Notes on special problems including details, with signed authorisation for any
+        deviation from the Manufacturing Formula and Processing Instructions;
+     i) Approval by the person responsible for the processing operations.
+Note: Where a validated process is continuously monitored and controlled, then automatically
+generated reports may be limited to compliance summaries and exception/ out-of-
+specification (OOS) data reports.
+
+Batch Packaging Record
+4.21 A Batch Packaging Record should be kept for each batch or part batch processed. It
+should be based on the relevant parts of the Packaging Instructions.
+
+The batch packaging record should contain the following information:
+       a) The name and batch number of the product,
+       b) The date(s) and times of the packaging operations;
+       c) Identification (initials) of the operator(s) who performed each significant step of the
+       process and, where appropriate, the name of any person who checked these operations;
+       d) Records of checks for identity and conformity with the packaging instructions,
+       including the results of in-process controls;
+       e) Details of the packaging operations carried out, including references to equipment
+       and the packaging lines used;
+       f) Whenever possible, samples of printed packaging materials used, including
+       specimens of the batch coding, expiry dating and any additional overprinting;
+       g) Notes on any special problems or unusual events including details, with signed
+       authorisation for any deviation from the Packaging Instructions;
+       h) The quantities and reference number or identification of all printed packaging
+       materials and bulk product issued, used, destroyed or returned to stock and the
+       quantities of obtained product, in order to provide for an adequate reconciliation.
+       Where there are there are robust electronic controls in place during packaging there
+       may be justification for not including this information
+       i) Approval by the person responsible for the packaging operations
+Procedures and records
+Receipt
+4.22 There should be written procedures and records for the receipt of each delivery of each
+starting material, (including bulk, intermediate or finished goods), primary, secondary and
+printed packaging materials.
+
+4.23 The records of the receipts should include:
+      a) The name of the material on the delivery note and the containers;
+      b) The "in-house" name and/or code of material (if different from a);
+      c) Date of receipt;
+      d) Supplier’s name and, manufacturer’s name;
+      e) Manufacturer’s batch or reference number;
+      f) Total quantity and number of containers received;
+      g) The batch number assigned after receipt;
+      h) Any relevant comment.
+
+4.24 There should be written procedures for the internal labeling, quarantine and storage of
+starting materials, packaging materials and other materials, as appropriate.
+
+Sampling
+4.25 There should be written procedures for sampling, which include the methods and
+equipment to be used, the amounts to be taken and any precautions to be observed to avoid
+contamination of the material or any deterioration in its quality.
+
+Testing
+4.26 There should be written procedures for testing materials and products at different
+stages of manufacture, describing the methods and equipment to be used. The tests performed
+should be recorded.
+
+Other
+4.27 Written release and rejection procedures should be available for materials and
+products, and in particular for the certification for sale of the finished product by the Qualified
+Person(s). All records should be available to the Qualified Person. A system should be in
+place to indicate special observations and any changes to critical data.
+
+4.28 Records should be maintained for the distribution of each batch of a product in order
+to facilitate recall of any batch, if necessary.
+
+4.29 There should be written policies, procedures, protocols, reports and the associated
+records of actions taken or conclusions reached, where appropriate, for the following
+examples:
+      - Validation and qualification of processes, equipment and systems;
+      - Equipment assembly and calibration;
+      - Technology transfer;
+      - Maintenance, cleaning and sanitation;
+     - Personnel matters including signature lists, training in GMP and technical matters,
+     clothing and hygiene and verification of the effectiveness of training.
+     - Environmental monitoring;
+     - Pest control;
+     - Complaints;
+     - Recalls;
+     - Returns;
+     - Change control;
+     - Investigations into deviations and non-conformances;
+     - Internal quality/GMP compliance audits;
+     - Summaries of records where appropriate (e.g. product quality review);
+     - Supplier audits.
+
+4.30 Clear operating procedures should be available for major items of manufacturing and
+test equipment.
+
+4.31 Logbooks should be kept for major or critical analytical testing, production equipment,
+and areas where product has been processed. They should be used to record in chronological
+order, as appropriate, any use of the area, equipment/method, calibrations, maintenance,
+cleaning or repair operations, including the dates and identity of people who carried these
+operations out.
+
+4.32 An inventory of documents within the Quality Management System should be
+maintained.
+
