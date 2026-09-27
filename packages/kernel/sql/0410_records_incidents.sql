@@ -20,13 +20,13 @@
 set local role ebmr_owner;
 
 create function records.severity_rank(p_severity text) returns integer
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select case p_severity when 'MINOR' then 1 when 'MAJOR' then 2 when 'CRITICAL' then 3 end
 $$;
 
 -- VERIFY: 6 hours from secondary sources on the CERT-In Directions (April 2022); not in the inputs.
 create function records.cert_in_reporting_window() returns interval
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select interval '6 hours'
 $$;
 
@@ -130,7 +130,7 @@ left join lateral (select e.severity from records.incident_event e
 
 -- Lock the incident and return its current state (internal).
 create function records.lock_incident(p_incident_id uuid) returns records.incident_current
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype;
 begin
@@ -146,7 +146,7 @@ $$;
 -- Internal: link one record and write the business entry into that record's chain.
 create function records.add_incident_link(p_incident records.incident_current, p_aggregate_type text, p_aggregate_id text, p_step_ref text)
 returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
 begin
@@ -171,7 +171,7 @@ create function records.raise_incident(
   p_links jsonb default '[]'::jsonb, p_occurred_at timestamptz default null, p_occurred_at_trust text default null,
   p_cert_in_reportable boolean default false
 ) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_id uuid;
   v_inc records.incident_current%rowtype;
@@ -215,7 +215,7 @@ $$;
 
 create function records.link_incident(p_incident_id uuid, p_aggregate_type text, p_aggregate_id text, p_step_ref text default null)
 returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
@@ -227,7 +227,7 @@ end
 $$;
 
 create function records.reclassify_incident(p_incident_id uuid, p_severity text, p_justification text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
@@ -249,7 +249,7 @@ end
 $$;
 
 create function records.start_incident_investigation(p_incident_id uuid, p_note text default null) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
@@ -262,7 +262,7 @@ end
 $$;
 
 create function records.mark_incident_cert_in_reportable(p_incident_id uuid, p_justification text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
@@ -279,7 +279,7 @@ $$;
 
 -- The report itself is made outside the system; the time it was made is a claimed time (USER_CLAIMED).
 create function records.record_cert_in_report(p_incident_id uuid, p_reported_at timestamptz, p_reference text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
@@ -302,7 +302,7 @@ $$;
 
 create function records.assess_incident_impact(p_incident_id uuid, p_aggregate_type text, p_aggregate_id text, p_outcome text,
                                                p_rationale text, p_deviation_ref text default null) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
@@ -332,7 +332,7 @@ $$;
 
 create function records.close_incident(p_incident_id uuid, p_closure_summary text, p_root_cause text default null, p_capa_ref text default null)
 returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
   l record;
@@ -365,7 +365,7 @@ $$;
 -- CERT-In reportable incidents whose report is not recorded, with the deadline and whether it has passed.
 create function records.pending_cert_in_reports()
 returns table (incident_id uuid, reference text, deadline_at timestamptz, overdue boolean)
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select id, reference, cert_in_deadline_at, cert_in_deadline_at < clock_timestamp()
   from records.incident_current
   where cert_in_reportable and cert_in_reported_at is null

@@ -37,7 +37,7 @@ comment on table market.site_value is 'Site-specific values for rule keys. Inser
 -- Assess a candidate value against a resolution. Returns {outcome, code, message}: outcome is
 -- TIGHTER, EQUAL, LOOSENING (allowed only with justification and QA approval) or REFUSED.
 create function market.assess_site_value(p_resolution jsonb, p_value jsonb) returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   k         market.rule_key;
   v_prob    text;
@@ -84,7 +84,7 @@ $$;
 
 -- The site value in force for a site, key and date (newest effective, then newest recorded).
 create function market.site_value_in_force(p_site uuid, p_key text, p_as_of date) returns market.site_value
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select sv.* from market.site_value sv
   where sv.site_id = p_site and sv.key = p_key and sv.effective_from <= p_as_of
   order by sv.effective_from desc, sv.recorded_at desc, sv.id
@@ -97,7 +97,7 @@ $$;
 -- Returns {siteValueId, outcome, effectiveValue}; outcome is NO_SITE_VALUE, SITE_TIGHTER,
 -- SITE_EQUAL, SITE_LOOSENED or SITE_VALUE_INADMISSIBLE.
 create function market.apply_site_value(p_resolution jsonb, p_site uuid, p_as_of date) returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   sv  market.site_value;
   a   jsonb;
@@ -126,7 +126,7 @@ $$;
 -- Set a site value. p_options: {justificationRef, qaApprovalId, tableVersionId, predicates}.
 create function market.set_site_value(p_site uuid, p_key text, p_value jsonb, p_effective_from date, p_options jsonb default '{}')
 returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_ctx      jsonb := kernel.current_actor();
   v_table    text := market.table_of_key(p_key);
@@ -178,7 +178,7 @@ begin
           nullif(trim(v_opt ->> 'justificationRef'), ''), (v_opt ->> 'qaApprovalId')::uuid, (v_ctx ->> 'person_id')::uuid)
   returning * into sv;
   if v_outcome = 'LOOSENED' then
-    perform kernel.audit_business_event('site_value:' || p_site::text,
+    perform kernel.audit_business_event('market_site_value:' || p_site::text,
       format('site value for %s loosens a %s value from %s to %s under %s', p_key, v_res ->> 'floorType', (v_res -> 'value')::text, p_value::text, sv.justification_ref),
       jsonb_build_object('siteValueId', sv.id, 'qaApprovalId', sv.qa_approval_id));
   end if;
@@ -186,7 +186,7 @@ begin
 end
 $$;
 
-select kernel.register_audited_table('market.site_value', 'site_value', 'site_id', true);
+select kernel.register_audited_table('market.site_value', 'market_site_value', 'site_id', true);
 
 grant select on market.site_value to ebmr_app;
 grant execute on function market.set_site_value(uuid, text, jsonb, date, jsonb), market.assess_site_value(jsonb, jsonb),

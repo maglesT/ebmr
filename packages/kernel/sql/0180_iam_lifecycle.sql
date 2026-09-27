@@ -84,9 +84,10 @@ $$;
 -- other's grants) and their two console devices, created by the deployment pipeline as ebmr_owner.
 -- Refused once any grant is approved. Both receive BOOTSTRAP secrets, which are single-use and must
 -- be changed before a session can open. The actor of
--- the audit events is the installation pipeline (nil UUIDs, role INSTALLATION_BOOTSTRAP); the
--- identity checks are recorded against the IQ evidence reference, verified by the system identity
--- "Installation qualification".
+-- the audit events is the system identity "Installation qualification" (role
+-- INSTALLATION_BOOTSTRAP, nil account and session), which records the identity checks against the
+-- IQ evidence reference and requests the two grants; the grant rows name the bootstrap persons as
+-- each other's approvers, as the IQ protocol states.
 -- ---------------------------------------------------------------------------------------------
 
 create function iam.bootstrap_installation(p_admin_name text, p_admin_login text, p_admin_verifier text, p_admin_console text,
@@ -119,6 +120,10 @@ begin
   perform iam.set_internal_actor(v_ctx);
 
   insert into iam.person (kind, legal_name) values ('SYSTEM', 'Installation qualification') returning id into v_iq;
+  -- From here on the installation-qualification identity is the recorded actor (it requests the
+  -- first grants and records the identity checks); approvals name the two bootstrap persons.
+  v_ctx := v_ctx || jsonb_build_object('person_id', v_iq, 'legal_name', 'Installation qualification');
+  perform iam.set_internal_actor(v_ctx);
   insert into iam.person (kind, legal_name) values ('NATURAL', btrim(p_admin_name)) returning id into v_admin;
   insert into iam.person (kind, legal_name) values ('NATURAL', btrim(p_owner_name)) returning id into v_owner;
   insert into iam.identity_verification (person_id, purpose, method, document_type, evidence_ref, verified_by_person, verified_by_account, occurred_at)

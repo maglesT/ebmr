@@ -58,14 +58,14 @@ create unique index batch_policy_pin_issue on market.batch_policy_pin (batch_id,
 create index batch_policy_pin_lookup on market.batch_policy_pin (batch_id, policy_code, recorded_at);
 
 create function market.position_rank(p_policy text, p_position text) returns integer
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select (select o.ord::integer from market.policy p, jsonb_array_elements_text(p.positions) with ordinality as o(v, ord)
            where p.code = p_policy and o.v = p_position)
 $$;
 
 -- The version in force at an instant: the newest version whose effective instant has been reached.
 create function market.policy_version_at(p_policy text, p_at timestamptz) returns market.policy_version
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select v.* from market.policy_version v
   where v.policy_code = p_policy and v.effective_from <= p_at
   order by v.effective_from desc, v.version desc
@@ -75,7 +75,7 @@ $$;
 -- Policy versions: numbered, never back-dated, never inserted before an already scheduled version,
 -- direction computed against the previous version; a loosening needs approval and a change record.
 create function market.policy_version_guard() returns trigger
-language plpgsql security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_prev   market.policy_version;
   v_ctx    jsonb := kernel.current_actor();
@@ -126,7 +126,7 @@ create trigger a_guard before insert on market.policy_version for each row execu
 
 -- INV-47: a pin never lets a loosening reach a batch issued before the loosening's effective instant.
 create function market.policy_pin_guard() returns trigger
-language plpgsql security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v        market.policy_version;
   v_issue  market.batch_policy_pin;
@@ -179,7 +179,7 @@ create trigger a_guard before insert on market.batch_policy_pin for each row exe
 -- p_def: {code, title, level, controls, positions (least -> most strict), defaultPosition, looseningRequires, reason}.
 -- Creates the policy and its version 1 at the default position, in force now.
 create function market.define_policy(p_def jsonb) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_ctx jsonb := kernel.current_actor();
   v market.policy_version;
@@ -209,7 +209,7 @@ $$;
 -- New version of a policy. p_effective_from NULL = now. p_options: {approvalId, changeRef, reason}.
 create function market.set_policy_version(p_policy text, p_position text, p_effective_from timestamptz, p_options jsonb default '{}')
 returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v market.policy_version;
 begin
@@ -227,7 +227,7 @@ $$;
 
 -- The version of a policy in force at a batch's issue instant (build outline 3.5).
 create function market.policy_for_batch(p_policy text, p_issue_instant timestamptz) returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v market.policy_version;
 begin
@@ -245,7 +245,7 @@ $$;
 -- Pin every defined policy for a batch at issue. Call it inside the batch-issue transaction: the
 -- issue instant is the database clock now (INV-16), never a value the caller supplies.
 create function market.pin_policies_for_batch(p_batch uuid) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_now  timestamptz := clock_timestamp();
   p      market.policy;
@@ -271,7 +271,7 @@ $$;
 -- Apply a newer policy version to an issued batch. Only a tightening in force is accepted.
 create function market.apply_policy_tightening(p_batch uuid, p_policy text, p_version uuid, p_change_ref text, p_reason text default null)
 returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   pin market.batch_policy_pin;
 begin
@@ -285,7 +285,7 @@ $$;
 
 -- What a batch applies now for a policy: the newest pin (issue pin or a later tightening).
 create function market.batch_policy(p_batch uuid, p_policy text) returns jsonb
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select jsonb_build_object('pinId', p.id, 'pinKind', p.pin_kind, 'issueInstant', p.issue_instant, 'versionId', v.id,
                             'version', v.version, 'position', v.position, 'direction', v.direction)
   from market.batch_policy_pin p join market.policy_version v on v.id = p.policy_version_id
@@ -294,9 +294,9 @@ language sql stable security definer set search_path = pg_catalog, market as $$
   limit 1
 $$;
 
-select kernel.register_audited_table('market.policy', 'policy', 'code', true);
-select kernel.register_audited_table('market.policy_version', 'policy', 'policy_code', true);
-select kernel.register_audited_table('market.batch_policy_pin', 'batch', 'batch_id', true);
+select kernel.register_audited_table('market.policy', 'market_policy', 'code', true);
+select kernel.register_audited_table('market.policy_version', 'market_policy', 'policy_code', true);
+select kernel.register_audited_table('market.batch_policy_pin', 'market_batch_policy', 'batch_id', true);
 
 grant select on market.policy, market.policy_version, market.batch_policy_pin to ebmr_app;
 grant execute on function market.define_policy(jsonb), market.set_policy_version(text, text, timestamptz, jsonb),

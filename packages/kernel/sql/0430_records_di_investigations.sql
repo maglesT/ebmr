@@ -70,7 +70,7 @@ left join records.di_investigation_closure c on c.investigation_id = d.id;
 create function records.person_activity(p_person_id uuid, p_from timestamptz, p_to timestamptz)
 returns table (chain_key text, aggregate_type text, aggregate_id text, table_name text, record_id text, actions text[],
                event_count bigint, first_recorded_at timestamptz, last_recorded_at timestamptz)
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select e.chain_key,
          split_part(e.chain_key, ':', 1),
          substr(e.chain_key, strpos(e.chain_key, ':') + 1),
@@ -91,7 +91,7 @@ $$;
 create function records.investigation_scope(p_investigation_id uuid)
 returns table (chain_key text, aggregate_type text, aggregate_id text, table_name text, record_id text, actions text[],
                event_count bigint, first_recorded_at timestamptz, last_recorded_at timestamptz)
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.di_investigation%rowtype;
 begin
@@ -106,7 +106,7 @@ $$;
 -- Internal: link one record to an investigation and hold it.
 create function records.add_investigation_link(p_investigation records.di_investigation_current, p_aggregate_type text, p_aggregate_id text,
                                                p_source text, p_note text) returns boolean
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
 begin
@@ -129,7 +129,7 @@ $$;
 
 -- Internal: link every record in the current scope that is not yet linked; returns how many were added.
 create function records.link_investigation_scope(p_investigation records.di_investigation_current) returns integer
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   r record;
   v_added integer := 0;
@@ -149,7 +149,7 @@ end
 $$;
 
 create function records.lock_di_investigation(p_investigation_id uuid) returns records.di_investigation_current
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.di_investigation_current%rowtype;
 begin
@@ -170,7 +170,7 @@ $$;
 create function records.open_di_investigation(p_subject_person_id uuid, p_window_from timestamptz, p_window_to timestamptz, p_concern text,
                                               p_investigator_person uuid default null, p_qms_reference text default null,
                                               p_links jsonb default '[]'::jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_person uuid := records.actor_person();
   v_investigator uuid := coalesce(p_investigator_person, v_person);
@@ -206,7 +206,7 @@ end
 $$;
 
 create function records.link_di_investigation(p_investigation_id uuid, p_aggregate_type text, p_aggregate_id text, p_note text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.di_investigation_current%rowtype := records.lock_di_investigation(p_investigation_id);
 begin
@@ -222,7 +222,7 @@ $$;
 
 -- Re-reads the scope (for example while the window is still running) and links any new records.
 create function records.refresh_di_investigation_scope(p_investigation_id uuid) returns integer
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.di_investigation_current%rowtype := records.lock_di_investigation(p_investigation_id);
 begin
@@ -235,7 +235,7 @@ $$;
 
 create function records.close_di_investigation(p_investigation_id uuid, p_conclusion text, p_remediation text, p_approval_signature_id uuid)
 returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.di_investigation_current%rowtype := records.lock_di_investigation(p_investigation_id);
   v_person uuid := records.actor_person();

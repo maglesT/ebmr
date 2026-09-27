@@ -121,27 +121,27 @@ comment on column market.rule_row.verification is 'P / P~ / S / U as in the Indi
 -- ---------------------------------------------------------------------------------------------
 
 create function market.nz(p jsonb, p_default jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select case when p is null or jsonb_typeof(p) = 'null' then p_default else p end
 $$;
 
 create function market.is_canonical_decimal(p text) returns boolean
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p is not null and p ~ '^-?(0|[1-9][0-9]*)(\.[0-9]*[1-9])?$' and p <> '-0'
 $$;
 
 create function market.has_json_number(p jsonb) returns boolean
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select jsonb_path_exists(p, 'lax $.** ? (@.type() == "number")')
 $$;
 
 create function market.is_identifier(p text) returns boolean
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p is not null and p ~ '^[A-Za-z0-9][A-Za-z0-9_.:+-]*$'
 $$;
 
 create function market.parse_date(p text) returns date
-language plpgsql immutable set search_path = pg_catalog as $$
+language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
 declare
   d date;
 begin
@@ -159,35 +159,35 @@ end
 $$;
 
 create function market.floor_rank(p text) returns integer
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select case p when 'HARD' then 4 when 'GUIDANCE' then 3 when 'EXAMPLE' then 2 when 'DESIGN' then 1 else 0 end
 $$;
 
 -- GUIDANCE and adopted EXAMPLE values may be loosened by a site with a justification (CCS)
 -- reference and QA approval; HARD and DESIGN values may not (ADR 0008 decision 8).
 create function market.site_loosenable(p text) returns boolean
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p in ('GUIDANCE', 'EXAMPLE')
 $$;
 
 create function market.table_of_key(p_key text) returns text
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select t.code from market.rule_table t where left(p_key, length(t.key_prefix)) = t.key_prefix
 $$;
 
 create function market.category_rank(p_ordered jsonb, p_value jsonb) returns integer
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select (select o.ord::integer from jsonb_array_elements(p_ordered) with ordinality as o(v, ord) where o.v = p_value)
 $$;
 
 create function market.criteria_ids(p jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select coalesce((select jsonb_agg(e -> 'id') from jsonb_array_elements(p) e), '[]'::jsonb)
 $$;
 
 -- Is value a at least as strict as value b under the key's method? NULL for NOT_COMPARABLE.
 create function market.at_least_as_strict(p_method text, p_ordered jsonb, a jsonb, b jsonb) returns boolean
-language sql immutable set search_path = pg_catalog, market as $$
+language sql immutable set search_path = pg_catalog, market, pg_temp as $$
   select case p_method
     when 'SMALLER_STRICTER' then (a #>> '{}')::numeric <= (b #>> '{}')::numeric
     when 'LARGER_STRICTER' then (a #>> '{}')::numeric >= (b #>> '{}')::numeric
@@ -201,7 +201,7 @@ $$;
 
 -- Union of two set-valued values (SET_UNION: strings; ALL_APPLY: criteria by id), sorted.
 create function market.set_merge(p_method text, a jsonb, b jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog, market as $$
+language sql immutable set search_path = pg_catalog, market, pg_temp as $$
   select case
     when a is null then b
     when b is null then a
@@ -216,13 +216,13 @@ $$;
 
 -- The binding (non-loosenable by a site) value of a row: its value if HARD, else its hard floor.
 create function market.binding_value(p_floor text, p_value jsonb, p_hard_floor jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog, market as $$
+language sql immutable set search_path = pg_catalog, market, pg_temp as $$
   select case when p_floor = 'HARD' then p_value else market.nz(p_hard_floor, null) end
 $$;
 
 -- A value's shape problem for a value type, or NULL when the value is well formed.
 create function market.value_problem(p_type text, p_ordered jsonb, p_value jsonb) returns text
-language plpgsql immutable set search_path = pg_catalog, market as $$
+language plpgsql immutable set search_path = pg_catalog, market, pg_temp as $$
 declare
   e jsonb;
   v_seen text[] := '{}';
@@ -283,7 +283,7 @@ $$;
 
 -- Validates a market set and returns it sorted. India must be present (INV-28).
 create function market.checked_market_set(p text[]) returns text[]
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v_unknown text;
 begin
@@ -316,7 +316,7 @@ $$;
 -- and a published version can be compared with its source file.
 
 create function market.canonical_key(k jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog, market as $$
+language sql immutable set search_path = pg_catalog, market, pg_temp as $$
   select jsonb_build_object(
     'key', k -> 'key', 'title', k -> 'title', 'method', k -> 'method', 'valueType', k -> 'valueType', 'unit', k -> 'unit',
     'orderedValues', market.nz(k -> 'orderedValues', 'null'), 'statedMethod', market.nz(k -> 'statedMethod', 'null'),
@@ -325,7 +325,7 @@ language sql immutable set search_path = pg_catalog, market as $$
 $$;
 
 create function market.canonical_row(r jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog, market as $$
+language sql immutable set search_path = pg_catalog, market, pg_temp as $$
   select jsonb_build_object(
     'ref', r -> 'ref', 'key', r -> 'key', 'market', r -> 'market', 'predicate', market.nz(r -> 'predicate', '{}'),
     'value', r -> 'value', 'unit', r -> 'unit', 'floor', r -> 'floor', 'hardFloor', market.nz(r -> 'hardFloor', 'null'),
@@ -334,7 +334,7 @@ language sql immutable set search_path = pg_catalog, market as $$
 $$;
 
 create function market.document_content(p_doc jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog, market as $$
+language sql immutable set search_path = pg_catalog, market, pg_temp as $$
   select jsonb_build_object(
     'table', p_doc -> 'table',
     'keys', coalesce((select jsonb_agg(market.canonical_key(k) order by k ->> 'key' collate "C")
@@ -347,12 +347,12 @@ language sql immutable set search_path = pg_catalog, market as $$
 $$;
 
 create function market.document_content_hash(p_doc jsonb) returns bytea
-language sql immutable security definer set search_path = pg_catalog, market as $$
+language sql immutable security definer set search_path = pg_catalog, market, pg_temp as $$
   select sha256(convert_to(market.document_content(p_doc)::text, 'UTF8'))
 $$;
 
 create function market.version_document(p_version uuid) returns jsonb
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select jsonb_build_object(
     'table', v.table_code,
     'version', v.version,
@@ -379,7 +379,7 @@ $$;
 
 create function market.validate_document(p_doc jsonb)
 returns table (problem_code text, problem text)
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v_table     text;
   v_prefix    text;
@@ -676,7 +676,7 @@ $$;
 -- contained in the given predicates. Equal specificity is ambiguous and refused.
 create function market.select_row(p_version uuid, p_key text, p_market text, p_predicates jsonb, p_at date)
 returns market.rule_row
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   r market.rule_row;
   v_best market.rule_row;
@@ -706,7 +706,7 @@ $$;
 
 create function market.resolve(p_version uuid, p_key text, p_markets text[], p_predicates jsonb, p_as_of date, p_stated jsonb default null)
 returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v_ver         market.rule_table_version;
   k             market.rule_key;
@@ -876,7 +876,7 @@ $$;
 
 -- Latest published version of a table (NULL if none).
 create function market.current_version(p_table text) returns uuid
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select v.id from market.rule_table_version v where v.table_code = p_table order by v.version desc limit 1
 $$;
 
@@ -884,10 +884,10 @@ $$;
 -- Audit registration and privileges
 -- ---------------------------------------------------------------------------------------------
 
-select kernel.register_audited_table('market.market', 'market', 'code', false);
-select kernel.register_audited_table('market.rule_table_version', 'rule_table', 'table_code', true);
-select kernel.register_audited_table('market.rule_key', 'rule_table_version', 'version_id', true);
-select kernel.register_audited_table('market.rule_row', 'rule_table_version', 'version_id', true);
+select kernel.register_audited_table('market.market', 'market_code', 'code', false);
+select kernel.register_audited_table('market.rule_table_version', 'market_rule_table', 'table_code', true);
+select kernel.register_audited_table('market.rule_key', 'market_rule_version', 'version_id', true);
+select kernel.register_audited_table('market.rule_row', 'market_rule_version', 'version_id', true);
 
 grant select on market.market, market.rule_table, market.rule_table_version, market.rule_key, market.rule_row to ebmr_app;
 grant execute on function market.resolve(uuid, text, text[], jsonb, date, jsonb), market.validate_document(jsonb),

@@ -31,7 +31,7 @@ set local role ebmr_owner;
 create function records.open_blockers(p_aggregate_type text, p_aggregate_id text)
 returns table (blocker_kind text, blocker_id uuid, reference text, status text, severity text, detail text, since timestamptz,
                blocks_disposition boolean, blocks_disposal boolean)
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
 begin
@@ -62,7 +62,7 @@ end
 $$;
 
 create function records.has_disposition_blockers(p_aggregate_type text, p_aggregate_id text) returns boolean
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select exists (select 1 from records.open_blockers(p_aggregate_type, p_aggregate_id) b where b.blocks_disposition)
 $$;
 
@@ -85,7 +85,7 @@ left join records.tombstone t on t.record_key = s.record_key;
 -- read from stored evaluations.
 create function records.disposal_refusals(p_schedule_id uuid)
 returns table (code text, detail text)
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_sched records.retention_schedule%rowtype;
   v_eff jsonb := records.compute_effective_retention(p_schedule_id);
@@ -125,7 +125,7 @@ end
 $$;
 
 create function records.retention_of(p_aggregate_type text, p_aggregate_id text) returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_sched records.retention_schedule%rowtype := records.schedule_for(records.record_key(p_aggregate_type, p_aggregate_id));
 begin
@@ -149,7 +149,7 @@ $$;
 
 create function records.register_true_copy(p_chain_key text, p_head_seq bigint, p_head_hash_hex text, p_manifest_sha256 text,
                                            p_bundle_format text, p_purpose text) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_id uuid;
 begin
@@ -172,7 +172,7 @@ $$;
 
 create function records.approve_purge(p_record_key text, p_approval_signature_id uuid, p_reason text, p_true_copy_id uuid default null)
 returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_sched records.retention_schedule%rowtype := records.schedule_for(p_record_key);
   v_refusal record;
@@ -203,13 +203,13 @@ $$;
 
 -- Internal: the insert-only guard trigger of a registered table, if present.
 create function records.insert_only_trigger(p_table regclass) returns text
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select t.tgname::text from pg_trigger t
   where t.tgrelid = p_table and t.tgname = 'aa_insert_only_' || replace(replace(p_table::text, '.', '_'), '"', '')
 $$;
 
 create function records.purge(p_record_key text) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_ctx jsonb := records.actor();
   v_sched records.retention_schedule%rowtype := records.schedule_for(p_record_key);
@@ -362,7 +362,7 @@ $$;
 -- Events written after the purge (for example a business entry) form a new chain from genesis.
 create function records.verify_chain(p_chain_key text)
 returns table (seq bigint, problem text)
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   t records.tombstone%rowtype;
 begin
@@ -383,7 +383,7 @@ $$;
 -- Like kernel.verify_anchor, but an anchored head of a purged chain is matched against the tombstone.
 create function records.verify_anchor(p_anchor_id bigint)
 returns table (problem text)
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   a kernel.audit_anchor%rowtype;
   h jsonb;
@@ -418,7 +418,7 @@ $$;
 
 create function records.inv22_violations()
 returns table (check_name text, detail text)
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   t record;
   a record;

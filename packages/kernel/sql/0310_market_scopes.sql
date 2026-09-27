@@ -111,7 +111,7 @@ create table market.stub_mbr_limit (
 -- Every stored market set is valid and contains India (INV-28); a batch serves only markets its
 -- product is made for; a pack goes only to a destination inside its batch's market set.
 create function market.check_market_columns() returns trigger
-language plpgsql security definer set search_path = pg_catalog, market as $$
+language plpgsql security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v_product text[];
   v_batch text[];
@@ -148,7 +148,7 @@ create trigger check_markets before insert or update on market.stub_mbr_limit fo
 
 -- Markets of the products qualified on a line, room or equipment item, as derivation entries.
 create function market.stub_qualified_products(p_kind text, p_id uuid) returns jsonb
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select coalesce(jsonb_agg(jsonb_build_object('source', 'PRODUCT_QUALIFIED', 'scopeKind', p_kind, 'scopeId', p_id,
                                                'productId', p.id, 'productCode', p.code, 'markets', to_jsonb(p.markets),
                                                'picsDestination', p.pics_destination) order by p.code collate "C"), '[]'::jsonb)
@@ -160,7 +160,7 @@ $$;
 -- table of the key being resolved (the PIC/S rule applies to sterile keys only).
 create function market.scope_markets(p_kind text, p_id uuid, p_table text, p_consuming_batch uuid default null)
 returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v_deriv     jsonb := '[]'::jsonb;
   v_markets   text[] := '{}';
@@ -281,17 +281,17 @@ end
 $$;
 
 -- Stub tables stand in for GMP master data, so every change to them is audited like one.
-select kernel.register_audited_table('market.stub_site', 'stub_site', 'id', false);
-select kernel.register_audited_table('market.stub_product', 'stub_product', 'id', false);
-select kernel.register_audited_table('market.stub_batch', 'stub_batch', 'id', false);
-select kernel.register_audited_table('market.stub_pack', 'stub_batch', 'batch_id', false);
-select kernel.register_audited_table('market.stub_line', 'stub_line', 'id', false);
-select kernel.register_audited_table('market.stub_room', 'stub_room', 'id', false);
-select kernel.register_audited_table('market.stub_equipment', 'stub_equipment', 'id', false);
-select kernel.register_audited_table('market.stub_product_qualification', 'stub_product', 'product_id', false);
-select kernel.register_audited_table('market.stub_person_qualification', 'stub_person', 'person_id', false);
-select kernel.register_audited_table('market.stub_material_lot', 'stub_material_lot', 'id', false);
-select kernel.register_audited_table('market.stub_mbr_limit', 'stub_mbr', 'mbr_code', false);
+select kernel.register_audited_table('market.stub_site', 'market_stub_site', 'id', false);
+select kernel.register_audited_table('market.stub_product', 'market_stub_product', 'id', false);
+select kernel.register_audited_table('market.stub_batch', 'market_stub_batch', 'id', false);
+select kernel.register_audited_table('market.stub_pack', 'market_stub_batch', 'batch_id', false);
+select kernel.register_audited_table('market.stub_line', 'market_stub_line', 'id', false);
+select kernel.register_audited_table('market.stub_room', 'market_stub_room', 'id', false);
+select kernel.register_audited_table('market.stub_equipment', 'market_stub_equipment', 'id', false);
+select kernel.register_audited_table('market.stub_product_qualification', 'market_stub_product', 'product_id', false);
+select kernel.register_audited_table('market.stub_person_qualification', 'market_stub_person', 'person_id', false);
+select kernel.register_audited_table('market.stub_material_lot', 'market_stub_material_lot', 'id', false);
+select kernel.register_audited_table('market.stub_mbr_limit', 'market_stub_mbr', 'mbr_code', false);
 
 grant select, insert, update on market.stub_site, market.stub_product, market.stub_batch, market.stub_pack, market.stub_line,
                                 market.stub_room, market.stub_equipment, market.stub_product_qualification,

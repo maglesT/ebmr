@@ -56,7 +56,7 @@ create index evaluation_subject on market.evaluation (subject_id, key);
 comment on table market.evaluation is 'Every stored rule resolution (INV-29). Insert-only; written only through market.record_evaluation.';
 
 create function market.evaluation_complete() returns trigger
-language plpgsql security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_ctx   jsonb := kernel.current_actor();
   v_res   jsonb;
@@ -110,7 +110,7 @@ create trigger a_complete before insert on market.evaluation for each row execut
 -- Internal: editions call it from their own SECURITY DEFINER functions, which derive the market set
 -- from their tables; the application calls market.evaluate_stub_scope in Phase 1.
 create function market.record_evaluation(p_req jsonb) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_key      text := p_req ->> 'key';
   v_table    text := market.table_of_key(p_req ->> 'key');
@@ -154,7 +154,7 @@ $$;
 -- p_req: {key, scope: {kind, id}, consumingBatchId?, resolutionPoint, asOf, tableVersionId?,
 -- predicates? (only attributes the scope does not already fix), stated?, subject?, siteId?}.
 create function market.evaluate_stub_scope(p_req jsonb) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_key    text := p_req ->> 'key';
   v_table  text := market.table_of_key(p_req ->> 'key');
@@ -199,14 +199,14 @@ $$;
 -- was applied, or a site value in force could not be applied because it has become too loose.
 create function market.batch_flags(p_subject uuid)
 returns table (evaluation_id uuid, key text, site_outcome text, site_value_id uuid, resolved_value jsonb, effective_value jsonb, recorded_at timestamptz)
-language sql stable security definer set search_path = pg_catalog, market as $$
+language sql stable security definer set search_path = pg_catalog, market, pg_temp as $$
   select e.id, e.key, e.site_outcome, e.site_value_id, e.resolved_value, e.effective_value, e.recorded_at
   from market.evaluation e
   where e.subject_id = p_subject and e.site_outcome in ('SITE_LOOSENED', 'SITE_VALUE_INADMISSIBLE')
   order by e.recorded_at, e.id
 $$;
 
-select kernel.register_audited_table('market.evaluation', 'rule_evaluation', 'subject_id', true);
+select kernel.register_audited_table('market.evaluation', 'market_evaluation', 'subject_id', true);
 
 grant select on market.evaluation to ebmr_app;
 grant execute on function market.evaluate_stub_scope(jsonb), market.batch_flags(uuid) to ebmr_app;

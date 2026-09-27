@@ -105,8 +105,9 @@ insert into iam.permission (code, domain, effect, description) values
   ('RECORD.READ', 'READ_ONLY', 'READ', 'View and search records'),
   ('RECORD.EXPORT', 'READ_ONLY', 'READ', 'Export records (every export is logged)');
 
--- Kernel roles from the features spec, section A.2 (K1-K29), grouped as in outline 7.1, plus one
--- technical read-only role for line-status displays.
+-- Kernel roles from the features spec, section A.2 (K1-K29), grouped as in outline 7.1, plus two
+-- technical roles: a read-only role for line-status displays (X1) and the break-glass
+-- administrator (X2), which holds administration permissions only.
 insert into iam.role (code, catalogue_ref, name, role_group, description, account_kinds, is_kernel) values
   ('MBR_AUTHOR', 'K1', 'MBR author', 'MASTER_RECORDS', 'Composes MBR versions and signs them as prepared', array['HUMAN'], true),
   ('MBR_CHECKER', 'K2', 'MBR independent checker', 'MASTER_RECORDS', 'Independently checks MBR versions', array['HUMAN'], true),
@@ -137,7 +138,9 @@ insert into iam.role (code, catalogue_ref, name, role_group, description, accoun
   ('AUDITOR_READONLY', 'K26', 'Auditor / inspector (read-only)', 'ADMINISTRATION_SECURITY', 'Time-limited read-only access; exports logged', array['HUMAN'], true),
   ('CONTRACT_GIVER_REVIEWER', 'K27', 'Contract giver / loan-licensee reviewer', 'ADMINISTRATION_SECURITY', 'Read-only access to completed records', array['HUMAN'], true),
   ('SERVICE_ACCOUNT', 'K28', 'Service (interface) account', 'ADMINISTRATION_SECURITY', 'Machine-to-machine exchange; never signs, never logs in interactively', array['SERVICE', 'INTEGRATION'], true),
-  ('VENDOR_SUPPORT', 'K29', 'Vendor support', 'ADMINISTRATION_SECURITY', 'Named, time-boxed, customer-approved support; no GMP action', array['HUMAN'], true);
+  ('VENDOR_SUPPORT', 'K29', 'Vendor support', 'ADMINISTRATION_SECURITY', 'Named, time-boxed, customer-approved support; no GMP action', array['HUMAN'], true),
+  ('BREAK_GLASS_ADMIN', 'X2', 'Break-glass administrator', 'ADMINISTRATION_SECURITY',
+   'Emergency technical administration through a sealed break-glass account; no GMP, signing or acknowledging permission', array['HUMAN'], true);
 
 insert into iam.role_permission (role_code, permission_code)
 select r, p from (values
@@ -178,7 +181,9 @@ select r, p from (values
   ('AUDITOR_READONLY', 'RECORD.READ'), ('AUDITOR_READONLY', 'RECORD.EXPORT'),
   ('CONTRACT_GIVER_REVIEWER', 'RECORD.READ'),
   ('SERVICE_ACCOUNT', 'INTERFACE.WRITE'), ('SERVICE_ACCOUNT', 'RECORD.READ'),
-  ('VENDOR_SUPPORT', 'SYSTEM.VENDOR_SUPPORT'), ('VENDOR_SUPPORT', 'RECORD.READ')
+  ('VENDOR_SUPPORT', 'SYSTEM.VENDOR_SUPPORT'), ('VENDOR_SUPPORT', 'RECORD.READ'),
+  ('BREAK_GLASS_ADMIN', 'SYSTEM.CONFIGURE'), ('BREAK_GLASS_ADMIN', 'IAM.ACCOUNT_MANAGE'), ('BREAK_GLASS_ADMIN', 'IAM.UNLOCK'),
+  ('BREAK_GLASS_ADMIN', 'IAM.DEVICE_MANAGE'), ('BREAK_GLASS_ADMIN', 'RECORD.READ')
 ) as seed (r, p);
 
 -- Catalogue helpers --------------------------------------------------------------------------

@@ -89,8 +89,10 @@ describe('access life cycle (DI-16)', () => {
         "select action, payload -> 'actor' ->> 'person_id' as person from kernel.audit_event where table_name = 'iam.role_grant' and record_id = $1 order by seq",
         [row.grant_id],
       );
+      const bootstrap = await db.app.query("select 1 from kernel.audit_event where record_id = $1 and payload -> 'actor' ->> 'role_code' = 'INSTALLATION_BOOTSTRAP'", [row.grant_id]);
       expect(audit.rows[0]).toEqual({ action: 'INSERT', person: g['requested_by_person'] });
-      expect(audit.rows[1]).toEqual({ action: 'UPDATE', person: g['decided_by_person'] });
+      // Bootstrap approvals are recorded by the installation-qualification identity on the IQ protocol's authority.
+      expect(audit.rows[1]).toEqual({ action: 'UPDATE', person: bootstrap.rowCount ? g['requested_by_person'] : g['decided_by_person'] });
     }
     // And the list is complete: nothing held at t2 is missing from it.
     const direct = await db.app.query(
@@ -172,7 +174,7 @@ describe('access life cycle (DI-16)', () => {
 describe('authority at the moment of action (DI-17)', () => {
   it('[DI-17] permission matrix: every kernel role allows exactly its permissions and nothing else', async () => {
     const roles = (await db.app.query<{ code: string }>('select code from iam.role where is_kernel order by code')).rows.map((r) => r.code);
-    expect(roles).toHaveLength(30);
+    expect(roles).toHaveLength(31);
     for (const role of roles) {
       const actor = role === 'SERVICE_ACCOUNT' ? await seedServiceActor(db) : await seedActor(db, { roleCode: role, acknowledgeEsig: false });
       const { rows } = await db.app.query<{ code: string; allowed: boolean; expected: boolean }>(
@@ -269,7 +271,7 @@ describe('administrator separation (DI-18, INV-11)', () => {
       await activateAccount(c, id);
       return id;
     });
-    await expectRefused(asAdmin((c) => requestRoleGrant(c, { accountId: bg, roleCode: 'SYSTEM_ADMINISTRATOR', reason: 'emergency' })), 'EBMR-IAM-033');
+    await expectRefused(asAdmin((c) => requestRoleGrant(c, { accountId: bg, roleCode: 'BREAK_GLASS_ADMIN', reason: 'emergency' })), 'EBMR-IAM-033');
   });
 
   it('[DI-18] an administrator\'s attempt to change a GMP value is refused and logged', async () => {
@@ -294,10 +296,12 @@ describe('administrator separation (DI-18, INV-11)', () => {
       const id = await createAccount(c, { personId: admin2.personId, loginName: bgLogin, kind: 'HUMAN', breakGlass: true });
       await activateAccount(c, id);
       const s = await issueInitialSecret(c, id, 'PASSWORD');
-      const g = await requestRoleGrant(c, { accountId: id, roleCode: 'SYSTEM_ADMINISTRATOR', reason: 'sealed emergency access' });
+      const g = await requestRoleGrant(c, { accountId: id, roleCode: 'BREAK_GLASS_ADMIN', reason: 'sealed emergency access' });
       return { bg: id, secret: s.secret, grant: g };
     });
+    // Break-glass never holds a GMP role, nor one that signs or acknowledges (SYSTEM_ADMINISTRATOR approves grants).
     await expectRefused(asAdmin((c) => requestRoleGrant(c, { accountId: bg, roleCode: 'OPERATOR', reason: 'x' })), 'EBMR-IAM-036');
+    await expectRefused(asAdmin((c) => requestRoleGrant(c, { accountId: bg, roleCode: 'SYSTEM_ADMINISTRATOR', reason: 'x' })), 'EBMR-IAM-036');
     await asOwner((c) => decideRoleGrant(c, grant, true, 'approved'));
     const authn = seedAuthn(db);
     const req = { method: 'PASSWORD' as const, identifier: bgLogin, deviceFingerprint: admin2.seed.deviceFingerprint };
@@ -319,7 +323,7 @@ describe('administrator separation (DI-18, INV-11)', () => {
     expect(can.rows[0]?.r.reasons).toContain('BREAK_GLASS_CANNOT_SIGN');
 
     const s = await openSession(db.app, ev.authEventId, admin2.seed.deviceFingerprint);
-    const bgCtx: ActorContext = { ...admin2, accountId: bg, sessionId: s.sessionId };
+    const bgCtx: ActorContext = { ...admin2, accountId: bg, sessionId: s.sessionId, roleCode: 'BREAK_GLASS_ADMIN' };
     await expectRefused(withCommand(db.app, bgCtx, (c) => requirePermission(c, 'STEP.EXECUTE')), 'EBMR-IAM-040');
     await expectRefused(asOwner((c) => c.query("select iam.review_break_glass($1, 'NO_FINDINGS', 'too early')", [windowId])), 'EBMR-IAM-130');
     await asTimeTraveller(db, "update iam.break_glass_window set valid_to = clock_timestamp() - interval '1 second' where id = $1", [windowId]);

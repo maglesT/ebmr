@@ -36,7 +36,7 @@ comment on table market.change_impact is 'Impact list of a published rule-table 
 
 -- All combinations of predicate values over the attributes the key's rows use (for comparison).
 create function market.predicate_combinations(p_domain jsonb, p_attrs text[]) returns jsonb
-language plpgsql immutable set search_path = pg_catalog, market as $$
+language plpgsql immutable set search_path = pg_catalog, market, pg_temp as $$
 declare
   v_out jsonb := '[{}]'::jsonb;
   v_next jsonb;
@@ -55,7 +55,7 @@ $$;
 -- retroactive}. Rows are compared per market, per predicate branch and per date segment, using the
 -- same row selection as the resolver, so a new, more specific but looser row is caught too.
 create function market.classify_changes(p_prev uuid, p_new uuid, p_today date) returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v_out      jsonb := '[]'::jsonb;
   ok         market.rule_key;
@@ -139,7 +139,7 @@ $$;
 -- a binding value or a DESIGN value, or a loosening that was never approved). Each item is due by the
 -- first date on which the new rule applies (today if it already applies).
 create function market.compute_change_impact(p_version uuid, p_today date) returns integer
-language plpgsql volatile security definer set search_path = pg_catalog, market as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   ref        record;
   k          market.rule_key;
@@ -209,7 +209,7 @@ $$;
 -- p_change (merged over the document's "change"): {kind: INITIAL | UPDATE | SOURCE_CORRECTION,
 -- description, citation?, approverIds?: [uuid, uuid], vendorNoticeRef?, sourceFile?, sourceSha256?}.
 create function market.publish_rule_table(p_doc jsonb, p_change jsonb default '{}') returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, market, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
   v_ctx        jsonb := kernel.current_actor();
   v_table      text := p_doc ->> 'table';
@@ -319,7 +319,7 @@ begin
     raise exception using errcode = 'P0001', message = 'EBMR-MKT-034 internal error: the stored version does not reproduce the document';
   end if;
 
-  perform kernel.audit_business_event('rule_table:' || v_table,
+  perform kernel.audit_business_event('market_rule_table:' || v_table,
     format('rule table %s version %s published (%s): %s', v_table, v_next, v_kind, trim(v_change ->> 'description')),
     jsonb_build_object('versionId', v_id, 'contentHash', encode(v_hash, 'hex'), 'loosening', v_loose));
 
@@ -332,7 +332,7 @@ $$;
 
 -- Recompute a version's content hash and row hashes and re-validate its content.
 create function market.verify_table_version(p_version uuid) returns table (problem text)
-language plpgsql stable security definer set search_path = pg_catalog, market as $$
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
 declare
   v market.rule_table_version;
   r record;
@@ -363,7 +363,7 @@ begin
 end
 $$;
 
-select kernel.register_audited_table('market.change_impact', 'rule_table_version', 'version_id', true);
+select kernel.register_audited_table('market.change_impact', 'market_rule_version', 'version_id', true);
 
 grant select on market.change_impact to ebmr_app;
 grant execute on function market.publish_rule_table(jsonb, jsonb), market.verify_table_version(uuid) to ebmr_app;

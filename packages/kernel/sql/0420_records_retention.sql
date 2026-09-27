@@ -83,7 +83,7 @@ select kernel.register_audited_table('records.retention_rule_set', 'retention_ru
 select kernel.register_audited_table('records.retention_rule', 'retention_rule_set', 'rule_set_version', true);
 
 create function records.current_retention_rule_set() returns text
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select version from records.retention_rule_set order by published_at desc, version desc limit 1
 $$;
 
@@ -94,7 +94,7 @@ $$;
 -- p_inputs: normalised inputs plus "retentionKey". Returns
 -- {ruleSetVersion, status DATED|OPEN|NONE, retainUntil, latestDated, governingRules[], openReasons[], evaluated[]}.
 create function records.evaluate_retention(p_inputs jsonb, p_rule_set_version text default null) returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_version text := coalesce(p_rule_set_version, records.current_retention_rule_set());
   v_markets text[] := array(select jsonb_array_elements_text(coalesce(p_inputs -> 'markets', '[]'::jsonb)));
@@ -173,7 +173,7 @@ $$;
 
 -- Validates and normalises retention inputs: every key present, dates as YYYY-MM-DD, markets sorted.
 create function records.normalize_retention_inputs(p jsonb) returns jsonb
-language plpgsql immutable set search_path = pg_catalog, records as $$
+language plpgsql immutable set search_path = pg_catalog, records, pg_temp as $$
 declare
   k text;
   v_dates text[] := array['manufactureDate', 'expiryDate', 'distributionDate', 'euCertificationDate', 'dispositionDate',
@@ -423,12 +423,12 @@ where not exists (select 1 from records.retention_hold_release r where r.hold_id
 -- ---------------------------------------------------------------------------------------------
 
 create function records.latest_inputs(p_schedule_id uuid) returns records.retention_input
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select * from records.retention_input where schedule_id = p_schedule_id order by input_version desc limit 1
 $$;
 
 create function records.own_retention(p_schedule_id uuid) returns jsonb
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select records.evaluate_retention(i.inputs || jsonb_build_object('retentionKey', s.retention_key))
   from records.retention_schedule s
   join lateral (select * from records.retention_input x where x.schedule_id = s.id order by x.input_version desc limit 1) i on true
@@ -438,7 +438,7 @@ $$;
 -- Effective retention = the record's own rules plus every record that depends on it, transitively.
 -- OPEN when any record in that closure is OPEN, or has no applicable rule and no dependants.
 create function records.compute_effective_retention(p_schedule_id uuid) returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_nodes jsonb;
   v_open jsonb;
@@ -496,7 +496,7 @@ $$;
 
 -- Store a fresh evaluation for the schedule and every record it supports, transitively (internal).
 create function records.refresh_retention(p_schedule_id uuid, p_cause text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_ids uuid[];
   v_id uuid;
@@ -530,7 +530,7 @@ end
 $$;
 
 create function records.schedule_for(p_record_key text) returns records.retention_schedule
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.retention_schedule%rowtype;
 begin
@@ -548,7 +548,7 @@ $$;
 
 create function records.create_retention_schedule(p_aggregate_type text, p_aggregate_id text, p_record_type_code text,
                                                   p_inputs jsonb, p_site_zone text default null) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
   v_type records.record_register%rowtype;
@@ -582,7 +582,7 @@ $$;
 
 -- p_changes holds only the inputs that change, e.g. {"euCertificationDate": "2026-03-10"}.
 create function records.update_retention_inputs(p_record_key text, p_changes jsonb, p_change_reason text) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_sched records.retention_schedule%rowtype := records.schedule_for(p_record_key);
   v_last records.retention_input%rowtype;
@@ -610,7 +610,7 @@ end
 $$;
 
 create function records.link_retention_dependency(p_supporting_record_key text, p_dependant_record_key text, p_link_kind text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_sup records.retention_schedule%rowtype := records.schedule_for(p_supporting_record_key);
   v_dep records.retention_schedule%rowtype := records.schedule_for(p_dependant_record_key);
@@ -647,7 +647,7 @@ $$;
 -- Internal: place a hold and note it in the held record's own audit chain.
 create function records.add_hold(p_kind text, p_aggregate_type text, p_aggregate_id text, p_reason text, p_reference text, p_investigation_id uuid)
 returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
   v_id uuid;
@@ -672,7 +672,7 @@ $$;
 
 -- Internal: release a hold and note it in the held record's chain.
 create function records.end_hold(p_hold records.retention_hold, p_reason text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 begin
   insert into records.retention_hold_release (hold_id, record_key, reason, released_by_person)
   values (p_hold.id, p_hold.record_key, p_reason, records.actor_person());
@@ -683,7 +683,7 @@ end
 $$;
 
 create function records.place_legal_hold(p_aggregate_type text, p_aggregate_id text, p_reason text, p_reference text default null) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 begin
   if records.actor_is_machine() then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-040 a legal hold is placed by a person';
@@ -696,7 +696,7 @@ end
 $$;
 
 create function records.release_legal_hold(p_hold_id uuid, p_reason text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v records.retention_hold%rowtype;
 begin

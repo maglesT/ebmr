@@ -73,7 +73,7 @@ describe('what an evaluation stores', () => {
   it('[INV-29] each evaluation writes an audit event in the subject chain in the same transaction', async () => {
     const { rows } = await db.app.query<{ action: string; record_id: string }>(
       'select action, record_id from kernel.audit_event where chain_key = $1 and table_name = $2',
-      [`rule_evaluation:${world.batch.tabletAll}`, 'market.evaluation'],
+      [`market_evaluation:${world.batch.tabletAll}`, 'market.evaluation'],
     );
     expect(rows).toContainEqual({ action: 'INSERT', record_id: evaluation.id });
   });

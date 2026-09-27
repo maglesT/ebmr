@@ -23,7 +23,7 @@ set local role ebmr_owner;
 -- ---------------------------------------------------------------------------------------------
 
 create function records.actor() returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v jsonb := kernel.current_actor();
 begin
@@ -35,28 +35,28 @@ end
 $$;
 
 create function records.actor_person() returns uuid
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select (records.actor() ->> 'person_id')::uuid
 $$;
 
 create function records.actor_account() returns uuid
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select (records.actor() ->> 'account_id')::uuid
 $$;
 
 -- True when the command runs for a machine (SYSTEM job or INTEGRATION), not a person at a screen.
 create function records.actor_is_machine() returns boolean
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select (records.actor() ->> 'source') in ('SYSTEM', 'INTEGRATION')
 $$;
 
 create function records.is_blank(p text) returns boolean
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p is null or length(btrim(p)) = 0
 $$;
 
 create function records.record_key(p_aggregate_type text, p_aggregate_id text) returns text
-language plpgsql immutable set search_path = pg_catalog as $$
+language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
 begin
   if p_aggregate_type is null or p_aggregate_type !~ '^[a-z][a-z0-9_]*$' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-002 aggregate type %L is not valid', p_aggregate_type);
@@ -72,7 +72,7 @@ $$;
 -- Adding years/months to a date whose day does not exist in the target month (29 Feb + 1 year)
 -- rolls forward to the first day of the next month, so a period is never shortened by clamping.
 create function records.add_period(p_date date, p_years integer, p_months integer) returns date
-language plpgsql immutable set search_path = pg_catalog as $$
+language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
 declare
   v_total integer;
   v_year integer;
@@ -108,14 +108,14 @@ create table records.blocker_epoch (
 );
 
 create function records.bump_blocker_epoch(p_aggregate_type text, p_aggregate_id text) returns void
-language sql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language sql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   insert into records.blocker_epoch as b (record_key, version)
   values (records.record_key(p_aggregate_type, p_aggregate_id), 1)
   on conflict (record_key) do update set version = b.version + 1, changed_at = clock_timestamp()
 $$;
 
 create function records.lock_blocker_epoch(p_aggregate_type text, p_aggregate_id text) returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
   v_version bigint;
@@ -131,7 +131,7 @@ $$;
 -- ---------------------------------------------------------------------------------------------
 
 create function records.data_class_rank(p_class text) returns integer
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select case p_class when 'RAW' then 3 when 'DERIVED' then 2 when 'INFORMATIONAL' then 1 end
 $$;
 
@@ -187,7 +187,7 @@ order by t.code, t.version desc;
 -- Returns null when the classification is acceptable, otherwise a message starting with its code.
 create function records.classification_problem(p_data_class text, p_feeds_acceptance_limit boolean, p_record_type_code text default null)
 returns text
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_type records.record_register%rowtype;
   v_feeds boolean;
@@ -219,7 +219,7 @@ $$;
 -- The check validators call for one data item (for example each element of an MBR at approval).
 create function records.assert_classification_valid(p_item_ref text, p_data_class text, p_feeds_acceptance_limit boolean, p_record_type_code text default null)
 returns void
-language plpgsql stable security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_problem text := records.classification_problem(p_data_class, p_feeds_acceptance_limit, p_record_type_code);
 begin
@@ -232,7 +232,7 @@ $$;
 -- Bulk form: every problem for a list of items [{itemRef, dataClass, feedsAcceptanceLimit, recordTypeCode}].
 create function records.classification_problems(p_items jsonb)
 returns table (item_ref text, problem text)
-language sql stable security definer set search_path = pg_catalog, records, kernel as $$
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
   select i ->> 'itemRef',
          records.classification_problem(i ->> 'dataClass', (i ->> 'feedsAcceptanceLimit')::boolean, i ->> 'recordTypeCode')
   from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) with ordinality as x(i, n)
@@ -241,7 +241,7 @@ language sql stable security definer set search_path = pg_catalog, records, kern
 $$;
 
 create function records.define_record_type(p_def jsonb) returns integer
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   k text;
   v_allowed text[] := array['code', 'title', 'description', 'officialRecord', 'dataClass', 'gmpCriticality', 'officialMedium',
@@ -295,7 +295,7 @@ end
 $$;
 
 create function records.approve_record_type(p_code text, p_version integer, p_approval_signature_id uuid) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, records, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_type records.record_type%rowtype;
   v_current integer;
