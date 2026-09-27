@@ -377,7 +377,7 @@ begin
                             nullif(p_ctx ->> 'person_id', '')::uuid, nullif(p_ctx ->> 'device_id', '')::uuid,
                             nullif(p_ctx ->> 'badge_id', '')::uuid, null,
                             jsonb_build_object('method', p_ctx ->> 'method', 'purpose', p_ctx ->> 'purpose', 'reason', p_ctx ->> 'reason',
-                                               'identifier_hash', p_ctx ->> 'identifier_hash'));
+                                               'identifier_hash', p_ctx ->> 'identifier_hash', 'fingerprint', p_ctx ->> 'fingerprint'));
   end if;
   return jsonb_build_object('status', 'REFUSED', 'code', 'EBMR-IAM-140', 'reason', p_ctx ->> 'reason');
 end

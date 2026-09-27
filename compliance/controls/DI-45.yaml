@@ -32,11 +32,41 @@ behaviour: |-
   - Restores are tested during validation and then periodically. A restore test compares record counts and hashes and opens sample records with their audit trails, and its results are recorded.
   - RPO and RTO are set by risk; the Injectables execution module has the tightest.
 catalog_test: Restore into an isolated environment and hash-compare records, audit trails and signatures with production. Make a backup job fail. An alarm is raised. Try to delete a backup with production-admin credentials. Refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/sql/0600_continuity_core.sql"
+    - "packages/kernel/sql/0610_continuity_backup.sql"
+    - "packages/kernel/src/continuity/backup-drill.ts (runBackupJob, runRestoreDrill, recordRestoreDrill)"
+    - "packages/kernel/src/continuity/restore.ts (recordRestoreEvent, approveRestoreEvent, completeRestore, checkAgainstLedger)"
+    - "packages/kernel/src/continuity/anchors.ts"
+    - "packages/kernel/src/continuity/ledger.ts"
+    - "ops/backup/backup.sh"
+    - "ops/backup/drill.sh"
+    - "docs/operations/ha-and-restore.md"
+    - "docs/operations/restore-drill-report-template.md"
+  invariants:
+    - "INV-08"
+    - "INV-27"
+  guards:
+    - "continuity.after_restore requires a restore event approved by every named approver (never the operator)"
+    - "continuity.next_counter_value refuses after a restore, copy or failover until the restore procedure has run (database incarnation guard)"
+  db_constraints:
+    - "continuity.backup_catalogue, backup_job_run, restore_drill: insert-only (no UPDATE or DELETE for ebmr_app; insert-only trigger for the table owner)"
+    - "continuity.backup_catalogue: every backup encrypted (key reference required); retention-grade requires a write-once retention date"
+    - "continuity.record_backup_job raises alarm BACKUP_JOB_FAILED; continuity.record_restore_drill raises RESTORE_DRILL_FAILED"
+tests:
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a drill restores into an isolated database and matches records, audit trails and signature tables by ordered content hash"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] while a drill copy exists, the application role cannot connect to it"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a drill detects a restored copy that differs from production, reports it and raises an alarm"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] the drill script runs end to end and exits 0 on PASS"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a successful retention-grade backup is encrypted, hashed, write-once and catalogued"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a failing backup job is logged, raises an alarm, writes its report and exits non-zero"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a catalogued backup cannot be deleted or altered through the database, not even by the table owner"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a retention-grade backup cannot be catalogued without write-once retention"
+  - "packages/kernel/test/continuity/restore.test.ts > [INV-08][DI-45] a restore event needs a second, named person: the operator cannot approve it and approval is refused to anyone not named"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: For the US, the backup must last the full retention period. EU §7.2 requires the integrity and restorability of backups to be checked during validation and monitored periodically. The draft adds separation. All are adopted.
 type_detail: "ENFORCED (both tiers, separation, alarms, periodic restore testing). CONFIGURABLE for frequencies: DESIGN-CHOICE default is a quarterly restore test."
