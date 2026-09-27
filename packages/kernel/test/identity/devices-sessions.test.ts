@@ -20,7 +20,7 @@ import {
 } from '../../src/identity/sessions.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asTimeTraveller, expectRefused } from './helpers.ts';
-import { freshAuthEvent, SEED_SITE, seedActor, seedAdministration, seedAuthn, withFreshAuth, withReason, type SeedAdministration, type SeededActor } from './seed.ts';
+import { attestDevice, freshAuthEvent, SEED_SITE, seedActor, seedAdministration, seedAuthn, withFreshAuth, withReason, type SeedAdministration, type SeededActor } from './seed.ts';
 
 let db: TestDatabase;
 let adm: SeedAdministration;
@@ -153,7 +153,7 @@ describe('sessions on shared terminals (DI-14)', () => {
   it('[DI-14] one active shop-floor session per person: a login on another terminal ends the old one', async () => {
     const op = await seedActor(db, { deviceClass: 'SHARED', acknowledgeEsig: false });
     const fp2 = fingerprint();
-    await asAdmin((c) => registerDevice(c, { code: `KSK-${randomBytes(3).toString('hex')}`, deviceClass: 'SHARED', site: SEED_SITE, fingerprint: fp2, description: 'second kiosk' }));
+    await attestDevice(db, await asAdmin((c) => registerDevice(c, { code: `KSK-${randomBytes(3).toString('hex')}`, deviceClass: 'SHARED', site: SEED_SITE, fingerprint: fp2, description: 'second kiosk' })), 'SHARED');
     const s2 = await openSession(db.app, (await passwordAuth(op, 'LOGIN', fp2)).authEventId, fp2);
     expect((await db.app.query('select end_reason from iam.session where id = $1', [op.sessionId])).rows[0]).toEqual({ end_reason: 'SUPERSEDED' });
     await expectRefused(insert(await withFreshAuth(db, op)), 'EBMR-IAM-112');

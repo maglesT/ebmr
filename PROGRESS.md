@@ -176,3 +176,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   code switches context only via kernel.set_actor_context (owner-only). All module test helpers now seed real identities
   (test/support/seeded-actor.ts). src/index.ts exports every module as a namespace. Full suite: 456 tests pass; typecheck,
   lint, boundaries, pins, register clean. Trace at phase 1 lacks only DI-35..DI-38 (B2 running).
+- 2026-09-27: kernel 0900 integration wiring: protected sequences for incident/DI-investigation numbers, outbox and
+  state-history ids (INV-27); sessions on SHARED/GRADE_A_B terminals refused without a current hardening attestation
+  (DI-13; test seeding attests devices via attestDevice); time faults raise a records incident in the alarm's transaction
+  (DI-27). 433 tests pass.

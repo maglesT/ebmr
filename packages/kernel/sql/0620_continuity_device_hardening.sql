@@ -125,7 +125,7 @@ language plpgsql stable security definer set search_path = pg_catalog, continuit
 declare
   a continuity.device_hardening_attestation%rowtype;
 begin
-  if p_device_class not in ('PERSONAL', 'SHARED', 'GRADE_A_B', 'SERVER') or p_device_class is null then
+  if p_device_class not in ('PERSONAL', 'SHARED', 'GRADE_A_B', 'SERVER', 'INSTRUMENT') or p_device_class is null then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-040 unknown device class %s', p_device_class);
   end if;
   required := p_device_class in ('SHARED', 'GRADE_A_B');

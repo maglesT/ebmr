@@ -11,6 +11,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { ActorContext, CommandSource } from '../../src/db/command.ts';
 import { withCommand } from '../../src/db/command.ts';
+import { recordHardeningAttestation } from '../../src/continuity/hardening.ts';
 import {
   acknowledgeEsigPolicy,
   activateAccount,
@@ -215,6 +216,7 @@ export async function seedActor(db: TestDatabase, opts: SeedActorOptions = {}): 
     return { personId, ivId, accountId, initial, pinInitial: pin?.secret, grantId, deviceId, badgeId };
   });
   await withCommand(db.app, withReason(owner), (c) => decideRoleGrant(c, created.grantId, true, 'approved for test'));
+  if (shopFloor) await attestDevice(db, created.deviceId, deviceClass);
 
   const authn = seedAuthn(db);
   const password = await replaceInitialSecret(db, lg, created.initial, fp);
@@ -270,4 +272,19 @@ export async function seedServiceActor(db: TestDatabase, opts: SeedServiceOption
     source: opts.source ?? (kind === 'INTEGRATION' ? 'INTEGRATION' : 'SYSTEM'), siteZone: SEED_ZONE, legalName: name,
     seed: { loginName: lg, password: created.secret, deviceFingerprint: fp, deviceClass: 'SERVER', grantId: created.grantId },
   };
+}
+
+/**
+ * Records a passing hardening attestation (USB mass storage blocked, kiosk mode, malware protection,
+ * patches) for a SHARED or GRADE_A_B terminal; sessions on such terminals are refused without one
+ * (kernel 0900, DI-13). Recorded by the seeded system administrator.
+ */
+export async function attestDevice(db: TestDatabase, deviceId: string, deviceClass: 'SHARED' | 'GRADE_A_B'): Promise<string> {
+  const { admin } = await seedAdministration(db);
+  return withCommand(db.app, admin, (c) =>
+    recordHardeningAttestation(c, {
+      deviceId, deviceClass, usbMassStorageBlocked: true, kioskModeEnforced: true, malwareProtectionActive: true,
+      osPatchWithinSla: true, method: 'MDM_COMPLIANCE_REPORT', evidenceRef: `MDM-${deviceId.slice(0, 8)}`,
+    }),
+  );
 }

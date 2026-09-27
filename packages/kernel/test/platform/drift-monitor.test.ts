@@ -152,6 +152,16 @@ describe('drift checks', () => {
     });
     expect(delivered.map((m) => m.payload['alarm_id'])).toContain(alarmId);
 
+    // The data-integrity incident exists in the incident register, raised in the alarm's own
+    // transaction (kernel 0900) and linked to the alarm; the outbox message carries its id.
+    const [incident] = await rows<{ id: string; source: string; incident_type: string; severity: string; status: string; detected_by: string }>(
+      `select i.id, i.source, i.incident_type, i.severity, i.status, i.detected_by from records.incident_current i
+       join records.incident_link l on l.incident_id = i.id where l.aggregate_type = 'platform_alarm' and l.aggregate_id = $1`,
+      [alarmId],
+    );
+    expect(incident).toMatchObject({ source: 'TIME_SYNC', incident_type: 'DATA_INTEGRITY', severity: 'MAJOR', status: 'OPEN', detected_by: 'SYSTEM' });
+    expect(msg?.payload['incident_id']).toBe(incident?.id);
+
     // The alarm is part of the node's audit chain.
     const audit = await rows<{ table_name: string }>("select table_name from kernel.audit_event where chain_key = $1 and table_name = 'platform.alarm'", [`time_node:${node}`]);
     expect(audit).toHaveLength(1);

@@ -19,7 +19,7 @@ import { evaluateAuthority } from '../../src/identity/authority.ts';
 import { openSession } from '../../src/identity/sessions.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asSuperuserTransaction, expectRefused } from './helpers.ts';
-import { SEED_SITE, seedActor, seedAdministration, seedAuthn, seedServiceActor, withFreshAuth, withReason, type SeedAdministration } from './seed.ts';
+import { attestDevice, SEED_SITE, seedActor, seedAdministration, seedAuthn, seedServiceActor, withFreshAuth, withReason, type SeedAdministration } from './seed.ts';
 
 let db: TestDatabase;
 let adm: SeedAdministration;
@@ -68,7 +68,7 @@ describe('no shared write-capable accounts (DI-14)', () => {
     const g = await asAdmin((c) => requestRoleGrant(c, { accountId: d.accountId, roleCode: 'STATUS_DISPLAY', reason: 'line status screen' }));
     await asOwner((c) => decideRoleGrant(c, g, true, 'read-only'));
     const fp = randomBytes(32).toString('hex');
-    await asAdmin((c) => registerDevice(c, { code: `DSP-${hex()}`, deviceClass: 'SHARED', site: SEED_SITE, fingerprint: fp, description: 'line display' }));
+    await attestDevice(db, await asAdmin((c) => registerDevice(c, { code: `DSP-${hex()}`, deviceClass: 'SHARED', site: SEED_SITE, fingerprint: fp, description: 'line display' })), 'SHARED');
     const authn = seedAuthn(db);
     const first = await authenticate(authn, { method: 'PASSWORD', identifier: d.loginName, secret: d.secret, deviceFingerprint: fp, purpose: 'LOGIN' });
     const password = `Display-${hex(8)}`;
@@ -97,7 +97,7 @@ describe('no shared write-capable accounts (DI-14)', () => {
     const g = await asAdmin((c) => requestRoleGrant(c, { accountId, roleCode: 'STATUS_DISPLAY', reason: 'line status screen' }));
     await asOwner((c) => decideRoleGrant(c, g, true, 'read-only'));
     const fp = randomBytes(32).toString('hex');
-    await asAdmin((c) => registerDevice(c, { code: `DSP-${hex()}`, deviceClass: 'SHARED', site: SEED_SITE, fingerprint: fp, description: 'line display' }));
+    await attestDevice(db, await asAdmin((c) => registerDevice(c, { code: `DSP-${hex()}`, deviceClass: 'SHARED', site: SEED_SITE, fingerprint: fp, description: 'line display' })), 'SHARED');
     const authn = seedAuthn(db);
     const first = await authenticate(authn, { method: 'PASSWORD', identifier: loginName, secret, deviceFingerprint: fp, purpose: 'LOGIN' });
     const password = `Display-${hex(8)}`;
