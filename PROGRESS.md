@@ -49,7 +49,10 @@ section by section and resume from where the file stops.
 - v1 outline: outline/build-outline.md (96 KB, pushed as docs/outline/build-outline.md).
 - Critiques: outline/critique-regulatory.md (R-01..35: 1 critical, 19 major, 15 minor) and outline/critique-logic.md
   (L-01..68: 7 critical, 43 major, 18 minor). Both pushed to docs/outline/.
-- IN PROGRESS: revision agent writing outline/build-outline-v2.md + outline/resolution-log.md (every R/L id FIXED / FIXED-DIFFERENTLY /
+- DONE: outline v2 (178 KB, 49-page PDF eBMR-Build-Outline-v0.2.pdf; all 103 issues resolved: 93 fixed, 10 fixed differently).
+  Pushed as docs/outline/build-outline.md (+ resolution-log.md, pdf/). Download page updated with both PDFs.
+  WAITING ON USER: approve outline + answer 14 decisions (section 13); expert decisions on review pack.
+- (old) revision agent wrote outline/build-outline-v2.md + outline/resolution-log.md (every R/L id FIXED / FIXED-DIFFERENTLY /
   REJECTED). If interrupted: relaunch with the same brief; it appends section by section.
 - Then: check resolution log covers all 103 ids, push v2, send user summary + decisions (section 13).
 
