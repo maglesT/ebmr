@@ -59,7 +59,7 @@ SQL functions granted to the application role: `reserve_counter_ceiling`, `seque
 
 ## Tests
 
-`packages/kernel/test/continuity/`: `numbers.test.ts` (INV-27 counters, bypass attempts, registry, pg_temp shadowing), `restore.test.ts` (a real pg_dump/pg_restore disaster: INV-27 and INV-08), `backup-drill.test.ts` (DI-45), `security-baseline.test.ts` and `hardening.test.ts` (DI-13). Actor contexts come only from `test/continuity/helpers.ts#testActor`.
+`packages/kernel/test/continuity/`: `numbers.test.ts` (INV-27 counters, bypass attempts, registry, pg_temp shadowing), `restore.test.ts` (a real pg_dump/pg_restore disaster: INV-27 and INV-08), `backup-drill.test.ts` (DI-45), `security-baseline.test.ts` and `hardening.test.ts` (DI-13). Actor contexts come only from `test/continuity/helpers.ts#testActor`. The restore and drill tests need `pg_dump` and `pg_restore` of version 16 or later on PATH, or in the directory named by `EBMR_PG_BIN`.
 
 ## Open points for the lead
 

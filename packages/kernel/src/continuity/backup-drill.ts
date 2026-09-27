@@ -134,7 +134,7 @@ export interface RestoreDrillOptions {
   backupDir?: string;
   /** 32-byte key: the drill backup is encrypted at rest and decrypted for the restore. */
   encryptionKey?: Buffer;
-  /** Directory holding pg_dump and pg_restore (default: found on PATH). */
+  /** Directory holding pg_dump and pg_restore (default: EBMR_PG_BIN, else PATH). */
   pgBin?: string;
   keepRestoredDatabase?: boolean;
   /** Revoke CONNECT from PUBLIC on the restored database so no application can reach it (default true). */
@@ -176,8 +176,10 @@ function runProcess(cmd: string, args: string[], env: Record<string, string> = {
   });
 }
 
+/** pg_dump / pg_restore from the given directory, else from EBMR_PG_BIN, else from PATH. */
 function tool(name: 'pg_dump' | 'pg_restore', pgBin?: string): string {
-  return pgBin ? join(pgBin, name) : name;
+  const dir = pgBin ?? process.env['EBMR_PG_BIN'];
+  return dir ? join(dir, name) : name;
 }
 
 async function toolVersion(bin: string): Promise<string | null> {

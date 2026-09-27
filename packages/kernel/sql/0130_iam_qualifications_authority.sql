@@ -310,6 +310,24 @@ begin
 end
 $$;
 
+-- DI-18 guard for GMP data write paths: an administrator role (any role holding an ADMINISTRATION
+-- permission) or a break-glass account never creates or changes GMP data, whatever else it holds.
+-- Modules call it in their GMP write functions; the kernel audit writer can call it for tables
+-- classified as GMP data.
+create function iam.assert_not_administrator() returns jsonb
+language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
+declare
+  v_actor jsonb := iam.assert_validated_actor();
+begin
+  if iam.role_has_domain(v_actor ->> 'role_code', 'ADMINISTRATION', clock_timestamp())
+     or coalesce((select is_break_glass from iam.account where id = (v_actor ->> 'account_id')::uuid), false) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-IAM-042 DI-18: administrator role %s never creates or changes GMP data', v_actor ->> 'role_code');
+  end if;
+  return v_actor;
+end
+$$;
+
 -- Permissions an account holds in a scope at an instant (for screens; not a guard).
 create function iam.permissions_held(p_account uuid, p_scope jsonb default '{}'::jsonb, p_at timestamptz default null) returns text[]
 language sql stable security definer set search_path = pg_catalog, iam, pg_temp as $$
@@ -529,6 +547,7 @@ grant select on iam.qualification_type, iam.qualification_source, iam.mirror_hea
                 iam.qualification_requirement, iam.authority_evaluation, iam.open_security_alert to ebmr_app;
 grant execute on function iam.qualification_source_fresh(text, timestamptz),
                           iam.evaluate_authority(uuid, uuid, text, jsonb, timestamptz, text), iam.require_permission(text, jsonb),
+                          iam.assert_not_administrator(),
                           iam.permissions_held(uuid, jsonb, timestamptz), iam.create_qualification_type(text, text, text),
                           iam.add_qualification_requirement(text, text, text, jsonb, text), iam.end_qualification_requirement(uuid),
                           iam.record_qualification(uuid, text, timestamptz, timestamptz, text, text),

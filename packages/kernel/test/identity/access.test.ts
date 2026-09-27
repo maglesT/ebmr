@@ -289,6 +289,18 @@ describe('administrator separation (DI-18, INV-11)', () => {
     expect(gmp.rows[0]).toEqual({ n: 0 });
   });
 
+  it('[DI-18] GMP data write paths refuse every administrator role, whatever the permission check says', async () => {
+    const guarded = (ctx: ActorContext) =>
+      withCommand(db.app, ctx, async (c) => {
+        await c.query('select iam.assert_not_administrator()');
+        await c.query('insert into testgmp.sample (batch_id, value) values ($1, 1)', [randomUUID()]);
+      });
+    await expectRefused(guarded(adm.admin), 'EBMR-IAM-042', /DI-18/);
+    const vendor = await seedActor(db, { roleCode: 'VENDOR_SUPPORT', acknowledgeEsig: false });
+    await expectRefused(guarded(vendor), 'EBMR-IAM-042');
+    await guarded(await seedActor(db, { acknowledgeEsig: false }));
+  });
+
   it('[DI-18] a break-glass login needs a second person\'s approval, raises an alarm, cannot sign and is reviewed afterwards', async () => {
     const admin2 = await seedActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', acknowledgeEsig: false });
     const bgLogin = `bg-${randomBytes(4).toString('hex')}`;

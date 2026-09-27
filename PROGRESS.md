@@ -151,3 +151,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   seed-data interpretations (B-01 mfg + 5 y for every licence form; EU test records as batch documentation; management
   review and EU PUPSIT typed GUIDANCE; FDA 2004 values GUIDANCE; unverified rows flagged S/U/GK; unverifiable effective
   dates default to 2023-12-28).
+- 2026-09-27 ~21:20 UTC: B6 (continuity) finished: 50 tests; DI-45 IMPLEMENTED; DI-13 partly (TLS, kiosk hardening;
+  formula-permission line due Phase 2, evidence-package test after esig); INV-27 and the restore part of INV-08 proven with
+  a real pg_dump/pg_restore disaster simulation. Site-services batch-number register (schema site) with IN-18 tests.
+  Docs: docs/security/{threat-model,asvs-l2-review,security-baseline}.md, docs/operations/{ha-and-restore,
+  restore-drill-report-template}.md; scripts ops/backup/{backup,drill}.sh.
+  B6 integration items: export continuity; register other modules' identifier sequences in a migration >= 0690
+  (records incident/investigation numbers, platform outbox/state_history ids, iam ids); iam.register_device ->
+  continuity.assert_device_hardened for SHARED/GRADE_A_B; restore approval via esig; lost_window -> records incident;
+  continuity.alarm -> platform alarms; iam permission checks on restore/attestation/alarm functions; CI needs
+  pg_dump/pg_restore 16 on the runner. Owner decisions: RPO/RTO and backup schedule proposals, WORM storage product,
+  DB-admin vs storage-admin separation. Residual risk: data-only reload keeps DB incarnation (caught by ledger check only).
