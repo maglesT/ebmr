@@ -1,0 +1,35 @@
+id: ST-35
+title: Intervention and stoppage log, and line clearance
+part: C
+group: "Theme 5: Interventions catalogue and log"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 466
+  - 363
+  - 364
+sources: "EU Annex 1: 8.17, 9.34 | US: 211.100(a)-(b), 211.188(b); FDA-AP XII."
+behaviour: |-
+  - **Each intervention or stoppage records:**
+    - start and end (duration computed, never typed);
+    - catalogue ID, inherent/corrective, zone or filling position;
+    - operators involved (qualification and APS coverage checked);
+    - units removed, and whether line clearance was done.
+  - **Corrective or major interventions also record:** what failed, what was adjusted or replaced, the tools and parts used with their sterilisation records, and immediate EM/PM where configured.
+  - **Stops from PLC/SCADA** create entries automatically. A stop with no matching entry is flagged, and operators and reason are required before review.
+  - **Line clearance.** If the catalogue requires clearance, or the intervention exceeds its maximum duration, restart is blocked until a clearance record exists: scope, units and positions removed, and reconciliation. Removed units are excluded from good output and counted in yield.
+  - **Removal counts.** Removing a number of units different from the catalogue value in production is a deviation.
+  - Links: glove sampling (ST-22), extra sterility samples (ST-66), timeline (ST-70).
+catalog_test: Replay a 7-min PLC stop with no entry → review flag. Log a needle realignment (local clearance) and restart without a clearance record → blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. FDA-AP adds line-clearance rules for major interventions.
+scope: aseptic

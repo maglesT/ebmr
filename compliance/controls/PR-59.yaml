@@ -1,0 +1,47 @@
+id: PR-59
+title: Record retention, record-location register and archiving
+part: B
+group: J. Traceability, product quality review and records retention
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 103
+  - 102
+  - 82
+  - 42
+  - 146
+sources: "US: 211.180(a)-(d); 211.198(b); 211.68(b); 11.10(b)-(c) | EU: Ch.4 Principle; 4.10; 4.11; 4.12; Annex 11 sections 7, 8 and 17 | ICH/EMA/draft: DSCSA 582(b) (s)"
+behaviour: |-
+  - Retention date for each batch record: the latest of all that apply:
+    - US: expiry + 1 year (for OTC products exempt from expiry dating: distribution + 3 years);
+    - EU in set: the later of expiry + 1 year and QP certification + 5 years;
+    - DSCSA transaction and serial data: at least 6 years (s);
+    - IMP: 5 years after the last trial ends;
+    - longer national or product rules, and legal holds.
+  - Recalculation and edge cases:
+    - The date is recomputed if the expiry changes.
+    - For batches never certified, the default is the later of expiry + 1 year and disposition + 5 years (F-2).
+    - Component, container, closure and labeling records are kept for 1 year after the expiry of the last lot that used them (211.180(b); see F-10).
+    - Validation raw data that supported release are kept at least as long as the batches they support (4.12).
+  - Deletion: impossible before the retention date. Afterwards it needs a QA-approved, audit-trailed disposition.
+  - Scope: the full record, including audit trails, attachments and linked historian extracts.
+  - Location register: maps each activity to its record and its storage location.
+  - Archive:
+    - checksums, periodic readability checks and tested migration;
+    - a complete human-readable rendering on demand;
+    - records stay available at the site, or can be retrieved electronically at once, for inspection.
+catalog_test: A batch with a 24-month shelf life certified on 2026-01-10 gets a retention date of 2031-01-10. With a 60-month shelf life, expiry + 1 year governs. Deleting before the date is refused and logged.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "EU is usually longer because of the 5 years after certification; US is tied to expiry. Stricter wins: the maximum (D-7)."
+type_detail: ENFORCED (retention floors; no deletion before the retention date) + CONFIGURABLE (longer national, product or legal-hold rules)

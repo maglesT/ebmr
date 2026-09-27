@@ -1,0 +1,26 @@
+id: IN-39
+title: "OSD room environment: pressure differentials, temperature and humidity"
+part: D
+group: Tablets edition
+editions:
+  - tablets
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 265
+  - 677
+sources: Schedule M Part VIII 1.5, 1.14 (non-overlapping limits, 5-15 Pa vs 15-30 Pa example), 1.17, 1.25, 1.27-1.28.
+behaviour: Each step records room ID and captures differential pressure, temperature and RH at start and during long steps (manual entry or BMS/EMS import) against room-specific alert and action limits. The room master data validator refuses pressure ranges of adjacent rooms that overlap (e.g., 5-15 Pa next to 15-30 Pa is rejected). An excursion notifies Production and QA immediately and links to the batch as a deviation. Moisture-sensitive products may carry tighter product-specific RH limits.
+catalog_test: enter a differential pressure below the action limit at compression start; the step is blocked or a deviation opens and both departments are notified.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**stricter/more prescriptive** than FDA 211.46 [gk] and EU Chapter 3 [gk] (no numeric cascade rules for non-sterile products)."
+type_detail: ENFORCED (limit checks); CONFIGURABLE (room limits).
+notes: "Source check: P for 1.5 and 1.14 (re-read); P~ for the others."

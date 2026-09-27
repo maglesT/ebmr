@@ -1,0 +1,14 @@
+{
+  "name": "@ebmr/site-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Site gateway: scale and printer drivers, OPC UA client, buffering, device identity",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ebmr/kernel": "workspace:0.1.0",
+    "@ebmr/integration-sdk": "workspace:0.1.0"
+  }
+}

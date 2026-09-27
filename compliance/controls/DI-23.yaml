@@ -1,0 +1,31 @@
+id: DI-23
+title: "Audit trail: always on, immutable, tamper-evident"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 645
+  - 168
+  - 44
+sources: "US: 11.10(e) (secure), 11.10(a) (discern altered records); FDA DI Q&A Q4, Q12 (inference; the Q&A does not itself say who may switch audit trails off) | EU: Annex 11 §9 | ICH/EMA/draft: draft Annex 11 §12 (should not be possible to turn off, edit or delete) (draft)(s)"
+behaviour: |-
+  - No tenant, site, MBR, role or administrator setting can disable, pause, narrow at capture time, edit or purge the GMP audit trail.
+  - Audit-related settings (e.g., adding event types) can be changed only by independent administrators (DI-18) under change control. The change itself goes to the protected system log and is flagged for QA.
+  - No UI or API function deletes audit entries during retention.
+  - The trail is tamper-evident: it is hash-chained, a scheduled verification job checks the chain, and a break raises a critical alarm. DB-level activity monitoring detects direct changes.
+catalog_test: Search the UI, the API and the admin console for any disable or purge function. None exists. In a test environment, change an audit row directly in the DB. The verification job alarms and names the entry.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Neither the 2011 EU text nor the FDA Q&A explicitly forbids deactivation. 11.10(e) requires a secure trail, and the draft forbids deactivation outright, so the kernel follows the draft.
+type_detail: ENFORCED. The hash chain is the DESIGN-CHOICE used to meet "secure" and "ability to discern altered records".

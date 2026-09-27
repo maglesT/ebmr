@@ -1,0 +1,24 @@
+id: IN-14
+title: Master packaging instructions
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 240
+sources: Schedule M Part I 17.3.7 (packaging instructions).
+behaviour: "A separate approved packaging master per product x pack size x pack type, linked to the MBR, containing: product name; form, strength and method of application where relevant; pack size; complete packaging bill of materials for the standard batch with quantities, sizes, types and each material's specification code; an image of each approved printed component with the positions of batch number, expiry date and (for India packs) manufacturing date and MRP marked; line-clearance checks before and after packaging; the operation description and equipment; IPCs with sampling instructions and limits. A packaging order cannot start unless every printed component in the bill has an attached approved specimen."
+catalog_test: create two pack sizes of one product; each needs its own approved packaging master.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU Chapter 4 section 4.19 [chk] and FDA 211.186(b) master record content [gk]."
+notes: "Source check: P."

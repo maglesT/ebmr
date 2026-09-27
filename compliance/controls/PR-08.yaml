@@ -1,0 +1,27 @@
+id: PR-08
+title: CPP and IPC limit model (validated, registered and internal tiers)
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 195
+  - 189
+  - 90
+sources: "US: 211.110(b); 211.186(b)(9); 211.100(b) | EU: Ch.4 4.18(d)-(e); Ch.5 5.43 | ICH/EMA/draft: EU Annex 15 section 5 (u); Annex 16 section 3 and EMA Q&A on Annex 16 (s)"
+behaviour: 'Each CPP and IPC field stores its unit, precision, limits and source (validation report or registration). Limits are tiered: registered, internal action, and optional alert. A result outside a registered limit automatically creates a deviation flagged "registration-relevant", which appears on the QCU/QP release screen. Out-of-limit values are stored exactly as acquired. The operator cannot suppress the flag, and re-entry is a correction, not a replacement.'
+catalog_test: A value outside a registered limit creates a deviation with the registration flag, and it is visible on the release screen. The operator cannot clear the flag.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US is more explicit that in-process specifications must match final specifications and be derived statistically where possible (211.110(b)). Tagging registered limits serves the EU Annex 16 route (s), which has no US counterpart.
+type_detail: "ENFORCED (units, limits and source on every CPP/IPC; out-of-limit values stored and flagged) + CONFIGURABLE (limit tiers and breach action). Default: breaching a registered or action limit stops the next dependent step until a deviation is opened. Allowed: for internal (non-registered) limits, the step may continue with a deviation."

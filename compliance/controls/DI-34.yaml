@@ -1,0 +1,29 @@
+id: DI-34
+title: Operational sequencing checks
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 49
+sources: "US: 11.10(f); 211.100(b) | EU: Ch.4 4.20(h) (signed authorisation for departures); Annex 11 Principle (no loss of process control) | ICH/EMA/draft: none"
+behaviour: |-
+  - An execution state machine enforces:
+  - MBR step order and declared parallel branches;
+  - prerequisites: line clearance, equipment and material status, IPC due, timers, QA gates;
+  - guarded batch lifecycle transitions: Issued, In Execution, Production Complete, Under Review, Released/Rejected, with Hold and Cancelled.
+  - Out-of-sequence execution is possible only through a deviation path approved in the system. It is recorded and appears in review (design).
+catalog_test: Try step N+1 before step N. Blocked. Try disposition before review is complete. Blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Only the US has an explicit sequencing-check rule, and it is adopted for all markets.
+type_detail: ENFORCED wherever the MBR declares sequence (the rule applies sequencing "as appropriate").

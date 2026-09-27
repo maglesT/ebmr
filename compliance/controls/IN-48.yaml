@@ -1,0 +1,23 @@
+id: IN-48
+title: Sterile filtration
+part: D
+group: Injectables edition
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 258
+sources: Schedule M Part II 6.11.2 (6.11.2.4-6.11.2.9).
+behaviour: The filtration step records filter ID/lot and pore rating (0.22 micrometre or equivalent), pre-use integrity result (after sterilisation for EU-profile batches), post-use integrity result (instrument import where possible), filtration start/stop time and differential pressure against validated ranges (outside range forces an investigation note), post-use integrity of critical vent filters, and the product hold time from end of compounding to filling. A failed integrity test puts the batch on hold with a deviation. A filter ID cannot be used beyond one working day unless flagged as validated for extended use; for EU-profile batches a liquid sterilising filter is also limited to a single batch. Filtration is refused as the sole method for a product flagged as terminally sterilisable.
+catalog_test: "enter a failing post-use result; the batch goes on hold. Reuse a filter on day 2 without validation; blocked. EU profile, same filter for a second batch on day 1: blocked."
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: pre-use testing **stricter** than FDA 2004 (pre-use test may be performed; post-use testing routine) [chk]; **weaker** than EU Annex 1 (2022) 8.87 (pre-use post-sterilisation integrity test unless justified by risk; post-use before removal from housing) [chk] and 8.94 (single batch and at most one working day) [chk].
+notes: "Source check: P (6.11.2.5-6.11.2.8 re-read)."

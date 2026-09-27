@@ -1,0 +1,24 @@
+id: IN-21
+title: Line clearance, status labelling and identification
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 246
+sources: Schedule M Part I 18.2.5, 18.4.1-18.4.2 (identification; checks before processing), 18.5.2-18.5.3 (packaging line clearance by checklist; line identification).
+behaviour: Rooms, lines and major equipment carry a status (in use for product/strength/batch/stage; cleaned; to be cleaned; out of service) shown on screen and on printable labels; containers of materials and bulk carry product, strength, batch and stage. An electronic line-clearance checklist, recording the previous product, is a gating step before (and, for packaging, after) each operation; its signer and time appear in the batch record. Each packaging line displays the product and batch in the line status. Required environmental readings for the step are captured into the batch record.
+catalog_test: start compression on a room with status "to be cleaned"; refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU 5.40, 5.50, 5.51 [chk] and FDA 211.105(a), 211.130(e) and 211.188(b)(6) [chk]."
+notes: "Source check: P."

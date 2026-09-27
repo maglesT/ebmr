@@ -1,0 +1,24 @@
+id: IN-52
+title: Market-profile rule resolution
+part: D
+group: Kernel rule engine
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 678
+sources: Schedule M (all Parts cited above); Drugs Rules; 21 CFR 211; EU GMP Chapters 4-5, Annexes 1 and 11.
+behaviour: Each batch carries its target markets (India domestic; export country list), and each pack/SKU carries its destination class. A versioned, market-keyed rule table is consulted at MBR approval, batch start, execution, release, sample retention and archiving. For each parameter the engine resolves the strictest value across India (always) and the batch's markets, stores the resolved value and the market that drove it in the batch record, and re-resolves if the market list changes before release (which forces QA review). Section B lists the resolved values. Resolution never loosens an Indian requirement for an export-only batch, because Indian GMP applies to everything made under the licence.
+catalog_test: "set up one tablet and one injectable product, each with a batch for {India} and a batch for {India, US, EU}. The {India, US, EU} batches resolve to: retention max(expiry + 1 y, mfg + 5 y, QP certification + 5 y); reference samples expiry + 1 y; annual self-inspection; new number on rework; identity test per excipient lot; plus, for the tablet, the 30-minute compression IPC and IP weight bands; and, for the injectable, any contaminated APS unit fails, Grade A viable no growth, PUPSIT and a single-batch sterilising filter. The resolution log names the governing market for each value."
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: '**different** (cross-cutting mechanism); implements "stricter rule wins".'
+notes: "Source check: P for Indian values marked P elsewhere; U where the underlying control is S/U (IN-08, IN-32, IN-34)."

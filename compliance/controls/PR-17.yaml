@@ -1,0 +1,51 @@
+id: PR-17
+title: Receipt, lot identity and approved source
+part: B
+group: "C. Materials: receipt, status, dispensing and charge-in"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 597
+  - 598
+  - 621
+  - 630
+  - 638
+  - 632
+  - 637
+  - 631
+  - 599
+  - 35
+  - 141
+sources: "US: 211.80(a),(d); 211.82(a)-(b); 211.84(a)-(c); 211.184(a)-(b) | EU: Ch.4 4.22; 4.23; Ch.5 5.3; 5.4; 5.6; 5.27; 5.29; 5.30; 5.31; 5.33; 5.45 | ICH/EMA/draft: none"
+behaviour: |-
+  - Lot identity:
+    - Each lot of each shipment gets a unique internal receiving/control code. The same supplier lot arriving in two shipments gets two codes.
+    - Each supplier batch in a multi-batch delivery becomes a separate internal lot.
+    - The receipt record holds: name on the delivery note and containers; in-house name/code; date received; supplier and manufacturer; manufacturer batch number; total quantity and number of containers; internal lot number; remarks.
+  - Receiving checks and quarantine:
+    - Each container (or container group) is visually examined for labeling, damage, seal integrity (including any tamper-evident seal) and contamination. The examiner's identity is recorded.
+    - If documents or labels disagree with the approved manufacturer/supplier list, the lot is blocked and routed to QC.
+    - New lots default to Quarantine.
+  - Problems after receipt: a problem with a container found at storage, dispensing or charging raises a record to QC and blocks that container.
+  - Sampling:
+    - Sampled containers are marked as sampled.
+    - Sample labels identify the material, lot, source container, date and sampler.
+    - Stratified sub-samples cannot be composited.
+  - Other rules:
+    - Bought-in intermediates and bulk follow the same flow as starting materials.
+    - The approved-source check is repeated at dispensing (design choice).
+catalog_test: One delivery containing three supplier batches creates three lots. A supplier label naming an unapproved manufacturer blocks the lot. A lot with no complete receipt record cannot be issued.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU requires a check against approved manufacturer/supplier data at every delivery (5.30) and API supply-chain traceability (5.29). US requires a distinct code for each lot in each shipment (211.80(d)). The kernel applies both.
+type_detail: "ENFORCED at the eBMR boundary: a lot with an incomplete receipt record cannot be dispensed or issued. The receipt functions themselves are a DESIGN-CHOICE, used only if the eBMR/MES suite performs receipt; otherwise ERP/WMS does, over an interface."

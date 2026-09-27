@@ -1,0 +1,28 @@
+id: PR-48
+title: Returned products
+part: B
+group: "G. Material and product status: quarantine, rejected, reprocessed, recovered and returned"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 137
+sources: "US: 211.204; 211.208 | EU: Ch.5 5.70; Ch.4 4.29 (returns) | ICH/EMA/draft: none"
+behaviour: |-
+  - Receipt: booking in returned goods creates a quarantined lot of type "returned", linked to its original batch.
+  - Assessment: disposition requires a QC assessment record with a QC e-signature. It considers the product's nature, its storage requirements, its condition and history, and the time since issue.
+  - Disposition rules: the default is destroy. If any doubt is recorded, the only options are destruction or chemical recovery of the active substance.
+  - Record content: the record holds name, label potency, dosage form, lot, reason for return, quantity, disposition date and final disposition.
+  - Investigation: if the reason for return implicates other batches, a 211.192 investigation is linked.
+catalog_test: Repackaging returned units without a QC assessment is blocked. After a "doubt" assessment, only destroy or chemical recovery is offered.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US lets examination or testing resolve doubts about storage conditions. EU does not allow re-issue or re-use once any doubt exists. EU is stricter, and the kernel applies it to all markets (D-12).

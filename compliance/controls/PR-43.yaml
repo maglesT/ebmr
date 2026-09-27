@@ -1,0 +1,32 @@
+id: PR-43
+title: Expiry dating
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 607
+  - 620
+  - 27
+sources: "US: 211.137(a)-(d); 211.166(a)-(b); 211.194(e) | EU: Ch.4 4.16 (shelf life in finished-product specification); 4.19(e) | ICH/EMA/draft: none"
+behaviour: |-
+  - Calculation: the printed and recorded expiry is derived from the shelf life stated in the currently effective finished-product specification or product master, using the defined start-of-shelf-life rule. It is never typed.
+  - Stability basis: the shelf life must reference approved stability data.
+  - Labeling: storage conditions on the labeling are linked to the shelf life. Products reconstituted at dispensing carry both expiries.
+  - Tentative dating: a shelf life based on accelerated data is flagged, so the batches made under it can be found.
+  - Stability samples: samples drawn from a batch are recorded with quantity, container-closure, storage condition and study ID.
+catalog_test: Changing the shelf life without a stability reference is blocked. A new shelf life applies only to batches made after its effective date.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Equivalent.
+type_detail: ENFORCED + CONFIGURABLE (start-of-shelf-life rule, set per product with QA approval; see F-9)

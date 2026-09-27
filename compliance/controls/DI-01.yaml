@@ -1,0 +1,39 @@
+id: DI-01
+title: Record-type, official-record and raw-data register
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 96
+  - 616
+  - 59
+  - 648
+  - 227
+  - 43
+sources: "US: 11.1(b), 11.1(e), 11.2(a), 11.3(b)(4),(6),(9); FDA DI Q&A Q10, Q12; FDA Part 11 Scope and Application guidance (2003) sec. III (s) | EU: Ch.4 Principle (records include raw data; for electronic records the user defines raw data, at minimum all data behind quality decisions), 4.1, 4.10 | ICH/EMA/draft: draft Ch.4 data governance / ALCOA++ (draft)(u)"
+behaviour: |-
+  - Each tenant keeps a controlled register (versioned, approved by QA e-signature) of every GMP record type the eBMR holds or references: batch/packaging record, logbooks, forms, attachments, device printouts, interface-sourced data. For each type it records:
+  - official medium (electronic, paper or hybrid);
+  - which item is the original and which are copies;
+  - raw / derived / informational class;
+  - owner, retained metadata, retention rule ID and review rule;
+  - where the record is stored.
+  - Raw-data floor: every data item a quality decision relies on is raw data. This covers release, IPC acceptance, yield and reconciliation evaluation, and deviation decisions. The engine derives "decision use" from limits, gates and review rules, and blocks approval of an MBR or register that classes such a field as anything other than raw.
+  - For anything executed in the eBMR, the electronic record is the official record. PDFs and printouts are copies and are marked as copies (DI-40). Each hybrid point must be declared with its linkage method (DI-41, DI-43).
+  - All eBMR records are treated as Part 11 records. The design does not rely on the 2003 enforcement-discretion policy, because the eBMR replaces paper and users create and modify GMP data in normal operation.
+catalog_test: Classify an IPC result that feeds an acceptance limit as "informational" and try to approve the MBR. It is blocked. The register shows the official medium and storage location for each record type.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU Ch.4 is explicit on defining raw data. FDA gets to the same place through Q10/Q12 and the completeness wording in 211.188/211.194. There is no conflict, and the EU wording sets the floor.
+type_detail: "ENFORCED: the register must exist, and the raw-data floor is checked at MBR/register approval. Register content is CONFIGURABLE per tenant."

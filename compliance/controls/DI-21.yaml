@@ -1,0 +1,36 @@
+id: DI-21
+title: Training of system users, e-signature accountability policy and signature register
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 3
+  - 52
+  - 655
+  - 624
+sources: "US: 11.10(i), 11.10(j); 211.25(a); FDA DI Q&A Q16 | EU: Annex 11 §2; Ch.4 4.29 (personnel records incl. signature lists and training) | ICH/EMA/draft: none"
+behaviour: |-
+  - Before a user can execute, verify, review or approve an action, the engine checks that the user holds a current qualification for that operation, SOP version and MBR (via LMS integration or an internal curriculum). A lapse is a hard stop that names the missing item. A supervisor cannot sign on the user's behalf.
+  - The qualification evidence as it stood at signing time is snapshotted with each executed signature.
+  - Required training content: using the eBMR; preventing and detecting data-integrity problems; audit-trail review (for reviewers).
+  - Training also covers administrators, key users and the vendor's developers and maintainers (evidenced through supplier qualification).
+  - A written e-signature accountability policy exists. Before first signing, a user acknowledges it electronically, and the acknowledgment is recorded (design).
+  - The signature register maps each user ID to full name, initials (if used), roles, permitted signature meanings and validity dates. It is kept at least as long as any record that user signed, and it can resolve any signer as of the signing date.
+  - Injectables: aseptic roles also need current gowning and APS qualification. That check lives in the sterile catalog.
+catalog_test: Expire a user's SOP training. Execution and verification are both blocked. A new user tries to sign before acknowledging the policy. Blocked. An archived signer resolves to the name and role valid on the signing date.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 11.10(i) explicitly extends training duties to developers and maintainers. EU Ch.4 4.29 explicitly requires signature lists. Both apply.
+type_detail: "ENFORCED (signature register; acknowledgment before first signing is an engine-enforced DESIGN-CHOICE). CONFIGURABLE for training gating: default hard block, which may be relaxed to a flag-and-review mode only by QA-approved configuration. The rules require trained staff; they do not require system gating."

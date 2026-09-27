@@ -1,0 +1,26 @@
+id: IN-30
+title: Loan-licence and contract manufacture
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 272
+sources: Schedule M Part I 9.1-9.5 (loan licence and contract production; 9.3.x duties of the loan licensee/contract giver).
+behaviour: A batch can belong to a loan licensee or contract giver while made on the host site; the record header carries both the host manufacturing licence number and the loan licence number (IN-31, section C); completed records can be shared read-only with the loan licensee/contract giver; the release workflow shows which party's authorised person releases, per the written contract.
+catalog_test: create a loan-licence batch; both licence numbers appear and a contract-giver reviewer cannot edit.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**different**: the loan licence is an Indian legal construct (Drugs Rules Forms 25-A/28-A, S); EU Chapter 7 outsourced activities [gk] and FDA contract-manufacturing expectations [gk] cover the contract part."
+type_detail: CONFIGURABLE (party model); ENFORCED (read-only sharing).
+notes: "Source check: P."

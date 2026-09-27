@@ -1,0 +1,39 @@
+id: ST-67
+title: Sterility-positive handling and investigation
+part: C
+group: "Theme 13: Sterility, endotoxin and particulate testing, and release"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 357
+  - 358
+  - 359
+sources: "EU Annex 1: 3.2 | US: 211.192, 211.165(a), 211.167(a), 211.180(e); FDA-AP XI.C, XI.C.1–7."
+behaviour: |-
+  - **Status on a positive.** A positive sets the batch to "sterility failure: presumed non-sterile" and blocks release.
+  - **Invalidation and retest.** Invalidation needs a QA-approved record with conclusive evidence that the contamination arose in the laboratory. A retest can be linked only after that approval. A QA conclusion of "inconclusive" allows only "reject". Original results are never replaced. Tests invalidated before incubation remain visible with their deviation reference.
+  - **Investigation template.** Pre-filled from the eBMR with:
+    - species ID of the isolate, compared with EM, PM and bioburden isolates using the same ID method;
+    - lab records and lab EM trends;
+    - short- and long-term production EM trends, and PM trends;
+    - bioburden trend;
+    - batch events: interventions, alarms, DP and particle excursions, utility events;
+    - maintenance and construction work orders;
+    - prior deviations and changes;
+    - a HEPA retest task (ST-17).
+  - **Associated batches** are proposed per 211.192: batches sharing the same line, fill window, sterilisation loads, bulk, component lots or personnel.
+  - **Trending.** Sterility records carry product, container type, line, sterilisation mode (aseptic/terminal), sampler, analyst and environment. This enables the required trend views, including initial-positive rate for aseptic vs terminal.
+  - A conclusion of "lab error" with no specific evidence attached is refused, whatever the laboratory's history.
+catalog_test: Post a positive, then link a passing retest without an approved invalidation → refused. Mark the outcome "inconclusive" → only "reject" is offered.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA-AP is more detailed. EU requires investigation before certification with batch-scope rationale (ST-71). Apply both.
+scope: all

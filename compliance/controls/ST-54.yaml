@@ -1,0 +1,34 @@
+id: ST-54
+title: Pre-sterilisation bioburden per batch
+part: C
+group: "Theme 8: Sterilising filtration, filter integrity (PUPSIT/post-use) and bioburden"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 515
+  - 574
+  - 351
+sources: "EU Annex 1: 8.93, 10.3 | US: 211.110(a), 211.113(b); FDA-AP X.C, IX.B, XI.C.5."
+behaviour: |-
+  - **Every batch** has a bioburden sample at the worst-case point:
+    - aseptic: from the bulk immediately before final sterile filtration; in a redundant set-up, before the *first* filter;
+    - terminal: immediately before loading into the steriliser;
+    - in both cases, at the end of any hold.
+  - The sample is timestamped relative to the hold and to the filtration or cycle start. Sampling after filtration started is a sequence violation. Sampling at the start of a long hold raises a warning. The sampling system must not introduce contamination.
+  - The result is checked against the product limit, which is tied to the filter challenge or cycle lethality. A result over the limit raises a deviation. The result is a mandatory release item and is trended per product.
+  - For overkill terminal cycles, monitoring at scheduled intervals instead of every batch is allowed with justification. Parametric release: ST-61.
+catalog_test: Filtration start without a bioburden sample → blocked. Release with the result pending → blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. EU is explicit about per-batch sampling and the sampling point.
+scope: all (aseptic and terminal)
+type_detail: ENFORCED. The overkill-cycle interval option is CONFIGURABLE with justification.

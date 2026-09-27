@@ -1,0 +1,28 @@
+id: ST-01
+title: Regulatory-floor table for every numeric limit
+part: C
+group: "Theme 0: Cross-cutting rules (apply to every theme)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 391
+sources: "EU Annex 1: 1 (Scope, para 2), 4.14, 4.29(iii), 4.30 | US: none equivalent (FDA-AP Table 1 note c lets firms set alternative microbial action levels with justification)."
+behaviour: |-
+  - The system ships a locked, versioned table of every numeric floor used in this catalog. Examples: Table 5/Table 6 limits; 6-month (Grade A/B) and 12-month (Grade C/D) requalification; about 6-month APS per process, line and shift; 12-month operator APS, gowning and visual-inspection requalification; 4 h maximum settle-plate exposure; 28 L/min minimum Grade A counter flow; weekly steriliser leak test; daily air-removal test; annual worst-case heat-cycle revalidation; 0.22 µm maximum sterilising-filter rating; 100 mL fusion-seal CCI threshold. Each entry stores its source, clause, market profile and whether it is a **hard number** or an Annex 1 **guidance value**.
+  - Saving a site value looser than a hard number is rejected, with no override. Loosening an Annex 1 *guidance value* (10 Pa step between grades, clean-up time under 20 min, 0.36–0.54 m/s UDAF speed) needs a CCS justification reference and QA approval, and is shown on every affected batch.
+  - Every limit is versioned. Each result, check and timer stores the limit version it was evaluated against.
+catalog_test: Configure a Grade B active-air action limit of 15 CFU/m³ → rejected. Configure a 7 Pa B/C differential → accepted only with a CCS reference and QA e-signature.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU is stricter. It turns stated numbers into minimums, while FDA-AP allows justified alternative microbial action levels.
+scope: all
+type_detail: ENFORCED (floor table locked). Individual site values are CONFIGURABLE only in the tightening direction.

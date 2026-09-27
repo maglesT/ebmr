@@ -1,0 +1,30 @@
+id: PR-14
+title: "Significant steps: performer plus checker, and the limited scope of single-person automated checking"
+part: B
+group: B. Batch record issuance and execution
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 9
+  - 39
+sources: 'US: 211.68(a)-(c); 211.188(b)(11); 211.101(c)-(d); 211.103; 211.182 | EU: Ch.4 4.20(c); 4.21(c) (checker "where appropriate"); Annex 11 section 6 | ICH/EMA/draft: none'
+behaviour: |-
+  The master flags steps as significant. Each significant step records a performer and a checker or supervisor, who must be a different authenticated individual.
+  - Where "automated performance" may apply: the mode may cut the humans involved to one checker only for step types mapped to 211.101(c), 211.101(d), 211.103, 211.182 and 211.188(b)(11).
+  - Device conditions: the device must be current in its calibration/check programme (211.68(a)), and the automated function must be validated (211.68(b)).
+  - What is recorded in that mode: the device ID and raw data, plus one checker's e-signature whose stated meaning is "automated operation checked".
+  - If automation is unavailable, the step escalates automatically to two-person mode and the fallback appears as an exception. "Unavailable" means the device is offline, a value is keyed manually, or a barcode is overridden.
+  - What the flag can never relax: any other two-person rule, such as the independent check of the master (211.186(a)), the second-person verification of the 100% visual check of hand-applied labeling (211.122(g)(3)), and second-person review of lab records (211.194(a)(8)).
+catalog_test: With the scale disconnected during an automated dispense, the step demands a second, different user. Enabling automated mode on a 211.122(g)(3) step is refused at configuration time.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US requires a checker on every significant step. EU requires one only where appropriate. US is stricter, and the kernel applies it to all markets.

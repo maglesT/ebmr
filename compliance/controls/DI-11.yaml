@@ -1,0 +1,42 @@
+id: DI-11
+title: Periodic evaluation and routine checks of the eBMR itself
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 158
+  - 178
+  - 7
+sources: "US: 211.68(a) (routine checks under a written program, records kept) | EU: Annex 11 §11 | ICH/EMA/draft: draft Annex 11 §14 periodic review (draft)(u)"
+behaviour: |-
+  - For a chosen period the system generates a periodic-review pack covering:
+  - software releases and configuration changes;
+  - open validation gaps;
+  - incidents and interface failures;
+  - access changes and privileged activity;
+  - audit-trail review completion;
+  - backup/restore and DR test results;
+  - archive fixity and readability results;
+  - time-sync events;
+  - alarm statistics;
+  - supplier SLA performance;
+  - training status of active users.
+  - The approved periodic-review report and its actions are stored in the system or linked to it.
+  - A written routine-check program for the eBMR as a "computer or related system" covers interface health, backup success, time sync and integrity-job results, and its check records are kept.
+catalog_test: Generate the pack for a test period and trace 5 sampled entries per topic back to their source logs.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 211.68(a) applies a routine calibration/inspection/check program to computers as well as other equipment. Annex 11 §11 requires periodic evaluation of validated state. Both apply.
+type_detail: "CONFIGURABLE for review frequency. No rule sets a number. DESIGN-CHOICE default: 12 months; shorter allowed; longer only with a QA-approved risk rationale. Pack content is ENFORCED."

@@ -1,0 +1,48 @@
+id: DI-26
+title: Review by exception, error detection and risk-based review of system logs
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 184
+  - 201
+  - 646
+  - 639
+  - 61
+sources: "US: 211.68(b), 211.192; FDA DI Q&A Q1a (design for easy detection of errors, omissions, aberrant results), Q3 (validate the workflow), Q8 and footnote 13 (risk-based review of instrument status/communication logs and alerts; reliability of review proven) | EU: Annex 11 §9; Ch.4 4.20 Note (compliance summaries and exception reports for continuously monitored validated processes) | ICH/EMA/draft: EMA GMP DI Q&A on review of electronic data / review by exception (s)"
+behaviour: |-
+  - The engine builds a batch exception report from a mandatory set of exception types:
+  - out-of-limit values;
+  - deviations and overrides;
+  - forced, skipped or NA steps;
+  - post-entry changes and voids/invalidations;
+  - repeats and aborted attempts;
+  - late or back-entered data;
+  - manual entry where automatic capture was configured;
+  - interface fallbacks and failures;
+  - signature failures;
+  - alarm events;
+  - time-sync events;
+  - open incidents.
+  - Customers may add types or raise severity. They cannot remove a mandatory type.
+  - A clean batch report states "no exceptions" and shows a completeness summary. Every item drills down to the full record. Reviewers work on the electronic record, not on printouts.
+  - The RBE rule set is version-controlled configuration and changes only under QA-approved change control. It is validated by seeded-exception tests with zero false negatives, and challenged periodically by comparing sampled full audit trails with the filtered view.
+  - A new product or process, or one with a poor recent history, defaults to full review until a configured confidence criterion is met (design).
+  - Instrument-status and communication logs and alert records are reviewed at a frequency set by a documented risk assessment. Any such event tied to a batch surfaces in that batch's review.
+  - Detection is built in: range checks, completeness checks before sign-off, out-of-sequence/late-entry detection, and interface reconciliation.
+catalog_test: Seed a batch with one instance of every exception type. All are listed. A clean batch shows "no exceptions" with its summary. Try to edit an RBE rule without a change record. Blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "The EMA Q&A explicitly accepts review by exception when it is scientifically justified and validated. The FDA DI Q&A does not mention RBE: it requires the QU to review all records, audit trails included, and asks that review reliability be proven. So RBE is used only as a validated way of doing the full QU review, never as a reduction of what the QU approves."
+type_detail: "ENFORCED for the mandatory type set, validation, drill-down and change control. CONFIGURABLE for whether an MBR uses RBE: default full review until the confidence criterion is met. The QU still approves the complete record (DI-39)."

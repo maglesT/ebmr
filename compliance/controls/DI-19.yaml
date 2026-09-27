@@ -1,0 +1,35 @@
+id: DI-19
+title: "Credential protection: password policy, lockout, misuse detection, token and badge management"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 58
+  - 173
+sources: "US: 11.300(a)-(e); 11.200(a)(2)-(3) | EU: Annex 11 §12.1, §12.2 | ICH/EMA/draft: draft Annex 11 §11 automatic lock-out after repeated failed log-ins (draft)(s)"
+behaviour: |-
+  - Each ID-plus-password combination belongs to one individual. This follows from unique IDs (DI-15).
+  - Issued credentials are checked, recalled or revised periodically. At least one of these must be active, and the engine refuses a configuration with neither:
+  - password aging (DESIGN-CHOICE default: 90 days);
+  - a documented risk-based equivalent, i.e. compromised-password screening plus access recertification.
+  - Lockout after N consecutive failed login or signing attempts. DESIGN-CHOICE default N = 5; allowed 3-5.
+  - Transaction safeguards: failed attempts, signing attempts on locked or disabled accounts, and anomalous use raise an immediate alert to the security unit (and to management where defined). Acknowledgment is tracked and unanswered alerts escalate.
+  - A lost, stolen or possibly compromised badge or token is de-authorised electronically at once. A replacement is issued only after identity is re-verified.
+  - Badges and tokens are tested when issued and periodically, and the results are recorded.
+  - There is no "remember password", and administrators can never see passwords.
+catalog_test: Make 5 failed signing attempts. The account locks and the security unit receives the alert within the configured time. A revoked badge cannot authenticate. Badge test records exist.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 11.300(d) requires immediate and urgent reporting of attempted misuse, which is stricter than the 2011 EU text. The EU draft adds lockout. Both apply.
+type_detail: ENFORCED (mechanisms). CONFIGURABLE (numeric values). Neither Part 11 nor Annex 11 (2011) sets any number for password length, aging, lockout count or alert time.

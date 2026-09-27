@@ -1,0 +1,42 @@
+id: DI-39
+title: QU disposition and QP certification by e-signature; quarantine interlock
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 163
+  - 170
+  - 191
+  - 2
+  - 31
+sources: "US: 211.22(a), 211.165(a), 211.192; FDA DI Q&A Q2 | EU: Annex 11 §15; Annex 16 sec. 4 (s) | ICH/EMA/draft: draft Annex 11 (removal of 2011 clause 15; QP access to audit trail) (draft)(s)"
+behaviour: |-
+  - **US.** Batch disposition (Released/Rejected) is a QU-role e-signature with an explicit meaning.
+  - No other role, administrators included, can set a released status.
+  - The QU is shown the complete record: invalidated data with their investigation reports (DI-29), deviations, exceptions and the audit-trail review (DI-25).
+  - The release record lists the criteria evaluated. The criteria themselves are in the production catalog.
+  - **EU.** If the system records certification/release (QP-certification feature ON), only accounts registered as a QP named on the authorisation can certify, by e-signature, and the certifier's identity is recorded.
+  - This stays in force even though the July 2025 draft reportedly drops the stand-alone clause.
+  - The QP screen links to the full audit trail and its review record.
+  - **Quarantine interlock.**
+  - An uncertified or unreleased batch cannot be allocated or shipped in the integrated ERP/WMS.
+  - Status is carried across inter-site transfers.
+  - Notice of certification to the site that moves stock to saleable status is a structured, signed, audit-trailed message with acknowledgment, as defined in the technical agreement.
+  - Any electronic safeguard used as the quarantine control is validated (DI-03).
+  - A release approval sent by email or chat is not the record (DI-40).
+catalog_test: A QA reviewer, a supervisor and an admin each try to certify. All fail. The QP certifies, and the record shows name, date/time and meaning. ERP stock status changes only after certification.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "US: QU approval before release or distribution. EU: QP certification (Annex 16), which is recorded by QP-only e-signature only if the system is used for it. 2011 §15 stays binding until a final revision replaces it."
+type_detail: ENFORCED. The QP-certification feature is CONFIGURABLE ON/OFF per tenant; when ON its rules are ENFORCED. An Indian exporter's own system usually records QU disposition only.

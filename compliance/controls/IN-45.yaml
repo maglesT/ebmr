@@ -1,0 +1,25 @@
+id: IN-45
+title: Aseptic process simulation (media fill) envelope and acceptance
+part: D
+group: Injectables edition
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 255
+sources: Schedule M Part II 5.3-5.7; 4.11 (media fills set hold times and maximum fill duration).
+behaviour: "(a) Each aseptic line holds its qualified APS envelope: maximum fill duration, processing hold times, intervention types simulated, shifts, operators, container sizes. A batch whose duration, interventions, shift or operators fall outside the last successful APS is flagged and needs a deviation. (b) Initial qualification requires three consecutive successful runs; requalification at the resolved interval and after significant HVAC, equipment or process changes; each shift and shift changeover represented; for small batches the units filled are at least the batch size. (c) Acceptance resolved per profile (section B row B-10). India/FDA rule: fewer than 5,000 units, no contaminated unit; 5,000-10,000 units, one unit means investigation including a possible repeat, two mean revalidation after investigation; more than 10,000 units, one means investigation, two mean revalidation after investigation; intermittent contamination at any size is investigated. (d) A failed APS lists every batch filled on that line since the last successful APS for impact assessment."
+catalog_test: "India+EU profile with one contaminated unit in 12,000: recorded as a failed APS. Mark an APS failed; all batches since the previous pass are listed."
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 'acceptance **same** as FDA 2004 (plus FDA: under 5,000 units, one contaminated unit is cause for revalidation after investigation) [chk]; **weaker** than EU Annex 1 (2022) 9.46 (any contaminated unit is a failed APS, normally three successful repeats) [chk]. Frequency: India only "defined intervals"; FDA 2004 semi-annual per line and each authorised person at least yearly [chk]; EU 9.38 twice a year per process, line and shift, and each operator at least one successful APS per year [chk] (both **stricter**).'
+type_detail: ENFORCED (envelope checks; resolved acceptance); CONFIGURABLE (requalification interval where the resolved rule allows).
+notes: "Source check: P (5.3-5.7 re-read)."

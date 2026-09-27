@@ -1,0 +1,28 @@
+id: IN-10
+title: Electronic signatures (Indian basis)
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 663
+  - 667
+  - 242
+sources: Schedule M Part I 17.3.9 (packaging-record entries identified by signature or electronic password); Part I 17.3.8 (processing record dated and signed); Part XII 6.1 (e-signatures authenticated and secure; hard copy obtainable where electronic records are used; 6.1.7 originals or true copies); IT Act 2000 sections 3A, 5 and Second Schedule. See section D.
+behaviour: "(a) Baseline for all signatures: unique user ID plus secret, re-authentication at the moment of signing, signature manifestation (printed name, date/time with time zone, meaning such as performed/verified/approved/released), cryptographic binding of the signature to a hash of the signed content so any later change shows the signature as broken, no shared or reused IDs. (b) Configurable option: for selected meanings (default proposal: MBR approval and AP release) require a Class 3 digital signature certificate from a licensed certifying authority, or an eSign (Second Schedule technique) instead of the password signature. (c) Any record can be printed or exported with signatures and audit trail on demand."
+catalog_test: sign a step, then alter the value directly in the test database; signature verification reports the record as altered. Sign a release with a DSC; it validates against the CCA root chain.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**weaker/less specific** than 21 CFR 11.50 (manifestation), 11.70 (signature/record linking), 11.100, 11.200 (two distinct identification components), 11.300 (identification code/password controls) [chk] and EU Annex 11 section 14 (same effect as handwritten within the company, permanently linked, time and date) [chk]. The baseline in (a) meets all three regimes."
+type_detail: ENFORCED (baseline); CONFIGURABLE (PKI/eSign option per signature meaning).
+notes: "Source check: P for Schedule M (17.3.9 wording and Part XII sentence re-read; Part XII sentence number 6.1.9 inferred); S for IT Act."

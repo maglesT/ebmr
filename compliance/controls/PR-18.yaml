@@ -1,0 +1,36 @@
+id: PR-18
+title: Material status and usability gate at dispensing, issue and charge-in
+part: B
+group: "C. Materials: receipt, status, dispensing and charge-in"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 13
+  - 622
+  - 620
+  - 601
+  - 633
+  - 28
+sources: "US: 211.80(d); 211.84(a); 211.86; 211.87; 211.89 | EU: Ch.4 4.14(e); 4.24; Ch.5 5.5; 5.7; 5.32; 5.34 | ICH/EMA/draft: none"
+behaviour: |-
+  - What can be used: only lots in Released status, within their retest or expiry date, and of the exact item called for by the master (plus grade and approved source where the master specifies them). This applies to dispensing, issue and charge-in.
+  - Hard blocks: quarantined, on-test, rejected, expired, retest-overdue and blocked lots, with no operator override.
+  - Identity: confirmed by scanning system-generated labels.
+  - Status and labels: the status on screen and on the physical label must agree, so a status change triggers relabelling.
+  - Stock rotation: the system proposes the oldest approved lot first. Picking another lot needs a reason, which appears in a rotation-exception report.
+  - Storage conditions: storage-condition attributes stop a lot from being staged in an incompatible location.
+catalog_test: Scanning a quarantined lot is blocked. A lot past its retest date is blocked. Picking a newer lot demands a reason.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU 5.34 allows only QC-released material within its retest period. US 211.87 requires retesting "as necessary". EU is stricter, so the date-based block applies to all markets (D-2).
+type_detail: "ENFORCED (status, identity and retest/expiry block) + CONFIGURABLE (rotation rule). Default: oldest approved first. Allowed: first-expiry-first-out with a documented SOP rationale."

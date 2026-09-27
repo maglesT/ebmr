@@ -1,0 +1,40 @@
+id: DI-47
+title: Retention periods, holds and controlled disposal
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 32
+  - 104
+  - 152
+  - 658
+  - 181
+sources: "US: 211.180(a)-(b); 11.10(c), 11.10(e); FDA DI Q&A Q1a (life cycle through disposition), Background | EU: Ch.4 4.10, 4.11, 4.12; Annex 11 §7.1 | ICH/EMA/draft: draft Ch.4 data lifecycle with controlled destruction (draft)(s)"
+behaviour: |-
+  - The retention engine computes each record's retention end from genealogy. The floor is the maximum over every rule that applies to the product's markets, plus the India catalog value:
+  - **US batch records:** at least 1 year after batch expiry. OTC products exempt from expiry dating: 3 years after distribution of the batch.
+  - **US component, container, closure and labeling records:** at least 1 year after expiry (read as the expiry of the last lot that used them). Exempt OTC: 3 years after distribution of that last lot.
+  - **EU batch documentation:** 1 year after expiry or at least 5 years after QP certification, whichever is longer. IMPs: at least 5 years after the last clinical trial using the batch is completed or formally discontinued.
+  - **EU critical documentation supporting the marketing authorisation** (e.g., validation and stability raw data): kept while the authorisation is in force. Process-validation raw data: at least as long as the records of every batch released on the strength of that validation.
+  - **Audit trails and signature records:** at least as long as their subject record.
+  - **Shared and master objects:** extended to the latest retention end of any record that depends on them. This covers MBR and formula versions, validation-linked configuration, component lot records, logbooks, the signature register and training evidence.
+  - If the QP certification date of an exported batch is unknown, its retention end stays open (no disposal) until the date is received.
+  - Tenants may lengthen retention, never shorten it.
+  - Legal holds and DI-investigation holds (DI-50) override disposal.
+  - After retention ends, disposal happens only through a QA-approved workflow that writes a disposal record: what, when and who approved. No user or configuration can delete a record during retention.
+catalog_test: Try to delete a batch record before its retention end. Blocked. A component lot used in two batches with different expiries follows the later one. An EU batch whose certification date has not been received shows retention "open".
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 'The EU is usually stricter for EU-certified batches because of the "5 years after certification" limb. Example: a 24-month shelf life certified 2 months after manufacture gives US = manufacture + 36 months, EU = manufacture + 62 months, so the EU period wins. The US is the only source of the component-record and OTC rules. The kernel takes the maximum.'
+type_detail: ENFORCED (floors). CONFIGURABLE for longer periods.

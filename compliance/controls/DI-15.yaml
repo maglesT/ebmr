@@ -1,0 +1,31 @@
+id: DI-15
+title: Identity verification, credential issuance and permanent identifier uniqueness
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 56
+sources: "US: 11.100(a)-(c) (as amended 2 March 2023), 11.200(a)(2)-(3), 11.300(a) | EU: Annex 11 §12.1, §12.4 | ICH/EMA/draft: draft Annex 11 §11 (draft)(s)"
+behaviour: |-
+  - Before any signature component is issued, account activation requires a recorded identity verification: who verified, method, document type and date.
+  - User IDs are never reused or reassigned, even after deactivation. A permanent registry spans sites and tenants. Accounts are disabled, never deleted, so historical attribution survives.
+  - There is no proxy or delegated signing.
+  - Initial and admin-reset passwords are single-use and must be changed before the account can sign. This guarantees that misusing another person's signature would need two or more people to collude.
+  - US market: a go-live checklist per legal entity records submission of the FDA non-repudiation certification letter (11.100(c)). This is an organisational duty. The system flags a missing letter for US-market tenants but does not block execution.
+catalog_test: Create an account with a deactivated user's ID. Blocked. Activate an account with no identity-verification record. Blocked. Sign with an admin-reset password before changing it. Refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The NRL certification is US-only, with no EU equivalent. Identity verification before issuing credentials is explicit only in the US text and is adopted for all markets.
+type_detail: ENFORCED. NRL tracking is a DESIGN-CHOICE, because it is a firm's submission to FDA, not a system function.
+proposed_modify: Refuse to issue US-market batches until the 21 CFR 11.100(c) certification record is on file (catalog only flags it).

@@ -1,0 +1,26 @@
+id: IN-29
+title: Complaints, recalls and genealogy queries
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 270
+sources: Schedule M Part I section 6 (complaints; pharmacovigilance) and section 7 (7.1-7.12 recalls; AP responsible; final report with reconciliation).
+behaviour: Complaint and recall records link to batch IDs; genealogy answers within seconds "which batches used material lot X" and "which batches contain reprocessed or recovered material from batch Y"; per-batch distribution data (customer, quantity, date) supports a recall reconciliation of delivered versus recovered quantities; the AP role owns recall execution; a flag records that the licensing authority was informed of an intended recall.
+catalog_test: from a defective API lot, list every finished batch including those with recovered material from affected batches.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** in substance as FDA 211.198 and 211.204 [gk] and EU Chapter 8 [gk]; licensing-authority notification is **different** (Indian authority)."
+type_detail: ENFORCED (links); CONFIGURABLE (notification templates).
+notes: "Source check: P (7.1-7.4 and 7.12 re-read)."

@@ -1,0 +1,47 @@
+id: DI-22
+title: "Audit trail: capture scope and entry content"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 48
+  - 156
+  - 168
+  - 111
+  - 640
+  - 160
+  - 88
+  - 226
+sources: "US: 11.10(e); FDA DI Q&A Q1b, Q1c (data-level and record/system-level audit trails; reprocessing justified) | EU: Annex 11 §9 (reason for change or deletion of GMP-relevant data; available in intelligible form), §12.4 (identity and date/time for entering, changing, confirming, deleting); Ch.4 4.9 | ICH/EMA/draft: draft Annex 11 §12 (creation included; who/what/when/why; role; time zone; reason prompted) (draft)(s); draft Ch.4 metadata/audit-trail provisions (draft)(s); draft summary (draft)(u)"
+behaviour: |-
+  - The server generates the audit trail independently of the UI, and it is append-only.
+  - It records every create, modify, delete/void, confirm/verify, sign, status change and configuration change of GMP-relevant data: execution data, MBRs, master data, roles, limits, review and release.
+  - Each entry holds:
+  - user ID, printed full name and role at the time;
+  - action type;
+  - object, record and field;
+  - old and new value;
+  - server date-time (UTC plus site offset);
+  - reason, chosen from a controlled list with free text. A reason is mandatory for any modification and any delete/void of GMP data after initial commit. It is not required for initial creation.
+  - source terminal or device ID (design).
+  - A separate protected system log records: logins, failed logins, lockouts, permission changes, configuration changes, interface and equipment-communication events, and alert records.
+  - The audit trail is kept at least as long as its subject record and travels with it (DI-02).
+  - It can be viewed and exported in plain language (not raw codes) and filtered by batch, step, user, data class and date.
+catalog_test: As each role, create, modify and void a value. Every entry carries all fields. Saving a modification without a reason is blocked. A failed login, a role change and a configuration change each appear in the system log.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: |-
+  - The US makes the audit trail mandatory and covers creation, but 11.10(e) does not require a reason.
+  - EU 2011 makes the audit trail risk-based ("consideration should be given"), but it requires a documented reason for any change or deletion and captures confirmations.
+  - Combined: the trail is mandatory and covers creation, changes, deletions and confirmations, and a reason is required for changes and deletions.
+  - The draft's role and time-zone fields are adopted.

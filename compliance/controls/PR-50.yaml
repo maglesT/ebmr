@@ -1,0 +1,35 @@
+id: PR-50
+title: Investigation of discrepancies and failures
+part: B
+group: H. Deviations, investigations and CAPA
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 40
+  - 211
+  - 228
+  - 214
+sources: "US: 211.192; 211.188(b)(12); 211.198(b)(2); 211.204 | EU: Ch.4 4.29 (investigations); Ch.5 5.44; 5.61 | ICH/EMA/draft: EU GMP Ch.1 1.4(xiv) (s); ICH Q9(R1) 4.3 (s); ICH Q10 3.2.2 (s)"
+behaviour: |-
+  - Triggers: an investigation opens for any unexplained discrepancy or specification failure, even after distribution. Unexplained discrepancies include yields outside master limits, reconciliation discrepancies and time-limit breaches.
+  - Impact extension (mandatory step):
+    - The system offers queries for other batches of the same product and for other products that shared component lots, intermediates, equipment (previous and next product), rooms, personnel, utilities or time windows.
+    - Linked batches are held.
+  - Closure: the written record requires conclusions and follow-up.
+  - Root cause (major and critical investigations):
+    - A root-cause category and the method used are required.
+    - Concluding "human error" requires a documented assessment of process, procedure and system factors.
+    - "Not determined" requires a most-probable cause and actions.
+catalog_test: An investigation cannot close without conclusions and follow-up. The impact query returns the expected batch set, checked against an independent query. "Human error" without the system-factor assessment is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US explicitly extends investigations to other batches and products, including after distribution. EU Ch.1 (s) is explicit about the depth of root-cause analysis and about justifying a human-error conclusion. The kernel applies both.

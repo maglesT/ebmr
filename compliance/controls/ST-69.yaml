@@ -1,0 +1,33 @@
+id: ST-69
+title: Short shelf-life products and conditional release before final results
+part: C
+group: "Theme 13: Sterility, endotoxin and particulate testing, and release"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 578
+  - 380
+sources: "EU Annex 1: 10.7, 10.10 | US: 211.165(a), 211.167(a) (inferred); FDA-AP Appendix 3.B."
+behaviour: |-
+  - For a product flagged "short shelf life", certification may precede the sterility and/or EM results only when all of these hold:
+    - a documented risk-mitigation reference exists (process design, extra monitoring, alternative or rapid methods);
+    - the **most recent available** EM data are reviewed;
+    - late results stay linked to the batch.
+
+    An adverse late result triggers automatic escalation, including a recall assessment.
+  - Optional cell-therapy module: release requires passing intermediate sterility, stain (for example Gram) and endotoxin results. The final sterility result is tracked afterwards, and a positive triggers escalation and notification.
+catalog_test: Certify a short-shelf-life batch before its sterility result, then enter a positive → escalation linked to the distributed batch.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned in approach.
+scope: all (the cell-therapy module is optional and outside core scope)
+type_detail: CONFIGURABLE (off by default). ENFORCED escalation once enabled.

@@ -1,0 +1,36 @@
+id: DI-12
+title: Incident management linked to batches
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 161
+sources: "US: 211.192 (unexplained discrepancies investigated) | EU: Annex 11 §13; Ch.4 4.27 | ICH/EMA/draft: none"
+behaviour: |-
+  - The system automatically raises incidents for:
+  - interface failures;
+  - loss of connection during a step;
+  - client or server crashes;
+  - repeated signature failures;
+  - time-sync faults;
+  - print failures;
+  - integrity-check failures.
+  - Users can also raise incidents manually.
+  - Each incident is linked to the affected batches and steps. An open incident linked to a batch is shown on the review and disposition screens and blocks disposition until it has been assessed.
+  - Every incident carries a criticality rating. A critical incident cannot be closed without a root cause and a CAPA link.
+catalog_test: Kill the balance interface in the middle of a weighing. An incident is created, linked to the batch and shown as open on the disposition screen. Try to close it as critical without a root cause and CAPA. Blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Only the EU text explicitly requires incident management for computerised systems. It is adopted for all markets.
+type_detail: 'ENFORCED for logging, batch linkage, and root cause plus CAPA on critical incidents. The disposition block is a DESIGN-CHOICE, engine-enforced by default: it puts the Ch.4 4.27 "special observations" indication into effect.'

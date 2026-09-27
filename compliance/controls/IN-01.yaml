@@ -1,0 +1,28 @@
+id: IN-01
+title: "Quality-system data feeds: product quality review, management review, CAPA"
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 229
+  - 231
+  - 674
+sources: Schedule M Part I 1.6 (management review at least yearly unless justified); section 2.3.1-2.3.3 (quality review normally yearly, export-only products included; CAPA management); section 1 PQS list (CAPA effectiveness monitored); 10.5-10.7 (follow-up of self-inspection actions).
+behaviour: (a) Yields, IPC results, deviations, OOS, rejects, reprocessing, material lots and supplier identity are stored as typed, queryable fields, never only as free text. (b) A PQR extract per product and period (default 12 months) includes every batch, explicitly including export-only SKUs, failed batches, deviations with CAPA status, changes, and flags suppliers that were new in the period; the PQR record carries the authorised person's sign-off. (c) A management-review extract (default 12 months) is available per site. (d) Every CAPA links to its source (deviation, OOS, complaint, PQR, self-inspection) and has an owner, due date and an effectiveness-check task; an ageing/overdue report exists; release screens show open CAPAs for the product/line as information.
+catalog_test: run the PQR extract for a product with domestic and export-only batches; all appear. Create a CAPA with a 90-day effectiveness check; it appears as overdue on day 91.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "PQR: **same** as FDA 211.180(e) (evaluation at least annually) [chk] and EU Chapter 1 section 1.10 (annual review) [gk]. Management review: **stricter** on frequency (yearly minimum) than FDA Part 211 (no such clause) [chk] and EU Chapter 1 (periodic, no fixed minimum) [gk]. CAPA: **same** as EU Chapter 1 [gk] and FDA 211.192 investigations [chk]."
+type_detail: ENFORCED (structured capture and links); CONFIGURABLE (review periods, product grouping with recorded justification).
+notes: "Source check: P."

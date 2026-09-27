@@ -1,0 +1,26 @@
+id: IN-19
+title: Rework, reprocessing and recovery
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 249
+sources: Schedule M Part I 14.32-14.34.
+behaviour: "(a) Rework of a rejected batch is modelled as a new batch with a new number and a parent-child link to the rejected batch(es); it requires an approved rework procedure/protocol and a linked risk evaluation; a record of the rework is part of the new batch record. (b) Adding an earlier in-specification batch (recovery) into a later batch of the same product is allowed only at an MBR-defined stage, with prior authorisation, a risk evaluation that addresses shelf-life impact, and recording of source batch numbers and quantities. The expiry of the receiving batch requires QA confirmation; the default proposal is not later than the earliest expiry of any recovered input (design choice). (c) QC receives an automatic flag to consider additional testing of any finished batch that was reworked, reprocessed or contains recovered material. (d) US-market batches: reprocessing also needs quality-unit approval."
+catalog_test: add recovered material without prior authorisation; the step is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU 5.67-5.69 [chk] and FDA 211.115 (written procedures; quality control unit approval) [chk], except the new-number rule (IN-18), which is stricter."
+type_detail: ENFORCED; DESIGN-CHOICE for the default expiry proposal.
+notes: "Source check: P."

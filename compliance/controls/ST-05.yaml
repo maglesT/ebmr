@@ -1,0 +1,27 @@
+id: ST-05
+title: Instrument calibration status checked at point of use
+part: C
+group: "Theme 0: Cross-cutting rules (apply to every theme)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 384
+  - 434
+sources: "EU Annex 1: 5.9 (particle counters and tubing qualified) | US: 211.160(b)(4), 211.68; FDA-AP X and XI (text boxes), IX.C.2."
+behaviour: |-
+  - Every instrument whose reading enters the batch record is referenced by ID and checked against the calibration system at the moment of use. This covers balances, checkweighers, particle counters and probes, air samplers, integrity testers, steriliser/tunnel/lyo sensors, DP gauges and incubators. An overdue or failed instrument is blocked. Its reading is accepted only through a deviation, with a retrospective impact assessment once as-found data are known.
+  - An as-found out-of-tolerance result automatically lists every batch and result produced since the last good calibration, for impact assessment.
+  - Particle-counter records carry counter and probe ID. The ≤1 m tubing guidance is a qualification item and is not re-checked per batch.
+catalog_test: Record a fill-weight check on a balance whose calibration expired yesterday → refused or deviation-gated. Enter an as-found failure on an integrity tester → the impacted results list is generated.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. The US rule is binding.
+scope: all

@@ -1,0 +1,26 @@
+id: PR-38
+title: Filled but unlabelled containers ("bright stock")
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 24
+  - 125
+sources: "US: 211.130(b); 211.94(c) | EU: Ch.5 5.53; 5.54 | ICH/EMA/draft: EU Annex 1 (s) for depyrogenation and sterile holds [I]"
+behaviour: Filled, unlabelled containers held for later labelling are tracked as quarantined intermediates at tray or container level. Their identification must be enough to determine name, strength, quantity and lot; each unit does not need its own label. Location and hold start are also recorded. A labelling order can consume only bright stock of the matching batch, verified by scan, and reconciles it at labelling. Containers must be clean before filling, and foreign-matter checks run where the master defines them.
+catalog_test: Labelling trays of batch A under an order for batch B is rejected. The unlabelled inventory reconciles to the labelling run.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Equivalent. EU adds that labelling should normally follow filling as quickly as possible.
+type_detail: ENFORCED + DESIGN-CHOICE (maximum unlabelled hold time, with an alert)

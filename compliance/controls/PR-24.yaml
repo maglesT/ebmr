@@ -1,0 +1,34 @@
+id: PR-24
+title: Equipment and area logbooks
+part: B
+group: D. Equipment, premises, cleaning and logs
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 34
+  - 6
+  - 635
+sources: "US: 211.67(c); 211.182; 211.180 | EU: Ch.4 4.29 (maintenance, cleaning); 4.31 | ICH/EMA/draft: none"
+behaviour: |-
+  - Scope: electronic logbooks for each major production equipment item, each major or critical analytical instrument used on the shop floor, and (EU in set) each area where product is processed.
+  - Content: logbooks are filled automatically from eBMR events:
+    - use start and stop, with product, lot, date and time;
+    - cleaning, with a performer plus a second person verifying, or a single verifier when a validated automated CIP/SIP did the cleaning;
+    - maintenance other than routine lubrication and adjustment (from a CMMS link);
+    - calibration;
+    - repairs.
+  - Order: entries are kept in chronological order. Late or out-of-sequence entries are flagged with a reason, and the original chronology is preserved.
+  - US dedicated-equipment option: dedicated equipment may skip an individual log only when EU is not in the market set. In that case its cleaning, maintenance and use records are embedded in each batch record, and the lot-number sequence is checked.
+catalog_test: Each batch appears in the logbook with its date, time, product and lot, consistent with the batch records. The same user performing and verifying a manual cleaning is blocked. A room logbook shows use and cleaning.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "EU 4.31 reaches further: logbooks for areas and critical analytical equipment, including repairs and calibrations, with no dedicated-equipment exemption. US 211.182 is stricter on double-checked cleaning and maintenance signatures. The kernel applies the union of both (D-14)."

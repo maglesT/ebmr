@@ -1,0 +1,35 @@
+id: PR-06
+title: Change control for masters and linked GMP objects
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 215
+  - 198
+  - 143
+  - 220
+  - 606
+  - 205
+sources: "US: 211.100(a); 211.22(c); 211.68(b); 211.194(b) | EU: Ch.5 5.24; 5.25; 5.26; Ch.4 4.29 (change control); Annex 11 section 10 | ICH/EMA/draft: ICH Q10 3.2.3 (s); ICH Q9(R1) 5.1 (s); ICH Q12 ch.6 (s); EU Annex 15 section 11 (u)"
+behaviour: |-
+  An Effective master cannot be edited. A new version needs a linked, approved change record that holds:
+  - description and rationale;
+  - a risk assessment whose formality matches the risk;
+  - an impact assessment covering specifications, equipment, validation, cleaning, training, labels, products sharing the line, and other sites holding copies;
+  - a regulatory-impact decision for each market;
+  - a validation reference, for process-impacting changes (CPP ranges, equipment class, materials or suppliers, batch size, sequence, test method).
+  A diff report lists the changed fields. Implementation is tracked per site. A post-implementation effectiveness review is scheduled automatically. Shop-floor test methods can only be changed through this route, with a reason and comparative data.
+catalog_test: A direct edit of an Effective master is impossible. A process-impacting change with no validation link cannot be approved. The diff report lists exactly the changed fields.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The intent is equivalent. EU requires validation of significant process changes explicitly (5.25), and US requires QCU approval of changes to procedures (211.100(a)). The kernel applies both.

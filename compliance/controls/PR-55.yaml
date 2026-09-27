@@ -1,0 +1,43 @@
+id: PR-55
+title: EU QP certification
+part: B
+group: I. Batch record review and release
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 105
+  - 187
+  - 188
+  - 223
+  - 190
+  - 192
+  - 619
+  - 197
+sources: "US: n/a | EU: Ch.4 4.27; Ch.4 preamble footnote 1 (RTRT); Annex 11 section 15 | ICH/EMA/draft: Directive 2001/83/EC Art. 51 (s); Annex 16 section 1, 1.7 and Appendix I (s); EU Annex 15 concurrent validation (u)"
+behaviour: |-
+  - Who certifies: where certification is recorded in the system, only users holding the QP role can certify. They do so by e-signature, and the system identifies the certifying QP.
+  - Certification cockpit (live status):
+    - record completeness and the production and QA approvals;
+    - deviations and changes, with their approval status and regulatory status for the EU MA;
+    - OOS/OOT results and investigations, and validation status (concurrent-validation results must be available);
+    - a partial-manufacturing confirmation, with Appendix I content, for each upstream stage in the genealogy performed at another site;
+    - open complaints or recalls on the product;
+    - flags for special observations and for changes to critical data.
+  - Blocking: certification is blocked while a mandatory item is red, unless the QP records a justified decision.
+  - Certification register: each certification goes into an append-only, exportable register (batch, product/strength/pack, market, QP, date/time, confirmations relied on), kept for at least 5 years (s).
+  - Real-time release (RTRT) products: certification may rest on validated summary and exception reports of PAT or parameter data, but only where the MA allows it.
+  - QP outside the eBMR: typically the EU importer's QP for an Indian site. The eBMR then records the external certification reference, and the lot's EU status cannot change until that reference is recorded.
+catalog_test: A non-QP attempt to certify is refused. An open OOS blocks certification. A register entry is created at signature and cannot be edited.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU only; there is no US counterpart. Only the certification step must be an e-signature (Annex 11 section 15).
+type_detail: ENFORCED (EU in set)

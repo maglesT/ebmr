@@ -1,0 +1,26 @@
+id: IN-40
+title: Clean-area grades, particle limits and airflow
+part: D
+group: Injectables edition
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 253
+  - 671
+sources: Schedule M Part II 4.1-4.6 and Table 1; 4.6.2-4.6.3 (sampling volumes, portable counters, isokinetic heads); 4.7.5 (clean-up period).
+behaviour: "(a) Room/zone master data carry grade A-D and a market-keyed limit table. India table (maximum particles per m3, 0.5 / 5.0 micrometre): Grade A 3,520 / 20 at rest and in operation; Grade B 3,520 / 29 at rest, 352,000 / 2,900 in operation; Grade C 352,000 / 2,900 at rest, 3,520,000 / 29,000 in operation; Grade D 3,520,000 / 29,000 at rest, in operation not defined. (b) Imported EM counts for the batch's processing window are checked against the resolved limits (section B row B-13). (c) Grade A unidirectional airflow records: velocity at 15-30 cm below the terminal filter within 0.36-0.54 m/s (guidance) and a hard minimum of 0.36 m/s at working level; readings below 0.36 m/s at working level are flagged. (d) Clean-up (recovery) time after operations: about 15-20 minutes (guidance) with a 100-fold reduction demonstrated; stored per room from qualification. (e) Classification sampling data: at least 1 m3 per location in Grade A; for the lower grades (C while operating, D while at rest) at least 2 litres sampled for no less than 1 minute per location. Classification results are kept separate from routine monitoring."
+catalog_test: "import a Grade B in-operation 5.0 micrometre count of 2,910/m3: it exceeds the India limit (2,900) and therefore fails for every profile, although it would pass the EU-only value (2,930)."
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "0.5 micrometre values **same** as EU Annex 1 (2022) Tables 1 and 5 [chk] and FDA 2004 Table 1 (ISO 5: 3,520; ISO 7: 352,000; ISO 8: 3,520,000, measured during activity) [chk]. 5.0 micrometre values **stricter (lower)** than EU 2022 (Table 5 monitoring: Grade A 29; B 29 at rest / 2,930 in operation; C 2,930 / 29,300; D 29,300; Table 1 classification: Grade A not specified) [chk]; FDA sets no 5.0 micrometre limit [chk]. EU 2022 is **stricter on monitoring method**: Grade A monitored continuously for both sizes at no less than 28 L/min (9.17) and consecutive low-level 5 micrometre counts investigated (Table 5 note 2) [chk]; EU Grade D in-operation limits must be set by the site from risk assessment [chk]. Airflow: EU 0.36-0.54 m/s at the working position (guidance) [chk]; India adds the hard 0.36 m/s minimum at working level (**stricter**). Clean-up: EU under 20 minutes guidance [chk] (**same**)."
+type_detail: ENFORCED (market-resolved limit table); CONFIGURABLE (alert limits, locations).
+notes: "Source check: P (Table 1 cells reassembled from scattered lines; values consistent with WHO TRS 961 Annex 6 and the stated ISO 4.8 classification for Grade A)."

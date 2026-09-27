@@ -1,0 +1,46 @@
+id: DI-29
+title: "Complete data: every attempt, repeat, aborted operation and invalidated result is retained; invalidation needs an investigation"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 69
+  - 651
+  - 652
+  - 41
+  - 17
+sources: 'US: 211.160(b), 211.188, 211.192, 211.194(a)(3)-(8); FDA DI Q&A Q2, Q12 (aborted/incomplete runs captured and justified), Q13 (all data including errors, failing, passing and suspect retained and reviewed) | EU: Ch.4 Principle (raw data), 4.20(f); Annex 11 §9 | ICH/EMA/draft: draft Ch.4 ALCOA++ "complete" (draft)(s)'
+behaviour: |-
+  - Every capture attempt on product is stored with who, when and reason, and is shown in review. This includes:
+  - repeat weighings and re-reads;
+  - failing or suspect IPC results;
+  - aborted weighings, cancelled label prints and aborted equipment cycles;
+  - restarted steps.
+  - There is no unrecorded trial, practice or check mode on product samples. Set-up and suitability checks use registered standards under their own IDs, never a product sample ID.
+  - Correcting an entry error (DI-24) is distinct from invalidating a genuine result.
+  - Invalidation requires a link to a documented investigation (deviation or OOS-type) with a scientifically sound justification.
+  - The invalidated data and the investigation report are part of the record the QU sees at disposition.
+  - A repeat-until-pass pattern is flagged. DESIGN-CHOICE default: any new attempt after a failing result is flagged.
+  - For IPCs, all individual values are stored (not just means), with:
+  - the raw instrument output;
+  - a link to the material and lot tested;
+  - the method reference and version;
+  - the sample quantity;
+  - calculations with units and conversion factors.
+  - Where the SOP classes a shop-floor IPC as a laboratory test, second-person review of the original record is mandatory (211.194(a)(8)).
+catalog_test: Take three readings on one sample where the first two fail. All three are stored and flagged. Try to invalidate a value without an investigation link. Blocked. Abort a weighing. A reason is required and the attempt appears in review.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA is explicit, through Q2 and Q13. The EU reaches the same result through its raw-data definition. No conflict. Applying Q12/Q13 to production IPCs is by analogy with the laboratory examples.
+type_detail: ENFORCED. CONFIGURABLE for flag thresholds, stricter only.

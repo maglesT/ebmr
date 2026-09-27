@@ -1,0 +1,27 @@
+id: IN-25
+title: Equipment status, logbooks, calibration and clean-hold time
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 266
+  - 267
+sources: Schedule M Part I 17.3.10.5 and 17.3.10.16-17.3.10.17 (equipment SOPs near the equipment; logs), 18.4.3 and 18.4.9 (failures, calibration), 18.4.4 (data-based time limits for cleaned equipment and process materials), 18.4.5 and 18.2.8.
+behaviour: (a) Equipment and room logbooks are written automatically from execution (who, product, batch, start/end, cleaning, maintenance), chronological, correctable only through audited corrections. (b) Before a step can use equipment, the system checks qualified, calibrated (not past due), cleaned and not-out-of-service status; balances need a daily/before-use check record. (c) Each equipment class has a validated clean-hold time (and dirty-hold time where defined); the system computes "clean until" and blocks use after it, forcing re-cleaning. (d) Equipment or utility failure can be signalled from the step and removes the item from use until repaired.
+catalog_test: use a balance with calibration past due; the weighing step is blocked. Wait past a press's clean-hold time; the next batch cannot use it.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as FDA 211.67, 211.68(a) and 211.182 [chk/gk] and EU Chapter 3 and Chapter 4 logbook clauses [gk]. The explicit clean-hold time is **same** in intent as FDA 211.67(b) [gk] and EU Annex 15 cleaning validation [gk]."
+type_detail: ENFORCED; CONFIGURABLE (hold-time values from validation data).
+notes: "Source check: P~ (17.3.10.5 re-read; others from register)."

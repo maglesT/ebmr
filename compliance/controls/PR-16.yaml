@@ -1,0 +1,27 @@
+id: PR-16
+title: Record completeness gate (processing complete / packaging complete)
+part: B
+group: B. Batch record issuance and execution
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 39
+sources: "US: 211.188(b)(1)-(13) | EU: Ch.4 4.20(a)-(i); 4.21(a)-(i) | ICH/EMA/draft: none"
+behaviour: |-
+  "Processing complete" and "Packaging complete" are allowed only when two conditions hold.
+  - Every step is in one of three states: executed; marked N/A by the system (branch not taken); or marked N/A by an authorised user with a reason and signature.
+  - Every applicable item of Section (a)-3 or (a)-4 is present. The items are: dates and times; equipment unit IDs; component lots and quantities; IPC and lab results; packaging-area checks before and after use; yields; labeling specimens; container/closure description; sampling; performer and checker IDs; investigations; 211.134 results; the responsible production person's approval.
+  Category checks depend on step type; for example, packaging-area checks apply only to packaging orders.
+catalog_test: Removing one label specimen or one checker signature blocks completion, and the message names the gap.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: See Section (a).

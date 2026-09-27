@@ -1,0 +1,33 @@
+id: DI-44
+title: Protection and integrity checking of stored data
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 46
+  - 152
+  - 44
+sources: "US: 11.10(a), 11.10(c); 211.68(b) | EU: Annex 11 §7.1 | ICH/EMA/draft: none"
+behaviour: |-
+  - Finalised records sit on protected, redundant storage, and completed records are immutable (design: WORM/object lock).
+  - A scheduled integrity check runs over hashes and DB consistency.
+  - A scheduled readability check opens and renders sampled old records, including their audit trails and signatures.
+  - Results are recorded, and any failure opens an incident (DI-12).
+  - Access to the data is maintained for the whole retention period, including across upgrades.
+catalog_test: The periodic readability report lists the sampled records, each opened with its audit trail. Deliberately corrupt a record in a test environment. The check detects it.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU §7.1 explicitly requires stored data to be checked for accessibility, readability and accuracy. It is adopted for all markets.
+type_detail: "ENFORCED (the checks exist and alarm). CONFIGURABLE for frequency: DESIGN-CHOICE default is quarterly for readability sampling and weekly for integrity jobs. Neither rule sets a frequency."

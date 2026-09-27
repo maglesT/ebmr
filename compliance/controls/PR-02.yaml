@@ -1,0 +1,31 @@
+id: PR-02
+title: Master preparation, independent check and quality-unit approval
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 97
+  - 618
+sources: "US: 211.186(a); 211.100(a); 211.22(c); 11.1(c); 11.100(c) | EU: Ch.4 Principle (instructions error-free and in writing); 4.1; 4.2; 4.3; 4.4 | ICH/EMA/draft: none"
+behaviour: |-
+  Master lifecycle is Draft -> Checked -> Approved -> Effective. The minimum route is:
+  - the preparer's dated e-signature;
+  - an independent checker's dated e-signature (a different individual from the preparer);
+  - a quality-unit approval e-signature.
+  Before the checker can sign, automated consistency checks run: BOM total against batch size, unit consistency, formula syntax, limits within registered values, and a typed entry field for every data point. The effective date is mandatory, and approval does not make the master executable before that date. Every master and every rendered output carries a unique document ID and version. Customers may add signers but cannot remove the minimum. A "skip review" switch exists only in non-GMP test mode.
+catalog_test: When the same user tries to prepare and check a master, the check is refused. A master with no effective date cannot be approved. A seeded unit error is caught before the check signature.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US explicitly requires an independent check of the master by a second person, so US is stricter here. EU requires approval, signature and dating by authorised persons, plus a defined effective date; EU is stricter on the effective date. 211.186(a) asks for a "full signature, handwritten". A Part 11-compliant e-signature counts as its equivalent (11.1(c)), provided the firm has filed the 11.100(c) certification with FDA.
+type_detail: "ENFORCED (minimum route) + CONFIGURABLE (extra reviewers). Default: the checker and the QCU approver must be different users. Allowed: the checker may also be the QCU approver."

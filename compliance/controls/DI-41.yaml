@@ -1,0 +1,33 @@
+id: DI-41
+title: True copies (paper to electronic, electronic to electronic)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 67
+  - 114
+  - 647
+sources: "US: 211.180(d), 211.68(b); FDA DI Q&A Q1e, Q9, Q10 | EU: Ch.4 4.1 (official copies), 4.10 | ICH/EMA/draft: draft Ch.4 retention/copies and glossary (true/verified copy) (draft)(s)"
+behaviour: |-
+  - The true-copy function keeps the content and meaning of the original: all metadata needed to reconstruct the activity, and the original's static or dynamic nature.
+  - Each true copy carries the source ID, a checksum and capture metadata.
+  - A verifier e-signature confirms that the copy is complete and legible.
+  - A true copy of a dynamic record is kept in the original format or in one that preserves content and meaning, and a suitable reader stays available for the whole retention period.
+  - Fading or short-lived media are true-copied promptly: thermal balance, pH or checkweigher slips, and chart-recorder output (e.g., autoclave or lyophiliser charts in the Injectables edition).
+  - Paper originals are kept unless QA approves destruction under an SOP after a verified true copy exists (see open questions).
+catalog_test: Scan a thermal printout. The copy carries a checksum, a verifier signature and a link to its step. Alter the file. The checksum check fails.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA says "true copy". "Certified" or "verified copy" is EU/PIC/S terminology. The requirements match, and the EU draft adds documented verification.
+type_detail: "ENFORCED (preservation of content, meaning and metadata). DESIGN-CHOICE, engine-enforced: the verifier signature is not described in the FDA Q&A; it follows the EU draft's documented-verification expectation, which does not conflict."

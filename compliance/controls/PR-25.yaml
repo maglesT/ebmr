@@ -1,0 +1,33 @@
+id: PR-25
+title: Room and area suitability, occupancy and sanitation status
+part: B
+group: D. Equipment, premises, cleaning and logs
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 117
+  - 592
+  - 595
+  - 593
+sources: "US: 211.42(b)-(c); 211.46(a)-(c); 211.56(a)-(d); 211.58 | EU: Ch.5 5.9; 5.10; EU Ch.3 (s) | ICH/EMA/draft: none"
+behaviour: |-
+  - Room master data: area type; permitted activities and material statuses; cleaning/sanitation status and schedule; maintenance status.
+  - Step binding: each step is bound to permitted area types. Execution is blocked in an unapproved area, a room under maintenance, or a room overdue for cleaning.
+  - Occupancy: a room occupied by one product refuses a second product unless it is configured for concurrent use. Consecutive use by another product requires cleaning and clearance first.
+  - Room conditions: where the master states conditions (temperature/RH, pressure cascade, dust extraction), the engine reads BMS/EMS status at step start and during the step. A breach blocks the step or raises a deviation, as the master rule says. Readings for the step window are attached to the record.
+catalog_test: Starting product Y in a room occupied by product X is blocked. RH above the master limit blocks the step or raises a deviation. A room overdue for cleaning is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US permits "other control systems" instead of separate areas. EU permits simultaneous or consecutive work only where it creates no mix-up or cross-contamination risk. The effect is equivalent.
+type_detail: "ENFORCED (occupancy, permitted area type, maintenance and cleaning status) + CONFIGURABLE (room-condition checks). Default: ON wherever the master states conditions. Concurrent use of a room needs a configuration that cites a risk assessment; QA approval of that configuration is a design choice."

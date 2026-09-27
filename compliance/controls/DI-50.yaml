@@ -1,0 +1,33 @@
+id: DI-50
+title: Data-integrity investigations, remediation and scoping support
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 654
+  - 657
+sources: "US: 211.22(a), 211.192; FDA DI Q&A Q15, Q18, Introduction | EU: Annex 11 §13 | ICH/EMA/draft: none"
+behaviour: |-
+  - A DI concern can be raised as an investigation linked to users, time windows and batches.
+  - Linked records and audit trails go on hold until the investigation closes: no archive purge and no disposal.
+  - Scoping reports list, per user and per period, all records created or changed, across batches and sites.
+  - A user's GMP rights can be revoked immediately across all sites.
+  - Tighter controls (e.g., added verifications) can be rolled out as CAPA through configuration under change control.
+  - The documented DI risk assessment of eBMR workflows is reviewed periodically.
+  - Tips and suspected falsification go into the QMS investigation route and are never handled informally.
+catalog_test: Open a DI investigation for a user and date range. The system lists every record that user created or changed. The linked batches cannot be disposed of until the investigation closes.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA is explicit (Q15, Q18). The EU covers it through incident management and CAPA.
+type_detail: ENFORCED for holds, scoping reports and immediate revocation. The tooling scope is a DESIGN-CHOICE.

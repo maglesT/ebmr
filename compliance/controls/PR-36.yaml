@@ -1,0 +1,44 @@
+id: PR-36
+title: Printing, coding, variable data and cut-label controls
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 127
+  - 84
+  - 85
+  - 128
+sources: "US: 211.122(g)(1)-(4), (h); 211.130(c); 201.18 (s); 201.25 as revised by the March 5, 2026 NDC final rule (12-digit NDC effective March 7, 2033; transition to March 6, 2036) (s) | EU: Ch.5 5.55; 5.56; 5.57; 5.58; Ch.4 4.21(f) | ICH/EMA/draft: none"
+behaviour: |-
+  - Variable data:
+    - Variable data are sent electronically from the batch record to printers and coders: lot, expiry, NDC/GTIN, serial number.
+    - Manual keying is blocked, or detected by vision.
+    - A print job is invalidated if batch data change after set-up.
+  - Print checks:
+    - Printing devices are monitored so every imprint matches the print specified in the record.
+    - A start-up check is recorded before the line enters production mode, followed by periodic checks with specimen images.
+    - Hand printing is re-checked at a configured interval.
+  - Durability: printed and embossed information must be clear and durable against fading or erasure. This is confirmed when the artwork or specification is approved.
+  - Cut labels on immediate containers, unit cartons or qualifying multi-unit cartons: the packaging master cannot be approved without one of these four controls:
+    - a line dedicated to each strength of each product;
+    - electronic or electromechanical 100% examination for correct labeling;
+    - 100% visual examination of hand-applied labeling by one person, verified independently by a second (never reducible under 211.68(c));
+    - an automated technique that physically prevents incorrect labeling.
+    Off-line overprinting is flagged for extra controls.
+  - US barcode: at least the NDC, in a linear or 2D symbology to a recognised standard. The NDC master holds 10- and 12-digit formats with effective dates, and the NDC recorded on a historical lot is never rewritten.
+catalog_test: Changing batch data after print set-up invalidates the job. A wrong expiry printed on a test unit is rejected by vision and stops the line. A packaging master using cut labels with no 211.122(g) option cannot be approved.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US mandates one control from a closed list whenever cut labels are used, and requires monitoring of printing devices. EU requires every printing operation to be checked and recorded, prefers roll-fed labels, and asks for special care with cut labels. US is stricter on cut labels. The kernel applies the union.
+type_detail: "ENFORCED (variable data from the record; print checks; one of the 211.122(g) options whenever cut labeling is used) + CONFIGURABLE (print-check method). Default: 100% vision inspection. Allowed: start-up plus periodic checks with specimens."

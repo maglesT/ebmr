@@ -1,0 +1,25 @@
+id: IN-27
+title: Hazardous products (sex hormones, steroids, cytotoxics)
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 666
+sources: Schedule M Part III (general; 2.1-2.3 risk assessment including OELs; 4 PPE and breathing air).
+behaviour: Product master data carries a hazard class set from a documented risk assessment (which stages fall under Part III). The class restricts rooms, lines and equipment to contained ones and inserts mandatory PPE, containment-check and decontamination/de-gowning steps into the MBR; the executed checks are recorded. Where breathing air is used, the room master data records the 100% back-up with automatic changeover and its status is checked at step start.
+catalog_test: classify a product as cytotoxic; the MBR designer adds PPE and decontamination steps and offers only contained areas.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**different/more prescriptive** than EU Chapter 3/5 health-based exposure limits approach [gk] and FDA 211.42/211.46 [gk]."
+type_detail: ENFORCED (eligibility and inserted steps once the hazard class is set).
+notes: "Source check: P~ (Part III 2.1-2.3 re-read; the rest is interleaved with Part IV text in the uploaded copy)."

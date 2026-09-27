@@ -1,0 +1,40 @@
+id: DI-31
+title: Interface data integrity
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 6
+target_phase_source: outline
+requirement_rows:
+  - 155
+  - 8
+  - 88
+sources: "US: 211.68(b) (input/output checked for accuracy; degree and frequency by complexity and reliability) | EU: Annex 11 §5 | ICH/EMA/draft: draft Annex 11 §10 data transfer (draft)(s)"
+behaviour: |-
+  - Each interface checks what it receives. In scope: ERP/WMS, LIMS, balances, PLC/SCADA/historian, EMS, label printers, vision/serialisation, QMS. The checks are:
+  - schema and completeness validation;
+  - identity matching (material, lot, batch, equipment);
+  - unit and range checks;
+  - duplicate and sequence detection;
+  - acknowledgment and retry;
+  - reconciliation by counts or checksums.
+  - Check depth is set by the interface's complexity and reliability.
+  - A failed or rejected transfer raises an alarm. It never silently drops a value or substitutes a default. A partial transfer is never committed.
+  - Each received value keeps its provenance: source system, source record ID, source timestamp, raw value and unit.
+  - An interface-captured value can be overwritten only by an audit-trailed correction with a reason. A manual override appears in the exception report (DI-26).
+  - Transport is authenticated and encrypted (DI-13).
+catalog_test: Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm. Cut the link mid-transfer. No partial value lands in the record.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Consistent across markets. Annex 11 §5 adds "secure", which leads to the transport security.
+type_detail: "ENFORCED (no silent loss or defaulting; provenance; alarms). CONFIGURABLE for check depth per interface risk. Idempotency keys and checksums on every interface are a DESIGN-CHOICE: 211.68(b) scales checking to complexity and reliability."

@@ -1,0 +1,42 @@
+id: ST-79
+title: Closed systems and single-use systems (SUS)
+part: C
+group: "Theme 15: Technology profiles (isolator, RABS, BFS, FFS, closed/SUS)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 533
+  - 590
+  - 534
+  - 535
+  - 536
+  - 537
+  - 538
+sources: "EU Annex 1: 8.127–8.138 | US: 211.113(b) (general). FDA-AP does not address SUS or closed systems."
+behaviour: |-
+  - **Assemblies.** Closed-system assemblies are configured items (bags, tubing, connectors, sensors, filters), each with lot and sterilisation evidence. **Every** product-contact element of an aseptic closed system must resolve to a sterilisation record or supplier sterility proof, with no "N/A". Connections to the sterile path after the final filter use intrinsic sterile connectors by design. A pre-use system integrity test (for example pressure decay) is required when the CCS says so.
+  - **Background.** An aseptic closed system whose integrity could be compromised sits in Grade A. A lower grade needs an integrity result recorded **at every use**. A "system opened" event forces either opening in Grade A (aseptic) or Grade C (terminal), or the extra cleaning, disinfection and, for aseptic use, sterilisation steps.
+  - **SUS goods receipt.** Per lot or unit: sterilisation evidence (irradiation certificate, dose, indicator status) and approved-supplier status. Unverified lots stay in quarantine.
+  - **SUS pre-use, per piece:**
+    - part number against the approved specification or BOM revision;
+    - outer packaging and pouch condition, and label check;
+    - CoC and sterilisation proof present;
+    - structured visual inspection at unpacking and after installation (damage, holes, kinks, clamp positions), plus the packaging-opening method.
+
+    Each check is documented. Integrated filters follow ST-52.
+  - **Product compatibility.** Extractables/leachables and adsorption assessment status is held per product × part number; an unassessed part is blocked. A validated maximum contact time is enforced. Freeze/thaw use requires a SUS qualified for that condition.
+  - Operators for SUS assembly and connections need APS coverage of that manipulation (ST-08).
+catalog_test: A closed assembly with one connector lacking sterility evidence → cannot be released for use. A bag part number that differs from the approved BOM revision → refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Only EU has specific requirements.
+scope: sus
+type_detail: ENFORCED ("sterility of product-contact surfaces is critical" is [EU hard])

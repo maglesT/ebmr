@@ -1,0 +1,35 @@
+id: DI-37
+title: Signature-record linking and invalidation on change
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 55
+  - 162
+  - 171
+sources: "US: 11.70; 11.10(e) | EU: Annex 11 §14(b) (permanently linked) | ICH/EMA/draft: draft Annex 11 §13 (hybrid: later change must invalidate the signature) (draft)(s)"
+behaviour: |-
+  - A signature record binds the signer ID, the manifestation, the meaning, the timestamp and a cryptographic hash of the exact content version it signs.
+  - No UI or API path can cut, copy or transfer a signature to another record. An integrity job detects any DB-level transplant.
+  - A permitted change to signed content automatically:
+  - marks the signature "superseded by change";
+  - shows the element as unsigned;
+  - requires re-signing by the relevant signer(s).
+  The history stays in the audit trail.
+  - Wet-ink signing on printouts is avoided. If it cannot be avoided, the scanned signed page is indexed to the record ID and version hash under an SOP. A wet-ink signature never substitutes for an e-signature the MBR requires.
+catalog_test: Correct a signed value. The signature shows as superseded and re-signing is required. Copy a signature row to another record in a test DB. The integrity check fails.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 11.70 targets falsification by ordinary means. Annex 11 §14 asks for permanent linkage. Automatic supersession after a change goes further than both and matches the draft.
+type_detail: "ENFORCED (linking). DESIGN-CHOICE, engine-enforced: invalidation on change goes beyond the 11.70 \"ordinary means\" standard and follows the draft's hybrid-signature expectation."

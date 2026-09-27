@@ -1,0 +1,33 @@
+id: DI-14
+title: Unique personal accounts; no shared write-capable accounts
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 63
+  - 173
+  - 226
+  - 47
+  - 159
+sources: "US: 11.10(d), 11.10(g), 11.100(a), 11.300(a); 211.68(b), 211.188(b)(11), 211.194(a)(7)-(8); FDA DI Q&A Q5 | EU: Annex 11 §12.1, §12.4 | ICH/EMA/draft: draft Annex 11 §11 identity and access management (shared accounts read-only only) (draft)(s)(u)"
+behaviour: |-
+  - Every GMP action requires an individually assigned, authenticated account. GMP actions are create, change, verify, review, approve, sign and acknowledge (including alarm acknowledgment).
+  - An account flagged generic or shared cannot be given any write, sign, verify or acknowledge permission. The engine checks this when a role is assigned, not only by policy.
+  - A shared read-only view (e.g., a line-status display) is allowed only if it is technically unable to create, change, sign, verify or acknowledge anything.
+  - Interface and service accounts are non-interactive and cannot sign. Their entries are attributed to the interface or device.
+  - On shared terminals, each entry is attributed to the person who authenticated for that entry. Re-authentication is fast (e.g., badge plus PIN).
+  - Injectables: cleanroom terminals use a method that works with gloves (badge/RFID plus PIN, or biometrics), so a shared login is never needed.
+catalog_test: Assign a write permission to an account flagged generic. Refused. A service account attempts a signature. Blocked. A directory scan finds no generic account holding GMP permissions.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Both markets allow shared read-only viewing (FDA Q5; draft). Neither allows shared accounts for any action, including second-person review.

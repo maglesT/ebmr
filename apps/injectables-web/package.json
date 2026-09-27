@@ -1,0 +1,13 @@
+{
+  "name": "@ebmr/injectables-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Injectables edition web application",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ebmr/ui-kit": "workspace:0.1.0"
+  }
+}

@@ -1,0 +1,28 @@
+id: IN-08
+title: Record retention engine
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 235
+  - 661
+  - 678
+sources: Schedule M Part I 17.2 (retention at least one year after finished-product expiry); Drugs Rules Rules 74 and 78 with Schedule U (S/U).
+behaviour: 'For each batch the system computes a "retain until" date as the maximum of every rule that applies to that batch, stores which rule governed, and blocks deletion or archive-with-loss before that date. Rules: (i) Schedule M: expiry + 1 year (always). (ii) Drugs Rules conditions of licence, pending confirmation: 5 years from manufacture for Schedule U manufacturing and test records (Form 25, Rule 74); for Form 28 licences (Rule 78) test records reportedly 2 years after expiry where an expiry is labelled, otherwise 5 years from manufacture (U). (iii) US market: expiry + 1 year (3 years after distribution for exempt OTC products without expiry). (iv) EU market: the longer of expiry + 1 year or 5 years after QP certification. Audit trails and signatures are retained for the same period as the record they belong to. A legal hold (complaint, recall, litigation) suspends expiry of retention.'
+catalog_test: "24-month tablet made Jan 2026, India only: retention not earlier than Jan 2031 (5 years) because expiry + 1 year is Jan 2029. Same batch for EU with QP certification Mar 2026: not earlier than Mar 2031."
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Schedule M rule is the **same** as FDA 211.180(a) (expiry + 1 year) [chk] and **weaker** than EU Chapter 4 section 4.11 (longer of expiry + 1 year or 5 years after QP certification) [chk]. If the Rule 74/78 periods are confirmed, the Indian result can exceed FDA for short shelf lives.
+type_detail: ENFORCED (compute, block purge); CONFIGURABLE (company policy may only lengthen).
+notes: "Source check: P~ for Schedule M (retention sentence re-read; numbered 17.2.7 by WHO ordering); U for the Drugs Rules periods."

@@ -1,0 +1,41 @@
+{
+  "name": "ebmr",
+  "private": true,
+  "description": "Electronic Batch Manufacturing Record system: Tablets and Injectables editions",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "deps:check": "depcruise --config .dependency-cruiser.cjs packages apps tools",
+    "test": "vitest run",
+    "test:json": "vitest run --reporter=default --reporter=json --outputFile=.reports/vitest.json",
+    "register:import": "tsx tools/register/src/cli.ts import",
+    "register:validate": "tsx tools/register/src/cli.ts validate",
+    "trace": "tsx tools/register/src/cli.ts trace --results .reports/vitest.json",
+    "pins:check": "tsx tools/register/src/cli.ts pins",
+    "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm register:validate && pnpm test:json && pnpm trace"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "^22.20.4",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "dependency-cruiser": "18.4.0",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1",
+    "vitest": "5.0.2",
+    "yaml": "2.9.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+id: PR-32
+title: Receipt, examination, segregated storage and access control for labeling and packaging materials
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 126
+  - 22
+sources: "US: 211.122(a)-(f); 211.184(a),(b),(d),(e) | EU: Ch.4 4.14 (specimen of printed materials in the specification); 4.22; Ch.5 5.46; 5.47; 5.48 | ICH/EMA/draft: none"
+behaviour: |-
+  - Receipt and examination:
+    - Every incoming lot of primary or printed packaging gets its own reference number.
+    - Each shipment of labeling or packaging material is sampled representatively and examined or tested against its specification before use, including the text/artwork version.
+    - A record shows the receipt, the examination and whether the shipment was accepted or rejected.
+  - Storage and access:
+    - Labels and labeling are stored separately for each product, strength, dosage form and quantity of contents, with identification, in access-controlled locations.
+    - Cut labels and loose printed items are stored and moved in closed containers whose IDs are recorded.
+  - Obsolete material: obsolete or outdated labels, labeling and packaging materials are blocked and routed to destruction with a record. This covers superseded artwork and material past its expiry or retest date.
+  - Gang printing: gang-printed labeling for different products, strengths or net contents is refused unless it is differentiated by size, shape or colour.
+catalog_test: Issuing a label lot with obsolete artwork is blocked. An unauthorised user cannot open a label-store transaction.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US is explicit on separate storage by product, strength, form and quantity, and on the gang-printing prohibition. EU is explicit on closed containers for cut labels and on recording destruction. The kernel applies both.
+type_detail: ENFORCED at the eBMR boundary (usable only when complete) + DESIGN-CHOICE (if the suite performs receipt itself)

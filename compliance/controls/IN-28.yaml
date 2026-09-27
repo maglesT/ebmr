@@ -1,0 +1,26 @@
+id: IN-28
+title: Self-inspection support and supplier approval
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 269
+sources: "Schedule M Part I 10.1-10.8 (10.4: frequency set in the procedure, at least once a year)."
+behaviour: A read-only auditor role with batch sampling and exports of deviation/CAPA status; findings link to batches and CAPA both ways; the self-inspection schedule reminds QA when 12 months since the last self-inspection are about to pass (frequency may be set shorter, never longer, for Indian sites). The approved-supplier list is master data used at receipt and dispensing.
+catalog_test: an auditor opens a closed batch record; edit functions are unavailable.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**stricter** than FDA Part 211 (no self-inspection clause) [chk] and EU Chapter 9 (programme-based, no fixed minimum) [gk]."
+type_detail: CONFIGURABLE (audit mode, schedule); ENFORCED (read-only auditor role).
+notes: "Source check: P (10.4 re-read)."

@@ -1,0 +1,44 @@
+id: ST-76
+title: Barrier cleaning, bio-decontamination, validity interval and integrity breach
+part: C
+group: "Theme 15: Technology profiles (isolator, RABS, BFS, FFS, closed/SUS)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 588
+  - 419
+  - 369
+  - 370
+  - 420
+  - 372
+sources: "EU Annex 1: 4.22 | US: 211.113(b) (inferred); FDA-AP Appendix 1.D.1–3, 1.F."
+behaviour: |-
+  - **Sequence rule.** A bio-decontamination cycle is valid for the batch only if a completed cleaning record for the same enclosure precedes it, with no use in between.
+  - **Isolator bio-decontamination.** Automated, validated, using a sporicidal agent in vapour or gas form. The record holds:
+    - pre-clean confirmation;
+    - **gloves extended with fingers separated**;
+    - recipe ID and version, and agent lot;
+    - key parameters against validated ranges (agent amount or concentration, phase durations);
+    - end-of-aeration residual below its limit;
+    - chemical indicator results;
+    - pass/fail.
+
+    Validation reference: quantified BIs at many locations, normally a **4–6 log** reduction (FDA-AP). The aseptic phase cannot open until the cycle has passed.
+  - **Validity.** Status reads "decontaminated, valid until" (validated interval; hold per ST-37 item 3). Aseptic steps after that time are blocked. Deteriorating EM trends prompt a review of the interval.
+  - **Integrity breach.** Overpressure loss, a glove or seam hole, or a power or valve failure sets the status to "decontamination required" and creates a deviation linked to the batch, with the unit-disposition default as in ST-75.
+  - **Isolator EM.** EM media cannot be introduced until aeration is recorded complete. Per shift: fingertip samples for each port used, air, surfaces (with wipe-down confirmation after contact plates) and exit-port particle monitoring.
+  - **RABS.** Routine sporicidal disinfection of every interior surface (agent, lot, expiry, SOP version, operator) at the defined frequency. Overdue blocks line start.
+catalog_test: A VHP cycle with no prior cleaning record → invalid for batch use. Settle-plate exposure logged before aeration end → blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Complementary. EU makes cleaning first essential and requires a sporicide in vapour form. FDA gives the log-reduction expectations and the reject-by-default for compromised units.
+scope: isolator, rabs
+type_detail: ENFORCED ("cleaning before bio-decontamination" is [EU hard])

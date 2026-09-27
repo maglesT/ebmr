@@ -1,0 +1,34 @@
+id: DI-24
+title: "Corrections, voids and deletions: the original is always preserved"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 658
+  - 145
+  - 203
+  - 48
+sources: "US: 11.10(e); FDA DI Q&A Q1c, Q12, Q13; Background (data secure until disposition) | EU: Ch.4 4.9; Annex 11 §9, §12.4 | ICH/EMA/draft: EMA GMP DI Q&A on data risk (s)"
+behaviour: |-
+  - After initial commit, a GMP value can only be corrected by creating a new version linked to the original.
+  - The original stays visible in the record, in review views and on printouts (DI-40).
+  - A correction requires the corrector to re-authenticate (signature meaning "Corrected by"). It records user, date-time and a mandatory reason.
+  - "Delete" of GMP data is implemented as void/invalidate with a reason. The data is retained and shown as voided.
+  - Correcting signed content supersedes the signature (DI-37).
+  - Physical purge is possible only after retention ends, through DI-47. Deletion at DB level is prevented or detected.
+catalog_test: Try to delete an entry through the UI and the API. Only void-with-reason is offered. Correct a value. The original is visible in the record, in the review list and in the PDF, alongside the corrector's signature and reason.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "US: prior information must not be obscured. EU: alteration signed and dated, original readable, reason (Annex 11 §9: for all GMP-relevant changes and deletions). The EU is stricter on the reason and the signature."
+type_detail: "ENFORCED (original preserved, reason, no deletion within retention). DESIGN-CHOICE, engine-enforced: a correction needs re-authentication because EU Ch.4 4.9 asks for alterations to be signed and dated, and an e-signature ceremony is the conservative reading. Physical-deletion ban during retention: 11.10(e) tolerates audited deletion; the ban is stricter."

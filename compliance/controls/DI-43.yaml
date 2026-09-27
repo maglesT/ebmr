@@ -1,0 +1,48 @@
+id: DI-43
+title: "Paper in the loop: hybrid steps, contingency (downtime) forms and business continuity"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 164
+  - 650
+  - 185
+  - 222
+  - 112
+  - 182
+  - 96
+sources: "US: 211.100(b), 211.180(d), 211.186, 211.188(a); FDA DI Q&A Q6, Q12 (no scrap-paper transcription) | EU: Ch.4 4.1 (hybrid relationships and controls stated); Annex 11 §6, §16 | ICH/EMA/draft: EMA GMP DI Q&A on blank/template forms (s); draft Ch.4 hybrid systems, reported as draft 4.82-4.85 (draft)(s); draft Ch.4 hybrid provisions (draft)(u)"
+behaviour: |-
+  - **Hybrid points.**
+  - Each hybrid point is declared in the register (DI-01) with its official record. Examples: supplier CoA, device printouts, chart recorders, downtime forms.
+  - No GMP step may have a required signature that exists only on paper.
+  - **Paper forms.**
+  - A paper form can be printed only through controlled issuance. Each page carries a unique serial number, batch ID, MBR and template version, "page x of y" and issue time. Issuer, quantity and destination are logged.
+  - User roles cannot print a template outside this control.
+  - A reprint needs a reason and QA approval, is marked as a reprint and is linked to the original serial number.
+  - **Reconciliation.** A batch cannot close until every issued form is reconciled as returned/used or voided with a reason. A form reported missing raises a deviation automatically.
+  - **Business continuity.**
+  - The downtime procedure is documented and tested.
+  - Contingency forms are pre-issued, generated from the current master. Entries are made on them at the time of the work.
+  - After recovery, the data is back-entered and flagged "transcribed from paper". Each back-entered value gets second-person verification (DI-30), and both the original execution time and the entry time are kept.
+  - The paper originals are true-copied (DI-41) and kept, and the contingency period is reviewed. There are no ad-hoc notes.
+  - **Fallback timing.** How quickly the fallback must be available is set by risk.
+  - Injectables: aseptic filling needs an immediate, pre-staged fallback.
+  - Tablets: may pause at defined hold points.
+catalog_test: Issue 3 contingency sheets and return 2. Batch closure is blocked and a deviation is raised. In a downtime drill, back-entered values are flagged, verified and linked to scans, with both timestamps.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Both markets allow controlled paper. The EU draft pushes firms to avoid hybrid signing wherever possible, and the kernel follows it.
+type_detail: 'ENFORCED for issuance, reconciliation and back-entry. CONFIGURABLE for drill frequency and fallback time: DESIGN-CHOICE default is an annual downtime drill per site. §16 requires the arrangements to be documented and tested, not "validated".'

@@ -1,0 +1,37 @@
+id: ST-41
+title: "Container and closure preparation: wash, rinse, siliconisation, sterilisation/depyrogenation, hold"
+part: C
+group: "Theme 7: Components, container-closures, depyrogenation, sterilisation cycles and load traceability"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 303
+  - 304
+  - 305
+  - 308
+  - 29
+sources: "EU Annex 1: 8.18(i)-(ii) | US: 211.94(c)-(d) (binding); FDA-AP VI (text box), VI.B.1."
+behaviour: |-
+  - Each container or closure lot needs a complete preparation record before the filler can accept it. The record contains:
+    - wash program ID and water point, with water status in specification (parenterals: final rinse at WFI quality; stoppers: first washes with low-endotoxin purified water or better, final rinse with WFI);
+    - wash-end, drying-end and sterilisation-start timestamps, with a maximum wash-to-sterilise time;
+    - silicone lot (must be released);
+    - validated stopper load configuration (bag count, fill level) and penetration-validated recipe;
+    - depyrogenation or sterilisation cycle ID, equipment and load.
+  - At cycle end a use-by time is computed from the MBR hold limit for that item and pack type. Use after it is blocked or deviation-gated.
+  - The preparation process's revalidation due date is checked at line clearance.
+catalog_test: Stoppers sterilised at T0 with a 72 h hold are used at T0+73 h → blocked. A stopper load with a wash record but no sterilisation cycle → refused at the filler.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA-AP is more specific on stopper washing, siliconisation and water quality. Apply it as written.
+scope: all (sterilisation/depyrogenation where the product requires it)
+type_detail: ENFORCED. Hold limits are CONFIGURABLE as validated.

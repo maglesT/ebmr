@@ -1,0 +1,47 @@
+id: ST-31
+title: APS design coverage and the line's "APS-qualified envelope"
+part: C
+group: "Theme 4: Aseptic process simulation (media fill): status and failure consequences"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 559
+  - 560
+  - 561
+  - 562
+  - 322
+  - 389
+  - 563
+  - 566
+sources: "EU Annex 1: 9.32–9.37, 9.40 | US: 211.113(b); FDA-AP IX.A.1, IX.A.3–IX.A.6."
+behaviour: |-
+  - **APS batch type.** Generated from the commercial MBR with the same step structure. Media or a non-inhibitory surrogate replaces product, with growth-promotion status. The APS never serves as the primary validation of the aseptic process.
+  - **Protocol fields** (worst case must be justified):
+    - container/closure sizes, with bracketing or matrixing justified;
+    - maximum line speed and maximum duration (at least the routine duration; manual or intervention-heavy processes at least as long as the real process);
+    - maximum hold of exposed sterile product and equipment;
+    - fill volume that wets all surfaces and leaves headspace;
+    - **air in place of inert gas**, with occasional anaerobic runs considered;
+    - maximum headcount and maximum operator time in the cleanroom;
+    - shift changes and idle interruptions;
+    - EM as in routine production throughout;
+    - campaign start and end risks (an end-of-campaign APS may only supplement, never replace, routine APS);
+    - all routine inherent and corrective interventions at representative frequency. Rare interventions are simulated periodically, and the catalogue holds each one's simulation interval.
+  - **Lyo APS** covers filling, transport, loading, a representative chamber dwell, unloading and sealing. It records the worst cases challenged: SIP-to-load interval, filtration-to-loading time, number of trays, loading duration and dwell. Media must not boil or freeze, and a partial vacuum is used.
+  - **Unit count.** Justified in the CCS, typically **≥5,000–10,000** units. For batches under 5,000 units, the APS must contain **at least as many units as the production batch**.
+  - **Sterile API.** APS size and surface coverage are justified, and all simulation materials are microbially evaluated.
+  - **Routine checks against the envelope.** A container size not covered, or a batch size above an APS of under 5,000 units, blocks batch creation. The following raise a deviation for QA assessment before release: longer duration, higher peak headcount, more occurrences of an intervention than demonstrated, line speed out of range, longer lyo loading, or longer holds.
+catalog_test: APS included 3 needle changes and the routine batch records 5 → flag. APS covered 6 h lyo loading and routine takes 7 h → flag. With a 3,000-unit APS, create a 3,500-unit batch → flagged/blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned on unit numbers and worst-case design. EU adds explicit lyo worst-case items and campaign start/end. FDA adds the common/rare intervention frequency idea.
+scope: "aseptic (lyo parameters: lyo)"
+type_detail: ENFORCED (envelope checks). Envelope values are *derived* from successful APS records and cannot be typed in.

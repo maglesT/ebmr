@@ -1,0 +1,26 @@
+id: PR-12
+title: Corrections to recorded data
+part: B
+group: B. Batch record issuance and execution
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 101
+sources: "US: 11.10(e); 211.100(b) | EU: Ch.4 4.9; Annex 11 section 9 | ICH/EMA/draft: none"
+behaviour: A correction keeps the original value visible in the record and in review views. The audit trail captures the old and new values, the user, the server time and the reason (mandatory). A correction after step sign-off requires re-signature. Corrections to critical data (quantities, CPP values, IPC results, yields) need the configured approval. Every correction appears in the exception report.
+catalog_test: Correct a signed weight. The original stays visible, a reason is required, the step must be re-signed, and the correction is listed in the exception report. A correction without a reason is refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 4.9 asks for a reason only "where appropriate", but Annex 11 section 9 requires one for any change to GMP-relevant data. EU is therefore stricter, and the kernel always requires a reason.
+type_detail: "ENFORCED (never overwrite; reason mandatory) + CONFIGURABLE (approval level for critical-data corrections). Default: second person or QA approves. The approval requirement cannot be removed; this is a design choice beyond the text."

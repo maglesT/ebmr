@@ -1,0 +1,34 @@
+id: PR-26
+title: Processing pre-start clearance and transfer-route checks
+part: B
+group: D. Equipment, premises, cleaning and logs
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 116
+  - 90
+  - 140
+sources: "US: 211.67(b)(6); 211.100(a) | EU: Ch.4 4.18(c); Ch.5 5.14; 5.40 | ICH/EMA/draft: none"
+behaviour: |-
+  - Before each processing operation, the system checks electronically that:
+    - the previous batch is closed in the room and equipment logs;
+    - the equipment is Clean;
+    - no materials of other orders are allocated to the room.
+  - The operator then confirms that no foreign materials, products, residues or documents are physically present. The confirmation is e-signed into the record.
+  - Before a product transfer through pipework, hoses or transfer panels, a connection check is recorded.
+  - Design choice for the route check: scan the source, route components and destination and compare them with the master route. A mismatch blocks the transfer.
+catalog_test: Starting compounding while the prior batch is not cleared is blocked. Scanning a hose to the wrong destination blocks the transfer.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU explicitly requires processing-area clearance (5.40, 4.18(c)) and transfer-connection checks (5.14). US requires only a pre-use cleanliness inspection of equipment. EU is stricter. A checklist is not required for processing clearance (D-5).
+type_detail: "ENFORCED (clearance before each processing operation; route check before each transfer) + CONFIGURABLE (checklist format for processing clearance: default ON, allowed OFF; second verifier: default ON, allowed OFF; repeat clearance after an interruption: default ON)"

@@ -1,0 +1,33 @@
+id: DI-16
+title: "Access lifecycle: recorded grants, point-in-time access lists, recertification, prompt removal"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 644
+  - 159
+  - 62
+  - 47
+  - 173
+sources: "US: 11.10(d); 211.68(b); FDA DI Q&A Q4 (documented list of authorised personnel and privileges) | EU: Annex 11 §12.3 | ICH/EMA/draft: draft Annex 11 §11 (timely handling and review of access rights) (draft)(s)"
+behaviour: |-
+  - Every grant, change and revocation of access rights is recorded in a protected log with requester, approver, date and reason. The requester and the approver must be different people (design).
+  - The system reports the current and point-in-time (any past date) list of users, roles, privileges and sites for each system. This is the "authorised users and privileges" list.
+  - A leaver event from HR or the IdP disables the account. DESIGN-CHOICE default: the same business day. No rule sets a time.
+  - Periodic access recertification by the area owners records the reviewer, the outcome and each user's last activity. DESIGN-CHOICE default: every 6 months; allowed 3-12 months.
+catalog_test: Produce the role list as of a past date and reconcile it with the access-request records. Disable a leaver, then try to log in and to sign. Both fail.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU §12.3 explicitly requires recording of access changes. FDA Q4 recommends a documented privilege list. Both apply.
+type_detail: ENFORCED for recording and point-in-time reports. CONFIGURABLE for timings (no regulatory numbers exist).

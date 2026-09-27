@@ -1,0 +1,32 @@
+id: PR-34
+title: Packaging line clearance before and after use
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 123
+  - 24
+  - 39
+sources: "US: 211.130(e); 211.188(b)(6) | EU: Ch.4 4.19(f)-(g); Ch.5 5.50 | ICH/EMA/draft: none"
+behaviour: |-
+  - Pre-use clearance:
+    - The first step of every packaging order is line clearance against a line-specific checklist defined in the master. The checklist covers the work area, lines, printers and coders, vision recipes, reject bins and documents.
+    - Clearance cannot be completed while the previous order on the line is still open or unreconciled, or while components of another order remain allocated to the line.
+    - No packaging step, print job or line start is possible until clearance is signed.
+  - Post-use inspection: at order end, an inspection of the packaging and labeling area after use is recorded in the packaging record.
+catalog_test: Starting packaging without a signed clearance is blocked. Closing an order without the post-use inspection is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "EU requires the clearance to follow a checklist (5.50). US requires an inspection before use, and documentation of inspections both before and after use (211.188(b)(6)). The kernel applies the union: checklist, before and after (D-4, D-5)."
+type_detail: "ENFORCED (pre-use clearance against a checklist; post-use inspection) + CONFIGURABLE (second-person verifier). Default: ON. Allowed: OFF, unless the customer designates clearance a significant step under 211.188(b)(11), in which case it is ON."

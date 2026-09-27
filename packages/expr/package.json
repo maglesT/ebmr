@@ -1,0 +1,10 @@
+{
+  "name": "@ebmr/expr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Expression language for MBR calculations: exact decimals, UCUM units, explicit rounding",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

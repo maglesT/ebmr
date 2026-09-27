@@ -1,0 +1,45 @@
+id: PR-27
+title: "Cross-contamination controls: dedication, changeover, campaigns, penicillin, dust and events"
+part: B
+group: D. Equipment, premises, cleaning and logs
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 121
+  - 139
+  - 594
+  - 636
+  - 635
+sources: "US: 211.42(d); 211.46(d); 211.176; 211.67(a) | EU: Ch.5 5.10; 5.11; 5.17; 5.18; 5.19; 5.20; 5.21; 5.22 | ICH/EMA/draft: EMA guideline on health-based exposure limits (s)"
+behaviour: |-
+  - QRM outputs on the product master:
+    - reference to HBEL-based cleaning limits;
+    - dedication flags for facility, area, equipment and product-contact parts (e.g. punches and dies [T]; filters and filling needles [I]);
+    - allowed rooms and equipment, and campaign rules;
+    - the cleaning level required for each changeover;
+    - whether cleaning verification is needed after a campaign, for higher-risk products.
+    The engine enforces all of these.
+  - Penicillin:
+    - Penicillin products and components can never be assigned to non-penicillin facilities or equipment, and vice versa.
+    - A non-penicillin lot flagged as potentially exposed needs a penicillin test showing none detected before release.
+  - Dust [T]: open handling of potent or sensitising dry materials requires containment or extraction prerequisites (a design choice).
+  - Events:
+    - An event log (spill, breakage, containment breach) is linked to the batch and to the room and equipment logbooks.
+    - Logging an event sets the room or equipment to "cleaning required".
+    - Events feed the deviation process and the periodic review of cross-contamination measures.
+  - Non-medicinal products cannot be scheduled on medicinal equipment without a recorded justification.
+catalog_test: A potent product on non-dedicated equipment outside its allowed list is blocked. A penicillin component in a non-penicillin facility is blocked. A spill event sets the room to "cleaning required".
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU requires a documented QRM, including a toxicological evaluation, to set dedication and control measures (5.20), and periodic review of them (5.22). US sets hard penicillin segregation and testing (211.42(d), 211.176). The kernel applies both. Cleaning verification at every changeover is not required (see C-7).
+type_detail: ENFORCED (penicillin segregation; enforcement of whatever dedication and changeover rules are configured) + CONFIGURABLE (the QRM-derived values themselves)

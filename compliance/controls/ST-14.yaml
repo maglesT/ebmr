@@ -1,0 +1,46 @@
+id: ST-14
+title: Room/zone grade, classification and qualification gate at step start
+part: C
+group: "Theme 2: Cleanroom/area status and environmental and personnel monitoring linked to the batch window"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 404
+  - 421
+  - 424
+  - 275
+  - 279
+  - 402
+  - 5
+  - 388
+  - 422
+sources: "EU Annex 1: 4.2, 4.4, 4.23–4.26, 4.32 | US: 211.42(c)(10)(i)-(vi), 211.46(b); FDA-AP IV (intro), IV.B, Table 1."
+behaviour: |-
+  - Room/zone master data holds the EU grade, ISO class and FDA class, plus qualification status and expiry. These are held separately from routine EM, and EM data never counts as qualification evidence.
+  - Particle equivalences for mapping: Grade A ≈ ISO 5 (in operation); Grade B in operation ≈ ISO 7; Grade C in operation ≈ ISO 8. Grade D has no predetermined in-operation limit.
+  - Every MBR step names a minimum grade. Exposed sterile product, open primary containers, aseptic assembly and aseptic connections need Grade A with a Grade B background (isolators: ST-74).
+  - FDA support rooms: the room next to the aseptic line must be at least ISO 7 in operation; ISO 8 is allowed for less critical work such as equipment washing.
+  - At step start and at line clearance, the system blocks when any of these holds:
+    - the room qualification is expired;
+    - requalification is overdue (last requalification more than 6 months ago for A/B, more than 12 months for C/D);
+    - a "requalification required" flag is open, for example after an air-movement interruption, an HVAC design or set-point change, a final-filter change, special maintenance or remedial action;
+    - the room grade is below the step's requirement.
+  - The status and due date in effect at execution are stored in the batch record.
+  - Each step is bound to a room or zone. The scanned location must match. The same room cannot run incompatible activities or two batches at once; component preparation, product preparation and filling are kept separate.
+  - The 211.42(c)(10) facility systems (T/RH control, HEPA air under positive pressure, EM system, cleaning/disinfection system, maintenance of aseptic-control equipment) appear as room status attributes that the batch reads. It does not re-verify them.
+  - DESIGN-CHOICE: the scheduler warns if classification sampling is planned inside a commercial batch window, and allows an APS to be tagged as the reclassification run.
+catalog_test: A Grade B room last requalified 6 months + 1 day ago → step start blocked. Set a "final filter changed" flag → blocked until requalification is recorded. An aseptic connection step mapped to a Grade C room → MBR validation rejects it.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU is stricter. It sets fixed maximum requalification intervals (6 and 12 months) and at-rest plus in-operation limits. FDA-AP has no fixed room requalification interval; only HEPA leak testing is about twice a year (ST-17).
+scope: all
+type_detail: "ENFORCED. The maximum requalification intervals are locked: Grade A/B ≤6 months, Grade C/D ≤12 months. Mapping each step to a grade is CONFIGURABLE within the Annex 1 grade rules."

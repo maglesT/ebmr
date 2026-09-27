@@ -1,0 +1,30 @@
+id: DI-20
+title: Device and data-source checks
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 51
+  - 7
+sources: "US: 11.10(h); 211.68(a) | EU: Annex 11 §5 | ICH/EMA/draft: none"
+behaviour: |-
+  - Every device has a registered identity and an assigned room or line: terminals, tablets, balances, scanners, instruments, PLC/SCADA connectors, printers.
+  - Every value stores the ID of the device it came from.
+  - For steps where the MBR declares device binding, data is accepted only from a registered device assigned to that step's location. Recipe downloads go only to the registered equipment for the step.
+  - A measuring device can be used only if it is within calibration and has passed any required pre-use check. The calibration details are in the production catalog.
+catalog_test: Data arriving from an unregistered or relocated scale is rejected with an alert. A stored weight shows its source balance ID.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 11.10(h) is the only explicit device-check rule. The EU reaches a similar result through §5 built-in checks.
+type_detail: CONFIGURABLE for device-to-location binding per step. The rule applies it "as appropriate". Default ON for weighing, dispensing and critical-parameter capture; it can be turned OFF only for non-critical steps, with a rationale. The device registry and the source-ID stamp are ENFORCED.

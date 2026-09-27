@@ -1,0 +1,28 @@
+id: IN-24
+title: Material status, labels, excipient release route, packaging materials and returns
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 250
+  - 251
+  - 673
+sources: Schedule M Part I 14.10-14.13 (receipt, labelling of stored materials, reduced label text with validated systems), 14.15 (non-API raw materials released without batch testing), 14.21-14.25 (packaging materials), 14.36 (returned goods), 19.7.1 (identity, strength, purity before release).
+behaviour: "(a) The system is the authority for material status (quarantine, under test, released, rejected, returned, recalled); status changes are e-signed and audit-trailed; with the validated system, labels may carry a barcode plus minimal text. (b) Each lot within a delivery is sampled, tested and released separately; every delivery of primary and printed packaging gets a unique reference. (c) Excipient release: Schedule M 14.15 lets QC release non-API raw materials without batch testing based on vendor approval and statistical analysis of past results. The system supports this route only when QA enables it, stores the statistical justification, and limits such lots to batches whose market profile is India-only. For any batch with a US or EU market, the dispensing check blocks a lot that has no identity test result. Default for new tenants: identity test required for every lot in every profile, because the Schedule M identity-test clause 19.7.2 is truncated in the uploaded copy and may restrict 14.15 (gap F-2). (d) Printed materials are issued only by a designated role against the packaging bill of materials with scan confirmation of artwork version; superseded artwork is blocked and its destruction recorded. (e) Returned goods cannot be made available again without a recorded QC assessment (nature, storage needs, condition, history, time since issue)."
+catalog_test: release an excipient lot on vendor history and try to dispense it into a batch with markets {India, US}; blocked until an identity result exists.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: the vendor-history route is **weaker** than FDA 211.84(d)(1)-(2) (at least one identity test on each component; supplier report of analysis accepted only with an identity test and periodic validation of supplier results) [chk] and EU 5.35 (identity testing of each batch per Annex 8) [chk]. Status, labels and packaging-material rules **same** as EU 5.31-5.32, 5.45-5.48 [chk].
+type_detail: ENFORCED; CONFIGURABLE (vendor-history release route, India-only).
+notes: "Source check: P (14.15 and 19.7.1 re-read)."

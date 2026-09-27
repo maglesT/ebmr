@@ -1,0 +1,33 @@
+id: DI-42
+title: Controlled issuance of electronic record instances and templates
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 38
+  - 64
+sources: "US: 211.100(a), 211.186, 211.188(a); FDA DI Q&A Q3, Q6 | EU: Ch.4 4.1 (controls for electronic templates, forms, masters), 4.2 (reproduction without error), 4.3 | ICH/EMA/draft: EMA GMP DI Q&A on template control (s)"
+behaviour: |-
+  - Issuing records:
+  - Batch record instances, logbooks and ad-hoc GMP forms are issued only from Effective, approved template versions.
+  - Each issued instance stores the master version ID and hash, and is an exact instantiation of it plus the batch header.
+  - Instances are uniquely numbered, and a later master edit never changes an issued instance.
+  - Reconciliation of issuance (issued, in execution, completed, voided) shows no gaps.
+  - Voided or re-issued instances are kept and retrievable, each with a written reason and a signer.
+  - A spreadsheet or electronic worksheet used to create CGMP data is a controlled form. An uncontrolled attachment is allowed only as labelled supporting information, never as the source of a GMP result.
+catalog_test: Change the MBR after issuing a batch. The issued instance is unchanged and its hash still matches its source version. Void an instance. It stays retrievable with its reason. The reconciliation report has no gaps.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: No conflict.
+type_detail: "ENFORCED. CONFIGURABLE for QA approval of each void: default ON. Q6 asks for a written justification under QU or other document control, not QA sign-off on every void."

@@ -1,0 +1,35 @@
+id: PR-07
+title: Quality-risk-management linkage for risk-based settings
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 204
+  - 205
+  - 206
+  - 207
+  - 211
+  - 210
+  - 109
+sources: "US: none binding (Q9 is FDA guidance (s)) | EU: Annex 11 section 6 (criticality via risk management); Ch.5 5.20-5.21 | ICH/EMA/draft: ICH Q9(R1) sections 3, 4.3, 4.6, 5.1-5.3, Annex II (s); EU Ch.4 draft 4.13 (draft)"
+behaviour: |-
+  - Scope: this applies to risk-based settings in a master, namely criticality, verification mode, IPC frequency and sample size, hard vs soft limits, review-by-exception scope, and campaign or concurrency rules. Each cites a risk assessment by ID and version.
+  - Scoring scales are controlled master data.
+  - Assessments store the formality level and its reasons, and keep hazard, harm, probability, severity and detectability as separate fields.
+  - Linked events raise a re-review task, and review-by-exception for the affected step pauses until QA confirms. Linked events are repeated deviations on a step, a PQR finding, or a change.
+  - Reducing IPC frequency requires change control that cites trend data.
+catalog_test: Submitting a master with a critical parameter and no linked assessment is blocked. Three deviations on a low-risk step open a re-review task and pause review-by-exception for that step.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: This is guidance level in both regions. EU GMP Part III incorporates Q9 (s). The default is a recommended configuration, not a legal minimum.
+type_detail: "CONFIGURABLE. Default: every master element classified critical must cite an approved, versioned risk assessment. Allowed: extend the requirement to all elements. Not allowed: removing it for critical elements."

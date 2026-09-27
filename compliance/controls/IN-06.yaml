@@ -1,0 +1,26 @@
+id: IN-06
+title: Document control of masters and corrections to recorded data
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 236
+sources: Schedule M Part I 17.2 (design, approval, signature and dating of documents; regular review; preventing use of superseded versions; retention of superseded documents for a set period; clear, indelible entries; alterations signed and dated with the original legible and a reason where appropriate).
+behaviour: "(a) MBRs, packaging instructions and SOP references have approval e-signatures, an effective date and a periodic-review date. (b) Once superseded, a version can no longer issue new batches but stays retrievable for a configured period (never shorter than the retention of batches made with it). (c) Every master version needs two signatures from different users: prepared by one, independently checked by another (applied in all profiles; required for US). (d) A correction to a recorded value never overwrites it: original value, new value, user, timestamp and a reason are kept and shown in the rendered record. The reason is mandatory in all profiles."
+catalog_test: supersede MBR v1; new batches cannot start on it; v1 still opens. Correct a weight; the rendered BMR shows old and new values, who, when, why.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: corrections **same** as EU Chapter 4 section 4.9 (reason "where appropriate") [chk]; **weaker** than EU Annex 11 section 9 (reason must be documented for any change or deletion of GMP-relevant data) [chk]. Master approval **weaker** than FDA 211.186(a) (one person prepares and signs, a second independently checks and signs) [chk]. The system applies both stricter rules everywhere.
+type_detail: ENFORCED; DESIGN-CHOICE for the two-person master approval and the always-mandatory reason.
+notes: "Source check: P~ (text re-read; 17.2 sub-clause numbers inferred)."

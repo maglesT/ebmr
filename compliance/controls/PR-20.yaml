@@ -1,0 +1,26 @@
+id: PR-20
+title: Independent check of each dispensed material
+part: B
+group: "C. Materials: receipt, status, dispensing and charge-in"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 13
+  - 120
+sources: "US: 211.101(c); 211.68(c) | EU: Ch.5 5.38; Annex 11 section 6 | ICH/EMA/draft: none"
+behaviour: "In manual weighing, a second, different individual confirms three things for each dispensed container: the component was released by the QCU; the quantity matches the batch record; the container is correctly identified. All three outcomes are recorded with both identities and timestamps. In automated mode (validated scale, barcode and status interlocks, device in its calibration programme), one human verifier signs. If the device goes offline, the step reverts to two-person mode."
+catalog_test: In manual mode, the same user dispensing and verifying is blocked. With the scale offline, the step switches to two-person mode.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US requires a second person unless the operation is automated, and then still one person. EU requires an independent, recorded check but does not require a second person. US is stricter because it always requires a human verification (D-3).
+type_detail: "ENFORCED (manual mode) + CONFIGURABLE (automated mode). Default in automated mode: one human verifier who is not the user who started the dispense. Allowed: the same user, but only when the dispense ran on a validated automated device under 211.68 (see F-1). No mode allows zero human verification."

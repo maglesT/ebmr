@@ -1,0 +1,7 @@
+{
+  "name": "@ebmr/tool-register",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Control register tooling: import from the catalogs, validate, check exact pins, build the traceability matrix",
+  "type": "module"
+}

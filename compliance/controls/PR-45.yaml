@@ -1,0 +1,34 @@
+id: PR-45
+title: Quarantine and release status model
+part: B
+group: "G. Material and product status: quarantine, rejected, reprocessed, recovered and returned"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 138
+  - 592
+  - 622
+  - 28
+  - 141
+sources: "US: 211.42(c)(1),(7); 211.82(b); 211.110(c); 211.142(a) | EU: Ch.4 4.24; Ch.5 5.5; 5.63; 5.64; 5.65 | ICH/EMA/draft: none"
+behaviour: |-
+  - Every received lot starts in Quarantine at receipt. Every produced lot (intermediate, bulk, finished) starts in Quarantine when its output is posted.
+  - A lot moves to Released only through a release transaction by an authorised QC/QCU role. EU finished product also needs QP certification (PR-55).
+  - Interfaces to ERP and WMS cannot allocate or ship quarantined or rejected stock.
+  - In-process materials are approved or rejected by the QCU at the significant phases the master defines.
+  - Electronic (administrative) quarantine is accepted where the validated system enforces it, and physical labels show the same status.
+  - Status changes are e-signed and audit-trailed.
+  - Finished-lot status is held per market (PR-56).
+catalog_test: Shipping a quarantined lot through the ERP interface is rejected. Using a quarantined intermediate in the next step is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 'Both accept non-physical quarantine: US through "other control systems", EU through administrative quarantine. Equivalent.'

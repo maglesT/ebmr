@@ -1,0 +1,33 @@
+id: PR-31
+title: Yield calculation, verification and investigation
+part: B
+group: E. In-process controls, time limits and yields
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 15
+  - 1
+  - 115
+  - 89
+sources: "US: 211.103; 211.186(b)(6)-(7); 211.188(b)(7); 211.192; 210.3(b) yield definitions (s) | EU: Ch.4 4.17(c)-(d); 4.20(g); Ch.5 5.8; 5.44 | ICH/EMA/draft: none"
+behaviour: |-
+  - Checkpoints: the master defines a yield checkpoint at each appropriate phase. Each has a theoretical basis (excluding materials flagged as lost in processing), a formula, a rounding rule and min/max limits.
+  - Calculation: the system calculates actual yield and percent of theoretical from the captured quantities (inputs, outputs, samples, rejects, waste). Users cannot type a yield percentage.
+  - Verification: every automated calculation is independently verified by one person. A manual calculation needs a performer and a second verifier.
+  - Out of limits: a result outside the limits automatically creates an investigation and blocks release.
+  - Corrections: changing any input quantity triggers an audit-trailed recalculation of the yield.
+catalog_test: A yield of 94.0% against limits of 95.0-101.0% creates an investigation automatically and blocks release. Without a verifier the step cannot complete. An independent recalculation matches the displayed yield.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US requires independent verification of every yield calculation and ties investigation to the master's min/max limits. EU requires an expected final yield with limits, and investigation of significant yield deviations. US is stricter (D-9).
+type_detail: "ENFORCED + DESIGN-CHOICE. Design choices: the verifier must not be the person who entered the quantities; optional alert limits."

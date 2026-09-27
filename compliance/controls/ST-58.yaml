@@ -1,0 +1,40 @@
+id: ST-58
+title: "Lyophiliser readiness: sterilisation frequency, integrity, leak rate, vent filter, trays"
+part: C
+group: "Theme 10: Lyophilisation"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 528
+  - 529
+  - 530
+  - 531
+sources: "EU Annex 1: 8.122, 8.123 (from 25 Aug 2024), 8.124, 8.125 | US: 211.113(b), 211.68 (inferred); FDA-AP IV.D.1 (sterile filter on the lyophiliser vacuum break)."
+behaviour: |-
+  - **Loading mode.** Lyophiliser master data records manual-open (no barrier separation), automated, or closed-barrier.
+    - **Manual-open:** a new successful sterilisation is required **between every unload and the next load**, as a hard block. This has applied since 25 Aug 2024.
+    - Automated or closed-barrier: the CCS-justified frequency is enforced, and the CCS reference is displayed.
+  - **Conditions for loading:**
+    - a passing SIP record exists, no older at loading than the **longest sterilisation-to-use interval challenged in the last successful APS**;
+    - no maintenance or cleaning event has occurred after it; otherwise re-sterilise;
+    - trays and vial rings have their own sterilisation load IDs.
+  - **Every cycle:**
+    - the start-of-cycle leak-rate result is at or below the specified maximum air leakage; a failure blocks the cycle and release;
+    - the integrity/vent filter is sterilised before each use, and its **integrity test result is on the QP release checklist**;
+    - the chamber leak-test frequency is documented.
+  - **Trays.** IDs are tracked with last inspection date. A tray that is overdue or flagged misshapen or damaged is refused.
+catalog_test: On a manual-open lyophiliser, attempt a second load without a new SIP → hard block. Start leak rate above maximum → cycle flagged and release blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA-AP is silent on lyophiliser sterilisation frequency and leak rate, so EU governs.
+scope: lyo
+type_detail: ENFORCED. The CCS-justified sterilisation interval for automated or barrier-protected units is CONFIGURABLE.

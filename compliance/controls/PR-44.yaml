@@ -1,0 +1,34 @@
+id: PR-44
+title: Reserve samples
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 609
+  - 610
+sources: "US: 211.170(a)-(b); 211.84(b) | EU: EU GMP Annex 19 (not in uploaded texts) (s) | ICH/EMA/draft: none"
+behaviour: |-
+  - Product reserve samples (per lot):
+    - The filling or packaging master includes a reserve-sample step for each lot.
+    - Quantity: at least double the quantity required for all release tests, sterility and pyrogen tests excluded.
+    - Container and storage: the marketed immediate container-closure (or one with essentially the same characteristics), labelled and stored as the labeling requires.
+    - The reserve units count in yield and reconciliation.
+  - Annual examination: the system schedules an annual visual examination of statistically selected lots. Deterioration found there opens an investigation.
+  - Retention: disposal is blocked until 1 year after expiry (OTC products exempt from expiry dating: 3 years from distribution).
+  - API reserve, where the suite handles receipt: the same 2x rule. It is kept until 1 year after the expiry of the last product lot containing that API.
+catalog_test: Packaging cannot complete without a reserve sample of at least the computed quantity. Disposal before 1 year after expiry is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US quantities and periods are verified here. EU reference and retention sample rules (Annex 19) were not verified; see F-8.
+type_detail: ENFORCED (US in set) / CONFIGURABLE (EU rules; see F-8)

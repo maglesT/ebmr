@@ -1,0 +1,34 @@
+id: PR-42
+title: Serialisation, product identifiers and safety features
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 81
+  - 82
+  - 85
+sources: "US: FD&C Act 581(14), 582(a)(9), 582(b) (s); FDA product-identifier Q&A (June 2021) (s); 201.25 (s) | EU: Directive 2011/62/EU; Delegated Regulation (EU) 2016/161 (s) | ICH/EMA/draft: none"
+behaviour: |-
+  - US prescription packs (DSCSA):
+    - Content: the product identifier is the NDC plus a serial of up to 20 characters, the lot and the expiry, in human- and machine-readable form.
+    - Carriers: a 2D data matrix on packages; linear or 2D on homogeneous cases.
+    - Before release, an automated check confirms that the lot and expiry encoded equal the record values.
+    - Serial lifecycle events are recorded: allocated, commissioned, packed, decommissioned, sampled, destroyed.
+    - A serial -> lot -> record lookup answers verification requests within 24 h (s).
+  - EU prescription products in scope: a unique identifier and an anti-tampering device, per Directive 2011/62/EU and Delegated Regulation (EU) 2016/161 (s).
+  - Release gate: release is blocked if serial reconciliation fails or serial events are missing.
+catalog_test: A wrong expiry encoded in a test code is rejected. Serial reconciliation shows zero unexplained serials. A query on a commissioned serial returns its lot, expiry and status.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The two are separate obligations, one per market. A batch going to both markets needs separate market-specific packaging orders, each with its own identifier scheme.
+type_detail: CONFIGURABLE per market (ON automatically when a market requires it)

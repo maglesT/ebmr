@@ -1,0 +1,32 @@
+id: PR-05
+title: Master versioning, supersession, periodic review, retirement and document inventory
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 98
+  - 627
+  - 217
+sources: "US: 211.100(a); 211.186(a); 211.68(b) | EU: Ch.4 4.3; 4.5; 4.20; 4.21; 4.32; Annex 11 section 10 | ICH/EMA/draft: ICH Q10 1.6.1 and 3.1 (s)"
+behaviour: |-
+  - Once version n+1 becomes effective, no new batch can start on version n.
+  - Batches already in progress follow a configured rule. Default: finish on the issued version; migration to the new version only under change control. The record shows which version governed each step.
+  - Every master carries a periodic-review due date and an overdue alert.
+  - A retired master blocks new batches, but every executed record stays retrievable and printable.
+  - The system exports an inventory of its controlled documents (masters, templates, forms, label templates, embedded instructions) with ID, version, status, effective date and review date.
+catalog_test: After v2 is effective, starting a batch on v1 is blocked. An overdue review appears on the dashboard. The inventory export reconciles with the site document list.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU requires periodic review (4.5) and a document inventory (4.32) explicitly, so EU is stricter. Blocking superseded versions comes from 4.3 (effective date) and 4.20/4.21 (currently approved instructions), not from 4.5 (see D-11).
+type_detail: ENFORCED (supersession and retirement) + CONFIGURABLE (review interval, set by customer SOP; the texts give no number)

@@ -1,0 +1,25 @@
+id: IN-42
+title: Environmental monitoring data in the batch record and microbial limits
+part: D
+group: Injectables edition
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 254
+sources: Schedule M Part II 4.7-4.10 and Table 3 (values stated to be averages and for information, not specifications); 4.8 (EM results considered in batch release review).
+behaviour: "(a) The batch record links the EM data for its processing window: continuous Grade A particle counts for the full critical processing including equipment assembly (capturing interventions and transients, alarming at alert limits), Grade B monitoring, and viable results (settle plates, active air, contact plates, glove prints, swabs) per location and session. (b) Release is blocked until all EM results for the filling window are complete (no plate still incubating) and reviewed, and every excursion is investigated. (c) Each viable result is evaluated individually against the resolved action limit (design choice: the Indian table gives averages, but averaging must not hide a single Grade A recovery). India values (CFU; air per m3 / settle plate 90 mm per 4 h / contact 55 mm / 5-finger glove): Grade A under 1 for all four; Grade B 10 / 5 / 5 / 5; Grade C 100 / 50 / 25 / not set; Grade D 200 / 100 / 50 / not set. (d) Alert and action limits must be configured for every location; exceeding an action limit or an adverse alert trend opens an investigation with CAPA."
+catalog_test: record a Grade A settle plate of 1 CFU during a fill; an excursion is raised for every profile and release is blocked until the investigation closes.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 'Grades B-D numbers **same** as EU Annex 1 (2022) Table 6 [chk]; EU is **stricter** because its values are maximum action limits and Grade A is "no growth", with any Grade A growth investigated [chk]. FDA 2004: ISO 5 action level 1 CFU/m3 active air and 1 CFU settle plate (settle plates optional); ISO 5 samples should normally yield no contaminants; averaging can mask localized excursions [chk]; broadly **same** as India at Grade A.'
+type_detail: ENFORCED (release gate, limit check); CONFIGURABLE (alert limits, locations).
+notes: 'Source check: P (Table 3 cells reassembled from scattered lines; the "average values" and "for information only" notes re-read).'

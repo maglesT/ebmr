@@ -1,0 +1,34 @@
+id: PR-04
+title: Registration (MA / application) conformity and market validity of masters
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 629
+  - 187
+  - 218
+  - 219
+sources: "US: 211.100(a); 211.186(b)(9) | EU: Ch.5 Principle; Ch.4 4.2 | ICH/EMA/draft: Annex 16 section 1 (s); ICH Q12 ch.3-5 (ECs, PACMP, PLCM) (s); EU Variations Guidelines applying from 15 Jan 2026 (s)"
+behaviour: |-
+  - Each master version holds the registration references for each target market (EU MA number and variation; US application number and supplement).
+  - Any master element can be flagged as registered or as an Established Condition (EC), with its market and reporting category.
+  - Approval requires a regulatory-conformity sign-off.
+  - A version becomes effective for a market only when all required approvals or notifications for that market are recorded.
+  - A batch can be created only from a version valid for every market in its market set.
+  - The batch record shows the master version and the registration references used.
+  - A change linked to a PACMP stays open until the protocol's acceptance criteria are met on the eBMR batches it names.
+catalog_test: Widening a registered CPP range with no variation reference is blocked. Creating a batch for a market not linked to the master is refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU text links production directly to the MA (Ch.5 Principle, 4.2). US reaches the application through 211.100(a) and FD&C Act filing rules (s). For a multi-market batch, the stricter rule is that both registrations must be satisfied at once, i.e. the process must run inside the intersection of the registered ranges.
+type_detail: "CONFIGURABLE. Default: hard block when a registered-flagged limit is wider than the registered value, or when a registered element changes without a recorded regulatory action for that market. Allowed: warning only, for elements not flagged as registered or Established Condition."

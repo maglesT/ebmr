@@ -1,0 +1,41 @@
+id: DI-17
+title: Authority checks per action, least privilege and segregation of duties
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 50
+  - 2
+  - 173
+sources: "US: 11.10(g); 211.22(a),(c); 211.68(b); 211.101(c)-(d), 211.103, 211.186(a), 211.188(b)(11) | EU: Annex 11 §2 (level of access), §12.1; Ch.4 4.20(c), 4.21(c) | ICH/EMA/draft: draft Annex 11 §11 least privilege (draft)(s); draft Annex 11 §12 independent audit-trail reviewer (draft)(s)"
+behaviour: |-
+  - At every action the engine checks that the user holds a role permitted for that action on that object. Objects are scoped by legal entity, site, area, product, line and step type. Actions include:
+  - execute, verify, supervise;
+  - QA review and audit-trail review;
+  - disposition / QP certification;
+  - MBR author, checker, approver;
+  - master-data change, configure, administer.
+  - A failed check blocks the action (it does not just warn) and is logged.
+  - Signature meanings are bound to roles. For example, only the QU-disposition role can sign "Approved for release" or "Rejected".
+  - Segregation of duties is enforced by the engine:
+  - the performer of an entry is not its verifier;
+  - the MBR author, checker and QU approver are three different users;
+  - a user who executed or verified any step of batch X cannot do the audit-trail review of batch X or sign its disposition.
+  - Data is isolated between sites by default.
+  - Status changes on materials, intermediates and batches are QU-only e-signatures; the details are in the production catalog.
+catalog_test: Run a permission-matrix suite with positive and negative tests for every role and action. The performer tries to verify their own entry. Refused. A batch executor tries to sign disposition of that batch. Refused. A role without the QU function tries to sign "Approved for release". Refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US second-person rules (211.101, 211.103, 211.186(a), 211.188(b)(11)) require the checker to be someone other than the performer. EU Ch.4 asks for a checker "where appropriate". The stricter US rule applies.
+type_detail: "ENFORCED for the checks, performer-not-verifier and author-not-checker. The executor-not-reviewer/disposer rule is a DESIGN-CHOICE, engine-enforced: it is good practice supporting QU independence and the draft's independent-reviewer expectation, not explicit rule text."

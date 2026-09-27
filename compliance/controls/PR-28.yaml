@@ -1,0 +1,30 @@
+id: PR-28
+title: Microbiological-control and sterility-assurance prerequisites (kernel hook)
+part: B
+group: D. Equipment, premises, cleaning and logs
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 20
+  - 626
+sources: "US: 211.113(a)-(b); 211.94(c) | EU: Ch.4 4.27; 4.29 (environmental monitoring); Ch.5 5.10 | ICH/EMA/draft: EU Annex 1 (2022) (s); FDA aseptic processing guidance (2004) (s)"
+behaviour: |-
+  - [I] Sterilised items: the engine blocks consumption of sterilised or depyrogenated items unless the cycle ran a validated recipe/version for that load and passed.
+  - [I] Aseptic steps: the engine blocks them unless the line and its operators hold current APS qualification and the items are within validated hold times. The detailed rules are in the sterile catalog.
+  - [I] Monitoring data: environmental and personnel monitoring results for the rooms and time window are linked to the batch. Open excursions appear at QA review and QP certification.
+  - [T] Masters may define microbial controls, such as aqueous granulation hold limits and water-system status. Rooms and times used stay traceable so EM data can be retrieved.
+catalog_test: A failed autoclave cycle prevents issue of the load's items. An open EM excursion appears on the QP screen.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 211.113(b) requires validated aseptic and sterilisation processes. The specific gates come from Annex 1 and the FDA 2004 guidance, not from the text of 211.113.
+type_detail: ENFORCED [I] / CONFIGURABLE [T]

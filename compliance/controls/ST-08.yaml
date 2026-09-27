@@ -1,0 +1,35 @@
+id: ST-08
+title: Unsupervised Grade A/B access gate (gowning qualification + APS participation)
+part: C
+group: "Theme 1: Personnel qualification and gowning gate"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 447
+  - 292
+  - 321
+  - 539
+sources: "EU Annex 1: 7.4, Table 2 note 3, 8.139, 9.38 (each operator ≥1 successful APS per year) | US: 211.25(a), 211.28(a),(c); FDA-AP V.A, IX.A.2."
+behaviour: |-
+  - Before a person may sign any Grade A/B aseptic step without supervision, the system requires all of the following:
+    - gowning qualification passed, with visual and microbial assessment (gloved fingers, forearms, chest, hood/mask/forehead). Results are judged against the Table 6 contact-plate and glove-print limits for the grade concerned (Grade B: 5 CFU; Grade A: no growth), per Table 2 note 3. The qualification must be no more than 12 months old;
+    - aseptic training current;
+    - participation within the last 12 months in a successful APS on this line or process, **in the role or activity being signed**. Roles include filling, set-up, maintenance intervention, EM sampling and SUS assembly/connection.
+  - If any check fails, the person is routed to "supervised only" mode, if the site allows it, or blocked.
+  - The qualification snapshot for each person is stored in the batch roster.
+  - The site can shorten the gowning requalification interval for manual or intervention-heavy processes. FDA-AP says annual is normally enough only for automated, low-intervention operations.
+catalog_test: Gowning requalified 12 months + 1 day ago → Grade B signature blocked. A technician whose APS covered only EM sampling signs a needle-change intervention → blocked or flagged.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "Operator APS participation is annual in both. Gowning: EU says at least annually for everyone. FDA says annual is usually adequate for automated operations and implies more frequent requalification for manual work or after adverse findings. Stricter result = ≤12 months for everyone, shortened for manual processes."
+scope: aseptic
+type_detail: "CONFIGURABLE. Default: gowning requalification ≤12 months and a successful APS ≤12 months. Allowed range: shorter only. ENFORCED: no unsupervised Grade A/B signature without both."

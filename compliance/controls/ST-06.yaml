@@ -1,0 +1,34 @@
+id: ST-06
+title: Batch alarm and event register (equipment, utilities, power, interlocks)
+part: C
+group: "Theme 0: Cross-cutting rules (apply to every theme)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 428
+  - 365
+  - 444
+  - 409
+  - 281
+sources: "EU Annex 1: 4.13, 4.16, 5.2, 6.20–6.22 | US: 211.100, 211.192; FDA-AP IV.C, XII (power interruption)."
+behaviour: |-
+  - For every room, line, isolator, steriliser, lyophiliser and utility used by the batch, the eBMR imports EMS/BMS/SCADA alarms and events for the whole execution window. This includes DP, particle, T/RH, interlock override or simultaneous door opening, leak or backflow alarms, and power events. Each item needs an acknowledgement (user, time) and an assessment of batch impact.
+  - A *critical* alarm (per master data) pauses the step until an authorised reviewer records an evaluation. Any alarm that breached a limit must be linked to a deviation.
+  - **Any power interruption that could affect quality, however short, automatically creates a deviation** linked to the batch (US text-box rule).
+  - A data-feed gap longer than a configurable limit (default 5 min) is treated as an alarm.
+  - Release is blocked while any alarm in the window is unassessed.
+catalog_test: Inject a 2 s power dip on the filler feed → deviation auto-created. Leave one of three alarms unassessed → release blocked. Cut the EMS feed for 30 min → a gap item appears.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA-AP is more explicit that every power interruption is a deviation. EU adds a requirement for immediate review of critical alarms. Apply both.
+scope: all
+type_detail: ENFORCED (register and assessment). Criticality mapping is CONFIGURABLE.

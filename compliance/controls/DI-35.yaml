@@ -1,0 +1,53 @@
+id: DI-35
+title: "Electronic-signature catalogue: every predicate-rule signature point"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 614
+  - 145
+  - 36
+  - 68
+  - 113
+  - 182
+sources: 'US: 11.1(c)-(d), 11.2(a), 11.3(b)(7)-(8); 211.101(c)-(d), 211.103, 211.182, 211.186(a), 211.188(a),(b)(11), 211.194(a)(7)-(8); FDA DI Q&A Q11 (e-signature satisfies "full signature, handwritten"; document signer-identification controls) | EU: Ch.4 4.3, 4.9, 4.13, 4.20(c),(f),(h),(i), 4.21(c),(g),(i), 4.31; Annex 11 §14 | ICH/EMA/draft: draft Ch.4 signatures and signature policy (draft)(s); draft Ch.4 hybrid systems and recognition of e-signatures (draft)(s)'
+behaviour: |-
+  - A vendor-defined catalogue of signature types covers every point where a rule asks for a signature, initials, a check or an approval:
+  - MPCR/MBR prepared, independently checked, QU-approved;
+  - batch record issued (accurate reproduction checked);
+  - step performed; step checked or directly supervised;
+  - component container checked at dispensing; charge-in verified;
+  - yield verified;
+  - IPC performed and verified;
+  - deviation authorised; correction;
+  - labeling specimen approved;
+  - logbook entry performed and double-checked;
+  - production and packaging record approved;
+  - audit trail reviewed;
+  - QU review and disposition;
+  - QP certification (if used);
+  - true copy verified;
+  - void or reprint authorised.
+  - Each type defines:
+  - the permitted roles and the meaning text;
+  - the independence rule (which earlier signers on the same object it must differ from);
+  - the re-authentication rule (DI-38).
+  - Every type is a full Part 11 / Annex 11 e-signature, never a click-acknowledgment.
+  - A handwritten (stylus) signature on an electronic record, if offered, is still a handwritten signature: it must show the 11.50 elements and be linked under 11.70.
+  - The company signature policy (who may sign which meaning) is configured in the system.
+  - E-signing is the default everywhere. There is no print-to-sign path.
+  - Customers may add signature points but cannot remove the minimum set.
+catalog_test: An inventory maps every predicate signature point to a catalogue type. Try to complete a cleaning-log entry with a plain acknowledgment. Impossible.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US signature points are more numerous (second-person rules). EU adds approval of the completed processing and packaging records by the responsible person. The catalogue is the union.

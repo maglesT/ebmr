@@ -1,0 +1,41 @@
+id: PR-19
+title: Dispensing targets and dispensing execution
+part: B
+group: "C. Materials: receipt, status, dispensing and charge-in"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 11
+  - 12
+  - 120
+  - 118
+sources: "US: 211.101(a)-(b); 211.186(b)(4)-(5) | EU: Ch.5 5.12; 5.13; 5.37 | ICH/EMA/draft: none"
+behaviour: |-
+  - Who dispenses: only users holding the dispenser designation, following the procedure embedded in the step.
+  - Targets:
+    - Targets come from the master formula, including any stated calculated excess.
+    - Where the master calls for it, the target is adjusted for potency or assay. The adjustment uses the approved result of the released lot (never a typed value), and a compensating excipient quantity is calculated.
+    - A master or target that would deliver less than 100% of the labeled amount of active ingredient is refused.
+  - Weighing: quantities are captured from a calibrated device and checked against tolerance. An out-of-tolerance quantity cannot be confirmed without a deviation.
+  - Container labels: each dispensed container is labeled automatically with:
+    - component name or item code;
+    - receiving/control number;
+    - quantity in the container;
+    - the destination batch (product name, strength, lot number);
+    - a unique container ID (a design choice).
+  - Reprints need a reason and void the earlier label.
+catalog_test: An API lot assayed at 98.5% raises the target and lowers the filler, with an audit trail. The label shows all four required elements. A non-designated user is refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The at-least-100% intent rule and the four label elements are explicit US requirements. EU requires designated dispensers and clean, correctly labelled containers. The kernel applies both. Potency adjustment is one way to meet 211.101(a), not a mandate.
+type_detail: ENFORCED (label content, tolerance, designated dispensers, 100% intent check) + CONFIGURABLE (potency-adjustment method, per master)

@@ -1,0 +1,29 @@
+id: PR-30
+title: Time limits and hold times
+part: B
+group: E. In-process controls, time limits and yields
+editions:
+  - tablets
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 19
+  - 125
+sources: "US: 211.111; 211.110(c) | EU: Ch.4 4.18(f); Ch.5 5.41; 5.54 | ICH/EMA/draft: EU Annex 1 (s), for sterile-process timers"
+behaviour: |-
+  - Named timers have start and end events. They run server-side from persisted timestamps.
+  - A timer warns before expiry. On breach it creates a deviation that needs justification and a QA assessment.
+  - Holds of intermediates and bulk record the container, location, storage condition and maximum hold time.
+  - A maximum filling-to-labelling interval for unlabelled units is a design choice.
+catalog_test: A simulated breach creates a deviation automatically and flags the batch. After a client and server restart, the elapsed time is still correct.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US explicitly requires time limits where appropriate, and departures must be justified and documented. EU requires appropriate holding conditions and bulk storage requirements. US is stricter, and the kernel applies it to all markets.
+type_detail: "CONFIGURABLE. The master defines timers where appropriate, each with a validation or registration reference. Default on breach: a deviation is created and release is blocked until it is dispositioned. Timers are never evaluated from client clocks."

@@ -1,0 +1,40 @@
+id: PR-49
+title: Deviation record, classification and approval
+part: B
+group: H. Deviations, investigations and CAPA
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 119
+  - 214
+  - 208
+  - 189
+  - 224
+sources: "US: 211.100(b); 211.192 | EU: Ch.5 5.15; Ch.4 4.20(h); 4.21(g); 4.29 | ICH/EMA/draft: Annex 16 section 3 and EMA Q&A on Annex 16 (s); ICH Q9(R1) 6.1 (s); EU GMP Ch.1 (s)"
+behaviour: |-
+  - Creation: a deviation raised from a step pre-fills the batch, step, master version, equipment and materials.
+  - Classification: planned or unplanned; impact on a registered detail, on GMP, or neither; severity.
+  - Approval and holds: a competent person approves it, with QC involved for quality-relevant classes. Linked batches are placed on hold.
+  - Annex 16 section 3 fields (EU in set), for certifying a batch with an unexpected deviation:
+    - confirmation that registered specifications are met;
+    - a QRM impact assessment;
+    - root cause and actions;
+    - an assessment of whether a variation is needed.
+  - Recurrence and register: a counter warns when the same deviation recurs. A register of batches certified under this route is kept for the PQR.
+  - Availability impact (design choice): an optional field for shortage-sensitive products. Availability can never override a quality disposition.
+catalog_test: A failure of a registered limit creates a deviation with the MA flag. The third recurrence shows a warning on the certification screen.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The Annex 16 section 3 route has no US equivalent. In the US, a batch failing a specification is rejected (211.165(f)) and the failure is investigated (211.192).
+type_detail: ENFORCED (record, approval, batch link, hold of linked batches) + CONFIGURABLE (deviation classes) + DESIGN-CHOICE (availability-impact field)
