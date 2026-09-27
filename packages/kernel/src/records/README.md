@@ -13,7 +13,9 @@ Controls: **DI-01, DI-12, DI-47, DI-50**. Invariant: **INV-22**. Groundwork for 
 - Every table is **insert-only** and registered with `kernel.register_audited_table`; state (incident
   status, current register version, latest retention, active holds) is derived from the rows. Nothing
   is ever overwritten, so no state change needs an UPDATE.
-- The application role (`ebmr_app`) has SELECT only; every write is a SECURITY DEFINER function.
+- The application role (`ebmr_app`) has SELECT only; every write is a SECURITY DEFINER function
+  with `search_path = pg_catalog, records, kernel, pg_temp` (pg_temp last) and schema-qualified
+  relations, so a temporary table can never stand in for a catalog or module table.
 - `recorded_at` always comes from the database clock. Claimed times are separate columns with a trust
   level (incident `occurred_at`, CERT-In report time).
 - Cross-module references are plain `uuid`/`text` (aggregate type + id); no foreign keys leave the schema.
@@ -73,7 +75,9 @@ proposed starting register for customer QA to review and approve.
 - **Purge**: `records.approve_purge(record_key, signature_id, reason[, true_copy_id])` (a person;
   only when eligible) then `records.purge(record_key)` (reason code required). Refuses when OPEN, on
   or before retain-until, under any disposal blocker, without an approval matching the current
-  retain-until, or when the chain does not verify. Deletes the record's rows from every registered
+  retain-until, or when the chain does not verify. Seals a checkpoint of the record as kept; when the
+  approval cites an archived true copy, that copy must cover exactly this head (EBMR-REC-038, so the
+  archive is complete at purge time). Deletes the record's rows from every registered
   table of its aggregate type (audited), writes a business entry, seals `kernel.checkpoint_chain`,
   writes the tombstone (row counts and digests per table, all event hashes, checkpoint, retain-until,
   approval, executor, reason), then removes the chain's events and head. Insert-only guards are
@@ -124,5 +128,5 @@ the identity module.
 - Batch/lot owners: `records.create_retention_schedule`, `update_retention_inputs` (e.g. when the QP
   certification arrives), `link_retention_dependency` on consumption.
 - Error codes: EBMR-REC-001 actor, 002/003 keys and periods, 010-016 register, 020-023 retention
-  inputs and schedules, 030-037 disposal and purge, 040 holds, 050-056 incidents, 060-064
+  inputs and schedules, 030-038 disposal and purge, 040 holds, 050-056 incidents, 060-064
   investigations, 070 true copies.

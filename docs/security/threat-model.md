@@ -75,7 +75,8 @@ Assumptions: the database superuser and the storage root account are held by dif
 | DB-9 | I | One client's formula is read by another client's user. | Row-level security per tenant for client-owned content. | DI-13 | Phase 2 |
 | DB-10 | D | Loss of a database node. | Synchronous quorum standby; failover runbook. | DI-45 | `docs/operations/ha-and-restore.md`; IQ/OQ |
 | DB-11 | D | Corruption replicated to standbys. | Backups separate from replicas; retention-grade tier; drills. | DI-45 | `backup-drill.test.ts` |
-| DB-12 | E | A SECURITY DEFINER function is abused (search path, public execute). | Fixed `search_path`, EXECUTE revoked from PUBLIC and granted by name, NOLOGIN owner. | DI-17 | Migration review; bypass tests per module |
+| DB-12 | E | A SECURITY DEFINER function is abused (public execute, unexpected caller). | EXECUTE revoked from PUBLIC and granted by name; NOLOGIN owner; every function validates its inputs and the actor context. | DI-17 | Migration review; bypass tests per module |
+| DB-13 | E, T | Object shadowing: when `pg_temp` is not listed in a function's `search_path`, PostgreSQL searches the session's temporary schema **first** for tables, so an application session could create a temporary table named like a catalog or module table (`pg_class`, `pg_sequences`, `counter`) and make a SECURITY DEFINER function read attacker data and skip its checks. | Every SECURITY DEFINER function sets `search_path = pg_catalog, <own schema>[, kernel], pg_temp` with `pg_temp` explicitly last; catalog tables and module tables are schema-qualified inside functions; TEMP is revoked from PUBLIC on every GMP database (bootstrap), so the application role cannot create temporary objects at all. | DI-17, DI-23 | `packages/kernel/test/continuity/numbers.test.ts` (shadowing temp tables do not change results; every continuity and site definer function ends its path with `pg_temp`); repo-wide check (lead) |
 
 ## 5. Site services
 

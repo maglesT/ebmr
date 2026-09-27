@@ -128,3 +128,15 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   and platform.outbox.id as protected sequences; consider a dedicated outbox relay role. Owner questions from B5
   (device-skew tolerance on occurred_at <= recorded_at; which trusts count as late entry; REFERENCE_LOST severity) go
   into the Phase 1 owner-questions list.
+- 2026-09-27 ~21:00 UTC: B4 (records) finished: 69 tests; DI-01, DI-12, DI-47, DI-50 IMPLEMENTED (INV-22 proven).
+  Retention logic authoritative in SQL (rule set RET-2026.1), TS mirror proven equal by a property test.
+  B4 integration items: export as namespace `records` (name clashes with market); nightly/verifyAllChains must use
+  records.verify_chain/verify_anchor (purge-aware) combined with B6 restore-event coverage; replace purge's
+  ALTER TABLE ... DISABLE TRIGGER with a purge authorisation row checked by kernel.reject_mutation (row in a table only the
+  purge function writes, keyed by txid; never a session setting); fixtures testgmp.* grant DELETE to ebmr_app (accepted
+  for audit tests; B4 tests filter them); add permissions RECORD.DISPOSAL_APPROVE, RECORD.LEGAL_HOLD, INCIDENT.CLOSE and a
+  register-approval permission and check them via iam.evaluate_authority; signature ids -> esig; retention values -> market
+  rule keys (proposedRuleKey); optional index on audit_event actor person_id for DI scoping.
+  Owner/expert questions from B4: MAJOR incidents also need root cause + CAPA (peak severity counts); DERIVED class refused
+  for decision data (stricter than "not informational"); retention stays OPEN when inputs are missing; design-default rules
+  for aborted and never-certified EU batches; CERT-In 6 h and Form 25/28 periods unverified.

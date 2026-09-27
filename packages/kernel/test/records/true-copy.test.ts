@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { buildTrueCopyBundle, registerTrueCopy, serializeBundle, verifyTrueCopyBundle, verifyTrueCopyBundleText } from '../../src/records/true-copy.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { again, correctEntry, createStubTables, insertEntry, insertReading, testActor } from './helpers.ts';
+import { again, testActor, withReason } from './helpers.ts';
 
 let db: TestDatabase;
 let operator: ActorContext;
@@ -19,7 +19,19 @@ const TSX = new URL('../../../../node_modules/.bin/tsx', import.meta.url).pathna
 
 beforeAll(async () => {
   db = await createTestDatabase();
-  await createStubTables(db);
+  // Own stub tables under an aggregate type no other module uses, so a bundle holds only what this file creates.
+  await db.admin.query(`
+    create schema stub_tc authorization ebmr_owner;
+    set role ebmr_owner;
+    grant usage on schema stub_tc to ebmr_app;
+    create table stub_tc.entry (id uuid primary key default gen_random_uuid(), batch_id uuid not null, step_ref text not null, value numeric not null);
+    create table stub_tc.reading (id uuid primary key default gen_random_uuid(), batch_id uuid not null, value numeric not null);
+    grant select, insert, update on stub_tc.entry to ebmr_app;
+    grant select, insert on stub_tc.reading to ebmr_app;
+    select kernel.register_audited_table('stub_tc.entry', 'tc_batch', 'batch_id', false);
+    select kernel.register_audited_table('stub_tc.reading', 'tc_batch', 'batch_id', true);
+    reset role;
+  `);
   operator = await testActor(db, { roleCode: 'OPERATOR' });
   qa = await testActor(db, { roleCode: 'QA' });
   dir = mkdtempSync(join(tmpdir(), 'ebmr-true-copy-'));
@@ -29,17 +41,28 @@ afterAll(async () => {
   await db.drop();
 });
 
+const key = (batch: string) => `tc_batch:${batch}`;
+
+async function insertEntry(batch: string, value: string, stepRef = 'S1'): Promise<string> {
+  return withCommand(db.app, again(operator), async (c) => {
+    const { rows } = await c.query<{ id: string }>('insert into stub_tc.entry (batch_id, step_ref, value) values ($1, $2, $3) returning id', [batch, stepRef, value]);
+    return rows[0]?.id ?? '';
+  });
+}
+
 /** A batch with a corrected entry (mutable table), insert-only readings, a business entry and a checkpoint. */
 async function realBatch(): Promise<{ batch: string; entry: string }> {
   const batch = randomUUID();
-  const entry = await insertEntry(db, operator, batch, '12.5030000000000000001');
-  await correctEntry(db, operator, entry, '12.5300');
-  await insertEntry(db, operator, batch, '0.000', 'S2');
-  await insertReading(db, operator, batch, '7.10');
-  await insertReading(db, operator, batch, '7.1');
+  const entry = await insertEntry(batch, '12.5030000000000000001');
+  await withCommand(db.app, withReason(operator, 'TRANSCRIPTION_ERROR', 'wrong digit'), (c) => c.query('update stub_tc.entry set value = $2 where id = $1', [entry, '12.5300']));
+  await insertEntry(batch, '0.000', 'S2');
   await withCommand(db.app, again(operator), async (c) => {
-    await c.query("select kernel.audit_business_event($1, 'weighing recorded, 12.530 kg, balance B-17 — émis ✓')", [`batch:${batch}`]);
-    await c.query("select kernel.checkpoint_chain($1, 'stage closed')", [`batch:${batch}`]);
+    await c.query('insert into stub_tc.reading (batch_id, value) values ($1, $2)', [batch, '7.10']);
+    await c.query('insert into stub_tc.reading (batch_id, value) values ($1, $2)', [batch, '7.1']);
+  });
+  await withCommand(db.app, again(operator), async (c) => {
+    await c.query("select kernel.audit_business_event($1, 'weighing recorded, 12.530 kg, balance B-17 — émis ✓')", [key(batch)]);
+    await c.query("select kernel.checkpoint_chain($1, 'stage closed')", [key(batch)]);
   });
   return { batch, entry };
 }
@@ -47,26 +70,25 @@ async function realBatch(): Promise<{ batch: string; entry: string }> {
 describe('true-copy bundle and offline verifier (groundwork for DI-40, DI-41, DI-46)', () => {
   it('[INV-08] a bundle of a real chain from the database verifies offline, with every part hashed and listed in the manifest', async () => {
     const { batch } = await realBatch();
-    const bundle = await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}` });
+    const bundle = await buildTrueCopyBundle(db.app, { chainKey: key(batch) });
     const report = verifyTrueCopyBundleText(serializeBundle(bundle));
     expect(report.problems).toEqual([]);
     expect(report.ok).toBe(true);
-    expect(report.summary).toMatchObject({ chainKey: `batch:${batch}`, events: 6, rows: 4, headSeq: '6' });
+    expect(report.summary).toMatchObject({ chainKey: key(batch), events: 6, rows: 4, headSeq: '6' });
     const manifest = JSON.parse(bundle.manifest) as { parts: { name: string; sha256: string }[]; tables: string[] };
     expect(manifest.parts.map((p) => p.name)).toEqual(['records.json', 'audit-chain.json', 'verification.json']);
-    // Every registered table of the aggregate type is included (other modules register 'batch' tables too).
-    expect(manifest.tables).toEqual(expect.arrayContaining(['stub_b4.batch_entry', 'stub_b4.batch_reading', 'testgmp.reading', 'testgmp.sample']));
-    expect(manifest.tables).toEqual([...manifest.tables].sort());
+    // Every registered table of the aggregate type is included.
+    expect(manifest.tables).toEqual(['stub_tc.entry', 'stub_tc.reading']);
     // Exact decimals survive: the corrected value keeps its scale, the original stays in the chain.
     const records = JSON.parse(bundle.parts['records.json'] as string) as { tables: { table: string; rows: { content: string }[] }[] };
-    const entries = records.tables.find((t) => t.table === 'stub_b4.batch_entry');
+    const entries = records.tables.find((t) => t.table === 'stub_tc.entry');
     expect(entries?.rows.map((r) => r.content).join()).toContain('"value": 12.5300');
     expect(bundle.parts['audit-chain.json']).toContain('12.5030000000000000001');
   });
 
   it('[INV-08] changing any single byte of the bundle file is reported by the verifier', async () => {
     const { batch } = await realBatch();
-    const text = serializeBundle(await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}` }));
+    const text = serializeBundle(await buildTrueCopyBundle(db.app, { chainKey: key(batch) }));
     const bytes = Buffer.from(text, 'utf8');
     expect(verifyTrueCopyBundleText(bytes).ok).toBe(true);
     const positions = new Set<number>();
@@ -90,7 +112,7 @@ describe('true-copy bundle and offline verifier (groundwork for DI-40, DI-41, DI
 
   it('[INV-08] a consistent edit of a part plus its manifest entry is still caught by the manifest hash, and a recomputed manifest hash by the chain', async () => {
     const { batch } = await realBatch();
-    const bundle = await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}` });
+    const bundle = await buildTrueCopyBundle(db.app, { chainKey: key(batch) });
     const records = (bundle.parts['records.json'] as string).replace('12.5300', '12.5310');
     const edited = { ...bundle, parts: { ...bundle.parts, 'records.json': records } };
     expect(verifyTrueCopyBundle(edited).problems.join('\n')).toContain('part records.json: SHA-256 does not match');
@@ -107,32 +129,32 @@ describe('true-copy bundle and offline verifier (groundwork for DI-40, DI-41, DI
 
   it('[INV-08] a record changed or deleted in the database without the audit trail makes the new bundle fail verification', async () => {
     const { batch, entry } = await realBatch();
-    await db.admin.query('alter table stub_b4.batch_entry disable trigger zz_audit_stub_b4_batch_entry');
+    await db.admin.query('alter table stub_tc.entry disable trigger zz_audit_stub_tc_entry');
     try {
-      await db.admin.query("update stub_b4.batch_entry set value = 99.9 where id = $1", [entry]);
+      await db.admin.query('update stub_tc.entry set value = 99.9 where id = $1', [entry]);
     } finally {
-      await db.admin.query('alter table stub_b4.batch_entry enable trigger zz_audit_stub_b4_batch_entry');
+      await db.admin.query('alter table stub_tc.entry enable trigger zz_audit_stub_tc_entry');
     }
-    await db.admin.query('alter table stub_b4.batch_reading disable trigger user');
+    await db.admin.query('alter table stub_tc.reading disable trigger user');
     try {
       // 7.1 and 7.10 are equal numbers, so select by exact text: the scale is part of the record.
-      await db.admin.query("delete from stub_b4.batch_reading where batch_id = $1 and value::text = '7.1'", [batch]);
-      await db.admin.query("update stub_b4.batch_reading set value = 7.100 where batch_id = $1 and value::text = '7.10'", [batch]);
+      await db.admin.query("delete from stub_tc.reading where batch_id = $1 and value::text = '7.1'", [batch]);
+      await db.admin.query("update stub_tc.reading set value = 7.100 where batch_id = $1 and value::text = '7.10'", [batch]);
     } finally {
-      await db.admin.query('alter table stub_b4.batch_reading enable trigger user');
+      await db.admin.query('alter table stub_tc.reading enable trigger user');
     }
-    const report = verifyTrueCopyBundle(await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}` }));
+    const report = verifyTrueCopyBundle(await buildTrueCopyBundle(db.app, { chainKey: key(batch) }));
     const text = report.problems.join('\n');
     expect(report.ok).toBe(false);
-    expect(text).toContain(`stub_b4.batch_entry row ${entry}: row differs from the state recorded in the audit trail`);
-    expect(text).toMatch(/stub_b4\.batch_reading row .*: row differs from the hash recorded when it was inserted/);
-    expect(text).toMatch(/stub_b4\.batch_reading row .*: in the audit trail but missing from the bundle \(incomplete copy\)/);
+    expect(text).toContain(`stub_tc.entry row ${entry}: row differs from the state recorded in the audit trail`);
+    expect(text).toMatch(/stub_tc\.reading row .*: row differs from the hash recorded when it was inserted/);
+    expect(text).toMatch(/stub_tc\.reading row .*: in the audit trail but missing from the bundle \(incomplete copy\)/);
   });
 
   it('[INV-08] an audit event altered in the database is reported both by the source verification and offline', async () => {
     const { batch } = await realBatch();
-    await db.admin.query("update kernel.audit_event set payload = jsonb_set(payload, '{reason_text}', '\"typo\"') where chain_key = $1 and seq = 2", [`batch:${batch}`]);
-    const report = verifyTrueCopyBundle(await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}` }));
+    await db.admin.query("update kernel.audit_event set payload = jsonb_set(payload, '{reason_text}', '\"typo\"') where chain_key = $1 and seq = 2", [key(batch)]);
+    const report = verifyTrueCopyBundle(await buildTrueCopyBundle(db.app, { chainKey: key(batch) }));
     expect(report.problems).toEqual(
       expect.arrayContaining([
         'event seq 2: hash does not match the payload (event altered)',
@@ -143,7 +165,7 @@ describe('true-copy bundle and offline verifier (groundwork for DI-40, DI-41, DI
 
   it('[INV-08] the command-line verifier works offline on a bundle file and exits non-zero on a tampered one', async () => {
     const { batch } = await realBatch();
-    const text = serializeBundle(await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}` }));
+    const text = serializeBundle(await buildTrueCopyBundle(db.app, { chainKey: key(batch) }));
     const good = join(dir, 'good.json');
     const bad = join(dir, 'bad.json');
     writeFileSync(good, text);
@@ -161,7 +183,7 @@ describe('true-copy bundle and offline verifier (groundwork for DI-40, DI-41, DI
 
   it('[INV-08] a bundle is recorded in the true-copy register against the chain head it covers', async () => {
     const { batch } = await realBatch();
-    const bundle = await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}` });
+    const bundle = await buildTrueCopyBundle(db.app, { chainKey: key(batch) });
     const id = await withCommand(db.app, again(qa), (c) => registerTrueCopy(c, bundle, 'archive before disposal'));
     const { rows } = await db.app.query<{ manifest_sha256: string; head_seq: string; created_by_person: string }>(
       'select manifest_sha256, head_seq::text as head_seq, created_by_person from records.true_copy where id = $1',
@@ -174,10 +196,10 @@ describe('true-copy bundle and offline verifier (groundwork for DI-40, DI-41, DI
 
   it('[INV-08] a bundle can be limited to chosen tables, and completeness is checked for them', async () => {
     const { batch } = await realBatch();
-    const bundle = await buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}`, tables: ['stub_b4.batch_reading'] });
+    const bundle = await buildTrueCopyBundle(db.app, { chainKey: key(batch), tables: ['stub_tc.reading'] });
     const report = verifyTrueCopyBundle(bundle);
     expect(report.ok).toBe(true);
     expect(report.summary.rows).toBe(2);
-    await expect(buildTrueCopyBundle(db.app, { chainKey: `batch:${batch}`, tables: ['stub_b4.lot_record'] })).rejects.toThrow('EBMR-REC-070');
+    await expect(buildTrueCopyBundle(db.app, { chainKey: key(batch), tables: ['testgmp.sample'] })).rejects.toThrow('EBMR-REC-070');
   });
 });

@@ -204,7 +204,7 @@ $$;
 -- Internal: the insert-only guard trigger of a registered table, if present.
 create function records.insert_only_trigger(p_table regclass) returns text
 language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
-  select t.tgname::text from pg_trigger t
+  select t.tgname::text from pg_catalog.pg_trigger t
   where t.tgrelid = p_table and t.tgname = 'aa_insert_only_' || replace(replace(p_table::text, '.', '_'), '"', '')
 $$;
 
@@ -286,17 +286,21 @@ begin
 
   -- What is purged: row counts and a digest of the row hashes (same row hash as the audit trigger uses).
   for t in
-    select a.table_name, a.aggregate_column, a.insert_only from kernel.audited_table a
-    where a.aggregate_type = v_sched.aggregate_type order by a.table_name::text collate "C"
+    select pg_catalog.quote_ident(n.nspname) || '.' || pg_catalog.quote_ident(c.relname) as qualified, a.aggregate_column, a.insert_only
+    from kernel.audited_table a
+    join pg_catalog.pg_class c on c.oid = a.table_name
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    where a.aggregate_type = v_sched.aggregate_type
+    order by n.nspname collate "C", c.relname collate "C"
   loop
     execute format(
       'select count(*), encode(sha256(convert_to(coalesce(string_agg(h, E''\n'' order by h), ''''), ''UTF8'')), ''hex'')
          from (select encode(sha256(convert_to(to_jsonb(x)::text, ''UTF8'')), ''hex'') as h from %s x where x.%I::text = $1) q',
-      t.table_name, t.aggregate_column)
+      t.qualified, t.aggregate_column)
     into v_count, v_digest using v_sched.aggregate_id;
     if v_count > 0 then
-      v_tables := v_tables || jsonb_build_array(jsonb_build_object('table', t.table_name::text, 'rowCount', v_count, 'rowsDigestSha256', v_digest));
-      v_todo := v_todo || jsonb_build_array(jsonb_build_object('table', t.table_name::text, 'column', t.aggregate_column, 'insertOnly', t.insert_only));
+      v_tables := v_tables || jsonb_build_array(jsonb_build_object('table', t.qualified, 'rowCount', v_count, 'rowsDigestSha256', v_digest));
+      v_todo := v_todo || jsonb_build_array(jsonb_build_object('table', t.qualified, 'column', t.aggregate_column, 'insertOnly', t.insert_only));
     end if;
   end loop;
 
@@ -312,11 +316,11 @@ begin
       begin
         v_trigger := case when (x ->> 'insertOnly')::boolean then records.insert_only_trigger((x ->> 'table')::regclass) end;
         if v_trigger is not null then
-          execute format('alter table %s disable trigger %I', (x ->> 'table')::regclass, v_trigger);
+          execute format('alter table %s disable trigger %I', x ->> 'table', v_trigger);
         end if;
-        execute format('delete from %s x where x.%I::text = $1', (x ->> 'table')::regclass, x ->> 'column') using v_sched.aggregate_id;
+        execute format('delete from %s x where x.%I::text = $1', x ->> 'table', x ->> 'column') using v_sched.aggregate_id;
         if v_trigger is not null then
-          execute format('alter table %s enable trigger %I', (x ->> 'table')::regclass, v_trigger);
+          execute format('alter table %s enable trigger %I', x ->> 'table', v_trigger);
         end if;
       exception when foreign_key_violation then
         v_next := v_next || jsonb_build_array(x);

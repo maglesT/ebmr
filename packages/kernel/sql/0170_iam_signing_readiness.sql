@@ -227,6 +227,10 @@ create index delegation_delegate on iam.delegation (delegate_person);
 create function iam.delegation_guard() returns trigger
 language plpgsql security definer set search_path = pg_catalog, iam, pg_temp as $$
 begin
+  if new.decided_by_person is not null and new.decided_by_person in (new.delegate_person, new.delegator_person, new.requested_by_person) then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-IAM-182 a delegation is approved by someone other than the delegate, the delegator and the requester';
+  end if;
   if tg_op = 'INSERT' then
     if new.status <> 'REQUESTED' or new.decided_by_person is not null or new.revoked_by_person is not null then
       raise exception using errcode = 'P0001', message = 'EBMR-IAM-180 a delegation starts as a request';

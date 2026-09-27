@@ -59,6 +59,7 @@ tests:
   - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][INV-22] a legal hold blocks approval and purge after retention ended; releasing it allows disposal"
   - "packages/kernel/test/records/retention-purge.test.ts > [DI-47] placing and releasing a hold is written into the held record audit trail"
   - "packages/kernel/test/records/retention-purge.test.ts > [INV-22][DI-47] purge after retain-until leaves a tombstone and a checkpoint, removes rows and chain, and every other chain still verifies"
+  - "packages/kernel/test/records/retention-purge.test.ts > [INV-22][DI-47] the record as kept is sealed before deletion, and an archived true copy cited by the approval must cover it exactly"
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] India only, Form 25, 24-month tablet made January 2026: kept five years from manufacture, not expiry plus one year"
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] the same batch for the EU, certified March 2026: five years after QP certification governs"
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] 24-month shelf life certified 2026-01-10 gives 2031-01-10; with 60 months, expiry plus one year governs"

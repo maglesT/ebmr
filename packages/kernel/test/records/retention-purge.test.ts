@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { verifyChain } from '../../src/audit/verify.ts';
-import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
+import { buildTrueCopyBundle, registerTrueCopy, verifyTrueCopyBundle } from '../../src/records/true-copy.ts';
 import type { RetentionInputs } from '../../src/records/retention.ts';
 import {
   approvePurge,
@@ -258,6 +259,32 @@ describe('controlled purge', () => {
     expect((await inv22Violations(db.app)).filter(mine)).toEqual([]);
   });
 
+  it('[INV-22][DI-47] the record as kept is sealed before deletion, and an archived true copy cited by the approval must cover it exactly', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const tables = ['stub_b4.batch_entry', 'stub_b4.batch_reading'];
+    const first = await buildTrueCopyBundle(db.app, { chainKey: key, tables });
+    expect(verifyTrueCopyBundle(first).ok).toBe(true);
+    const firstCopy = await withCommand(db.app, again(qa2), (c) => registerTrueCopy(c, first, 'archive before disposal'));
+    await withCommand(db.app, again(qa2), (c) => approvePurge(c, key, randomUUID(), 'retention ended; archive verified', firstCopy));
+    // Something is added to the record after it was archived: the archive no longer covers it.
+    await withCommand(db.app, again(operator), (c) => c.query("select kernel.audit_business_event($1, 'late remark')", [key]));
+    await expect(runPurge(key)).rejects.toThrow(/EBMR-REC-038 .* archive it again/);
+    const second = await buildTrueCopyBundle(db.app, { chainKey: key, tables });
+    const secondCopy = await withCommand(db.app, again(qa2), (c) => registerTrueCopy(c, second, 'archive before disposal'));
+    await withCommand(db.app, again(qa2), (c) => approvePurge(c, key, randomUUID(), 'retention ended; archive verified', secondCopy));
+    const tombstoneId = await runPurge(key);
+    const { rows } = await db.app.query<{ kept_head_seq: string; kept_head_hash: Buffer; true_copy_id: string; true_copy_manifest_sha256: string; kept_checkpoint_id: string }>(
+      'select kept_head_seq::text as kept_head_seq, kept_head_hash, true_copy_id, true_copy_manifest_sha256, kept_checkpoint_id::text as kept_checkpoint_id from records.tombstone where id = $1',
+      [tombstoneId],
+    );
+    const manifest = JSON.parse(second.manifest) as { head: { seq: string; hash: string } };
+    expect(rows[0]).toMatchObject({ kept_head_seq: manifest.head.seq, true_copy_id: secondCopy, true_copy_manifest_sha256: second.manifestSha256 });
+    expect(rows[0]?.kept_head_hash.toString('hex')).toBe(manifest.head.hash);
+    const cp = await db.app.query<{ seq: string; reason: string }>('select seq::text as seq, reason from kernel.audit_checkpoint where id = $1', [rows[0]?.kept_checkpoint_id]);
+    expect(cp.rows[0]).toEqual({ seq: manifest.head.seq, reason: 'retention purge: record as kept' });
+  });
+
   it('[INV-22] an approval given for an earlier retain-until does not cover a changed retention', async () => {
     const batch = await batchWithRecords(PAST_BATCH);
     const key = `batch:${batch}`;
@@ -328,6 +355,26 @@ describe('INV-22 bypass attempts through the application role', () => {
       ).rejects.toThrow(/permission denied|must be owner/);
     }
     expect(await scalar<string>(db.app, 'select count(*)::text as v from stub_b4.batch_entry where batch_id = $1', [batch])).toBe('1');
+  });
+
+  it('[INV-22] a temporary table cannot stand in for a catalog or records table inside the security-definer functions', async () => {
+    // TEMP is revoked from PUBLIC (0001); grant it here to prove the second layer: pg_temp is searched last.
+    await db.admin.query(`grant temporary on database ${db.name} to ebmr_app`);
+    const client = await db.app.connect();
+    try {
+      await client.query('create temp table pg_timezone_names (name text)');
+      await client.query("insert into pg_temp.pg_timezone_names values ('Mars/Olympus_Mons')");
+      await client.query('create temp table retention_schedule (like records.retention_schedule)');
+      await client.query('begin');
+      await client.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(again(qa)))]);
+      await expect(
+        client.query("select records.create_retention_schedule('batch', $1, 'BATCH_PROCESSING_RECORD', $2::jsonb, 'Mars/Olympus_Mons')", [randomUUID(), JSON.stringify(FUTURE_BATCH)]),
+      ).rejects.toThrow('EBMR-REC-020');
+      await client.query('rollback');
+    } finally {
+      client.release(true);
+      await db.admin.query(`revoke temporary on database ${db.name} from ebmr_app`);
+    }
   });
 
   it('[INV-22] the internal retention and purge helpers cannot be called by the application role', async () => {

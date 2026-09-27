@@ -169,9 +169,12 @@ describe('batch-number register', () => {
     try {
       for (const sql of ['update site.batch_number_allocation set product_name = product_name', 'delete from site.batch_number_void', 'delete from site.batch_number_allocation']) {
         await c.query('begin');
-        await c.query('set local role ebmr_owner');
-        await expect(c.query(sql)).rejects.toThrow(/EBMR-AUDIT-004|violates foreign key/);
-        await c.query('rollback');
+        try {
+          await c.query('set local role ebmr_owner');
+          await expect(c.query(sql)).rejects.toThrow(/EBMR-AUDIT-004|violates foreign key/);
+        } finally {
+          await c.query('rollback');
+        }
       }
     } finally {
       c.release();

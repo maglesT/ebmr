@@ -560,7 +560,7 @@ begin
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-013 record type %s has no approved version in the record register', p_record_type_code);
   end if;
-  if not exists (select 1 from pg_timezone_names where name = v_zone) then
+  if not exists (select 1 from pg_catalog.pg_timezone_names where name = v_zone) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-020 site zone %L is not a known time zone', v_zone);
   end if;
   if p_aggregate_type in ('retention', 'retention_rule_set', 'record_hold', 'tombstone', 'true_copy') then

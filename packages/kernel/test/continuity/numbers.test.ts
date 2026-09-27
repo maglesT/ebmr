@@ -12,7 +12,7 @@ const dir = tempDir('numbers');
 beforeAll(async () => {
   db = await createTestDatabase();
   ops = await testActor(db, { roleCode: 'SYSTEM_SERVICE', source: 'SYSTEM' });
-  for (const key of ['test.number:A', 'test.number:B', 'test.number:C']) await installNumberStub(db, key, 5);
+  for (const key of ['test.number:A', 'test.number:B', 'test.number:C', 'test.number:D']) await installNumberStub(db, key, 5);
 });
 afterAll(async () => {
   await db.drop();
@@ -91,21 +91,57 @@ describe('bypass attempts', () => {
   it('[INV-27] not even the table owner can move a counter backwards or remove it', async () => {
     const c = await db.admin.connect();
     try {
+      // A state of its own for counter D (moving forward is allowed, so the owner can set it up).
+      await c.query("begin; set local role ebmr_owner; update continuity.counter set reserved_ceiling = 10, last_value = 5 where sequence_key = 'test.number:D'; commit");
       for (const sql of [
-        "update continuity.counter set last_value = 0 where sequence_key = 'test.number:A'",
-        "update continuity.counter set reserved_ceiling = 0 where sequence_key = 'test.number:A'",
-        "delete from continuity.counter where sequence_key = 'test.number:A'",
+        "update continuity.counter set last_value = 4 where sequence_key = 'test.number:D'",
+        "update continuity.counter set reserved_ceiling = 9 where sequence_key = 'test.number:D'",
+        "delete from continuity.counter where sequence_key = 'test.number:D'",
         'truncate continuity.counter cascade',
         "delete from continuity.protected_sequence where sequence_key = 'kernel.audit_event.id'",
+        "update continuity.protected_sequence set restore_margin = 1 where sequence_key = 'kernel.audit_event.id'",
       ]) {
         await c.query('begin');
-        await c.query('set local role ebmr_owner');
-        await expect(c.query(sql)).rejects.toThrow('EBMR-CONT-016');
-        await c.query('rollback');
+        try {
+          await c.query('set local role ebmr_owner');
+          await expect(c.query(sql), sql).rejects.toThrow('EBMR-CONT-016');
+        } finally {
+          await c.query('rollback');
+        }
       }
     } finally {
       c.release();
     }
+  });
+
+  it('[INV-27] a temporary table that shadows a catalog table cannot mislead the definer functions (pg_temp is searched last)', async () => {
+    const clean = await unprotectedSequences(db.app);
+    // First layer: the application role cannot create temporary objects at all.
+    await expect(db.app.query('create temp table pg_class (oid oid)')).rejects.toThrow(/permission denied to create temporary tables/);
+    // Second layer, proven with the first removed for this test database only.
+    await db.admin.query(`grant temporary on database "${db.name}" to ebmr_app`);
+    const c = await db.app.connect();
+    try {
+      await c.query('create temp table pg_class (oid oid, relkind "char", relnamespace oid, relowner oid, relname name)');
+      await c.query('create temp table pg_sequences (schemaname name, sequencename name, max_value bigint)');
+      await c.query('create temp table counter (sequence_key text, last_value bigint, reserved_ceiling bigint, ceiling_incarnation text)');
+      const { rows } = await c.query<{ sequence_name: string }>('select sequence_name from continuity.unprotected_sequences()');
+      expect(rows.map((r) => r.sequence_name)).toEqual(clean);
+      const hw = await c.query<{ n: string }>("select count(*)::text as n from continuity.sequence_high_water() where sequence_key like 'kernel.%'");
+      expect(Number(hw.rows[0]?.n)).toBeGreaterThanOrEqual(4);
+    } finally {
+      await c.query('discard temp');
+      c.release();
+      await db.admin.query(`revoke temporary on database "${db.name}" from ebmr_app`);
+    }
+    const { rows } = await db.app.query<{ name: string; config: string[] }>(
+      `select p.oid::regprocedure::text as name, coalesce(p.proconfig, '{}') as config
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname in ('continuity', 'site') and p.prosecdef`,
+    );
+    expect(rows.length).toBeGreaterThan(20);
+    const unsafe = rows.filter((r) => !r.config.some((cfg) => /^search_path=.*pg_temp$/.test(cfg)));
+    expect(unsafe).toEqual([]);
   });
 });
 

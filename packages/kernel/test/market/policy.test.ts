@@ -56,7 +56,8 @@ describe('policies as versioned data', () => {
     const later = await dbInstant('1 hour');
     const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: later, approvalId: randomUUID(), changeRef: 'CC-101' }));
     expect([v2.version, v2.direction]).toEqual([2, 'LOOSENING']);
-    const v3 = await asApp(db, (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: await dbInstant('2 hours'), changeRef: 'CC-102' }));
+    const later2 = await dbInstant('2 hours');
+    const v3 = await asApp(db, (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: later2, changeRef: 'CC-102' }));
     expect([v3.version, v3.direction]).toEqual([3, 'TIGHTENING']);
   });
 
@@ -101,9 +102,9 @@ describe('INV-47: a loosening never reaches a batch issued before it took effect
 
   beforeAll(async () => {
     ({ code, v1 } = await newPolicy(['ONE_VERIFIER', 'TWO_PERSONS'], 'TWO_PERSONS'));
-    loosening = await asApp(db, async (c) => setPolicyVersion(c, code, 'ONE_VERIFIER', { effectiveFrom: await dbInstant('700 milliseconds'), approvalId: randomUUID(), changeRef: 'CC-S5a' }));
+    loosening = await asApp(db, async (c) => setPolicyVersion(c, code, 'ONE_VERIFIER', { effectiveFrom: await dbInstant('2 seconds'), approvalId: randomUUID(), changeRef: 'CC-S5a' }));
     await asApp(db, (c) => pinPoliciesForBatch(c, early));
-    await sleep(900);
+    await sleep(2300);
     await asApp(db, (c) => pinPoliciesForBatch(c, late));
   });
 

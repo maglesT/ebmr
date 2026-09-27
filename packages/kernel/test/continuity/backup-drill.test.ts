@@ -259,9 +259,12 @@ describe('backup jobs', () => {
     try {
       for (const sql of ['delete from continuity.backup_catalogue', "update continuity.backup_catalogue set storage_uri = 'file:///dev/null'", 'truncate continuity.backup_catalogue cascade']) {
         await c.query('begin');
-        await c.query('set local role ebmr_owner');
-        await expect(c.query(sql)).rejects.toThrow('EBMR-AUDIT-004');
-        await c.query('rollback');
+        try {
+          await c.query('set local role ebmr_owner');
+          await expect(c.query(sql)).rejects.toThrow('EBMR-AUDIT-004');
+        } finally {
+          await c.query('rollback');
+        }
       }
     } finally {
       c.release();
