@@ -61,10 +61,8 @@ describe('idempotency keys', () => {
     const k = key();
     const hash = requestHash({ a: 1 });
     await withIdempotentCommand(db.app, owner, k, hash, () => Promise.resolve({ secret: 'owner result' }));
+    // With real identities every actor from testActor is another person with its own account.
     await expect(withIdempotentCommand(db.app, await testActor(db), k, hash, () => Promise.resolve({}))).rejects.toThrow('EBMR-PLAT-042');
-    await expect(
-      withIdempotentCommand(db.app, await testActor(db, { personId: owner.personId }), k, hash, () => Promise.resolve({})),
-    ).rejects.toThrow('EBMR-PLAT-042');
   });
 
   it('a command that fails leaves no key behind, so the retry runs the work', async () => {

@@ -145,7 +145,48 @@ describe('INV-40: every command on a shared device carries a fresh authenticatio
     await withCommand(db.app, await withFreshAuth(db, kiosk), (c3) => c3.query('select iam.assert_validated_actor()'));
   });
 
-  it.todo('[INV-40] a context set with set_config cannot write any GMP table (needs kernel.append_audit_event to call iam.assert_validated_actor; lead)');
+  it('[INV-40][INV-07][DI-22] bypass: a context set with set_config cannot write any audited table or be read as the actor', async () => {
+    const personal = await seedActor(db, { legalName: 'Forged Person' });
+    const forged = JSON.stringify(toDbContext({ ...personal, correlationId: randomUUID() }));
+    const insert = "insert into testgmp.sample (batch_id, value) values (gen_random_uuid(), 1)";
+    // 1. Forged context in a fresh transaction: invisible to kernel.current_actor and refused by the audit writer.
+    const c = await db.app.connect();
+    try {
+      await c.query('begin');
+      await c.query("select set_config('ebmr.ctx', $1, true)", [forged]);
+      const { rows } = await c.query<{ actor: unknown }>('select kernel.current_actor() as actor');
+      expect(rows[0]?.actor).toBeNull();
+      await expectRefused(c.query(insert), 'EBMR-AUDIT-009');
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+    // 2. A validated command that then swaps in another person's context: refused.
+    const c2 = await db.app.connect();
+    try {
+      await c2.query('begin');
+      await c2.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext({ ...personal, correlationId: randomUUID() }))]);
+      await c2.query(insert);
+      const other = await seedActor(db, { legalName: 'Impersonated Person' });
+      await c2.query("select set_config('ebmr.ctx', $1, true)", [JSON.stringify(toDbContext({ ...other, correlationId: randomUUID() }))]);
+      await expectRefused(c2.query(insert), 'EBMR-AUDIT-009');
+    } finally {
+      await c2.query('rollback');
+      c2.release();
+    }
+    // 3. Replaying a context validated in an earlier, committed transaction: refused.
+    const replay = toDbContext({ ...personal, correlationId: randomUUID() });
+    await withCommand(db.app, { ...personal, correlationId: replay['correlation_id'] as string }, (c3) => c3.query(insert));
+    const c4 = await db.app.connect();
+    try {
+      await c4.query('begin');
+      await c4.query("select set_config('ebmr.ctx', $1, true)", [JSON.stringify(replay)]);
+      await expectRefused(c4.query(insert), 'EBMR-AUDIT-009');
+    } finally {
+      await c4.query('rollback');
+      c4.release();
+    }
+  });
 
   it('[INV-40] a signature authentication attributes its own signing command and is then consumed once for the signature', async () => {
     const verifier = await seedActor(db, { roleCode: 'VERIFIER', deviceClass: 'SHARED' });

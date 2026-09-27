@@ -33,7 +33,7 @@ beforeAll(async () => {
     reset role;
   `);
   operator = await testActor(db, { roleCode: 'OPERATOR' });
-  qa = await testActor(db, { roleCode: 'QA' });
+  qa = await testActor(db, { roleCode: 'QA_REVIEWER' });
   dir = mkdtempSync(join(tmpdir(), 'ebmr-true-copy-'));
 });
 afterAll(async () => {

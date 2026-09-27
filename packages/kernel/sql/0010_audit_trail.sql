@@ -110,13 +110,73 @@ begin
   if not kernel.audit_triggers_ok() then
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-005 an audit trigger is missing or disabled; GMP writes are refused';
   end if;
+  perform kernel.set_actor_context(p_ctx);
+end
+$$;
+
+-- The actor context lives in the transaction-local setting ebmr.ctx, which any session can write
+-- with set_config. It counts only if kernel code established it in this transaction: every context
+-- that kernel.set_actor_context installs leaves a marker (transaction, backend, context hash) in a
+-- table only ebmr_owner can write. current_actor() ignores a context without its marker, and the
+-- audit writer refuses it, so set_config alone can never attribute a write to anyone.
+create unlogged table kernel.command_marker (
+  xact_id     xid8    not null,
+  backend_pid integer not null,
+  ctx_hash    bytea   not null,
+  primary key (xact_id, backend_pid, ctx_hash)
+);
+
+create function kernel.context_hash(p_ctx jsonb) returns bytea
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select sha256(convert_to(p_ctx::text, 'UTF8'))
+$$;
+
+-- Owner-only: installs p_ctx as the validated actor context of this transaction (NULL clears it).
+-- Module SECURITY DEFINER code that must switch context inside a command (an internal actor, an
+-- added reason) calls this instead of set_config. Markers of this backend's finished transactions
+-- are pruned on the way, so the table holds at most a few rows per connection.
+create function kernel.set_actor_context(p_ctx jsonb) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
+begin
+  if p_ctx is null then
+    perform set_config('ebmr.ctx', '', true);
+    return;
+  end if;
+  delete from kernel.command_marker m
+  where m.backend_pid = pg_backend_pid() and m.xact_id <> pg_current_xact_id();
+  insert into kernel.command_marker (xact_id, backend_pid, ctx_hash)
+  values (pg_current_xact_id(), pg_backend_pid(), kernel.context_hash(p_ctx))
+  on conflict do nothing;
   perform set_config('ebmr.ctx', p_ctx::text, true);
 end
 $$;
 
+-- True when ebmr.ctx holds a context kernel code established in this transaction.
+create function kernel.actor_context_validated() returns boolean
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
+declare
+  v_raw  text := coalesce(current_setting('ebmr.ctx', true), '');
+  v_xact xid8 := pg_current_xact_id_if_assigned();
+  v_ctx  jsonb;
+begin
+  if v_raw = '' or v_xact is null then
+    return false;
+  end if;
+  begin
+    v_ctx := v_raw::jsonb;
+  exception when others then
+    return false;
+  end;
+  return exists (
+    select 1 from kernel.command_marker m
+    where m.xact_id = v_xact and m.backend_pid = pg_backend_pid() and m.ctx_hash = kernel.context_hash(v_ctx));
+end
+$$;
+
+-- The validated actor context, or NULL when there is none or it was not established by kernel code.
 create function kernel.current_actor() returns jsonb
-language sql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
-  select nullif(current_setting('ebmr.ctx', true), '')::jsonb
+language sql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
+  select case when kernel.actor_context_validated() then current_setting('ebmr.ctx', true)::jsonb end
 $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -138,6 +198,9 @@ declare
   v_id       bigint;
 begin
   if v_ctx is null then
+    if coalesce(current_setting('ebmr.ctx', true), '') <> '' then
+      raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-009 the actor context was not established by kernel.begin_command in this transaction';
+    end if;
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-001 no actor context: call kernel.begin_command first';
   end if;
   select * into v_head from kernel.audit_chain_head where chain_key = p_chain_key for update;
@@ -208,6 +271,9 @@ begin
     raise exception using errcode = 'P0001', message = format('EBMR-AUDIT-003 %s is not registered for audit', tg_relid::regclass);
   end if;
   if v_ctx is null then
+    if coalesce(current_setting('ebmr.ctx', true), '') <> '' then
+      raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-009 the actor context was not established by kernel.begin_command in this transaction';
+    end if;
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-001 no actor context: call kernel.begin_command first';
   end if;
   if tg_op in ('UPDATE', 'DELETE') and coalesce(v_ctx ->> 'reason_code', '') = '' then

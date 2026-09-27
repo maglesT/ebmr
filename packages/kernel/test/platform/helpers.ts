@@ -7,11 +7,11 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import type { ActorContext } from '../../src/db/command.ts';
-import { actor } from '../support/actors.ts';
+import { seededTestActor } from '../support/seeded-actor.ts';
 import type { TestDatabase } from '../support/db.ts';
 
 export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {}): Promise<ActorContext> {
-  return Promise.resolve(actor(overrides));
+  return seededTestActor(db, overrides);
 }
 
 /**

@@ -386,9 +386,9 @@ create function platform.engine_reason(p_ctx jsonb, p_reason_text text) returns 
 language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
 begin
   if p_reason_text is not null and coalesce(p_ctx ->> 'reason_code', '') = '' then
-    perform set_config('ebmr.ctx', (p_ctx || jsonb_build_object('reason_code', 'STATE_TRANSITION', 'reason_text', p_reason_text))::text, true);
+    perform kernel.set_actor_context(p_ctx || jsonb_build_object('reason_code', 'STATE_TRANSITION', 'reason_text', p_reason_text));
   else
-    perform set_config('ebmr.ctx', p_ctx::text, true);
+    perform kernel.set_actor_context(p_ctx);
   end if;
 end
 $$;

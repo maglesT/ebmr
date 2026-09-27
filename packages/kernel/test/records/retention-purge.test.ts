@@ -33,8 +33,8 @@ beforeAll(async () => {
   await registerType(db, recordType('BATCH_PROCESSING_RECORD'));
   await registerType(db, recordType('COMPONENT_LOT_RECORD', { retentionKey: 'SUPPORTING_RECORD' }));
   operator = await testActor(db, { roleCode: 'OPERATOR' });
-  qa = await testActor(db, { roleCode: 'QA', legalName: 'QA Reviewer' });
-  qa2 = await testActor(db, { roleCode: 'QA', legalName: 'QA Manager' });
+  qa = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA Reviewer' });
+  qa2 = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA Manager' });
   retentionJob = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'retention job' });
 });
 afterAll(async () => {

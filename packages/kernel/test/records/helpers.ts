@@ -7,12 +7,11 @@ import type pg from 'pg';
 import type { ActorContext } from '../../src/db/command.ts';
 import { withCommand } from '../../src/db/command.ts';
 import { approveRecordType, defineRecordType, type RecordTypeDefinition } from '../../src/records/register.ts';
-import { actor } from '../support/actors.ts';
+import { seededTestActor } from '../support/seeded-actor.ts';
 import type { TestDatabase } from '../support/db.ts';
 
 export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {}): Promise<ActorContext> {
-  void db;
-  return Promise.resolve(actor(overrides));
+  return seededTestActor(db, overrides);
 }
 
 /** The same person acting in a later command with a reason for change (DI-24). */
@@ -104,8 +103,8 @@ export const recordType = (code: string, over: Partial<RecordTypeDefinition> = {
 
 /** Defines a record type as one person and approves it as another. */
 export async function registerType(db: TestDatabase, def: RecordTypeDefinition): Promise<void> {
-  const author = await testActor(db, { roleCode: 'QA' });
-  const approver = await testActor(db, { roleCode: 'QA' });
+  const author = await testActor(db, { roleCode: 'QA_REVIEWER' });
+  const approver = await testActor(db, { roleCode: 'QA_REVIEWER' });
   const version = await withCommand(db.app, author, (c) => defineRecordType(c, def));
   await withCommand(db.app, approver, (c) => approveRecordType(c, def.code, version, randomUUID()));
 }

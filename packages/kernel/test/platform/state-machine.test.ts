@@ -21,12 +21,12 @@ let qa: ActorContext;
 beforeAll(async () => {
   db = await createTestDatabase();
   await installStubHooks(db);
-  await grantPermission(db, 'AUTHOR', 'sample_record.submit');
-  await grantPermission(db, 'CHECKER', 'sample_record.check');
-  await grantPermission(db, 'QA', 'sample_record.approve', 'sample_record.retire', 'sample_record.check');
-  author = await testActor(db, { roleCode: 'AUTHOR', legalName: 'A. Author' });
-  checker = await testActor(db, { roleCode: 'CHECKER', legalName: 'C. Checker' });
-  qa = await testActor(db, { roleCode: 'QA', legalName: 'Q. Approver' });
+  await grantPermission(db, 'MBR_AUTHOR', 'sample_record.submit');
+  await grantPermission(db, 'MBR_CHECKER', 'sample_record.check');
+  await grantPermission(db, 'QA_REVIEWER', 'sample_record.approve', 'sample_record.retire', 'sample_record.check');
+  author = await testActor(db, { roleCode: 'MBR_AUTHOR', legalName: 'A. Author' });
+  checker = await testActor(db, { roleCode: 'MBR_CHECKER', legalName: 'C. Checker' });
+  qa = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Q. Approver' });
 });
 afterAll(async () => {
   await db.drop();
@@ -68,10 +68,10 @@ describe('transitions through the engine', () => {
       [id],
     );
     expect(history).toEqual([
-      { from_state: null, event: null, to_state: 'DRAFT', to_version: '1', role_code: 'AUTHOR', signature_id: null, permission_code: null },
-      { from_state: 'DRAFT', event: 'SUBMIT', to_state: 'SUBMITTED', to_version: '2', role_code: 'AUTHOR', signature_id: null, permission_code: 'sample_record.submit' },
-      { from_state: 'SUBMITTED', event: 'CHECK', to_state: 'CHECKED', to_version: '3', role_code: 'CHECKER', signature_id: checkSig, permission_code: 'sample_record.check' },
-      expect.objectContaining({ from_state: 'CHECKED', event: 'APPROVE', to_state: 'APPROVED', to_version: '4', role_code: 'QA' }),
+      { from_state: null, event: null, to_state: 'DRAFT', to_version: '1', role_code: 'MBR_AUTHOR', signature_id: null, permission_code: null },
+      { from_state: 'DRAFT', event: 'SUBMIT', to_state: 'SUBMITTED', to_version: '2', role_code: 'MBR_AUTHOR', signature_id: null, permission_code: 'sample_record.submit' },
+      { from_state: 'SUBMITTED', event: 'CHECK', to_state: 'CHECKED', to_version: '3', role_code: 'MBR_CHECKER', signature_id: checkSig, permission_code: 'sample_record.check' },
+      expect.objectContaining({ from_state: 'CHECKED', event: 'APPROVE', to_state: 'APPROVED', to_version: '4', role_code: 'QA_REVIEWER' }),
     ]);
 
     const business = await rows<{ message: string }>(
@@ -169,7 +169,7 @@ describe('transitions through the engine', () => {
 
   it('the permission comes from the authority provider; without one every guarded transition is refused', async () => {
     const id = await newRecord();
-    await expect(fire(id, 'SUBMIT', 1, checker)).rejects.toThrow('EBMR-PLAT-006 permission sample_record.submit denied: role CHECKER does not hold sample_record.submit');
+    await expect(fire(id, 'SUBMIT', 1, checker)).rejects.toThrow('EBMR-PLAT-006 permission sample_record.submit denied: role MBR_CHECKER does not hold sample_record.submit');
     const { rows: hook } = await db.admin.query<{ f: string }>("select function_oid::text as f from platform.hook where name = 'AUTHORITY'");
     await db.admin.query("delete from platform.hook where name = 'AUTHORITY'");
     try {
@@ -276,6 +276,10 @@ describe('the engine cannot be bypassed', () => {
   it('temporary objects of the application role cannot hijack the catalog lookups of the engine', async () => {
     const id = await newRecord('   ');
     const [guard] = await rows<{ oid: string }>("select function_oid::oid::text as oid from platform.state_guard where code = 'sample_record.has_body'");
+    // The application role normally cannot create temporary objects at all (kernel 0001). Grant it
+    // here, on this test database only, to prove the second layer: pg_temp is last in every
+    // engine function's search_path, so shadow catalogs are never consulted.
+    await db.admin.query(`grant temporary on database ${db.name} to ebmr_app`);
     const client = await db.app.connect();
     try {
       await client.query('begin');
@@ -294,6 +298,7 @@ describe('the engine cannot be bypassed', () => {
     } finally {
       await client.query('rollback');
       client.release();
+      await db.admin.query(`revoke temporary on database ${db.name} from ebmr_app`);
     }
     expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'DRAFT', version: 1 });
   });

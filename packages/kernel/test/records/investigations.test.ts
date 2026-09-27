@@ -28,8 +28,8 @@ beforeAll(async () => {
   await registerType(db, recordType('BATCH_PROCESSING_RECORD'));
   subject = await testActor(db, { roleCode: 'OPERATOR', legalName: 'Operator under investigation' });
   colleague = await testActor(db, { roleCode: 'OPERATOR' });
-  investigator = await testActor(db, { roleCode: 'QA', legalName: 'DI investigator' });
-  approver = await testActor(db, { roleCode: 'QA', legalName: 'Head of QA' });
+  investigator = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'DI investigator' });
+  approver = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Head of QA' });
 });
 afterAll(async () => {
   await db.drop();

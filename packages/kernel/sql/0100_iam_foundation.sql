@@ -291,7 +291,8 @@ begin
   if v_ctx is null then
     return false;
   end if;
-  return exists (
+  -- The kernel marker is authoritative (kernel.set_actor_context); command_log is the IAM record of it.
+  return kernel.actor_context_validated() and exists (
     select 1 from iam.command_log c
     where c.xact_id = pg_current_xact_id() and c.backend_pid = pg_backend_pid() and c.ctx_hash = iam.context_hash(v_ctx));
 end
@@ -304,10 +305,10 @@ language plpgsql volatile security definer set search_path = pg_catalog, iam, ke
 declare
   v_ctx jsonb := kernel.current_actor();
 begin
-  if v_ctx is null then
+  if v_ctx is null and coalesce(current_setting('ebmr.ctx', true), '') = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-001 no actor context: call kernel.begin_command first';
   end if;
-  if not iam.actor_is_validated() then
+  if v_ctx is null or not iam.actor_is_validated() then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-002 the actor context was not established by kernel.begin_command in this transaction';
   end if;
   return v_ctx;
@@ -330,7 +331,7 @@ begin
   values (pg_current_xact_id(), iam.context_hash(p_ctx), pg_backend_pid(), (p_ctx ->> 'correlation_id')::uuid,
           (p_ctx ->> 'account_id')::uuid, (p_ctx ->> 'session_id')::uuid, nullif(p_ctx ->> 'auth_event_id', '')::uuid)
   on conflict do nothing;
-  perform set_config('ebmr.ctx', p_ctx::text, true);
+  perform kernel.set_actor_context(p_ctx);
 end
 $$;
 

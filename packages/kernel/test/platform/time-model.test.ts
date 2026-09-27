@@ -187,8 +187,8 @@ describe('late-entry window', () => {
   });
 
   it('[INV-16] a fixed late-entry window (policy value, e.g. 15 min for injectables) is measured from the event', async () => {
-    const qa = await testActor(db, { roleCode: 'QA_ADMIN', reasonCode: 'POLICY_CHANGE', reasonText: 'edition default' });
-    await grantPermission(db, 'QA_ADMIN', 'platform.settings.change');
+    const qa = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'POLICY_CHANGE', reasonText: 'edition default' });
+    await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
     await withCommand(db.app, qa, async (c) => {
       await c.query("select platform.set_setting('time.late_entry_window_mode', 'FIXED_INTERVAL')");
       await c.query("select platform.set_setting('time.late_entry_window_min', '15')");
@@ -204,7 +204,7 @@ describe('late-entry window', () => {
   });
 
   it('[INV-16] changing a time policy needs a reason and the permission, and values outside the allowed set are refused', async () => {
-    const noReason = await testActor(db, { roleCode: 'QA_ADMIN' });
+    const noReason = await testActor(db, { roleCode: 'PROCESS_OWNER' });
     await expect(withCommand(db.app, noReason, (c) => c.query("select platform.set_setting('time.late_entry_window_min', '10')"))).rejects.toThrow(
       'EBMR-PLAT-022',
     );
@@ -212,8 +212,8 @@ describe('late-entry window', () => {
     await expect(withCommand(db.app, operator, (c) => c.query("select platform.set_setting('time.late_entry_window_min', '10')"))).rejects.toThrow(
       'EBMR-PLAT-006',
     );
-    const qa = await testActor(db, { roleCode: 'QA_ADMIN', reasonCode: 'X' });
-    await grantPermission(db, 'QA_ADMIN', 'platform.settings.change');
+    const qa = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'X' });
+    await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
     await expect(withCommand(db.app, qa, (c) => c.query("select platform.set_setting('time.late_entry_window_mode', 'NEVER')"))).rejects.toThrow('EBMR-PLAT-021');
     await expect(withCommand(db.app, qa, (c) => c.query("select platform.set_setting('time.late_entry_window_min', '2000')"))).rejects.toThrow('EBMR-PLAT-021');
     await expect(db.app.query("insert into platform.setting_value (key, value, set_by_person, reason_code) values ('time.late_entry_window_min', '999', 'x', 'y')")).rejects.toThrow(
@@ -310,8 +310,8 @@ describe('recorded_at is the database clock', () => {
       withCommand(db.admin, await testActor(db, { reasonCode: 'X' }), (c) => c.query("update platform.stub_step_entry set value = 1 where id = $1", [row.id])),
     ).rejects.toThrow('EBMR-AUDIT-004');
     // On a mutable platform table the forcing trigger keeps the stored time on update.
-    await grantPermission(db, 'TIME_ADMIN', 'platform.time_source.manage');
-    const admin = await testActor(db, { roleCode: 'TIME_ADMIN', reasonCode: 'SOURCE_REPLACED' });
+    await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage');
+    const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD', reasonCode: 'SOURCE_REPLACED' });
     const sourceId = await withCommand(db.app, admin, async (c) => {
       const { rows } = await c.query<{ id: string }>(
         "select platform.register_time_source('Test NTP A', 'NTP', 'ntp-a.example', 'test reference', gen_random_uuid(), 'VAL-001') as id",

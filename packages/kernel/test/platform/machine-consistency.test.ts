@@ -116,8 +116,8 @@ describe('XState and the database agree', () => {
 describe('the engine enforces exactly the XState model', () => {
   it('sample_record: every event in every state is accepted by the engine exactly when XState allows it', async () => {
     await installStubHooks(db);
-    await grantPermission(db, 'QA', 'sample_record.submit', 'sample_record.check', 'sample_record.approve', 'sample_record.retire');
-    const actor: ActorContext = await testActor(db, { roleCode: 'QA', reasonCode: 'MODEL_TEST', reasonText: 'model-based path' });
+    await grantPermission(db, 'QA_REVIEWER', 'sample_record.submit', 'sample_record.check', 'sample_record.approve', 'sample_record.retire');
+    const actor: ActorContext = await testActor(db, { roleCode: 'QA_REVIEWER', reasonCode: 'MODEL_TEST', reasonText: 'model-based path' });
     const machine = SAMPLE_RECORD_V1.machine;
     const def = extractDefinition(SAMPLE_RECORD_V1);
     const events = [...new Set(def.transitions.map((t) => t.event))];

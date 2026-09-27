@@ -117,7 +117,7 @@ describe('DI-01 raw-data floor', () => {
   });
 
   it('[DI-01] the register refuses a record type that feeds an acceptance limit but is not raw, through the function and by constraint', async () => {
-    const qa = await testActor(db, { roleCode: 'QA' });
+    const qa = await testActor(db, { roleCode: 'QA_REVIEWER' });
     await expect(withCommand(db.app, qa, (c) => defineRecordType(c, recordType('YIELD_CALC', { dataClass: 'DERIVED', feedsAcceptanceLimit: true })))).rejects.toThrow(
       'EBMR-REC-010',
     );
@@ -155,13 +155,13 @@ describe('DI-01 register content and control', () => {
   });
 
   it('[DI-01] a hybrid record type must declare how paper and electronic parts are linked', async () => {
-    const qa = await testActor(db, { roleCode: 'QA' });
+    const qa = await testActor(db, { roleCode: 'QA_REVIEWER' });
     await expect(withCommand(db.app, qa, (c) => defineRecordType(c, recordType('PAPER_FORM', { officialMedium: 'HYBRID' })))).rejects.toThrow('EBMR-REC-016');
   });
 
   it('[DI-01] a version is in force only after approval by a person other than its author; later versions supersede it', async () => {
-    const author = await testActor(db, { roleCode: 'QA' });
-    const other = await testActor(db, { roleCode: 'QA' });
+    const author = await testActor(db, { roleCode: 'QA_REVIEWER' });
+    const other = await testActor(db, { roleCode: 'QA_REVIEWER' });
     const v1 = await withCommand(db.app, author, (c) => defineRecordType(c, recordType('EM_RESULT')));
     expect(await db.app.query("select 1 from records.record_register where code = 'EM_RESULT'").then((r) => r.rowCount)).toBe(0);
     await expect(withCommand(db.app, author, (c) => approveRecordType(c, 'EM_RESULT', v1, randomUUID()))).rejects.toThrow('EBMR-REC-012');

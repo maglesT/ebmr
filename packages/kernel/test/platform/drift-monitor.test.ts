@@ -22,7 +22,7 @@ async function rows<T extends pg.QueryResultRow>(text: string, params: unknown[]
 }
 
 async function registerSource(name: string, reference: string): Promise<string> {
-  const admin = await testActor(db, { roleCode: 'TIME_ADMIN' });
+  const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD' });
   return withCommand(db.app, admin, async (c) => {
     const { rows: r } = await c.query<{ id: string }>(
       "select platform.register_time_source($1, 'NTP', $2, $3, $4, 'VAL-TS-2026-001') as id",
@@ -35,8 +35,8 @@ async function registerSource(name: string, reference: string): Promise<string> 
 beforeAll(async () => {
   db = await createTestDatabase();
   await installStubHooks(db);
-  await grantPermission(db, 'TIME_ADMIN', 'platform.time_source.manage', 'platform.alarm.clear');
-  await grantPermission(db, 'QA_ADMIN', 'platform.settings.change');
+  await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.alarm.clear');
+  await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
   npl = await registerSource('NPL India NTP', 'NPL India, traceable to UTC(NPLI)');
   nic = await registerSource('NIC NTP', 'NIC time service, traceable to NPL India');
   system = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'Time monitor' });
@@ -196,7 +196,7 @@ describe('drift checks', () => {
       "select default_value, min_value::text, max_value::text from platform.setting_definition where key = 'time.drift_alarm_threshold_s'",
     );
     expect(def).toEqual({ default_value: '1', min_value: '0.1', max_value: '5' });
-    const qa = await testActor(db, { roleCode: 'QA_ADMIN', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0042 tighter clock tolerance' });
+    const qa = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0042 tighter clock tolerance' });
     const set = (v: string) => withCommand(db.app, qa, (c) => c.query("select platform.set_setting('time.drift_alarm_threshold_s', $1)", [v]));
     await expect(set('0.05')).rejects.toThrow('EBMR-PLAT-021');
     await expect(set('5.1')).rejects.toThrow('EBMR-PLAT-021');
@@ -259,7 +259,7 @@ describe('drift checks', () => {
   });
 
   it('[DI-27] with no active time source configured, an alarm and an incident are raised', async () => {
-    const admin = await testActor(db, { roleCode: 'TIME_ADMIN', reasonCode: 'SOURCE_MAINTENANCE' });
+    const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD', reasonCode: 'SOURCE_MAINTENANCE' });
     const setActive = (id: string, active: boolean) => withCommand(db.app, admin, (c) => c.query('select platform.set_time_source_active($1, $2)', [id, active]));
     await setActive(npl, false);
     await setActive(nic, false);
@@ -307,9 +307,9 @@ describe('monitor records are protected', () => {
       return r[0]?.id ?? '';
     });
     const clear = (ctx: ActorContext, note: string) => withCommand(db.app, ctx, (c) => c.query('select platform.clear_alarm($1, $2)', [alarmId, note]));
-    await expect(clear(await testActor(db, { roleCode: 'TIME_ADMIN' }), 'checked')).rejects.toThrow('EBMR-PLAT-032');
+    await expect(clear(await testActor(db, { roleCode: 'CSV_DI_LEAD' }), 'checked')).rejects.toThrow('EBMR-PLAT-032');
     await expect(clear(await testActor(db, { roleCode: 'OPERATOR', reasonCode: 'X' }), 'checked')).rejects.toThrow('EBMR-PLAT-006');
-    await clear(await testActor(db, { roleCode: 'TIME_ADMIN', reasonCode: 'INVESTIGATED' }), 'clock stepped back during failover test; see incident');
+    await clear(await testActor(db, { roleCode: 'CSV_DI_LEAD', reasonCode: 'INVESTIGATED' }), 'clock stepped back during failover test; see incident');
     expect(await openAlarms('db-manual')).toEqual([]);
   });
 });

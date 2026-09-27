@@ -11,12 +11,11 @@ import pg from 'pg';
 import { dumpDatabase, dropDatabase, restoreDatabase, type BackupArtefact } from '../../src/continuity/backup-drill.ts';
 import { FileLedger } from '../../src/continuity/ledger.ts';
 import type { ActorContext } from '../../src/db/command.ts';
-import { actor } from '../support/actors.ts';
+import { seededTestActor } from '../support/seeded-actor.ts';
 import { ADMIN_URL, urlFor, type TestDatabase } from '../support/db.ts';
 
 export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {}): Promise<ActorContext> {
-  void db;
-  return Promise.resolve(actor(overrides));
+  return seededTestActor(db, overrides);
 }
 
 /** A temporary directory, removed by the returned cleanup function. */

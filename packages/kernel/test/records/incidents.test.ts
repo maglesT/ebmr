@@ -24,7 +24,7 @@ beforeAll(async () => {
   db = await createTestDatabase();
   await createStubTables(db);
   operator = await testActor(db, { roleCode: 'OPERATOR' });
-  qa = await testActor(db, { roleCode: 'QA' });
+  qa = await testActor(db, { roleCode: 'QA_REVIEWER' });
   gateway = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'site gateway (balance adapter)' });
 });
 afterAll(async () => {

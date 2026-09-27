@@ -1,14 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { verifyAnchor, verifyChain } from '../../src/audit/verify.ts';
-import { toDbContext, withCommand } from '../../src/db/command.ts';
-import { actor } from '../support/actors.ts';
+import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
+import { actor as fakeActor } from '../support/actors.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { seededTestActor } from '../support/seeded-actor.ts';
 
 let db: TestDatabase;
+let base: ActorContext;
 beforeAll(async () => {
   db = await createTestDatabase();
+  // With the identity module installed, the actor must be a real, active identity; with only the
+  // foundation migrations (EBMR_MIGRATIONS='^00') any well-formed context is accepted.
+  const { rows } = await db.admin.query<{ iam: string | null }>("select to_regnamespace('iam')::text as iam");
+  base = rows[0]?.iam ? await seededTestActor(db, { legalName: 'Test Operator' }) : fakeActor();
 });
+
+/** The test operator in a new command (fresh correlation id), with optional reason or zone overrides. */
+function actor(overrides: Partial<ActorContext> = {}): ActorContext {
+  return { ...base, correlationId: randomUUID(), ...overrides };
+}
 afterAll(async () => {
   await db.drop();
 });
@@ -31,7 +42,7 @@ async function events(chainKey: string) {
 describe('audit capture', () => {
   it('[DI-22][INV-07] a GMP insert writes an audit event in the same transaction with who, what, when, how', async () => {
     const batch = randomUUID();
-    const ctx = actor({ correlationId: randomUUID(), deviceId: randomUUID() });
+    const ctx = actor();
     const id = await insertSample(batch, '12.503', ctx);
     const [e] = await events(`batch:${batch}`);
     expect(e?.action).toBe('INSERT');

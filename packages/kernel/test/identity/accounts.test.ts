@@ -134,7 +134,8 @@ describe('accounts are personal, unique and never deleted (INV-11)', () => {
     const name = login('raw');
     await expect(
       asSuperuserTransaction(db, async (c) => {
-        await c.query("select set_config('ebmr.ctx', $1, true)", [JSON.stringify({ person_id: randomUUID(), correlation_id: randomUUID() })]);
+        // A superuser can install any context directly (it bypasses privileges); the index must still hold.
+        await c.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify({ person_id: randomUUID(), correlation_id: randomUUID(), reason_code: 'ATTACK' })]);
         await c.query('insert into iam.issued_identifier (identifier, account_id) values ($1, $2)', [name, id]);
         await c.query('alter table iam.account disable trigger aa_account_guard');
         await c.query("insert into iam.account (id, person_id, login_name, kind) values ($1, $2, $3, 'HUMAN')", [id, op.personId, name]);

@@ -116,7 +116,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   persons/accounts/devices; edition DBs will hold mirrors plus local sessions and auth events (auth events must be consumed in the
   edition transaction that signs). Build the mirror sync in Phase 3.
 - Dependencies added: fast-check 4.10.2 (root dev), yaml 2.9.1 (kernel).
-- 2026-09-27 20:45 UTC: B5 (time, idempotency, outbox, state machines) finished: 91 tests, DI-27 IMPLEMENTED.
+- 2026-09-27: B5 (time, idempotency, outbox, state machines) finished: 91 tests, DI-27 IMPLEMENTED.
   Security finding from B5 fixed in the foundation: SECURITY DEFINER functions must list pg_temp last in search_path
   (else a session's temp table can shadow catalog/module tables); 0010 fixed, 0001 revokes TEMP from PUBLIC (the test
   harness re-applies it per test DB, since database ACLs are not copied from templates); repo-wide test
@@ -128,7 +128,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   and platform.outbox.id as protected sequences; consider a dedicated outbox relay role. Owner questions from B5
   (device-skew tolerance on occurred_at <= recorded_at; which trusts count as late entry; REFERENCE_LOST severity) go
   into the Phase 1 owner-questions list.
-- 2026-09-27 ~21:00 UTC: B4 (records) finished: 69 tests; DI-01, DI-12, DI-47, DI-50 IMPLEMENTED (INV-22 proven).
+- 2026-09-27: B4 (records) finished: 69 tests; DI-01, DI-12, DI-47, DI-50 IMPLEMENTED (INV-22 proven).
   Retention logic authoritative in SQL (rule set RET-2026.1), TS mirror proven equal by a property test.
   B4 integration items: export as namespace `records` (name clashes with market); nightly/verifyAllChains must use
   records.verify_chain/verify_anchor (purge-aware) combined with B6 restore-event coverage; replace purge's
@@ -140,7 +140,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Owner/expert questions from B4: MAJOR incidents also need root cause + CAPA (peak severity counts); DERIVED class refused
   for decision data (stricter than "not informational"); retention stays OPEN when inputs are missing; design-default rules
   for aborted and never-certified EU batches; CERT-In 6 h and Form 25/28 periods unverified.
-- 2026-09-27 ~21:10 UTC: B3 (market-profile engine) finished: 105 tests; IN-52 IMPLEMENTED; INV-28 (fast-check, TS and SQL
+- 2026-09-27: B3 (market-profile engine) finished: 105 tests; IN-52 IMPLEMENTED; INV-28 (fast-check, TS and SQL
   engines agree), INV-29, INV-47 proven. Rule tables in compliance/rule-tables/{kernel,tablets,sterile}/*.v1.yaml.
   B3 integration items: export as namespace `market`; publish seed rule tables at install/upgrade via
   syncRuleTables(pool, actor, 'compliance/rule-tables') (not in a migration: needs an actor); permission-gate
@@ -151,7 +151,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   seed-data interpretations (B-01 mfg + 5 y for every licence form; EU test records as batch documentation; management
   review and EU PUPSIT typed GUIDANCE; FDA 2004 values GUIDANCE; unverified rows flagged S/U/GK; unverifiable effective
   dates default to 2023-12-28).
-- 2026-09-27 ~21:20 UTC: B6 (continuity) finished: 50 tests; DI-45 IMPLEMENTED; DI-13 partly (TLS, kiosk hardening;
+- 2026-09-27: B6 (continuity) finished: 50 tests; DI-45 IMPLEMENTED; DI-13 partly (TLS, kiosk hardening;
   formula-permission line due Phase 2, evidence-package test after esig); INV-27 and the restore part of INV-08 proven with
   a real pg_dump/pg_restore disaster simulation. Site-services batch-number register (schema site) with IN-18 tests.
   Docs: docs/security/{threat-model,asvs-l2-review,security-baseline}.md, docs/operations/{ha-and-restore,
@@ -162,7 +162,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   continuity.alarm -> platform alarms; iam permission checks on restore/attestation/alarm functions; CI needs
   pg_dump/pg_restore 16 on the runner. Owner decisions: RPO/RTO and backup schedule proposals, WORM storage product,
   DB-admin vs storage-admin separation. Residual risk: data-only reload keeps DB incarnation (caught by ledger check only).
-- 2026-09-27 ~21:35 UTC: B1 (identity and access) finished: 94 tests; DI-14..DI-21 IMPLEMENTED; INV-11, INV-26, INV-40 and
+- 2026-09-27: B1 (identity and access) finished: 94 tests; DI-14..DI-21 IMPLEMENTED; INV-11, INV-26, INV-40 and
   the login-name part of INV-27 proven. New login role ebmr_authn (dev password; production needs a vault credential).
   kernel.validate_actor_context replaced (0190). B2 (e-signatures) launched with identity notes appended to its brief.
   B1 integration items: SECURITY GAP: any role can set_config('ebmr.ctx') and skip begin_command, forging attribution on
@@ -170,3 +170,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (iam.assert_validated_actor / command_log); switch every module's testActor to seedActor/seedServiceActor; export
   identity; wire iam.assert_not_administrator into GMP write paths; B6 device hardening into iam.register_device/open_session
   (add INSTRUMENT class to continuity's list); optional FKs to iam tables; IAM policy values may move into market policies.
+- 2026-09-27: integration started (lead). Kernel fix for B1's finding: kernel.begin_command now leaves a marker
+  (transaction, backend, context hash) in kernel.command_marker (owner-only); kernel.current_actor() ignores a context
+  without its marker and the audit writer refuses it (EBMR-AUDIT-009), so set_config('ebmr.ctx') forges nothing. Module
+  code switches context only via kernel.set_actor_context (owner-only). All module test helpers now seed real identities
+  (test/support/seeded-actor.ts). src/index.ts exports every module as a namespace. Full suite: 456 tests pass; typecheck,
+  lint, boundaries, pins, register clean. Trace at phase 1 lacks only DI-35..DI-38 (B2 running).
