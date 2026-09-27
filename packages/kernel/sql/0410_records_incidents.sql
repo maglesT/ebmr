@@ -177,6 +177,9 @@ declare
   v_inc records.incident_current%rowtype;
   l jsonb;
 begin
+  -- DI-18, then DI-17 where the actor works (the session's site and room).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.RAISE', iam.actor_location_scope());
   if p_source is null or p_source not in ('INTERFACE_FAILURE', 'CONNECTION_LOSS', 'CRASH', 'SIGNATURE_FAILURE', 'TIME_SYNC',
                                           'PRINT_FAILURE', 'INTEGRITY_CHECK', 'SECURITY', 'DATA_INTEGRITY', 'OTHER') then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-050 incident source %L is not in the catalogue', p_source);
@@ -219,6 +222,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
+  -- DI-18, then DI-17 where the actor works (the session's site and room).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.RAISE', iam.actor_location_scope());
   if v.status = 'CLOSED' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-052 incident %s is closed; raise a new incident instead', v.reference);
   end if;
@@ -231,6 +237,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.INVESTIGATE', '{}'::jsonb);
   if v.status = 'CLOSED' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-052 incident %s is closed; its severity cannot change', v.reference);
   end if;
@@ -253,6 +262,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.INVESTIGATE', '{}'::jsonb);
   if v.status <> 'OPEN' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-052 incident %s is %s; only an OPEN incident moves to UNDER_INVESTIGATION', v.reference, v.status);
   end if;
@@ -266,6 +278,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.CERT_IN_REPORT', '{}'::jsonb);
   if v.status = 'CLOSED' or v.cert_in_reportable then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-055 incident %s is closed or already CERT-In reportable', v.reference);
   end if;
@@ -283,6 +298,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.CERT_IN_REPORT', '{}'::jsonb);
   if not v.cert_in_reportable then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-055 incident %s is not marked CERT-In reportable', v.reference);
   end if;
@@ -309,6 +327,9 @@ begin
   if records.actor_is_machine() then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-056 an incident impact assessment is made by a person';
   end if;
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.INVESTIGATE', '{}'::jsonb);
   if not exists (select 1 from records.incident_link where incident_id = v.id and aggregate_type = p_aggregate_type and aggregate_id = p_aggregate_id) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-056 incident %s is not linked to %s:%s', v.reference, p_aggregate_type, p_aggregate_id);
   end if;
@@ -337,6 +358,9 @@ declare
   v records.incident_current%rowtype := records.lock_incident(p_incident_id);
   l record;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INCIDENT.CLOSE', '{}'::jsonb);
   if v.status <> 'UNDER_INVESTIGATION' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-052 incident %s is %s; only an incident UNDER_INVESTIGATION can be closed', v.reference, v.status);
   end if;

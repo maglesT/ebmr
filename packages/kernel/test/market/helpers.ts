@@ -15,6 +15,29 @@ export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {
   return seededTestActor(db, overrides);
 }
 
+/**
+ * The kernel roles that hold the market permissions (packages/kernel/sql/0700_authorization_catalogue.sql).
+ * Every gated market function checks the permission of the role declared in the actor context (DI-17).
+ */
+export const MARKET_ROLES = {
+  /** MARKET.RULE_TABLE_PUBLISH */
+  publisher: 'MASTER_DATA_STEWARD',
+  /** MARKET.RULE_TABLE_CORRECT (SOURCE_CORRECTION versions) */
+  corrector: 'REGULATORY_SIGNER',
+  /** MARKET.SITE_VALUE_SET */
+  siteValues: 'MASTER_DATA_STEWARD',
+  /** MARKET.POLICY_CHANGE (define a policy, set a policy version) */
+  policy: 'QA_MBR_APPROVER',
+  /** MARKET.POLICY_TIGHTEN_BATCH */
+  tightening: 'QA_REVIEWER',
+  /** BATCH.ISSUE (policies are pinned in the batch-issue transaction) */
+  issuer: 'BATCH_ISSUER',
+  /** MARKET.RULE_EVALUATE */
+  evaluator: 'OPERATOR',
+  /** MASTERDATA.CHANGE (the stub scope tables stand in for edition master data) */
+  stubs: 'MASTER_DATA_STEWARD',
+} as const;
+
 export const RULE_TABLE_ROOT = new URL('../../../../compliance/rule-tables/', import.meta.url).pathname;
 
 export function seedDocument(table: RuleTableCode): RuleTableDocument {
@@ -23,7 +46,7 @@ export function seedDocument(table: RuleTableCode): RuleTableDocument {
 
 /** Publish the seed rule tables from compliance/rule-tables. */
 export async function publishSeedTables(db: TestDatabase): Promise<Map<RuleTableCode, string>> {
-  const outcomes: SyncOutcome[] = await syncRuleTables(db.app, await testActor(db, { roleCode: 'REGULATORY_SIGNER' }), RULE_TABLE_ROOT);
+  const outcomes: SyncOutcome[] = await syncRuleTables(db.app, await testActor(db, { roleCode: MARKET_ROLES.publisher }), RULE_TABLE_ROOT);
   return new Map(outcomes.map((o) => [o.table, o.versionId]));
 }
 
@@ -48,7 +71,8 @@ export async function publishDocumentAs(db: TestDatabase, ctx: ActorContext, doc
 
 /** Publish a document through the SQL gate as the application role. */
 export async function publishDocument(db: TestDatabase, doc: unknown, change: Record<string, unknown> = {}): Promise<Published> {
-  return publishDocumentAs(db, await testActor(db, { roleCode: 'REGULATORY_SIGNER' }), doc, change);
+  const roleCode = (change as { kind?: unknown }).kind === 'SOURCE_CORRECTION' ? MARKET_ROLES.corrector : MARKET_ROLES.publisher;
+  return publishDocumentAs(db, await testActor(db, { roleCode }), doc, change);
 }
 
 /** Register an extra rule table (superuser setup) so a test can publish its own documents. */
@@ -143,7 +167,7 @@ export async function seedStubWorld(db: TestDatabase): Promise<StubWorld> {
       person,
       pack: { tabletAllIn, tabletAllUs },
     };
-  });
+  }, { roleCode: MARKET_ROLES.stubs });
 }
 
 /** A small valid document for a test table, to be varied by each test. */

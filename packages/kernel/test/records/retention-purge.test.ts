@@ -145,7 +145,8 @@ describe('holds', () => {
     const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'product liability claim', 'LEGAL-2026-07'));
     expect((await openBlockers(db.app, 'batch', batch)).map((b) => [b.kind, b.blocksDisposition, b.blocksDisposal])).toEqual([['HOLD', false, true]]);
     await expect(approve(key)).rejects.toThrow('EBMR-REC-032');
-    await expect(withCommand(db.app, again(retentionJob), (c) => releaseLegalHold(c, hold, 'claim settled'))).rejects.toThrow('EBMR-REC-040');
+    // The retention job holds no RECORD.LEGAL_HOLD (DI-17); the person-only rule (EBMR-REC-040) stays behind it.
+    await expect(withCommand(db.app, again(retentionJob), (c) => releaseLegalHold(c, hold, 'claim settled'))).rejects.toThrow('EBMR-IAM-040');
     await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'claim settled'));
     await expect(withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'again'))).rejects.toThrow('EBMR-REC-040');
     await approve(key);

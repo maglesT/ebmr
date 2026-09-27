@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { batchFlags, evaluateStubScope, setSiteValue, type SiteValueRequest } from '../../src/market/repository.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, createTestTable, publishDocument, publishSeedTables, seedStubWorld, type StubWorld } from './helpers.ts';
+import { asApp, createTestTable, MARKET_ROLES, publishDocument, publishSeedTables, seedStubWorld, type StubWorld } from './helpers.ts';
 
 let db: TestDatabase;
 let world: StubWorld;
@@ -21,7 +21,7 @@ afterAll(async () => {
 });
 
 const set = (request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom'> & { effectiveFrom?: string }) =>
-  asApp(db, (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request }));
+  asApp(db, (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request }), { roleCode: MARKET_ROLES.siteValues });
 
 const evaluateBatch = (key: string, batch: string, asOf = '2026-03-01') =>
   asApp(db, (c) => evaluateStubScope(c, { key, scope: { kind: 'PRODUCT', id: batch }, resolutionPoint: 'EXECUTION', asOf }));

@@ -187,6 +187,9 @@ begin
   if v_ctx is null then
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-001 no actor context: call kernel.begin_command first';
   end if;
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('MARKET.POLICY_CHANGE', '{}'::jsonb);
   if jsonb_typeof(p_def -> 'positions') is distinct from 'array'
      or exists (select 1 from jsonb_array_elements(case when jsonb_typeof(p_def -> 'positions') = 'array' then p_def -> 'positions' else '[]'::jsonb end) x
                 where jsonb_typeof(x) <> 'string' or not market.is_identifier(x #>> '{}'))
@@ -213,6 +216,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, market,
 declare
   v market.policy_version;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('MARKET.POLICY_CHANGE', '{}'::jsonb);
   if not exists (select 1 from market.policy where code = p_policy) then
     raise exception using errcode = 'P0001', message = format('EBMR-MKT-071 unknown policy %s', p_policy);
   end if;
@@ -252,6 +258,9 @@ declare
   v      market.policy_version;
   v_out  jsonb := '[]'::jsonb;
 begin
+  -- Part of issuing the batch: DI-18, then DI-17 for BATCH.ISSUE where the issuer works.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('BATCH.ISSUE', iam.actor_location_scope());
   if exists (select 1 from market.batch_policy_pin where batch_id = p_batch and pin_kind = 'ISSUE') then
     raise exception using errcode = 'P0001', message = format('EBMR-MKT-087 batch %s is already pinned; policies are pinned once, at issue', p_batch);
   end if;
@@ -275,6 +284,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, market,
 declare
   pin market.batch_policy_pin;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('MARKET.POLICY_TIGHTEN_BATCH', '{}'::jsonb);
   -- issue_instant is copied from the batch's issue pin by market.policy_pin_guard.
   insert into market.batch_policy_pin (batch_id, policy_code, policy_version_id, pin_kind, change_ref, reason)
   values (p_batch, p_policy, p_version, 'TIGHTENING', p_change_ref, p_reason)

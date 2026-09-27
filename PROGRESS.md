@@ -180,3 +180,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   state-history ids (INV-27); sessions on SHARED/GRADE_A_B terminals refused without a current hardening attestation
   (DI-13; test seeding attests devices via attestDevice); time faults raise a records incident in the alarm's transaction
   (DI-27). 433 tests pass.
+- 2026-09-27: B2 (e-signatures) finished: 68 tests; DI-35..DI-38 IMPLEMENTED; INV-03, INV-09, INV-10 and the
+  signature-id part of INV-27 proven; DI-13 evidence package test added. 48 vendor minimum meaning types; HMAC and
+  Ed25519 seals with key ring; generic invalidation via esig.register_signed_table. Kernel 0910 registers the platform
+  SIGNATURE hook and makes the platform sample record signable; esig exported.
+  B2 follow-ups (after B7): map meaning types to B7 permissions (new catalogue versions: RECORD_TYPE_APPROVED,
+  RECORD_DISPOSAL_APPROVED, DI_INVESTIGATION_CLOSED, new RESTORE_APPROVED); records approve_record_type /
+  close_di_investigation / approve_purge and continuity restore approval must verify their signature ids with
+  esig.assert_signature (signer = actor) and need content providers; DI-38 relaxation needs an iam session-bound
+  password/PIN-only authentication method (relaxation is OFF by default, so not blocking); decide retention of
+  signature rows when a record is purged (Phase 4); RLS checks in content_for_signing/evidence_package when tenancy lands.
+  Running: B7 authorization wiring (permissions on every mutating function, platform AUTHORITY adapter, DI-18).

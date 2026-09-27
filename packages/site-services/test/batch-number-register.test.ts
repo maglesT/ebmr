@@ -218,7 +218,9 @@ describe('batch-number register across a restore', () => {
     issuer = await testActor(src, { roleCode: 'BATCH_ISSUER' });
     operator = await testActor(src, { roleCode: 'SYSTEM_ADMINISTRATOR' });
     approver = await testActor(src, { roleCode: 'QA_REVIEWER' });
-    await withCommand(src.app, operator, (c) =>
+    // Numbering rules are GMP master data (BATCH_NUMBER.RULE_DEFINE, master-data steward), never an administrator's (DI-18).
+    const steward = await testActor(src, { roleCode: 'MASTER_DATA_STEWARD' });
+    await withCommand(src.app, steward, (c) =>
       defineBatchNumberRule(c, { ruleCode: 'RS-TAB', siteCode: 'PLANT9', productCode: 'RSV5', batchKind: 'PROCESSING', format: '{SITE}{YY}{SEQ:3}', siteZone, reason: 'SOP', blockSize: 2 }),
     );
     before.push((await allocateIn(src, rsv)).batchNumber, (await allocateIn(src, rsv)).batchNumber);

@@ -30,6 +30,25 @@ Format tokens: `{SITE}` `{PRODUCT}` `{YYYY}` `{YY}` `{MM}` (site-local calendar 
 
 Allocation draws serials from `continuity.next_counter_value`. When the counter's write-ahead block is used up the database raises `EBMR-CONT-011`; call allocation inside the kernel's `withProtectedNumbers(pool, ctx, ledger, (c) => allocateBatchNumber(c, request))`, which reserves the next block in the external ledger and retries. A serial the rule already drew means its counter was moved back: allocation refuses (`EBMR-SITE-017`) instead of skipping silently. Batch sizes are decimal strings, never JavaScript numbers.
 
+## Permissions (DI-17, DI-18)
+
+Every function first refuses administrators and break-glass accounts (`iam.assert_not_administrator`,
+`EBMR-IAM-042`: batch numbers are GMP data) and then checks the permission in the number's site and
+product scope (`iam.require_permission`, `EBMR-IAM-040`; `site.batch_number_scope`).
+
+| Function | Permission | Scope | Held by |
+|---|---|---|---|
+| `define_batch_number_rule` | `BATCH_NUMBER.RULE_DEFINE` | rule's site (+ product) | master-data steward |
+| `allocate_batch_number` | `BATCH_NUMBER.ALLOCATE` | site + product | batch issuer |
+| `register_external_batch_number` | `BATCH_NUMBER.REGISTER_EXTERNAL` | site + product | batch issuer, service accounts (ERP) |
+| `void_batch_number` | `BATCH_NUMBER.VOID` | site + product of the allocation | batch issuer |
+| `recover_batch_number` | `BATCH_NUMBER.RECOVER` | rule's site + product | batch issuer |
+
+A missing site or product is left out of the scope, and such a request is covered only by a grant not
+limited in that dimension. Issuing numbers may reserve a write-ahead ceiling in the issuer's context:
+`continuity.reserve_counter_ceiling` needs `CONTINUITY.COUNTER_RESERVE` at the issuer's location (see the
+continuity README). Tests: `test/authorization.test.ts`.
+
 ## Tests
 
 `packages/site-services/test/batch-number-register.test.ts`: format and immediate register entry, voids never reissued, uniqueness across editions, export fields, packaging linkage, site-wide rule, no wrap-around, bypass attempts, a rewound counter, and a real restore (a number allocated in the lost window is never reissued and can be recovered only inside the skipped range).

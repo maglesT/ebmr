@@ -11,13 +11,18 @@ import {
 } from '../../src/records/investigations.ts';
 import { approvePurge, createRetentionSchedule, openBlockers, purge, releaseLegalHold } from '../../src/records/retention-store.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { again, correctEntry, createStubTables, insertEntry, insertReading, recordType, registerType, scalar, testActor, withReason } from './helpers.ts';
+import { again, correctEntry, createStubTables, inSecondRole, insertEntry, insertReading, recordType, registerType, scalar, testActor, withReason } from './helpers.ts';
 
 let db: TestDatabase;
 let subject: ActorContext;
 let colleague: ActorContext;
 let investigator: ActorContext;
 let approver: ActorContext;
+let retentionJob: ActorContext;
+// The same persons in a second role that holds the permission, to reach the per-person rules.
+let investigatorAsQa: ActorContext;
+let subjectAsQa: ActorContext;
+let subjectAsDiLead: ActorContext;
 
 const now = async (): Promise<Date> => (await db.app.query<{ t: Date }>('select clock_timestamp() as t')).rows[0]?.t as Date;
 const plusHours = (d: Date, h: number) => new Date(d.getTime() + h * 3_600_000);
@@ -28,8 +33,14 @@ beforeAll(async () => {
   await registerType(db, recordType('BATCH_PROCESSING_RECORD'));
   subject = await testActor(db, { roleCode: 'OPERATOR', legalName: 'Operator under investigation' });
   colleague = await testActor(db, { roleCode: 'OPERATOR' });
-  investigator = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'DI investigator' });
+  // Opening, linking and refreshing need VALIDATION.MANAGE (CSV / DI lead); approving the closure
+  // needs DI_INVESTIGATION.APPROVE_CLOSURE (QA reviewer); purging needs RECORD.PURGE (retention job).
+  investigator = await testActor(db, { roleCode: 'CSV_DI_LEAD', legalName: 'DI investigator' });
   approver = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Head of QA' });
+  retentionJob = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'retention job' });
+  investigatorAsQa = await inSecondRole(db, investigator, 'QA_REVIEWER');
+  subjectAsQa = await inSecondRole(db, subject, 'QA_REVIEWER');
+  subjectAsDiLead = await inSecondRole(db, subject, 'CSV_DI_LEAD');
 });
 afterAll(async () => {
   await db.drop();
@@ -50,7 +61,7 @@ describe('DI-50 data-integrity investigation', () => {
     await withCommand(db.app, again(subject), (c) => c.query("insert into stub_b4.lot_record (lot_id, note) values ($1, 'label checked')", [lot]));
     await insertEntry(db, colleague, batchD, '3.30');
     // Batch A's retention has ended, so only the investigation can stop its disposal.
-    await withCommand(db.app, again(investigator), (c) =>
+    await withCommand(db.app, again(approver), (c) =>
       createRetentionSchedule(c, 'batch', batchA, 'BATCH_PROCESSING_RECORD', { markets: ['IN'], manufactureDate: '2008-01-10', expiryDate: '2010-01-31' }),
     );
     const to = plusHours(from, 1);
@@ -84,8 +95,11 @@ describe('DI-50 data-integrity investigation', () => {
 
     // Closing: conclusion and remediation required; approver must be neither the investigator nor the person investigated.
     const closure = { conclusion: 'entries matched the printouts; no falsification', remediation: 'refresher training on contemporaneous entry', approvalSignatureId: randomUUID() };
-    await expect(withCommand(db.app, again(investigator), (c) => closeDiInvestigation(c, id, closure))).rejects.toThrow('EBMR-REC-063');
-    await expect(withCommand(db.app, again(subject), (c) => closeDiInvestigation(c, id, closure))).rejects.toThrow('EBMR-REC-063');
+    // In their own roles neither holds the closure permission (DI-17); even holding it, neither may approve (EBMR-REC-063).
+    await expect(withCommand(db.app, again(investigator), (c) => closeDiInvestigation(c, id, closure))).rejects.toThrow('EBMR-IAM-040');
+    await expect(withCommand(db.app, again(subject), (c) => closeDiInvestigation(c, id, closure))).rejects.toThrow('EBMR-IAM-040');
+    await expect(withCommand(db.app, again(investigatorAsQa), (c) => closeDiInvestigation(c, id, closure))).rejects.toThrow('EBMR-REC-063');
+    await expect(withCommand(db.app, again(subjectAsQa), (c) => closeDiInvestigation(c, id, closure))).rejects.toThrow('EBMR-REC-063');
     await expect(withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, { ...closure, remediation: '' }))).rejects.toThrow('EBMR-REC-062');
     expect((await openBlockers(db.app, 'batch', batchA)).some((b) => b.kind === 'DI_INVESTIGATION')).toBe(true);
     await withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, closure));
@@ -96,7 +110,7 @@ describe('DI-50 data-integrity investigation', () => {
     expect(await scalar<string>(db.app, 'select status as v from records.di_investigation_current where id = $1', [id])).toBe('CLOSED');
     // Disposal is possible again once the investigation is closed.
     await withCommand(db.app, again(approver), (c) => approvePurge(c, `batch:${batchA}`, randomUUID(), 'retention ended'));
-    await expect(withCommand(db.app, withReason(approver, 'RETENTION_ENDED'), (c) => purge(c, `batch:${batchA}`))).resolves.toMatch(/^[0-9a-f-]{36}$/);
+    await expect(withCommand(db.app, withReason(retentionJob, 'RETENTION_ENDED'), (c) => purge(c, `batch:${batchA}`))).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('[DI-50] records the person touches inside the window after opening are blocked at once and linked on refresh and at closure', async () => {
@@ -123,6 +137,11 @@ describe('DI-50 data-integrity investigation', () => {
     const extra = randomUUID();
     await expect(
       withCommand(db.app, again(subject), (c) => openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: from, windowTo: plusHours(from, 1), concern: 'x' })),
+    ).rejects.toThrow('EBMR-IAM-040');
+    await expect(
+      withCommand(db.app, again(subjectAsDiLead), (c) =>
+        openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: from, windowTo: plusHours(from, 1), concern: 'x' }),
+      ),
     ).rejects.toThrow('EBMR-REC-064');
     await expect(
       withCommand(db.app, again(investigator), (c) =>

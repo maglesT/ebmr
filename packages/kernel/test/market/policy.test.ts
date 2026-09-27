@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext } from '../../src/db/command.ts';
 import { applyPolicyTightening, batchPolicy, definePolicy, pinPoliciesForBatch, policyForBatch, setPolicyVersion, type PolicyVersion } from '../../src/market/policy.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, testActor } from './helpers.ts';
+import { asApp, MARKET_ROLES, testActor } from './helpers.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -45,7 +45,9 @@ let seq = 0;
 async function newPolicy(positions: string[], defaultPosition: string): Promise<{ code: string; v1: PolicyVersion }> {
   seq += 1;
   const code = `S${seq}.test${randomUUID().slice(0, 6)}`;
-  const v1 = await asApp(db, (c) => definePolicy(c, { code, title: `test policy ${seq}`, level: 'TENANT', positions, defaultPosition, controls: ['DI-09'] }));
+  const v1 = await asApp(db, (c) => definePolicy(c, { code, title: `test policy ${seq}`, level: 'TENANT', positions, defaultPosition, controls: ['DI-09'] }), {
+    roleCode: MARKET_ROLES.policy,
+  });
   return { code, v1 };
 }
 
@@ -54,17 +56,17 @@ describe('policies as versioned data', () => {
     const { code, v1 } = await newPolicy(['OFF', 'ON'], 'ON');
     expect([v1.version, v1.position, v1.direction]).toEqual([1, 'ON', 'INITIAL']);
     const later = await dbInstant('1 hour');
-    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: later, approvalId: randomUUID(), changeRef: 'CC-101' }));
+    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: later, approvalId: randomUUID(), changeRef: 'CC-101' }), { roleCode: MARKET_ROLES.policy });
     expect([v2.version, v2.direction]).toEqual([2, 'LOOSENING']);
     const later2 = await dbInstant('2 hours');
-    const v3 = await asApp(db, (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: later2, changeRef: 'CC-102' }));
+    const v3 = await asApp(db, (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: later2, changeRef: 'CC-102' }), { roleCode: MARKET_ROLES.policy });
     expect([v3.version, v3.direction]).toEqual([3, 'TIGHTENING']);
   });
 
   it('[INV-47] policy_for_batch returns the version in force at the batch issue instant', async () => {
     const { code, v1 } = await newPolicy(['OFF', 'ON'], 'ON');
     const effective = await dbInstant('1 hour');
-    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: effective, approvalId: randomUUID(), changeRef: 'CC-103' }));
+    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: effective, approvalId: randomUUID(), changeRef: 'CC-103' }), { roleCode: MARKET_ROLES.policy });
     expect((await policyForBatch(db.app, code, await dbInstant('1 minute'))).id).toBe(v1.id);
     expect((await policyForBatch(db.app, code, await dbInstant('59 minutes'))).id).toBe(v1.id);
     expect((await policyForBatch(db.app, code, effective)).id).toBe(v2.id);
@@ -74,7 +76,7 @@ describe('policies as versioned data', () => {
   it('[INV-47] a version can never take effect in the past, through the function or through raw SQL as the owner', async () => {
     const { code } = await newPolicy(['OFF', 'ON'], 'ON');
     const past = await dbInstant('-1 minute');
-    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: past, approvalId: randomUUID(), changeRef: 'CC-104' }))).rejects.toThrow('EBMR-MKT-070');
+    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: past, approvalId: randomUUID(), changeRef: 'CC-104' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-070');
     await expect(
       asAdmin(
         "insert into market.policy_version (policy_code, position, effective_from, approval_id, change_ref, reason) values ($1, 'OFF', $2, $3, 'CC-105', 'back-dated')",
@@ -85,11 +87,11 @@ describe('policies as versioned data', () => {
 
   it('[INV-47] a loosening needs an approval record and a change reference; a version cannot be slipped in before a scheduled one', async () => {
     const { code } = await newPolicy(['OFF', 'ON'], 'ON');
-    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { changeRef: 'CC-106' }))).rejects.toThrow('EBMR-MKT-073');
-    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { approvalId: randomUUID() }))).rejects.toThrow('EBMR-MKT-073');
-    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'MAYBE', { changeRef: 'CC-106' }))).rejects.toThrow('EBMR-MKT-071');
-    await asApp(db, async (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: await dbInstant('2 hours'), approvalId: randomUUID(), changeRef: 'CC-107' }));
-    await expect(asApp(db, async (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: await dbInstant('1 hour'), changeRef: 'CC-108' }))).rejects.toThrow('EBMR-MKT-072');
+    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { changeRef: 'CC-106' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-073');
+    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { approvalId: randomUUID() }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-073');
+    await expect(asApp(db, (c) => setPolicyVersion(c, code, 'MAYBE', { changeRef: 'CC-106' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-071');
+    await asApp(db, async (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: await dbInstant('2 hours'), approvalId: randomUUID(), changeRef: 'CC-107' }), { roleCode: MARKET_ROLES.policy });
+    await expect(asApp(db, async (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: await dbInstant('1 hour'), changeRef: 'CC-108' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-072');
   });
 });
 
@@ -102,10 +104,10 @@ describe('INV-47: a loosening never reaches a batch issued before it took effect
 
   beforeAll(async () => {
     ({ code, v1 } = await newPolicy(['ONE_VERIFIER', 'TWO_PERSONS'], 'TWO_PERSONS'));
-    loosening = await asApp(db, async (c) => setPolicyVersion(c, code, 'ONE_VERIFIER', { effectiveFrom: await dbInstant('2 seconds'), approvalId: randomUUID(), changeRef: 'CC-S5a' }));
-    await asApp(db, (c) => pinPoliciesForBatch(c, early));
+    loosening = await asApp(db, async (c) => setPolicyVersion(c, code, 'ONE_VERIFIER', { effectiveFrom: await dbInstant('2 seconds'), approvalId: randomUUID(), changeRef: 'CC-S5a' }), { roleCode: MARKET_ROLES.policy });
+    await asApp(db, (c) => pinPoliciesForBatch(c, early), { roleCode: MARKET_ROLES.issuer });
     await sleep(2300);
-    await asApp(db, (c) => pinPoliciesForBatch(c, late));
+    await asApp(db, (c) => pinPoliciesForBatch(c, late), { roleCode: MARKET_ROLES.issuer });
   });
 
   it('[INV-47] batches pin the version in force at issue: the earlier batch keeps the stricter one, the later batch gets the loosening', async () => {
@@ -117,7 +119,7 @@ describe('INV-47: a loosening never reaches a batch issued before it took effect
   });
 
   it('[INV-47] bypass through the function: applying the loosening to the earlier batch is refused', async () => {
-    await expect(asApp(db, (c) => applyPolicyTightening(c, early, code, loosening.id, 'CC-S5a'))).rejects.toThrow('EBMR-MKT-085');
+    await expect(asApp(db, (c) => applyPolicyTightening(c, early, code, loosening.id, 'CC-S5a'), { roleCode: MARKET_ROLES.tightening })).rejects.toThrow('EBMR-MKT-085');
     expect((await batchPolicy(db.app, early, code))?.position).toBe('TWO_PERSONS');
   });
 
@@ -163,14 +165,14 @@ describe('INV-47: a loosening never reaches a batch issued before it took effect
   });
 
   it('[INV-47] a tightening already in force may apply to a running batch at once; the same version cannot be applied twice', async () => {
-    const tightening = await asApp(db, (c) => setPolicyVersion(c, code, 'TWO_PERSONS', { changeRef: 'CC-S5a-back' }));
+    const tightening = await asApp(db, (c) => setPolicyVersion(c, code, 'TWO_PERSONS', { changeRef: 'CC-S5a-back' }), { roleCode: MARKET_ROLES.policy });
     expect(tightening.direction).toBe('TIGHTENING');
-    await asApp(db, (c) => applyPolicyTightening(c, late, code, tightening.id, 'CC-S5a-back', 'QA decision'));
+    await asApp(db, (c) => applyPolicyTightening(c, late, code, tightening.id, 'CC-S5a-back', 'QA decision'), { roleCode: MARKET_ROLES.tightening });
     expect((await batchPolicy(db.app, late, code))).toMatchObject({ pinKind: 'TIGHTENING', position: 'TWO_PERSONS' });
-    await expect(asApp(db, (c) => applyPolicyTightening(c, late, code, tightening.id, 'CC-S5a-back'))).rejects.toThrow('EBMR-MKT-085');
+    await expect(asApp(db, (c) => applyPolicyTightening(c, late, code, tightening.id, 'CC-S5a-back'), { roleCode: MARKET_ROLES.tightening })).rejects.toThrow('EBMR-MKT-085');
   });
 
   it('[INV-47] a batch is pinned once, at issue', async () => {
-    await expect(asApp(db, (c) => pinPoliciesForBatch(c, early))).rejects.toThrow('EBMR-MKT-087');
+    await expect(asApp(db, (c) => pinPoliciesForBatch(c, early), { roleCode: MARKET_ROLES.issuer })).rejects.toThrow('EBMR-MKT-087');
   });
 });

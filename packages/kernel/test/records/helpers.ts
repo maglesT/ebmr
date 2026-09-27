@@ -6,12 +6,26 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import type { ActorContext } from '../../src/db/command.ts';
 import { withCommand } from '../../src/db/command.ts';
+import { decideRoleGrant, requestRoleGrant } from '../../src/identity/admin.ts';
 import { approveRecordType, defineRecordType, type RecordTypeDefinition } from '../../src/records/register.ts';
+import { seedAdministration, withReason as withAdminReason } from '../identity/seed.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 import type { TestDatabase } from '../support/db.ts';
 
 export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {}): Promise<ActorContext> {
   return seededTestActor(db, overrides);
+}
+
+/**
+ * The same person, granted a second role (requested by the seeded administrator, approved by the
+ * seeded process owner) and acting in it. For tests of per-person rules (for example: the
+ * investigator cannot approve the closure) that must reach the rule with a role holding the permission.
+ */
+export async function inSecondRole(db: TestDatabase, ctx: ActorContext, roleCode: string): Promise<ActorContext> {
+  const { admin, owner } = await seedAdministration(db);
+  const grant = await withCommand(db.app, withAdminReason(admin), (c) => requestRoleGrant(c, { accountId: ctx.accountId, roleCode, reason: `test: also ${roleCode}` }));
+  await withCommand(db.app, withAdminReason(owner), (c) => decideRoleGrant(c, grant, true, 'approved for test'));
+  return { ...ctx, roleCode, correlationId: randomUUID() };
 }
 
 /** The same person acting in a later command with a reason for change (DI-24). */
@@ -101,10 +115,13 @@ export const recordType = (code: string, over: Partial<RecordTypeDefinition> = {
   ...over,
 });
 
-/** Defines a record type as one person and approves it as another. */
+/**
+ * Defines a record type as one person and approves it as another. RECORD.TYPE_DEFINE and
+ * RECORD.TYPE_APPROVE are held by QA_MBR_APPROVER (0700_authorization_catalogue.sql).
+ */
 export async function registerType(db: TestDatabase, def: RecordTypeDefinition): Promise<void> {
-  const author = await testActor(db, { roleCode: 'QA_REVIEWER' });
-  const approver = await testActor(db, { roleCode: 'QA_REVIEWER' });
+  const author = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
+  const approver = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
   const version = await withCommand(db.app, author, (c) => defineRecordType(c, def));
   await withCommand(db.app, approver, (c) => approveRecordType(c, def.code, version, randomUUID()));
 }

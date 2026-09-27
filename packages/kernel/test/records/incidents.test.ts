@@ -128,7 +128,9 @@ describe('DI-12 incident raised by an interface failure', () => {
     await expect(withCommand(db.app, again(qa), (c) => closeIncident(c, id, { summary: 'printer restarted' }))).rejects.toThrow('EBMR-REC-052');
     await withCommand(db.app, again(qa), (c) => startIncidentInvestigation(c, id));
     await expect(withCommand(db.app, again(qa), (c) => startIncidentInvestigation(c, id))).rejects.toThrow('EBMR-REC-052');
-    await expect(withCommand(db.app, again(gateway), (c) => closeIncident(c, id, { summary: 'auto' }))).rejects.toThrow('EBMR-REC-052');
+    // A service account holds no INCIDENT.CLOSE, so the authority check refuses it first (DI-17); the
+    // person-only rule (EBMR-REC-052) stays behind it for any custom role that might hold the permission.
+    await expect(withCommand(db.app, again(gateway), (c) => closeIncident(c, id, { summary: 'auto' }))).rejects.toThrow('EBMR-IAM-040');
     await expect(withCommand(db.app, again(qa), (c) => closeIncident(c, id, { summary: ' ' }))).rejects.toThrow('EBMR-REC-054');
     await withCommand(db.app, again(qa), (c) => closeIncident(c, id, { summary: 'printer restarted; no labels printed in the gap' }));
     expect((await incidentState(db.app, id))?.status).toBe('CLOSED');

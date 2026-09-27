@@ -21,3 +21,4 @@ export * as time from './time/index.ts';
 export * as commands from './commands/index.ts';
 export * as state from './state/index.ts';
 export * as continuity from './continuity/index.ts';
+export * as esig from './esig/index.ts';

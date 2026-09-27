@@ -53,6 +53,30 @@ Kernel migrations numbered below 0600 run before this module exists, so their se
 
 SQL functions granted to the application role: `reserve_counter_ceiling`, `sequence_high_water`, `unprotected_sequences`, `number_invariant_violations`, `external_anchor_problems`, `compare_external_anchors`, `verify_external_anchors`, `record_restore_event`, `approve_restore_event`, `after_restore`, `restore_event_is_approved`, `restore_event_hash_ok`, `lost_window`, `current_incarnation`, `acknowledge_alarm`, `record_backup_job`, `record_restore_drill`, `record_hardening_attestation`, `revoke_hardening_attestation`, `device_hardening_status`, `assert_device_hardened`, `utc_text`. Owner-only: `register_protected_sequence`, `register_protected_counter`, `next_counter_value`, `raise_alarm`.
 
+## Permissions (DI-17, DI-18)
+
+Every writing function checks the actor's permission before its first write (`iam.require_permission`,
+`EBMR-IAM-040`). Catalogue and role map: `sql/0700_authorization_catalogue.sql`.
+
+| Functions | Permission | Scope | Held by | DI-18 guard |
+|---|---|---|---|---|
+| `record_restore_event`, `after_restore` | `CONTINUITY.RESTORE_OPERATE` (ADMINISTRATION) | `{}` | system administrator | no: IT operation |
+| `approve_restore_event` | `CONTINUITY.RESTORE_APPROVE` (GMP, sign) | `{}` | QA reviewer (named approver, never the operator) | yes |
+| `reserve_counter_ceiling` | `CONTINUITY.COUNTER_RESERVE` (GMP) | actor's location | batch issuer, service accounts | yes |
+| `record_backup_job`, `record_restore_drill` | `CONTINUITY.BACKUP_RECORD` (GOVERNANCE) | `{}` | service accounts (source SYSTEM, as before) | no: backup catalogue |
+| `record_hardening_attestation`, `revoke_hardening_attestation` | `CONTINUITY.HARDENING_ATTEST` (ADMINISTRATION) | `{}` | system administrator | no: terminal hardening |
+| `acknowledge_alarm` | `CONTINUITY.ALARM_ACKNOWLEDGE` (GOVERNANCE) | `{}` | system administrator, process owner | no: infrastructure alarms |
+
+Why some functions carry no DI-18 guard: performing a restore, cataloguing backups, attesting kiosk
+hardening and acknowledging backup or ledger alarms are IT administration (features spec K23: backups,
+time sync, monitoring). None of them creates or changes GMP record content: the restore only documents
+what the database itself compared, and it cannot be completed before a QA approval that administrators
+can never give (DI-18 on `approve_restore_event`; INV-11 keeps administrators away from
+`CONTINUITY.RESTORE_APPROVE`). `reserve_counter_ceiling` runs in the context of the person issuing
+numbers (`withProtectedNumbers`), so it is checked where that person works; a grant limited to one
+product does not cover it (the counter has no product), so product-limited issuers rely on ceilings
+reserved by an unrestricted issuer or a service account.
+
 ## External ledger
 
 `ExternalLedger` is the storage contract; `FileLedger` is the demo and test implementation (append-only JSON lines, each line hash-chained to the previous one, fsync on every append, a lock file for writers), labelled demo-only. Production implements the same contract on write-once object storage under credentials the database administrators do not hold.

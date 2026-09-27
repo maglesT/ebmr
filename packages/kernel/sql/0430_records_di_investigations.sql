@@ -181,6 +181,9 @@ begin
   if records.actor_is_machine() then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-060 a DI investigation is opened by a person';
   end if;
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('VALIDATION.MANAGE', '{}'::jsonb);
   if p_subject_person_id is null or p_window_from is null or p_window_to is null or p_window_from >= p_window_to then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-060 a DI investigation needs the person and a time window that ends after it starts';
   end if;
@@ -210,6 +213,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.di_investigation_current%rowtype := records.lock_di_investigation(p_investigation_id);
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('VALIDATION.MANAGE', '{}'::jsonb);
   if v.status <> 'OPEN' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-061 DI investigation %s is closed', v.reference);
   end if;
@@ -226,6 +232,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.di_investigation_current%rowtype := records.lock_di_investigation(p_investigation_id);
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('VALIDATION.MANAGE', '{}'::jsonb);
   if v.status <> 'OPEN' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-061 DI investigation %s is closed', v.reference);
   end if;
@@ -241,6 +250,9 @@ declare
   v_person uuid := records.actor_person();
   h records.retention_hold%rowtype;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('DI_INVESTIGATION.APPROVE_CLOSURE', '{}'::jsonb);
   if v.status <> 'OPEN' then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-061 DI investigation %s is already closed', v.reference);
   end if;

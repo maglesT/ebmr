@@ -95,6 +95,8 @@ begin
   if v_ctx ->> 'source' <> 'SYSTEM' then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-030 backup jobs are recorded only by a system service account (source SYSTEM)';
   end if;
+  -- DI-17 installation-wide (backup catalogue: no DI-18 guard, see README).
+  perform iam.require_permission('CONTINUITY.BACKUP_RECORD', '{}'::jsonb);
   if v_status = 'SUCCEEDED' and (v_b is null or jsonb_typeof(v_b) <> 'object') then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-030 a successful backup job must describe the backup it produced';
   end if;
@@ -143,6 +145,8 @@ begin
   if v_ctx ->> 'source' <> 'SYSTEM' then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-031 restore drills are recorded only by a system service account (source SYSTEM)';
   end if;
+  -- DI-17 installation-wide (restore-drill evidence: no DI-18 guard, see README).
+  perform iam.require_permission('CONTINUITY.BACKUP_RECORD', '{}'::jsonb);
   begin
     insert into continuity.restore_drill (drill_id, source_database, restored_database, backup_sha256, result, failures, tables_compared,
                                           tables_matching, chains_verified, report_sha256, report_uri, started_at, finished_at,

@@ -29,6 +29,19 @@ implemented_by:
     - "packages/kernel/sql/0130_iam_qualifications_authority.sql"
     - "packages/kernel/sql/0150_iam_credentials_badges.sql"
     - "packages/kernel/sql/0160_iam_authentication_sessions.sql"
+    - "packages/kernel/sql/0700_authorization_catalogue.sql"
+    - "packages/kernel/sql/0310_market_scopes.sql"
+    - "packages/kernel/sql/0320_market_site_values.sql"
+    - "packages/kernel/sql/0330_market_evaluations.sql"
+    - "packages/kernel/sql/0340_market_publish.sql"
+    - "packages/kernel/sql/0350_market_policies.sql"
+    - "packages/kernel/sql/0400_records_register.sql"
+    - "packages/kernel/sql/0410_records_incidents.sql"
+    - "packages/kernel/sql/0420_records_retention.sql"
+    - "packages/kernel/sql/0430_records_di_investigations.sql"
+    - "packages/kernel/sql/0440_records_blockers_and_purge.sql"
+    - "packages/kernel/sql/0600_continuity_core.sql"
+    - "packages/site-services/sql/0600_batch_number_register.sql"
   invariants:
     - "INV-11"
   guards:
@@ -36,6 +49,7 @@ implemented_by:
     - "nobody administers their own person, account, credentials, badge or grants (EBMR-IAM-003)"
     - "iam.assert_not_administrator: GMP data write paths refuse administrator roles and break-glass accounts (EBMR-IAM-042)"
     - "break-glass: requested by its holder, approved by a second person, time-limited, authentication only inside the window, BREAK_GLASS_USED critical alert on every use, never signs, reviewed after the window"
+    - "iam.assert_not_administrator runs before the permission check in every GMP write path of market (rule tables, site values, policies, pins, evaluations, stub master data), records, continuity (restore approval, number ceilings) and the site batch-number register (EBMR-IAM-042); IT functions (restore operation, backup catalogue, hardening attestations, continuity alarms) are ADMINISTRATION or GOVERNANCE permissions without it"
   db_constraints:
     - "iam.role_grant and iam.role_permission triggers hold for the table owner too"
     - "iam.directory_scan(): ADMINISTRATOR_AND_GMP_ROLE finding"
@@ -49,6 +63,12 @@ tests:
   - "packages/kernel/test/identity/access.test.ts > [DI-18][INV-11] assigning an administrator role to a person who holds a QA role is refused, and the reverse"
   - "packages/kernel/test/identity/access.test.ts > [DI-18][INV-11] the rule spans every account of the person: a GMP user's break-glass account cannot be an administrator"
   - "packages/kernel/test/identity/accounts.test.ts > [INV-11][DI-18] nobody creates or administers their own account"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-18][INV-11] no role holds both an administration permission and a GMP permission"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-18] every function that writes GMP data refuses administrators before it checks the permission"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-18] a system administrator cannot publish a rule table, set a site value, change a policy or write the stub master data"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-18] a system administrator cannot raise an incident, define a record type, place a hold or open a DI investigation"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-17][DI-18] a QA reviewer cannot operate a restore; a system administrator named as approver cannot approve it; the QA reviewer approves it"
+  - "packages/site-services/test/authorization.test.ts > [DI-18] a system administrator cannot define a numbering rule, or allocate, register, void or recover a batch number"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

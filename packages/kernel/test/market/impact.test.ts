@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { changeImpact } from '../../src/market/repository.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, publishDocument, publishSeedTables, seedDocument } from './helpers.ts';
+import { asApp, MARKET_ROLES, publishDocument, publishSeedTables, seedDocument } from './helpers.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -29,6 +29,7 @@ describe('change impact of a new table version', () => {
            ('MBR-OTHER-KEY', 1, 'tablets.compression.stationWiseCheckAtRunStart', 'true', '{IN}')`,
         [key],
       ),
+      { roleCode: MARKET_ROLES.stubs },
     );
     const doc = seedDocument('tablets');
     const next = {

@@ -153,6 +153,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v_id uuid;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.TRUE_COPY_REGISTER', '{}'::jsonb);
   if p_manifest_sha256 is null or p_manifest_sha256 !~ '^[0-9a-f]{64}$' or records.is_blank(p_bundle_format) or records.is_blank(p_purpose) then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-070 a true copy needs its manifest SHA-256, bundle format and purpose';
   end if;
@@ -182,6 +185,9 @@ begin
   if records.actor_is_machine() or p_approval_signature_id is null then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-035 disposal is approved by a person with an approval signature';
   end if;
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.DISPOSAL_APPROVE', '{}'::jsonb);
   if records.is_blank(p_reason) then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-035 a disposal approval needs a reason';
   end if;
@@ -238,6 +244,9 @@ begin
   if records.is_blank(v_ctx ->> 'reason_code') then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-036 a purge needs a reason code in the command context';
   end if;
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.PURGE', '{}'::jsonb);
   -- Serialise with every change that could extend retention or add a blocker: the schedules of this
   -- record and of everything depending on it, and their blocker epochs (holds, incidents, investigations).
   with recursive closure(schedule_id) as (

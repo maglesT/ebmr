@@ -91,6 +91,43 @@ SQL (inside a command started with `kernel.begin_command`):
 Every function that changes an existing row needs `reason_code` in the actor context (kernel audit
 rule EBMR-AUDIT-002).
 
+## Authority checks in the other modules (B7, migrations 0700 and 0710)
+
+**Catalogue.** `0700_authorization_catalogue.sql` adds the permissions of the market, records,
+continuity, site-services (batch-number register) and platform modules and maps them to the kernel
+roles (the full map is in each module's README and in
+`test/integration/authorization.test.ts`). GMP data permissions are domain GMP, so INV-11 keeps every
+holder away from administrator roles; pure IT functions (restore operation, kiosk hardening, time
+sources) are ADMINISTRATION and held by the system administrator; oversight functions (backup
+catalogue, continuity alarms, platform settings, time-alarm clearance) are GOVERNANCE. Service
+accounts hold WRITE effects only. The catalogue tables are audited, so the rows are written under a
+labelled pipeline identity (nil person, account and session; role and reason `SOFTWARE_RELEASE`), like
+the installation bootstrap; later migrations extend the catalogue the same way.
+
+**Scope of a check.** An object with its own site (and product) is checked in that scope (site
+values, batch numbers). Installation-wide objects (rule tables, policies, the record register,
+retention, incident handling, DI investigations, restores, attestations) are checked in the empty
+scope `{}`, which only a grant not limited to a site, area or product covers. Point-of-work actions
+(raising or linking an incident, recording a rule evaluation, pinning policies at batch issue,
+reserving number ceilings) and every platform permission are checked at the actor's location:
+`iam.actor_location_scope()` returns `{site, area}` from the command's session (site and room the
+server took from the enrolled device, never from the client), or `{}` without a session (fail closed).
+
+**Order.** A gated function runs its own no-actor and person-only checks (and, where the scope
+depends on the object, reads the object), then `iam.assert_not_administrator()` for GMP data
+(DI-18), then `iam.require_permission` (DI-17), and only then validates the rest and writes. A refused check rolls the command back; `withGuardedCommand` stores the refusal again.
+
+**Platform AUTHORITY adapter.** `iam.platform_authority(permission, actor, aggregate_type,
+aggregate_id)` is registered with `platform.register_hook('AUTHORITY', ...)` (0710). It accepts only
+the validated actor of the command (otherwise `EBMR-IAM-002`/`EBMR-IAM-043` as the reason), maps the
+platform's lower-case names to catalogue codes (`iam.platform_permission_code`: first segment, a dot,
+the remaining segments joined by underscores, all upper case: `platform.settings.change` ->
+`PLATFORM.SETTINGS_CHANGE`, `sample_record.submit` -> `SAMPLE_RECORD.SUBMIT`), and evaluates it with
+`iam.evaluate_authority` for the actor's person and account in the declared role, at the database
+clock, at the actor's location (the platform passes no object scope). Every evaluation is stored
+(INV-26). NULL means allowed; otherwise the reason names the role, permission, scope, aggregate,
+reasons and the evaluation id. The platform tests install stub hooks over it.
+
 ## kernel.validate_actor_context (migration 0190)
 
 Replaces the shape-only hook. A command is refused unless the account exists, belongs to the
@@ -124,7 +161,7 @@ India-licensed, IN-04), so the DI-21 flag-and-review relaxation is not offered.
 deleted or changed, 007 immutable field); 010–013 persons and identity verification; 020–027
 accounts and login names (021 never reused, 024 second GMP account); 030–038 roles and grants (032
 approver, 033 INV-11, 034/035 DI-14, 036 kind or break-glass); 040–042 authority, segregation,
-administrator on GMP data; 050–055 credentials and signing readiness; 060–063 badges; 070–073
+administrator on GMP data; 043 platform authority adapter (actor or permission name not accepted); 050–055 credentials and signing readiness; 060–063 badges; 070–073
 devices; 080–084 sessions; 090–096 authentication events; 100–117 actor context; 120–126 INV-40
 attribution; 130 break-glass; 140 authentication failed; 150 alerts; 160 qualifications; 170 US
 certification; 180–182 delegation; 190 bootstrap.

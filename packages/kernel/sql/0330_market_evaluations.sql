@@ -164,6 +164,9 @@ declare
   v_attr   text;
   v_stated jsonb := market.nz(p_req -> 'stated', null);
 begin
+  -- DI-18, then DI-17 where the actor works (point-of-work action: the session's site and room).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('MARKET.RULE_EVALUATE', iam.actor_location_scope());
   if v_table is null then
     raise exception using errcode = 'P0001', message = format('EBMR-MKT-041 key %s belongs to no rule table', coalesce(v_key, '(missing)'));
   end if;

@@ -112,6 +112,28 @@ version; a loosening needs an approval record and a change reference. Triggers o
 `market.batch_policy_pin` refuse any pin that would let a loosening reach a batch issued before it
 took effect, whoever inserts it.
 
+## Permissions (DI-17, DI-18)
+
+Every writing function checks the actor's permission, in the role declared in its context, before
+its first write (`iam.require_permission`, refusal `EBMR-IAM-040`), and first refuses administrator
+roles and break-glass accounts (`iam.assert_not_administrator`, `EBMR-IAM-042`): market data is GMP
+data. Catalogue and role map: `sql/0700_authorization_catalogue.sql`.
+
+| Function | Permission | Scope | Held by |
+|---|---|---|---|
+| `publish_rule_table` (INITIAL, UPDATE) | `MARKET.RULE_TABLE_PUBLISH` | installation `{}` | master-data steward |
+| `publish_rule_table` (SOURCE_CORRECTION) | `MARKET.RULE_TABLE_CORRECT` | installation `{}` | regulatory-conformity signer |
+| `set_site_value` | `MARKET.SITE_VALUE_SET` | the site (Phase 1: stub site code) | master-data steward |
+| `define_policy`, `set_policy_version` | `MARKET.POLICY_CHANGE` | installation `{}` | QA MBR approver |
+| `apply_policy_tightening` | `MARKET.POLICY_TIGHTEN_BATCH` | installation `{}` | QA reviewer |
+| `pin_policies_for_batch` | `BATCH.ISSUE` (part of issuing) | actor's location | batch issuer |
+| `evaluate_stub_scope` | `MARKET.RULE_EVALUATE` | actor's location | MBR author, batch issuer, operator, QA reviewer, service accounts |
+| writes to the `stub_*` tables (statement trigger `a0_authorize`) | `MASTERDATA.CHANGE` | installation `{}` | master-data steward |
+
+"Actor's location" is the site and room of the command's session (`iam.actor_location_scope`, 0710).
+`assess_site_value`, `apply_site_value` and the other read functions are not gated; `record_evaluation`
+stays owner-only (the editions call it from their own gated functions).
+
 ## Error codes (EBMR-MKT-…)
 
 001 market set · 002 as-of date · 003 predicates shape · 010–029 document validation (014 method,

@@ -61,6 +61,8 @@ declare
   v_id    uuid;
   v_now   timestamptz := clock_timestamp();
 begin
+  -- DI-17 installation-wide (terminal hardening is IT administration: no DI-18 guard, see README).
+  perform iam.require_permission('CONTINUITY.HARDENING_ATTEST', '{}'::jsonb);
   if p is null or jsonb_typeof(p) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-040 attestation details are required';
   end if;
@@ -102,6 +104,8 @@ declare
   v_ctx jsonb := continuity.require_actor();
   a     continuity.device_hardening_attestation%rowtype;
 begin
+  -- DI-17 installation-wide (terminal hardening is IT administration: no DI-18 guard, see README).
+  perform iam.require_permission('CONTINUITY.HARDENING_ATTEST', '{}'::jsonb);
   select * into a from continuity.device_hardening_attestation x where x.id = p_attestation_id;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-042 attestation %s does not exist', p_attestation_id);

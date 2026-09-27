@@ -117,6 +117,14 @@ begin
 end
 $$;
 
+-- Scope of a batch-number action for the authority check (DI-17): the site and, when given, the
+-- product. A missing value is left out, and a request without it is covered only by a grant that is
+-- not limited in that dimension (fails closed).
+create function site.batch_number_scope(p_site text, p_product text) returns jsonb
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select jsonb_strip_nulls(jsonb_build_object('site', nullif(btrim(coalesce(p_site, '')), ''), 'product', nullif(btrim(coalesce(p_product, '')), '')))
+$$;
+
 create function site.render_batch_number(p_format text, p_site text, p_product text, p_at timestamptz, p_zone text,
                                          p_serial bigint, p_parent text)
 returns text
@@ -163,6 +171,9 @@ begin
   if p is null or jsonb_typeof(p) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-002 numbering rule details are required';
   end if;
+  -- DI-18, then DI-17 in the rule's site (and product) scope.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('BATCH_NUMBER.RULE_DEFINE', site.batch_number_scope(p ->> 'site_code', p ->> 'product_code'));
   if coalesce(p ->> 'format', '') !~ '^([A-Z0-9/.-]|\{(SITE|PRODUCT|YYYY|YY|MM|PARENT|SEQ:[1-9])\})+$' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-010 the format may contain only A-Z 0-9 / . - and the tokens {SITE} {PRODUCT} {YYYY} {YY} {MM} {SEQ:n} {PARENT}';
   end if;
@@ -231,6 +242,9 @@ begin
   if p is null or jsonb_typeof(p) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-002 allocation details are required';
   end if;
+  -- DI-18, then DI-17 in the site and product scope of the number.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('BATCH_NUMBER.ALLOCATE', site.batch_number_scope(p ->> 'site_code', p ->> 'product_code'));
   select * into v_rule from site.rule_in_force(p ->> 'site_code', p ->> 'product_code', v_kind, v_now);
   if v_rule.id is null then
     raise exception using errcode = 'P0001',
@@ -294,6 +308,9 @@ begin
   if p is null or jsonb_typeof(p) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-002 registration details are required';
   end if;
+  -- DI-18, then DI-17 in the site and product scope of the number.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('BATCH_NUMBER.REGISTER_EXTERNAL', site.batch_number_scope(p ->> 'site_code', p ->> 'product_code'));
   if coalesce(p ->> 'batch_number', '') !~ '^[A-Z0-9][A-Z0-9/.-]{0,31}$' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-002 a batch number is 1-32 characters: upper-case letters, digits, / . - (it is not changed for you)';
   end if;
@@ -340,6 +357,9 @@ begin
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-015 allocation %s does not exist', p_allocation_id);
   end if;
+  -- DI-18, then DI-17 in the site and product scope of the number.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('BATCH_NUMBER.VOID', site.batch_number_scope(a.site_code, a.product_code));
   if exists (select 1 from site.batch_number_void v where v.allocation_id = p_allocation_id) then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-015 batch number %s is already voided', a.batch_number);
   end if;
@@ -377,6 +397,9 @@ begin
   if v_rule.id is null then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-016 unknown numbering rule %s', p ->> 'rule_code');
   end if;
+  -- DI-18, then DI-17 in the rule's site and the product's scope.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('BATCH_NUMBER.RECOVER', site.batch_number_scope(v_rule.site_code, p ->> 'product_code'));
   if not exists (select 1 from continuity.restore_event_status s where s.id = v_event and s.status = 'COMPLETED') then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-016 recovery needs a completed restore event';
   end if;

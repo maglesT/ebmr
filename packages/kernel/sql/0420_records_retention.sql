@@ -556,6 +556,9 @@ declare
   v_inputs jsonb := records.normalize_retention_inputs(p_inputs);
   v_id uuid;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.RETENTION_MANAGE', '{}'::jsonb);
   select * into v_type from records.record_register where code = p_record_type_code;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-013 record type %s has no approved version in the record register', p_record_type_code);
@@ -588,6 +591,9 @@ declare
   v_last records.retention_input%rowtype;
   v_new jsonb;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.RETENTION_MANAGE', '{}'::jsonb);
   if records.is_blank(p_change_reason) then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-020 a change to retention inputs needs a reason';
   end if;
@@ -615,6 +621,9 @@ declare
   v_sup records.retention_schedule%rowtype := records.schedule_for(p_supporting_record_key);
   v_dep records.retention_schedule%rowtype := records.schedule_for(p_dependant_record_key);
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.RETENTION_MANAGE', '{}'::jsonb);
   if v_sup.id = v_dep.id then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-022 a record cannot depend on itself';
   end if;
@@ -688,6 +697,9 @@ begin
   if records.actor_is_machine() then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-040 a legal hold is placed by a person';
   end if;
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.LEGAL_HOLD', '{}'::jsonb);
   if records.is_blank(p_reason) then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-040 a legal hold needs a reason';
   end if;
@@ -700,6 +712,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v records.retention_hold%rowtype;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.LEGAL_HOLD', '{}'::jsonb);
   select * into v from records.retention_hold where id = p_hold_id for update;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-040 hold %s does not exist', p_hold_id);

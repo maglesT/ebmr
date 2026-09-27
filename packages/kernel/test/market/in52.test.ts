@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StubResolutionContext, resolveForScope } from '../../src/market/context.ts';
 import { evaluateStubScope, listEvaluations, loadRuleTableVersion, type ScopeRef, type StoredEvaluation } from '../../src/market/repository.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, publishSeedTables, seedStubWorld, type StubWorld } from './helpers.ts';
+import { asApp, MARKET_ROLES, publishSeedTables, seedStubWorld, type StubWorld } from './helpers.ts';
 
 let db: TestDatabase;
 let world: StubWorld;
@@ -207,16 +207,23 @@ describe('scopes: union of markets for lines, rooms, equipment and persons; per 
 describe('INV-28 in the scope data', () => {
   it('[INV-28] a batch market set without India cannot even be stored', async () => {
     await expect(
-      asApp(db, (c) => c.query('insert into market.stub_batch (batch_number, product_id, markets) values ($1, $2, $3)', ['NO-IN', world.tablet, ['US', 'EU']])),
+      asApp(db, (c) => c.query('insert into market.stub_batch (batch_number, product_id, markets) values ($1, $2, $3)', ['NO-IN', world.tablet, ['US', 'EU']]), {
+        roleCode: MARKET_ROLES.stubs,
+      }),
     ).rejects.toThrow('EBMR-MKT-001');
     await expect(
-      asApp(db, (c) => c.query('update market.stub_batch set markets = $1 where id = $2', [['US'], world.batch.tabletAll]), { reasonCode: 'MARKET_CHANGE' }),
+      asApp(db, (c) => c.query('update market.stub_batch set markets = $1 where id = $2', [['US'], world.batch.tabletAll]), {
+        reasonCode: 'MARKET_CHANGE',
+        roleCode: MARKET_ROLES.stubs,
+      }),
     ).rejects.toThrow('EBMR-MKT-001');
   });
 
   it('[INV-28] a pack cannot go to a destination outside its batch market set', async () => {
     await expect(
-      asApp(db, (c) => c.query('insert into market.stub_pack (code, batch_id, destination) values ($1, $2, $3)', ['PK-X', world.batch.tabletIn, 'US'])),
+      asApp(db, (c) => c.query('insert into market.stub_pack (code, batch_id, destination) values ($1, $2, $3)', ['PK-X', world.batch.tabletIn, 'US']), {
+        roleCode: MARKET_ROLES.stubs,
+      }),
     ).rejects.toThrow('EBMR-MKT-050');
   });
 });

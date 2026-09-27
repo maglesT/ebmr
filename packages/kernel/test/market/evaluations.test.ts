@@ -83,7 +83,7 @@ describe('what an evaluation stores', () => {
       db.app.query('select market.evaluate_stub_scope($1::jsonb)', [
         JSON.stringify({ key: 'tablets.compression.ipcSampleMaxInterval', scope: { kind: 'PRODUCT', id: world.batch.tabletIn }, resolutionPoint: 'EXECUTION', asOf: '2026-02-01' }),
       ]),
-    ).rejects.toThrow('EBMR-AUDIT-001');
+    ).rejects.toThrow('EBMR-IAM-001'); // the authority check (DI-17) needs a declared actor before anything else
   });
 });
 

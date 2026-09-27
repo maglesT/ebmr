@@ -231,6 +231,13 @@ begin
   if v_ctx is null then
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-001 no actor context: call kernel.begin_command first';
   end if;
+  -- DI-18, then DI-17 installation-wide: a source correction needs its own permission.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission(
+    case when (case when jsonb_typeof(p_doc -> 'change') = 'object' then p_doc -> 'change' else '{}'::jsonb end
+               || case when jsonb_typeof(p_change) = 'object' then p_change else '{}'::jsonb end) ->> 'kind' = 'SOURCE_CORRECTION'
+         then 'MARKET.RULE_TABLE_CORRECT' else 'MARKET.RULE_TABLE_PUBLISH' end,
+    '{}'::jsonb);
   select count(*) into v_count from market.validate_document(p_doc);
   if v_count > 0 then
     select * into v_first from market.validate_document(p_doc) limit 1;

@@ -18,12 +18,41 @@ requirement_rows:
 sources: "US: 11.200(a)(1)(i)-(ii), (a)(2)-(3), (b); 11.10(d) | EU: Annex 11 §12.1, §14 | ICH/EMA/draft: draft Annex 11 §13 (re-authentication at signing) (draft)(s); draft IAM/e-signature summary incl. reported MFA for signatures (draft)(u)"
 behaviour: "- Non-biometric signatures use two distinct components: ID plus password/PIN, or badge plus PIN."
 catalog_test: Sign twice in one session. The second signing needs at least the password. After a timeout, both components are needed. Try to apply the verifier's signature through the performer's session. Refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/sql/0230_esig_sign.sql (esig.required_components, esig.component_problem, esig.continuous_session_start, esig.sign)"
+    - "packages/kernel/sql/0200_esig_foundation.sql (policy values)"
+    - "packages/kernel/src/esig/signing.ts"
+  invariants:
+    - "INV-10"
+  guards:
+    - "esig.component_problem: two distinct components (user ID + password or badge + PIN); biometric or unknown components refused; MFA component when esig.mfa_at_signing is on (EBMR-ESIG-038)"
+    - "esig.required_components: all components at every signing by default; the QA relaxation lets only the session owner, for routine types, after a first full signing in the same continuous session, use the private component; never for master-record, release or certification types; a co-signature always needs all components"
+    - "esig.continuous_session_start: the continuous session restarts at every lock or unlock (an inactivity timeout ends in an unlock); a terminal change is a new session"
+    - "iam.consume_auth_event (called by esig.sign): the event is the signer's own, bound to this challenge, fresh and unused; the performer's authentication never supplies another person's signature (EBMR-IAM-093)"
+    - "esig.set_policy: policy values changed only by the quality unit with a reason and a change-control reference, within their allowed ranges"
+  db_constraints:
+    - "esig.meaning_type checks: master-record and release types are ALL_COMPONENTS"
+    - "esig.policy_value: insert-only and audited"
+  policies:
+    - "esig.session_relaxation"
+    - "esig.mfa_at_signing"
+    - "esig.challenge_validity_seconds"
+tests:
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] MFA at signing can be switched on: then a signing without an MFA component is refused"
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] a lock of the terminal, a logout or another terminal also ends the continuous session"
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] after an inactivity timeout both components are needed again"
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] only the quality unit changes a signing policy, with a reason and a change reference, within the allowed range"
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] sign twice in one session: the first signing needs all components, the second needs at least the password"
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] sign twice in one session: with the relaxation off, the second signing again needs both components"
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] the relaxation never applies to master-record approval, disposition or certification"
+  - "packages/kernel/test/esig/sessions.test.ts > [DI-38] the verifier's signature cannot be applied through the performer's session: the performer's credentials and a PIN alone are refused"
+  - "packages/kernel/test/esig/signing.test.ts > [INV-10][DI-38] a signature consumes the signer's own authentication event for its challenge, with both components, and is sealed"
+  - "packages/kernel/test/esig/signing.test.ts > [INV-10][DI-38] the signer must hold a permitted role now, and the stored authority evaluation is referenced"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: 11.200 allows a single private component for later signings within one continuous session. The EU draft expects re-authentication at each signing, and typing the password/PIN each time satisfies that. The default of all components every time meets both.
 type_detail: CONFIGURABLE (default = strictest practical). Floors are ENFORCED.
 notes: |-

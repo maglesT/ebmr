@@ -293,6 +293,28 @@ select kernel.register_audited_table('market.stub_person_qualification', 'market
 select kernel.register_audited_table('market.stub_material_lot', 'market_stub_material_lot', 'id', false);
 select kernel.register_audited_table('market.stub_mbr_limit', 'market_stub_mbr', 'mbr_code', false);
 
+-- The application writes the stubs directly, so the authority check is a statement trigger that runs
+-- before any row trigger: MASTERDATA.CHANGE installation-wide (DI-17), never an administrator (DI-18).
+create function market.authorize_stub_write() returns trigger
+language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
+begin
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('MASTERDATA.CHANGE', '{}'::jsonb);
+  return null;
+end
+$$;
+create trigger a0_authorize before insert or update on market.stub_site for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_product for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_batch for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_pack for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_line for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_room for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_equipment for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_product_qualification for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_person_qualification for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_material_lot for each statement execute function market.authorize_stub_write();
+create trigger a0_authorize before insert or update on market.stub_mbr_limit for each statement execute function market.authorize_stub_write();
+
 grant select, insert, update on market.stub_site, market.stub_product, market.stub_batch, market.stub_pack, market.stub_line,
                                 market.stub_room, market.stub_equipment, market.stub_product_qualification,
                                 market.stub_person_qualification, market.stub_material_lot, market.stub_mbr_limit to ebmr_app;

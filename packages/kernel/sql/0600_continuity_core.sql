@@ -255,6 +255,8 @@ language plpgsql volatile security definer set search_path = pg_catalog, continu
 declare
   v_ctx jsonb := continuity.require_actor();
 begin
+  -- DI-17 installation-wide (infrastructure alarms, not GMP data: no DI-18 guard, see README).
+  perform iam.require_permission('CONTINUITY.ALARM_ACKNOWLEDGE', '{}'::jsonb);
   if not exists (select 1 from continuity.alarm a where a.id = p_alarm_id) then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-032 alarm %s does not exist', p_alarm_id);
   end if;
@@ -351,6 +353,9 @@ declare
   v_base bigint;
   v_last bigint;
 begin
+  -- DI-18, then DI-17 where the actor works (part of issuing protected numbers).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('CONTINUITY.COUNTER_RESERVE', iam.actor_location_scope());
   select * into c from continuity.counter k where k.sequence_key = p_key for update;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-010 %s is not a protected counter', p_key);
@@ -601,6 +606,8 @@ declare
   v_approvers uuid[];
   v_cmp       jsonb;
 begin
+  -- DI-17 installation-wide (the restore itself is an IT operation; its GMP approval is approve_restore_event: no DI-18 guard, see README).
+  perform iam.require_permission('CONTINUITY.RESTORE_OPERATE', '{}'::jsonb);
   if p_event is null or jsonb_typeof(p_event) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-020 restore event details are required';
   end if;
@@ -691,6 +698,9 @@ declare
   v_person uuid := (v_ctx ->> 'person_id')::uuid;
   e        continuity.restore_event%rowtype;
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('CONTINUITY.RESTORE_APPROVE', '{}'::jsonb);
   select * into e from continuity.restore_event x where x.id = p_event_id for update;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-021 restore event %s does not exist', p_event_id);
@@ -737,6 +747,8 @@ declare
   v_bumps jsonb := '[]'::jsonb;
   s       record;
 begin
+  -- DI-17 installation-wide (completes the approved restore procedure: no DI-18 guard, see README).
+  perform iam.require_permission('CONTINUITY.RESTORE_OPERATE', '{}'::jsonb);
   select * into e from continuity.restore_event x where x.id = p_restore_event_id for update;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-022 restore event %s does not exist', p_restore_event_id);

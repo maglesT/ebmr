@@ -35,11 +35,15 @@ function runScript(script: string, args: string[]): Promise<{ code: number; out:
 beforeAll(async () => {
   db = await createTestDatabase();
   ops = await testActor(db, { roleCode: 'SERVICE_ACCOUNT', source: 'SYSTEM' });
+  // Hardening attestations are IT administration (CONTINUITY.HARDENING_ATTEST, system administrator).
+  const itAdmin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR' });
   // GMP content of several kinds: audited records, an insert-only table, an attestation, anchors.
   const batch = randomUUID();
   await withCommand(db.app, ops, async (c) => {
     for (const v of ['12.503', '12.498', '12.511']) await c.query('insert into testgmp.sample (batch_id, value) values ($1, $2)', [batch, v]);
     await c.query('insert into testgmp.reading (batch_id, value) values ($1, 7)', [batch]);
+  });
+  await withCommand(db.app, itAdmin, async (c) => {
     await recordHardeningAttestation(c, {
       deviceId: randomUUID(),
       deviceClass: 'SHARED',

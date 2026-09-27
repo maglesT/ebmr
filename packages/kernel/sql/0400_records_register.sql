@@ -255,6 +255,9 @@ declare
   v_problem text;
   v_person uuid := records.actor_person();
 begin
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.TYPE_DEFINE', '{}'::jsonb);
   if p_def is null or jsonb_typeof(p_def) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-011 a record type definition must be a JSON object';
   end if;
@@ -308,6 +311,9 @@ begin
   if records.actor_is_machine() then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-012 a record type is approved by a person, not by a system or integration account';
   end if;
+  -- DI-18, then DI-17 installation-wide.
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('RECORD.TYPE_APPROVE', '{}'::jsonb);
   perform pg_advisory_xact_lock(hashtextextended('records.record_type:' || p_code, 0));
   select * into v_type from records.record_type where code = p_code and version = p_version;
   if not found then

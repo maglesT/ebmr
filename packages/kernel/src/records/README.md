@@ -118,6 +118,36 @@ report from `kernel.audit_event`; `link_di_investigation`, `refresh_di_investiga
 investigator nor the subject, releasing the holds. Immediate revocation of the person's rights is in
 the identity module.
 
+## Permissions (DI-17, DI-18)
+
+Every writing function checks the actor's permission before its first write (`iam.require_permission`,
+`EBMR-IAM-040`) and first refuses administrators and break-glass accounts (`iam.assert_not_administrator`,
+`EBMR-IAM-042`). The module's own person-only rules (a machine never approves, closes or releases) stay
+in place behind the check. Catalogue and role map: `sql/0700_authorization_catalogue.sql`.
+
+| Functions | Permission | Scope | Held by |
+|---|---|---|---|
+| `define_record_type` | `RECORD.TYPE_DEFINE` | `{}` | QA MBR approver, CSV / DI lead |
+| `approve_record_type` | `RECORD.TYPE_APPROVE` | `{}` | QA MBR approver (never the author) |
+| `create_retention_schedule`, `update_retention_inputs`, `link_retention_dependency` | `RECORD.RETENTION_MANAGE` | `{}` | QA reviewer, service accounts |
+| `place_legal_hold`, `release_legal_hold` | `RECORD.LEGAL_HOLD` | `{}` | QA reviewer |
+| `approve_purge` | `RECORD.DISPOSAL_APPROVE` | `{}` | QA reviewer |
+| `purge` | `RECORD.PURGE` | `{}` | service accounts (retention job) |
+| `register_true_copy` | `RECORD.TRUE_COPY_REGISTER` | `{}` | QA reviewer, service accounts |
+| `raise_incident`, `link_incident` | `INCIDENT.RAISE` | actor's location | shop-floor, QA and QC roles, batch issuer, CSV / DI lead, service accounts |
+| `reclassify_incident`, `start_incident_investigation`, `assess_incident_impact` | `INCIDENT.INVESTIGATE` | `{}` | QA reviewer, CSV / DI lead |
+| `mark_incident_cert_in_reportable`, `record_cert_in_report` | `INCIDENT.CERT_IN_REPORT` | `{}` | QA reviewer, CSV / DI lead |
+| `close_incident` | `INCIDENT.CLOSE` | `{}` | QA reviewer |
+| `open_di_investigation`, `link_di_investigation`, `refresh_di_investigation_scope` | `VALIDATION.MANAGE` | `{}` | CSV / DI lead |
+| `close_di_investigation` | `DI_INVESTIGATION.APPROVE_CLOSURE` | `{}` | QA reviewer (never the investigator or the subject) |
+
+Raising and linking incidents are checked at the actor's location (session site and room), so a person
+whose grant is limited to a site or room can report a failure where it happens; everything else acts on
+installation-wide records and needs a grant not limited to a site, area or product. The time monitor
+raises incidents through `platform.raise_time_incident` under its service account. Not gated:
+`lock_blocker_epoch` (a derived concurrency token taken inside the disposition transaction, which is
+itself gated) and the read functions.
+
 ## For other modules
 
 - Release (G-REL item 7): `records.open_blockers(type, id)` (filter `blocks_disposition`) or

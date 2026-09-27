@@ -142,6 +142,10 @@ begin
   if v_ctx is null then
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-001 no actor context: call kernel.begin_command first';
   end if;
+  -- DI-18, then DI-17 in the site's scope (Phase 1: the stub site's code).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('MARKET.SITE_VALUE_SET',
+                                 jsonb_strip_nulls(jsonb_build_object('site', (select s.code from market.stub_site s where s.id = p_site))));
   if v_table is null then
     raise exception using errcode = 'P0001', message = format('EBMR-MKT-041 key %s belongs to no rule table', p_key);
   end if;

@@ -125,7 +125,9 @@ describe('before the restore procedure', () => {
     const lost = await lostWindow(restored.app, restoreEventId);
     expect(lost.find((l) => l.chainKey === chain)).toEqual({ chainKey: chain, aggregateType: 'batch', aggregateId: batch, restoredSeq: '2', externalSeq: '4' });
 
-    await expect(approveRestoreEvent(restored.app, operator, restoreEventId)).rejects.toThrow('EBMR-CONT-021');
+    // The operator is a system administrator: DI-18 refuses the approval before the two-person rule
+    // (EBMR-CONT-021, which also covers any operator who is not an administrator) is reached.
+    await expect(approveRestoreEvent(restored.app, operator, restoreEventId)).rejects.toThrow('EBMR-IAM-042');
     await expect(approveRestoreEvent(restored.app, bystander, restoreEventId)).rejects.toThrow('EBMR-CONT-021');
     // Recorded but not approved: the gap is still a problem.
     expect((await verifyExternalAnchors(restored.app, ledger)).filter((r) => r.anchorId === anchorAfter.anchor_id).every((r) => r.status === 'PROBLEM')).toBe(true);
