@@ -106,7 +106,7 @@ select kernel.register_audited_table('site.batch_number_serial_skip', 'batch_num
 -- ---------------------------------------------------------------------------------------------
 
 create function site.require_actor() returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, site, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
 declare
   v_ctx jsonb := kernel.current_actor();
 begin
@@ -120,7 +120,7 @@ $$;
 create function site.render_batch_number(p_format text, p_site text, p_product text, p_at timestamptz, p_zone text,
                                          p_serial bigint, p_parent text)
 returns text
-language plpgsql stable set search_path = pg_catalog, site as $$
+language plpgsql stable set search_path = pg_catalog, site, pg_temp as $$
 declare
   v_local timestamp := p_at at time zone p_zone;
   v_width integer := (regexp_match(p_format, '\{SEQ:([1-9])\}'))[1]::integer;
@@ -152,7 +152,7 @@ $$;
 
 -- p: {rule_code, site_code, product_code?, batch_kind, format, site_zone, effective_from?, reason, block_size?}
 create function site.define_batch_number_rule(p jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, site, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
 declare
   v_ctx   jsonb := site.require_actor();
   v_id    uuid := gen_random_uuid();
@@ -175,7 +175,7 @@ begin
   if position('{PRODUCT}' in p ->> 'format') > 0 and p ->> 'product_code' is null then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-010 a site-wide rule cannot use {PRODUCT}';
   end if;
-  if not exists (select 1 from pg_timezone_names z where z.name = p ->> 'site_zone') then
+  if not exists (select 1 from pg_catalog.pg_timezone_names z where z.name = p ->> 'site_zone') then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-002 unknown site time zone %s', p ->> 'site_zone');
   end if;
   begin
@@ -204,7 +204,7 @@ end
 $$;
 
 create function site.rule_in_force(p_site text, p_product text, p_kind text, p_at timestamptz) returns site.batch_number_rule
-language sql stable security definer set search_path = pg_catalog, site as $$
+language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
   select r.* from site.batch_number_rule r
   where r.site_code = p_site and r.batch_kind = p_kind and r.effective_from <= p_at
     and (r.product_code = p_product or r.product_code is null)
@@ -216,7 +216,7 @@ $$;
 --     batch_size_unit, parent_batch_number? (packaging), external_reference?}
 create function site.allocate_batch_number(p jsonb)
 returns table (allocation_id uuid, batch_number text, serial bigint)
-language plpgsql volatile security definer set search_path = pg_catalog, site, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
 declare
   v_ctx     jsonb := site.require_actor();
   v_now     timestamptz := clock_timestamp();
@@ -246,6 +246,12 @@ begin
   end if;
   for i in 1..100 loop
     v_serial := continuity.next_counter_value(v_rule.counter_key);
+    -- A serial this rule already drew means the counter was moved back: refuse, never skip silently.
+    if exists (select 1 from site.batch_number_allocation a where a.rule_id = v_rule.id and a.serial = v_serial)
+       or exists (select 1 from site.batch_number_serial_skip s where s.rule_id = v_rule.id and s.serial = v_serial) then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-SITE-017 serial %s of rule %s was already drawn: its counter has been moved back; open a data-integrity incident', v_serial, v_rule.rule_code);
+    end if;
     v_number := site.render_batch_number(v_rule.format, v_rule.site_code, p ->> 'product_code', v_now, v_rule.site_zone, v_serial, v_parent.batch_number);
     select a.id into v_existing from site.batch_number_allocation a where a.batch_number = v_number;
     exit when v_existing is null;
@@ -278,7 +284,7 @@ $$;
 -- p: {batch_number, site_code, site_zone, product_code, product_name, edition, batch_kind?, parent_batch_number?,
 --     batch_size, batch_size_unit, external_reference?}
 create function site.register_external_batch_number(p jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, site, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
 declare
   v_ctx    jsonb := site.require_actor();
   v_kind   text := coalesce(p ->> 'batch_kind', 'PROCESSING');
@@ -291,7 +297,7 @@ begin
   if coalesce(p ->> 'batch_number', '') !~ '^[A-Z0-9][A-Z0-9/.-]{0,31}$' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-002 a batch number is 1-32 characters: upper-case letters, digits, / . - (it is not changed for you)';
   end if;
-  if not exists (select 1 from pg_timezone_names z where z.name = p ->> 'site_zone') then
+  if not exists (select 1 from pg_catalog.pg_timezone_names z where z.name = p ->> 'site_zone') then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-002 unknown site time zone %s', p ->> 'site_zone');
   end if;
   if exists (select 1 from site.batch_number_allocation a where a.batch_number = p ->> 'batch_number') then
@@ -325,7 +331,7 @@ $$;
 
 -- A void keeps the number in the register with its reason; the number can never be issued again.
 create function site.void_batch_number(p_allocation_id uuid, p_reason_code text, p_reason_text text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, site, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
 declare
   v_ctx jsonb := site.require_actor();
   a     site.batch_number_allocation%rowtype;
@@ -352,7 +358,7 @@ $$;
 -- p: {restore_event_id, rule_code, serial, batch_number, product_code, product_name, edition, batch_size,
 --     batch_size_unit, parent_batch_number?, evidence_reference}
 create function site.recover_batch_number(p jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, site, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
 declare
   v_ctx    jsonb := site.require_actor();
   v_rule   site.batch_number_rule%rowtype;
@@ -429,7 +435,7 @@ create view site.batch_number_register as
 
 -- Invariant query (INV-27, IN-18): must return zero rows.
 create function site.batch_number_invariant_violations() returns table (problem text)
-language sql stable security definer set search_path = pg_catalog, site as $$
+language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
   select format('rule %s: counter %s is behind serial %s already used', r.rule_code, c.last_value, u.max_serial)
   from site.batch_number_rule r
   join continuity.counter c on c.sequence_key = r.counter_key

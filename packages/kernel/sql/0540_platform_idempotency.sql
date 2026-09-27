@@ -25,7 +25,7 @@ create table platform.idempotency_key (
 );
 
 create function platform.claim_idempotency_key(p_key text, p_request_hash text) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx  jsonb := platform.require_actor();
   v_row  platform.idempotency_key%rowtype;
@@ -60,7 +60,7 @@ end
 $$;
 
 create function platform.complete_idempotency_key(p_key text, p_result_json text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx jsonb := platform.require_actor();
 begin
@@ -81,7 +81,7 @@ $$;
 
 -- At commit, every key claimed in the transaction must have its result stored.
 create function platform.idempotency_completed_check() returns trigger
-language plpgsql security definer set search_path = pg_catalog, platform as $$
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
 begin
   if exists (select 1 from platform.idempotency_key where key = new.key and completed_at is null) then
     raise exception using errcode = 'P0001',

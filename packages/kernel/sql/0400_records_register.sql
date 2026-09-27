@@ -150,7 +150,7 @@ create table records.record_type (
   storage_location        text not null check (length(btrim(storage_location)) > 0),
   owning_module           text not null check (length(btrim(owning_module)) > 0),
   owner_role              text not null check (length(btrim(owner_role)) > 0),
-  retention_key           text not null check (retention_key in ('BATCH_RECORD', 'SUPPORTING_RECORD', 'DSCSA_RECORD', 'VALIDATION_RAW_DATA')),
+  retention_key           text not null check (retention_key in ('BATCH_RECORD', 'SUPPORTING_RECORD', 'DSCSA_RECORD', 'VALIDATION_RAW_DATA', 'PERMANENT')),
   review_rule             text not null check (length(btrim(review_rule)) > 0),
   retained_metadata       text[] not null default '{}',
   feeds_acceptance_limit  boolean not null,

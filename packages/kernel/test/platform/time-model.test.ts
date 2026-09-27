@@ -162,6 +162,10 @@ describe('late-entry window', () => {
     const cosign = await stubSignature(db, 'LATE_ENTRY_APPROVED', 'batch', batchId);
     const row = await addEntry(stepId, { occurredAgo: '1 hour', trust: 'USER_CLAIMED', lateReason: 'LATE', cosignatureId: cosign });
     expect(row.review_flags).toEqual(expect.arrayContaining(['LATE_ENTRY', 'LATE_BEYOND_WINDOW']));
+    // One co-signature approves one late entry only.
+    await expect(addEntry(stepId, { itemNo: 2, occurredAgo: '50 minutes', trust: 'USER_CLAIMED', lateReason: 'LATE', cosignatureId: cosign })).rejects.toThrow(
+      'EBMR-PLAT-076',
+    );
 
     const inside = await newStep({ startedAgo: '2 hours', plannedEnd: '1 hour' });
     const ok = await addEntry(inside.stepId, { occurredAgo: '1 hour', trust: 'USER_CLAIMED', lateReason: 'LATE' });

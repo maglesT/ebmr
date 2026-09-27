@@ -7,7 +7,9 @@
 -- Purge (INV-22, DI-47, ADR 0007): only records.purge deletes GMP rows. It refuses while retention is
 -- OPEN, on or before retain-until (including the latest retain-until over every record that depends
 -- on this one), while anything blocks disposal of the record or of any record depending on it,
--- without a matching QA approval, or when the record's chain does not verify. It then deletes the
+-- without a matching QA approval, or when the record's chain does not verify. It seals a checkpoint of
+-- the record as kept (and, when the approval cites an archived true copy, requires that copy to cover
+-- exactly this head), then deletes the
 -- record's rows from every registered table of its aggregate type (each deletion is audited into the
 -- record's chain), appends a business entry, seals a chain checkpoint (kernel.checkpoint_chain),
 -- writes a tombstone (row counts and content digests per table, every event hash of the chain, the
@@ -228,6 +230,8 @@ declare
   v_pass integer := 0;
   v_checkpoint bigint;
   v_head kernel.audit_chain_head%rowtype;
+  v_kept kernel.audit_chain_head%rowtype;
+  v_kept_checkpoint bigint;
   v_hashes bytea[];
   v_tombstone uuid;
 begin
@@ -266,6 +270,18 @@ begin
 
   if exists (select 1 from kernel.verify_chain(v_sched.record_key)) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-034 the audit chain of %s does not verify; it is not purged', v_sched.record_key);
+  end if;
+
+  -- Seal the record as kept before anything is deleted. An archived true copy cited by the approval
+  -- must cover exactly this head, so the archive is complete at the moment of purge.
+  select * into v_kept from kernel.audit_chain_head where chain_key = v_sched.record_key;
+  if found then
+    v_kept_checkpoint := kernel.checkpoint_chain(v_sched.record_key, 'retention purge: record as kept');
+  end if;
+  if v_true_copy.id is not null and (v_kept.last_seq is null or v_true_copy.head_seq <> v_kept.last_seq or v_true_copy.head_hash <> v_kept.last_hash) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-038 true copy %s covers %s up to seq %s, but the record now ends at seq %s; archive it again before purging',
+                       v_true_copy.id, v_sched.record_key, v_true_copy.head_seq, v_kept.last_seq);
   end if;
 
   -- What is purged: row counts and a digest of the row hashes (same row hash as the audit trigger uses).
@@ -322,13 +338,13 @@ begin
   insert into records.tombstone (record_key, aggregate_type, aggregate_id, schedule_id, record_type_code, retention_key, rule_set_version,
                                  retain_until, effective_retention, purged_on_site_date, site_zone, approval_id, approved_by_person,
                                  approval_signature_id, true_copy_id, true_copy_manifest_sha256, executed_by_person, executed_by_source,
-                                 reason_code, reason_text, purged_tables, chain_key, chain_event_count, chain_head_hash, checkpoint_id,
-                                 chain_event_hashes)
+                                 reason_code, reason_text, purged_tables, chain_key, kept_head_seq, kept_head_hash, kept_checkpoint_id,
+                                 chain_event_count, chain_head_hash, checkpoint_id, chain_event_hashes)
   values (v_sched.record_key, v_sched.aggregate_type, v_sched.aggregate_id, v_sched.id, v_sched.record_type_code, v_sched.retention_key,
           records.current_retention_rule_set(), (v_eff ->> 'retainUntil')::date, v_eff, v_today, v_sched.site_zone, v_approval.id,
           v_approval.approved_by_person, v_approval.approval_signature_id, v_approval.true_copy_id, v_true_copy.manifest_sha256,
           (v_ctx ->> 'person_id')::uuid, v_ctx ->> 'source', v_ctx ->> 'reason_code', v_ctx ->> 'reason_text', v_tables,
-          v_sched.record_key, v_head.last_seq, v_head.last_hash, v_checkpoint, v_hashes)
+          v_sched.record_key, v_kept.last_seq, v_kept.last_hash, v_kept_checkpoint, v_head.last_seq, v_head.last_hash, v_checkpoint, v_hashes)
   returning id into v_tombstone;
 
   -- The audit trail follows its record (DI-47): the chain's events go; checkpoint and tombstone stay.

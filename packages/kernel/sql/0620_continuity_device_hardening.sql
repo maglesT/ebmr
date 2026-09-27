@@ -53,7 +53,7 @@ select kernel.register_audited_table('continuity.device_hardening_revocation', '
 --     os_patch_within_sla, os_build?, method, evidence_ref, evidence_sha256?, validity_days? (30-365, default 180)}
 -- A failing attestation is recorded too (result FAIL): it documents the finding and never allows enrolment.
 create function continuity.record_hardening_attestation(p jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx   jsonb := continuity.require_actor();
   v_days  integer;
@@ -97,7 +97,7 @@ end
 $$;
 
 create function continuity.revoke_hardening_attestation(p_attestation_id uuid, p_reason text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx jsonb := continuity.require_actor();
   a     continuity.device_hardening_attestation%rowtype;
@@ -117,11 +117,11 @@ begin
 end
 $$;
 
--- Status for enrolment: the most recent attestation for this device and class decides. A newer FAIL
--- supersedes an older PASS.
-create function continuity.device_hardening_status(p_device_id uuid, p_device_class text)
+-- Status for enrolment at an instant (default now): the most recent attestation recorded by then for
+-- this device and class decides. A newer FAIL supersedes an older PASS.
+create function continuity.device_hardening_status(p_device_id uuid, p_device_class text, p_at timestamptz default clock_timestamp())
 returns table (required boolean, satisfied boolean, attestation_id uuid, valid_until timestamptz, problem text)
-language plpgsql stable security definer set search_path = pg_catalog, continuity as $$
+language plpgsql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
 declare
   a continuity.device_hardening_attestation%rowtype;
 begin
@@ -130,7 +130,7 @@ begin
   end if;
   required := p_device_class in ('SHARED', 'GRADE_A_B');
   select * into a from continuity.device_hardening_attestation x
-   where x.device_id = p_device_id and x.device_class = p_device_class
+   where x.device_id = p_device_id and x.device_class = p_device_class and x.recorded_at <= p_at
    order by x.recorded_at desc, x.id desc limit 1;
   attestation_id := a.id;
   valid_until := a.valid_until;
@@ -140,9 +140,9 @@ begin
     satisfied := false; problem := 'no hardening attestation recorded for this device';
   elsif a.result <> 'PASS' then
     satisfied := false; problem := 'the latest hardening attestation failed';
-  elsif exists (select 1 from continuity.device_hardening_revocation r where r.attestation_id = a.id) then
+  elsif exists (select 1 from continuity.device_hardening_revocation r where r.attestation_id = a.id and r.recorded_at <= p_at) then
     satisfied := false; problem := 'the latest hardening attestation was revoked';
-  elsif a.valid_until <= clock_timestamp() then
+  elsif a.valid_until <= p_at then
     satisfied := false; problem := 'the latest hardening attestation has expired';
   else
     satisfied := true; problem := null;
@@ -153,11 +153,11 @@ $$;
 
 -- Enrolment guard: raises unless the device class needs no attestation or a valid passing one exists.
 create function continuity.assert_device_hardened(p_device_id uuid, p_device_class text) returns void
-language plpgsql stable security definer set search_path = pg_catalog, continuity as $$
+language plpgsql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
 declare
   s record;
 begin
-  select * into s from continuity.device_hardening_status(p_device_id, p_device_class);
+  select * into s from continuity.device_hardening_status(p_device_id, p_device_class, clock_timestamp());
   if not s.satisfied then
     raise exception using errcode = 'P0001',
       message = format('EBMR-CONT-041 %s device %s cannot be enrolled: %s', p_device_class, p_device_id, s.problem);
@@ -168,6 +168,6 @@ $$;
 revoke all on continuity.device_hardening_attestation, continuity.device_hardening_revocation from ebmr_app;
 grant select on continuity.device_hardening_attestation, continuity.device_hardening_revocation to ebmr_app;
 grant execute on function continuity.record_hardening_attestation(jsonb), continuity.revoke_hardening_attestation(uuid, text),
-                          continuity.device_hardening_status(uuid, text), continuity.assert_device_hardened(uuid, text) to ebmr_app;
+                          continuity.device_hardening_status(uuid, text, timestamptz), continuity.assert_device_hardened(uuid, text) to ebmr_app;
 
 reset role;

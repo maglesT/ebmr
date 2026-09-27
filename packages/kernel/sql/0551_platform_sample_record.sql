@@ -14,7 +14,7 @@ create table platform.stub_record (
 
 -- Content changes only while the record is in DRAFT (or before it has a state).
 create function platform.stub_record_edit_guard() returns trigger
-language plpgsql security definer set search_path = pg_catalog, platform as $$
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v_state text;
 begin
@@ -32,7 +32,7 @@ create trigger aa_no_delete before delete or truncate on platform.stub_record
 
 create function platform.guard_sample_record_has_body(p_aggregate_type text, p_aggregate_id uuid, p_transition jsonb, p_payload jsonb, p_actor jsonb)
 returns text
-language sql stable set search_path = pg_catalog, platform as $$
+language sql stable set search_path = pg_catalog, platform, pg_temp as $$
   select case
     when r.id is null then 'the sample record does not exist'
     when trim(r.body) = '' then 'the record body is empty'

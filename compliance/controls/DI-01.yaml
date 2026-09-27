@@ -29,11 +29,33 @@ behaviour: |-
   - For anything executed in the eBMR, the electronic record is the official record. PDFs and printouts are copies and are marked as copies (DI-40). Each hybrid point must be declared with its linkage method (DI-41, DI-43).
   - All eBMR records are treated as Part 11 records. The design does not rely on the 2003 enforcement-discretion policy, because the eBMR replaces paper and users create and modify GMP data in normal operation.
 catalog_test: Classify an IPC result that feeds an acceptance limit as "informational" and try to approve the MBR. It is blocked. The register shows the official medium and storage location for each record type.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/records/register.ts"
+    - "packages/kernel/sql/0400_records_register.sql"
+  guards:
+    - "records.assert_classification_valid / records.classification_problems: raw-data floor for validators (MBR approval in Phase 2)"
+    - "records.approve_record_type: approver is a person other than the author; only newer versions become current"
+  db_constraints:
+    - "records.record_type_raw_data_floor: a type that feeds an acceptance limit is RAW"
+    - "records.record_type_hybrid_linkage: a HYBRID type declares its paper/electronic linkage"
+    - "records.record_type and records.record_type_approval insert-only and audited; ebmr_app has SELECT only"
+tests:
+  - "packages/kernel/test/records/register.test.ts > [DI-01] approving an MBR whose IPC result feeding an acceptance limit is classified informational is blocked"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] the register class of the record type counts even when the element claims it feeds no limit"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] the same MBR with the IPC result classified raw is approved"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] an element of an unregistered record type, or weaker than its register class, is refused"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] the bulk check lists every problem for a validator"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] the register refuses a record type that feeds an acceptance limit but is not raw, through the function and by constraint"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] the register shows the official medium and storage location of each approved record type"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] a hybrid record type must declare how paper and electronic parts are linked"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] a version is in force only after approval by a person other than its author; later versions supersede it"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] register rows cannot be written or changed by the application role, and are insert-only for everyone"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] every register change is in the audit trail"
+  - "packages/kernel/test/records/register.test.ts > [DI-01] the proposed baseline register is accepted by the database and keeps the raw-data floor"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: EU Ch.4 is explicit on defining raw data. FDA gets to the same place through Q10/Q12 and the completeness wording in 211.188/211.194. There is no conflict, and the EU wording sets the floor.
 type_detail: "ENFORCED: the register must exist, and the raw-data floor is checked at MBR/register approval. Register content is CONFIGURABLE per tenant."

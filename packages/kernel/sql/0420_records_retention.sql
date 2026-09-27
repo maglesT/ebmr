@@ -163,7 +163,8 @@ begin
     'retainUntil', case when v_any and cardinality(v_open) = 0 then to_char(v_max, 'YYYY-MM-DD') end,
     'latestDated', to_char(v_max, 'YYYY-MM-DD'),
     'governingRules', case when cardinality(v_open) > 0
-                           then to_jsonb(array(select e ->> 'ruleId' from jsonb_array_elements(v_evaluated) e where e ->> 'status' = 'OPEN'))
+                           then to_jsonb(array(select x.e ->> 'ruleId' from jsonb_array_elements(v_evaluated) with ordinality x(e, n)
+                                               where x.e ->> 'status' = 'OPEN' order by x.n))
                            else to_jsonb(v_governing) end,
     'openReasons', to_jsonb(v_open),
     'evaluated', v_evaluated);
@@ -256,7 +257,7 @@ create table records.retention_schedule (
   aggregate_id         text not null,
   record_type_code     text not null,
   record_type_version  integer not null,
-  retention_key        text not null check (retention_key in ('BATCH_RECORD', 'SUPPORTING_RECORD', 'DSCSA_RECORD', 'VALIDATION_RAW_DATA')),
+  retention_key        text not null check (retention_key in ('BATCH_RECORD', 'SUPPORTING_RECORD', 'DSCSA_RECORD', 'VALIDATION_RAW_DATA', 'PERMANENT')),
   site_zone            text not null,
   created_by_person    uuid not null,
   recorded_at          timestamptz not null default clock_timestamp(),
@@ -397,6 +398,11 @@ create table records.tombstone (
   reason_text                text,
   purged_tables              jsonb not null,
   chain_key                  text not null,
+  -- The record as kept: chain head and checkpoint sealed before anything was deleted (null when the
+  -- record had no audit events at all).
+  kept_head_seq              bigint,
+  kept_head_hash             bytea,
+  kept_checkpoint_id         bigint,
   chain_event_count          bigint not null check (chain_event_count >= 1),
   chain_head_hash            bytea not null,
   checkpoint_id              bigint,
@@ -466,15 +472,23 @@ begin
   select max((n -> 'own' ->> 'retainUntil')::date) into v_max
   from jsonb_array_elements(v_nodes) n where n -> 'own' ->> 'status' = 'DATED';
 
+  -- Defensive: without any dated record there is no date to dispose at, so retention stays open.
+  if jsonb_array_length(v_open) = 0 and v_max is null then
+    select coalesce(jsonb_agg(jsonb_build_object('recordKey', n ->> 'recordKey', 'reasons', '["NO_RULE_APPLIES"]'::jsonb)
+                              order by n ->> 'recordKey' collate "C"), '[]'::jsonb)
+    into v_open
+    from jsonb_array_elements(v_nodes) n where n -> 'own' ->> 'status' = 'NONE';
+  end if;
+
   select coalesce(jsonb_agg(n ->> 'recordKey' order by n ->> 'recordKey' collate "C"), '[]'::jsonb) into v_gov
   from jsonb_array_elements(v_nodes) n
   where n -> 'own' ->> 'status' = 'DATED' and (n -> 'own' ->> 'retainUntil')::date = v_max;
 
   return jsonb_build_object(
-    'status', case when jsonb_array_length(v_open) > 0 then 'OPEN' else 'DATED' end,
+    'status', case when jsonb_array_length(v_open) > 0 or v_max is null then 'OPEN' else 'DATED' end,
     'retainUntil', case when jsonb_array_length(v_open) = 0 then to_char(v_max, 'YYYY-MM-DD') end,
     'latestDated', to_char(v_max, 'YYYY-MM-DD'),
-    'governedBy', case when jsonb_array_length(v_open) = 0 then v_gov else '[]'::jsonb end,
+    'governedBy', case when jsonb_array_length(v_open) = 0 and v_max is not null then v_gov else '[]'::jsonb end,
     'openBecause', v_open,
     'recordsConsidered', jsonb_array_length(v_nodes));
 end

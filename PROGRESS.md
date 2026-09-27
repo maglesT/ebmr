@@ -116,3 +116,15 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   persons/accounts/devices; edition DBs will hold mirrors plus local sessions and auth events (auth events must be consumed in the
   edition transaction that signs). Build the mirror sync in Phase 3.
 - Dependencies added: fast-check 4.10.2 (root dev), yaml 2.9.1 (kernel).
+- 2026-09-27 20:45 UTC: B5 (time, idempotency, outbox, state machines) finished: 91 tests, DI-27 IMPLEMENTED.
+  Security finding from B5 fixed in the foundation: SECURITY DEFINER functions must list pg_temp last in search_path
+  (else a session's temp table can shadow catalog/module tables); 0010 fixed, 0001 revokes TEMP from PUBLIC (the test
+  harness re-applies it per test DB, since database ACLs are not copied from templates); repo-wide test
+  packages/kernel/test/security/definer-hardening.test.ts enforces it; running agents told to comply.
+  B5 integration items: register AUTHORITY hook (over iam authority evaluation) and SIGNATURE hook (over esig) with
+  platform.register_hook; add permissions platform.settings.change, platform.time_source.manage, platform.alarm.clear,
+  sample_record.{submit,check,approve,retire} to the role catalogue; consume outbox topic incident.requested into
+  records.raise_incident plus a reconciliation check; export ./time ./commands ./state; register platform.state_history.id
+  and platform.outbox.id as protected sequences; consider a dedicated outbox relay role. Owner questions from B5
+  (device-skew tolerance on occurred_at <= recorded_at; which trusts count as late entry; REFERENCE_LOST severity) go
+  into the Phase 1 owner-questions list.

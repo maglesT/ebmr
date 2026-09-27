@@ -35,6 +35,8 @@ export async function createTestDatabase(): Promise<TestDatabase> {
   const server = new pg.Client({ connectionString: ADMIN_URL });
   await server.connect();
   await server.query(`create database ${name} template ${inject('templateDb')}`);
+  // Database-level privileges are not copied from a template; re-apply what kernel migration 0001 sets.
+  await server.query(`revoke temporary on database ${name} from public`);
   await server.end();
   const admin = new pg.Pool({ connectionString: urlFor(name), max: 4 });
   const app = new pg.Pool({ connectionString: urlFor(name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 4 });

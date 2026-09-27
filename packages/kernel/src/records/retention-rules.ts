@@ -21,7 +21,11 @@
 
 export type Market = 'IN' | 'US' | 'EU';
 
-export type RetentionKey = 'BATCH_RECORD' | 'SUPPORTING_RECORD' | 'DSCSA_RECORD' | 'VALIDATION_RAW_DATA';
+/**
+ * Retention key of a record type (DI-01 register). PERMANENT: kept for the life of the installation
+ * (no rule applies, so retention stays OPEN), e.g. tombstones and holds of the retention machinery.
+ */
+export type RetentionKey = 'BATCH_RECORD' | 'SUPPORTING_RECORD' | 'DSCSA_RECORD' | 'VALIDATION_RAW_DATA' | 'PERMANENT';
 
 export type RetentionAnchor =
   | 'EXPIRY'

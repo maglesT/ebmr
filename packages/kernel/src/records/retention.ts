@@ -238,14 +238,18 @@ export function evaluateOwnRetention(
  */
 export function combineEffectiveRetention(nodes: RetentionNode[]): EffectiveRetention {
   const sorted = [...nodes].sort((a, b) => byCodeUnit(a.recordKey, b.recordKey));
-  const openBecause = sorted
+  let openBecause = sorted
     .filter((n) => n.own.status === 'OPEN' || (n.own.status === 'NONE' && !n.hasDependants))
     .map((n) => ({ recordKey: n.recordKey, reasons: n.own.status === 'OPEN' ? n.own.openReasons : ['NO_RULE_APPLIES'] }));
   let max: CalendarDate | null = null;
   for (const n of sorted) {
     if (n.own.status === 'DATED' && n.own.retainUntil !== null && (max === null || compareDates(n.own.retainUntil, max) > 0)) max = n.own.retainUntil;
   }
-  const isOpen = openBecause.length > 0;
+  // Defensive: without any dated record there is no date to dispose at, so retention stays open.
+  if (openBecause.length === 0 && max === null) {
+    openBecause = sorted.filter((n) => n.own.status === 'NONE').map((n) => ({ recordKey: n.recordKey, reasons: ['NO_RULE_APPLIES'] }));
+  }
+  const isOpen = openBecause.length > 0 || max === null;
   return {
     status: isOpen ? 'OPEN' : 'DATED',
     retainUntil: isOpen ? null : max,

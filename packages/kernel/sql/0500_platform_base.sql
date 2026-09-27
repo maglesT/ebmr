@@ -19,7 +19,7 @@ set local role ebmr_owner;
 
 -- The actor context of the current command, or an error when no command was declared.
 create function platform.require_actor() returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx jsonb := kernel.current_actor();
 begin
@@ -32,7 +32,7 @@ $$;
 
 -- Trigger function for platform tables that are insert-only but not audited row by row.
 create function platform.reject_change() returns trigger
-language plpgsql security definer set search_path = pg_catalog, platform as $$
+language plpgsql security definer set search_path = pg_catalog, pg_temp as $$
 begin
   raise exception using errcode = 'P0001',
     message = format('EBMR-PLAT-002 %s is insert-only; %s is refused', tg_relid::regclass, lower(tg_op));
@@ -40,7 +40,7 @@ end
 $$;
 
 create function platform.make_insert_only(p_table regclass) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
 declare
   v_suffix text := replace(replace(p_table::text, '.', '_'), '"', '');
 begin
@@ -53,7 +53,7 @@ $$;
 
 -- Schema-qualified, quoted name of a function, for dynamic calls of registered functions.
 create function platform.function_call_name(p_function regprocedure) returns text
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select quote_ident(n.nspname) || '.' || quote_ident(p.proname)
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where p.oid = p_function
@@ -74,7 +74,7 @@ create table platform.db_time_column (
 -- is set to clock_timestamp(), whatever the statement supplied; on update each keeps its stored
 -- value. The application therefore cannot choose an event time, and nor can owner-level code.
 create function platform.force_db_time() returns trigger
-language plpgsql security definer set search_path = pg_catalog, platform as $$
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v_now  timestamptz := clock_timestamp();
   v_old  jsonb := case when tg_op = 'UPDATE' then to_jsonb(old) else null end;
@@ -93,14 +93,14 @@ end
 $$;
 
 create function platform.db_time_trigger_name(p_table regclass) returns text
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select 'a0_db_time_' || replace(replace(p_table::text, '.', '_'), '"', '')
 $$;
 
 -- Registers the event-time columns of a table and installs the forcing trigger. Called from
 -- migrations (owner only).
 create function platform.enforce_db_time(p_table regclass, p_columns text[]) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
 declare
   v_col text;
 begin
@@ -127,7 +127,7 @@ $$;
 -- registered at all.
 create function platform.time_model_violations()
 returns table (table_name text, column_name text, problem text)
-language sql stable security definer set search_path = pg_catalog, platform, kernel as $$
+language sql stable security definer set search_path = pg_catalog, pg_temp as $$
   select c.table_name::text, c.column_name, 'forcing trigger missing or disabled'
   from platform.db_time_column c
   where not exists (select 1 from pg_trigger t
@@ -168,7 +168,7 @@ create table platform.hook (
 );
 
 create function platform.register_hook(p_name text, p_function regprocedure) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v_expected text;
 begin
@@ -189,7 +189,7 @@ $$;
 
 -- Refuses unless the current actor holds the permission (via the AUTHORITY provider).
 create function platform.authorize(p_permission text, p_aggregate_type text, p_aggregate_id text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx    jsonb := platform.require_actor();
   v_fn     regprocedure;
@@ -211,7 +211,7 @@ $$;
 -- Refuses unless p_signature_id is a valid signature with the meaning for the record (via the
 -- SIGNATURE provider).
 create function platform.verify_signature(p_signature_id uuid, p_meaning text, p_aggregate_type text, p_aggregate_id text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx    jsonb := platform.require_actor();
   v_fn     regprocedure;
@@ -266,7 +266,7 @@ create table platform.setting_value (
 create index setting_value_key on platform.setting_value (key, id desc);
 
 create function platform.check_setting_value(p_key text, p_value text) returns void
-language plpgsql stable security definer set search_path = pg_catalog, platform as $$
+language plpgsql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   d platform.setting_definition%rowtype;
   v numeric;
@@ -296,7 +296,7 @@ end
 $$;
 
 create function platform.setting_text(p_key text) returns text
-language plpgsql stable security definer set search_path = pg_catalog, platform as $$
+language plpgsql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v text;
 begin
@@ -312,12 +312,12 @@ end
 $$;
 
 create function platform.setting_numeric(p_key text) returns numeric
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select platform.setting_text(p_key)::numeric
 $$;
 
 create function platform.set_setting(p_key text, p_value text) returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx jsonb := platform.require_actor();
   v_id  bigint;
@@ -378,7 +378,7 @@ create table platform.time_anomaly (
 
 create function platform.next_aggregate_seq(p_aggregate_type text, p_aggregate_id text, p_recorded_at timestamptz,
                                             out seq bigint, out regressed boolean)
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v_prev timestamptz;
 begin

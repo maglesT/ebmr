@@ -83,14 +83,14 @@ create table kernel.ddl_log (
 -- Hook the identity module replaces (CREATE OR REPLACE) to check that the account, session, device
 -- and authentication event are real and active. The foundation checks shape only.
 create function kernel.validate_actor_context(p_ctx jsonb) returns void
-language plpgsql stable security definer set search_path = pg_catalog, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
 begin
   return;
 end
 $$;
 
 create function kernel.begin_command(p_ctx jsonb) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   k text;
 begin
@@ -115,7 +115,7 @@ end
 $$;
 
 create function kernel.current_actor() returns jsonb
-language sql stable security definer set search_path = pg_catalog, kernel as $$
+language sql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
   select nullif(current_setting('ebmr.ctx', true), '')::jsonb
 $$;
 
@@ -126,7 +126,7 @@ $$;
 create function kernel.append_audit_event(
   p_chain_key text, p_action text, p_table text, p_record text, p_body jsonb
 ) returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   v_ctx      jsonb := kernel.current_actor();
   v_head     kernel.audit_chain_head%rowtype;
@@ -179,7 +179,7 @@ $$;
 -- Plain-language business entry with the same correlation ID as the row-level entries (5.4).
 create function kernel.audit_business_event(p_chain_key text, p_message text, p_details jsonb default '{}'::jsonb)
 returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 begin
   if coalesce(trim(p_message), '') = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-006 a business audit entry needs a message';
@@ -193,7 +193,7 @@ $$;
 -- ---------------------------------------------------------------------------------------------
 
 create function kernel.audit_row_change() returns trigger
-language plpgsql volatile security definer set search_path = pg_catalog, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   v_reg    kernel.audited_table%rowtype;
   v_row    jsonb;
@@ -231,7 +231,7 @@ end
 $$;
 
 create function kernel.reject_mutation() returns trigger
-language plpgsql security definer set search_path = pg_catalog, kernel as $$
+language plpgsql security definer set search_path = pg_catalog, kernel, pg_temp as $$
 begin
   raise exception using errcode = 'P0001',
     message = format('EBMR-AUDIT-004 %s is insert-only; record a correction instead of %s', tg_relid::regclass, lower(tg_op));
@@ -240,7 +240,7 @@ $$;
 
 create function kernel.register_audited_table(p_table regclass, p_aggregate_type text, p_aggregate_column text, p_insert_only boolean)
 returns void
-language plpgsql volatile security definer set search_path = pg_catalog, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   v_name text := p_table::text;
   v_trigger text := 'zz_audit_' || replace(replace(v_name, '.', '_'), '"', '');
@@ -259,12 +259,12 @@ $$;
 
 -- DI-23: every registered table must have its audit trigger present and enabled.
 create function kernel.audit_triggers_ok() returns boolean
-language sql stable security definer set search_path = pg_catalog, kernel as $$
+language sql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
   select not exists (
     select 1
     from kernel.audited_table a
     where not exists (
-      select 1 from pg_trigger t
+      select 1 from pg_catalog.pg_trigger t
       where t.tgrelid = a.table_name
         and t.tgname = 'zz_audit_' || replace(replace(a.table_name::text, '.', '_'), '"', '')
         and t.tgenabled in ('O', 'A')
@@ -278,7 +278,7 @@ $$;
 
 create function kernel.verify_chain(p_chain_key text, p_from_seq bigint default 1)
 returns table (seq bigint, problem text)
-language plpgsql stable security definer set search_path = pg_catalog, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   r        kernel.audit_event%rowtype;
   v_prev   bytea;
@@ -317,7 +317,7 @@ end
 $$;
 
 create function kernel.checkpoint_chain(p_chain_key text, p_reason text) returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   v_head kernel.audit_chain_head%rowtype;
   v_id bigint;
@@ -340,7 +340,7 @@ $$;
 -- Merkle root over sorted chain heads: leaf = sha256(chain_key || ':' || seq || ':' || hash_hex);
 -- pairs hashed upward; an odd node is carried up unchanged.
 create function kernel.merkle_root(p_heads jsonb) returns bytea
-language plpgsql immutable set search_path = pg_catalog as $$
+language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
 declare
   level bytea[];
   nxt bytea[];
@@ -371,7 +371,7 @@ end
 $$;
 
 create function kernel.create_anchor() returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   v_heads jsonb;
   v_id bigint;
@@ -388,7 +388,7 @@ $$;
 -- An anchor verifies when its root matches its heads and every anchored head still has the same
 -- hash at the same sequence number in the live chain.
 create function kernel.verify_anchor(p_anchor_id bigint) returns table (problem text)
-language plpgsql stable security definer set search_path = pg_catalog, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   a kernel.audit_anchor%rowtype;
   h jsonb;
@@ -424,7 +424,7 @@ reset role;
 
 -- DDL log needs an event trigger, which only a superuser can create.
 create function kernel.log_ddl() returns event_trigger
-language plpgsql security definer set search_path = pg_catalog, kernel as $$
+language plpgsql security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
   r record;
 begin

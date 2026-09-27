@@ -1,0 +1,665 @@
+# Kernel rule table, version 1 (build outline 3.3; ADR 0008; control IN-52).
+#
+# Format: packages/kernel/src/market/README.md. Once published, this file is frozen: a change is a
+# new file kernel.v2.yaml with the full table (new rows, never edited rows) and a change record.
+#
+# Values are paraphrased from the cited clauses; nothing here quotes a regulation. Decimal values
+# are quoted strings, never numbers. Verification: P, P~, S, U as in the India catalog
+# (docs/regulatory/control-catalogs/D-india-schedule-m.md, section B); CHK = checked in the supplied
+# primary text (docs/regulatory/sources-extracted); GK = general knowledge, confirm before
+# validation documents cite it.
+#
+# Effective dates: India rows use 2023-12-28, the date of G.S.R. 922(E) (Revised Schedule M, in
+# force on publication; the implementation deadlines by turnover have passed). EU and US rows use
+# the date given in the supplied text (EU Chapter 4: 2011-06-30; 21 CFR 211: 43 FR 45077 of
+# 1978-09-29; FDA data-integrity Q&A: December 2018). Where no date could be verified the row
+# starts on 2023-12-28 and says so in its note.
+table: kernel
+version: 1
+title: Kernel rule keys (both editions)
+change:
+  kind: INITIAL
+  description: >-
+    First kernel table, drawn from India catalog section B (B-01, B-02, B-07, B-08, B-09, B-15,
+    B-20 to B-24, B-26).
+
+keys:
+  # --- Batch-record retention (B-01; IN-08). Retain-until = the latest of every component that applies.
+  - key: kernel.retention.batchRecord.monthsAfterExpiry
+    title: Batch record retention after expiry
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    catalogRefs: [B-01, IN-08]
+    description: Months the batch record is kept after the batch's expiry date.
+  - key: kernel.retention.batchRecord.monthsAfterManufacture
+    title: Batch record retention after manufacture
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    catalogRefs: [B-01, IN-08]
+    description: Months the batch record is kept after the date of manufacture.
+  - key: kernel.retention.batchRecord.monthsAfterQpCertification
+    title: Batch record retention after QP certification
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: false
+    catalogRefs: [B-01, IN-08]
+    description: Months the batch documentation is kept after EU QP certification; open until the certification date is received.
+  - key: kernel.retention.batchRecord.monthsAfterDistributionOtcExempt
+    title: Batch record retention after distribution (OTC without expiry dating)
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: false
+    predicates:
+      otcExpiryExempt: [true, false]
+    catalogRefs: [B-01, IN-08]
+    description: Months kept after distribution for an OTC product exempt from expiration dating.
+  # --- Test-record retention: the licence-form predicate chooses the Drugs Rules branch (B-01; IN-08).
+  - key: kernel.retention.testRecord.monthsAfterExpiry
+    title: Test record retention after expiry
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    predicates:
+      licenceForm: [FORM_25, FORM_28]
+      expiryLabelled: [true, false]
+    catalogRefs: [B-01, IN-08]
+    description: Months quality-control test records of a batch are kept after its expiry date.
+  - key: kernel.retention.testRecord.monthsAfterManufacture
+    title: Test record retention after manufacture
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    predicates:
+      licenceForm: [FORM_25, FORM_28]
+      expiryLabelled: [true, false]
+    catalogRefs: [B-01, IN-08]
+    description: Months quality-control test records of a batch are kept after the date of manufacture.
+  # --- Reference and retention samples (B-02, B-26; IN-32).
+  - key: kernel.referenceSamples.monthsAfterExpiry
+    title: Reference sample retention after expiry
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    catalogRefs: [B-02, IN-32]
+  - key: kernel.referenceSamples.monthsAfterManufactureWithoutExpiry
+    title: Reference sample retention after manufacture where no expiry is labelled
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    predicates:
+      expiryLabelled: [true, false]
+    catalogRefs: [B-02, IN-32]
+  - key: kernel.referenceSamples.yearlyVisualExamination
+    title: Yearly visual examination of representative reserve samples
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-02, IN-32]
+  - key: kernel.referenceSamples.quantityMultipleOfFullTests
+    title: Reference sample quantity as a multiple of the full test plan
+    method: LARGER_STRICTER
+    valueType: DECIMAL
+    unit: '{multiple}'
+    indiaGoverns: true
+    catalogRefs: [B-26, IN-32]
+  - key: kernel.referenceSamples.sterilityAndPyrogenTestsInQuantityBasis
+    title: Sterility and pyrogen tests counted in the reference sample quantity
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-26, IN-32]
+  # --- Batch numbering, self-inspection, management review.
+  - key: kernel.rework.newBatchNumber
+    title: A reworked batch receives a new batch number
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-07, IN-18]
+  - key: kernel.selfInspection.maxIntervalMonths
+    title: Maximum interval between self-inspections
+    method: SMALLER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    catalogRefs: [B-08, IN-28]
+  - key: kernel.managementReview.maxIntervalMonths
+    title: Maximum interval between management reviews
+    method: SMALLER_STRICTER
+    valueType: DECIMAL
+    unit: mo
+    indiaGoverns: true
+    catalogRefs: [B-24, IN-01]
+  # --- Materials.
+  - key: kernel.excipient.identityTestEachLot
+    title: Identity test on every lot of an excipient (non-API starting material)
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-09, IN-24]
+  # --- Documents, data and review.
+  - key: kernel.masterRecord.twoPersonApproval
+    title: Master record prepared by one person and independently checked by another
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-20, IN-06]
+  - key: kernel.dataChange.reasonRequired
+    title: Reason required for every change to recorded GMP data
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-21, IN-06]
+  - key: kernel.auditTrailReview.timing
+    title: When the audit trail of a batch is reviewed
+    method: ORDERED
+    valueType: CATEGORY
+    unit: '{category}'
+    orderedValues: [NOT_REQUIRED, PERIODIC, BEFORE_BATCH_RELEASE]
+    indiaGoverns: true
+    catalogRefs: [B-22, IN-09]
+  - key: kernel.release.requiredAuthorities
+    title: Release decisions required before a batch reaches each market
+    method: SET_UNION
+    valueType: SET
+    unit: '{set}'
+    indiaGoverns: true
+    catalogRefs: [B-23, IN-05]
+  # --- Labelling: not comparable across markets; resolved per pack destination.
+  - key: kernel.label.manufacturingDate
+    title: Date of manufacture on the pack label
+    method: NOT_COMPARABLE
+    statedMethod: PER_DESTINATION
+    valueType: ANY
+    unit: '{text}'
+    indiaGoverns: true
+    catalogRefs: [B-15, IN-31]
+
+rows:
+  # B-01 batch-record retention
+  - ref: B-01.IN.batchRecord.afterExpiry
+    key: kernel.retention.batchRecord.monthsAfterExpiry
+    market: IN
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: Revised Schedule M (G.S.R. 922(E)) Part I 17.2, record-retention sentence
+    verification: P~
+    effectiveFrom: '2023-12-28'
+  - ref: B-01.US.batchRecord.afterExpiry
+    key: kernel.retention.batchRecord.monthsAfterExpiry
+    market: US
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: 21 CFR 211.180(a)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+    note: Effective-from is the Federal Register publication date (43 FR 45077); later amendments are not modelled.
+  - ref: B-01.EU.batchRecord.afterExpiry
+    key: kernel.retention.batchRecord.monthsAfterExpiry
+    market: EU
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: EU GMP Part I Chapter 4, 4.11
+    verification: CHK
+    effectiveFrom: '2011-06-30'
+  - ref: B-01.IN.batchRecord.afterManufacture
+    key: kernel.retention.batchRecord.monthsAfterManufacture
+    market: IN
+    value: '60'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rule 74 conditions of licence with Schedule U (applied to every licence form, table B-01)
+    verification: U
+    effectiveFrom: '2023-12-28'
+    note: >-
+      Period and start point await counsel's confirmation (India catalog G-1). If not confirmed,
+      India falls back to expiry + 1 year and this row is withdrawn by a source correction.
+  - ref: B-01.EU.batchRecord.afterQpCertification
+    key: kernel.retention.batchRecord.monthsAfterQpCertification
+    market: EU
+    value: '60'
+    unit: mo
+    floor: HARD
+    source: EU GMP Part I Chapter 4, 4.11
+    verification: CHK
+    effectiveFrom: '2011-06-30'
+    note: Retention stays open until the certification date is received (decision record 0001 defaults).
+  - ref: B-01.US.batchRecord.afterDistributionOtcExempt
+    key: kernel.retention.batchRecord.monthsAfterDistributionOtcExempt
+    market: US
+    predicate: {otcExpiryExempt: true}
+    value: '36'
+    unit: mo
+    floor: HARD
+    source: 21 CFR 211.180(a), OTC products exempt from expiration dating under 211.137
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  # Test-record retention (licence-form branch)
+  - ref: B-01.IN.testRecord.afterExpiry
+    key: kernel.retention.testRecord.monthsAfterExpiry
+    market: IN
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: Revised Schedule M (G.S.R. 922(E)) Part I 17.2, record-retention sentence
+    verification: P~
+    effectiveFrom: '2023-12-28'
+  - ref: B-01.IN.testRecord.afterExpiry.form28
+    key: kernel.retention.testRecord.monthsAfterExpiry
+    market: IN
+    predicate: {licenceForm: FORM_28, expiryLabelled: true}
+    value: '24'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rule 78 conditions of licence (Form 28), test records where an expiry is labelled
+    verification: U
+    effectiveFrom: '2023-12-28'
+    note: Reported period; awaits counsel's confirmation (India catalog G-1, G-10).
+  - ref: B-01.US.testRecord.afterExpiry
+    key: kernel.retention.testRecord.monthsAfterExpiry
+    market: US
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: 21 CFR 211.180(a) (control records associated with a batch)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-01.EU.testRecord.afterExpiry
+    key: kernel.retention.testRecord.monthsAfterExpiry
+    market: EU
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: EU GMP Part I Chapter 4, 4.11 (batch documentation)
+    verification: GK
+    effectiveFrom: '2011-06-30'
+    note: Treats quality-control test records as batch documentation; confirm with QA.
+  - ref: B-01.IN.testRecord.afterManufacture.form25
+    key: kernel.retention.testRecord.monthsAfterManufacture
+    market: IN
+    predicate: {licenceForm: FORM_25}
+    value: '60'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rule 74 conditions of licence (Form 25) with Schedule U
+    verification: U
+    effectiveFrom: '2023-12-28'
+  - ref: B-01.IN.testRecord.afterManufacture.form28NoExpiry
+    key: kernel.retention.testRecord.monthsAfterManufacture
+    market: IN
+    predicate: {licenceForm: FORM_28, expiryLabelled: false}
+    value: '60'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rule 78 conditions of licence (Form 28), test records where no expiry is labelled
+    verification: U
+    effectiveFrom: '2023-12-28'
+  - ref: B-01.IN.testRecord.afterManufacture.form28WithExpiry
+    key: kernel.retention.testRecord.monthsAfterManufacture
+    market: IN
+    predicate: {licenceForm: FORM_28, expiryLabelled: true}
+    value: '0'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rule 78 conditions of licence (Form 28), test records where an expiry is labelled
+    verification: U
+    effectiveFrom: '2023-12-28'
+    note: No manufacture-based period on this branch; the expiry-based period (24 months) applies instead.
+  # B-02, B-26 reference samples
+  - ref: B-02.IN.refSamples.afterExpiry
+    key: kernel.referenceSamples.monthsAfterExpiry
+    market: IN
+    value: '3'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rules 74 and 78 conditions of licence (reference samples); Schedule M Part I 19.3(g)
+    verification: S
+    effectiveFrom: '2023-12-28'
+    note: Period from secondary sources (India catalog G-1); 19.3(g) itself asks only for an appropriate time (P).
+  - ref: B-02.US.refSamples.afterExpiry
+    key: kernel.referenceSamples.monthsAfterExpiry
+    market: US
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: 21 CFR 211.170(b)(1)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-02.EU.refSamples.afterExpiry
+    key: kernel.referenceSamples.monthsAfterExpiry
+    market: EU
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: EU GMP Annex 19 (reference and retention samples)
+    verification: GK
+    effectiveFrom: '2023-12-28'
+    note: Annex 19 is not in the supplied texts; its effective date is not verified, so the row starts on the table's first date.
+  - ref: B-02.IN.refSamples.noExpiry
+    key: kernel.referenceSamples.monthsAfterManufactureWithoutExpiry
+    market: IN
+    predicate: {expiryLabelled: false}
+    value: '36'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rules 74 and 78 conditions of licence (reference samples without labelled expiry)
+    verification: S
+    effectiveFrom: '2023-12-28'
+  - ref: B-02.IN.refSamples.withExpiry
+    key: kernel.referenceSamples.monthsAfterManufactureWithoutExpiry
+    market: IN
+    predicate: {expiryLabelled: true}
+    value: '0'
+    unit: mo
+    floor: HARD
+    source: Drugs Rules 1945, Rules 74 and 78 conditions of licence (reference samples)
+    verification: S
+    effectiveFrom: '2023-12-28'
+    note: With a labelled expiry the expiry-based period applies; no manufacture-based period.
+  - ref: B-02.IN.refSamples.visual
+    key: kernel.referenceSamples.yearlyVisualExamination
+    market: IN
+    value: false
+    unit: '{flag}'
+    floor: HARD
+    source: Schedule M Part I 19.3(g) (no yearly examination of reserve samples)
+    verification: P
+    effectiveFrom: '2023-12-28'
+  - ref: B-02.US.refSamples.visual
+    key: kernel.referenceSamples.yearlyVisualExamination
+    market: US
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: 21 CFR 211.170(b)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-02.EU.refSamples.visual
+    key: kernel.referenceSamples.yearlyVisualExamination
+    market: EU
+    value: false
+    unit: '{flag}'
+    floor: HARD
+    source: EU GMP Annex 19 (no yearly visual examination requirement)
+    verification: GK
+    effectiveFrom: '2023-12-28'
+  - ref: B-26.IN.refSamples.quantity
+    key: kernel.referenceSamples.quantityMultipleOfFullTests
+    market: IN
+    value: '2'
+    unit: '{multiple}'
+    floor: HARD
+    source: Drugs Rules 1945, Rules 74 and 78 conditions of licence (reference-sample quantity)
+    verification: S
+    effectiveFrom: '2023-12-28'
+  - ref: B-26.US.refSamples.quantity
+    key: kernel.referenceSamples.quantityMultipleOfFullTests
+    market: US
+    value: '2'
+    unit: '{multiple}'
+    floor: HARD
+    source: 21 CFR 211.170(b)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-26.EU.refSamples.quantity
+    key: kernel.referenceSamples.quantityMultipleOfFullTests
+    market: EU
+    value: '2'
+    unit: '{multiple}'
+    floor: HARD
+    source: EU GMP Annex 19 (enough for at least two full analytical controls)
+    verification: GK
+    effectiveFrom: '2023-12-28'
+  - ref: B-26.IN.refSamples.sterilityPyrogen
+    key: kernel.referenceSamples.sterilityAndPyrogenTestsInQuantityBasis
+    market: IN
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: Drugs Rules 1945, Rules 74 and 78 conditions of licence (quantity covers all tests)
+    verification: S
+    effectiveFrom: '2023-12-28'
+  - ref: B-26.US.refSamples.sterilityPyrogen
+    key: kernel.referenceSamples.sterilityAndPyrogenTestsInQuantityBasis
+    market: US
+    value: false
+    unit: '{flag}'
+    floor: HARD
+    source: 21 CFR 211.170(b) (sterility and pyrogen tests excluded from the doubling)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  # B-07 rework, B-08 self-inspection, B-24 management review
+  - ref: B-07.IN.rework
+    key: kernel.rework.newBatchNumber
+    market: IN
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: Schedule M Part I 14.32
+    verification: P
+    effectiveFrom: '2023-12-28'
+  - ref: B-07.US.rework
+    key: kernel.rework.newBatchNumber
+    market: US
+    value: false
+    unit: '{flag}'
+    floor: HARD
+    source: 21 CFR 211.115 (no new-number requirement)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-07.EU.rework
+    key: kernel.rework.newBatchNumber
+    market: EU
+    value: false
+    unit: '{flag}'
+    floor: HARD
+    source: EU GMP Part I Chapter 5, 5.67 (no new-number requirement)
+    verification: CHK
+    effectiveFrom: '2015-03-01'
+  - ref: B-08.IN.selfInspection
+    key: kernel.selfInspection.maxIntervalMonths
+    market: IN
+    value: '12'
+    unit: mo
+    floor: HARD
+    source: Schedule M Part I 10.4
+    verification: P
+    effectiveFrom: '2023-12-28'
+  - ref: B-24.IN.managementReview
+    key: kernel.managementReview.maxIntervalMonths
+    market: IN
+    value: '12'
+    unit: mo
+    floor: GUIDANCE
+    source: Schedule M Part I 1.6
+    verification: P
+    effectiveFrom: '2023-12-28'
+    note: The clause allows a justified alternative, so a longer site interval needs a justification reference and QA approval.
+  # B-09 excipient identity test
+  - ref: B-09.IN.identity
+    key: kernel.excipient.identityTestEachLot
+    market: IN
+    value: true
+    unit: '{flag}'
+    floor: DESIGN
+    hardFloor: false
+    source: Schedule M Part I 14.15 and 19.7.1; identity test on every lot by design (IN-24(c); gap F-2)
+    verification: P
+    effectiveFrom: '2023-12-28'
+    note: 14.15 lets QC release non-API materials on vendor history; the product defaults to testing every lot while 19.7.2 is unreadable.
+  - ref: B-09.US.identity
+    key: kernel.excipient.identityTestEachLot
+    market: US
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: 21 CFR 211.84(d)(1)-(2)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-09.EU.identity
+    key: kernel.excipient.identityTestEachLot
+    market: EU
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: EU GMP Part I Chapter 5, 5.35
+    verification: CHK
+    effectiveFrom: '2015-03-01'
+  # B-20 master record approval
+  - ref: B-20.IN.masterApproval
+    key: kernel.masterRecord.twoPersonApproval
+    market: IN
+    value: true
+    unit: '{flag}'
+    floor: DESIGN
+    hardFloor: false
+    source: Schedule M Part I 17.2 (approval, signature and date by authorised persons); two-person check by design
+    verification: P~
+    effectiveFrom: '2023-12-28'
+  - ref: B-20.US.masterApproval
+    key: kernel.masterRecord.twoPersonApproval
+    market: US
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: 21 CFR 211.186(a)
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-20.EU.masterApproval
+    key: kernel.masterRecord.twoPersonApproval
+    market: EU
+    value: true
+    unit: '{flag}'
+    floor: DESIGN
+    hardFloor: false
+    source: EU GMP Part I Chapter 4 (approval of documents by authorised persons); two-person check by design
+    verification: CHK
+    effectiveFrom: '2011-06-30'
+  # B-21 reason for change
+  - ref: B-21.IN.reason
+    key: kernel.dataChange.reasonRequired
+    market: IN
+    value: true
+    unit: '{flag}'
+    floor: DESIGN
+    hardFloor: false
+    source: Schedule M Part I 17.2 (reason recorded where appropriate); mandatory by design
+    verification: P~
+    effectiveFrom: '2023-12-28'
+  - ref: B-21.EU.reason
+    key: kernel.dataChange.reasonRequired
+    market: EU
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: EU GMP Annex 11 section 9; Chapter 4, 4.9
+    verification: CHK
+    effectiveFrom: '2011-06-30'
+  # B-22 audit-trail review
+  - ref: B-22.IN.auditTrailReview
+    key: kernel.auditTrailReview.timing
+    market: IN
+    value: BEFORE_BATCH_RELEASE
+    unit: '{category}'
+    floor: DESIGN
+    hardFloor: NOT_REQUIRED
+    source: Not in Schedule M (India catalog G-12); part of batch review by design
+    verification: P
+    effectiveFrom: '2023-12-28'
+  - ref: B-22.US.auditTrailReview
+    key: kernel.auditTrailReview.timing
+    market: US
+    value: BEFORE_BATCH_RELEASE
+    unit: '{category}'
+    floor: GUIDANCE
+    source: FDA Data Integrity and Compliance With Drug CGMP, Questions and Answers (December 2018), Q7-Q8
+    verification: CHK
+    effectiveFrom: '2018-12-01'
+    note: Guidance issued in December 2018; the day is not stated in the supplied copy.
+  - ref: B-22.EU.auditTrailReview
+    key: kernel.auditTrailReview.timing
+    market: EU
+    value: PERIODIC
+    unit: '{category}'
+    floor: HARD
+    source: EU GMP Annex 11 section 9 (audit trails regularly reviewed)
+    verification: CHK
+    effectiveFrom: '2011-06-30'
+  # B-23 release authority
+  - ref: B-23.IN.release
+    key: kernel.release.requiredAuthorities
+    market: IN
+    value: [AUTHORISED_PERSON_RELEASE, HEAD_OF_QC_APPROVAL]
+    unit: '{set}'
+    floor: HARD
+    source: Schedule M section 1 (PQS list) and Part I 11.3.6-11.3.10
+    verification: P
+    effectiveFrom: '2023-12-28'
+  - ref: B-23.US.release
+    key: kernel.release.requiredAuthorities
+    market: US
+    value: [QUALITY_UNIT_RECORD_REVIEW]
+    unit: '{set}'
+    floor: HARD
+    source: 21 CFR 211.22 and 211.192
+    verification: CHK
+    effectiveFrom: '1978-09-29'
+  - ref: B-23.EU.release
+    key: kernel.release.requiredAuthorities
+    market: EU
+    value: [EU_QP_CERTIFICATION]
+    unit: '{set}'
+    floor: HARD
+    source: EU GMP Annex 16 (QP certification at the EU site); Annex 11 section 15
+    verification: GK
+    effectiveFrom: '2023-12-28'
+    note: Annex 16 is not in the supplied texts (India catalog correction 8); certification happens at the EU importing site.
+  # B-15 manufacturing date on the label (per pack destination)
+  - ref: B-15.IN.label.mfgDate
+    key: kernel.label.manufacturingDate
+    market: IN
+    value: MANDATORY_UNCODED
+    unit: '{text}'
+    floor: HARD
+    source: Schedule M Part I 17.3.1(d) (P); Drugs Rules Rule 96 (S)
+    verification: P
+    effectiveFrom: '2023-12-28'
+    note: >-
+      India-domestic packs. For export packs Rule 94 particulars are unconfirmed (India catalog
+      G-9); an India export-particulars checklist sits next to the destination's approved artwork.
+  - ref: B-15.US.label.mfgDate
+    key: kernel.label.manufacturingDate
+    market: US
+    value: NOT_REQUIRED
+    unit: '{text}'
+    floor: HARD
+    source: 21 CFR 201.17
+    verification: GK
+    effectiveFrom: '2023-12-28'
+  - ref: B-15.EU.label.mfgDate
+    key: kernel.label.manufacturingDate
+    market: EU
+    value: NOT_REQUIRED
+    unit: '{text}'
+    floor: HARD
+    source: Directive 2001/83/EC Article 54
+    verification: GK
+    effectiveFrom: '2023-12-28'

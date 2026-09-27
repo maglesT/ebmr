@@ -348,6 +348,16 @@ begin
   if v_person is distinct from new.person_id then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-031 the grant''s person must be the account''s person';
   end if;
+  if new.requested_by_person = new.person_id then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-003 nobody requests a role for their own account';
+  end if;
+  if new.decided_by_person is not null and new.decided_by_person in (new.person_id, new.requested_by_person) then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-IAM-032 a grant is decided by a second person: never the grantee, never the requester';
+  end if;
+  if new.revoked_by_person is not null and new.revoked_by_person = new.person_id then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-003 nobody revokes their own grant';
+  end if;
   if tg_op = 'INSERT' then
     if new.status <> 'REQUESTED' or new.decided_by_person is not null or new.decided_at is not null
        or new.revoked_by_person is not null or new.revoked_at is not null then

@@ -25,3 +25,12 @@ grant usage on schema kernel to ebmr_app;
 -- grants EXECUTE explicitly to ebmr_app.
 alter default privileges for role ebmr_owner revoke execute on functions from public;
 alter default privileges for role ebmr_owner in schema kernel grant select on tables to ebmr_app;
+
+-- No temporary objects for anyone but superusers. A session that can create temp tables can shadow
+-- unqualified table names inside functions whose search_path omits pg_temp; every kernel function also
+-- lists pg_temp last, so this revoke is defence in depth.
+do $$
+begin
+  execute format('revoke temporary on database %I from public', current_database());
+end
+$$;

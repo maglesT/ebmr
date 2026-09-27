@@ -68,14 +68,14 @@ create table platform.alarm_clearance (
 
 -- Alarm kinds during which recorded times cannot be trusted.
 create function platform.is_time_fault(p_kind text) returns boolean
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p_kind in ('DRIFT_EXCEEDED', 'REFERENCE_LOST', 'NO_TIME_SOURCE')
 $$;
 
 -- Start of the window of doubt for a node: the last sample within threshold, else the node's
 -- first sample, else now.
 create function platform.time_window_start(p_node text, p_exclude_check uuid default null) returns timestamptz
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select coalesce(
     (select max(recorded_at) from platform.drift_sample
       where node = p_node and within_threshold and check_id is distinct from p_exclude_check),
@@ -85,7 +85,7 @@ $$;
 
 create function platform.raise_alarm(p_kind text, p_subject text, p_severity text, p_incident boolean,
                                      p_details jsonb, p_check_id uuid default null) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx jsonb := platform.require_actor();
   v_id  uuid;
@@ -105,14 +105,14 @@ $$;
 -- and emits outbox message incident.requested; the lead wires the consumer to records.raise_incident.
 create function platform.raise_time_incident(p_kind text, p_node text, p_severity text, p_details jsonb default '{}'::jsonb,
                                              p_check_id uuid default null) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_alarm platform.alarm%rowtype;
   v_id    uuid;
 begin
   v_id := platform.raise_alarm(p_kind, p_node, p_severity, true, p_details, p_check_id);
   select * into v_alarm from platform.alarm where id = v_id;
-  perform platform.enqueue('incident.requested', 'time_node:' || p_node, jsonb_build_object(
+  perform platform.enqueue_message('incident.requested', 'time_node:' || p_node, jsonb_build_object(
     'incident_type', 'DATA_INTEGRITY',
     'incident_source', 'TIME_SYNC',
     'severity', p_severity,
@@ -133,7 +133,7 @@ end
 $$;
 
 create function platform.open_alarm_id(p_subject text, p_kind text) returns uuid
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select a.id from platform.alarm a
   where a.subject = p_subject and a.kind = p_kind
     and not exists (select 1 from platform.alarm_clearance c where c.alarm_id = a.id)
@@ -143,7 +143,7 @@ $$;
 
 create function platform.register_time_source(p_name text, p_kind text, p_endpoint text, p_reference text,
                                               p_validated_by uuid, p_validation_ref text) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx jsonb := platform.require_actor();
   v_id  uuid;
@@ -158,7 +158,7 @@ $$;
 
 -- Activating or deactivating a source is a change and needs a reason (audit trail, DI-24).
 create function platform.set_time_source_active(p_source_id uuid, p_active boolean) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 begin
   perform platform.require_actor();
   perform platform.authorize('platform.time_source.manage', 'time_source', p_source_id::text);
@@ -176,7 +176,7 @@ $$;
 -- source gets a sample; an active source without a reading is recorded as unreachable. Returns a
 -- summary with the alarms raised and cleared.
 create function platform.record_drift_check(p_node text, p_samples jsonb) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx        jsonb := platform.require_actor();
   v_check      uuid := gen_random_uuid();
@@ -282,7 +282,7 @@ $$;
 -- Manual clearance for an alarm whose condition the monitor does not re-check (e.g. one raised
 -- by another component). Needs a reason and the permission platform.alarm.clear.
 create function platform.clear_alarm(p_alarm_id uuid, p_note text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx   jsonb := platform.require_actor();
   v_alarm platform.alarm%rowtype;
@@ -303,7 +303,7 @@ $$;
 -- the alarm is open).
 create function platform.time_fault_windows()
 returns table (alarm_id uuid, kind text, node text, window_start timestamptz, window_end timestamptz)
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select a.id, a.kind, a.subject, a.window_start, c.recorded_at
   from platform.alarm a left join platform.alarm_clearance c on c.alarm_id = a.id
   where platform.is_time_fault(a.kind)
@@ -311,7 +311,7 @@ language sql stable security definer set search_path = pg_catalog, platform as $
 $$;
 
 create function platform.time_fault_open() returns boolean
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select exists (select 1 from platform.alarm a
                  where platform.is_time_fault(a.kind)
                    and not exists (select 1 from platform.alarm_clearance c where c.alarm_id = a.id))
@@ -322,7 +322,7 @@ $$;
 create function platform.entries_in_time_fault_windows()
 returns table (alarm_id uuid, alarm_kind text, node text, chain_key text, seq bigint, action text,
                table_name text, record_id text, recorded_at timestamptz)
-language sql stable security definer set search_path = pg_catalog, platform, kernel as $$
+language sql stable security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
   select w.alarm_id, w.kind, w.node, e.chain_key, e.seq, e.action, e.table_name, e.record_id, e.recorded_at
   from platform.time_fault_windows() w
   join kernel.audit_event e

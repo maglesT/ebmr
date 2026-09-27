@@ -152,6 +152,9 @@ begin
   if v_version is null then
     raise exception using errcode = 'P0001', message = format('EBMR-MKT-040 rule table %s has no published version', v_table);
   end if;
+  if exists (select 1 from market.rule_key rk where rk.version_id = v_version and rk.key = p_key and rk.method = 'NOT_COMPARABLE') then
+    raise exception using errcode = 'P0001', message = format('EBMR-MKT-063 key %s is NOT_COMPARABLE; it is resolved per destination and takes no site value', p_key);
+  end if;
   v_scope := market.scope_markets('SITE', p_site, v_table);
   v_pred := (v_scope -> 'predicates') || coalesce(v_opt -> 'predicates', '{}'::jsonb);
   v_res := market.resolve(v_version, p_key, array(select jsonb_array_elements_text(v_scope -> 'markets')), v_pred, p_effective_from);

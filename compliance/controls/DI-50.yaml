@@ -23,11 +23,28 @@ behaviour: |-
   - The documented DI risk assessment of eBMR workflows is reviewed periodically.
   - Tips and suspected falsification go into the QMS investigation route and are never handled informally.
 catalog_test: Open a DI investigation for a user and date range. The system lists every record that user created or changed. The linked batches cannot be disposed of until the investigation closes.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/records/investigations.ts"
+    - "packages/kernel/sql/0430_records_di_investigations.sql"
+    - "packages/kernel/sql/0440_records_blockers_and_purge.sql"
+  guards:
+    - "records.investigation_scope / records.person_activity: every record the person created or changed in the window, from the audit trail"
+    - "records.open_di_investigation: links and holds every record in scope; person investigated cannot open or lead it"
+    - "records.open_blockers: linked records, and records the person touched in the window, block disposition until closure"
+    - "records.close_di_investigation: conclusion, remediation and an approver who is neither investigator nor subject; releases the holds"
+  db_constraints:
+    - "records.di_investigation, di_investigation_link, di_investigation_closure insert-only and audited; ebmr_app has SELECT only"
+    - "check investigator_person <> subject_person_id and opened_by_person <> subject_person_id"
+tests:
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50] an investigation for a user and date range lists every record the user created or changed; linked batches cannot be disposed of until it closes"
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50] records the person touches inside the window after opening are blocked at once and linked on refresh and at closure"
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50] other records can be linked with a note; the person investigated cannot open or lead it; a machine cannot open it"
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50] the scoping report works for any person and period, across batches"
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50] investigation holds cannot be lifted except by closing the investigation, and its records cannot be written directly"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: FDA is explicit (Q15, Q18). The EU covers it through incident management and CAPA.
 type_detail: ENFORCED for holds, scoping reports and immediate revocation. The tooling scope is a DESIGN-CHOICE.

@@ -160,8 +160,8 @@ export class FileLedger implements ExternalLedger {
       let record: LedgerRecord;
       try {
         record = JSON.parse(line) as LedgerRecord;
-      } catch {
-        throw new LedgerIntegrityError(`${this.path}: line ${i + 1} is not valid JSON`);
+      } catch (error) {
+        throw new LedgerIntegrityError(`${this.path}: line ${i + 1} is not valid JSON`, { cause: error });
       }
       if (record.seq !== i + 1) throw new LedgerIntegrityError(`${this.path}: line ${i + 1} has sequence ${record.seq}`);
       if (record.prev !== prev) throw new LedgerIntegrityError(`${this.path}: line ${i + 1} does not follow the previous line`);
@@ -182,7 +182,7 @@ export class FileLedger implements ExternalLedger {
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
         if (waited >= this.lockTimeoutMs) {
-          throw new Error(`ledger ${this.path} is locked by another writer (remove ${lock} only after confirming no writer is running)`);
+          throw new Error(`ledger ${this.path} is locked by another writer (remove ${lock} only after confirming no writer is running)`, { cause: error });
         }
         sleepSync(20);
         waited += 20;

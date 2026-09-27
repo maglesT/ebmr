@@ -75,8 +75,9 @@ create type platform.outbox_message as (
 );
 
 -- Writes a message in the caller's transaction. p_aggregate is written type:id, e.g. batch:<uuid>.
-create function platform.enqueue(p_topic text, p_aggregate text, p_payload jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+-- Owner-only: kernel functions use it for every topic, including the reserved ones.
+create function platform.enqueue_message(p_topic text, p_aggregate text, p_payload jsonb) returns uuid
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx   jsonb := platform.require_actor();
   v_type  text;
@@ -102,10 +103,24 @@ begin
 end
 $$;
 
+-- Application entry point. Topics under the kernel's reserved prefixes (state., incident.,
+-- platform.) announce facts only kernel functions may state, so consumers can trust them; the
+-- application cannot write them.
+create function platform.enqueue(p_topic text, p_aggregate text, p_payload jsonb) returns uuid
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+begin
+  if p_topic ~ '^(state|incident|platform)\.' then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-PLAT-057 topic %s is reserved for kernel functions', p_topic);
+  end if;
+  return platform.enqueue_message(p_topic, p_aggregate, p_payload);
+end
+$$;
+
 -- Claims up to p_limit deliverable messages for the calling transaction. Rows locked by another
 -- relay are skipped; a message is not claimed while an earlier message of its aggregate is pending.
 create function platform.outbox_claim(p_relay text, p_limit integer default 10) returns setof platform.outbox_message
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 begin
   if coalesce(trim(p_relay), '') = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-PLAT-053 a relay name is required';
@@ -140,7 +155,7 @@ $$;
 
 -- Locks and returns the state row of a message claimed by the current transaction.
 create function platform.outbox_claimed_state(p_outbox_id bigint) returns platform.outbox_state
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v platform.outbox_state%rowtype;
 begin
@@ -157,7 +172,7 @@ end
 $$;
 
 create function platform.outbox_mark_delivered(p_outbox_id bigint, p_relay text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v platform.outbox_state%rowtype := platform.outbox_claimed_state(p_outbox_id);
 begin
@@ -171,7 +186,7 @@ $$;
 -- Records a failed attempt; the message becomes deliverable again after an exponential back-off
 -- (2 s, 4 s, 8 s, ... capped at one hour).
 create function platform.outbox_mark_failed(p_outbox_id bigint, p_relay text, p_error text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v platform.outbox_state%rowtype := platform.outbox_claimed_state(p_outbox_id);
   v_error text := left(coalesce(p_error, 'unknown error'), 2000);
@@ -188,7 +203,7 @@ $$;
 -- Returns true the first time a consumer sees a message and false afterwards. Call it in the
 -- consumer's own transaction, together with the effect, so both commit or neither does.
 create function platform.consume_once(p_consumer text, p_message_id uuid) returns boolean
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 begin
   if p_message_id is null then
     raise exception using errcode = 'P0001', message = 'EBMR-PLAT-056 a message id is required';

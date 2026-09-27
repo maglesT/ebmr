@@ -109,15 +109,15 @@ begin
             if n.value <> o.value then v_aspects := array['CHANGED']; end if;
           else
             if not market.at_least_as_strict(ok.method, ok.ordered_values, n.value, o.value) then
-              v_aspects := v_aspects || 'VALUE';
+              v_aspects := array_append(v_aspects, 'VALUE');
             end if;
             v_ob := market.binding_value(o.floor_type, o.value, o.hard_floor);
             v_nb := market.binding_value(n.floor_type, n.value, n.hard_floor);
             if v_ob is not null and (v_nb is null or not market.at_least_as_strict(ok.method, ok.ordered_values, v_nb, v_ob)) then
-              v_aspects := v_aspects || 'HARD_FLOOR';
+              v_aspects := array_append(v_aspects, 'HARD_FLOOR');
             end if;
             if not market.site_loosenable(o.floor_type) and market.site_loosenable(n.floor_type) then
-              v_aspects := v_aspects || 'FLOOR_TYPE';
+              v_aspects := array_append(v_aspects, 'FLOOR_TYPE');
             end if;
           end if;
           if cardinality(v_aspects) > 0 then
@@ -134,24 +134,29 @@ begin
 end
 $$;
 
+-- The change-impact list for a new version: stub MBR limits whose pinned value is looser than the
+-- new resolved value, and site values in force that the new version makes inadmissible (looser than
+-- a binding value or a DESIGN value, or a loosening that was never approved). Each item is due by the
+-- first date on which the new rule applies (today if it already applies).
 create function market.compute_change_impact(p_version uuid, p_today date) returns integer
 language plpgsql volatile security definer set search_path = pg_catalog, market as $$
 declare
-  v_table    text;
   ref        record;
   k          market.rule_key;
   d          date;
   v_res      jsonb;
+  a          jsonb;
+  v_hit      boolean;
   v_count    integer := 0;
 begin
-  select table_code into v_table from market.rule_table_version where id = p_version;
   for ref in
-    select 'MBR_LIMIT' as ref_type, m.id, format('%s v%s', m.mbr_code, m.mbr_version) as label, m.key, m.value, m.markets, m.predicates, null::text as note
+    select 'MBR_LIMIT' as ref_type, m.id, format('%s v%s', m.mbr_code, m.mbr_version) as label, m.key, m.value, m.markets,
+           m.predicates, false as approved, null::text as note
       from market.stub_mbr_limit m
      where exists (select 1 from market.rule_key k2 where k2.version_id = p_version and k2.key = m.key)
     union all
     select 'SITE_VALUE', sv.id, format('site %s', sv.site_id), sv.key, sv.value, sv.market_set, sv.predicates,
-           case when sv.outcome = 'LOOSENED' then 'approved loosening ' || sv.justification_ref end
+           sv.outcome = 'LOOSENED', case when sv.outcome = 'LOOSENED' then 'approved loosening ' || sv.justification_ref end
       from (select distinct on (s.site_id, s.key) s.* from market.site_value s
              where s.effective_from <= p_today
              order by s.site_id, s.key, s.effective_from desc, s.recorded_at desc) sv
@@ -159,6 +164,10 @@ begin
     order by 1, 3, 4
   loop
     select * into k from market.rule_key where version_id = p_version and key = ref.key;
+    a := null;
+    if k.method = 'NOT_COMPARABLE' then
+      continue;
+    end if;
     for d in
       select p_today
       union
@@ -173,12 +182,20 @@ begin
         v_count := v_count + 1;
         exit;
       end;
-      if (v_res ->> 'applicable')::boolean and k.method <> 'NOT_COMPARABLE'
-         and not coalesce(market.at_least_as_strict(k.method, k.ordered_values, ref.value, v_res -> 'value'), false) then
+      if not (v_res ->> 'applicable')::boolean then
+        continue;
+      end if;
+      if ref.ref_type = 'MBR_LIMIT' then
+        v_hit := not coalesce(market.at_least_as_strict(k.method, k.ordered_values, ref.value, v_res -> 'value'), false);
+      else
+        a := market.assess_site_value(v_res, ref.value);
+        v_hit := a ->> 'outcome' = 'REFUSED' or (a ->> 'outcome' = 'LOOSENING' and not ref.approved);
+      end if;
+      if v_hit then
         insert into market.change_impact (version_id, ref_type, ref_id, ref_label, key, market_set, pinned_value, required_value,
-                                          governing_markets, due_by, note)
+                                          governing_markets, due_by, problem, note)
         values (p_version, ref.ref_type, ref.id, ref.label, ref.key, ref.markets, ref.value, v_res -> 'value',
-                array(select jsonb_array_elements_text(v_res -> 'governingMarkets')), d, ref.note);
+                array(select jsonb_array_elements_text(v_res -> 'governingMarkets')), d, a ->> 'message', ref.note);
         v_count := v_count + 1;
         exit;
       end if;

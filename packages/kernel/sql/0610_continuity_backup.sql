@@ -80,7 +80,7 @@ select kernel.register_audited_table('continuity.restore_drill', 'restore_drill'
 --         backup?: {backup_id, method, database_name, artefact_sha256, size_bytes, storage_uri, immutable_until,
 --                   encryption_key_ref, tool_version, snapshot_taken_at}}
 create function continuity.record_backup_job(p_run jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx  jsonb := continuity.require_actor();
   v_corr uuid := (v_ctx ->> 'correlation_id')::uuid;
@@ -128,7 +128,7 @@ $$;
 -- p_drill: {drill_id, source_database, restored_database, backup_sha256?, result, failures: [text],
 --           tables_compared, tables_matching, chains_verified, report_sha256, report_uri, started_at, finished_at}
 create function continuity.record_restore_drill(p_drill jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx  jsonb := continuity.require_actor();
   v_id   uuid;

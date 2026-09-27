@@ -26,11 +26,31 @@ behaviour: |-
   - Each incident is linked to the affected batches and steps. An open incident linked to a batch is shown on the review and disposition screens and blocks disposition until it has been assessed.
   - Every incident carries a criticality rating. A critical incident cannot be closed without a root cause and a CAPA link.
 catalog_test: Kill the balance interface in the middle of a weighing. An incident is created, linked to the batch and shown as open on the disposition screen. Try to close it as critical without a root cause and CAPA. Blocked.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/records/incidents.ts"
+    - "packages/kernel/sql/0410_records_incidents.sql"
+    - "packages/kernel/sql/0440_records_blockers_and_purge.sql"
+  guards:
+    - "records.close_incident: summary always; root cause and CAPA reference when the incident was ever MAJOR or CRITICAL; CERT-In report recorded when reportable"
+    - "records.open_blockers / records.has_disposition_blockers: linked incident blocks disposition until assessed for that record or closed"
+    - "records.lock_blocker_epoch: blocker epoch for the disposition transaction (outline 5.7)"
+  db_constraints:
+    - "records.incident, incident_link, incident_event, incident_assessment insert-only and audited; ebmr_app has SELECT only"
+    - "one CLOSED, one INVESTIGATION_STARTED and one CERT_IN_REPORTED event per incident (partial unique indexes)"
+    - "records.cert_in_reporting_window(): 6 hours, from secondary sources (verify)"
+tests:
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open on the disposition screen; closing it as critical without root cause and CAPA is blocked"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] lowering the severity does not remove the root-cause and CAPA requirement of a critical incident"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] a minor incident closes with a summary, only from UNDER_INVESTIGATION and only by a person"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] a user raises an incident manually; an impact assessment lifts the disposition block for that batch only"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] every change to an incident moves the blocker epoch the release module locks"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] incident input is validated; a claimed occurrence time needs a trust level and cannot lie in the future"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] a reportable security incident carries a 6-hour deadline and cannot be closed before the report is recorded"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] the application role cannot write incident rows directly, and incident rows are insert-only for everyone"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: Only the EU text explicitly requires incident management for computerised systems. It is adopted for all markets.
 type_detail: 'ENFORCED for logging, batch linkage, and root cause plus CAPA on critical incidents. The disposition block is a DESIGN-CHOICE, engine-enforced by default: it puts the Ch.4 4.27 "special observations" indication into effect.'

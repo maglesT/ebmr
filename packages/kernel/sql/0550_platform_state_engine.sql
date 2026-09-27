@@ -33,7 +33,7 @@ create table platform.state_guard (
 );
 
 create function platform.register_guard(p_code text, p_function regprocedure, p_description text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 begin
   if not exists (select 1 from pg_proc p where p.oid = p_function
                  and oidvectortypes(p.proargtypes) = 'text, uuid, jsonb, jsonb, jsonb' and p.prorettype = 'text'::regtype) then
@@ -48,7 +48,7 @@ $$;
 -- Built-in guard: the command carries a reason (actor context reason_code).
 create function platform.guard_reason_given(p_aggregate_type text, p_aggregate_id uuid, p_transition jsonb, p_payload jsonb, p_actor jsonb)
 returns text
-language sql stable set search_path = pg_catalog as $$
+language sql stable set search_path = pg_catalog, pg_temp as $$
   select case when coalesce(trim(p_actor ->> 'reason_code'), '') = '' then 'a reason is required for this transition' end
 $$;
 select platform.register_guard('platform.reason_given', 'platform.guard_reason_given(text, uuid, jsonb, jsonb, jsonb)',
@@ -56,7 +56,7 @@ select platform.register_guard('platform.reason_given', 'platform.guard_reason_g
 
 create function platform.run_guard(p_code text, p_aggregate_type text, p_aggregate_id uuid, p_transition jsonb, p_payload jsonb, p_actor jsonb)
 returns text
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v_fn     regprocedure;
   v_reason text;
@@ -108,7 +108,7 @@ create table platform.machine_transition (
 );
 
 create function platform.protect_machine_definition() returns trigger
-language plpgsql security definer set search_path = pg_catalog, platform as $$
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
 begin
   if tg_table_name = 'machine_transition' then
     if tg_op = 'INSERT' and exists (select 1 from platform.machine_version v
@@ -144,7 +144,7 @@ create trigger aa_protect_truncate before truncate on platform.machine
 
 -- Canonical text of a published version; identical to canonicalText() in src/state/extract.ts.
 create function platform.machine_canonical_text(p_machine text, p_version integer) returns text
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select concat_ws(E'\n',
     'machine=' || m.code,
     'version=' || v.version,
@@ -161,7 +161,7 @@ language sql stable security definer set search_path = pg_catalog, platform as $
 $$;
 
 create function platform.machine_definition_hash(p_machine text, p_version integer) returns text
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select encode(sha256(convert_to(platform.machine_canonical_text(p_machine, p_version), 'UTF8')), 'hex')
 $$;
 
@@ -169,7 +169,7 @@ $$;
 -- called from migrations. Validates the definition, stores it, and seals it with its hash; the
 -- hash computed by the generator must match the one computed here.
 create function platform.publish_machine_version(p_definition jsonb) returns text
-language plpgsql volatile security definer set search_path = pg_catalog, platform as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v_code     text := p_definition ->> 'machine';
   v_version  integer := (p_definition ->> 'version')::integer;
@@ -303,12 +303,14 @@ create table platform.state_history (
   check (from_version is null or to_version = from_version + 1)
 );
 create index state_history_aggregate on platform.state_history (aggregate_type, aggregate_id, to_version);
+-- A signature authorises one transition only; it cannot be replayed for a later one.
+create unique index state_history_signature on platform.state_history (signature_id) where signature_id is not null;
 
 -- Only the engine writes state rows, and only along published transitions. The application
 -- role has no privilege at all; this trigger stops owner-level code (other kernel functions)
 -- from bypassing the engine.
 create function platform.guard_state_row() returns trigger
-language plpgsql security definer set search_path = pg_catalog, platform as $$
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v_version platform.machine_version%rowtype;
 begin
@@ -350,7 +352,7 @@ create trigger aa_no_truncate before truncate on platform.aggregate_state
 
 -- Per-aggregate event counter for history rows (runs after a0_db_time set recorded_at).
 create function platform.state_history_seq() returns trigger
-language plpgsql security definer set search_path = pg_catalog, platform as $$
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
 declare
   v record;
 begin
@@ -370,7 +372,7 @@ select kernel.register_audited_table('platform.state_history', 'state', 'aggrega
 
 -- The engine flag lets platform.guard_state_row accept a write; only engine functions set it.
 create function platform.engine_flag(p_on boolean) returns void
-language plpgsql volatile security definer set search_path = pg_catalog as $$
+language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
 begin
   perform set_config('platform.state_engine', case when p_on then 'on' else 'off' end, true);
 end
@@ -381,7 +383,7 @@ $$;
 -- audited with reason STATE_TRANSITION and the event as text. With p_reason_text NULL the
 -- command's own context is restored.
 create function platform.engine_reason(p_ctx jsonb, p_reason_text text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog as $$
+language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
 begin
   if p_reason_text is not null and coalesce(p_ctx ->> 'reason_code', '') = '' then
     perform set_config('ebmr.ctx', (p_ctx || jsonb_build_object('reason_code', 'STATE_TRANSITION', 'reason_text', p_reason_text))::text, true);
@@ -395,7 +397,7 @@ $$;
 -- published version (or the version given), pinning that version for the aggregate's life.
 create function platform.create_aggregate_state(p_machine text, p_aggregate_type text, p_aggregate_id uuid,
                                                 p_machine_version integer default null) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx      jsonb := platform.require_actor();
   v_machine  platform.machine%rowtype;
@@ -439,7 +441,7 @@ begin
   perform kernel.audit_business_event(p_aggregate_type || ':' || p_aggregate_id,
     format('created in state %s (machine %s v%s)', v_version.initial_state, p_machine, v_version.version),
     jsonb_build_object('machine', p_machine, 'machine_version', v_version.version, 'state', v_version.initial_state, 'history_id', v_hist));
-  v_msg := platform.enqueue('state.created', p_aggregate_type || ':' || p_aggregate_id, jsonb_build_object(
+  v_msg := platform.enqueue_message('state.created', p_aggregate_type || ':' || p_aggregate_id, jsonb_build_object(
     'machine', p_machine, 'machine_version', v_version.version, 'aggregate_type', p_aggregate_type,
     'aggregate_id', p_aggregate_id, 'state', v_version.initial_state, 'version', 1));
   return jsonb_build_object('aggregate_type', p_aggregate_type, 'aggregate_id', p_aggregate_id, 'machine', p_machine,
@@ -450,7 +452,7 @@ $$;
 
 create function platform.transition(p_machine text, p_aggregate_type text, p_aggregate_id uuid, p_event text,
                                     p_expected_version bigint, p_payload jsonb default '{}'::jsonb) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx        jsonb := platform.require_actor();
   v_payload    jsonb := coalesce(p_payload, '{}'::jsonb);
@@ -502,6 +504,9 @@ begin
         message = format('EBMR-PLAT-008 event %s needs a signature with meaning %s (payload.signature_id)', p_event, v_t.signature_meaning);
     end if;
     v_sig := (v_payload ->> 'signature_id')::uuid;
+    if exists (select 1 from platform.state_history where signature_id = v_sig) then
+      raise exception using errcode = 'P0001', message = format('EBMR-PLAT-075 signature %s was already used for another transition', v_sig);
+    end if;
     perform platform.verify_signature(v_sig, v_t.signature_meaning, p_aggregate_type, p_aggregate_id::text);
   end if;
   foreach v_code in array v_t.guard_codes loop
@@ -534,7 +539,7 @@ begin
   perform kernel.audit_business_event(p_aggregate_type || ':' || p_aggregate_id,
     format('%s: state %s -> %s (machine %s v%s)', p_event, v_state.state, v_t.to_state, v_state.machine_code, v_state.machine_version),
     v_info || jsonb_build_object('history_id', v_hist, 'signature_id', v_sig, 'guard_results', v_results));
-  v_msg := platform.enqueue('state.transitioned', p_aggregate_type || ':' || p_aggregate_id,
+  v_msg := platform.enqueue_message('state.transitioned', p_aggregate_type || ':' || p_aggregate_id,
     v_info || jsonb_build_object('aggregate_type', p_aggregate_type, 'aggregate_id', p_aggregate_id, 'new_version', v_state.version + 1));
   return v_info || jsonb_build_object('aggregate_type', p_aggregate_type, 'aggregate_id', p_aggregate_id,
                                       'new_version', v_state.version + 1, 'history_id', v_hist, 'message_id', v_msg,
@@ -550,7 +555,7 @@ $$;
 -- transitions; states belong to the pinned version.
 create function platform.state_violations()
 returns table (aggregate_type text, aggregate_id uuid, problem text)
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select s.aggregate_type, s.aggregate_id,
          format('state row (%s, version %s) differs from the latest history row (%s, version %s)', s.state, s.version, h.to_state, h.to_version)
   from platform.aggregate_state s
@@ -579,7 +584,7 @@ $$;
 -- Published definitions still hash to their sealed value (detects a superuser rewrite).
 create function platform.machine_integrity_violations()
 returns table (machine_code text, version integer, problem text)
-language sql stable security definer set search_path = pg_catalog, platform as $$
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
   select v.machine_code, v.version,
          case when v.definition_hash is null then 'version was never sealed'
               else 'transition rows no longer match the sealed definition hash' end

@@ -569,8 +569,6 @@ export async function runRestoreDrill(opts: RestoreDrillOptions): Promise<DrillO
   let source: pg.Client | null = null;
   let restored: pg.Client | null = null;
   let restoreName: string | null = null;
-  let sourceTables = new Map<string, TableHash>();
-  let sourceSequences = new Map<string, string | null>();
   const sourceSamples: { key: SampleKey; read: SampleRead }[] = [];
   try {
     source = await connect(opts.sourceUrl);
@@ -594,8 +592,8 @@ export async function runRestoreDrill(opts: RestoreDrillOptions): Promise<DrillO
 
     // 2. Source side, in the dump's snapshot.
     report.verification.source = await verifyKernel(source);
-    sourceTables = await hashTables(source);
-    sourceSequences = await sequenceValues(source);
+    const sourceTables = await hashTables(source);
+    const sourceSequences = await sequenceValues(source);
     for (const key of await pickSamples(source, report.drillId, opts.sampleSize ?? 5)) sourceSamples.push({ key, read: await readSample(source, key) });
     await source.query('commit');
 

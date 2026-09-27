@@ -388,6 +388,7 @@ grant execute on function records.raise_incident(text, text, text, text, text, j
                           records.assess_incident_impact(uuid, text, text, text, text, text),
                           records.close_incident(uuid, text, text, text),
                           records.pending_cert_in_reports(),
+                          records.severity_rank(text),
                           records.cert_in_reporting_window() to ebmr_app;
 
 reset role;

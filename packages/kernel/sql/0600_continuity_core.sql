@@ -60,7 +60,7 @@ create table continuity.counter (
 -- Registrations are permanent; counters never move backwards and are never removed, even by the
 -- table owner. (A superuser who disables these triggers is recorded in kernel.ddl_log.)
 create function continuity.guard_registry() returns trigger
-language plpgsql security definer set search_path = pg_catalog, continuity as $$
+language plpgsql security definer set search_path = pg_catalog, continuity, pg_temp as $$
 begin
   if tg_table_name = 'counter' and tg_op = 'UPDATE' then
     if new.sequence_key <> old.sequence_key or new.last_value < old.last_value or new.reserved_ceiling < old.reserved_ceiling then
@@ -201,7 +201,7 @@ select kernel.register_audited_table('continuity.alarm_acknowledgement', 'contin
 -- ---------------------------------------------------------------------------------------------
 
 create function continuity.require_actor() returns jsonb
-language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx jsonb := kernel.current_actor();
 begin
@@ -213,7 +213,7 @@ end
 $$;
 
 create function continuity.utc_text(p_at timestamptz) returns text
-language sql immutable set search_path = pg_catalog as $$
+language sql immutable set search_path = pg_catalog, pg_temp as $$
   select to_char(p_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 $$;
 
@@ -221,24 +221,24 @@ $$;
 -- point-in-time restore or failover (new WAL timeline), and when the continuity schema is dropped and
 -- recreated by a restore into the same database.
 create function continuity.current_incarnation() returns text
-language plpgsql stable security definer set search_path = pg_catalog, continuity as $$
+language plpgsql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
 declare
   v_timeline text;
 begin
   begin
-    v_timeline := substr(pg_walfile_name(pg_current_wal_lsn()), 1, 8);
+    v_timeline := substr(pg_catalog.pg_walfile_name(pg_catalog.pg_current_wal_lsn()), 1, 8);
   exception when others then
     v_timeline := 'recovery';
   end;
-  return (select system_identifier::text from pg_control_system()) || ':' || v_timeline || ':'
-      || (select d.oid::text from pg_database d where d.datname = current_database()) || ':'
+  return (select system_identifier::text from pg_catalog.pg_control_system()) || ':' || v_timeline || ':'
+      || (select d.oid::text from pg_catalog.pg_database d where d.datname = current_database()) || ':'
       || 'continuity.counter'::regclass::oid::text;
 end
 $$;
 
 create function continuity.raise_alarm(p_code text, p_severity text, p_subject text, p_details jsonb default '{}'::jsonb)
 returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx jsonb := continuity.require_actor();
   v_id uuid;
@@ -251,7 +251,7 @@ end
 $$;
 
 create function continuity.acknowledge_alarm(p_alarm_id uuid, p_comment text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx jsonb := continuity.require_actor();
 begin
@@ -280,15 +280,15 @@ create view continuity.open_alarm as
 create function continuity.register_protected_sequence(
   p_key text, p_sequence regclass, p_identifier_kind text, p_owner_module text, p_description text, p_restore_margin bigint
 ) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, continuity as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, pg_temp as $$
 declare
-  v_class pg_class%rowtype;
+  v_class pg_catalog.pg_class%rowtype;
 begin
-  select * into v_class from pg_class c where c.oid = p_sequence;
+  select * into v_class from pg_catalog.pg_class c where c.oid = p_sequence;
   if not found or v_class.relkind <> 'S' then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-015 %s is not a sequence', p_sequence);
   end if;
-  if pg_get_userbyid(v_class.relowner) <> 'ebmr_owner' then
+  if pg_catalog.pg_get_userbyid(v_class.relowner) <> 'ebmr_owner' then
     raise exception using errcode = 'P0001', message = format('EBMR-CONT-015 protected sequence %s must be owned by ebmr_owner', p_sequence);
   end if;
   insert into continuity.protected_sequence (sequence_key, source_kind, pg_sequence, identifier_kind, owner_module, description, restore_margin)
@@ -299,7 +299,7 @@ $$;
 create function continuity.register_protected_counter(
   p_key text, p_identifier_kind text, p_owner_module text, p_description text, p_block_size bigint default 50
 ) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, continuity as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, pg_temp as $$
 begin
   insert into continuity.protected_sequence (sequence_key, source_kind, identifier_kind, owner_module, description, block_size)
   values (p_key, 'COUNTER', p_identifier_kind, p_owner_module, p_description, p_block_size);
@@ -314,7 +314,7 @@ $$;
 -- Next value of a protected counter. Only SECURITY DEFINER functions of the owning module call this
 -- (it is not granted to the application), so every value issued is recorded by that module.
 create function continuity.next_counter_value(p_key text) returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, continuity as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, pg_temp as $$
 declare
   c continuity.counter%rowtype;
 begin
@@ -342,7 +342,7 @@ $$;
 -- database, the write-ahead rule was broken and the reservation is refused.
 create function continuity.reserve_counter_ceiling(p_key text, p_external_floor bigint, p_new_ceiling bigint, p_ledger_receipt text)
 returns bigint
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx jsonb := continuity.require_actor();
   c continuity.counter%rowtype;
@@ -397,9 +397,9 @@ $$;
 -- High-water marks of every protected source, exported with each external anchor.
 create function continuity.sequence_high_water()
 returns table (sequence_key text, source_kind text, last_value bigint, reserved_ceiling bigint)
-language sql stable security definer set search_path = pg_catalog, continuity as $$
+language sql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
   select p.sequence_key, p.source_kind,
-         case when p.source_kind = 'COUNTER' then c.last_value else coalesce(pg_sequence_last_value(p.pg_sequence), 0) end,
+         case when p.source_kind = 'COUNTER' then c.last_value else coalesce(pg_catalog.pg_sequence_last_value(p.pg_sequence), 0) end,
          c.reserved_ceiling
   from continuity.protected_sequence p
   left join continuity.counter c on c.sequence_key = p.sequence_key
@@ -409,9 +409,9 @@ $$;
 -- Invariant query (INV-27): sequences in the database that no module has registered as protected.
 -- In production it must return zero rows; after_restore still moves them forward as a safety net.
 create function continuity.unprotected_sequences() returns table (sequence_name text, owner_name text)
-language sql stable security definer set search_path = pg_catalog, continuity as $$
-  select c.oid::regclass::text, pg_get_userbyid(c.relowner)::text
-  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+language sql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
+  select c.oid::regclass::text, pg_catalog.pg_get_userbyid(c.relowner)::text
+  from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
   where c.relkind = 'S'
     and n.nspname not in ('pg_catalog', 'information_schema')
     and n.nspname not like 'pg\_toast%' and n.nspname not like 'pg\_temp%'
@@ -421,7 +421,7 @@ $$;
 
 -- Invariant query (INV-27): counters in an impossible state.
 create function continuity.number_invariant_violations() returns table (sequence_key text, problem text)
-language sql stable security definer set search_path = pg_catalog, continuity as $$
+language sql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
   select c.sequence_key, 'counter is below a value it already moved past'
   from continuity.counter c
   where c.last_value < coalesce((select max(b.value_after) from continuity.sequence_bump b where b.sequence_key = c.sequence_key), 0)
@@ -452,7 +452,7 @@ select continuity.register_protected_sequence('kernel.ddl_log.id', pg_get_serial
 
 -- p_anchor: {anchor_id, merkle_root_hex, heads: [{chain_key, seq, hash_hex}], created_at}
 create function continuity.external_anchor_problems(p_anchor jsonb) returns table (chain_key text, problem text)
-language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_id    bigint;
   v_heads jsonb := p_anchor -> 'heads';
@@ -496,7 +496,7 @@ $$;
 --                inconsistent): never covered by a restore event.
 create function continuity.compare_external_anchors(p_anchors jsonb)
 returns table (anchor_id bigint, in_database boolean, status text, problem_chains text[], problems text[])
-language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   a jsonb;
   v_chains text[];
@@ -532,7 +532,7 @@ $$;
 -- Canonical content of a restore event (timestamps rendered in UTC, so the hash does not depend on the
 -- session time zone). The content hash is sha256 over this JSON text.
 create function continuity.restore_event_content(e continuity.restore_event) returns jsonb
-language sql stable set search_path = pg_catalog, continuity as $$
+language sql stable set search_path = pg_catalog, continuity, pg_temp as $$
   select jsonb_build_object(
     'id', e.id,
     'event_kind', e.event_kind,
@@ -556,7 +556,7 @@ language sql stable set search_path = pg_catalog, continuity as $$
 $$;
 
 create function continuity.restore_event_hash_ok(p_event_id uuid) returns boolean
-language sql stable security definer set search_path = pg_catalog, continuity as $$
+language sql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
   select coalesce((select e.content_hash = sha256(convert_to(continuity.restore_event_content(e)::text, 'UTF8'))
                    from continuity.restore_event e where e.id = p_event_id), false)
 $$;
@@ -564,7 +564,7 @@ $$;
 -- Approved: the stored content still hashes to content_hash, every named approver approved that hash,
 -- and the operator is not among the approvers (two different persons).
 create function continuity.restore_event_is_approved(p_event_id uuid) returns boolean
-language sql stable security definer set search_path = pg_catalog, continuity as $$
+language sql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
   select coalesce((
     select continuity.restore_event_hash_ok(e.id)
        and not exists (select 1 from unnest(e.approver_person_ids) ap
@@ -594,7 +594,7 @@ create view continuity.restore_event_status as
 --           approver_person_ids: [uuid]}. p_external_anchors: every anchor from the external ledger.
 -- The database compares the anchors itself; the caller cannot choose what is discarded.
 create function continuity.record_restore_event(p_event jsonb, p_external_anchors jsonb) returns uuid
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx       jsonb := continuity.require_actor();
   r           continuity.restore_event%rowtype;
@@ -685,7 +685,7 @@ end
 $$;
 
 create function continuity.approve_restore_event(p_event_id uuid, p_signature_id uuid default null) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx    jsonb := continuity.require_actor();
   v_person uuid := (v_ctx ->> 'person_id')::uuid;
@@ -723,7 +723,7 @@ $$;
 -- (sequences) found in the external ledger. Values may be JSON strings or numbers.
 create function continuity.after_restore(p_restore_event_id uuid, p_external_high_water jsonb, p_unregistered_margin bigint default 1000000)
 returns table (sequence_key text, source_kind text, value_before bigint, external_value bigint, value_after bigint)
-language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql volatile security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   v_ctx   jsonb := continuity.require_actor();
   v_corr  uuid := (v_ctx ->> 'correlation_id')::uuid;
@@ -775,9 +775,9 @@ begin
       update continuity.counter k set last_value = v_after, reserved_ceiling = v_after, ceiling_incarnation = null
        where k.sequence_key = p.sequence_key;
     else
-      v_before := coalesce(pg_sequence_last_value(p.pg_sequence), 0);
+      v_before := coalesce(pg_catalog.pg_sequence_last_value(p.pg_sequence), 0);
       v_after := greatest(v_before, coalesce(v_ext, 0)) + p.restore_margin;
-      select sq.max_value into v_max from pg_sequences sq
+      select sq.max_value into v_max from pg_catalog.pg_sequences sq
        where format('%I.%I', sq.schemaname, sq.sequencename)::regclass = p.pg_sequence;
       if v_after > v_max then
         raise exception using errcode = 'P0001', message = format('EBMR-CONT-024 moving %s to %s would exceed its maximum %s', p.pg_sequence, v_after, v_max);
@@ -796,9 +796,9 @@ begin
     select u.sequence_name, u.sequence_name::regclass as seq
     from continuity.unprotected_sequences() u where u.owner_name = 'ebmr_owner'
   loop
-    v_before := coalesce(pg_sequence_last_value(s.seq), 0);
+    v_before := coalesce(pg_catalog.pg_sequence_last_value(s.seq), 0);
     v_after := v_before + p_unregistered_margin;
-    select sq.max_value into v_max from pg_sequences sq
+    select sq.max_value into v_max from pg_catalog.pg_sequences sq
      where format('%I.%I', sq.schemaname, sq.sequencename)::regclass = s.seq;
     if v_after > v_max then
       raise exception using errcode = 'P0001', message = format('EBMR-CONT-024 moving %s to %s would exceed its maximum %s', s.seq, v_after, v_max);
@@ -823,7 +823,7 @@ $$;
 -- paper path).
 create function continuity.lost_window(p_restore_event_id uuid)
 returns table (chain_key text, aggregate_type text, aggregate_id text, restored_seq bigint, external_seq bigint)
-language sql stable security definer set search_path = pg_catalog, continuity as $$
+language sql stable security definer set search_path = pg_catalog, continuity, pg_temp as $$
   select x ->> 'chain_key', split_part(x ->> 'chain_key', ':', 1), substr(x ->> 'chain_key', strpos(x ->> 'chain_key', ':') + 1),
          (x ->> 'restored_seq')::bigint, (x ->> 'external_seq')::bigint
   from continuity.restore_event e, jsonb_array_elements(e.affected_chains) x
@@ -836,7 +836,7 @@ $$;
 -- and the anchor id has not been reused in this database; otherwise it is a PROBLEM.
 create function continuity.verify_external_anchors(p_anchors jsonb)
 returns table (anchor_id bigint, status text, problem text, restore_event_id uuid)
-language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel as $$
+language plpgsql stable security definer set search_path = pg_catalog, continuity, kernel, pg_temp as $$
 declare
   a      jsonb;
   pr     record;

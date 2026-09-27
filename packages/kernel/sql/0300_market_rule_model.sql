@@ -347,7 +347,7 @@ language sql immutable set search_path = pg_catalog, market as $$
 $$;
 
 create function market.document_content_hash(p_doc jsonb) returns bytea
-language sql immutable set search_path = pg_catalog, market as $$
+language sql immutable security definer set search_path = pg_catalog, market as $$
   select sha256(convert_to(market.document_content(p_doc)::text, 'UTF8'))
 $$;
 
@@ -400,7 +400,7 @@ declare
   v_dom       jsonb;
   v_ok        boolean;
   e           record;
-  x           record;
+  q           record;
   v_lo        date;
   v_hi        date;
   v_hi_inf    boolean;
@@ -610,7 +610,7 @@ begin
   end loop;
 
   -- Cross-row checks on the well-formed rows ---------------------------------------------------
-  for x in
+  for q in
     with rr as (
       select t.ord, t.r ->> 'ref' as ref, t.r ->> 'key' as key, t.r ->> 'market' as mkt, market.nz(t.r -> 'predicate', '{}') as pred,
              daterange((t.r ->> 'effectiveFrom')::date, (market.nz(t.r -> 'effectiveTo', null) #>> '{}')::date, '[)') as win
@@ -622,12 +622,12 @@ begin
            and not exists (select 1 from jsonb_each(a.pred) pe where b.pred ? pe.key and b.pred -> pe.key <> pe.value))
     order by a.ord, b.ord
   loop
-    if x.same_pred then
+    if q.same_pred then
       problem_code := 'EBMR-MKT-024';
-      problem := format('rows %s and %s: overlapping effective windows for key %s, market %s, predicate %s', x.ref1, x.ref2, x.key, x.mkt, x.pred::text);
+      problem := format('rows %s and %s: overlapping effective windows for key %s, market %s, predicate %s', q.ref1, q.ref2, q.key, q.mkt, q.pred::text);
     else
       problem_code := 'EBMR-MKT-025';
-      problem := format('rows %s and %s: predicates overlap without one refining the other (key %s, market %s), so the branch would be ambiguous', x.ref1, x.ref2, x.key, x.mkt);
+      problem := format('rows %s and %s: predicates overlap without one refining the other (key %s, market %s), so the branch would be ambiguous', q.ref1, q.ref2, q.key, q.mkt);
     end if;
     return next;
   end loop;
@@ -653,7 +653,7 @@ begin
     end if;
   end loop;
 
-  for x in
+  for q in
     select t.r ->> 'key' as key, c ->> 'id' as id
     from jsonb_array_elements(v_rows) t(r),
          jsonb_array_elements(case when (v_keys -> (t.r ->> 'key') ->> 'method') = 'ALL_APPLY'
@@ -663,7 +663,7 @@ begin
     having count(distinct c::text) > 1
     order by 1, 2
   loop
-    problem_code := 'EBMR-MKT-028'; problem := format('key %s: criterion %s is defined differently in different rows', x.key, x.id); return next;
+    problem_code := 'EBMR-MKT-028'; problem := format('key %s: criterion %s is defined differently in different rows', q.key, q.id); return next;
   end loop;
 end
 $$;

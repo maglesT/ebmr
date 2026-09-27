@@ -229,6 +229,11 @@ begin
       raise exception using errcode = 'P0001',
         message = 'EBMR-IAM-027 service and integration accounts belong to system identities; human and display accounts belong to natural persons';
     end if;
+    if new.kind in ('HUMAN', 'SERVICE', 'INTEGRATION') and not new.is_generic and not new.is_break_glass
+       and exists (select 1 from iam.account a where a.person_id = new.person_id and a.gmp_capable and a.status <> 'DISABLED') then
+      raise exception using errcode = 'P0001',
+        message = 'EBMR-IAM-024 INV-11: the person already has a live GMP-capable account; disable it before creating another';
+    end if;
     if not exists (select 1 from iam.issued_identifier i where i.identifier = new.login_name and i.account_id = new.id) then
       raise exception using errcode = 'P0001', message = 'EBMR-IAM-021 the login name must be issued to this account in the identifier register';
     end if;

@@ -7,7 +7,7 @@
  *
  * Only Intl is used for zone rules; the display text equals platform.site_time_text in SQL.
  */
-import { Instant } from './instant.ts';
+import type { Instant } from './instant.ts';
 
 export interface SiteTime {
   /** IANA zone, e.g. Asia/Kolkata. */
@@ -45,9 +45,13 @@ function formatterFor(zone: string): Intl.DateTimeFormat {
   return f;
 }
 
-/** True when `zone` is a time-zone name the runtime's IANA data knows (bare offsets are refused). */
+/**
+ * True when `zone` is an IANA Area/Location name (or UTC) the runtime knows. Abbreviations such
+ * as IST or EST and bare offsets are refused: they are ambiguous or carry no daylight-saving
+ * rules. Same rule as platform.is_valid_time_zone.
+ */
 export function isValidTimeZone(zone: string): boolean {
-  if (zone === '' || /^[+-]/.test(zone)) return false;
+  if (zone !== 'UTC' && !/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)+$/.test(zone)) return false;
   try {
     formatterFor(zone);
     return true;

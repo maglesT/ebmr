@@ -212,7 +212,7 @@ create table iam.security_alert (
                 'AUTHENTICATION_FAILED', 'SIGNING_FAILED', 'ACCOUNT_LOCKED', 'LOCKED_ACCOUNT_USE', 'DISABLED_ACCOUNT_USE',
                 'UNKNOWN_IDENTIFIER', 'BADGE_NOT_ACTIVE', 'INITIAL_SECRET_REUSE', 'EXPIRED_SECRET_USE', 'UNREGISTERED_DEVICE',
                 'BLOCKED_DEVICE_USE', 'DEVICE_LOCATION_MISMATCH', 'DEVICE_CLASS_MISUSE', 'BREAK_GLASS_USED', 'BREAK_GLASS_REFUSED',
-                'SERVICE_ACCOUNT_INTERACTIVE_USE', 'NON_INTERACTIVE_METHOD_MISUSE')),
+                'SERVICE_ACCOUNT_INTERACTIVE_USE', 'NON_INTERACTIVE_METHOD_MISUSE', 'READ_ONLY_ACCOUNT_MISUSE')),
   severity    text not null check (severity in ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
   account_id  uuid,
   person_id   uuid,
@@ -352,5 +352,6 @@ grant select on iam.policy_key, iam.policy_value, iam.security_alert, iam.securi
 grant execute on function iam.check_scope(jsonb), iam.scope_covers(text, text, text, jsonb), iam.policy_text(text),
                           iam.policy_int(text), iam.policy_bool(text), iam.policy_values(), iam.actor_is_validated(),
                           iam.assert_validated_actor() to ebmr_app;
+grant execute on function iam.policy_text(text), iam.policy_int(text), iam.policy_bool(text) to ebmr_authn;
 
 reset role;
