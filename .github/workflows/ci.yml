@@ -17,6 +17,19 @@ jobs:
     name: Typecheck, lint, boundaries, register, tests, traceability
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ebmr_dev
+          POSTGRES_PASSWORD: ebmr_dev
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ebmr_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
