@@ -56,6 +56,11 @@ section by section and resume from where the file stops.
   REJECTED). If interrupted: relaunch with the same brief; it appends section by section.
 - Then: check resolution log covers all 103 ids, push v2, send user summary + decisions (section 13).
 
+## 3c. Build status
+- Owner approved outline v0.2 with ALL recommendations (docs/decisions/0001-outline-v0.2-decisions.md).
+- Phase 0 on branch phase-0/scaffold: workspace, register (241 YAML), boundaries, pins, trace matrix, CI, REPO-GUIDE, CLAUDE.md done;
+  ADRs 0001-0015 being written by an agent into docs/adr/. Then: PR -> CI green -> merge -> Phase 1 (kernel).
+
 ## 4. Next steps
 1. When the 3 specs finish: write the BUILD OUTLINE (Opus) from digests + architecture.md; save to outline/build-outline.md.
 2. Two critics (Opus): regulatory completeness vs control catalogs; logic loopholes & UX. Apply fixes.
@@ -91,4 +96,4 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Commit ff6f280 on main (2026-09-27 ~18:15 UTC): docs/regulatory (review pack, catalogs, register, verification, research,
   sources-extracted), docs/design (architecture, edition specs, features/UX, sample analysis), tools/regulatory, PROGRESS.md.
   From now on: keep PROGRESS.md in the repo root current and push after each milestone (repo is the primary backup;
-  the artifact backup is secondary). Code work: use feature branches + PRs unless the user prefers pushing to main.
+  the artifact backup is secondary). Code work: feature branch per phase + PR. OWNER AUTHORISED AUTO-MERGE (2026-09-27): merge each PR myself once all CI checks pass.
