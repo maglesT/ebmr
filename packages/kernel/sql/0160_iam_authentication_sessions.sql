@@ -107,6 +107,7 @@ create table iam.session (
   site_code                 text not null,
   room_code                 text,
   shop_floor                boolean generated always as (device_class in ('SHARED', 'GRADE_A_B')) stored,
+  personal                  boolean not null,
   opened_by_auth_event      uuid not null references iam.auth_event (id),
   opened_at                 timestamptz not null default clock_timestamp(),
   idle_timeout_seconds      integer not null check (idle_timeout_seconds > 0),
@@ -119,8 +120,9 @@ create table iam.session (
   foreign key (account_id, person_id) references iam.account (id, person_id),
   check ((ended_at is null) = (end_reason is null))
 );
--- One active shop-floor session per person: a login elsewhere ends the old one (outline 4.7).
-create unique index session_one_shop_floor_per_person on iam.session (person_id) where shop_floor and ended_at is null;
+-- One active shop-floor session per person on their personal account: a login elsewhere ends the
+-- old one (outline 4.7). A line display's read-only account does not count against its owner.
+create unique index session_one_shop_floor_per_person on iam.session (person_id) where shop_floor and personal and ended_at is null;
 create index session_account on iam.session (account_id) where ended_at is null;
 create index session_device on iam.session (device_id) where ended_at is null;
 
@@ -136,6 +138,7 @@ begin
   end if;
   if new.id <> old.id or new.account_id <> old.account_id or new.person_id <> old.person_id or new.device_id <> old.device_id
      or new.device_class <> old.device_class or new.site_code <> old.site_code or new.room_code is distinct from old.room_code
+     or new.personal <> old.personal
      or new.opened_by_auth_event <> old.opened_by_auth_event or new.opened_at <> old.opened_at
      or new.idle_timeout_seconds <> old.idle_timeout_seconds or new.absolute_timeout_seconds <> old.absolute_timeout_seconds
      or old.ended_at is not null then
@@ -652,6 +655,7 @@ declare
   v_abs  integer;
   v_room text;
   v_site text;
+  v_personal boolean;
   s      uuid;
 begin
   if not (v_dev ->> 'accepted')::boolean then
@@ -675,8 +679,9 @@ begin
   if v_acc.is_break_glass and iam.break_glass_open(v_acc.id, clock_timestamp()) is null then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-130 the break-glass window has closed';
   end if;
-  if v_ev.device_class in ('SHARED', 'GRADE_A_B') then
-    for s in select id from iam.session where person_id = v_ev.person_id and shop_floor and ended_at is null loop
+  v_personal := v_acc.kind = 'HUMAN' and not v_acc.is_generic;
+  if v_ev.device_class in ('SHARED', 'GRADE_A_B') and v_personal then
+    for s in select id from iam.session where person_id = v_ev.person_id and shop_floor and personal and ended_at is null loop
       perform iam.end_session_internal(s, 'SUPERSEDED');
     end loop;
   end if;
@@ -684,8 +689,8 @@ begin
   v_abs := iam.policy_int('session.absolute_timeout_seconds');
   select room_code, site_code into v_room, v_site from iam.device where id = v_ev.device_id;
   insert into iam.session (account_id, person_id, device_id, device_class, site_code, room_code, opened_by_auth_event,
-                           idle_timeout_seconds, absolute_timeout_seconds)
-  values (v_ev.account_id, v_ev.person_id, v_ev.device_id, v_ev.device_class, v_site, v_room, v_ev.id, v_idle, v_abs)
+                           idle_timeout_seconds, absolute_timeout_seconds, personal)
+  values (v_ev.account_id, v_ev.person_id, v_ev.device_id, v_ev.device_class, v_site, v_room, v_ev.id, v_idle, v_abs, v_personal)
   returning id into v_id;
   insert into iam.session_activity (session_id, last_activity_at) values (v_id, clock_timestamp());
   insert into iam.session_event (session_id, event, auth_event_id) values (v_id, 'OPENED', v_ev.id);

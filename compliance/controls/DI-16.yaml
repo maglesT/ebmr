@@ -23,11 +23,34 @@ behaviour: |-
   - A leaver event from HR or the IdP disables the account. DESIGN-CHOICE default: the same business day. No rule sets a time.
   - Periodic access recertification by the area owners records the reviewer, the outcome and each user's last activity. DESIGN-CHOICE default: every 6 months; allowed 3-12 months.
 catalog_test: Produce the role list as of a past date and reconcile it with the access-request records. Disable a leaver, then try to log in and to sign. Both fail.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/identity/admin.ts"
+    - "packages/kernel/sql/0120_iam_roles_grants.sql"
+    - "packages/kernel/sql/0180_iam_lifecycle.sql"
+  guards:
+    - "iam.role_grant_guard: requester, approver and grantee are three different persons; reason recorded; request, approval and revocation times from the database clock"
+    - "iam.access_list(at): point-in-time list of persons, accounts, roles, permissions and scopes with the access-request record behind each row"
+    - "iam.revoke_role_grant: effective at the revocation instant for commands and authority evaluations"
+    - "iam.recertify_account and iam.recertification_due: reviewer, outcome, last activity and next due date; a REVOKED outcome revokes at once"
+    - "iam.deactivate_account and iam.process_leaver: disable, revoke grants, end sessions, revoke credentials and badges in one transaction"
+  db_constraints:
+    - "iam.role_grant check constraints and guard trigger; grants audited on the account chain"
+    - "iam.access_recertification insert-only and audited"
+  policies:
+    - "recertification.interval_months"
+tests:
+  - "packages/kernel/test/identity/access.test.ts > [DI-16] a disabled leaver can neither log in nor sign, and loses sessions, grants and badges at once"
+  - "packages/kernel/test/identity/access.test.ts > [DI-16] a newly granted role is usable at once and appears in the access list"
+  - "packages/kernel/test/identity/access.test.ts > [DI-16] recertification records reviewer, outcome, last activity and the due date; a REVOKED outcome removes access at once"
+  - "packages/kernel/test/identity/access.test.ts > [DI-16] revocation is effective immediately: the next command and authority check fail"
+  - "packages/kernel/test/identity/access.test.ts > [DI-16] the recertification interval is a policy value allowed between 3 and 12 months"
+  - "packages/kernel/test/identity/access.test.ts > [DI-16] the role list as of a past date reconciles with the access-request records"
+  - "packages/kernel/test/identity/access.test.ts > [DI-16][DI-18] the requester never approves, nobody approves their own grant, nobody requests a role for themselves"
+  - "packages/kernel/test/identity/accounts.test.ts > [INV-27][DI-16] a rehired person keeps the same person record, needs a new identity check and gets a new login name"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: EU §12.3 explicitly requires recording of access changes. FDA Q4 recommends a documented privilege list. Both apply.
 type_detail: ENFORCED for recording and point-in-time reports. CONFIGURABLE for timings (no regulatory numbers exist).

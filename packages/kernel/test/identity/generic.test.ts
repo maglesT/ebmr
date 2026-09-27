@@ -85,6 +85,33 @@ describe('no shared write-capable accounts (DI-14)', () => {
     expect(can.rows[0]?.r.reasons).toContain('ACCOUNT_KIND_CANNOT_SIGN');
   });
 
+  it('[DI-14] a line display owned by a shop-floor worker does not end the worker\'s personal kiosk session', async () => {
+    const worker = await seedActor(db, { deviceClass: 'SHARED', acknowledgeEsig: false });
+    const loginName = `disp-${hex()}`;
+    const { accountId, secret } = await asAdmin(async (c) => {
+      const id = await createAccount(c, { personId: worker.personId, loginName, kind: 'READONLY_DISPLAY' });
+      const s = await issueInitialSecret(c, id, 'PASSWORD');
+      await activateAccount(c, id);
+      return { accountId: id, secret: s.secret };
+    });
+    const g = await asAdmin((c) => requestRoleGrant(c, { accountId, roleCode: 'STATUS_DISPLAY', reason: 'line status screen' }));
+    await asOwner((c) => decideRoleGrant(c, g, true, 'read-only'));
+    const fp = randomBytes(32).toString('hex');
+    await asAdmin((c) => registerDevice(c, { code: `DSP-${hex()}`, deviceClass: 'SHARED', site: SEED_SITE, fingerprint: fp, description: 'line display' }));
+    const authn = seedAuthn(db);
+    const first = await authenticate(authn, { method: 'PASSWORD', identifier: loginName, secret, deviceFingerprint: fp, purpose: 'LOGIN' });
+    const password = `Display-${hex(8)}`;
+    await changeSecret(authn, { authEventId: first.authEventId, kind: 'PASSWORD', newSecret: password });
+    const ev = await authenticate(authn, { method: 'PASSWORD', identifier: loginName, secret: password, deviceFingerprint: fp, purpose: 'LOGIN' });
+    const displaySession = await openSession(db.app, ev.authEventId, fp);
+    const states = await db.app.query<{ worker: string; display: string }>('select iam.session_state($1) as worker, iam.session_state($2) as display', [
+      worker.sessionId,
+      displaySession.sessionId,
+    ]);
+    expect(states.rows[0]).toEqual({ worker: 'ACTIVE', display: 'ACTIVE' });
+    await withCommand(db.app, await withFreshAuth(db, worker), (c) => c.query('select 1'));
+  });
+
   it('[DI-14] a service account attempting a signature is blocked everywhere', async () => {
     const svc = await seedServiceActor(db);
     await expectRefused(asAdmin((c) => requestRoleGrant(c, { accountId: svc.accountId, roleCode: 'VERIFIER', reason: 'auto-verify' })), 'EBMR-IAM-035', /DI-14/);

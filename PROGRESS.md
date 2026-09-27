@@ -162,3 +162,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   continuity.alarm -> platform alarms; iam permission checks on restore/attestation/alarm functions; CI needs
   pg_dump/pg_restore 16 on the runner. Owner decisions: RPO/RTO and backup schedule proposals, WORM storage product,
   DB-admin vs storage-admin separation. Residual risk: data-only reload keeps DB incarnation (caught by ledger check only).
+- 2026-09-27 ~21:35 UTC: B1 (identity and access) finished: 94 tests; DI-14..DI-21 IMPLEMENTED; INV-11, INV-26, INV-40 and
+  the login-name part of INV-27 proven. New login role ebmr_authn (dev password; production needs a vault credential).
+  kernel.validate_actor_context replaced (0190). B2 (e-signatures) launched with identity notes appended to its brief.
+  B1 integration items: SECURITY GAP: any role can set_config('ebmr.ctx') and skip begin_command, forging attribution on
+  tables the app writes directly -> kernel.current_actor/append_audit_event must require a validated command
+  (iam.assert_validated_actor / command_log); switch every module's testActor to seedActor/seedServiceActor; export
+  identity; wire iam.assert_not_administrator into GMP write paths; B6 device hardening into iam.register_device/open_session
+  (add INSTRUMENT class to continuity's list); optional FKs to iam tables; IAM policy values may move into market policies.

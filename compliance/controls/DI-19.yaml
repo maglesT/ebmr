@@ -25,11 +25,44 @@ behaviour: |-
   - Badges and tokens are tested when issued and periodically, and the results are recorded.
   - There is no "remember password", and administrators can never see passwords.
 catalog_test: Make 5 failed signing attempts. The account locks and the security unit receives the alert within the configured time. A revoked badge cannot authenticate. Badge test records exist.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/identity/authentication.ts"
+    - "packages/kernel/src/identity/secrets.ts"
+    - "packages/kernel/sql/0100_iam_foundation.sql"
+    - "packages/kernel/sql/0150_iam_credentials_badges.sql"
+    - "packages/kernel/sql/0160_iam_authentication_sessions.sql"
+  guards:
+    - "lockout after authn.lockout_threshold consecutive failed login or signing attempts (default 5, allowed 3-5); sessions end; unlock is an attributed administrator act on the audit chain"
+    - "iam.raise_alert with NOTIFY ebmr_security_alert for failed logins and signings, use of locked or disabled accounts, inactive badges, unknown identifiers and devices; acknowledgement tracked; iam.escalate_overdue_alerts"
+    - "badges: secure technologies only; activation after a passing test at issue; periodic tests (iam.badges_due_for_test); lost or revoked badges de-authorised at once; replacement only after identity re-verification"
+    - "secrets: argon2id verifiers in iam.credential_secret, unreadable by ebmr_app and never in the audit trail; plaintext only in the authentication service (role ebmr_authn)"
+    - "password aging or compromised-password screening must be active (EBMR-IAM-111); policy and history checks when a secret changes"
+  policies:
+    - "authn.lockout_threshold"
+    - "alert.ack_deadline_seconds"
+    - "credential.password_max_age_days"
+    - "credential.compromised_screening"
+    - "credential.password_min_length"
+    - "credential.pin_length"
+    - "credential.password_history"
+    - "badge.test_interval_days"
+tests:
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] a change-secret event is single-use and needs the current secret of that kind"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] a configuration with neither password aging nor compromised-password screening is refused"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] a new secret must meet policy and differ from recent ones"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] a replacement badge is issued only after the identity is verified again"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] a revoked or lost badge cannot authenticate, and its use is alerted"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] administrators never see secrets: verifiers are unreadable by the application and absent from the audit trail"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] an aged password proves identity only to change it: no session and no signature until it is changed"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] badge test records exist: activation needs a passing test at issue, and periodic tests are tracked"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] clonable badge technology and reused badge UIDs are refused"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] five failed signing attempts lock the account and the security unit is alerted at once"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] the lockout threshold is a policy value allowed between 3 and 5"
+  - "packages/kernel/test/identity/credentials.test.ts > [DI-19] unanswered alerts escalate; acknowledgement is tracked and never by the person concerned"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: 11.300(d) requires immediate and urgent reporting of attempted misuse, which is stricter than the 2011 EU text. The EU draft adds lockout. Both apply.
 type_detail: ENFORCED (mechanisms). CONFIGURABLE (numeric values). Neither Part 11 nor Annex 11 (2011) sets any number for password length, aging, lockout count or alert time.

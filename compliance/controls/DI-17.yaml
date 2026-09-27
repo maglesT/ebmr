@@ -31,11 +31,32 @@ behaviour: |-
   - Data is isolated between sites by default.
   - Status changes on materials, intermediates and batches are QU-only e-signatures; the details are in the production catalog.
 catalog_test: Run a permission-matrix suite with positive and negative tests for every role and action. The performer tries to verify their own entry. Refused. A batch executor tries to sign disposition of that batch. Refused. A role without the QU function tries to sign "Approved for release". Refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/identity/authority.ts"
+    - "packages/kernel/sql/0130_iam_qualifications_authority.sql"
+    - "packages/kernel/sql/0170_iam_signing_readiness.sql"
+  invariants:
+    - "INV-26"
+  guards:
+    - "iam.evaluate_authority(person, account, permission, scope, at): a role grant covering the scope plus every required qualification at that instant; every evaluation stored with its inputs"
+    - "iam.require_permission: refuses with EBMR-IAM-040; withGuardedCommand stores the refusal again outside the rolled-back command"
+    - "iam.assert_segregated and iam.evaluate_segregation: dynamic segregation evaluated on the person, every evaluation stored"
+    - "iam.record_entry_persons and iam.chain_persons: persons involved in a record or batch from the audit trail (stand-in until B2 signatures and the Phase 4 involvement set)"
+    - "iam.delegation_valid: delegation checked at the moment of action; approver is neither delegate nor delegator; no re-delegation"
+  db_constraints:
+    - "grant scopes (site, area, product): a grant covers only its own scope, so data stay isolated between sites"
+tests:
+  - "packages/kernel/test/identity/access.test.ts > [DI-17] a failed authority check blocks the action and is logged"
+  - "packages/kernel/test/identity/access.test.ts > [DI-17] a person who executed a step of a batch cannot sign that batch's disposition"
+  - 'packages/kernel/test/identity/access.test.ts > [DI-17] a role without the quality-unit release function cannot sign "Approved for release"'
+  - "packages/kernel/test/identity/access.test.ts > [DI-17] data is isolated between sites: a grant covers only its own site, area and product"
+  - "packages/kernel/test/identity/access.test.ts > [DI-17] permission matrix: every kernel role allows exactly its permissions and nothing else"
+  - "packages/kernel/test/identity/access.test.ts > [DI-17] the performer of an entry cannot verify it (segregation on the person)"
+  - "packages/kernel/test/identity/authority.test.ts > [DI-17] a named delegate holds a delegation only as approved by someone else, within its window, meanings, scope and markets"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: US second-person rules (211.101, 211.103, 211.186(a), 211.188(b)(11)) require the checker to be someone other than the performer. EU Ch.4 asks for a checker "where appropriate". The stricter US rule applies.
 type_detail: "ENFORCED for the checks, performer-not-verifier and author-not-checker. The executor-not-reviewer/disposer rule is a DESIGN-CHOICE, engine-enforced: it is good practice supporting QU independence and the draft's independent-reviewer expectation, not explicit rule text."

@@ -24,10 +24,52 @@ behaviour: |-
   - On shared terminals, each entry is attributed to the person who authenticated for that entry. Re-authentication is fast (e.g., badge plus PIN).
   - Injectables: cleanroom terminals use a method that works with gloves (badge/RFID plus PIN, or biometrics), so a shared login is never needed.
 catalog_test: Assign a write permission to an account flagged generic. Refused. A service account attempts a signature. Blocked. A directory scan finds no generic account holding GMP permissions.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/identity/authority.ts"
+    - "packages/kernel/src/identity/sessions.ts"
+    - "packages/kernel/sql/0120_iam_roles_grants.sql"
+    - "packages/kernel/sql/0160_iam_authentication_sessions.sql"
+    - "packages/kernel/sql/0180_iam_lifecycle.sql"
+    - "packages/kernel/sql/0190_iam_actor_context.sql"
+  invariants:
+    - "INV-11"
+    - "INV-40"
+  guards:
+    - "iam.check_static_segregation (triggers on iam.role_grant and iam.role_permission): generic and READONLY_DISPLAY accounts hold READ permissions only; SERVICE and INTEGRATION accounts never hold SIGN or ACKNOWLEDGE permissions"
+    - "kernel.validate_actor_context: generic and read-only display accounts can never start a command (EBMR-IAM-106); sources SYSTEM and INTEGRATION only for service accounts, UI and API only for people"
+    - "iam.authn_resolve: service keys only for service accounts on SERVER devices, interactive methods never for service accounts, read-only accounts never authenticate to act or sign (alerted)"
+    - "INV-40: every command on a SHARED or GRADE_A_B device consumes a fresh authentication event of its own person made on that device (kernel.validate_actor_context, iam.use_auth_event_for_command)"
+  db_constraints:
+    - "iam.account_one_gmp_account_per_person (partial unique index)"
+    - "iam.directory_scan(): invariant query, zero rows expected"
+  policies:
+    - "attribution.freshness_seconds.SHARED"
+    - "attribution.freshness_seconds.GRADE_A_B"
+    - "session.idle_timeout_seconds.SHARED"
+    - "session.idle_timeout_seconds.GRADE_A_B"
+tests:
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-14] service and integration accounts belong to system identities, people's accounts to natural persons"
+  - "packages/kernel/test/identity/attribution.test.ts > [DI-14] each validated command is logged with its transaction, context hash, session and authentication event"
+  - "packages/kernel/test/identity/attribution.test.ts > [DI-14] every GMP action needs a real, active, individually assigned account, its own live session and a role it holds"
+  - "packages/kernel/test/identity/attribution.test.ts > [DI-14] service identities act only with source SYSTEM or INTEGRATION and people never do"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-14] a kiosk session locks after the idle timeout and only its own person can unlock it"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-14] a login event opens one session only, on the device where it was made, and never after the secret must change"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-14] extending a shop-floor session before the lock needs a badge tap of the session owner"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-14] one active shop-floor session per person: a login on another terminal ends the old one"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-14] the absolute timeout ends a session whatever its activity; logout ends it at once"
+  - "packages/kernel/test/identity/generic.test.ts > [DI-14] a directory scan finds no generic account holding GMP permissions, and it would find one"
+  - "packages/kernel/test/identity/generic.test.ts > [DI-14] a line display owned by a shop-floor worker does not end the worker's personal kiosk session"
+  - "packages/kernel/test/identity/generic.test.ts > [DI-14] a read-only display account can log in to view but is technically unable to start any command"
+  - "packages/kernel/test/identity/generic.test.ts > [DI-14] a service account attempting a signature is blocked everywhere"
+  - "packages/kernel/test/identity/generic.test.ts > [DI-14] assigning a write permission to an account flagged generic is refused at assignment"
+  - "packages/kernel/test/identity/generic.test.ts > [DI-14] on a shared terminal each entry belongs to the person who authenticated for that entry"
+  - "packages/kernel/test/identity/seed.test.ts > [DI-14] a seeded operator on a personal device runs a GMP command attributed to their person, account, session and device"
+  - "packages/kernel/test/identity/seed.test.ts > [DI-14] a seeded service account runs commands with source SYSTEM"
+  - "packages/kernel/test/identity/seed.test.ts > [DI-14] the installation bootstrap yields an administrator and a process owner who can run commands"
+  - "packages/kernel/test/identity/seed.test.ts > [DI-14][INV-40] a seeded operator on a shared device runs one command per fresh badge tap"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: Both markets allow shared read-only viewing (FDA Q5; draft). Neither allows shared accounts for any action, including second-person review.

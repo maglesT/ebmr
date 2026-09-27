@@ -20,11 +20,28 @@ behaviour: |-
   - For steps where the MBR declares device binding, data is accepted only from a registered device assigned to that step's location. Recipe downloads go only to the registered equipment for the step.
   - A measuring device can be used only if it is within calibration and has passed any required pre-use check. The calibration details are in the production catalog.
 catalog_test: Data arriving from an unregistered or relocated scale is rejected with an alert. A stored weight shows its source balance ID.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/identity/sessions.ts"
+    - "packages/kernel/sql/0140_iam_devices.sql"
+    - "packages/kernel/sql/0160_iam_authentication_sessions.sql"
+    - "packages/kernel/sql/0190_iam_actor_context.sql"
+  guards:
+    - "iam.resolve_device: identity from the enrolled key or certificate fingerprint; unknown, blocked or decommissioned devices refused with an alert"
+    - "iam.check_device_location: data accepted only from a device registered to that room or line; a mismatch is refused with an alert"
+    - "sessions are bound to the device of their LOGIN event; kernel.validate_actor_context requires the context to name the session device (EBMR-IAM-116)"
+  db_constraints:
+    - "GRADE_A_B devices have a room and INSTRUMENT devices a room or line; code, class, site and enrolled key never change"
+tests:
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] a Grade A/B terminal is bound to its room"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] a stored weight carries the registry ID of its source balance, resolved by the server from the balance key"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] blocked and decommissioned devices are refused and their sessions end"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] data arriving from an unregistered device is rejected with an alert"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] data from a relocated balance is rejected with an alert until the registry is updated"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] every entry stores the server-derived device; a client-claimed device is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: 11.10(h) is the only explicit device-check rule. The EU reaches a similar result through §5 built-in checks.
 type_detail: CONFIGURABLE for device-to-location binding per step. The rule applies it "as appropriate". Default ON for weighing, dispensing and critical-parameter capture; it can be turned OFF only for non-critical steps, with a rationale. The device registry and the source-ID stamp are ENFORCED.
