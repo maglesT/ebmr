@@ -10,10 +10,9 @@ import { ebmrCode } from '../../src/identity/errors.ts';
 import { type TestDatabase, urlFor } from '../support/db.ts';
 import { seedActor, type SeedActorOptions, type SeededActor } from './seed.ts';
 
-export async function testActor(db: TestDatabase, overrides?: Partial<ActorContext> & SeedActorOptions): Promise<SeededActor> {
-  const seeded = await seedActor(db, overrides ?? {});
-  const { roleCode: _r, scope: _s, deviceClass: _d, roomCode: _m, acknowledgeEsig: _a, withBadge: _b, withPin: _p, ...ctx } = overrides ?? {};
-  return { ...seeded, ...ctx };
+export async function testActor(db: TestDatabase, options: SeedActorOptions = {}, overrides: Partial<ActorContext> = {}): Promise<SeededActor> {
+  const seeded = await seedActor(db, options);
+  return { ...seeded, ...overrides, deviceId: overrides.deviceId ?? seeded.deviceId };
 }
 
 /** A real login pool for the authentication-service role (to prove its privileges end-to-end). */

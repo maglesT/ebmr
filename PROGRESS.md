@@ -140,3 +140,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Owner/expert questions from B4: MAJOR incidents also need root cause + CAPA (peak severity counts); DERIVED class refused
   for decision data (stricter than "not informational"); retention stays OPEN when inputs are missing; design-default rules
   for aborted and never-certified EU batches; CERT-In 6 h and Form 25/28 periods unverified.
+- 2026-09-27 ~21:10 UTC: B3 (market-profile engine) finished: 105 tests; IN-52 IMPLEMENTED; INV-28 (fast-check, TS and SQL
+  engines agree), INV-29, INV-47 proven. Rule tables in compliance/rule-tables/{kernel,tablets,sterile}/*.v1.yaml.
+  B3 integration items: export as namespace `market`; publish seed rule tables at install/upgrade via
+  syncRuleTables(pool, actor, 'compliance/rule-tables') (not in a migration: needs an actor); permission-gate
+  publish_rule_table, set_site_value, define_policy/set_policy_version, apply_policy_tightening via iam; approval uuids
+  -> esig; B4 retention to read kernel.retention.* keys; optional FKs (published_by etc. -> iam.person).
+  Owner/expert questions from B3: DESIGN values refused as site-value loosening (locks APS acceptance per Decision 2 and
+  6-month HEPA A/B per outline 5.9 #17) but IN-43's catalog test expects India-only warn at 6 / block at 12 months;
+  seed-data interpretations (B-01 mfg + 5 y for every licence form; EU test records as batch documentation; management
+  review and EU PUPSIT typed GUIDANCE; FDA 2004 values GUIDANCE; unverified rows flagged S/U/GK; unverifiable effective
+  dates default to 2023-12-28).

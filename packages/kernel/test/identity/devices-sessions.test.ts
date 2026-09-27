@@ -2,12 +2,22 @@
  * Device registry and server-side sessions (DI-20; DI-14 attribution on shared terminals;
  * DI-16 session end on access changes).
  */
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { withCommand } from '../../src/db/command.ts';
+import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { registerDevice, setDeviceStatus, setPolicy } from '../../src/identity/admin.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
-import { assertDeviceLocation, endSession, keepSessionAlive, lockSession, openSession, resolveDevice, sessionState, unlockSession } from '../../src/identity/sessions.ts';
+import {
+  assertDeviceLocation,
+  deviceFingerprint,
+  endSession,
+  keepSessionAlive,
+  lockSession,
+  openSession,
+  resolveDevice,
+  sessionState,
+  unlockSession,
+} from '../../src/identity/sessions.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asTimeTraveller, expectRefused } from './helpers.ts';
 import { freshAuthEvent, SEED_SITE, seedActor, seedAdministration, seedAuthn, withFreshAuth, withReason, type SeedAdministration, type SeededActor } from './seed.ts';
@@ -47,8 +57,8 @@ describe('device registry (DI-20)', () => {
     expect(await resolveDevice(db.app, fp)).toMatchObject({ deviceId: balance, deviceClass: 'INSTRUMENT', roomCode: 'DISP-1' });
     await assertDeviceLocation(db.app, balance, 'DISP-1');
     await expectRefused(assertDeviceLocation(db.app, balance, 'DISP-2'), 'EBMR-IAM-073');
-    const alert = await db.app.query("select details from iam.security_alert where device_id = $1 and kind = 'DEVICE_LOCATION_MISMATCH'", [balance]);
-    expect(alert.rows[0]?.['details']).toMatchObject({ registered_room: 'DISP-1', requested_room: 'DISP-2' });
+    const alert = await db.app.query<{ details: Record<string, unknown> }>("select details from iam.security_alert where device_id = $1 and kind = 'DEVICE_LOCATION_MISMATCH'", [balance]);
+    expect(alert.rows[0]?.details).toMatchObject({ registered_room: 'DISP-1', requested_room: 'DISP-2' });
     await asAdmin((c) => c.query("select iam.relocate_device($1, 'DISP-2', null, 'moved to booth 2 under change control CC-17')", [balance]));
     await assertDeviceLocation(db.app, balance, 'DISP-2');
     await expectRefused(assertDeviceLocation(db.app, balance, 'DISP-1'), 'EBMR-IAM-073');
@@ -57,12 +67,33 @@ describe('device registry (DI-20)', () => {
     await expect(passwordAuth(op, 'LOGIN', fp)).rejects.toMatchObject({ reason: 'DEVICE_CLASS_MISUSE' });
   });
 
+  it('[DI-20] a stored weight carries the registry ID of its source balance, resolved by the server from the balance key', async () => {
+    // Stand-in until Phase 2 data points (which store source_device_id): the gateway presents the
+    // balance's key fingerprint, the server resolves and location-checks it, and the value is stored
+    // with the registry ID; the terminal that committed it is in the audit actor.
+    const fp = fingerprint();
+    const balance = await asAdmin((c) =>
+      registerDevice(c, { code: `BAL-${randomBytes(3).toString('hex')}`, deviceClass: 'INSTRUMENT', site: SEED_SITE, room: 'DISP-3', fingerprint: fp, description: 'balance B-17' }));
+    const op = await seedActor(db, { roomCode: 'DISP-3', acknowledgeEsig: false });
+    const source = await resolveDevice(db.app, fp);
+    await assertDeviceLocation(db.app, source.deviceId, 'DISP-3');
+    const batch = randomUUID();
+    await withCommand(db.app, op, (c) => c.query("insert into testgmp.sample (batch_id, value, note) values ($1, 12.503, 'source_device:' || $2)", [batch, source.deviceId]));
+    const { rows } = await db.app.query<{ note: string; terminal: string }>(
+      "select s.note, e.payload -> 'actor' ->> 'device_id' as terminal from testgmp.sample s join kernel.audit_event e on e.chain_key = 'batch:' || s.batch_id where s.batch_id = $1",
+      [batch],
+    );
+    expect(rows).toEqual([{ note: `source_device:${balance}`, terminal: op.deviceId }]);
+    expect(deviceFingerprint(Buffer.from('certificate-der'))).toBe(createHash('sha256').update('certificate-der').digest('hex'));
+  });
+
   it('[DI-20] every entry stores the server-derived device; a client-claimed device is refused', async () => {
     const op = await seedActor(db, { acknowledgeEsig: false });
     const other = await seedActor(db, { acknowledgeEsig: false });
     await expectRefused(insert({ ...op, deviceId: other.deviceId }), 'EBMR-IAM-116', /DI-20/);
     await expectRefused(insert({ ...op, deviceId: randomUUID() }), 'EBMR-IAM-116');
-    const { deviceId: _omit, ...noDevice } = op;
+    const noDevice: ActorContext = { ...op };
+    delete noDevice.deviceId;
     await expectRefused(insert(noDevice), 'EBMR-IAM-116');
     const batch = randomUUID();
     await insert(op, batch);

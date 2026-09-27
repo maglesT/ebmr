@@ -95,11 +95,11 @@ describe('access life cycle (DI-16)', () => {
       expect(audit.rows[1]).toEqual({ action: 'UPDATE', person: bootstrap.rowCount ? g['requested_by_person'] : g['decided_by_person'] });
     }
     // And the list is complete: nothing held at t2 is missing from it.
-    const direct = await db.app.query(
+    const direct = await db.app.query<{ n: number }>(
       'select count(*)::int as n from iam.role_grant g where iam.grant_held_at(g.status, g.decided_at, g.valid_from, g.valid_to, g.revoked_at, $1)',
       [t2],
     );
-    expect((await list(t2)).length).toBe(direct.rows[0]?.['n']);
+    expect((await list(t2)).length).toBe(direct.rows[0]?.n);
   });
 
   it('[DI-16] a disabled leaver can neither log in nor sign, and loses sessions, grants and badges at once', async () => {

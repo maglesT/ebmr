@@ -112,6 +112,7 @@ Assumptions: the database superuser and the storage root account are held by dif
 | BK-5 | I | Backup content exposed. | Encryption before leaving the host; key in KMS; only its reference stored. | DI-13 | `backup-drill.test.ts` |
 | BK-6 | D | Backup jobs fail silently. | Failure recorded, alarm raised, non-zero exit, periodic drills. | DI-45 | `backup-drill.test.ts` |
 | BK-7 | E | A restore is used to erase an unwelcome record. | A restore needs an approved event that names the discarded history; a lost-window incident follows; anchors outside the database still show what existed. | DI-45, INV-08 | `restore.test.ts` |
+| BK-8 | S | A person records a fake successful backup or drill to hide a failing job. | Backup-job and drill records are accepted only from a system service account (source SYSTEM); proposal: reconcile the backup store's own inventory with the catalogue at each drill. | DI-45 | `backup-drill.test.ts` (source check); reconciliation Phase 7 |
 
 ## 8. Administration console
 

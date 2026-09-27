@@ -56,10 +56,10 @@ async function restoreInput(approvers: string[]): Promise<RestoreEventInput> {
 beforeAll(async () => {
   source = await createTestDatabase();
   ledger = tempLedger('restore-source', dir.path);
-  ops = await testActor(source, { roleCode: 'SYSTEM_SERVICE', source: 'SYSTEM' });
+  ops = await testActor(source, { roleCode: 'SERVICE_ACCOUNT', source: 'SYSTEM' });
   operator = await testActor(source, { roleCode: 'SYSTEM_ADMINISTRATOR', legalName: 'Restore Operator' });
-  approver = await testActor(source, { roleCode: 'QA_APPROVER', legalName: 'QA Approver' });
-  bystander = await testActor(source, { roleCode: 'QA_APPROVER', legalName: 'Someone Else' });
+  approver = await testActor(source, { roleCode: 'QA_REVIEWER', legalName: 'QA Approver' });
+  bystander = await testActor(source, { roleCode: 'QA_REVIEWER', legalName: 'Someone Else' });
   await installNumberStub(source, KEY, 3);
 
   // History and numbers before the backup.

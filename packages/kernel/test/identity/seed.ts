@@ -48,6 +48,8 @@ export interface SeedInfo {
 }
 
 export interface SeededActor extends ActorContext {
+  /** Always present: the session's device, derived by the server from the enrolled key. */
+  deviceId: string;
   seed: SeedInfo;
 }
 

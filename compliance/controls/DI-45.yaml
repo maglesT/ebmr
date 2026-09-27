@@ -62,6 +62,7 @@ tests:
   - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a successful retention-grade backup is encrypted, hashed, write-once and catalogued"
   - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a failing backup job is logged, raises an alarm, writes its report and exits non-zero"
   - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a catalogued backup cannot be deleted or altered through the database, not even by the table owner"
+  - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a person at a terminal cannot record a backup or a drill result; only the system service account can"
   - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a retention-grade backup cannot be catalogued without write-once retention"
   - "packages/kernel/test/continuity/restore.test.ts > [INV-08][DI-45] a restore event needs a second, named person: the operator cannot approve it and approval is refused to anyone not named"
 expert_decision:

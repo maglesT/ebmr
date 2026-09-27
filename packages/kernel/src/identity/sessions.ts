@@ -13,6 +13,8 @@ import { IdentityError } from './errors.ts';
 
 type Queryable = pg.Pool | pg.PoolClient;
 
+const text = (v: unknown, fallback: string): string => (typeof v === 'string' ? v : fallback);
+
 export type DeviceClass = 'PERSONAL' | 'SHARED' | 'GRADE_A_B' | 'SERVER' | 'INSTRUMENT';
 
 export interface DeviceInfo {
@@ -48,7 +50,7 @@ export async function resolveDevice(db: Queryable, fingerprint: string): Promise
   const { rows } = await db.query<{ r: Record<string, string | boolean | null> }>('select iam.resolve_device($1) as r', [fingerprint]);
   const r = rows[0]?.r;
   if (!r || r['accepted'] !== true) {
-    throw new IdentityError(String(r?.['code'] ?? 'EBMR-IAM-070'), `device refused (${String(r?.['reason'] ?? 'UNREGISTERED_DEVICE')})`);
+    throw new IdentityError(text(r?.['code'], 'EBMR-IAM-070'), `device refused (${text(r?.['reason'], 'UNREGISTERED_DEVICE')})`);
   }
   return {
     deviceId: String(r['device_id']),
@@ -65,7 +67,7 @@ export async function assertDeviceLocation(db: Queryable, deviceId: string, room
   const { rows } = await db.query<{ r: Record<string, unknown> }>('select iam.check_device_location($1, $2, $3) as r', [deviceId, room, line]);
   const r = rows[0]?.r;
   if (!r || r['accepted'] !== true) {
-    throw new IdentityError(String(r?.['code'] ?? 'EBMR-IAM-073'), `device refused for this location (${String(r?.['reason'] ?? 'UNKNOWN')})`);
+    throw new IdentityError(text(r?.['code'], 'EBMR-IAM-073'), `device refused for this location (${text(r?.['reason'], 'UNKNOWN')})`);
   }
 }
 

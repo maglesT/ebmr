@@ -13,7 +13,7 @@ import { currentRuleTableVersion, loadRuleTableVersion, resolveInDatabase, verif
 import { resolve } from '../../src/market/resolve.ts';
 import { validateRuleTableDocument } from '../../src/market/validate.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, createTestTable, miniDocument, publishDocument, publishSeedTables, RULE_TABLE_ROOT, seedDocument, testActor } from './helpers.ts';
+import { asApp, createTestTable, miniDocument, publishDocument, publishDocumentAs, publishSeedTables, RULE_TABLE_ROOT, seedDocument, testActor } from './helpers.ts';
 
 let db: TestDatabase;
 let seed: Map<string, string>;
@@ -277,13 +277,13 @@ describe('loosening, source corrections and prospective changes', () => {
     await publishDocument(db, miniDocument(table));
     const v2 = miniDocument(table, 2);
     rows(v2)[1] = { ...rows(v2)[1], value: '25' };
-    const publisher = randomUUID();
+    const publisher = await testActor(db, { roleCode: 'REGULATORY_SIGNER' });
     const correction = { kind: 'SOURCE_CORRECTION', description: 'EU value mis-keyed', citation: 'EU GMP Annex 1 (2022) 9.17, re-read' };
-    await expect(publishDocument(db, v2, { ...correction, approverIds: [randomUUID()] }, { personId: publisher })).rejects.toThrow('EBMR-MKT-032');
-    await expect(publishDocument(db, v2, { ...correction, approverIds: [randomUUID(), publisher] }, { personId: publisher })).rejects.toThrow('EBMR-MKT-032');
-    await expect(publishDocument(db, v2, { ...correction, citation: ' ', approverIds: [randomUUID(), randomUUID()] }, { personId: publisher })).rejects.toThrow('EBMR-MKT-032');
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approverIds: [randomUUID()] })).rejects.toThrow('EBMR-MKT-032');
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approverIds: [randomUUID(), publisher.personId] })).rejects.toThrow('EBMR-MKT-032');
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, citation: ' ', approverIds: [randomUUID(), randomUUID()] })).rejects.toThrow('EBMR-MKT-032');
     const approvers = [randomUUID(), randomUUID()];
-    const result = await publishDocument(db, v2, { ...correction, approverIds: approvers }, { personId: publisher });
+    const result = await publishDocumentAs(db, publisher, v2, { ...correction, approverIds: approvers });
     const { rows: v } = await db.app.query<{ change_kind: string; approver_ids: string[]; citation: string; loosening: { retroactive: boolean }[] }>(
       'select change_kind, approver_ids, citation, loosening from market.rule_table_version where id = $1',
       [result.versionId],

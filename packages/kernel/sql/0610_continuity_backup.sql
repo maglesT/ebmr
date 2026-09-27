@@ -1,6 +1,7 @@
 -- Backups and restore drills (control DI-45; build outline 4.2; ADR 0007).
 --
--- Every backup job run is recorded, success or failure; a failure raises an alarm. Successful backups
+-- Every backup job run is recorded, success or failure, by a system service account only; a failure
+-- raises an alarm. Successful backups
 -- enter the backup catalogue. The catalogue is insert-only: neither the application role nor the table
 -- owner can delete or change an entry, and every entry names immutable (write-once) storage for
 -- retention-grade copies. Deleting the stored artefact itself is prevented at the storage layer
@@ -91,6 +92,9 @@ begin
   if p_run is null or jsonb_typeof(p_run) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-030 a backup job record is required';
   end if;
+  if v_ctx ->> 'source' <> 'SYSTEM' then
+    raise exception using errcode = 'P0001', message = 'EBMR-CONT-030 backup jobs are recorded only by a system service account (source SYSTEM)';
+  end if;
   if v_status = 'SUCCEEDED' and (v_b is null or jsonb_typeof(v_b) <> 'object') then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-030 a successful backup job must describe the backup it produced';
   end if;
@@ -135,6 +139,9 @@ declare
 begin
   if p_drill is null or jsonb_typeof(p_drill) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-031 a restore drill record is required';
+  end if;
+  if v_ctx ->> 'source' <> 'SYSTEM' then
+    raise exception using errcode = 'P0001', message = 'EBMR-CONT-031 restore drills are recorded only by a system service account (source SYSTEM)';
   end if;
   begin
     insert into continuity.restore_drill (drill_id, source_database, restored_database, backup_sha256, result, failures, tables_compared,

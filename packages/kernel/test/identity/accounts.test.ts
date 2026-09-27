@@ -53,7 +53,7 @@ describe('identity verification before credentials (DI-15)', () => {
       const p = await createPerson(c, 'NATURAL', 'Verified Person');
       return { personId: p, ivId: await verify(c, p) };
     });
-    const { rows } = await db.app.query('select * from iam.identity_verification where id = $1', [ivId]);
+    const { rows } = await db.app.query<Record<string, unknown>>('select * from iam.identity_verification where id = $1', [ivId]);
     expect(rows[0]).toMatchObject({ person_id: personId, verified_by_person: adm.admin.personId, method: 'IN_PERSON_DOCUMENT', document_type: 'Passport' });
     expect(rows[0]?.['evidence_ref']).toMatch(/^HR-/);
     expect(rows[0]?.['recorded_at']).toBeInstanceOf(Date);

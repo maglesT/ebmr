@@ -11,7 +11,7 @@ const dir = tempDir('numbers');
 
 beforeAll(async () => {
   db = await createTestDatabase();
-  ops = await testActor(db, { roleCode: 'SYSTEM_SERVICE', source: 'SYSTEM' });
+  ops = await testActor(db, { roleCode: 'SERVICE_ACCOUNT', source: 'SYSTEM' });
   for (const key of ['test.number:A', 'test.number:B', 'test.number:C', 'test.number:D']) await installNumberStub(db, key, 5);
 });
 afterAll(async () => {

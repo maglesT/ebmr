@@ -217,7 +217,7 @@ describe('batch-number register across a restore', () => {
     ledger = tempLedger('site-restore', dir.path);
     issuer = await testActor(src, { roleCode: 'BATCH_ISSUER' });
     operator = await testActor(src, { roleCode: 'SYSTEM_ADMINISTRATOR' });
-    approver = await testActor(src, { roleCode: 'QA_APPROVER' });
+    approver = await testActor(src, { roleCode: 'QA_REVIEWER' });
     await withCommand(src.app, operator, (c) =>
       defineBatchNumberRule(c, { ruleCode: 'RS-TAB', siteCode: 'PLANT9', productCode: 'RSV5', batchKind: 'PROCESSING', format: '{SITE}{YY}{SEQ:3}', siteZone, reason: 'SOP', blockSize: 2 }),
     );

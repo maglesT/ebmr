@@ -43,6 +43,9 @@ export interface ResolutionContextProvider {
   scopeContext(scope: ScopeRef, table: RuleTableCode): Promise<ScopeContext>;
 }
 
+/** The same port under the name used in the Phase 1 brief. */
+export type ResolutionContext = ResolutionContextProvider;
+
 /** Phase 1 provider backed by the market.stub_* tables. */
 export class StubResolutionContext implements ResolutionContextProvider {
   constructor(private readonly db: Queryable) {}

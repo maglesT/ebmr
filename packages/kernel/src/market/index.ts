@@ -42,7 +42,7 @@ export {
   type StoredEvaluation,
   type TableVersionInfo,
 } from './repository.ts';
-export { resolveForScope, StubResolutionContext, type MarketDerivation, type ResolutionContextProvider, type ScopeContext } from './context.ts';
+export { resolveForScope, StubResolutionContext, type MarketDerivation, type ResolutionContext, type ResolutionContextProvider, type ScopeContext } from './context.ts';
 export {
   applyPolicyTightening,
   batchPolicy,

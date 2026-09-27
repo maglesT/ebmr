@@ -34,7 +34,7 @@ function runScript(script: string, args: string[]): Promise<{ code: number; out:
 
 beforeAll(async () => {
   db = await createTestDatabase();
-  ops = await testActor(db, { roleCode: 'SYSTEM_SERVICE', source: 'SYSTEM' });
+  ops = await testActor(db, { roleCode: 'SERVICE_ACCOUNT', source: 'SYSTEM' });
   // GMP content of several kinds: audited records, an insert-only table, an attestation, anchors.
   const batch = randomUUID();
   await withCommand(db.app, ops, async (c) => {
@@ -271,6 +271,17 @@ describe('backup jobs', () => {
     }
     const still = await db.app.query('select 1 from continuity.backup_catalogue where backup_id = $1', [id]);
     expect(still.rows).toHaveLength(1);
+  });
+
+  it('[DI-45] a person at a terminal cannot record a backup or a drill result; only the system service account can', async () => {
+    const person = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR' });
+    const fake = {
+      job_name: 'forged', tier: 'OPERATIONAL', status: 'SUCCEEDED', started_at: '2026-01-01T00:00:00Z', finished_at: '2026-01-01T00:01:00Z',
+      backup: { backup_id: 'forged-backup-0001', method: 'PG_DUMP_CUSTOM', database_name: db.name, artefact_sha256: 'a'.repeat(64), size_bytes: '1',
+                storage_uri: 'file:///nowhere', encryption_key_ref: 'kms:none', tool_version: 'x', snapshot_taken_at: '2026-01-01T00:00:00Z' },
+    };
+    await expect(withCommand(db.app, person, (c) => c.query('select continuity.record_backup_job($1::jsonb)', [JSON.stringify(fake)]))).rejects.toThrow('EBMR-CONT-030');
+    await expect(withCommand(db.app, person, (c) => c.query('select continuity.record_restore_drill($1::jsonb)', [JSON.stringify({ drill_id: 'forged-drill-1' })]))).rejects.toThrow('EBMR-CONT-031');
   });
 
   it('[DI-45] a retention-grade backup cannot be catalogued without write-once retention', async () => {

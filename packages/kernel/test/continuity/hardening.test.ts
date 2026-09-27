@@ -16,7 +16,7 @@ let it_admin: ActorContext;
 
 beforeAll(async () => {
   db = await createTestDatabase();
-  it_admin = await testActor(db, { roleCode: 'IT_SECURITY', legalName: 'IT Security Officer' });
+  it_admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', legalName: 'IT Security Officer' });
 });
 afterAll(async () => {
   await db.drop();

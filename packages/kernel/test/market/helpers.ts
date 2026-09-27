@@ -23,7 +23,7 @@ export function seedDocument(table: RuleTableCode): RuleTableDocument {
 
 /** Publish the seed rule tables from compliance/rule-tables. */
 export async function publishSeedTables(db: TestDatabase): Promise<Map<RuleTableCode, string>> {
-  const outcomes: SyncOutcome[] = await syncRuleTables(db.app, await testActor(db, { roleCode: 'QA' }), RULE_TABLE_ROOT);
+  const outcomes: SyncOutcome[] = await syncRuleTables(db.app, await testActor(db, { roleCode: 'REGULATORY_SIGNER' }), RULE_TABLE_ROOT);
   return new Map(outcomes.map((o) => [o.table, o.versionId]));
 }
 
@@ -32,19 +32,23 @@ export async function asApp<T>(db: TestDatabase, work: (c: pg.PoolClient) => Pro
   return withCommand(db.app, await testActor(db, overrides), work);
 }
 
+export interface Published {
+  versionId: string;
+  loosening: unknown[];
+  impactCount: number;
+}
+
+/** Publish a document through the SQL gate as the application role, under the given actor. */
+export async function publishDocumentAs(db: TestDatabase, ctx: ActorContext, doc: unknown, change: Record<string, unknown> = {}): Promise<Published> {
+  return withCommand(db.app, ctx, async (c) => {
+    const { rows } = await c.query<{ r: Published }>('select market.publish_rule_table($1::jsonb, $2::jsonb) as r', [JSON.stringify(doc), JSON.stringify(change)]);
+    return rows[0]?.r as Published;
+  });
+}
+
 /** Publish a document through the SQL gate as the application role. */
-export async function publishDocument(db: TestDatabase, doc: unknown, change: Record<string, unknown> = {}, overrides: Partial<ActorContext> = {}): Promise<{ versionId: string; loosening: unknown[]; impactCount: number }> {
-  return asApp(
-    db,
-    async (c) => {
-      const { rows } = await c.query<{ r: { versionId: string; loosening: unknown[]; impactCount: number } }>('select market.publish_rule_table($1::jsonb, $2::jsonb) as r', [
-        JSON.stringify(doc),
-        JSON.stringify(change),
-      ]);
-      return rows[0]?.r as { versionId: string; loosening: unknown[]; impactCount: number };
-    },
-    overrides,
-  );
+export async function publishDocument(db: TestDatabase, doc: unknown, change: Record<string, unknown> = {}): Promise<Published> {
+  return publishDocumentAs(db, await testActor(db, { roleCode: 'REGULATORY_SIGNER' }), doc, change);
 }
 
 /** Register an extra rule table (superuser setup) so a test can publish its own documents. */
