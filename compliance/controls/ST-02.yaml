@@ -1,0 +1,35 @@
+id: ST-02
+title: Product sterility-assurance route, CCS linkage and master-record design checks
+part: C
+group: "Theme 0: Cross-cutting rules (apply to every theme)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 482
+  - 381
+  - 394
+  - 459
+  - 460
+  - 392
+sources: "EU Annex 1: 1 (Scope, para 3), 2.3, 2.5, 8.7–8.9, 8.15, 8.34, 8.37 | US: 211.113(b); FDA-AP II.B and III (aseptic processing only when terminal sterilisation is not feasible)."
+behaviour: |-
+  - The product master requires a *sterility-assurance route*: terminal / aseptic / aseptic + post-aseptic heat treatment (or another adjunct step). For any route other than terminal, a justification reference is mandatory. The route selects the master-record template and rule set (Themes 7–13).
+  - MBR approval is blocked unless every step marked as a CCS critical control point carries the CCS document ID and version. The executed batch header shows the CCS version in force on the execution date.
+  - Master-record design review: a manual aseptic assembly or connection step where SIP or a pre-assembled sterile kit is feasible raises a mandatory "justify manual manipulation" item (DESIGN-CHOICE).
+  - Optional flag "Annex 1 principles applied to a non-sterile product" with a mandatory list of the principles applied. This is used when the edition is reused for low-bioburden intermediates, and it can never produce a sterility claim.
+  - DESIGN-CHOICE: Grade A/B steps are paperless, using cleanroom-rated devices (see ST-13), because paper sheds fibres.
+catalog_test: Submit an aseptic product master with no route justification → approval refused. Open an executed batch → every CCP step shows the CCS ID and version effective on that date.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned on preferring terminal sterilisation. The CCS is an EU concept; FDA has no CCS requirement, so the CCS fields are EU-driven.
+scope: all
+type_detail: CONFIGURABLE (route per product), plus ENFORCED master-record approval checks.

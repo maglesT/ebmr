@@ -1,0 +1,31 @@
+id: DI-04
+title: Verification of each MBR version and configured workflow before it becomes Effective
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 61
+  - 36
+  - 617
+sources: 'US: 211.68(b), 211.100(a), 211.186(a); FDA DI Q&A Q3, Q6, Q11 | EU: Ch.4 preamble "instructions" type (starting materials, equipment and computerised systems to be named; PAT with acceptance criteria), 4.3; Annex 11 §4.1, §10 | ICH/EMA/draft: none'
+behaviour: |-
+  - QA cannot set Effective status until a verification record is linked. This applies to every MBR version and every configured GMP workflow, report, calculation, interface mapping and review-by-exception rule set. The record shows that the steps, requirements, limits, calculations and signature points work as intended.
+  - The verification method is documented review plus test. A dry-run/simulation mode is one acceptable method, not a requirement (see DI-05 if one is offered).
+  - MBR steps name the computerised systems they rely on: PLC/SCADA recipe and version, weighing system, checkweigher, vision/serialisation system, autoclave or lyophiliser controller, filter-integrity tester.
+  - PAT steps define the method, the model version and the acceptance criteria. An MBR containing a PAT step without acceptance criteria cannot be approved.
+  - At execution, the record captures the system/recipe version actually used and flags any mismatch with the MBR.
+  - The MPCR carries author and independent-checker e-signatures from two different people, then QU approval (the signature types are in DI-35; MBR content minima are in the production catalog).
+catalog_test: Try to make a new MBR version Effective without a verification record. It is blocked. Run a batch whose PLC reports a different recipe version from the MBR. It is flagged as an exception.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA Q3 says explicitly that qualifying the platform does not prove that a given MPCR calculates correctly. The EU reaches the same result through Ch.4 4.3 approval plus Annex 11 validation. A verification record for every version satisfies both.

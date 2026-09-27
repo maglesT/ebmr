@@ -1,0 +1,35 @@
+id: ST-26
+title: "Water for injection: draw record, daily sampling, excursions and sanitisation hold"
+part: C
+group: "Theme 3: Utilities (WFI, clean steam, gases)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 436
+  - 437
+  - 438
+  - 439
+  - 440
+sources: "EU Annex 1: 6.7–6.15 | US: FDA-AP XII (WFI output reviewed for release); no WFI-specific Part 211 clause in this register."
+behaviour: |-
+  - **Draw record.** Each WFI draw records outlet, time and volume. At draw time the system imports loop temperature (for hot storage the validated range, for example circulation above 70 °C), flow or turbulence evidence, and continuous **TOC and conductivity**. Out-of-range values are flagged and need assessment.
+  - **Daily sampling.** At least **one representative sample every day** water is used in manufacture, with all outlets covered over the defined interval. The batch shows the results for the outlets and loop that supplied it.
+  - **Action excursion.** Linked automatically to every batch that drew from the affected outlet or loop in the relevant period. Release is blocked pending investigation of root cause and product impact.
+  - **Alert excursion.** Reviewed to decide whether it is isolated or part of a trend.
+  - **After sanitisation or regeneration:** water use is blocked until chemical results are approved. Batches made with water drawn after the event are tagged, and certification is blocked until post-sanitisation microbial and endotoxin results are approved.
+  - **Tank vent filter.** Integrity is tested before installation and after use. A failed post-use test lists every batch supplied during the filter's service window.
+catalog_test: Draw water after chemical release but before microbial release → that batch's certification is blocked until approval. An action TAMC result on outlet 12 → batches that drew from outlet 12 are listed and held.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU is far more prescriptive (daily sample, continuous TOC/conductivity, post-sanitisation certification hold), so EU governs.
+scope: all
+type_detail: ENFORCED (post-sanitisation hold, excursion linkage). Loop parameters are CONFIGURABLE as validated.

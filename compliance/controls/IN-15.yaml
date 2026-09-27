@@ -1,0 +1,24 @@
+id: IN-15
+title: Batch processing record content
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 241
+sources: Schedule M Part I 17.3.8 (batch processing records).
+behaviour: "The executed record is generated from the approved MBR (no re-typing). Before processing, a recorded check that the equipment and workstation are free of previous products, documents and materials and are clean and suitable. Captured at the time of action: product name; batch number; date/time of start of significant intermediate stages and of completion; **named person accountable for each stage** (separate from step performers); initials/IDs of operators of significant steps and, where appropriate, of checkers (e.g., weighing); lot or analytical control number and actual quantity of each starting material, including recovered or reprocessed material; significant operations, events and major equipment IDs; **permitted hold time and actual hold start/stop per intermediate**, with an alarm or deviation when exceeded; IPC results with performer; yields at pertinent stages with a mandatory explanation when outside limits; notes on special problems with signed authorisation for any departure from the master. On completion the processing lead dates and e-signs the record."
+catalog_test: exceed a hold time; the system blocks the next step or opens a deviation. Enter an out-of-limit stage yield; a comment and deviation link are forced.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "mostly **same** as FDA 211.188(b) (dates, equipment, component lots, weights, IPC results, yields, persons performing and checking each significant step) [chk] and EU Chapter 4 section 4.20 [chk]. **Stricter** on two items absent from both: the person responsible for each stage, and the hold time for intermediates [chk]."
+notes: "Source check: P (item list re-read, including hold time and responsible person per stage; sub-item letters inferred)."

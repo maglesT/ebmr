@@ -1,0 +1,33 @@
+id: DI-09
+title: Change and configuration management (including systems documentation)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 157
+  - 52
+  - 8
+  - 62
+sources: "US: 211.68(b), 211.100(a); 11.10(k)(1)-(2); FDA DI Q&A Q4 | EU: Annex 11 §10, §4.7 (test environments); Ch.4 4.3, 4.29 (change-control records) | ICH/EMA/draft: none"
+behaviour: |-
+  - Every configuration object is versioned through Draft, Review, Approved (e-signature) and Effective. This covers MBRs, workflows, calculations, limits, roles and permission sets, signature policies, interface settings, exception/RBE rules, retention rules and report templates.
+  - Each change carries a change-record ID. The configuration audit trail stores diffs, and an exportable baseline is kept per environment. Drift from the validated baseline raises an alarm.
+  - New batches can use only one Effective version per product plus batch size (processing), or per product, pack size and pack type (packaging). A batch in progress stays on the version it was issued from unless an approved change says otherwise.
+  - There is no direct DB editing in production, and no admin-console path that changes specifications, process parameters or MBR content outside the change workflow.
+  - Only authorised people can change master records or other records. A change without a change-record ID is refused.
+  - Systems documentation (URS, configuration specs, SOPs, admin manuals) is held under controlled distribution, access and use, with a time-ordered revision history.
+  - Software releases are tested in a non-production environment before production.
+catalog_test: Try to change a specification limit through the admin console. Impossible. Submit a configuration change without a change-record ID. Rejected. A configuration diff can be retrieved for any past date.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Both markets require controlled change. 11.10(k) additionally requires documentation control with a time-sequenced audit trail. Both apply.

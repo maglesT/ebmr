@@ -1,0 +1,25 @@
+id: IN-13
+title: Master formula (MBR) content and hold times
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+type:
+  - ENFORCED
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 239
+  - 262
+  - 678
+sources: Schedule M Part I 17.3.6 (master formula list, including hold time as its final item); Part VIII 2.3 (time and temperature for mixing, blending and drying set in the master formula, monitored and recorded).
+behaviour: "(a) One approved master per product and per batch size; a batch of a different size needs its own approved master (or a separately approved scaled master). (b) MBR approval fails validation if any of these is empty: product name and product code linked to its specification; dosage form, strength, batch size; each starting material with INN where one exists, quantity, designated name and unique material code; a flag for substances lost in processing (e.g., granulation water, solvents); expected final yield with limits and pertinent intermediate yields; processing location and principal equipment class; references to methods for preparing critical equipment (cleaning, assembly, calibration, sterilisation, use); stepwise instructions; each IPC with its limits; storage requirements for products (container, labelling, special conditions); special precautions; **the permitted hold time for every intermediate and in-process material**. (c) Tablets edition: each mixing, blending and drying step must carry its critical operating parameters (at least time and temperature) with limits, and the batch record captures the observed values (IN-36)."
+catalog_test: approve an MBR with one intermediate lacking a hold time; approval is refused. Try to issue a 200 kg batch from a 100 kg master; refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: per-batch-size masters **same** as FDA 211.186(a) [chk] and EU Chapter 4 (formula and instructions per product and batch size; 4.17-4.18) [chk]. Hold time as a mandatory master element is **stricter** than FDA 211.111 (time limits for each production phase only when appropriate) [chk] and EU 4.17/4.18 (no hold-time item) [chk]. Time/temperature CPPs **same** as EU 4.18(d) [chk].
+notes: "Source check: P."

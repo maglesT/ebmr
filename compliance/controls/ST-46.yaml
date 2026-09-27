@@ -1,0 +1,33 @@
+id: ST-46
+title: Material transfer into Grade A/B and into the critical zone
+part: C
+group: "Theme 7: Components, container-closures, depyrogenation, sterilisation cycles and load traceability"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 406
+  - 407
+  - 408
+  - 288
+  - 490
+sources: "EU Annex 1: 4.10–4.12, 8.47, 8.49 | US: 211.42(b), 211.113(b); FDA-AP IV.E."
+behaviour: |-
+  - Each transfer records the item and its method: double-ended steriliser load ID, tunnel run, wipe-down disinfection (agent, lot, expiry, contact time, operator), RTP, or filter. It also records the validated transfer procedure ID.
+  - The item is checked against the **approved transfer list**. An unlisted item is blocked unless a pre-approved QA exception (risk assessment, disinfection and extra monitoring) is linked. The exception shows in batch review.
+  - Moving from a lower to a higher grade needs a disinfection record before acceptance. An expired agent is rejected.
+  - Items for the critical zone need a valid sterilisation record within hold; disinfection alone is refused.
+  - Non-sterilisable items needed in Grade A get validated disinfection and are added to the batch surface-EM plan.
+  - Exits are logged separately with times. Where time-based separation is used, an overlapping entry and exit triggers a warning.
+catalog_test: Use a tool in the filling zone with only a disinfection record → blocked. Scan an unlisted tool at the Grade B hatch → blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU adds the approved-list and exception mechanism. Aligned otherwise.
+scope: "aseptic (lower-to-higher grade disinfection: all)"

@@ -1,0 +1,25 @@
+id: IN-38
+title: Strip and blister packaging
+part: D
+group: Tablets edition
+editions:
+  - tablets
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 264
+sources: Schedule M Part VIII 7.1-7.4.
+behaviour: (a) Before a new batch, the counting/strip/blister equipment clearance (removal of rogue tablets, capsules, foils) is performed by one user and independently verified by a different user; both signatures are recorded. (b) Strip/blister IPC records defect categories (misprint, foil cut, missing tablet, poor sealing). (c) A periodic vacuum leak test of pockets is a scheduled IPC with frequency, sample size and pass/fail; a missed test flags the record. (d) Products flagged uncoated, potent or beta-lactam are only schedulable on eligible lines; potent and beta-lactam packing only in isolated areas.
+catalog_test: one user signs both "performed" and "verified" for blister clearance; refused. Skip the scheduled leak test; the record flags a missed IPC.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**stricter** than FDA 211.130(e) and 211.188(b)(6) (inspection of the area before and after use documented; no explicit independent-check requirement for the clearance) [chk] and EU 5.50 (line clearance by checklist) [chk]; periodic pocket leak testing is not named in either [chk]."
+type_detail: ENFORCED; CONFIGURABLE (leak-test frequency and sample size).
+notes: "Source check: P (7.1-7.4 re-read)."

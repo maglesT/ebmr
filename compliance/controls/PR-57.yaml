@@ -1,0 +1,44 @@
+id: PR-57
+title: Genealogy and lot traceability (including distribution and complaint lookups)
+part: B
+group: J. Traceability, product quality review and records retention
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 87
+  - 1
+  - 84
+  - 621
+  - 637
+  - 30
+  - 146
+  - 42
+sources: "US: 211.130(c); 211.184(c); 211.188(b)(2)-(3); 211.105(b); 211.182; 211.150(b); 211.196; 211.192; 211.198; 210.3(b) (s); 201.18 (s) | EU: Ch.4 Records definition (batch history includes distribution); 4.8; 4.23; 4.28; Ch.5 5.29 | ICH/EMA/draft: none"
+behaviour: |-
+  - A lot number resolves to its complete history:
+    - master version, executed records and every signature;
+    - component and intermediate lots, with supplier, manufacturer and manufacturer batch;
+    - equipment and rooms;
+    - IPC and QC results;
+    - deviations;
+    - packaging, serialisation and disposition;
+    - distribution to consignees.
+  - Traversal: backward and forward traversal works at any depth, including splits, merges, reprocessing, recovery and transfers between sites.
+  - Integrity: each genealogy edge is committed atomically with the business event that creates it. Any graph database is only a derived, rebuildable and reconciled projection.
+  - Distribution records, linked from ERP, hold product name and strength, dosage form, consignee name and address, date, quantity and lot.
+  - Lookups: a complaint-to-lot lookup opens the record, genealogy, deviations and shipments. An API supply-chain traceability report can be produced for each finished batch.
+catalog_test: A seeded split/merge/rework scenario returns exactly the expected nodes. A forward trace from a component lot lists every consignee, matching an ERP extract.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Equivalent. EU explicitly includes distribution in the batch history and requires API supply-chain traceability. Room- and person-level forward tracing are not explicit requirements anywhere.
+type_detail: ENFORCED (backward and forward traceability) + DESIGN-CHOICE (graph-database projection; bitemporal storage)

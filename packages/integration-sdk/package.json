@@ -1,0 +1,13 @@
+{
+  "name": "@ebmr/integration-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Adapter contracts for external systems (ERP, LIMS, QMS, LMS, EMS, scales, printers, OPC UA)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ebmr/kernel": "workspace:0.1.0"
+  }
+}

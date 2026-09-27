@@ -1,0 +1,39 @@
+id: DI-25
+title: Audit-trail review within batch review (step level and before disposition)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 65
+  - 169
+  - 172
+  - 170
+  - 226
+sources: "US: 211.22(a), 211.188(b), 211.192; FDA DI Q&A Q7 (reviewers of a record review the audit trails of its data; QU review includes audit trails), Q8 (same frequency as the data: after each significant step and before release) | EU: Annex 11 §9 (regular review); Ch.4 4.27 (indication of changes to critical data; records available to QP) | ICH/EMA/draft: draft Annex 11 §12 review (written procedure, independent reviewer, before release, QP access) (draft)(s); draft summary (draft)(u); draft removal of 2011 §15 with QP audit-trail access (draft)(s)"
+behaviour: |-
+  - **Step level.** When a checker or verifier signs a significant step, the system shows inline every post-entry change, void and signature supersession on that step's data, like paper cross-outs: old and new value, who, when, why. The checker's signature covers that review.
+  - **Batch level.** Before QU disposition (US) and before QP certification (EU, where recorded in the system), someone must complete and e-sign a batch-scoped audit-trail review task ("Audit trail reviewed").
+  - The reviewer must not have executed or verified any step in that batch.
+  - Disposition/certification is blocked until the review is signed and every discrepancy raised from it is closed or impact-assessed.
+  - **Scope.** Every change to any data in the batch record is in scope. Criticality may order or highlight entries but never excludes them. Scope also includes batch-linked system events: interface failures, signature failures, lockouts, time-sync faults and alarms.
+  - **No deferral.** There is no option to defer audit-trail review until after release.
+  - **Discrepancies.** Any entry can be escalated to a deviation directly.
+  - **QU/QP view.** The QU and QP can open the full batch audit trail from the disposition/certification screen. That screen shows review status, reviewer, date and findings.
+catalog_test: Change a value after entry. It appears in the checker's step view and in the batch review list. Disposition stays blocked until the review is signed. A batch executor tries to sign the review. Refused. No configuration offers deferral.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: |-
+  - The US is stricter on timing: every significant step, plus before release.
+  - EU 2011 says only "regularly".
+  - The draft moves to "before release" but is reported to allow a justified later review. That option conflicts with the US before-release rule and is not offered.
+proposed_modify: "Widen the batch audit-trail review to audit events on records the batch relied on: lots, equipment, qualifications, EM results, cycles, rules (critique R-17 / L-10)."

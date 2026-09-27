@@ -1,0 +1,31 @@
+id: PR-09
+title: Process validation status and validation-batch flags
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 143
+  - 197
+  - 80
+  - 196
+sources: "US: 211.100(a); 211.110(a) | EU: Ch.5 5.23; 5.24; 5.25; 5.26; 5.42 | ICH/EMA/draft: FDA Process Validation guidance (2011) stages 2-3 (s); EU Annex 15 section 5 (OPV, concurrent validation) (u)"
+behaviour: |-
+  - A master records its validation basis (report IDs).
+  - Batches under a protocol carry a visible flag and an enhanced sampling plan.
+  - The release screen shows the protocol and report status.
+  - CPP and IPC data can be exported as structured data (with record counts or checksums) for CPV/OPV trending.
+catalog_test: A PPQ-flagged batch cannot be released or certified until the validation outcome is entered. CPP data exported for N batches and recomputed from the source records match exactly.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU expects the QP to have concurrent-validation results before certifying (Annex 15, (u)). For US this is at guidance level. EU is stricter.
+type_detail: "CONFIGURABLE. Default: a batch made under a PPQ or concurrent-validation protocol is flagged, and cannot be certified or released until its validation outcome is recorded. Allowed: US-only batches may be released per an approved protocol that permits concurrent release. For EU certification there is no exception (Annex 15 (u))."

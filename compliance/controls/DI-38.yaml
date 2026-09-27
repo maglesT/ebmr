@@ -1,0 +1,38 @@
+id: DI-38
+title: Signature components, re-authentication and session rules
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 57
+  - 47
+  - 171
+  - 226
+sources: "US: 11.200(a)(1)(i)-(ii), (a)(2)-(3), (b); 11.10(d) | EU: Annex 11 §12.1, §14 | ICH/EMA/draft: draft Annex 11 §13 (re-authentication at signing) (draft)(s); draft IAM/e-signature summary incl. reported MFA for signatures (draft)(u)"
+behaviour: "- Non-biometric signatures use two distinct components: ID plus password/PIN, or badge plus PIN."
+catalog_test: Sign twice in one session. The second signing needs at least the password. After a timeout, both components are needed. Try to apply the verifier's signature through the performer's session. Refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: 11.200 allows a single private component for later signings within one continuous session. The EU draft expects re-authentication at each signing, and typing the password/PIN each time satisfies that. The default of all components every time meets both.
+type_detail: CONFIGURABLE (default = strictest practical). Floors are ENFORCED.
+notes: |-
+  Defaults: every signing requires all components.
+  - **Allowed relaxation** (CONFIGURABLE, QA-approved): within one continuous controlled session, routine signings other than disposition, certification or MBR approval may use only the private component (password/PIN). A signing is never completed with zero components.
+  - The continuous session ends at lock, inactivity timeout, logout or a terminal switch. The next signing then uses all components.
+  - Shop-floor terminals lock after inactivity. DESIGN-CHOICE default: 5 min; allowed 1-15 min.
+  - A verifier signs with their own full credentials in the same dialog. The performer's session can never supply the verifier's signature.
+  - The signing dialog states the meaning explicitly and shows what is being signed.
+  - Biometric signatures must be usable only by their owner, with evidence of liveness/anti-spoofing.
+  - MFA at signing can be switched on (optional, stricter).
+  - There is no remember-password and no pre-signing.

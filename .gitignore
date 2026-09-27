@@ -7,3 +7,6 @@ coverage/
 *.log
 .DS_Store
 tools/regulatory/pdf/package-lock.json
+.reports/
+*.tsbuildinfo
+.turbo/

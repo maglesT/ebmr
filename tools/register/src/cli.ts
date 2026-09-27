@@ -1,0 +1,53 @@
+/**
+ * Register CLI.
+ *   import     catalogs -> compliance/controls/*.yaml (keeps decisions and build progress)
+ *   validate   schema, IDs, requirement references
+ *   pins       exact workspace pins (ADR 0015)
+ *   trace      traceability matrix from a Vitest JSON report (--results <file>)
+ */
+import { importCatalogs } from './import.ts';
+import { checkPins, readManifests } from './pins.ts';
+import { currentPhase, loadControls } from './register.ts';
+import { buildTrace, readVitestResults, writeMatrix } from './trace.ts';
+import { validateRegister } from './validate.ts';
+
+function fail(title: string, errors: string[]): never {
+  console.error(`${title}: ${errors.length} problem(s)`);
+  for (const e of errors) console.error(`  - ${e}`);
+  process.exit(1);
+}
+
+const [command, ...args] = process.argv.slice(2);
+switch (command) {
+  case 'import': {
+    const { written } = importCatalogs();
+    console.log(`imported ${written} controls into compliance/controls/`);
+    break;
+  }
+  case 'validate': {
+    const errors = validateRegister();
+    if (errors.length) fail('register invalid', errors);
+    console.log(`register valid: ${loadControls().length} controls`);
+    break;
+  }
+  case 'pins': {
+    const errors = checkPins(readManifests());
+    if (errors.length) fail('pin check failed', errors);
+    console.log('all internal dependencies are pinned to exact workspace versions');
+    break;
+  }
+  case 'trace': {
+    const idx = args.indexOf('--results');
+    const file = idx >= 0 ? args[idx + 1] : undefined;
+    if (!file) fail('trace', ['--results <vitest json> is required']);
+    const phase = currentPhase();
+    const report = buildTrace(loadControls(), readVitestResults(file), phase);
+    writeMatrix(report, phase, '.reports/trace-matrix.md');
+    if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
+    const covered = report.rows.filter((r) => r.passing.length > 0).length;
+    console.log(`traceability ok for phase ${phase}: ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);
+    break;
+  }
+  default:
+    fail('usage', ['register <import|validate|pins|trace --results file>']);
+}

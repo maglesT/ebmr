@@ -1,0 +1,33 @@
+id: DI-32
+title: Instrument and device data; original records from simple devices; dynamic data
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 6
+target_phase_source: outline
+requirement_rows:
+  - 7
+  - 648
+  - 67
+  - 41
+  - 17
+sources: "US: 211.68(a)-(b), 211.180(d), 211.194(a)(4); FDA DI Q&A Q1d, Q9, Q10 | EU: Ch.4 Principle (raw data), 4.20 Note; Annex 11 §5 | ICH/EMA/draft: none"
+behaviour: |-
+  - Where a device can transmit, capture its data directly: value, raw device output, device ID, unit and device timestamp. The raw output is stored and must match the displayed value. The electronic capture is then the original record.
+  - Manual keying is allowed only in a documented fallback mode, flagged and verified (DI-30).
+  - Where a balance or pH-meter printout is the original (no electronic capture), the printout or a verified true copy is retained and linked by reference to the eBMR entry. Thermal slips are true-copied promptly before they fade (DI-41).
+  - Dynamic device data are kept in native form with a viewer: trends, cycle data, spectra, chromatograms, PAT outputs. A static rendering alone never replaces them.
+catalog_test: A weighing with direct capture stores a raw string that matches the display. A weighing with a printed ticket shows the ticket linked. Trend data from a restored archive can be re-rendered interactively.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA Q10 is the only text that explicitly says a simple device's printout can be the original and that a printout of dynamic data is not enough. It is adopted for all markets.
+type_detail: "ENFORCED (an original is defined per data source; dynamic data kept native). CONFIGURABLE for direct capture per step: default ON wherever a validated device interface exists."

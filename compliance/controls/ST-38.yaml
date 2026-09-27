@@ -1,0 +1,31 @@
+id: ST-38
+title: Equipment status and hold chain; re-sterilisation between batches
+part: C
+group: "Theme 6: Time limits driven by recorded events"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 430
+  - 314
+  - 337
+sources: "EU Annex 1: 5.4, 8.18(i) | US: 211.63, 211.65(a), 211.67(a), 211.113(b); FDA-AP VII, IX.C (footnote 19)."
+behaviour: |-
+  - **Equipment states:** dirty → cleaned → dried → sterilised → in use. The cleaned step records the CIP/wash cycle ID, validated procedure version and final-rinse quality (for example conductivity; endotoxin removal by hot-WFI rinse).
+  - **Hold enforcement.** Dirty-hold and clean-hold limits are enforced. An item cleaned but not dried or sterilised within the limit cannot be used. A CIP with out-of-spec final rinse leaves the item "not clean".
+  - **Endotoxin.** Only cleaning or dry heat is accepted as removing endotoxin from equipment. Moist heat and filtration are not treated as depyrogenating.
+  - **Re-sterilisation.** Product-contact equipment gets a fresh sterilisation per batch by default. A campaign is allowed only with a validated MBR rule (maximum batches or hours plus validation reference); exceeding it is refused.
+catalog_test: Assign a vessel past its clean-hold → blocked. With a validated 3-batch campaign rule, the 4th batch → refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. FDA-AP is explicit that equipment is re-sterilised between batches unless a validated interval exists.
+scope: "all (re-sterilisation rule: aseptic)"
+type_detail: ENFORCED. Hold limits are CONFIGURABLE as validated.

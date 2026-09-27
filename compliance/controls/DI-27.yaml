@@ -1,0 +1,35 @@
+id: DI-27
+title: Trusted time
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 160
+  - 88
+  - 10
+sources: "US: 11.10(e) (computer-generated, time-stamped), 11.50(a)(2); 211.188(b)(1) (dates) | EU: Annex 11 §12.4 (date and time), §14 (time and date of signature); Ch.4 4.20(b), 4.21(b) (dates and times) | ICH/EMA/draft: draft Annex 11 §12 and §13 (time zone where relevant) (draft)(s)"
+behaviour: |-
+  - Every GMP timestamp comes from the synchronised server clock: entries, audit trail, signatures, status changes, step start and completion, and significant intermediate stages.
+  - Client-device clocks and user-typed times are never used as the time of an action.
+  - Timestamps are stored in UTC with the site time zone and offset, and displayed as site-local time with the offset. Ordering stays correct across daylight-saving changes.
+  - Event times a user enters from another source (e.g., cycle start read off a printout) are separate, flagged data fields. They are kept distinct from the time the entry was made.
+  - Server-to-reference offset is monitored:
+  - Beyond the threshold, an alarm and an incident are raised, and entries made during the fault are flagged for review.
+  - Capture is never simply blocked without the controlled contingency path of DI-43, because staff must never fall back to scrap-paper notes.
+catalog_test: Change a terminal clock, then record a step. The stored time is unaffected. Run a DST-transition test. Simulate loss of the time reference. An alarm and an incident are raised.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "211.188(b)(1) asks only for dates in the batch record. EU 4.20(b)/4.21(b) require dates and times, so the stricter EU rule applies. Time-zone display comes from the draft. The DI Q&A says nothing about clocks: NTP, UTC and the drift threshold are design choices."
+type_detail: "ENFORCED for server time and UTC storage. CONFIGURABLE for the drift threshold: DESIGN-CHOICE default 1 s, allowed 0.1-5 s. No rule sets a clock tolerance."

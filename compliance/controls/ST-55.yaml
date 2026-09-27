@@ -1,0 +1,26 @@
+id: ST-55
+title: Open-container routing under Grade A and validated closure
+part: C
+group: "Theme 9: Filling, fill weight/volume checks, stoppering and capping"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 471
+sources: "EU Annex 1: 8.20, 8.21 | US: 211.42(c)(10), 211.113(b)."
+behaviour: |-
+  - The line map is validated so that open primary containers pass only through Grade A zones, with the background suited to the technology, from depyrogenation/sterilisation exit to closure.
+  - Partially stoppered vials and PFS follow the lyo transfer rules (ST-59).
+  - The closure step records the validated closing method or equipment and its key settings.
+catalog_test: Route open vials through a zone not classified Grade A in the line map → MBR rejected.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned (ISO 5 critical area).
+scope: aseptic

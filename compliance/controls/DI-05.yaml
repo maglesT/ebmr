@@ -1,0 +1,35 @@
+id: DI-05
+title: Segregation of non-GMP functions (training, simulation, sandbox, analytics)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 643
+  - 61
+sources: "US: FDA DI Q&A Q3 (assess and mitigate influence of non-CGMP functions on CGMP operations); 211.68(b) | EU: no dedicated clause; Annex 11 §1 (risk management) applies | ICH/EMA/draft: none"
+behaviour: |-
+  - Non-GMP functions keep their data in segregated stores. Examples: training tenant, MBR simulation, planning/scheduling, analytics.
+  - They cannot:
+  - write to GMP records, inventory, equipment status or genealogy;
+  - change GMP configuration;
+  - use real lot or batch identifiers (a reserved namespace is used instead);
+  - have a non-GMP record converted into, or merged with, a GMP record.
+  - Their outputs carry a visible NOT-GMP watermark.
+  - A GMP record can only come from an Effective MBR.
+  - The validation package contains a documented impact assessment for each non-GMP function.
+catalog_test: From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked. Simulation output carries the watermark.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US guidance is explicit, and the EU covers it through general risk management. No conflict.
+type_detail: "ENFORCED (segregation). Offering a simulation mode at all is a DESIGN-CHOICE: FDA does not expect one."

@@ -1,0 +1,25 @@
+id: IN-43
+title: HEPA filter leak-test interval
+part: D
+group: Injectables edition
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 671
+sources: Schedule M Part II 4.5 (ISO leak test, recommended every 6 months, not exceeding 12 months).
+behaviour: Room/HEPA master data hold last and next installed-filter leak-test dates; the test aerosol must be non-nutritive. A batch cannot start in a room whose HEPA test is overdue under the resolved interval (section B row B-16); a warning appears at the recommended interval.
+catalog_test: "India-only profile, Grade B room tested 13 months ago: batch start blocked; tested 7 months ago: warning only. India+EU profile, same 7-month case: blocked."
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**weaker** for Grade A/B than EU Annex 1 (2022) 4.32 (requalification including integrity test of final filters at most every 6 months for A/B; 12 months for C/D) [chk] and FDA 2004 (leak tests twice yearly in the aseptic processing room) [chk]; **same** as EU for C/D (12 months)."
+type_detail: ENFORCED (block when overdue); CONFIGURABLE (warning threshold).
+notes: "Source check: P (4.5 re-read)."

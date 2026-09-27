@@ -1,0 +1,24 @@
+id: PR-01
+title: Master record scope and keying
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 89
+  - 91
+sources: "US: 211.186(a) (each product and each batch size) | EU: Ch.4 lead-in above 4.17 (each product and batch size); 4.19 (each product, pack size and type) | ICH/EMA/draft: none"
+behaviour: A processing master (manufacturing formula plus processing instructions) is keyed by product code, strength and batch size. A packaging master is keyed by product, pack size and pack type. A batch can only be created for a batch size that an approved master lists explicitly, either as one size or as an approved set of discrete sizes. There is no free scaling at batch creation. Packaging masters are versioned and approved separately and reference the bulk product code.
+catalog_test: Creating a batch at a size that no approved master lists is refused. A packaging order for a pack type with no approved packaging master is refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The two are equivalent for processing. EU states the packaging keying (pack size and type) explicitly, and the kernel applies it to every market.

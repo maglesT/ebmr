@@ -1,0 +1,29 @@
+id: PR-33
+title: Labeling issuance and packaging-material verification at line start
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 24
+  - 23
+  - 124
+sources: "US: 211.125(a),(b),(f); 211.130(d); 211.184(d) | EU: Ch.5 5.46; 5.52; Ch.4 4.21(d),(h) | ICH/EMA/draft: none"
+behaviour: |-
+  - Only an authorised role can issue packaging materials of any kind, following an approved procedure.
+  - Labeling issued for a batch is scanned by its reference number. It is examined for identity and for conformity with the labeling the master specifies (artwork version, text, NDC/GTIN where applicable).
+  - Issued quantities are recorded for reconciliation.
+  - At line start, every packaging component and bulk container is scanned against the packaging master BOM (quantity, identity, conformity). The result is recorded in the packaging record before packaging can start.
+catalog_test: Scanning a wrong carton code is blocked. Packaging cannot start until the issued quantity is recorded.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Equivalent.

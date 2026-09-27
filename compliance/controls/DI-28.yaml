@@ -1,0 +1,52 @@
+id: DI-28
+title: Contemporaneous capture, immediate durable commit, late entries and offline buffering
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 10
+  - 66
+  - 183
+  - 221
+  - 106
+  - 92
+  - 94
+sources: "US: 211.100(b), 211.160(a), 211.182 (chronological equipment log), 211.188; FDA DI Q&A Q12 | EU: Ch.4 4.8, 4.20(b),(c),(f), 4.21(b),(c), 4.31 | ICH/EMA/draft: EMA GMP DI Q&A on temporary memory and on OOS warnings before saving (s)"
+behaviour: |-
+  - Each GMP entry is committed to durable, audit-trailed server storage the moment the user confirms it (auto-save per entry).
+  - Executed GMP data has no editable client-side draft.
+  - There is no end-of-shift bulk save.
+  - Limit evaluation (pass/fail, OOS warning) is shown only after the value is committed, so a value cannot be re-keyed before it is saved.
+  - Free-text or scratch fields can never be the source of a GMP field.
+  - A late entry (recorded after the event) goes only through an explicit late-entry path:
+  - a mandatory reason;
+  - both the claimed event time and the entry time are stored;
+  - the entry is flagged for review.
+  - Back-dating a batch, packaging or logbook entry is impossible.
+  - Batch and packaging records identify who performed each significant step and who checked it, who performed each IPC, and dates and times. Attribution comes from DI-22 and DI-35.
+  - Logbook entries are chronological and attributed, and are filled in automatically from execution wherever possible.
+  - An SOP pairs these controls with the procedural duty to enter data at the time of the work.
+  - Offline/edge mode, if offered:
+  - entries are signed and hashed locally at capture against a trusted clock;
+  - they are immutable, uploaded in order and flagged "offline-captured";
+  - they never overwrite server data; a conflict becomes an exception;
+  - a status check that needs server data either uses a pre-cached value with a validity window or blocks the step.
+catalog_test: Enter a value, then kill the browser. The value persists with its timestamp. Enter an out-of-limit value. The audit trail shows the value committed before any warning appeared. Submit a late entry without a reason. Blocked. Try to insert a back-dated logbook entry. Blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: |-
+  - The final FDA Q&A says no storage method may allow data to be manipulated before a permanent record exists.
+  - The "temporary memory" and "warning before save" wording comes from the EMA Q&A, not from the FDA final text.
+  - Commit-before-evaluate satisfies both.
+type_detail: ENFORCED. Offline mode is a DESIGN-CHOICE; if enabled, its rules are ENFORCED.

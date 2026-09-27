@@ -1,0 +1,24 @@
+id: IN-11
+title: Certified evidence export
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 668
+sources: Bharatiya Sakshya Adhiniyam 2023 section 63 (in force 1 Jul 2024, replacing Evidence Act s.65B); IT Act 2000 section 7.
+behaviour: "Any batch record can be exported as a package: rendered human-readable copy, machine-readable data, full audit trail, and a manifest with a SHA-256 hash per file plus system name, version, time source, export operator and time. The hashes re-verify on import. The package supplies the facts needed for the certificate that accompanies electronic evidence in Indian proceedings, and keeps origin and date/time metadata (IT Act s.7)."
+catalog_test: export a batch; alter one byte; hash verification fails.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**different**: no equivalent evidence certificate; closest are 21 CFR 11.10(b) (accurate and complete copies in human-readable and electronic form for inspection) [chk] and EU Annex 11 section 8 (clear printed copies; printouts showing changes for batch-release records) [chk]."
+notes: "Source check: S (certificate form not reviewed; open question G-5)."

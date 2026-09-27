@@ -1,0 +1,42 @@
+id: DI-03
+title: Computerised-system validation (application, infrastructure, life cycle)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 44
+  - 147
+  - 628
+  - 200
+  - 194
+  - 209
+  - 642
+  - 167
+sources: "US: 11.10(a); 211.68(a)-(b); FDA DI Q&A Q1f, Q3 | EU: Annex 11 Principle, §1, §3.3, §4.1, §4.2, §4.5, §4.6, §4.7 | ICH/EMA/draft: ICH Q9(R1) sec. 1 (s); draft Annex 11 §9 qualification/validation incl. cloud documentation access (draft)(s)"
+behaviour: |-
+  - The vendor supplies a validation package for each release: risk-based requirements, design/configuration specs, test evidence including negative and boundary tests on parameter limits, data limits and error handling, validation deviations and how each was resolved, release notes, known issues, and SDLC/QMS evidence. The customer performs risk-based verification of its configured use.
+  - Infrastructure is qualified: servers, DB, network, cloud tenancy and peripherals.
+  - Validation scope follows FDA's notion of the "system": hardware, software, peripherals (balances, scanners, label printers, terminals), network, cloud hosting, personnel roles and training, and the SOPs/manuals.
+  - A production tenant accepts a new software release for GMP use only after the customer records an approval e-signature on the validation summary for that release (staged release: validation tenant, then production). Every batch stamps the release it ran on (DI-10).
+  - The system can detect invalid or altered records. A scheduled integrity job checks record and signature hashes and raises an alarm if anything was changed outside the application (the hash mechanism is a design choice).
+  - High-impact functions get the deepest testing: limit checks, calculations, signature binding, status/release interlocks, exception reports, and any automated check that replaces a human check.
+  - Customer-specific scripts, reports and interfaces are treated as bespoke, with their own specifications, tests and quality metrics.
+  - Automated test tools and test environments carry documented adequacy assessments.
+  - A paper-to-electronic control map shows that no paper control was lost without a risk justification.
+  - Retirement is planned, so records stay readable after decommissioning (DI-46).
+catalog_test: In a test environment, change a DB row outside the application. The integrity job alarms and names the record. Try to execute a GMP batch on a release that has no approved validation summary in that tenant. It is refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "Annex 11 is more prescriptive on documentation: supplier assessment, COTS documentation review, bespoke metrics, test-tool assessment. 11.10(a) adds the explicit duty to be able to detect altered records. Both apply."
+type_detail: ENFORCED (release-approval gate per tenant; integrity job). Package content is a vendor DESIGN-CHOICE within the listed minimum.

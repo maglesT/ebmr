@@ -1,0 +1,36 @@
+id: ST-65
+title: Sterility and endotoxin results required per batch; method suitability and test conditions
+part: C
+group: "Theme 13: Sterility, endotoxin and particulate testing, and release"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 313
+  - 354
+  - 355
+sources: "EU Annex 1: 10.5 (test validated per product), 10.8, 10.9 | US: 211.167(a) (binding), 211.165(e), 211.194, 211.160(b), 211.22(b), 211.25(a); FDA-AP VII (text box), XI.A."
+behaviour: |-
+  - The release checklist requires approved LIMS results for **sterility and bacterial endotoxins (or pyrogens)**. The samples must trace to this batch and, where relevant, to the sub-batch or load. Results must be within specification. A result from another batch cannot be linked.
+  - The only alternative is authorised parametric release (ST-61).
+  - A sterility result is accepted only if it references a method-suitability (bacteriostasis/fungistasis) validation approved for this product and **formulation version**, current on the test date. A formulation change invalidates the link until it is re-verified.
+  - Each sterility result must carry:
+    - the test environment (isolator or cleanroom ID and status);
+    - media lots with sterility and GPT status;
+    - an analyst qualified on the test date;
+    - incubation start and end.
+
+    A missing or non-compliant element is flagged for QA.
+  - Sample exterior decontamination (VHP/UV) must be a validated process that does not affect the test.
+catalog_test: Release with sterility present and endotoxin pending → refused. A sterility result whose method suitability used the old formulation → refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. The US per-batch testing rule is binding.
+scope: all

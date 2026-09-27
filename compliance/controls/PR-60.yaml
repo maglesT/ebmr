@@ -1,0 +1,32 @@
+id: PR-60
+title: Forward compatibility with EU draft texts (data governance, AI)
+part: B
+group: J. Traceability, product quality review and records retention
+editions:
+  - tablets
+  - injectables
+type:
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 107
+  - 180
+sources: "US: none | EU: none binding | ICH/EMA/draft: EU GMP Ch.4 draft (Jul 2025) 4.10-4.18 (draft); EU GMP Annex 22 draft (Jul 2025) (draft)"
+behaviour: |-
+  - Data governance:
+    - An inventory of record types and fields, each with an owner and a criticality.
+    - Documented data flows to and from integrated systems.
+    - A periodic data-integrity review report.
+  - AI:
+    - No AI/ML output can change GMP data or status without a human e-signature.
+    - Any AI helper is flagged as such. Its output is reviewed and signed, and the model version and confidence are recorded.
+    - Critical-use models (e.g. automated visual inspection [I]) must be static, validated and monitored.
+catalog_test: In the AI feature inventory, no feature changes GMP data without a human e-signature.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU drafts only. Neither region's current texts reviewed here contain these rules.

@@ -1,0 +1,26 @@
+id: IN-05
+title: Batch disposition by the authorised person
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 233
+  - 244
+  - 676
+sources: Schedule M Part I section 1 PQS list (no sale or supply before AP certification; head-of-QC approval), 11.3.6-11.3.10 (AP duties and delegation), 18.2.2 and 18.5.12 (records reviewed before AP; investigation of discrepancies), 14.29-14.31 (quarantine, release, rejected materials).
+behaviour: "(a) Bulk and finished goods are created in quarantine; only an e-signed disposition changes status (released, rejected, on hold) and warehouse/ERP interfaces must honour that status. (b) The release signature is available only to the AP or to a named delegate whose delegation cites an approved procedure. (c) Hard prerequisites: every step signed; production-record review signed; all deviations closed or formally assessed; head-of-QC approval recorded; a regulatory-notification assessment recorded for any change or deviation; for injectables, sterilisation records, EM data for the processing window and sterility results reviewed (IN-42, IN-47, IN-49). (d) The release checklist (licence and approval conditions met, validated processes, documentation complete and endorsed) is stored with the release record. (e) A rejected batch cannot close without a recorded disposition (return, reprocess, destroy) approved by an authorised role."
+catalog_test: attempt release with an open deviation, without head-of-QC approval, with an unsigned step, and as a user without the AP/delegate role; all four are blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**different** legal role. FDA: quality control unit approves, after reviewing all production and packaging records, per 211.22 and 211.192 [chk]; the Indian AP plus head-of-QC approval maps onto that and must meet 211.192 for US batches. EU: QP certification (Annex 16 [gk]; Annex 11 section 15 requires the system to let only QPs certify, by e-signature [chk]) happens at the EU importing site, not in India; the system supplies the batch package and can store the QP certification reference received back."
+notes: "Source check: P."

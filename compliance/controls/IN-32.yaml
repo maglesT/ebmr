@@ -1,0 +1,26 @@
+id: IN-32
+title: Reference and retention samples
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 660
+sources: Schedule M Part I 19.3(g) (sufficient samples retained in final pack for an appropriate time); Drugs Rules Rules 74 and 78 conditions of licence (quantity and period, S).
+behaviour: "The packaging record creates a mandatory reference-sample pull for each finished batch, in the final pack (or an equivalent pack for very large packs), with quantity not less than twice that needed for the full test plan. The FDA allowance to leave sterility and pyrogen tests out of the doubling is not used, because the Indian condition (if confirmed) covers all tests on the batch. Starting-material samples are also retained. Retention date = maximum over the batch's markets: India expiry + 3 months (3 years from manufacture where no expiry is labelled) pending confirmation; US expiry + 1 year; EU expiry + 1 year. For US batches, an annual visual examination task is scheduled for representative reserve samples."
+catalog_test: "batch with markets {India, US}: sample retention = expiry + 1 year; {India}: expiry + 3 months unless company policy is longer."
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: period **weaker** than FDA 211.170(b)(1) (1 year after expiry) [chk] and EU Annex 19 (at least 1 year after expiry) [gk]. Quantity **same** (twice the full testing need; FDA excludes sterility and pyrogen tests) [chk]. FDA's yearly visual examination of reserve samples [chk] has no Indian counterpart (**stricter** FDA).
+type_detail: ENFORCED (quantity and retention date); CONFIGURABLE (company policy may lengthen).
+notes: "Source check: P for 19.3(g) (re-read); S for the Drugs Rules quantity and period."

@@ -1,0 +1,31 @@
+id: ST-10
+title: Access authorisation, health declaration and exceptional supervised entry
+part: C
+group: "Theme 1: Personnel qualification and gowning gate"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 450
+  - 383
+  - 448
+sources: "EU Annex 1: 7.5, 7.7, 7.8 | US: 211.28(c)-(d); FDA-AP V (text box)."
+behaviour: |-
+  - Aseptic-area sign-in checks that the person is on the supervisor-authorised access list and records a fitness-to-enter declaration. This covers illness, open lesions, and recent work with human/animal tissue or microbial cultures.
+  - Declared culture or tissue work blocks entry until a documented decontamination record exists.
+  - A supervisor or medical exclusion flag blocks product-contact steps until a clearance with a medical reference is recorded. The flag state at each signature is kept.
+  - Exceptional entry of an unqualified person (for example a contractor) into Grade B, or into Grade A in operation, needs an "exceptional supervised entry" record: person, reason, times in and out, supervising authorised person (whose qualification is checked), and a cleanliness impact assessment. The record links to every batch in progress in that area and appears in batch review.
+catalog_test: Set a medical exclusion → filling signatures refused until clearance. Record a contractor entry during filling → impact assessment mandatory and entry visible in batch review.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. The US health-exclusion rule is binding.
+scope: all
+type_detail: ENFORCED (access list, medical exclusion). The self-declaration form is CONFIGURABLE.

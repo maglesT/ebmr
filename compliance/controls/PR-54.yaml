@@ -1,0 +1,35 @@
+id: PR-54
+title: US batch disposition by the quality control unit
+part: B
+group: I. Batch record review and release
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 608
+sources: "US: 211.22(a),(c); 211.142(a); 211.165(a),(b),(d),(f); 211.167(a),(c); 211.192 | EU: n/a | ICH/EMA/draft: none"
+behaviour: |-
+  - Only users with the QCU disposition role can release a finished lot for the US market.
+  - Prerequisites:
+    - QCU record review approved (PR-52) and investigations handled per PR-53;
+    - lab conformance to final specifications, including identity and strength of each active ingredient;
+    - microbiological testing where the product must be free of objectionable organisms;
+    - [I] sterility and pyrogen testing;
+    - [T] a release-rate result for each active ingredient of a controlled-release product;
+    - reconciliation passed;
+    - QC decisions on reprocessed or recovered material recorded.
+  - Failing product is rejected.
+  - Contract manufacture: when the site makes product under contract, the record also supports approval or rejection by the contract giver's QCU (211.22(a)).
+catalog_test: An extended-release tablet lot missing one active's release-rate result cannot be released.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US only. The QCU is an organisational unit; no named individual is required, unlike the EU QP.
+type_detail: ENFORCED (US in set)

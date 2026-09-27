@@ -1,0 +1,26 @@
+id: PR-13
+title: Step-sequence enforcement and the in-line deviation path
+part: B
+group: B. Batch record issuance and execution
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 119
+sources: "US: 211.100(b); 11.10(f) | EU: Ch.5 5.15; Ch.4 4.20(h); 4.21(g) | ICH/EMA/draft: none"
+behaviour: The engine enforces step order, prerequisites and branch conditions. A user cannot skip or reorder a mandatory step, or use equipment or material the master does not list. The only way around the defined flow is an in-line deviation record (description, immediate action, impact) approved by the e-signature of a user designated competent for that deviation class. Planned departures are approved before execution; unplanned events are approved after the fact. Quality-relevant classes are routed to QC/QA. The deviation ID is linked to the step and shown in the record.
+catalog_test: Skipping a mandatory step is blocked until a deviation is approved by an authorised role. A user cannot approve their own deviation.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU requires written approval by a competent person, with QC involved when appropriate. US requires the deviation to be recorded and justified. EU is stricter on approval, and the kernel applies it for all markets.
+type_detail: "ENFORCED + CONFIGURABLE (deviation classes and routing). Default: the operator cannot approve their own deviation (a design choice)."

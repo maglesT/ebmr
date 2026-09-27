@@ -1,0 +1,36 @@
+id: ST-49
+title: Radiation- and ethylene-oxide-sterilised materials; UV excluded
+part: C
+group: "Theme 7: Components, container-closures, depyrogenation, sterilisation cycles and load traceability"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 503
+  - 504
+  - 505
+  - 506
+  - 307
+sources: "EU Annex 1: 8.71 (UV not acceptable), 8.72–8.78 | US: 211.94(d), 211.113(b); FDA-AP VI.B.1."
+behaviour: |-
+  - **UV** is not offered as a sterilisation method. It can be logged only as a bioburden-reduction aid.
+  - **Irradiated items** record the certificate, processing lot and a dose within the validated range. A dose below the minimum rejects the lot.
+  - **EO-sterilised items** cannot be issued until all of the following are recorded:
+    - a justification that no other method is practicable;
+    - the cycle record: preconditioning time, temperature and RH; gas concentration, pressure and quantity; exposure time;
+    - BI results at every validated location, with a positive control per cycle;
+    - aeration start, end and conditions, with the **validated minimum aeration elapsed**;
+    - residual EO and reaction-product results within limits.
+catalog_test: Set a component's method to UV → option unavailable. Issue an EO lot with residuals pending → blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "EU is stricter: EO only as a last resort, and an explicit UV ban."
+scope: all
+type_detail: ENFORCED (UV exclusion is [EU hard])

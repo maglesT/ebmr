@@ -1,0 +1,26 @@
+id: IN-31
+title: Finished-pack label content and coding verification
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 252
+sources: Schedule M Part I 17.3.1 (items (a)-(g), including expiry and manufacture date uncoded); Drugs Rules Rule 96 (S).
+behaviour: "(a) Artwork templates are typed by destination class: India domestic (Schedule M 17.3.1 plus Drugs Rules Rules 96/97, section C), India export (Rule 94), US, EU. (b) The India-domestic template cannot be approved without fields for: drug name; active ingredients with INN and amount each, and net contents; batch number; **date of manufacture and expiry date in plain (uncoded) form**; special storage/handling; directions, warnings and precautions; name and address of the manufacturer and of the party placing the product on the market. (c) The packaging-record coding check compares every printed variable (batch, manufacturing date, expiry, MRP where applicable) against batch data at start, at intervals and at end. (d) Status labels on containers, equipment and premises follow the company format, optionally colour-coded."
+catalog_test: load an India-domestic template without a manufacturing-date field; approval fails. Print an expiry one month off; the coding check fails.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**stricter** than FDA (lot number and expiration date required under 21 CFR 201.17 and 211.137; no manufacturing date) [gk] and EU Directive 2001/83/EC Article 54 (expiry and batch number; no manufacturing date) [gk]. Applies to India-domestic packs; export packs follow IN-52 destination rules and Rule 94."
+type_detail: ENFORCED (per destination template); CONFIGURABLE (template contents per market).
+notes: "Source check: P for Schedule M (item list re-read); S for Rule 96."

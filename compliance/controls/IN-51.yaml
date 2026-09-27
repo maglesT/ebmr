@@ -1,0 +1,24 @@
+id: IN-51
+title: Part XIII area and equipment classes for parenterals
+part: D
+group: Injectables edition
+editions:
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 664
+sources: Schedule M Part XIII (parenteral preparations section; FFS section).
+behaviour: The Injectables edition ships area types (water management, container/closure preparation, solution preparation, filling/capping/sealing, sterilisation, quarantine, visual inspection, packaging; separate FFS/BFS set) and equipment classes (RO/EDI plus multi-column distillation, SS 316L tank and circulating loop, washers, double-ended dryer/steriliser, filtration, filling under laminar flow, steam and hot-air sterilisers, pressure leak tester, visual inspection units with white and black backgrounds, batch coding and labelling). Leak-test steps may only reference the pressure-leak-tester class; each water draw records the WFI loop/point of use. Recommended minimum areas (SVI 150 m2 basic plus 100 m2 ancillary; LVP 150 m2 each; LVP packaging materials 100 m2; FFS LVP 250 m2 plus 150 m2) are stored as site-profile information, not enforced.
+catalog_test: build an SVI MBR using only shipped classes; every needed area type exists.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**different**: no FDA or EU counterpart to prescriptive minimum areas and equipment lists [chk: not in 211 or Annex 1]."
+type_detail: CONFIGURABLE (master data shipped as defaults).
+notes: "Source check: P (area figures re-read; equipment list fragmentary in the uploaded copy)."

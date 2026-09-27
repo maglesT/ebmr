@@ -1,0 +1,33 @@
+id: PR-03
+title: MBR content completeness gate
+part: B
+group: A. Master records (MBR / master formula, processing and packaging instructions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 90
+  - 89
+  - 91
+  - 99
+  - 37
+sources: "US: 211.186(b)(1)-(9); 211.100(a); 211.101(a); 211.110(a)-(b); 211.111; 211.125(c) | EU: Ch.4 4.6; 4.17(a)-(d); 4.18(a)-(g); 4.19(a)-(i) | ICH/EMA/draft: none"
+behaviour: |-
+  The MBR designer refuses submission for approval unless every item in Section (a)-1 (processing) or (a)-2 (packaging) is present, for the markets in the product's market set. Specifically:
+  - every data-entry point has a typed field (unit, precision, range or list);
+  - every CPP and IPC has limits;
+  - every yield checkpoint has a theoretical basis and min/max limits;
+  - every printed component has a specimen (see D-1).
+  An item may be marked "not applicable" only if the rule itself makes it conditional ("where applicable", "where appropriate", "where necessary"), and only with a signed justification.
+catalog_test: Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: See Section (a). US is stricter on labeling specimens, active content per dosage unit, calculated excess and yield limits. EU is stricter on equipment preparation, pre-start clearance checks, bulk storage requirements and packaging-instruction detail.

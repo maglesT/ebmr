@@ -1,0 +1,26 @@
+id: IN-17
+title: Yields and reconciliation
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 245
+sources: Schedule M Part I 18.2.3, 18.4.6, 18.5.10 (yield checks and reconciliation; investigation before release).
+behaviour: Yields are calculated automatically at each stage against MBR limits; printed components and bulk are reconciled automatically (issued = used + destroyed + returned, within limits). Any out-of-limit yield or significant/unusual reconciliation discrepancy opens a deviation that blocks release until explained and closed. No reconciliation waiver is offered for roll labels.
+catalog_test: enter a carton reconciliation with a 2% unexplained loss above the configured limit; a deviation opens and release is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU 5.44 and 5.61 [chk] and FDA 211.103 [gk], 211.125(c) and 211.192 [chk]. FDA 211.125(c) waives label reconciliation for cut or roll labeling when 100% examination is done [chk]; India has no such waiver, so India is **stricter** there and the waiver is not offered."
+type_detail: ENFORCED; CONFIGURABLE (limits per product/component).
+notes: "Source check: P."

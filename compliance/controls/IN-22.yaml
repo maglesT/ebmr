@@ -1,0 +1,26 @@
+id: IN-22
+title: Packaging operation controls (coding, readers, on-line checks, leftovers)
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 247
+sources: Schedule M Part I 18.5.4-18.5.11.
+behaviour: (a) Coding (batch, expiry, manufacturing date, MRP where applicable) is verified and recorded at start and at intervals; hand-applied printing is re-checked at a shorter interval. (b) Electronic code readers, vision systems, label counters and similar devices are challenged at start, at intervals and at end; a failed challenge places everything since the last good challenge on hold. (c) On-line checks include at least pack appearance, completeness, correct product and materials, correct overprint and working line monitors. (d) Samples taken from the line are not returned. (e) An "unusual event" sub-workflow requires inspection, investigation and authorised approval before product re-enters the line, with a detailed record. (f) Labelling must follow filling/sealing promptly, or the MBR defines controls against mix-ups for the interval. (g) At the end, unused batch-coded materials must be recorded as destroyed; uncoded printed materials return to stock only through a documented check.
+catalog_test: close a packaging order with coded cartons unaccounted for; closure demands a destruction entry.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU 5.54-5.62 [chk] and FDA 211.125(d) (destroy excess coded labeling), 211.130 and 211.134 [chk]."
+type_detail: ENFORCED; CONFIGURABLE (check frequencies, never below the MBR minimum; tighter for manual labelling).
+notes: "Source check: P (18.5.4-18.5.9 re-read)."

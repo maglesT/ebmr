@@ -1,0 +1,63 @@
+id: ST-20
+title: EM limits, alert levels and trend rules (EU and FDA profiles)
+part: C
+group: "Theme 2: Cleanroom/area status and environmental and personnel monitoring linked to the batch window"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 544
+  - 545
+  - 346
+  - 348
+  - 74
+  - 274
+  - 556
+  - 352
+sources: "EU Annex 1: 9.9–9.12, 9.28, 9.29, Table 2 note 2, Table 5, Table 6 | US: 211.22(a), 211.42(c)(10)(iv), 211.165(e); FDA-AP IV (Table 1 and notes), X.A.1, X.A.2, X.D."
+behaviour: |-
+  - **Viable action limits** (EU Table 6, maxima):
+
+    | Grade | Air (CFU/m³) | Settle plate, 90 mm (CFU/4 h) | Contact plate, 55 mm (CFU/plate) | Glove print, 5 fingers (CFU/glove) |
+    |---|---|---|---|---|
+    | A | no growth | no growth | no growth | no growth |
+    | B | 10 | 5 | 5 | 5 |
+    | C | 100 | 50 | 25 | – |
+    | D | 200 | 100 | 50 | – |
+
+  - **FDA Table 1 action levels** (air CFU/m³ / settle plate CFU per 4 h; particles ≥0.5 µm/m³):
+
+    | ISO class | Air / settle | Particles |
+    |---|---|---|
+    | 5 | 1 / 1 (normally no growth) | 3,520 |
+    | 6 | 7 / 3 | 35,200 |
+    | 7 | 10 / 5 | 352,000 |
+    | 8 | 100 / 50 | 3,520,000 |
+
+    FDA settle plates are optional.
+  - **Effective limit.** Each location uses the stricter of the EU and FDA values for the markets served. Example: a room classed ISO 8 for US and Grade D for EU gets **100/50** (FDA), not 200/100.
+  - **Alert levels.** Required for Grade A (total particles only), B, C and D. They are derived from qualification data and periodically re-set from trend data. The system offers no alert field for Grade A viable, because any growth is an action event (ST-21).
+  - **Trend rules** (configurable; each rule is required):
+    - a rising number of alert/action excursions;
+    - consecutive alert excursions;
+    - recurring isolated action excursions with a common cause, for example after planned maintenance;
+    - flora change, including a first-seen organism or a spore-former/mould;
+    - recovery frequency over a rolling window per location.
+
+    A triggered rule creates an event linked to every batch in the affected area and period.
+  - **Result display.** Each result is shown individually against limits; there is no averaged-only view. Records carry location, room, class, shift, operator and batch, so data can be trended along each of these. DESIGN-CHOICE: the review dossier shows 30-day and 12-month snapshots.
+  - **Rapid methods.** Results from validated rapid or alternative methods may use non-CFU units, with a correlated limit and justification reference. Results from unvalidated methods are refused.
+catalog_test: Configure a Grade B air action limit of 15 → rejected. The Grade A viable alert field is absent. Three low-level recoveries at one ISO 7 location in 10 days → the frequency trend rule fires and links to batches.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Grade A is stricter under EU (no growth) than ISO 5 (action 1, normally none). Grade B equals ISO 7 for air and settle plates, and EU adds contact and glove limits. **ISO 8 (FDA 100/50) is stricter than EU Grade D (200/100)**, so it applies for US-market products.
+scope: all
+type_detail: "CONFIGURABLE within floors (ST-01). ENFORCED: no averaged-only views, and no alert tier for Grade A viable."

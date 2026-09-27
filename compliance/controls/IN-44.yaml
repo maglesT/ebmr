@@ -1,0 +1,25 @@
+id: IN-44
+title: Clean-area sanitation, disinfectants and water monitoring
+part: D
+group: Injectables edition
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 670
+sources: Schedule M Part II 3.1-3.4 (more than one type of disinfectant; sporicidal agent; residue removal validated; sterile agents for A/B), 5.9 (water monitoring and records).
+behaviour: Cleaning/disinfection records for Grade A-D rooms record agent, lot, dilution preparation time and use-by, sterility status for Grade A/B use, and the rotation (at least two agent types, including a sporicidal agent). A dilution past its defined storage period, or a non-sterile agent in Grade A/B, is rejected. The batch record links the cleaning events covering its window. Water results (WFI endotoxin, microbial, chemical) for the points used by the batch are visible at release relative to batch dates.
+catalog_test: record use of a dilution past its storage period; refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU Annex 1 (2022) 4.33 (more than one agent type; periodic sporicidal use) [chk] and FDA 211.67/211.113(b) expectations [gk]."
+type_detail: ENFORCED; CONFIGURABLE (agents, rotation).
+notes: "Source check: P (3.1-3.3 and 5.9 re-read)."

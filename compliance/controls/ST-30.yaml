@@ -1,0 +1,27 @@
+id: ST-30
+title: "Manual aseptic operations: per-operator APS qualification per configuration"
+part: C
+group: "Theme 4: Aseptic process simulation (media fill): status and failure consequences"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 565
+sources: "EU Annex 1: 9.39 | US: FDA-AP IX.A.3 (manual processes simulated at least as long as the real process); no per-operator interval."
+behaviour: |-
+  - For processes flagged "manual aseptic", qualification is tracked per **operator × container type × closure × equipment train**: 3 consecutive successful APS initially, then one successful APS about every 6 months per operator. APS batch size mirrors routine batches.
+  - An operator cannot sign a manual aseptic step for a combination not currently qualified.
+catalog_test: An operator qualified on 10 mL vials is assigned a manual 50 mL fill → refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "EU is stricter: 6-monthly per operator, against FDA's annual participation."
+scope: aseptic (manual compounding or filling)
+type_detail: ENFORCED for the EU profile. Interval CONFIGURABLE ≤6 months.

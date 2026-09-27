@@ -1,0 +1,35 @@
+id: DI-48
+title: Data migration
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 150
+  - 175
+  - 647
+sources: "US: 11.10(a), 11.10(c); 211.68(b), 211.180(d); FDA DI Q&A Q9 | EU: Annex 11 §4.8, §14(b) (linkage survives) | ICH/EMA/draft: draft Annex 11 §10 data migration (draft)(s)"
+behaviour: |-
+  - Any move of data to another format or system is a validated migration. This includes schema upgrades, archive exports, legacy imports, platform changes and tenant exit.
+  - The migration verifies that neither values nor meaning change. It checks:
+  - record counts and per-record checksums;
+  - field-level values, units and precision;
+  - timestamps and time zones;
+  - the audit trail;
+  - signature manifestations and signature-record linkage.
+  - The migration report is approved before go-live.
+catalog_test: In a migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Only the EU (§4.8) has an explicit migration rule. The US reaches the same result through 11.10(c) and the true-copy rules.
+type_detail: "ENFORCED (the checks). Automating them is a DESIGN-CHOICE: §4.8 requires the checks, not automation."

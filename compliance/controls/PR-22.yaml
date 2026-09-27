@@ -1,0 +1,30 @@
+id: PR-22
+title: Equipment and container identification
+part: B
+group: D. Equipment, premises, cleaning and logs
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 16
+  - 118
+sources: "US: 211.105(a)-(b); 211.188(b)(2) | EU: Ch.5 5.12; 5.13; Ch.4 4.20(e); 4.21(e) | ICH/EMA/draft: none"
+behaviour: |-
+  - Every major equipment item has a distinctive ID. The ID is recorded automatically in the batch record at unit level (not just the equipment class) and checked against the classes and units the master allows.
+  - The following show product or material, strength, batch number and stage, in the company's approved label format: every compounding and storage container, bulk container, processing line and major equipment item, and rooms where appropriate. A physical label or a validated electronic display may be used.
+  - Identification is updated on every state change.
+  - Colour coding is optional.
+catalog_test: A step with a unit the master does not allow is rejected. The batch report shows unit IDs. The status display matches the system state after each transition.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU adds strength and, where appropriate, rooms. US adds the processing phase where necessary. The kernel applies the union of both.
+type_detail: ENFORCED (unit ID in the record; contents and status identification) + DESIGN-CHOICE (barcode/RFID; electronic status displays in place of paper labels)

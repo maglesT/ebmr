@@ -1,0 +1,40 @@
+id: DI-13
+title: Security baseline, confidentiality and non-repudiation evidence
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 176
+  - 615
+sources: "US: 11.10 introductory text (authenticity, integrity, confidentiality when appropriate, non-repudiation), 11.30; 211.68(b) (backup data secure from alteration, erasure, loss) | EU: Annex 11 §7.1, §12.1, §12.2 | ICH/EMA/draft: draft Annex 11 §15 security incl. reported 15.19 penetration testing (draft)(s); draft Annex 11 §10 encryption, §11 MFA for remote access (draft)(s)"
+behaviour: |-
+  - Encryption:
+  - TLS on all client and interface connections; plain HTTP is refused.
+  - Encryption at rest for the DB, attachments, backups and archives.
+  - Access to confidential data (formula composition, personal data) is restricted by role and site.
+  - Shop-floor clients are hardened: kiosk mode, removable storage disabled.
+  - Platform hygiene:
+  - malware protection and patch SLAs;
+  - segmentation between the OT line network and the IT network;
+  - isolation of unsupported platforms.
+  - MFA is required for all remote access and all privileged access.
+  - Internet-exposed or SaaS deployments are penetration-tested periodically.
+  - RTO and RPO are documented per module. The execution module has the tightest RPO (Injectables: continuous aseptic filling).
+  - Each signature has a non-repudiation evidence package: identity-verification record, authentication event, manifestation and audit trail.
+catalog_test: A non-TLS connection is refused. USB storage on a kiosk is blocked. A user without formula permission cannot open the composition. For a sampled signature, the evidence package can be produced.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The 2011 texts set general protection duties. The draft Annex 11 is prescriptive, and the kernel designs to it.
+type_detail: "ENFORCED for TLS, encryption at rest, and MFA on remote/privileged access (designed to the stricter draft; no conflict). CONFIGURABLE for RTO/RPO values and pen-test frequency (DESIGN-CHOICE defaults: annual pen test; RPO set by risk)."

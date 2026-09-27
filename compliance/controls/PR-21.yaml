@@ -1,0 +1,26 @@
+id: PR-21
+title: Batch kit and charge-in verification
+part: B
+group: "C. Materials: receipt, status, dispensing and charge-in"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 14
+  - 120
+sources: "US: 211.101(d); 211.68(c); 211.188(b)(3)-(4) | EU: Ch.5 5.39; Ch.4 4.18(d) (sequence of addition); 4.20(d) | ICH/EMA/draft: none"
+behaviour: Materials dispensed for a batch are grouped into a kit with a conspicuous batch label. A kit cannot be issued while a component is missing. Charge-in requires scanning every dispensed container, and each must match the batch, step and material, at the process point the master defines. A missing container blocks step completion, and an unplanned container is rejected. Every addition needs a performer and a different verifier, or one verifier when the addition is automated under 211.68.
+catalog_test: Omitting one container prevents completion. A wrong container is rejected. A verifier who is also the performer is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US explicitly requires second-person verification of each addition. EU requires kits kept together and labelled, and a defined order of addition. US is stricter on the witness, and the kernel applies it to all markets.
+type_detail: ENFORCED + DESIGN-CHOICE. The design choice (default off) requires the verifier to sign within a set time window from a terminal registered to that room.

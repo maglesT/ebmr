@@ -1,0 +1,31 @@
+id: ST-13
+title: Aseptic behaviour observation, QA oversight and in-cleanroom device rules
+part: C
+group: "Theme 1: Personnel qualification and gowning gate"
+editions:
+  - injectables
+type:
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 470
+  - 293
+  - 455
+  - 451
+sources: "EU Annex 1: 7.9, 7.18, 8.19 | US: 211.22(a), 211.25(b); FDA-AP V.A."
+behaviour: |-
+  - Batch-linked observation record: observer (must hold the aseptic-expert, supervisor or QA role), time window, operator observed, checklist result, findings and coaching. A finding can raise a deviation, and it feeds ST-09.
+  - Line readiness shows when the next observation is due. Batch review shows whether QA oversight took place.
+  - Device rules: only registered, grade-rated tablets and scanners may open sessions in classified areas, with a disinfection record at transfer-in. Station layout keeps data entry out of first-air paths. Entry after the activity is allowed where the MBR permits it.
+catalog_test: A user without the expert role creates an observation → refused. Log in from an unregistered tablet in Grade B → refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned on regular observation. Neither text sets a frequency, so the 1/month default is a design choice.
+scope: aseptic
+type_detail: CONFIGURABLE (observation frequency per line; default at least one expert observation per line per month, site may tighten). Device rules are DESIGN-CHOICE.

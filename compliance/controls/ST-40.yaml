@@ -1,0 +1,35 @@
+id: ST-40
+title: Sterile components from suppliers or contract sterilisers, and sterile additions
+part: C
+group: "Theme 7: Components, container-closures, depyrogenation, sterilisation cycles and load traceability"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 395
+  - 309
+  - 302
+  - 461
+  - 378
+sources: "EU Annex 1: 2.5(vii)-(viii), 8.11 | US: 211.84(d)(3), 211.113(b); FDA-AP VI.A, VI.B.1, Appendix 3.A."
+behaviour: |-
+  - Applies to RTU/RTS items (nested syringes, RTU vials, RTU stoppers, gamma-sterilised assemblies) and to contract-sterilised components. Before issue:
+    - supplier and contract steriliser are in approved status;
+    - the finished-product maker's review of the contractor's validation protocol **and** report is current;
+    - the CoA-reliability confirmation under 211.84(d)(3) is current, otherwise full testing is required;
+    - the lot's CoA, sterilisation certificate and a visual identity check are recorded.
+  - **Aseptically added sterile components.** The method used (filtration, sterile crystallisation, dry heat, irradiation) must match the MBR registration, with evidence linked. Missing evidence blocks the addition.
+  - **Non-filterable products.** Every material addition needs sterility evidence and is made aseptically in Grade A. All contact equipment and bulk/intermediates are sterilised.
+  - **Aseptic upstream stages** (for example aluminium-adjuvanted suspensions): steps that expose product or contact surfaces need ISO 5/Grade A unidirectional air with an ISO 7 / Grade B or better background. EM and PM tasks are generated for these stages. End-of-operation surface EM must be recorded before the cleaning step can be signed. Sterile bulk transfer and transport are logged: vessel ID, integrity or pressure status, route, times, and a hold within the validated vessel-integrity time (ST-29). Where the MBR requires a bulk sterility test, the downstream step is blocked until the result is linked.
+catalog_test: Issue RTU syringe tubs after the CoA-reliability confirmation has lapsed → blocked. Add a sterile API lot without a sterility certificate → blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. FDA-AP is explicit that the product maker must itself evaluate the contractor's validation.
+scope: "aseptic (supplier checks: all)"

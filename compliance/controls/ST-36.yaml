@@ -1,0 +1,29 @@
+id: ST-36
+title: Non-qualified interventions and exceedance of APS-demonstrated frequency
+part: C
+group: "Theme 5: Interventions catalogue and log"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 465
+sources: "EU Annex 1: 8.16, 9.34 | US: 211.113(b), 211.192; FDA-AP IV.E, IX.A.3."
+behaviour: |-
+  - An intervention not in the catalogue can be recorded only as "unqualified". It needs:
+    - a real-time QA authorisation e-signature before the operator continues;
+    - an automatic deviation and investigation;
+    - flagging of the affected units and time window;
+    - a mandatory QA disposition item that blocks certification until closed.
+  - A catalogue intervention done more often than demonstrated in APS, or a rare intervention not simulated within its interval, raises a deviation for QA assessment (see ST-31).
+catalog_test: Record an "other" intervention → QA sign-off required before continuing, deviation auto-created, certification blocked while open.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU is explicit that unqualified interventions are exceptional and are considered at disposition. FDA treats them through the deviation path. Aligned.
+scope: aseptic

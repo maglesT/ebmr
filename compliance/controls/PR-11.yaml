@@ -1,0 +1,31 @@
+id: PR-11
+title: Contemporaneous recording, time stamps, late entries and paper fallback
+part: B
+group: B. Batch record issuance and execution
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 100
+  - 99
+  - 618
+sources: "US: 211.100(b) (documented at time of performance); 211.188; 11.10(e) | EU: Ch.4 4.1 (hybrid systems); 4.6; 4.7; 4.8; Annex 11 section 16 | ICH/EMA/draft: EMA data-integrity Q&A / PIC/S PI 041 for fallback-form reconciliation (s)"
+behaviour: |-
+  - Action times come from a synchronised server clock (stored as UTC plus the site offset). A user can never set the time of an action.
+  - Late entries go only through an explicit late-entry path. It records the actual activity time as a data field, the entry time and a reason, and the entry is flagged in the exception report.
+  - Downtime fallback: printable instructions and forms are generated from the Effective master. Each carries a unique form ID, the batch ID, "page x of y" and a dedicated space for every entry.
+  - Issued fallback forms are counted and reconciled on return. Their data are transcribed back with verification, and a scan of the form is linked to the record.
+catalog_test: A backdating attempt is impossible. A late entry shows both times, the reason and an exception flag. Issued fallback forms reconcile to returned forms.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Equivalent.
+type_detail: "ENFORCED (server-side time; no backdating) + CONFIGURABLE (what counts as late). Default: any entry made after the step's planned window has closed is flagged."

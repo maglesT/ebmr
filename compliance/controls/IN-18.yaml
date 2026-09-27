@@ -1,0 +1,27 @@
+id: IN-18
+title: Batch numbering and allocation register
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 243
+  - 249
+sources: Schedule M Part I 17.3.10.8-17.3.10.11 (numbering SOP, relation of processing and packaging numbers, no reuse, immediate recording of allocation); 14.32 (reworked batch gets a new number).
+behaviour: "A configurable batch-number generator with a site-wide uniqueness constraint: a number is never reissued, including after cancellation or reprocessing; manual entry of an existing number is rejected. Processing and packaging batch numbers are linked by a defined rule. Every allocation writes immediately to an allocation register with at least allocation date, product identity and batch size. A reworked batch always receives a new batch number (IN-19)."
+catalog_test: cancel a batch; its number is never offered again. Export the register; the three fields are present.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: new number for rework is **stricter** than FDA 211.115 [chk] and EU 5.67 [chk] (neither requires it). Unique, history-traceable lot numbers **same** as FDA 211.130(c) [chk].
+type_detail: ENFORCED (uniqueness); CONFIGURABLE (number format, bulk-to-pack linkage rule).
+notes: "Source check: P (14.32 re-read); P~ for 17.3.10 sub-numbers."

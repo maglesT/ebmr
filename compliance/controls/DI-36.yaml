@@ -1,0 +1,32 @@
+id: DI-36
+title: Signature manifestation
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 54
+  - 162
+  - 171
+sources: "US: 11.50(a)-(b) | EU: Annex 11 §14(c) (time and date) | ICH/EMA/draft: draft Annex 11 §13 (name, role, meaning, date/time with time zone where applicable) (draft)(s); draft Ch.4 signatures (draft)(s)"
+behaviour: |-
+  - Every human-readable form of a signed record shows, for each signature:
+  - the printed full name as it was at signing;
+  - user ID and role;
+  - date and time with time zone / UTC offset;
+  - the meaning.
+  - The human-readable forms are screen, print, PDF and export.
+  - The manifestation is stored immutably with the signature when it is applied, not re-derived later from the user table. It is controlled like the record itself.
+catalog_test: Sign a step, then view it on screen, in the PDF and in the export. All elements appear. Rename the user. Historic signatures keep the original name.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The printed name and meaning are US requirements (11.50). EU 2011 requires only date and time. The draft adds role and time zone. All are adopted.

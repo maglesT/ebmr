@@ -1,0 +1,31 @@
+id: ST-63
+title: AQL of accepted units, critical defects, OOS investigations and defect trending
+part: C
+group: "Theme 12: 100% visual inspection, AQL and container-closure integrity"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 478
+  - 481
+  - 312
+sources: "EU Annex 1: 8.30, 8.33 | US: 211.192 (binding); FDA-AP VI.B.2; FDA draft guidance (2021)."
+behaviour: |-
+  - **AQL sampling.** Accepted units are sampled after inspection. The record holds sample size, acceptance and rejection numbers, and results by class.
+  - **Critical defect in accepted units.** Any **critical** defect found in accepted units, whether in AQL or any later inspection, opens an investigation automatically, blocks release and prompts a re-inspection decision. Re-inspection is allowed only under SOP, with a deviation, and its counts are recorded separately.
+  - **OOS results.** Any out-of-specification IPC or inspection result opens a 211.192 investigation, which includes other potentially affected batches. Release waits for closure.
+  - **Trending.** Defect counts are stored per code per batch, so SPC trending works across batches. An adverse trend opens an investigation with a **mandatory market-impact assessment**.
+catalog_test: One cracked vial in the AQL sample → automatic investigation and release block. Ten batches with rising glass rejects → trend rule fires.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned. Neither final text fixes AQL values.
+scope: all
+type_detail: ENFORCED. The AQL plan is CONFIGURABLE; see Open questions for values.

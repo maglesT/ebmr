@@ -1,0 +1,31 @@
+id: PR-10
+title: Batch record issuance and batch numbering
+part: B
+group: B. Batch record issuance and execution
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 97
+  - 1
+sources: "US: 211.188(a); 211.186; 211.130(c); 210.3(b) lot-number definition (s) | EU: Ch.4 4.2 (working copies from masters must not introduce errors); 4.20 and 4.21 (records based on approved instructions) | ICH/EMA/draft: none"
+behaviour: |-
+  - The batch record is generated programmatically from the Effective master version, with no retyping.
+  - The system verifies that the instance matches the master (hash or field comparison).
+  - An authorised issuer e-signs and dates the issued record, with signature meaning "issued, reproduction verified".
+  - The batch number comes from a controlled sequence. It is unique per site and product and has a globally unique internal key.
+  - The destination-market set is recorded at issue. Packaging orders may narrow it later under control.
+  - Later master edits never change an issued record.
+  - Test, simulation and training runs are segregated, watermarked and cannot become GMP records.
+catalog_test: An issued record matches the master hash and carries the issuance e-signature. A duplicate batch number is rejected. A record cannot be issued from a Draft master.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "US explicitly requires that the reproduction be checked for accuracy, dated and signed (211.188(a)), so US is stricter: the issuance signature is mandatory for all markets. EU requires only that the reproduction method cannot introduce errors."

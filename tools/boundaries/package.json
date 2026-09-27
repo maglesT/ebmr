@@ -1,0 +1,7 @@
+{
+  "name": "@ebmr/tool-boundaries",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Proves the architecture boundary rules in .dependency-cruiser.cjs fire",
+  "type": "module"
+}

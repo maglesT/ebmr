@@ -1,0 +1,36 @@
+id: DI-49
+title: Alarms and equipment events in the batch context
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 6
+target_phase_source: outline
+requirement_rows:
+  - 174
+sources: "US: 211.68(a); FDA DI Q&A Q8 footnote 13 (alert records reviewed on a risk basis) | EU: Ch.4 4.20(e),(h) (relevant events, special problems) | ICH/EMA/draft: draft Annex 11 §8 alarms (draft)(s)"
+behaviour: |-
+  - GMP-relevant alarms that occur during a batch appear in the batch record. They may come from the eBMR itself or from connected SCADA/EMS. Each shows:
+  - the time raised and the time acknowledged;
+  - who acknowledged it;
+  - the comment and action taken;
+  - a deviation link where one is required.
+  - Acknowledging a GMP-critical alarm requires a comment.
+  - The alarm log cannot be erased or deactivated.
+  - Alarm limits are controlled configuration (DI-09).
+  - Each batch has an alarm log that is part of review (DI-26), and alarms are trended across batches.
+  - Injectables: aseptic-area alarms (differential pressure, particles, glove breach, filter-integrity failure) are visible to reviewers and the QP.
+  - Tablets: examples are compression-force excursions and checkweigher reject bursts.
+catalog_test: Simulate an excursion. It appears with raise and acknowledgment times, acknowledger identity and comment. Try to acknowledge without a comment. Refused. Try to delete the alarm log. Impossible.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The 2011 texts have no alarm clause. The draft adds one, and the kernel adopts it.
+type_detail: CONFIGURABLE for the integration scope, which depends on the connected systems. Where alarms are integrated, the rules above are ENFORCED. The kernel is designed to the draft (no conflict).

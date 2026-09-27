@@ -1,0 +1,39 @@
+id: ST-60
+title: "Terminally sterilised products: preparation/filling grades and preparation-to-sterilisation time"
+part: C
+group: "Theme 11: Terminal sterilisation"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 456
+  - 457
+  - 458
+  - 382
+sources: "EU Annex 1: 8.1–8.5, 8.36 | US: 211.113(b), 211.111 (inferred); FDA-AP II.B, Glossary (terminal sterilisation, overkill)."
+behaviour: |-
+  - **Grade floors:**
+    - component and solution preparation: **≥ Grade D**;
+    - preparation raised to **≥ Grade C** automatically when the product has an unusual contamination risk (supports microbial growth, long hold before filling, not processed mainly in closed vessels), and for ointments, creams, suspensions and emulsions;
+    - filling: **≥ Grade C**;
+    - filling moves to **Grade A with ≥ Grade C background** when the CCS shows unusual environmental risk (slow filling, wide-neck containers, exposure of more than a few seconds before closure).
+
+    Product and container risk flags drive these grades.
+  - Primary containers and components are cleaned by validated processes that control particles, endotoxin and bioburden.
+  - Where possible, the bulk passes a microorganism-retaining filter before filling; its filter ID is recorded.
+  - A **preparation-to-sterilisation** timer uses the validated maximum (ST-37 item 13). Pre-sterilisation bioburden: ST-54.
+  - Cycle master data holds **SAL ≤10⁻⁶**, meaning at most one non-sterile unit per million. An "overkill" cycle means a **≥12-log** reduction of organisms with **D ≥1 min**. The FDA-AP glossary's parenthetical states the SAL probability inverted; configuration text must not copy it.
+catalog_test: Flag a terminal product as growth-supporting → a Grade D preparation room is rejected. Set container type "wide-neck" → filling demands Grade A in a Grade C background.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA-AP does not regulate terminal sterilisation of product, so EU governs (see the section below).
+scope: terminal
+type_detail: ENFORCED (grade floors). Risk flags and the time limit are CONFIGURABLE; the time limit must be validated.

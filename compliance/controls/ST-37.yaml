@@ -1,0 +1,48 @@
+id: ST-37
+title: Time-limit rule engine (mandatory timer set)
+part: C
+group: "Theme 6: Time limits driven by recorded events"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 315
+  - 316
+  - 72
+  - 467
+  - 468
+  - 469
+sources: "EU Annex 1: 8.18(i)–(vii), 8.36, 8.85(ii) (maximum filtration time) | US: 211.111; FDA-AP VIII."
+behaviour: |-
+  - **Rule definition.** Each rule has a start event, end event, maximum (minimum where relevant) and validation reference. MBR approval is refused if any rule lacks its reference.
+  - **Execution.** Timers run automatically from recorded events and warn before the limit. A breach blocks the step and all downstream steps until a deviation with justification and a QA decision exists. 211.111 accepts an overrun only if quality is not compromised.
+  - **Mandatory set:**
+    1. cleaning → drying → sterilisation of equipment, components and containers (dirty/clean hold);
+    2. sterilised equipment, components and containers from cycle end to last use, including during filling/assembly;
+    3. bio-decontaminated RABS/isolator from end of decontamination to start of aseptic work;
+    4. start of product preparation → start of sterilising filtration or sterilisation;
+    5. start of preparation → end of aseptic filling (product-specific overall limit reflecting composition and storage);
+    6. filtered/sterilised product hold before filling;
+    7. total filtration time, pauses included;
+    8. aseptic processing time;
+    9. filling time;
+    10. product exposure on the line (first open container to last unit sealed);
+    11. lyo: fill → lyo load, and partial-stopper exposure (ST-59);
+    12. stopper → crimp (ST-57);
+    13. terminal: preparation → sterilisation (ST-60).
+  - Each limit is also checked against the longest duration qualified by APS (ST-31). Hold-vessel storage conditions are attached.
+  - A time-limit compliance summary is part of batch review.
+catalog_test: Configure a 24 h preparation-to-fill-end limit and run 25 h → next step blocked until a QA-approved deviation. An MBR timer without a validation reference → approval refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Use the union. EU lists decontaminated-enclosure hold, aseptic processing time and filling time. FDA-AP lists line exposure time and a maximum total filtration time.
+scope: aseptic (items 1–12); terminal (item 13, see ST-60)
+type_detail: ENFORCED (the timer set must exist in every aseptic MBR; breach handling). Limit values are CONFIGURABLE, product-specific and validated. Neither text gives numbers, except that the time must be *validated*.

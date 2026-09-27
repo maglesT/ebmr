@@ -1,0 +1,35 @@
+id: ST-52
+title: "Filter integrity testing: PUPSIT, post-use test and redundant/serial logic"
+part: C
+group: "Theme 8: Sterilising filtration, filter integrity (PUPSIT/post-use) and bioburden"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 511
+  - 512
+  - 514
+  - 335
+sources: "EU Annex 1: 8.82(vi), 8.87, 8.91, 8.92 | US: 211.113(b), 211.192; FDA-AP IX.B, IV.D.1."
+behaviour: |-
+  - **PUPSIT.** A mandatory step between filter sterilisation and product filtration. It can be omitted only where the product/filter configuration carries an approved PUPSIT-waiver risk assessment. The assessment must cover filter-sterilisation process control, the supply chain (contract steriliser, transport, protective packaging) and product knowledge (for example, particle burden that could mask a non-integral filter in the post-use test). The waiver ID is displayed in the batch record and QP review.
+  - **Post-use test.** A non-destructive test (bubble point, diffusive flow, water intrusion or pressure hold) of **every** sterilising filter used on a fluid. It is run **after use and before removal from the housing**; recording removal first is refused.
+  - **Test record:** test type, tester ID and calibration, wetting fluid, temperature, test pressure, measured value, the product-specific limit pulled from filter master data (never typed), pass/fail, and the raw printout or e-file. The limit must correlate with the bacterial-retention validation.
+  - **Failure handling.** A failed or invalid test causes a deviation, batch hold and certification block. Retests are allowed only under the defined procedure, and every attempt is kept.
+  - **Multi-filter logic:**
+    - A train *validated as a serial system*: every filter must pass post-use.
+    - A *redundant* train: the primary is tested post-use. If it passes, the backup need not be tested. If it fails, the backup must be tested post-use, and an investigation plus risk assessment into the primary failure opens automatically. Both results appear at QP review.
+catalog_test: Start filtration without PUPSIT on a product with no waiver → blocked. A redundant train with the primary failing post-use → the backup test step appears, an investigation is created, and the batch is blocked until both are complete.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**EU is stricter.** EU expects PUPSIT, with a documented risk-based alternative only where it is not feasible. FDA-AP says pre-use testing *can* be done and post-use testing should be routine."
+scope: aseptic
+type_detail: ENFORCED. Post-use testing always. **PUPSIT** is ENFORCED in the EU profile with a waiver path. In a US-only profile the pre-use test is CONFIGURABLE, default on.

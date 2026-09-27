@@ -1,0 +1,25 @@
+id: IN-12
+title: Validation package and site master file support
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 273
+sources: Schedule M Part I section 5 (qualification and validation; validation master plan; attention to automated systems; periodic review); Appendix I site master file item on qualification and calibration including computerised-system validation arrangements; Part I 20.2-20.3.
+behaviour: "The vendor ships a validation package usable in the customer's validation master plan: URS, risk assessment, IQ/OQ scripts with evidence, traceability matrix, periodic-review template, and a short, accurate system description for the \"computerised systems validation\" item of the site master file. Supplier-qualified functions are documented so that customer testing can be reduced as allowed for qualified commercial software."
+catalog_test: the package contains each listed artefact and the SMF paragraph.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU Annex 11 section 4 [chk] and Annex 15 [gk]; FDA 211.68 and 21 CFR 11.10(a) validation [chk/gk]."
+type_detail: DESIGN-CHOICE (vendor deliverable).
+notes: "Source check: P."

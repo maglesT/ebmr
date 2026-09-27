@@ -1,0 +1,34 @@
+id: DI-10
+title: Version-in-force stamping (executed-context snapshot)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 194
+  - 617
+sources: "US: 211.188(a) (accurate reproduction of the master), 11.10(e) | EU: Ch.4 4.20 (record based on the currently approved instructions), Ch.4 preamble (instructions name computerised systems); Annex 11 §10 | ICH/EMA/draft: draft Annex 11 §9 context (draft)(s): recording the version in force per batch is a design means from the register row, not reported draft text"
+behaviour: |-
+  - Each executed step stores the version or value of everything it depended on:
+  - software release and configuration baseline ID;
+  - MBR version and hash, and formula version;
+  - specification limits and SOP version;
+  - equipment status and calibration due date;
+  - material status;
+  - device and recipe versions.
+  - A later change to master data never alters how a completed record is displayed or how its results were evaluated.
+catalog_test: Tighten a specification limit after a batch completes. The completed record still shows the original limit version and its original pass/fail evaluation.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: No conflict.
+type_detail: DESIGN-CHOICE, engine-enforced. No rule names this mechanism, but without it 211.188(a), 11.10(e) and Ch.4 4.20 could not be shown to hold after master data changes.

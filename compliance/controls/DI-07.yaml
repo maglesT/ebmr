@@ -1,0 +1,36 @@
+id: DI-07
+title: Risk-based data-criticality classification (raises controls, never removes floors)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 148
+  - 202
+  - 203
+  - 183
+  - 209
+sources: "US: FDA DI Q&A Introduction (risk-based strategies), Q8 (risk assessment considers data criticality, controls, product impact) | EU: Annex 11 §1, §6 | ICH/EMA/draft: EMA GMP DI Q&A on data criticality and data risk (s); ICH Q9(R1) sec. 1 (s)"
+behaviour: |-
+  - Every MBR field and step carries a criticality class (e.g., CQA/CPP-linked, GMP-supporting, informational) with a reference to an approved risk assessment.
+  - The class drives three things: whether manual entry needs a second-person or validated-electronic check (DI-30), whether limits are hard or soft, and highlighting in review (DI-25/26).
+  - Floors apply to all GMP data regardless of class, and a class cannot remove them: audit trail, attribution, mandatory reason for change, and inclusion of every post-entry change in audit-trail review.
+  - A new field defaults to "critical" until it is classified. Downgrading a class requires a QA e-signature, a linked risk assessment and change control.
+  - The data-risk assessment covers the whole business process, including manual hand-offs at interfaces, and prefers automated capture for critical values.
+  - Injectables: sterility-assurance data (sterilisation cycles, filter integrity, EM excursions, interventions) is critical by default.
+  - Tablets: blend uniformity, weight, hardness and similar IPCs are critical by default.
+catalog_test: Try to downgrade a field without QA approval. It is blocked. A change to a field classed "informational" still appears in the audit trail and in the batch audit-trail review list.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Both markets allow a risk-based extent of controls. Neither lets risk classification remove the audit trail or attribution, which is why the floors exist.
+type_detail: CONFIGURABLE (class per field; default critical; downgrade only under QA-approved change control). Floors are ENFORCED.

@@ -1,0 +1,38 @@
+id: PR-39
+title: Reconciliation of bulk, labeling, printed packaging materials and serials
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 131
+  - 81
+  - 23
+  - 95
+sources: "US: 211.125(c); 211.184(c); 211.192; DSCSA 581/582 (s) | EU: Ch.4 4.21(h); Ch.5 5.8; 5.61 | ICH/EMA/draft: none"
+behaviour: |-
+  - Balance: at order close, for bulk and for each printed or labeling item, issued = used + destroyed + returned + samples + rejects + set-aside. This is reconciled against the units produced.
+  - Limits: limits are narrow, preset in the master, and based on historical operating data.
+  - Discrepancies: an out-of-limit or unusual discrepancy requires a linked investigation. Order close and release or certification stay blocked until it is satisfactorily explained.
+  - Component lots: use of each component lot is reconciled and feeds the inventory records.
+  - Serialised products: commissioned serials = packed + decommissioned, with zero unexplained serials.
+  - Labeling waiver: labeling reconciliation may be switched off only when all of these hold:
+    - the labeling is cut or roll labeling;
+    - a validated 100% electronic examination under 211.122(g)(2) is active;
+    - (EU in set) robust electronic controls are documented.
+    Reconciliation of bulk and batch-coded printed material is never waived when EU is in the set.
+catalog_test: 12 labels unaccounted for against a limit of 0 creates a deviation and blocks close and release. Enabling the waiver without a 211.122(g)(2) device is refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: The US waiver is narrow (cut or roll labeling plus 211.122(g)(2)). EU 4.21(h) allows quantities to be left out of the record when electronic controls are robust, but 5.61 still requires discrepancies to be explained before release. The kernel applies the stricter combination (D-6).
+type_detail: "ENFORCED (reconciliation, and investigation of discrepancies before release) + CONFIGURABLE (limits; labeling waiver). Default: no waiver."

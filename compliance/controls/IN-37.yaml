@@ -1,0 +1,24 @@
+id: IN-37
+title: Coating, capsule shells and printing of tablets/capsules
+part: D
+group: Tablets edition
+editions:
+  - tablets
+type:
+  - ENFORCED
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 263
+  - 676
+sources: Schedule M Part VIII 4.1-4.2, 5, 6.1-6.2; Part I 14.29-14.31.
+behaviour: Coating steps record solution/suspension preparation time and a use-by limit (freshly prepared; use after the limit is blocked), spray and air parameters, and room temperature/RH. Empty capsule shells are handled as a component lot with storage-condition checks. After printing of tablets or capsules, a QC approval of the printed bulk is a hard gate before packaging or sale; simultaneous printing of different products/batches requires a segregation record.
+catalog_test: open a packaging order for printed tablets without the QC approval; refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "the post-printing QC approval gate is **stricter** (no FDA/EU counterpart) [chk: not in 211 or EU Ch.5]; coating controls **same** in intent as FDA 211.113(a) [chk]."
+notes: "Source check: P (4.1-4.2, 5, 6.1-6.2 re-read)."

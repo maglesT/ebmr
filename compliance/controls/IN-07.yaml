@@ -1,0 +1,25 @@
+id: IN-07
+title: Contemporaneous capture, completeness and traceability
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 230
+  - 235
+sources: Schedule M Part I section 1 PQS list (records during manufacture show each step was done; history of a batch traceable and accessible), 3.1 (basic GMP requirements), 17.2 (records made when each action is taken).
+behaviour: (a) Each step is recorded at the time of the action with a server timestamp; entries by hand, by instrument interface, or both, are supported. (b) A batch cannot be completed while any mandatory step is unexecuted; skipped or not-applicable steps need a reasoned, signed justification. (c) Significant deviations are captured at the point of occurrence (IN-20). (d) Full backward genealogy (every input lot) and forward genealogy (packaging batches, distribution records) is queryable per batch. (e) The complete record renders in a human-readable form for the whole retention period (IN-08).
+catalog_test: skip a step; completion is refused. From a finished batch, list every input lot and every customer shipment.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as FDA 211.100(b) (documented at the time of performance) and 211.188(b) [chk], and EU Chapter 4 section 4.8 [chk]."
+notes: "Source check: P~."

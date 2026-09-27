@@ -1,0 +1,54 @@
+id: ST-77
+title: Blow-fill-seal (BFS)
+part: C
+group: "Theme 15: Technology profiles (isolator, RABS, BFS, FFS, closed/SUS)"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 521
+  - 522
+  - 523
+  - 524
+  - 525
+  - 526
+  - 374
+  - 375
+  - 376
+  - 377
+sources: "EU Annex 1: 8.22, 8.105–8.120 | US: 211.100, 211.113(b), 211.192; FDA-AP Appendix 2 (intro), 2.A–2.C."
+behaviour: |-
+  - **Environment:**
+    - line records shuttle vs rotary machine type;
+    - terminal BFS: machine in **≥ Grade D**, with point-of-fill conditions per ST-60;
+    - aseptic shuttle: **Grade A** at the parison extrusion, blow-moulding and sealing critical zones, plus a Grade A filling environment;
+    - aseptic rotary: **Grade A inside the parison**;
+    - machine background **≥ Grade C**, with operators in **Grade A/B garments**, so a Grade C gowning record is refused;
+    - FDA: the surrounding room generally ISO 8 or better, and the critical zone meets ISO 5 microbial (normally also particle) levels.
+  - **EM.** In-operation particle monitoring of the critical zone is not expected; a design-data reference is required instead. Viable monitoring must cover from equipment assembly to the end of filling, with samples spread across the run. Gaps are flagged.
+  - **Checks at start:**
+    - PM is current, and machine-utility integrity (for example mould-cooling leak check) is current;
+    - seal-critical tooling has been inspected;
+    - a mould change or modification is blocked until its CCI assessment is closed;
+    - the polymer lot is released (bioburden/endotoxin where specified) and its supplier is qualified;
+    - parison/support air filter IDs and integrity are current;
+    - the product-path SIP (and mandrel CIP/SIP) is within the validated recipe.
+  - **CPPs, imported continuously with limits:** extrusion temperature, speed and throat settings (parison thickness), melt temperature and residence time, mould temperatures and cooling rate. An excursion segregates units made in that window and raises a deviation.
+  - **IPCs.** Wall thickness, container weight, fill weight/volume, leak checks and process air pressure. **100% CCI** is run with a known-defect challenge verification. Rejects by reason flow into reconciliation. A significant forming or sealing defect creates a deviation with a 211.192 investigation.
+  - **Interventions.**
+    - Entries flagged "stops extrusion/filling" or "requires re-sterilisation" force a passing SIP before resumption.
+    - Set-up and troubleshooting are logged as interventions, with media-fill coverage checked.
+  - **Added components** (for example LVP caps), aseptic case: pre-sterilised and added in Grade A, with validated sealing tests.
+  - **Campaign.** A campaign-duration timer runs.
+catalog_test: A 10-min mould-temperature excursion → units from that window segregated. A modified mould without closed CCI assessment → batch start blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU is more prescriptive on zones, the Grade A/B garment rule and 100% CCI. FDA-AP adds extrusion endotoxin/spore challenge validation and polymer supplier control.
+scope: bfs

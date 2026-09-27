@@ -1,0 +1,32 @@
+id: PR-56
+title: Market-specific disposition for multi-market batches
+part: B
+group: I. Batch record review and release
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 218
+  - 187
+sources: "US: 211.22(a); 211.192 | EU: Ch.5 Principle | ICH/EMA/draft: Annex 16 (s); ICH Q12 ch.3 (s)"
+behaviour: |-
+  - Disposition status is held per finished lot and per market.
+  - A lot is releasable for a market only when:
+    - it meets that market's registration (ECs, specifications, process);
+    - its market-specific packaging record is complete;
+    - that market's release authority has signed (US: QCU; EU: QP).
+  - A deviation found acceptable for one market is assessed separately for the other.
+  - A rejection in one market opens an investigation link visible to all markets.
+  - See Section (b).
+catalog_test: A batch certified for the EU but not yet released by the US QCU cannot be shipped to the US, and the reverse also holds.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Each market's release authority is independent. Release in one market implies nothing about the other.

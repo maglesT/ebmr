@@ -1,0 +1,40 @@
+id: DI-30
+title: "Manually entered critical data: additional accuracy check"
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 151
+  - 175
+  - 649
+sources: "US: 211.68(c), 211.101(c)-(d), 211.103, 211.188(b)(11), 211.194(a)(8); FDA DI Q&A Q10 | EU: Annex 11 §6 | ICH/EMA/draft: draft Annex 11 §10 handling of data (plausibility checks; prefer validated interfaces to manual transfer) (draft)(s)"
+behaviour: |-
+  - A manually entered value classed critical (DI-07) must pass an additional accuracy check before the step can complete. The check is one of:
+  - an independent second person using their own authentication, who is not the performer;
+  - a validated electronic means: barcode match against the expected item/lot, or device capture that replaces manual keying (the interface then falls under DI-31).
+  - The engine refuses to approve an MBR in which a critical manual field has no check method.
+  - Every manual field gets plausibility checks: type, range, format, unit, expected lot or material.
+  - A value transcribed by hand is marked "manual/transcribed" and always needs second-person verification. This covers interface bypass and back-entry from paper.
+  - Manual readings (plate counts, visual checks, gauge readings) are entered by the reader at the time of reading and verified by a different person. The record shows the reader, the verifier and both times.
+  - US-market floors (details in the production catalog):
+  - every container of a dispensed component is checked by a second person (211.101(c));
+  - each charge-in is added by one person and verified by a second (211.101(d));
+  - each yield calculation is verified by a second person (211.103);
+  - each significant step identifies the person performing it and the person directly supervising or checking it (211.188(b)(11)).
+  - One-person checking is allowed only where the operation itself is performed by automated equipment under 211.68 and one person checks that the equipment did it correctly (211.68(c)).
+catalog_test: Configure a critical manual field and try to complete the step without verification. Blocked. The same user tries to verify. Refused. Take the interface down. The manual value is flagged "manual" and needs verification.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU §6 lets a validated electronic check replace the second operator for manual data. The US second-person rules for dispensing, charge-in and yield drop to one person only when the operation itself is performed by automated equipment. For US-market products, device capture on its own does not remove the second-person check at dispensing and charge-in unless QA documents that the operation qualifies under 211.68(c) (see open questions).
+type_detail: ENFORCED (floor). CONFIGURABLE for the check method per field (second person vs validated electronic check), within the floors.

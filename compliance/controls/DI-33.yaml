@@ -1,0 +1,33 @@
+id: DI-33
+title: Calculations and reprocessing
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 2
+target_phase_source: outline
+requirement_rows:
+  - 641
+  - 653
+  - 108
+sources: "US: 211.68(b), 211.103, 211.188(b)(7), 211.194(a)(5); FDA DI Q&A Q1d, Q3, Q6, Q14 | EU: Annex 11 §4.7 | ICH/EMA/draft: draft Ch.4 draft-4.12 (derived data reconstructable from raw data) (draft)(s)"
+behaviour: |-
+  - GMP calculations run only in validated, version-controlled engine logic. Examples: yield, reconciliation %, potency-adjusted quantities, means/RSD, unit conversions.
+  - The logic is a sandboxed expression language with a closed function library, and GMP masters have no custom-script escape hatch (design).
+  - Each result stores its inputs, formula version, units and conversion factors, and the result.
+  - Automated yield calculations are independently verified by one person. Manual calculations are done by one person and verified by a second (211.103).
+  - Recalculation or reprocessing is allowed only in SOP-defined cases (e.g., after an input correction, or re-evaluated PAT data). Every result version is kept with its inputs, parameters, user, time and justification, and reviewers see the full history.
+  - A spreadsheet used for a GMP calculation must be a controlled template version, stored in native form with its formulas intact (a dynamic record). It is never the unlogged source of a GMP result.
+catalog_test: The yield step shows inputs, formula version, result and a verification signature. Correct an input and recalculate. Both results are kept, with their reasons.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US text is explicit about verifying yield. The EU reaches the same result through validation. Applying Q14 to production calculations is by analogy with laboratory reprocessing.
+type_detail: ENFORCED. The sandboxed expression language is an engine-enforced DESIGN-CHOICE.

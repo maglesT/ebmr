@@ -1,0 +1,27 @@
+id: PR-41
+title: OTC tamper-evident packaging
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+type:
+  - ENFORCED
+target_phase: 3
+target_phase_source: default
+requirement_rows:
+  - 25
+sources: "US: 211.132(a)-(c) (exemptions and related procedures in (d)-(f)) | EU: none in Ch.4/5 | ICH/EMA/draft: none"
+behaviour: |-
+  - Required checks: the packaging master cannot be approved without steps that check the tamper-evident features (e.g. seal integrity, band presence).
+  - Labeling-statement check: the statement must name every feature and any capsule-sealing technology, and refer to the identifying characteristic.
+  - Capsules: two-piece hard capsules require verification of the sealing.
+  - Failures: a failed seal check triggers segregation and a deviation.
+catalog_test: An OTC packaging master without a tamper-evident check fails approval.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US-only. The EU anti-tampering device for prescription products is a separate obligation (see PR-42).
+type_detail: ENFORCED when the product master flag "US OTC retail" is true; not applicable otherwise

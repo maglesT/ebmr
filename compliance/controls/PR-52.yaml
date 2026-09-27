@@ -1,0 +1,35 @@
+id: PR-52
+title: Production approval and quality-unit review (including review by exception)
+part: B
+group: I. Batch record review and release
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 40
+  - 93
+  - 105
+sources: "US: 211.192; 211.22(a); 11.10(e) | EU: Ch.4 4.20(i); 4.21(i); 4.20 Note; 4.27; Annex 11 sections 8.2 and 9 | ICH/EMA/draft: FDA data-integrity Q&A (2018) on audit-trail review (s)"
+behaviour: |-
+  - Production approval: after processing and after packaging, the person responsible for that operation approves the processing record and the packaging record by e-signature. The approval covers the exceptions within their scope.
+  - QA workbench and exception report:
+    - The QA review workbench shows an exception report generated from a mandatory taxonomy: limit breaches, deviations, overrides, corrections of critical data, late entries, interface fallbacks, timer breaches, open verifications, alarms, audit-trail events on critical data, and special observations or comments.
+    - Each exception is dispositioned individually. The full record can always be viewed.
+  - Reduced reports:
+    - Automatically generated reports may be cut down to compliance summaries plus exception/OOS reports only for steps configured, under change control with a validation reference, as validated and continuously monitored.
+    - The underlying data are kept and can be drilled into.
+  - QCU approval: the QCU approval e-signature states that the complete record, including the packaging and labeling records, was reviewed.
+catalog_test: Seed one exception of each type. All appear, and approval stays blocked until each is dispositioned. Enabling review by exception on a step with no validation reference is refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "EU requires approval of the records by the person responsible for production (4.20(i), 4.21(i)); US has no explicit equivalent. US requires QCU review and approval of all production and control records, packaging and labeling included, before release. The 4.20 Note permits shorter reports but does not remove that US duty. Stricter combination: production approval, then QCU approval of the complete record."
+type_detail: "ENFORCED (full record available; every exception dispositioned; QCU approval of the complete record) + CONFIGURABLE (production-responsible approval: default ON, mandatory when EU is in the set; review-by-exception scope)"

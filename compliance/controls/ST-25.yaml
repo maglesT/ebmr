@@ -1,0 +1,27 @@
+id: ST-25
+title: High-risk utility points of use linked to steps
+part: C
+group: "Theme 3: Utilities (WFI, clean steam, gases)"
+editions:
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 435
+sources: "EU Annex 1: 6.1–6.4 | US: FDA-AP XII (support-system output is part of the release decision)."
+behaviour: |-
+  - The MBR names each high-risk utility point used by each step (WFI outlet, pure-steam header, gas drop).
+  - The batch shows each point's status and trend flag.
+  - An open excursion or adverse trend on a used point becomes a review item.
+catalog_test: Put an adverse-trend flag on nitrogen drop N-3 → every batch that used N-3 shows a review item.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Aligned in intent. EU requires critical parameters of high-risk utilities to be trended.
+scope: all
+type_detail: "CONFIGURABLE. Defaults: WFI, pure steam used as a direct sterilant, and product-contact gases are high-risk; the CCS may add more."

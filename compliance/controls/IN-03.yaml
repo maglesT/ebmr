@@ -1,0 +1,24 @@
+id: IN-03
+title: Change control gate and first-batch-after-change evaluation
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 268
+sources: Schedule M Part I 8.1-8.7 (formal change control; quality-unit approval; classification; documents revised on implementation; evaluation of the first batch after the change; expiry/retest impact of critical changes); Part I section 20 (changes to computerised systems follow a change procedure; exact sub-clause number not legible in the uploaded copy).
+behaviour: (a) No MBR, packaging-instruction, master-data, limit table, software or configuration version can become effective without a linked, approved change record (approval by the originating unit and by quality). (b) The change record stores the change class (e.g., minor/major) and the list of affected documents; the change cannot be closed until all listed documents are revised. (c) The first batch made or tested under the changed state is automatically flagged "post-change evaluation required"; it cannot be released until QA signs that evaluation. (d) For changes classified critical, the system creates a task to assess retest/expiry impact (optionally a stability commitment).
+catalog_test: approve MBR v2 under change CC-1, execute a batch; release is blocked until the post-change evaluation is signed.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**stricter** (more explicit) than FDA 211.100(a), which requires changes to procedures to be reviewed and approved by the relevant units and the quality control unit but names no first-batch evaluation [chk]; **same** intent as EU Chapter 1 / ICH Q10 post-implementation evaluation [gk]."
+notes: "Source check: P (8.6 first-batch evaluation and 8.7 expiry evaluation re-read)."

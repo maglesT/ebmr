@@ -1,0 +1,36 @@
+id: PR-58
+title: Product quality review / annual product review data
+part: B
+group: J. Traceability, product quality review and records retention
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 33
+  - 216
+  - 212
+  - 80
+  - 196
+  - 625
+sources: "US: 211.180(e)(1)-(2) | EU: Ch.4 4.29 (summaries such as PQR) | ICH/EMA/draft: EU GMP Ch.1 1.10 (s); ICH Q10 3.2.1 and 3.2.4 (s); FDA Process Validation guidance (2011) (s); EU Annex 15 OPV (u)"
+behaviour: |-
+  - Data types: CPPs, IPCs, yields, deviations, reprocessing, rejections, reconciliation results and release decisions are stored as typed data with units, limits and specification version.
+  - Extracts: extracts per product and period are reproducible and carry source-record links. They cover:
+    - a representative number of approved and rejected batches;
+    - complaints, recalls and returned or salvaged products;
+    - investigations, changes and CAPA effectiveness.
+  - Checks: extract counts reconcile to the registers.
+catalog_test: A product extract for a period reconciles to the batch list and the deviation and CAPA registers. Re-running it gives identical results.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "US requires an evaluation at least once a year. The EU PQR scope (Ch.1 1.10, (s)) is broader: significant deviations, CAPA effectiveness and changes."
+type_detail: ENFORCED (structured, queryable, reproducible data) + DESIGN-CHOICE (SPC dashboards, trend rules)

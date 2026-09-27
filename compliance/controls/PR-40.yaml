@@ -1,0 +1,25 @@
+id: PR-40
+title: "Packaging close-out: batch-coded leftovers and returns to stock"
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - DESIGN_CHOICE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 132
+sources: "US: 211.125(d)-(e) | EU: Ch.5 5.62; Ch.4 4.21(h) | ICH/EMA/draft: none"
+behaviour: At order close, unused labeling and packaging materials that carry the batch code are destroyed, with quantity, method, date and performer recorded, and cannot be returned to stock. Uncoded printed leftovers can return only through a counted return-to-stock transaction, following the documented procedure, and are identified and stored to prevent mix-ups.
+catalog_test: No transaction exists to return batch-coded cartons to stock. A return of uncoded labels updates stock only after a count verification.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Equivalent. EU requires the destruction to be recorded; US requires destruction of excess labeling that bears lot or control numbers.
+type_detail: ENFORCED + DESIGN-CHOICE (witness signature on destruction)

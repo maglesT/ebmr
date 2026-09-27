@@ -1,0 +1,24 @@
+id: IN-23
+title: Dispensing
+part: D
+group: Kernel controls (both editions)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 3
+target_phase_source: outline
+requirement_rows:
+  - 248
+sources: Schedule M Part I 14.14, 14.16-14.20.
+behaviour: Container-level barcode identity check; hard block on any lot not released by QC, expired, or past retest; only users in the designated-dispenser role may dispense; each weighing or measurement is independently checked by a second person or by a validated balance interface configured as the independent check; dispensed materials for a batch are kept and labelled together with a kit label linked to the batch.
+catalog_test: scan a quarantined lot, an expired lot and a lot past retest; all refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**same** as EU 5.33-5.34 and 5.37-5.39 [chk] and FDA 211.84(a) and 211.101(c)-(d) (second-person or automated check) [chk]."
+notes: "Source check: P (14.14, 14.16-14.18 re-read)."

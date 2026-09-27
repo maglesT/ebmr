@@ -1,0 +1,24 @@
+id: PR-35
+title: Packaging segregation and line identification
+part: B
+group: F. Packaging and labeling
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 122
+  - 24
+sources: "US: 211.130(a); 211.42(c)(6) | EU: Ch.5 5.49; 5.51 | ICH/EMA/draft: none"
+behaviour: A line runs only one active packaging order (one product, strength and lot) at a time. A different product cannot start on an adjacent line that is not physically segregated; segregation is an attribute of lines and rooms. Every packaging station or line shows the product name and batch number of the active order (on an HMI or a line board). The display clears only after order close and line clearance.
+catalog_test: Starting product Y on an unsegregated adjacent line while product X runs is blocked. The station display shows the product and batch.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US accepts physical or spatial separation. EU requires physical segregation for different products packaged close to each other. EU is stricter.

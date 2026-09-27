@@ -1,0 +1,27 @@
+id: PR-46
+title: Rejected materials and products
+part: B
+group: "G. Material and product status: quarantine, rejected, reprocessed, recovered and returned"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 134
+sources: "US: 211.89; 211.110(d); 211.165(f); 211.184(e); 211.42(c)(2) | EU: Ch.5 5.66 | ICH/EMA/draft: none"
+behaviour: |-
+  - Blocking: "Rejected" is a hard status. It blocks every consumption, issue, packaging and shipping transaction and appears on the label.
+  - Segregation: rejected stock must be moved to a restricted, separate location. The system blocks moves to normal locations.
+  - Disposition: return to supplier, reprocess or destroy. It needs approval from an authorised role; the action actually carried out and its quantities are recorded.
+  - Rejects arising in-process (for example checkweigher or visual-inspection rejects) go into identified reject containers, are counted, and are handled the same way.
+catalog_test: Dispensing a rejected lot is blocked. Moving rejected stock to a released-stock location is blocked.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US accepts a quarantine system that prevents use. EU requires separate storage in restricted areas. EU is stricter, so the kernel requires both the electronic status and a physical restricted location (D-10).

@@ -1,0 +1,37 @@
+id: PR-47
+title: Reprocessing and recovery of earlier batches
+part: B
+group: "G. Material and product status: quarantine, rejected, reprocessed, recovered and returned"
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 21
+  - 135
+  - 136
+sources: "US: 211.115(a)-(b); 211.165(f) | EU: Ch.5 5.67; 5.68; 5.69; Ch.4 4.20(d) | ICH/EMA/draft: none"
+behaviour: |-
+  - Reprocessing:
+    - It runs only from a QCU-approved reprocessing procedure or master. That procedure is linked to the non-conforming batch, its investigation and a documented risk evaluation.
+    - It creates a child execution record and genealogy edges.
+    - The product must meet its specifications before acceptance.
+    - It is flagged for review and PQR.
+  - Recovery (adding conforming earlier batches of the same product at a defined stage):
+    - The step type exists only where the master defines it, and only for the same product.
+    - Prior authorisation is required, with a referenced risk evaluation that includes the effect on shelf life.
+    - The source batch IDs and quantities are recorded, which also meets 4.20(d).
+  - Additional testing: before release of any reprocessed or recovered-material batch, a QC decision on the need for additional testing is a mandatory field.
+catalog_test: Starting reprocessing without QCU approval or a risk evaluation is blocked. Recovering material from a different product is blocked. A missing QC decision on additional testing blocks release.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU calls reprocessing exceptional and requires a risk evaluation and a QC decision on extra testing. US requires QCU review and approval. The kernel applies both. "Rework" is not a Part 211 term.
+type_detail: ENFORCED + CONFIGURABLE (per product, reprocessing can be disabled, e.g. where the registration forbids it for a sterile product [I])

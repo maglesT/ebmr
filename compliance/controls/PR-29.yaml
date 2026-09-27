@@ -1,0 +1,44 @@
+id: PR-29
+title: In-process controls and sampling
+part: B
+group: E. In-process controls, time limits and yields
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 604
+  - 623
+  - 133
+  - 606
+  - 18
+  - 210
+sources: 'US: 211.110(a)-(c); 211.160(b)(2)-(3); 211.165(c); 211.194(b)-(c); 211.188(b)(5),(10) | EU: Ch.4 4.18(e); 4.25; 4.26; Ch.5 5.43 | ICH/EMA/draft: FDA draft guidance "Considerations for Complying With 21 CFR 211.110" (Jan 2025) (draft)(s); ICH Q9(R1) Annex II (s)'
+behaviour: |-
+  - IPC plans and samples:
+    - Every IPC or sample is created from a plan defined in the master. The plan sets the sampling point, method, frequency, sample size or units, limits, procedure version, tool and precautions.
+    - Each sample gets a unique ID and a label (product, lot, sampling point, date/time, sampler).
+    - Sample quantities count in yield and reconciliation.
+    - Taking fewer units than the plan requires, or missing an IPC in its interval, creates an exception or deviation.
+  - Results:
+    - Each result is recorded with its performer and method reference.
+    - A repeat test is added as a new result and never overwrites the first.
+    - Reagents, buffers and reference standards used in shop-floor tests are scanned by lot and checked for expiry and standardisation status.
+  - Typical IPCs: [T] weight variation, hardness, thickness, disintegration, blend uniformity. [I] clarity, completeness or pH of solutions, bioburden, fill weight or volume.
+  - [T] Failed IPC: a failed or missed periodic IPC holds, at container level, all output made after the most recent passing check.
+  - PAT and models:
+    - PAT or model results are accepted as IPC records carrying the model ID and version and the validity diagnostics.
+    - A model output outside its validity domain requires a confirmatory test. This follows the FDA draft position (draft).
+catalog_test: Taking fewer units than the plan requires creates a deviation. Both results of a repeated IPC are visible. An expired pH buffer is blocked. [T] A skipped hardness check puts output since the last passing check on hold.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: US is more prescriptive. It lists IPC categories that apply "where appropriate" (211.110(a)(1)-(6)) and wants in-process specifications derived from process averages and variability. EU requires IPC instructions with limits, and IPCs that are carried out and recorded.
+type_detail: ENFORCED (plan execution, sample identity, result recording) + CONFIGURABLE (frequency and sample size per master, each citing a QRM reference)

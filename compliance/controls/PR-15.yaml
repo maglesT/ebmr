@@ -1,0 +1,31 @@
+id: PR-15
+title: Competence, role and area authorisation
+part: B
+group: B. Batch record issuance and execution
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 142
+  - 4
+  - 634
+sources: "US: 211.25(a)-(c); 211.28(c); 11.10(g) | EU: Ch.5 5.1; 5.2; 5.16; EU Ch.2 (s) | ICH/EMA/draft: EU Annex 1 (gowning) (s)"
+behaviour: |-
+  A user can perform, verify or approve only if they hold a role permitted for that action, step type, MBR and site. Performer and verifier are separate permissions. Optional interlocks:
+  - current training on the governing SOP or master version;
+  - authorisation for the restricted area where the step runs.
+  [I] Gowning and APS qualification for aseptic areas come from Annex 1 and the FDA 2004 aseptic guidance, not from 211.28 (see sterile catalog).
+catalog_test: A user whose training has lapsed is refused on the step. A user without area authorisation cannot sign a step in the filling suite.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: EU 5.16 restricts access to all production premises. US 211.28(c) covers only areas designated as limited-access. EU is broader. Hygiene and illness rules in 211.28(a),(b),(d) are organisational controls, not eBMR controls.
+type_detail: "ENFORCED (role/authority check at the moment of each action) + CONFIGURABLE (training-currency interlock and restricted-area interlock). Default: both interlocks ON. Allowed: OFF only where the evidence is controlled in another validated system that the eBMR queries."

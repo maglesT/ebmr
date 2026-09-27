@@ -1,0 +1,42 @@
+id: DI-45
+title: Backup and restore
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+  - DESIGN_CHOICE
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 153
+  - 177
+  - 8
+  - 60
+  - 88
+sources: "US: 211.68(b); FDA DI Q&A Q1e (backup is a true copy kept for the retention period; temporary crash copies do not satisfy 211.68(b)) | EU: Annex 11 §7.2 | ICH/EMA/draft: draft Annex 11 §16 backup (physically and logically separate; restore tested regularly) (draft)(s)"
+behaviour: |-
+  - Regular automated backups cover all relevant data as one consistent set:
+  - database and attachments;
+  - configuration (MBRs, roles);
+  - audit trails and signature records;
+  - system logs.
+  - There are two tiers:
+  - (1) **Retention-grade backup.** A true copy, including metadata, in the original or a compatible format, secured against alteration, erasure and loss, and kept for the full retention period. This is FDA's meaning of the 211.68(b) backup, which FDA equates with an archive.
+  - (2) **Operational/DR snapshots.** These never count toward (1). A replica that mirrors deletions or corruption does not qualify.
+  - Backups are kept physically and logically apart from primary data (separate site, account and credentials) and are encrypted. Immutable storage is preferred: production administrators cannot delete backups.
+  - Each backup job's success or failure is logged, and a failure raises an alarm.
+  - Restores are tested during validation and then periodically. A restore test compares record counts and hashes and opens sample records with their audit trails, and its results are recorded.
+  - RPO and RTO are set by risk; the Injectables execution module has the tightest.
+catalog_test: Restore into an isolated environment and hash-compare records, audit trails and signatures with production. Make a backup job fail. An alarm is raised. Try to delete a backup with production-admin credentials. Refused.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: For the US, the backup must last the full retention period. EU §7.2 requires the integrity and restorability of backups to be checked during validation and monitored periodically. The draft adds separation. All are adopted.
+type_detail: "ENFORCED (both tiers, separation, alarms, periodic restore testing). CONFIGURABLE for frequencies: DESIGN-CHOICE default is a quarterly restore test."

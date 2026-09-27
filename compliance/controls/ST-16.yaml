@@ -1,0 +1,35 @@
+id: ST-16
+title: Return to service after maintenance, shutdown or construction, and clean-up period
+part: C
+group: "Theme 2: Cleanroom/area status and environmental and personnel monitoring linked to the batch window"
+editions:
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 429
+  - 433
+  - 290
+  - 552
+  - 432
+  - 423
+sources: "EU Annex 1: 4.29(iii), 5.3, 5.6, 5.7, 9.23, Table 5 note 1 | US: 211.42(c)(10)(vi), 211.100 (inferred); FDA-AP IV.E."
+behaviour: |-
+  - Maintenance inside a cleanroom on a batch line inserts mandatory follow-up steps before restart: extra cleaning and disinfection, extra EM samples, and re-sterilisation of reassembled parts (sterilised after full reassembly where possible).
+  - *Unplanned* maintenance on equipment flagged sterility-critical needs a sterility-impact assessment **before** work starts. It is automatically linked to the in-process batch and to adjacent batches.
+  - Sterilisers, HVAC and water systems can be selected only if qualified, not overdue for PM, and formally released after maintenance.
+  - After an HVAC or utility shutdown or construction work, a return-to-service record is required before aseptic steps can start. It covers cleaning/disinfection, post-shutdown and pre-start viable samples, and requalification where needed. Those results are linked to the next batch.
+  - After line clearance or any disruption, a clean-up timer set to the room's qualified period must elapse before the next batch or before aseptic work resumes. Optionally, the timer also waits until particle counts are back within at-rest limits.
+catalog_test: Log an HVAC shutdown without a return-to-service record → line clearance fails. Finish line clearance and try to start the next batch immediately → blocked until the clean-up period elapses.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Complementary. EU adds the clean-up period and the pre-maintenance sterility assessment. FDA-AP stresses written return-to-operation procedures after shutdowns and construction.
+scope: all
+type_detail: "ENFORCED (sequence). Clean-up period is CONFIGURABLE: the value from room qualification, where the Annex 1 guidance value is under 20 min. A longer value needs a CCS justification (ST-01)."

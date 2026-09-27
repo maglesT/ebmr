@@ -1,0 +1,39 @@
+id: PR-23
+title: Equipment and instrument status gate before use
+part: B
+group: D. Equipment, premises, cleaning and logs
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: default
+requirement_rows:
+  - 6
+  - 605
+  - 198
+  - 199
+  - 90
+sources: "US: 211.63; 211.67(a)-(c) (incl. (b)(6) pre-use cleanliness inspection); 211.68(a); 211.160(b)(4); 211.194(d) | EU: Ch.4 4.18(b)-(c); 4.30; 4.31 | ICH/EMA/draft: EU Annex 15 section 10 (cleaning hold times) and section 4 (re-qualification) (u)"
+behaviour: |-
+  - At step start, the engine checks that the scanned unit:
+    - belongs to the required equipment class and capacity;
+    - is qualified;
+    - has no overdue calibration or preventive maintenance;
+    - is Clean at the cleaning level the changeover matrix requires, and within its validated clean-hold time;
+    - is not allocated to another batch.
+  - The pre-use cleanliness inspection is recorded.
+  - Measuring instruments are blocked when their calibration is overdue or failed. Examples: balances, pH meters, checkweighers, gauges and integrity testers.
+  - A failed as-found calibration lists all batches and steps that used the device after its most recent passing calibration, for impact assessment.
+  - End of use sets the unit to Dirty and starts the dirty-hold timer.
+catalog_test: A Dirty unit is blocked. An expired clean-hold is blocked. A balance with overdue calibration is blocked. A failed as-found calibration produces the list of affected batches.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Hold-time limits come from cleaning validation (Annex 15, (u)), not from 211.67 or Ch.5, so their values are configurable. The block itself is enforced once a value exists. US states explicitly that out-of-specification instruments must not be used (211.160(b)(4)).
+type_detail: ENFORCED (checks run and block) + CONFIGURABLE (clean-hold and dirty-hold limits, campaign length and changeover matrix; values come from cleaning validation, not from the rule)

@@ -1,0 +1,33 @@
+id: DI-18
+title: System-administration segregation (administrators independent of record content)
+part: A
+group: Controls
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 1
+target_phase_source: outline
+requirement_rows:
+  - 645
+  - 62
+  - 168
+sources: "US: 11.10(d), 11.10(g); 211.68(b); FDA DI Q&A Q4 (administrator rights assigned to people independent of record content) | EU: Annex 11 §12.1, §12.2 | ICH/EMA/draft: draft Annex 11 §11 segregation of duties, §12 privileged functions only for administrators independent of GMP work (draft)(s)"
+behaviour: |-
+  - No account in a tenant can hold both a system-administration permission and a GMP data permission. The engine rejects the assignment.
+  - System-administration permissions: user/role management, configuration, interface settings, audit-related settings, file or DB access.
+  - GMP data permissions: execute, verify, review, approve, release, MBR authoring.
+  - Administrators cannot change GMP data values, cannot sign GMP records, and cannot grant themselves any role. Every role grant needs a second approver.
+  - Break-glass accounts are sealed and time-limited, need dual authorisation, raise an alarm when used, and are reviewed afterwards. They cannot perform GMP actions.
+  - Privileged actions go to a protected system log. That log is covered by periodic review (DI-11) and by the configuration audit trail.
+  - The product has no in-built exception for small sites: FDA Q4 offers no fallback. Any compensating arrangement is owned by the firm (see open questions).
+catalog_test: Assign an administrator role to a user who holds a QA role. Refused. An administrator tries to edit a GMP value through the UI or API. Refused and logged. A break-glass login raises an alarm and cannot sign.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: FDA recommends. The 2011 EU text is silent. The EU draft is explicit, so the kernel follows the draft.
+type_detail: ENFORCED (designed to the stricter draft; FDA text says "should").

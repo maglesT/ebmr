@@ -1,0 +1,35 @@
+id: ST-64
+title: Container-closure integrity
+part: C
+group: "Theme 12: 100% visual inspection, AQL and container-closure integrity"
+editions:
+  - injectables
+type:
+  - ENFORCED
+target_phase: 5
+target_phase_source: outline
+requirement_rows:
+  - 472
+  - 589
+  - 473
+  - 474
+sources: "EU Annex 1: 8.22–8.25 | US: 211.192; FDA-AP VI.B.2."
+behaviour: |-
+  - **Fusion-sealed containers** (BFS, FFS, SVP/LVP bags, glass or plastic ampoules):
+    - seal-critical parameters (for example heater temperature, dwell, pressure) are recorded and monitored;
+    - **glass ampoules, BFS units and fusion-closed containers of ≤100 mL** get **100% CCI** by a validated method, recording units tested, passes and rejects by reason;
+    - above 100 mL, reduced sampling needs a referenced scientific justification and process-consistency data.
+  - **Visual inspection** is excluded from the CCI method list. A 100% VI record can never satisfy a CCI requirement.
+  - **Non-fusion closures** (stoppered/crimped vials, syringes): CCI on samples by a validated method, under a sampling plan justified by container-closure knowledge, supplier management and component specifications. Any failure opens an investigation and blocks release.
+  - **Vacuum-sealed containers.** A vacuum-retention test is scheduled after the predetermined waiting period. Certification is blocked until it passes. Retention during shelf life is covered by stability.
+  - Integrity-defect units are removed at final inspection (ST-62).
+catalog_test: Configure a 2 mL ampoule with sampled CCI → MBR rejected. Choose "visual inspection" as the CCI method → option unavailable.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: "**EU is stricter:** 100% CCI for fusion-sealed containers ≤100 mL, and VI not accepted as CCI. FDA-AP only requires removal of defective units and safeguards against shipping units lacking integrity."
+scope: all
+type_detail: ENFORCED ("visual inspection is not a CCI method" is [EU hard])

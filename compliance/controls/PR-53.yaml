@@ -1,0 +1,27 @@
+id: PR-53
+title: Release gating on open deviations and investigations
+part: B
+group: I. Batch record review and release
+editions:
+  - tablets
+  - injectables
+type:
+  - CONFIGURABLE
+target_phase: 4
+target_phase_source: outline
+requirement_rows:
+  - 214
+  - 188
+  - 223
+  - 115
+sources: "US: 211.192; 211.165(f) | EU: Ch.5 5.61 | ICH/EMA/draft: Annex 16 section 1.7 (investigations complete enough to support certification) (s); ICH Q10 3.2.2 / EU Ch.1 (s)"
+behaviour: The gate reads live status from the eBMR and the linked QMS/LIMS. Batches linked as "potentially affected" are held. CAPA completion is tracked separately (PR-51).
+catalog_test: A batch with an open deviation cannot be released. With the e-signed justification it can, and the exception is printed on the release record. An open reconciliation discrepancy cannot be justified away.
+implemented_by: {}
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: "0.9"
+build_status: SPECIFIED
+jurisdiction: Neither 211.192 nor Annex 16 1.7 literally requires every investigation to be closed before release. Annex 16 (s) requires it to be complete to a level sufficient to support certification. The guardrail's unconditional block is stricter than both texts (D-8).
+type_detail: "CONFIGURABLE. Default: release or certification is blocked while any linked deviation or investigation is open. Allowed: release with an investigation still open, only when the QCU (US) or QP (EU) records an e-signed justification that the investigation is advanced enough to support the decision. The justification appears on the release record and the certificate data. Not allowed: this exception for reconciliation discrepancies (5.61 requires them explained before release) or for any registered-specification failure."
