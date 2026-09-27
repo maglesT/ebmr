@@ -76,5 +76,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
 
 ## 8. GitHub
 - User approved a NEW private repo for the code (2026-09-27). Creating it via API failed (403: integration cannot create repos).
-  Asked user to create github.com/maglesT/ebmr (private, with README) and grant the Claude GitHub App access; then add_repo(push) + clone,
-  first commit = docs/ (research, register, catalogs, specs, architecture, PDF + builder) + PROGRESS.md.
+  User created github.com/maglesT/ebmr (private). Cloned to /home/user/ebmr (add_repo push access; registered as repo root).
+  Commit ff6f280 on main (2026-09-27 ~18:15 UTC): docs/regulatory (review pack, catalogs, register, verification, research,
+  sources-extracted), docs/design (architecture, edition specs, features/UX, sample analysis), tools/regulatory, PROGRESS.md.
+  From now on: keep PROGRESS.md in the repo root current and push after each milestone (repo is the primary backup;
+  the artifact backup is secondary). Code work: use feature branches + PRs unless the user prefers pushing to main.
