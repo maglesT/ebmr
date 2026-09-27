@@ -25,11 +25,51 @@ behaviour: |-
   - Beyond the threshold, an alarm and an incident are raised, and entries made during the fault are flagged for review.
   - Capture is never simply blocked without the controlled contingency path of DI-43, because staff must never fall back to scrap-paper notes.
 catalog_test: Change a terminal clock, then record a step. The stored time is unaffected. Run a DST-transition test. Simulate loss of the time reference. An alarm and an incident are raised.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - packages/kernel/src/time
+    - packages/kernel/sql/0520_platform_time_sources.sql
+    - packages/kernel/sql/0530_platform_time_model.sql
+  invariants:
+    - INV-16
+  db_constraints:
+    - "platform.enforce_db_time / platform.force_db_time: event-time columns default to clock_timestamp() and are forced by trigger"
+    - "column-level INSERT grants that exclude recorded_at and derived time columns (platform.stub_step_entry pattern)"
+    - "platform.check_occurred_at: claimed time between step start and recorded_at, with a trust level"
+    - "platform.record_drift_check / platform.raise_time_incident: drift and reference-loss alarms with incident request"
+    - "platform.time_model_violations: invariant query for INV-16"
+  policies:
+    - time.drift_alarm_threshold_s
+    - time.min_references
+    - time.late_entry_window_mode
+    - time.late_entry_window_min
+tests:
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] a time source is a validated configuration item, registered with its reference and validation"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] a healthy check stores one sample per active source against the policy threshold and raises nothing"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] simulate loss of the time reference: an alarm and a data-integrity incident are raised"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] an offset above the threshold raises an alarm and an incident; back within it, the alarm clears"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] the alarm threshold is a policy value: default 1 s, allowed 0.1-5 s"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] a single reachable reference raises a degraded-reference alarm without an incident"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] entries recorded in a fault window are flagged for review, and capture is never blocked"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] with no active time source configured, an alarm and an incident are raised"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] the application role cannot write samples or alarms, and malformed readings are refused"
+  - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] clearing an alarm by hand needs a reason, a note and the permission"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] spring forward (Europe/Berlin): the wall clock jumps an hour, the duration from UTC instants stays exact"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] fall back (Europe/Berlin): the same wall-clock time occurs twice and is told apart by its offset; order follows UTC"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] a step spanning the change keeps its true duration and order in the database too"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] SQL and TypeScript render the same site time, offset and calendar day around transitions"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] daily rules use the site-local calendar day"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] the display depends on the site zone only, not on the process time zone or the local clock"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] only IANA Area/Location zones are accepted, in TypeScript and in SQL alike"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] instants keep the database precision of microseconds and parse any offset"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] durations are exact bigint microseconds"
+  - "packages/kernel/test/platform/site-time.test.ts > [DI-27] database instants read as epoch microseconds round-trip exactly"
+  - "packages/kernel/test/platform/time-model.test.ts > [DI-27][INV-16] a time a person enters is kept apart from the entry time, flagged, and needs the late-entry path"
+  - "packages/kernel/test/platform/time-model.test.ts > [DI-27][INV-16] change a terminal clock, then record a step: the stored time is unaffected"
+  - "packages/kernel/test/platform/time-model.test.ts > [DI-27] entries store the UTC instant with the site time zone and the offset in force"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: "211.188(b)(1) asks only for dates in the batch record. EU 4.20(b)/4.21(b) require dates and times, so the stricter EU rule applies. Time-zone display comes from the draft. The DI Q&A says nothing about clocks: NTP, UTC and the drift threshold are design choices."
 type_detail: "ENFORCED for server time and UTC storage. CONFIGURABLE for the drift threshold: DESIGN-CHOICE default 1 s, allowed 0.1-5 s. No rule sets a clock tolerance."

@@ -30,8 +30,43 @@ behaviour: |-
   - RTO and RPO are documented per module. The execution module has the tightest RPO (Injectables: continuous aseptic filling).
   - Each signature has a non-repudiation evidence package: identity-verification record, authentication event, manifestation and audit trail.
 catalog_test: A non-TLS connection is refused. USB storage on a kiosk is blocked. A user without formula permission cannot open the composition. For a sampled signature, the evidence package can be produced.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/continuity/security-baseline.ts (assertProductionConfig, assertEncryptedDatabaseSession, checkPgHba, checkPostgresqlConf)"
+    - "packages/kernel/src/continuity/hardening.ts"
+    - "packages/kernel/src/continuity/backup-drill.ts (AES-256-GCM encryption of backups at rest)"
+    - "ops/postgres/pg_hba.conf.template"
+    - "ops/postgres/postgresql.tls.conf.template"
+    - "docs/security/security-baseline.md"
+    - "docs/security/threat-model.md"
+    - "docs/security/asvs-l2-review.md"
+    - "packages/kernel/sql/0240_esig_integrity.sql (esig.evidence_package: non-repudiation evidence package of a signature)"
+    - "packages/kernel/src/esig/integrity.ts (evidencePackage with seal verification against the trusted key ring)"
+  guards:
+    - "continuity.assert_device_hardened (enrolment guard for SHARED and GRADE_A_B devices; wiring into device enrolment by the lead)"
+    - "assertProductionConfig refuses non-TLS database URLs, non-HTTPS servers, plain-HTTP serving, weak cookies and plain-text integration endpoints"
+    - "assertEncryptedDatabaseSession refuses a database session that pg_stat_ssl reports as not encrypted"
+    - "esig.evidence_package: signature row, stored manifestation, authentication event (components, method, terminal, time; no secret, verifier or badge UID), identity-verification record, signer as at signing, authority and segregation evaluations, delegation, invalidation, seal with payload check, integrity problems and the audit chains of the record and its signatures with their verification"
+  db_constraints:
+    - "continuity.device_hardening_attestation: PASS only if USB mass storage blocked, malware protection active, OS patched and (SHARED, GRADE_A_B) kiosk mode enforced; insert-only and audited"
+    - "continuity.record_hardening_attestation: re-attestation interval 30-365 days"
+tests:
+  - "packages/kernel/test/continuity/hardening.test.ts > [DI-13] a SHARED or GRADE_A_B device without a hardening attestation cannot be enrolled"
+  - "packages/kernel/test/continuity/hardening.test.ts > [DI-13] USB storage on a kiosk is blocked: an attestation that finds USB mass storage enabled fails and blocks enrolment"
+  - "packages/kernel/test/continuity/hardening.test.ts > [DI-13] kiosk mode, malware protection and patch level are required on grade A/B terminals"
+  - "packages/kernel/test/continuity/hardening.test.ts > [DI-13] a newer failing attestation, a revocation or expiry ends the permission to enrol"
+  - "packages/kernel/test/continuity/hardening.test.ts > [DI-13] attestations are recorded only through the attestation function, with a bounded re-attestation interval"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] a database URL that would allow a connection without TLS is refused"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] a server configuration that would serve plain HTTP or weak sessions is refused"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] interface connections must use encrypted transports"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] a complete TLS configuration passes; the same gaps in development are only warnings"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] a non-TLS database session is refused by the server-side check"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] a client that requires a verified TLS connection never falls back to plain text"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] an encrypted session passes the server-side check (when the database server offers TLS)"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] the pg_hba.conf template admits network connections only over TLS with SCRAM or certificates"
+  - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] the postgresql.conf template turns TLS on with TLS 1.2 or later and SCRAM hashing"
+  - "packages/kernel/test/esig/integrity.test.ts > [DI-13] for a sampled signature the evidence package can be produced: identity verification, authentication event, manifestation, audit trail and seal"
+  - "packages/kernel/test/esig/integrity.test.ts > [DI-13] the package of a superseded signature shows the invalidation and the change that caused it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

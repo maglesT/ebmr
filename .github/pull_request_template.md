@@ -14,6 +14,6 @@
 
 ## Checks
 
-- [ ] `pnpm ci` passes locally
+- [ ] `pnpm run ci` passes locally
 - [ ] New or changed behaviour has tests tagged with the control IDs it proves
 - [ ] No `Date.now()` or JavaScript `number` for GMP values in domain code

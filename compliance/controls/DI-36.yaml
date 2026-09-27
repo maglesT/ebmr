@@ -23,10 +23,26 @@ behaviour: |-
   - The human-readable forms are screen, print, PDF and export.
   - The manifestation is stored immutably with the signature when it is applied, not re-derived later from the user table. It is controlled like the record itself.
 catalog_test: Sign a step, then view it on screen, in the PDF and in the export. All elements appear. Rename the user. Historic signatures keep the original name.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/sql/0220_esig_signatures.sql (esig.build_manifestation, esig.signature_guard)"
+    - "packages/kernel/sql/0230_esig_sign.sql (esig.manifestation)"
+    - "packages/kernel/src/esig/manifestation.ts (getManifestation, renderManifestation for SCREEN, PRINT and PDF, manifestationExport)"
+  guards:
+    - "esig.signature_guard: the manifestation (legal name as at signing, user ID, role, meaning, UTC and site-local date and time with UTC offset and site zone) is built from the signature row when it is inserted and stored with it; renderers read only the stored copy"
+    - "esig.sign: the site zone is the configured site zone; a command declaring another zone cannot sign (EBMR-ESIG-035)"
+  db_constraints:
+    - "esig.signature: insert-only and audited (chain esig_signature:<type>:<id>)"
+    - "esig.signature_problems: MANIFESTATION_MISMATCH and SEAL_PAYLOAD_MISMATCH when a stored manifestation is altered"
+tests:
+  - "packages/kernel/test/esig/manifestation.test.ts > [DI-36] a co-signature shows the co-signer, never the owner of the terminal session"
+  - "packages/kernel/test/esig/manifestation.test.ts > [DI-36] a superseded signature is never rendered as a valid one"
+  - "packages/kernel/test/esig/manifestation.test.ts > [DI-36] nobody can change a stored manifestation, and a change made by a superuser is detected"
+  - "packages/kernel/test/esig/manifestation.test.ts > [DI-36] rename the user: historic signatures keep the original name, new signatures show the new one"
+  - "packages/kernel/test/esig/manifestation.test.ts > [DI-36] sign a step, then view it on screen, in the print and PDF rendering and in the export: every element appears"
+  - "packages/kernel/test/esig/manifestation.test.ts > [DI-36] the date and time use the configured site zone and its offset; a command declaring another zone cannot sign"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: The printed name and meaning are US requirements (11.50). EU 2011 requires only date and time. The draft adds role and time zone. All are adopted.

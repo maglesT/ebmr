@@ -21,11 +21,29 @@ behaviour: |-
   - No UI or API function deletes audit entries during retention.
   - The trail is tamper-evident: it is hash-chained, a scheduled verification job checks the chain, and a break raises a critical alarm. DB-level activity monitoring detects direct changes.
 catalog_test: Search the UI, the API and the admin console for any disable or purge function. None exists. In a test environment, change an audit row directly in the DB. The verification job alarms and names the entry.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - packages/kernel/sql/0010_audit_trail.sql
+    - packages/kernel/src/audit/verify.ts
+  invariants:
+    - INV-06
+    - INV-08
+  db_constraints:
+    - "audit tables writable only by ebmr_owner through kernel functions; no UPDATE, DELETE, TRUNCATE or TRIGGER right for the application"
+    - "kernel.audit_triggers_ok: GMP writes refused while any audit trigger is missing or disabled (EBMR-AUDIT-005)"
+    - "per-aggregate SHA-256 hash chains, checkpoints and external anchors; kernel.verify_chain names the altered entry"
+    - "definer functions pin search_path with pg_temp last; the application cannot create temporary objects (ADR-0016)"
+tests:
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-23] nothing the application can call disables the audit trail or removes audit events"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [INV-06][DI-23] the application role cannot write, change or delete audit events"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-23] the application role cannot disable an audit trigger"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-23] if a superuser disables an audit trigger, GMP writes are refused until it is re-enabled"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [INV-08][DI-23] altering an audit row directly in the database, deleting one, or moving the head is detected and the entry is named"
+  - "packages/kernel/test/security/definer-hardening.test.ts > [DI-13][DI-23] every definer function owned by ebmr_owner pins search_path with pg_temp last"
+  - "packages/kernel/test/security/definer-hardening.test.ts > [DI-13][DI-23] the application role cannot create temporary tables to shadow catalog tables"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: Neither the 2011 EU text nor the FDA Q&A explicitly forbids deactivation. 11.10(e) requires a secure trail, and the draft forbids deactivation outright, so the kernel follows the draft.
 type_detail: ENFORCED. The hash chain is the DESIGN-CHOICE used to meet "secure" and "ability to discern altered records".

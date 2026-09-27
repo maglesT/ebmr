@@ -44,10 +44,45 @@ behaviour: |-
   - E-signing is the default everywhere. There is no print-to-sign path.
   - Customers may add signature points but cannot remove the minimum set.
 catalog_test: An inventory maps every predicate signature point to a catalogue type. Try to complete a cleaning-log entry with a plain acknowledgment. Impossible.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/sql/0210_esig_catalogue.sql (esig.meaning_type catalogue, esig.predicate_signature_point inventory, quality-unit configuration)"
+    - "packages/kernel/sql/0230_esig_sign.sql (esig.create_challenge, esig.sign, esig.check_independence, esig.check_witness)"
+    - "packages/kernel/sql/0250_esig_stub.sql (stub signable entries; esig.stub_complete: completion only by a signature)"
+    - "packages/kernel/src/esig/catalogue.ts"
+    - "packages/kernel/src/esig/signing.ts"
+  invariants:
+    - "INV-03"
+  guards:
+    - "esig.current_meaning: only active catalogue types can be challenged or signed (EBMR-ESIG-026); no acknowledgement-only type exists"
+    - "esig.sign: authority for one of the type's permissions evaluated and stored at the instant of signing (iam.evaluate_authority, INV-26); delegation validity (EBMR-ESIG-041); independence rules evaluated on the person (EBMR-ESIG-042 to 045); WITNESSED rules: same terminal or a terminal of the same room, within the witness window, before the next step (EBMR-ESIG-050 to 053)"
+    - "esig.stub_complete: a signature point is completed only by a valid signature of the required meaning, never by an acknowledgement (EBMR-ESIG-092, 093)"
+    - "esig.add_meaning_type, esig.configure_meaning_type, esig.retire_meaning_type: quality unit only (MBR.APPROVE), never an administrator"
+  db_constraints:
+    - "esig.meaning_type: insert-only and audited; checks: re-authentication is ALL_COMPONENTS or SESSION_RELAXABLE (no acknowledgement-only type), master-record and release types always ALL_COMPONENTS, VERIFIER and WITNESS types exclude performers (INV-03), release types exclude the involvement set"
+    - "esig.meaning_type_guard: the minimum (vendor) set comes only from migrations and is never removed, disabled or loosened (EBMR-ESIG-020 to 024)"
+    - "esig.predicate_signature_point: inventory mapping every predicate-rule signature point to a minimum type (protected)"
+  policies:
+    - "esig.witness_window_seconds"
+tests:
+  - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] a signature type that could be completed without authentication cannot be defined"
+  - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] an inventory maps every predicate signature point to an active type of the minimum set"
+  - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] bypass: the minimum set cannot be removed or disabled with raw SQL, by the application role or the table owner"
+  - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] customers add a signature point, sign it, and retire it again"
+  - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] each type defines permitted roles, its meaning text, its independence rule and its re-authentication rule"
+  - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] the company signature policy can change who signs a type and tighten it, never loosen, disable or remove a minimum type"
+  - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] try to complete a cleaning-log entry with a plain acknowledgement: impossible; only the required signature completes it"
+  - "packages/kernel/test/esig/independence.test.ts > [DI-35] a delegate signs a delegable meaning with their own credentials citing a valid delegation; an invalid citation is refused"
+  - "packages/kernel/test/esig/independence.test.ts > [DI-35] a late witness (outside the window) or a witness after the next step started is refused"
+  - "packages/kernel/test/esig/independence.test.ts > [DI-35] a person involved in the record cannot review its audit trail or release it"
+  - "packages/kernel/test/esig/independence.test.ts > [DI-35] a witness at the performer's own terminal (co-signature) is accepted and recorded as the same terminal"
+  - "packages/kernel/test/esig/independence.test.ts > [DI-35] the delegator's own credentials can never be used by the delegate (no proxy signing)"
+  - "packages/kernel/test/esig/independence.test.ts > [DI-35] the preparer of a master document never checks or approves it; a person signs a meaning once per version"
+  - "packages/kernel/test/esig/independence.test.ts > [DI-35][INV-03] a witness signs on a terminal in the same room within the window, never from another room"
+  - "packages/kernel/test/esig/independence.test.ts > [INV-03][DI-35] the person who performed a step cannot verify it, even acting in a verifier role"
+  - "packages/kernel/test/esig/signing.test.ts > [DI-35] only catalogue meanings can be challenged; a stale content version is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: US signature points are more numerous (second-person rules). EU adds approval of the completed processing and packaging records by the responsible person. The catalogue is the union.

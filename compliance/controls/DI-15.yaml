@@ -20,12 +20,45 @@ behaviour: |-
   - Initial and admin-reset passwords are single-use and must be changed before the account can sign. This guarantees that misusing another person's signature would need two or more people to collude.
   - US market: a go-live checklist per legal entity records submission of the FDA non-repudiation certification letter (11.100(c)). This is an organisational duty. The system flags a missing letter for US-market tenants but does not block execution.
 catalog_test: Create an account with a deactivated user's ID. Blocked. Activate an account with no identity-verification record. Blocked. Sign with an admin-reset password before changing it. Refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/identity/authentication.ts"
+    - "packages/kernel/src/identity/secrets.ts"
+    - "packages/kernel/src/identity/admin.ts"
+    - "packages/kernel/sql/0110_iam_persons_accounts.sql"
+    - "packages/kernel/sql/0150_iam_credentials_badges.sql"
+    - "packages/kernel/sql/0160_iam_authentication_sessions.sql"
+    - "packages/kernel/sql/0170_iam_signing_readiness.sql"
+  invariants:
+    - "INV-27"
+  guards:
+    - "iam.account_guard: activation needs an identity verification recorded for the current employment period (EBMR-IAM-013); nobody verifies their own identity"
+    - "iam.issue_credential and iam.badge_guard: no secret, PIN or badge before identity verification"
+    - "initial, admin-reset and bootstrap secrets are single-use, expire (credential.initial_secret_valid_hours) and yield only a restricted CREDENTIAL_CHANGE authentication event"
+    - "iam.can_sign / iam.assert_can_sign: no signature while a secret must be changed"
+    - "iam.consume_auth_event: the authentication event must belong to the signer (no proxy signing, EBMR-IAM-093)"
+    - "iam.assert_us_esig_certification: 21 CFR 11.100(c) letter per legal entity; BLOCK (outline, default) or FLAG (catalog) by policy"
+  db_constraints:
+    - "iam.issued_identifier: permanent register of login names, insert-only and audited"
+    - "iam.account and iam.person rows are never deleted (EBMR-IAM-005 triggers)"
+    - "iam.check_verifier: only argon2id v19 verifiers with m>=19456, t>=2, p>=1"
+  policies:
+    - "credential.initial_secret_valid_hours"
+    - "esig.us_certification_mode"
+tests:
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] a missing 21 CFR 11.100(c) certification blocks US-market issue in BLOCK mode and only flags it in FLAG mode"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] after changing the secret the account can sign, with its own authentication only (no proxy signing)"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] an account without an identity-verification record cannot be activated or given a secret"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] an initial secret is single-use: a second use fails and alerts the security unit"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] nobody verifies their own identity, and a check cannot be dated in the future"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] signing with an admin-reset password before changing it is refused"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] the verification records who verified, the method, document type, evidence and when"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15] verifiers are argon2id with at least baseline parameters; plaintext or weak hashes are refused"
+  - "packages/kernel/test/identity/accounts.test.ts > [DI-15][INV-27] creating an account with a deactivated user's ID is refused, whatever the letter case"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: The NRL certification is US-only, with no EU equivalent. Identity verification before issuing credentials is explicit only in the US text and is adopted for all markets.
 type_detail: ENFORCED. NRL tracking is a DESIGN-CHOICE, because it is a firm's submission to FDA, not a system function.
 proposed_modify: Refuse to issue US-market batches until the 21 CFR 11.100(c) certification record is on file (catalog only flags it).

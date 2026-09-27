@@ -25,11 +25,50 @@ behaviour: |-
   The history stays in the audit trail.
   - Wet-ink signing on printouts is avoided. If it cannot be avoided, the scanned signed page is indexed to the record ID and version hash under an SOP. A wet-ink signature never substitutes for an e-signature the MBR requires.
 catalog_test: Correct a signed value. The signature shows as superseded and re-signing is required. Copy a signature row to another record in a test DB. The integrity check fails.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/sql/0200_esig_foundation.sql (canonical JSON, content hash, content-provider registry)"
+    - "packages/kernel/sql/0220_esig_signatures.sql (esig.register_signed_table, esig.content_changed, esig.signature_invalidation, seals)"
+    - "packages/kernel/sql/0230_esig_sign.sql (esig.create_challenge, esig.sign, esig.assert_signature, esig.platform_signature_check, esig.resigning_required)"
+    - "packages/kernel/sql/0240_esig_integrity.sql (esig.verify_signatures, esig.invariant_violations)"
+    - "packages/kernel/src/esig/canonical.ts"
+    - "packages/kernel/src/esig/keys.ts"
+    - "packages/kernel/src/esig/signing.ts"
+    - "packages/kernel/src/esig/integrity.ts (verifySignatures, verifySeal)"
+  invariants:
+    - "INV-09"
+    - "INV-10"
+  guards:
+    - "esig.create_challenge: the server rebuilds the canonical content and refuses a displayed hash or version that differs (EBMR-ESIG-012, 013)"
+    - "esig.sign: the record must still have the challenged version and hash (EBMR-ESIG-012); signing and changing a record are serialised by a transaction lock"
+    - "esig.on_signed_content_change (trigger on every registered signed table): a permitted change supersedes every affected signature in the same transaction through an insert-only SUPERSEDED_BY_CHANGE row"
+    - "esig.assert_signature and esig.platform_signature_check: a signature is used only for its own record and meaning and only while valid (EBMR-ESIG-070)"
+    - "esig.assert_change_triggers_ok: no challenge or signature while an invalidation trigger is missing or disabled (EBMR-ESIG-008)"
+  db_constraints:
+    - "esig.signature_invalidation: insert-only and audited; one per signature"
+    - "esig.signature: auth_event_id and challenge_id unique; seal required before commit (deferred constraint trigger esig_signature_sealed)"
+    - "esig.verify_signatures(): integrity job (seal payload digest, manifestation, challenge, authentication event, authority evaluation, audit event, register, current content hash); zero rows expected"
+    - "esig.invariant_violations(): INV-03, INV-09, INV-10, INV-27 queries; zero rows expected"
+  policies:
+    - "esig.challenge_validity_seconds"
+tests:
+  - "packages/kernel/test/esig/integrity.test.ts > [DI-37] Ed25519 and HMAC seals verify side by side; a retired key seals nothing new, its old seals still verify"
+  - "packages/kernel/test/esig/integrity.test.ts > [DI-37] a signature moved to another record, even with its seal digest recomputed, is caught by the seal check"
+  - "packages/kernel/test/esig/integrity.test.ts > [DI-37] copy a signature row to another record in a test database: the integrity check fails"
+  - "packages/kernel/test/esig/integrity.test.ts > [DI-37][INV-10] valid, co-signed and superseded signatures raise no integrity problem"
+  - "packages/kernel/test/esig/invalidation.test.ts > [DI-37][INV-09] correct a signed value: the signature shows as superseded, the element is unsigned and re-signing is required"
+  - "packages/kernel/test/esig/invalidation.test.ts > [DI-37][INV-09] the mechanism is generic: another module registers its tables and provider, and a change in any of them supersedes"
+  - "packages/kernel/test/esig/platform-hook.test.ts > [DI-37] an unknown signature id or a stub-entry signature can never authorise a platform transition"
+  - "packages/kernel/test/esig/platform-hook.test.ts > [DI-37][INV-09] a transition accepts only a valid signature of its meaning on this record; superseded or transferred ones are refused"
+  - "packages/kernel/test/esig/signing.test.ts > [DI-37] canonical JSON is identical in TypeScript and SQL, whatever the key order and escaping"
+  - "packages/kernel/test/esig/signing.test.ts > [DI-37] the server rebuilds the canonical content and refuses a challenge whose displayed hash differs"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-45][DI-37] a restore is approved only with the approver's own RESTORE_APPROVED signature of that event"
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50][DI-37] closing a DI investigation needs the approver's own DI_INVESTIGATION_CLOSED signature of that investigation"
+  - "packages/kernel/test/records/register.test.ts > [DI-01][DI-37] a record type is approved only with the approver's own RECORD_TYPE_APPROVED signature of that very version; its author cannot sign it"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][DI-37] a disposal approval needs the approver's own RECORD_DISPOSAL_APPROVED signature of that record at its current retain-until and cited archive"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: 11.70 targets falsification by ordinary means. Annex 11 §14 asks for permanent linkage. Automatic supersession after a change goes further than both and matches the draft.
 type_detail: "ENFORCED (linking). DESIGN-CHOICE, engine-enforced: invalidation on change goes beyond the 11.70 \"ordinary means\" standard and follows the draft's hybrid-signature expectation."

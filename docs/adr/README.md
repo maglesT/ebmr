@@ -23,6 +23,7 @@ Records 0001-0015 were accepted on 2026-09-27 together with build outline v0.2 (
 | [0013](0013-manufacturer-release-plus-market-dispositions.md) | India manufacturer release plus per-market dispositions | Accepted (2026-09-27) | The India AP release gates every market; US QCU disposition and EU QP certification (at the EU site, after quarantined shipment to the named importer) follow per market. |
 | [0014](0014-per-market-mbr-effectivity.md) | Per-market MBR effectivity | Accepted (2026-09-27) | An approved MBR version becomes CURRENT per market and scope through signed authorisation records, with time-limited bridging while another market's approval is pending. |
 | [0015](0015-exactly-pinned-shared-packages.md) | Exactly pinned shared packages | Accepted (2026-09-27) | Editions pin exact shared versions (Phase 0: `workspace:<exact>` with a CI check; later a private registry with Changesets) with a backport policy per kernel minor line. |
+| [0016](0016-validated-actor-context-and-definer-hardening.md) | Validated actor context and SECURITY DEFINER hardening | Accepted (2026-09-27) | Only contexts installed by kernel code count (owner-only marker per transaction); forged `set_config` contexts are ignored and refused; definer functions list pg_temp last and the application cannot create temporary objects. |
 
 ## Conventions
 

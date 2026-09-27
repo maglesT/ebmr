@@ -26,11 +26,26 @@ behaviour: |-
   - The signature register maps each user ID to full name, initials (if used), roles, permitted signature meanings and validity dates. It is kept at least as long as any record that user signed, and it can resolve any signer as of the signing date.
   - Injectables: aseptic roles also need current gowning and APS qualification. That check lives in the sterile catalog.
 catalog_test: Expire a user's SOP training. Execution and verification are both blocked. A new user tries to sign before acknowledging the policy. Blocked. An archived signer resolves to the name and role valid on the signing date.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/sql/0130_iam_qualifications_authority.sql"
+    - "packages/kernel/sql/0170_iam_signing_readiness.sql"
+    - "packages/kernel/src/identity/authority.ts"
+  invariants:
+    - "INV-26"
+  guards:
+    - "qualification requirements per role or permission and scope; a lapse is a hard block naming the missing item (MISSING_QUALIFICATION:<code>); mirrored data fail closed outside their freshness bound"
+    - "iam.acknowledge_esig_policy and iam.assert_can_sign: the current accountability policy is acknowledged before the first signature"
+    - "iam.signature_register(at) and iam.resolve_signer(account, at): legal name, manifestation name, initials, roles and signing permissions as at any date"
+  policies:
+    - "qualification.mirror_max_staleness_seconds"
+tests:
+  - "packages/kernel/test/identity/authority.test.ts > [DI-21] a new user cannot sign before acknowledging the e-signature accountability policy"
+  - "packages/kernel/test/identity/authority.test.ts > [DI-21] an archived signer resolves to the name and role valid on the signing date"
+  - "packages/kernel/test/identity/authority.test.ts > [DI-21][INV-26] expiring a user's SOP training blocks both execution and verification and names the missing item"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: 11.10(i) explicitly extends training duties to developers and maintainers. EU Ch.4 4.29 explicitly requires signature lists. Both apply.
 type_detail: "ENFORCED (signature register; acknowledgment before first signing is an engine-enforced DESIGN-CHOICE). CONFIGURABLE for training gating: default hard block, which may be relaxed to a flag-and-review mode only by QA-approved configuration. The rules require trained staff; they do not require system gating."

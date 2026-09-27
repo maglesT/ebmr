@@ -34,12 +34,29 @@ behaviour: |-
   - The audit trail is kept at least as long as its subject record and travels with it (DI-02).
   - It can be viewed and exported in plain language (not raw codes) and filtered by batch, step, user, data class and date.
 catalog_test: As each role, create, modify and void a value. Every entry carries all fields. Saving a modification without a reason is blocked. A failed login, a role change and a configuration change each appear in the system log.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - packages/kernel/sql/0010_audit_trail.sql
+    - packages/kernel/src/audit
+    - packages/kernel/src/db/command.ts
+  invariants:
+    - INV-07
+  db_constraints:
+    - "kernel.audit_row_change trigger on every registered GMP table: actor, role, session, device, server time, site zone, old/new values or row hash, reason"
+    - "EBMR-AUDIT-002: an update or delete without a reason is refused"
+    - "kernel.command_marker: only contexts installed by kernel.begin_command are attributed (EBMR-AUDIT-009; ADR-0016)"
+    - "iam.authn_attempt: protected log of every login and signing attempt"
+tests:
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][INV-07] a GMP insert writes an audit event in the same transaction with who, what, when, how"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-24][DI-22] an entry is removed only with a reason, and the audit trail keeps the original values"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22] a plain-language business entry shares the correlation ID of the row entries"
+  - "packages/kernel/test/identity/attribution.test.ts > [INV-40][INV-07][DI-22] bypass: a context set with set_config cannot write any audited table or be read as the actor"
+  - "packages/kernel/test/integration/system-log.test.ts > [DI-22] a failed login, a role change and a configuration change each appear in the system log"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: |-
   - The US makes the audit trail mandatory and covers creation, but 11.10(e) does not require a reason.
   - EU 2011 makes the audit trail risk-based ("consideration should be given"), but it requires a documented reason for any change or deletion and captures confirmations.

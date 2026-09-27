@@ -30,11 +30,60 @@ behaviour: |-
   - Legal holds and DI-investigation holds (DI-50) override disposal.
   - After retention ends, disposal happens only through a QA-approved workflow that writes a disposal record: what, when and who approved. No user or configuration can delete a record during retention.
 catalog_test: Try to delete a batch record before its retention end. Blocked. A component lot used in two batches with different expiries follows the later one. An EU batch whose certification date has not been received shows retention "open".
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/src/records/retention.ts"
+    - "packages/kernel/src/records/retention-rules.ts"
+    - "packages/kernel/src/records/calendar.ts"
+    - "packages/kernel/src/records/retention-store.ts"
+    - "packages/kernel/sql/0420_records_retention.sql"
+    - "packages/kernel/sql/0440_records_blockers_and_purge.sql"
+    - "packages/kernel/sql/0720_authorization_signatures.sql"
+  invariants:
+    - "INV-22"
+  guards:
+    - "records.evaluate_retention / records.compute_effective_retention: latest of every applicable rule and of every dependant; OPEN while EU certification is pending"
+    - "records.approve_purge and records.purge: refuse when OPEN, on or before retain-until, under a hold or other disposal blocker (including on dependants), without a matching QA approval, or when the chain does not verify"
+    - "records.place_legal_hold / release_legal_hold; DI-investigation holds released only by closing the investigation"
+    - "records.approve_purge accepts only the approver's own valid RECORD_DISPOSAL_APPROVED signature of the record at its current retain-until and cited true copy (record_disposal <key>@<date>[@<copy>]; EBMR-REC-039)"
+  db_constraints:
+    - "records.tombstone check purged_on_site_date > retain_until"
+    - "all records retention tables insert-only and audited; ebmr_app has no write privilege on any GMP table"
+    - "records.inv22_violations(): INV-22 invariant query"
+    - "records.verify_chain / records.verify_anchor: purge-aware verification against tombstone and checkpoint"
+  rule_keys:
+    - "kernel.retention.* (proposed keys in packages/kernel/src/records/retention-rules.ts, rule set RET-2026.1; to be served by the market-profile engine)"
+tests:
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][INV-22] deleting a batch record before its retention end is blocked: no direct delete, no approval, no purge"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][INV-22] a component lot used in two batches with different expiries follows the later one, and moves when a dependant changes"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47] an EU batch whose certification date has not been received shows retention \"open\" until the date arrives"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47] retention inputs are validated (India always in the market set) and every change needs a reason"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][INV-22] a legal hold blocks approval and purge after retention ended; releasing it allows disposal"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47] placing and releasing a hold is written into the held record audit trail"
+  - "packages/kernel/test/records/retention-purge.test.ts > [INV-22][DI-47] purge after retain-until leaves a tombstone and a checkpoint, removes rows and chain, and every other chain still verifies"
+  - "packages/kernel/test/records/retention-purge.test.ts > [INV-22][DI-47] the record as kept is sealed before deletion, and an archived true copy cited by the approval must cover it exactly"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] India only, Form 25, 24-month tablet made January 2026: kept five years from manufacture, not expiry plus one year"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] the same batch for the EU, certified March 2026: five years after QP certification governs"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] 24-month shelf life certified 2026-01-10 gives 2031-01-10; with 60 months, expiry plus one year governs"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] an EU batch whose certification date has not been received stays open; the known minimum is still shown"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] an EU batch never certified: the later of expiry plus one year and disposition plus five years"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] US OTC product exempt from expiry dating: three years after distribution, open until distributed"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] Form 28 licence: test records two years after a labelled expiry"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] an aborted batch: the later of nominal expiry plus one year and abort date plus five years; EU pending does not keep it open"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] DSCSA records of US batches: six years after the transaction; no rule for an India-only record"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] EU validation raw data: open while the authorisation is in force"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] a market set without India is refused; unknown inputs are refused"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] calendar arithmetic never shortens a period and uses the site calendar day"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47][INV-22] a supporting record follows the latest dependant; any open dependant keeps it open"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] the rule parameters in TypeScript and in records.retention_rule are identical"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47][INV-22] for random inputs the SQL evaluation (authoritative for purge) equals the TypeScript evaluation"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] both copies normalise inputs identically and refuse the same invalid inputs"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] SQL and TypeScript calendar arithmetic agree, including month ends and 29 February"
+  - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] adding a market never shortens retention (tenants and markets can only lengthen it)"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][DI-37] a disposal approval needs the approver's own RECORD_DISPOSAL_APPROVED signature of that record at its current retain-until and cited archive"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: 'The EU is usually stricter for EU-certified batches because of the "5 years after certification" limb. Example: a 24-month shelf life certified 2 months after manufacture gives US = manufacture + 36 months, EU = manufacture + 62 months, so the EU period wins. The US is the only source of the component-record and OTC rules. The kernel takes the maximum.'
 type_detail: ENFORCED (floors). CONFIGURABLE for longer periods.

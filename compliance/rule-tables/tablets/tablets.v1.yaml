@@ -1,0 +1,121 @@
+# Tablets rule table, version 1 (build outline 3.3.6; ADR 0008; controls IN-52, IN-34, IN-35).
+#
+# Format and conventions: see kernel/kernel.v1.yaml and packages/kernel/src/market/README.md.
+# Values are paraphrased; decimals are quoted strings; India rows start on 2023-12-28 (G.S.R. 922(E)).
+table: tablets
+version: 1
+title: Tablets edition rule keys
+change:
+  kind: INITIAL
+  description: First tablets table, drawn from India catalog section B (B-03, B-14).
+
+keys:
+  - key: tablets.compression.ipcSampleMaxInterval
+    title: Maximum interval between compression samples checked against the in-process specification
+    method: SMALLER_STRICTER
+    valueType: DECIMAL
+    unit: min
+    indiaGoverns: true
+    catalogRefs: [B-03, IN-35]
+    description: Read by the MBR validator (INV-34) and the compression IPC timer.
+  - key: tablets.compression.stationWiseCheckAtRunStart
+    title: Every station of the press sampled at the start of each compression run
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-03, IN-35]
+  - key: tablets.compression.stationWiseChecksAtFixedIntervalsOnMultiPointPresses
+    title: Station-wise checks repeated at fixed MBR intervals on multi-point presses
+    method: REQUIRED_IF_ANY
+    valueType: BOOLEAN
+    unit: '{flag}'
+    indiaGoverns: true
+    catalogRefs: [B-03, IN-35]
+  - key: tablets.uniformity.acceptanceCriteria
+    title: Weight and dosage-unit uniformity criteria that must all pass
+    method: ALL_APPLY
+    valueType: CRITERIA
+    unit: '{criteria}'
+    indiaGoverns: true
+    catalogRefs: [B-14, IN-34]
+    description: >-
+      Compendial schemes cannot be ranked against each other, so every applicable criterion is
+      evaluated on its own sampling plan and rounding, and all must pass (ADR 0008 decision 4).
+
+rows:
+  - ref: B-03.IN.ipcInterval
+    key: tablets.compression.ipcSampleMaxInterval
+    market: IN
+    value: '30'
+    unit: min
+    floor: HARD
+    source: Schedule M Part VIII 3.8
+    verification: P
+    effectiveFrom: '2023-12-28'
+    note: 21 CFR 211.110(a) and EU GMP 5.43 set no frequency, so India governs for every market set.
+  - ref: B-03.IN.stationStart
+    key: tablets.compression.stationWiseCheckAtRunStart
+    market: IN
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: Schedule M Part VIII 3.4
+    verification: P
+    effectiveFrom: '2023-12-28'
+  - ref: B-03.IN.stationInterval
+    key: tablets.compression.stationWiseChecksAtFixedIntervalsOnMultiPointPresses
+    market: IN
+    value: true
+    unit: '{flag}'
+    floor: HARD
+    source: Schedule M Part VIII 3.4
+    verification: P
+    effectiveFrom: '2023-12-28'
+  - ref: B-14.IN.ipBands
+    key: tablets.uniformity.acceptanceCriteria
+    market: IN
+    value:
+      - id: IP_UNIFORMITY_OF_WEIGHT_BANDS
+        stage: IN_PROCESS
+        pharmacopoeia: IP
+        bands:
+          - {maxMg: '80', maxInclusive: true, deviationPercent: '10'}
+          - {maxMg: '250', maxInclusive: false, deviationPercent: '7.5'}
+          - {deviationPercent: '5'}
+    unit: '{criteria}'
+    floor: HARD
+    source: Indian Pharmacopoeia uniformity of weight (bands per India catalog IN-34); Schedule M Part VIII 3.3-3.4
+    verification: U
+    effectiveFrom: '2023-12-28'
+    note: >-
+      Band values from secondary sources; IP 2026 wording not confirmed (India catalog G-8).
+      Decision record 0001 Decision 6: IP bands apply to every India-made batch.
+  - ref: B-14.US.udu
+    key: tablets.uniformity.acceptanceCriteria
+    market: US
+    value:
+      - id: USP_905_UNIFORMITY_OF_DOSAGE_UNITS
+        stage: RELEASE
+        pharmacopoeia: USP
+        basis: AS_REGISTERED
+    unit: '{criteria}'
+    floor: HARD
+    source: USP general chapter 905, as registered
+    verification: GK
+    effectiveFrom: '2023-12-28'
+    note: Effective date not verified; the row starts on the table's first date.
+  - ref: B-14.EU.udu
+    key: tablets.uniformity.acceptanceCriteria
+    market: EU
+    value:
+      - id: PH_EUR_2_9_40_UNIFORMITY_OF_DOSAGE_UNITS
+        stage: RELEASE
+        pharmacopoeia: PH_EUR
+        basis: AS_REGISTERED
+    unit: '{criteria}'
+    floor: HARD
+    source: Ph. Eur. 2.9.40, as registered
+    verification: GK
+    effectiveFrom: '2023-12-28'
+    note: Effective date not verified; the row starts on the table's first date. The IP bands equal Ph. Eur. 2.9.5.

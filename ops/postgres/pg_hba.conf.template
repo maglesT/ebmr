@@ -1,0 +1,35 @@
+# pg_hba.conf template for eBMR database servers (control DI-13; build outline 4.4, 4.7;
+# docs/security/security-baseline.md). Checked by packages/kernel/test/continuity/security-baseline.test.ts.
+#
+# Rules: network connections only over TLS (hostssl), SCRAM-SHA-256 passwords or client certificates,
+# never trust / password / md5 / ident. Replace the CIDR placeholders with the site's application,
+# standby and backup subnets. Rules are read top to bottom; the first match wins.
+#
+# TYPE      DATABASE                          USER               ADDRESS              METHOD         OPTIONS
+
+# Break-glass superuser access on the host only (two-person, time-boxed, logged by pgaudit; ADR 0012).
+local       all                               postgres                                peer
+
+# Anything that is not TLS is rejected explicitly, before any other rule can match.
+hostnossl   all                               all                0.0.0.0/0            reject
+hostnossl   all                               all                ::/0                 reject
+
+# Application servers (application role; authentication-service role).
+hostssl     ebmr_tablets,ebmr_injectables,ebmr_site   ebmr_app,ebmr_auth   10.10.20.0/24   scram-sha-256
+
+# Sandbox and training database: sandbox role only, never a GMP database (DI-05).
+hostssl     ebmr_sandbox_tablets,ebmr_sandbox_injectables   ebmr_sandbox   10.10.20.0/24   scram-sha-256
+
+# Migration pipeline (change-controlled deployments only).
+hostssl     ebmr_tablets,ebmr_injectables,ebmr_site   ebmr_migrate         10.10.30.10/32  cert           clientcert=verify-full
+
+# Backup host (pg_dump and base backups, read-only role with pg_read_all_data).
+hostssl     ebmr_tablets,ebmr_injectables,ebmr_site   ebmr_backup          10.10.40.10/32  cert           clientcert=verify-full
+hostssl     replication                       ebmr_backup        10.10.40.10/32       cert           clientcert=verify-full
+
+# Synchronous standbys.
+hostssl     replication                       ebmr_replicator    10.10.50.0/29        cert           clientcert=verify-full
+
+# Everything else is refused.
+hostssl     all                               all                0.0.0.0/0            reject
+hostssl     all                               all                ::/0                 reject

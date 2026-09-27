@@ -97,3 +97,125 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   sources-extracted), docs/design (architecture, edition specs, features/UX, sample analysis), tools/regulatory, PROGRESS.md.
   From now on: keep PROGRESS.md in the repo root current and push after each milestone (repo is the primary backup;
   the artifact backup is secondary). Code work: feature branch per phase + PR. OWNER AUTHORISED AUTO-MERGE (2026-09-27): merge each PR myself once all CI checks pass.
+
+## 9. Phase 1 (compliance kernel): status and resume notes
+- Phase 0 merged to main (PR maglesT/ebmr#1). Branch `phase-1/kernel` holds the audit-trail foundation (commit 2bea679):
+  migrations 0001 (roles ebmr_owner/ebmr_app, schema kernel) and 0010 (hash-chained audit trail, begin_command actor context,
+  checkpoints, anchors, DDL log), migrate.ts, withCommand, DB test harness (template DB per run, EBMR_MIGRATIONS filter).
+- Module agents work in parallel in the same tree, each in its own schema, migration range and folders. Briefs are in
+  docs/build-plan/phase-1/ (00-common-brief.md + one per module). Launched 2026-09-27: B1 identity (iam, 0100-0199),
+  B3 market engine (market, 0300-0399, compliance/rule-tables), B4 records (records, 0400-0499), B5 time/idempotency/outbox/
+  state machines (platform, 0500-0599), B6 security/continuity (continuity 0600-0699 + site-services sql 0600-0699, docs/security,
+  docs/operations, ops/). B2 e-signatures (esig, 0200-0299) starts after B1 reports.
+- Integration steps for the lead after the agents report: switch every module's `testActor` helper and the audit-trail tests to
+  B1's `seedActor` (identity enforcement in kernel.validate_actor_context); wire platform.raise_time_incident -> records.raise_incident;
+  wire B6 kiosk attestation into B1 device enrolment; retention rule values -> market rule keys; cross-module FKs if wanted;
+  export modules from packages/kernel/src/index.ts; add the DI-13 evidence-package test after B2; run `pnpm run ci`; set
+  compliance/phase.yaml current_phase: 1 once all phase-1 controls pass; PR; merge when green (authorised).
+- Design note: identity lives in the kernel for Phase 1 (one DB in tests). Per ADR 0001 site services is the system of record for
+  persons/accounts/devices; edition DBs will hold mirrors plus local sessions and auth events (auth events must be consumed in the
+  edition transaction that signs). Build the mirror sync in Phase 3.
+- Dependencies added: fast-check 4.10.2 (root dev), yaml 2.9.1 (kernel).
+- 2026-09-27: B5 (time, idempotency, outbox, state machines) finished: 91 tests, DI-27 IMPLEMENTED.
+  Security finding from B5 fixed in the foundation: SECURITY DEFINER functions must list pg_temp last in search_path
+  (else a session's temp table can shadow catalog/module tables); 0010 fixed, 0001 revokes TEMP from PUBLIC (the test
+  harness re-applies it per test DB, since database ACLs are not copied from templates); repo-wide test
+  packages/kernel/test/security/definer-hardening.test.ts enforces it; running agents told to comply.
+  B5 integration items: register AUTHORITY hook (over iam authority evaluation) and SIGNATURE hook (over esig) with
+  platform.register_hook; add permissions platform.settings.change, platform.time_source.manage, platform.alarm.clear,
+  sample_record.{submit,check,approve,retire} to the role catalogue; consume outbox topic incident.requested into
+  records.raise_incident plus a reconciliation check; export ./time ./commands ./state; register platform.state_history.id
+  and platform.outbox.id as protected sequences; consider a dedicated outbox relay role. Owner questions from B5
+  (device-skew tolerance on occurred_at <= recorded_at; which trusts count as late entry; REFERENCE_LOST severity) go
+  into the Phase 1 owner-questions list.
+- 2026-09-27: B4 (records) finished: 69 tests; DI-01, DI-12, DI-47, DI-50 IMPLEMENTED (INV-22 proven).
+  Retention logic authoritative in SQL (rule set RET-2026.1), TS mirror proven equal by a property test.
+  B4 integration items: export as namespace `records` (name clashes with market); nightly/verifyAllChains must use
+  records.verify_chain/verify_anchor (purge-aware) combined with B6 restore-event coverage; replace purge's
+  ALTER TABLE ... DISABLE TRIGGER with a purge authorisation row checked by kernel.reject_mutation (row in a table only the
+  purge function writes, keyed by txid; never a session setting); fixtures testgmp.* grant DELETE to ebmr_app (accepted
+  for audit tests; B4 tests filter them); add permissions RECORD.DISPOSAL_APPROVE, RECORD.LEGAL_HOLD, INCIDENT.CLOSE and a
+  register-approval permission and check them via iam.evaluate_authority; signature ids -> esig; retention values -> market
+  rule keys (proposedRuleKey); optional index on audit_event actor person_id for DI scoping.
+  Owner/expert questions from B4: MAJOR incidents also need root cause + CAPA (peak severity counts); DERIVED class refused
+  for decision data (stricter than "not informational"); retention stays OPEN when inputs are missing; design-default rules
+  for aborted and never-certified EU batches; CERT-In 6 h and Form 25/28 periods unverified.
+- 2026-09-27: B3 (market-profile engine) finished: 105 tests; IN-52 IMPLEMENTED; INV-28 (fast-check, TS and SQL
+  engines agree), INV-29, INV-47 proven. Rule tables in compliance/rule-tables/{kernel,tablets,sterile}/*.v1.yaml.
+  B3 integration items: export as namespace `market`; publish seed rule tables at install/upgrade via
+  syncRuleTables(pool, actor, 'compliance/rule-tables') (not in a migration: needs an actor); permission-gate
+  publish_rule_table, set_site_value, define_policy/set_policy_version, apply_policy_tightening via iam; approval uuids
+  -> esig; B4 retention to read kernel.retention.* keys; optional FKs (published_by etc. -> iam.person).
+  Owner/expert questions from B3: DESIGN values refused as site-value loosening (locks APS acceptance per Decision 2 and
+  6-month HEPA A/B per outline 5.9 #17) but IN-43's catalog test expects India-only warn at 6 / block at 12 months;
+  seed-data interpretations (B-01 mfg + 5 y for every licence form; EU test records as batch documentation; management
+  review and EU PUPSIT typed GUIDANCE; FDA 2004 values GUIDANCE; unverified rows flagged S/U/GK; unverifiable effective
+  dates default to 2023-12-28).
+- 2026-09-27: B6 (continuity) finished: 50 tests; DI-45 IMPLEMENTED; DI-13 partly (TLS, kiosk hardening;
+  formula-permission line due Phase 2, evidence-package test after esig); INV-27 and the restore part of INV-08 proven with
+  a real pg_dump/pg_restore disaster simulation. Site-services batch-number register (schema site) with IN-18 tests.
+  Docs: docs/security/{threat-model,asvs-l2-review,security-baseline}.md, docs/operations/{ha-and-restore,
+  restore-drill-report-template}.md; scripts ops/backup/{backup,drill}.sh.
+  B6 integration items: export continuity; register other modules' identifier sequences in a migration >= 0690
+  (records incident/investigation numbers, platform outbox/state_history ids, iam ids); iam.register_device ->
+  continuity.assert_device_hardened for SHARED/GRADE_A_B; restore approval via esig; lost_window -> records incident;
+  continuity.alarm -> platform alarms; iam permission checks on restore/attestation/alarm functions; CI needs
+  pg_dump/pg_restore 16 on the runner. Owner decisions: RPO/RTO and backup schedule proposals, WORM storage product,
+  DB-admin vs storage-admin separation. Residual risk: data-only reload keeps DB incarnation (caught by ledger check only).
+- 2026-09-27: B1 (identity and access) finished: 94 tests; DI-14..DI-21 IMPLEMENTED; INV-11, INV-26, INV-40 and
+  the login-name part of INV-27 proven. New login role ebmr_authn (dev password; production needs a vault credential).
+  kernel.validate_actor_context replaced (0190). B2 (e-signatures) launched with identity notes appended to its brief.
+  B1 integration items: SECURITY GAP: any role can set_config('ebmr.ctx') and skip begin_command, forging attribution on
+  tables the app writes directly -> kernel.current_actor/append_audit_event must require a validated command
+  (iam.assert_validated_actor / command_log); switch every module's testActor to seedActor/seedServiceActor; export
+  identity; wire iam.assert_not_administrator into GMP write paths; B6 device hardening into iam.register_device/open_session
+  (add INSTRUMENT class to continuity's list); optional FKs to iam tables; IAM policy values may move into market policies.
+- 2026-09-27: integration started (lead). Kernel fix for B1's finding: kernel.begin_command now leaves a marker
+  (transaction, backend, context hash) in kernel.command_marker (owner-only); kernel.current_actor() ignores a context
+  without its marker and the audit writer refuses it (EBMR-AUDIT-009), so set_config('ebmr.ctx') forges nothing. Module
+  code switches context only via kernel.set_actor_context (owner-only). All module test helpers now seed real identities
+  (test/support/seeded-actor.ts). src/index.ts exports every module as a namespace. Full suite: 456 tests pass; typecheck,
+  lint, boundaries, pins, register clean. Trace at phase 1 lacks only DI-35..DI-38 (B2 running).
+- 2026-09-27: kernel 0900 integration wiring: protected sequences for incident/DI-investigation numbers, outbox and
+  state-history ids (INV-27); sessions on SHARED/GRADE_A_B terminals refused without a current hardening attestation
+  (DI-13; test seeding attests devices via attestDevice); time faults raise a records incident in the alarm's transaction
+  (DI-27). 433 tests pass.
+- 2026-09-27: B2 (e-signatures) finished: 68 tests; DI-35..DI-38 IMPLEMENTED; INV-03, INV-09, INV-10 and the
+  signature-id part of INV-27 proven; DI-13 evidence package test added. 48 vendor minimum meaning types; HMAC and
+  Ed25519 seals with key ring; generic invalidation via esig.register_signed_table. Kernel 0910 registers the platform
+  SIGNATURE hook and makes the platform sample record signable; esig exported.
+  B2 follow-ups (after B7): map meaning types to B7 permissions (new catalogue versions: RECORD_TYPE_APPROVED,
+  RECORD_DISPOSAL_APPROVED, DI_INVESTIGATION_CLOSED, new RESTORE_APPROVED); records approve_record_type /
+  close_di_investigation / approve_purge and continuity restore approval must verify their signature ids with
+  esig.assert_signature (signer = actor) and need content providers; DI-38 relaxation needs an iam session-bound
+  password/PIN-only authentication method (relaxation is OFF by default, so not blocking); decide retention of
+  signature rows when a record is purged (Phase 4); RLS checks in content_for_signing/evidence_package when tenancy lands.
+
+- 2026-09-27: B7 (authorization wiring) finished: every app-callable writer in market, records, continuity and the site
+  batch-number register checks iam.assert_not_administrator (GMP data) and iam.require_permission; platform AUTHORITY
+  hook = iam.platform_authority (location scope from the session); permissions and role map in kernel 0700 (table in
+  the module READMEs and test/integration/authorization.test.ts); a regression test fails if any app-callable writer lacks
+  the checks. Approvals (record type, disposal, DI-investigation closure, restore) now require a real e-signature by the
+  approver (esig.assert_signature; kernel 0720 content providers and meaning-type versions; vendor type RESTORE_APPROVED).
+  Lead fixes: platform.record_drift_check only for source SYSTEM with PLATFORM.TIME_CHECK_RECORD (a person could have
+  declared the clock healthy and cleared an alarm); esig DI_INVESTIGATION_CLOSED source corrected to DI-50; `pnpm ci` is
+  a reserved pnpm command: docs now say `pnpm run ci`; DI-22/23/24 register entries filled, with new tests for delete
+  with reason, no disable path, entry naming, and the system log (failed login, role change, configuration change).
+- PHASE 1 STATUS: compliance/phase.yaml current_phase: 1. `pnpm run ci` green locally: 560 tests, trace ok for phase 1
+  (all 23 phase-1 controls have passing tests; build_status IMPLEMENTED except DI-13 and DI-24, whose remaining catalog
+  lines are due in Phase 2 (formula confidentiality) and Phase 4 (PDF/review list)).
+  Phase 1 exit items still open (outline section 11): kernel mutation targets (StrykerJS on the pure TS modules: market
+  resolve, records retention rules, time instants, esig canonical JSON) -> next PR before Phase 2; design review sign-off
+  (threat model, ASVS L2, HA/restore design in docs/security and docs/operations) -> owner/expert.
+  Follow-ups carried into Phase 2: split SERVICE_ACCOUNT into per-service roles (time monitor, backup agent, retention
+  job, interface) for least privilege; revoke kernel.audit_business_event/checkpoint_chain/create_anchor from the app or
+  gate them (today any validated actor may add a business entry to any chain, attributed to itself); gate
+  platform.enqueue topics per integration before any consumer exists; replace records.purge's ALTER TABLE ... DISABLE
+  TRIGGER with an owner-only purge authorisation row checked by kernel.reject_mutation; DI-38 session relaxation needs an
+  iam session-bound single-component method (policy is OFF); DI-investigation closure signature should cover the
+  conclusion (proposed-closure step); restore runbook signing step; retention of signature rows on purge (Phase 4);
+  per-aggregate scope lookup in the AUTHORITY adapter when editions arrive; module-filtered test runs no longer work
+  (modules call iam/esig) - use full runs.
+  Open questions for the owner: docs/decisions/phase-1-open-questions.md (plus B7 role choices: rule tables published by
+  the master-data steward, source corrections by the regulatory signer, policies by the QA MBR approver, CERT-In by
+  QA/CSV-DI lead, CSV_DI_LEAD is a GMP role).
