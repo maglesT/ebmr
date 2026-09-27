@@ -11,7 +11,8 @@
     "@node-rs/argon2": "2.2.1",
     "kysely": "0.29.6",
     "pg": "8.23.0",
-    "xstate": "5.33.2"
+    "xstate": "5.33.2",
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@types/pg": "8.23.1"

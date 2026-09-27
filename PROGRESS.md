@@ -97,3 +97,22 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   sources-extracted), docs/design (architecture, edition specs, features/UX, sample analysis), tools/regulatory, PROGRESS.md.
   From now on: keep PROGRESS.md in the repo root current and push after each milestone (repo is the primary backup;
   the artifact backup is secondary). Code work: feature branch per phase + PR. OWNER AUTHORISED AUTO-MERGE (2026-09-27): merge each PR myself once all CI checks pass.
+
+## 9. Phase 1 (compliance kernel): status and resume notes
+- Phase 0 merged to main (PR maglesT/ebmr#1). Branch `phase-1/kernel` holds the audit-trail foundation (commit 2bea679):
+  migrations 0001 (roles ebmr_owner/ebmr_app, schema kernel) and 0010 (hash-chained audit trail, begin_command actor context,
+  checkpoints, anchors, DDL log), migrate.ts, withCommand, DB test harness (template DB per run, EBMR_MIGRATIONS filter).
+- Module agents work in parallel in the same tree, each in its own schema, migration range and folders. Briefs are in
+  docs/build-plan/phase-1/ (00-common-brief.md + one per module). Launched 2026-09-27: B1 identity (iam, 0100-0199),
+  B3 market engine (market, 0300-0399, compliance/rule-tables), B4 records (records, 0400-0499), B5 time/idempotency/outbox/
+  state machines (platform, 0500-0599), B6 security/continuity (continuity 0600-0699 + site-services sql 0600-0699, docs/security,
+  docs/operations, ops/). B2 e-signatures (esig, 0200-0299) starts after B1 reports.
+- Integration steps for the lead after the agents report: switch every module's `testActor` helper and the audit-trail tests to
+  B1's `seedActor` (identity enforcement in kernel.validate_actor_context); wire platform.raise_time_incident -> records.raise_incident;
+  wire B6 kiosk attestation into B1 device enrolment; retention rule values -> market rule keys; cross-module FKs if wanted;
+  export modules from packages/kernel/src/index.ts; add the DI-13 evidence-package test after B2; run `pnpm ci`; set
+  compliance/phase.yaml current_phase: 1 once all phase-1 controls pass; PR; merge when green (authorised).
+- Design note: identity lives in the kernel for Phase 1 (one DB in tests). Per ADR 0001 site services is the system of record for
+  persons/accounts/devices; edition DBs will hold mirrors plus local sessions and auth events (auth events must be consumed in the
+  edition transaction that signs). Build the mirror sync in Phase 3.
+- Dependencies added: fast-check 4.10.2 (root dev), yaml 2.9.1 (kernel).
