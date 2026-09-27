@@ -16,7 +16,7 @@ const clockBan = [
 ];
 
 export default tseslint.config(
-  { ignores: ['.dependency-cruiser.cjs', '**/node_modules/**', '**/dist/**', '**/fixtures/**', 'docs/**', 'tools/regulatory/**', '.reports/**'] },
+  { ignores: ['.dependency-cruiser.cjs', 'stryker.config.mjs', '.stryker-tmp/**', '**/node_modules/**', '**/dist/**', '**/fixtures/**', 'docs/**', 'tools/regulatory/**', '.reports/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {

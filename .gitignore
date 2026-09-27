@@ -10,3 +10,4 @@ tools/regulatory/pdf/package-lock.json
 .reports/
 *.tsbuildinfo
 .turbo/
+.stryker-tmp/
