@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { withCommand } from '../../src/db/command.ts';
+import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { signatureState } from '../../src/esig/signing.ts';
 import {
   approveRecordType,
   assertClassificationValid,
@@ -9,7 +10,7 @@ import {
   defineRecordType,
 } from '../../src/records/register.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { recordType, registerType, testActor } from './helpers.ts';
+import { again, recordType, registerType, signerActor, signFor, testActor } from './helpers.ts';
 
 let db: TestDatabase;
 
@@ -161,19 +162,44 @@ describe('DI-01 register content and control', () => {
 
   it('[DI-01] a version is in force only after approval by a person other than its author; later versions supersede it', async () => {
     const author = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
-    const other = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
+    const other = await signerActor(db, 'QA_MBR_APPROVER');
+    const signVersion = (version: number) => signFor(db, other, { type: 'record_type_version', id: `EM_RESULT:${version}` }, 'RECORD_TYPE_APPROVED', 'DEFINED');
     const v1 = await withCommand(db.app, author, (c) => defineRecordType(c, recordType('EM_RESULT')));
     expect(await db.app.query("select 1 from records.record_register where code = 'EM_RESULT'").then((r) => r.rowCount)).toBe(0);
     await expect(withCommand(db.app, author, (c) => approveRecordType(c, 'EM_RESULT', v1, randomUUID()))).rejects.toThrow('EBMR-REC-012');
     const system = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM' });
     await expect(withCommand(db.app, system, (c) => approveRecordType(c, 'EM_RESULT', v1, randomUUID()))).rejects.toThrow('EBMR-REC-012');
-    await withCommand(db.app, other, (c) => approveRecordType(c, 'EM_RESULT', v1, randomUUID()));
+    const s1 = await signVersion(v1);
+    await withCommand(db.app, other, (c) => approveRecordType(c, 'EM_RESULT', v1, s1));
     const v2 = await withCommand(db.app, author, (c) => defineRecordType(c, recordType('EM_RESULT', { storageLocation: 'moved to site archive' })));
     expect(v2).toBe(v1 + 1);
-    await withCommand(db.app, other, (c) => approveRecordType(c, 'EM_RESULT', v2, randomUUID()));
+    const s2 = await signVersion(v2);
+    await withCommand(db.app, other, (c) => approveRecordType(c, 'EM_RESULT', v2, s2));
     await expect(withCommand(db.app, other, (c) => approveRecordType(c, 'EM_RESULT', v1, randomUUID()))).rejects.toThrow('EBMR-REC-015');
     const { rows } = await db.app.query<{ version: number; storage_location: string }>("select version, storage_location from records.record_register where code = 'EM_RESULT'");
     expect(rows).toEqual([{ version: v2, storage_location: 'moved to site archive' }]);
+  });
+
+  it('[DI-01][DI-37] a record type is approved only with the approver\'s own RECORD_TYPE_APPROVED signature of that very version; its author cannot sign it', async () => {
+    const author = await signerActor(db, 'QA_MBR_APPROVER', 'Register author');
+    const approver = await signerActor(db, 'QA_MBR_APPROVER', 'Register approver');
+    const colleague = await signerActor(db, 'QA_MBR_APPROVER', 'Another approver');
+    const v1 = await withCommand(db.app, again(author), (c) => defineRecordType(c, recordType('SIGNED_TYPE')));
+    const version = (v: number) => ({ type: 'record_type_version', id: `SIGNED_TYPE:${v}` });
+    // INV-03: the author never signs the approval of their own version; without the permission nobody signs it.
+    await expect(signFor(db, author, version(v1), 'RECORD_TYPE_APPROVED', 'DEFINED')).rejects.toThrow('EBMR-ESIG-044');
+    await expect(signFor(db, await signerActor(db, 'QA_REVIEWER'), version(v1), 'RECORD_TYPE_APPROVED', 'DEFINED')).rejects.toThrow('EBMR-ESIG-040');
+    const s1 = await signFor(db, approver, version(v1), 'RECORD_TYPE_APPROVED', 'DEFINED');
+    const approve = (ctx: ActorContext, v: number, signature: string) => withCommand(db.app, again(ctx), (c) => approveRecordType(c, 'SIGNED_TYPE', v, signature));
+    await expect(approve(approver, v1, randomUUID())).rejects.toThrow(/EBMR-ESIG-070 .*does not exist/);
+    await expect(approve(colleague, v1, s1)).rejects.toThrow('EBMR-REC-017');
+    const v2 = await withCommand(db.app, again(author), (c) => defineRecordType(c, recordType('SIGNED_TYPE', { storageLocation: 'site archive' })));
+    await expect(approve(approver, v2, s1)).rejects.toThrow(/EBMR-ESIG-070 .*never transferred/);
+    await approve(approver, v1, s1);
+    // A version's content never changes, so its approval signature stays valid after later versions.
+    expect(await signatureState(db.app, s1)).toMatchObject({ valid: true, status: 'VALID', meaningCode: 'RECORD_TYPE_APPROVED' });
+    const { rows } = await db.app.query<{ approval_signature_id: string }>("select approval_signature_id from records.record_type_approval where code = 'SIGNED_TYPE'");
+    expect(rows).toEqual([{ approval_signature_id: s1 }]);
   });
 
   it('[DI-01] register rows cannot be written or changed by the application role, and are insert-only for everyone', async () => {

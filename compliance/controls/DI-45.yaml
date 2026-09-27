@@ -44,12 +44,14 @@ implemented_by:
     - "ops/backup/drill.sh"
     - "docs/operations/ha-and-restore.md"
     - "docs/operations/restore-drill-report-template.md"
+    - "packages/kernel/sql/0720_authorization_signatures.sql"
   invariants:
     - "INV-08"
     - "INV-27"
   guards:
     - "continuity.after_restore requires a restore event approved by every named approver (never the operator)"
     - "continuity.next_counter_value refuses after a restore, copy or failover until the restore procedure has run (database incarnation guard)"
+    - "continuity.approve_restore_event needs the approver's own valid RESTORE_APPROVED signature of the event (esig.assert_signature on restore_event:<id>; EBMR-CONT-025); the operator cannot sign it (INV-03)"
   db_constraints:
     - "continuity.backup_catalogue, backup_job_run, restore_drill: insert-only (no UPDATE or DELETE for ebmr_app; insert-only trigger for the table owner)"
     - "continuity.backup_catalogue: every backup encrypted (key reference required); retention-grade requires a write-once retention date"
@@ -65,6 +67,7 @@ tests:
   - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a person at a terminal cannot record a backup or a drill result; only the system service account can"
   - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a retention-grade backup cannot be catalogued without write-once retention"
   - "packages/kernel/test/continuity/restore.test.ts > [INV-08][DI-45] a restore event needs a second, named person: the operator cannot approve it and approval is refused to anyone not named"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-45][DI-37] a restore is approved only with the approver's own RESTORE_APPROVED signature of that event"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -24,8 +24,17 @@ behaviour: |-
   - Correcting signed content supersedes the signature (DI-37).
   - Physical purge is possible only after retention ends, through DI-47. Deletion at DB level is prevented or detected.
 catalog_test: Try to delete an entry through the UI and the API. Only void-with-reason is offered. Correct a value. The original is visible in the record, in the review list and in the PDF, alongside the corrector's signature and reason.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - packages/kernel/sql/0010_audit_trail.sql
+  invariants:
+    - INV-06
+  db_constraints:
+    - "a change or removal after first entry needs a reason; the audit event keeps the original values (old) with the reason and the actor"
+    - "insert-only tables refuse update, delete and truncate (EBMR-AUDIT-004); corrections are new linked rows"
+tests:
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
+  - "packages/kernel/test/audit/audit-trail.test.ts > [DI-24][DI-22] an entry is removed only with a reason, and the audit trail keeps the original values"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

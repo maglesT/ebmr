@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { signatureState } from '../../src/esig/signing.ts';
 import {
   closeDiInvestigation,
   investigationScope,
@@ -11,19 +12,37 @@ import {
 } from '../../src/records/investigations.ts';
 import { approvePurge, createRetentionSchedule, openBlockers, purge, releaseLegalHold } from '../../src/records/retention-store.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { again, correctEntry, createStubTables, inSecondRole, insertEntry, insertReading, recordType, registerType, scalar, testActor, withReason } from './helpers.ts';
+import type { SeededActor } from '../identity/seed.ts';
+import {
+  again,
+  approveDisposal,
+  correctEntry,
+  createStubTables,
+  inSecondRole,
+  insertEntry,
+  insertReading,
+  recordType,
+  registerType,
+  scalar,
+  signerActor,
+  signFor,
+  testActor,
+  withReason,
+} from './helpers.ts';
 
 let db: TestDatabase;
 let subject: ActorContext;
 let colleague: ActorContext;
 let investigator: ActorContext;
-let approver: ActorContext;
+let approver: SeededActor;
 let retentionJob: ActorContext;
 // The same persons in a second role that holds the permission, to reach the per-person rules.
 let investigatorAsQa: ActorContext;
 let subjectAsQa: ActorContext;
 let subjectAsDiLead: ActorContext;
 
+/** The approver's DI_INVESTIGATION_CLOSED signature of the investigation (DI-37). */
+const signClosure = (id: string) => signFor(db, approver, { type: 'di_investigation', id }, 'DI_INVESTIGATION_CLOSED', 'OPEN');
 const now = async (): Promise<Date> => (await db.app.query<{ t: Date }>('select clock_timestamp() as t')).rows[0]?.t as Date;
 const plusHours = (d: Date, h: number) => new Date(d.getTime() + h * 3_600_000);
 
@@ -36,7 +55,7 @@ beforeAll(async () => {
   // Opening, linking and refreshing need VALIDATION.MANAGE (CSV / DI lead); approving the closure
   // needs DI_INVESTIGATION.APPROVE_CLOSURE (QA reviewer); purging needs RECORD.PURGE (retention job).
   investigator = await testActor(db, { roleCode: 'CSV_DI_LEAD', legalName: 'DI investigator' });
-  approver = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Head of QA' });
+  approver = await signerActor(db, 'QA_REVIEWER', 'Head of QA');
   retentionJob = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'retention job' });
   investigatorAsQa = await inSecondRole(db, investigator, 'QA_REVIEWER');
   subjectAsQa = await inSecondRole(db, subject, 'QA_REVIEWER');
@@ -102,14 +121,15 @@ describe('DI-50 data-integrity investigation', () => {
     await expect(withCommand(db.app, again(subjectAsQa), (c) => closeDiInvestigation(c, id, closure))).rejects.toThrow('EBMR-REC-063');
     await expect(withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, { ...closure, remediation: '' }))).rejects.toThrow('EBMR-REC-062');
     expect((await openBlockers(db.app, 'batch', batchA)).some((b) => b.kind === 'DI_INVESTIGATION')).toBe(true);
-    await withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, closure));
+    const signed = { ...closure, approvalSignatureId: await signClosure(id) };
+    await withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, signed));
 
     expect(await openBlockers(db.app, 'batch', batchA)).toEqual([]);
     expect(await openBlockers(db.app, 'batch', batchB)).toEqual([]);
     expect(await scalar<string>(db.app, 'select count(*)::text as v from records.active_hold where investigation_id = $1', [id])).toBe('0');
     expect(await scalar<string>(db.app, 'select status as v from records.di_investigation_current where id = $1', [id])).toBe('CLOSED');
     // Disposal is possible again once the investigation is closed.
-    await withCommand(db.app, again(approver), (c) => approvePurge(c, `batch:${batchA}`, randomUUID(), 'retention ended'));
+    await approveDisposal(db, approver, `batch:${batchA}`, 'retention ended');
     await expect(withCommand(db.app, withReason(retentionJob, 'RETENTION_ENDED'), (c) => purge(c, `batch:${batchA}`))).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 
@@ -125,8 +145,9 @@ describe('DI-50 data-integrity investigation', () => {
     expect((await openBlockers(db.app, 'batch', batchE)).map((b) => b.kind).sort()).toEqual(['DI_INVESTIGATION', 'HOLD']);
     const batchF = randomUUID();
     await insertEntry(db, subject, batchF, '6.66');
+    const signature = await signClosure(id);
     await withCommand(db.app, again(approver), (c) =>
-      closeDiInvestigation(c, id, { conclusion: 'not substantiated', remediation: 'none required', approvalSignatureId: randomUUID() }),
+      closeDiInvestigation(c, id, { conclusion: 'not substantiated', remediation: 'none required', approvalSignatureId: signature }),
     );
     const linked = await db.app.query<{ record_key: string }>('select record_key from records.di_investigation_link where investigation_id = $1', [id]);
     expect(linked.rows.map((r) => r.record_key)).toContain(`batch:${batchF}`);
@@ -169,11 +190,34 @@ describe('DI-50 data-integrity investigation', () => {
     const other = randomUUID();
     await expect(withCommand(db.app, again(investigator), (c) => linkDiInvestigation(c, id, 'batch', other, ' '))).rejects.toThrow('EBMR-REC-060');
     await withCommand(db.app, again(investigator), (c) => linkDiInvestigation(c, id, 'batch', other, 'reviewed by the person'));
-    await withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, { conclusion: 'no issue', remediation: 'none', approvalSignatureId: randomUUID() }));
+    const signature = await signClosure(id);
+    await withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, { conclusion: 'no issue', remediation: 'none', approvalSignatureId: signature }));
     await expect(withCommand(db.app, again(investigator), (c) => linkDiInvestigation(c, id, 'batch', randomUUID(), 'late'))).rejects.toThrow('EBMR-REC-061');
     await expect(withCommand(db.app, again(approver), (c) => closeDiInvestigation(c, id, { conclusion: 'x', remediation: 'y', approvalSignatureId: randomUUID() }))).rejects.toThrow(
       'EBMR-REC-061',
     );
+  });
+
+  it('[DI-50][DI-37] closing a DI investigation needs the approver\'s own DI_INVESTIGATION_CLOSED signature of that investigation', async () => {
+    const from = await now();
+    const open = () =>
+      withCommand(db.app, again(investigator), (c) =>
+        openDiInvestigation(c, { subjectPersonId: colleague.personId, windowFrom: from, windowTo: plusHours(from, 1), concern: 'entries made after the fact' }),
+      );
+    const a = await open();
+    const b = await open();
+    const close = (ctx: ActorContext, id: string, approvalSignatureId: string) =>
+      withCommand(db.app, again(ctx), (c) => closeDiInvestigation(c, id, { conclusion: 'no falsification', remediation: 'refresher training', approvalSignatureId }));
+    await expect(close(approver, a, randomUUID())).rejects.toThrow(/EBMR-ESIG-070 .*does not exist/);
+    const ofB = await signClosure(b);
+    await expect(close(approver, a, ofB)).rejects.toThrow(/EBMR-ESIG-070 .*never transferred/);
+    const ofA = await signClosure(a);
+    const deputy = await signerActor(db, 'QA_REVIEWER', 'Deputy head of QA');
+    await expect(close(deputy, a, ofA)).rejects.toThrow('EBMR-REC-065');
+    await close(approver, a, ofA);
+    await close(approver, b, ofB);
+    // The investigation as opened is what was signed: closing it leaves the signature valid.
+    expect(await signatureState(db.app, ofA)).toMatchObject({ valid: true, status: 'VALID', meaningCode: 'DI_INVESTIGATION_CLOSED' });
   });
 
   it('[DI-50] the scoping report works for any person and period, across batches', async () => {

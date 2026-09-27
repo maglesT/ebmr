@@ -268,6 +268,11 @@ begin
   if v_person = v.subject_person_id then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-063 the person investigated cannot approve the closure of %s', v.reference);
   end if;
+  -- DI-37: a valid DI_INVESTIGATION_CLOSED signature of this investigation (0720), made by the approver.
+  if (esig.assert_signature(p_approval_signature_id, 'DI_INVESTIGATION_CLOSED', 'di_investigation', v.id::text) ->> 'signer_person')::uuid
+     is distinct from v_person then
+    raise exception using errcode = 'P0001', message = format('EBMR-REC-065 the closure signature of %s was made by another person', v.reference);
+  end if;
   -- The closure covers the whole scope: link anything that entered the window since the last refresh.
   perform records.link_investigation_scope(v);
   insert into records.di_investigation_closure (investigation_id, conclusion, remediation, approved_by_person, approval_signature_id)

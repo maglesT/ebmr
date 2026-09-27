@@ -333,6 +333,12 @@ begin
   if v_problem is not null then
     raise exception using errcode = 'P0001', message = format('%s [record type %s]', v_problem, p_code);
   end if;
+  -- DI-37: a valid RECORD_TYPE_APPROVED signature of exactly this version (0720), made by the approver.
+  if (esig.assert_signature(p_approval_signature_id, 'RECORD_TYPE_APPROVED', 'record_type_version', p_code || ':' || p_version)
+        ->> 'signer_person')::uuid is distinct from v_person then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-017 the approval signature of record type %s version %s was made by another person', p_code, p_version);
+  end if;
   insert into records.record_type_approval (code, version, approved_by_person, approval_signature_id)
   values (p_code, p_version, v_person, p_approval_signature_id);
 end

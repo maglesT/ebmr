@@ -200,6 +200,14 @@ begin
     raise exception using errcode = 'P0001', message = format('EBMR-REC-035 true copy %s is not a copy of %s', p_true_copy_id, p_record_key);
   end if;
   v_eff := records.compute_effective_retention(v_sched.id);
+  -- DI-37: a valid RECORD_DISPOSAL_APPROVED signature of this record at this retain-until, with the cited
+  -- true copy (0720), made by the approver.
+  if (esig.assert_signature(p_approval_signature_id, 'RECORD_DISPOSAL_APPROVED', 'record_disposal',
+                            v_sched.record_key || '@' || (v_eff ->> 'retainUntil') || coalesce('@' || p_true_copy_id::text, ''))
+        ->> 'signer_person')::uuid is distinct from records.actor_person() then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-039 the disposal-approval signature of %s was made by another person', v_sched.record_key);
+  end if;
   insert into records.purge_approval (schedule_id, record_key, approved_by_person, approval_signature_id, reason, retain_until, true_copy_id)
   values (v_sched.id, v_sched.record_key, records.actor_person(), p_approval_signature_id, p_reason, (v_eff ->> 'retainUntil')::date, p_true_copy_id)
   returning id into v_id;

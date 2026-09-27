@@ -17,4 +17,4 @@ Hard rules:
 - Keep the boundaries in `.dependency-cruiser.cjs` and exact `workspace:<version>` pins.
 - No `Date.now()` or JavaScript `number` for GMP values in domain code.
 - Paraphrase regulations in docs and code comments; never paste more than a short phrase of regulation text.
-- Run `pnpm ci` before pushing. Work on a branch; update `PROGRESS.md` at each milestone.
+- Run `pnpm run ci` before pushing. Work on a branch; update `PROGRESS.md` at each milestone.

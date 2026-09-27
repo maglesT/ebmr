@@ -6,14 +6,80 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import type { ActorContext } from '../../src/db/command.ts';
 import { withCommand } from '../../src/db/command.ts';
+import { contentForSigning, createChallenge, sign } from '../../src/esig/signing.ts';
 import { decideRoleGrant, requestRoleGrant } from '../../src/identity/admin.ts';
+import { authenticate } from '../../src/identity/authentication.ts';
 import { approveRecordType, defineRecordType, type RecordTypeDefinition } from '../../src/records/register.ts';
-import { seedAdministration, withReason as withAdminReason } from '../identity/seed.ts';
+import { approvePurge } from '../../src/records/retention-store.ts';
+import { ensureSealKey, testSealKey } from '../esig/helpers.ts';
+import { seedActor, seedAdministration, seedAuthn, withReason as withAdminReason, type SeededActor } from '../identity/seed.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 import type { TestDatabase } from '../support/db.ts';
 
 export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {}): Promise<ActorContext> {
   return seededTestActor(db, overrides);
+}
+
+/**
+ * A person holding `roleCode` who can sign: the actor keeps the credentials the signer re-enters at
+ * every signing (DI-38). Use it for approvers whose approval carries an electronic signature.
+ */
+export function signerActor(db: TestDatabase, roleCode: string, legalName?: string): Promise<SeededActor> {
+  return seedActor(db, { roleCode, ...(legalName ? { legalName } : {}) });
+}
+
+/**
+ * The signing flow as production runs it (esig README): the server's canonical content, a challenge
+ * in the signer's own command, the signer's authentication for that challenge through the
+ * authentication service, then sign and seal. Returns the signature id. For a restored copy whose
+ * seal key was registered before the backup, pass registerKey: false.
+ */
+export async function signFor(
+  db: TestDatabase,
+  signer: SeededActor,
+  aggregate: { type: string; id: string },
+  meaning: string,
+  expectedState: string | null,
+  opts: { registerKey?: boolean } = {},
+): Promise<string> {
+  if (opts.registerKey ?? true) await ensureSealKey(db);
+  const content = await contentForSigning(db.app, aggregate.type, aggregate.id);
+  const challenge = await withCommand(db.app, again(signer), (c) =>
+    createChallenge(c, { aggregateType: aggregate.type, aggregateId: aggregate.id, contentVersion: content.contentVersion ?? '1', meaning, clientContentHash: content.contentHash ?? '' }),
+  );
+  const ev = await authenticate(seedAuthn(db), {
+    method: 'PASSWORD',
+    identifier: signer.seed.loginName,
+    secret: signer.seed.password,
+    deviceFingerprint: signer.seed.deviceFingerprint,
+    purpose: 'SIGNATURE',
+    challengeId: challenge.challengeId,
+  });
+  const result = await withCommand(db.app, again(signer), (c) => sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState }, testSealKey));
+  return result.signatureId;
+}
+
+/** The signed aggregate of a disposal approval: the record at its current retain-until, with the cited true copy (0720). */
+export async function disposalAggregate(db: TestDatabase, recordKey: string, trueCopyId?: string): Promise<{ type: string; id: string; retainUntil: string | null }> {
+  const { rows } = await db.app.query<{ d: string | null }>(
+    "select records.compute_effective_retention(s.id) ->> 'retainUntil' as d from records.retention_schedule s where s.record_key = $1",
+    [recordKey],
+  );
+  const retainUntil = rows[0]?.d ?? null;
+  return { type: 'record_disposal', id: `${recordKey}@${retainUntil ?? 'open'}${trueCopyId ? `@${trueCopyId}` : ''}`, retainUntil };
+}
+
+/**
+ * A disposal approval as QA gives it: a RECORD_DISPOSAL_APPROVED signature of the record at its current
+ * retain-until (and cited true copy), then records.approve_purge with it. A record that may not be
+ * disposed of cannot be signed for; it gets a random id, because approve_purge refuses it (EBMR-REC-03x)
+ * before it reads the signature.
+ */
+export async function approveDisposal(db: TestDatabase, approver: SeededActor, recordKey: string, reason: string, trueCopyId?: string): Promise<string> {
+  const aggregate = await disposalAggregate(db, recordKey, trueCopyId);
+  const content = aggregate.retainUntil ? await contentForSigning(db.app, aggregate.type, aggregate.id) : undefined;
+  const signature = content?.state === 'DISPOSABLE' ? await signFor(db, approver, aggregate, 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE') : randomUUID();
+  return withCommand(db.app, again(approver), (c) => approvePurge(c, recordKey, signature, reason, trueCopyId));
 }
 
 /**
@@ -116,14 +182,16 @@ export const recordType = (code: string, over: Partial<RecordTypeDefinition> = {
 });
 
 /**
- * Defines a record type as one person and approves it as another. RECORD.TYPE_DEFINE and
- * RECORD.TYPE_APPROVE are held by QA_MBR_APPROVER (0700_authorization_catalogue.sql).
+ * Defines a record type as one person and approves it, with a RECORD_TYPE_APPROVED signature of that
+ * version, as another. RECORD.TYPE_DEFINE and RECORD.TYPE_APPROVE are held by QA_MBR_APPROVER
+ * (0700_authorization_catalogue.sql).
  */
 export async function registerType(db: TestDatabase, def: RecordTypeDefinition): Promise<void> {
   const author = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
-  const approver = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
+  const approver = await signerActor(db, 'QA_MBR_APPROVER');
   const version = await withCommand(db.app, author, (c) => defineRecordType(c, def));
-  await withCommand(db.app, approver, (c) => approveRecordType(c, def.code, version, randomUUID()));
+  const signature = await signFor(db, approver, { type: 'record_type_version', id: `${def.code}:${version}` }, 'RECORD_TYPE_APPROVED', 'DEFINED');
+  await withCommand(db.app, again(approver), (c) => approveRecordType(c, def.code, version, signature));
 }
 
 export async function scalar<T>(pool: pg.Pool, sql: string, params: unknown[] = []): Promise<T> {

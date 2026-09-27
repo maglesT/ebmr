@@ -62,6 +62,7 @@ insert into iam.permission (code, domain, effect, description) values
   ('PLATFORM.SETTINGS_CHANGE', 'GOVERNANCE', 'WRITE', 'Change a platform setting within its allowed range (platform.settings.change)'),
   ('PLATFORM.TIME_SOURCE_MANAGE', 'ADMINISTRATION', 'ADMINISTER', 'Register, activate and deactivate time sources (platform.time_source.manage)'),
   ('PLATFORM.ALARM_CLEAR', 'GOVERNANCE', 'WRITE', 'Clear a time alarm the monitor does not re-check, ending its fault window (platform.alarm.clear)'),
+  ('PLATFORM.TIME_CHECK_RECORD', 'GOVERNANCE', 'WRITE', 'Record the time monitor''s drift readings, which raise and clear time alarms (platform.time_check.record)'),
   ('SAMPLE_RECORD.SUBMIT', 'GMP', 'WRITE', 'Sample state machine (Phase 1 scaffolding): submit a sample record'),
   ('SAMPLE_RECORD.CHECK', 'GMP', 'SIGN', 'Sample state machine (Phase 1 scaffolding): check or return a submitted sample record'),
   ('SAMPLE_RECORD.APPROVE', 'GMP', 'SIGN', 'Sample state machine (Phase 1 scaffolding): approve, return or supersede a sample record'),
@@ -105,6 +106,7 @@ select r, p from (values
   ('SERVICE_ACCOUNT', 'MARKET.RULE_EVALUATE'), ('SERVICE_ACCOUNT', 'RECORD.RETENTION_MANAGE'), ('SERVICE_ACCOUNT', 'RECORD.PURGE'),
   ('SERVICE_ACCOUNT', 'RECORD.TRUE_COPY_REGISTER'), ('SERVICE_ACCOUNT', 'INCIDENT.RAISE'), ('SERVICE_ACCOUNT', 'CONTINUITY.BACKUP_RECORD'),
   ('SERVICE_ACCOUNT', 'CONTINUITY.COUNTER_RESERVE'), ('SERVICE_ACCOUNT', 'BATCH_NUMBER.REGISTER_EXTERNAL'),
+  ('SERVICE_ACCOUNT', 'PLATFORM.TIME_CHECK_RECORD'),
   -- K23 system administrator: IT functions only (restore operation, kiosk hardening, time sources, IT alarms)
   ('SYSTEM_ADMINISTRATOR', 'CONTINUITY.RESTORE_OPERATE'), ('SYSTEM_ADMINISTRATOR', 'CONTINUITY.HARDENING_ATTEST'),
   ('SYSTEM_ADMINISTRATOR', 'CONTINUITY.ALARM_ACKNOWLEDGE'), ('SYSTEM_ADMINISTRATOR', 'PLATFORM.TIME_SOURCE_MANAGE'),

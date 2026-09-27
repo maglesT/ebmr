@@ -14,7 +14,8 @@ import { approveRestoreEvent, checkAgainstLedger, completeRestore, lostWindow, r
 import { verifyChain } from '../../src/audit/verify.ts';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { backupTestDatabase, dbTime, installNumberStub, restoreCopy, tempDir, tempLedger, testActor } from './helpers.ts';
+import type { SeededActor } from '../identity/seed.ts';
+import { backupTestDatabase, dbTime, ensureSealKey, installNumberStub, restoreCopy, signerActor, signFor, tempDir, tempLedger, testActor } from './helpers.ts';
 
 const KEY = 'test.number:R';
 const dir = tempDir('restore');
@@ -23,7 +24,7 @@ let restored: TestDatabase;
 let ledger: FileLedger;
 let ops: ActorContext;
 let operator: ActorContext;
-let approver: ActorContext;
+let approver: SeededActor;
 let bystander: ActorContext;
 const batch = randomUUID();
 const chain = `batch:${batch}`;
@@ -58,7 +59,9 @@ beforeAll(async () => {
   ledger = tempLedger('restore-source', dir.path);
   ops = await testActor(source, { roleCode: 'SERVICE_ACCOUNT', source: 'SYSTEM' });
   operator = await testActor(source, { roleCode: 'SYSTEM_ADMINISTRATOR', legalName: 'Restore Operator' });
-  approver = await testActor(source, { roleCode: 'QA_REVIEWER', legalName: 'QA Approver' });
+  approver = await signerActor(source, 'QA_REVIEWER', 'QA Approver');
+  // The seal key is registered before the backup, so the restored copy can seal the approval signature.
+  await ensureSealKey(source);
   bystander = await testActor(source, { roleCode: 'QA_REVIEWER', legalName: 'Someone Else' });
   await installNumberStub(source, KEY, 3);
 
@@ -136,8 +139,10 @@ describe('before the restore procedure', () => {
   });
 
   it('[INV-08] once approved, the signed restore event covers exactly the discarded anchor', async () => {
-    await approveRestoreEvent(restored.app, approver, restoreEventId);
-    await expect(approveRestoreEvent(restored.app, approver, restoreEventId)).rejects.toThrow('EBMR-CONT-021');
+    // The approval is the approver's own RESTORE_APPROVED signature of the recorded event (DI-37).
+    const signature = await signFor(restored, approver, { type: 'restore_event', id: restoreEventId }, 'RESTORE_APPROVED', 'RECORDED', { registerKey: false });
+    await approveRestoreEvent(restored.app, approver, restoreEventId, signature);
+    await expect(approveRestoreEvent(restored.app, approver, restoreEventId, signature)).rejects.toThrow('EBMR-CONT-021');
     const status = await restored.app.query<{ status: string }>('select status from continuity.restore_event_status where id = $1', [restoreEventId]);
     expect(status.rows[0]?.status).toBe('APPROVED');
     const result = await verifyExternalAnchors(restored.app, ledger);
@@ -213,8 +218,8 @@ describe('after the restore procedure', () => {
 
   it('[INV-27] the lost window and every move past it are recorded in the audit trail', async () => {
     const { rows } = await restored.app.query<{ action: string }>("select action from kernel.audit_event where chain_key = $1 order by seq", [`restore_event:${restoreEventId}`]);
-    // record (row + business entry), approval, completion (row + business entry)
-    expect(rows.map((r) => r.action)).toEqual(['INSERT', 'BUSINESS', 'INSERT', 'INSERT', 'BUSINESS']);
+    // record (row + business entry), approval signature (business entry, DI-37), approval, completion (row + business entry)
+    expect(rows.map((r) => r.action)).toEqual(['INSERT', 'BUSINESS', 'BUSINESS', 'INSERT', 'INSERT', 'BUSINESS']);
     const bumps = await restored.app.query<{ n: string }>("select count(*)::text as n from continuity.sequence_bump where restore_event_id = $1", [restoreEventId]);
     expect(Number(bumps.rows[0]?.n)).toBeGreaterThanOrEqual(5);
   });

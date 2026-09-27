@@ -9,7 +9,10 @@ import type { TestDatabase } from '../../kernel/test/support/db.ts';
 export {
   backupTestDatabase,
   dbTime,
+  ensureSealKey,
   restoreCopy,
+  signerActor,
+  signFor,
   tempDir,
   tempLedger,
   testActor,

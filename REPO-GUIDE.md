@@ -27,7 +27,7 @@ How the eBMR code base is organised, how to run it, and how to change it safely.
 
 ```bash
 pnpm install          # Node 22+, pnpm 10
-pnpm ci               # everything CI runs: typecheck, lint, boundaries, pins, register, tests, traceability
+pnpm run ci           # everything CI runs (plain `pnpm ci` is a reserved pnpm command): typecheck, lint, boundaries, pins, register, tests, traceability
 pnpm test             # tests only
 ```
 
@@ -49,7 +49,7 @@ pnpm test             # tests only
 
 ## Definition of done
 
-A change is done when `pnpm ci` passes, every behaviour it adds has a test tagged with its control IDs, the ADRs still describe the design (or a new ADR records the change), and `PROGRESS.md` says where the project stands.
+A change is done when `pnpm run ci` passes, every behaviour it adds has a test tagged with its control IDs, the ADRs still describe the design (or a new ADR records the change), and `PROGRESS.md` says where the project stands.
 
 ## Commits and branches
 

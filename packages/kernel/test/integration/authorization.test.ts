@@ -24,7 +24,7 @@ import { createAggregateState, transition } from '../../src/state/engine.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { SEED_SITE, seedActor, seedAdministration, seedServiceActor, withFreshAuth, withReason, type SeededActor } from '../identity/seed.ts';
 import { createTestTable, miniDocument, publishDocumentAs, publishSeedTables } from '../market/helpers.ts';
-import { recordType, registerType } from '../records/helpers.ts';
+import { approveDisposal, recordType, registerType, signFor } from '../records/helpers.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -85,6 +85,7 @@ const MAP: Record<string, { domain: string; effect: string; roles: string[] }> =
   'PLATFORM.SETTINGS_CHANGE': { domain: 'GOVERNANCE', effect: 'WRITE', roles: ['PROCESS_OWNER'] },
   'PLATFORM.TIME_SOURCE_MANAGE': { domain: 'ADMINISTRATION', effect: 'ADMINISTER', roles: ['SYSTEM_ADMINISTRATOR'] },
   'PLATFORM.ALARM_CLEAR': { domain: 'GOVERNANCE', effect: 'WRITE', roles: ['CSV_DI_LEAD'] },
+  'PLATFORM.TIME_CHECK_RECORD': { domain: 'GOVERNANCE', effect: 'WRITE', roles: ['SERVICE_ACCOUNT'] },
   'SAMPLE_RECORD.SUBMIT': { domain: 'GMP', effect: 'WRITE', roles: ['MBR_AUTHOR'] },
   'SAMPLE_RECORD.CHECK': { domain: 'GMP', effect: 'SIGN', roles: ['MBR_CHECKER', 'QA_REVIEWER'] },
   'SAMPLE_RECORD.APPROVE': { domain: 'GMP', effect: 'SIGN', roles: ['QA_REVIEWER'] },
@@ -286,7 +287,7 @@ describe('market-profile engine', () => {
 describe('records', () => {
   let qa: SeededActor;
   beforeAll(async () => {
-    qa = await actor('QA_REVIEWER');
+    qa = await seedActor(db, { roleCode: 'QA_REVIEWER' }); // signs its approvals (e-signature policy acknowledged)
     await registerType(db, recordType('AUTHZ_BATCH_RECORD'));
   });
 
@@ -305,7 +306,7 @@ describe('records', () => {
     );
     expect(logged.rows.length).toBeGreaterThanOrEqual(1);
     expect(logged.rows.every((r) => !r.allowed)).toBe(true);
-    await expect(withCommand(db.app, again(qa), (c) => approvePurge(c, `batch:${batch}`, randomUUID(), 'retention ended'))).resolves.toMatch(/^[0-9a-f-]{36}$/);
+    await expect(approveDisposal(db, qa, `batch:${batch}`, 'retention ended')).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('[DI-17] an operator cannot place a legal hold or investigate an incident; a service account raises an incident but cannot reclassify it', async () => {
@@ -382,7 +383,7 @@ describe('continuity', () => {
   it('[DI-17][DI-18] a QA reviewer cannot operate a restore; a system administrator named as approver cannot approve it; the QA reviewer approves it', async () => {
     const { admin } = await seedAdministration(db);
     const admin2 = await actor('SYSTEM_ADMINISTRATOR');
-    const qa = await actor('QA_REVIEWER');
+    const qa = await seedActor(db, { roleCode: 'QA_REVIEWER' });
     const event = (approvers: string[]) =>
       JSON.stringify({ event_kind: 'FAILOVER', performed_at: '2026-01-01T00:00:00Z', reason: 'primary node lost', change_reference: 'CHG-AZ-1', approver_person_ids: approvers });
     await expect(sql(qa, "select continuity.record_restore_event($1::jsonb, '[]'::jsonb)", [event([admin2.personId])])).rejects.toThrow(
@@ -391,9 +392,69 @@ describe('continuity', () => {
     const recorded = await sql(admin, "select continuity.record_restore_event($1::jsonb, '[]'::jsonb) as id", [event([admin2.personId, qa.personId])]);
     const id = (recorded.rows[0] as { id: string }).id;
     await expect(sql(admin2, 'select continuity.approve_restore_event($1)', [id])).rejects.toThrow('EBMR-IAM-042');
-    await sql(qa, 'select continuity.approve_restore_event($1)', [id]);
+    const signature = await signFor(db, qa, { type: 'restore_event', id }, 'RESTORE_APPROVED', 'RECORDED');
+    await sql(qa, 'select continuity.approve_restore_event($1, $2)', [id, signature]);
     const { rows } = await db.app.query<{ approvals: string }>('select approvals::text from continuity.restore_event_status where id = $1', [id]);
     expect(rows[0]?.approvals).toBe('1');
+  });
+});
+
+describe('approval signatures (DI-37)', () => {
+  it('[DI-35][DI-17] the approval signature types name the approving permissions; RESTORE_APPROVED is a vendor minimum type', async () => {
+    const { rows } = await db.app.query<{ code: string; permissions: string[]; origin: string; is_minimum: boolean; status: string }>(
+      `select code, permissions, origin, is_minimum, status from esig.meaning_catalogue
+       where code in ('RECORD_TYPE_APPROVED', 'RECORD_DISPOSAL_APPROVED', 'DI_INVESTIGATION_CLOSED', 'RESTORE_APPROVED') order by code`,
+    );
+    expect(rows).toEqual([
+      { code: 'DI_INVESTIGATION_CLOSED', permissions: ['DI_INVESTIGATION.APPROVE_CLOSURE'], origin: 'VENDOR', is_minimum: true, status: 'ACTIVE' },
+      { code: 'RECORD_DISPOSAL_APPROVED', permissions: ['RECORD.DISPOSAL_APPROVE'], origin: 'VENDOR', is_minimum: true, status: 'ACTIVE' },
+      { code: 'RECORD_TYPE_APPROVED', permissions: ['RECORD.TYPE_APPROVE'], origin: 'VENDOR', is_minimum: true, status: 'ACTIVE' },
+      { code: 'RESTORE_APPROVED', permissions: ['CONTINUITY.RESTORE_APPROVE'], origin: 'VENDOR', is_minimum: true, status: 'ACTIVE' },
+    ]);
+    const providers = await db.app.query<{ aggregate_type: string }>(
+      "select aggregate_type from esig.content_provider where aggregate_type in ('record_type_version', 'di_investigation', 'record_disposal', 'restore_event') order by 1",
+    );
+    expect(providers.rows.map((r) => r.aggregate_type)).toEqual(['di_investigation', 'record_disposal', 'record_type_version', 'restore_event']);
+    // A person without the approving permission cannot even sign the approval (EBMR-ESIG-040).
+    const { admin } = await seedAdministration(db);
+    const recorded = await sql(admin, "select continuity.record_restore_event($1::jsonb, '[]'::jsonb) as id", [
+      JSON.stringify({ event_kind: 'FAILOVER', performed_at: '2026-01-02T00:00:00Z', reason: 'node lost', change_reference: 'CHG-AZ-3', approver_person_ids: [randomUUID()] }),
+    ]);
+    const operator = await seedActor(db, { roleCode: 'OPERATOR' });
+    await expect(signFor(db, operator, { type: 'restore_event', id: (recorded.rows[0] as { id: string }).id }, 'RESTORE_APPROVED', 'RECORDED')).rejects.toThrow('EBMR-ESIG-040');
+  });
+
+  it('[DI-45][DI-37] a restore is approved only with the approver\'s own RESTORE_APPROVED signature of that event', async () => {
+    const { admin } = await seedAdministration(db);
+    const qa1 = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA One' });
+    const qa2 = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA Two' });
+    const record = async () => {
+      const r = await sql(admin, "select continuity.record_restore_event($1::jsonb, '[]'::jsonb) as id", [
+        JSON.stringify({ event_kind: 'FAILOVER', performed_at: '2026-01-03T00:00:00Z', reason: 'node lost', change_reference: 'CHG-AZ-4', approver_person_ids: [qa1.personId, qa2.personId] }),
+      ]);
+      return (r.rows[0] as { id: string }).id;
+    };
+    const id = await record();
+    const other = await record();
+    const approve = (ctx: ActorContext, signature: string | null) => sql(ctx, 'select continuity.approve_restore_event($1, $2)', [id, signature]);
+    await expect(approve(qa1, null)).rejects.toThrow('EBMR-CONT-025');
+    await expect(approve(qa1, randomUUID())).rejects.toThrow(/EBMR-ESIG-070 .*does not exist/);
+    const ofOther = await signFor(db, qa1, { type: 'restore_event', id: other }, 'RESTORE_APPROVED', 'RECORDED');
+    await expect(approve(qa1, ofOther)).rejects.toThrow(/EBMR-ESIG-070 .*never transferred/);
+    const wrongMeaning = await signFor(db, qa1, { type: 'restore_event', id }, 'RECORD_DISPOSAL_APPROVED', 'RECORDED');
+    await expect(approve(qa1, wrongMeaning)).rejects.toThrow(/EBMR-ESIG-070 .*means RECORD_DISPOSAL_APPROVED/);
+    const own = await signFor(db, qa1, { type: 'restore_event', id }, 'RESTORE_APPROVED', 'RECORDED');
+    await expect(approve(qa2, own)).rejects.toThrow('EBMR-CONT-025');
+    await approve(qa1, own);
+    await approve(qa2, await signFor(db, qa2, { type: 'restore_event', id }, 'RESTORE_APPROVED', 'RECORDED'));
+    const { rows } = await db.app.query<{ status: string }>('select status from continuity.restore_event_status where id = $1', [id]);
+    expect(rows[0]?.status).toBe('APPROVED');
+    const { rows: sigs } = await db.app.query<{ signature_id: string; approver_person_id: string }>(
+      'select signature_id, approver_person_id from continuity.restore_event_approval where restore_event_id = $1 order by recorded_at',
+      [id],
+    );
+    expect(sigs.map((r) => r.approver_person_id)).toEqual([qa1.personId, qa2.personId]);
+    expect(sigs[0]?.signature_id).toBe(own);
   });
 });
 

@@ -62,6 +62,10 @@ tests:
   - "packages/kernel/test/esig/platform-hook.test.ts > [DI-37][INV-09] a transition accepts only a valid signature of its meaning on this record; superseded or transferred ones are refused"
   - "packages/kernel/test/esig/signing.test.ts > [DI-37] canonical JSON is identical in TypeScript and SQL, whatever the key order and escaping"
   - "packages/kernel/test/esig/signing.test.ts > [DI-37] the server rebuilds the canonical content and refuses a challenge whose displayed hash differs"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-45][DI-37] a restore is approved only with the approver's own RESTORE_APPROVED signature of that event"
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50][DI-37] closing a DI investigation needs the approver's own DI_INVESTIGATION_CLOSED signature of that investigation"
+  - "packages/kernel/test/records/register.test.ts > [DI-01][DI-37] a record type is approved only with the approver's own RECORD_TYPE_APPROVED signature of that very version; its author cannot sign it"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][DI-37] a disposal approval needs the approver's own RECORD_DISPOSAL_APPROVED signature of that record at its current retain-until and cited archive"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

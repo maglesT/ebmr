@@ -128,6 +128,13 @@ clock, at the actor's location (the platform passes no object scope). Every eval
 (INV-26). NULL means allowed; otherwise the reason names the role, permission, scope, aggregate,
 reasons and the evaluation id. The platform tests install stub hooks over it.
 
+**Signature types.** `0720_authorization_signatures.sql` gives the approval signature types of the
+records and continuity modules the approving permissions (`RECORD_TYPE_APPROVED` ->
+`RECORD.TYPE_APPROVE`, `RECORD_DISPOSAL_APPROVED` -> `RECORD.DISPOSAL_APPROVE`,
+`DI_INVESTIGATION_CLOSED` -> `DI_INVESTIGATION.APPROVE_CLOSURE`, new vendor type `RESTORE_APPROVED` ->
+`CONTINUITY.RESTORE_APPROVE`), so a person signs only what they may approve (esig evaluates the
+permission at signing, INV-26).
+
 ## kernel.validate_actor_context (migration 0190)
 
 Replaces the shape-only hook. A command is refused unless the account exists, belongs to the

@@ -18,6 +18,10 @@ export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {
   return seededTestActor(db, overrides);
 }
 
+/** Signers (approvers whose approval carries an electronic signature) and the signing flow. */
+export { signerActor, signFor } from '../records/helpers.ts';
+export { ensureSealKey } from '../esig/helpers.ts';
+
 /** A temporary directory, removed by the returned cleanup function. */
 export function tempDir(prefix: string): { path: string; cleanup: () => void } {
   const path = mkdtempSync(join(tmpdir(), `ebmr-${prefix}-`));

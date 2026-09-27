@@ -33,9 +33,11 @@ implemented_by:
   modules:
     - "packages/kernel/src/records/register.ts"
     - "packages/kernel/sql/0400_records_register.sql"
+    - "packages/kernel/sql/0720_authorization_signatures.sql"
   guards:
     - "records.assert_classification_valid / records.classification_problems: raw-data floor for validators (MBR approval in Phase 2)"
     - "records.approve_record_type: approver is a person other than the author; only newer versions become current"
+    - "records.approve_record_type accepts only the approver's own valid RECORD_TYPE_APPROVED signature of that version (esig.assert_signature on record_type_version <code>:<version>; EBMR-REC-017); the author cannot sign it (INV-03)"
   db_constraints:
     - "records.record_type_raw_data_floor: a type that feeds an acceptance limit is RAW"
     - "records.record_type_hybrid_linkage: a HYBRID type declares its paper/electronic linkage"
@@ -53,6 +55,7 @@ tests:
   - "packages/kernel/test/records/register.test.ts > [DI-01] register rows cannot be written or changed by the application role, and are insert-only for everyone"
   - "packages/kernel/test/records/register.test.ts > [DI-01] every register change is in the audit trail"
   - "packages/kernel/test/records/register.test.ts > [DI-01] the proposed baseline register is accepted by the database and keeps the raw-data floor"
+  - "packages/kernel/test/records/register.test.ts > [DI-01][DI-37] a record type is approved only with the approver's own RECORD_TYPE_APPROVED signature of that very version; its author cannot sign it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

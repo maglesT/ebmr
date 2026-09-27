@@ -99,6 +99,42 @@ describe('audit capture', () => {
     expect(p.body.new['value']).toBe(10.5);
   });
 
+  it('[DI-24][DI-22] an entry is removed only with a reason, and the audit trail keeps the original values', async () => {
+    const batch = randomUUID();
+    const id = await insertSample(batch, '7.25');
+    await expect(withCommand(db.app, actor(), (c) => c.query('delete from testgmp.sample where id = $1', [id]))).rejects.toThrow('EBMR-AUDIT-002');
+    await withCommand(db.app, actor({ reasonCode: 'VOID', reasonText: 'entered against the wrong batch' }), (c) =>
+      c.query('delete from testgmp.sample where id = $1', [id]),
+    );
+    const [ins, del] = await events(`batch:${batch}`);
+    expect(ins?.action).toBe('INSERT');
+    expect(del?.action).toBe('DELETE');
+    const p = del?.payload as { reason_code: string; reason_text: string; actor: Record<string, string>; body: { old: Record<string, unknown> } };
+    expect(p.reason_code).toBe('VOID');
+    expect(p.reason_text).toBe('entered against the wrong batch');
+    expect(p.actor['person_id']).toBe(base.personId);
+    expect(p.body.old['value']).toBe(7.25);
+    expect(await verifyChain(db.app, `batch:${batch}`)).toEqual([]);
+  });
+
+  it('[DI-23] nothing the application can call disables the audit trail or removes audit events', async () => {
+    // Functions the application role may execute in the kernel schema: none alters triggers or deletes audit rows.
+    const { rows: fns } = await db.admin.query<{ name: string; src: string }>(`
+      select p.proname as name, p.prosrc as src from pg_catalog.pg_proc p
+      where p.pronamespace = 'kernel'::regnamespace and has_function_privilege('ebmr_app', p.oid, 'EXECUTE')`);
+    expect(fns.length).toBeGreaterThan(0);
+    for (const f of fns) {
+      expect(f.src, f.name).not.toMatch(/disable\s+trigger|delete\s+from\s+kernel\.audit_event|truncate/i);
+    }
+    // The application role owns no table and holds no TRIGGER, UPDATE, DELETE or TRUNCATE right on audit tables.
+    const { rows: rights } = await db.admin.query<{ t: string; p: string }>(`
+      select t, p from unnest(array['kernel.audit_event', 'kernel.audit_chain_head', 'kernel.audit_checkpoint', 'kernel.audit_anchor',
+                                    'kernel.audited_table', 'kernel.ddl_log']) t,
+                       unnest(array['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER']) p
+      where has_table_privilege('ebmr_app', t, p)`);
+    expect(rights).toEqual([]);
+  });
+
   it('[DI-22] a plain-language business entry shares the correlation ID of the row entries', async () => {
     const batch = randomUUID();
     const ctx = actor({ correlationId: randomUUID() });
@@ -165,12 +201,14 @@ describe('tamper evidence', () => {
     expect(await verifyChain(db.app, `batch:${batch}`)).toEqual([]);
   });
 
-  it('[INV-08] altering an event, deleting one, or moving the head is detected', async () => {
+  it('[INV-08][DI-23] altering an audit row directly in the database, deleting one, or moving the head is detected and the entry is named', async () => {
     const batch = randomUUID();
     for (const v of ['1', '2', '3']) await insertSample(batch, v);
     const key = `batch:${batch}`;
     await db.admin.query("update kernel.audit_event set payload = jsonb_set(payload, '{body,new,value}', '99') where chain_key = $1 and seq = 2", [key]);
-    expect((await verifyChain(db.app, key)).map((p) => p.problem)).toContain('hash does not match the payload (event altered)');
+    const altered = await verifyChain(db.app, key);
+    expect(altered.map((p) => p.problem)).toContain('hash does not match the payload (event altered)');
+    expect(altered.find((p) => p.problem === 'hash does not match the payload (event altered)')?.seq).toBe(2);
 
     const other = randomUUID();
     for (const v of ['1', '2', '3']) await insertSample(other, v);

@@ -38,12 +38,14 @@ implemented_by:
     - "packages/kernel/src/records/retention-store.ts"
     - "packages/kernel/sql/0420_records_retention.sql"
     - "packages/kernel/sql/0440_records_blockers_and_purge.sql"
+    - "packages/kernel/sql/0720_authorization_signatures.sql"
   invariants:
     - "INV-22"
   guards:
     - "records.evaluate_retention / records.compute_effective_retention: latest of every applicable rule and of every dependant; OPEN while EU certification is pending"
     - "records.approve_purge and records.purge: refuse when OPEN, on or before retain-until, under a hold or other disposal blocker (including on dependants), without a matching QA approval, or when the chain does not verify"
     - "records.place_legal_hold / release_legal_hold; DI-investigation holds released only by closing the investigation"
+    - "records.approve_purge accepts only the approver's own valid RECORD_DISPOSAL_APPROVED signature of the record at its current retain-until and cited true copy (record_disposal <key>@<date>[@<copy>]; EBMR-REC-039)"
   db_constraints:
     - "records.tombstone check purged_on_site_date > retain_until"
     - "all records retention tables insert-only and audited; ebmr_app has no write privilege on any GMP table"
@@ -78,6 +80,7 @@ tests:
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] both copies normalise inputs identically and refuse the same invalid inputs"
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] SQL and TypeScript calendar arithmetic agree, including month ends and 29 February"
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] adding a market never shortens retention (tenants and markets can only lengthen it)"
+  - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][DI-37] a disposal approval needs the approver's own RECORD_DISPOSAL_APPROVED signature of that record at its current retain-until and cited archive"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

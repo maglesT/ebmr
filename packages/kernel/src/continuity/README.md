@@ -67,6 +67,12 @@ Every writing function checks the actor's permission before its first write (`ia
 | `record_hardening_attestation`, `revoke_hardening_attestation` | `CONTINUITY.HARDENING_ATTEST` (ADMINISTRATION) | `{}` | system administrator | no: terminal hardening |
 | `acknowledge_alarm` | `CONTINUITY.ALARM_ACKNOWLEDGE` (GOVERNANCE) | `{}` | system administrator, process owner | no: infrastructure alarms |
 
+`approve_restore_event(event, signature)` needs the approver's own `RESTORE_APPROVED` signature of the
+event (vendor signature type added in `sql/0720_authorization_signatures.sql`; signed aggregate
+`restore_event:<id>`, the event exactly as its content hash covers it, operator excluded by INV-03):
+without one `EBMR-CONT-025`, a signature of another event or meaning `EBMR-ESIG-070`, someone else's
+signature `EBMR-CONT-025`.
+
 Why some functions carry no DI-18 guard: performing a restore, cataloguing backups, attesting kiosk
 hardening and acknowledging backup or ledger alarms are IT administration (features spec K23: backups,
 time sync, monitoring). None of them creates or changes GMP record content: the restore only documents

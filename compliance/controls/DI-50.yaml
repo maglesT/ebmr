@@ -28,11 +28,13 @@ implemented_by:
     - "packages/kernel/src/records/investigations.ts"
     - "packages/kernel/sql/0430_records_di_investigations.sql"
     - "packages/kernel/sql/0440_records_blockers_and_purge.sql"
+    - "packages/kernel/sql/0720_authorization_signatures.sql"
   guards:
     - "records.investigation_scope / records.person_activity: every record the person created or changed in the window, from the audit trail"
     - "records.open_di_investigation: links and holds every record in scope; person investigated cannot open or lead it"
     - "records.open_blockers: linked records, and records the person touched in the window, block disposition until closure"
     - "records.close_di_investigation: conclusion, remediation and an approver who is neither investigator nor subject; releases the holds"
+    - "records.close_di_investigation accepts only the approver's own valid DI_INVESTIGATION_CLOSED signature of the investigation (di_investigation:<id>; EBMR-REC-065)"
   db_constraints:
     - "records.di_investigation, di_investigation_link, di_investigation_closure insert-only and audited; ebmr_app has SELECT only"
     - "check investigator_person <> subject_person_id and opened_by_person <> subject_person_id"
@@ -42,6 +44,7 @@ tests:
   - "packages/kernel/test/records/investigations.test.ts > [DI-50] other records can be linked with a note; the person investigated cannot open or lead it; a machine cannot open it"
   - "packages/kernel/test/records/investigations.test.ts > [DI-50] the scoping report works for any person and period, across batches"
   - "packages/kernel/test/records/investigations.test.ts > [DI-50] investigation holds cannot be lifted except by closing the investigation, and its records cannot be written directly"
+  - "packages/kernel/test/records/investigations.test.ts > [DI-50][DI-37] closing a DI investigation needs the approver's own DI_INVESTIGATION_CLOSED signature of that investigation"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

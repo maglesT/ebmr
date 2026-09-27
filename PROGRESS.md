@@ -110,7 +110,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
 - Integration steps for the lead after the agents report: switch every module's `testActor` helper and the audit-trail tests to
   B1's `seedActor` (identity enforcement in kernel.validate_actor_context); wire platform.raise_time_incident -> records.raise_incident;
   wire B6 kiosk attestation into B1 device enrolment; retention rule values -> market rule keys; cross-module FKs if wanted;
-  export modules from packages/kernel/src/index.ts; add the DI-13 evidence-package test after B2; run `pnpm ci`; set
+  export modules from packages/kernel/src/index.ts; add the DI-13 evidence-package test after B2; run `pnpm run ci`; set
   compliance/phase.yaml current_phase: 1 once all phase-1 controls pass; PR; merge when green (authorised).
 - Design note: identity lives in the kernel for Phase 1 (one DB in tests). Per ADR 0001 site services is the system of record for
   persons/accounts/devices; edition DBs will hold mirrors plus local sessions and auth events (auth events must be consumed in the
@@ -190,4 +190,32 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   esig.assert_signature (signer = actor) and need content providers; DI-38 relaxation needs an iam session-bound
   password/PIN-only authentication method (relaxation is OFF by default, so not blocking); decide retention of
   signature rows when a record is purged (Phase 4); RLS checks in content_for_signing/evidence_package when tenancy lands.
-  Running: B7 authorization wiring (permissions on every mutating function, platform AUTHORITY adapter, DI-18).
+
+- 2026-09-27: B7 (authorization wiring) finished: every app-callable writer in market, records, continuity and the site
+  batch-number register checks iam.assert_not_administrator (GMP data) and iam.require_permission; platform AUTHORITY
+  hook = iam.platform_authority (location scope from the session); permissions and role map in kernel 0700 (table in
+  the module READMEs and test/integration/authorization.test.ts); a regression test fails if any app-callable writer lacks
+  the checks. Approvals (record type, disposal, DI-investigation closure, restore) now require a real e-signature by the
+  approver (esig.assert_signature; kernel 0720 content providers and meaning-type versions; vendor type RESTORE_APPROVED).
+  Lead fixes: platform.record_drift_check only for source SYSTEM with PLATFORM.TIME_CHECK_RECORD (a person could have
+  declared the clock healthy and cleared an alarm); esig DI_INVESTIGATION_CLOSED source corrected to DI-50; `pnpm ci` is
+  a reserved pnpm command: docs now say `pnpm run ci`; DI-22/23/24 register entries filled, with new tests for delete
+  with reason, no disable path, entry naming, and the system log (failed login, role change, configuration change).
+- PHASE 1 STATUS: compliance/phase.yaml current_phase: 1. `pnpm run ci` green locally: 560 tests, trace ok for phase 1
+  (all 23 phase-1 controls have passing tests; build_status IMPLEMENTED except DI-13 and DI-24, whose remaining catalog
+  lines are due in Phase 2 (formula confidentiality) and Phase 4 (PDF/review list)).
+  Phase 1 exit items still open (outline section 11): kernel mutation targets (StrykerJS on the pure TS modules: market
+  resolve, records retention rules, time instants, esig canonical JSON) -> next PR before Phase 2; design review sign-off
+  (threat model, ASVS L2, HA/restore design in docs/security and docs/operations) -> owner/expert.
+  Follow-ups carried into Phase 2: split SERVICE_ACCOUNT into per-service roles (time monitor, backup agent, retention
+  job, interface) for least privilege; revoke kernel.audit_business_event/checkpoint_chain/create_anchor from the app or
+  gate them (today any validated actor may add a business entry to any chain, attributed to itself); gate
+  platform.enqueue topics per integration before any consumer exists; replace records.purge's ALTER TABLE ... DISABLE
+  TRIGGER with an owner-only purge authorisation row checked by kernel.reject_mutation; DI-38 session relaxation needs an
+  iam session-bound single-component method (policy is OFF); DI-investigation closure signature should cover the
+  conclusion (proposed-closure step); restore runbook signing step; retention of signature rows on purge (Phase 4);
+  per-aggregate scope lookup in the AUTHORITY adapter when editions arrive; module-filtered test runs no longer work
+  (modules call iam/esig) - use full runs.
+  Open questions for the owner: docs/decisions/phase-1-open-questions.md (plus B7 role choices: rule tables published by
+  the master-data steward, source corrections by the regulatory signer, policies by the QA MBR approver, CERT-In by
+  QA/CSV-DI lead, CSV_DI_LEAD is a GMP role).

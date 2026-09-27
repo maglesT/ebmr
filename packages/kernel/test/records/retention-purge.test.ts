@@ -19,12 +19,28 @@ import {
   verifyChainPurgeAware,
 } from '../../src/records/retention-store.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { again, correctEntry, createStubTables, insertEntry, insertReading, recordType, registerType, scalar, testActor, withReason } from './helpers.ts';
+import type { SeededActor } from '../identity/seed.ts';
+import {
+  again,
+  approveDisposal,
+  correctEntry,
+  createStubTables,
+  disposalAggregate,
+  insertEntry,
+  insertReading,
+  recordType,
+  registerType,
+  scalar,
+  signerActor,
+  signFor,
+  testActor,
+  withReason,
+} from './helpers.ts';
 
 let db: TestDatabase;
 let operator: ActorContext;
 let qa: ActorContext;
-let qa2: ActorContext;
+let qa2: SeededActor;
 let retentionJob: ActorContext;
 
 beforeAll(async () => {
@@ -34,7 +50,7 @@ beforeAll(async () => {
   await registerType(db, recordType('COMPONENT_LOT_RECORD', { retentionKey: 'SUPPORTING_RECORD' }));
   operator = await testActor(db, { roleCode: 'OPERATOR' });
   qa = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA Reviewer' });
-  qa2 = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA Manager' });
+  qa2 = await signerActor(db, 'QA_REVIEWER', 'QA Manager');
   retentionJob = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'retention job' });
 });
 afterAll(async () => {
@@ -57,7 +73,8 @@ const FUTURE_BATCH: RetentionInputs = { markets: ['IN', 'US'], manufactureDate: 
 /** Violations about this module's objects (other modules' grants are reported, not asserted here). */
 const mine = (v: { check: string; detail: string }) => v.check !== 'APP_CAN_DELETE_GMP_ROWS' || /^(records|stub_b4)\./.test(v.detail);
 
-const approve = (key: string) => withCommand(db.app, again(qa2), (c) => approvePurge(c, key, randomUUID(), 'retention ended; archived true copy verified'));
+// QA's disposal approval carries a RECORD_DISPOSAL_APPROVED signature of the record at its retain-until (DI-37).
+const approve = (key: string) => approveDisposal(db, qa2, key, 'retention ended; archived true copy verified');
 const runPurge = (key: string) => withCommand(db.app, withReason(retentionJob, 'RETENTION_ENDED', 'approved disposal'), (c) => purge(c, key));
 
 describe('DI-47 retention end and deletion', () => {
@@ -267,13 +284,13 @@ describe('controlled purge', () => {
     const first = await buildTrueCopyBundle(db.app, { chainKey: key, tables });
     expect(verifyTrueCopyBundle(first).ok).toBe(true);
     const firstCopy = await withCommand(db.app, again(qa2), (c) => registerTrueCopy(c, first, 'archive before disposal'));
-    await withCommand(db.app, again(qa2), (c) => approvePurge(c, key, randomUUID(), 'retention ended; archive verified', firstCopy));
+    await approveDisposal(db, qa2, key, 'retention ended; archive verified', firstCopy);
     // Something is added to the record after it was archived: the archive no longer covers it.
     await withCommand(db.app, again(operator), (c) => c.query("select kernel.audit_business_event($1, 'late remark')", [key]));
     await expect(runPurge(key)).rejects.toThrow(/EBMR-REC-038 .* archive it again/);
     const second = await buildTrueCopyBundle(db.app, { chainKey: key, tables });
     const secondCopy = await withCommand(db.app, again(qa2), (c) => registerTrueCopy(c, second, 'archive before disposal'));
-    await withCommand(db.app, again(qa2), (c) => approvePurge(c, key, randomUUID(), 'retention ended; archive verified', secondCopy));
+    await approveDisposal(db, qa2, key, 'retention ended; archive verified', secondCopy);
     const tombstoneId = await runPurge(key);
     const { rows } = await db.app.query<{ kept_head_seq: string; kept_head_hash: Buffer; true_copy_id: string; true_copy_manifest_sha256: string; kept_checkpoint_id: string }>(
       'select kept_head_seq::text as kept_head_seq, kept_head_hash, true_copy_id, true_copy_manifest_sha256, kept_checkpoint_id::text as kept_checkpoint_id from records.tombstone where id = $1',
@@ -311,6 +328,32 @@ describe('controlled purge', () => {
     await expect(runPurge(`batch:${batch}`)).rejects.toThrow('EBMR-REC-030');
     const past = await batchWithRecords(PAST_BATCH);
     await expect(withCommand(db.app, again(retentionJob), (c) => approvePurge(c, `batch:${past}`, randomUUID(), 'auto'))).rejects.toThrow('EBMR-REC-035');
+  });
+});
+
+describe('disposal approval signatures', () => {
+  it('[DI-47][DI-37] a disposal approval needs the approver\'s own RECORD_DISPOSAL_APPROVED signature of that record at its current retain-until and cited archive', async () => {
+    const qa3 = await signerActor(db, 'QA_REVIEWER', 'QA Deputy');
+    const batch = await batchWithRecords(PAST_BATCH);
+    const other = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const approveWith = (ctx: ActorContext, signature: string, trueCopy?: string) =>
+      withCommand(db.app, again(ctx), (c) => approvePurge(c, key, signature, 'retention ended', trueCopy));
+    const signature = await signFor(db, qa2, await disposalAggregate(db, key), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    await expect(approveWith(qa2, randomUUID())).rejects.toThrow(/EBMR-ESIG-070 .*does not exist/);
+    await expect(approveWith(qa3, signature)).rejects.toThrow('EBMR-REC-039');
+    const ofOther = await signFor(db, qa2, await disposalAggregate(db, `batch:${other}`), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    await expect(approveWith(qa2, ofOther)).rejects.toThrow(/EBMR-ESIG-070 .*never transferred/);
+    // An approval that cites an archived true copy needs a signature that covers that copy.
+    const copy = await withCommand(db.app, again(qa2), async (c) =>
+      registerTrueCopy(c, await buildTrueCopyBundle(db.app, { chainKey: key, tables: ['stub_b4.batch_entry', 'stub_b4.batch_reading'] }), 'archive before disposal'),
+    );
+    await expect(approveWith(qa2, signature, copy)).rejects.toThrow('EBMR-ESIG-070');
+    // When the retention moves, the signature given for the earlier retain-until no longer covers the approval.
+    await withCommand(db.app, again(qa), (c) => updateRetentionInputs(c, key, { expiryDate: '2012-01-31' }, 'expiry corrected'));
+    await expect(approveWith(qa2, signature)).rejects.toThrow('EBMR-ESIG-070');
+    await expect(approveDisposal(db, qa2, key, 'retention ended at the corrected date', copy)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+    await expect(runPurge(key)).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 });
 

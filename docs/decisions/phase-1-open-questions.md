@@ -48,3 +48,13 @@ redesign, unless noted. Status: all OPEN.
 | C2 | Backup schedule and write-once (WORM) storage product. | Proposal in the same document. | Owner to choose. |
 | C3 | Separation of database administrators from backup-storage administrators. | Recommended (two different people). | Owner to confirm. |
 | C4 | A data-only reload into existing tables keeps the database identity and is detected only by the external ledger check. | Documented residual risk. | Accept, or require ledger export after every backup. |
+
+## Roles and permissions (authorization wiring)
+
+| # | Question | Default | Options |
+|---|---|---|---|
+| A1 | Who publishes market rule tables and who publishes source corrections? | Master-data steward publishes; only the regulatory signer publishes source corrections. | Other split. |
+| A2 | Who changes policies and switches (e.g., relaxations)? | QA MBR approver. | Head of QA, process owner. |
+| A3 | Who reports incidents to CERT-In? | QA reviewer or CSV/DI lead (not IT administrators). | IT security officer (would need a non-GMP permission). |
+| A4 | The CSV/DI lead is treated as a GMP role, so that person can never also be a system administrator. | Yes. | Treat as governance-only. |
+| A5 | Service identities (time monitor, backup agent, retention job, interfaces) currently share one role. | Planned split into one role per service in Phase 2 (least privilege). | Keep shared. |

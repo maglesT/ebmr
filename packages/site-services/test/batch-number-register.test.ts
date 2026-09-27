@@ -17,7 +17,8 @@ import {
   type AllocationRequest,
   type BatchNumberRuleInput,
 } from '../src/index.ts';
-import { backupTestDatabase, createTestDatabase, dbTime, restoreCopy, tempDir, tempLedger, testActor, type TestDatabase } from './helpers.ts';
+import type { SeededActor } from '../../kernel/test/identity/seed.ts';
+import { backupTestDatabase, createTestDatabase, dbTime, ensureSealKey, restoreCopy, signerActor, signFor, tempDir, tempLedger, testActor, type TestDatabase } from './helpers.ts';
 
 const SITE = 'PLANT1';
 const ZONE = 'Asia/Kolkata';
@@ -204,7 +205,7 @@ describe('batch-number register across a restore', () => {
   let ledger: FileLedger;
   let issuer: ActorContext;
   let operator: ActorContext;
-  let approver: ActorContext;
+  let approver: SeededActor;
   const rsv: AllocationRequest = { siteCode: 'PLANT9', productCode: 'RSV5', productName: 'Rosuvastatin Tablets 5 mg', edition: 'TABLETS', batchSize: '100000', batchSizeUnit: '{tbl}' };
   const before: string[] = [];
   let lost: string;
@@ -217,7 +218,8 @@ describe('batch-number register across a restore', () => {
     ledger = tempLedger('site-restore', dir.path);
     issuer = await testActor(src, { roleCode: 'BATCH_ISSUER' });
     operator = await testActor(src, { roleCode: 'SYSTEM_ADMINISTRATOR' });
-    approver = await testActor(src, { roleCode: 'QA_REVIEWER' });
+    approver = await signerActor(src, 'QA_REVIEWER');
+    await ensureSealKey(src); // registered before the backup, so the restored copy can seal the approval
     // Numbering rules are GMP master data (BATCH_NUMBER.RULE_DEFINE, master-data steward), never an administrator's (DI-18).
     const steward = await testActor(src, { roleCode: 'MASTER_DATA_STEWARD' });
     await withCommand(src.app, steward, (c) =>
@@ -240,7 +242,8 @@ describe('batch-number register across a restore', () => {
       changeReference: 'INC-2026-0099',
       approverPersonIds: [approver.personId],
     });
-    await approveRestoreEvent(restored.app, approver, event.restoreEventId);
+    const signature = await signFor(restored, approver, { type: 'restore_event', id: event.restoreEventId }, 'RESTORE_APPROVED', 'RECORDED', { registerKey: false });
+    await approveRestoreEvent(restored.app, approver, event.restoreEventId, signature);
     await completeRestore(restored.app, operator, ledger, event.restoreEventId);
     restoreEventId = event.restoreEventId;
   }, 60_000);

@@ -37,6 +37,7 @@ beforeAll(async () => {
   await installStubHooks(db);
   await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.alarm.clear');
   await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
+  await grantPermission(db, 'SERVICE_ACCOUNT', 'platform.time_check.record');
   npl = await registerSource('NPL India NTP', 'NPL India, traceable to UTC(NPLI)');
   nic = await registerSource('NIC NTP', 'NIC time service, traceable to NPL India');
   system = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'Time monitor' });
@@ -309,6 +310,29 @@ describe('monitor records are protected', () => {
     await expect(malformed([{ source_id: npl, reachable: true, offset_s: '1e3' }])).rejects.toThrow('EBMR-PLAT-031');
     await expect(malformed([{ source_id: npl, reachable: false }, { source_id: npl, reachable: false }])).rejects.toThrow('EBMR-PLAT-031');
     await expect(malformed({})).rejects.toThrow('EBMR-PLAT-031');
+  });
+
+  it('[DI-27][DI-17] only the time monitor may submit readings: a person cannot declare the clock healthy and clear an alarm', async () => {
+    const node = 'db-forged';
+    await check(node, healthy());
+    const raised = await check(node, lost());
+    expect(raised.raised.map((a) => a.kind)).toEqual(['REFERENCE_LOST']);
+    const healthySamples = [
+      { source_id: npl, reachable: true, offset_s: '0.000020' },
+      { source_id: nic, reachable: true, offset_s: '-0.000030' },
+    ];
+    const submit = (ctx: ActorContext) =>
+      withCommand(db.app, ctx, (c) => c.query('select platform.record_drift_check($1, $2::jsonb)', [node, JSON.stringify(healthySamples)]));
+    // A person, even one who administers time sources, is refused.
+    await expect(submit(await testActor(db, { roleCode: 'CSV_DI_LEAD' }))).rejects.toThrow('EBMR-PLAT-037');
+    // A service identity without the permission is refused too.
+    await db.admin.query("delete from platform_test.role_permission where role_code = 'SERVICE_ACCOUNT' and permission = 'platform.time_check.record'");
+    try {
+      await expect(submit(system)).rejects.toThrow('EBMR-PLAT-006');
+    } finally {
+      await grantPermission(db, 'SERVICE_ACCOUNT', 'platform.time_check.record');
+    }
+    expect((await openAlarms(node)).map((a) => a.kind)).toEqual(['REFERENCE_LOST']);
   });
 
   it('[DI-27] clearing an alarm by hand needs a reason, a note and the permission', async () => {

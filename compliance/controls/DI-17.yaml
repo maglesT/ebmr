@@ -52,6 +52,7 @@ implemented_by:
     - "packages/kernel/sql/0610_continuity_backup.sql"
     - "packages/kernel/sql/0620_continuity_device_hardening.sql"
     - "packages/site-services/sql/0600_batch_number_register.sql"
+    - "packages/kernel/sql/0720_authorization_signatures.sql"
   invariants:
     - "INV-26"
   guards:
@@ -63,6 +64,7 @@ implemented_by:
     - "every function of market, records, continuity and the site batch-number register that the application may call and that can write calls iam.require_permission before its first write (EBMR-IAM-040), in the object's site/product scope, installation-wide ({}) for installation objects, or at the actor's location (session site and room) for point-of-work actions; the stub scope tables check MASTERDATA.CHANGE in a statement trigger"
     - "iam.platform_authority: the platform AUTHORITY hook over iam.evaluate_authority, for the validated actor in its declared role at its location; platform names map to catalogue codes (iam.platform_permission_code)"
     - "permission-to-role map in 0700_authorization_catalogue.sql (least privilege; catalogue rows attributed to the SOFTWARE_RELEASE identity in the audit trail)"
+    - "approval signature types name the approving permissions (RECORD_TYPE_APPROVED, RECORD_DISPOSAL_APPROVED, DI_INVESTIGATION_CLOSED, RESTORE_APPROVED), so esig evaluates the same permission at signing"
   db_constraints:
     - "grant scopes (site, area, product): a grant covers only its own scope, so data stay isolated between sites"
 tests:
@@ -93,6 +95,7 @@ tests:
   - "packages/kernel/test/integration/authorization.test.ts > [DI-17] the adapter trusts only the validated actor of the command and names it can map; the application cannot call it"
   - "packages/site-services/test/authorization.test.ts > [DI-17] an operator cannot define a numbering rule, or allocate, register, void or recover a batch number; a service account registers but cannot allocate"
   - "packages/site-services/test/authorization.test.ts > [DI-17] batch numbers are authorised in their site and product scope: a site-limited issuer acts at its own site only, a product-limited issuer on its own product only"
+  - "packages/kernel/test/integration/authorization.test.ts > [DI-35][DI-17] the approval signature types name the approving permissions; RESTORE_APPROVED is a vendor minimum type"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

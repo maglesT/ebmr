@@ -250,7 +250,7 @@ from (values
   ('RECORD_TYPE_APPROVED', 'RECORDS', 'APPROVER', 'Record type approved', 'I approve this record-type definition.',
    array['MBR.APPROVE', 'RECORD.QA_REVIEW'], array[]::text[], true, false, 'ALL_COMPONENTS', false, 'DI-01 record-type register'),
   ('DI_INVESTIGATION_CLOSED', 'RECORDS', 'APPROVER', 'Data-integrity investigation closed', 'I approve the conclusion and remediation of this data-integrity investigation.',
-   array['RECORD.QA_REVIEW'], array[]::text[], true, false, 'ALL_COMPONENTS', false, 'DI-12 investigations'),
+   array['RECORD.QA_REVIEW'], array[]::text[], true, false, 'ALL_COMPONENTS', false, 'DI-50 investigations'),
   ('RECORD_DISPOSAL_APPROVED', 'RECORDS', 'APPROVER', 'Record disposal approved', 'I approve the disposal of this record after its retention period.',
    array['RECORD.QA_REVIEW'], array[]::text[], true, false, 'ALL_COMPONENTS', false, 'DI-47; INV-22')
 ) as s (code, category, role_class, title, meaning_text, permissions, independent_of, excludes_performers, excludes_involved, reauth, delegable, sources);

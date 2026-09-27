@@ -199,6 +199,12 @@ begin
   if p_node is null or p_node !~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$' then
     raise exception using errcode = 'P0001', message = format('EBMR-PLAT-031 invalid node name %s', coalesce(p_node, 'NULL'));
   end if;
+  -- Readings raise and clear data-integrity alarms, so only the time monitor (a SYSTEM service
+  -- identity holding the permission) may submit them; a person cannot declare the clock healthy.
+  if v_ctx ->> 'source' <> 'SYSTEM' then
+    raise exception using errcode = 'P0001', message = 'EBMR-PLAT-037 drift readings are recorded only by the time monitor (source SYSTEM)';
+  end if;
+  perform platform.authorize('platform.time_check.record', 'time_node', p_node);
   if p_samples is null or jsonb_typeof(p_samples) <> 'array' then
     raise exception using errcode = 'P0001', message = 'EBMR-PLAT-031 samples must be a JSON array';
   end if;

@@ -720,6 +720,14 @@ begin
   if exists (select 1 from continuity.restore_event_approval a where a.restore_event_id = p_event_id and a.approver_person_id = v_person) then
     raise exception using errcode = 'P0001', message = 'EBMR-CONT-021 this person has already approved the restore event';
   end if;
+  -- DI-37: the approval is the approver's own valid RESTORE_APPROVED signature of this event (0720).
+  if p_signature_id is null then
+    raise exception using errcode = 'P0001', message = 'EBMR-CONT-025 approving a restore needs the approver''s RESTORE_APPROVED signature';
+  end if;
+  if (esig.assert_signature(p_signature_id, 'RESTORE_APPROVED', 'restore_event', p_event_id::text) ->> 'signer_person')::uuid
+     is distinct from v_person then
+    raise exception using errcode = 'P0001', message = 'EBMR-CONT-025 the restore-approval signature was made by another person';
+  end if;
   insert into continuity.restore_event_approval (restore_event_id, approver_person_id, approver_account_id, approver_role_code,
                                                  approved_content_hash, signature_id, correlation_id)
   values (p_event_id, v_person, (v_ctx ->> 'account_id')::uuid, v_ctx ->> 'role_code', e.content_hash, p_signature_id,

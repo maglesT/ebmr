@@ -141,6 +141,22 @@ in place behind the check. Catalogue and role map: `sql/0700_authorization_catal
 | `open_di_investigation`, `link_di_investigation`, `refresh_di_investigation_scope` | `VALIDATION.MANAGE` | `{}` | CSV / DI lead |
 | `close_di_investigation` | `DI_INVESTIGATION.APPROVE_CLOSURE` | `{}` | QA reviewer (never the investigator or the subject) |
 
+**Approval signatures (DI-37).** The three approvals take a real electronic signature, checked with
+`esig.assert_signature` for the meaning and the signed aggregate, and signed by the approving person
+(otherwise `EBMR-REC-017`, `-039`, `-065`). The signed contents are immutable, so a signature stays valid
+and a changed situation needs a new signature on a new aggregate (content providers in
+`sql/0720_authorization_signatures.sql`):
+
+| Approval | Meaning | Signed aggregate | Expected state at signing |
+|---|---|---|---|
+| `approve_record_type(code, version, sig)` | `RECORD_TYPE_APPROVED` | `record_type_version` `<code>:<version>` (author excluded, INV-03) | `DEFINED` |
+| `approve_purge(key, sig, reason[, true_copy])` | `RECORD_DISPOSAL_APPROVED` | `record_disposal` `<record key>@<retain-until>[@<true copy id>]` | `DISPOSABLE` |
+| `close_di_investigation(id, ..., sig)` | `DI_INVESTIGATION_CLOSED` | `di_investigation` `<id>` as opened (opener and investigator excluded) | `OPEN` |
+
+A disposal signature covers one retain-until: when the retention moves, the approval needs a new
+signature. The closure signature covers the investigation as opened, not the conclusion and remediation
+typed at closure (they are stored with the signature id in the closure row).
+
 Raising and linking incidents are checked at the actor's location (session site and room), so a person
 whose grant is limited to a site or room can report a failure where it happens; everything else acts on
 installation-wide records and needs a grant not limited to a site, area or product. The time monitor
@@ -157,6 +173,7 @@ itself gated) and the read functions.
 - Anything that detects a failure (gateway, time monitor, signing): `records.raise_incident`.
 - Batch/lot owners: `records.create_retention_schedule`, `update_retention_inputs` (e.g. when the QP
   certification arrives), `link_retention_dependency` on consumption.
-- Error codes: EBMR-REC-001 actor, 002/003 keys and periods, 010-016 register, 020-023 retention
-  inputs and schedules, 030-038 disposal and purge, 040 holds, 050-056 incidents, 060-064
-  investigations, 070 true copies.
+- Error codes: EBMR-REC-001 actor, 002/003 keys and periods, 010-017 register (017 approval signed by
+  someone else), 020-023 retention inputs and schedules, 030-039 disposal and purge (039 disposal signature
+  by someone else), 040 holds, 050-056 incidents, 060-065 investigations (065 closure signature by someone
+  else), 070 true copies. Signature refusals keep their EBMR-ESIG codes (070 not valid for this use).
