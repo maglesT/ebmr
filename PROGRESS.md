@@ -45,6 +45,14 @@ re-run the files map from /tmp/claude-0/backup-map.json (regenerate via the snip
 If any is missing/partial after a reset: relaunch that agent with the same brief (prompts: see section 6); they append
 section by section and resume from where the file stops.
 
+## 3b. Outline status (2026-09-27 ~18:50 UTC)
+- v1 outline: outline/build-outline.md (96 KB, pushed as docs/outline/build-outline.md).
+- Critiques: outline/critique-regulatory.md (R-01..35: 1 critical, 19 major, 15 minor) and outline/critique-logic.md
+  (L-01..68: 7 critical, 43 major, 18 minor). Both pushed to docs/outline/.
+- IN PROGRESS: revision agent writing outline/build-outline-v2.md + outline/resolution-log.md (every R/L id FIXED / FIXED-DIFFERENTLY /
+  REJECTED). If interrupted: relaunch with the same brief; it appends section by section.
+- Then: check resolution log covers all 103 ids, push v2, send user summary + decisions (section 13).
+
 ## 4. Next steps
 1. When the 3 specs finish: write the BUILD OUTLINE (Opus) from digests + architecture.md; save to outline/build-outline.md.
 2. Two critics (Opus): regulatory completeness vs control catalogs; logic loopholes & UX. Apply fixes.
