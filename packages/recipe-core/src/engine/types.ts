@@ -286,6 +286,17 @@ export type Command =
 
 export type CommandType = Command['type'];
 
+/**
+ * What a signature is about to be applied to: the command type and the step instance (for SIGN_PERFORMED,
+ * whose PERFORMED attempt finalises the step first). Other signed commands only need the sweep. Defined here,
+ * not in engine.ts, so signing-content.ts (which engine.ts imports) never imports engine.ts.
+ */
+export interface SignatureTarget {
+  readonly type: CommandType;
+  readonly step?: string;
+  readonly context?: readonly Frame[];
+}
+
 // ---------------------------------------------------------------------------------------------
 // State
 

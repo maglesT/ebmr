@@ -300,7 +300,7 @@ export function buildEntry(form: EntryFormView, state: FormState, opts: FormOpti
         if (typeof v === 'string' && decimalProblem(v, f.type === 'integer' ? { maxDecimals: 0 } : {}) !== null) v = undefined;
         break;
       case 'string':
-        v = opts.scan?.includes(f.name) ? state.scans[f.name] : state.texts[f.name]?.trim() ? state.texts[f.name] : undefined;
+        v = opts.scan?.includes(f.name) ? state.scans[f.name] : state.texts[f.name]?.trim() || undefined;
         break;
       case 'boolean':
         v = state.choices[f.name] === undefined ? undefined : state.choices[f.name] === 'YES';

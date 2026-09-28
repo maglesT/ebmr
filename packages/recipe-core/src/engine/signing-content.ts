@@ -38,10 +38,9 @@ import { flowNodeHash } from '../flow/canonical.ts';
 import { instanceNumber, numberMbr, type MbrNumbering } from '../flow/numbering.ts';
 import type { Frame } from '../flow/tokens.ts';
 import type { BatchDefinition } from './definition.ts';
-import type { SignatureTarget } from './engine.ts';
 import { replicateCompatible } from './exceptions.ts';
 import { stepKey as stepKeyOf } from './tx.ts';
-import type { BatchState, Command, DataPoint, DataSource, DataValue, DerivedValue, EntryRecord, ExceptionRecord, SignatureRef, StageFrameState, StepInstance, StoredEvaluation } from './types.ts';
+import type { BatchState, Command, DataPoint, DataSource, DataValue, DerivedValue, EntryRecord, ExceptionRecord, SignatureRef, SignatureTarget, StageFrameState, StepInstance, StoredEvaluation } from './types.ts';
 
 export type AggregateType = 'batch_step' | 'batch_stage' | 'batch_exception' | 'batch_point';
 export const AGGREGATE_TYPES: readonly AggregateType[] = ['batch_step', 'batch_stage', 'batch_exception', 'batch_point'];

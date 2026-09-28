@@ -129,3 +129,5 @@ $$;
 revoke all on function tab.engine_roles(), tab.register_sandbox_lot(jsonb), tab.resolve_lot(text) from public;
 grant execute on function tab.engine_roles(), tab.register_sandbox_lot(jsonb), tab.resolve_lot(text) to ebmr_app;
 grant select on tab.engine_role_map, tab.sandbox_lot to ebmr_app;
+
+reset role;

@@ -98,15 +98,8 @@ function dispatch(tx: Tx, cmd: Command): void {
   }
 }
 
-/**
- * What a signature is about to be applied to: the command type and the step instance (for SIGN_PERFORMED,
- * whose PERFORMED attempt finalises the step first). Other signed commands only need the sweep.
- */
-export interface SignatureTarget {
-  readonly type: Command['type'];
-  readonly step?: string;
-  readonly context?: readonly Frame[];
-}
+/** What a signature is about to be applied to (types.ts; re-exported here for the engine's callers). */
+export type { SignatureTarget };
 
 /**
  * The system facts a command triggers before its own guards run (shared by `step` and
