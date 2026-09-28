@@ -17,7 +17,9 @@ export const IDEMPOTENCY_HEADER = 'idempotency-key';
 export const CORRELATION_HEADER = 'x-correlation-id';
 
 type HasKeys<T> = [keyof T] extends [never] ? false : true;
-type Slot<Name extends string, T> = T extends undefined ? { [K in Name]?: undefined } : HasKeys<T> extends true ? ({} extends T ? { [K in Name]?: T } : { [K in Name]: T }) : { [K in Name]?: T };
+/** True when an empty object satisfies T (every member optional, or no members). */
+type AllOptional<T> = Record<never, never> extends T ? true : false;
+type Slot<Name extends string, T> = T extends undefined ? { [K in Name]?: undefined } : HasKeys<T> extends true ? (AllOptional<T> extends true ? { [K in Name]?: T } : { [K in Name]: T }) : { [K in Name]?: T };
 
 export type CallInput<R extends AnyRoute> = Slot<'params', RouteParamsInput<R>> &
   Slot<'query', RouteQueryInput<R>> &
@@ -70,7 +72,7 @@ function queryString(query: Record<string, unknown> | undefined): string {
   const parts: string[] = [];
   for (const [k, v] of Object.entries(query)) {
     if (v === undefined || v === null) continue;
-    parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v as string | number | boolean))}`);
+    parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(typeof v === 'string' ? v : JSON.stringify(v))}`);
   }
   return parts.length ? `?${parts.join('&')}` : '';
 }
@@ -129,7 +131,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       return { ok: false, error: { kind: 'PROTOCOL', status: response.status, message: 'the response is not JSON' } };
     }
     if (response.status >= 200 && response.status < 300) {
-      const parsed = (route.response as z.ZodType).safeParse(json);
+      const parsed = route.response.safeParse(json);
       if (!parsed.success) {
         return { ok: false, error: { kind: 'PROTOCOL', status: response.status, message: `the response does not match ${route.id}: ${z.prettifyError(parsed.error)}` } };
       }

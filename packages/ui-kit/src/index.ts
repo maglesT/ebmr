@@ -3,7 +3,7 @@
  * machine components arrive with modules C1 and C4. Browser-safe: React (peer), react-aria-components, the API
  * contract and expr only (.dependency-cruiser.cjs ui-kit-allowed-deps).
  */
-export const PACKAGE = { name: '@ebmr/ui-kit', version: '0.1.0' } as const;
+export { PACKAGE } from './package.ts';
 
 export * from './tokens/index.ts';
 export * from './i18n/index.ts';

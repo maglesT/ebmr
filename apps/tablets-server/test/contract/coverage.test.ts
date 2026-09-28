@@ -58,7 +58,7 @@ describe('contract coverage', () => {
       if (route.method !== 'GET') continue;
       const res = await b.inject({ method: 'GET', url: samplePath(route) });
       expect(res.statusCode, route.id).toBe(501);
-      expect(JSON.parse(res.body).refusal).toMatchObject({ code: 'NOT_IMPLEMENTED', kind: 'NOT_ENABLED' });
+      expect((JSON.parse(res.body) as { refusal: { code: string; kind: string } }).refusal).toMatchObject({ code: 'NOT_IMPLEMENTED', kind: 'NOT_ENABLED' });
     }
     const s = await sbx.asPersona('issuer');
     const res = await s.inject({ method: 'GET', url: '/api/test-runs' });

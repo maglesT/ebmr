@@ -5,10 +5,11 @@
  */
 import { allRoutes, routes, type AnyRoute, type FetchLike, type InstallationKind } from '@ebmr/api-contract';
 
-export type FixtureAnswer = unknown | { status: number; body: unknown };
+/** A response body, or {status, body} for another status than 200. */
+export type FixtureAnswer = unknown;
 export type FixtureHandler = (req: { params: Record<string, string>; query: Record<string, string>; body: unknown }) => FixtureAnswer;
 /** Route id -> a fixed answer or a function of the request. */
-export type FixtureMap = Readonly<Record<string, FixtureAnswer | FixtureHandler>>;
+export type FixtureMap = Readonly<Record<string, unknown>>;
 
 function matcher(route: AnyRoute): { re: RegExp; names: string[] } {
   const names: string[] = [];

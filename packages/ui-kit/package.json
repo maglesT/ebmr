@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens/tokens.css",
-    "./fonts": "./src/tokens/fonts.ts"
+    "./fonts": "./src/tokens/fonts.ts",
+    "./package": "./src/package.ts"
   },
   "dependencies": {
     "@ebmr/api-contract": "workspace:0.1.0",

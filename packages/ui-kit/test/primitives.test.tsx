@@ -39,7 +39,7 @@ describe('DecimalField', () => {
   it('[DI-30] refuses exponents, commas, letters and more decimals than the precision', async () => {
     const seen: unknown[] = [];
     render(<Harness onValue={(v) => seen.push(v)} />);
-    const input = screen.getByLabelText('Net weight') as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>('Net weight');
     await userEvent.type(input, '1e3');
     expect(input.value).toBe('13');
     await userEvent.clear(input);

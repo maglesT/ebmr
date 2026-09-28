@@ -12,7 +12,8 @@
     "demo:setup": "node --import tsx tools/demo/src/cli.ts setup",
     "demo": "node --import tsx tools/demo/src/cli.ts run",
     "build:web": "pnpm --filter @ebmr/tablets-web build",
-    "e2e": "pnpm --filter @ebmr/e2e test",
+    "openapi": "node --import tsx apps/tablets-server/src/cli/openapi.ts .reports/openapi.json",
+    "e2e": "flock /tmp/ebmr-e2e.lock pnpm --filter @ebmr/e2e test",
     "typecheck": "tsc -p tsconfig.json && tsc -p packages/ui-kit/tsconfig.json && tsc -p apps/tablets-web/tsconfig.json && tsc -p tools/e2e/tsconfig.json",
     "lint": "eslint .",
     "deps:check": "depcruise --config .dependency-cruiser.cjs packages apps tools",
@@ -20,7 +21,7 @@
     "test:json": "vitest run --reporter=default --reporter=json --outputFile=.reports/vitest.json",
     "register:import": "tsx tools/register/src/cli.ts import",
     "register:validate": "tsx tools/register/src/cli.ts validate",
-    "trace": "tsx tools/register/src/cli.ts trace --results .reports/vitest.json",
+    "trace": "tsx tools/register/src/cli.ts trace --results .reports/vitest.json --playwright .reports/playwright.json",
     "pins:check": "tsx tools/register/src/cli.ts pins",
     "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm register:validate && pnpm build:web && pnpm test:json && pnpm trace"
   },

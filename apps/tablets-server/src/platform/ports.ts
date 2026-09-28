@@ -63,7 +63,7 @@ export class SignableActionRegistry {
 
   register<A extends SignableAction>(handler: SignableActionHandler<A>): void {
     if (this.byKind.has(handler.kind)) throw new Error(`a signable handler for ${handler.kind} is already registered`);
-    this.byKind.set(handler.kind, handler as unknown as SignableActionHandler);
+    this.byKind.set(handler.kind, handler);
   }
 
   forKind(kind: SignableKind): SignableActionHandler | undefined {

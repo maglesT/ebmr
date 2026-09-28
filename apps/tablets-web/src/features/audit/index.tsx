@@ -6,7 +6,8 @@ import type { AnyRootRoute, AnyRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import type { HomeTile } from '../../app/feature.ts';
 
-export function routes(_root: AnyRootRoute): AnyRoute[] {
+export function routes(root: AnyRootRoute): AnyRoute[] {
+  void root;
   return [];
 }
 

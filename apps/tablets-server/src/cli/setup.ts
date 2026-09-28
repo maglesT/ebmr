@@ -73,7 +73,7 @@ export function demoDevicesOf(seed: SiteSeed): { installation: 'GMP' | 'SANDBOX'
       .filter((t) => t.key?.algorithm === 'ECDSA_P256' && (t.deviceClass === 'PERSONAL' || t.deviceClass === 'SHARED' || t.deviceClass === 'GRADE_A_B'))
       .map((t) => ({
         deviceCode: t.code,
-        deviceClass: t.deviceClass as DemoDeviceView['deviceClass'],
+        deviceClass: t.deviceClass,
         roomCode: t.room,
         description: t.description,
         privateKeyPkcs8: t.key?.privateKeyPkcs8 ?? '',

@@ -74,3 +74,10 @@ body {
   outline: 3px solid var(--ebmr-focus);
   outline-offset: 2px;
 }
+
+/* react-aria's pressable rule, which it would otherwise inject as an inline <style> (blocked by the CSP). */
+@layer {
+  [data-react-aria-pressable] {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+}

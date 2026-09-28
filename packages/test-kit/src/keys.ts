@@ -5,7 +5,7 @@
  * is SHA-256 of the SPKI DER (kernel identity.deviceFingerprint), so a key imported into the browser from these
  * files proves the same device. Service identities (gateway, sweeper) hold Ed25519 keys.
  */
-import { createHash, createPrivateKey, generateKeyPairSync, sign } from 'node:crypto';
+import { createHash, createPrivateKey, generateKeyPairSync, sign, type KeyObject } from 'node:crypto';
 
 export interface DeviceKey {
   /** PKCS#8 DER, base64. */
@@ -21,7 +21,7 @@ export function fingerprintOfSpki(spkiBase64: string): string {
   return createHash('sha256').update(Buffer.from(spkiBase64, 'base64')).digest('hex');
 }
 
-function exportPair(pair: { privateKey: import('node:crypto').KeyObject; publicKey: import('node:crypto').KeyObject }, algorithm: DeviceKey['algorithm']): DeviceKey {
+function exportPair(pair: { privateKey: KeyObject; publicKey: KeyObject }, algorithm: DeviceKey['algorithm']): DeviceKey {
   const privateKeyPkcs8 = pair.privateKey.export({ type: 'pkcs8', format: 'der' }).toString('base64');
   const publicKeySpki = pair.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
   return { privateKeyPkcs8, publicKeySpki, fingerprint: fingerprintOfSpki(publicKeySpki), algorithm };

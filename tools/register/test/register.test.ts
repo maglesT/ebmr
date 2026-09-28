@@ -1,9 +1,12 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { controlTypes, coveredRows, parseCatalog, parseFields } from '../src/catalog-parser.ts';
 import { checkPins } from '../src/pins.ts';
 import { idsInText } from '../src/phases.ts';
 import { loadControls, loadRequirements } from '../src/register.ts';
-import { buildTrace, type TestResult } from '../src/trace.ts';
+import { buildTrace, readPlaywrightResults, type TestResult } from '../src/trace.ts';
 import { validateRegister } from '../src/validate.ts';
 
 describe('catalog parser', () => {
@@ -83,5 +86,35 @@ describe('exact pins (ADR 0015)', () => {
   it('[meta] refuses ranges and mismatched versions', () => {
     expect(checkPins([kernel, { name: 'a', version: '1.0.0', dependencies: { '@ebmr/kernel': 'workspace:*' } }])).toHaveLength(1);
     expect(checkPins([kernel, { name: 'b', version: '1.0.0', dependencies: { '@ebmr/kernel': 'workspace:0.0.9' } }])).toHaveLength(1);
+  });
+});
+
+describe('end-to-end results (Playwright JSON)', () => {
+  it('[meta] reads specs per project, nested suites included, and treats the last retry as the outcome', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-pw-'));
+    const file = join(dir, 'playwright.json');
+    writeFileSync(
+      file,
+      JSON.stringify({
+        suites: [
+          {
+            title: 'smoke/smoke.spec.ts',
+            suites: [
+              {
+                title: 'smoke',
+                specs: [
+                  { title: '[DI-05] sandbox shows the watermark', file: 'smoke/smoke.spec.ts', tests: [{ projectName: 'kiosk', results: [{ status: 'failed' }, { status: 'passed' }] }] },
+                  { title: '[DI-13] cookies', file: 'smoke/smoke.spec.ts', tests: [{ projectName: 'office', results: [{ status: 'timedOut' }] }] },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(readPlaywrightResults(file)).toEqual([
+      { name: 'smoke/smoke.spec.ts smoke [DI-05] sandbox shows the watermark (kiosk)', status: 'passed', file: 'smoke/smoke.spec.ts' },
+      { name: 'smoke/smoke.spec.ts smoke [DI-13] cookies (office)', status: 'failed', file: 'smoke/smoke.spec.ts' },
+    ]);
   });
 });

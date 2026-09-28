@@ -53,7 +53,7 @@ export function mapError(app: AppContext, error: unknown, correlationId: string)
     const code = locked ? 'AUTH_LOCKED' : 'EBMR-IAM-140';
     return fromGuidance(code, g(code), locked ? 'The account is locked after too many failed attempts.' : 'The user ID, badge, password or PIN is not correct, or the account cannot sign in here.', correlationId);
   }
-  if (isResponseSerializationError(error as Error)) return fromGuidance('INTERNAL', g('INTERNAL'), 'The server built an answer that does not match the contract.', correlationId);
+  if (error instanceof Error && isResponseSerializationError(error)) return fromGuidance('INTERNAL', g('INTERNAL'), 'The server built an answer that does not match the contract.', correlationId);
   const code = commands.errorCode(error) ?? identity.ebmrCode(error);
   if (code) {
     const entry = app.guidance.lookup(code);

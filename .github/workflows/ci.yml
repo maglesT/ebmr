@@ -14,9 +14,9 @@ concurrency:
 
 jobs:
   checks:
-    name: Typecheck, lint, boundaries, register, tests, traceability
+    name: Typecheck, lint, boundaries, register, web build, tests, traceability
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -43,12 +43,56 @@ jobs:
       - run: pnpm deps:check
       - run: pnpm pins:check
       - run: pnpm register:validate
+      # A node built-in in the browser bundle fails the build (plan section 3).
+      - run: pnpm build:web
       - run: pnpm test:json
       - run: pnpm trace
-      - name: Upload traceability matrix
+      - name: OpenAPI document of the frozen contract
+        run: pnpm openapi
+      - name: Upload traceability matrix and OpenAPI
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trace-matrix
           path: .reports/
+          if-no-files-found: ignore
+
+  e2e:
+    name: End-to-end (Playwright, chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ebmr_dev
+          POSTGRES_PASSWORD: ebmr_dev
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ebmr_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Playwright 1.56.1 installs chromium revision 1194, the one preinstalled on the development machine.
+      - run: pnpm --filter @ebmr/e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @ebmr/e2e test
+      - name: Upload end-to-end reports, evidence and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reports
+          path: |
+            .reports/playwright.json
+            .reports/e2e-evidence.json
+            .reports/playwright-output/
           if-no-files-found: ignore

@@ -145,7 +145,7 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: 'node_modules' },
-    exclude: { path: '^tools/boundaries/fixtures/|(^|/)node_modules/|^tools/e2e/(test-results|playwright-report)/' },
+    exclude: { path: '^tools/boundaries/fixtures/|(^|/)(node_modules|dist)/|^tools/e2e/(test-results|playwright-report)/' },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: 'tsconfig.json' },
     enhancedResolveOptions: { exportsFields: ['exports'], conditionNames: ['import', 'default'], extensions: ['.ts', '.tsx', '.js'] },

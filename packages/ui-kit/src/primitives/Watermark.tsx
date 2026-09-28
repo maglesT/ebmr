@@ -22,8 +22,6 @@ export function WatermarkBand({ text, notice }: WatermarkProps) {
 
 export function WatermarkOverlay({ text }: WatermarkProps) {
   return (
-    <div className={cls('overlayText')} aria-hidden="true" data-testid="watermark-overlay">
-      <span>{text}</span>
-    </div>
+    <div className={cls('overlayText')} aria-hidden="true" data-testid="watermark-overlay" data-text={text} />
   );
 }

@@ -12,7 +12,7 @@
  *  5. attribution (FRESH_ON_SHARED routes on SHARED and GRADE_A_B terminals): the C1 hook, 428 without a tap;
  *  6. the handler, with a typed context.
  */
-import type { FastifyInstance, FastifyReply, FastifyRequest, onRequestHookHandler, preHandlerHookHandler } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest, preHandlerAsyncHookHandler, preHandlerHookHandler } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import type { ActorContext } from '@ebmr/kernel';
@@ -43,11 +43,11 @@ export interface HandlerContext<R extends AnyRoute> {
   correlationId: string;
   /** The session; always present on SESSION routes. */
   session: ResolvedSession | null;
-  requireSession(): ResolvedSession;
+  requireSession: () => ResolvedSession;
   /** The ActorContext of this request (with the badge-tap event on shared terminals). */
-  actor(extras?: { reasonCode?: string; reasonText?: string }): ActorContext & { deviceId: string };
+  actor: (extras?: { reasonCode?: string; reasonText?: string }) => ActorContext & { deviceId: string };
   /** Route-level role gate on the declared role (403 otherwise). */
-  requireRole(...roles: string[]): void;
+  requireRole: (...roles: string[]) => void;
   idempotencyKey: string | null;
   /** SHA-256 of the route id, params, query and body without attribution, credentials, proofs or secrets. */
   requestHash: string;
@@ -108,14 +108,14 @@ function noSession(): Error {
 export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, app: AppContext, ns: NS, handlers: Handlers<NS>, opts: BindOptions = {}): string[] {
   const typed = scope.withTypeProvider<ZodTypeProvider>();
   const registered: string[] = [];
-  for (const [name, route] of Object.entries(ns) as [string, AnyRoute][]) {
+  for (const [name, route] of Object.entries(ns)) {
     if (route.installation !== 'ANY' && route.installation !== app.installation) continue;
     const handler = (handlers as Record<string, Handler<AnyRoute>>)[name];
     if (!handler) throw new Error(`no handler for route ${route.id}`);
     const nonGet = route.method !== 'GET';
-    const preHandlers: (preHandlerHookHandler | onRequestHookHandler)[] = [];
+    const preHandlers: (preHandlerHookHandler | preHandlerAsyncHookHandler)[] = [];
 
-    preHandlers.push(async (request) => {
+    const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       const session = await sessionOf(app, request);
       if (route.auth !== 'SESSION') return;
       if (!session || session.state === 'ENDED' || session.state === 'EXPIRED' || session.state === 'UNKNOWN') throw noSession();
@@ -138,9 +138,10 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
           details: { roles: session.roles.join(',') },
         });
       }
-    });
-    if (nonGet && route.auth === 'SESSION') preHandlers.push(scope.csrfProtection as unknown as preHandlerHookHandler);
-    preHandlers.push(async (request) => {
+    };
+    preHandlers.push(sessionGate);
+    if (nonGet && route.auth === 'SESSION') preHandlers.push((request, reply, done) => scope.csrfProtection(request, reply, done));
+    const commandGate: preHandlerAsyncHookHandler = async (request) => {
       if (route.idempotency === 'REQUIRED') {
         const key = request.headers['idempotency-key'];
         if (typeof key !== 'string' || !UUID.test(key)) {
@@ -165,7 +166,8 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
         });
         request.ebmrAuthEventId = result.authEventId;
       }
-    });
+    };
+    preHandlers.push(commandGate);
 
     const rl = opts.rateLimits?.[name];
     typed.route({
@@ -193,7 +195,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
             },
           }
         : {}),
-      preHandler: preHandlers as preHandlerHookHandler[],
+      preHandler: preHandlers,
       handler: async (request, reply) => {
         const session = request.ebmrSession ?? null;
         const correlationId = String(request.id);
@@ -201,7 +203,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
           route,
           params: request.params,
           query: request.query,
-          body: request.body as RouteBody<AnyRoute>,
+          body: request.body,
           request,
           reply,
           app,

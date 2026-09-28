@@ -8,6 +8,7 @@ import { useState, type ReactNode } from 'react';
 import { Banner, t } from '@ebmr/ui-kit';
 import { KioskLogin, NotEnrolled, OfficeLogin, RoleChoice, DemoPicker } from '../features/session/index.tsx';
 import { BootProvider, useBoot } from './boot.tsx';
+import { FeaturesContext } from './feature-context.ts';
 import { WEB_FEATURES } from './features.ts';
 import { createAppRouter } from './router.tsx';
 import { Frame } from './shell.tsx';
@@ -54,11 +55,13 @@ export function App() {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } }));
   return (
     <QueryClientProvider client={queryClient}>
+      <FeaturesContext.Provider value={WEB_FEATURES}>
       <BootProvider>
         <FeatureProviders>
           <Gate />
         </FeatureProviders>
       </BootProvider>
+      </FeaturesContext.Provider>
     </QueryClientProvider>
   );
 }

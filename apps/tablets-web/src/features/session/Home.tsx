@@ -3,12 +3,13 @@ import { Link } from '@tanstack/react-router';
 import { t } from '@ebmr/ui-kit';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
-import { WEB_FEATURES } from '../../app/features.ts';
+import { useFeatures } from '../../app/feature-context.ts';
 
 export function Home() {
   const boot = useBoot();
+  const features = useFeatures();
   const installation = boot.meta?.installation ?? 'GMP';
-  const tiles = WEB_FEATURES.flatMap(([, f]) => f.homeTiles ?? []).filter((tile) => tile.installations.includes(installation));
+  const tiles = features.flatMap(([, f]) => f.homeTiles ?? []).filter((tile) => tile.installations.includes(installation));
   return (
     <>
       <h1>{t('home.title')}</h1>

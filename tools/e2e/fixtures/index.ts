@@ -57,7 +57,7 @@ export const badge = {
   /** A badge tap as the keyboard-wedge reader sends it: the UID as a burst of keys, then Enter. */
   async tap(page: Page, persona: SeededPersona): Promise<void> {
     if (!persona.badgeUid) throw new Error(`${persona.key} has no badge`);
-    const field = page.getByLabel('Badge');
+    const field = page.getByRole('textbox', { name: 'Badge', exact: true });
     await field.focus();
     await page.keyboard.type(persona.badgeUid, { delay: 5 });
     await page.keyboard.press('Enter');
@@ -92,7 +92,7 @@ export const axe = {
   async check(page: Page): Promise<void> {
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
     const bad = result.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
-    expect(bad.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
+    expect(bad.map((v) => `${v.id}: ${v.help} at ${v.nodes.map((n) => `${n.target.join(' ')} ${n.failureSummary ?? ''}`).join(' | ')}`)).toEqual([]);
   },
 };
 
@@ -156,12 +156,13 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
       step: async (title, expected, fn, page) => {
         const started = new Date().toISOString();
         await base.step(title, fn);
-        const shot = page ? await page.screenshot({ fullPage: false }) : undefined;
+        const shotPath = page ? testInfo.outputPath(`evidence-${testInfo.attachments.length + 1}.png`) : undefined;
+        if (page && shotPath) await page.screenshot({ path: shotPath, fullPage: false });
         await testInfo.attach(`evidence: ${title}`, {
-          body: JSON.stringify({ title, expected, actual: 'as expected', started, finished: new Date().toISOString() }),
+          body: JSON.stringify({ title, expected, actual: 'as expected', started, finished: new Date().toISOString(), screenshot: shotPath ?? null }),
           contentType: 'application/json',
         });
-        if (shot) await testInfo.attach(`screenshot: ${title}`, { body: shot, contentType: 'image/png' });
+        if (shotPath) await testInfo.attach(`screenshot: ${title}`, { path: shotPath, contentType: 'image/png' });
       },
     });
   },

@@ -34,7 +34,7 @@ function deviceView(device: identity.DeviceInfo): DeviceView {
 }
 
 function csrfFor(reply: FastifyReply, session: ResolvedSession): string {
-  return reply.generateCsrf({ userInfo: session.tokenHash } as Parameters<FastifyReply['generateCsrf']>[0]);
+  return reply.generateCsrf({ userInfo: session.tokenHash });
 }
 
 async function liveRoles(app: AppContext, accountId: string): Promise<string[]> {

@@ -49,3 +49,34 @@ Defaults in use today are listed. Status: all DECIDED by default (owner decision
 | L9 | S4 "checker may also approve" | Not allowed (outline default). The e-signature catalogue requires APPROVED to be independent of CHECKED, so allowing it later needs a kernel catalogue change. |
 | L10 | A person who returned a version to DRAFT | Is treated as an editor by the e-signature independence rule, so cannot sign CHECKED/APPROVED on that version (stricter than INV-04; a kernel option to mark administrative changes as "not a data entry" is a follow-up). |
 | L11 | New permission MBR.CHANGE_RECORD | GMP write, held by QA MBR approver and regulatory signer. |
+
+## Phase 2 apps (tablets server, web, gateway) - decided by default (0004)
+
+Source: `docs/build-plan/phase-2/apps/00-plan.md` section 15; architecture in ADR 0017.
+
+| # | Question | Default in the build |
+|---|---|---|
+| D1 | A kiosk request whose answer was lost | The entry stays on screen behind a blocking NOT SAVED banner. Resending uses the same idempotency key and a fresh badge tap by the same person: if the first attempt committed, the kernel replays its result; if not, the work runs under the new authentication event. This departs from the letter of ADR 0006 item 4 (the entry is bound to the person, not to the original event); the lead records the departure. A tap by another person discards the unsent entry. |
+| D2 | Verification on a kiosk | The verifier switches user by badge and PIN and signs in their own session (tap for the challenge, then PIN). Co-signatures on PERSONAL devices come in A2; a kernel proposal to let a co-signer's own tap attribute the challenge goes to the lead. |
+| D3 | G-09 equipment status and G-10 clearance in Phase 2 | Version 1 of each is a manual-attestation block marked SANDBOX_ONLY; `defineBatch` refuses it on GMP (ENG-DEF-SANDBOX-ONLY). Database-backed version 2 and PR-22..27 stay in Phase 3. |
+| D4 | Role vocabulary | The engine role of a person is derived from the session's declared kernel role through `tab.engine_role_map` (OPERATOR -> PRODUCTION_OPERATOR via STEP.EXECUTE, VERIFIER -> PRODUCTION_VERIFIER via STEP.VERIFY, SHIFT_SUPERVISOR -> PRODUCTION_SUPERVISOR via STEP.SUPERVISE, QA_SHOP_FLOOR -> QA via QA.FLOOR_APPROVE, ...), only when the stored authority evaluation allows the permission at the actor's location (INV-26). Each run pins the engine's DEFAULT_POLICY in engine vocabulary with its hash. |
+| D5 | Moving an MBR to the sandbox | An exchange directory (`var/exchange/{to-sandbox,to-gmp}`): in A1 a write-once `ebmr.mbr-test-package v1` file with package hash and GMP stamp; in A2 Ed25519-signed files both ways. No process holds credentials for both databases. Keys are DEMO-ONLY. |
+| D6 | Demo device picker | Only when the server runs with EBMR_DEMO=1 and the database carries the `tab.demo_installation` marker, which the set-up CLI writes only for databases named `*_demo` or `*_e2e_*`. Production refuses EBMR_DEMO. |
+| D7 | Browser storage | An unsaved MBR authoring draft may live in localStorage; executed data, credentials and tokens never do (the terminal key lives in IndexedDB as a non-extractable WebCrypto key). |
+| D8 | Per-entry attribution on shared terminals | A badge tap (TAP) by default; TAP_PIN is available per device class. |
+| D9 | Device proofs | On authentication calls (login, change of secret, unlock, tap, signature, switch) in A1; on every mutation in A2. |
+| D10 | Designer validation | On the server in A1 (debounced 600 ms); in a Web Worker in A2 with the server authoritative. |
+| D11 | Time sweeper | In-process in the sandbox server every 15 s under the `TEST-sweeper` SERVICE identity (SKIP LOCKED); pg-boss arrives in Phase 3. |
+
+### Defaults taken while building the spine (C0)
+
+| # | Question | Default in the build |
+|---|---|---|
+| C0-1 | A sandbox cannot be bootstrapped: `iam.bootstrap_installation` inserts the "Installation qualification" person and BOOTSTRAP-CONSOLE-n devices, which the sandbox identifier guard (kernel 0920, TEST- only) refuses. | test-kit provisions a sandbox in two stages through the kernel's own functions: the kernel migrations before 0920, then the bootstrap with TEST- administrator and owner names, then every migration (the guard applies to everything created afterwards; the three pipeline labels predate it). Proposal for the lead: a kernel migration that gives the bootstrap TEST- labels in a sandbox. |
+| C0-2 | First-login secret change: an initial secret is single use, so the login that proves it cannot be followed by a change that proves it again. | The refused login (409 MUST_CHANGE_SECRET) returns a change ticket (random, in server memory, 2 minutes, bound to identifier and terminal) that stands for the restricted CREDENTIAL_CHANGE authentication event; the change request presents the ticket. |
+| C0-3 | Login method per terminal class | Kiosks (SHARED, GRADE_A_B) take badge and PIN only; office PCs take user ID and password only (refusal LOGIN_METHOD). |
+| C0-4 | Role choice | When the account holds one role, the session takes it; with several, the session opens without a role and every route except session, lock, unlock and switch answers 409 ROLE_CHOICE_REQUIRED until the person chooses once. |
+| C0-5 | Idempotency keys | Required (428 without) on mutating session routes that run GMP commands; not on login, logout, nonce, identification, role choice, lock, unlock, keep-alive, switch or scale capture. The route definition says which (`idempotency`). |
+| C0-6 | Locked sessions | Reads and commands answer 423, except the session view (so the SPA can show the lock), logout, lock, unlock and switch user. |
+| C0-7 | Extra personas and terminals | Each installation also gets a master-data steward persona (reference documents on GMP, TEST- lots in the sandbox) and the sandbox a second balance, TEST-BAL-02 in BLEND-1 (blend output weighing). |
+| C0-8 | Strict CSP and libraries | zod runs jitless in the browser (its parser compiler and even its eval probe would violate script-src 'self'); react-aria's injected pressable style is replaced by the same rule in the kit's stylesheet. |

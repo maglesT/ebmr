@@ -31,6 +31,34 @@ export function readVitestResults(file: string): TestResult[] {
   );
 }
 
+interface PlaywrightSuite {
+  title: string;
+  specs?: { title: string; file?: string; tests: { projectName?: string; results: { status: string }[] }[] }[];
+  suites?: PlaywrightSuite[];
+}
+
+/**
+ * End-to-end results from Playwright's JSON reporter (.reports/playwright.json): one result per spec and project;
+ * a spec passes when its last result passed (tests name controls exactly like the Vitest tests do).
+ */
+export function readPlaywrightResults(file: string): TestResult[] {
+  const json = JSON.parse(readFileSync(file, 'utf8')) as { suites?: PlaywrightSuite[] };
+  const out: TestResult[] = [];
+  const walk = (suite: PlaywrightSuite, path: string[]): void => {
+    const here = suite.title ? [...path, suite.title] : path;
+    for (const spec of suite.specs ?? []) {
+      for (const t of spec.tests) {
+        const last = t.results.at(-1)?.status ?? 'skipped';
+        const status: TestResult['status'] = last === 'passed' ? 'passed' : last === 'skipped' ? 'skipped' : 'failed';
+        out.push({ name: [...here, spec.title, t.projectName ? `(${t.projectName})` : ''].filter(Boolean).join(' '), status, file: spec.file ?? suite.title });
+      }
+    }
+    for (const child of suite.suites ?? []) walk(child, here);
+  };
+  for (const s of json.suites ?? []) walk(s, []);
+  return out;
+}
+
 export interface TraceRow {
   control: ControlRecord;
   passing: string[];

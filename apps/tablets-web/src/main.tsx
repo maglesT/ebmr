@@ -1,4 +1,6 @@
 /** Entry of the SPA. Fixture mode (VITE_EBMR_FIXTURES=1, for C4 before the sandbox server exists) swaps the transport. */
+// First: zod must run jitless under the strict CSP (no eval), before any schema is built.
+import '@ebmr/api-contract/strict-csp';
 import '@ebmr/ui-kit/fonts';
 import '@ebmr/ui-kit/tokens.css';
 import { StrictMode } from 'react';

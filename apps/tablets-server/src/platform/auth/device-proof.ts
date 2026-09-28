@@ -67,7 +67,7 @@ export function webCryptoDeviceProvider(pool: pg.Pool, authnPool: pg.Pool, nonce
         throw proofRefused('The device proof used a nonce that is unknown, already used or older than 60 seconds.', 'NONCE');
       }
       let spki: Buffer;
-      let ok = false;
+      let ok: boolean;
       try {
         spki = Buffer.from(proof.spki, 'base64');
         const key = createPublicKey({ key: spki, format: 'der', type: 'spki' });

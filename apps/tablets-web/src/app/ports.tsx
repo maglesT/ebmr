@@ -3,7 +3,7 @@
  * C5 code. Stub defaults refuse politely; the real providers arrive through features/access (C1: the signature
  * ceremony and the badge tap) and features/devices (C5: the scale capture slot), already wired in App.tsx.
  */
-import { createContext, useContext, type ComponentType, type ReactNode } from 'react';
+import { createContext, createElement, useContext, type ComponentType, type ReactNode } from 'react';
 import type { Attribution, ManifestationView, ReadingView, RefusalEnvelope, SignableAction } from '@ebmr/api-contract';
 import { Banner } from '@ebmr/ui-kit';
 
@@ -61,7 +61,8 @@ export const STUB_BADGE_TAP: BadgeTapPort = {
   requestTap: () => Promise.resolve(null),
 };
 
-export function StubScaleCaptureSlot(_props: ScaleCaptureSlotProps) {
+export function StubScaleCaptureSlot(props: ScaleCaptureSlotProps) {
+  void props;
   return (
     <Banner tone="info" title="Scale capture is not connected yet">
       Enter the weights by hand; a second person must then verify the step.
@@ -79,8 +80,7 @@ export const useScaleCaptureSlot = (): ComponentType<ScaleCaptureSlotProps> => u
 
 /** The scale capture slot the step screen renders (C5 provides the gauge and capture buttons). */
 export function ScaleCaptureSlot(props: ScaleCaptureSlotProps) {
-  const Slot = useScaleCaptureSlot();
-  return <Slot {...props} />;
+  return createElement(useScaleCaptureSlot(), props);
 }
 
 export function CeremonyPortProvider({ value, children }: { value: SignatureCeremonyPort; children: ReactNode }) {

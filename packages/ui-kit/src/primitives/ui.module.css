@@ -164,7 +164,9 @@
   justify-content: center;
   overflow: hidden;
 }
-.overlayText span {
+.overlayText::before {
+  /* Decorative repeat of the band (which screen readers read); pseudo-element text is not page content. */
+  content: attr(data-text);
   transform: rotate(-24deg);
   font-size: 9vw;
   font-weight: 900;

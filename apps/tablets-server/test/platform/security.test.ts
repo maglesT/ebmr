@@ -69,7 +69,7 @@ describe('request checks', () => {
     const b = await gmp.asPersona('author');
     const noToken = await b.inject({ method: 'POST', url: '/api/session/logout', payload: {}, headers: { 'content-type': 'application/json' } });
     expect(noToken.statusCode).toBe(403);
-    expect(JSON.parse(noToken.body)).toMatchObject({ refusal: { code: 'CSRF', kind: 'NOT_ALLOWED', controls: ['DI-13'] } });
+    expect(JSON.parse(noToken.body) as unknown).toMatchObject({ refusal: { code: 'CSRF', kind: 'NOT_ALLOWED', controls: ['DI-13'] } });
     const other = await gmp.asPersona('approver');
     const foreign = await b.inject({ method: 'POST', url: '/api/session/logout', payload: {}, headers: { 'content-type': 'application/json', 'x-csrf-token': other.csrf ?? '' } });
     expect(foreign.statusCode).toBe(403);
@@ -83,7 +83,7 @@ describe('request checks', () => {
     for (const extra of [{ origin: 'http://localhost:3011' }, { origin: 'http://evil.example' }, { origin: 'http://localhost:3001', 'sec-fetch-site': 'same-site' }, { origin: 'http://localhost:3001', 'sec-fetch-site': 'cross-site' }]) {
       const res = await b.inject({ method: 'POST', url: '/api/session/logout', payload: {}, headers: { ...headers, ...extra } });
       expect(res.statusCode, JSON.stringify(extra)).toBe(403);
-      expect(JSON.parse(res.body).refusal.code).toBe('ORIGIN');
+      expect((JSON.parse(res.body) as { refusal: { code: string } }).refusal.code).toBe('ORIGIN');
     }
     const noOrigin = await gmp.app.inject({ method: 'POST', url: '/api/session/device-nonce', payload: {}, headers: { 'content-type': 'application/json' } });
     expect(noOrigin.statusCode).toBe(403);
@@ -109,7 +109,7 @@ describe('request checks', () => {
     const unknown = await sbx.app.inject({ method: 'GET', url: '/api/nothing-here' });
     expect(unknown.statusCode).toBe(404);
     expect(unknown.headers['x-ebmr-installation']).toBe('SANDBOX');
-    expect(JSON.parse(unknown.body).refusal.code).toBe('NOT_FOUND');
+    expect((JSON.parse(unknown.body) as { refusal: { code: string } }).refusal.code).toBe('NOT_FOUND');
   });
 
   it('[DI-13] a mutating command route without an idempotency key is refused with 428', async () => {
@@ -121,7 +121,7 @@ describe('request checks', () => {
       headers: { 'content-type': 'application/json', 'x-csrf-token': b.csrf ?? '' },
     });
     expect(res.statusCode).toBe(428);
-    expect(JSON.parse(res.body).refusal.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
+    expect((JSON.parse(res.body) as { refusal: { code: string } }).refusal.code).toBe('IDEMPOTENCY_KEY_REQUIRED');
   });
 });
 

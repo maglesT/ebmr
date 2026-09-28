@@ -1,6 +1,6 @@
 # eBMR project — progress & resume notes
 
-Last updated: 2026-09-27 17:45 UTC. Keep this file current after every milestone.
+Last updated: 2026-09-28 11:45 UTC. Keep this file current after every milestone.
 Scratchpad root: /tmp/claude-0/-home-user/0f393df3-64ef-5de6-9328-48ce9ce2b1a5/scratchpad
 Durable backup: private artifact "eBMR Project Backup" https://claude.ai/artifact/3c6jFm4psAH5KZoz7GHChK
 (files under backup/…; restore with Artifact action "read" + paths). Republish after every milestone:
@@ -300,3 +300,23 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   strictness compared criterion ids only (F20). On branch phase-1/mutation-testing (/home/user/ebmr):
   docs/build-plan/phase-1-exit/ (results, fix briefs K/E/I/M/R/P/C), reproducers packages/kernel/test/review/*.test.ts.
   Fix agents running: K audit core, E esig, I identity, M market. Next: R records, P platform, C continuity.
+- 2026-09-28: C0 SPINE (wave 0 of the Phase 2 apps) done by the lead's delegate in /home/user/ebmr-p2; exit A0 green
+  (`pnpm demo:setup && pnpm demo` serves both installations with the demo picker and login, sandbox watermarked
+  TEST, NOT GMP; `pnpm run ci` green: 140 files, 1,265 tests, trace ok; smoke and security E2E 6/6). Uncommitted
+  on top of df9df7c (which already swept in a mid-way snapshot): the lead reviews and commits.
+  Built: dependencies from apps/02-dependencies.md (exact versions); root configs (vitest projects db/server/dom,
+  four tsc projects, eslint for React, dependency-cruiser rules with fixtures, CI e2e job, trace reads Playwright
+  JSON); `@ebmr/api-contract` (CONTRACT_VERSION 1.0.0, frozen; 47 routes in 8 namespaces, views, strict client intents with an
+  exhaustive engine-command classification, 24 example fixtures, typed client); recipe-core `./pure`, MBR
+  numbering, canonical JSON, execution stub; `@ebmr/test-kit` (template DBs, staged sandbox provisioning, keys,
+  DEMO-ONLY personas and terminals, seeding, kernel sessions); tablets-server skeleton (config, two installations,
+  tab schema 0001, security layer: exact Origin, Sec-Fetch-Site, CSRF, CSP, rate limits, opaque device-bound
+  session tokens, device proofs, change tickets; session/meta features; stub namespaces answering 501; set-up and
+  OpenAPI CLIs); tablets-web (Vite, TanStack Router/Query, boot, shell, demo picker, office and kiosk login, ports
+  for ceremony/badge/scale, fixture mode, strict CSP) and ui-kit (tokens, primitives, i18n); tools/demo and
+  tools/e2e (Playwright fixtures, evidence reporter, smoke and security specs). Docs: ADR 0017, decisions D1-D11
+  and C0-1..C0-8 (docs/decisions/phase-2-open-questions.md), wave briefs docs/build-plan/phase-2/C0..C5-*.md,
+  docs/demo/phase-2-first-clickable.md.
+  Lead items: kernel migration so iam.bootstrap_installation uses TEST- labels in a sandbox (C0-1; test-kit
+  provisions in two stages until then); review D1's departure from ADR 0006 item 4; commit; then start wave 1
+  (C1..C5) with the briefs.

@@ -147,7 +147,7 @@ describe('route table', () => {
   it('route ids are unique and prefixed with their namespace; method and path are unique', () => {
     expect(new Set(all.map((r) => r.id)).size).toBe(all.length);
     for (const [ns, table] of Object.entries(routes)) {
-      for (const [name, route] of Object.entries(table)) expect(route.id, `${ns}.${name}`).toBe(`${ns}.${name}`);
+      for (const [name, route] of Object.entries(table) as [string, { id: string }][]) expect(route.id, `${ns}.${name}`).toBe(`${ns}.${name}`);
     }
     expect(new Set(all.map((r) => `${r.method} ${r.path}`)).size).toBe(all.length);
     expect(Object.keys(NAMESPACE_OWNERS).sort()).toEqual(Object.keys(routes).sort());

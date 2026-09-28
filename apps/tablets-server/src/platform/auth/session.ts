@@ -58,8 +58,14 @@ export async function resolveSession(pool: pg.Pool, hash: string): Promise<Resol
   const { rows } = await pool.query<{ r: Record<string, unknown> | null }>('select tab.resolve_session($1) as r', [hash]);
   const r = rows[0]?.r;
   if (!r) return null;
-  const str = (k: string): string => String(r[k]);
-  const opt = (k: string): string | null => (r[k] === null || r[k] === undefined ? null : String(r[k]));
+  const str = (k: string): string => {
+    const v = r[k];
+    return typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '';
+  };
+  const opt = (k: string): string | null => {
+    const v = r[k];
+    return typeof v === 'string' ? v : null;
+  };
   return {
     tokenHash: hash,
     sessionId: str('session_id'),

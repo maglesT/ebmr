@@ -3,12 +3,14 @@
  *   import     catalogs -> compliance/controls/*.yaml (keeps decisions and build progress)
  *   validate   schema, IDs, requirement references
  *   pins       exact workspace pins (ADR 0015)
- *   trace      traceability matrix from a Vitest JSON report (--results <file>)
+ *   trace      traceability matrix from a Vitest JSON report (--results <file>) and, when present, the
+ *              Playwright JSON report (--playwright <file>)
  */
 import { importCatalogs } from './import.ts';
 import { checkPins, readManifests } from './pins.ts';
 import { currentPhase, loadControls } from './register.ts';
-import { buildTrace, readVitestResults, writeMatrix } from './trace.ts';
+import { existsSync } from 'node:fs';
+import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix } from './trace.ts';
 import { validateRegister } from './validate.ts';
 
 function fail(title: string, errors: string[]): never {
@@ -41,7 +43,12 @@ switch (command) {
     const file = idx >= 0 ? args[idx + 1] : undefined;
     if (!file) fail('trace', ['--results <vitest json> is required']);
     const phase = currentPhase();
-    const report = buildTrace(loadControls(), readVitestResults(file), phase);
+    // Optional end-to-end results (the e2e job writes them; the unit job may not have them).
+    const pwIdx = args.indexOf('--playwright');
+    const pwFile = pwIdx >= 0 ? args[pwIdx + 1] : undefined;
+    const e2e = pwFile && existsSync(pwFile) ? readPlaywrightResults(pwFile) : [];
+    if (pwFile && e2e.length) console.log(`including ${e2e.length} end-to-end results from ${pwFile}`);
+    const report = buildTrace(loadControls(), [...readVitestResults(file), ...e2e], phase);
     writeMatrix(report, phase, '.reports/trace-matrix.md');
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;

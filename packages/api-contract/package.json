@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./examples": "./src/examples.ts"
+    "./examples": "./src/examples.ts",
+    "./strict-csp": "./src/strict-csp.ts"
   },
   "dependencies": {
     "@ebmr/expr": "workspace:0.1.0",
