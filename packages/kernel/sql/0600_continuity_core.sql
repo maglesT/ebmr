@@ -731,7 +731,7 @@ begin
     chain_key := null; problem := 'external anchor record is malformed'; return next;
     return;
   end if;
-  if encode(kernel.merkle_root(v_heads), 'hex') <> v_root then
+  if encode(kernel.merkle_root(v_heads), 'hex') is distinct from v_root then  -- NULL when a head lacks a field: not checkable
     chain_key := null; problem := format('external anchor %s: root does not match its heads', v_id); return next;
   end if;
   select * into v_db from kernel.audit_anchor a where a.id = v_id;

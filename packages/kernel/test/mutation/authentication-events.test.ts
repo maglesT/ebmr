@@ -261,6 +261,84 @@ describe('iam.open_session', () => {
     await withCommand(db.app, await withFreshAuth(db, op), (c) => c.query('select 1'));
   });
 
+  it('[DI-16][DI-19] a login event made while the account was usable opens no session once the account is suspended or locked out', async () => {
+    // Suspended after the authentication (the person still active, the account not locked).
+    const suspended = await seedActor(db, { acknowledgeEsig: false });
+    const early = await freshAuthEvent(db, suspended, 'LOGIN');
+    await asAdmin((c) => c.query("select iam.suspend_account($1, 'under investigation')", [suspended.accountId]));
+    await expectRefused(openSession(db.app, early, suspended.seed.deviceFingerprint), 'EBMR-IAM-103', /no longer active or is locked/);
+    expect(await usesOf(early)).toEqual([]);
+
+    // Locked out by failed attempts after the authentication (the account and the person still ACTIVE).
+    const locked = await seedActor(db, { acknowledgeEsig: false });
+    const login = await freshAuthEvent(db, locked, 'LOGIN');
+    let lockedOut = false;
+    for (let i = 0; i < 5 && !lockedOut; i++) {
+      const failure = await passwordAuth(locked.seed.loginName, `wrong-${hex()}`, locked.seed.deviceFingerprint, 'LOGIN').then(
+        () => ({ locked: false, accepted: true }),
+        (e: unknown) => e as { locked?: boolean },
+      );
+      expect(failure).not.toHaveProperty('accepted');
+      lockedOut = failure.locked === true;
+    }
+    expect(lockedOut).toBe(true);
+    expect((await db.admin.query('select status from iam.account where id = $1', [locked.accountId])).rows).toEqual([{ status: 'ACTIVE' }]);
+    await expectRefused(openSession(db.app, login, locked.seed.deviceFingerprint), 'EBMR-IAM-103', /no longer active or is locked/);
+    expect(await usesOf(login)).toEqual([]);
+    expect((await db.app.query('select count(*)::int as n from iam.session where opened_by_auth_event in ($1, $2)', [early, login])).rows[0]).toEqual({ n: 0 });
+
+    // Unlocked by the administrator, the account logs in again.
+    await asAdmin((c) => c.query("select iam.unlock_account($1, 'identity confirmed in person')", [locked.accountId]));
+    const again = await freshAuthEvent(db, locked, 'LOGIN');
+    const s = await openSession(db.app, again, locked.seed.deviceFingerprint);
+    expect(await sessionState(db.app, s.sessionId)).toBe('ACTIVE');
+  });
+
+  it('[DI-19][DI-20] a login holds its own account and terminal until it commits, and nothing else: a change to another person\'s account or terminal never holds it up', async () => {
+    const op = await seedActor(db, { acknowledgeEsig: false });
+    const other = await seedActor(db, { acknowledgeEsig: false });
+    const ev = await freshAuthEvent(db, op, 'LOGIN');
+    const changer = await db.admin.connect();
+    const opener = await db.app.connect();
+    /** Would a change of the row (a suspension, a lockout, a block: FOR NO KEY UPDATE) have to wait? */
+    const changeWaits = async (table: 'iam.account' | 'iam.device', id: string): Promise<boolean> => {
+      await changer.query('begin');
+      try {
+        await changer.query(`select 1 from ${table} where id = $1 for no key update nowait`, [id]);
+        return false;
+      } catch (error) {
+        if ((error as { code?: string }).code === '55P03') return true;
+        throw error;
+      } finally {
+        await changer.query('rollback');
+      }
+    };
+    try {
+      // Another person's account and terminal are being changed, uncommitted (as a lockout of that
+      // account or a block of that terminal would hold them).
+      await changer.query('begin');
+      await changer.query('select 1 from iam.account where id = $1 for update', [other.accountId]);
+      await changer.query('select 1 from iam.device where id = $1 for update', [other.deviceId]);
+      // The login does not wait for them: a wait would end in the lock timeout (55P03) instead.
+      await opener.query('begin');
+      await opener.query("set local lock_timeout = '3s'");
+      const s = await openSession(opener, ev, op.seed.deviceFingerprint);
+      await changer.query('rollback');
+      // Until the login commits, a change of its own account or terminal waits for it.
+      expect(await changeWaits('iam.account', op.accountId)).toBe(true);
+      expect(await changeWaits('iam.device', op.deviceId)).toBe(true);
+      expect(await changeWaits('iam.account', other.accountId)).toBe(false);
+      expect(await changeWaits('iam.device', other.deviceId)).toBe(false);
+      await opener.query('commit');
+      expect(await sessionState(db.app, s.sessionId)).toBe('ACTIVE');
+    } finally {
+      for (const c of [changer, opener]) {
+        await c.query('rollback').catch(() => undefined);
+        c.release();
+      }
+    }
+  });
+
   it('[DI-14] a service identity\'s session is never a person\'s personal session', async () => {
     const svc = await seedServiceActor(db);
     const op = await seedActor(db, { acknowledgeEsig: false });

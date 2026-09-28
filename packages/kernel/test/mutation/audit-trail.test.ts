@@ -294,6 +294,45 @@ describe('only a context installed by kernel code in this transaction is an acto
   });
 });
 
+describe('kernel.audit_row_change: a change or removal after first entry needs a reason (outline 5.4)', () => {
+  it('[DI-24][DI-22] a change or removal needs both halves of the reason: a reason code without a text, or a text without a code, is refused (EBMR-AUDIT-002) and nothing changes', async () => {
+    const batch = randomUUID();
+    const id = await insertSample(batch, '4.25');
+    const halves: Partial<ActorContext>[] = [
+      { reasonCode: 'TRANSCRIPTION_ERROR' }, // a code, no text
+      { reasonCode: 'TRANSCRIPTION_ERROR', reasonText: ' \t ' }, // a code, a blank text
+      { reasonText: 'wrong digit entered' }, // a text, no code
+      { reasonCode: '  ', reasonText: 'wrong digit entered' }, // a blank code, a text
+    ];
+    for (const reason of halves) {
+      await expectRefused(
+        withCommand(db.app, cmd(reason), (c) => c.query("update testgmp.sample set note = 'edited' where id = $1", [id])),
+        'EBMR-AUDIT-002',
+        /^EBMR-AUDIT-002 a reason is required to update testgmp\.sample: give a reason code and a reason text$/,
+      );
+      await expectRefused(
+        withCommand(db.app, cmd(reason), (c) => c.query('delete from testgmp.sample where id = $1', [id])),
+        'EBMR-AUDIT-002',
+        /^EBMR-AUDIT-002 a reason is required to delete testgmp\.sample: give a reason code and a reason text$/,
+      );
+    }
+    const { rows } = await db.app.query<{ value: string; note: string | null }>('select value::text as value, note from testgmp.sample where id = $1', [id]);
+    expect(rows).toEqual([{ value: '4.25', note: null }]);
+    expect(await eventCount(`batch:${batch}`)).toBe(1);
+    // Both halves given: the same change is accepted and recorded with its reason.
+    await withCommand(db.app, cmd({ reasonCode: 'TRANSCRIPTION_ERROR', reasonText: 'wrong digit entered' }), (c) =>
+      c.query("update testgmp.sample set note = 'edited' where id = $1", [id]));
+    const { rows: trail } = await db.app.query<{ action: string; code: string | null; text: string | null }>(
+      "select action, payload ->> 'reason_code' as code, payload ->> 'reason_text' as text from kernel.audit_event where chain_key = $1 order by seq",
+      [`batch:${batch}`],
+    );
+    expect(trail.map((e) => [e.action, e.code, e.text])).toEqual([
+      ['INSERT', null, null],
+      ['UPDATE', 'TRANSCRIPTION_ERROR', 'wrong digit entered'],
+    ]);
+  });
+});
+
 describe('an audited table that is not registered refuses writes', () => {
   it('[DI-23][INV-07] a table carrying the audit trigger without a registration, or whose registration was removed, refuses every write (EBMR-AUDIT-003)', async () => {
     await asSuperuserTransaction(db, async (c) => {
@@ -383,6 +422,24 @@ describe('kernel.verify_chain: every check fires on its own', () => {
         await c.query(sql, [key]);
         expect(await verifyChain(c, key), what).toEqual([{ chainKey: key, seq: 2, problem: INDEXED }]);
       });
+    }
+  });
+
+  it('[INV-08][DI-23][DI-22] changing only the stored table or only the stored record ID of an entry is detected and the entry is named', async () => {
+    // Each column on its own: the other indexed columns still match the hashed payload, and the hash
+    // itself is untouched (it covers the payload, not the stored columns), so only this check can fire.
+    const tampers: [string, string][] = [
+      ['table', "update kernel.audit_event set table_name = 'testgmp.reading' where chain_key = $1 and seq = 2"],
+      ['record ID', 'update kernel.audit_event set record_id = gen_random_uuid()::text where chain_key = $1 and seq = 2'],
+    ];
+    for (const [what, sql] of tampers) {
+      const key = await chainOf(3);
+      await asSuperuserTransaction(db, async (c) => {
+        const { rowCount } = await c.query(sql, [key]);
+        expect(rowCount, what).toBe(1);
+        expect(await verifyChain(c, key), what).toEqual([{ chainKey: key, seq: 2, problem: INDEXED }]);
+      });
+      expect(await verifyChain(db.app, key), what).toEqual([]);
     }
   });
 

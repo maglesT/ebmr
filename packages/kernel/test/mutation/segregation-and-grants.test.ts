@@ -175,6 +175,17 @@ describe('grant requests and decisions (DI-16, DI-14)', () => {
     await expectPermissionDenied(db.app.query("select iam.check_static_segregation($1, 'OPERATOR', null)", [randomUUID()]));
   });
 
+  it('[DI-16][DI-14] the static check fails closed on a role it cannot find: a request for an unknown role is refused as such, and nothing is recorded', async () => {
+    const p = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
+    await expectRefused(request(p.accountId, 'MUT_NO_SUCH_ROLE'), 'EBMR-IAM-030', /unknown role MUT_NO_SUCH_ROLE/);
+    // The check itself refuses the unknown role for a real, active account instead of passing it.
+    await expectRefused(db.admin.query("select iam.check_static_segregation($1, 'MUT_NO_SUCH_ROLE', null)", [p.accountId]), 'EBMR-IAM-030', /unknown role/);
+    const { rows } = await db.app.query("select 1 from iam.role_grant where account_id = $1 and role_code = 'MUT_NO_SUCH_ROLE'", [p.accountId]);
+    expect(rows).toEqual([]);
+    // A known role passes the same check for the same account.
+    await db.admin.query("select iam.check_static_segregation($1, 'STATUS_DISPLAY', null)", [p.accountId]);
+  });
+
   it('[DI-16][DI-14] a disabled account receives no grant: neither a new request nor the approval of one pending when it was disabled', async () => {
     const p = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
     const pending = await request(p.accountId, 'STATUS_DISPLAY');
@@ -635,5 +646,94 @@ describe('a grant is approved only for an active account, whatever runs at the s
     await asAdmin((c) => c.query("select iam.reinstate_account($1, 'investigation closed')", [suspended.accountId]));
     await asOwner((c) => decideRoleGrant(c, later, true, 'approved'));
     expect(await grantRow(later)).toMatchObject({ status: 'APPROVED' });
+  });
+});
+
+/**
+ * Role-permission requests and their decisions name what exists, and a permission reaches a role
+ * only through an explicit approval by a second person (inside a command) or through a software
+ * release (outside one). A role's permissions are a grant of authority to all of its holders (DI-16,
+ * DI-18).
+ */
+describe('a permission reaches a role only through an approved request or a software release (DI-16, DI-18)', () => {
+  const NIL = '00000000-0000-0000-0000-000000000000';
+  const requestOf = async (id: string) =>
+    (await db.admin.query<{ status: string; role_permission_id: string | null }>(
+      'select status, role_permission_id from iam.role_permission_request where id = $1', [id])).rows[0];
+
+  it('[DI-16][DI-18] a role-permission request names a real role and a real permission: the catalogue check fails closed on either', async () => {
+    const role = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
+    await expectRefused(requestPermission('MUT_NO_SUCH_ROLE', 'RECORD.EXPORT'), 'EBMR-IAM-030', /unknown role MUT_NO_SUCH_ROLE/);
+    await expectRefused(requestPermission(role, 'MUT.NO_SUCH_PERMISSION'), 'EBMR-IAM-030', /unknown permission MUT\.NO_SUCH_PERMISSION/);
+    // The check itself (owner level) refuses both instead of passing them.
+    await expectRefused(db.admin.query("select iam.check_role_permission_addition('MUT_NO_SUCH_ROLE', 'RECORD.EXPORT')"), 'EBMR-IAM-030', /unknown role/);
+    await expectRefused(db.admin.query("select iam.check_role_permission_addition($1, 'MUT.NO_SUCH_PERMISSION')", [role]), 'EBMR-IAM-030', /unknown permission/);
+    const { rows } = await db.admin.query("select 1 from iam.role_permission_request where role_code in ($1, 'MUT_NO_SUCH_ROLE')", [role]);
+    expect(rows).toHaveLength(1);
+    // The same request for what exists is accepted and waits for its approval.
+    const ok = await requestPermission(role, 'RECORD.EXPORT');
+    expect(await requestOf(ok)).toEqual({ status: 'REQUESTED', role_permission_id: null });
+    expect(await permissionsOf(role)).toEqual(['RECORD.READ']);
+  });
+
+  it('[DI-16][DI-18] a decision names a real request, and only an explicit approval adds the permission: an undecided (NULL) decision rejects it', async () => {
+    for (const approve of [true, false]) {
+      await expectRefused(asOwner((c) => c.query('select iam.decide_role_permission($1, $2, $3)', [randomUUID(), approve, 'decided'])),
+                          'EBMR-IAM-039', /unknown role-permission request/);
+    }
+    const role = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
+    const req = await requestPermission(role, 'RECORD.EXPORT');
+    await asOwner((c) => c.query("select iam.decide_role_permission($1, null, 'no decision entered')", [req]));
+    expect(await requestOf(req)).toEqual({ status: 'REJECTED', role_permission_id: null });
+    expect(await permissionsOf(role)).toEqual(['RECORD.READ']);
+  });
+
+  it('[DI-18][DI-16] bypass: an approval given once, for this role or another, never lets the table owner add the permission again without a new approved request', async () => {
+    // RECORD.EXPORT was added to the role through a request approved by a second person, then removed.
+    const role = await customRole(['RECORD.READ', 'RECORD.EXPORT'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
+    const other = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
+    await asRoleAdmin((c) => c.query("select iam.remove_role_permission($1, 'RECORD.EXPORT')", [role]));
+    const { rows } = await db.admin.query<{ status: string }>(
+      "select status from iam.role_permission_request where role_code = $1 and permission_code = 'RECORD.EXPORT'", [role]);
+    expect(rows).toEqual([{ status: 'APPROVED' }]);
+    // Inside a real command the table owner inserts the row again, for the same role and for another
+    // role: no approved request names the new row, so both are refused.
+    const ctx = withReason(adm.admin, 'ROLE_CHANGE');
+    for (const r of [role, other]) {
+      await expectRefused(asTableOwner(ctx, "insert into iam.role_permission (role_code, permission_code) values ($1, 'RECORD.EXPORT')", [r]),
+                          'EBMR-IAM-039', new RegExp(`RECORD\\.EXPORT reaches role ${r} only through a request approved by a second person`));
+    }
+    expect(await permissionsOf(role)).toEqual(['RECORD.READ']);
+    expect(await permissionsOf(other)).toEqual(['RECORD.READ']);
+    // A new request, approved by a second person, adds it back.
+    await addPermission(role, 'RECORD.EXPORT');
+    expect(await permissionsOf(role)).toEqual(['RECORD.EXPORT', 'RECORD.READ']);
+  });
+
+  it('[DI-18][DI-16] outside a command only the software-release identity adds a permission to a role: without an actor, or as anyone else, the owner is refused', async () => {
+    const role = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
+    /** One insert by owner-level code outside any command (always rolled back), under the given pipeline identity. */
+    const insertOutsideCommand = async (roleCode: string | null): Promise<unknown[]> => {
+      const c = await db.admin.connect();
+      try {
+        await c.query('begin');
+        if (roleCode) {
+          await c.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify({
+            person_id: NIL, account_id: NIL, role_code: roleCode, session_id: NIL, source: 'SYSTEM', site_zone: 'UTC', correlation_id: randomUUID(),
+            legal_name: 'Pipeline identity (mutation test)', reason_code: roleCode, reason_text: 'catalogue change outside a command',
+          })]);
+        }
+        const { rows } = await c.query("insert into iam.role_permission (role_code, permission_code) values ($1, 'RECORD.EXPORT') returning permission_code", [role]);
+        return rows;
+      } finally {
+        await c.query('rollback');
+        c.release();
+      }
+    };
+    await expectRefused(insertOutsideCommand(null), 'EBMR-IAM-039', /outside a command, only a software release adds permissions to roles/);
+    await expectRefused(insertOutsideCommand('SYSTEM_ADMINISTRATOR'), 'EBMR-IAM-039', /outside a command, only a software release adds permissions to roles/);
+    // The software release (as the catalogue migrations run) adds it; the static rules still apply.
+    expect(await insertOutsideCommand('SOFTWARE_RELEASE')).toEqual([{ permission_code: 'RECORD.EXPORT' }]);
+    expect(await permissionsOf(role)).toEqual(['RECORD.READ']);
   });
 });

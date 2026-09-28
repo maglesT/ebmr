@@ -1,16 +1,18 @@
 /**
  * Site values and policy switches, guard by guard (SQL mutation group "site-values-and-policies":
- * market.assess_site_value and market.set_site_value in kernel 0320; market.policy_version_guard and
- * market.policy_pin_guard in kernel 0350). The scenario tests in market/site-values.test.ts and
- * market/policy.test.ts show the rules working; these tests prove each refusal where it is enforced,
- * with its own error, and the boundaries of each comparison.
+ * market.assess_site_value and market.set_site_value in kernel 0320, with the comparison of criteria
+ * market.criteria_cover in kernel 0300; market.policy_version_guard and market.policy_pin_guard in
+ * kernel 0350). The scenario tests in market/site-values.test.ts and market/policy.test.ts show the
+ * rules working; these tests prove each refusal where it is enforced, with its own error, and the
+ * boundaries of each comparison.
  *
  * Controls: IN-52 (a site value only tightens; looser than HARD or DESIGN is refused; a GUIDANCE or
  * EXAMPLE loosening needs a justification reference and QA approval and is recorded), DI-17 (the
  * permission is checked in the scope of the site the value is for), DI-22 (every write names who
  * made it), DI-09 (a policy change is a numbered version with its direction and change reference);
- * invariants INV-47 (no loosening reaches a batch issued before it took effect), INV-07 (no GMP write
- * without an actor) and INV-16 (instants come from the database clock).
+ * invariants INV-28 (the value in force is at least as strict as India's), INV-47 (no loosening
+ * reaches a batch issued before it took effect), INV-07 (no GMP write without an actor) and INV-16
+ * (instants come from the database clock).
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -18,6 +20,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { applyPolicyTightening, batchPolicy, definePolicy, pinPoliciesForBatch, policyForBatch, setPolicyVersion, type PolicyVersion } from '../../src/market/policy.ts';
 import { setSiteValue, type SiteValueRequest } from '../../src/market/repository.ts';
+import type { Criterion } from '../../src/market/types.ts';
 import { seedActor } from '../identity/seed.ts';
 import {
   approvePolicyVersion,
@@ -225,6 +228,63 @@ describe('site values: every refusal where it is enforced', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.details).toEqual({ siteValueId: sv.id, qaApprovalId: approvals.qaApprovalId });
     expect(rows[0]?.message).toContain(`site value for ${key} loosens a GUIDANCE value`);
+  });
+});
+
+/**
+ * ALL_APPLY keys (market.criteria_cover through market.at_least_as_strict, kernel 0300): compendial
+ * criteria cannot be ranked, so a site value may only keep every criterion its markets require,
+ * each with exactly the same definition, and add more. The tablets uniformity key requires the IP
+ * weight bands (IN, HARD), USP 905 (US) and Ph. Eur. 2.9.40 (EU); the stub site sells to all three.
+ */
+describe('site values for criteria that must all pass (ALL_APPLY)', () => {
+  const KEY = 'tablets.uniformity.acceptanceCriteria';
+  /** The criteria the site's markets require on a date, as the site value is assessed against them. */
+  async function required(effectiveFrom: string): Promise<Criterion[]> {
+    const { rows } = await db.app.query<{ v: Criterion[] }>(
+      "select market.site_value_preview($1, $2, '[]'::jsonb, $3::date) -> 'resolution' -> 'value' as v",
+      [world.siteId, KEY, effectiveFrom],
+    );
+    return rows[0]?.v ?? [];
+  }
+
+  async function storedOn(effectiveFrom: string): Promise<{ outcome: string; value: Criterion[] }[]> {
+    const { rows } = await db.app.query<{ outcome: string; value: Criterion[] }>(
+      'select outcome, value from market.site_value where site_id = $1 and key = $2 and effective_from = $3::date order by recorded_at',
+      [world.siteId, KEY, effectiveFrom],
+    );
+    return rows;
+  }
+
+  it('[IN-52][INV-28] a site value that keeps every required criterion unchanged and adds one is TIGHTER; exactly the required criteria are EQUAL', async () => {
+    const from = '2026-04-01';
+    const req = await required(from);
+    expect(req.map((c) => c.id).sort()).toEqual(['IP_UNIFORMITY_OF_WEIGHT_BANDS', 'PH_EUR_2_9_40_UNIFORMITY_OF_DOSAGE_UNITS', 'USP_905_UNIFORMITY_OF_DOSAGE_UNITS']);
+    // A site check of its own on top of the compendial ones (same shape as the USP criterion, new id).
+    const usp = req.find((c) => c.id === 'USP_905_UNIFORMITY_OF_DOSAGE_UNITS') as Criterion;
+    const extra: Criterion = { ...usp, id: 'SITE_CONTENT_UNIFORMITY_EVERY_LOT', stage: 'IN_PROCESS' };
+    const tighter = await set({ key: KEY, value: [...req, extra], effectiveFrom: from });
+    expect(tighter.outcome).toBe('TIGHTER');
+    const equal = await set({ key: KEY, value: req, effectiveFrom: from });
+    expect(equal.outcome).toBe('EQUAL');
+    expect((await storedOn(from)).map((r) => [r.outcome, r.value.length])).toEqual([['TIGHTER', 4], ['EQUAL', 3]]);
+  });
+
+  it('[IN-52][INV-28] a site value that drops a required criterion, or changes one under its own id, is refused (EBMR-MKT-064) and nothing is stored', async () => {
+    const from = '2026-05-01';
+    const req = await required(from);
+    const ip = req.find((c) => c.id === 'IP_UNIFORMITY_OF_WEIGHT_BANDS') as Criterion;
+    const others = req.filter((c) => c.id !== ip.id);
+    expect(others).toHaveLength(2);
+    const refused = new RegExp(`^EBMR-MKT-064 a site value for ${KEY.replaceAll('.', '\\.')} may add elements but cannot remove or change any of \\[`);
+    // The India weight bands left out; the two release criteria kept.
+    await expect(set({ key: KEY, value: others, effectiveFrom: from })).rejects.toThrow(refused);
+    // The India criterion kept by id, with one 50 % band instead of the IP bands.
+    await expect(set({ key: KEY, value: [{ ...ip, bands: [{ deviationPercent: '50' }] }, ...others], effectiveFrom: from })).rejects.toThrow(refused);
+    // The same with a site criterion added: an addition does not make up for a removal.
+    const extra: Criterion = { ...(others[0] as Criterion), id: 'SITE_CONTENT_UNIFORMITY_EVERY_LOT' };
+    await expect(set({ key: KEY, value: [...others, extra], effectiveFrom: from })).rejects.toThrow(refused);
+    expect(await storedOn(from)).toEqual([]);
   });
 });
 

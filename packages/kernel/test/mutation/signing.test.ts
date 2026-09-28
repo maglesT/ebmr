@@ -1,19 +1,24 @@
 /**
  * The signing guards, rule by rule (SQL mutation group "signing": esig.required_components,
  * esig.component_problem, esig.check_independence, esig.check_witness, esig.create_challenge and
- * esig.sign in kernel 0230). These tests close the gaps the SQL mutation run (tools/sql-mutation)
- * found in the module tests of test/esig: every refusal is asserted by its stable EBMR code (the
- * rule that refused), and every boundary is proven from the side the rule lets through as well.
+ * esig.sign in kernel 0230, and the state engine's binding of a signature to the record's current
+ * stay, platform.transition_signature_check in kernel 0910). These tests close the gaps the SQL
+ * mutation run (tools/sql-mutation) found in the module tests of test/esig: every refusal is
+ * asserted by its stable EBMR code (the rule that refused), and every boundary is proven from the
+ * side the rule lets through as well.
  *
  * Controls: DI-35 (catalogue meanings, independence, WITNESSED, delegation), DI-36 (manifestation:
  * signer, role, meaning, zone), DI-37 (what is signed is what was shown), DI-38 (components and
- * continuous sessions), DI-17 (stored segregation evaluations); invariants INV-03, INV-09, INV-10,
- * INV-26.
+ * continuous sessions), DI-17 (stored segregation evaluations); invariants INV-03, INV-04, INV-09,
+ * INV-10, INV-11, INV-26.
  *
  * States that the product never produces by itself (a record whose act terminal is missing, content
- * changed without a version bump, an authentication event of another account of the signer) are
- * arranged with the superuser, triggers off (asTimeTraveller) or by inserting a forged
- * authentication event; the control itself is always exercised through the signing functions.
+ * changed without a version bump, an authentication event of another account of the signer, a
+ * session row naming another person than its account's, a transition written without its audit
+ * entry) are arranged with the superuser, triggers off (asTimeTraveller) or by inserting a forged
+ * authentication event; the control itself is always exercised through the signing functions and
+ * the state engine. Content providers and machine definitions a later module would ship are
+ * registered here as the owner, as a migration does.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import pg from 'pg';
@@ -28,7 +33,9 @@ import {
 import { authenticate, changeSecret, type AuthnDb } from '../../src/identity/authentication.ts';
 import { ebmrCode } from '../../src/identity/errors.ts';
 import { lockSession, openSession, unlockSession } from '../../src/identity/sessions.ts';
+import { createAggregateState, transition } from '../../src/state/engine.ts';
 import { seedAdministration, seedAuthn, withReason, type SeededActor } from '../identity/seed.ts';
+import { asOwner } from '../platform/helpers.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import {
   asSuperuserTransaction,
@@ -215,6 +222,38 @@ describe('independence on the person (esig.check_independence)', () => {
       { rule_code: 'INV-03', allowed: true, excluded_persons: [author.personId] },
     ]);
   });
+
+  it('[DI-35][DI-17][INV-03] a type independent of VERIFIED binds in either order: its signer cannot verify the record afterwards, even on the only record that holds the type', async () => {
+    // A customer signature point, independent of VERIFIED. It is new, so no other record holds it:
+    // the reverse rule must be triggered by this record's own signatures.
+    const qa = await qaApprover(db);
+    const code = `MUT_IND_${hex(2).toUpperCase()}`;
+    await run(db, qa, (c) => addMeaningType(c, code, {
+      title: 'Line clearance checked', meaningText: 'As second person, I checked the line clearance before this step.',
+      category: 'VERIFICATION', roleClass: 'VERIFIER', permissions: ['STEP.VERIFY'], independentOf: ['VERIFIED'],
+      reauth: 'SESSION_RELAXABLE',
+    }, 'site SOP adds an independent line-clearance check'));
+    const op = await testActor(db);
+    const clearance = await testActor(db, { roleCode: 'VERIFIER' });
+    const verifier = await testActor(db, { roleCode: 'VERIFIER' });
+    const id = await createStub(db, op);
+    await signStub(db, clearance, id, { meaning: code });
+    expect(await dbCount(db, 'select 1 from esig.signature where meaning_code = $1', [code])).toBe(1);
+    // The signer of the new type then tries to verify the same record: refused by the reverse rule.
+    await expectRefused(signStub(db, clearance, id, { meaning: 'VERIFIED' }), 'EBMR-ESIG-043',
+                        new RegExp(`VERIFIED must be signed by a person other than the signers of ${code} on this record \\(${code} is independent of VERIFIED whatever the signing order\\)`));
+    expect(await signaturesOn(id, 'VERIFIED')).toBe(0);
+    // Another verifier verifies, and the reverse rule's evaluation is stored with the person it excluded.
+    const sig = await signStub(db, verifier, id, { meaning: 'VERIFIED' });
+    const { rows } = await db.admin.query<{ rule_code: string; allowed: boolean; excluded_persons: string[] }>(
+      'select rule_code, allowed, excluded_persons from iam.segregation_evaluation where subject = $1 and person_id = $2 order by rule_code',
+      [ref(id), verifier.personId]);
+    expect(rows).toEqual([
+      { rule_code: `ESIG.INDEPENDENT:${code}`, allowed: true, excluded_persons: [clearance.personId] },
+      { rule_code: 'INV-03', allowed: true, excluded_persons: [op.personId] },
+    ]);
+    expect(sig.signatureId).toMatch(/^[0-9a-f-]{36}$/);
+  });
 });
 
 describe('WITNESSED (esig.check_witness)', () => {
@@ -240,6 +279,29 @@ describe('WITNESSED (esig.check_witness)', () => {
     expect(await signaturesOn(id, 'WITNESSED')).toBe(0);
     // Stated explicitly that the next step has not started, the same event completes the witness signature.
     await signRaw(witness, ch.challengeId, ev, { nextStepStarted: false });
+    expect(await signaturesOn(id, 'WITNESSED')).toBe(1);
+  });
+
+  it('[DI-35] when the record does not say whether the next step has started, witnessing is refused even though the caller says it has not (unknown counts as started)', async () => {
+    // A module whose records name the witnessed act (terminal and time) but cannot tell whether the
+    // next step has started leaves next_step_started out of its content (provider contract, esig 0200).
+    // Its provider is registered here as its migration would register it: the stub entry's content
+    // without that one field.
+    const type = `mut_act_${hex(2)}`;
+    await asOwner(db, `
+      create function testgmp.${type}_content(p_id text) returns jsonb
+      language sql stable set search_path = pg_catalog, pg_temp as $f$ select esig.stub_content(p_id) #- '{act,next_step_started}' $f$;
+      select esig.register_content_provider('${type}', 'testgmp.${type}_content(text)', 'stub entries whose act does not say whether the next step started');`);
+    const { performer, witness } = await witnessPair('ROOM-W3');
+    const id = await createStub(db, performer, { title: 'Filter integrity test' });
+    const { rows } = await db.admin.query<{ act: Record<string, unknown> }>('select esig.provide($1, $2) -> \'act\' as act', [type, id]);
+    expect(Object.keys(rows[0]?.act ?? {}).sort()).toEqual(['at', 'device_id']);
+    const ch = await challengeFor(db, witness, id, { meaning: 'WITNESSED', aggregateType: type });
+    const ev = await signatureAuth(db, witness, witness, ch.challengeId);
+    await expectRefused(signRaw(witness, ch.challengeId, ev, { nextStepStarted: false }), 'EBMR-ESIG-051', /cannot show that it has not/);
+    expect(await dbCount(db, "select 1 from esig.signature where aggregate_ref = $1 and meaning_code = 'WITNESSED'", [`${type}:${id}`])).toBe(0);
+    // The same act, shown by the stub's own provider (the next step has not started), is witnessed.
+    await signStub(db, witness, id, { meaning: 'WITNESSED' });
     expect(await signaturesOn(id, 'WITNESSED')).toBe(1);
   });
 });
@@ -340,6 +402,32 @@ describe('challenge (esig.create_challenge)', () => {
         [ref(id), made.accountId, replaced.sessionId]);
       expect(issued?.n).toBe('0');
     });
+  });
+
+  it('[DI-36][INV-10][INV-11] the session owner signs only with the session\'s account: a session recorded for the signer\'s person but opened by another account issues no challenge for the signer\'s account', async () => {
+    // INV-11 (one live GMP-capable account per person) keeps a person from holding a second signing
+    // account next to their session's, so the rule is defence in depth. The only state that reaches
+    // it is a session row whose person is not its account's person, arranged below with triggers
+    // (and so the foreign key) off.
+    const owner = await testActor(db);
+    const signer = await testActor(db);
+    // Control: another person signing at the owner's terminal is a co-signature, and it is issued.
+    const control = await createStub(db, owner);
+    const co = await challengeFor(db, owner, control, { meaning: 'PERFORMED', signer });
+    expect(co.cosignature).toBe(true);
+    const id = await createStub(db, owner);
+    await asTimeTraveller(db, 'update iam.session set person_id = $2 where id = $1', [owner.sessionId, signer.personId]);
+    try {
+      // The session now names the signer's person as its owner, yet its account is the owner's: the
+      // signer's own account is not the session's, so nothing is issued.
+      await expectRefused(challengeFor(db, owner, id, { meaning: 'PERFORMED', signer }), 'EBMR-ESIG-010',
+                          /the session owner signs with the account of the session/);
+      expect(await dbCount(db, 'select 1 from esig.challenge where aggregate_ref = $1', [ref(id)])).toBe(0);
+    } finally {
+      await asTimeTraveller(db, 'update iam.session set person_id = $2 where id = $1', [owner.sessionId, owner.personId]);
+    }
+    // Put back, the same request is a co-signature again.
+    expect((await challengeFor(db, owner, id, { meaning: 'PERFORMED', signer })).cosignature).toBe(true);
   });
 });
 
@@ -535,5 +623,90 @@ describe('sign (esig.sign)', () => {
     } finally {
       await single.end();
     }
+  });
+});
+
+/**
+ * The state engine accepts a signature for a transition only when it was applied during the
+ * record's current stay in the state the transition leaves (kernel 0910, DI-37, INV-04). "During"
+ * is decided on audit-trail positions: the signature's entry must come after the entry of the
+ * history row that entered the current state at the current version, and nothing else.
+ */
+describe('a signature authorises a transition only from the record\'s current stay (platform.transition_signature_check)', () => {
+  /** A platform sample record (content provider and signed table from kernel 0910) with its state under `machine`. */
+  const sampleRecord = (author: SeededActor, machine = 'sample_record'): Promise<string> =>
+    run(db, author, async (c) => {
+      const { rows } = await c.query<{ id: string }>("insert into platform.stub_record (title, body) values ('Cleaning SOP', 'Version 1 text') returning id");
+      const id = rows[0]?.id ?? '';
+      await createAggregateState(c, machine, { aggregateType: 'sample_record', aggregateId: id });
+      return id;
+    });
+  const fire = (actor: SeededActor, id: string, event: string, expectedVersion: number, signatureId?: string, machine = 'sample_record') =>
+    run(db, actor, (c) => transition(c, {
+      machine, aggregateType: 'sample_record', aggregateId: id, event, expectedVersion, ...(signatureId ? { payload: { signature_id: signatureId } } : {}),
+    }));
+  const stateOf = async (id: string) =>
+    (await db.admin.query<{ state: string; version: string }>(
+      "select state, version::text as version from platform.aggregate_state where aggregate_type = 'sample_record' and aggregate_id = $1", [id])).rows[0];
+
+  it('[DI-37][INV-04] a signature applied in the current stay authorises the transition, whatever other records did since', async () => {
+    const author = await testActor(db, { roleCode: 'MBR_AUTHOR' });
+    const checker = await testActor(db, { roleCode: 'MBR_CHECKER' });
+    const id = await sampleRecord(author);
+    await fire(author, id, 'SUBMIT', 1);
+    const checked = await signStub(db, checker, id, { meaning: 'CHECKED', aggregateType: 'sample_record', expectedState: 'SUBMITTED' });
+    // After the signature another record is created and submitted: it enters the same state at the
+    // same version, and its history entries come later in the audit trail than the signature.
+    const other = await sampleRecord(author);
+    await fire(author, other, 'SUBMIT', 1);
+    expect(await stateOf(other)).toEqual({ state: 'SUBMITTED', version: '2' });
+    // Only this record's own entry into SUBMITTED at version 2 counts, and the signature came after it.
+    expect(await fire(checker, id, 'CHECK', 2, checked.signatureId)).toMatchObject({ from: 'SUBMITTED', to: 'CHECKED' });
+    expect(await stateOf(id)).toEqual({ state: 'CHECKED', version: '3' });
+  });
+
+  it('[DI-37][INV-04] the stay that began when the record was created counts: a signature applied after the creation authorises the first transition', async () => {
+    // A machine (as a later module's migration would publish it) whose first transition, out of the
+    // initial state, needs a signature. The only history row of the current stay is the creation row.
+    const machine = `mut_first_${hex(2)}`;
+    await asOwner(db, `select platform.publish_machine_version('${JSON.stringify({
+      machine, version: 1, aggregate_type: 'sample_record', description: 'a record checked straight from its initial state (mutation test)',
+      create_permission: 'sample_record.submit', initial: 'SUBMITTED', states: ['CHECKED', 'SUBMITTED'], final_states: ['CHECKED'],
+      transitions: [{ from: 'SUBMITTED', event: 'CHECK', to: 'CHECKED', guards: [], signature: 'CHECKED', permission: 'sample_record.check' }],
+    })}'::jsonb)`);
+    const author = await testActor(db, { roleCode: 'MBR_AUTHOR' });
+    const checker = await testActor(db, { roleCode: 'MBR_CHECKER' });
+    const id = await sampleRecord(author, machine);
+    expect(await stateOf(id)).toEqual({ state: 'SUBMITTED', version: '1' });
+    const checked = await signStub(db, checker, id, { meaning: 'CHECKED', aggregateType: 'sample_record', expectedState: 'SUBMITTED' });
+    expect(await fire(checker, id, 'CHECK', 1, checked.signatureId, machine)).toMatchObject({ from: 'SUBMITTED', to: 'CHECKED', machine });
+    expect(await stateOf(id)).toEqual({ state: 'CHECKED', version: '2' });
+  });
+
+  it('[DI-37][INV-04] fails closed: when the audit trail holds no entry of the transition into the current state, no signature authorises the transition out of it', async () => {
+    const author = await testActor(db, { roleCode: 'MBR_AUTHOR' });
+    const checker = await testActor(db, { roleCode: 'MBR_CHECKER' });
+    const id = await sampleRecord(author);
+    // Arranged (superuser, triggers off): the submission is written straight into the state tables,
+    // as a data fix or a restore with triggers disabled would write it, so the audit trail never
+    // recorded the record entering SUBMITTED.
+    await asTimeTraveller(db, `
+      with h as (
+        insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, from_state, event, to_state, from_version,
+                                            to_version, permission_code, person_id, account_id, role_code, correlation_id)
+        select aggregate_type, aggregate_id, machine_code, machine_version, 'DRAFT', 'SUBMIT', 'SUBMITTED', 1, 2, 'sample_record.submit',
+               person_id, account_id, role_code, gen_random_uuid()
+        from platform.state_history where aggregate_type = 'sample_record' and aggregate_id = $1 and to_version = 1
+        returning aggregate_type, aggregate_id)
+      update platform.aggregate_state s set state = 'SUBMITTED', version = 2 from h
+       where s.aggregate_type = h.aggregate_type and s.aggregate_id = h.aggregate_id`, [id]);
+    expect(await stateOf(id)).toEqual({ state: 'SUBMITTED', version: '2' });
+    expect(await dbCount(db, `select 1 from platform.state_history h join kernel.audit_event e on e.table_name = 'platform.state_history' and e.record_id = h.id::text
+                              where h.aggregate_type = 'sample_record' and h.aggregate_id = $1 and h.to_version = 2`, [id])).toBe(0);
+    // A CHECKED signature applied now, in SUBMITTED: when the stay began cannot be shown, so it is refused.
+    const checked = await signStub(db, checker, id, { meaning: 'CHECKED', aggregateType: 'sample_record', expectedState: 'SUBMITTED' });
+    await expectRefused(fire(checker, id, 'CHECK', 2, checked.signatureId), 'EBMR-PLAT-008',
+                        /applied before sample_record:.* entered state SUBMITTED at version 2; it belongs to an earlier stay/);
+    expect(await stateOf(id)).toEqual({ state: 'SUBMITTED', version: '2' });
   });
 });

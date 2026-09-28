@@ -1,32 +1,42 @@
 /**
  * Retention end and controlled purge, guard by guard (SQL mutation group "retention-and-purge":
  * records.approve_purge, records.purge, records.disposal_refusals and records.insert_only_trigger in
- * kernel 0440). The scenario tests in records/retention-purge.test.ts prove the happy paths and the
- * common refusals; these tests close the gaps the SQL mutation run (tools/sql-mutation) found: every
- * refusal is asserted by its stable EBMR code, every boundary is proven from both sides, and the
- * locking that makes a purge safe against a concurrent change is proven with a second command left
- * open while the purge or the approval runs.
+ * kernel 0440; records.create_retention_schedule in kernel 0420). The scenario tests in
+ * records/retention-purge.test.ts prove the happy paths and the common refusals; these tests close the
+ * gaps the SQL mutation run (tools/sql-mutation) found: every refusal is asserted by its stable EBMR
+ * code, every boundary is proven from both sides, and the locking that makes a purge safe against a
+ * concurrent change is proven with a second command left open while the purge or the approval runs.
  *
  * Controls: DI-47 (retention periods, holds, QA-approved disposal that leaves a disposal record),
- * DI-37 (the approval is the approver's own signature of that disposal); invariants INV-22 (nothing
- * is purged on or before its retain-until, including the maximum over its dependants, or while on
- * hold; purge only through the retention function, with tombstone and checkpoint) and INV-08 (every
- * audit chain verifies).
+ * DI-37 (the approval is the approver's own signature of that disposal), DI-27 (retention ends on the
+ * site's date, in the site's configured zone); invariants INV-22 (nothing is purged on or before its
+ * retain-until, including the maximum over its dependants, or while on hold; purge only through the
+ * retention function, with tombstone and checkpoint) and INV-08 (every audit chain verifies).
  *
  * States the product never produces by itself (a register entry written outside
- * records.register_true_copy, a chain rewritten and re-hashed, an event slipped into a chain) are
- * arranged with the superuser; the control itself is always exercised through the records
- * functions, as the application role.
+ * records.register_true_copy, a chain rewritten and re-hashed, an event slipped into a chain, two
+ * instants equal to the microsecond) are arranged with the superuser; the control itself is always
+ * exercised through the records functions, as the application role.
  */
 import { createHash, randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { verifyChain } from '../../src/audit/verify.ts';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
+import { setPolicy as setIamPolicy } from '../../src/identity/admin.ts';
 import type { RetentionInputs } from '../../src/records/retention.ts';
-import { approvePurge, createRetentionSchedule, linkRetentionDependency, placeLegalHold, purge, retentionOf } from '../../src/records/retention-store.ts';
+import {
+  approvePurge,
+  createRetentionSchedule,
+  linkRetentionDependency,
+  placeLegalHold,
+  purge,
+  releaseLegalHold,
+  retentionOf,
+} from '../../src/records/retention-store.ts';
 import { BUNDLE_FORMAT, buildTrueCopyBundle, registerTrueCopy } from '../../src/records/true-copy.ts';
-import { SEED_ZONE, type SeededActor } from '../identity/seed.ts';
+import { asTimeTraveller } from '../identity/helpers.ts';
+import { SEED_ZONE, seedAdministration, withReason as seedWithReason, type SeededActor } from '../identity/seed.ts';
 import {
   again,
   approveDisposal,
@@ -295,6 +305,168 @@ describe('DI-47 disposal approval', () => {
     });
     expect(await approvals(key)).toBe('0');
   }, 60_000);
+
+  it('[DI-47][INV-22] an approval waits for a legal hold being placed on the record, then refuses (EBMR-REC-032)', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const signature = await signFor(db, qa2, await disposalAggregate(db, key), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    await withOpenCommands(async (open) => {
+      const hold = await open(again(qa));
+      const approval = await open(again(qa2));
+      // The hold takes the record's blocker epoch; it touches neither the schedule nor the signature's rows.
+      await hold.client.query("select records.place_legal_hold('batch', $1, 'regulatory inspection request', 'INSP-2026-21')", [batch]);
+      const run = start(approval.client.query('select records.approve_purge($1, $2, $3) as id', [key, signature, 'retention ended']));
+      await waitFor('the approval waits for the hold', async () => run.settled || (await waitsForLock(approval.pid)));
+      await hold.client.query('commit');
+      await expect(result(run)).rejects.toThrow('EBMR-REC-032 HOLD LEGAL INSP-2026-21 blocks disposal');
+    });
+    expect(await approvals(key)).toBe('0');
+  }, 60_000);
+
+  it('[DI-47][INV-22] an approval neither waits for nor is refused by a hold being placed on an unrelated record', async () => {
+    const unrelated = await batchWithRecords(PAST_BATCH);
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const signature = await signFor(db, qa2, await disposalAggregate(db, key), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    await withOpenCommands(async (open) => {
+      const hold = await open(again(qa));
+      const approval = await open(again(qa2));
+      await hold.client.query("select records.place_legal_hold('batch', $1, 'product complaint under investigation', 'CMP-2026-22')", [unrelated]);
+      await approval.client.query("set local lock_timeout = '3s'");
+      const { rows } = await approval.client.query<{ id: string }>('select records.approve_purge($1, $2, $3) as id', [key, signature, 'retention ended']);
+      await approval.client.query('commit');
+      expect(rows[0]?.id).toMatch(UUID);
+    });
+    expect(await approvals(key)).toBe('1');
+  }, 60_000);
+});
+
+/**
+ * Owner decision 0004 at the approval: the decision to dispose is taken after every hold on the record
+ * and its closure ended. A disposal signature made while a hold was in force (the record is then
+ * NOT_DISPOSABLE, and a signature can still be made in that state) keeps matching the signed content
+ * after the release, because the content counts holds placed, not holds released; records.approve_purge
+ * refuses it by the release instant (EBMR-REC-041).
+ */
+describe('DI-47 a disposal signature made before a hold was released', () => {
+  const releases = (holdId: string) => count(db.admin, 'records.retention_hold_release where hold_id = $1', [holdId]);
+
+  it('[DI-47][DI-37] a signature made while a legal hold was in force carries no approval after the release (EBMR-REC-041); a signature made after the release does', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'product liability claim', 'LEGAL-2026-31'));
+    const during = await signFor(db, qa2, await disposalAggregate(db, key), 'RECORD_DISPOSAL_APPROVED', 'NOT_DISPOSABLE');
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'claim settled'));
+    expect(await releases(hold)).toBe('1');
+    await expect(withCommand(db.app, again(qa2), (c) => approvePurge(c, key, during, 'retention ended; claim settled'))).rejects.toThrow(
+      `EBMR-REC-041 the disposal-approval signature of ${key} was made before the legal hold LEGAL-2026-31 on ${key} was released; after a hold the disposal needs a new signature and approval`,
+    );
+    expect(await approvals(key)).toBe('0');
+    // The decision taken again after the release: a new signature carries the approval. It comes from
+    // another QA reviewer, because the signature made during the hold still matches the signed content
+    // and its signer already holds a valid signature of it (EBMR-ESIG-042).
+    const deputy = await signerActor(db, 'QA_REVIEWER', 'QA Deputy after the release');
+    await expect(approveDisposal(db, deputy, key, 'retention ended; hold released, decided again')).resolves.toMatch(UUID);
+    expect(await approvals(key)).toBe('1');
+  });
+
+  it('[DI-47][DI-37] only a release of a hold on the record or its closure counts: holds of other records released after the signature, and the record\'s own hold released before it, do not void it', async () => {
+    const unrelated = await batchWithRecords(PAST_BATCH);
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    // The record's own hold, placed and released before the signature.
+    const earlier = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'claim', 'LEGAL-2026-32'));
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, earlier, 'claim withdrawn'));
+    // A hold on an unrelated record, in force while the record's disposal is signed, released after it.
+    const other = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', unrelated, 'another claim', 'LEGAL-2026-33'));
+    const signature = await signFor(db, qa2, await disposalAggregate(db, key), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, other, 'other claim settled'));
+    await expect(withCommand(db.app, again(qa2), (c) => approvePurge(c, key, signature, 'retention ended'))).resolves.toMatch(UUID);
+    expect(await approvals(key)).toBe('1');
+  });
+
+  it('[DI-47][DI-37] a signature recorded at the very instant the hold was released was not made after the release (EBMR-REC-041); one a microsecond later was', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'regulatory inspection request', 'INSP-2026-34'));
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'inspection closed'));
+    const signature = await signFor(db, qa2, await disposalAggregate(db, key), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    // Both instants come from the database clock in different transactions, so they meet only by
+    // chance; the release instant is set to the signature's (test setup, triggers off).
+    const releaseAt = (offset: string) =>
+      asTimeTraveller(
+        db,
+        'update records.retention_hold_release set recorded_at = (select recorded_at from esig.signature where id = $2) - $3::interval where hold_id = $1',
+        [hold, signature, offset],
+      );
+    await releaseAt('0');
+    await expect(withCommand(db.app, again(qa2), (c) => approvePurge(c, key, signature, 'retention ended'))).rejects.toThrow(
+      `EBMR-REC-041 the disposal-approval signature of ${key} was made before the legal hold INSP-2026-34 on ${key} was released`,
+    );
+    expect(await approvals(key)).toBe('0');
+    await releaseAt('1 microsecond');
+    await expect(withCommand(db.app, again(qa2), (c) => approvePurge(c, key, signature, 'retention ended'))).resolves.toMatch(UUID);
+    expect(await approvals(key)).toBe('1');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Retention schedules (records.create_retention_schedule, kernel 0420)
+// ---------------------------------------------------------------------------------------------
+
+describe('DI-47 retention schedules: every refusal where it is enforced', () => {
+  const FUTURE_BATCH: RetentionInputs = { markets: ['IN', 'US'], manufactureDate: '2026-01-10', expiryDate: '2028-01-31' };
+  const schedules = (key: string) => count(db.admin, 'records.retention_schedule where record_key = $1', [key]);
+  const create = (ctx: ActorContext, type: string, id: string, zone?: string) =>
+    withCommand(db.app, again(ctx), (c) => createRetentionSchedule(c, type, id, 'BATCH_PROCESSING_RECORD', FUTURE_BATCH, zone));
+
+  it('[DI-47][INV-22][DI-27] a zone that is no time zone is refused as such (EBMR-REC-020), before it is compared with the site\'s zone', async () => {
+    for (const zone of ['Mars/Olympus', 'Asia/Kolkatta']) {
+      const batch = randomUUID();
+      await expect(create(qa, 'batch', batch, zone)).rejects.toThrow(new RegExp(`^EBMR-REC-020 site zone '${zone}' is not a known time zone$`));
+      expect(await schedules(`batch:${batch}`)).toBe('0');
+    }
+  });
+
+  it('[DI-47][INV-22][DI-27] while the site policy names a zone that is no time zone, no schedule can be created in it (EBMR-REC-020): the site date could not be computed', async () => {
+    const { admin } = await seedAdministration(db);
+    const typo = 'Asia/Kolkatta';
+    const policy = (from: string, to: string, reason: string) =>
+      withCommand(db.app, seedWithReason({ ...admin, siteZone: from, correlationId: randomUUID() }), (c) => setIamPolicy(c, 'site.zone', to, reason));
+    const batch = randomUUID();
+    await policy(SEED_ZONE, typo, 'test: site zone mistyped');
+    try {
+      // Every command now declares the configured text (EBMR-IAM-118 otherwise); the schedule takes the site's zone.
+      await expect(create({ ...qa, siteZone: typo }, 'batch', batch)).rejects.toThrow(`EBMR-REC-020 site zone '${typo}' is not a known time zone`);
+    } finally {
+      await policy(typo, SEED_ZONE, 'test: site zone corrected');
+    }
+    expect(await schedules(`batch:${batch}`)).toBe('0');
+    await create(qa, 'batch', batch);
+    expect((await retentionOf(db.app, 'batch', batch)).siteZone).toBe(SEED_ZONE);
+  });
+
+  it('[DI-47][INV-22] records of the retention machinery never get a schedule of their own (EBMR-REC-020), whatever record type is named', async () => {
+    for (const type of ['retention', 'retention_rule_set', 'retention_aggregate', 'record_hold', 'tombstone', 'true_copy']) {
+      const id = randomUUID();
+      await expect(create(qa, type, id)).rejects.toThrow(new RegExp(`^EBMR-REC-020 ${type} records belong to the retention machinery and have no schedule$`));
+      expect(await schedules(`${type}:${id}`)).toBe('0');
+    }
+  });
+
+  it('[DI-47][INV-22] a record has one retention schedule: a second one is refused (EBMR-REC-020) and the first keeps its inputs', async () => {
+    const batch = randomUUID();
+    const key = `batch:${batch}`;
+    await create(qa, 'batch', batch);
+    const before = await retentionOf(db.app, 'batch', batch);
+    // Another schedule for the same record, with inputs that would end its retention long ago.
+    await expect(
+      withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'batch', batch, 'BATCH_PROCESSING_RECORD', PAST_BATCH)),
+    ).rejects.toThrow(new RegExp(`^EBMR-REC-020 ${key} already has a retention schedule$`));
+    expect(await schedules(key)).toBe('1');
+    expect(await count(db.admin, 'records.retention_input where record_key = $1', [key])).toBe('1');
+    expect((await retentionOf(db.app, 'batch', batch)).effective).toEqual(before.effective);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -389,6 +561,44 @@ describe('INV-22 true copy covers the record as kept', () => {
     await expect(runPurge(key)).rejects.toThrow(`EBMR-REC-038 true copy ${forged} covers ${key} up to seq ${head.seq - 1}, but the record now ends at seq ${head.seq}`);
     expect(await batchRows(batch)).toBe('1');
     expect(await tombstones(key)).toBe('0');
+  });
+
+  it('[DI-47][INV-22] a true copy that leaves out a table holding rows of the record is refused at the purge, naming that table (EBMR-REC-038); nothing is deleted', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    // The copy holds the entries but not the insert-only readings, whose values the chain keeps only as hashes (F34).
+    const partial = await withCommand(db.app, again(qa2), async (c) =>
+      registerTrueCopy(c, await buildTrueCopyBundle(db.app, { chainKey: key, tables: ['stub_b4.batch_entry'] }), 'archive before disposal'));
+    await approve(key, partial);
+    await expect(runPurge(key)).rejects.toThrow(
+      new RegExp(`^EBMR-REC-038 true copy ${partial} of ${key} leaves out stub_b4\\.batch_reading, which hold rows of the record; archive every table of the record before purging$`),
+    );
+    expect(await batchRows(batch)).toBe('1');
+    expect(await count(db.app, 'stub_b4.batch_reading where batch_id = $1', [batch])).toBe('1');
+    expect(await tombstones(key)).toBe('0');
+    // Archived again with every table, the record is purged under a new approval citing that copy.
+    const full = await registerCopy(key);
+    await approve(key, full);
+    const tombstone = await runPurge(key);
+    expect(await scalar<string>(db.admin, 'select true_copy_id::text as v from records.tombstone where id = $1', [tombstone])).toBe(full);
+  });
+
+  it('[DI-47][INV-22] a copy need hold only the tables that have rows of the record: a record with rows in one table, archived with that table, is purged', async () => {
+    const batch = randomUUID();
+    await insertEntry(db, operator, batch, '9.81');
+    await withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'batch', batch, 'BATCH_PROCESSING_RECORD', PAST_BATCH));
+    const key = `batch:${batch}`;
+    const copy = await withCommand(db.app, again(qa2), async (c) =>
+      registerTrueCopy(c, await buildTrueCopyBundle(db.app, { chainKey: key, tables: ['stub_b4.batch_entry'] }), 'archive before disposal'));
+    await approve(key, copy);
+    const tombstone = await runPurge(key);
+    const { rows } = await db.admin.query<{ copy: string; tables: { table: string; rowCount: number }[] }>(
+      'select true_copy_id::text as copy, purged_tables as tables from records.tombstone where id = $1',
+      [tombstone],
+    );
+    expect(rows[0]?.copy).toBe(copy);
+    expect(rows[0]?.tables.map((t) => [t.table, Number(t.rowCount)])).toEqual([['stub_b4.batch_entry', 1]]);
+    expect(await batchRows(batch)).toBe('0');
   });
 });
 

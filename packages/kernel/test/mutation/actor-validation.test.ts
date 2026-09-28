@@ -8,8 +8,9 @@
  *
  * Controls: DI-14 (every GMP action needs an individually assigned, authenticated, active account
  * in its own live session), DI-16 (a leaver cannot act), DI-19 (a locked account cannot act until an
- * administrator unlocks it), DI-20 (registered, active devices only); invariant INV-40 (an
- * authentication event that attributes a command is the person's own, fresh and used once).
+ * administrator unlocks it), DI-20 (registered, active devices only), DI-27 (the site's configured
+ * time zone decides the dates and local times recorded; a client cannot choose it); invariant INV-40
+ * (an authentication event that attributes a command is the person's own, fresh and used once).
  *
  * Two of the states come from races between transactions the product can run at the same time: a
  * login that is opening its session while the account locks, or while its terminal is blocked. The
@@ -24,7 +25,7 @@ import { authenticate, type AuthPurpose } from '../../src/identity/authenticatio
 import { ebmrCode } from '../../src/identity/errors.ts';
 import { openSession, sessionState } from '../../src/identity/sessions.ts';
 import { asDefinerCommand, asTimeTraveller, expectRefused, pause } from '../identity/helpers.ts';
-import { freshAuthEvent, SEED_SITE, seedActor, seedAdministration, seedAuthn, withReason, type SeedAdministration, type SeededActor } from '../identity/seed.ts';
+import { freshAuthEvent, SEED_SITE, SEED_ZONE, seedActor, seedAdministration, seedAuthn, withReason, type SeedAdministration, type SeededActor } from '../identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
@@ -235,6 +236,35 @@ describe('iam.open_session is serialised with the lockout and the device block (
     if (fresh !== null) expect(await sessionState(db.app, fresh)).toBe('ENDED');
     await asAdmin((c) => setDeviceStatus(c, op.deviceId, 'ACTIVE', 'inspected; no tampering found'));
     if (fresh !== null) await expectRefused(insert(command(op, { sessionId: fresh })), 'EBMR-IAM-112');
+  });
+});
+
+describe('kernel.validate_actor_context: the site time zone (DI-27)', () => {
+  it('[DI-27][DI-22] a command declaring any time zone but the site\'s own (policy site.zone) is refused with both zones named (EBMR-IAM-118); nothing is written or logged', async () => {
+    const op = await seedActor(db, { acknowledgeEsig: false });
+    const site = (await db.admin.query<{ z: string }>("select iam.policy_text('site.zone') as z")).rows[0]?.z;
+    expect(site).toBe(SEED_ZONE);
+    const batch = randomUUID();
+    const write = (ctx: ActorContext) => withCommand(db.app, ctx, (c) => c.query('insert into testgmp.sample (batch_id, value) values ($1, 1)', [batch]));
+    const logged = async (ctx: ActorContext) =>
+      (await db.admin.query('select 1 from iam.command_log where correlation_id = $1', [ctx.correlationId])).rowCount;
+    // Another zone, UTC, a link to the same zone, and the site's zone in lower case: the zone is the
+    // configured text, not whatever the client's clock or its spelling resolves to.
+    for (const zone of ['Europe/Berlin', 'UTC', 'Asia/Calcutta', 'asia/kolkata']) {
+      const ctx = command(op, { siteZone: zone });
+      await expectRefused(
+        write(ctx),
+        'EBMR-IAM-118',
+        `EBMR-IAM-118 DI-27: the actor context declares the time zone ${zone}, but the site's time zone (policy site.zone) is ${SEED_ZONE}`,
+      );
+      expect(await logged(ctx), zone).toBe(0);
+    }
+    expect((await db.admin.query('select 1 from testgmp.sample where batch_id = $1', [batch])).rowCount).toBe(0);
+    // The same person, session and device declaring the site's zone is accepted.
+    const ok = command(op, { siteZone: SEED_ZONE });
+    await write(ok);
+    expect(await logged(ok)).toBe(1);
+    expect((await db.admin.query('select 1 from testgmp.sample where batch_id = $1', [batch])).rowCount).toBe(1);
   });
 });
 
