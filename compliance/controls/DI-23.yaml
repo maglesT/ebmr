@@ -25,6 +25,11 @@ implemented_by:
   modules:
     - packages/kernel/sql/0010_audit_trail.sql
     - packages/kernel/src/audit/verify.ts
+    - "apps/tablets-server/src/features/audit/read-model.ts (read-only Kysely model of kernel.audit_event)"
+    - "apps/tablets-server/src/features/audit/index.ts (chains, events, verify; GET only)"
+    - "apps/tablets-web/src/features/audit/AuditPage.tsx"
+    - "packages/ui-kit/src/audit/AuditEventList.tsx"
+    - "packages/ui-kit/src/audit/ChainVerifyBadge.tsx"
   invariants:
     - INV-06
     - INV-08
@@ -41,6 +46,13 @@ tests:
   - "packages/kernel/test/audit/audit-trail.test.ts > [INV-08][DI-23] altering an audit row directly in the database, deleting one, or moving the head is detected and the entry is named"
   - "packages/kernel/test/security/definer-hardening.test.ts > [DI-13][DI-23] every definer function owned by ebmr_owner pins search_path with pg_temp last"
   - "packages/kernel/test/security/definer-hardening.test.ts > [DI-13][DI-23] the application role cannot create temporary tables to shadow catalog tables"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22][DI-23] an entry shows who (legal name, user ID, role), what (fields old and new), when (site time with offset, UTC), why (reason) and how (terminal)"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-23] verifyChain is green on an intact chain and names the entry whose stored payload was altered"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22][DI-23] no route edits, disables or purges the audit trail: every audit route is a read, and writes to its paths do not exist"
+  - "apps/tablets-web/test/audit/audit-page.test.tsx > [DI-22][DI-23] a chain shows its entries with who, when and why, and verifies the chain; nothing can be edited"
+  - "packages/ui-kit/test/audit/audit.test.tsx > [DI-22][DI-23] an entry shows who, what (old and new), when (site time and UTC), why and the terminal"
+  - "packages/ui-kit/test/audit/audit.test.tsx > [DI-23] chain verification shows intact or broken with the problems named"
+  - "tools/e2e/specs/audit/audit.spec.ts > [DI-22][DI-23] GMP: who, when, why and what changed, and the chain verifies"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

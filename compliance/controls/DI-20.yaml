@@ -26,6 +26,13 @@ implemented_by:
     - "packages/kernel/sql/0140_iam_devices.sql"
     - "packages/kernel/sql/0160_iam_authentication_sessions.sql"
     - "packages/kernel/sql/0190_iam_actor_context.sql"
+    - "apps/tablets-server/src/platform/auth/attribution.ts (per-entry attribution: proof over the exact request, BADGE_TAP or TAP_PIN, same person or 409 SWITCH_USER, tap rate limit)"
+    - "apps/tablets-server/src/features/access/index.ts (lock, unlock by the same person on the same terminal, keep-alive with a tap, switch user by badge and PIN)"
+    - "apps/tablets-server/sql/0100_tab_attribution.sql (attribution method per shop-floor class, audited history)"
+    - "apps/tablets-web/src/features/access/controller.tsx (BadgeTapPort, switch offers, lock overlay, session poll)"
+    - "packages/ui-kit/src/machines/kiosk-lock.ts"
+    - "packages/ui-kit/src/identity/LockOverlay.tsx"
+    - "packages/ui-kit/src/identity/BadgePrompt.tsx"
   guards:
     - "iam.resolve_device: identity from the enrolled key or certificate fingerprint; unknown, blocked or decommissioned devices refused with an alert"
     - "iam.check_device_location: data accepted only from a device registered to that room or line; a mismatch is refused with an alert"
@@ -39,6 +46,14 @@ tests:
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] data arriving from an unregistered device is rejected with an alert"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] data from a relocated balance is rejected with an alert until the registry is updated"
   - "packages/kernel/test/identity/devices-sessions.test.ts > [DI-20] every entry stores the server-derived device; a client-claimed device is refused"
+  - "apps/tablets-server/test/access/attribution.test.ts > [INV-40][DI-14][DI-20] a reused tap is refused: the same attribution sent again fails its single-use device proof"
+  - "apps/tablets-server/test/access/attribution.test.ts > [DI-20][INV-40] a tap proven by another terminal's key is refused"
+  - "apps/tablets-server/test/access/attribution.test.ts > [DI-20][INV-40] a tap whose proof covers another body is refused (the proof binds the exact request)"
+  - "apps/tablets-server/test/access/session.test.ts > [DI-38][DI-20] an office session is unlocked with user ID and password of its own person only; a kiosk method is refused there"
+  - "apps/tablets-server/test/access/session.test.ts > [DI-20] an unlock proven by another terminal is refused"
+  - "apps/tablets-server/test/access/session.test.ts > [DI-20] switching user is a kiosk function; an office PC refuses it"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-38][DI-20] a kiosk signs with the PIN only after its own tap; a password, another terminal's proof or another session's challenge is refused"
+  - "apps/tablets-web/test/access/ports.test.tsx > [INV-40][DI-14][DI-20] a tap returns an attribution whose device proof covers exactly the request it confirms"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

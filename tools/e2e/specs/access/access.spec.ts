@@ -31,6 +31,7 @@ test.describe('kiosk access', () => {
     const operator = persona('SANDBOX', 'operator2');
     const verifier = persona('SANDBOX', 'verifier2');
     const page = await kioskPage('TEST-KIOSK-BLEND-1');
+    await axe.check(page);
     await signIn.kiosk(page, operator);
     await expect(page.getByTestId('identity')).toContainText(`${operator.legalName} (${operator.loginName}), OPERATOR`);
 

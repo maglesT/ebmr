@@ -9,9 +9,9 @@ import { randomUUID } from 'node:crypto';
 import { encode, encodeCommand, hashJson, type JsonValue } from '../engine/codec.ts';
 import type { BatchDefinition } from '../engine/definition.ts';
 import { issue, prepareForSignature, step, sweep, type SignatureTarget } from '../engine/engine.ts';
-import { changedContents, signingContents, type AggregateContent } from '../engine/signing-content.ts';
+import { aggregateContent, changedContents, signingContents, touchedAggregates, type AggregateContent } from '../engine/signing-content.ts';
 import { ENGINE_VERSION, type Actor, type BatchState, type Command, type EngineEvent, type EnginePolicy, type IssueRequest, type StepResult } from '../engine/types.ts';
-import { appendExecution, beginIssue, ExecutionStoreError, issueExecution, lockExecution, type LockedExecution, type Queryable, type RoleEvidence } from './store.ts';
+import { appendExecution, beginIssue, ExecutionStoreError, issueExecution, loadContentHead, lockExecution, type LockedExecution, type Queryable, type RoleEvidence } from './store.ts';
 
 /** The engine policy as pinned in a batch (JSON; bigint durations tagged by the codec). */
 export function pinnedPolicy(policy: EnginePolicy): JsonValue {
@@ -71,6 +71,14 @@ export class ExecutionTx {
   private async append(kind: 'COMMAND' | 'PREPARE' | 'SWEEP', command: JsonValue, commandId: string, r: { state: BatchState; events: EngineEvent[]; accepted: boolean; refusal?: StepResult['refusal'] }, roles: readonly RoleEvidence[], evidence?: JsonValue): Promise<void> {
     const before = this.state;
     const contents = changedContents(this.def, before, r.state);
+    // The first content version of a phase instance a person works on (storedOnCreation).
+    if (r.accepted && kind !== 'SWEEP' && typeof command === 'object' && command !== null && !Array.isArray(command)) {
+      for (const t of touchedAggregates(command as { type: string })) {
+        if (contents.some((c) => c.type === t.type && c.key === t.key)) continue;
+        const c = aggregateContent(this.def, r.state, t.type, t.key);
+        if (c && !(await loadContentHead(this.client, t.type, this.locked.batch.id, t.key))) contents.push(c);
+      }
+    }
     const res = await appendExecution(this.client, {
       batchId: this.locked.batch.id,
       expectedSeq: this.lastSeq,
@@ -106,12 +114,14 @@ export class ExecutionTx {
 
   /**
    * The system facts a signing command sees (sweep, and finalisation for PERFORMED), appended as a PREPARE
-   * row when they produced events. Returns whether a row was written.
+   * row when they produced events. `meaning` is the signature meaning being prepared for (the database
+   * checks the permission of that meaning, e.g. STEP.WITNESS for a WITNESSED verification). Returns whether
+   * a row was written.
    */
-  async prepare(target: SignatureTarget, actor: Actor, roles: readonly RoleEvidence[]): Promise<boolean> {
+  async prepare(target: SignatureTarget, actor: Actor, roles: readonly RoleEvidence[], meaning?: string): Promise<boolean> {
     const p = prepareForSignature(this.def, this.state, target, actor, { nowUs: this.nowUs });
     if (!p.changed) return false;
-    await this.append('PREPARE', encode({ type: 'PREPARE', target, actor }), `PREPARE:${randomUUID()}`, { state: p.state, events: p.events, accepted: true }, roles);
+    await this.append('PREPARE', encode({ type: 'PREPARE', target, actor, ...(meaning !== undefined ? { meaning } : {}) }), `PREPARE:${randomUUID()}`, { state: p.state, events: p.events, accepted: true }, roles);
     return true;
   }
 

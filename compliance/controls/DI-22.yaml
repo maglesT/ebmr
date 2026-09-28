@@ -39,6 +39,11 @@ implemented_by:
     - packages/kernel/sql/0010_audit_trail.sql
     - packages/kernel/src/audit
     - packages/kernel/src/db/command.ts
+    - "apps/tablets-server/src/features/audit/read-model.ts (read-only Kysely model of kernel.audit_event)"
+    - "apps/tablets-server/src/features/audit/index.ts (chains, events, verify; GET only)"
+    - "apps/tablets-web/src/features/audit/AuditPage.tsx"
+    - "packages/ui-kit/src/audit/AuditEventList.tsx"
+    - "packages/ui-kit/src/audit/ChainVerifyBadge.tsx"
   invariants:
     - INV-07
   db_constraints:
@@ -53,6 +58,20 @@ tests:
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22] a plain-language business entry shares the correlation ID of the row entries"
   - "packages/kernel/test/identity/attribution.test.ts > [INV-40][INV-07][DI-22] bypass: a context set with set_config cannot write any audited table or be read as the actor"
   - "packages/kernel/test/integration/system-log.test.ts > [DI-22] a failed login, a role change and a configuration change each appear in the system log"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22][DI-23] an entry shows who (legal name, user ID, role), what (fields old and new), when (site time with offset, UTC), why (reason) and how (terminal)"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22] a signature adds a plain-language business entry on the record's own chain, with the same correlation as its signature rows"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22] events filter by chain, correlation, person and time, and page by keyset without gaps or repeats"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22] chains list by prefix with a readable label and their last activity"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22] the sandbox installation has its own trail and viewer"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22][DI-23] no route edits, disables or purges the audit trail: every audit route is a read, and writes to its paths do not exist"
+  - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22] reading the trail needs a live session"
+  - "apps/tablets-web/test/audit/audit-page.test.tsx > [DI-22] the chain list links to each chain"
+  - "apps/tablets-web/test/audit/audit-page.test.tsx > [DI-22][DI-23] a chain shows its entries with who, when and why, and verifies the chain; nothing can be edited"
+  - "apps/tablets-web/test/audit/audit-page.test.tsx > [DI-22] deep links for other screens: chain, command and person"
+  - "packages/ui-kit/test/audit/audit.test.tsx > [DI-22] UTC is rendered exactly, to the microsecond, without the browser's zone or locale"
+  - "packages/ui-kit/test/audit/audit.test.tsx > [DI-22][DI-23] an entry shows who, what (old and new), when (site time and UTC), why and the terminal"
+  - "packages/ui-kit/test/audit/audit.test.tsx > [DI-22] a command's business entry comes first; its row changes are grouped under it"
+  - "tools/e2e/specs/audit/audit.spec.ts > [DI-22][DI-23] GMP: who, when, why and what changed, and the chain verifies"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

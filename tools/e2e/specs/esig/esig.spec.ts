@@ -45,8 +45,8 @@ test.describe('e-signature ceremony', () => {
 
     await evidence.step('Enter the right PIN', 'Signed: the stored manifestation shows date and time with +05:30 (Asia/Kolkata)', async () => {
       await enterPinOn(page, 'Enter your PIN to sign', operator.pin ?? '');
-      await expect(page.getByText('Signed.')).toBeVisible();
-      const card = page.getByRole('region', { name: 'Signature' });
+      await expect(page.getByText('Signed.', { exact: true })).toBeVisible();
+      const card = page.getByRole('region', { name: 'Signature', exact: true });
       await expect(card).toContainText(operator.legalName);
       await expect(card).toContainText(operator.loginName);
       await expect(card).toContainText('OPERATOR');

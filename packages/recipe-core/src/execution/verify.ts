@@ -37,8 +37,11 @@ export async function replayExecution(db: Queryable, def: BatchDefinition, batch
     const expected = signingContents(def, r.state);
     for (const [k, c] of expected) {
       const h = heads.get(k);
-      if (!h) contentProblems.push(`${k} has no stored content`);
-      else if (h.hash !== c.contentHash) contentProblems.push(`${k}: the stored content is not the content of the state`);
+      const unstarted = c.type === 'batch_step' && r.state.steps[c.key]?.kind === 'PHASE' && ['PENDING', 'ENABLED'].includes(r.state.steps[c.key]?.status ?? '');
+      if (!h) {
+        // A phase nobody has worked on yet is stored when it is first worked on (storedOnCreation).
+        if (!unstarted) contentProblems.push(`${k} has no stored content`);
+      } else if (h.hash !== c.contentHash) contentProblems.push(`${k}: the stored content is not the content of the state`);
     }
     for (const k of heads.keys()) if (!expected.has(k)) contentProblems.push(`${k} is stored but not part of the state`);
   }

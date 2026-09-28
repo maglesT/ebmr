@@ -52,6 +52,14 @@ implemented_by:
     - "packages/kernel/src/esig/catalogue.ts"
     - "packages/kernel/src/esig/signing.ts"
     - "packages/recipe-core/src/engine/guards.ts (signature meanings per engine signature point)"
+    - "apps/tablets-server/src/features/esig/index.ts (content, challenge, sign: authenticate, dry-run, esig.sign and seal, apply in one command; failures logged after rollback)"
+    - "apps/tablets-server/src/features/esig/badges.ts"
+    - "apps/tablets-server/src/features/esig/views.ts (manifestation from the stored copy)"
+    - "apps/tablets-web/src/features/access/ceremony.tsx (SignatureCeremonyPort)"
+    - "packages/ui-kit/src/machines/ceremony.ts"
+    - "packages/ui-kit/src/identity/SignatureDialog.tsx"
+    - "packages/ui-kit/src/identity/SignableContent.tsx"
+    - "packages/ui-kit/src/identity/Manifestation.tsx"
   invariants:
     - "INV-03"
   guards:
@@ -85,6 +93,10 @@ tests:
   - "packages/kernel/test/esig/signing.test.ts > [DI-35] only catalogue meanings can be challenged; a stale content version is refused"
   - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-35] a signature made by someone else, or used twice, is refused"
   - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-35] a WITNESSED step needs the WITNESSED meaning, and a witness after the window raises an exception"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-36][DI-35][DI-38] the manifestation names legal name, user ID, role, meaning and zone before signing, and carries date and time with offset and zone after"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [INV-03][DI-35] a person who entered data cannot sign VERIFIED: refused in plain language, nothing signed, the failure logged"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-35][DI-36][INV-26] an independent verifier signs VERIFIED and the entry completes; every signature stores its authority evaluation"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-35] only catalogue meanings can be asked for; an unknown meaning is refused before anything is recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

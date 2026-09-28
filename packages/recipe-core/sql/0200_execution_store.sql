@@ -356,6 +356,31 @@ language sql immutable set search_path = pg_catalog, esig, pg_temp as $$
 $$;
 
 -- ---------------------------------------------------------------------------------------------
+-- Proposed dispositions of exceptions (Part 11 signature/record linking; EU GMP Annex 11 section 14): the
+-- outcome, justification and linked deviation a QA reviewer is about to sign, recorded when the signing
+-- challenge is prepared and part of the signed content of the exception (the batch_exception provider adds
+-- the latest proposal made on the current content version). Kept apart from the signed content table on
+-- purpose: proposing is not a change of the exception's data, so it never makes the reviewer an "enterer"
+-- of the record they then disposition (esig content_change, INV-03). Insert-only, audited.
+-- ---------------------------------------------------------------------------------------------
+
+create table recipe.execution_disposition_proposal (
+  id                   bigint generated always as identity primary key,
+  batch_id             uuid not null references recipe.batch_execution (id),
+  exception_id         text not null check (btrim(exception_id) <> ''),
+  aggregate_id         text not null,
+  content_version      integer not null check (content_version >= 1),
+  proposal             jsonb not null check (jsonb_typeof(proposal) = 'object'),
+  proposed_by_person   uuid not null,
+  proposed_by_account  uuid not null,
+  correlation_id       uuid not null,
+  proposed_at          timestamptz not null default clock_timestamp(),
+  check (aggregate_id = batch_id::text || ':' || exception_id)
+);
+revoke all on recipe.execution_disposition_proposal from public;
+create index execution_disposition_proposal_aggregate on recipe.execution_disposition_proposal (aggregate_id, content_version, id);
+
+-- ---------------------------------------------------------------------------------------------
 -- Audit registration: insert-only, on the batch chain batch:<id> (with the business entries)
 -- ---------------------------------------------------------------------------------------------
 
@@ -366,12 +391,13 @@ select kernel.register_audited_table('recipe.execution_step_content', 'batch', '
 select kernel.register_audited_table('recipe.execution_stage_content', 'batch', 'batch_id', true);
 select kernel.register_audited_table('recipe.execution_exception_content', 'batch', 'batch_id', true);
 select kernel.register_audited_table('recipe.execution_point_content', 'batch', 'batch_id', true);
+select kernel.register_audited_table('recipe.execution_disposition_proposal', 'batch', 'batch_id', true);
 
 -- The app and sandbox roles read; they never write (every write is a definer function in 0210).
 grant select on recipe.engine_role_permission, recipe.execution_command_permission, recipe.sandbox_only_block, recipe.test_package,
                 recipe.batch_execution, recipe.execution_command, recipe.execution_event, recipe.execution_state,
                 recipe.execution_step_content, recipe.execution_stage_content, recipe.execution_exception_content,
-                recipe.execution_point_content to ebmr_app;
+                recipe.execution_point_content, recipe.execution_disposition_proposal to ebmr_app;
 grant execute on function recipe.ctx_key(jsonb), recipe.canonical_hash(jsonb), recipe.micros_of(jsonb), recipe.person_ids(jsonb),
                           recipe.execution_row_hash(text, recipe.execution_command), recipe.execution_genesis_hash(uuid),
                           recipe.content_table(text) to ebmr_app;

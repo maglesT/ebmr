@@ -469,7 +469,7 @@ begin
       raise exception using errcode = 'P0001', message = 'The command id of the row and of the engine command differ (outline 5.7). [EBMR-EXE-024]';
     end if;
     v_type := case when p_kind = 'PREPARE' then p_command -> 'target' ->> 'type' else p_command ->> 'type' end;
-    v_mean := p_command -> 'signature' ->> 'meaning';
+    v_mean := case when p_kind = 'PREPARE' then p_command ->> 'meaning' else p_command -> 'signature' ->> 'meaning' end;
     perform recipe.require_command_permission(v_type, v_mean);
     v_roles := recipe.check_engine_roles(v_eng, p_roles);
     if p_kind = 'COMMAND' and p_accepted then
@@ -672,6 +672,65 @@ create constraint trigger zz_execution_attribution after insert on recipe.execut
 -- latest content row; state, the persons involved, the scope and the witnessed act from the projection.
 -- ---------------------------------------------------------------------------------------------
 
+-- Whether the run moved on after the act of a step instance (a witness can no longer watch it): another step
+-- instance started, or data or a block entry was recorded in another instance, at or after the act's end.
+-- Derived from the run's own stored state only (never from the client); a tie counts as started (fail closed).
+create function recipe.next_step_started(p_state jsonb, p_key text, p_ended bigint) returns boolean
+language sql immutable set search_path = pg_catalog, recipe, pg_temp as $$
+  select p_ended is not null and (
+       exists (select 1 from jsonb_each(coalesce(p_state -> 'steps', '{}'::jsonb)) i
+                where i.key <> p_key and recipe.micros_of(i.value -> 'startedAt') >= p_ended)
+    or exists (select 1 from jsonb_each(coalesce(p_state -> 'entries', '{}'::jsonb)) e
+                where e.value ->> 'stepKey' <> p_key and recipe.micros_of(e.value -> 'recordedAt') >= p_ended)
+    or exists (select 1 from jsonb_each(coalesce(p_state -> 'points', '{}'::jsonb)) d
+                where d.value ->> 'stepKey' <> p_key and recipe.micros_of(d.value -> 'recordedAt') >= p_ended))
+$$;
+
+-- The latest proposed disposition made on a content version of an exception aggregate (JSON null when none).
+create function recipe.current_proposal(p_aggregate text, p_version integer) returns jsonb
+language sql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
+  select coalesce((select p.proposal from recipe.execution_disposition_proposal p
+                    where p.aggregate_id = p_aggregate and p.content_version = p_version order by p.id desc limit 1), 'null'::jsonb)
+$$;
+
+-- Records the disposition a QA reviewer is about to sign: {outcome, justification, deviationRef}, on the
+-- exception's current content version (sandbox only; the permission of DISPOSITION_EXCEPTION). The exception
+-- must be open; the deviation reference must be the one linked in the stored state (or null).
+create function recipe.propose_disposition(p_batch uuid, p_exception text, p_proposal jsonb) returns jsonb
+language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, kernel, pg_temp as $$
+declare
+  v_actor jsonb := recipe.execution_actor('Proposing an exception disposition');
+  x       jsonb;
+  v_agg   text := p_batch::text || ':' || p_exception;
+  v_ver   integer;
+begin
+  perform recipe.require_command_permission('DISPOSITION_EXCEPTION', 'EXCEPTION_DISPOSITIONED');
+  select s.state -> 'exceptions' -> p_exception into x from recipe.execution_state s where s.batch_id = p_batch;
+  if x is null then
+    raise exception using errcode = 'P0001', message = format('There is no exception %s in this test batch (DI-26). [EBMR-EXE-084]', coalesce(p_exception, 'null'));
+  end if;
+  if x ->> 'status' <> 'OPEN' then
+    raise exception using errcode = 'P0001', message = format('Exception %s is already dispositioned (DI-26). [EBMR-EXE-084]', p_exception);
+  end if;
+  if jsonb_typeof(p_proposal) <> 'object' or (select count(*) from jsonb_object_keys(p_proposal)) <> 3
+     or p_proposal ->> 'outcome' not in ('NO_IMPACT', 'DEVIATION_RAISED')
+     or coalesce(btrim(p_proposal ->> 'justification'), '') = '' or length(p_proposal ->> 'justification') > 4000
+     or (p_proposal -> 'deviationRef') is distinct from coalesce(x -> 'deviation' -> 'ref', 'null'::jsonb) then
+    raise exception using errcode = 'P0001',
+      message = 'A proposed disposition is {outcome, justification, deviationRef}: NO_IMPACT or DEVIATION_RAISED, a justification, and the deviation linked to the exception (PR-49). [EBMR-EXE-084]';
+  end if;
+  select max(content_version) into v_ver from recipe.execution_exception_content where aggregate_id = v_agg;
+  if v_ver is null then
+    raise exception using errcode = 'P0001', message = format('Exception %s has no signable content (DI-37). [EBMR-EXE-084]', p_exception);
+  end if;
+  insert into recipe.execution_disposition_proposal (batch_id, exception_id, aggregate_id, content_version, proposal,
+                                                     proposed_by_person, proposed_by_account, correlation_id)
+  values (p_batch, p_exception, v_agg, v_ver, p_proposal, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid,
+          (v_actor ->> 'correlation_id')::uuid);
+  return jsonb_build_object('content_version', v_ver, 'proposal', p_proposal);
+end
+$$;
+
 create function recipe.execution_content_of(p_type text, p_id text) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
@@ -712,7 +771,8 @@ begin
            and recipe.instance_aggregate(v_batch, c.command ->> 'step', c.command -> 'context') = p_id
          order by c.seq desc limit 1;
         if v_dev is not null then
-          v_act := jsonb_build_object('device_id', v_dev, 'at', timestamptz 'epoch' + make_interval(secs => 0) + (v_ended::text || ' microseconds')::interval);
+          v_act := jsonb_build_object('device_id', v_dev, 'at', timestamptz 'epoch' + make_interval(secs => 0) + (v_ended::text || ' microseconds')::interval,
+                                      'next_step_started', recipe.next_step_started(st, v_key, v_ended));
         end if;
       end if;
     when 'batch_stage' then
@@ -724,14 +784,19 @@ begin
       x := st -> 'exceptions' -> v_key;
       v_state := x ->> 'status';
       v_by := recipe.person_ids(jsonb_build_array(x ->> 'raisedBy', x -> 'deviation' ->> 'linkedBy'));
+      -- The disposition being signed is part of the signed content (recipe.propose_disposition).
+      v_row.content := v_row.content || jsonb_build_object('proposedDisposition', recipe.current_proposal(p_id, v_row.content_version));
     when 'batch_point' then
       x := st -> 'points' -> v_key;
       v_state := x ->> 'status';
       v_by := recipe.person_ids(jsonb_build_array(x ->> 'enteredBy'));
   end case;
-  return jsonb_strip_nulls(jsonb_build_object(
+  -- The content is returned exactly as stored (its null members are part of the signed text); only an
+  -- absent act is left out.
+  return jsonb_build_object(
     'exists', true, 'content_version', v_row.content_version, 'content', v_row.content, 'state', v_state,
-    'entered_by', to_jsonb(v_by), 'scope', jsonb_build_object('site', b.site_code), 'act', v_act));
+    'entered_by', to_jsonb(v_by), 'scope', jsonb_build_object('site', b.site_code))
+    || case when v_act is null then '{}'::jsonb else jsonb_build_object('act', v_act) end;
 end
 $$;
 
@@ -863,11 +928,18 @@ revoke all on function recipe.execution_actor(text), recipe.require_command_perm
                        recipe.write_row(uuid, bigint, text, text, jsonb, jsonb, bigint, boolean, jsonb, jsonb, jsonb, jsonb, uuid[], jsonb, text),
                        recipe.check_state(recipe.batch_execution, jsonb, text, jsonb, text), recipe.execution_attribution_check(),
                        recipe.execution_content_of(text, text), recipe.batch_step_content(text), recipe.batch_stage_content(text),
-                       recipe.batch_exception_content(text), recipe.batch_point_content(text) from public;
+                       recipe.batch_exception_content(text), recipe.batch_point_content(text), recipe.next_step_started(jsonb, text, bigint),
+                       recipe.lock_execution(uuid, boolean),
+                       recipe.append_execution(uuid, bigint, text, jsonb, text, bigint, boolean, jsonb, jsonb, text, jsonb, text, jsonb, jsonb, jsonb),
+                       recipe.begin_issue(uuid),
+                       recipe.issue_execution(uuid, text, text, jsonb, jsonb, text, text, text, bigint, jsonb, text, jsonb, text, jsonb, jsonb),
+                       recipe.import_test_package(jsonb, text), recipe.execution_violations(), recipe.current_proposal(text, integer),
+                       recipe.propose_disposition(uuid, text, jsonb) from public;
 grant execute on function recipe.lock_execution(uuid, boolean),
                           recipe.append_execution(uuid, bigint, text, jsonb, text, bigint, boolean, jsonb, jsonb, text, jsonb, text, jsonb, jsonb, jsonb),
                           recipe.begin_issue(uuid),
                           recipe.issue_execution(uuid, text, text, jsonb, jsonb, text, text, text, bigint, jsonb, text, jsonb, text, jsonb, jsonb),
-                          recipe.import_test_package(jsonb, text), recipe.execution_violations(), recipe.instance_aggregate(uuid, text, jsonb) to ebmr_app;
+                          recipe.import_test_package(jsonb, text), recipe.execution_violations(), recipe.instance_aggregate(uuid, text, jsonb),
+                          recipe.propose_disposition(uuid, text, jsonb), recipe.current_proposal(text, integer) to ebmr_app;
 
 reset role;

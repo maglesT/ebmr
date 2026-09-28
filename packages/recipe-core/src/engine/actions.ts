@@ -39,7 +39,7 @@ export interface AvailableAction {
   signed: boolean;
   /** Signature meaning of a signed action. */
   meaning: string | null;
-  /** What the action acts on when it is not the step itself: exception id, stage key, hold id. */
+  /** What the action acts on when it is not the step itself: exception id, stage key, hold id; the disposition of a hold-point decision. */
   target: string | null;
   /** The engine's refusal when not available (plain language, rule code, controls). */
   refusal: Refusal | null;
@@ -104,10 +104,13 @@ export function availableActions(def: BatchDefinition, state: BatchState, actor:
     const stepDef = def.steps.get(inst.step);
     const frames = inst.frames;
     if (inst.kind === 'HOLD') {
+      // One decision per disposition the hold point offers, each signed with its own meaning (release:
+      // HOLD_POINT_RELEASED; any other decision: HOLD_POINT_NOT_RELEASED); the target names the disposition.
       const hold = stepDef?.node.kind === 'holdPoint' ? stepDef.node : undefined;
-      const disposition = hold?.dispositions.find((d) => RELEASING_DISPOSITIONS.includes(d)) ?? hold?.dispositions[0] ?? 'APPROVED';
-      const meaning = holdPointMeaning(disposition);
-      out.push(result('DISPOSITION_HOLD_POINT', run({ type: 'DISPOSITION_HOLD_POINT', step: inst.step, context: frames, disposition, signature: placeholder(meaning, actor) }), { signed: true, meaning }));
+      for (const disposition of hold?.dispositions ?? []) {
+        const meaning = holdPointMeaning(disposition);
+        out.push(result('DISPOSITION_HOLD_POINT', run({ type: 'DISPOSITION_HOLD_POINT', step: inst.step, context: frames, disposition, signature: placeholder(meaning, actor) }), { signed: true, meaning, target: disposition }));
+      }
     } else {
       out.push(result('START_STEP', run({ type: 'START_STEP', step: inst.step, context: frames })));
       const phase = stepDef?.node.kind === 'phase' ? stepDef.node : undefined;

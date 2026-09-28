@@ -17,6 +17,11 @@
  *    exceptions raised by acts about the step rather than by its data (a late witness, an operator's
  *    exception, a refused hold point, a skip, a moved target, an input withdrawn after the fact): those
  *    live in their own `batch_exception` aggregate.
+ *    Also excluded: the times of facts the system computes when the step is prepared for signing (the
+ *    recorded time of block-computed values, the computation time of derived values, the time an exception
+ *    on the step was raised). Their values, inputs, evaluations and the exceptions themselves are signed;
+ *    their times stay in the record (events, rows, state hash). Otherwise the signer's preview, computed a
+ *    moment earlier, could never equal the content the challenge prepares (DI-37).
  *  - `batch_stage` (a stage frame): the stage and, for each of its step instances, the number, status and
  *    the hash of the step's content. The sign-off, its derived summary and end time are excluded.
  *  - `batch_exception`: the exception as raised (type, class, severity, tier, what was recorded and
@@ -86,7 +91,6 @@ export function isStepDataException(def: BatchDefinition, s: BatchState, e: Exce
   return true;
 }
 
-const us = (v: bigint | undefined): string | null => (v === undefined ? null : v.toString());
 const frames = (f: readonly Frame[]): ContentJson => f.map((x) => ({ construct: x.construct, index: x.index }));
 
 export function valueContent(v: DataValue | undefined): ContentJson {
@@ -145,7 +149,8 @@ function plain(v: unknown): ContentJson {
       if (Array.isArray(v)) return v.map(plain);
       return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined).map(([k, x]) => [k, plain(x)]));
     default:
-      return String(v);
+      // Functions and symbols never occur in stored state (it is JSON); they carry no content.
+      return null;
   }
 }
 
@@ -163,7 +168,8 @@ export function pointFacts(p: DataPoint, loopEndpoint = false): { [key: string]:
     value: valueContent(p.value),
     source: sourceContent(p.source),
     enteredBy: p.enteredBy,
-    recordedAt: p.recordedAt.toString(),
+    // A block-computed value is materialised when the step is prepared for signing: its time is not signed.
+    recordedAt: p.source.mode === 'BLOCK' ? null : p.recordedAt.toString(),
     occurredAt: p.occurredAt ? { us: p.occurredAt.us.toString(), trust: p.occurredAt.trust } : null,
     timeBasis: p.timeBasis,
     supersedes: p.supersedes ?? null,
@@ -183,7 +189,6 @@ function derivedFacts(d: DerivedValue): ContentJson {
     value: valueContent(d.value),
     recordHash: d.record.contentHash,
     inputs: d.inputs.map((i) => ({ item: i.item, points: [...i.points], derived: [...i.derived] })),
-    computedAt: d.computedAt.toString(),
     supersedes: d.supersedes ?? null,
     reason: d.reason ?? null,
     evaluation: evaluationContent(d.evaluation),
@@ -195,8 +200,11 @@ function entryFacts(e: EntryRecord): ContentJson {
   return { id: e.id, kind: e.kind, data: plain(e.data), enteredBy: e.enteredBy, recordedAt: e.recordedAt.toString() };
 }
 
-/** The exception as raised (never its status, disposition or deviation link). */
-export function exceptionFacts(e: ExceptionRecord): { [key: string]: ContentJson } {
+/**
+ * The exception as raised (never its status, disposition or deviation link). `withTime` false for the
+ * exceptions of a step's content, which the preparation for signing may raise (their time is not signed).
+ */
+export function exceptionFacts(e: ExceptionRecord, withTime = true): { [key: string]: ContentJson } {
   return {
     id: e.id,
     type: e.type,
@@ -216,7 +224,7 @@ export function exceptionFacts(e: ExceptionRecord): { [key: string]: ContentJson
       constraint: e.source.constraint ?? null,
       construct: e.source.construct ?? null,
     },
-    raisedAt: e.raisedAt.toString(),
+    raisedAt: withTime ? e.raisedAt.toString() : null,
     raisedBy: e.raisedBy,
     blocks: e.block ? { steps: [...e.block.steps], downstream: e.block.downstream ? { node: e.block.downstream.node, frames: frames(e.block.downstream.frames) } : null, until: e.block.until } : null,
     deviationRequired: e.deviationRequired,
@@ -294,7 +302,7 @@ export function stepSigningContent(def: BatchDefinition, s: BatchState, key: str
     points: points.map((p) => pointFacts(p, judgedAtLoopExit(def, p))),
     derived: derived.map(derivedFacts),
     entries: entries.map(entryFacts),
-    exceptions: exceptions.map(exceptionFacts),
+    exceptions: exceptions.map((e) => exceptionFacts(e, false)),
   };
   return { type: 'batch_step', key, content, contentHash: hashContent(content), enteredBy: stepEnteredBy(inst), state: inst.status };
 }
@@ -389,11 +397,54 @@ export function signingEnvelope(aggregateType: AggregateType, aggregateId: strin
   return { text, hash: sha256Hex(text) };
 }
 
-/** Aggregates whose content differs between two states (new or changed), in key order. */
+/**
+ * Whether a new aggregate's first content version is stored as soon as it appears. A phase instance is not:
+ * it appears when the command that ends the step before it enables it, and the e-signature module counts the
+ * person whose command stores a content version as having changed that record (esig content_change), which
+ * would exclude, say, the verifier of the previous step from verifying this one (a false INV-03 refusal).
+ * Its first version is stored when it first changes, or when a person first works on it (touchedAggregates):
+ * START_STEP by its performer at the latest, so every phase that can be signed has stored content. Hold
+ * points, stage frames, exceptions and data points are stored when they appear.
+ */
+export function storedOnCreation(c: AggregateContent, s: BatchState): boolean {
+  return !(c.type === 'batch_step' && s.steps[c.key]?.kind === 'PHASE');
+}
+
+/** Aggregates whose content must be stored after a move from `before` to `after` (changed, or new and stored on creation), in key order. */
 export function changedContents(def: BatchDefinition, before: BatchState | undefined, after: BatchState): AggregateContent[] {
   const prev = before ? signingContents(def, before) : new Map<string, AggregateContent>();
   const next = signingContents(def, after);
-  return [...next.entries()].filter(([k, c]) => prev.get(k)?.contentHash !== c.contentHash).map(([, c]) => c);
+  return [...next.entries()]
+    .filter(([k, c]) => {
+      const p = prev.get(k);
+      return p === undefined ? storedOnCreation(c, after) : p.contentHash !== c.contentHash;
+    })
+    .map(([, c]) => c);
+}
+
+/**
+ * The aggregates a person works on with an accepted command (or a PREPARE for SIGN_PERFORMED): their content
+ * is stored if it is not yet (see storedOnCreation).
+ */
+export function touchedAggregates(command: { type: string; step?: unknown; context?: unknown; target?: unknown }): { type: AggregateType; key: string }[] {
+  const t = command.type === 'PREPARE' && typeof command.target === 'object' && command.target !== null ? (command.target as { type?: unknown; step?: unknown; context?: unknown }) : command;
+  if (typeof t.step !== 'string') return [];
+  const frames = Array.isArray(t.context) ? (t.context as Frame[]) : [];
+  return [{ type: 'batch_step', key: stepKeyOf(t.step, frames) }];
+}
+
+/**
+ * Whether the run moved on after the act of a step instance, so the act can no longer be witnessed: another
+ * step instance started, or data or a block entry was recorded in another instance, at or after the act's
+ * end (a tie counts as started). The same derivation as the database's recipe.next_step_started, which the
+ * batch_step content provider reports to the e-signature module as `act.next_step_started`.
+ */
+export function nextStepStarted(s: BatchState, key: string): boolean {
+  const ended = s.steps[key]?.endedAt;
+  if (ended === undefined) return false;
+  if (Object.values(s.steps).some((i) => i.key !== key && i.startedAt !== undefined && i.startedAt >= ended)) return true;
+  if (Object.values(s.entries).some((e) => e.stepKey !== key && e.recordedAt >= ended)) return true;
+  return Object.values(s.points).some((p) => p.stepKey !== key && p.recordedAt >= ended);
 }
 
 // ---------------------------------------------------------------------------------------------

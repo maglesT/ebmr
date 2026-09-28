@@ -35,6 +35,14 @@ implemented_by:
     - "packages/kernel/src/esig/keys.ts"
     - "packages/kernel/src/esig/signing.ts"
     - "packages/kernel/src/esig/integrity.ts (verifySignatures, verifySeal)"
+    - "apps/tablets-server/src/features/esig/index.ts (content, challenge, sign: authenticate, dry-run, esig.sign and seal, apply in one command; failures logged after rollback)"
+    - "apps/tablets-server/src/features/esig/badges.ts"
+    - "apps/tablets-server/src/features/esig/views.ts (manifestation from the stored copy)"
+    - "apps/tablets-web/src/features/access/ceremony.tsx (SignatureCeremonyPort)"
+    - "packages/ui-kit/src/machines/ceremony.ts"
+    - "packages/ui-kit/src/identity/SignatureDialog.tsx"
+    - "packages/ui-kit/src/identity/SignableContent.tsx"
+    - "packages/ui-kit/src/identity/Manifestation.tsx"
   invariants:
     - "INV-09"
     - "INV-10"
@@ -66,6 +74,12 @@ tests:
   - "packages/kernel/test/records/investigations.test.ts > [DI-50][DI-37] closing a DI investigation needs the approver's own DI_INVESTIGATION_CLOSED signature of that investigation"
   - "packages/kernel/test/records/register.test.ts > [DI-01][DI-37] a record type is approved only with the approver's own RECORD_TYPE_APPROVED signature of that very version; its author cannot sign it"
   - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][DI-37] a disposal approval needs the approver's own RECORD_DISPOSAL_APPROVED signature of that record at its current retain-until and cited archive"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-37] a client hash that is not the server's gives EBMR-ESIG-013 CONTENT_CHANGED; a change after the content was read gives it too"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-37][INV-10] a record changed after the challenge answers CONTENT_CHANGED at signing; nothing is signed and the entry keeps its new content"
+  - "apps/tablets-web/test/access/ports.test.tsx > [DI-37] content whose text does not match its hash is never challenged; a changed record offers to review again"
+  - "packages/ui-kit/test/identity/identity.test.tsx > [DI-37] every field of the record is shown, known and unknown, and the exact signed text is available with its hash"
+  - "packages/ui-kit/test/identity/identity.test.tsx > [DI-37] changed content and expiry offer to start again; a lost answer that found nothing says not confirmed"
+  - "packages/ui-kit/test/machines/ceremony.test.ts > [DI-37] content whose text does not hash to the server's hash is never signed; a changed record leads to \"changed\", then back to review"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

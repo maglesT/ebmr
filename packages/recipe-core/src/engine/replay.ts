@@ -23,7 +23,7 @@ export type ExecutionRowKind = 'ISSUE' | 'COMMAND' | 'PREPARE' | 'SWEEP';
 /** What a stored row says the engine was asked to do (encoded with the codec). */
 export type RowCommand =
   | { type: 'ISSUE'; request: IssueRequest }
-  | { type: 'PREPARE'; target: SignatureTarget; actor: Actor }
+  | { type: 'PREPARE'; target: SignatureTarget; actor: Actor; /** Signature meaning prepared for (permission check only). */ meaning?: string }
   | { type: 'SWEEP' }
   | Command;
 

@@ -6,7 +6,7 @@
  */
 import type pg from 'pg';
 import { decode, decodeState, encode, encodeEvents, encodeState, hashJson, type JsonValue } from '../engine/codec.ts';
-import type { AggregateContent } from '../engine/signing-content.ts';
+import type { AggregateContent, AggregateType } from '../engine/signing-content.ts';
 import type { ExecutionRow, ExecutionRowKind } from '../engine/replay.ts';
 import type { BatchState, EngineEvent, Refusal } from '../engine/types.ts';
 import type { TestPackageV1 } from './test-package.ts';
@@ -72,7 +72,7 @@ export class ExecutionStoreError extends Error {
   }
 }
 
-const str = (v: unknown): string => (typeof v === 'string' ? v : v === null || v === undefined ? '' : String(v));
+const str = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'bigint' || typeof v === 'boolean' ? String(v) : '');
 const optStr = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
 export function batchRecord(row: Record<string, unknown>): BatchExecutionRecord {
@@ -246,7 +246,7 @@ export async function importTestPackage(client: Queryable, pkg: TestPackageV1, f
 /** The stored rows of a batch, in order (for replay). */
 export async function loadRows(db: Queryable, batchId: string): Promise<ExecutionRow[]> {
   const { rows } = await db.query<Record<string, unknown>>(
-    'select seq::text as seq, kind, command, now_us::text as now_us, accepted, state_hash, events_hash from recipe.execution_command where batch_id = $1 order by seq',
+    'select c.seq::text as seq, c.kind, c.command, c.now_us::text as now_us, c.accepted, c.state_hash, c.events_hash from recipe.execution_command c where c.batch_id = $1 order by c.seq',
     [batchId],
   );
   return rows.map((r) => ({
@@ -287,6 +287,41 @@ export async function loadContentHeads(db: Queryable, batchId: string): Promise<
     [batchId],
   );
   return new Map(rows.map((r) => [`${r.type}:${r.key}`, { version: r.version, hash: r.hash }]));
+}
+
+const CONTENT_TABLES: Readonly<Record<AggregateType, string>> = {
+  batch_step: 'recipe.execution_step_content',
+  batch_stage: 'recipe.execution_stage_content',
+  batch_exception: 'recipe.execution_exception_content',
+  batch_point: 'recipe.execution_point_content',
+};
+
+/** The latest stored content version and hash of one aggregate of a batch (undefined when none is stored). */
+export async function loadContentHead(db: Queryable, type: AggregateType, batchId: string, key: string): Promise<{ version: number; hash: string } | undefined> {
+  const { rows } = await db.query<{ version: number; hash: string }>(
+    `select content_version as version, content_hash as hash from ${CONTENT_TABLES[type]} where aggregate_id = $1 order by content_version desc limit 1`,
+    [`${batchId}:${key}`],
+  );
+  return rows[0];
+}
+
+/** A disposition a QA reviewer is about to sign; part of the exception's signed content (sql/0210 propose_disposition). */
+export interface DispositionProposal {
+  outcome: 'NO_IMPACT' | 'DEVIATION_RAISED';
+  justification: string;
+  deviationRef: string | null;
+}
+
+/** Records the proposed disposition on the exception's current content version (inside the challenge command). */
+export async function proposeDisposition(client: Queryable, batchId: string, exceptionId: string, proposal: DispositionProposal): Promise<{ contentVersion: number }> {
+  const { rows } = await client.query<{ r: { content_version: number } }>('select recipe.propose_disposition($1, $2, $3::jsonb) as r', [batchId, exceptionId, JSON.stringify(proposal)]);
+  return { contentVersion: Number(rows[0]?.r.content_version ?? 0) };
+}
+
+/** The latest proposal made on a content version of an exception (null when none). */
+export async function loadProposal(db: Queryable, batchId: string, exceptionId: string, contentVersion: number): Promise<DispositionProposal | null> {
+  const { rows } = await db.query<{ p: DispositionProposal | null }>('select recipe.current_proposal($1, $2) as p', [`${batchId}:${exceptionId}`, contentVersion]);
+  return rows[0]?.p ?? null;
 }
 
 /** The invariant query (sql/0210): rows mean a problem. */
