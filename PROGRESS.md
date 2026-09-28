@@ -350,3 +350,17 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   answers; TemplateView.batchSizes; tsx at bundling; Login.tsx adopting the ui-kit PinPad/BadgePrompt; merge the Phase 1
   exit fixes (merge risks in the lead's notes: four-eyes role permissions, IAM-118 zone, create_permission on machines,
   protected sequences, retention declarations, IAM-026 order, witness next_step_started from providers).
+- 2026-09-28: FIRST CLICKABLE VERSION (checkpoints D5/D6) DONE. tools/e2e/specs/journey/fcv.spec.ts drives the real
+  screens from the GMP designer (dc-mini family, 0 errors, simulation 100 %, test package sent) through sandbox import
+  and TEST- issue, both kiosk stages (badge + PIN, taps, G-10/G-09/G-03, scale capture on TEST-BAL-01, PERFORMED /
+  VERIFIED by different people, self-verify greyed, stage sign-offs with system summaries, charge-in by scan, G-04
+  action-limit breach blocking until the supervisor links DEV-TEST-0001, QA dispositions, hold point released,
+  manual two-person G-22) to Execution complete, "Replay identical", and both audit chains intact. Full E2E 19/19 (live
+  floor tests self-sufficient through fixtures/test-package.ts). Ten integration defects fixed with tests (views:
+  primary action order and greyed reasons incl. the command permission map, stage sign-off on step cards, prospective
+  stage summary, raiser names; web: reads reset on user switch, template form race, hold-point decisions listed with
+  reasons). Owner received the 6 videos and 26 captioned screenshots (scratchpad fcv-media/, not committed). Demo guide
+  docs/demo/phase-2-first-clickable.md Part A1. OPEN (Phase 2 exit list): PRINTOUT-evidence parameters accepted as manual
+  entries with no evidence (decide); computed weights lose trailing zeros ("50 kg" not "50.000 kg": keep the balance
+  resolution); run-level exceptions cannot be dispositioned from the run overview; engine texts show internal ids;
+  BLEND-1 has no simulated balance. Adversarial review workflow wf_915b8c27-4a5 running on the wave-1 commit.
