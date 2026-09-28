@@ -6,7 +6,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
-import type { ActorContext } from '../../src/db/command.ts';
+import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 import type { TestDatabase } from '../support/db.ts';
 
@@ -47,6 +47,33 @@ export async function grantPermission(db: TestDatabase, roleCode: string, ...per
   for (const p of permissions) {
     await db.admin.query('insert into platform_test.role_permission (role_code, permission) values ($1, $2) on conflict do nothing', [roleCode, p]);
   }
+}
+
+/**
+ * A validated time source, through the product path of kernel 0520: the registrant (holding
+ * platform.time_source.manage) registers it naming the validator, and the validator, another person
+ * holding platform.time_source.validate, confirms it. Returns the source id.
+ */
+export async function registerValidatedTimeSource(
+  db: TestDatabase,
+  registrant: ActorContext,
+  validator: ActorContext,
+  name: string,
+  reference: string,
+  validationRef = 'VAL-TS-2026-001',
+): Promise<string> {
+  const id = await withCommand(db.app, { ...registrant, correlationId: randomUUID() }, async (c) => {
+    const { rows } = await c.query<{ id: string }>("select platform.register_time_source($1, 'NTP', $2, $3, $4, $5) as id", [
+      name,
+      `${name.toLowerCase().replace(/\W+/g, '-')}.example`,
+      reference,
+      validator.personId,
+      validationRef,
+    ]);
+    return rows[0]?.id ?? '';
+  });
+  await withCommand(db.app, { ...validator, correlationId: randomUUID() }, (c) => c.query('select platform.confirm_time_source($1)', [id]));
+  return id;
 }
 
 /** Records a stub signature and returns its id. */

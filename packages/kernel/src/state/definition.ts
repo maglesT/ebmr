@@ -8,7 +8,9 @@
  *
  * Guards, the required signature meaning and the required permission are data on each
  * transition (`meta`), written with `gmp()`. Guard codes name SQL guard functions registered in
- * platform.state_guard; they run on the server inside the transition.
+ * platform.state_guard; they run on the server inside the transition. Every transition names the
+ * permission that fires it, and every machine version the permission that creates an aggregate
+ * (DI-17): the extractor and the database refuse a definition without them.
  */
 import type { AnyStateMachine } from 'xstate';
 
@@ -17,7 +19,7 @@ export interface GmpTransitionMeta {
   guards: string[];
   /** Signature meaning required for the transition (e.g. APPROVED), or null. */
   signature: string | null;
-  /** Permission the actor must hold (e.g. sample_record.approve), or null. */
+  /** Permission the actor must hold (e.g. sample_record.approve). Required: the extractor refuses null. */
   permission: string | null;
 }
 
@@ -46,6 +48,8 @@ export interface MachineDescriptor {
   version: number;
   /** Aggregate type whose records follow this machine (e.g. sample_record, batch). */
   aggregateType: string;
+  /** Permission an actor needs to create an aggregate of this version (e.g. sample_record.submit). */
+  createPermission: string;
   description: string;
   machine: AnyStateMachine;
   /** File name of the generated migration that publishes this version, e.g. 0552_machine_sample_record_v1.sql. */

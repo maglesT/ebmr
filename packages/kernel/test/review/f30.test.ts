@@ -27,7 +27,7 @@ import { createRetentionSchedule, openBlockers } from '../../src/records/retenti
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import type { SeededActor } from '../identity/seed.ts';
 import { createStub, ensureSealKey, signStub, testActor as esigActor } from '../esig/helpers.ts';
-import { again, approveDisposal, recordType, registerType, signerActor, testActor } from '../records/helpers.ts';
+import { again, allowRetention, approveDisposal, recordType, registerType, signerActor, testActor } from '../records/helpers.ts';
 
 let db: TestDatabase;
 let performer: SeededActor;
@@ -42,6 +42,9 @@ beforeAll(async () => {
   db = await createTestDatabase();
   await ensureSealKey(db);
   await registerType(db, recordType('BATCH_PROCESSING_RECORD'));
+  // Setup correction (fix of F29/F75): only aggregate types their module declares for retention can
+  // have a schedule. The stub entry stands in for a step record, so this test database declares it.
+  await allowRetention(db, 'esig_stub', ['BATCH_RECORD']);
   // Shop-floor terminals with badge and PIN, so the verifier can also co-sign at the performer's terminal.
   performer = await esigActor(db, { deviceClass: 'SHARED', withPin: true, legalName: 'Performer' });
   verifier = await esigActor(db, { roleCode: 'VERIFIER', deviceClass: 'SHARED', withPin: true, legalName: 'Verifier under investigation' });

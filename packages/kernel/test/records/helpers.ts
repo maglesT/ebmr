@@ -108,8 +108,39 @@ export function again(ctx: ActorContext): ActorContext {
 }
 
 /**
+ * Declares, in this test database only, that records of a stub aggregate type are disposed of at the
+ * end of their retention (records.declare_retention_aggregate, 0420), as the owning module's migration
+ * does in production: owner-level, under the software-release identity. The kernel declares 'batch';
+ * every other aggregate type is refused by records.create_retention_schedule (EBMR-REC-024).
+ */
+export async function allowRetention(db: TestDatabase, aggregateType: string, retentionKeys: string[]): Promise<void> {
+  const client = await db.admin.connect();
+  try {
+    await client.query('begin');
+    await client.query(`select kernel.set_actor_context(jsonb_build_object(
+      'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+      'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+      'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+      'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'test aggregate declared for retention'))`);
+    await client.query("select records.declare_retention_aggregate($1, $2::text[], 'test fixture', 'stub records of this test database')", [
+      aggregateType,
+      retentionKeys,
+    ]);
+    await client.query('select kernel.set_actor_context(null)');
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Stub GMP tables standing in for other modules' records (created by the superuser in this test
  * database only). Registered for audit like any product table; the application role gets no DELETE.
+ * Batch records ('batch', declared by the kernel) and component lots (supporting records, declared
+ * here) can have a retention schedule.
  */
 export async function createStubTables(db: TestDatabase): Promise<void> {
   await db.admin.query(`
@@ -140,6 +171,7 @@ export async function createStubTables(db: TestDatabase): Promise<void> {
     select kernel.register_audited_table('stub_b4.lot_record', 'component_lot', 'lot_id', false);
     reset role;
   `);
+  await allowRetention(db, 'component_lot', ['SUPPORTING_RECORD']);
 }
 
 export async function insertEntry(db: TestDatabase, ctx: ActorContext, batchId: string, value: string, stepRef = 'S1'): Promise<string> {

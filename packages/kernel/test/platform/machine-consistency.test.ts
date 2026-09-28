@@ -71,11 +71,12 @@ describe('XState and the database agree', () => {
         [descriptor.code, descriptor.version],
       );
       expect(dbRows).toEqual(def.transitions);
-      const [version] = await rows<{ initial_state: string; states: string[]; final_states: string[]; definition_hash: string; aggregate_type: string }>(
-        `select v.initial_state, v.states, v.final_states, v.definition_hash, m.aggregate_type
+      const [version] = await rows<{ initial_state: string; states: string[]; final_states: string[]; definition_hash: string; aggregate_type: string; create_permission: string }>(
+        `select v.initial_state, v.states, v.final_states, v.definition_hash, m.aggregate_type, v.create_permission
            from platform.machine_version v join platform.machine m on m.code = v.machine_code where v.machine_code = $1 and v.version = $2`,
         [descriptor.code, descriptor.version],
       );
+      expect(version?.create_permission).toBe(def.create_permission);
       expect([...(version?.states ?? [])].sort()).toEqual(def.states);
       expect([...(version?.final_states ?? [])].sort()).toEqual(def.final_states);
       expect(version?.initial_state).toBe(def.initial);
@@ -180,11 +181,12 @@ describe('the engine enforces exactly the XState model', () => {
 });
 
 describe('the extractor refuses machines the database cannot represent', () => {
-  const descriptor = (machine: MachineDescriptor['machine'], code = 'bad_machine'): MachineDescriptor => ({
+  const descriptor = (machine: MachineDescriptor['machine'], code = 'bad_machine', createPermission = 'bad_machine.create'): MachineDescriptor => ({
     code,
     version: 1,
     aggregateType: 'bad_machine',
     description: 'invalid',
+    createPermission,
     machine,
     seedFile: '0599_never.sql',
   });
@@ -201,10 +203,21 @@ describe('the extractor refuses machines the database cannot represent', () => {
     ['unknown meta keys', descriptor(createMachine({ id: 'bad_machine', initial: 'A', states: { A: { on: { GO: { target: 'B', meta: { guards: [], role: 'QA' } } } }, B: { type: 'final' } } }))],
     ['a malformed permission', descriptor(createMachine({ id: 'bad_machine', initial: 'A', states: { A: { on: { GO: gmp('B', { permission: 'Approve' }) } }, B: { type: 'final' } } }))],
     ['an id that differs from the code', descriptor(createMachine({ id: 'other', initial: 'A', states: { A: { on: { GO: 'B' } }, B: { type: 'final' } } }))],
+    // DI-17: every transition names its permission, and the version the permission that creates an aggregate.
+    ['a transition without a permission', descriptor(createMachine({ id: 'bad_machine', initial: 'A', states: { A: { on: { GO: gmp('B') } }, B: { type: 'final' } } }))],
+    ['a transition without GMP metadata', descriptor(createMachine({ id: 'bad_machine', initial: 'A', states: { A: { on: { GO: 'B' } }, B: { type: 'final' } } }))],
+    [
+      'a malformed create permission',
+      descriptor(createMachine({ id: 'bad_machine', initial: 'A', states: { A: { on: { GO: gmp('B', { permission: 'bad_machine.go' }) } }, B: { type: 'final' } } }), 'bad_machine', 'Create'),
+    ],
   ];
   for (const [name, d] of cases) {
     it(`refuses ${name}`, () => {
       expect(() => extractDefinition(d)).toThrow(MachineDefinitionError);
     });
   }
+  it('accepts the same small machine once every transition and the version name their permissions', () => {
+    const ok = descriptor(createMachine({ id: 'bad_machine', initial: 'A', states: { A: { on: { GO: gmp('B', { permission: 'bad_machine.go' }) } }, B: { type: 'final' } } }));
+    expect(extractDefinition(ok)).toMatchObject({ create_permission: 'bad_machine.create', transitions: [{ from: 'A', event: 'GO', to: 'B', permission: 'bad_machine.go' }] });
+  });
 });

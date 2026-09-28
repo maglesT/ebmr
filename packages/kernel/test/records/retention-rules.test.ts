@@ -59,12 +59,35 @@ describe('retention rules (outline 3.3.6)', () => {
   });
 
   it('[DI-47] US OTC product exempt from expiry dating: three years after distribution, open until distributed', () => {
-    const undistributed = batch({ markets: ['IN', 'US'], licenceForm: 'FORM_28', manufactureDate: '2026-01-15', otcExpiryExempt: true });
+    // The product carries no labelled expiry, and says so (a missing expiry date alone is an unknown input: F31).
+    const undistributed = batch({ markets: ['IN', 'US'], licenceForm: 'FORM_28', manufactureDate: '2026-01-15', otcExpiryExempt: true, noLabelledExpiry: true });
     expect(undistributed.status).toBe('OPEN');
     expect(undistributed.openReasons).toEqual(['MISSING_INPUT:DISTRIBUTION']);
-    const distributed = batch({ markets: ['IN', 'US'], licenceForm: 'FORM_28', manufactureDate: '2026-01-15', otcExpiryExempt: true, distributionDate: '2027-02-01' });
+    const distributed = batch({
+      markets: ['IN', 'US'],
+      licenceForm: 'FORM_28',
+      manufactureDate: '2026-01-15',
+      otcExpiryExempt: true,
+      noLabelledExpiry: true,
+      distributionDate: '2027-02-01',
+    });
     expect(distributed.retainUntil).toBe('2031-01-15');
     expect(distributed.evaluated.map((e) => e.ruleId)).toEqual(['IN_FORM28_MANUFACTURE', 'US_OTC_DISTRIBUTION']);
+  });
+
+  it('[DI-47][INV-22] Schedule M expiry plus one year applies whenever the product carries an expiry: an unknown expiry date keeps the batch OPEN (F31)', () => {
+    // Form 25 without the expiry date: not manufacture + 5 years alone.
+    const form25 = batch({ markets: ['IN'], licenceForm: 'FORM_25', manufactureDate: '2026-01-10' });
+    expect(form25).toMatchObject({ status: 'OPEN', retainUntil: null, openReasons: ['MISSING_INPUT:EXPIRY'], latestDated: '2031-01-10' });
+    expect(form25.evaluated.find((e) => e.ruleId === 'IN_SCHEDULE_M_EXPIRY')).toEqual({ ruleId: 'IN_SCHEDULE_M_EXPIRY', status: 'OPEN', date: null, reason: 'MISSING_INPUT:EXPIRY' });
+    // Form 28 without the expiry date: open, not the no-expiry manufacture rule.
+    const form28 = batch({ markets: ['IN'], licenceForm: 'FORM_28', manufactureDate: '2026-01-10' });
+    expect(form28).toMatchObject({ status: 'OPEN', retainUntil: null, openReasons: ['MISSING_INPUT:EXPIRY'] });
+    expect(form28.evaluated.map((e) => e.ruleId)).toEqual(['IN_FORM28_EXPIRY', 'IN_SCHEDULE_M_EXPIRY']);
+    // Only the stated fact "no labelled expiry" switches to manufacture + 5 years, and it excludes an expiry date.
+    const unlabelled = batch({ markets: ['IN'], licenceForm: 'FORM_28', manufactureDate: '2026-01-10', noLabelledExpiry: true });
+    expect(unlabelled).toMatchObject({ status: 'DATED', retainUntil: '2031-01-10', governingRules: ['IN_FORM28_MANUFACTURE'] });
+    expect(() => batch({ markets: ['IN'], noLabelledExpiry: true, expiryDate: '2028-01-31' })).toThrow('EBMR-REC-020 a batch without a labelled expiry has no expiry date');
   });
 
   it('[DI-47] Form 28 licence: test records two years after a labelled expiry', () => {
@@ -134,6 +157,20 @@ describe('retention dependency (pure)', () => {
     // Defensive: a closure with no dated record at all is never DATED.
     expect(combineEffectiveRetention([lot])).toMatchObject({ status: 'OPEN', retainUntil: null });
   });
+
+  it('[DI-47][INV-22] a PERMANENT record stays OPEN whatever depends on it (F32)', () => {
+    const doc = { recordKey: 'component_lot:DOC', own: own('NONE', null), hasDependants: true, retentionKey: 'PERMANENT' as const };
+    const ended = { recordKey: 'batch:OLD', own: own('DATED', '2011-01-31'), hasDependants: false, retentionKey: 'BATCH_RECORD' as const };
+    expect(combineEffectiveRetention([doc, ended])).toMatchObject({
+      status: 'OPEN',
+      retainUntil: null,
+      latestDated: '2011-01-31',
+      governedBy: [],
+      openBecause: [{ recordKey: 'component_lot:DOC', reasons: ['NO_RULE_APPLIES'] }],
+    });
+    // The same supporting record without the PERMANENT key follows its dependant.
+    expect(combineEffectiveRetention([{ ...doc, retentionKey: 'SUPPORTING_RECORD' }, ended])).toMatchObject({ status: 'DATED', retainUntil: '2011-01-31' });
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -154,6 +191,7 @@ const inputsArb: fc.Arbitrary<RetentionInputs> = fc
     licenceForm: fc.constantFrom(null, 'FORM_25' as const, 'FORM_28' as const),
     manufactureDate: maybe(dateArb),
     expiryDate: maybe(dateArb),
+    noLabelledExpiry: fc.boolean(),
     otcExpiryExempt: fc.boolean(),
     distributionDate: maybe(dateArb),
     euCertificationDate: maybe(dateArb),
@@ -167,7 +205,7 @@ const inputsArb: fc.Arbitrary<RetentionInputs> = fc
     ...r,
     // Keep only combinations both copies accept (invalid ones are refused identically, tested below).
     euNeverCertified: r.euCertificationDate === null ? r.euNeverCertified : false,
-    expiryDate: r.expiryDate !== null && r.manufactureDate !== null && r.expiryDate < r.manufactureDate ? null : r.expiryDate,
+    expiryDate: r.noLabelledExpiry || (r.expiryDate !== null && r.manufactureDate !== null && r.expiryDate < r.manufactureDate) ? null : r.expiryDate,
   }));
 const keyArb = fc.constantFrom<RetentionKey>('BATCH_RECORD', 'SUPPORTING_RECORD', 'DSCSA_RECORD', 'VALIDATION_RAW_DATA', 'PERMANENT');
 
@@ -233,6 +271,7 @@ describe('TypeScript and SQL retention agree', () => {
       { markets: ['IN'], euCertificationDate: '2026-01-01', euNeverCertified: true },
       { markets: ['IN'], manufactureDate: '2026-02-01', expiryDate: '2026-01-01' },
       { markets: ['IN'], expiryDate: '2026-13-01' },
+      { markets: ['IN'], noLabelledExpiry: true, expiryDate: '2027-01-31' },
     ];
     for (const inputs of invalid) {
       expect(() => normalizeRetentionInputs(inputs)).toThrow('EBMR-REC-020');

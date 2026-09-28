@@ -19,6 +19,15 @@ export function timeBasis(recordedAt: Instant, occurred?: { at: Instant; trust: 
   return occurred && occurred.trust === 'DEVICE_SYNCED' ? { basis: 'OCCURRED_AT', at: occurred.at } : { basis: 'RECORDED_AT', at: recordedAt };
 }
 
+/**
+ * Whether a command from this source may state a time with this trust level: a device time comes only
+ * from a machine identity (an instrument interface or gateway, source INTEGRATION or SYSTEM); a person
+ * states USER_CLAIMED or PAPER. Mirrors platform.check_time_trust_source, which is the authority.
+ */
+export function mayClaimTrust(source: 'UI' | 'API' | 'INTEGRATION' | 'SYSTEM', trust: TimeTrust): boolean {
+  return (trust !== 'DEVICE_SYNCED' && trust !== 'DEVICE_UNSYNCED') || source === 'INTEGRATION' || source === 'SYSTEM';
+}
+
 /** A person-claimed event time (USER_CLAIMED or PAPER) makes an entry a late entry. */
 export function isLateEntry(occurred?: { trust: TimeTrust }): boolean {
   return occurred !== undefined && (occurred.trust === 'USER_CLAIMED' || occurred.trust === 'PAPER');

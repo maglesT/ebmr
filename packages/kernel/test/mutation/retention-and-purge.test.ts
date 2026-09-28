@@ -42,6 +42,7 @@ import {
   signFor,
   testActor,
   withReason,
+  allowRetention,
 } from '../records/helpers.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 
@@ -83,6 +84,8 @@ beforeAll(async () => {
     select kernel.register_audited_table('stub_rp.part_use', 'rp_use', 'use_id', false);
     reset role;
   `);
+  // Only aggregate types their module declares for retention can have a schedule (F29, F75).
+  await allowRetention(db, 'rp_part', ['BATCH_RECORD']);
   await registerType(db, recordType('BATCH_PROCESSING_RECORD'));
   await registerType(db, recordType('COMPONENT_LOT_RECORD', { retentionKey: 'SUPPORTING_RECORD' }));
   operator = await testActor(db, { roleCode: 'OPERATOR' });

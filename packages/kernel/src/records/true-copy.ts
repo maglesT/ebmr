@@ -3,8 +3,9 @@
  * PDF/A-3 rendering arrives in Phase 4).
  *
  * A bundle holds, for one aggregate (one audit chain):
- * - records.json: every row of the aggregate in the chosen registered tables, as PostgreSQL's
- *   canonical jsonb text (exactly what the audit trigger hashes) with the SHA-256 of each row;
+ * - records.json: every row of the aggregate in the chosen registered tables, in the canonical form
+ *   of kernel.row_json (exactly what the audit trigger hashes: jsonb text with the session's TimeZone,
+ *   DateStyle, IntervalStyle, bytea and float output pinned) with the SHA-256 of each row;
  * - audit-chain.json: the chain's events (payload text exactly as hashed), head and checkpoints;
  * - verification.json: the database's chain verification and this module's offline check at build time;
  * - a manifest listing every part with its SHA-256 and size, and the SHA-256 of the manifest itself.
@@ -14,6 +15,12 @@
  * insert-only rows; the state rebuilt from INSERT and UPDATE events for other rows) and that no row
  * the chain says exists is missing. The bundle file must also equal its canonical serialisation, so a
  * change to any single byte is reported.
+ *
+ * A bundle that agrees with itself is not yet proven to be the record's copy: anyone can assemble a
+ * self-consistent bundle. The proof is the manifest SHA-256 (or head hash) held outside the bundle, in
+ * the true-copy register, the tombstone or an anchor; the verifier compares against it when given one
+ * and otherwise says the result is unanchored (F34). A bundle limited to some tables verifies, and the
+ * report lists the tables its audit trail names but it leaves out (a partial copy is no archive).
  */
 import { createHash } from 'node:crypto';
 import type pg from 'pg';
@@ -91,10 +98,26 @@ export interface TrueCopyBundle {
   parts: Record<string, string>;
 }
 
+/** A reference held outside the bundle (true-copy register, tombstone, anchor) to compare it with. */
+export interface ExpectedReference {
+  manifestSha256?: string;
+  headHash?: string;
+}
+
 export interface VerificationReport {
   ok: boolean;
   problems: string[];
-  summary: { chainKey: string | null; events: number; rows: number; headSeq: string | null; manifestSha256: string | null };
+  summary: {
+    chainKey: string | null;
+    events: number;
+    rows: number;
+    headSeq: string | null;
+    manifestSha256: string | null;
+    /** Tables with row events in the bundle's audit trail that the bundle does not hold (partial copy). */
+    omittedTables: string[];
+    /** MATCHED: equal to the expected reference; NONE: no reference given, the bundle only agrees with itself. */
+    reference: 'MATCHED' | 'MISMATCHED' | 'NONE';
+  };
 }
 
 const sha256Hex = (data: string | Uint8Array): string => createHash('sha256').update(data).digest('hex');
@@ -129,9 +152,10 @@ export async function buildTrueCopyBundle(pool: pg.Pool, opts: { chainKey: strin
     ).rows[0]?.t as string;
     const { rows: registered } = await client.query<{ table_name: string; aggregate_column: string; insert_only: boolean; sql: string }>(
       `select table_name::text as table_name, aggregate_column, insert_only,
-              format('select q.* from (select coalesce(to_jsonb(x) ->> ''id'', to_jsonb(x) ->> %L) as record_id, to_jsonb(x)::text as content,
-                             encode(sha256(convert_to(to_jsonb(x)::text, ''UTF8'')), ''hex'') as sha256
-                        from %s x where x.%I::text = $1) q order by q.record_id collate "C", q.content collate "C"', aggregate_column, table_name, aggregate_column) as sql
+              format('select q.* from (select coalesce(r.j ->> ''id'', r.j ->> %L) as record_id, r.j::text as content,
+                             encode(sha256(convert_to(r.j::text, ''UTF8'')), ''hex'') as sha256
+                        from (select kernel.row_json(x) as j from %s x where x.%I::text = $1) r) q
+                       order by q.record_id collate "C", q.content collate "C"', aggregate_column, table_name, aggregate_column) as sql
          from kernel.audited_table where aggregate_type = $1 order by table_name::text collate "C"`,
       [aggregateType],
     );
@@ -238,18 +262,15 @@ export function serializeBundle(bundle: TrueCopyBundle): string {
   return `${JSON.stringify({ format: bundle.format, manifestSha256: bundle.manifestSha256, manifest: bundle.manifest, parts })}\n`;
 }
 
-/** Records the bundle in the true-copy register (records.true_copy); call inside withCommand. */
+/**
+ * Records the bundle in the true-copy register (records.true_copy); call inside withCommand. The
+ * database receives the manifest itself, computes its SHA-256 and reads the chain head and the tables
+ * the copy holds from it.
+ */
 export async function registerTrueCopy(db: pg.Pool | pg.PoolClient, bundle: TrueCopyBundle, purpose: string): Promise<string> {
   const manifest = JSON.parse(bundle.manifest) as Manifest;
   if (!manifest.head) throw new Error('EBMR-REC-070 an empty chain cannot be registered as a true copy');
-  const { rows } = await db.query<{ id: string }>('select records.register_true_copy($1, $2, $3, $4, $5, $6) as id', [
-    manifest.chainKey,
-    manifest.head.seq,
-    manifest.head.hash,
-    bundle.manifestSha256,
-    bundle.format,
-    purpose,
-  ]);
+  const { rows } = await db.query<{ id: string }>('select records.register_true_copy($1, $2, $3) as id', [bundle.manifest, bundle.manifestSha256, purpose]);
   return rows[0]?.id ?? '';
 }
 
@@ -257,9 +278,13 @@ export async function registerTrueCopy(db: pg.Pool | pg.PoolClient, bundle: True
 // Verify (offline)
 // ---------------------------------------------------------------------------------------------
 
-/** Verifies a bundle file's bytes (or text) without any database. */
-export function verifyTrueCopyBundleText(input: string | Uint8Array): VerificationReport {
-  const empty = { chainKey: null, events: 0, rows: 0, headSeq: null, manifestSha256: null };
+/**
+ * Verifies a bundle file's bytes (or text) without any database. With `expected` (the manifest SHA-256
+ * from the true-copy register or the tombstone, or the head hash from an anchor) it also proves the
+ * bundle is that copy; without it the report says the bundle only agrees with itself (reference NONE).
+ */
+export function verifyTrueCopyBundleText(input: string | Uint8Array, expected?: ExpectedReference): VerificationReport {
+  const empty: VerificationReport['summary'] = { chainKey: null, events: 0, rows: 0, headSeq: null, manifestSha256: null, omittedTables: [], reference: 'NONE' };
   let text: string;
   if (typeof input === 'string') {
     text = input;
@@ -279,7 +304,7 @@ export function verifyTrueCopyBundleText(input: string | Uint8Array): Verificati
   const shape = bundleShapeProblem(parsed);
   if (shape) return { ok: false, problems: [shape], summary: empty };
   const bundle = parsed as TrueCopyBundle;
-  const report = verifyTrueCopyBundle(bundle);
+  const report = verifyTrueCopyBundle(bundle, expected);
   if (serializeBundle(bundle) !== text) {
     report.problems.unshift('bundle bytes differ from its canonical serialisation (the file was altered)');
     report.ok = false;
@@ -300,11 +325,33 @@ function bundleShapeProblem(v: unknown): string | undefined {
   return undefined;
 }
 
-/** Verifies a parsed bundle (every hash, the chain and the records against the chain). */
-export function verifyTrueCopyBundle(bundle: TrueCopyBundle): VerificationReport {
+/** Verifies a parsed bundle (every hash, the chain and the records against the chain; the expected reference when given). */
+export function verifyTrueCopyBundle(bundle: TrueCopyBundle, expected?: ExpectedReference): VerificationReport {
   const problems: string[] = [];
-  const summary: VerificationReport['summary'] = { chainKey: null, events: 0, rows: 0, headSeq: null, manifestSha256: bundle.manifestSha256 };
+  const summary: VerificationReport['summary'] = {
+    chainKey: null,
+    events: 0,
+    rows: 0,
+    headSeq: null,
+    manifestSha256: bundle.manifestSha256,
+    omittedTables: [],
+    reference: 'NONE',
+  };
   if (sha256Hex(bundle.manifest) !== bundle.manifestSha256) problems.push('manifest SHA-256 does not match the manifest (manifest or its hash altered)');
+  if (expected?.manifestSha256 !== undefined || expected?.headHash !== undefined) {
+    const manifestMatches = expected.manifestSha256 === undefined || expected.manifestSha256.toLowerCase() === sha256Hex(bundle.manifest);
+    let headMatches = true;
+    if (expected.headHash !== undefined) {
+      try {
+        headMatches = (JSON.parse(bundle.manifest) as Manifest).head?.hash === expected.headHash.toLowerCase();
+      } catch {
+        headMatches = false;
+      }
+    }
+    if (!manifestMatches) problems.push('manifest SHA-256 differs from the expected reference (this is not the registered copy)');
+    if (!headMatches) problems.push('chain head differs from the expected reference (this is not the anchored record)');
+    summary.reference = manifestMatches && headMatches ? 'MATCHED' : 'MISMATCHED';
+  }
   let manifest: Manifest;
   try {
     manifest = JSON.parse(bundle.manifest) as Manifest;
@@ -350,6 +397,7 @@ export function verifyTrueCopyBundle(bundle: TrueCopyBundle): VerificationReport
   if (chain.chainKey !== manifest.chainKey || records.chainKey !== manifest.chainKey) problems.push('parts describe a different chain than the manifest');
   if (JSON.stringify(manifest.head) !== JSON.stringify(chain.head)) problems.push('manifest head differs from the chain head');
   problems.push(...verifyChainPart(chain), ...verifyRecordsPart(records, chain));
+  summary.omittedTables = omittedTables(records, chain);
   for (const p of verification.database) problems.push(`source database reported at build time: seq ${p.seq}: ${p.problem}`);
   if (!verification.offline.ok) problems.push(...verification.offline.problems.map((p) => `builder reported at build time: ${p}`));
   return { ok: problems.length === 0, problems, summary };
@@ -464,6 +512,16 @@ export function verifyRecordsPart(records: RecordsPart, chain: AuditChainPart): 
   }
   return problems;
 }
+
+/** Tables whose row events are in the chain but which the bundle does not hold (a partial copy). */
+export function omittedTables(records: RecordsPart, chain: AuditChainPart): string[] {
+  const held = new Set(records.tables.map((t) => t.table));
+  const named = new Set<string>();
+  for (const e of chain.events) if (e.tableName !== null && !held.has(e.tableName)) named.add(e.tableName);
+  return [...named].sort(byCodeUnit);
+}
+
+const byCodeUnit = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** Row state from its INSERT event (body.new) and UPDATE diffs (body.new), in chain order. */
 function rebuildState(events: BundleEvent[]): JsonObject | undefined {

@@ -221,6 +221,25 @@ $$;
 -- Purge approval and purge
 -- ---------------------------------------------------------------------------------------------
 
+-- The persons whose entries decide when a record may be disposed of: whoever entered a version of the
+-- retention inputs (the first version comes with the schedule) of the record or of any record that
+-- depends on it, and whoever linked a dependency in that closure (a link can give an OPEN supporting
+-- record its date). The disposal approval is the check on their entries, so none of them gives it
+-- (F33, DI-47: retention is never shortened by one person alone).
+create function records.retention_authors(p_schedule_id uuid) returns setof uuid
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  with recursive closure(schedule_id) as (
+    select p_schedule_id
+    union
+    select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
+  )
+  select s.created_by_person from records.retention_schedule s join closure c on c.schedule_id = s.id
+  union
+  select i.entered_by_person from records.retention_input i join closure c on c.schedule_id = i.schedule_id
+  union
+  select d.linked_by_person from records.retention_dependency d join closure c on c.schedule_id = d.supporting_schedule_id
+$$;
+
 create function records.approve_purge(p_record_key text, p_approval_signature_id uuid, p_reason text, p_true_copy_id uuid default null)
 returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
@@ -244,6 +263,11 @@ begin
   if found then
     raise exception using errcode = 'P0001', message = format('%s %s', v_refusal.code, v_refusal.detail);
   end if;
+  if records.actor_person() in (select records.retention_authors(v_sched.id)) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-035 the approver entered retention inputs or dependency links that decide when %s may be disposed of; another person approves its disposal',
+                       v_sched.record_key);
+  end if;
   if p_true_copy_id is not null and not exists (select 1 from records.true_copy where id = p_true_copy_id and record_key = p_record_key) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-035 true copy %s is not a copy of %s', p_true_copy_id, p_record_key);
   end if;
@@ -263,11 +287,16 @@ begin
 end
 $$;
 
--- Internal: the insert-only guard trigger of a registered table, if present.
+-- Internal: the insert-only guard trigger of a registered table, if present. The name comes from the
+-- kernel's one naming rule (kernel.required_triggers), which renders the table under the kernel's own
+-- search_path: rendered here under records' search_path, a records table would lose its schema and
+-- the guard of records.incident would never be found (F36).
 create function records.insert_only_trigger(p_table regclass) returns text
 language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
-  select t.tgname::text from pg_catalog.pg_trigger t
-  where t.tgrelid = p_table and t.tgname = 'aa_insert_only_' || replace(replace(p_table::text, '.', '_'), '"', '')
+  select t.tgname::text
+  from kernel.required_triggers(p_table, true) r
+  join pg_catalog.pg_trigger t on t.tgrelid = p_table and t.tgname = r.trigger_name
+  where r.purpose = 'NO_UPDATE_OR_DELETE'
 $$;
 
 create function records.purge(p_record_key text) returns uuid
@@ -296,9 +325,12 @@ declare
   v_kept_checkpoint bigint;
   v_hashes bytea[];
   v_tombstone uuid;
+  v_missing text;
 begin
-  if records.is_blank(v_ctx ->> 'reason_code') then
-    raise exception using errcode = 'P0001', message = 'EBMR-REC-036 a purge needs a reason code in the command context';
+  -- Outline 5.4: every removal carries a reason code and a reason text (the audit trigger refuses the
+  -- deletions without them; this says so before anything is locked).
+  if records.is_blank(v_ctx ->> 'reason_code') or records.is_blank(v_ctx ->> 'reason_text') then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-036 a purge needs a reason code and a reason text in the command context';
   end if;
   -- DI-18, then DI-17 installation-wide.
   perform iam.assert_not_administrator();
@@ -322,12 +354,16 @@ begin
   v_eff := records.compute_effective_retention(v_sched.id);
   v_today := (clock_timestamp() at time zone v_sched.site_zone)::date;
 
+  -- The approval must still come from a person who entered none of the entries that decide the date
+  -- (an approver who changed the inputs afterwards no longer counts: F33).
   select * into v_approval from records.purge_approval a
   where a.schedule_id = v_sched.id and a.retain_until = (v_eff ->> 'retainUntil')::date
+    and a.approved_by_person not in (select records.retention_authors(v_sched.id))
   order by a.recorded_at desc limit 1;
   if not found then
     raise exception using errcode = 'P0001',
-      message = format('EBMR-REC-033 no QA disposal approval for %s at its current retain-until %s', v_sched.record_key, v_eff ->> 'retainUntil');
+      message = format('EBMR-REC-033 no QA disposal approval for %s at its current retain-until %s by a person who entered none of its retention inputs or dependency links',
+                       v_sched.record_key, v_eff ->> 'retainUntil');
   end if;
   if v_approval.true_copy_id is not null then
     select * into v_true_copy from records.true_copy where id = v_approval.true_copy_id;
@@ -349,7 +385,8 @@ begin
                        v_true_copy.id, v_sched.record_key, v_true_copy.head_seq, v_kept.last_seq);
   end if;
 
-  -- What is purged: row counts and a digest of the row hashes (same row hash as the audit trigger uses).
+  -- What is purged: row counts and a digest of the row hashes (the audit trigger's row hash: the
+  -- canonical kernel.row_json form, the same whatever the session's TimeZone or DateStyle).
   for t in
     select pg_catalog.quote_ident(n.nspname) || '.' || pg_catalog.quote_ident(c.relname) as qualified, a.aggregate_column, a.insert_only
     from kernel.audited_table a
@@ -360,7 +397,7 @@ begin
   loop
     execute format(
       'select count(*), encode(sha256(convert_to(coalesce(string_agg(h, E''\n'' order by h), ''''), ''UTF8'')), ''hex'')
-         from (select encode(sha256(convert_to(to_jsonb(x)::text, ''UTF8'')), ''hex'') as h from %s x where x.%I::text = $1) q',
+         from (select encode(sha256(convert_to(kernel.row_json(x)::text, ''UTF8'')), ''hex'') as h from %s x where x.%I::text = $1) q',
       t.qualified, t.aggregate_column)
     into v_count, v_digest using v_sched.aggregate_id;
     if v_count > 0 then
@@ -368,6 +405,19 @@ begin
       v_todo := v_todo || jsonb_build_array(jsonb_build_object('table', t.qualified, 'column', t.aggregate_column, 'insertOnly', t.insert_only));
     end if;
   end loop;
+
+  -- The archived copy must hold every table whose rows are deleted: rows of an insert-only table live
+  -- in the chain only as hashes, so a table left out of the copy would be lost for good (F34).
+  if v_true_copy.id is not null then
+    select string_agg(pt.e ->> 'table', ', ' order by pt.e ->> 'table') into v_missing
+    from jsonb_array_elements(v_tables) pt(e)
+    where not (pt.e ->> 'table') = any(v_true_copy.tables);
+    if v_missing is not null then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-REC-038 true copy %s of %s leaves out %s, which hold rows of the record; archive every table of the record before purging',
+                         v_true_copy.id, v_sched.record_key, v_missing);
+    end if;
+  end if;
 
   -- Delete, children before parents: a table whose rows are still referenced is retried in a later pass.
   while jsonb_array_length(v_todo) > 0 loop
@@ -450,6 +500,10 @@ end
 $$;
 
 -- Like kernel.verify_anchor, but an anchored head of a purged chain is matched against the tombstone.
+-- A chain written again after its purge (a business entry, an incident link) starts over from genesis
+-- under the same key, so a head anchored before the purge belongs to the purged chain and one anchored
+-- after it to the new chain: a head verifies when it matches either the tombstone's event hash at that
+-- sequence number or the live event there (F37). A different hash at both is reported.
 create function records.verify_anchor(p_anchor_id bigint)
 returns table (problem text)
 language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
@@ -457,8 +511,7 @@ declare
   a kernel.audit_anchor%rowtype;
   h jsonb;
   v_seq bigint;
-  v_hash bytea;
-  t records.tombstone%rowtype;
+  v_ok boolean;
 begin
   select * into a from kernel.audit_anchor where id = p_anchor_id;
   if not found then problem := 'anchor not found'; return next; return; end if;
@@ -467,14 +520,12 @@ begin
   end if;
   for h in select * from jsonb_array_elements(a.heads) loop
     v_seq := (h ->> 'seq')::bigint;
-    select * into t from records.tombstone where chain_key = h ->> 'chain_key';
-    if found and v_seq <= t.chain_event_count then
-      v_hash := t.chain_event_hashes[v_seq];
-    else
-      v_hash := null;
-      select e.hash into v_hash from kernel.audit_event e where e.chain_key = h ->> 'chain_key' and e.seq = v_seq;
-    end if;
-    if v_hash is null or encode(v_hash, 'hex') <> h ->> 'hash_hex' then
+    v_ok := exists (select 1 from records.tombstone t
+                    where t.chain_key = h ->> 'chain_key' and v_seq <= t.chain_event_count
+                      and encode(t.chain_event_hashes[v_seq], 'hex') = h ->> 'hash_hex')
+         or exists (select 1 from kernel.audit_event e
+                    where e.chain_key = h ->> 'chain_key' and e.seq = v_seq and encode(e.hash, 'hex') = h ->> 'hash_hex');
+    if not v_ok then
       problem := format('chain %s at seq %s differs from the anchor', h ->> 'chain_key', h ->> 'seq'); return next;
     end if;
   end loop;
@@ -536,9 +587,9 @@ $$;
 grant select on records.retention_current to ebmr_app;
 grant execute on function records.open_blockers(text, text), records.has_disposition_blockers(text, text),
                           records.disposal_refusals(uuid), records.retention_of(text, text),
-                          records.register_true_copy(text, bigint, text, text, text, text),
+                          records.register_true_copy(text, text, text),
                           records.approve_purge(text, uuid, text, uuid), records.purge(text),
                           records.verify_chain(text), records.verify_anchor(bigint), records.inv22_violations() to ebmr_app;
--- records.insert_only_trigger stays private.
+-- records.insert_only_trigger and records.retention_authors stay private.
 
 reset role;

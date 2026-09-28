@@ -95,7 +95,8 @@ const MAP: Record<string, { domain: string; effect: string; roles: string[] }> =
 /** App-callable functions that may write but are deliberately not gated (with the reason). */
 const UNGATED: Record<string, string> = {
   'records.lock_blocker_epoch(text,text)':
-    'derived concurrency token read and locked inside a disposition transaction; no record content (0400); the disposition itself is gated',
+    'derived concurrency token read and locked inside a disposition transaction (0400, 0430); the disposition itself is gated. Before locking it only adds ' +
+    'the DI-50 link and hold that an open investigation already requires (what the scope refresh adds), refusing administrators; it never removes anything',
 };
 
 interface Fn {
@@ -293,7 +294,9 @@ describe('records', () => {
 
   it('[DI-17] a QC analyst cannot approve a purge, and the refusal is logged; a QA reviewer can', async () => {
     const batch = randomUUID();
-    await withCommand(db.app, again(qa), (c) =>
+    // The retention inputs are kept by another QA reviewer: the approver of a disposal entered none of them (EBMR-REC-035).
+    const keeper = await actor('QA_REVIEWER');
+    await withCommand(db.app, again(keeper), (c) =>
       createRetentionSchedule(c, 'batch', batch, 'AUTHZ_BATCH_RECORD', { markets: ['IN', 'US'], manufactureDate: '2008-01-10', expiryDate: '2010-01-31' }),
     );
     const qc = await actor('QC_ANALYST');

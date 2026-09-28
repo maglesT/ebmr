@@ -7,10 +7,12 @@
 -- A published machine version is immutable; each aggregate pins the version it was created with.
 --
 -- platform.transition is the only way to change an aggregate's state. In one transaction it
--- locks the state row, checks the optimistic version, finds the transition for the pinned
--- machine version, checks the permission (AUTHORITY hook), the required signature (SIGNATURE
--- hook) and every registered guard, updates state and version, writes a history row, a
--- plain-language audit entry on the aggregate's chain and an outbox message. The application
+-- refuses an administrator (DI-18), locks the state row, checks the optimistic version, finds the
+-- transition for the pinned machine version, checks the permission (AUTHORITY hook), the required
+-- signature (SIGNATURE hook) and every registered guard, updates state and version, writes a
+-- history row, a plain-language audit entry on the aggregate's chain and an outbox message. Every
+-- transition names its permission, and every machine version names the permission that creates an
+-- aggregate (DI-17): publication refuses a definition without them. The application
 -- role has no write privilege on state or history rows; a trigger additionally refuses any
 -- state change that is not a published transition or does not come through the engine.
 
@@ -24,6 +26,14 @@ set local role ebmr_owner;
 -- returning NULL when the guard passes, otherwise the reason it fails. Guards run inside the
 -- transition's transaction with the state row locked and read the database clock for any
 -- time-based validity (outline 5.2, L-12). They must not write.
+--
+-- Locking rule for guards that read domain rows (outline 5.2: guards run with the relevant rows
+-- locked). The transition holds the aggregate's state row FOR UPDATE from before its guards run
+-- until it commits. Every trigger or function that changes content a guard reads, and that allows
+-- the change only in some states, must read the state row FOR SHARE (not a plain read) before it
+-- decides. The two then serialise: an edit waits for a transition in flight and sees the state it
+-- committed, and a transition waits for an edit in flight and its guards (each run in a fresh
+-- snapshot) see the committed content. See platform.stub_record_edit_guard (0551).
 
 create table platform.state_guard (
   code           text primary key check (code ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$'),
@@ -88,6 +98,8 @@ create table platform.machine_version (
   initial_state    text not null,
   states           text[] not null,
   final_states     text[] not null,
+  -- Permission an actor needs to create an aggregate of this version (AUTHORITY hook, DI-17).
+  create_permission text not null check (create_permission ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$'),
   definition_hash  text check (definition_hash ~ '^[0-9a-f]{64}$'),   -- NULL only while being published
   published_at     timestamptz not null default clock_timestamp(),
   first_used_at    timestamptz,
@@ -119,6 +131,7 @@ begin
   elsif tg_table_name = 'machine_version' and tg_op = 'UPDATE' then
     if new.machine_code = old.machine_code and new.version = old.version and new.initial_state = old.initial_state
        and new.states = old.states and new.final_states = old.final_states and new.published_at = old.published_at
+       and new.create_permission = old.create_permission
        and (new.definition_hash is not distinct from old.definition_hash or old.definition_hash is null)
        and (new.first_used_at is not distinct from old.first_used_at or old.first_used_at is null) then
       return new;
@@ -152,6 +165,7 @@ language sql stable security definer set search_path = pg_catalog, platform, pg_
     'initial=' || v.initial_state,
     'states=' || array_to_string(array(select s from unnest(v.states) s order by s collate "C"), ','),
     'final=' || array_to_string(array(select s from unnest(v.final_states) s order by s collate "C"), ','),
+    'create=' || v.create_permission,
     (select string_agg('transition=' || t.from_state || '|' || t.event || '|' || t.to_state || '|' || array_to_string(t.guard_codes, ',')
                        || '|' || coalesce(t.signature_meaning, '') || '|' || coalesce(t.permission_code, ''), E'\n'
                        order by t.from_state collate "C", t.event collate "C")
@@ -177,6 +191,7 @@ declare
   v_initial  text := p_definition ->> 'initial';
   v_states   text[] := array(select jsonb_array_elements_text(p_definition -> 'states'));
   v_finals   text[] := array(select jsonb_array_elements_text(coalesce(p_definition -> 'final_states', '[]'::jsonb)));
+  v_create   text := p_definition ->> 'create_permission';
   v_t        jsonb;
   v_guard    text;
   v_hash     text;
@@ -198,12 +213,16 @@ begin
   if not (v_initial = any (v_states)) or not (v_finals <@ v_states) or v_initial = any (v_finals) then
     raise exception using errcode = 'P0001', message = format('EBMR-PLAT-062 machine %s: initial and final states must be states, and the initial state not final', v_code);
   end if;
+  if v_create is null or v_create !~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$' then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-PLAT-062 machine %s: create_permission must name the permission that creates an aggregate (DI-17)', v_code);
+  end if;
 
   insert into platform.machine (code, aggregate_type, description)
   values (v_code, v_agg, coalesce(p_definition ->> 'description', v_code))
   on conflict (code) do nothing;
-  insert into platform.machine_version (machine_code, version, initial_state, states, final_states)
-  values (v_code, v_version, v_initial, v_states, v_finals);
+  insert into platform.machine_version (machine_code, version, initial_state, states, final_states, create_permission)
+  values (v_code, v_version, v_initial, v_states, v_finals, v_create);
 
   for v_t in select * from jsonb_array_elements(coalesce(p_definition -> 'transitions', '[]'::jsonb)) loop
     if not ((v_t ->> 'from') = any (v_states)) or not ((v_t ->> 'to') = any (v_states)) then
@@ -211,6 +230,10 @@ begin
     end if;
     if (v_t ->> 'from') = any (v_finals) then
       raise exception using errcode = 'P0001', message = format('EBMR-PLAT-062 machine %s: final state %s cannot have transitions', v_code, v_t ->> 'from');
+    end if;
+    if coalesce(v_t ->> 'permission', '') = '' then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-PLAT-062 machine %s: transition %s from %s needs a permission (DI-17)', v_code, v_t ->> 'event', v_t ->> 'from');
     end if;
     for v_guard in select jsonb_array_elements_text(coalesce(v_t -> 'guards', '[]'::jsonb)) loop
       if not exists (select 1 from platform.state_guard where code = v_guard) then
@@ -378,33 +401,48 @@ begin
 end
 $$;
 
--- The audit trigger requires a reason for every UPDATE. A transition is a new event, not a
--- correction of recorded data, so when the command stated no reason the state-row update is
--- audited with reason STATE_TRANSITION and the event as text. With p_reason_text NULL the
--- command's own context is restored.
+-- The audit trigger requires a reason code and a reason text for every UPDATE. A transition is a
+-- new event, not a correction of recorded data, so the state-row update is audited with the
+-- command's own reason where it gave one, completed where it did not: reason code STATE_TRANSITION
+-- when the code is blank, and the event (p_reason_text) as the text when the text is blank. With
+-- p_reason_text NULL the command's own context is restored.
 create function platform.engine_reason(p_ctx jsonb, p_reason_text text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
+declare
+  v_ctx jsonb := p_ctx;
 begin
-  if p_reason_text is not null and coalesce(p_ctx ->> 'reason_code', '') = '' then
-    perform kernel.set_actor_context(p_ctx || jsonb_build_object('reason_code', 'STATE_TRANSITION', 'reason_text', p_reason_text));
-  else
-    perform kernel.set_actor_context(p_ctx);
+  if p_reason_text is not null then
+    if kernel.is_blank(v_ctx ->> 'reason_code') then
+      v_ctx := v_ctx || jsonb_build_object('reason_code', 'STATE_TRANSITION');
+    end if;
+    if kernel.is_blank(v_ctx ->> 'reason_text') then
+      v_ctx := v_ctx || jsonb_build_object('reason_text', p_reason_text);
+    end if;
+  end if;
+  if v_ctx is distinct from kernel.current_actor() then
+    perform kernel.set_actor_context(v_ctx);
   end if;
 end
 $$;
 
--- Creates the state row of a new aggregate at the initial state of the machine's newest
--- published version (or the version given), pinning that version for the aggregate's life.
-create function platform.create_aggregate_state(p_machine text, p_aggregate_type text, p_aggregate_id uuid,
-                                                p_machine_version integer default null) returns jsonb
+-- Creates the state row of a new aggregate at the initial state of machine version p_version,
+-- pinning that version for the aggregate's life. The actor must hold the version's create
+-- permission and must not be an administrator (DI-17, DI-18). A version older than the newest
+-- needs the command's reason (code and text), recorded in the history row and the audit entry: a
+-- machine is tightened by publishing a new version for newly created records (ADR 0010).
+create function platform.create_aggregate_state_at(p_machine text, p_aggregate_type text, p_aggregate_id uuid,
+                                                   p_version integer) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx      jsonb := platform.require_actor();
   v_machine  platform.machine%rowtype;
   v_version  platform.machine_version%rowtype;
+  v_newest   integer;
+  v_note     text := '';
   v_hist     bigint;
   v_msg      uuid;
 begin
+  perform iam.assert_not_administrator();
   select * into v_machine from platform.machine where code = p_machine;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-PLAT-060 unknown machine %s', p_machine);
@@ -413,11 +451,20 @@ begin
     raise exception using errcode = 'P0001',
       message = format('EBMR-PLAT-065 machine %s governs %s aggregates, not %s', p_machine, v_machine.aggregate_type, p_aggregate_type);
   end if;
+  select max(version) into v_newest from platform.machine_version where machine_code = p_machine and definition_hash is not null;
   select * into v_version from platform.machine_version
-  where machine_code = p_machine and definition_hash is not null and (p_machine_version is null or version = p_machine_version)
-  order by version desc limit 1;
+  where machine_code = p_machine and definition_hash is not null and version = coalesce(p_version, v_newest);
   if not found then
-    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-060 machine %s has no published version %s', p_machine, coalesce(p_machine_version::text, ''));
+    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-060 machine %s has no published version %s', p_machine, coalesce(p_version::text, ''));
+  end if;
+  perform platform.authorize(v_version.create_permission, p_aggregate_type, p_aggregate_id::text);
+  if v_version.version <> v_newest then
+    if kernel.is_blank(v_ctx ->> 'reason_code') or kernel.is_blank(v_ctx ->> 'reason_text') then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-PLAT-069 pinning %s:%s to machine %s v%s while v%s is the newest needs a reason (code and text)',
+                         p_aggregate_type, p_aggregate_id, p_machine, v_version.version, v_newest);
+    end if;
+    v_note := format('; pinned to v%s while v%s is the newest: %s', v_version.version, v_newest, v_ctx ->> 'reason_text');
   end if;
   if exists (select 1 from platform.aggregate_state where aggregate_type = p_aggregate_type and aggregate_id = p_aggregate_id) then
     raise exception using errcode = 'P0001', message = format('EBMR-PLAT-063 %s:%s already has a state', p_aggregate_type, p_aggregate_id);
@@ -427,8 +474,8 @@ begin
   insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version)
   values (p_aggregate_type, p_aggregate_id, p_machine, v_version.version, v_version.initial_state, 1);
   insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, to_state, to_version,
-                                      person_id, account_id, role_code, correlation_id, reason_code, reason_text)
-  values (p_aggregate_type, p_aggregate_id, p_machine, v_version.version, v_version.initial_state, 1,
+                                      permission_code, person_id, account_id, role_code, correlation_id, reason_code, reason_text)
+  values (p_aggregate_type, p_aggregate_id, p_machine, v_version.version, v_version.initial_state, 1, v_version.create_permission,
           v_ctx ->> 'person_id', v_ctx ->> 'account_id', v_ctx ->> 'role_code', (v_ctx ->> 'correlation_id')::uuid,
           v_ctx ->> 'reason_code', v_ctx ->> 'reason_text')
   returning id into v_hist;
@@ -439,8 +486,9 @@ begin
   end if;
 
   perform kernel.audit_business_event(p_aggregate_type || ':' || p_aggregate_id,
-    format('created in state %s (machine %s v%s)', v_version.initial_state, p_machine, v_version.version),
-    jsonb_build_object('machine', p_machine, 'machine_version', v_version.version, 'state', v_version.initial_state, 'history_id', v_hist));
+    format('created in state %s (machine %s v%s)%s', v_version.initial_state, p_machine, v_version.version, v_note),
+    jsonb_build_object('machine', p_machine, 'machine_version', v_version.version, 'newest_version', v_newest,
+                       'state', v_version.initial_state, 'history_id', v_hist));
   v_msg := platform.enqueue_message('state.created', p_aggregate_type || ':' || p_aggregate_id, jsonb_build_object(
     'machine', p_machine, 'machine_version', v_version.version, 'aggregate_type', p_aggregate_type,
     'aggregate_id', p_aggregate_id, 'state', v_version.initial_state, 'version', 1));
@@ -448,6 +496,14 @@ begin
                             'machine_version', v_version.version, 'state', v_version.initial_state, 'version', 1,
                             'history_id', v_hist, 'message_id', v_msg);
 end
+$$;
+
+-- What the application calls: a new aggregate always follows the newest published version. Only
+-- module code (owner level) may pin another one, with create_aggregate_state_at, when the version
+-- comes from the record the aggregate belongs to (e.g. a batch issued under an older MBR version).
+create function platform.create_aggregate_state(p_machine text, p_aggregate_type text, p_aggregate_id uuid) returns jsonb
+language sql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
+  select platform.create_aggregate_state_at(p_machine, p_aggregate_type, p_aggregate_id, null)
 $$;
 
 create function platform.transition(p_machine text, p_aggregate_type text, p_aggregate_id uuid, p_event text,
@@ -467,6 +523,7 @@ declare
   v_hist       bigint;
   v_msg        uuid;
 begin
+  perform iam.assert_not_administrator();
   if jsonb_typeof(v_payload) <> 'object' then
     raise exception using errcode = 'P0001', message = 'EBMR-PLAT-073 a transition payload must be a JSON object';
   end if;
@@ -594,11 +651,11 @@ $$;
 
 grant select on platform.state_guard, platform.machine, platform.machine_version, platform.machine_transition,
                 platform.aggregate_state, platform.state_history to ebmr_app;
-grant execute on function platform.create_aggregate_state(text, text, uuid, integer),
+grant execute on function platform.create_aggregate_state(text, text, uuid),
                           platform.transition(text, text, uuid, text, bigint, jsonb),
                           platform.state_violations(), platform.machine_integrity_violations(),
                           platform.machine_canonical_text(text, integer), platform.machine_definition_hash(text, integer) to ebmr_app;
--- publish_machine_version, register_guard, run_guard, engine_flag and engine_reason stay private
--- to the owner.
+-- publish_machine_version, register_guard, run_guard, engine_flag, engine_reason and
+-- create_aggregate_state_at (pinning a version other than the newest) stay private to the owner.
 
 reset role;

@@ -21,6 +21,7 @@ export interface MachineDefinition {
   version: number;
   aggregate_type: string;
   description: string;
+  create_permission: string;
   initial: string;
   states: string[];
   final_states: string[];
@@ -51,6 +52,9 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
   if (machine.id !== code) fail(`the XState id ${machine.id} must equal the machine code`);
   if (!Number.isInteger(descriptor.version) || descriptor.version < 1) fail('the version must be a positive integer');
   if (!CODE.test(descriptor.aggregateType)) fail('the aggregate type must be lower_snake_case');
+  if (!DOTTED.test(descriptor.createPermission)) {
+    fail('the create permission must be a dotted lower_snake name (DI-17: creating an aggregate is a permission)');
+  }
   const root = machine.root;
   if (root.type !== 'compound') fail('the root must be a compound state with child states');
   if (root.transitions.size > 0 || root.entry.length > 0 || root.exit.length > 0 || root.invoke.length > 0) fail('the root may not have transitions, actions or invocations');
@@ -88,6 +92,7 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
     version: descriptor.version,
     aggregate_type: descriptor.aggregateType,
     description: descriptor.description,
+    create_permission: descriptor.createPermission,
     initial: initial ?? '',
     states,
     final_states: finals,
@@ -97,7 +102,7 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
 
 function readMeta(machine: string, state: string, event: string, meta: unknown): GmpTransitionMeta {
   const where = `${state} ${event}`;
-  if (meta === undefined) return { guards: [], signature: null, permission: null };
+  if (meta === undefined) throw new MachineDefinitionError(machine, `${where}: every transition needs a permission (DI-17); write it with gmp()`);
   if (typeof meta !== 'object' || meta === null) throw new MachineDefinitionError(machine, `${where}: meta must come from gmp()`);
   const m = meta as Partial<Record<keyof GmpTransitionMeta, unknown>>;
   const extra = Object.keys(meta).filter((k) => !['guards', 'signature', 'permission'].includes(k));
@@ -112,7 +117,8 @@ function readMeta(machine: string, state: string, event: string, meta: unknown):
     throw new MachineDefinitionError(machine, `${where}: the signature meaning must be UPPER_SNAKE_CASE`);
   }
   const permission = m.permission ?? null;
-  if (permission !== null && (typeof permission !== 'string' || !DOTTED.test(permission))) {
+  if (permission === null) throw new MachineDefinitionError(machine, `${where}: every transition needs a permission (DI-17)`);
+  if (typeof permission !== 'string' || !DOTTED.test(permission)) {
     throw new MachineDefinitionError(machine, `${where}: the permission must be a dotted lower_snake name`);
   }
   return { guards: [...guards], signature, permission };
@@ -127,6 +133,7 @@ export function canonicalText(def: MachineDefinition): string {
     `initial=${def.initial}`,
     `states=${[...def.states].sort(byCodeUnit).join(',')}`,
     `final=${[...def.final_states].sort(byCodeUnit).join(',')}`,
+    `create=${def.create_permission}`,
     ...[...def.transitions]
       .sort((a, b) => byCodeUnit(a.from, b.from) || byCodeUnit(a.event, b.event))
       .map((t) => `transition=${t.from}|${t.event}|${t.to}|${t.guards.join(',')}|${t.signature ?? ''}|${t.permission ?? ''}`),
