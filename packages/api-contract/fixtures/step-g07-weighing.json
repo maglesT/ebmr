@@ -169,8 +169,22 @@
     {
       "kind": "CONTAINER_WEIGHING",
       "title": "Weigh one container",
-      "description": "Scan the lot, capture tare and gross from the scale; the net is computed. Manual entry needs a second person.",
+      "description": "Scan the lot, capture tare and gross from the scale; the net is computed. Keying by hand (scale offline) needs a second person.",
       "fields": [
+        {
+          "name": "bomLine",
+          "label": "Material",
+          "type": "enum",
+          "unit": null,
+          "options": [
+            {
+              "value": "BOM-PCM",
+              "label": "Paracetamol, direct-compression grade (MAT-PCM)"
+            }
+          ],
+          "required": true,
+          "description": "The BOM line dispensed into this container"
+        },
         {
           "name": "lotCode",
           "label": "Lot",

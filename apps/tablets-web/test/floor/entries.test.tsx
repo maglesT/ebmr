@@ -18,7 +18,13 @@ const ok = (r: Recorded, step = example('step-g07-weighing')): Answer | undefine
 const entryOf = (r: Recorded | undefined) => (r?.body?.['intent'] as { entry?: unknown } | undefined)?.entry;
 
 /** G-07 as the server should send it: the BOM line to choose (the example lacks it; proposal to the lead). */
+// The shared example carries the server's bomLine field; these variants pin the cases the tests need.
+const withoutBomLine = (v: { entryForms: { fields: { name: string }[] }[] }): void => {
+  v.entryForms[0]!.fields = v.entryForms[0]!.fields.filter((f) => f.name !== 'bomLine');
+};
+const g07WithoutBom = stepVariant('step-g07-weighing', withoutBomLine);
 const g07WithBom = stepVariant('step-g07-weighing', (v) => {
+  withoutBomLine(v);
   v.entryForms[0]!.fields.unshift({
     name: 'bomLine',
     label: 'Material (BOM line)',
@@ -56,7 +62,7 @@ describe('G-07 weighing and dispensing', () => {
   });
 
   it('names what the step does not say (the BOM line) instead of sending an entry the contract refuses', async () => {
-    renderFloor(stepPath('p-disp-api@'), { scaleSlot: fakeScaleSlot({}) });
+    renderFloor(stepPath('p-disp-api@'), { scaleSlot: fakeScaleSlot({}), fixtures: stepFixtures(g07WithoutBom) });
     const form = await screen.findByTestId('form-CONTAINER_WEIGHING');
     expect(within(form).getByRole('alert').textContent).toContain('The step does not say which bomLine this entry is for');
     expect(within(form).getByRole('button', { name: 'Save: Weigh one container' }).hasAttribute('disabled')).toBe(true);
