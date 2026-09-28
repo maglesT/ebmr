@@ -10,7 +10,7 @@
  * ceremony. Each test skips, with the reason, while a piece it needs is not live yet (the stub routes answer
  * 501) or while the exchange inbox holds no test package.
  */
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
 import type { SeededPersona } from '@ebmr/test-kit';
 import { axe, cspViolations, expect, pin, signIn, test } from '../../fixtures/index.ts';
@@ -156,6 +156,12 @@ async function readiness(page: Page): Promise<Readiness> {
   });
 }
 
+/** Chooses a react-aria radio the way a person does: its label covers the input, so the label is what is tapped. */
+async function choose(radio: Locator): Promise<void> {
+  await radio.locator('xpath=ancestor::label[1]').click();
+  await expect(radio).toBeChecked();
+}
+
 /** Issues a TEST- batch through the floor screens as the batch issuer on the sandbox PC; null when no package is in the inbox. */
 async function issueTestBatch(page: Page, base: string): Promise<string | null> {
   await open(page, base, '/packages');
@@ -167,9 +173,9 @@ async function issueTestBatch(page: Page, base: string): Promise<string | null> 
   if (await importButton.isVisible()) await importButton.click();
   await item.getByRole('link', { name: 'Issue a test batch' }).click();
   await expect(page.getByRole('heading', { name: 'Issue a test batch' })).toBeVisible();
-  await page.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').first().check();
+  await choose(page.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').first());
   for (const group of await page.getByRole('radiogroup').all()) {
-    if ((await group.getByRole('radio', { checked: true }).count()) === 0) await group.getByRole('radio').first().check();
+    if ((await group.getByRole('radio', { checked: true }).count()) === 0) await choose(group.getByRole('radio').first());
   }
   // Every header input the form asks for (dc-mini: the batch size in tablets, a COUNT sent as text).
   for (const input of await page.getByRole('textbox').all()) {
@@ -238,7 +244,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
       await page.getByRole('menuitem', { name: /Raise an exception/ }).click();
       const dialog = page.getByRole('dialog', { name: 'Raise an exception' });
       await dialog.getByRole('textbox', { name: 'What happened' }).fill('Booth door found open at start (E2E)');
-      await dialog.getByRole('radio', { name: /Action/ }).check();
+      await choose(dialog.getByRole('radio', { name: /Action/ }));
       await dialog.getByRole('button', { name: 'Send' }).click();
       await tapBadge(page, operator);
       await expect(dialog.getByText(/Saved:/)).toBeVisible();
@@ -285,7 +291,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
 
     await evidence.step('The operator records every entry of the first step (clearance) with a tap each', 'Every entry saved', async () => {
       for (const form of await page.locator('[data-testid^="form-"]').all()) {
-        for (const group of await form.getByRole('radiogroup').all()) await group.getByRole('radio').first().check();
+        for (const group of await form.getByRole('radiogroup').all()) await choose(group.getByRole('radio').first());
         for (const box of await form.getByRole('textbox').all()) await box.fill('TEST-E2E');
         await form.getByRole('button', { name: /^Save/ }).click();
         await tapBadge(page, operator);
