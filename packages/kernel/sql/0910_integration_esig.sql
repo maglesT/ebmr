@@ -33,12 +33,15 @@ begin
   if not found then
     return null;
   end if;
-  select max(e.id) into v_entered
-  from platform.state_history h
-  join kernel.audit_event e on e.table_name = 'platform.state_history' and e.record_id = h.id::text
-  where h.aggregate_type = v_state.aggregate_type and h.aggregate_id = v_state.aggregate_id and h.to_version = v_state.version;
-  select min(e.id) into v_signed
-  from kernel.audit_event e where e.table_name = 'esig.signature' and e.record_id = p_signature_id::text;
+  -- Both positions come from one statement, so one snapshot: in separate statements a change committed between them
+  -- could let one audit row count as both (then the two can never be equal: a row has one table_name).
+  select (select max(e.id)
+            from platform.state_history h
+            join kernel.audit_event e on e.table_name = 'platform.state_history' and e.record_id = h.id::text
+           where h.aggregate_type = v_state.aggregate_type and h.aggregate_id = v_state.aggregate_id and h.to_version = v_state.version),
+         (select min(e.id)
+            from kernel.audit_event e where e.table_name = 'esig.signature' and e.record_id = p_signature_id::text)
+    into v_entered, v_signed;
   if v_entered is null or v_signed is null or v_signed < v_entered then
     return format('signature %s was applied before %s:%s entered state %s at version %s; it belongs to an earlier stay in that state (sign again)',
                   p_signature_id, p_aggregate_type, p_aggregate_id, v_state.state, v_state.version);
