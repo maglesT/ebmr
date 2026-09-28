@@ -25,7 +25,8 @@ export interface MtSicsDriverOptions {
 }
 
 export type CommandResult =
-  | { ok: true; response: MtSicsResponse; receivedWallUs: bigint; receivedMonoUs: bigint }
+  /** `serial`: the serial verified with I4 on the connection that carried this answer. */
+  | { ok: true; response: MtSicsResponse; receivedWallUs: bigint; receivedMonoUs: bigint; serial: string | null }
   | { ok: false; error: 'OFFLINE' | 'SERIAL_MISMATCH' | 'TIMEOUT' | 'PROTOCOL'; raw?: string; message: string };
 
 export interface DriverAlarm {
@@ -248,7 +249,7 @@ export class MtSicsDriver extends EventEmitter {
     const receivedMonoUs = this.options.clock.monoUs();
     try {
       const response = parseResponse(line);
-      p.resolve({ ok: true, response, receivedWallUs, receivedMonoUs });
+      p.resolve({ ok: true, response, receivedWallUs, receivedMonoUs, serial: this.serial });
     } catch (error) {
       const message = error instanceof MtSicsProtocolError ? error.message : String(error);
       this.alarm({ kind: 'PROTOCOL_ERROR', message: `${this.code}: garbled answer to ${p.command} (${message}); reconnecting`, details: { raw: line } });

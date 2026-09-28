@@ -240,6 +240,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       );
       if (!outcome.ok) {
         const timeout = 'timeout' in outcome;
+        if (!timeout) ctx.request.log.error({ versionId: id, problem: outcome.message }, 'designer simulation failed');
         throw refusal(422, {
           code: timeout ? 'SIMULATION_TIMEOUT' : 'SIMULATION_FAILED',
           kind: 'NOT_ENABLED',

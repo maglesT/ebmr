@@ -5,18 +5,24 @@
  * server's answer (`problem`).
  */
 import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
 import { routes, type TestPackageView } from '@ebmr/api-contract';
 import { Button, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
+import { useRouteSearch } from '../params.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
 import { st } from '../text.ts';
 import { usePendingCall } from '../usePendingCall.ts';
 
-function PackageItem({ p }: { p: TestPackageView }) {
+function PackageItem({ p, highlighted }: { p: TestPackageView; highlighted: boolean }) {
   const qc = useQueryClient();
+  const ref = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (highlighted) ref.current?.scrollIntoView?.({ block: 'center' });
+  }, [highlighted]);
   const importCall = usePendingCall(routes.execution.importPackage, { packageId: p.packageId }, {
     reason: st('tap.reason.import'),
     onSaved: () => qc.invalidateQueries({ queryKey: [routes.execution.testPackages.id] }),
@@ -27,7 +33,7 @@ function PackageItem({ p }: { p: TestPackageView }) {
   });
   const unsettled = importCall.busy || importCall.state === 'notSaved';
   return (
-    <li className={wcls('item')} data-testid={`package-${p.packageId}`}>
+    <li ref={ref} className={wcls('item')} data-testid={`package-${p.packageId}`} data-highlight={String(highlighted)} {...(highlighted ? { 'aria-current': 'true' as const } : {})}>
       <h2 className={wcls('itemTitle')}>
         <span>
           {p.product.name} · {p.familyCode} version {p.versionNumber} revision {p.revision}
@@ -63,8 +69,13 @@ function PackageItem({ p }: { p: TestPackageView }) {
   );
 }
 
+/**
+ * The inbox. `?package=<packageHash>` (the link the GMP designer shows after an export, at /test-packages or
+ * /packages) highlights that package.
+ */
 export function PackagesPage() {
   const packages = useApiQuery(routes.execution.testPackages);
+  const wanted = useRouteSearch()['package'] ?? null;
   return (
     <>
       <h1>{st('packages.title')}</h1>
@@ -73,7 +84,7 @@ export function PackagesPage() {
       {packages.data && packages.data.packages.length === 0 ? <p>{st('packages.empty')}</p> : null}
       <ul className={wcls('list')} aria-label={st('packages.title')}>
         {packages.data?.packages.map((p) => (
-          <PackageItem key={p.packageId} p={p} />
+          <PackageItem key={p.packageId} p={p} highlighted={wanted !== null && (p.packageHash === wanted || p.packageId === wanted)} />
         ))}
       </ul>
     </>

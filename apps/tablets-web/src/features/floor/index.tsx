@@ -1,7 +1,7 @@
 /**
  * Web feature `floor` (module C4): the sandbox test-run screens and the shop-floor step screen.
  *
- * Routes: /packages (inbox and import), /packages/$packageId/issue (issue a TEST- batch), /runs, /runs/$runId
+ * Routes: /packages and /test-packages (inbox and import; ?package=<hash> highlights one), /packages/$packageId/issue (issue a TEST- batch), /runs, /runs/$runId
  * (overview, record, replay), /runs/$runId/steps/$stepKey (the step screen), /cockpit ("What you can do now").
  * Every route sits in the C0 shell, which shows the TEST, NOT GMP band and watermark on the sandbox (DI-05).
  *
@@ -22,6 +22,8 @@ import { FloorSessionProvider } from './session.tsx';
 export function routes(root: AnyRootRoute): AnyRoute[] {
   return [
     createRoute({ getParentRoute: () => root, path: '/packages', component: PackagesPage }),
+    // The GMP designer links here after an export: /test-packages?package=<packageHash> (same inbox).
+    createRoute({ getParentRoute: () => root, path: '/test-packages', component: PackagesPage }),
     createRoute({ getParentRoute: () => root, path: '/packages/$packageId/issue', component: IssueFormPage }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage }),
     createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunOverviewPage }),

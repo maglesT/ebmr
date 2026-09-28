@@ -4,10 +4,18 @@
  *   EBMR_SIM_TCP=127.0.0.1:4001 EBMR_SIM_HTTP=127.0.0.1:4002 EBMR_SIM_SERIAL=SIM-0001 EBMR_SIM_SEED=42 \
  *     node --import tsx apps/simulators/src/scale/main.ts
  *
- * Optional: EBMR_SIM_RESOLUTION (default 0.001), EBMR_SIM_UNIT (kg), EBMR_SIM_CAPACITY (60.000). It binds loopback
+ * Optional: EBMR_SIM_RESOLUTION (default 0.001), EBMR_SIM_UNIT (kg), EBMR_SIM_CAPACITY (60.000), and for tests
+ * EBMR_SIM_SETTLE_MS (1200), EBMR_SIM_STABILITY_TIMEOUT_MS (4000), EBMR_SIM_SLOW_MS (3000). It binds loopback
  * addresses only unless told otherwise, and stops on SIGTERM or SIGINT.
  */
 import { startScaleSimulator } from './server.ts';
+
+function ms(value: string | undefined, name: string): number | undefined {
+  if (value === undefined || value === '') return undefined;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0) throw new Error(`${name} must be a whole number of milliseconds`);
+  return n;
+}
 
 function address(value: string | undefined, fallback: string): { host: string; port: number } {
   const text = value && value !== '' ? value : fallback;
@@ -15,6 +23,8 @@ function address(value: string | undefined, fallback: string): { host: string; p
   if (!m) throw new Error(`not a host:port address: ${text}`);
   return { host: m[1] ?? '127.0.0.1', port: Number(m[2]) };
 }
+
+const optional = <K extends string>(key: K, value: number | undefined): Partial<Record<K, number>> => (value === undefined ? {} : ({ [key]: value } as Partial<Record<K, number>>));
 
 async function main(): Promise<void> {
   const env = process.env;
@@ -28,6 +38,9 @@ async function main(): Promise<void> {
     resolution: env['EBMR_SIM_RESOLUTION'] ?? '0.001',
     unit: env['EBMR_SIM_UNIT'] ?? 'kg',
     capacity: env['EBMR_SIM_CAPACITY'] ?? '60.000',
+    ...optional('settleMs', ms(env['EBMR_SIM_SETTLE_MS'], 'EBMR_SIM_SETTLE_MS')),
+    ...optional('stabilityTimeoutMs', ms(env['EBMR_SIM_STABILITY_TIMEOUT_MS'], 'EBMR_SIM_STABILITY_TIMEOUT_MS')),
+    ...optional('slowMs', ms(env['EBMR_SIM_SLOW_MS'], 'EBMR_SIM_SLOW_MS')),
   });
   console.log(`scale simulator ${sim.model.serial}: MT-SICS on tcp port ${sim.tcpPort}, console on http port ${String(sim.httpPort)} (SIMULATOR, DEMO-ONLY)`);
   const stop = (signal: string) => {

@@ -4,6 +4,7 @@
  *
  * Rules (reversible, so decode(encode(x)) equals x):
  *  - a bigint (instants and durations in microseconds) becomes {"$u": "<decimal digits>"};
+ *  - a Map (the token marking) becomes {"$m": [[key, value], ...]} in insertion order;
  *  - a string containing U+0000 (which jsonb cannot hold) becomes {"$s": "<escaped>"}, where `%` is
  *    written %25 and U+0000 is written %00;
  *  - an object key that starts with `$` or `~` or contains U+0000 is written `~` + the escaped key, so a
@@ -54,6 +55,8 @@ export function encode(value: unknown, path = '$'): JsonValue {
       return Object.is(value, -0) ? 0 : value;
     case 'object': {
       if (Array.isArray(value)) return value.map((v, i) => (v === undefined ? null : encode(v, `${path}[${i}]`)));
+      if (value instanceof Map) return { $m: [...value.entries()].map(([k, v], i) => [encode(k, `${path}<key ${i}>`), encode(v, `${path}<${String(k)}>`)]) };
+      if (value instanceof Set || value instanceof Date || value instanceof RegExp || ArrayBuffer.isView(value)) throw new CodecError(`${path}: a ${value.constructor.name} cannot be persisted`);
       const out: { [key: string]: JsonValue } = {};
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         if (v === undefined) continue;
@@ -81,6 +84,11 @@ export function decode(json: unknown, path = '$'): unknown {
       const t = o['$u'];
       if (typeof t !== 'string' || !/^-?(0|[1-9][0-9]*)$/.test(t)) throw new CodecError(`${path}: malformed bigint tag`);
       return BigInt(t);
+    }
+    if (keys.length === 1 && keys[0] === '$m') {
+      const t = o['$m'];
+      if (!Array.isArray(t) || !t.every((e) => Array.isArray(e) && e.length === 2)) throw new CodecError(`${path}: malformed map tag`);
+      return new Map((t as unknown[][]).map(([k, v], i) => [decode(k, `${path}<key ${i}>`), decode(v, `${path}<${i}>`)]));
     }
     if (keys.length === 1 && keys[0] === '$s') {
       const t = o['$s'];

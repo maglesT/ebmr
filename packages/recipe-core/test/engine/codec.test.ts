@@ -20,6 +20,7 @@ const value = fc.letrec<{ v: unknown }>((tie) => ({
     fc.bigInt(),
     text,
     fc.array(tie('v'), { maxLength: 4 }),
+    fc.array(fc.tuple(key, tie('v')), { maxLength: 3 }).map((entries) => new Map(entries)),
     fc.dictionary(key, tie('v'), { maxKeys: 4 }),
   ),
 }));
@@ -63,8 +64,10 @@ describe('execution codec', () => {
       const h = stateHash(run.state);
       const text = JSON.stringify(encodeState(run.state));
       const back = decodeState(JSON.parse(text));
-      // Plain objects throughout, as structuredClone (the engine's own copy of a state) makes them.
-      expect(back).toEqual(structuredClone(run.state));
+      expect(back).toEqual(run.state);
+      // The token marking (Maps) is part of the state and of its hash.
+      expect(back.marking.tokens.size).toBe(run.state.marking.tokens.size);
+      expect(text).toContain('"$m"');
       expect(stateHash(back)).toBe(h);
       expect(hashJson(JSON.parse(text))).toBe(h);
       // The engine's NUL-prefixed bookkeeping key survives (jsonb cannot hold U+0000).

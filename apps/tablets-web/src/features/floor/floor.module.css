@@ -129,6 +129,11 @@
   display: grid;
   gap: 6px;
 }
+.item[data-highlight='true'] {
+  border-color: var(--ebmr-info-fg);
+  border-width: 3px;
+  background: var(--ebmr-info-bg);
+}
 .item[data-available='false'] {
   background: var(--ebmr-surface-alt);
   color: var(--ebmr-muted);
