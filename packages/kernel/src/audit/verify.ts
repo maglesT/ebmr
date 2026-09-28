@@ -53,6 +53,11 @@ export async function runChainVerification(db: pg.Pool | pg.PoolClient): Promise
   };
 }
 
+/**
+ * Checks an anchor against the live chains only. After a lawful purge the anchored heads of a purged chain live in
+ * its tombstone: operational checks use the purge-aware records.verifyAnchorPurgeAware (the backup drill does), since
+ * the audit layer cannot depend on the records module.
+ */
 export async function verifyAnchor(db: pg.Pool | pg.PoolClient, anchorId: number): Promise<string[]> {
   const { rows } = await db.query<{ problem: string }>('select problem from kernel.verify_anchor($1)', [anchorId]);
   return rows.map((r) => r.problem);

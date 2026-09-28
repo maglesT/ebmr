@@ -78,8 +78,11 @@ export const TARGETS: Target[] = [
   {
     group: 'protected-numbers',
     functions: ['continuity.next_counter_value', 'continuity.reserve_counter_ceiling', 'continuity.after_restore',
-                'continuity.approve_restore_event', 'continuity.restore_event_is_approved'],
-    tests: [k('continuity/numbers.test.ts'), k('continuity/restore.test.ts'), 'packages/site-services/test/batch-number-register.test.ts'],
+                'continuity.approve_restore_event', 'continuity.restore_event_is_approved', 'continuity.plan_sequence_moves',
+                'continuity.secure_identifiers', 'continuity.prepare_counter_reservation', 'continuity.counter_scope',
+                'continuity.guard_identifiers_secured', 'continuity.compare_external_anchors', 'continuity.verify_external_anchors'],
+    tests: [k('continuity/numbers.test.ts'), k('continuity/restore.test.ts'), k('continuity/anchors.test.ts'),
+            'packages/site-services/test/batch-number-register.test.ts'],
     threshold: 90,
   },
 ];
