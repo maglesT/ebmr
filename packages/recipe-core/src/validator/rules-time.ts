@@ -72,7 +72,7 @@ const neverApplies = defineRule('TIME-NEVER-APPLIES', 'Time constraints can appl
 export function networkConstraints(a: Analysis): NetConstraint[] {
   const out: NetConstraint[] = [];
   const valid = (e: NodeEvent): boolean => a.nodes.has(e.node);
-  for (const t of a.mbr.timeConstraints as TimeConstraint[]) {
+  for (const t of a.mbr.timeConstraints) {
     if (!isNodeEvent(t.from) || !isNodeEvent(t.to) || !valid(t.from) || !valid(t.to)) continue;
     const c: NetConstraint = { id: t.id, label: `${t.name} (${t.id})`, from: t.from, to: t.to };
     const min = micros(t.min);

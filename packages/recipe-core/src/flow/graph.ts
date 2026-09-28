@@ -85,6 +85,7 @@ export interface ExecutionGraph {
 
 export interface GraphIndex {
   node: ReadonlyMap<string, GraphNode>;
+  edge: ReadonlyMap<string, GraphEdge>;
   out: ReadonlyMap<string, GraphEdge[]>;
   in: ReadonlyMap<string, GraphEdge[]>;
   region: ReadonlyMap<string, GraphRegion>;
@@ -106,7 +107,7 @@ export function indexGraph(g: ExecutionGraph): GraphIndex {
     list.push(n.id);
     bySource.set(n.source, list);
   }
-  return { node, out, in: inc, region: new Map(g.regions.map((r) => [r.key, r])), bySource };
+  return { node, edge: new Map(g.edges.map((e) => [e.id, e])), out, in: inc, region: new Map(g.regions.map((r) => [r.key, r])), bySource };
 }
 
 /**

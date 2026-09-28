@@ -205,7 +205,9 @@ export function checkGraph(g: ExecutionGraph): GraphProblem[] {
   const order = forwardTopologicalOrder({ ...g, edges });
   if (!order) {
     const cycle = findCycle(g.nodes, edges);
-    problems.push({ code: 'UNDECLARED_CYCLE', node: cycle[0], message: `The flow repeats outside a declared loop: ${cycle.join(' -> ')}` });
+    const problem: GraphProblem = { code: 'UNDECLARED_CYCLE', message: `The flow repeats outside a declared loop: ${cycle.join(' -> ')}` };
+    if (cycle[0] !== undefined) problem.node = cycle[0];
+    problems.push(problem);
   }
 
   // Reachability and completion (all edges, back edges included).

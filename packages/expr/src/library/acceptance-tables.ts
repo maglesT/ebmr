@@ -9,6 +9,7 @@
  * lookup is recorded with the table id, version and row.
  */
 import { Dec } from '../decimal/dec.ts';
+import { rCmp, toRational, type Rational } from '../decimal/exact.ts';
 import { diagnostic, type Diagnostic } from '../diagnostics.ts';
 import { isTag, tagUnitProblem, type Tag } from '../units/tags.ts';
 import { parseUnit, UnitError } from '../units/unit.ts';
@@ -42,14 +43,14 @@ export interface AcceptanceTable {
 /** Tables available to a calculation, by id. */
 export type AcceptanceTableCatalog = Readonly<Record<string, AcceptanceTable>>;
 
-function inRange(key: Dec, row: AcceptanceTableRow): boolean {
+function inRange(key: Rational, row: AcceptanceTableRow): boolean {
   if (row.from !== undefined) {
-    const f = Dec.parse(row.from.value);
-    if (row.from.inclusive ? key.lt(f) : key.lte(f)) return false;
+    const c = rCmp(key, toRational(Dec.parse(row.from.value)));
+    if (row.from.inclusive ? c < 0 : c <= 0) return false;
   }
   if (row.to !== undefined) {
-    const t = Dec.parse(row.to.value);
-    if (row.to.inclusive ? key.gt(t) : key.gte(t)) return false;
+    const c = rCmp(key, toRational(Dec.parse(row.to.value)));
+    if (row.to.inclusive ? c > 0 : c >= 0) return false;
   }
   return true;
 }
@@ -107,11 +108,12 @@ export function validateAcceptanceTable(table: AcceptanceTable): Diagnostic[] {
   return out;
 }
 
-/** The row whose range holds `key` (in the key unit), or undefined. */
-export function lookupAcceptanceTable(table: AcceptanceTable, key: Dec): { row: number; result: Dec } | undefined {
+/** The row whose range holds `key` (exact, in the key unit), or undefined. Row numbers start at 0. */
+export function lookupAcceptanceTable(table: AcceptanceTable, key: Dec | Rational): { row: number; result: Dec } | undefined {
+  const k = key instanceof Dec ? toRational(key) : key;
   for (let i = 0; i < table.rows.length; i += 1) {
     const row = table.rows[i];
-    if (row !== undefined && inRange(key, row)) return { row: i, result: Dec.parse(row.result) };
+    if (row !== undefined && inRange(k, row)) return { row: i, result: Dec.parse(row.result) };
   }
   return undefined;
 }

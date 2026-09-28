@@ -58,6 +58,10 @@ export function rPow(a: Rational, exponent: number): Rational {
   return exponent > 0 ? r : rDiv(R_ONE, r);
 }
 
+export function rAbs(a: Rational): Rational {
+  return a.num < 0n ? { num: -a.num, den: a.den } : a;
+}
+
 export function rEq(a: Rational, b: Rational): boolean {
   return a.num === b.num && a.den === b.den;
 }

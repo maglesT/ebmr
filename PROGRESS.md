@@ -228,3 +228,6 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (read-only; reproducers write packages/kernel/test/review-tmp/*.test.ts there). SQL mutation run in /home/user/ebmr
   (branch phase-1/mutation-testing) in progress: audit-trail 74.5 %, actor-validation 92.7 %, signing 85.4 %,
   signature-invalidation 76.2 % (target 90 %; tests to be added for survivors).
+- 2026-09-28: OWNER DECISION (docs/decisions/0003): testing = logic and execution only (unit, property, model-based,
+  golden batch, bypass, correctness-under-concurrency, mutation, end-to-end through screens). No load/soak/performance
+  testing, no deployment/HA/pen-test work: deployment is a separate system design.
