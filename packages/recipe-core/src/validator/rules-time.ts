@@ -2,7 +2,7 @@
  * Time-constraint gates (ADR 0004 decision 3; outline 6.2, 6.3 "time constraints consistent"; INV-20).
  */
 import { compareDecimal, durationToMicros, isTimeUnit } from '../flow/decimal.ts';
-import { isNodeEvent, type NodeEvent, type Quantity, type TimeConstraint } from '../flow/model.ts';
+import { isNodeEvent, type NodeEvent, type Quantity } from '../flow/model.ts';
 import type { Analysis } from './analysis.ts';
 import { defineRule, error, label, warning, type Rule } from './rule-kit.ts';
 import { checkTemporalNetwork, type NetConstraint } from './time-network.ts';
