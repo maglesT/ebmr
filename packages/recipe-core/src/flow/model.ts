@@ -225,9 +225,9 @@ export const REDUCTION_KINDS = [
   'REDUCED_IPC_FREQUENCY',
   /** Review by exception for steps under continuous monitoring. */
   'REVIEW_BY_EXCEPTION',
-  /** A performer/checker requirement lifted for a significant step. */
-  'NO_CHECKER',
 ] as const;
+// There is deliberately no reduction that lifts the checker of a significant step: performer-is-not-
+// verifier on significant steps is locked (outline 7.2, S5); only S5a (ONE_VERIFIER) and S24 are switches.
 export type ReductionKind = (typeof REDUCTION_KINDS)[number];
 
 /** A risk-based reduction of a control (IN-02): risk class from the scale plus a linked rationale. */
