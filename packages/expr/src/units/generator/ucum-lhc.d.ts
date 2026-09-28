@@ -49,7 +49,8 @@ declare module '@lhncbc/ucum-lhc' {
 declare module '@lhncbc/ucum-lhc/source-cjs/prefixTables.js' {
   export interface UcumPrefix {
     code_: string;
-    exp_: number | null;
+    /** A decimal string such as "18"; null for the binary prefixes. */
+    exp_: string | null;
     value_: number;
   }
   const prefixTables: {

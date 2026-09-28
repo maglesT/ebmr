@@ -13,7 +13,7 @@
 import { createRequire } from 'node:module';
 import ucum, { type UcumUnit } from '@lhncbc/ucum-lhc';
 import prefixTables from '@lhncbc/ucum-lhc/source-cjs/prefixTables.js';
-import { formatRational, R_ONE, rational, rDiv, rMul, rPow, terminatingDecimal, type Rational } from '../../decimal/exact.ts';
+import { formatRational, R_ONE, rAdd, rational, rDiv, rMul, rPow, terminatingDecimal, type Rational } from '../../decimal/exact.ts';
 import type { BaseAxis, NamedUnitRecord, QuantityKindRecord, UnitAtomRecord, UnitTable } from '../unit-table-types.ts';
 import { parseUcumSyntax, type AtomResolver } from '../ucum-syntax.ts';
 import { CATALOGUE_ATOMS, NO_PREFIX_ATOMS, PREFIXES, QUANTITY_KINDS, TEMPERATURE_SCALES } from './unit-catalogue.ts';
@@ -102,7 +102,8 @@ export function loadUcumSource(): UcumSource {
     const u = tables.getUnitByCode(c);
     return u !== undefined && (u.isMetric_ || UCUM_BASE_UNITS.has(c));
   }));
-  const prefixes = new Map(prefixTables.PrefixTables.getInstance().allPrefixesByCode().map((p) => [p.code_, p.exp_] as const));
+  // ucum-lhc stores prefix exponents as strings ("18"), and null for the binary prefixes.
+  const prefixes = new Map(prefixTables.PrefixTables.getInstance().allPrefixesByCode().map((p) => [p.code_, p.exp_ === null ? null : Number(p.exp_)] as const));
   return {
     version: pkg.version,
     unit: (code) => tables.getUnitByCode(code),
@@ -194,12 +195,12 @@ function atomRecord(code: string, src: UcumSource, resolver: Resolver): UnitAtom
     const factor = exactDecimalOrRational(scale.factor);
     const offset = exactDecimalOrRational(scale.offset);
     for (const probe of ['-40', '0', '100', '121.1']) {
-      const expected = toApproximateNumber(rMul(factor, { num: exactDecimal(probe).num * offset.den + offset.num * exactDecimal(probe).den, den: exactDecimal(probe).den * offset.den }));
+      const expected = toApproximateNumber(rMul(rAdd(exactDecimal(probe), offset), factor));
       const got = src.convert(code, Number(probe), 'K');
       if (got === null || !relativelyClose(expected, got)) throw new Error(`unit generator: ${code} -> K disagrees with ucum-lhc at ${probe}`);
     }
     return {
-      name: u.name_,
+      name: u.name_.length > 0 ? u.name_ : code,
       printSymbol: cleanSymbol(u, code),
       property: u.property_,
       metric: false,
@@ -279,7 +280,10 @@ function quantityKinds(src: UcumSource, atoms: Record<string, UnitAtomRecord>): 
       } else if (dimKey(dimension) !== dimKey(dim)) {
         throw new Error(`unit generator: ${code} does not have the dimension of quantity kind ${kind}`);
       }
-      if (spec.scale === 'LINEAR' && firstFactor !== undefined && code !== first) {
+      // ucum-lhc refuses every conversion of arbitrary units ([CFU]/mL -> [CFU]/m3); the factor is
+      // then checked through its non-arbitrary atoms, which are cross-checked individually.
+      const arbitrary = dim.has('[iU]') || dim.has('[CFU]');
+      if (spec.scale === 'LINEAR' && !arbitrary && firstFactor !== undefined && code !== first) {
         const expected = toApproximateNumber(rDiv(factor, firstFactor));
         const got = src.convert(code, 1, first);
         if (got === null || !relativelyClose(expected, got)) throw new Error(`unit generator: ${code} -> ${first} disagrees with ucum-lhc (${String(got)})`);
@@ -308,8 +312,8 @@ export function buildUnitTable(src: UcumSource = loadUcumSource()): UnitTable {
   };
 }
 
-function lit(value: unknown): string {
-  return JSON.stringify(value).replace(/'/g, "\\'").replace(/^"(.*)"$/, "'$1'").replace(/\\"/g, '"');
+function lit(value: string): string {
+  return JSON.stringify(value);
 }
 
 function renderDimension(d: Readonly<Partial<Record<BaseAxis, number>>>): string {
