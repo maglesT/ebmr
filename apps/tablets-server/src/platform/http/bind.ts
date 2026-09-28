@@ -77,6 +77,12 @@ const SECRET_MEMBERS = ['attribution', 'credentials', 'proof', 'secret', 'pin', 
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** The body a device proof covers (decision D8): exactly the request body without its `attribution` member. */
+export function withoutAttribution(body: unknown): Record<string, unknown> {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) return {};
+  return Object.fromEntries(Object.entries(body as Record<string, unknown>).filter(([k]) => k !== 'attribution'));
+}
+
 export function withoutSecrets(body: unknown): unknown {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) return body ?? null;
   return Object.fromEntries(Object.entries(body as Record<string, unknown>).filter(([k]) => !SECRET_MEMBERS.includes(k)));
@@ -162,7 +168,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
           attribution: body['attribution'] as Attribution | undefined,
           method: request.method,
           path: pathOf(request),
-          body: withoutSecrets(body),
+          body: withoutAttribution(body),
         });
         request.ebmrAuthEventId = result.authEventId;
       }

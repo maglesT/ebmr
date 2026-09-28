@@ -31,6 +31,8 @@ export interface ResolvedSession {
   legalName: string;
   loginName: string;
   idleTimeoutSeconds: number;
+  /** Per-entry attribution on this device (decision D8; C1's tab.attribution_method_for): NONE off the shop floor. */
+  attributionMethod: 'NONE' | 'TAP' | 'TAP_PIN';
 }
 
 export const tokenHash = (token: string): string => createHash('sha256').update(token, 'utf8').digest('hex');
@@ -55,9 +57,14 @@ export function requestTokenHash(request: FastifyRequest, config: ServerConfig):
 }
 
 export async function resolveSession(pool: pg.Pool, hash: string): Promise<ResolvedSession | null> {
-  const { rows } = await pool.query<{ r: Record<string, unknown> | null }>('select tab.resolve_session($1) as r', [hash]);
+  const { rows } = await pool.query<{ r: Record<string, unknown> | null; m: string | null }>(
+    `select x.r, case when x.r is null then null else tab.attribution_method_for(x.r ->> 'device_class') end as m
+       from (select tab.resolve_session($1) as r) x`,
+    [hash],
+  );
   const r = rows[0]?.r;
   if (!r) return null;
+  const m = rows[0]?.m;
   const str = (k: string): string => {
     const v = r[k];
     return typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '';
@@ -83,6 +90,8 @@ export async function resolveSession(pool: pg.Pool, hash: string): Promise<Resol
     legalName: str('legal_name'),
     loginName: str('login_name'),
     idleTimeoutSeconds: Number(r['idle_timeout_seconds']),
+    // Fail towards the stricter prompt: an unknown answer on a shop-floor terminal asks for the PIN as well.
+    attributionMethod: m === 'NONE' || m === 'TAP' || m === 'TAP_PIN' ? m : isShopFloor(str('device_class')) ? 'TAP_PIN' : 'NONE',
   };
 }
 
@@ -111,6 +120,6 @@ export function sessionView(session: ResolvedSession, config: ServerConfig, csrf
     locked: session.state === 'LOCKED' || session.state === 'IDLE_LOCKED',
     idleTimeoutSeconds: session.idleTimeoutSeconds,
     csrfToken,
-    attribution: shopFloor ? 'TAP' : 'NONE',
+    attribution: shopFloor ? (session.attributionMethod === 'NONE' ? 'TAP' : session.attributionMethod) : 'NONE',
   };
 }
