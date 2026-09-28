@@ -232,3 +232,17 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   kill tests (packages/kernel/test/mutation/<group>.test.ts), --only <ids>, and reviewed equivalent mutants
   (tools/sql-mutation/equivalent.json, excluded from the score). An ultracode workflow writes kill tests per group,
   a skeptic challenges every equivalence claim, and mutants that reveal defects are reported, not locked in.
+- 2026-09-28: PHASE 1 EXIT FIXES (branch phase-1/mutation-testing). Fix agents K, E, I, M, R, P done; C (continuity) running.
+  Supersedes the 2026-09-27 marker entry above: kernel.command_marker now holds ONE row per backend (F1: only the most
+  recently installed actor context is valid; a saved context is restored only via kernel.set_actor_context). Other
+  cross-cutting kernel rules now in force: UPDATE/DELETE of audited rows needs a non-blank reason code AND text (F6);
+  kernel.validate_actor_context refuses a site_zone other than policy site.zone (EBMR-IAM-118; F46/F84/F27);
+  kernel.row_json for session-independent row rendering; role permissions are added by request + approval (F70);
+  role grants are approved only for ACTIVE accounts (IAM-026); badge events die with the badge (IAM-097); every
+  state machine declares a create_permission and every transition a permission (F45/F78); time sources need a second
+  person's confirmation (F49); market approvals are e-signatures (F24/F76, new 0360); retention only on declared
+  aggregate types (F29/F75); a legal/investigation hold voids earlier purge approvals (REC-041, owner decision 0004
+  default). SQL mutation targets extended with the new guards (1,573 mutants in 9 groups). Next: C done -> full kernel
+  suite, SQL mutation run + Stryker, `pnpm run ci`, PR, merge; then merge main into phase-2/recipe-core (merge risks
+  listed in the lead's scratchpad fix-handoffs.md: four-eyes role permissions in migrations, IAM-118 zone in contexts,
+  create_permission on Phase 2 machines, protected sequences for new schemas, retention declarations, IAM-026 order).
