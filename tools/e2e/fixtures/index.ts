@@ -77,7 +77,7 @@ export async function withSimulator<T>(state: E2eState, work: () => Promise<T>, 
       break;
     } catch (error) {
       if ((error as { code?: string }).code !== 'EEXIST') throw error;
-      if (performance.now() > deadline) throw new Error(`the scale simulator stayed in use for ${timeoutMs / 1000} s (${lock})`);
+      if (performance.now() > deadline) throw new Error(`the scale simulator stayed in use for ${timeoutMs / 1000} s (${lock})`, { cause: error });
       await new Promise((r) => setTimeout(r, 250));
     }
   }
@@ -135,7 +135,7 @@ export const axe = {
 /** The mode of Playwright's `video` option (a string, or an object with a mode). */
 function videoMode(video: unknown): string {
   if (typeof video === 'string') return video;
-  if (video && typeof video === 'object' && 'mode' in video) return String((video as { mode: unknown }).mode);
+  if (video && typeof video === 'object' && 'mode' in video) return String(video.mode);
   return 'off';
 }
 

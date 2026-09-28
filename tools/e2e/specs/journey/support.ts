@@ -110,13 +110,18 @@ export async function simulator(consoleUrl: string, action: 'place' | 'add' | 's
   expect(res.status).toBe(200);
 }
 
-/** Milestone screenshots (full page) with numbered names, attached to the report for the owner's media. */
+/**
+ * Milestone screenshots (full page) with numbered names, attached to the report for the owner's media. When the
+ * demo is recorded, EBMR_E2E_PAUSE_MS holds each milestone on screen so a viewer can read it.
+ */
 export class Milestones {
   private n = 0;
+  private readonly pauseMs = /^\d+$/.test(process.env['EBMR_E2E_PAUSE_MS'] ?? '') ? Number(process.env['EBMR_E2E_PAUSE_MS']) : 0;
 
   constructor(private readonly testInfo: TestInfo) {}
 
   async shot(page: Page, name: string): Promise<void> {
+    if (this.pauseMs > 0) await page.waitForTimeout(this.pauseMs);
     this.n += 1;
     const file = this.testInfo.outputPath('milestones', `${String(this.n).padStart(2, '0')}-${name}.png`);
     mkdirSync(dirname(file), { recursive: true });

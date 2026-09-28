@@ -33,7 +33,8 @@ describe('new master record from a template', () => {
     const code = await screen.findByRole('textbox', { name: 'Product code' });
     await userEvent.clear(code);
     await userEvent.type(code, 'PCM500-X');
-    await waitFor(() => expect((screen.getByRole('textbox', { name: 'Product name' }) as HTMLInputElement).value).toBe('Paracetamol tablets'));
-    expect((screen.getByRole('textbox', { name: 'Strength' }) as HTMLInputElement).value).toBe('500 mg');
+    const value = (name: string): string | null => screen.getByRole('textbox', { name }).getAttribute('value');
+    await waitFor(() => expect(value('Product name')).toBe('Paracetamol tablets'));
+    expect(value('Strength')).toBe('500 mg');
   });
 });
