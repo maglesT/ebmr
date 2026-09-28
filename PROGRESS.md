@@ -265,3 +265,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   MEDIUM platform sample_record no-op save vs INV-09; LOW: stale check instants in segregation guards, after_restore
   partial setval on refusal, test harness drop race, transient hash on sample-record invalidation, open_session races
   with device block and lockout. Details: scratchpad/kill-results.json.
+- 2026-09-28: B1 (execution engine and engine-level generic blocks G-01..G-05, G-07, G-08, G-11..G-20, G-22..G-24)
+  finished: pure engine step(state, command, clock) with 21 commands, sweep for time breaches, corrections (correct,
+  void, invalidate), limit-tier exceptions, hold points, stage sign-off; golden runs of both tablet fixtures;
+  model-based invariant checks; simulator/engine agreement. Full suite 129 files / 1,192 tests passing. Kernel 0930 adds
+  the six engine signature meanings (HOLD_POINT_NOT_RELEASED, STAGE_SIGNED_OFF, CORRECTION_APPROVED,
+  INVALIDATION_APPROVED, BATCH_ABORT_APPROVED, BATCH_CANCELLED). Engine defaults recorded in engine/README.md.
+  Phase 3 items: DB-backed execution, esig ceremony at run time, INV-03 in SQL, site-services status checks,
+  hand-over, G-06/G-09/G-10/G-21/G-25 blocks, rendering parts, edition blocks.
