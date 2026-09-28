@@ -10,10 +10,12 @@ import { drainOutbox, type OutboxMessage } from '../../src/commands/outbox.ts';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { nodeClock, runDriftCheck, type TimeReference } from '../../src/time/drift-monitor.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { grantPermission, installStubHooks, testActor } from './helpers.ts';
+import { grantPermission, installStubHooks, registerValidatedTimeSource, testActor, withTriggersDisabled } from './helpers.ts';
 
 let db: TestDatabase;
 let system: ActorContext;
+let registrant: ActorContext;
+let validator: ActorContext;
 let npl = '';
 let nic = '';
 
@@ -22,22 +24,20 @@ async function rows<T extends pg.QueryResultRow>(text: string, params: unknown[]
 }
 
 async function registerSource(name: string, reference: string): Promise<string> {
-  const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD' });
-  return withCommand(db.app, admin, async (c) => {
-    const { rows: r } = await c.query<{ id: string }>(
-      "select platform.register_time_source($1, 'NTP', $2, $3, $4, 'VAL-TS-2026-001') as id",
-      [name, `${name.toLowerCase().replace(/\W+/g, '-')}.example`, reference, randomUUID()],
-    );
-    return r[0]?.id ?? '';
-  });
+  return registerValidatedTimeSource(db, registrant, validator, name, reference);
 }
 
 beforeAll(async () => {
   db = await createTestDatabase();
   await installStubHooks(db);
-  await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.alarm.clear');
+  // Registrant and validator of time sources are two people (kernel 0520): the system administrator
+  // registers, the CSV / data-integrity lead confirms the validation.
+  await grantPermission(db, 'SYSTEM_ADMINISTRATOR', 'platform.time_source.manage');
+  await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.time_source.validate', 'platform.alarm.clear');
   await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
   await grantPermission(db, 'SERVICE_ACCOUNT', 'platform.time_check.record');
+  registrant = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', legalName: 'S. Admin' });
+  validator = await testActor(db, { roleCode: 'CSV_DI_LEAD', legalName: 'V. Validator' });
   npl = await registerSource('NPL India NTP', 'NPL India, traceable to UTC(NPLI)');
   nic = await registerSource('NIC NTP', 'NIC time service, traceable to NPL India');
   system = await testActor(db, { source: 'SYSTEM', roleCode: 'SYSTEM', legalName: 'Time monitor' });
@@ -86,8 +86,18 @@ describe('time sources', () => {
       [npl],
     );
     expect(src).toEqual({ kind: 'NTP', reference: 'NPL India, traceable to UTC(NPLI)', validation_ref: 'VAL-TS-2026-001', active: true });
-    const audit = await rows<{ action: string }>('select action from kernel.audit_event where chain_key = $1', [`time_source:${npl}`]);
-    expect(audit.map((a) => a.action)).toEqual(['INSERT']);
+    // The registration and the validator's confirmation are both on the source's audit trail, and
+    // validated_by is the confirming person, taken from their own command.
+    const audit = await rows<{ action: string; table_name: string; person: string }>(
+      "select action, table_name, payload -> 'actor' ->> 'person_id' as person from kernel.audit_event where chain_key = $1 order by seq",
+      [`time_source:${npl}`],
+    );
+    expect(audit).toEqual([
+      { action: 'INSERT', table_name: 'platform.time_source_registration', person: registrant.personId },
+      { action: 'INSERT', table_name: 'platform.time_source', person: validator.personId },
+    ]);
+    const [by] = await rows<{ validated_by: string; registered_by: string }>('select validated_by::text, registered_by from platform.time_source where id = $1', [npl]);
+    expect(by).toEqual({ validated_by: validator.personId, registered_by: registrant.personId });
     const operator = await testActor(db, { roleCode: 'OPERATOR' });
     await expect(
       withCommand(db.app, operator, (c) => c.query("select platform.register_time_source('Rogue', 'NTP', 'x', 'y', gen_random_uuid(), 'z')")),
@@ -270,7 +280,8 @@ describe('drift checks', () => {
   });
 
   it('[DI-27] with no active time source configured, an alarm and an incident are raised', async () => {
-    const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD', reasonCode: 'SOURCE_MAINTENANCE' });
+    // Going below time.min_references is the validator's decision (platform.time_source.validate).
+    const admin = { ...validator, reasonCode: 'SOURCE_MAINTENANCE', reasonText: 'both references taken down for maintenance' };
     const setActive = (id: string, active: boolean) => withCommand(db.app, admin, (c) => c.query('select platform.set_time_source_active($1, $2)', [id, active]));
     await setActive(npl, false);
     await setActive(nic, false);
@@ -337,7 +348,7 @@ describe('monitor records are protected', () => {
 
   it('[DI-27] clearing an alarm by hand needs a reason, a note and the permission', async () => {
     const alarmId = await withCommand(db.app, system, async (c) => {
-      const { rows: r } = await c.query<{ id: string }>("select platform.raise_time_incident('CLOCK_REGRESSION', 'db-manual', 'MAJOR', '{}') as id");
+      const { rows: r } = await c.query<{ id: string }>("select platform.report_time_fault('CLOCK_REGRESSION', 'db-manual', 'MAJOR', '{}') as id");
       return r[0]?.id ?? '';
     });
     const clear = (ctx: ActorContext, note: string) => withCommand(db.app, ctx, (c) => c.query('select platform.clear_alarm($1, $2)', [alarmId, note]));
@@ -345,5 +356,128 @@ describe('monitor records are protected', () => {
     await expect(clear(await testActor(db, { roleCode: 'OPERATOR', reasonCode: 'X' }), 'checked')).rejects.toThrow('EBMR-PLAT-006');
     await clear(await testActor(db, { roleCode: 'CSV_DI_LEAD', reasonCode: 'INVESTIGATED' }), 'clock stepped back during failover test; see incident');
     expect(await openAlarms('db-manual')).toEqual([]);
+  });
+});
+
+/** Submits readings exactly as given (decimal strings), as the time monitor. */
+async function submit(node: string, samples: unknown[]) {
+  return withCommand(db.app, system, async (c) => {
+    const { rows: r } = await c.query<{ s: { check_id: string; raised: { kind: string }[]; cleared: { kind: string }[]; usable_sources: number; sources_over_threshold: number } }>(
+      'select platform.record_drift_check($1, $2::jsonb) as s',
+      [node, JSON.stringify(samples)],
+    );
+    const s = r[0]?.s;
+    if (!s) throw new Error('no summary');
+    return { checkId: s.check_id, raised: s.raised.map((a) => a.kind), cleared: s.cleared.map((a) => a.kind), usable: s.usable_sources, over: s.sources_over_threshold };
+  });
+}
+const reading = (sourceId: string, offset: string, uncertainty: string) => ({ source_id: sourceId, reachable: true, offset_s: offset, uncertainty_s: uncertainty });
+
+describe('what a reading proves', () => {
+  it('[DI-27] a reading too uncertain to decide proves nothing: it neither clears an offset alarm nor counts as a good sample or a usable reference', async () => {
+    const node = 'db-uncertainty';
+    const good = await submit(node, [reading(npl, '0.000020', '0.000800'), reading(nic, '-0.000030', '0.000800')]);
+    expect(good.raised).toEqual([]);
+    expect((await submit(node, [reading(npl, '1.500000', '0.100000'), reading(nic, '1.400000', '0.100000')])).raised).toEqual(['DRIFT_EXCEEDED']);
+    // Both reads took about 3 s: the offset may be anywhere in 0.3 +/- 1.5 s. No reference is usable.
+    const vague = await submit(node, [reading(npl, '0.300000', '1.500000'), reading(nic, '0.300000', '1.500000')]);
+    expect(vague).toMatchObject({ raised: ['REFERENCE_LOST'], cleared: [], usable: 0, over: 0 });
+    const samples = await rows<{ within_threshold: boolean; usable: boolean }>('select within_threshold, usable from platform.drift_sample where check_id = $1', [vague.checkId]);
+    expect(samples).toEqual([{ within_threshold: false, usable: false }, { within_threshold: false, usable: false }]);
+    // Usable again, but 0.9 +/- 0.2 s does not prove the clock within 1 s: the offset alarm stays open.
+    const edge = await submit(node, [reading(npl, '0.900000', '0.200000'), reading(nic, '0.010000', '0.001000')]);
+    expect(edge).toMatchObject({ raised: [], cleared: ['REFERENCE_LOST'], usable: 2, over: 0 });
+    expect((await openAlarms(node)).map((a) => a.kind)).toEqual(['DRIFT_EXCEEDED']);
+    // The window of the offset alarm still starts at the last sample that proved the clock good.
+    const [start] = await rows<{ ok: boolean }>(
+      `select a.window_start_position = (select max(d.audit_position) from platform.drift_sample d where d.check_id = $2) as ok
+         from platform.alarm a where a.subject = $1 and a.kind = 'DRIFT_EXCEEDED'`,
+      [node, good.checkId],
+    );
+    expect(start?.ok).toBe(true);
+    expect((await submit(node, [reading(npl, '0.000020', '0.000800'), reading(nic, '-0.000030', '0.000800')])).cleared).toEqual(['DRIFT_EXCEEDED']);
+    // An exceedance proven despite a large uncertainty (3600 +/- 2 s) alarms.
+    expect((await submit('db-proven', [reading(npl, '-3600.000000', '2.000000'), reading(nic, '-3600.000000', '2.000000')])).raised).toEqual(['DRIFT_EXCEEDED']);
+    // A reachable reading must state its uncertainty.
+    await expect(submit('db-proven', [{ source_id: npl, reachable: true, offset_s: '0.1' }])).rejects.toThrow('EBMR-PLAT-031');
+  });
+
+  it('[DI-27] offsets beyond any clock range or finer than a microsecond are recorded and alarmed, never aborted; the threshold keeps to three decimals', async () => {
+    // A node clock reset to 1970 is about 1.79e9 s behind.
+    const reset = await submit('db-1970', [reading(npl, '-1790000000.123456', '0.000800'), reading(nic, '-1790000000.123999', '0.000800')]);
+    expect(reset).toMatchObject({ raised: ['DRIFT_EXCEEDED'], over: 2 });
+    const [stored] = await rows<{ offset_s: string }>('select offset_s::text from platform.drift_sample where check_id = $1 and source_id = $2', [reset.checkId, npl]);
+    expect(stored?.offset_s).toBe('-1790000000.123456');
+    // 1.0000004 s is above 1 s.
+    const fine = await submit('db-fine', [reading(npl, '1.0000004', '0.000100'), reading(nic, '0.000000', '0.000100')]);
+    expect(fine).toMatchObject({ raised: ['DRIFT_EXCEEDED'], over: 1 });
+    // A threshold with more decimals than the samples store is refused rather than rounded.
+    const owner = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0048 tighter clock tolerance' });
+    await expect(withCommand(db.app, owner, (c) => c.query("select platform.set_setting('time.drift_alarm_threshold_s', '0.1235')"))).rejects.toThrow(
+      'EBMR-PLAT-021 setting time.drift_alarm_threshold_s allows at most 3 decimals',
+    );
+  });
+
+  it('[DI-27][DI-17] offset and reference alarms come only from the monitor\'s readings; a time service reports only faults the monitor does not evaluate', async () => {
+    await expect(
+      withCommand(db.app, system, (c) => c.query("select platform.raise_time_incident('DRIFT_EXCEEDED', 'db-report', 'MINOR', '{}')")),
+    ).rejects.toThrow(/permission denied/);
+    const report = (ctx: ActorContext, kind: string, node = 'db-report') =>
+      withCommand(db.app, ctx, (c) => c.query("select platform.report_time_fault($1, $2, 'MAJOR', '{}')", [kind, node]));
+    await expect(report(await testActor(db, { roleCode: 'CSV_DI_LEAD' }), 'CLOCK_REGRESSION')).rejects.toThrow('EBMR-PLAT-037');
+    for (const kind of ['DRIFT_EXCEEDED', 'REFERENCE_LOST', 'NO_TIME_SOURCE', 'REFERENCE_DEGRADED']) {
+      await expect(report(system, kind)).rejects.toThrow('EBMR-PLAT-036');
+    }
+    await expect(report(system, 'CLOCK_REGRESSION', 'bad node!')).rejects.toThrow('EBMR-PLAT-031');
+    await report(system, 'CLOCK_REGRESSION');
+    await expect(report(system, 'CLOCK_REGRESSION')).rejects.toThrow('EBMR-PLAT-036');
+    expect((await openAlarms('db-report')).map((a) => a.kind)).toEqual(['CLOCK_REGRESSION']);
+  });
+
+  it('[DI-27] a time monitor that stops recording is reported by the health query', async () => {
+    const node = 'db-silent';
+    await check(node, healthy());
+    const stale = async () => (await rows<{ node: string }>('select node from platform.time_monitor_violations()')).map((r) => r.node);
+    expect(await stale()).not.toContain(node);
+    // Test set-up only: the node's last check was recorded an hour ago.
+    await withTriggersDisabled(db, (c) => c.query("update platform.drift_sample set recorded_at = recorded_at - interval '1 hour' where node = $1", [node]));
+    expect(await stale()).toContain(node);
+  });
+});
+
+describe('validated time sources', () => {
+  it('[DI-27][DI-24] a time source counts only once its named validator, another person, confirms it; the registrant alone cannot go below the minimum of references', async () => {
+    const register = (ctx: ActorContext, name: string, validatedBy: string) =>
+      withCommand(db.app, { ...ctx, correlationId: randomUUID() }, async (c) => {
+        const { rows: r } = await c.query<{ id: string }>("select platform.register_time_source($1, 'NTP', '10.0.0.9', 'site server', $2, 'VAL-TS-2026-009') as id", [
+          name,
+          validatedBy,
+        ]);
+        return r[0]?.id ?? '';
+      });
+    const confirm = (ctx: ActorContext, id: string) =>
+      withCommand(db.app, { ...ctx, correlationId: randomUUID() }, (c) => c.query('select platform.confirm_time_source($1)', [id]));
+    await expect(register(registrant, 'Local A', randomUUID())).rejects.toThrow('EBMR-PLAT-033');
+    await expect(register(registrant, 'Local A', registrant.personId)).rejects.toThrow('EBMR-PLAT-033');
+    const pending = await register(registrant, 'Local A', validator.personId);
+    // Pending: not a source of the monitor yet.
+    expect(await rows('select 1 from platform.time_source where id = $1', [pending])).toEqual([]);
+    await expect(submit('db-pending', [reading(pending, '0.000000', '0.000100')])).rejects.toThrow('EBMR-PLAT-030');
+    // Only the named validator confirms: not the registrant, not another holder of the permission.
+    await expect(confirm(registrant, pending)).rejects.toThrow('EBMR-PLAT-006');
+    await expect(confirm(await testActor(db, { roleCode: 'CSV_DI_LEAD' }), pending)).rejects.toThrow('EBMR-PLAT-034');
+    await confirm(validator, pending);
+    await expect(confirm(validator, pending)).rejects.toThrow('EBMR-PLAT-034');
+    const [src] = await rows<{ active: boolean; validated_by: string }>('select active, validated_by::text from platform.time_source where id = $1', [pending]);
+    expect(src).toEqual({ active: true, validated_by: validator.personId });
+
+    // Three active sources: the registrant may take one down, not a second (minimum 2).
+    const setActive = (ctx: ActorContext, id: string, active: boolean) =>
+      withCommand(db.app, { ...ctx, reasonCode: 'SOURCE_RETIRED', reasonText: 'replaced by the site server', correlationId: randomUUID() }, (c) =>
+        c.query('select platform.set_time_source_active($1, $2)', [id, active]),
+      );
+    await setActive(registrant, pending, false);
+    await expect(setActive(registrant, npl, false)).rejects.toThrow(/EBMR-PLAT-035 deactivating NPL India NTP would leave 1 active time source/);
+    expect((await rows<{ name: string }>('select name from platform.time_source where active order by name')).map((r) => r.name)).toEqual(['NIC NTP', 'NPL India NTP']);
   });
 });

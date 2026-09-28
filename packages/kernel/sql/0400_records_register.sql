@@ -50,9 +50,11 @@ language sql stable security definer set search_path = pg_catalog, records, kern
   select (records.actor() ->> 'source') in ('SYSTEM', 'INTEGRATION')
 $$;
 
+-- True when p is NULL, empty or only white space (any kind, as kernel.is_blank: the audit trigger
+-- refuses such a reason, so the records functions refuse it first with their own message).
 create function records.is_blank(p text) returns boolean
 language sql immutable set search_path = pg_catalog, pg_temp as $$
-  select p is null or length(btrim(p)) = 0
+  select coalesce(p !~ '[^[:space:]]', true)
 $$;
 
 create function records.record_key(p_aggregate_type text, p_aggregate_id text) returns text
@@ -101,6 +103,11 @@ $$;
 -- records.lock_blocker_epoch inside the disposition transaction and checks it did not move since
 -- records.open_blockers was evaluated. A derived concurrency token, not a GMP record: every change
 -- that bumps it is itself audited in the incident, investigation or hold chain.
+--
+-- The one blocker that appears without such a change is the implicit DI-investigation blocker (the
+-- person investigated writes to the record inside the window after the investigation was opened). The
+-- public records.lock_blocker_epoch (0430) therefore first links and holds any such record, which bumps
+-- the epoch, before it locks (F35). Internal callers that only need the lock use lock_blocker_epoch_row.
 create table records.blocker_epoch (
   record_key  text primary key,
   version     bigint not null check (version >= 0),
@@ -114,7 +121,8 @@ language sql volatile security definer set search_path = pg_catalog, records, ke
   on conflict (record_key) do update set version = b.version + 1, changed_at = clock_timestamp()
 $$;
 
-create function records.lock_blocker_epoch(p_aggregate_type text, p_aggregate_id text) returns bigint
+-- Internal: lock the epoch row of one record and return its version (no implicit-blocker check).
+create function records.lock_blocker_epoch_row(p_aggregate_type text, p_aggregate_id text) returns bigint
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
@@ -354,12 +362,12 @@ select kernel.register_audited_table('records.record_type_approval', 'record_typ
 revoke all on all tables in schema records from ebmr_app;
 grant select on records.record_type, records.record_type_approval, records.record_register, records.blocker_epoch to ebmr_app;
 grant execute on function records.add_period(date, integer, integer), records.record_key(text, text),
-                          records.lock_blocker_epoch(text, text),
                           records.classification_problem(text, boolean, text),
                           records.assert_classification_valid(text, text, boolean, text),
                           records.classification_problems(jsonb),
                           records.define_record_type(jsonb),
                           records.approve_record_type(text, integer, uuid) to ebmr_app;
--- records.actor*, records.bump_blocker_epoch, records.is_blank and records.data_class_rank stay private.
+-- records.actor*, records.bump_blocker_epoch, records.lock_blocker_epoch_row, records.is_blank and
+-- records.data_class_rank stay private; the public records.lock_blocker_epoch is defined in 0430.
 
 reset role;

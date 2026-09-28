@@ -22,8 +22,17 @@ export interface RetentionInputs {
   markets: Market[];
   licenceForm?: 'FORM_25' | 'FORM_28' | null;
   manufactureDate?: CalendarDate | null;
-  /** Labelled expiry; for an aborted batch, the nominal expiry it would have had. */
+  /**
+   * Labelled expiry; for an aborted batch, the nominal expiry it would have had. A missing date is an
+   * unknown input: every rule anchored on the expiry stays OPEN until it is entered (F31).
+   */
   expiryDate?: CalendarDate | null;
+  /**
+   * The batch carries no labelled expiry at all (the product is exempt from expiry dating). Only this
+   * explicit fact switches the expiry rules off (Schedule M expiry + 1 y, Form 28 expiry + 2 y) and the
+   * Form 28 manufacture + 5 y rule on; it cannot be combined with an expiry date.
+   */
+  noLabelledExpiry?: boolean;
   otcExpiryExempt?: boolean;
   /** Date distribution of the batch was completed (US OTC products exempt from expiry dating). */
   distributionDate?: CalendarDate | null;
@@ -45,6 +54,7 @@ export interface NormalizedRetentionInputs {
   licenceForm: 'FORM_25' | 'FORM_28' | null;
   manufactureDate: CalendarDate | null;
   expiryDate: CalendarDate | null;
+  noLabelledExpiry: boolean;
   otcExpiryExempt: boolean;
   distributionDate: CalendarDate | null;
   euCertificationDate: CalendarDate | null;
@@ -77,6 +87,8 @@ export interface RetentionNode {
   recordKey: string;
   own: OwnRetention;
   hasDependants: boolean;
+  /** The record's retention key; a PERMANENT record keeps the whole closure OPEN whatever depends on it. */
+  retentionKey?: RetentionKey;
 }
 
 export interface EffectiveRetention {
@@ -98,7 +110,7 @@ const DATE_KEYS = [
   'lastTransactionDate',
   'maEndDate',
 ] as const;
-const BOOL_KEYS = ['otcExpiryExempt', 'euNeverCertified'] as const;
+const BOOL_KEYS = ['noLabelledExpiry', 'otcExpiryExempt', 'euNeverCertified'] as const;
 const MARKETS: readonly Market[] = ['EU', 'IN', 'US'];
 
 const ANCHOR_INPUT: Record<Exclude<RetentionAnchor, 'OPEN'>, (typeof DATE_KEYS)[number]> = {
@@ -146,6 +158,7 @@ export function normalizeRetentionInputs(inputs: RetentionInputs): NormalizedRet
     licenceForm,
     manufactureDate: date('manufactureDate'),
     expiryDate: date('expiryDate'),
+    noLabelledExpiry: bool('noLabelledExpiry'),
     otcExpiryExempt: bool('otcExpiryExempt'),
     distributionDate: date('distributionDate'),
     euCertificationDate: date('euCertificationDate'),
@@ -158,6 +171,9 @@ export function normalizeRetentionInputs(inputs: RetentionInputs): NormalizedRet
   if (out.euCertificationDate !== null && out.euNeverCertified) {
     throw new Error('EBMR-REC-020 a batch cannot be both certified and never certified for the EU');
   }
+  if (out.noLabelledExpiry && out.expiryDate !== null) {
+    throw new Error('EBMR-REC-020 a batch without a labelled expiry has no expiry date');
+  }
   if (out.expiryDate !== null && out.manufactureDate !== null && compareDates(out.expiryDate, out.manufactureDate) < 0) {
     throw new Error('EBMR-REC-020 the expiry date lies before the manufacturing date');
   }
@@ -167,7 +183,8 @@ export function normalizeRetentionInputs(inputs: RetentionInputs): NormalizedRet
 function facts(inputs: NormalizedRetentionInputs): Record<string, string | boolean | null> {
   return {
     licenceForm: inputs.licenceForm,
-    expiryLabelled: inputs.expiryDate !== null,
+    // An unknown expiry date is not an unlabelled product: only the explicit fact says so (F31).
+    expiryLabelled: !inputs.noLabelledExpiry,
     otcExpiryExempt: inputs.otcExpiryExempt,
     euCertification: inputs.euCertificationDate !== null ? 'CERTIFIED' : inputs.euNeverCertified ? 'NEVER_CERTIFIED' : 'PENDING',
     aborted: inputs.abortCancelDate !== null,
@@ -233,13 +250,14 @@ export function evaluateOwnRetention(
 /**
  * Retention dependency (outline 3.3.6): a record's effective retention combines its own rules with
  * every record that depends on it, transitively (`nodes` = the record plus that closure). OPEN when any
- * of them is OPEN, or has no applicable rule and no dependants; otherwise the latest date wins.
+ * of them is OPEN, has no applicable rule and no dependants, or is PERMANENT (kept for the life of the
+ * installation, whatever depends on it: F32); otherwise the latest date wins.
  * Mirror of records.compute_effective_retention.
  */
 export function combineEffectiveRetention(nodes: RetentionNode[]): EffectiveRetention {
   const sorted = [...nodes].sort((a, b) => byCodeUnit(a.recordKey, b.recordKey));
   let openBecause = sorted
-    .filter((n) => n.own.status === 'OPEN' || (n.own.status === 'NONE' && !n.hasDependants))
+    .filter((n) => n.own.status === 'OPEN' || (n.own.status === 'NONE' && !n.hasDependants) || n.retentionKey === 'PERMANENT')
     .map((n) => ({ recordKey: n.recordKey, reasons: n.own.status === 'OPEN' ? n.own.openReasons : ['NO_RULE_APPLIES'] }));
   let max: CalendarDate | null = null;
   for (const n of sorted) {

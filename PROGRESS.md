@@ -219,6 +219,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Open questions for the owner: docs/decisions/phase-1-open-questions.md (plus B7 role choices: rule tables published by
   the master-data steward, source corrections by the regulatory signer, policies by the QA MBR approver, CERT-In by
   QA/CSV-DI lead, CSV_DI_LEAD is a GMP role).
+- 2026-09-28: PR maglesT/ebmr#2 (Phase 1) merged (merge ff630ae). Branch phase-1/mutation-testing: StrykerJS 10 for the
+  kernel's pure TypeScript (stryker.config.mjs, vitest.mutation.config.ts) and tools/sql-mutation (mutates
+  database-enforced guard functions: guard removal, relational, logical, not, boolean; 9 groups, 1,284 mutants; target 90 %).
+  Weekly workflow .github/workflows/mutation.yml. Stryker's vitest runner builds test names joined with ' ' while Vitest 5
+  matches the name filter against 'suite > test'; every test inside a describe block was skipped and mutants counted as
+  survived (first run: 22 % with zero tests per mutant). Fixed with a pnpm patch (patches/@stryker-mutator__vitest-runner@10.0.0.patch,
+  both test-helpers.js and stryker-setup.js). Full runs in progress; results and any added tests go into the PR.
 - 2026-09-28: OWNER DECISION (docs/decisions/0002): Tablets edition first; Injectables edition deferred (Phase 5 on hold).
   Architecture unchanged (shared packages stay edition-neutral; injectables skeletons, docs and sterile data kept).
   Phase 2 agents told: no injectables-only calculations or sterile validator rules; tablets fixtures only.
@@ -228,6 +235,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (read-only; reproducers write packages/kernel/test/review-tmp/*.test.ts there). SQL mutation run in /home/user/ebmr
   (branch phase-1/mutation-testing) in progress: audit-trail 74.5 %, actor-validation 92.7 %, signing 85.4 %,
   signature-invalidation 76.2 % (target 90 %; tests to be added for survivors).
+- 2026-09-28: SQL mutation run 1 (1,284 mutants): audit-trail 74.5, actor-validation 92.7, signing 85.4,
+  signature-invalidation 76.2, segregation-and-grants 53.9, authentication-events 65.9, retention-and-purge 82.5,
+  site-values-and-policies 73.2, protected-numbers 60.3 (%; target 90). 254 survivors. Harness now supports per-group
+  kill tests (packages/kernel/test/mutation/<group>.test.ts), --only <ids>, and reviewed equivalent mutants
+  (tools/sql-mutation/equivalent.json, excluded from the score). An ultracode workflow writes kill tests per group,
+  a skeptic challenges every equivalence claim, and mutants that reveal defects are reported, not locked in.
 - 2026-09-28: OWNER DECISION (docs/decisions/0003): testing = logic and execution only (unit, property, model-based,
   golden batch, bypass, correctness-under-concurrency, mutation, end-to-end through screens). No load/soak/performance
   testing, no deployment/HA/pen-test work: deployment is a separate system design.
@@ -333,6 +346,20 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (platform.engine_reason must overlay text; records.purge must require text); records true-copy and purge digest
   must use kernel.row_json; continuity backup drill must use kernel.verify_all_chains. Notes in the lead's
   scratchpad fix-handoffs.md and in the R/C launch prompts. P (platform) started; R and C start when E/I/M free CPU.
+- 2026-09-28: PHASE 1 EXIT FIXES (branch phase-1/mutation-testing). Fix agents K, E, I, M, R, P done; C (continuity) running.
+  Supersedes the 2026-09-27 marker entry above: kernel.command_marker now holds ONE row per backend (F1: only the most
+  recently installed actor context is valid; a saved context is restored only via kernel.set_actor_context). Other
+  cross-cutting kernel rules now in force: UPDATE/DELETE of audited rows needs a non-blank reason code AND text (F6);
+  kernel.validate_actor_context refuses a site_zone other than policy site.zone (EBMR-IAM-118; F46/F84/F27);
+  kernel.row_json for session-independent row rendering; role permissions are added by request + approval (F70);
+  role grants are approved only for ACTIVE accounts (IAM-026); badge events die with the badge (IAM-097); every
+  state machine declares a create_permission and every transition a permission (F45/F78); time sources need a second
+  person's confirmation (F49); market approvals are e-signatures (F24/F76, new 0360); retention only on declared
+  aggregate types (F29/F75); a legal/investigation hold voids earlier purge approvals (REC-041, owner decision 0004
+  default). SQL mutation targets extended with the new guards (1,573 mutants in 9 groups). Next: C done -> full kernel
+  suite, SQL mutation run + Stryker, `pnpm run ci`, PR, merge; then merge main into phase-2/recipe-core (merge risks
+  listed in the lead's scratchpad fix-handoffs.md: four-eyes role permissions in migrations, IAM-118 zone in contexts,
+  create_permission on Phase 2 machines, protected sequences for new schemas, retention declarations, IAM-026 order).
 - 2026-09-28: WAVE 1 DONE (C1-C5 all reported). Lead integration so far (each committed with tests): badge-tap port takes
   the exact request (+ offerSwitch, session banner slot); session reports TAP/TAP_PIN per class; tap proof over the body
   minus attribution; non-owning Kysely read pool; tab.bind_session refuses service/instrument sessions (TAB-016); gateway
@@ -350,6 +377,18 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   answers; TemplateView.batchSizes; tsx at bundling; Login.tsx adopting the ui-kit PinPad/BadgePrompt; merge the Phase 1
   exit fixes (merge risks in the lead's notes: four-eyes role permissions, IAM-118 zone, create_permission on machines,
   protected sequences, retention declarations, IAM-026 order, witness next_step_started from providers).
+- 2026-09-28: SQL MUTATION RUN 2 (1,712 mutants in 9 groups, after the fix agents): 83 survivors; audit-trail 98.0,
+  actor-validation 96.6, signing 95.7, signature-invalidation 100, segregation-and-grants 94.3, authentication-events
+  94.3, retention-and-purge 89.2, site-values-and-policies 97.3, protected-numbers 86.4 (report in
+  docs/build-plan/phase-1-exit/sql-mutation-run2/). Three kill agents then brought EVERY group to 100 %: 75 survivors
+  killed by new tests in packages/kernel/test/mutation/*, 8 recorded as equivalent (tools/sql-mutation/equivalent.json,
+  now 17 entries), 1 DEFECT fixed (continuity.external_anchor_problems compared the Merkle root with <>, so an external
+  anchor with an incomplete head had a NULL root, no mismatch was reported and it was classed DISCARDABLE instead of
+  UNEXPLAINED; now `is distinct from`, test fails before the fix). Workflow wf_6280ca34-a8e challenges the 8 new
+  equivalence claims (two skeptics each). Follow-ups noted: site.zone policy accepts any text (validate as IANA zone);
+  ALL_APPLY criteria compared in order (reorder = TIGHTER); f55 reproducer can fail under heavy WAL load
+  (pg_basebackup "requested WAL segment has already been removed"; passes alone). Remaining for the Phase 1 PR:
+  equivalence verdicts, the TypeScript (Stryker) run, full `pnpm run ci`, PR, merge.
 - 2026-09-28: FIRST CLICKABLE VERSION (checkpoints D5/D6) DONE. tools/e2e/specs/journey/fcv.spec.ts drives the real
   screens from the GMP designer (dc-mini family, 0 errors, simulation 100 %, test package sent) through sandbox import
   and TEST- issue, both kiosk stages (badge + PIN, taps, G-10/G-09/G-03, scale capture on TEST-BAL-01, PERFORMED /

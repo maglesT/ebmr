@@ -118,6 +118,53 @@ describe('user IDs are never reused (DI-15, INV-27)', () => {
     await expect(db.admin.query('delete from iam.issued_identifier')).rejects.toThrow('EBMR-AUDIT-004');
     await expect(db.admin.query('truncate iam.issued_identifier cascade')).rejects.toThrow(/EBMR-AUDIT-004|EBMR-IAM-005/);
   });
+
+  it('[INV-27] login names the external ledger holds are reserved by the restore procedure and never issued again, to anyone', async () => {
+    const kept = login('kept'); // issued here and still known to this database
+    const lost = login('lost'); // issued in a restore's lost window: this database never saw it
+    await asAdmin(async (c) => {
+      const p = await createPerson(c, 'NATURAL', 'Kept Account Holder');
+      await verify(c, p);
+      return createAccount(c, { personId: p, loginName: kept, kind: 'HUMAN' });
+    });
+    // What the continuity ledger copies: every login name issued here (or reserved after a restore).
+    const names = async () => (await db.app.query<{ identifier: string }>('select identifier from iam.issued_login_names()')).rows.map((r) => r.identifier);
+    expect(await names()).toContain(kept);
+    expect(await names()).not.toContain(lost);
+
+    // The restore procedure (owner-only SECURITY DEFINER code, inside its validated command) hands the
+    // ledger's names back; names this database knows are skipped, the others are reserved once.
+    await expectPermissionDenied(db.app.query("select iam.reserve_identifiers('[]'::jsonb, 'x')"));
+    const restoreEvent = randomUUID();
+    const reserve = (list: string[]) =>
+      asDefinerCommand(db, withReason(adm.admin, 'RESTORE'), async (c) =>
+        (await c.query<{ n: number }>('select iam.reserve_identifiers($1::jsonb, $2, $3) as n', [
+          JSON.stringify(list), 'issued before the restore point; known only from the external ledger', restoreEvent,
+        ])).rows[0]?.n);
+    await expectRefused(reserve(['no spaces allowed']), 'EBMR-IAM-020');
+    expect(await reserve([kept, lost.toUpperCase(), lost])).toBe(1);
+    expect(await reserve([lost])).toBe(0);
+    expect(await names()).toEqual(expect.arrayContaining([kept, lost]));
+    const r = await db.app.query('select restore_event_id, reserved_by_person from iam.reserved_identifier where identifier = $1', [lost]);
+    expect(r.rows).toEqual([{ restore_event_id: restoreEvent, reserved_by_person: adm.admin.personId }]);
+    expect((await db.app.query('select 1 from kernel.audit_event where chain_key = $1', [`reserved_identifier:${lost}`])).rowCount).toBe(1);
+
+    // A reserved name is never issued again, to anyone, whatever the letter case, even by the table owner.
+    const other = await asAdmin(async (c) => {
+      const p = await createPerson(c, 'NATURAL', 'Joiner After Restore');
+      await verify(c, p);
+      return p;
+    });
+    await expectRefused(asAdmin((c) => createAccount(c, { personId: other, loginName: lost, kind: 'HUMAN' })), 'EBMR-IAM-021', /restore/);
+    await expectRefused(asAdmin((c) => createAccount(c, { personId: other, loginName: lost.toUpperCase(), kind: 'HUMAN' })), 'EBMR-IAM-021');
+    await expect(
+      asSuperuserTransaction(db, (c) => c.query('insert into iam.issued_identifier (identifier, account_id) values ($1, gen_random_uuid())', [lost])),
+    ).rejects.toThrow('EBMR-IAM-021');
+    await expect(db.admin.query('delete from iam.reserved_identifier where identifier = $1', [lost])).rejects.toThrow('EBMR-AUDIT-004');
+    await expectPermissionDenied(db.app.query('delete from iam.reserved_identifier'));
+    const scan = await db.app.query("select 1 from iam.directory_scan() where finding like 'LOGIN_NAME%'");
+    expect(scan.rowCount).toBe(0);
+  });
 });
 
 describe('accounts are personal, unique and never deleted (INV-11)', () => {

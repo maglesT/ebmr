@@ -149,20 +149,81 @@ begin
 end
 $$;
 
--- Phase 1 entry point for the application: derive the scope's markets and predicates from the
--- stub tables, check the key belongs to the scope's edition, and record the evaluation.
--- p_req: {key, scope: {kind, id}, consumingBatchId?, resolutionPoint, asOf, tableVersionId?,
--- predicates? (only attributes the scope does not already fix), stated?, subject?, siteId?}.
+-- The subject a stub-scope evaluation is filed under (its resolution log, flags and audit chain).
+-- By default the scope itself (a PRODUCT scope's batch). A request may name another subject only
+-- when the scope entails it, checked against the stub tables: the pack's batch for a PACK, the
+-- consuming batch for a MATERIAL_LOT, and for a SITE, LINE, ROOM or EQUIPMENT a batch made at that
+-- site or of a product qualified there; a batch subject must also have every one of its markets in
+-- the scope's market set. Anything else is refused (EBMR-MKT-058), so an evaluation computed for one
+-- scope's market set is never filed under a batch it does not describe (INV-28, INV-29).
+create function market.stub_evaluation_subject(p_scope jsonb, p_subject jsonb) returns jsonb
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
+declare
+  v_kind     text := p_scope ->> 'scopeKind';
+  v_id       uuid := (p_scope ->> 'scopeId')::uuid;
+  v_default  jsonb := jsonb_build_object('type', case v_kind when 'PRODUCT' then 'BATCH' else v_kind end, 'id', v_id);
+  v_type     text;
+  v_sid      uuid;
+  v_ok       boolean := false;
+begin
+  if p_subject is null or jsonb_typeof(p_subject) = 'null' then
+    return v_default;
+  end if;
+  if jsonb_typeof(p_subject) <> 'object' then
+    raise exception using errcode = 'P0001', message = 'EBMR-MKT-058 an evaluation subject is {type, id}';
+  end if;
+  v_type := p_subject ->> 'type';
+  v_sid := market.try_uuid(p_subject ->> 'id');
+  if v_type is null or v_sid is null then
+    raise exception using errcode = 'P0001', message = 'EBMR-MKT-058 an evaluation subject is {type, id} with a uuid id';
+  end if;
+  if v_type = v_default ->> 'type' and v_sid = v_id then
+    return v_default;
+  end if;
+  if v_type = 'BATCH' then
+    v_ok := case
+              when v_kind = 'PACK' then exists (select 1 from market.stub_pack pk where pk.id = v_id and pk.batch_id = v_sid)
+              when v_kind = 'MATERIAL_LOT' then v_sid = market.try_uuid(p_scope ->> 'consumingBatchId')
+              when v_kind = 'SITE' then exists (select 1 from market.stub_batch b where b.id = v_sid and b.site_id = v_id)
+              when v_kind in ('LINE', 'ROOM', 'EQUIPMENT') then
+                exists (select 1 from market.stub_batch b join market.stub_product_qualification q on q.product_id = b.product_id
+                         where b.id = v_sid and q.scope_kind = v_kind and q.scope_id = v_id)
+              else false
+            end
+            and exists (select 1 from market.stub_batch b
+                         where b.id = v_sid and b.markets <@ array(select jsonb_array_elements_text(p_scope -> 'markets')));
+  end if;
+  if not v_ok then
+    raise exception using errcode = 'P0001', message = format(
+      'EBMR-MKT-058 an evaluation of %s %s cannot be filed under %s %s: the scope does not entail that subject', v_kind, v_id, v_type, v_sid);
+  end if;
+  return jsonb_build_object('type', v_type, 'id', v_sid);
+end
+$$;
+
+-- Phase 1 entry point for the application: derive the scope's markets, predicates, site, pack
+-- destination and subject from the stub tables, check the key belongs to the scope's edition, and
+-- record the evaluation. p_req: {key, scope: {kind, id}, consumingBatchId?, resolutionPoint, asOf,
+-- tableVersionId?, predicates? (only attributes the scope does not already fix), stated?, subject?,
+-- siteId?}. What the scope fixes, the request can repeat but never change:
+--   * predicates (EBMR-MKT-055);
+--   * the site whose value applies: siteId, if given, must be the scope's own site (EBMR-MKT-056);
+--   * a PACK's destination for a PER_DESTINATION key (EBMR-MKT-057);
+--   * the subject the evaluation is filed under (market.stub_evaluation_subject, EBMR-MKT-058);
+--   * a consuming batch belongs to a MATERIAL_LOT scope only (EBMR-MKT-052).
 create function market.evaluate_stub_scope(p_req jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
-  v_key    text := p_req ->> 'key';
-  v_table  text := market.table_of_key(p_req ->> 'key');
-  v_scope  jsonb;
-  v_pred   jsonb;
-  v_extra  jsonb := coalesce(p_req -> 'predicates', '{}'::jsonb);
-  v_attr   text;
-  v_stated jsonb := market.nz(p_req -> 'stated', null);
+  v_key     text := p_req ->> 'key';
+  v_table   text := market.table_of_key(p_req ->> 'key');
+  v_kind    text := p_req -> 'scope' ->> 'kind';
+  v_scope   jsonb;
+  v_pred    jsonb;
+  v_extra   jsonb := coalesce(p_req -> 'predicates', '{}'::jsonb);
+  v_attr    text;
+  v_stated  jsonb := market.nz(p_req -> 'stated', null);
+  v_site    uuid;
+  v_subject jsonb;
 begin
   -- DI-18, then DI-17 where the actor works (point-of-work action: the session's site and room).
   perform iam.assert_not_administrator();
@@ -170,7 +231,11 @@ begin
   if v_table is null then
     raise exception using errcode = 'P0001', message = format('EBMR-MKT-041 key %s belongs to no rule table', coalesce(v_key, '(missing)'));
   end if;
-  v_scope := market.scope_markets(p_req -> 'scope' ->> 'kind', (p_req -> 'scope' ->> 'id')::uuid, v_table, (p_req ->> 'consumingBatchId')::uuid);
+  if v_kind is distinct from 'MATERIAL_LOT' and market.nz(p_req -> 'consumingBatchId', null) is not null then
+    raise exception using errcode = 'P0001', message = format(
+      'EBMR-MKT-052 only a MATERIAL_LOT scope is resolved against a consuming batch; a %s scope names none', coalesce(v_kind, '(missing)'));
+  end if;
+  v_scope := market.scope_markets(v_kind, (p_req -> 'scope' ->> 'id')::uuid, v_table, (p_req ->> 'consumingBatchId')::uuid);
   if (v_table = 'tablets' and v_scope ->> 'edition' = 'injectables') or (v_table = 'sterile' and v_scope ->> 'edition' = 'tablets') then
     raise exception using errcode = 'P0001', message = format(
       'EBMR-MKT-054 key %s belongs to the %s table and does not apply to a %s scope', v_key, v_table, v_scope ->> 'edition');
@@ -186,15 +251,32 @@ begin
     end if;
   end loop;
   v_pred := v_pred || v_extra;
-  -- A PACK scope resolves a PER_DESTINATION key for its own destination.
-  if v_stated is not null and v_scope ->> 'destination' is not null and (v_stated ->> 'destination') is null then
+  -- The site value applied is the one of the site the scope fixes (a batch's own site). A request may
+  -- name it again, but a different site, an unknown id or an explicit null is refused (F21, F80).
+  v_site := market.try_uuid(v_scope ->> 'siteId');
+  if p_req ? 'siteId'
+     and (jsonb_typeof(p_req -> 'siteId') not in ('string', 'null')
+          or (jsonb_typeof(p_req -> 'siteId') = 'string' and market.try_uuid(p_req ->> 'siteId') is null)
+          or market.try_uuid(p_req ->> 'siteId') is distinct from v_site) then
+    raise exception using errcode = 'P0001', message = format(
+      'EBMR-MKT-056 the site of this evaluation is the site its scope fixes (%s); a request cannot name another one (%s)',
+      coalesce(v_site::text, 'none'), (p_req -> 'siteId')::text);
+  end if;
+  -- A PACK scope resolves a PER_DESTINATION key for its own destination, never another (F23).
+  if v_scope ->> 'destination' is not null and jsonb_typeof(v_stated) = 'object' then
+    if (v_stated ->> 'destination') is not null and (v_stated ->> 'destination') <> (v_scope ->> 'destination') then
+      raise exception using errcode = 'P0001', message = format(
+        'EBMR-MKT-057 pack %s goes to %s; its label rules are resolved for that destination, not for %s',
+        v_scope ->> 'scopeId', v_scope ->> 'destination', v_stated ->> 'destination');
+    end if;
     v_stated := v_stated || jsonb_build_object('destination', v_scope ->> 'destination');
   end if;
+  v_subject := market.stub_evaluation_subject(v_scope, market.nz(p_req -> 'subject', null));
   return market.record_evaluation(jsonb_build_object(
     'key', v_key, 'tableVersionId', p_req -> 'tableVersionId', 'scope', p_req -> 'scope',
-    'consumingBatchId', p_req -> 'consumingBatchId', 'subject', p_req -> 'subject', 'resolutionPoint', p_req -> 'resolutionPoint',
+    'consumingBatchId', p_req -> 'consumingBatchId', 'subject', v_subject, 'resolutionPoint', p_req -> 'resolutionPoint',
     'asOf', p_req -> 'asOf', 'markets', v_scope -> 'markets', 'marketDerivation', v_scope -> 'derivation', 'predicates', v_pred,
-    'stated', v_stated, 'siteId', coalesce(p_req -> 'siteId', v_scope -> 'siteId')));
+    'stated', v_stated, 'siteId', to_jsonb(v_site)));
 end
 $$;
 

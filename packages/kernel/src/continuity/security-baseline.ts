@@ -77,6 +77,12 @@ export function checkDatabaseUrl(url: string, path = 'database.url', options: { 
     return [error('EBMR-SEC-010', path, 'is not a valid URL')];
   }
   if (u.protocol !== 'postgres:' && u.protocol !== 'postgresql:') return [error('EBMR-SEC-010', path, `unsupported scheme ${u.protocol}`)];
+  // A parameter given twice is read differently by different parsers (this check reads the first
+  // value, the database driver the last), so what is checked would not be what connects.
+  const repeated = [...new Set([...u.searchParams.keys()])].filter((k) => u.searchParams.getAll(k).length > 1);
+  if (repeated.length > 0) {
+    return [error('EBMR-SEC-017', path, `repeats the parameter(s) ${repeated.join(', ')}; give each connection parameter once`)];
+  }
   const host = u.searchParams.get('host') ?? decodeURIComponent(u.hostname);
   if (host.startsWith('/')) {
     return options.allowLocalSocket
@@ -187,9 +193,12 @@ const CONNECTION_TYPES = new Set(['local', 'host', 'hostssl', 'hostnossl', 'host
 /**
  * pg_hba.conf: only hostssl for network connections, scram-sha-256 or client certificates, never trust.
  * An explicit `reject` rule (for example `hostnossl all all 0.0.0.0/0 reject`) is always acceptable.
+ * With `knownRoles`, every role a rule names must be one of them: a misspelt role never matches and
+ * the connection falls through to the final reject (for example the authentication service).
  */
-export function checkPgHba(text: string, path = 'pg_hba.conf'): Finding[] {
+export function checkPgHba(text: string, path = 'pg_hba.conf', options: { knownRoles?: Iterable<string> } = {}): Finding[] {
   const findings: Finding[] = [];
+  const known = options.knownRoles ? new Set(options.knownRoles) : null;
   let hostssl = 0;
   text.split('\n').forEach((raw, i) => {
     const line = raw.replace(/#.*/, '').trim();
@@ -204,6 +213,13 @@ export function checkPgHba(text: string, path = 'pg_hba.conf'): Finding[] {
     if (!CONNECTION_TYPES.has(type)) {
       findings.push(error('EBMR-SEC-040', at, `unknown connection type ${type}`));
       return;
+    }
+    if (known) {
+      // USER field: comma-separated names; "all", +group, /regex and @file are not role names.
+      for (const role of (f[2] ?? '').split(',')) {
+        if (role === '' || role === 'all' || /^[+/@]/.test(role)) continue;
+        if (!known.has(role)) findings.push(error('EBMR-SEC-045', at, `role ${role} is not a role of the installation; the rule would never match it`));
+      }
     }
     const method = type === 'local' ? f[3] : f[4];
     if (method === 'reject') return;

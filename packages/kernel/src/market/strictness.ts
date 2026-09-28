@@ -68,9 +68,14 @@ function asStringSet(value: RuleValue): Set<string> {
   return new Set(value.map(textOf));
 }
 
-function criterionIds(value: RuleValue): Set<string> {
+/**
+ * The criteria of an ALL_APPLY value by their full definition (canonical JSON of the whole criterion,
+ * not only its id). Compendial criteria cannot be ranked, so a criterion that keeps its id but changes
+ * its bands, sampling plan, rounding or stage is a different criterion (as market.criteria_cover).
+ */
+function criteriaByDefinition(value: RuleValue): Set<string> {
   if (!Array.isArray(value)) throw new MarketRuleError('EBMR-MKT-020', 'a criteria value must be an array');
-  return new Set(value.map((c) => (c as Criterion).id));
+  return new Set(value.map((c) => canonicalJson(c)));
 }
 
 function superset(a: Set<string>, b: Set<string>): boolean {
@@ -96,7 +101,8 @@ export function isAtLeastAsStrict(method: ComparisonMethod, ordered: readonly st
     case 'SET_UNION':
       return superset(asStringSet(a), asStringSet(b));
     case 'ALL_APPLY':
-      return superset(criterionIds(a), criterionIds(b));
+      // Every criterion of b must appear in a with an identical definition.
+      return superset(criteriaByDefinition(a), criteriaByDefinition(b));
     case 'NOT_COMPARABLE':
       throw new MarketRuleError('EBMR-MKT-046', 'NOT_COMPARABLE values cannot be ranked');
   }

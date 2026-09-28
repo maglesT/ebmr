@@ -13,3 +13,4 @@ tools/regulatory/pdf/package-lock.json
 var/
 test-results/
 playwright-report/
+.stryker-tmp/

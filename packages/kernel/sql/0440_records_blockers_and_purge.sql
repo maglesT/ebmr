@@ -2,14 +2,17 @@
 --
 -- records.open_blockers lists what blocks the disposition (release) of a record and what blocks its
 -- disposal: unassessed or open incidents, open DI investigations (linked, or with the person's
--- activity on the record inside the window), and holds.
+-- activity on the record or on its signature, challenge, retention or state chain inside the window),
+-- and holds.
 --
--- Purge (INV-22, DI-47, ADR 0007): only records.purge deletes GMP rows. It refuses while retention is
+-- Purge (INV-22, DI-47, ADR 0007): only records.purge deletes GMP rows. It refuses for an aggregate
+-- type no module declares for retention (0420, records.retention_aggregate), while retention is
 -- OPEN, on or before retain-until (including the latest retain-until over every record that depends
 -- on this one), while anything blocks disposal of the record or of any record depending on it,
--- without a matching QA approval, or when the record's chain does not verify. It seals a checkpoint of
+-- without a matching QA approval by a person who entered none of the retention inputs or dependency
+-- links that decide the date, or when the record's chain does not verify. It seals a checkpoint of
 -- the record as kept (and, when the approval cites an archived true copy, requires that copy to cover
--- exactly this head), then deletes the
+-- exactly this head and every table it deletes rows from), then deletes the
 -- record's rows from every registered table of its aggregate type (each deletion is audited into the
 -- record's chain), appends a business entry, seals a chain checkpoint (kernel.checkpoint_chain),
 -- writes a tombstone (row counts and content digests per table, every event hash of the chain, the
@@ -48,10 +51,9 @@ begin
   from records.di_investigation_current d
   where d.status = 'OPEN'
     and (exists (select 1 from records.di_investigation_link l where l.investigation_id = d.id and l.record_key = v_key)
-         or exists (select 1 from kernel.audit_event e
-                    where e.chain_key = v_key and e.action in ('INSERT', 'UPDATE', 'DELETE')
-                      and e.recorded_at >= d.window_from and e.recorded_at < d.window_to
-                      and e.payload -> 'actor' ->> 'person_id' = d.subject_person_id::text))
+         -- The person's act inside the window on the record or on a chain that belongs to it (its
+         -- signatures, challenges, retention, state: F30), even before the scope links it.
+         or d.id in (select i.id from records.implicit_investigations(p_aggregate_type, p_aggregate_id) i(id)))
   union all
   select 'HOLD'::text, h.id, h.kind || coalesce(' ' || h.reference, ''), 'ACTIVE'::text, null::text, h.reason, h.recorded_at,
          h.kind = 'DI_INVESTIGATION', true
@@ -90,12 +92,18 @@ declare
   v_sched records.retention_schedule%rowtype;
   v_eff jsonb := records.compute_effective_retention(p_schedule_id);
   v_today date;
+  v_problem text;
   n record;
 begin
   select * into v_sched from records.retention_schedule where id = p_schedule_id;
   v_today := (clock_timestamp() at time zone v_sched.site_zone)::date;
   if exists (select 1 from records.tombstone where record_key = v_sched.record_key) then
     code := 'EBMR-REC-023'; detail := format('%s has already been purged', v_sched.record_key); return next;
+  end if;
+  -- Only aggregate types declared for retention, under a retention key their module names (F29, F75).
+  v_problem := records.retention_aggregate_problem(v_sched.aggregate_type, v_sched.retention_key);
+  if v_problem is not null then
+    code := split_part(v_problem, ' ', 1); detail := substr(v_problem, strpos(v_problem, ' ') + 1); return next;
   end if;
   if v_eff ->> 'status' = 'OPEN' then
     code := 'EBMR-REC-030'; detail := format('retention of %s is open: %s', v_sched.record_key, v_eff -> 'openBecause'); return next;
@@ -147,23 +155,63 @@ $$;
 -- True-copy register
 -- ---------------------------------------------------------------------------------------------
 
-create function records.register_true_copy(p_chain_key text, p_head_seq bigint, p_head_hash_hex text, p_manifest_sha256 text,
-                                           p_bundle_format text, p_purpose text) returns uuid
+-- Registers a bundle from its manifest text (exactly as its SHA-256 covers it): the database computes
+-- the SHA-256 itself and reads the chain key, head and table list from the manifest, so the register
+-- entry says which tables the archived copy holds (F34), and a bundle can only be matched to an entry
+-- whose manifest it carries byte for byte.
+create function records.register_true_copy(p_manifest text, p_manifest_sha256 text, p_purpose text) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
+  v_manifest jsonb;
+  v_chain text;
+  v_type text;
+  v_seq bigint;
+  v_hash text;
+  v_tables text[] := '{}';
+  v_name text;
+  t text;
   v_id uuid;
 begin
   -- DI-18, then DI-17 installation-wide.
   perform iam.assert_not_administrator();
   perform iam.require_permission('RECORD.TRUE_COPY_REGISTER', '{}'::jsonb);
-  if p_manifest_sha256 is null or p_manifest_sha256 !~ '^[0-9a-f]{64}$' or records.is_blank(p_bundle_format) or records.is_blank(p_purpose) then
-    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 a true copy needs its manifest SHA-256, bundle format and purpose';
+  if p_manifest is null or records.is_blank(p_purpose) then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 a true copy needs its manifest and purpose';
   end if;
-  if not exists (select 1 from kernel.audit_event e where e.chain_key = p_chain_key and e.seq = p_head_seq and encode(e.hash, 'hex') = p_head_hash_hex) then
-    raise exception using errcode = 'P0001', message = format('EBMR-REC-070 %s has no event %s with that hash; the bundle does not match the record', p_chain_key, p_head_seq);
+  if p_manifest_sha256 is distinct from encode(sha256(convert_to(p_manifest, 'UTF8')), 'hex') then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 the manifest SHA-256 does not match the manifest';
   end if;
-  insert into records.true_copy (record_key, head_seq, head_hash, manifest_sha256, bundle_format, purpose, created_by_person)
-  values (p_chain_key, p_head_seq, decode(p_head_hash_hex, 'hex'), p_manifest_sha256, p_bundle_format, p_purpose, records.actor_person())
+  begin
+    v_manifest := p_manifest::jsonb;
+    v_seq := (v_manifest -> 'head' ->> 'seq')::bigint;
+  exception when others then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 the manifest is not a true-copy manifest';
+  end;
+  v_chain := v_manifest ->> 'chainKey';
+  v_type := v_manifest ->> 'aggregateType';
+  v_hash := v_manifest -> 'head' ->> 'hash';
+  if jsonb_typeof(v_manifest) <> 'object' or records.is_blank(v_manifest ->> 'format') or v_chain is null or v_type is null
+     or v_chain <> v_type || ':' || coalesce(v_manifest ->> 'aggregateId', '') or v_seq is null or v_hash is null
+     or jsonb_typeof(v_manifest -> 'tables') is distinct from 'array' then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 the manifest does not name its chain, head and tables';
+  end if;
+  if not exists (select 1 from kernel.audit_event e where e.chain_key = v_chain and e.seq = v_seq and encode(e.hash, 'hex') = v_hash) then
+    raise exception using errcode = 'P0001', message = format('EBMR-REC-070 %s has no event %s with that hash; the bundle does not match the record', v_chain, v_seq);
+  end if;
+  for t in select jsonb_array_elements_text(v_manifest -> 'tables') loop
+    select pg_catalog.quote_ident(n.nspname) || '.' || pg_catalog.quote_ident(c.relname) into v_name
+    from kernel.audited_table a
+    join pg_catalog.pg_class c on c.oid = a.table_name
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    where a.aggregate_type = v_type and a.table_name = pg_catalog.to_regclass(t);
+    if v_name is null then
+      raise exception using errcode = 'P0001', message = format('EBMR-REC-070 %s is not a registered table of aggregate type %s', t, v_type);
+    end if;
+    v_tables := v_tables || v_name;
+    v_name := null;
+  end loop;
+  insert into records.true_copy (record_key, head_seq, head_hash, manifest_sha256, bundle_format, tables, purpose, created_by_person)
+  values (v_chain, v_seq, decode(v_hash, 'hex'), p_manifest_sha256, v_manifest ->> 'format', v_tables, p_purpose, records.actor_person())
   returning id into v_id;
   return v_id;
 end
@@ -173,6 +221,58 @@ $$;
 -- Purge approval and purge
 -- ---------------------------------------------------------------------------------------------
 
+-- The persons whose entries decide when a record may be disposed of: whoever entered a version of the
+-- retention inputs (the first version comes with the schedule) of the record or of any record that
+-- depends on it, and whoever linked a dependency in that closure (a link can give an OPEN supporting
+-- record its date). The disposal approval is the check on their entries, so none of them gives it
+-- (F33, DI-47: retention is never shortened by one person alone).
+create function records.retention_authors(p_schedule_id uuid) returns setof uuid
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  with recursive closure(schedule_id) as (
+    select p_schedule_id
+    union
+    select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
+  )
+  select s.created_by_person from records.retention_schedule s join closure c on c.schedule_id = s.id
+  union
+  select i.entered_by_person from records.retention_input i join closure c on c.schedule_id = i.schedule_id
+  union
+  select d.linked_by_person from records.retention_dependency d join closure c on c.schedule_id = d.supporting_schedule_id
+$$;
+
+-- The record and every record depending on it, transitively (schedule ids, in id order).
+create function records.retention_closure(p_schedule_id uuid) returns uuid[]
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  with recursive closure(schedule_id) as (
+    select p_schedule_id
+    union
+    select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
+  )
+  select array_agg(schedule_id order by schedule_id) from closure
+$$;
+
+-- The highest hold number placed on the record or on any record depending on it (0 when none): what
+-- a purge approval records as its watermark. It only grows; the disposal content provider (0720) can
+-- include it so that a hold also changes what a disposal signature covers.
+create function records.hold_watermark(p_schedule_id uuid) returns bigint
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  select coalesce(max(h.hold_no), 0)
+  from records.retention_hold h join records.retention_schedule s on s.record_key = h.record_key
+  where s.id = any(records.retention_closure(p_schedule_id))
+$$;
+
+-- Owner decision 0004: a hold (legal or DI investigation) placed on a record, or on any record
+-- depending on it, voids every purge approval given before it was placed, also once it is released;
+-- the disposal then needs a new approval under the rules in force. The first hold on the closure
+-- placed after the approval (hold_no above its watermark), or nothing when the approval still counts.
+create function records.hold_voiding_approval(p_approval records.purge_approval, p_closure uuid[]) returns records.retention_hold
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  select h.* from records.retention_hold h
+  join records.retention_schedule s on s.record_key = h.record_key
+  where s.id = any(p_closure) and h.hold_no > p_approval.hold_watermark
+  order by h.hold_no limit 1
+$$;
+
 create function records.approve_purge(p_record_key text, p_approval_signature_id uuid, p_reason text, p_true_copy_id uuid default null)
 returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
@@ -180,6 +280,10 @@ declare
   v_sched records.retention_schedule%rowtype := records.schedule_for(p_record_key);
   v_refusal record;
   v_eff jsonb;
+  v_ids uuid[];
+  v_watermark bigint;
+  v_signed_at timestamptz;
+  v_released record;
   v_id uuid;
 begin
   if records.actor_is_machine() or p_approval_signature_id is null then
@@ -191,10 +295,22 @@ begin
   if records.is_blank(p_reason) then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-035 a disposal approval needs a reason';
   end if;
-  perform 1 from records.retention_schedule where id = v_sched.id for update;
+  -- Serialise with every change that could extend retention or add a blocker, as purge does: the
+  -- schedules of the record and of everything depending on it, then their blocker epochs. A hold on
+  -- any of them is therefore placed either before this approval (and seen below) or after it (and then
+  -- above its watermark).
+  v_ids := records.retention_closure(v_sched.id);
+  perform 1 from records.retention_schedule where id = any(v_ids) order by id for update;
+  perform records.lock_blocker_epoch_row(s.aggregate_type, s.aggregate_id)
+  from records.retention_schedule s where s.id = any(v_ids) order by s.record_key;
   select * into v_refusal from records.disposal_refusals(v_sched.id) limit 1;
   if found then
     raise exception using errcode = 'P0001', message = format('%s %s', v_refusal.code, v_refusal.detail);
+  end if;
+  if records.actor_person() in (select records.retention_authors(v_sched.id)) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-035 the approver entered retention inputs or dependency links that decide when %s may be disposed of; another person approves its disposal',
+                       v_sched.record_key);
   end if;
   if p_true_copy_id is not null and not exists (select 1 from records.true_copy where id = p_true_copy_id and record_key = p_record_key) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-035 true copy %s is not a copy of %s', p_true_copy_id, p_record_key);
@@ -208,18 +324,41 @@ begin
     raise exception using errcode = 'P0001',
       message = format('EBMR-REC-039 the disposal-approval signature of %s was made by another person', v_sched.record_key);
   end if;
-  insert into records.purge_approval (schedule_id, record_key, approved_by_person, approval_signature_id, reason, retain_until, true_copy_id)
-  values (v_sched.id, v_sched.record_key, records.actor_person(), p_approval_signature_id, p_reason, (v_eff ->> 'retainUntil')::date, p_true_copy_id)
+  -- Owner decision 0004: the approval is a decision taken after every hold on the record and its
+  -- closure ended. A signature made before a hold was released (it cannot be made while one is in
+  -- force) belongs to the decision the hold voided, so the approver signs again.
+  select s.recorded_at into v_signed_at from esig.signature s where s.id = p_approval_signature_id;
+  select h.kind, h.record_key, coalesce(h.reference, '-') as reference, r.recorded_at as released_at into v_released
+  from records.retention_hold h
+  join records.retention_hold_release r on r.hold_id = h.id
+  join records.retention_schedule s on s.record_key = h.record_key
+  where s.id = any(v_ids) and r.recorded_at >= v_signed_at
+  order by r.recorded_at desc limit 1;
+  if found then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-041 the disposal-approval signature of %s was made before the %s hold %s on %s was released; after a hold the disposal needs a new signature and approval',
+                       v_sched.record_key, lower(replace(v_released.kind, '_', ' ')), v_released.reference, v_released.record_key);
+  end if;
+  v_watermark := records.hold_watermark(v_sched.id);
+  insert into records.purge_approval (schedule_id, record_key, approved_by_person, approval_signature_id, reason, retain_until,
+                                      hold_watermark, true_copy_id)
+  values (v_sched.id, v_sched.record_key, records.actor_person(), p_approval_signature_id, p_reason, (v_eff ->> 'retainUntil')::date,
+          v_watermark, p_true_copy_id)
   returning id into v_id;
   return v_id;
 end
 $$;
 
--- Internal: the insert-only guard trigger of a registered table, if present.
+-- Internal: the insert-only guard trigger of a registered table, if present. The name comes from the
+-- kernel's one naming rule (kernel.required_triggers), which renders the table under the kernel's own
+-- search_path: rendered here under records' search_path, a records table would lose its schema and
+-- the guard of records.incident would never be found (F36).
 create function records.insert_only_trigger(p_table regclass) returns text
 language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
-  select t.tgname::text from pg_catalog.pg_trigger t
-  where t.tgrelid = p_table and t.tgname = 'aa_insert_only_' || replace(replace(p_table::text, '.', '_'), '"', '')
+  select t.tgname::text
+  from kernel.required_triggers(p_table, true) r
+  join pg_catalog.pg_trigger t on t.tgrelid = p_table and t.tgname = r.trigger_name
+  where r.purpose = 'NO_UPDATE_OR_DELETE'
 $$;
 
 create function records.purge(p_record_key text) returns uuid
@@ -248,23 +387,22 @@ declare
   v_kept_checkpoint bigint;
   v_hashes bytea[];
   v_tombstone uuid;
+  v_missing text;
+  v_void records.retention_hold%rowtype;
 begin
-  if records.is_blank(v_ctx ->> 'reason_code') then
-    raise exception using errcode = 'P0001', message = 'EBMR-REC-036 a purge needs a reason code in the command context';
+  -- Outline 5.4: every removal carries a reason code and a reason text (the audit trigger refuses the
+  -- deletions without them; this says so before anything is locked).
+  if records.is_blank(v_ctx ->> 'reason_code') or records.is_blank(v_ctx ->> 'reason_text') then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-036 a purge needs a reason code and a reason text in the command context';
   end if;
   -- DI-18, then DI-17 installation-wide.
   perform iam.assert_not_administrator();
   perform iam.require_permission('RECORD.PURGE', '{}'::jsonb);
   -- Serialise with every change that could extend retention or add a blocker: the schedules of this
   -- record and of everything depending on it, and their blocker epochs (holds, incidents, investigations).
-  with recursive closure(schedule_id) as (
-    select v_sched.id
-    union
-    select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
-  )
-  select array_agg(schedule_id order by schedule_id) into v_ids from closure;
+  v_ids := records.retention_closure(v_sched.id);
   perform 1 from records.retention_schedule where id = any(v_ids) order by id for update;
-  perform records.lock_blocker_epoch(s.aggregate_type, s.aggregate_id)
+  perform records.lock_blocker_epoch_row(s.aggregate_type, s.aggregate_id)
   from records.retention_schedule s where s.id = any(v_ids) order by s.record_key;
 
   select * into v_refusal from records.disposal_refusals(v_sched.id) limit 1;
@@ -274,12 +412,25 @@ begin
   v_eff := records.compute_effective_retention(v_sched.id);
   v_today := (clock_timestamp() at time zone v_sched.site_zone)::date;
 
+  -- The approval must still come from a person who entered none of the entries that decide the date
+  -- (an approver who changed the inputs afterwards no longer counts: F33).
+  -- It must also have been given after every hold placed on the record and its closure (owner decision
+  -- 0004): a hold placed after it voids it, also once released.
   select * into v_approval from records.purge_approval a
   where a.schedule_id = v_sched.id and a.retain_until = (v_eff ->> 'retainUntil')::date
+    and a.approved_by_person not in (select records.retention_authors(v_sched.id))
   order by a.recorded_at desc limit 1;
-  if not found then
+  if found then
+    v_void := records.hold_voiding_approval(v_approval, v_ids);
+    if v_void.id is not null then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-REC-041 the disposal approval %s of %s was given before the %s hold %s was placed on %s; after a hold the disposal needs a new approval',
+                         v_approval.id, v_sched.record_key, lower(replace(v_void.kind, '_', ' ')), coalesce(v_void.reference, '-'), v_void.record_key);
+    end if;
+  else
     raise exception using errcode = 'P0001',
-      message = format('EBMR-REC-033 no QA disposal approval for %s at its current retain-until %s', v_sched.record_key, v_eff ->> 'retainUntil');
+      message = format('EBMR-REC-033 no QA disposal approval for %s at its current retain-until %s by a person who entered none of its retention inputs or dependency links',
+                       v_sched.record_key, v_eff ->> 'retainUntil');
   end if;
   if v_approval.true_copy_id is not null then
     select * into v_true_copy from records.true_copy where id = v_approval.true_copy_id;
@@ -301,7 +452,8 @@ begin
                        v_true_copy.id, v_sched.record_key, v_true_copy.head_seq, v_kept.last_seq);
   end if;
 
-  -- What is purged: row counts and a digest of the row hashes (same row hash as the audit trigger uses).
+  -- What is purged: row counts and a digest of the row hashes (the audit trigger's row hash: the
+  -- canonical kernel.row_json form, the same whatever the session's TimeZone or DateStyle).
   for t in
     select pg_catalog.quote_ident(n.nspname) || '.' || pg_catalog.quote_ident(c.relname) as qualified, a.aggregate_column, a.insert_only
     from kernel.audited_table a
@@ -312,7 +464,7 @@ begin
   loop
     execute format(
       'select count(*), encode(sha256(convert_to(coalesce(string_agg(h, E''\n'' order by h), ''''), ''UTF8'')), ''hex'')
-         from (select encode(sha256(convert_to(to_jsonb(x)::text, ''UTF8'')), ''hex'') as h from %s x where x.%I::text = $1) q',
+         from (select encode(sha256(convert_to(kernel.row_json(x)::text, ''UTF8'')), ''hex'') as h from %s x where x.%I::text = $1) q',
       t.qualified, t.aggregate_column)
     into v_count, v_digest using v_sched.aggregate_id;
     if v_count > 0 then
@@ -320,6 +472,19 @@ begin
       v_todo := v_todo || jsonb_build_array(jsonb_build_object('table', t.qualified, 'column', t.aggregate_column, 'insertOnly', t.insert_only));
     end if;
   end loop;
+
+  -- The archived copy must hold every table whose rows are deleted: rows of an insert-only table live
+  -- in the chain only as hashes, so a table left out of the copy would be lost for good (F34).
+  if v_true_copy.id is not null then
+    select string_agg(pt.e ->> 'table', ', ' order by pt.e ->> 'table') into v_missing
+    from jsonb_array_elements(v_tables) pt(e)
+    where not (pt.e ->> 'table') = any(v_true_copy.tables);
+    if v_missing is not null then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-REC-038 true copy %s of %s leaves out %s, which hold rows of the record; archive every table of the record before purging',
+                         v_true_copy.id, v_sched.record_key, v_missing);
+    end if;
+  end if;
 
   -- Delete, children before parents: a table whose rows are still referenced is retried in a later pass.
   while jsonb_array_length(v_todo) > 0 loop
@@ -402,6 +567,10 @@ end
 $$;
 
 -- Like kernel.verify_anchor, but an anchored head of a purged chain is matched against the tombstone.
+-- A chain written again after its purge (a business entry, an incident link) starts over from genesis
+-- under the same key, so a head anchored before the purge belongs to the purged chain and one anchored
+-- after it to the new chain: a head verifies when it matches either the tombstone's event hash at that
+-- sequence number or the live event there (F37). A different hash at both is reported.
 create function records.verify_anchor(p_anchor_id bigint)
 returns table (problem text)
 language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
@@ -409,8 +578,7 @@ declare
   a kernel.audit_anchor%rowtype;
   h jsonb;
   v_seq bigint;
-  v_hash bytea;
-  t records.tombstone%rowtype;
+  v_ok boolean;
 begin
   select * into a from kernel.audit_anchor where id = p_anchor_id;
   if not found then problem := 'anchor not found'; return next; return; end if;
@@ -419,14 +587,12 @@ begin
   end if;
   for h in select * from jsonb_array_elements(a.heads) loop
     v_seq := (h ->> 'seq')::bigint;
-    select * into t from records.tombstone where chain_key = h ->> 'chain_key';
-    if found and v_seq <= t.chain_event_count then
-      v_hash := t.chain_event_hashes[v_seq];
-    else
-      v_hash := null;
-      select e.hash into v_hash from kernel.audit_event e where e.chain_key = h ->> 'chain_key' and e.seq = v_seq;
-    end if;
-    if v_hash is null or encode(v_hash, 'hex') <> h ->> 'hash_hex' then
+    v_ok := exists (select 1 from records.tombstone t
+                    where t.chain_key = h ->> 'chain_key' and v_seq <= t.chain_event_count
+                      and encode(t.chain_event_hashes[v_seq], 'hex') = h ->> 'hash_hex')
+         or exists (select 1 from kernel.audit_event e
+                    where e.chain_key = h ->> 'chain_key' and e.seq = v_seq and encode(e.hash, 'hex') = h ->> 'hash_hex');
+    if not v_ok then
       problem := format('chain %s at seq %s differs from the anchor', h ->> 'chain_key', h ->> 'seq'); return next;
     end if;
   end loop;
@@ -454,6 +620,31 @@ begin
 
   return query
   select 'PURGED_ON_OR_BEFORE_RETAIN_UNTIL'::text, tb.record_key from records.tombstone tb where tb.purged_on_site_date <= tb.retain_until;
+
+  -- Only declared aggregate types under an allowed retention key are ever purged, and never a PERMANENT record (F29, F32, F75).
+  return query
+  select 'PURGED_UNDECLARED_AGGREGATE'::text, tb.record_key from records.tombstone tb
+  where records.retention_aggregate_problem(tb.aggregate_type, tb.retention_key) is not null;
+  return query
+  select 'PURGED_PERMANENT_RECORD'::text, tb.record_key from records.tombstone tb where tb.retention_key = 'PERMANENT';
+
+  -- Owner decision 0004: no purge under an approval given before a hold on the record or on a record
+  -- that depended on it when it was purged.
+  return query
+  select 'PURGED_UNDER_APPROVAL_VOIDED_BY_HOLD'::text, tb.record_key || ' hold ' || h.id
+  from records.tombstone tb
+  join records.purge_approval pa on pa.id = tb.approval_id
+  join lateral (
+    with recursive closure(schedule_id) as (
+      select tb.schedule_id
+      union
+      select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
+      where d.recorded_at < tb.recorded_at
+    )
+    select array_agg(schedule_id) as ids from closure
+  ) cl on true
+  join records.retention_schedule s on s.id = any(cl.ids)
+  join records.retention_hold h on h.record_key = s.record_key and h.hold_no > pa.hold_watermark and h.recorded_at < tb.recorded_at;
 
   return query
   select 'PURGED_WHILE_ON_HOLD'::text, tb.record_key || ' hold ' || h.id
@@ -488,9 +679,10 @@ $$;
 grant select on records.retention_current to ebmr_app;
 grant execute on function records.open_blockers(text, text), records.has_disposition_blockers(text, text),
                           records.disposal_refusals(uuid), records.retention_of(text, text),
-                          records.register_true_copy(text, bigint, text, text, text, text),
+                          records.register_true_copy(text, text, text),
                           records.approve_purge(text, uuid, text, uuid), records.purge(text),
                           records.verify_chain(text), records.verify_anchor(bigint), records.inv22_violations() to ebmr_app;
--- records.insert_only_trigger stays private.
+-- records.insert_only_trigger, retention_authors, retention_closure, hold_watermark and hold_voiding_approval
+-- stay private (the content providers of 0720 run as the owner).
 
 reset role;

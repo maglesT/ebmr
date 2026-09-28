@@ -10,7 +10,9 @@ sample machine). Tests: `test/platform/{state-machine,machine-consistency}.test.
    - It is flat: atomic and final states only.
    - Each state has one transition per event, and there are no actions, delays or eventless
      transitions.
-   - GMP data goes on each transition with `gmp(target, { guards, signature, permission })`.
+   - GMP data goes on each transition with `gmp(target, { guards, signature, permission })`. Every
+     transition names its permission, and the descriptor names `createPermission`, the permission that
+     creates an aggregate (DI-17); the extractor and publication refuse a definition without them.
 2. **Generate the seed.** `write-seeds.ts` writes a migration that calls
    `platform.publish_machine_version(<json>)`. The JSON includes a hash of the canonical definition;
    the database recomputes it and refuses a mismatch.
@@ -30,32 +32,47 @@ sample machine). Tests: `test/platform/{state-machine,machine-consistency}.test.
     and the sealed `definition_hash`.
   - `platform.machine_transition` holds (from, event, to, guard codes, signature meaning, permission).
   - Publication validates the definition: versions in sequence, reachable states, no dead-end
-    non-final states, registered guards, one transition per (state, event).
+    non-final states, registered guards, one transition per (state, event), a permission on every
+    transition and a create permission (stored in `machine_version.create_permission`, part of the
+    canonical text and hash).
   - A published version is immutable (EBMR-PLAT-061), and `machine_integrity_violations()` re-checks
     the hash.
 - **Guards.** `platform.state_guard` maps a code to a SQL function
   `(aggregate_type text, aggregate_id uuid, transition jsonb, payload jsonb, actor jsonb) returns text`,
   which returns NULL for pass or a reason for failure. Guards are registered with
   `platform.register_guard` (migrations only). A built-in guard, `platform.reason_given`, is included.
-- **`platform.create_aggregate_state(machine, aggregate_type, aggregate_id [, version])`** creates the state
-  at the initial state of the newest (or the given) published version. The aggregate keeps that
-  version for its whole life.
+  - **Locking rule.** The transition holds the state row FOR UPDATE while its guards run. Every trigger
+    or function that changes content a guard reads, and allows it only in some states, reads the state
+    row FOR SHARE before it decides (`platform.stub_record_edit_guard`). An edit and a transition of the
+    same record then serialise: neither can decide on data the other is about to change.
+- **`platform.create_aggregate_state(machine, aggregate_type, aggregate_id)`** creates the state at the
+  initial state of the newest published version. The actor needs the version's create permission and
+  must not be an administrator (DI-17, DI-18). The aggregate keeps that version for its whole life.
+  Only module code (owner level) may pin another version, with
+  `platform.create_aggregate_state_at(machine, type, id, version)`: an older version needs the command's
+  reason (EBMR-PLAT-069), which the history row and the audit entry keep (ADR 0010: a tightening ships as
+  a new version for new records).
 - **`platform.transition(machine, aggregate_type, aggregate_id, event, expected_version, payload)`** runs
   in the caller's transaction:
+  0. Refuses an administrator (DI-18, EBMR-IAM-042).
   1. Locks the state row.
   2. Checks the expected version (EBMR-PLAT-066).
   3. Checks that the transition exists in the pinned version (067).
   4. Checks the permission through the AUTHORITY hook (005/006).
   5. Checks `payload.signature_id` through the SIGNATURE hook when a meaning is required (007/008).
-     A signature authorises one transition only; replaying it is refused (075).
+     A signature authorises one transition only; replaying it is refused (075). The hook registered in
+     kernel 0910 (`platform.transition_signature_check`) accepts only a signature applied in the state
+     the transition leaves, during the record's current stay in it (after the transition that entered
+     it, by audit position): an unused signature from before a RETURN and a new SUBMIT is refused.
   6. Runs every guard (068).
   7. Updates the state and version, and writes `platform.state_history` (insert-only, audited, with a
      per-aggregate counter).
   8. Writes a plain-language audit entry on the aggregate's own chain (`<type>:<id>`).
   9. Writes the outbox message `state.transitioned`.
 
-  When the command gave no reason, the state-row UPDATE is audited with reason `STATE_TRANSITION`,
-  and the command's own context is restored straight after.
+  The audit trail needs a reason code and text for the state-row UPDATE: where the command gave none,
+  the code `STATE_TRANSITION` and the event (`SUBMIT: DRAFT -> SUBMITTED`) as text fill the gap, and the
+  command's own context is restored straight after (through `kernel.set_actor_context`).
 - **Bypass protection.**
   - The application role has only SELECT on state and history.
   - The trigger `platform.guard_state_row` refuses any write that does not come from the engine, and
@@ -67,12 +84,15 @@ sample machine). Tests: `test/platform/{state-machine,machine-consistency}.test.
 
 ## TypeScript
 
-`createAggregateState(client, machine, ref)`, `transition(client, request)` and
+`createAggregateState(client, machine, ref [, version])`, `transition(client, request)` and
 `getAggregateState(db, ref)` in `engine.ts` all run inside a command. They raise `KernelError` with
 the code.
 
 ## Sample machine
 
 `sample_record` v1: DRAFT -> SUBMITTED -> CHECKED -> APPROVED -> SUPERSEDED or RETIRED, with RETURN to
-DRAFT (reason) and signatures CHECKED and APPROVED. Its stub table `platform.stub_record` accepts
-content edits only in DRAFT. It stands in for the controlled records built in later phases.
+DRAFT (reason) and signatures CHECKED and APPROVED; created with `sample_record.submit` (the author's
+permission). Its stub table `platform.stub_record` accepts content edits only in DRAFT and keeps a
+stored `content_version`, raised only when title or body change, which the e-signature content provider
+(0910) reports: a save that changes nothing keeps every signature valid (INV-09). It stands in for the
+controlled records built in later phases.

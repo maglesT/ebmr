@@ -85,10 +85,37 @@ export function readRuleTableDirectory(root: string): Map<RuleTableCode, RuleTab
 export interface PublishChange {
   kind?: 'INITIAL' | 'UPDATE' | 'SOURCE_CORRECTION';
   description?: string;
+  /** SOURCE_CORRECTION: the regulatory source the corrected values were re-read from. */
   citation?: string;
-  /** Two approval-record ids for a SOURCE_CORRECTION (the signing module supplies them later). */
-  approverIds?: string[];
+  /**
+   * SOURCE_CORRECTION: the ids of two RULE_TABLE_CORRECTION_APPROVED e-signatures of exactly this
+   * document (ruleCorrectionApprovalTarget names the aggregate), by two QA approvers other than the
+   * publisher. The approvers recorded on the version are their signers.
+   */
+  approvalSignatureIds?: string[];
+  /** SOURCE_CORRECTION: the reference of the notice that told the vendor (required). */
   vendorNoticeRef?: string;
+}
+
+/** What each QA approver of a source correction signs for this document (market.rule_correction_target). */
+export async function ruleCorrectionApprovalTarget(
+  db: Queryable,
+  document: RuleTableDocument | Record<string, unknown>,
+): Promise<{ meaning: string; aggregateType: string; aggregateId: string; table: string; version: number; contentHash: string }> {
+  try {
+    const { rows } = await db.query<{ t: { meaning: string; aggregateType: string; aggregateId: string; table: string; version: number; contentHash: string } }>(
+      'select market.rule_correction_target($1::jsonb) as t',
+      [JSON.stringify(document)],
+    );
+    const t = rows[0]?.t;
+    if (!t) throw new MarketRuleError('EBMR-MKT-010', 'no approval target for the document');
+    return t;
+  } catch (error) {
+    const message = (error as Error).message;
+    const code = /^(EBMR-[A-Z]+-[0-9]{3})\s/.exec(message)?.[1];
+    if (code) throw new MarketRuleError(code, message.slice(code.length + 1));
+    throw error;
+  }
 }
 
 export interface PublishResult {

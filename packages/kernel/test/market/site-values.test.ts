@@ -1,13 +1,29 @@
 /**
  * Site values may only tighten (build outline 3.3.2; ADR 0008 decision 8): looser than HARD is
  * refused; looser than a DESIGN value is refused; loosening GUIDANCE or an adopted EXAMPLE needs a
- * justification (CCS) reference and a QA approval record and is flagged on every affected batch.
+ * justification (CCS) reference and a QA approval record, which is the QA approver's e-signature of
+ * exactly that loosening, and is flagged on every affected batch.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { batchFlags, evaluateStubScope, setSiteValue, type SiteValueRequest } from '../../src/market/repository.ts';
+import { withCommand } from '../../src/db/command.ts';
+import { batchFlags, evaluateStubScope, setSiteValue, siteValuePreview, type SiteValueRequest } from '../../src/market/repository.ts';
+import { seedActor } from '../identity/seed.ts';
+import { inSecondRole } from '../records/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, createTestTable, MARKET_ROLES, publishDocument, publishSeedTables, seedStubWorld, type StubWorld } from './helpers.ts';
+import {
+  approvalIntegrity,
+  approverActor,
+  approveSiteLoosening,
+  asApp,
+  createTestTable,
+  MARKET_ROLES,
+  publishDocument,
+  publishSeedTables,
+  seedStubWorld,
+  signApproval,
+  type StubWorld,
+} from './helpers.ts';
 
 let db: TestDatabase;
 let world: StubWorld;
@@ -22,6 +38,10 @@ afterAll(async () => {
 
 const set = (request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom'> & { effectiveFrom?: string }) =>
   asApp(db, (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request }), { roleCode: MARKET_ROLES.siteValues });
+
+/** The QA approval of the loosening `request` describes at the stub site: a real e-signature. */
+const approve = (request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom' | 'qaApprovalId'> & { effectiveFrom?: string }) =>
+  approveSiteLoosening(db, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request });
 
 const evaluateBatch = (key: string, batch: string, asOf = '2026-03-01') =>
   asApp(db, (c) => evaluateStubScope(c, { key, scope: { kind: 'PRODUCT', id: batch }, resolutionPoint: 'EXECUTION', asOf }));
@@ -54,9 +74,13 @@ describe('tighten only', () => {
   it('[IN-52] loosening a GUIDANCE value needs a justification reference and a QA approval record', async () => {
     await expect(set({ key: 'kernel.managementReview.maxIntervalMonths', value: '15' })).rejects.toThrow('EBMR-MKT-065');
     await expect(set({ key: 'kernel.managementReview.maxIntervalMonths', value: '15', justificationRef: 'MR-JUST-7' })).rejects.toThrow('EBMR-MKT-065');
-    const approval = randomUUID();
+    const approval = await approve({ key: 'kernel.managementReview.maxIntervalMonths', value: '15', justificationRef: 'MR-JUST-7' });
     const sv = await set({ key: 'kernel.managementReview.maxIntervalMonths', value: '15', justificationRef: 'MR-JUST-7', qaApprovalId: approval });
     expect([sv.outcome, sv.justificationRef, sv.qaApprovalId]).toEqual(['LOOSENED', 'MR-JUST-7', approval]);
+    const { rows } = await db.admin.query<{ signer_person: string }>('select signer_person from esig.signature where id = $1', [approval]);
+    expect(sv.qaApproverId).toBe(rows[0]?.signer_person);
+    // The approval stays valid once the loosening is recorded (its signed content never changes).
+    expect(await approvalIntegrity(db, [approval])).toEqual([{ status: 'VALID', problems: [] }]);
   });
 
   it('[IN-52] a loosened GUIDANCE value is shown on every affected batch evaluation', async () => {
@@ -107,7 +131,7 @@ describe('adopted EXAMPLE values and later table versions', () => {
     const key = `${table}.pressureStep`;
     await expect(set({ key, value: '11' })).rejects.toThrow('EBMR-MKT-065');
     await expect(set({ key, value: '4', justificationRef: 'CCS-4', qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-MKT-060');
-    const loosened = await set({ key, value: '11', justificationRef: 'CCS-4.2', qaApprovalId: randomUUID() });
+    const loosened = await set({ key, value: '11', justificationRef: 'CCS-4.2', qaApprovalId: await approve({ key, value: '11', justificationRef: 'CCS-4.2' }) });
     expect(loosened.outcome).toBe('LOOSENED');
 
     // A later version makes 12.5 HARD from 2099-01-01: from then on the approved loosening is no longer admissible.
@@ -133,5 +157,99 @@ describe('adopted EXAMPLE values and later table versions', () => {
     expect([after.resolvedValue, after.effectiveValue, after.siteOutcome]).toEqual(['12.5', '12.5', 'SITE_VALUE_INADMISSIBLE']);
     const flags = await batchFlags(db.app, world.batch.tabletAll);
     expect(flags.map((f) => f.siteOutcome)).toEqual(expect.arrayContaining(['SITE_LOOSENED', 'SITE_VALUE_INADMISSIBLE']));
+  });
+});
+
+describe('QA approval of a loosening (F24, F76) and what it covers (F25)', () => {
+  /** A one-key test table: India GUIDANCE 12 months (SMALLER_STRICTER), in force since 2024. */
+  async function guidanceTable(): Promise<{ table: string; key: string; doc: Record<string, unknown> }> {
+    const table = `sa${randomUUID().slice(0, 6)}`;
+    await createTestTable(db, table);
+    const key = `${table}.reviewIntervalMonths`;
+    const doc = {
+      table,
+      version: 1,
+      change: { kind: 'INITIAL', description: 'approval test table' },
+      keys: [{ key, title: 'Review interval', method: 'SMALLER_STRICTER', valueType: 'DECIMAL', unit: 'mo', indiaGoverns: true }],
+      rows: [{ ref: 'R.IN', key, market: 'IN', value: '12', unit: 'mo', floor: 'GUIDANCE', source: 'test source', verification: 'P', effectiveFrom: '2024-01-01' }],
+    };
+    await publishDocument(db, doc);
+    return { table, key, doc };
+  }
+
+  it('[IN-52][ST-01][DI-35] the QA approval is a real e-signature of exactly that loosening: an unknown id, or the signature of another value, date or justification is refused', async () => {
+    const { key } = await guidanceTable();
+    const request = { key, value: '15', justificationRef: 'CCS-15' };
+    const preview = await siteValuePreview(db.app, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request });
+    expect(preview.outcome).toBe('LOOSENING');
+    expect(preview.approval).toEqual({
+      meaning: 'SITE_VALUE_LOOSENING_APPROVED',
+      aggregateType: 'market_site_loosening',
+      aggregateId: `${world.siteId}@${key}@2026-01-01@"12"@"15"@CCS-15`,
+    });
+    // No signature at all.
+    await expect(set({ ...request, qaApprovalId: randomUUID() })).rejects.toThrow('EBMR-ESIG-070');
+    // A real approval of another loosening: another value, another date, another justification.
+    const of16 = await approve({ key, value: '16', justificationRef: 'CCS-15' });
+    await expect(set({ ...request, qaApprovalId: of16 })).rejects.toThrow('EBMR-ESIG-070');
+    const later = await approve({ key, value: '15', justificationRef: 'CCS-15', effectiveFrom: '2026-02-01' });
+    await expect(set({ ...request, qaApprovalId: later })).rejects.toThrow('EBMR-ESIG-070');
+    const otherReason = await approve({ key, value: '15', justificationRef: 'CCS-OTHER' });
+    await expect(set({ ...request, qaApprovalId: otherReason })).rejects.toThrow('EBMR-ESIG-070');
+    // A signature of the same loosening with another meaning is not a QA approval of it.
+    const otherMeaning = await signApproval(db, await approverActor(db), { ...(preview.approval ?? { aggregateType: '', aggregateId: '' }), meaning: 'POLICY_LOOSENING_APPROVED' });
+    await expect(set({ ...request, qaApprovalId: otherMeaning })).rejects.toThrow(/EBMR-ESIG-070 .*means POLICY_LOOSENING_APPROVED/);
+    const { rows } = await db.admin.query<{ n: string }>('select count(*)::text as n from market.site_value where key = $1', [key]);
+    expect(rows[0]?.n).toBe('0');
+    // The right approval is accepted.
+    const ok = await approve(request);
+    expect((await set({ ...request, qaApprovalId: ok })).outcome).toBe('LOOSENED');
+  });
+
+  it('[IN-52][ST-01][DI-09] the person who sets the loosening cannot approve it, even holding a QA role', async () => {
+    const { key } = await guidanceTable();
+    const request = { key, value: '15', justificationRef: 'CCS-SELF' };
+    const qa = await approverActor(db, 'QA_REVIEWER');
+    const own = await approveSiteLoosening(db, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request }, qa);
+    const asSteward = await inSecondRole(db, qa, MARKET_ROLES.siteValues);
+    await expect(withCommand(db.app, asSteward, (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request, qaApprovalId: own }))).rejects.toThrow(
+      'EBMR-MKT-066',
+    );
+  });
+
+  it('[IN-52][ST-01] an operator cannot sign a site-value loosening approval: only the quality unit can', async () => {
+    const { key } = await guidanceTable();
+    const preview = await siteValuePreview(db.app, { siteId: world.siteId, key, value: '15', effectiveFrom: '2026-01-01', justificationRef: 'CCS-OP' });
+    const operator = await seedActor(db, { roleCode: 'OPERATOR' });
+    await expect(signApproval(db, operator, preview.approval ?? { meaning: '', aggregateType: '', aggregateId: '' })).rejects.toThrow('EBMR-ESIG-040');
+  });
+
+  it('[IN-52][ST-01] an approved loosening applies only while the resolution departs from the approved value; after a tightened table it is flagged, not applied, and listed on the impact list', async () => {
+    const { key, doc } = await guidanceTable();
+    const request = { key, value: '18', justificationRef: 'CCS-18' };
+    const sv = await set({ ...request, qaApprovalId: await approve(request) });
+    expect(sv.outcome).toBe('LOOSENED');
+    const before = await evaluateBatch(key, world.batch.tabletIn);
+    expect([before.resolvedValue, before.effectiveValue, before.siteOutcome]).toEqual(['12', '18', 'SITE_LOOSENED']);
+    // v2 tightens India to 6 from 2027-01-01 (prospective, so an UPDATE).
+    const rows = doc['rows'] as Record<string, unknown>[];
+    const v2 = {
+      ...doc,
+      version: 2,
+      change: { kind: 'UPDATE', description: 'India guidance tightened to 6 months from 2027' },
+      rows: [{ ...rows[0], effectiveTo: '2027-01-01' }, { ...rows[0], ref: 'R.IN.2027', value: '6', effectiveFrom: '2027-01-01' }],
+    };
+    const published = await publishDocument(db, v2);
+    const { rows: impact } = await db.admin.query<{ ref_id: string; due_by: string; problem: string }>(
+      "select ref_id, to_char(due_by, 'YYYY-MM-DD') as due_by, problem from market.change_impact where version_id = $1",
+      [published.versionId],
+    );
+    expect(impact).toEqual([{ ref_id: sv.id, due_by: '2027-01-01', problem: expect.stringContaining('needs a new approval') as unknown }]);
+    // Until 2027 the approval still covers the departure from 12; from 2027 the departure from 6 is not approved.
+    const still = await evaluateBatch(key, world.batch.tabletIn, '2026-06-01');
+    expect([still.resolvedValue, still.effectiveValue, still.siteOutcome]).toEqual(['12', '18', 'SITE_LOOSENED']);
+    const after = await evaluateBatch(key, world.batch.tabletIn, '2027-02-01');
+    expect([after.resolvedValue, after.effectiveValue, after.siteOutcome]).toEqual(['6', '6', 'SITE_VALUE_INADMISSIBLE']);
+    expect((await batchFlags(db.app, world.batch.tabletIn)).map((f) => f.evaluationId)).toContain(after.id);
   });
 });

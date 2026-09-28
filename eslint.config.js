@@ -31,6 +31,8 @@ export default tseslint.config(
   {
     ignores: [
       '.dependency-cruiser.cjs',
+      'stryker.config.mjs',
+      '.stryker-tmp/**',
       '**/node_modules/**',
       '**/dist/**',
       'tools/boundaries/fixtures/**',

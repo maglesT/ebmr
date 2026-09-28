@@ -114,7 +114,9 @@ begin
   end if;
   v_facts := jsonb_build_object(
     'licenceForm', coalesce(p_inputs -> 'licenceForm', 'null'::jsonb),
-    'expiryLabelled', (p_inputs ->> 'expiryDate') is not null,
+    -- An unknown expiry date is not an unlabelled product: only the explicit input says the batch
+    -- carries no labelled expiry; otherwise the expiry rules apply and stay OPEN until the date is known (F31).
+    'expiryLabelled', not coalesce((p_inputs ->> 'noLabelledExpiry')::boolean, false),
     'otcExpiryExempt', coalesce((p_inputs ->> 'otcExpiryExempt')::boolean, false),
     'euCertification', case when (p_inputs ->> 'euCertificationDate') is not null then 'CERTIFIED'
                             when coalesce((p_inputs ->> 'euNeverCertified')::boolean, false) then 'NEVER_CERTIFIED'
@@ -178,7 +180,7 @@ declare
   k text;
   v_dates text[] := array['manufactureDate', 'expiryDate', 'distributionDate', 'euCertificationDate', 'dispositionDate',
                           'abortCancelDate', 'lastTransactionDate', 'maEndDate'];
-  v_bools text[] := array['otcExpiryExempt', 'euNeverCertified'];
+  v_bools text[] := array['noLabelledExpiry', 'otcExpiryExempt', 'euNeverCertified'];
   v_out jsonb;
   v_markets text[];
   v_d date;
@@ -238,12 +240,76 @@ begin
   if (v_out ->> 'euCertificationDate') is not null and (v_out ->> 'euNeverCertified')::boolean then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-020 a batch cannot be both certified and never certified for the EU';
   end if;
+  if (v_out ->> 'noLabelledExpiry')::boolean and (v_out ->> 'expiryDate') is not null then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-020 a batch without a labelled expiry has no expiry date';
+  end if;
   if (v_out ->> 'expiryDate') is not null and (v_out ->> 'manufactureDate') is not null
      and (v_out ->> 'expiryDate')::date < (v_out ->> 'manufactureDate')::date then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-020 the expiry date lies before the manufacturing date';
   end if;
   return v_out;
 end
+$$;
+
+-- ---------------------------------------------------------------------------------------------
+-- Aggregate types a retention schedule may govern (F29, F75)
+-- ---------------------------------------------------------------------------------------------
+
+-- Purge deletes, for the schedule's aggregate type, the rows of every registered table. So only an
+-- aggregate type that its owning module declares here, in its migration, can have a schedule, and
+-- only under a record type whose retention key the module names (PERMANENT, which only lengthens
+-- retention, is always accepted). Nothing else is ever disposed of on its own: registers and policy
+-- histories (batch-number register, iam, esig, market, platform, continuity), signatures, challenges
+-- and state rows (they follow their record: outline 3.3.6, DI-47), the records module's own incidents,
+-- investigations and register, and the retention machinery. The application cannot write this list.
+create table records.retention_aggregate (
+  aggregate_type  text primary key check (aggregate_type ~ '^[a-z][a-z0-9_]*$'),
+  retention_keys  text[] not null check (cardinality(retention_keys) >= 1
+                                         and retention_keys <@ array['BATCH_RECORD', 'SUPPORTING_RECORD', 'DSCSA_RECORD',
+                                                                     'VALIDATION_RAW_DATA', 'PERMANENT']),
+  owning_module   text not null check (length(btrim(owning_module)) > 0),
+  note            text not null check (length(btrim(note)) > 0),
+  declared_at     timestamptz not null default clock_timestamp(),
+  -- Records tied to a subject follow it, and the retention machinery is never purged.
+  check (aggregate_type not in ('esig_signature', 'esig_challenge', 'state', 'retention', 'retention_rule_set',
+                                'retention_aggregate', 'record_hold', 'tombstone', 'true_copy'))
+);
+
+-- The batch record: the retention rules of this rule set (BATCH_RECORD) are written for it.
+insert into records.retention_aggregate (aggregate_type, retention_keys, owning_module, note)
+values ('batch', '{BATCH_RECORD}', 'batch record',
+        'the batch record and its entries; disposed of as one aggregate after the batch record retention (DI-47)');
+
+select kernel.register_audited_table('records.retention_aggregate', 'retention_aggregate', 'aggregate_type', true);
+
+-- Owner-only (called from a module migration, under the software-release identity): declares that
+-- records of p_aggregate_type are disposed of as one aggregate at the end of their retention.
+create function records.declare_retention_aggregate(p_aggregate_type text, p_retention_keys text[], p_owning_module text, p_note text)
+returns void
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+begin
+  if not exists (select 1 from kernel.audited_table a where a.aggregate_type = p_aggregate_type) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-024 %s has no table registered for audit; declare it after its tables', p_aggregate_type);
+  end if;
+  insert into records.retention_aggregate (aggregate_type, retention_keys, owning_module, note)
+  values (p_aggregate_type, p_retention_keys, p_owning_module, p_note);
+end
+$$;
+
+-- Null when a schedule for p_aggregate_type under retention key p_retention_key is allowed, otherwise
+-- the refusal (EBMR-REC-024).
+create function records.retention_aggregate_problem(p_aggregate_type text, p_retention_key text) returns text
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  select case
+    when r.aggregate_type is null then
+      format('EBMR-REC-024 %s records are not disposed of on their own: no module declares a retention for them', p_aggregate_type)
+    when not (p_retention_key = any(r.retention_keys) or p_retention_key = 'PERMANENT') then
+      format('EBMR-REC-024 a record type with retention key %s cannot govern %s records (allowed: %s)',
+             p_retention_key, p_aggregate_type, array_to_string(r.retention_keys, ', '))
+  end
+  from (select 1) one
+  left join records.retention_aggregate r on r.aggregate_type = p_aggregate_type
 $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -264,7 +330,7 @@ create table records.retention_schedule (
   foreign key (record_type_code, record_type_version) references records.record_type (code, version),
   check (record_key = aggregate_type || ':' || aggregate_id),
   -- Records of the retention machinery itself are never subject to purge.
-  check (aggregate_type not in ('retention', 'retention_rule_set', 'record_hold', 'tombstone', 'true_copy'))
+  check (aggregate_type not in ('retention', 'retention_rule_set', 'retention_aggregate', 'record_hold', 'tombstone', 'true_copy'))
 );
 
 create table records.retention_input (
@@ -316,6 +382,9 @@ create index retention_dependency_dependant on records.retention_dependency (dep
 
 create table records.retention_hold (
   id                uuid primary key default gen_random_uuid(),
+  -- Placement order of holds, installation-wide: a purge approval records the highest number placed on
+  -- its record and closure when it was given, so a hold placed later voids it (owner decision 0004).
+  hold_no           bigint generated always as identity unique,
   record_key        text not null,
   aggregate_type    text not null,
   aggregate_id      text not null,
@@ -343,8 +412,11 @@ create table records.retention_hold_release (
 -- True-copy register, purge approvals and tombstones (insert-only; functions in part 5)
 -- ---------------------------------------------------------------------------------------------
 
--- A true-copy bundle made from an audit chain (src/records/true-copy.ts): which chain head it covers
--- and the SHA-256 of its manifest, so an archived bundle can be matched to the record later.
+-- A true-copy bundle made from an audit chain (src/records/true-copy.ts): which chain head it covers,
+-- which registered tables it holds, and the SHA-256 of its manifest (computed by the database from the
+-- manifest itself), so an archived bundle can be matched to the record later. `tables` holds
+-- schema-qualified names; a purge that cites the copy requires it to hold every table the purge
+-- deletes rows from (F34). An entry without tables covers none.
 create table records.true_copy (
   id                 uuid primary key default gen_random_uuid(),
   record_key         text not null,
@@ -352,6 +424,7 @@ create table records.true_copy (
   head_hash          bytea not null,
   manifest_sha256    text not null check (manifest_sha256 ~ '^[0-9a-f]{64}$'),
   bundle_format      text not null,
+  tables             text[] not null default '{}',
   purpose            text not null check (length(btrim(purpose)) > 0),
   created_by_person  uuid not null,
   recorded_at        timestamptz not null default clock_timestamp()
@@ -359,6 +432,9 @@ create table records.true_copy (
 create index true_copy_record on records.true_copy (record_key);
 
 -- QA approval to dispose of one record after its retention ended (DI-47: who approved).
+-- hold_watermark: the highest retention_hold.hold_no placed on the record or on any record depending
+-- on it when the approval was given (0 when none), taken under their blocker-epoch locks. A hold placed
+-- later (legal or DI investigation) voids the approval, also after its release (owner decision 0004).
 create table records.purge_approval (
   id                     uuid primary key default gen_random_uuid(),
   schedule_id            uuid not null references records.retention_schedule (id),
@@ -367,6 +443,7 @@ create table records.purge_approval (
   approval_signature_id  uuid not null,
   reason                 text not null check (length(btrim(reason)) > 0),
   retain_until           date not null,
+  hold_watermark         bigint not null check (hold_watermark >= 0),
   true_copy_id           uuid references records.true_copy (id),
   recorded_at            timestamptz not null default clock_timestamp()
 );
@@ -436,7 +513,9 @@ language sql stable security definer set search_path = pg_catalog, records, kern
 $$;
 
 -- Effective retention = the record's own rules plus every record that depends on it, transitively.
--- OPEN when any record in that closure is OPEN, or has no applicable rule and no dependants.
+-- OPEN when any record in that closure is OPEN, has no applicable rule and no dependants, or is
+-- PERMANENT: a PERMANENT record is kept for the life of the installation, so what depends on it never
+-- gives it a date (F32).
 create function records.compute_effective_retention(p_schedule_id uuid) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
@@ -452,6 +531,7 @@ begin
   )
   select coalesce(jsonb_agg(jsonb_build_object(
            'recordKey', s.record_key,
+           'retentionKey', s.retention_key,
            'own', records.own_retention(s.id),
            'hasDependants', exists (select 1 from records.retention_dependency d where d.supporting_schedule_id = s.id))
          order by s.record_key collate "C"), '[]'::jsonb)
@@ -467,7 +547,8 @@ begin
                             order by n ->> 'recordKey' collate "C"), '[]'::jsonb)
   into v_open
   from jsonb_array_elements(v_nodes) n
-  where n -> 'own' ->> 'status' = 'OPEN' or (n -> 'own' ->> 'status' = 'NONE' and not (n ->> 'hasDependants')::boolean);
+  where n -> 'own' ->> 'status' = 'OPEN' or (n -> 'own' ->> 'status' = 'NONE' and not (n ->> 'hasDependants')::boolean)
+     or n ->> 'retentionKey' = 'PERMANENT';
 
   select max((n -> 'own' ->> 'retainUntil')::date) into v_max
   from jsonb_array_elements(v_nodes) n where n -> 'own' ->> 'status' = 'DATED';
@@ -546,14 +627,19 @@ $$;
 -- Public functions
 -- ---------------------------------------------------------------------------------------------
 
+-- The site date that ends retention is the site's own (policy site.zone, kernel.site_zone()); a zone
+-- given by the caller must be that zone, so no chosen zone can end a retention early (F84). Only an
+-- installation without the site policy (foundation only) takes the given zone or the context's.
 create function records.create_retention_schedule(p_aggregate_type text, p_aggregate_id text, p_record_type_code text,
                                                   p_inputs jsonb, p_site_zone text default null) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
   v_type records.record_register%rowtype;
-  v_zone text := coalesce(p_site_zone, records.actor() ->> 'site_zone');
+  v_site_zone text := kernel.site_zone();
+  v_zone text := coalesce(p_site_zone, v_site_zone, records.actor() ->> 'site_zone');
   v_inputs jsonb := records.normalize_retention_inputs(p_inputs);
+  v_problem text;
   v_id uuid;
 begin
   -- DI-18, then DI-17 installation-wide.
@@ -566,8 +652,16 @@ begin
   if not exists (select 1 from pg_catalog.pg_timezone_names where name = v_zone) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-020 site zone %L is not a known time zone', v_zone);
   end if;
-  if p_aggregate_type in ('retention', 'retention_rule_set', 'record_hold', 'tombstone', 'true_copy') then
+  if v_site_zone is not null and v_zone <> v_site_zone then
+    raise exception using errcode = 'P0001', message = format('EBMR-REC-020 site zone %L is not the zone of this site (%s)', v_zone, v_site_zone);
+  end if;
+  if p_aggregate_type in ('retention', 'retention_rule_set', 'retention_aggregate', 'record_hold', 'tombstone', 'true_copy') then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-020 %s records belong to the retention machinery and have no schedule', p_aggregate_type);
+  end if;
+  -- Only aggregate types their owning module declares, under a retention key it names (F29, F75).
+  v_problem := records.retention_aggregate_problem(p_aggregate_type, v_type.retention_key);
+  if v_problem is not null then
+    raise exception using errcode = 'P0001', message = v_problem;
   end if;
   if exists (select 1 from records.retention_schedule where record_key = v_key) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-020 %s already has a retention schedule', v_key);
@@ -662,7 +756,7 @@ declare
   v_id uuid;
 begin
   -- Lock first: a hold and a purge of the same record never interleave.
-  perform records.lock_blocker_epoch(p_aggregate_type, p_aggregate_id);
+  perform records.lock_blocker_epoch_row(p_aggregate_type, p_aggregate_id);
   if exists (select 1 from records.tombstone t where t.record_key = v_key) then
     raise exception using errcode = 'P0001', message = format('EBMR-REC-040 %s has already been purged; nothing is left to hold', v_key);
   end if;
@@ -742,10 +836,10 @@ select kernel.register_audited_table('records.true_copy', 'true_copy', 'record_k
 select kernel.register_audited_table('records.purge_approval', 'retention', 'record_key', true);
 select kernel.register_audited_table('records.tombstone', 'tombstone', 'record_key', true);
 
-revoke all on records.retention_rule_set, records.retention_rule, records.retention_schedule, records.retention_input,
+revoke all on records.retention_rule_set, records.retention_rule, records.retention_aggregate, records.retention_schedule, records.retention_input,
               records.retention_evaluation, records.retention_dependency, records.retention_hold, records.retention_hold_release,
               records.true_copy, records.purge_approval, records.tombstone from ebmr_app;
-grant select on records.retention_rule_set, records.retention_rule, records.retention_schedule, records.retention_input,
+grant select on records.retention_rule_set, records.retention_rule, records.retention_aggregate, records.retention_schedule, records.retention_input,
                 records.retention_evaluation, records.retention_dependency, records.retention_hold, records.retention_hold_release,
                 records.active_hold, records.true_copy, records.purge_approval, records.tombstone to ebmr_app;
 grant execute on function records.current_retention_rule_set(), records.evaluate_retention(jsonb, text),
@@ -755,6 +849,7 @@ grant execute on function records.current_retention_rule_set(), records.evaluate
                           records.link_retention_dependency(text, text, text),
                           records.place_legal_hold(text, text, text, text),
                           records.release_legal_hold(uuid, text) to ebmr_app;
--- refresh_retention, own_retention, latest_inputs, schedule_for, add_hold and end_hold stay private.
+-- refresh_retention, own_retention, latest_inputs, schedule_for, add_hold, end_hold,
+-- retention_aggregate_problem and declare_retention_aggregate (module migrations only) stay private.
 
 reset role;

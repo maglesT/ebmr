@@ -5,16 +5,19 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { Instant } from '../../src/time/instant.ts';
 import { evaluateAtInstants, guardInstants } from '../../src/time/entry-time.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { grantPermission, installStubHooks, stubSignature, testActor, withTriggersDisabled } from './helpers.ts';
+import { grantPermission, installStubHooks, registerValidatedTimeSource, stubSignature, testActor, withTriggersDisabled } from './helpers.ts';
 
 let db: TestDatabase;
+/** An instrument interface (source INTEGRATION): the only kind of command that states device times. */
+let instrument: ActorContext;
 beforeAll(async () => {
   db = await createTestDatabase();
   await installStubHooks(db);
+  instrument = await testActor(db, { source: 'INTEGRATION', legalName: 'Balance interface' });
 });
 afterAll(async () => {
   await db.drop();
@@ -100,12 +103,12 @@ describe('two times per event', () => {
 
   it('[INV-16] time constraints use occurred_at only when it is DEVICE_SYNCED, and each row records which time it used', async () => {
     const { stepId } = await newStep({ startedAgo: '1 hour' });
-    const synced = await addEntry(stepId, { itemNo: 1, occurredAgo: '10 minutes', trust: 'DEVICE_SYNCED' });
+    const synced = await addEntry(stepId, { itemNo: 1, occurredAgo: '10 minutes', trust: 'DEVICE_SYNCED' }, instrument);
     expect(synced.time_basis).toBe('OCCURRED_AT');
     expect(synced.time_basis_at).toBe(synced.occurred_at);
     expect(synced.is_late).toBe(false);
 
-    const unsynced = await addEntry(stepId, { itemNo: 2, occurredAgo: '5 minutes', trust: 'DEVICE_UNSYNCED' });
+    const unsynced = await addEntry(stepId, { itemNo: 2, occurredAgo: '5 minutes', trust: 'DEVICE_UNSYNCED' }, instrument);
     expect(unsynced.time_basis).toBe('RECORDED_AT');
     expect(unsynced.time_basis_at).toBe(unsynced.recorded_at);
     expect(unsynced.review_flags).toContain('DEVICE_TIME_UNSYNCED');
@@ -129,6 +132,29 @@ describe('two times per event', () => {
     await expect(addEntry(stepId, { itemNo: 2, lateReason: 'X' })).rejects.toThrow('EBMR-PLAT-019');
   });
 
+  it('[DI-27][INV-16] a device time is accepted only from an instrument interface or gateway; a person cannot label a typed time as device time', async () => {
+    const { stepId } = await newStep({ startedAgo: '3 hours', plannedEnd: '-30 minutes' });
+    for (const trust of ['DEVICE_SYNCED', 'DEVICE_UNSYNCED']) {
+      await expect(addEntry(stepId, { occurredAgo: '170 minutes', trust })).rejects.toThrow(`EBMR-PLAT-009 a ${trust} event time is accepted only from an instrument interface`);
+      await expect(addEntry(stepId, { occurredAgo: '170 minutes', trust }, await testActor(db, { source: 'API' }))).rejects.toThrow('EBMR-PLAT-009');
+    }
+    // Honestly labelled, the same typed time goes through the late-entry path.
+    await expect(addEntry(stepId, { occurredAgo: '170 minutes', trust: 'USER_CLAIMED', lateReason: 'FORGOT_TO_RECORD' })).rejects.toThrow('EBMR-PLAT-016');
+    // A gateway relaying an instrument's time (source SYSTEM) may state it.
+    const gateway = await testActor(db, { source: 'SYSTEM', legalName: 'Site gateway' });
+    const relayed = await addEntry(stepId, { occurredAgo: '170 minutes', trust: 'DEVICE_SYNCED' }, gateway);
+    expect(relayed).toMatchObject({ occurred_trust: 'DEVICE_SYNCED', time_basis: 'OCCURRED_AT', is_late: false });
+  });
+
+  it('[DI-18] an administrator can record neither a step nor an entry', async () => {
+    const admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR' });
+    await expect(
+      withCommand(db.app, admin, (c) => c.query('insert into platform.stub_step (batch_id) values ($1)', [randomUUID()])),
+    ).rejects.toThrow('EBMR-IAM-042');
+    const { stepId } = await newStep();
+    await expect(addEntry(stepId, {}, admin)).rejects.toThrow('EBMR-IAM-042');
+  });
+
   it('[INV-16] a PAPER back-entry is a late entry too', async () => {
     const { stepId } = await newStep({ startedAgo: '1 hour' });
     await expect(addEntry(stepId, { occurredAgo: '30 minutes', trust: 'PAPER' })).rejects.toThrow('EBMR-PLAT-015');
@@ -138,8 +164,8 @@ describe('two times per event', () => {
 
   it('[INV-16] claimed event times stay in order within the step', async () => {
     const { stepId } = await newStep({ startedAgo: '1 hour' });
-    await addEntry(stepId, { itemNo: 1, occurredAgo: '40 minutes', trust: 'DEVICE_SYNCED' });
-    await addEntry(stepId, { itemNo: 3, occurredAgo: '10 minutes', trust: 'DEVICE_SYNCED' });
+    await addEntry(stepId, { itemNo: 1, occurredAgo: '40 minutes', trust: 'DEVICE_SYNCED' }, instrument);
+    await addEntry(stepId, { itemNo: 3, occurredAgo: '10 minutes', trust: 'DEVICE_SYNCED' }, instrument);
     await expect(addEntry(stepId, { itemNo: 2, occurredAgo: '50 minutes', trust: 'USER_CLAIMED', lateReason: 'LATE' })).rejects.toThrow('EBMR-PLAT-014');
     await expect(addEntry(stepId, { itemNo: 2, occurredAgo: '5 minutes', trust: 'USER_CLAIMED', lateReason: 'LATE' })).rejects.toThrow('EBMR-PLAT-014');
     const ok = await addEntry(stepId, { itemNo: 2, occurredAgo: '20 minutes', trust: 'USER_CLAIMED', lateReason: 'LATE' });
@@ -307,17 +333,14 @@ describe('recorded_at is the database clock', () => {
       withCommand(db.app, await testActor(db, { reasonCode: 'X' }), (c) => c.query("update platform.stub_step_entry set recorded_at = '2001-01-01' where id = $1", [row.id])),
     ).rejects.toThrow(/permission denied/);
     await expect(
-      withCommand(db.admin, await testActor(db, { reasonCode: 'X' }), (c) => c.query("update platform.stub_step_entry set value = 1 where id = $1", [row.id])),
+      withCommand(db.admin, await testActor(db, { reasonCode: 'X', reasonText: 'attempted correction' }), (c) =>
+        c.query('update platform.stub_step_entry set value = 1 where id = $1', [row.id]),
+      ),
     ).rejects.toThrow('EBMR-AUDIT-004');
     // On a mutable platform table the forcing trigger keeps the stored time on update.
-    await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage');
-    const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD', reasonCode: 'SOURCE_REPLACED' });
-    const sourceId = await withCommand(db.app, admin, async (c) => {
-      const { rows } = await c.query<{ id: string }>(
-        "select platform.register_time_source('Test NTP A', 'NTP', 'ntp-a.example', 'test reference', gen_random_uuid(), 'VAL-001') as id",
-      );
-      return rows[0]?.id ?? '';
-    });
+    await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.time_source.validate');
+    const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD', reasonCode: 'SOURCE_REPLACED', reasonText: 'reference replaced by a new server' });
+    const sourceId = await registerValidatedTimeSource(db, admin, await testActor(db, { roleCode: 'CSV_DI_LEAD' }), 'Test NTP A', 'test reference', 'VAL-001');
     const t0 = (await sql<{ t: string }>('select recorded_at::text as t from platform.time_source where id = $1', [sourceId]))[0]?.t;
     await withCommand(db.admin, admin, (c) => c.query("update platform.time_source set active = false, recorded_at = '2001-01-01' where id = $1", [sourceId]));
     const t1 = (await sql<{ t: string; active: boolean }>('select recorded_at::text as t, active from platform.time_source where id = $1', [sourceId]))[0];
@@ -326,6 +349,8 @@ describe('recorded_at is the database clock', () => {
   });
 
   it('[INV-16] the time-model invariant query returns no rows for the platform, and reports a disabled forcing trigger', async () => {
+    // A scheduled invariant query must return no rows on a correct installation, for every module.
+    expect(await sql('select table_name, problem from platform.time_model_violations()')).toEqual([]);
     const mine = async () =>
       (await sql<{ table_name: string; problem: string }>('select table_name, problem from platform.time_model_violations()')).filter((r) =>
         r.table_name.startsWith('platform.'),
@@ -340,6 +365,25 @@ describe('recorded_at is the database clock', () => {
       await db.admin.query('alter table platform.stub_step_entry enable trigger a0_db_time_platform_stub_step_entry');
     }
     expect(await mine()).toEqual([]);
+    // An audited table of another module whose recorded_at the application could write, or whose
+    // default is not the database clock, is reported.
+    await db.admin.query('grant insert (recorded_at) on records.incident_event to ebmr_app');
+    try {
+      expect(await sql('select table_name, problem from platform.time_model_violations()')).toEqual([
+        { table_name: 'records.incident_event', problem: 'audited table has a recorded_at column that the application role may write' },
+      ]);
+    } finally {
+      await db.admin.query('revoke insert (recorded_at) on records.incident_event from ebmr_app');
+    }
+    await db.admin.query('alter table records.incident_event alter column recorded_at set default now()');
+    try {
+      expect(await sql('select table_name, problem from platform.time_model_violations()')).toEqual([
+        { table_name: 'records.incident_event', problem: 'audited table has a recorded_at column whose default is not the database clock' },
+      ]);
+    } finally {
+      await db.admin.query('alter table records.incident_event alter column recorded_at set default clock_timestamp()');
+    }
+    expect(await sql('select table_name, problem from platform.time_model_violations()')).toEqual([]);
   });
 
   it('[DI-27][INV-16] change a terminal clock, then record a step: the stored time is unaffected', async () => {
@@ -373,15 +417,41 @@ describe('recorded_at is the database clock', () => {
 
   it('[DI-27] entries store the UTC instant with the site time zone and the offset in force', async () => {
     const { stepId } = await newStep();
+    // The zone is the site's (policy site.zone), not the zone a client declares.
+    expect((await sql<{ z: string }>("select iam.policy_text('site.zone') as z"))[0]?.z).toBe('Asia/Kolkata');
     const india = await addEntry(stepId, { itemNo: 1 }, await testActor(db, { siteZone: 'Asia/Kolkata' }));
     expect(india.site_zone).toBe('Asia/Kolkata');
     expect(india.site_utc_offset).toBe('05:30:00');
-    const berlin = await addEntry(stepId, { itemNo: 2 }, await testActor(db, { siteZone: 'Europe/Berlin' }));
-    const expected = (await sql<{ o: string }>("select platform.utc_offset($1, 'Europe/Berlin')::text as o", [berlin.recorded_at]))[0]?.o;
-    expect(['01:00:00', '02:00:00']).toContain(berlin.site_utc_offset);
-    expect(berlin.site_utc_offset).toBe(expected);
-    await expect(addEntry(stepId, { itemNo: 3 }, await testActor(db, { siteZone: 'Mars/Olympus' }))).rejects.toThrow('EBMR-PLAT-017');
-    await expect(addEntry(stepId, { itemNo: 3 }, await testActor(db, { siteZone: 'IST' }))).rejects.toThrow('EBMR-PLAT-017');
+    const expected = (await sql<{ o: string }>("select platform.utc_offset($1, 'Asia/Kolkata')::text as o", [india.recorded_at]))[0]?.o;
+    expect(india.site_utc_offset).toBe(expected);
+    // A terminal set to another zone is refused, not recorded with the wrong offset and calendar day:
+    // the identity module refuses the command itself (kernel.validate_actor_context, 0190), whatever it
+    // would write, because the site's zone is configuration and not the client's choice.
+    for (const zone of ['Europe/Berlin', 'Mars/Olympus', 'IST']) {
+      await expect(addEntry(stepId, { itemNo: 2 }, await testActor(db, { siteZone: zone }))).rejects.toThrow(
+        `EBMR-IAM-118 DI-27: the actor context declares the time zone ${zone}, but the site's time zone (policy site.zone) is Asia/Kolkata`,
+      );
+    }
+    await expect(withCommand(db.app, await testActor(db, { siteZone: 'Europe/Berlin' }), (c) => c.query('select 1'))).rejects.toThrow('EBMR-IAM-118');
+    // Defence in depth: a context that owner-level code installed without that check still cannot give
+    // an entry another zone (platform.entry_site_zone), nor an unknown one.
+    const client = await db.admin.connect();
+    try {
+      const zoneUnder = async (zone: string) => {
+        await client.query('begin');
+        try {
+          await client.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify(toDbContext({ ...(await testActor(db)), siteZone: zone }))]);
+          return (await client.query<{ z: string }>('select platform.entry_site_zone() as z')).rows[0]?.z;
+        } finally {
+          await client.query('rollback');
+        }
+      };
+      expect(await zoneUnder('Asia/Kolkata')).toBe('Asia/Kolkata');
+      await expect(zoneUnder('Europe/Berlin')).rejects.toThrow('EBMR-PLAT-023 the command declares the time zone Europe/Berlin, but the site\'s time zone is Asia/Kolkata');
+      await expect(zoneUnder('Mars/Olympus')).rejects.toThrow('EBMR-PLAT-017');
+    } finally {
+      client.release();
+    }
   });
 });
 

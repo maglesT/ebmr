@@ -32,6 +32,7 @@ let anchorBefore: ExternalAnchor;
 let anchorAfter: ExternalAnchor;
 let backup: BackupArtefact;
 let lostNumbers: string[];
+let backupMaxEventId: bigint;
 let sourceMaxEventId: bigint;
 let restoreEventId: string;
 
@@ -70,6 +71,7 @@ beforeAll(async () => {
   await sample(source, '2');
   for (let i = 0; i < 3; i++) await issue(source);
   anchorBefore = await exportAnchor(source.app, ledger);
+  backupMaxEventId = BigInt((await source.app.query<{ m: string }>('select max(id)::text as m from kernel.audit_event')).rows[0]?.m ?? '0');
   backup = await backupTestDatabase(source, dir.path);
 
   // After the backup: more history on the same batch, more numbers (a new block), another anchor.
@@ -98,6 +100,17 @@ describe('before the restore procedure', () => {
     expect((await ledger.entries()).length).toBe(ledgerSize); // nothing written outside
   });
 
+  it('[INV-27] until its identifiers are secured, a restored database writes nothing to the audit trail and exports no anchor (EBMR-CONT-017)', async () => {
+    const eventsBefore = (await restored.app.query<{ m: string | null }>('select max(id)::text as m from kernel.audit_event')).rows[0]?.m;
+    // A GMP write, an anchor (the anchor job), and a direct anchor by the application role: each would
+    // take an id the source may already have issued after the backup.
+    await expect(sample(restored, '9')).rejects.toThrow('EBMR-CONT-017');
+    await expect(exportAnchor(restored.app, ledger)).rejects.toThrow('EBMR-CONT-017');
+    await expect(restored.app.query('select kernel.create_anchor()')).rejects.toThrow('EBMR-CONT-017');
+    expect((await restored.app.query<{ m: string | null }>('select max(id)::text as m from kernel.audit_event')).rows[0]?.m).toBe(eventsBefore);
+    expect((await restored.app.query<{ ok: boolean }>('select continuity.identifiers_secured() as ok')).rows[0]?.ok).toBe(false);
+  });
+
   it('[INV-08] without a restore event, the external anchor of the discarded history is reported as a problem', async () => {
     const result = await verifyExternalAnchors(restored.app, ledger);
     const byAnchor = (id: string) => result.filter((r) => r.anchorId === id);
@@ -110,12 +123,21 @@ describe('before the restore procedure', () => {
     const check = await checkAgainstLedger(restored.app, ledger);
     expect(check.ok).toBe(false);
     const codes = new Set(check.findings.filter((f) => f.severity === 'ERROR').map((f) => f.code));
-    expect(codes).toEqual(new Set(['ANCHOR_MISMATCH', 'COUNTER_INCARNATION_CHANGED', 'COUNTER_BEHIND_LEDGER', 'SEQUENCE_BEHIND_LEDGER']));
+    expect(codes).toEqual(new Set(['IDENTIFIERS_NOT_SECURED', 'ANCHOR_MISMATCH', 'COUNTER_INCARNATION_CHANGED', 'COUNTER_BEHIND_LEDGER', 'SEQUENCE_BEHIND_LEDGER']));
   });
 
   it('[INV-08][DI-45] a restore event needs a second, named person: the operator cannot approve it and approval is refused to anyone not named', async () => {
     await expect(recordRestoreEvent(restored.app, operator, ledger, await restoreInput([operator.personId]))).rejects.toThrow('EBMR-CONT-020');
     await expect(recordRestoreEvent(restored.app, operator, ledger, await restoreInput([]))).rejects.toThrow('EBMR-CONT-020');
+
+    // Recording secured the identifiers first (already on the refused attempts above): every protected
+    // sequence moved past the ledger before anything was written, and each move is recorded.
+    const secured = await restored.app.query<{ sequence_key: string; value_after: string }>(
+      "select sequence_key, value_after::text from continuity.sequence_bump where reason = 'IDENTIFIERS_SECURED'",
+    );
+    expect(secured.rows.find((r) => r.sequence_key === 'kernel.audit_event.id')?.value_after).toBeDefined();
+    expect(BigInt(secured.rows.find((r) => r.sequence_key === 'kernel.audit_event.id')?.value_after ?? '0')).toBeGreaterThan(sourceMaxEventId);
+    expect((await restored.app.query<{ ok: boolean }>('select continuity.identifiers_secured() as ok')).rows[0]?.ok).toBe(true);
 
     const recorded = await recordRestoreEvent(restored.app, operator, ledger, await restoreInput([approver.personId]));
     restoreEventId = recorded.restoreEventId;
@@ -175,9 +197,17 @@ describe('after the restore procedure', () => {
     const all = await restored.app.query<{ v: string }>('select value::text as v from testgmp.issued_number where counter_key = $1 order by value', [KEY]);
     expect(all.rows.map((r) => r.v)).toEqual(['1', '2', '3', next]);
 
-    // Audit event ids and anchor ids continue above anything the source issued.
+    // Audit event ids and anchor ids continue above anything the source issued, and no id the source
+    // issued after the backup was given to anything written in the restored database (the restore
+    // procedure's own records included).
     const newEvent = await restored.app.query<{ m: string }>('select max(id)::text as m from kernel.audit_event');
     expect(BigInt(newEvent.rows[0]?.m ?? '0')).toBeGreaterThan(sourceMaxEventId);
+    const reused = await restored.app.query<{ id: string; chain_key: string }>(
+      'select id::text, chain_key from kernel.audit_event where id > $1 and id <= $2 order by id',
+      [backupMaxEventId.toString(), sourceMaxEventId.toString()],
+    );
+    expect(sourceMaxEventId).toBeGreaterThan(backupMaxEventId);
+    expect(reused.rows).toEqual([]);
     const anchor = await exportAnchor(restored.app, ledger);
     expect(BigInt(anchor.anchor_id)).toBeGreaterThan(BigInt(anchorAfter.anchor_id));
   });

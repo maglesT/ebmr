@@ -197,7 +197,7 @@ describe('tamper evidence', () => {
   it('[INV-08] an intact chain verifies', async () => {
     const batch = randomUUID();
     const id = await insertSample(batch, '5');
-    await withCommand(db.app, actor({ reasonCode: 'X' }), (c) => c.query('update testgmp.sample set note = $2 where id = $1', [id, 'n']));
+    await withCommand(db.app, actor({ reasonCode: 'X', reasonText: 'note added' }), (c) => c.query('update testgmp.sample set note = $2 where id = $1', [id, 'n']));
     expect(await verifyChain(db.app, `batch:${batch}`)).toEqual([]);
   });
 

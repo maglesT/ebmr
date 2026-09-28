@@ -20,7 +20,10 @@ Controls and invariants: **IN-52** (market-profile rule resolution, Phase 1 with
 - **Keys** (`market.rule_key`): atomic (one dimension, one unit), with a comparison method:
   `SMALLER_STRICTER`, `LARGER_STRICTER` (decimals), `ORDERED` (categories, least to most strict),
   `REQUIRED_IF_ANY` (booleans), `SET_UNION` (sets of identifiers), `ALL_APPLY` (compendial criteria:
-  every criterion applies with its own governing market) and `NOT_COMPARABLE`, which needs a stated
+  every criterion applies with its own governing market; a value is at least as strict as another
+  only when it contains every criterion of the other with an identical definition, so a criterion
+  that keeps its id but changes its bands, sampling plan, rounding or stage is a different criterion,
+  never a tightening: `market.criteria_cover` / `isAtLeastAsStrict`) and `NOT_COMPARABLE`, which needs a stated
   method (`PER_DESTINATION`: resolved per pack destination with a regulatory decision reference). A
   scalar method on a multi-component value type is refused. `indiaGoverns` says whether India must
   have a value; `predicates` declares the allowed values of each predicate attribute;
@@ -72,7 +75,14 @@ are replaced when the editions arrive.
 
 `market.evaluation` is insert-only and audited (chain `market_evaluation:<subject id>`). The
 application calls `market.evaluate_stub_scope(request)` (TS `evaluateStubScope`), which derives the
-scope and calls the owner-only writer `market.record_evaluation`. A BEFORE INSERT trigger recomputes
+scope and calls the owner-only writer `market.record_evaluation`. What the scope fixes the request can
+repeat but never change: a predicate the scope fixes (EBMR-MKT-055); the site whose value applies,
+always the scope's own (`siteId` is assert-only; another site, an unknown id or null: 056); a PACK's
+destination for a PER_DESTINATION key (another destination: 057; `resolveForScope` refuses it too);
+the subject the evaluation is filed under (`market.stub_evaluation_subject`: the scope itself, or a
+subject the scope entails and the stub tables confirm: a PACK's batch, a lot's consuming batch, a batch
+made at a SITE or of a product qualified on a LINE, ROOM or EQUIPMENT whose markets are all in the
+scope's set; anything else: 058). Only a MATERIAL_LOT scope names a consuming batch (052). A BEFORE INSERT trigger recomputes
 the resolution from the stored inputs and refuses anything else (EBMR-MKT-053), so not even the owner
 can store a value the table does not give. Each row holds value, governing markets, predicate
 branch, table version, inputs and their SHA-256, the site value applied and its outcome.
@@ -84,10 +94,20 @@ market set from their tables.
 `market.set_site_value(site, key, value, effective_from, {justificationRef, qaApprovalId})`: site
 values only tighten. Looser than a binding value (HARD or a hard floor) is refused (EBMR-MKT-060);
 looser than a DESIGN value is refused (061); loosening GUIDANCE or an adopted EXAMPLE needs a
-justification (CCS) reference and a QA approval record (065) and is flagged on every evaluation that
-uses it (`market.batch_flags(subject)`). Sets accept only supersets (064); NOT_COMPARABLE keys take
-no site value (063). At every evaluation the site value is re-assessed; one that a later table has
-made inadmissible is not applied and is flagged `SITE_VALUE_INADMISSIBLE`.
+justification (CCS) reference and a QA approval (065) and is flagged on every evaluation that
+uses it (`market.batch_flags(subject)`). The QA approval (`qaApprovalId`) is the id of a
+`SITE_VALUE_LOOSENING_APPROVED` e-signature of exactly that loosening (aggregate
+`market_site_loosening`, id `<site>@<key>@<effective from>@<value departed from>@<new value>@<justification>`;
+`market.site_value_preview` / TS `siteValuePreview` names it), checked with `esig.assert_signature`
+(EBMR-ESIG-070) and signed by someone other than the person setting the value (066); the row keeps the
+signature and its signer (`qa_approval_id`, `qa_approver_id`). Sets accept only supersets, and for
+ALL_APPLY only identical criteria (064); NOT_COMPARABLE keys take no site value (063). At every
+evaluation the site value is re-assessed; one that a later table has made inadmissible is not applied
+and is flagged `SITE_VALUE_INADMISSIBLE`. An approved loosening applies only where the resolution
+departs from the same basis it was approved against (`market.loosening_basis`: value, floor type,
+binding floor, governing markets and their predicate branches); for another basis (a tightened table
+version, another market set or branch) it is not applied but flagged `SITE_VALUE_INADMISSIBLE`, and a
+new table version that changes the basis puts it on the change-impact list.
 
 ## Publishing, source corrections and change impact
 
@@ -95,10 +115,16 @@ made inadmissible is not applied and is flagged `SITE_VALUE_INADMISSIBLE`.
 document (same checks and codes as `validateRuleTableDocument`), requires the next version number,
 stores keys and rows, compares the new version with the previous one per market, predicate branch and
 date segment, and refuses any loosening that reaches today or earlier unless the version is a
-`SOURCE_CORRECTION` with a citation and two distinct approver ids other than the publisher (L-38).
-A loosening that starts in the future is allowed and recorded. It then writes
-`market.change_impact`: stub MBR limits (`market.stub_mbr_limit`) looser than the new resolved value
-and site values the new version makes inadmissible, each due by the date the rule applies.
+`SOURCE_CORRECTION` (L-38). "Today" is the date at the configured site zone (`iam` policy `site.zone`),
+never a zone the command declares. A source correction needs a citation, a vendor-notice reference and
+`approvalSignatureIds`: two `RULE_TABLE_CORRECTION_APPROVED` e-signatures of exactly this document
+(aggregate `market_rule_correction`, id `<table>:<version>:<content hash>`;
+`market.rule_correction_target` / TS `ruleCorrectionApprovalTarget` names it) by two different quality-unit
+persons, neither the publisher (EBMR-MKT-032, EBMR-ESIG-070); the version records the signatures and
+their signers (`approval_signatures`, `approver_ids`). A loosening that starts in the future is allowed
+and recorded. It then writes `market.change_impact`: stub MBR limits (`market.stub_mbr_limit`) looser
+than the new resolved value, site values the new version makes inadmissible, and approved site
+loosenings whose basis the new version changes, each due by the date the rule applies.
 `market.verify_table_version(version)` recomputes the content hash and row hashes.
 
 ## Policy switches (INV-47)
@@ -108,9 +134,15 @@ changeRef})`, `market.policy_for_batch(policy, issue_instant)`, `market.pin_poli
 (call in the batch-issue transaction; the issue instant is the database clock),
 `market.apply_policy_tightening(...)`, `market.batch_policy(batch, policy)`. Positions are listed
 least to most strict. Versions never take effect in the past and never before an already scheduled
-version; a loosening needs an approval record and a change reference. Triggers on
-`market.batch_policy_pin` refuse any pin that would let a loosening reach a batch issued before it
-took effect, whoever inserts it.
+version; every change needs a change reference, and a loosening needs `approvalId`: the id of a
+`POLICY_LOOSENING_APPROVED` e-signature of exactly that version (aggregate `market_policy_version`, id
+`<policy>@<version>@<position>`; `market.policy_version_target` / TS `policyVersionApprovalTarget`
+names it) by someone other than the author (EBMR-ESIG-070, 075); the version keeps its author and
+approver (DI-09). A VENDOR-level switch belongs to the vendor profile: the tenant path can neither
+define nor change it (074; only a software release can), and a loosening that needs
+`OWNER_CONFIRMATION` is refused on the tenant path (074). Triggers on `market.batch_policy_pin` refuse
+any pin that would let a loosening reach a batch issued before it took effect, whoever inserts it; pins
+of one batch and policy are serialised, and `market.batch_policy` returns the strictest pin.
 
 ## Permissions (DI-17, DI-18)
 
@@ -140,9 +172,12 @@ stays owner-only (the editions call it from their own gated functions).
 015 method/type, 019 unit, 020 value, 024 overlap, 025 ambiguous predicates, 026 India missing) ·
 030–035 publishing (031 loosening needs source correction, 032 source-correction approvals, 035 file
 differs from published version) · 040–049 resolution (042 predicate needed, 045 no India value, 046/047
-stated method) · 050–055 scopes and evaluations (052 lot needs consuming batch, 053 evaluation does
-not match the table, 054 key not for this edition) · 060–065 site values · 070–073 policy versions ·
-080–087 batch pins.
+stated method) · 050–058 scopes and evaluations (052 consuming batch only and always for a lot, 053
+evaluation does not match the table, 054 key not for this edition, 055 fixed predicate, 056 site not
+the scope's, 057 pack destination, 058 subject not entailed by the scope) · 060–066 site values (066
+the setter approved their own loosening) · 070–075 policy versions (074 vendor-profile switch or owner
+confirmation, 075 the author approved their own change) · 080–087 batch pins. Approvals that are not
+a valid e-signature of the right meaning and aggregate are refused by esig (EBMR-ESIG-070).
 
 ## For other modules
 
@@ -155,6 +190,17 @@ not match the table, 054 key not for this edition) · 060–065 site values · 0
   (INV-34) and `tablets.uniformity.acceptanceCriteria` (ALL_APPLY: evaluate every criterion).
 - Editions: implement `ResolutionContextProvider`; record evaluations through `market.record_evaluation`
   from your own SECURITY DEFINER functions; call `market.pin_policies_for_batch` when issuing a batch.
+
+## Approval signatures (0360)
+
+| Meaning | Aggregate type | Signed by | Checked in |
+|---|---|---|---|
+| `RULE_TABLE_CORRECTION_APPROVED` | `market_rule_correction` | quality unit (`MBR.APPROVE`, `RECORD.QA_REVIEW`), two persons, not the publisher | `publish_rule_table` |
+| `SITE_VALUE_LOOSENING_APPROVED` | `market_site_loosening` | quality unit, not the person setting the value | `set_site_value` |
+| `POLICY_LOOSENING_APPROVED` | `market_policy_version` | quality unit, not the author of the version | `policy_version_guard` |
+
+The change is signed before it is made, so each aggregate id names the change and its content follows
+from the id alone (it never changes, INV-09); the signer signs in state `PROPOSED`.
 
 ## Open points
 

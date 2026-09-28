@@ -3,14 +3,17 @@
 --
 -- Scope rules used by every gated kernel function (see packages/kernel/src/identity/README.md,
 -- section "Authority checks in the other modules"):
---   * an object with its own site (and product) is checked in that scope (site values, batch numbers);
+--   * an object with its own site (and product) is checked in that scope (site values, batch numbers,
+--     and the number ceilings of a counter its owning module registered with a site: a site's
+--     batch-number rule, continuity.counter_scope);
 --   * installation-wide objects (rule tables, policies, the record register, retention, incidents under
 --     investigation, DI investigations, restores, attestations) are checked in the empty scope {}: only
 --     a grant that is not limited to a site, area or product covers them;
 --   * actions taken at the point of work (raising or linking an incident, recording a rule evaluation,
---     pinning policies at batch issue, reserving number ceilings) and every platform permission are
---     checked at the actor's location: the site and room of the command's session, which the server
---     took from the enrolled device when the session opened (never from the client).
+--     pinning policies at batch issue, reserving ceilings of a counter registered without a site) and
+--     every platform permission are checked at the actor's location: the site and room of the
+--     command's session, which the server took from the enrolled device when the session opened
+--     (never from the client).
 
 set local role ebmr_owner;
 
@@ -49,6 +52,11 @@ $$;
 -- platform passes kernel.current_actor(); anything else is refused). The permission is evaluated
 -- with iam.evaluate_authority for the actor's person and account in the role declared in the context,
 -- at the database clock, in the actor's location scope; every evaluation is stored (INV-26).
+-- A denied evaluation is stored inside the command, which the refusal rolls back. So that the failed
+-- check is still logged (DI-17), a denial is raised here as the platform's own refusal (EBMR-PLAT-006,
+-- the message platform.authorize would give) with the same JSON DETAIL as iam.require_permission's
+-- EBMR-IAM-040 (person, account, role, permission, scope, reasons); the guarded-command wrapper logs
+-- the evaluation again from that detail in its own transaction (F72).
 create function iam.platform_authority(p_permission text, p_actor jsonb, p_aggregate_type text, p_aggregate_id text) returns text
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 declare
@@ -77,8 +85,13 @@ begin
   if (v_eval ->> 'allowed')::boolean then
     return null;
   end if;
-  return format('%s acting as %s lacks %s in scope %s for %s:%s: %s (evaluation %s)', v_actor ->> 'account_id', v_actor ->> 'role_code',
-                v_code, v_scope, coalesce(p_aggregate_type, '?'), coalesce(p_aggregate_id, '?'), v_eval -> 'reasons', v_eval ->> 'evaluation_id');
+  raise exception using errcode = 'P0001',
+    message = format('EBMR-PLAT-006 permission %s denied: %s acting as %s lacks %s in scope %s for %s:%s: %s (evaluation %s)', p_permission,
+                     v_actor ->> 'account_id', v_actor ->> 'role_code', v_code, v_scope, coalesce(p_aggregate_type, '?'),
+                     coalesce(p_aggregate_id, '?'), v_eval -> 'reasons', v_eval ->> 'evaluation_id'),
+    detail = jsonb_build_object('person_id', v_actor ->> 'person_id', 'account_id', v_actor ->> 'account_id',
+                                'role_code', v_actor ->> 'role_code', 'permission', v_code, 'scope', v_scope,
+                                'reasons', v_eval -> 'reasons', 'platform_permission', p_permission)::text;
 end
 $$;
 

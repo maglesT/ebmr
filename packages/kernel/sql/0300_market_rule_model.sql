@@ -58,6 +58,7 @@ create table market.rule_table_version (
   change_description   text not null check (length(trim(change_description)) > 0),
   citation             text,
   approver_ids         uuid[] not null default '{}',
+  approval_signatures  uuid[] not null default '{}',
   vendor_notice_ref    text,
   loosening            jsonb not null default '[]',
   source_file          text,
@@ -68,8 +69,11 @@ create table market.rule_table_version (
   published_at         timestamptz not null default clock_timestamp(),
   published_by         uuid not null,
   unique (table_code, version),
-  check (change_kind <> 'SOURCE_CORRECTION' or (coalesce(length(trim(citation)), 0) > 0 and cardinality(approver_ids) >= 2))
+  check (change_kind <> 'SOURCE_CORRECTION' or (coalesce(length(trim(citation)), 0) > 0 and coalesce(length(trim(vendor_notice_ref)), 0) > 0
+                                                and cardinality(approver_ids) >= 2 and cardinality(approval_signatures) = cardinality(approver_ids)))
 );
+comment on column market.rule_table_version.approval_signatures is 'SOURCE_CORRECTION: the RULE_TABLE_CORRECTION_APPROVED e-signatures of this version (esig.signature ids).';
+comment on column market.rule_table_version.approver_ids is 'SOURCE_CORRECTION: the persons who signed approval_signatures (never the publisher), in the same order.';
 
 create table market.rule_key (
   version_id        uuid not null references market.rule_table_version (id) deferrable initially deferred,
@@ -140,6 +144,17 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p is not null and p ~ '^[A-Za-z0-9][A-Za-z0-9_.:+-]*$'
 $$;
 
+-- A uuid written in text, or NULL when the text is not one (callers refuse with their own code).
+create function market.try_uuid(p text) returns uuid
+language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
+begin
+  if p is null or p !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    return null;
+  end if;
+  return p::uuid;
+end
+$$;
+
 create function market.parse_date(p text) returns date
 language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
 declare
@@ -180,9 +195,14 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
   select (select o.ord::integer from jsonb_array_elements(p_ordered) with ordinality as o(v, ord) where o.v = p_value)
 $$;
 
-create function market.criteria_ids(p jsonb) returns jsonb
-language sql immutable set search_path = pg_catalog, pg_temp as $$
-  select coalesce((select jsonb_agg(e -> 'id') from jsonb_array_elements(p) e), '[]'::jsonb)
+-- ALL_APPLY: does criteria value a cover criteria value b? Every criterion of b must appear in a
+-- with exactly the same definition (id, stage, bands, sampling plan, rounding: equal JSON).
+-- Compendial criteria cannot be ranked, so a criterion that keeps its id but changes anything in its
+-- definition is another criterion; it never counts as at least as strict as the one it replaces.
+create function market.criteria_cover(a jsonb, b jsonb) returns boolean
+language sql immutable strict set search_path = pg_catalog, pg_temp as $$
+  select not exists (select 1 from jsonb_array_elements(b) eb
+                      where not exists (select 1 from jsonb_array_elements(a) ea where ea = eb))
 $$;
 
 -- Is value a at least as strict as value b under the key's method? NULL for NOT_COMPARABLE.
@@ -194,7 +214,7 @@ language sql immutable set search_path = pg_catalog, market, pg_temp as $$
     when 'ORDERED' then market.category_rank(p_ordered, a) >= market.category_rank(p_ordered, b)
     when 'REQUIRED_IF_ANY' then a = 'true'::jsonb or b = 'false'::jsonb
     when 'SET_UNION' then a @> b
-    when 'ALL_APPLY' then market.criteria_ids(a) @> market.criteria_ids(b)
+    when 'ALL_APPLY' then market.criteria_cover(a, b)
     else null
   end
 $$;

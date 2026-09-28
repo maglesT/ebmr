@@ -124,14 +124,30 @@ language sql stable security definer set search_path = pg_catalog, esig, pg_temp
   ) u
 $$;
 
--- Runs every independence rule of the type for the signer; each evaluation is stored by the
--- identity module (iam.segregation_evaluation). Refusals carry a JSON DETAIL for re-logging.
+-- Runs every independence rule for the signer, in both directions; each evaluation is stored by
+-- the identity module (iam.segregation_evaluation). Refusals carry a JSON DETAIL for re-logging.
+--
+-- Every rule relates two sides of one record, and it holds whatever order the two are signed in
+-- (INV-03, INV-04, DI-35): nothing forces a signing order (the caller chooses the expected state,
+-- a stub entry has no order at all). So besides the rules of the type being signed against the
+-- signatures already there ("forward"), the rules of the types already signed on the record are
+-- applied to this signing ("reverse"):
+--   independent_of  a signer of T, where this type is in T.independent_of, cannot sign it (043);
+--   INV-03          a signer of a type that excludes performers cannot sign a PERFORMER type (044);
+--   involvement     a signer of a type that excludes the involved cannot sign any type other than
+--                   a review or release type (045).
+-- Like the forward rules, every signature counts, superseded or not. A reverse rule is evaluated
+-- (and stored) only when the record holds a signature of such a type. The other side of INV-03 for
+-- data entry needs no rule: a change by a verifier supersedes the verification (INV-09) and makes
+-- them a corrector, who can never sign it again.
 create function esig.check_independence(p_type esig.meaning_type, p_ch esig.challenge, p_provided jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, esig, iam, kernel, pg_temp as $$
 declare
   v_excluded uuid[];
   v_eval     jsonb;
   v_out      jsonb := '[]'::jsonb;
+  v_other    text;
+  v_types    text[];
 begin
   if exists (select 1 from esig.signature g
              where g.aggregate_ref = p_ch.aggregate_ref and g.meaning_code = p_type.code and g.signer_person = p_ch.signer_person
@@ -139,6 +155,8 @@ begin
     raise exception using errcode = 'P0001',
       message = format('EBMR-ESIG-042 this person already holds a valid %s signature on %s', p_type.code, p_ch.aggregate_ref);
   end if;
+
+  -- Independence of this type from earlier signers.
   if cardinality(p_type.independent_of) > 0 then
     v_excluded := array(select distinct g.signer_person from esig.signature g
                         where g.aggregate_ref = p_ch.aggregate_ref and g.meaning_code = any (p_type.independent_of));
@@ -151,6 +169,27 @@ begin
                                     'subject', p_ch.aggregate_ref)::text;
     end if;
   end if;
+  -- Reverse: types already signed on the record that must be independent of this type.
+  for v_other in
+    select t.code from esig.meaning_catalogue t
+    where p_type.code = any (t.independent_of) and t.code <> p_type.code
+      and exists (select 1 from esig.signature g where g.aggregate_ref = p_ch.aggregate_ref and g.meaning_code = t.code)
+    order by t.code
+  loop
+    v_excluded := array(select distinct g.signer_person from esig.signature g
+                        where g.aggregate_ref = p_ch.aggregate_ref and g.meaning_code = v_other);
+    v_eval := iam.evaluate_segregation('ESIG.INDEPENDENT:' || v_other, p_ch.signer_person, v_excluded, p_ch.aggregate_ref);
+    v_out := v_out || v_eval;
+    if not (v_eval ->> 'allowed')::boolean then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-ESIG-043 %s must be signed by a person other than the signers of %s on this record (%s is independent of %s whatever the signing order)',
+                         p_type.code, v_other, v_other, p_type.code),
+        detail = jsonb_build_object('rule', 'ESIG.INDEPENDENT:' || v_other, 'person_id', p_ch.signer_person, 'excluded', v_excluded,
+                                    'subject', p_ch.aggregate_ref)::text;
+    end if;
+  end loop;
+
+  -- INV-03: a verifier, witness, checker or approver never performed, entered or corrected the record ...
   if p_type.excludes_performers then
     v_excluded := esig.performers_of(p_ch.aggregate_type, p_ch.aggregate_id, p_provided);
     v_eval := iam.evaluate_segregation('INV-03', p_ch.signer_person, v_excluded, p_ch.aggregate_ref);
@@ -161,6 +200,24 @@ begin
         detail = jsonb_build_object('rule', 'INV-03', 'person_id', p_ch.signer_person, 'excluded', v_excluded, 'subject', p_ch.aggregate_ref)::text;
     end if;
   end if;
+  -- ... and, the other way round, never becomes its performer afterwards.
+  if p_type.role_class = 'PERFORMER' then
+    select array_agg(distinct g.signer_person), array_agg(distinct g.meaning_code order by g.meaning_code) into v_excluded, v_types
+    from esig.signature g join esig.meaning_catalogue t on t.code = g.meaning_code
+    where g.aggregate_ref = p_ch.aggregate_ref and t.excludes_performers and t.code <> p_type.code;
+    if v_excluded is not null then
+      v_eval := iam.evaluate_segregation('INV-03', p_ch.signer_person, v_excluded, p_ch.aggregate_ref);
+      v_out := v_out || v_eval;
+      if not (v_eval ->> 'allowed')::boolean then
+        raise exception using errcode = 'P0001',
+          message = format('EBMR-ESIG-044 INV-03: a person who signed %s on the record never signs %s on it: the verifier, witness, checker or approver is never its performer',
+                           v_types, p_type.code),
+          detail = jsonb_build_object('rule', 'INV-03', 'person_id', p_ch.signer_person, 'excluded', v_excluded, 'subject', p_ch.aggregate_ref)::text;
+      end if;
+    end if;
+  end if;
+
+  -- Review and release: nobody in the record's involvement set ...
   if p_type.excludes_involved then
     v_excluded := esig.involved_in(p_ch.aggregate_type, p_ch.aggregate_id, p_provided);
     v_eval := iam.evaluate_segregation('ESIG.INVOLVEMENT', p_ch.signer_person, v_excluded, p_ch.aggregate_ref);
@@ -172,19 +229,39 @@ begin
                                     'subject', p_ch.aggregate_ref)::text;
     end if;
   end if;
+  -- ... and a reviewer or releaser never becomes involved in it afterwards.
+  if p_type.role_class not in ('REVIEWER', 'RELEASE') then
+    select array_agg(distinct g.signer_person), array_agg(distinct g.meaning_code order by g.meaning_code) into v_excluded, v_types
+    from esig.signature g join esig.meaning_catalogue t on t.code = g.meaning_code
+    where g.aggregate_ref = p_ch.aggregate_ref and t.excludes_involved and t.code <> p_type.code;
+    if v_excluded is not null then
+      v_eval := iam.evaluate_segregation('ESIG.INVOLVEMENT', p_ch.signer_person, v_excluded, p_ch.aggregate_ref);
+      v_out := v_out || v_eval;
+      if not (v_eval ->> 'allowed')::boolean then
+        raise exception using errcode = 'P0001',
+          message = format('EBMR-ESIG-045 a person who signed %s on the record cannot then take part in it by signing %s (outline 7.2 S10)',
+                           v_types, p_type.code),
+          detail = jsonb_build_object('rule', 'ESIG.INVOLVEMENT', 'person_id', p_ch.signer_person, 'excluded', v_excluded,
+                                      'subject', p_ch.aggregate_ref)::text;
+      end if;
+    end if;
+  end if;
   return v_out;
 end
 $$;
 
 -- WITNESSED: the witness watched the act, so the signature is applied on the act's terminal or a
 -- terminal registered to the same room, within the witness window, before the next step started.
--- A late witness is refused; the caller records it as an exception.
+-- A late witness is refused; the caller records it as an exception. Every comparison fails closed:
+-- an unknown act terminal, a terminal without a room, or a record that does not say whether the
+-- next step has started never lets a witness signature through.
 create function esig.check_witness(p_ch esig.challenge, p_provided jsonb, p_next_step_started boolean) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, esig, iam, pg_temp as $$
 declare
   v_act     jsonb := p_provided -> 'act';
   v_act_dev iam.device%rowtype;
   v_sig_dev iam.device%rowtype;
+  v_dev_id  uuid;
   v_act_at  timestamptz;
   v_window  interval := make_interval(secs => esig.policy_int('esig.witness_window_seconds'));
   v_same    boolean;
@@ -193,9 +270,12 @@ begin
     raise exception using errcode = 'P0001',
       message = 'EBMR-ESIG-050 the record names no witnessed act (terminal and time); sign VERIFIED for recorded evidence instead';
   end if;
-  if coalesce(p_next_step_started, true) then
+  -- The record says whether the next step has started (the database decides, not the caller); the
+  -- caller's flag can only make the rule stricter. Unknown on either side counts as started.
+  if coalesce(p_next_step_started, true)
+     or (case when jsonb_typeof(v_act -> 'next_step_started') = 'boolean' then (v_act ->> 'next_step_started')::boolean else true end) then
     raise exception using errcode = 'P0001',
-      message = 'EBMR-ESIG-051 the next step has started, so the act can no longer be witnessed (late witness: raise an exception)';
+      message = 'EBMR-ESIG-051 the next step has started (or the record cannot show that it has not), so the act can no longer be witnessed (late witness: raise an exception)';
   end if;
   v_act_at := (v_act ->> 'at')::timestamptz;
   if v_act_at > clock_timestamp() or clock_timestamp() - v_act_at > v_window then
@@ -203,11 +283,20 @@ begin
       message = format('EBMR-ESIG-052 late witness: the act was recorded at %s and the witness window is %s (raise an exception instead)',
                        esig.utc_text(v_act_at), v_window);
   end if;
-  select * into v_act_dev from iam.device where id = (v_act ->> 'device_id')::uuid;
+  begin
+    v_dev_id := (v_act ->> 'device_id')::uuid;
+  exception when invalid_text_representation then
+    v_dev_id := null;
+  end;
+  select * into v_act_dev from iam.device where id = v_dev_id;
   select * into v_sig_dev from iam.device where id = p_ch.device_id;
+  if v_act_dev.id is null or v_sig_dev.id is null then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-ESIG-053 the act names terminal %s, which is not a registered terminal, so nobody can be shown to have watched it',
+                       v_act ->> 'device_id');
+  end if;
   v_same := v_act_dev.id = v_sig_dev.id;
-  if not v_same and not (v_act_dev.room_code is not null and v_act_dev.room_code = v_sig_dev.room_code
-                         and v_act_dev.site_code = v_sig_dev.site_code) then
+  if not v_same and not coalesce(v_act_dev.room_code = v_sig_dev.room_code and v_act_dev.site_code = v_sig_dev.site_code, false) then
     raise exception using errcode = 'P0001',
       message = 'EBMR-ESIG-053 a witness signs on the terminal of the act or on a terminal registered to the same room';
   end if;
@@ -217,7 +306,10 @@ end
 $$;
 
 -- ---------------------------------------------------------------------------------------------
--- Seal payload: the canonical text the seal covers, rebuilt from the stored row
+-- Seal payload: the canonical text the seal covers, rebuilt from the stored row. It covers every
+-- column of the row, directly or through the manifestation digest (printed name, user ID, role
+-- name, meaning title and text, co-signature flag); aggregate_ref is fixed by a check constraint
+-- and the seal row, manifestation_text is compared with the manifestation by the integrity job.
 -- ---------------------------------------------------------------------------------------------
 
 create function esig.seal_payload(p_signature_id uuid) returns text
@@ -235,8 +327,10 @@ language sql stable security definer set search_path = pg_catalog, esig, pg_temp
     'signer_account', s.signer_account,
     'signer_role_code', s.signer_role_code,
     'session_id', s.session_id,
+    'session_person', s.session_person,
     'device_id', s.device_id,
     'auth_event_id', s.auth_event_id,
+    'auth_method', s.auth_method,
     'components_used', to_jsonb(s.components_used),
     'components_required', s.components_required,
     'authority_evaluation_id', s.authority_evaluation_id,
@@ -247,6 +341,7 @@ language sql stable security definer set search_path = pg_catalog, esig, pg_temp
     'site_zone', s.site_zone,
     'utc_offset', s.utc_offset,
     'witness', s.witness,
+    'record_state', s.record_state,
     'manifestation_sha256', esig.sha256_hex(esig.canonical_json(s.manifestation))))
   from esig.signature s where s.id = p_signature_id
 $$;
@@ -270,6 +365,7 @@ declare
   v_req     jsonb;
   v_preview jsonb;
   v_ch      esig.challenge%rowtype;
+  v_problem text;
 begin
   perform iam.assert_not_administrator();
   perform esig.assert_change_triggers_ok();
@@ -288,6 +384,14 @@ begin
   if not (v_prov ->> 'exists')::boolean then
     raise exception using errcode = 'P0001',
       message = format('EBMR-ESIG-011 %s:%s does not exist or has no content provider', p_aggregate_type, p_aggregate_id);
+  end if;
+  -- One record, one identity: the challenge (and so the signature) names the record exactly as
+  -- every lock, change log and independence rule does.
+  v_problem := esig.aggregate_id_problem(p_aggregate_id, v_prov);
+  if v_problem is not null then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-ESIG-014 %s:%s names the record by another id than its own (%s); a record is signed only under its canonical id',
+                       p_aggregate_type, p_aggregate_id, v_problem);
   end if;
   if (v_prov ->> 'content_version')::bigint is distinct from p_content_version then
     raise exception using errcode = 'P0001',
@@ -489,12 +593,12 @@ begin
                               meaning_title, meaning_text, signer_person, signer_account, signer_login, signer_legal_name, signer_role_code,
                               signer_role_name, session_id, session_person, cosignature, device_id, auth_event_id, auth_method,
                               components_used, components_required, authority_evaluation_id, delegation_id, challenge_id, correlation_id,
-                              site_zone, utc_offset, witness, manifestation, manifestation_text)
+                              site_zone, utc_offset, witness, record_state, manifestation, manifestation_text)
   values (v_ch.aggregate_type, v_ch.aggregate_id, v_ch.aggregate_ref, v_ch.content_version, v_ch.content_hash, v_type.code, v_type.version,
           v_type.title, v_type.meaning_text, v_ch.signer_person, v_ch.signer_account, v_signer ->> 'login_name', v_signer ->> 'legal_name',
           v_role.code, v_role.name, v_ch.session_id, v_ch.session_person, v_ch.cosignature, v_ch.device_id, p_auth_event, v_ev ->> 'method',
           v_comps, v_req ->> 'requirement', (v_allowed ->> 'evaluation_id')::uuid, p_delegation, v_ch.id,
-          (v_actor ->> 'correlation_id')::uuid, v_zone, '+00:00', v_witness, '{}'::jsonb, '')
+          (v_actor ->> 'correlation_id')::uuid, v_zone, '+00:00', v_witness, v_prov ->> 'state', '{}'::jsonb, '')
   returning * into v_sig;
   perform kernel.audit_business_event(v_ch.aggregate_ref,
     format('signed %s by %s (%s) at %s UTC%s', v_type.code, v_sig.signer_legal_name, v_sig.signer_login,
@@ -626,14 +730,40 @@ begin
 end
 $$;
 
+-- NULL when the record is still in the state the signature was applied in, else the reason. A
+-- signature authorises the step of the life cycle it was given in, never a later one: an approval
+-- signed while the record was a draft cannot approve it once it has been checked (DI-37, INV-04).
+create function esig.signature_state_problem(p_signature_id uuid) returns text
+language plpgsql volatile security definer set search_path = pg_catalog, esig, pg_temp as $$
+declare
+  s      esig.signature%rowtype;
+  v_prov jsonb;
+begin
+  select * into s from esig.signature where id = p_signature_id;
+  if not found then
+    return format('signature %s does not exist', p_signature_id);
+  end if;
+  v_prov := esig.provide(s.aggregate_type, s.aggregate_id);
+  if (v_prov ->> 'state') is distinct from s.record_state then
+    return format('signature %s was applied while the record was in state %s; it cannot authorise a step out of state %s (sign again in the current state)',
+                  p_signature_id, coalesce(s.record_state, '(none)'), coalesce(v_prov ->> 'state', '(none)'));
+  end if;
+  return null;
+end
+$$;
+
 -- Platform state engine SIGNATURE hook: fn(signature_id, meaning, aggregate_type, aggregate_id,
--- actor) returns NULL when the signature is valid, not superseded and bound to the record and
--- meaning, else the reason. Registered by the lead in an integration migration (platform.register_hook).
+-- actor) returns NULL when the signature is valid, not superseded, bound to the record and meaning
+-- and was applied in the state the transition leaves (the engine calls the hook before it changes
+-- the state), else the reason. The actor who fires the transition may be another person than the
+-- signer (the permission to fire it is the engine's AUTHORITY check; the signer's authority was
+-- evaluated and stored at signing). Registered in an integration migration (platform.register_hook).
 create function esig.platform_signature_check(p_signature_id uuid, p_meaning text, p_aggregate_type text, p_aggregate_id text, p_actor jsonb)
 returns text
 language plpgsql volatile security definer set search_path = pg_catalog, esig, pg_temp as $$
 begin
-  return esig.signature_problem(p_signature_id, p_meaning, p_aggregate_type, p_aggregate_id);
+  return coalesce(esig.signature_problem(p_signature_id, p_meaning, p_aggregate_type, p_aggregate_id),
+                  esig.signature_state_problem(p_signature_id));
 end
 $$;
 
@@ -680,22 +810,94 @@ begin
 end
 $$;
 
--- Signing failures are logged after the failed command rolled back (the TypeScript signing
--- wrapper calls this); failures that suggest misuse also alert the security unit (DI-19).
-create function esig.record_signing_failure(p_challenge uuid, p_code text, p_message text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, esig, iam, pg_temp as $$
+-- DI-19: what committed rows show about an authentication event used (or made) for a challenge,
+-- whatever the application reports. NULL when they show no misuse, else {code, reason, ...} with the
+-- refusal code esig.sign gives for it. p_attempted: a signing attempt with this event on this
+-- challenge was reported (then an event that already attributed another command, a pre-signing
+-- event and missing components count too); without it only what the event itself proves counts:
+-- another person authenticated for the challenge (proxy signing), or the signer with another
+-- account or on another terminal. An event already consumed by the challenge's own signature is a
+-- repeated request for a completed signing (refused as EBMR-ESIG-032), not misuse.
+create function esig.signing_misuse(p_challenge uuid, p_auth_event uuid, p_attempted boolean default true) returns jsonb
+language plpgsql stable security definer set search_path = pg_catalog, esig, iam, pg_temp as $$
 declare
   v_ch   esig.challenge%rowtype;
-  v_code text := case when p_code ~ '^EBMR-[A-Z]+-[0-9]{3}$' then p_code else 'UNKNOWN' end;
+  v_ev   iam.auth_event%rowtype;
+  v_type esig.meaning_type%rowtype;
+  v_out  jsonb;
 begin
   select * into v_ch from esig.challenge where id = p_challenge;
-  insert into esig.signing_failure (challenge_id, code, message, aggregate_ref, meaning_code, signer_account, signer_person, session_id, device_id)
-  values (v_ch.id, v_code, left(coalesce(p_message, ''), 1000), v_ch.aggregate_ref, v_ch.meaning_code, v_ch.signer_account, v_ch.signer_person,
-          v_ch.session_id, v_ch.device_id);
-  if v_ch.id is not null and v_code in ('EBMR-IAM-093', 'EBMR-IAM-094', 'EBMR-IAM-091', 'EBMR-ESIG-036', 'EBMR-ESIG-038') then
-    perform iam.raise_alert('SIGNING_FAILED', 'HIGH', v_ch.signer_account, v_ch.signer_person, v_ch.device_id, null, v_ch.session_id,
-                            jsonb_build_object('challenge_id', v_ch.id, 'code', v_code, 'meaning_code', v_ch.meaning_code,
-                                               'record', v_ch.aggregate_ref));
+  select * into v_ev from iam.auth_event where id = p_auth_event;
+  if v_ch.id is null or v_ev.id is null then
+    return null;
+  end if;
+  v_out := jsonb_build_object('challenge_id', v_ch.id, 'auth_event_id', v_ev.id, 'record', v_ch.aggregate_ref,
+                              'meaning_code', v_ch.meaning_code, 'challenge_signer_person', v_ch.signer_person,
+                              'challenge_signer_account', v_ch.signer_account, 'challenge_device_id', v_ch.device_id,
+                              'authenticated_person', v_ev.person_id, 'authenticated_account', v_ev.account_id,
+                              'authenticated_device_id', v_ev.device_id);
+  if v_ev.person_id is distinct from v_ch.signer_person then
+    return v_out || jsonb_build_object('code', 'EBMR-IAM-093',
+      'reason', 'another person authenticated to sign a challenge that names someone else (proxy signing)');
+  end if;
+  if p_attempted and v_ev.challenge_id is distinct from v_ch.id then
+    return v_out || jsonb_build_object('code', 'EBMR-IAM-094', 'reason', 'an authentication made for another challenge was used');
+  end if;
+  if v_ev.account_id is distinct from v_ch.signer_account then
+    return v_out || jsonb_build_object('code', 'EBMR-ESIG-036', 'reason', 'the signer authenticated with another account than the challenge names');
+  end if;
+  if v_ev.device_id is distinct from v_ch.device_id then
+    return v_out || jsonb_build_object('code', 'EBMR-ESIG-036', 'reason', 'the signer authenticated on another terminal than the one showing the challenge');
+  end if;
+  if not p_attempted then
+    return null;
+  end if;
+  if exists (select 1 from iam.auth_event_use u where u.auth_event_id = v_ev.id and u.use_kind = 'SIGNATURE') then
+    return null;
+  end if;
+  -- Uses of the failed attempt itself rolled back with it: a committed use is another command's.
+  if exists (select 1 from iam.auth_event_use u where u.auth_event_id = v_ev.id) then
+    return v_out || jsonb_build_object('code', 'EBMR-IAM-091', 'reason', 'an authentication that already attributed another command was used for a signature');
+  end if;
+  if v_ev.recorded_at < v_ch.recorded_at then
+    return v_out || jsonb_build_object('code', 'EBMR-ESIG-036', 'reason', 'the authentication happened before the challenge (pre-signing)');
+  end if;
+  select * into v_type from esig.meaning_type where code = v_ch.meaning_code and version = v_ch.meaning_version;
+  if esig.component_problem(esig.required_components(v_type, v_ch.signer_person, v_ch.session_id) ->> 'requirement', v_ev.components) is not null then
+    return v_out || jsonb_build_object('code', 'EBMR-ESIG-038', 'reason', 'the authentication lacks the components this signing needs');
+  end if;
+  return null;
+end
+$$;
+
+-- Signing failures are logged after the failed command rolled back (the TypeScript signing
+-- wrapper calls this), against the challenge and the authentication event the attempt used. The
+-- reported code and message are kept as reported. The security unit is alerted (DI-19) only on
+-- misuse the database itself finds in committed rows (esig.signing_misuse), naming the person who
+-- authenticated, once per authentication event: the application can neither accuse anybody nor
+-- hide the evidence (esig.invariant_violations reports misuse that was never alerted).
+create function esig.record_signing_failure(p_challenge uuid, p_auth_event uuid, p_code text, p_message text) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, esig, iam, pg_temp as $$
+declare
+  v_ch     esig.challenge%rowtype;
+  v_code   text := case when p_code ~ '^EBMR-[A-Z]+-[0-9]{3}$' then p_code else 'UNKNOWN' end;
+  v_misuse jsonb;
+  v_known  boolean;
+begin
+  select * into v_ch from esig.challenge where id = p_challenge;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-031 unknown signature challenge: a signing failure is logged against its challenge';
+  end if;
+  v_misuse := esig.signing_misuse(v_ch.id, p_auth_event, true);
+  v_known := exists (select 1 from esig.signing_failure f where f.auth_event_id = p_auth_event and f.misuse_code is not null);
+  insert into esig.signing_failure (challenge_id, auth_event_id, code, message, misuse_code, misuse_detail, aggregate_ref, meaning_code,
+                                    signer_account, signer_person, session_id, device_id)
+  values (v_ch.id, p_auth_event, v_code, left(coalesce(p_message, ''), 1000), v_misuse ->> 'code', v_misuse, v_ch.aggregate_ref,
+          v_ch.meaning_code, v_ch.signer_account, v_ch.signer_person, v_ch.session_id, v_ch.device_id);
+  if v_misuse is not null and not v_known then
+    perform iam.raise_alert('SIGNING_FAILED', 'HIGH', (v_misuse ->> 'authenticated_account')::uuid, (v_misuse ->> 'authenticated_person')::uuid,
+                            (v_misuse ->> 'authenticated_device_id')::uuid, null, v_ch.session_id,
+                            v_misuse || jsonb_build_object('reported_code', v_code));
   end if;
 end
 $$;
@@ -710,9 +912,10 @@ grant execute on function esig.continuous_session_start(uuid), esig.required_com
                           esig.sign(uuid, uuid, text, uuid, boolean), esig.seal_signature(uuid, text, text, text),
                           esig.signature_state(uuid), esig.signature_problem(uuid, text, text, text),
                           esig.assert_signature(uuid, text, text, text), esig.record_signatures(text, text),
-                          esig.resigning_required(text, text), esig.manifestation(uuid),
-                          esig.record_signing_failure(uuid, text, text) to ebmr_app;
--- performers_of, involved_in, check_independence, check_witness and platform_signature_check stay
--- private to the owner (the platform engine calls the adapter from its own definer function).
+                          esig.resigning_required(text, text), esig.manifestation(uuid), esig.signature_state_problem(uuid),
+                          esig.record_signing_failure(uuid, uuid, text, text) to ebmr_app;
+-- performers_of, involved_in, check_independence, check_witness, signing_misuse and
+-- platform_signature_check stay private to the owner (the platform engine calls the adapter from
+-- its own definer function).
 
 reset role;

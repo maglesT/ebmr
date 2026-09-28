@@ -134,6 +134,9 @@ create table esig.signature (
   manifestation            jsonb not null,
   manifestation_text       text not null,
   recorded_at              timestamptz not null default clock_timestamp(),
+  -- The record's state (provider 'state') when it was signed; NULL for a record without states.
+  -- A state-engine transition accepts the signature only out of this same state (DI-37).
+  record_state             text,
   foreign key (meaning_code, meaning_version) references esig.meaning_type (code, version),
   check (aggregate_ref = aggregate_type || ':' || aggregate_id),
   check (cosignature = (signer_person <> session_person))
@@ -420,21 +423,31 @@ $$;
 
 -- ---------------------------------------------------------------------------------------------
 -- Signing failures (protected log; written after the failed command rolled back)
+--
+-- code and message are what the application reports; the database cannot re-check them after the
+-- rollback. misuse_code and misuse_detail are what the database itself finds in committed rows
+-- (the challenge and the authentication event the attempt used, DI-19): only they raise a
+-- security alert, so a report can never accuse a person on the application's word alone.
 -- ---------------------------------------------------------------------------------------------
 
 create table esig.signing_failure (
   id              bigint generated always as identity primary key,
-  challenge_id    uuid,
+  challenge_id    uuid not null references esig.challenge (id),
+  auth_event_id   uuid,
   code            text not null,
   message         text not null,
+  misuse_code     text,
+  misuse_detail   jsonb,
   aggregate_ref   text,
   meaning_code    text,
   signer_account  uuid,
   signer_person   uuid,
   session_id      uuid,
   device_id       uuid,
-  recorded_at     timestamptz not null default clock_timestamp()
+  recorded_at     timestamptz not null default clock_timestamp(),
+  check ((misuse_code is null) = (misuse_detail is null))
 );
+create index signing_failure_auth_event on esig.signing_failure (auth_event_id) where auth_event_id is not null;
 create index signing_failure_aggregate on esig.signing_failure (aggregate_ref, id);
 create trigger aa_signing_failure_stamp before insert on esig.signing_failure for each row execute function esig.stamp_recorded_at();
 select esig.protect_log('esig.signing_failure');

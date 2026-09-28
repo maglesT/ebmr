@@ -10,7 +10,12 @@
  * The offset is measured against the database clock, not this process's clock: the node's time
  * is read with clock_timestamp() immediately before and after the reference reading, and
  *   offset = midpoint(node before, node after) - reference time
- * with half the bracket as uncertainty. A positive offset means the node is ahead.
+ * with half the bracket as uncertainty. A positive offset means the node is ahead. The reference
+ * may have taken its time anywhere inside the bracket, so the true offset is only known to lie
+ * within offset +/- uncertainty: the database counts a reading as proof of a good clock only when
+ * |offset| + uncertainty is within the threshold, and a reading whose uncertainty exceeds the
+ * threshold as no usable reference at all. A read slower than twice the threshold can therefore
+ * never help, and the default read timeout is exactly that.
  *
  * References are injected (`TimeReference`), so tests never call a real NTP server. Production
  * wiring supplies readers for the validated sources registered in platform.time_source.
@@ -32,7 +37,7 @@ export interface DriftCheckOptions {
   /** SYSTEM actor under which the check is recorded. */
   actor: ActorContext;
   references: readonly TimeReference[];
-  /** Per-reference read timeout; default 5000 ms. */
+  /** Per-reference read timeout; default twice the policy threshold time.drift_alarm_threshold_s. */
   timeoutMs?: number;
 }
 
@@ -54,6 +59,8 @@ export interface DriftCheckResult {
   thresholdSeconds: string;
   activeSources: number;
   reachableSources: number;
+  /** Reachable sources whose reading is conclusive (uncertainty within the threshold, or a proven exceedance). */
+  usableSources: number;
   sourcesOverThreshold: number;
   readings: DriftReading[];
   raised: DriftAlarmRef[];
@@ -65,6 +72,7 @@ interface CheckSummary {
   threshold_s: string;
   active_sources: number;
   reachable_sources: number;
+  usable_sources: number;
   sources_over_threshold: number;
   raised: { kind: string; alarm_id: string }[];
   cleared: { kind: string; alarm_id: string }[];
@@ -97,10 +105,19 @@ export async function measureReference(db: pg.Pool, reference: TimeReference, ti
   }
 }
 
+/** Read timeout that still allows a usable reading: twice the policy threshold (the uncertainty is half the bracket). */
+export async function defaultReadTimeoutMs(db: pg.Pool | pg.PoolClient): Promise<number> {
+  const { rows } = await db.query<{ ms: string }>("select ceil(platform.setting_numeric('time.drift_alarm_threshold_s') * 2000)::text as ms");
+  const ms = Number(rows[0]?.ms);
+  if (!Number.isFinite(ms) || ms <= 0) throw new Error('time.drift_alarm_threshold_s did not give a read timeout');
+  return ms;
+}
+
 /** Runs one drift check for a node and records it. */
 export async function runDriftCheck(pool: pg.Pool, options: DriftCheckOptions): Promise<DriftCheckResult> {
+  const timeoutMs = options.timeoutMs ?? (await defaultReadTimeoutMs(pool));
   const readings: DriftReading[] = [];
-  for (const reference of options.references) readings.push(await measureReference(pool, reference, options.timeoutMs));
+  for (const reference of options.references) readings.push(await measureReference(pool, reference, timeoutMs));
   const samples = readings.map((r) =>
     r.reachable && r.offsetMicros !== undefined
       ? { source_id: r.sourceId, reachable: true, offset_s: microsToSeconds(r.offsetMicros), uncertainty_s: microsToSeconds(r.uncertaintyMicros ?? 0n) }
@@ -120,6 +137,7 @@ export async function runDriftCheck(pool: pg.Pool, options: DriftCheckOptions): 
     thresholdSeconds: summary.threshold_s,
     activeSources: summary.active_sources,
     reachableSources: summary.reachable_sources,
+    usableSources: summary.usable_sources,
     sourcesOverThreshold: summary.sources_over_threshold,
     readings,
     raised: summary.raised.map((a) => ({ kind: a.kind, alarmId: a.alarm_id })),

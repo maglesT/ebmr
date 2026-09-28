@@ -11,9 +11,12 @@
 --                 PAPER            back-entry from a paper contingency record
 -- occurred_at must lie between the step start and recorded_at. Time constraints use occurred_at
 -- only when its trust is DEVICE_SYNCED, otherwise recorded_at, and the row records which one
--- was used. A person-claimed time (USER_CLAIMED, PAPER) makes the entry a late entry: it needs a
--- reason, is flagged for review, and beyond the late-entry window it needs a supervisor
--- co-signature. Status guards of a late entry are evaluated at both instants
+-- was used. The trust is not the caller's word: a device time (DEVICE_SYNCED, DEVICE_UNSYNCED) is
+-- accepted only from a machine identity (an instrument interface or gateway, command source
+-- INTEGRATION or SYSTEM); a person's command can claim only USER_CLAIMED or PAPER
+-- (platform.check_time_trust_source). A person-claimed time (USER_CLAIMED, PAPER) makes the entry
+-- a late entry: it needs a reason, is flagged for review, and beyond the late-entry window it needs
+-- a supervisor co-signature. Status guards of a late entry are evaluated at both instants
 -- (platform.guard_instants); a failure at either raises an exception in the caller's domain.
 
 set local role ebmr_owner;
@@ -76,6 +79,27 @@ begin
   if p_next_at is not null and p_event_at > p_next_at then
     raise exception using errcode = 'P0001',
       message = format('EBMR-PLAT-014 the event time %s is later than that of a later item of the step (%s)', p_event_at, p_next_at);
+  end if;
+end
+$$;
+
+-- The trust level a command may claim (DI-27: user-typed times are never used as the time of an
+-- action; INV-16). A device time comes from a machine identity only: an instrument interface or a
+-- gateway relaying it (command source INTEGRATION or SYSTEM, which only service and integration
+-- accounts can use). A person (source UI or API) typing a time, even one read off an instrument
+-- display, claims it: USER_CLAIMED (or PAPER for a contingency back-entry), which makes the entry a
+-- late entry with a reason, a review flag and, beyond the window, a supervisor co-signature. Every
+-- block table calls this from its time-model trigger, before it uses the trust.
+create function platform.check_time_trust_source(p_trust text) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_ctx jsonb := platform.require_actor();
+begin
+  if p_trust in ('DEVICE_SYNCED', 'DEVICE_UNSYNCED') and coalesce(v_ctx ->> 'source', '') not in ('INTEGRATION', 'SYSTEM') then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-PLAT-009 a %s event time is accepted only from an instrument interface or gateway (source INTEGRATION or SYSTEM), '
+                       'not from a person''s %s command: a time a person enters is USER_CLAIMED (or PAPER) and follows the late-entry rules',
+                       p_trust, coalesce(v_ctx ->> 'source', '?'));
   end if;
 end
 $$;
@@ -178,6 +202,28 @@ begin
 end
 $$;
 
+-- The site time zone an entry is stored with (DI-27): the site's configured zone (kernel.site_zone(),
+-- the identity module's policy site.zone), never the zone a client declares. A command whose context
+-- declares another zone is refused, as e-signatures refuse it (EBMR-ESIG-035): the terminal would
+-- show the operator times in the wrong zone. A foundation-only installation without a site policy
+-- uses the context's zone.
+create function platform.entry_site_zone() returns text
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_declared text := platform.require_actor() ->> 'site_zone';
+  v_site     text := coalesce(kernel.site_zone(), v_declared);
+begin
+  perform platform.assert_time_zone(v_declared);
+  perform platform.assert_time_zone(v_site);
+  if v_declared <> v_site then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-PLAT-023 the command declares the time zone %s, but the site''s time zone is %s; entries are recorded in the site''s zone',
+                       v_declared, v_site);
+  end if;
+  return v_site;
+end
+$$;
+
 create function platform.utc_offset(p_at timestamptz, p_zone text) returns interval
 language sql stable set search_path = pg_catalog, pg_temp as $$
   select (p_at at time zone p_zone) - (p_at at time zone 'UTC')
@@ -251,6 +297,16 @@ create index stub_step_entry_step on platform.stub_step_entry (step_id, item_no)
 -- A supervisor co-signature approves one late entry only.
 create unique index stub_step_entry_cosignature on platform.stub_step_entry (cosignature_id) where cosignature_id is not null;
 
+-- GMP data is never created or changed by an administrator (DI-18): a BEFORE INSERT OR UPDATE
+-- trigger for the demonstration tables, the pattern block tables follow (EBMR-IAM-042).
+create function platform.refuse_administrator() returns trigger
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
+begin
+  perform iam.assert_not_administrator();
+  return new;
+end
+$$;
+
 create function platform.stub_step_entry_time_model() returns trigger
 language plpgsql security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
@@ -270,11 +326,11 @@ begin
   end if;
   new.batch_id := v_step.batch_id;
   new.entered_by := v_ctx ->> 'person_id';
-  new.site_zone := v_ctx ->> 'site_zone';
-  perform platform.assert_time_zone(new.site_zone);
+  new.site_zone := platform.entry_site_zone();
   new.site_utc_offset := platform.utc_offset(new.recorded_at, new.site_zone);
 
   perform platform.check_occurred_at(new.occurred_at, new.occurred_trust, v_step.started_at, new.recorded_at);
+  perform platform.check_time_trust_source(new.occurred_trust);
   v_basis := platform.time_basis(new.occurred_at, new.occurred_trust, new.recorded_at);
   new.time_basis := v_basis.basis;
   new.time_basis_at := v_basis.basis_at;
@@ -313,6 +369,10 @@ select platform.enforce_db_time('platform.stub_step_entry', array['recorded_at']
 -- Runs after the a0_db_time trigger, so recorded_at is already the database time.
 create trigger a1_time_model before insert on platform.stub_step_entry
   for each row execute function platform.stub_step_entry_time_model();
+create trigger a0a_not_administrator before insert or update on platform.stub_step
+  for each row execute function platform.refuse_administrator();
+create trigger a0a_not_administrator before insert or update on platform.stub_step_entry
+  for each row execute function platform.refuse_administrator();
 select kernel.register_audited_table('platform.stub_step', 'batch', 'batch_id', true);
 select kernel.register_audited_table('platform.stub_step_entry', 'batch', 'batch_id', true);
 
@@ -324,6 +384,7 @@ grant insert (step_id, item_no, value, unit, occurred_at, occurred_trust, late_r
   on platform.stub_step_entry to ebmr_app;
 
 grant execute on function platform.check_occurred_at(timestamptz, text, timestamptz, timestamptz),
+                          platform.check_time_trust_source(text), platform.entry_site_zone(),
                           platform.check_step_order(timestamptz, timestamptz, timestamptz),
                           platform.time_basis(timestamptz, text, timestamptz),
                           platform.is_late_entry(timestamptz, text),

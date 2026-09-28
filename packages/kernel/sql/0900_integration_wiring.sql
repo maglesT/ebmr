@@ -22,6 +22,34 @@ select continuity.register_protected_sequence('platform.state_history.id',
   pg_get_serial_sequence('platform.state_history', 'id')::regclass,
   'OTHER', 'platform', 'State-history ids (returned to callers and quoted in reviews)', 10000000);
 
+-- Every other id sequence of these kernel modules. Their values are record ids in the hash-chained
+-- audit trail (kernel.audit_event.record_id), which leaves the database in audit-trail exports and
+-- reviews; a restore must not hand the same id to another record. With these, the INV-27 query
+-- continuity.unprotected_sequences() returns no rows on a clean installation, so the scheduled run
+-- reports only a sequence a later migration forgot to register.
+do $$
+declare
+  r record;
+begin
+  for r in
+    select c.oid::regclass as seq, n.nspname as schema_name, t.relname as table_name, a.attname as column_name
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    join pg_catalog.pg_depend d on d.classid = 'pg_catalog.pg_class'::regclass and d.objid = c.oid and d.deptype in ('a', 'i')
+                               and d.refclassid = 'pg_catalog.pg_class'::regclass
+    join pg_catalog.pg_class t on t.oid = d.refobjid
+    join pg_catalog.pg_attribute a on a.attrelid = t.oid and a.attnum = d.refobjsubid
+    where c.relkind = 'S' and n.nspname in ('kernel', 'iam', 'esig', 'market', 'records', 'platform')
+      and pg_catalog.pg_get_userbyid(c.relowner) = 'ebmr_owner'
+      and not exists (select 1 from continuity.protected_sequence p where p.pg_sequence = c.oid)
+    order by 2, 3, 4
+  loop
+    perform continuity.register_protected_sequence(format('%s.%s.%s', r.schema_name, r.table_name, r.column_name), r.seq,
+      'OTHER', r.schema_name, format('Ids of %s.%s (record ids in the audit trail)', r.schema_name, r.table_name), 100000);
+  end loop;
+end
+$$;
+
 -- ---------------------------------------------------------------------------------------------
 -- 2. Shared and Grade A/B terminals: no session without a current hardening attestation
 --    (DI-13: USB mass storage blocked, kiosk mode). Checked when a session opens, so a lapsed or
@@ -44,7 +72,10 @@ create trigger ab_session_requires_hardened_device
 
 -- ---------------------------------------------------------------------------------------------
 -- 3. A time fault raises a data-integrity incident in the same transaction as its alarm (DI-27).
---    Same behaviour as platform 0520 plus the incident; the outbox message now carries its id.
+--    Same behaviour as platform 0520 plus the incident; the outbox message now carries its id. The
+--    function stays private to the owner: the drift monitor's recorded readings
+--    (platform.record_drift_check) and platform.report_time_fault, both gated to the SYSTEM time
+--    service with platform.time_check.record, are the only ways to it.
 -- ---------------------------------------------------------------------------------------------
 
 create or replace function platform.raise_time_incident(p_kind text, p_node text, p_severity text, p_details jsonb default '{}'::jsonb,
@@ -84,5 +115,28 @@ begin
   return v_id;
 end
 $$;
+
+-- ---------------------------------------------------------------------------------------------
+-- 4. Time sources are validated by a second person (DI-27, DI-24): the platform (0520) confirms a
+--    registration only by the named validator holding platform.time_source.validate, and lets only
+--    that permission deactivate a source below time.min_references. The permission belongs to the
+--    CSV / data-integrity lead, never to the system administrator who registers sources. Written
+--    under the software-release identity, like the catalogue of 0700.
+-- ---------------------------------------------------------------------------------------------
+
+select kernel.set_actor_context(jsonb_build_object(
+  'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+  'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+  'site_zone', 'UTC', 'correlation_id', gen_random_uuid(),
+  'legal_name', 'Software release (kernel migration 0900_integration_wiring)',
+  'reason_code', 'SOFTWARE_RELEASE',
+  'reason_text', 'time sources are confirmed by a validator other than the registrant (DI-27, DI-24)'));
+
+insert into iam.permission (code, domain, effect, description) values
+  ('PLATFORM.TIME_SOURCE_VALIDATE', 'GOVERNANCE', 'WRITE',
+   'Confirm, as the named validator, that a registered time source is validated; decide a deactivation below the minimum number of references (platform.time_source.validate)');
+insert into iam.role_permission (role_code, permission_code) values ('CSV_DI_LEAD', 'PLATFORM.TIME_SOURCE_VALIDATE');
+
+select kernel.set_actor_context(null);
 
 reset role;

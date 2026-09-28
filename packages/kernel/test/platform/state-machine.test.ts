@@ -68,7 +68,7 @@ describe('transitions through the engine', () => {
       [id],
     );
     expect(history).toEqual([
-      { from_state: null, event: null, to_state: 'DRAFT', to_version: '1', role_code: 'MBR_AUTHOR', signature_id: null, permission_code: null },
+      { from_state: null, event: null, to_state: 'DRAFT', to_version: '1', role_code: 'MBR_AUTHOR', signature_id: null, permission_code: 'sample_record.submit' },
       { from_state: 'DRAFT', event: 'SUBMIT', to_state: 'SUBMITTED', to_version: '2', role_code: 'MBR_AUTHOR', signature_id: null, permission_code: 'sample_record.submit' },
       { from_state: 'SUBMITTED', event: 'CHECK', to_state: 'CHECKED', to_version: '3', role_code: 'MBR_CHECKER', signature_id: checkSig, permission_code: 'sample_record.check' },
       expect.objectContaining({ from_state: 'CHECKED', event: 'APPROVE', to_state: 'APPROVED', to_version: '4', role_code: 'QA_REVIEWER' }),
@@ -160,10 +160,14 @@ describe('transitions through the engine', () => {
     );
     expect(u?.reason_code).toBe('INCOMPLETE');
     // Content can change only in DRAFT.
-    await withCommand(db.app, { ...author, reasonCode: 'REWORK' }, (c) => c.query("update platform.stub_record set body = 'rewritten' where id = $1", [id]));
+    await withCommand(db.app, { ...author, reasonCode: 'REWORK', reasonText: 'section 4 added' }, (c) =>
+      c.query("update platform.stub_record set body = 'rewritten' where id = $1", [id]),
+    );
     await fire(id, 'SUBMIT', 3, author);
     await expect(
-      withCommand(db.app, { ...author, reasonCode: 'SNEAKY' }, (c) => c.query("update platform.stub_record set body = 'changed after submit' where id = $1", [id])),
+      withCommand(db.app, { ...author, reasonCode: 'SNEAKY', reasonText: 'late change' }, (c) =>
+        c.query("update platform.stub_record set body = 'changed after submit' where id = $1", [id]),
+      ),
     ).rejects.toThrow('EBMR-PLAT-074');
   });
 
@@ -221,6 +225,30 @@ describe('transitions through the engine', () => {
     const id = await newRecord();
     await expect(create('sample_record', 'sample_record', id)).rejects.toThrow('EBMR-PLAT-063');
     await expect(db.app.query("select platform.create_aggregate_state('sample_record', 'sample_record', gen_random_uuid())")).rejects.toThrow('EBMR-PLAT-001');
+  });
+
+  it('[DI-17][DI-18] creating an aggregate needs the machine version\'s create permission, and an administrator can neither create one nor fire a transition', async () => {
+    const create = (actor: ActorContext) =>
+      withCommand(db.app, actor, (c) => createAggregateState(c, 'sample_record', { aggregateType: 'sample_record', aggregateId: randomUUID() }));
+    await expect(create(checker)).rejects.toThrow('EBMR-PLAT-006 permission sample_record.submit denied');
+    await expect(create(qa)).rejects.toThrow('EBMR-PLAT-006');
+    const admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', reasonCode: 'IT', reasonText: 'maintenance' });
+    await grantPermission(db, 'SYSTEM_ADMINISTRATOR', 'sample_record.submit');
+    await expect(create(admin)).rejects.toThrow('EBMR-IAM-042');
+    await expect(withCommand(db.app, admin, (c) => c.query("insert into platform.stub_record (title, body) values ('Admin SOP', 'x')"))).rejects.toThrow(
+      'EBMR-IAM-042',
+    );
+    const id = await newRecord();
+    await expect(withCommand(db.app, admin, (c) => c.query("update platform.stub_record set body = 'admin edit' where id = $1", [id]))).rejects.toThrow(
+      'EBMR-IAM-042',
+    );
+    await expect(fire(id, 'SUBMIT', 1, admin)).rejects.toThrow('EBMR-IAM-042');
+    expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'DRAFT', version: 1 });
+    const [created] = await rows<{ permission_code: string; role_code: string }>(
+      "select permission_code, role_code from platform.state_history where aggregate_type = 'sample_record' and aggregate_id = $1 and to_version = 1",
+      [id],
+    );
+    expect(created).toEqual({ permission_code: 'sample_record.submit', role_code: 'MBR_AUTHOR' });
   });
 });
 
@@ -364,40 +392,41 @@ describe('machine versions', () => {
     expect(await rows('select * from platform.machine_integrity_violations()')).toEqual([]);
   });
 
-  it('publishing checks sequence, soundness, guards and the generator hash; new aggregates pin the newest version', async () => {
+  it('publishing checks sequence, soundness, guards, permissions and the generator hash; new aggregates pin the newest version', async () => {
+    await grantPermission(db, 'MBR_AUTHOR', 'test_toggle.create', 'test_toggle.toggle');
+    const t = (from: string, event: string, to: string, extra: Record<string, unknown> = {}) => ({ from, event, to, guards: [], signature: null, permission: 'test_toggle.toggle', ...extra });
     const def = (version: number, extra: Record<string, unknown> = {}) =>
       JSON.stringify({
         machine: 'test_toggle',
         version,
         aggregate_type: 'test_toggle',
         description: 'test machine',
+        create_permission: 'test_toggle.create',
         initial: 'OFF',
         states: ['OFF', 'ON'],
         final_states: [],
-        transitions: [
-          { from: 'OFF', event: 'TURN_ON', to: 'ON', guards: [], signature: null, permission: null },
-          { from: 'ON', event: 'TURN_OFF', to: 'OFF', guards: [], signature: null, permission: null },
-        ],
+        transitions: [t('OFF', 'TURN_ON', 'ON'), t('ON', 'TURN_OFF', 'OFF')],
         ...extra,
       });
     const publish = (json: string) => asOwner(db, `select platform.publish_machine_version('${json.replace(/'/g, "''")}'::jsonb)`);
     await expect(publish(def(2))).rejects.toThrow('EBMR-PLAT-062');
-    await expect(
-      publish(def(1, { transitions: [{ from: 'OFF', event: 'TURN_ON', to: 'ON', guards: ['no.such_guard'] }, { from: 'ON', event: 'TURN_OFF', to: 'OFF' }] })),
-    ).rejects.toThrow('EBMR-PLAT-071');
+    await expect(publish(def(1, { transitions: [t('OFF', 'TURN_ON', 'ON', { guards: ['no.such_guard'] }), t('ON', 'TURN_OFF', 'OFF')] }))).rejects.toThrow('EBMR-PLAT-071');
     await expect(publish(def(1, { states: ['OFF', 'ON', 'LIMBO'] }))).rejects.toThrow('unreachable states LIMBO');
-    await expect(publish(def(1, { transitions: [{ from: 'OFF', event: 'TURN_ON', to: 'ON' }] }))).rejects.toThrow('non-final states without transitions ON');
+    await expect(publish(def(1, { transitions: [t('OFF', 'TURN_ON', 'ON')] }))).rejects.toThrow('non-final states without transitions ON');
     await expect(publish(def(1, { definition_hash: '0'.repeat(64) }))).rejects.toThrow('generator hash');
-    await expect(
-      publish(def(1, { transitions: [{ from: 'OFF', event: 'TURN_ON', to: 'ON' }, { from: 'OFF', event: 'TURN_ON', to: 'OFF' }, { from: 'ON', event: 'TURN_OFF', to: 'OFF' }] })),
-    ).rejects.toThrow('more than one transition');
+    await expect(publish(def(1, { transitions: [t('OFF', 'TURN_ON', 'ON'), t('OFF', 'TURN_ON', 'OFF'), t('ON', 'TURN_OFF', 'OFF')] }))).rejects.toThrow('more than one transition');
+    // DI-17: every transition names its permission, and the version names the one that creates an aggregate.
+    await expect(publish(def(1, { transitions: [t('OFF', 'TURN_ON', 'ON', { permission: null }), t('ON', 'TURN_OFF', 'OFF')] }))).rejects.toThrow(
+      'EBMR-PLAT-062 machine test_toggle: transition TURN_ON from OFF needs a permission',
+    );
+    await expect(publish(def(1, { create_permission: null }))).rejects.toThrow('EBMR-PLAT-062 machine test_toggle: create_permission');
     await publish(def(1));
     const first = randomUUID();
     await withCommand(db.app, author, (c) => createAggregateState(c, 'test_toggle', { aggregateType: 'test_toggle', aggregateId: first }));
     await publish(def(2, { states: ['OFF', 'ON', 'BROKEN'], final_states: ['BROKEN'], transitions: [
-      { from: 'OFF', event: 'TURN_ON', to: 'ON' },
-      { from: 'ON', event: 'TURN_OFF', to: 'OFF' },
-      { from: 'ON', event: 'BREAK', to: 'BROKEN' },
+      t('OFF', 'TURN_ON', 'ON'),
+      t('ON', 'TURN_OFF', 'OFF'),
+      t('ON', 'BREAK', 'BROKEN'),
     ] }));
     const second = randomUUID();
     await withCommand(db.app, author, (c) => createAggregateState(c, 'test_toggle', { aggregateType: 'test_toggle', aggregateId: second }));
@@ -408,9 +437,28 @@ describe('machine versions', () => {
     // The aggregate created under v1 keeps v1 semantics: BREAK does not exist there.
     await expect(toggle(first, 'BREAK')).rejects.toThrow('EBMR-PLAT-067 event BREAK is not allowed in state ON (machine test_toggle v1)');
     await expect(toggle(second, 'BREAK')).resolves.toMatchObject({ to: 'BROKEN', machineVersion: 2 });
-    // An explicit older version can still be pinned when a caller must (e.g. a batch issued under it).
-    const pinned = await withCommand(db.app, author, (c) => createAggregateState(c, 'test_toggle', { aggregateType: 'test_toggle', aggregateId: randomUUID() }, 1));
+    // The application cannot choose an older version: a new aggregate follows the newest one.
+    await expect(
+      withCommand(db.app, author, (c) => createAggregateState(c, 'test_toggle', { aggregateType: 'test_toggle', aggregateId: randomUUID() }, 1)),
+    ).rejects.toThrow(/permission denied/);
+    // Module code (owner level) may pin an older version when the record it belongs to requires it
+    // (e.g. a batch issued under it), with the command's reason, which the history and audit keep.
+    const pinnedId = randomUUID();
+    await expect(
+      withCommand(db.admin, author, (c) => createAggregateState(c, 'test_toggle', { aggregateType: 'test_toggle', aggregateId: pinnedId }, 1)),
+    ).rejects.toThrow('EBMR-PLAT-069');
+    const reasoned = { ...author, reasonCode: 'PARENT_VERSION', reasonText: 'batch issued under MBR v7, which uses toggle v1' };
+    const pinned = await withCommand(db.admin, reasoned, (c) => createAggregateState(c, 'test_toggle', { aggregateType: 'test_toggle', aggregateId: pinnedId }, 1));
     expect(pinned.machineVersion).toBe(1);
+    const [h] = await rows<{ reason_code: string; reason_text: string }>(
+      "select reason_code, reason_text from platform.state_history where aggregate_type = 'test_toggle' and aggregate_id = $1",
+      [pinnedId],
+    );
+    expect(h).toEqual({ reason_code: 'PARENT_VERSION', reason_text: 'batch issued under MBR v7, which uses toggle v1' });
+    const [msg] = await rows<{ message: string }>("select payload -> 'body' ->> 'message' as message from kernel.audit_event where chain_key = $1 and action = 'BUSINESS'", [
+      `test_toggle:${pinnedId}`,
+    ]);
+    expect(msg?.message).toBe('created in state OFF (machine test_toggle v1); pinned to v1 while v2 is the newest: batch issued under MBR v7, which uses toggle v1');
     expect(await rows('select * from platform.machine_integrity_violations()')).toEqual([]);
     expect(await rows('select * from platform.state_violations()')).toEqual([]);
   });

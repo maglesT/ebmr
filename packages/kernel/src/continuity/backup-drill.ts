@@ -132,8 +132,8 @@ export interface RestoreDrillOptions {
   reportDir: string;
   /** Where the drill backup is written (default: a temporary directory removed afterwards). */
   backupDir?: string;
-  /** 32-byte key: the drill backup is encrypted at rest and decrypted for the restore. */
-  encryptionKey?: Buffer;
+  /** 32-byte key, or the file holding it (read by the drill: an unreadable key file is a failed drill): the drill backup is encrypted at rest and decrypted for the restore. */
+  encryptionKey?: Buffer | { file: string };
   /** Directory holding pg_dump and pg_restore (default: EBMR_PG_BIN, else PATH). */
   pgBin?: string;
   keepRestoredDatabase?: boolean;
@@ -472,21 +472,29 @@ async function sequenceValues(client: pg.Client): Promise<Map<string, string | n
 }
 
 async function verifyKernel(client: pg.Client): Promise<ChainVerification> {
-  const present = await client.query<{ ok: boolean }>("select to_regclass('kernel.audit_chain_head') is not null and to_regclass('kernel.audit_anchor') is not null as ok");
-  if (!present.rows[0]?.ok) return { available: false, chains: 0, anchors: 0, chainProblems: [], anchorProblems: [] };
-  const chains = await client.query<{ n: string }>('select count(*)::text as n from kernel.audit_chain_head');
-  const anchors = await client.query<{ n: string }>('select count(*)::text as n from kernel.audit_anchor');
-  const cp = await client.query<{ chain_key: string; seq: string; problem: string }>(
-    'select h.chain_key, p.seq::text, p.problem from kernel.audit_chain_head h cross join lateral kernel.verify_chain(h.chain_key) p order by 1, 2',
+  const present = await client.query<{ ok: boolean }>(
+    "select to_regclass('kernel.audit_chain_head') is not null and to_regclass('kernel.audit_anchor') is not null and to_regprocedure('kernel.verify_all_chains()') is not null as ok",
   );
+  if (!present.rows[0]?.ok) return { available: false, chains: 0, anchors: 0, chainProblems: [], anchorProblems: [] };
+  // Every chain that has events or a head (kernel.chain_keys): a chain whose head row was deleted is
+  // still verified, and reported (kernel.verify_all_chains).
+  const chains = await client.query<{ n: string }>('select count(*)::text as n from kernel.chain_keys()');
+  const anchors = await client.query<{ n: string }>('select count(*)::text as n from kernel.audit_anchor');
+  const cp = await client.query<{ chain_key: string; seq: string | null; problem: string }>(
+    'select v.chain_key, v.seq::text, v.problem from kernel.verify_all_chains() v',
+  );
+  // Anchors are verified purge-aware when the records module is installed: a head of a chain purged
+  // under its retention is checked against the chain's tombstone, not reported as missing.
+  const purgeAware = await client.query<{ ok: boolean }>("select to_regprocedure('records.verify_anchor(bigint)') is not null as ok");
+  const verifyAnchor = purgeAware.rows[0]?.ok ? 'records.verify_anchor' : 'kernel.verify_anchor';
   const ap = await client.query<{ id: string; problem: string }>(
-    'select a.id::text, p.problem from kernel.audit_anchor a cross join lateral kernel.verify_anchor(a.id) p order by a.id',
+    `select a.id::text, p.problem from kernel.audit_anchor a cross join lateral ${verifyAnchor}(a.id) p order by a.id`,
   );
   return {
     available: true,
     chains: Number(chains.rows[0]?.n ?? 0),
     anchors: Number(anchors.rows[0]?.n ?? 0),
-    chainProblems: cp.rows.map((r) => `${r.chain_key} seq ${r.seq}: ${r.problem}`),
+    chainProblems: cp.rows.map((r) => `${r.chain_key} seq ${r.seq ?? '-'}: ${r.problem}`),
     anchorProblems: ap.rows.map((r) => `anchor ${r.id}: ${r.problem}`),
   };
 }
@@ -518,7 +526,10 @@ interface SampleRead {
 async function readSample(client: pg.Client, s: SampleKey): Promise<SampleRead> {
   const meta = await client.query<{ sql: string | null }>(
     `select case when exists (select 1 from pg_attribute a where a.attrelid = to_regclass($1) and a.attname = 'id' and not a.attisdropped)
-                 then format('select to_jsonb(t)::text as row from %s t where t.id::text = %L', to_regclass($1), $2::text) end as sql`,
+                 then format(case when to_regprocedure('kernel.row_json(anyelement)') is not null
+                                  then 'select kernel.row_json(t)::text as row from %s t where t.id::text = %L'
+                                  else 'select to_jsonb(t)::text as row from %s t where t.id::text = %L' end,
+                             to_regclass($1), $2::text) end as sql`,
     [s.table, s.recordId],
   );
   const sql = meta.rows[0]?.sql ?? null;
@@ -578,6 +589,7 @@ export async function runRestoreDrill(opts: RestoreDrillOptions): Promise<DrillO
     report.startedAt = start.iso;
     report.drillId = `drill-${start.compact}-${randomBytes(3).toString('hex')}`;
     report.source.serverVersion = (await source.query<{ v: string }>('select version() as v')).rows[0]?.v ?? null;
+    const encryptionKey = opts.encryptionKey === undefined || Buffer.isBuffer(opts.encryptionKey) ? opts.encryptionKey : loadKeyFile(opts.encryptionKey.file);
 
     // 1. Backup at an exported snapshot; the source stays in that snapshot for the comparison.
     await beginComparison(source);
@@ -585,7 +597,7 @@ export async function runRestoreDrill(opts: RestoreDrillOptions): Promise<DrillO
     const backupId = `${sourceDatabase}-${start.compact}-${randomBytes(3).toString('hex')}`.replace(/[^A-Za-z0-9._:-]/g, '_');
     const dumpOptions: DumpOptions = { sourceUrl: opts.sourceUrl, directory: backupDir, backupId, snapshotTakenAt: start.iso };
     if (snap.rows[0]?.id) dumpOptions.snapshotId = snap.rows[0].id;
-    if (opts.encryptionKey) dumpOptions.encryptionKey = opts.encryptionKey;
+    if (encryptionKey) dumpOptions.encryptionKey = encryptionKey;
     if (opts.pgBin) dumpOptions.pgBin = opts.pgBin;
     const artefact = await dumpDatabase(dumpOptions);
     artefact.fixityVerified = await verifyFixity(artefact);
@@ -609,7 +621,7 @@ export async function runRestoreDrill(opts: RestoreDrillOptions): Promise<DrillO
       isolate,
       workDir,
     };
-    if (opts.encryptionKey) restoreOptions.encryptionKey = opts.encryptionKey;
+    if (encryptionKey) restoreOptions.encryptionKey = encryptionKey;
     if (opts.pgBin) restoreOptions.pgBin = opts.pgBin;
     report.restore = { database: restoreName, isolated: isolate, dropped: false, toolVersion: null };
     report.restore.toolVersion = await restoreDatabase(restoreOptions);
@@ -762,7 +774,8 @@ export interface BackupJobOptions {
   reportDir: string;
   jobName: string;
   tier: 'RETENTION_GRADE' | 'OPERATIONAL';
-  encryptionKey: Buffer;
+  /** The 32-byte key, or the file holding it (read by the job itself, so an unreadable key file is a failed run: recorded, alarmed, reported). */
+  encryptionKey: Buffer | { file: string };
   /** Identifier of the key in the key-management system (never the key itself). */
   encryptionKeyRef: string;
   /** Days the storage layer keeps the artefact write-once (required for RETENTION_GRADE). */
@@ -841,10 +854,14 @@ export async function runBackupJob(opts: BackupJobOptions): Promise<BackupJobOut
     recordError: null,
   };
   try {
-    if (opts.tier === 'RETENTION_GRADE' && !opts.immutableDays) throw new Error('a retention-grade backup needs a write-once retention period (immutableDays)');
+    if (opts.immutableDays !== undefined && !(Number.isSafeInteger(opts.immutableDays) && opts.immutableDays > 0)) {
+      throw new Error('the write-once retention period (immutableDays) must be a positive whole number of days');
+    }
+    if (opts.tier === 'RETENTION_GRADE' && opts.immutableDays === undefined) throw new Error('a retention-grade backup needs a write-once retention period (immutableDays)');
     if (!start) throw new Error('no trusted database clock is reachable');
+    const encryptionKey = Buffer.isBuffer(opts.encryptionKey) ? opts.encryptionKey : loadKeyFile(opts.encryptionKey.file);
     const backupId = `${database}-${start.compact}-${randomBytes(3).toString('hex')}`.replace(/[^A-Za-z0-9._:-]/g, '_');
-    const dumpOptions: DumpOptions = { sourceUrl: opts.sourceUrl, directory: opts.backupDir, backupId, encryptionKey: opts.encryptionKey, snapshotTakenAt: start.iso };
+    const dumpOptions: DumpOptions = { sourceUrl: opts.sourceUrl, directory: opts.backupDir, backupId, encryptionKey, snapshotTakenAt: start.iso };
     if (opts.pgBin) dumpOptions.pgBin = opts.pgBin;
     const artefact = await dumpDatabase(dumpOptions);
     artefact.fixityVerified = await verifyFixity(artefact);

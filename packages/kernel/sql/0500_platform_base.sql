@@ -123,8 +123,11 @@ $$;
 
 -- Invariant query for INV-16: must return no rows. It reports registered event-time columns whose
 -- forcing trigger is missing or disabled, whose default is not the database clock, or that the
--- application role could write; and columns named recorded_at in audited GMP tables that are not
--- registered at all.
+-- application role could write. For every other audited table with a recorded_at column (tables of
+-- modules built before the platform, whose own definer code or stamp trigger sets the time), it
+-- reports the column when the application role could write it or when its default is not the
+-- database clock: then the application could choose the time of an event. Registering such a column
+-- with platform.enforce_db_time goes further and forces it even against owner-level code.
 create function platform.time_model_violations()
 returns table (table_name text, column_name text, problem text)
 language sql stable security definer set search_path = pg_catalog, pg_temp as $$
@@ -145,10 +148,21 @@ language sql stable security definer set search_path = pg_catalog, pg_temp as $$
   where has_column_privilege('ebmr_app', c.table_name, c.column_name, 'INSERT')
      or has_column_privilege('ebmr_app', c.table_name, c.column_name, 'UPDATE')
   union all
-  select a.table_name::text, 'recorded_at', 'audited table has a recorded_at column that is not registered with platform.enforce_db_time'
+  -- The privilege test takes the column by number from the joined pg_attribute row: by name it raises for a table
+  -- without recorded_at whenever the planner evaluates it before the existence test (plan-dependent).
+  select a.table_name::text, 'recorded_at', 'audited table has a recorded_at column that the application role may write'
   from kernel.audited_table a
-  where exists (select 1 from pg_attribute x where x.attrelid = a.table_name and x.attname = 'recorded_at' and not x.attisdropped)
-    and not exists (select 1 from platform.db_time_column c where c.table_name = a.table_name and c.column_name = 'recorded_at')
+  join pg_attribute x on x.attrelid = a.table_name and x.attname = 'recorded_at' and not x.attisdropped
+  where not exists (select 1 from platform.db_time_column c where c.table_name = a.table_name and c.column_name = 'recorded_at')
+    and (has_column_privilege('ebmr_app', a.table_name, x.attnum, 'INSERT')
+         or has_column_privilege('ebmr_app', a.table_name, x.attnum, 'UPDATE'))
+  union all
+  select a.table_name::text, 'recorded_at', 'audited table has a recorded_at column whose default is not the database clock'
+  from kernel.audited_table a
+  join pg_attribute x on x.attrelid = a.table_name and x.attname = 'recorded_at' and not x.attisdropped
+  join pg_attrdef d on d.adrelid = x.attrelid and d.adnum = x.attnum
+  where not exists (select 1 from platform.db_time_column c where c.table_name = a.table_name and c.column_name = 'recorded_at')
+    and pg_get_expr(d.adbin, d.adrelid) <> 'clock_timestamp()'
 $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -187,8 +201,8 @@ begin
 end
 $$;
 
--- Refuses unless the current actor holds the permission (via the AUTHORITY provider).
-create function platform.authorize(p_permission text, p_aggregate_type text, p_aggregate_id text) returns void
+-- NULL when the current actor holds the permission (via the AUTHORITY provider), else why not.
+create function platform.permission_problem(p_permission text, p_aggregate_type text, p_aggregate_id text) returns text
 language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx    jsonb := platform.require_actor();
@@ -202,6 +216,16 @@ begin
   end if;
   execute format('select %s($1, $2, $3, $4)', platform.function_call_name(v_fn))
     into v_reason using p_permission, v_ctx, p_aggregate_type, p_aggregate_id;
+  return v_reason;
+end
+$$;
+
+-- Refuses unless the current actor holds the permission (via the AUTHORITY provider).
+create function platform.authorize(p_permission text, p_aggregate_type text, p_aggregate_id text) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_reason text := platform.permission_problem(p_permission, p_aggregate_type, p_aggregate_id);
+begin
   if v_reason is not null then
     raise exception using errcode = 'P0001', message = format('EBMR-PLAT-006 permission %s denied: %s', p_permission, v_reason);
   end if;
@@ -249,6 +273,7 @@ create table platform.setting_definition (
   min_value      numeric,
   max_value      numeric,
   allowed_values text[],
+  max_scale      integer check (max_scale >= 0),   -- DECIMAL: most decimals a value may have
   unit           text,
   description    text not null,
   basis          text not null
@@ -283,6 +308,10 @@ begin
       raise exception using errcode = 'P0001', message = format('EBMR-PLAT-021 setting %s must be a %s, not %s', p_key, lower(d.value_type), p_value);
     end if;
     v := p_value::numeric;
+    if d.value_type = 'DECIMAL' and d.max_scale is not null and scale(v) > d.max_scale then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-PLAT-021 setting %s allows at most %s decimals; %s is refused', p_key, d.max_scale, p_value);
+    end if;
     if (d.min_value is not null and v < d.min_value) or (d.max_value is not null and v > d.max_value) then
       raise exception using errcode = 'P0001',
         message = format('EBMR-PLAT-021 setting %s must lie between %s and %s %s; %s is refused', p_key, d.min_value, d.max_value, coalesce(d.unit, ''), p_value);
@@ -334,17 +363,21 @@ begin
 end
 $$;
 
-insert into platform.setting_definition (key, value_type, default_value, min_value, max_value, allowed_values, unit, description, basis) values
-  ('time.drift_alarm_threshold_s', 'DECIMAL', '1', 0.1, 5, null, 's',
+insert into platform.setting_definition (key, value_type, default_value, min_value, max_value, allowed_values, max_scale, unit, description, basis) values
+  -- Three decimals: the precision drift samples store the threshold with (platform.drift_sample).
+  ('time.drift_alarm_threshold_s', 'DECIMAL', '1', 0.1, 5, null, 3, 's',
    'Offset of a database node from a time reference above which an alarm and a data-integrity incident are raised',
    'DI-27 design choice: default 1 s, allowed 0.1-5 s; no regulation sets a clock tolerance (outline 5.6)'),
-  ('time.min_references', 'INTEGER', '2', 2, 5, null, null,
+  ('time.min_references', 'INTEGER', '2', 2, 5, null, null, null,
    'Number of reachable independent time references below which a degraded-reference alarm is raised',
    'Outline 5.6: each database node is checked against at least two independent references'),
-  ('time.late_entry_window_mode', 'TEXT', 'PLANNED_STEP_END', null, null, array['PLANNED_STEP_END', 'FIXED_INTERVAL'], null,
+  ('time.drift_check_max_age_s', 'INTEGER', '300', 60, 86400, null, null, 's',
+   'Age of the newest drift check of a database node beyond which platform.time_monitor_violations() reports that the monitor is not recording',
+   'DI-27 design choice: a monitor that cannot record must itself be detected; default 5 min pending expert review'),
+  ('time.late_entry_window_mode', 'TEXT', 'PLANNED_STEP_END', null, null, array['PLANNED_STEP_END', 'FIXED_INTERVAL'], null, null,
    'How the late-entry window ends: at the end of the planned step window, or a fixed number of minutes after the event',
    'Outline 5.6: kernel default is the end of the planned step window; editions may choose a fixed interval'),
-  ('time.late_entry_window_min', 'INTEGER', '15', 0, 1440, null, 'min',
+  ('time.late_entry_window_min', 'INTEGER', '15', 0, 1440, null, null, 'min',
    'Late-entry window in minutes after the event, used in FIXED_INTERVAL mode and for steps without a planned end',
    'Outline 5.6: injectables default 15 min; the 0-1440 bounds are a design choice pending expert review');
 
@@ -411,7 +444,7 @@ grant select on platform.setting_definition, platform.setting_value, platform.ti
 grant execute on function platform.require_actor(), platform.time_model_violations(), platform.setting_text(text),
                           platform.setting_numeric(text), platform.set_setting(text, text),
                           platform.check_setting_value(text, text) to ebmr_app;
--- enforce_db_time, make_insert_only, register_hook, authorize, verify_signature and
+-- enforce_db_time, make_insert_only, register_hook, permission_problem, authorize, verify_signature and
 -- next_aggregate_seq stay private to the owner (called from migrations and platform functions).
 
 reset role;

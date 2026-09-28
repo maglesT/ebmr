@@ -348,16 +348,32 @@ begin
 end
 $$;
 
+-- A badge changes status only with its account taken first (for no key update), as every login
+-- (iam.open_session) and every command (kernel.validate_actor_context) takes that account (in share
+-- mode) before it consumes an authentication event. A login or command using an event of the badge
+-- therefore either finishes before the change, and a lost or revoked badge's sweep then ends its
+-- session, or it waits and iam.lock_auth_event refuses the event (EBMR-IAM-097).
+create function iam.lock_badge_and_account(p_badge uuid) returns iam.badge
+language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
+declare
+  v_badge iam.badge%rowtype;
+begin
+  perform 1 from iam.account a join iam.badge b on b.account_id = a.id where b.id = p_badge for no key update of a;
+  select * into v_badge from iam.badge where id = p_badge for update;
+  if not found then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-061 unknown badge';
+  end if;
+  return v_badge;
+end
+$$;
+
 create function iam.activate_badge(p_badge uuid) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 declare
   v_badge iam.badge%rowtype;
 begin
   perform iam.require_permission('IAM.CREDENTIAL_ISSUE', '{}'::jsonb);
-  select * into v_badge from iam.badge where id = p_badge for update;
-  if not found then
-    raise exception using errcode = 'P0001', message = 'EBMR-IAM-061 unknown badge';
-  end if;
+  v_badge := iam.lock_badge_and_account(p_badge);
   -- A replaced badge that is still active stops working when its replacement starts.
   update iam.badge set status = 'REPLACED', status_reason = 'replaced by badge ' || v_badge.label
    where account_id = v_badge.account_id and status = 'ACTIVE' and id <> p_badge;
@@ -372,13 +388,14 @@ declare
   v_actor jsonb := iam.assert_validated_actor();
   v_badge iam.badge%rowtype;
 begin
-  select * into v_badge from iam.badge where id = p_badge for update;
+  select * into v_badge from iam.badge where id = p_badge;
   if not found then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-061 unknown badge';
   end if;
   if (v_actor ->> 'person_id')::uuid <> v_badge.person_id then
     perform iam.require_permission('IAM.CREDENTIAL_ISSUE', '{}'::jsonb);
   end if;
+  v_badge := iam.lock_badge_and_account(p_badge);
   update iam.badge set status = 'LOST', status_reason = coalesce(p_reason, 'reported lost') where id = p_badge;
   perform iam.end_account_sessions(v_badge.account_id, 'BADGE_LOST');
 end
@@ -390,10 +407,7 @@ declare
   v_badge iam.badge%rowtype;
 begin
   perform iam.require_permission('IAM.CREDENTIAL_ISSUE', '{}'::jsonb);
-  select * into v_badge from iam.badge where id = p_badge for update;
-  if not found then
-    raise exception using errcode = 'P0001', message = 'EBMR-IAM-061 unknown badge';
-  end if;
+  v_badge := iam.lock_badge_and_account(p_badge);
   update iam.badge set status = 'REVOKED', status_reason = p_reason where id = p_badge;
   perform iam.end_account_sessions(v_badge.account_id, 'BADGE_REVOKED');
 end
