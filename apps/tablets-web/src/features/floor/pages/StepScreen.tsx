@@ -1,0 +1,91 @@
+/**
+ * The step screen (module C4; plan sections 9 and 12, screen 15): the run header, the stage outline, and the
+ * step card with the instruction as issued, the block renderer, exceptions, signatures and one primary action.
+ * Everything shown is the server's view; what can be done is the server's answer.
+ */
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { Banner, floor } from '@ebmr/ui-kit';
+import { RefusalMessage } from '../../../app/refusal.tsx';
+import { wcls } from '../classes.ts';
+import { StepExceptions } from '../components/Exceptions.tsx';
+import { RunHeader } from '../components/RunHeader.tsx';
+import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
+import { useRunView, useStepView } from '../queries.ts';
+import { rendererFor } from '../renderers/registry.ts';
+import { st } from '../text.ts';
+import { useSignedAction, type SignedActionResult } from '../useSignedAction.ts';
+import type { RunView, StepScreenView } from '@ebmr/api-contract';
+
+function SignedResult({ result }: { result: SignedActionResult }) {
+  if (!result) return null;
+  switch (result.status) {
+    case 'SIGNED': {
+      const m = result.manifestation;
+      return <Banner tone="ok" title={st('sign.done', { meaning: m.meaningText, name: floor.personLine(m.signer), at: m.signedAt.text })} />;
+    }
+    case 'REFUSED':
+      return <floor.RefusalPanel refusal={result.refusal.refusal} correlationId={result.refusal.correlationId} />;
+    case 'NOT_CONFIRMED':
+      return <Banner tone="warning" title={st('sign.notConfirmed')} />;
+  }
+}
+
+function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | undefined }) {
+  const navigate = useNavigate();
+  const signed = useSignedAction(view.run.runId);
+  const { perform, dialogs, busy } = useStepActions(view, runView, signed);
+  const { Renderer } = rendererFor(view);
+  return (
+    <div className={wcls('screen')}>
+      <aside className={wcls('side')}>
+        {runView ? (
+          <floor.StatusOutline
+            stages={runView.stages}
+            currentStepKey={view.step.stepKey}
+            stageKey={view.run.stage?.stageKey ?? null}
+            onSelect={(stepKey) => void navigate({ to: '/runs/$runId/steps/$stepKey', params: { runId: view.run.runId, stepKey } })}
+          />
+        ) : null}
+        <Link to="/runs/$runId" params={{ runId: view.run.runId }} className={wcls('link')}>
+          {st('outline.overview')}
+        </Link>
+        <Link to="/cockpit" className={wcls('link')}>
+          {st('back.cockpit')}
+        </Link>
+      </aside>
+      <article className={wcls('card')} aria-label={`Step ${view.step.number} ${view.step.title}`} data-testid="step-card" data-step={view.step.stepKey}>
+        <floor.StepHeader step={view.step} />
+        <SignedResult result={signed.result} />
+        <Renderer view={view} />
+        <StepExceptions view={view} perform={perform} busy={busy} />
+        {view.signatures.length > 0 ? (
+          <section className={wcls('section')} aria-label={st('signatures.title')}>
+            <h2 className={wcls('sectionTitle')}>{st('signatures.title')}</h2>
+            <floor.SignatureList label={st('signatures.title')} signatures={view.signatures} />
+          </section>
+        ) : null}
+        <StepActionBar view={view} perform={perform} busy={busy} />
+        {dialogs}
+      </article>
+    </div>
+  );
+}
+
+export function StepScreenPage() {
+  const params = useParams({ strict: false }) as { runId?: string; stepKey?: string };
+  const runId = params.runId ?? '';
+  const stepKey = params.stepKey ?? '';
+  const step = useStepView(runId, stepKey);
+  const run = useRunView(runId);
+  if (step.isPending) return <p>{st('loading')}</p>;
+  if (!step.data) return step.error ? <RefusalMessage error={step.error.error} /> : null;
+  const view = step.data;
+  const connected = !(step.error && step.error.error.kind === 'NETWORK');
+  return (
+    <>
+      <RunHeader run={view.run} connected={connected} />
+      {step.error ? <RefusalMessage error={step.error.error} /> : null}
+      <StepCard key={`${view.run.runId}:${view.step.stepKey}`} view={view} runView={run.data} />
+    </>
+  );
+}

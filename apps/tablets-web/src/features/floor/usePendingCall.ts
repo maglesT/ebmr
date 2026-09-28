@@ -161,13 +161,18 @@ export interface RunCommand extends PendingCall {
  * A plain engine intent on a test run (POST /api/test-runs/:runId/commands). `viewStepKey` names the step whose
  * view comes back (and is reloaded when the entry arrives stale).
  */
-export function useRunCommand(runId: string, viewStepKey: string | null, reason: string): RunCommand {
+export function useRunCommand(runId: string, viewStepKey: string | null, reason: string, extra: { onSaved?: () => void } = {}): RunCommand {
   const qc = useQueryClient();
+  const onSavedExtra = useRef(extra.onSaved);
+  useEffect(() => {
+    onSavedExtra.current = extra.onSaved;
+  });
   const call = usePendingCall(routes.execution.command, { runId }, {
     reason,
     onSaved: async (value) => {
       if (value.step) applyStepView(qc, value.step);
       await refreshRun(qc, { steps: value.step === null });
+      onSavedExtra.current?.();
     },
     onStale: async () => {
       if (!viewStepKey) {

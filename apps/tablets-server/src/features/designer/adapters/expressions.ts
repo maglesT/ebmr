@@ -29,6 +29,7 @@ export interface LoadedContext {
   context: validator.ValidationContext;
   asOf: string;
   references: ReferenceRow[];
+  minimaRequest: validator.MinimaRequest;
   minima: validator.ResolvedMinimum[];
 }
 
@@ -50,6 +51,7 @@ export async function loadValidationContext(db: Db, mbr: flow.MbrContent, asOf?:
     context: { expressions: EXPRESSIONS, blocks: BLOCK_CATALOG, references: refs.port, market: market.port, asOf: date },
     asOf: date,
     references: refs.rows,
+    minimaRequest: request,
     minima: market.minima,
   };
 }

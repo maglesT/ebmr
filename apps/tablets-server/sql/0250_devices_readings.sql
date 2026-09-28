@@ -207,6 +207,9 @@ begin
   if not found then
     raise exception using errcode = 'P0001', message = 'EBMR-DEV-013 no active gateway key with this id';
   end if;
+  -- The key's instrument bindings end with it (an instrument is bound again under a new enrolment).
+  update tab.gateway_instrument set ended_at = clock_timestamp(), ended_reason = 'gateway key revoked: ' || p_reason_text
+   where gateway_key_id = p_id and ended_at is null;
   update tab.gateway_session set unbound_at = clock_timestamp() where gateway_key_id = p_id and unbound_at is null;
   perform kernel.set_actor_context(v_saved);
 end

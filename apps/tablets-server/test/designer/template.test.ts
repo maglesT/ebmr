@@ -107,21 +107,24 @@ describe('dc-mini template against the real adapters (day-1 spike)', () => {
     expect([...roles].sort()).toEqual(['PRODUCTION_OPERATOR', 'PRODUCTION_SUPERVISOR', 'PRODUCTION_VERIFIER', 'QA']);
   });
 
-  it('[DI-05] defines as a batch for the SANDBOX once G-09@1 and G-10@1 are registered (C3); until then only they are missing', () => {
-    const mbr = templateMbr();
-    const registry = blocks.genericBlockRegistry();
-    const ready = registry.get('G-09', '1') !== undefined && registry.get('G-10', '1') !== undefined;
-    const define = (): engine.BatchDefinition => engine.defineBatch(mbr, { registry, installation: 'SANDBOX' } as engine.DefineOptions);
-    if (ready) {
-      expect(define().steps.size).toBe(14);
-      return;
-    }
+  it('[DI-05] defines as a batch for the SANDBOX with the generic block registry (G-09@1 and G-10@1 included)', () => {
+    const def = engine.defineBatch(templateMbr(), { registry: blocks.genericBlockRegistry(), installation: 'SANDBOX' });
+    expect(def.steps.size).toBe(14);
+    expect(def.installation).toBe('SANDBOX');
+  });
+
+  it('[DI-05][INV-18] a GMP definition refuses exactly the SANDBOX_ONLY clearance and equipment-status steps', () => {
     let problems: engine.DefinitionProblem[] = [];
     try {
-      define();
+      engine.defineBatch(templateMbr(), { registry: blocks.genericBlockRegistry(), installation: 'GMP' });
     } catch (error) {
       problems = (error as { problems?: engine.DefinitionProblem[] }).problems ?? [];
     }
-    expect(problems.map((p) => `${p.code}@${p.subject}`).sort()).toEqual(['ENG-DEF-BLOCK@p-blend-clear', 'ENG-DEF-BLOCK@p-blend-status', 'ENG-DEF-BLOCK@p-disp-bal', 'ENG-DEF-BLOCK@p-disp-clear']);
+    expect(problems.map((p) => `${p.code}@${p.subject}`).sort()).toEqual([
+      'ENG-DEF-SANDBOX-ONLY@p-blend-clear',
+      'ENG-DEF-SANDBOX-ONLY@p-blend-status',
+      'ENG-DEF-SANDBOX-ONLY@p-disp-bal',
+      'ENG-DEF-SANDBOX-ONLY@p-disp-clear',
+    ]);
   });
 });

@@ -18,16 +18,11 @@
 import type pg from 'pg';
 import { market } from '@ebmr/kernel';
 import type { flow, validator } from '@ebmr/recipe-core/pure';
+import { marketMinimaPortFrom, unresolved } from './minima-port.ts';
 
 type Db = pg.Pool | pg.PoolClient;
 
 const EDITION_TABLE: Readonly<Record<flow.Edition, market.RuleTableCode>> = { tablets: 'tablets', injectables: 'sterile' };
-
-function requestKey(r: Pick<validator.MinimaRequest, 'edition' | 'marketSet' | 'predicates' | 'asOf'>): string {
-  return JSON.stringify([r.edition, [...r.marketSet].sort(), Object.entries(r.predicates).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)), r.asOf]);
-}
-
-const unresolved = (ruleKey: string, problem: string): validator.ResolvedMinimum => ({ kind: 'UNRESOLVED', ruleKey, problem });
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -100,19 +95,6 @@ export async function resolveMinima(db: Db, request: validator.MinimaRequest): P
     });
   }
   return out;
-}
-
-/** A port answering exactly the pre-loaded request; any other request fails closed. */
-export function marketMinimaPortFrom(request: validator.MinimaRequest, minima: readonly validator.ResolvedMinimum[]): validator.MarketMinimaPort {
-  const loadedFor = requestKey(request);
-  const loadedKeys = new Set(request.ruleKeys);
-  return {
-    minima(req) {
-      if (requestKey(req) !== loadedFor) return [unresolved('market-set', 'the content minima were resolved for another market set, predicates or date; validate again')];
-      const missing = req.ruleKeys.filter((k) => !loadedKeys.has(k));
-      return [...minima, ...missing.map((k) => unresolved(k, `${k} was not resolved before validation; validate again`))];
-    },
-  };
 }
 
 /** Resolves the minima the request needs and returns the synchronous port. */

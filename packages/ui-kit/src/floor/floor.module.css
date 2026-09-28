@@ -448,3 +448,17 @@
   gap: var(--ebmr-gap);
   align-items: center;
 }
+
+/*
+ * iPad Safari (strict CSP): while a modal or popover prevents page scrolling, react-aria injects an inline
+ * <style> with `* { overscroll-behavior: contain }` on mobile WebKit only; style-src 'self' blocks it. The same
+ * rule is provided here, active while react-aria has set overflow: hidden on the root element (CSSOM, allowed).
+ */
+@layer {
+  :root[style*='overflow: hidden'] * {
+    overscroll-behavior: contain;
+  }
+}
+.menuPopover {
+  overscroll-behavior: contain;
+}

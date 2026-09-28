@@ -51,8 +51,10 @@ export const DEVICES_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-DEV-105': {
     status: 409,
     kind: 'NOT_ALLOWED',
-    whatHappened: 'This scale reading has already been used for another entry.',
-    whatYouCanDo: [takeNew],
+    whatHappened: 'This scale reading has already been used, so it cannot be used again.',
+    whatYouCanDo: [
+      'Capture a new reading. A reading is used once only, also when the entry that used it was refused, so a retry always needs a fresh capture.',
+    ],
     whoCanHelp: [],
     controls: ['DI-32'],
   },

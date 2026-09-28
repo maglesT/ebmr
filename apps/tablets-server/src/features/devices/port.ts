@@ -56,6 +56,8 @@ export function createDeviceReadingPort(app: AppContext): DeviceReadingPort {
   return {
     async claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]> {
       const ids = [...claim.readingIds];
+      const malformed = ids.find((id) => !isUuid(id));
+      if (malformed !== undefined) throw new commands.KernelError('EBMR-DEV-101', `EBMR-DEV-101 DI-32: ${malformed} is not a reading id`);
       try {
         const { rows } = await client.query<{ r: { readingId: string; value: string; unit: string; raw: string; deviceCode: string; sourceTimeUs: string | null; trust: ClaimedReading['trust'] }[] }>(
           'select tab.claim_readings($1::uuid[], $2, $3::bigint, $4) as r',

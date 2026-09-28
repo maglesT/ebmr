@@ -33,8 +33,10 @@ import {
   startStep,
   verify,
 } from './steps.ts';
+import { stepSigningContent } from './signing-content.ts';
 import { sweepTime } from './timing.ts';
 import { cloneState, RefusalError, Tx } from './tx.ts';
+import type { Frame } from '../flow/tokens.ts';
 import type { Actor, BatchState, Clock, Command, EngineEvent, IssueRequest, StepResult } from './types.ts';
 
 function openTx(def: BatchDefinition, state: BatchState, clock: Clock, actor: Actor | undefined): Tx {
@@ -96,11 +98,81 @@ function dispatch(tx: Tx, cmd: Command): void {
   }
 }
 
+/**
+ * What a signature is about to be applied to: the command type and the step instance (for SIGN_PERFORMED,
+ * whose PERFORMED attempt finalises the step first). Other signed commands only need the sweep.
+ */
+export interface SignatureTarget {
+  readonly type: Command['type'];
+  readonly step?: string;
+  readonly context?: readonly Frame[];
+}
+
+/**
+ * The system facts a command triggers before its own guards run (shared by `step` and
+ * `prepareForSignature`, so both are identical by construction): the sweep of every time constraint at the
+ * trusted time and, for SIGN_PERFORMED, the finalisation of the PERFORMED attempt (block-computed totals,
+ * calculations, acceptance schemes, the block's end-of-step evaluations). Mutates `base`.
+ */
+function sweepPhase(base: Tx): void {
+  sweepTime(base);
+}
+
+function finalisePhase(base: Tx, target: SignatureTarget): void {
+  if (target.type === 'SIGN_PERFORMED' && target.step !== undefined) {
+    finalisePerform(base, { type: 'SIGN_PERFORMED', commandId: '', actor: base.actor ?? { id: 'SYSTEM', kind: 'SYSTEM', roles: [] }, step: target.step, context: target.context ?? [] });
+  }
+}
+
+/**
+ * A PERFORMED signature on a step that is still in progress (other persons have yet to sign for their own
+ * entries) covers the step's data as it was. When that data changes afterwards (a value, an entry, a
+ * correction, a void or the finalisation of a later PERFORMED attempt), the signature no longer covers it:
+ * the engine invalidates it and the person signs again, just as the e-signature kernel supersedes a
+ * signature whose content changed (INV-09, DI-37). Signatures made in this very command are exempt: they
+ * were made on the prepared content.
+ */
+function resignAfterChange(before: BatchState, tx: Tx): void {
+  for (const inst of Object.values(tx.s.steps)) {
+    if (inst.status !== 'IN_PROGRESS') continue;
+    const prior = before.steps[inst.key];
+    if (!prior) continue;
+    const priorIds = new Set(prior.signatures.filter((g) => g.valid && g.role === 'PERFORMED').map((g) => g.id));
+    const signed = inst.signatures.filter((g) => g.valid && g.role === 'PERFORMED' && priorIds.has(g.id));
+    if (signed.length === 0) continue;
+    if (stepSigningContent(tx.def, before, inst.key).contentHash === stepSigningContent(tx.def, tx.s, inst.key).contentHash) continue;
+    for (const g of signed) g.valid = false;
+    const stale = new Set(signed.map((g) => g.signer));
+    inst.performedSigners = inst.performedSigners.filter((p) => !stale.has(p));
+    tx.emit({ type: 'SIGNATURES_INVALIDATED', signatures: signed.map((g) => g.id), stepKey: inst.key, reason: 'the data of the step changed after it was signed as performed; every person who entered data signs again' });
+  }
+}
+
+/**
+ * The state as a signing command will see it (Phase 2 apps plan section 6): the sweep and, for
+ * SIGN_PERFORMED, the finalisation, at the trusted time, without the command itself. `changed` is true
+ * when these system facts produced events (then the caller persists them as a PREPARE row before the
+ * signer is shown the content). A refusal raised while finalising keeps the facts established before it,
+ * exactly as `step` does.
+ */
+export function prepareForSignature(def: BatchDefinition, state: BatchState, target: SignatureTarget, actor: Actor, clock: Clock): { state: BatchState; events: EngineEvent[]; changed: boolean } {
+  if (state.mbrHash !== def.contentHash) throw new Error('the state belongs to another MBR version than this definition');
+  const base = openTx(def, state, clock, actor);
+  sweepPhase(base);
+  try {
+    finalisePhase(base, target);
+  } catch (e) {
+    if (!(e instanceof RefusalError)) throw e;
+  }
+  resignAfterChange(state, base);
+  return { state: base.s, events: base.events, changed: base.events.length > 0 };
+}
+
 /** Applies one command at the trusted time `clock` (pure: same inputs, same outputs). */
 export function step(def: BatchDefinition, state: BatchState, command: Command, clock: Clock): StepResult {
   if (state.mbrHash !== def.contentHash) throw new Error('the state belongs to another MBR version than this definition');
   const base = openTx(def, state, clock, command.actor);
-  sweepTime(base);
+  sweepPhase(base);
   if (state.appliedCommands.includes(command.commandId)) return { state: base.s, events: base.events, accepted: false, duplicate: true };
   const refused = (err: RefusalError, events: EngineEvent[], s: BatchState): StepResult => {
     base.emit({ type: 'COMMAND_REFUSED', commandId: command.commandId, commandType: command.type, code: err.refusal.code, by: command.actor.id });
@@ -110,9 +182,12 @@ export function step(def: BatchDefinition, state: BatchState, command: Command, 
     if (command.expectedVersion !== undefined && command.expectedVersion !== state.version) {
       throw new RefusalError({ code: 'ENG-STALE', message: `The batch changed since this screen was loaded (version ${state.version}, expected ${command.expectedVersion}); reload and try again (ENG-STALE; DI-34)`, controls: ['DI-34'] });
     }
-    if (command.type === 'SIGN_PERFORMED') finalisePerform(base, command);
+    finalisePhase(base, command.type === 'SIGN_PERFORMED' ? { type: command.type, step: command.step, context: command.context ?? [] } : { type: command.type });
   } catch (e) {
-    if (e instanceof RefusalError) return refused(e, [...base.events], base.s);
+    if (e instanceof RefusalError) {
+      resignAfterChange(state, base);
+      return refused(e, [...base.events], base.s);
+    }
     throw e;
   }
   const tx = new Tx(def, cloneState(base.s), base.now, base.clockUs, command.actor);
@@ -121,9 +196,13 @@ export function step(def: BatchDefinition, state: BatchState, command: Command, 
     advance(tx);
     sweepTime(tx);
   } catch (e) {
-    if (e instanceof RefusalError) return refused(e, [...base.events], base.s);
+    if (e instanceof RefusalError) {
+      resignAfterChange(state, base);
+      return refused(e, [...base.events], base.s);
+    }
     throw e;
   }
+  resignAfterChange(state, tx);
   tx.s.version += 1;
   tx.s.appliedCommands.push(command.commandId);
   return { state: tx.s, events: [...base.events, ...tx.events], accepted: true };
@@ -167,6 +246,7 @@ export interface Engine {
   issue(request: IssueRequest, clock: Clock): { state: BatchState; events: EngineEvent[] };
   step(state: BatchState, command: Command, clock: Clock): StepResult;
   sweep(state: BatchState, clock: Clock): { state: BatchState; events: EngineEvent[] };
+  prepareForSignature(state: BatchState, target: SignatureTarget, actor: Actor, clock: Clock): { state: BatchState; events: EngineEvent[]; changed: boolean };
 }
 
 export function createEngine(def: BatchDefinition): Engine {
@@ -175,5 +255,6 @@ export function createEngine(def: BatchDefinition): Engine {
     issue: (request, clock) => issue(def, request, clock),
     step: (state, command, clock) => step(def, state, command, clock),
     sweep: (state, clock) => sweep(def, state, clock),
+    prepareForSignature: (state, target, actor, clock) => prepareForSignature(def, state, target, actor, clock),
   };
 }
