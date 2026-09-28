@@ -38,12 +38,28 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Quiet the database log (keeps the test output within the job log's readable tail)
+        run: |
+          psql "$EBMR_PG_ADMIN_URL" -v ON_ERROR_STOP=1 \
+            -c "alter system set log_checkpoints = off" \
+            -c "alter system set log_min_error_statement = panic" \
+            -c "alter system set log_min_messages = fatal" \
+            -c "select pg_reload_conf()"
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm deps:check
       - run: pnpm pins:check
       - run: pnpm register:validate
       - run: pnpm test:json
+      - name: Failed tests (summary)
+        if: failure()
+        run: |
+          node -e '
+            const r = require("./.reports/vitest.json");
+            for (const f of r.testResults) for (const t of f.assertionResults)
+              if (t.status === "failed") console.log(`FAILED ${f.name.replace(process.cwd() + "/", "")} > ${t.fullName}\n  ${(t.failureMessages || []).join("\n").split("\n").slice(0, 12).join("\n  ")}`);
+            console.log(`${r.numFailedTests} failed, ${r.numPassedTests} passed, ${r.numTotalTests} total`);
+          '
       - run: pnpm trace
       - name: Upload traceability matrix
         if: always()
