@@ -4,6 +4,7 @@
  * and the E2E processes.
  */
 import { randomUUID } from 'node:crypto';
+import { createServer } from 'node:http';
 import type { Writable } from 'node:stream';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
@@ -30,6 +31,9 @@ export interface AppDeps {
   features?: readonly FeatureEntry[];
 }
 
+/** Request line plus headers a request may carry (see serverFactory below). */
+export const MAX_HEADER_BYTES = 64 * 1024;
+
 export interface BuiltApp {
   app: FastifyInstance;
   ctx: AppContext;
@@ -48,6 +52,9 @@ export async function buildApp(config: ServerConfig, deps: AppDeps = {}): Promis
       genReqId: () => randomUUID(),
       bodyLimit: 2 * 1024 * 1024,
       trustProxy: false,
+      // GET /api/esig/content carries a disposition proposal in its query (up to 4000 characters of justification,
+      // 3 UTF-8 bytes each in Devanagari, then base64url): node's default 16 KiB header limit would refuse it (431).
+      serverFactory: (handler) => createServer({ maxHeaderSize: MAX_HEADER_BYTES }, handler),
     });
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
