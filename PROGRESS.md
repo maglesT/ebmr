@@ -219,3 +219,10 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Open questions for the owner: docs/decisions/phase-1-open-questions.md (plus B7 role choices: rule tables published by
   the master-data steward, source corrections by the regulatory signer, policies by the QA MBR approver, CERT-In by
   QA/CSV-DI lead, CSV_DI_LEAD is a GMP role).
+- 2026-09-28: PR maglesT/ebmr#2 (Phase 1) merged (merge ff630ae). Branch phase-1/mutation-testing: StrykerJS 10 for the
+  kernel's pure TypeScript (stryker.config.mjs, vitest.mutation.config.ts) and tools/sql-mutation (mutates
+  database-enforced guard functions: guard removal, relational, logical, not, boolean; 9 groups, 1,284 mutants; target 90 %).
+  Weekly workflow .github/workflows/mutation.yml. Stryker's vitest runner builds test names joined with ' ' while Vitest 5
+  matches the name filter against 'suite > test'; every test inside a describe block was skipped and mutants counted as
+  survived (first run: 22 % with zero tests per mutant). Fixed with a pnpm patch (patches/@stryker-mutator__vitest-runner@10.0.0.patch,
+  both test-helpers.js and stryker-setup.js). Full runs in progress; results and any added tests go into the PR.

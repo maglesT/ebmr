@@ -7,7 +7,9 @@
 export default {
   plugins: ['@stryker-mutator/vitest-runner'],
   testRunner: 'vitest',
-  vitest: { configFile: 'vitest.config.ts' },
+  // related: false - vitest's related-file filter selected no test files for most mutants
+  // (reported as survived with zero tests run); Stryker's per-test coverage already narrows the tests.
+  vitest: { configFile: 'vitest.mutation.config.ts', related: false },
   coverageAnalysis: 'perTest',
   mutate: [
     'packages/kernel/src/market/resolve.ts',
