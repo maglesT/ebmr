@@ -246,3 +246,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   docs/decisions/phase-2-open-questions.md (F1-F15). Lead added a cross-check test: expr canonical JSON/SHA-256 equal the
   kernel's. Note for the designer UI: flow/canonical.ts imports esig from the kernel root (node-only deps): a
   browser-safe kernel subpath export is needed later.
+- 2026-09-28: A4 (sandbox, DI-05 IMPLEMENTED, INV-18 test half proven; 37 tests) finished. Wired: sandbox exported from
+  the kernel; identifier guards on iam.issued_identifier, iam.person, iam.device (kernel 0920) and site batch numbers
+  (site-services 0690); the test harness re-applies the database CONNECT policy on every test database. Follow-ups:
+  installation stamp in the true-copy manifest and assertGmpOrigin on import (records); simulator report watermark;
+  Phase 3 batch issue calls sandbox.assert_batch_issue_allowed after recipe.select_version_for_issue; GMP-only paths
+  call sandbox.assert_gmp_installation; restore runbook re-applies apply_connect_policy; production CONNECT grants for
+  backup/monitoring roles (deployment design).
+  B1 (execution engine and engine-level generic blocks) launched.

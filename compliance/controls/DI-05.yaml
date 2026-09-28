@@ -25,11 +25,59 @@ behaviour: |-
   - A GMP record can only come from an Effective MBR.
   - The validation package contains a documented impact assessment for each non-GMP function.
 catalog_test: From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked. Simulation output carries the watermark.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/kernel/sql/0800_sandbox_installation.sql"
+    - "packages/kernel/sql/0810_sandbox_identifiers.sql"
+    - "packages/kernel/sql/0820_sandbox_privileges.sql"
+    - "packages/kernel/src/sandbox/installation.ts (readInstallationKind, assertInstallationKind, readInstallationStamp, assertGmpOrigin)"
+    - "packages/kernel/src/sandbox/identifiers.ts (identifierProblem, assertIdentifierAllowed, testIdentifier, batchIssueProblem, RESERVED_PATTERNS)"
+    - "packages/kernel/src/sandbox/watermark.ts (watermarkFor, stampText, stampJson)"
+    - "packages/kernel/src/sandbox/provision.ts (provisionSandboxDatabase, upgradeSandboxDatabase, applyConnectPolicy, segregationProblems)"
+    - "docs/design/sandbox.md (store layout, what is copied, impact assessment of each non-GMP function)"
+  invariants:
+    - "INV-18"
+  guards:
+    - "kernel.installation_kind(): GMP or SANDBOX, set once at provisioning; refuses a missing marker or one that disagrees with the database name (EBMR-SBX-001, EBMR-SBX-004)"
+    - "sandbox.assert_gmp_installation(action) on GMP-issuing paths (EBMR-SBX-010); sandbox.assert_sandbox_installation(action) on sandbox-only features (EBMR-SBX-011)"
+    - "sandbox.assert_identifier_allowed(kind, value) and trigger sandbox.guard_identifier: GMP refuses TEST- identifiers (EBMR-SBX-021), the sandbox refuses anything else (EBMR-SBX-022)"
+    - "sandbox.assert_batch_issue_allowed(market states): GMP batches only from CURRENT or BRIDGING versions (EBMR-SBX-012)"
+    - "assertInstallationKind at process start-up (EBMR-SBX-007); assertGmpOrigin on anything imported into GMP (EBMR-SBX-013)"
+  db_constraints:
+    - "sandbox.installation: one row, written by the migration; update, delete, truncate and a second insert refused for every role including the owner (EBMR-SBX-002/003)"
+    - "GMP databases: CONNECT revoked from PUBLIC and granted to ebmr_app and ebmr_authn only; sandbox databases: CONNECT for ebmr_sandbox only (sandbox.apply_connect_policy)"
+    - "ebmr_sandbox: LOGIN, NOINHERIT, no memberships, no object privilege in a GMP database; inside a sandbox exactly the object privileges of ebmr_app and ebmr_authn (sandbox.mirror_application_privileges)"
+    - "sandbox.reserved_identifier_pattern: every sandbox pattern anchored on the reserved prefix and ASCII only, so the GMP and sandbox identifier sets are disjoint"
+    - "sandbox.segregation_problems(): invariant query, no rows in a correctly provisioned GMP or sandbox database"
+tests:
+  - "packages/kernel/test/sandbox/bypass.test.ts > [INV-18][DI-05] from the sandbox role, connecting to a GMP database is refused"
+  - "packages/kernel/test/sandbox/bypass.test.ts > [INV-18][DI-05] with the only credential the sandbox holds, no GMP table, sequence or privileged function can be used, even where CONNECT was left open"
+  - "packages/kernel/test/sandbox/bypass.test.ts > [DI-05] catalog: from the training store, posting to a production batch is blocked"
+  - "packages/kernel/test/sandbox/bypass.test.ts > [DI-05] catalog: reusing a real lot number in the training store is blocked"
+  - "packages/kernel/test/sandbox/bypass.test.ts > [DI-05][INV-18] the invariant query returns no rows in the GMP database and in the sandbox, and reports a grant to the sandbox role in a GMP database"
+  - "packages/kernel/test/sandbox/bypass.test.ts > [DI-05] inside the sandbox, the sandbox role holds exactly the object privileges of the GMP application roles"
+  - "packages/kernel/test/sandbox/bypass.test.ts > [DI-05] sandbox output is stamped TEST, NOT GMP and is refused as GMP input"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05] every registered example is a valid sandbox identifier and a GMP database refuses it"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05][INV-18] property: no identifier of any kind is accepted by both a GMP database and the sandbox"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05][INV-18] property: every identifier the sandbox builds is refused by a GMP database"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05] a GMP database also refuses look-alikes of the prefix: any letter case, leading white space, full-width and circled letters"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05] catalog: reusing a real lot number in the sandbox is blocked; only reserved test numbers are accepted"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05] messages name the rule and the control; unknown kinds are refused, null values are not checked"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05] the pattern table holds exactly the patterns the screens use"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05] the pattern table refuses a pattern that could overlap GMP identifiers (no prefix anchor, non-ASCII, example outside the pattern)"
+  - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05][INV-18] property: sandbox.identifier_problem_for gives the same answer and message as identifierProblem, for both installation kinds"
+  - "packages/kernel/test/sandbox/installation.test.ts > [DI-05][INV-18] a GMP database is marked GMP; GMP-issuing paths pass, sandbox-only paths are refused, and nothing is watermarked"
+  - "packages/kernel/test/sandbox/installation.test.ts > [DI-05][INV-18] a GMP database refuses reserved sandbox identifiers, through the check function and on a table guarded by sandbox.guard_identifier"
+  - "packages/kernel/test/sandbox/installation.test.ts > [DI-05] a misconfigured identifier guard (no column, a missing column, an unknown kind) refuses every write: it fails closed"
+  - "packages/kernel/test/sandbox/installation.test.ts > [DI-05][INV-18] a copy of a GMP database under a sandbox name reports no installation kind, so it serves as neither GMP nor sandbox"
+  - "packages/kernel/test/sandbox/provision.test.ts > [DI-05] a sandbox is named ebmr_sandbox_<edition>; any other name is refused before anything is created"
+  - "packages/kernel/test/sandbox/provision.test.ts > [DI-05][INV-18] provisioning builds a separate database from the same migrations as the GMP database, marks it SANDBOX and closes it to the GMP roles"
+  - "packages/kernel/test/sandbox/watermark.test.ts > [DI-05] catalog: simulation output carries the TEST, NOT GMP watermark"
+  - "packages/kernel/test/sandbox/watermark.test.ts > [DI-05] output of the sandbox installation and of every non-GMP function is watermarked; GMP output is not"
+  - "packages/kernel/test/sandbox/watermark.test.ts > [DI-05][INV-18] a non-GMP record is never taken into GMP: only a GMP installation stamp passes"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: US guidance is explicit, and the EU covers it through general risk management. No conflict.
 type_detail: "ENFORCED (segregation). Offering a simulation mode at all is a DESIGN-CHOICE: FDA does not expect one."
