@@ -668,8 +668,11 @@ describe('a permission reaches a role only through an approved request or a soft
     // The check itself (owner level) refuses both instead of passing them.
     await expectRefused(db.admin.query("select iam.check_role_permission_addition('MUT_NO_SUCH_ROLE', 'RECORD.EXPORT')"), 'EBMR-IAM-030', /unknown role/);
     await expectRefused(db.admin.query("select iam.check_role_permission_addition($1, 'MUT.NO_SUCH_PERMISSION')", [role]), 'EBMR-IAM-030', /unknown permission/);
-    const { rows } = await db.admin.query("select 1 from iam.role_permission_request where role_code in ($1, 'MUT_NO_SUCH_ROLE')", [role]);
-    expect(rows).toHaveLength(1);
+    // Nothing was recorded for either: the role's only request is the approved one that created it.
+    const { rows } = await db.admin.query<{ role_code: string; permission_code: string; status: string }>(
+      "select role_code, permission_code, status from iam.role_permission_request where role_code in ($1, 'MUT_NO_SUCH_ROLE') or permission_code = 'MUT.NO_SUCH_PERMISSION'",
+      [role]);
+    expect(rows).toEqual([{ role_code: role, permission_code: 'RECORD.READ', status: 'APPROVED' }]);
     // The same request for what exists is accepted and waits for its approval.
     const ok = await requestPermission(role, 'RECORD.EXPORT');
     expect(await requestOf(ok)).toEqual({ status: 'REQUESTED', role_permission_id: null });
@@ -713,7 +716,7 @@ describe('a permission reaches a role only through an approved request or a soft
   it('[DI-18][DI-16] outside a command only the software-release identity adds a permission to a role: without an actor, or as anyone else, the owner is refused', async () => {
     const role = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
     /** One insert by owner-level code outside any command (always rolled back), under the given pipeline identity. */
-    const insertOutsideCommand = async (roleCode: string | null): Promise<unknown[]> => {
+    const insertOutsideCommand = async (roleCode: string | null): Promise<{ permission_code: string }[]> => {
       const c = await db.admin.connect();
       try {
         await c.query('begin');
@@ -723,7 +726,8 @@ describe('a permission reaches a role only through an approved request or a soft
             legal_name: 'Pipeline identity (mutation test)', reason_code: roleCode, reason_text: 'catalogue change outside a command',
           })]);
         }
-        const { rows } = await c.query("insert into iam.role_permission (role_code, permission_code) values ($1, 'RECORD.EXPORT') returning permission_code", [role]);
+        const { rows } = await c.query<{ permission_code: string }>(
+          "insert into iam.role_permission (role_code, permission_code) values ($1, 'RECORD.EXPORT') returning permission_code", [role]);
         return rows;
       } finally {
         await c.query('rollback');
