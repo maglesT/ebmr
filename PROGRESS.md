@@ -333,3 +333,20 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (platform.engine_reason must overlay text; records.purge must require text); records true-copy and purge digest
   must use kernel.row_json; continuity backup drill must use kernel.verify_all_chains. Notes in the lead's
   scratchpad fix-handoffs.md and in the R/C launch prompts. P (platform) started; R and C start when E/I/M free CPU.
+- 2026-09-28: WAVE 1 DONE (C1-C5 all reported). Lead integration so far (each committed with tests): badge-tap port takes
+  the exact request (+ offerSwitch, session banner slot); session reports TAP/TAP_PIN per class; tap proof over the body
+  minus attribution; non-owning Kysely read pool; tab.bind_session refuses service/instrument sessions (TAB-016); gateway
+  key in the seed context; scale slot band; service-key file terminalKey; CSP style hash for react-aria's WebKit overscroll
+  rule (pinned by a test against installed react-aria); 64 KiB request headers (disposition proposal in the esig preview
+  query; Hindi justification signed end to end); hold-point decisions sign the per-disposition action; tap limit 30/min
+  (decision C0-9); rule tables published on both installations by the set-up CLI; route coverage test; recipe execution
+  event log and shipped configuration audited, execution rows on database time. Decisions during the wave: the proposed
+  exception disposition is inside the signed content (prepareForChallenge + proposal table); timestamps of facts computed
+  at signing stay out of the signed text; phase content stored when first worked on. `pnpm run ci` green: 187 files,
+  1,640 tests, trace 72/241 controls. E2E 15 passed; the 3 live floor tests skip without a package -> the FCV journey
+  agent (running) makes them self-sufficient, writes tools/e2e/specs/journey/fcv.spec.ts, fixes integration defects,
+  records video/screenshots for the owner (owner asked for video + screenshots only) and completes the demo guide.
+  Lead TODO after that: more shared examples (issue form, timeline, replay, command result, lot) and fixture-mode session
+  answers; TemplateView.batchSizes; tsx at bundling; Login.tsx adopting the ui-kit PinPad/BadgePrompt; merge the Phase 1
+  exit fixes (merge risks in the lead's notes: four-eyes role permissions, IAM-118 zone, create_permission on machines,
+  protected sequences, retention declarations, IAM-026 order, witness next_step_started from providers).
