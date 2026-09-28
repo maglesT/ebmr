@@ -227,11 +227,12 @@ $$;
 -- window: the DI_INVESTIGATION blocker records.open_blockers shows even before the record is linked.
 create function records.implicit_investigations(p_aggregate_type text, p_aggregate_id text) returns setof uuid
 language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  with c as (select records.chains_of_record(p_aggregate_type, p_aggregate_id) as chains)
   select d.id
-  from records.di_investigation_current d
+  from records.di_investigation_current d cross join c
   where d.status = 'OPEN'
     and exists (select 1 from kernel.audit_event e
-                where e.chain_key = any(records.chains_of_record(p_aggregate_type, p_aggregate_id))
+                where e.chain_key = any(c.chains)
                   and e.action in ('INSERT', 'UPDATE', 'DELETE')
                   and e.recorded_at >= d.window_from and e.recorded_at < d.window_to
                   and e.payload -> 'actor' ->> 'person_id' = d.subject_person_id::text)
@@ -411,5 +412,8 @@ grant execute on function records.person_activity(uuid, timestamptz, timestamptz
                           records.link_di_investigation(uuid, text, text, text),
                           records.refresh_di_investigation_scope(uuid),
                           records.close_di_investigation(uuid, text, text, uuid) to ebmr_app;
+
+-- records.derived_chain_types, subject_of_chain, chains_of_record, implicit_investigations,
+-- add_investigation_link, link_investigation_scope and lock_di_investigation stay private.
 
 reset role;

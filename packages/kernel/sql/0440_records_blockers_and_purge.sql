@@ -2,14 +2,17 @@
 --
 -- records.open_blockers lists what blocks the disposition (release) of a record and what blocks its
 -- disposal: unassessed or open incidents, open DI investigations (linked, or with the person's
--- activity on the record inside the window), and holds.
+-- activity on the record or on its signature, challenge, retention or state chain inside the window),
+-- and holds.
 --
--- Purge (INV-22, DI-47, ADR 0007): only records.purge deletes GMP rows. It refuses while retention is
+-- Purge (INV-22, DI-47, ADR 0007): only records.purge deletes GMP rows. It refuses for an aggregate
+-- type no module declares for retention (0420, records.retention_aggregate), while retention is
 -- OPEN, on or before retain-until (including the latest retain-until over every record that depends
 -- on this one), while anything blocks disposal of the record or of any record depending on it,
--- without a matching QA approval, or when the record's chain does not verify. It seals a checkpoint of
+-- without a matching QA approval by a person who entered none of the retention inputs or dependency
+-- links that decide the date, or when the record's chain does not verify. It seals a checkpoint of
 -- the record as kept (and, when the approval cites an archived true copy, requires that copy to cover
--- exactly this head), then deletes the
+-- exactly this head and every table it deletes rows from), then deletes the
 -- record's rows from every registered table of its aggregate type (each deletion is audited into the
 -- record's chain), appends a business entry, seals a chain checkpoint (kernel.checkpoint_chain),
 -- writes a tombstone (row counts and content digests per table, every event hash of the chain, the
@@ -48,10 +51,9 @@ begin
   from records.di_investigation_current d
   where d.status = 'OPEN'
     and (exists (select 1 from records.di_investigation_link l where l.investigation_id = d.id and l.record_key = v_key)
-         or exists (select 1 from kernel.audit_event e
-                    where e.chain_key = v_key and e.action in ('INSERT', 'UPDATE', 'DELETE')
-                      and e.recorded_at >= d.window_from and e.recorded_at < d.window_to
-                      and e.payload -> 'actor' ->> 'person_id' = d.subject_person_id::text))
+         -- The person's act inside the window on the record or on a chain that belongs to it (its
+         -- signatures, challenges, retention, state: F30), even before the scope links it.
+         or d.id in (select i.id from records.implicit_investigations(p_aggregate_type, p_aggregate_id) i(id)))
   union all
   select 'HOLD'::text, h.id, h.kind || coalesce(' ' || h.reference, ''), 'ACTIVE'::text, null::text, h.reason, h.recorded_at,
          h.kind = 'DI_INVESTIGATION', true
@@ -96,6 +98,12 @@ begin
   v_today := (clock_timestamp() at time zone v_sched.site_zone)::date;
   if exists (select 1 from records.tombstone where record_key = v_sched.record_key) then
     code := 'EBMR-REC-023'; detail := format('%s has already been purged', v_sched.record_key); return next;
+  end if;
+  -- Only aggregate types declared for retention, under a retention key their module names (F29, F75).
+  code := 'EBMR-REC-024';
+  detail := substr(records.retention_aggregate_problem(v_sched.aggregate_type, v_sched.retention_key), length('EBMR-REC-024 ') + 1);
+  if detail is not null then
+    return next;
   end if;
   if v_eff ->> 'status' = 'OPEN' then
     code := 'EBMR-REC-030'; detail := format('retention of %s is open: %s', v_sched.record_key, v_eff -> 'openBecause'); return next;
@@ -147,23 +155,63 @@ $$;
 -- True-copy register
 -- ---------------------------------------------------------------------------------------------
 
-create function records.register_true_copy(p_chain_key text, p_head_seq bigint, p_head_hash_hex text, p_manifest_sha256 text,
-                                           p_bundle_format text, p_purpose text) returns uuid
+-- Registers a bundle from its manifest text (exactly as its SHA-256 covers it): the database computes
+-- the SHA-256 itself and reads the chain key, head and table list from the manifest, so the register
+-- entry says which tables the archived copy holds (F34), and a bundle can only be matched to an entry
+-- whose manifest it carries byte for byte.
+create function records.register_true_copy(p_manifest text, p_manifest_sha256 text, p_purpose text) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
+  v_manifest jsonb;
+  v_chain text;
+  v_type text;
+  v_seq bigint;
+  v_hash text;
+  v_tables text[] := '{}';
+  v_name text;
+  t text;
   v_id uuid;
 begin
   -- DI-18, then DI-17 installation-wide.
   perform iam.assert_not_administrator();
   perform iam.require_permission('RECORD.TRUE_COPY_REGISTER', '{}'::jsonb);
-  if p_manifest_sha256 is null or p_manifest_sha256 !~ '^[0-9a-f]{64}$' or records.is_blank(p_bundle_format) or records.is_blank(p_purpose) then
-    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 a true copy needs its manifest SHA-256, bundle format and purpose';
+  if p_manifest is null or records.is_blank(p_purpose) then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 a true copy needs its manifest and purpose';
   end if;
-  if not exists (select 1 from kernel.audit_event e where e.chain_key = p_chain_key and e.seq = p_head_seq and encode(e.hash, 'hex') = p_head_hash_hex) then
-    raise exception using errcode = 'P0001', message = format('EBMR-REC-070 %s has no event %s with that hash; the bundle does not match the record', p_chain_key, p_head_seq);
+  if p_manifest_sha256 is distinct from encode(sha256(convert_to(p_manifest, 'UTF8')), 'hex') then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 the manifest SHA-256 does not match the manifest';
   end if;
-  insert into records.true_copy (record_key, head_seq, head_hash, manifest_sha256, bundle_format, purpose, created_by_person)
-  values (p_chain_key, p_head_seq, decode(p_head_hash_hex, 'hex'), p_manifest_sha256, p_bundle_format, p_purpose, records.actor_person())
+  begin
+    v_manifest := p_manifest::jsonb;
+    v_seq := (v_manifest -> 'head' ->> 'seq')::bigint;
+  exception when others then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 the manifest is not a true-copy manifest';
+  end;
+  v_chain := v_manifest ->> 'chainKey';
+  v_type := v_manifest ->> 'aggregateType';
+  v_hash := v_manifest -> 'head' ->> 'hash';
+  if jsonb_typeof(v_manifest) <> 'object' or records.is_blank(v_manifest ->> 'format') or v_chain is null or v_type is null
+     or v_chain <> v_type || ':' || coalesce(v_manifest ->> 'aggregateId', '') or v_seq is null or v_hash is null
+     or jsonb_typeof(v_manifest -> 'tables') is distinct from 'array' then
+    raise exception using errcode = 'P0001', message = 'EBMR-REC-070 the manifest does not name its chain, head and tables';
+  end if;
+  if not exists (select 1 from kernel.audit_event e where e.chain_key = v_chain and e.seq = v_seq and encode(e.hash, 'hex') = v_hash) then
+    raise exception using errcode = 'P0001', message = format('EBMR-REC-070 %s has no event %s with that hash; the bundle does not match the record', v_chain, v_seq);
+  end if;
+  for t in select jsonb_array_elements_text(v_manifest -> 'tables') loop
+    select pg_catalog.quote_ident(n.nspname) || '.' || pg_catalog.quote_ident(c.relname) into v_name
+    from kernel.audited_table a
+    join pg_catalog.pg_class c on c.oid = a.table_name
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+    where a.aggregate_type = v_type and a.table_name = pg_catalog.to_regclass(t);
+    if v_name is null then
+      raise exception using errcode = 'P0001', message = format('EBMR-REC-070 %s is not a registered table of aggregate type %s', t, v_type);
+    end if;
+    v_tables := v_tables || v_name;
+    v_name := null;
+  end loop;
+  insert into records.true_copy (record_key, head_seq, head_hash, manifest_sha256, bundle_format, tables, purpose, created_by_person)
+  values (v_chain, v_seq, decode(v_hash, 'hex'), p_manifest_sha256, v_manifest ->> 'format', v_tables, p_purpose, records.actor_person())
   returning id into v_id;
   return v_id;
 end

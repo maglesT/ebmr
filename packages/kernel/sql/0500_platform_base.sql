@@ -199,8 +199,8 @@ begin
 end
 $$;
 
--- Refuses unless the current actor holds the permission (via the AUTHORITY provider).
-create function platform.authorize(p_permission text, p_aggregate_type text, p_aggregate_id text) returns void
+-- NULL when the current actor holds the permission (via the AUTHORITY provider), else why not.
+create function platform.permission_problem(p_permission text, p_aggregate_type text, p_aggregate_id text) returns text
 language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
   v_ctx    jsonb := platform.require_actor();
@@ -214,6 +214,16 @@ begin
   end if;
   execute format('select %s($1, $2, $3, $4)', platform.function_call_name(v_fn))
     into v_reason using p_permission, v_ctx, p_aggregate_type, p_aggregate_id;
+  return v_reason;
+end
+$$;
+
+-- Refuses unless the current actor holds the permission (via the AUTHORITY provider).
+create function platform.authorize(p_permission text, p_aggregate_type text, p_aggregate_id text) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_reason text := platform.permission_problem(p_permission, p_aggregate_type, p_aggregate_id);
+begin
   if v_reason is not null then
     raise exception using errcode = 'P0001', message = format('EBMR-PLAT-006 permission %s denied: %s', p_permission, v_reason);
   end if;
@@ -432,7 +442,7 @@ grant select on platform.setting_definition, platform.setting_value, platform.ti
 grant execute on function platform.require_actor(), platform.time_model_violations(), platform.setting_text(text),
                           platform.setting_numeric(text), platform.set_setting(text, text),
                           platform.check_setting_value(text, text) to ebmr_app;
--- enforce_db_time, make_insert_only, register_hook, authorize, verify_signature and
+-- enforce_db_time, make_insert_only, register_hook, permission_problem, authorize, verify_signature and
 -- next_aggregate_seq stay private to the owner (called from migrations and platform functions).
 
 reset role;

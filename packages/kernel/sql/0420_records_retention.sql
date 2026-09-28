@@ -409,8 +409,11 @@ create table records.retention_hold_release (
 -- True-copy register, purge approvals and tombstones (insert-only; functions in part 5)
 -- ---------------------------------------------------------------------------------------------
 
--- A true-copy bundle made from an audit chain (src/records/true-copy.ts): which chain head it covers
--- and the SHA-256 of its manifest, so an archived bundle can be matched to the record later.
+-- A true-copy bundle made from an audit chain (src/records/true-copy.ts): which chain head it covers,
+-- which registered tables it holds, and the SHA-256 of its manifest (computed by the database from the
+-- manifest itself), so an archived bundle can be matched to the record later. `tables` holds
+-- schema-qualified names; a purge that cites the copy requires it to hold every table the purge
+-- deletes rows from (F34). An entry without tables covers none.
 create table records.true_copy (
   id                 uuid primary key default gen_random_uuid(),
   record_key         text not null,
@@ -418,6 +421,7 @@ create table records.true_copy (
   head_hash          bytea not null,
   manifest_sha256    text not null check (manifest_sha256 ~ '^[0-9a-f]{64}$'),
   bundle_format      text not null,
+  tables             text[] not null default '{}',
   purpose            text not null check (length(btrim(purpose)) > 0),
   created_by_person  uuid not null,
   recorded_at        timestamptz not null default clock_timestamp()
