@@ -392,6 +392,19 @@ select kernel.register_audited_table('recipe.execution_stage_content', 'batch', 
 select kernel.register_audited_table('recipe.execution_exception_content', 'batch', 'batch_id', true);
 select kernel.register_audited_table('recipe.execution_point_content', 'batch', 'batch_id', true);
 select kernel.register_audited_table('recipe.execution_disposition_proposal', 'batch', 'batch_id', true);
+select kernel.register_audited_table('recipe.execution_event', 'batch', 'batch_id', true);
+-- Configuration shipped by migrations (insert-only; a later release adds rows under its own attribution).
+select kernel.register_audited_table('recipe.engine_role_permission', 'engine_role_permission', 'engine_role', true);
+select kernel.register_audited_table('recipe.execution_command_permission', 'execution_command_permission', 'command_type', true);
+select kernel.register_audited_table('recipe.sandbox_only_block', 'sandbox_only_block', 'block_type', true);
+-- Recorded times come from the database clock (DI-27), never from the caller.
+select platform.enforce_db_time('recipe.execution_command', array['recorded_at']);
+select platform.enforce_db_time('recipe.execution_step_content', array['recorded_at']);
+select platform.enforce_db_time('recipe.execution_stage_content', array['recorded_at']);
+select platform.enforce_db_time('recipe.execution_exception_content', array['recorded_at']);
+select platform.enforce_db_time('recipe.execution_point_content', array['recorded_at']);
+-- recipe.execution_state is not audited: it is a projection of the audited, hash-chained command rows, rebuilt
+-- from them and checked against them by recipe.execution_violations(); it holds no fact of its own.
 
 -- The app and sandbox roles read; they never write (every write is a definer function in 0210).
 grant select on recipe.engine_role_permission, recipe.execution_command_permission, recipe.sandbox_only_block, recipe.test_package,

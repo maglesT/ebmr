@@ -29,6 +29,21 @@ const READ_ONLY: Record<string, string> = {
   'recipe.site_today()': 'reads the site zone policy and the clock',
 };
 
+/**
+ * Execution writers (module C3) gate through two helpers, each proven below to contain the kernel check itself:
+ * recipe.execution_actor refuses administrators (and anything off the sandbox), recipe.require_command_permission
+ * requires the command's catalogued permission (recipe.execution_command_permission).
+ */
+const ADMIN_GATES = ['iam.assert_not_administrator()', 'recipe.execution_actor('];
+const PERMISSION_GATES = ['iam.require_permission(', 'recipe.require_command_permission('];
+const firstOf = (src: string, gates: readonly string[]): number => Math.min(...gates.map((g) => src.indexOf(g)).filter((i) => i >= 0), Number.MAX_SAFE_INTEGER);
+
+/** App-callable writers with no permission of their own, and why. */
+const NO_PERMISSION: Record<string, string> = {
+  'recipe.lock_execution(uuid,boolean)':
+    'locks the run row and records the transaction clock marker (INV-16) for the command that follows; it writes no business data, refuses administrators, and every command then appends through recipe.append_execution, which checks the command permission',
+};
+
 describe('authority on every writer (DI-17, DI-18)', () => {
   it('[DI-17][DI-18] every app-callable recipe function that can write refuses administrators, then checks a catalogued permission', async () => {
     const { rows } = await db.admin.query<{ fn: string; src: string }>(`
@@ -39,14 +54,21 @@ describe('authority on every writer (DI-17, DI-18)', () => {
     const writers = rows.filter((r) => !(r.fn in READ_ONLY));
     expect(writers.length).toBeGreaterThanOrEqual(20);
     const missing = writers.filter((r) => {
-      const admin = r.src.indexOf('iam.assert_not_administrator()');
-      const perm = r.src.indexOf('iam.require_permission(');
-      return admin < 0 || perm < 0 || admin > perm;
+      const admin = firstOf(r.src, ADMIN_GATES);
+      if (r.fn in NO_PERMISSION) return admin === Number.MAX_SAFE_INTEGER;
+      const perm = firstOf(r.src, PERMISSION_GATES);
+      return admin === Number.MAX_SAFE_INTEGER || perm === Number.MAX_SAFE_INTEGER || admin > perm;
     });
     expect(missing.map((r) => r.fn)).toEqual([]);
+    // The helper gates hold the kernel checks themselves.
+    const helper = async (name: string) => (await db.admin.query<{ src: string }>("select prosrc as src from pg_proc where oid = $1::regproc", [name])).rows[0]?.src ?? '';
+    expect(await helper('recipe.execution_actor')).toContain('iam.assert_not_administrator()');
+    expect(await helper('recipe.require_command_permission')).toContain('iam.require_permission(');
     const known = new Set((await db.admin.query<{ code: string }>('select code from iam.permission')).rows.map((r) => r.code));
     const cited = writers.flatMap((r) => [...r.src.matchAll(/'([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*)'/g)].map((m) => m[1] ?? ''));
-    expect(cited.filter((p) => !known.has(p))).toEqual([]);
+    const commandPermissions = (await db.admin.query<{ p: string }>('select distinct unnest(permissions) as p from recipe.execution_command_permission')).rows.map((r) => r.p);
+    expect(commandPermissions.length).toBeGreaterThan(0);
+    expect([...cited, ...commandPermissions, 'STEP.VERIFY', 'STEP.WITNESS'].filter((p) => !known.has(p))).toEqual([]);
   });
 
   it('[DI-18] an administrator never creates or changes MBR data; a person without the permission is refused', async () => {
@@ -82,10 +104,17 @@ describe('privilege separation of the recipe schema (ADR 0012)', () => {
        where n.nspname = 'recipe' and c.relkind = 'r' order by 1`);
     expect(rows.length).toBeGreaterThanOrEqual(21);
     expect(rows.filter((r) => r.app_writes).map((r) => r.t)).toEqual([]);
-    expect(rows.filter((r) => !r.app_reads).map((r) => r.t)).toEqual([]);
-    expect(rows.filter((r) => !r.audited).map((r) => r.t)).toEqual([]);
+    // The transaction clock marker (INV-16) is owner-only and unlogged, like kernel.command_marker: no record, no audit.
+    const MARKERS = ['recipe.execution_clock'];
+    expect(rows.filter((r) => !r.app_reads).map((r) => r.t)).toEqual(MARKERS);
+    // The run-state projection is rebuilt from the audited, hash-chained command rows and checked against them
+    // (recipe.execution_violations); it holds no fact of its own.
+    const PROJECTIONS = ['recipe.execution_state'];
+    expect(rows.filter((r) => !r.audited).map((r) => r.t)).toEqual([...MARKERS, ...PROJECTIONS].sort());
+    const unlogged = await db.admin.query<{ t: string }>("select c.oid::regclass::text as t from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'recipe' and c.relkind = 'r' and c.relpersistence = 'u' order by 1");
+    expect(unlogged.rows.map((r) => r.t)).toEqual(MARKERS);
     // Only the rows that end or edit in place are not insert-only; each has its own guard.
-    expect(rows.filter((r) => !r.insert_only).map((r) => r.t)).toEqual(['recipe.authorisation_cell', 'recipe.mbr_version', 'recipe.stub_batch']);
+    expect(rows.filter((r) => !r.insert_only && !MARKERS.includes(r.t) && !PROJECTIONS.includes(r.t)).map((r) => r.t)).toEqual(['recipe.authorisation_cell', 'recipe.mbr_version', 'recipe.stub_batch']);
     const time = await db.app.query<{ table_name: string }>("select table_name from platform.time_model_violations() where table_name like 'recipe.%'");
     expect(time.rows).toEqual([]);
     const owner = await db.admin.query<{ n: string }>(
@@ -94,9 +123,13 @@ describe('privilege separation of the recipe schema (ADR 0012)', () => {
     expect(owner.rows[0]?.n).toBe('0');
   });
 
-  it('[DI-37][INV-09] every table holding signed content of an MBR version or market authorisation is registered with the e-signature module', async () => {
+  it('[DI-37][INV-09] every table holding signed content of an MBR version, market authorisation or test-run aggregate is registered with the e-signature module', async () => {
     const { rows } = await db.admin.query<{ t: string; type: string }>("select table_name::text as t, aggregate_type as type from esig.signed_table where table_name::text like 'recipe.%' order by 1");
     expect(rows).toEqual([
+      { t: 'recipe.execution_exception_content', type: 'batch_exception' },
+      { t: 'recipe.execution_point_content', type: 'batch_point' },
+      { t: 'recipe.execution_stage_content', type: 'batch_stage' },
+      { t: 'recipe.execution_step_content', type: 'batch_step' },
       { t: 'recipe.market_authorisation', type: 'mbr_market_authorisation' },
       { t: 'recipe.mbr_content', type: 'mbr_version' },
       { t: 'recipe.mbr_draft_entry', type: 'mbr_version' },
