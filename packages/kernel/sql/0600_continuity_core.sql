@@ -74,9 +74,9 @@ create table continuity.counter (
   check (reserved_ceiling >= last_value)
 );
 
--- The database incarnations bound to the external ledger. The first anchor export binds the
--- database; a restored, copied or failed-over copy (another incarnation) is added only when its
--- identifiers have been secured. Rows are permanent.
+-- The database incarnations bound to the external ledger. The first anchor binds the database; a
+-- restored, copied or failed-over copy (another incarnation) is added only when its identifiers have
+-- been secured (or its restore completed). Rows are permanent.
 create table continuity.database_incarnation (
   incarnation    text primary key,
   bound_by       text not null check (bound_by in ('ANCHOR_EXPORT', 'IDENTIFIERS_SECURED', 'RESTORE_COMPLETED')),
@@ -880,8 +880,9 @@ create view continuity.restore_event_status as
 -- unregistered one owned by ebmr_owner by p_unregistered_margin, and the login names the ledger holds
 -- that this database no longer knows are reserved (never issued again). Moving forward needs no
 -- approval; the moves are recorded (IDENTIFIERS_SECURED) and the incarnation is marked secured, which
--- opens the audit trail again. Counters stay closed until the restore is completed. Does nothing when
--- this incarnation is already bound or secured. p_external_high_water: [{sequence_key, value}].
+-- opens the audit trail again. Counters stay closed until the restore is completed. Moves nothing when
+-- this incarnation is already bound or secured (the login names are reserved either way).
+-- p_external_high_water: [{sequence_key, value}].
 create function continuity.secure_identifiers(p_external_high_water jsonb, p_login_names jsonb default '[]'::jsonb,
                                               p_unregistered_margin bigint default 1000000)
 returns table (sequence_key text, source_kind text, value_before bigint, external_value bigint, value_after bigint)
@@ -907,6 +908,10 @@ begin
   -- One securing per incarnation; concurrent callers wait here.
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('continuity.secure_identifiers', 0));
   if exists (select 1 from continuity.database_incarnation d where d.incarnation = v_incarnation) then
+    -- Bound or secured already: nothing moves. The ledger's login names are still reserved (a physical
+    -- copy started by crash recovery keeps the incarnation, and names issued in its lost window are
+    -- known only to the ledger).
+    perform iam.reserve_identifiers(p_login_names, 'issued before the database was restored, copied or failed over (external continuity ledger)', null);
     return;
   end if;
   v_plan := continuity.plan_sequence_moves(p_external_high_water, p_unregistered_margin, false);

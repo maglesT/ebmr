@@ -81,8 +81,9 @@ export interface SecureIdentifiersOptions {
  * First step in a restored, copied or failed-over database (continuity.secure_identifiers): every
  * protected sequence moves past the external ledger's high-water marks (plus its margin) and every
  * login name the ledger holds is reserved, before anything else is written. Runs in its own
- * transaction (the moves are not transactional and are recorded at once). Does nothing, and returns
- * no moves, when this database incarnation is already bound to the ledger or secured.
+ * transaction (the moves are not transactional and are recorded at once). Moves nothing, and returns
+ * no moves, when this database incarnation is already bound to the ledger or secured; the login names
+ * are reserved either way.
  */
 export async function secureIdentifiers(pool: pg.Pool, ctx: ActorContext, ledger: ExternalLedger, options: SecureIdentifiersOptions = {}): Promise<SequenceBump[]> {
   const { highWater, loginNames } = await externalMarks(ledger);
