@@ -1,6 +1,6 @@
 /**
  * Contract coverage (plan section 4, "Server binding"): every route id of the frozen contract is registered
- * exactly once, in the right installation, and answers there (stubs answer 501 until their module lands);
+ * exactly once, in the right installation, and is implemented there (no stub answers 501);
  * routes of the other installation are absent (404).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -52,16 +52,18 @@ describe('contract coverage', () => {
     }
   });
 
-  it('every registered route answers (stubbed routes 501 once past the platform gates)', async () => {
-    const b = await gmp.asPersona('author');
-    for (const route of Object.values(routes.designer)) {
-      if (route.method !== 'GET') continue;
-      const res = await b.inject({ method: 'GET', url: samplePath(route) });
-      expect(res.statusCode, route.id).toBe(501);
-      expect((JSON.parse(res.body) as { refusal: { code: string; kind: string } }).refusal).toMatchObject({ code: 'NOT_IMPLEMENTED', kind: 'NOT_ENABLED' });
+  it('every GET route of the contract is implemented on its installation (no stub answers 501, none is missing)', async () => {
+    const office = { GMP: await gmp.asPersona('author'), SANDBOX: await sbx.asPersona('issuer') } as const;
+    for (const route of allRoutes(routes)) {
+      if (route.method !== 'GET' || route.stream) continue;
+      for (const kind of ['GMP', 'SANDBOX'] as const) {
+        if (route.installation !== 'ANY' && route.installation !== kind) continue;
+        const res = await office[kind].inject({ method: 'GET', url: samplePath(route) });
+        const code = res.statusCode === 200 ? null : (JSON.parse(res.body) as { refusal?: { code?: string } }).refusal?.code;
+        // A sample id may name nothing (a 404 of the route itself is fine); the platform's "not a route" is not.
+        expect({ route: route.id, kind, status: res.statusCode, code }, route.id).not.toMatchObject({ status: 501 });
+        expect(code === 'NOT_FOUND' && /is not a route/.test(res.body), `${route.id} on ${kind}`).toBe(false);
+      }
     }
-    const s = await sbx.asPersona('issuer');
-    const res = await s.inject({ method: 'GET', url: '/api/test-runs' });
-    expect(res.statusCode).toBe(501);
   });
 });
