@@ -400,6 +400,26 @@ describe('signatures through the ceremony port', () => {
     expect(calls[0]).toMatchObject({ meaning: 'HOLD_POINT_RELEASED', aggregateId: `${RUN_ID}:H-BLEND@`, action: { kind: 'ENGINE_COMMAND', intent: { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-BLEND@', disposition: 'RELEASED' } } });
   });
 
+  it('rejecting the hold point signs the not-released meaning of the reject action', async () => {
+    const calls: { meaning: string; action: unknown }[] = [];
+    renderFloor(stepPath('H-BLEND@'), {
+      session: { role: 'QA_SHOP_FLOOR' },
+      ceremony: {
+        sign: (req) => {
+          calls.push(req);
+          return Promise.resolve({ status: 'CANCELLED' });
+        },
+      },
+    });
+    expect(await screen.findAllByRole('button', { name: 'Decide the hold point' })).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Decide the hold point' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Decide the hold point' });
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Rejected (not released)' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Continue to signature' }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]).toMatchObject({ meaning: 'HOLD_POINT_NOT_RELEASED', action: { kind: 'ENGINE_COMMAND', intent: { type: 'DISPOSITION_HOLD_POINT', disposition: 'REJECTED' } } });
+  });
+
   it('stage sign-off shows the derived summary (not typed) and signs the stage aggregate', async () => {
     const recon = stepVariant('step-g20-yield', (v) => {
       v.step.status = 'COMPLETED';

@@ -89,7 +89,16 @@
       "requires": "SIGNATURE",
       "meaning": "HOLD_POINT_RELEASED",
       "reason": null,
-      "target": null
+      "target": "RELEASED"
+    },
+    {
+      "action": "DISPOSITION_HOLD_POINT",
+      "available": true,
+      "primary": false,
+      "requires": "SIGNATURE",
+      "meaning": "HOLD_POINT_NOT_RELEASED",
+      "reason": null,
+      "target": "REJECTED"
     },
     {
       "action": "RAISE_EXCEPTION",

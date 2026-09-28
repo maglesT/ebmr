@@ -27,7 +27,7 @@ type Open =
   | { kind: 'ATTACH_DEVIATION'; exception: string }
   | { kind: 'HOLD_BATCH' }
   | { kind: 'RELEASE_HOLD'; hold: string }
-  | { kind: 'DISPOSITION_HOLD_POINT'; action: ActionView }
+  | { kind: 'DISPOSITION_HOLD_POINT' }
   | { kind: 'SIGN_OFF_STAGE'; action: ActionView }
   | { kind: 'DISPOSITION_EXCEPTION'; action: ActionView }
   | null;
@@ -63,6 +63,8 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
         signStep(a, { type: 'VERIFY', stepKey, meaning: 'WITNESSED' }, st('sign.title.WITNESS', vars));
         return;
       case 'DISPOSITION_HOLD_POINT':
+        setOpen({ kind: 'DISPOSITION_HOLD_POINT' });
+        return;
       case 'SIGN_OFF_STAGE':
       case 'DISPOSITION_EXCEPTION':
         setOpen({ kind: a.action, action: a });
@@ -103,10 +105,12 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
         <HoldPointDialog
           isOpen
           onClose={close}
-          dispositions={view.step.dispositions}
+          dispositions={holdPointActions(view).map((a) => a.target ?? '')}
           onContinue={({ disposition, comment }) => {
-            const a = open.action;
+            // Each decision is its own server action with its own meaning (release or not released): sign the chosen one.
+            const a = holdPointActions(view).find((x) => x.target === disposition);
             close();
+            if (!a) return;
             signStep(a, { type: 'DISPOSITION_HOLD_POINT', stepKey, disposition, ...(comment ? { comment } : {}) }, st('sign.title.DISPOSITION_HOLD_POINT', { number: view.step.number, title: view.step.title, disposition }));
           }}
         />
@@ -159,6 +163,18 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
   return { perform, dialogs, busy: start.busy || start.state === 'notSaved' || signed.busy };
 }
 
+/** The hold-point decisions the server offers now: one action per disposition (target), each with its own meaning. */
+function holdPointActions(view: StepScreenView): ActionView[] {
+  return view.actions.filter((a) => a.action === 'DISPOSITION_HOLD_POINT' && a.available && a.target !== null);
+}
+
+/** One bar entry for the hold-point decision (the dialog chooses among the server's per-disposition actions). */
+function barActions(view: StepScreenView): ActionView[] {
+  const holds = view.actions.filter((a) => a.action === 'DISPOSITION_HOLD_POINT');
+  const shown = holds.find((a) => a.available) ?? holds[0];
+  return view.actions.filter((a) => a.action !== 'DISPOSITION_HOLD_POINT' || a === shown);
+}
+
 /** Why an action cannot be taken from this screen, beyond the server's own reason. */
 function localBlock(a: ActionView, view: StepScreenView): string | null {
   if (LATER.has(a.action)) return st('action.laterRelease');
@@ -176,10 +192,11 @@ export function toBarAction(a: ActionView, view: StepScreenView): floor.BarActio
 }
 
 export function StepActionBar({ view, perform, busy }: { view: StepScreenView; perform: (a: ActionView) => void; busy: boolean }) {
-  const primaryAction = view.actions.find((a) => a.primary) ?? null;
+  const actions = barActions(view);
+  const primaryAction = actions.find((a) => a.primary) ?? (actions.find((a) => a.action === 'DISPOSITION_HOLD_POINT' && view.actions.some((x) => x.action === a.action && x.primary)) ?? null);
   const toBar = (a: ActionView) => toBarAction(a, view);
   const primary = primaryAction && !RECORDING.has(primaryAction.action) ? toBar(primaryAction) : null;
-  const more = view.actions.filter((a) => a !== primaryAction && !RECORDING.has(a.action)).map(toBar);
+  const more = actions.filter((a) => a !== primaryAction && !RECORDING.has(a.action)).map(toBar);
   const byId = new Map(view.actions.map((a) => [actionId(a), a]));
   return (
     <>
