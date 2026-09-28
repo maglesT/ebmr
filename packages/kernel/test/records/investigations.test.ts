@@ -10,7 +10,7 @@ import {
   personActivity,
   refreshDiInvestigationScope,
 } from '../../src/records/investigations.ts';
-import { approvePurge, createRetentionSchedule, openBlockers, purge, releaseLegalHold } from '../../src/records/retention-store.ts';
+import { approvePurge, createRetentionSchedule, lockBlockerEpoch, openBlockers, purge, releaseLegalHold } from '../../src/records/retention-store.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import type { SeededActor } from '../identity/seed.ts';
 import {
@@ -258,5 +258,64 @@ describe('DI-50 data-integrity investigation', () => {
       /permission denied/,
     );
     expect((await openBlockers(db.app, 'batch', batch)).map((b) => b.kind).sort()).toEqual(['DI_INVESTIGATION', 'HOLD']);
+  });
+
+  it('[DI-50][DI-12] the release lock links and holds a record the person investigated wrote to after opening, so the blocker epoch moves once (F35)', async () => {
+    const from = await now();
+    const id = await withCommand(db.app, again(investigator), (c) =>
+      openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: from, windowTo: plusHours(from, 1), concern: 'entries after the fact' }),
+    );
+    const batch = randomUUID();
+    await insertEntry(db, colleague, batch, '4.20');
+    const seen = await withCommand(db.app, again(approver), (c) => lockBlockerEpoch(c, 'batch', batch));
+    await insertEntry(db, subject, batch, '5.55');
+    const locked = await withCommand(db.app, again(approver), (c) => lockBlockerEpoch(c, 'batch', batch));
+    expect(locked).not.toBe(seen);
+    const { rows } = await db.app.query<{ link_source: string; held: boolean }>(
+      `select l.link_source, exists (select 1 from records.active_hold h where h.investigation_id = l.investigation_id and h.record_key = l.record_key) as held
+         from records.di_investigation_link l where l.investigation_id = $1 and l.record_key = $2`,
+      [id, `batch:${batch}`],
+    );
+    expect(rows).toEqual([{ link_source: 'SCOPE', held: true }]);
+    // Nothing new since: the lock gives the same epoch again.
+    expect(await withCommand(db.app, again(approver), (c) => lockBlockerEpoch(c, 'batch', batch))).toBe(locked);
+  });
+
+  it('[DI-50] a person whose act on a record is a retention change has that record linked and held (F30)', async () => {
+    const reviewer = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA reviewer under investigation' });
+    const from = await now();
+    const batch = randomUUID();
+    await withCommand(db.app, again(reviewer), (c) =>
+      createRetentionSchedule(c, 'batch', batch, 'BATCH_PROCESSING_RECORD', { markets: ['IN'], manufactureDate: '2008-01-10', expiryDate: '2010-01-31' }),
+    );
+    const id = await withCommand(db.app, again(investigator), (c) =>
+      openDiInvestigation(c, { subjectPersonId: reviewer.personId, windowFrom: from, windowTo: plusHours(from, 1), concern: 'retention shortened without evidence' }),
+    );
+    const links = await db.app.query<{ record_key: string }>('select record_key from records.di_investigation_link where investigation_id = $1 order by record_key', [id]);
+    expect(links.rows.map((r) => r.record_key)).toEqual(expect.arrayContaining([`batch:${batch}`]));
+    expect((await openBlockers(db.app, 'batch', batch)).map((b) => b.kind).sort()).toEqual(['DI_INVESTIGATION', 'HOLD']);
+  });
+
+  it('[DI-50] derived chains resolve to their record: signatures, challenges, retention and state (F30)', async () => {
+    const id = randomUUID();
+    const subjectOf = async (chainKey: string) =>
+      (await db.admin.query<{ aggregate_type: string | null; aggregate_id: string | null }>('select * from records.subject_of_chain($1)', [chainKey])).rows[0];
+    expect(await subjectOf(`esig_signature:batch:${id}`)).toEqual({ aggregate_type: 'batch', aggregate_id: id });
+    expect(await subjectOf(`esig_challenge:record_type_version:CODE:2`)).toEqual({ aggregate_type: 'record_type_version', aggregate_id: 'CODE:2' });
+    expect(await subjectOf(`retention:component_lot:${id}`)).toEqual({ aggregate_type: 'component_lot', aggregate_id: id });
+    expect(await subjectOf(`batch:${id}`)).toEqual({ aggregate_type: null, aggregate_id: null });
+    // A state row (platform state engine), arranged by the superuser: its chain 'state:<id>' belongs to the record.
+    await db.admin.query('alter table platform.aggregate_state disable trigger user');
+    try {
+      await db.admin.query(
+        "insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('sample_record', $1, 'sample_record', 1, 'DRAFT', 1)",
+        [id],
+      );
+    } finally {
+      await db.admin.query('alter table platform.aggregate_state enable trigger user');
+    }
+    expect(await subjectOf(`state:${id}`)).toEqual({ aggregate_type: 'sample_record', aggregate_id: id });
+    const chains = await db.admin.query<{ c: string[] }>('select records.chains_of_record($1, $2) as c', ['sample_record', id]);
+    expect(chains.rows[0]?.c).toEqual([`sample_record:${id}`, `esig_signature:sample_record:${id}`, `esig_challenge:sample_record:${id}`, `retention:sample_record:${id}`, `state:${id}`]);
   });
 });

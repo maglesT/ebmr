@@ -3,17 +3,29 @@
  * INV-27; control DI-45).
  *
  *   1. checkAgainstLedger: start-up and post-failover check; a restored database is detected here.
- *   2. recordRestoreEvent (operator): the database compares the ledger's anchors with the restored
+ *   2. secureIdentifiers (operator, first write in a restored, copied or failed-over database; also
+ *      run by recordRestoreEvent): every protected sequence moves past the ledger's high-water marks
+ *      and the login names the ledger holds are reserved. Until then the database writes nothing to
+ *      the audit trail (EBMR-CONT-017), so nothing written after the restore reuses an identifier.
+ *   3. recordRestoreEvent (operator): the database compares the ledger's anchors with the restored
  *      chains and records which anchors were discarded and which chains lost history.
- *   3. approveRestoreEvent (every named approver, a different person from the operator).
- *   4. completeRestore: every protected identifier source moves past the ledger's high-water marks;
+ *   4. approveRestoreEvent (every named approver, a different person from the operator).
+ *   5. completeRestore: every protected identifier source moves past the ledger's high-water marks;
  *      number issue resumes under the new database incarnation.
  * The restore event and its completion are copied to the external ledger as well.
  */
 import type pg from 'pg';
 import { withCommand, type ActorContext } from '../db/command.ts';
 import { verifyExternalAnchors, type AnchorVerification } from './anchors.ts';
-import { ledgerAnchors, ledgerHighWater, ledgerMaxCeiling, type ExternalLedger, type SequenceBump } from './ledger.ts';
+import {
+  ledgerAnchors,
+  ledgerCounterLastValues,
+  ledgerHighWater,
+  ledgerLoginNames,
+  ledgerMaxCeiling,
+  type ExternalLedger,
+  type SequenceBump,
+} from './ledger.ts';
 import type { Db } from './numbers.ts';
 
 export type RestoreEventKind = 'FULL_RESTORE' | 'POINT_IN_TIME_RESTORE' | 'FAILOVER' | 'CLUSTER_MIGRATION';
@@ -51,7 +63,45 @@ export interface RecordedRestoreEvent {
   affectedChainKeys: string[];
 }
 
+/** Everything the external ledger holds against which identifiers are moved or reserved. */
+async function externalMarks(ledger: ExternalLedger): Promise<{ highWater: { sequence_key: string; value: string }[]; loginNames: string[] }> {
+  const marks = await ledgerHighWater(ledger);
+  return {
+    highWater: [...marks.entries()].map(([sequence_key, value]) => ({ sequence_key, value: value.toString() })),
+    loginNames: await ledgerLoginNames(ledger),
+  };
+}
+
+export interface SecureIdentifiersOptions {
+  /** How far to move sequences no module registered (default 1,000,000). */
+  unregisteredMargin?: bigint;
+}
+
+/**
+ * First step in a restored, copied or failed-over database (continuity.secure_identifiers): every
+ * protected sequence moves past the external ledger's high-water marks (plus its margin) and every
+ * login name the ledger holds is reserved, before anything else is written. Runs in its own
+ * transaction (the moves are not transactional and are recorded at once). Does nothing, and returns
+ * no moves, when this database incarnation is already bound to the ledger or secured.
+ */
+export async function secureIdentifiers(pool: pg.Pool, ctx: ActorContext, ledger: ExternalLedger, options: SecureIdentifiersOptions = {}): Promise<SequenceBump[]> {
+  const { highWater, loginNames } = await externalMarks(ledger);
+  return withCommand(pool, ctx, async (c) => {
+    const { rows } = await c.query<{ sequence_key: string; source_kind: 'PG_SEQUENCE' | 'COUNTER'; value_before: string; external_value: string | null; value_after: string }>(
+      `select sequence_key, source_kind, value_before::text, external_value::text, value_after::text
+         from continuity.secure_identifiers($1::jsonb, $2::jsonb, $3)`,
+      [JSON.stringify(highWater), JSON.stringify(loginNames), (options.unregisteredMargin ?? 1_000_000n).toString()],
+    );
+    return rows.map((r) => ({ sequenceKey: r.sequence_key, sourceKind: r.source_kind, valueBefore: r.value_before, externalValue: r.external_value, valueAfter: r.value_after }));
+  });
+}
+
+/**
+ * Record a restore or failover. The identifiers are secured first (secureIdentifiers; nothing when they
+ * already are), so the restore event, its signatures and everything after them take fresh identifiers.
+ */
 export async function recordRestoreEvent(pool: pg.Pool, ctx: ActorContext, ledger: ExternalLedger, input: RestoreEventInput): Promise<RecordedRestoreEvent> {
+  await secureIdentifiers(pool, ctx, ledger);
   const anchors = await ledgerAnchors(ledger);
   const event = {
     event_kind: input.eventKind,
@@ -99,7 +149,10 @@ export interface CompleteRestoreOptions {
   unregisteredMargin?: bigint;
 }
 
-/** Move every protected source past the external high-water marks and re-enable number issue. */
+/**
+ * Move every protected source past the external high-water marks, reserve every login name the ledger
+ * holds (user IDs issued in the lost window are never issued again, INV-27) and re-enable number issue.
+ */
 export async function completeRestore(
   pool: pg.Pool,
   ctx: ActorContext,
@@ -107,13 +160,12 @@ export async function completeRestore(
   restoreEventId: string,
   options: CompleteRestoreOptions = {},
 ): Promise<SequenceBump[]> {
-  const marks = await ledgerHighWater(ledger);
-  const external = [...marks.entries()].map(([sequence_key, value]) => ({ sequence_key, value: value.toString() }));
+  const { highWater, loginNames } = await externalMarks(ledger);
   const bumps = await withCommand(pool, ctx, async (c) => {
     const { rows } = await c.query<{ sequence_key: string; source_kind: 'PG_SEQUENCE' | 'COUNTER'; value_before: string; external_value: string | null; value_after: string }>(
       `select sequence_key, source_kind, value_before::text, external_value::text, value_after::text
-         from continuity.after_restore($1, $2::jsonb, $3)`,
-      [restoreEventId, JSON.stringify(external), (options.unregisteredMargin ?? 1_000_000n).toString()],
+         from continuity.after_restore($1, $2::jsonb, $3, $4::jsonb)`,
+      [restoreEventId, JSON.stringify(highWater), (options.unregisteredMargin ?? 1_000_000n).toString(), JSON.stringify(loginNames)],
     );
     return rows.map((r) => ({ sequenceKey: r.sequence_key, sourceKind: r.source_kind, valueBefore: r.value_before, externalValue: r.external_value, valueAfter: r.value_after }));
   });
@@ -146,6 +198,7 @@ export interface ContinuityFinding {
     | 'COUNTER_BEHIND_LEDGER'
     | 'LEDGER_BEHIND_COUNTER'
     | 'SEQUENCE_BEHIND_LEDGER'
+    | 'IDENTIFIERS_NOT_SECURED'
     | 'RESTORE_IN_PROGRESS';
   severity: 'ERROR' | 'WARNING';
   subject: string;
@@ -165,6 +218,15 @@ export interface ContinuityCheck {
  */
 export async function checkAgainstLedger(db: Db, ledger: ExternalLedger): Promise<ContinuityCheck> {
   const findings: ContinuityFinding[] = [];
+  const secured = await db.query<{ ok: boolean; incarnation: string }>('select continuity.identifiers_secured() as ok, continuity.current_incarnation() as incarnation');
+  if (!secured.rows[0]?.ok) {
+    findings.push({
+      code: 'IDENTIFIERS_NOT_SECURED',
+      severity: 'ERROR',
+      subject: `incarnation ${secured.rows[0]?.incarnation ?? '?'}`,
+      message: 'this database is a restored, copied or failed-over copy whose identifiers are not secured; start the restore procedure',
+    });
+  }
   const anchors = await verifyExternalAnchors(db, ledger);
   for (const a of anchors.filter((x) => x.status === 'PROBLEM')) {
     findings.push({ code: 'ANCHOR_MISMATCH', severity: 'ERROR', subject: `anchor ${a.anchorId}`, message: a.problem ?? 'differs from the live chains' });
@@ -178,10 +240,11 @@ export async function checkAgainstLedger(db: Db, ledger: ExternalLedger): Promis
     }
   }
 
-  const counters = await db.query<{ sequence_key: string; reserved_ceiling: string; ceiling_incarnation: string | null; current_incarnation: string }>(
-    `select sequence_key, reserved_ceiling::text, ceiling_incarnation, continuity.current_incarnation() as current_incarnation
+  const counters = await db.query<{ sequence_key: string; last_value: string; reserved_ceiling: string; ceiling_incarnation: string | null; current_incarnation: string }>(
+    `select sequence_key, last_value::text, reserved_ceiling::text, ceiling_incarnation, continuity.current_incarnation() as current_incarnation
        from continuity.counter order by sequence_key`,
   );
+  const issued = await ledgerCounterLastValues(ledger);
   for (const c of counters.rows) {
     if (c.ceiling_incarnation !== null && c.ceiling_incarnation !== c.current_incarnation) {
       findings.push({
@@ -199,6 +262,17 @@ export async function checkAgainstLedger(db: Db, ledger: ExternalLedger): Promis
         severity: 'ERROR',
         subject: c.sequence_key,
         message: `the ledger holds ceiling ${external} but the database only ${reserved}: a restore without the restore procedure is suspected`,
+      });
+    }
+    // Values the anchors saw issued: a counter below them was rolled back inside its block (a physical
+    // copy or a snapshot started by crash recovery keeps the incarnation).
+    const seen = issued.get(c.sequence_key);
+    if (seen !== undefined && seen > BigInt(c.last_value)) {
+      findings.push({
+        code: 'COUNTER_BEHIND_LEDGER',
+        severity: 'ERROR',
+        subject: c.sequence_key,
+        message: `the ledger saw value ${seen} issued but the counter is at ${c.last_value}: a restore without the restore procedure is suspected`,
       });
     }
     if (reserved > 0n && (external === null || external < reserved)) {

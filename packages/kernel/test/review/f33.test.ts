@@ -118,8 +118,8 @@ describe('F33 one QA reviewer shortens retention and approves the disposal alone
       tombstones,
       chainKept: Number(chainEvents) > 0,
     }).toEqual({
-      inputChange: expect.any(String),
-      effectiveAfterChange: expect.any(String),
+      inputChange: expect.any(String) as unknown,
+      effectiveAfterChange: expect.any(String) as unknown,
       approval: 'REFUSED',
       purged: 'REFUSED',
       rowsLeft: rowsBefore,

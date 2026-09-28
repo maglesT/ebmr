@@ -588,6 +588,27 @@ describe('Phase 1 exit: retention and purge hardening', () => {
     expect(rows[0]?.tgenabled).toBe('O');
   });
 
+  it('[INV-22] the invariant query reports a purge of an aggregate type no module declares, or of a PERMANENT record', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    await approve(key);
+    const tombstone = await runPurge(key);
+    const found = async () => (await inv22Violations(db.app)).filter((v) => v.detail === key).map((v) => v.check);
+    expect(await found()).toEqual([]);
+    // States no function produces, arranged by the superuser on the insert-only tombstone.
+    await db.admin.query('alter table records.tombstone disable trigger user');
+    try {
+      await db.admin.query("update records.tombstone set aggregate_type = 'esig_signature' where id = $1", [tombstone]);
+      expect(await found()).toContain('PURGED_UNDECLARED_AGGREGATE');
+      await db.admin.query("update records.tombstone set aggregate_type = 'batch', retention_key = 'PERMANENT' where id = $1", [tombstone]);
+      expect(await found()).toContain('PURGED_PERMANENT_RECORD');
+      await db.admin.query("update records.tombstone set retention_key = 'BATCH_RECORD' where id = $1", [tombstone]);
+    } finally {
+      await db.admin.query('alter table records.tombstone enable trigger user');
+    }
+    expect(await found()).toEqual([]);
+  });
+
   it('[INV-22][INV-08] an anchor taken after a purge verifies against the chain written again under the purged key, and a changed event is still reported (F37)', async () => {
     const batch = await batchWithRecords(PAST_BATCH);
     const key = `batch:${batch}`;

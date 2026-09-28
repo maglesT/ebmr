@@ -297,6 +297,16 @@ create index stub_step_entry_step on platform.stub_step_entry (step_id, item_no)
 -- A supervisor co-signature approves one late entry only.
 create unique index stub_step_entry_cosignature on platform.stub_step_entry (cosignature_id) where cosignature_id is not null;
 
+-- GMP data is never created or changed by an administrator (DI-18): a BEFORE INSERT OR UPDATE
+-- trigger for the demonstration tables, the pattern block tables follow (EBMR-IAM-042).
+create function platform.refuse_administrator() returns trigger
+language plpgsql security definer set search_path = pg_catalog, platform, pg_temp as $$
+begin
+  perform iam.assert_not_administrator();
+  return new;
+end
+$$;
+
 create function platform.stub_step_entry_time_model() returns trigger
 language plpgsql security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
@@ -359,6 +369,10 @@ select platform.enforce_db_time('platform.stub_step_entry', array['recorded_at']
 -- Runs after the a0_db_time trigger, so recorded_at is already the database time.
 create trigger a1_time_model before insert on platform.stub_step_entry
   for each row execute function platform.stub_step_entry_time_model();
+create trigger a0a_not_administrator before insert or update on platform.stub_step
+  for each row execute function platform.refuse_administrator();
+create trigger a0a_not_administrator before insert or update on platform.stub_step_entry
+  for each row execute function platform.refuse_administrator();
 select kernel.register_audited_table('platform.stub_step', 'batch', 'batch_id', true);
 select kernel.register_audited_table('platform.stub_step_entry', 'batch', 'batch_id', true);
 

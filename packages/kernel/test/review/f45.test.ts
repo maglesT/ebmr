@@ -58,7 +58,7 @@ const createState = (actor: ActorContext, id: string) =>
   });
 
 describe('F45: platform.create_aggregate_state and DI-18', () => {
-  it('an administrator cannot create GMP aggregate state (state row, history, audit entry) through create_aggregate_state', async () => {
+  it('[DI-18][DI-17] an administrator cannot create GMP aggregate state (state row, history, audit entry) through create_aggregate_state', async () => {
     // 1. Positive control: the actor is an administrator in the DI-18 sense and its context is valid.
     expect(admin.roleCode).toBe('SYSTEM_ADMINISTRATOR');
     await expect(withCommand(db.app, withReason(admin), (c) => c.query('select iam.assert_not_administrator()'))).rejects.toThrow('EBMR-IAM-042');

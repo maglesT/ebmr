@@ -23,13 +23,12 @@
  *       check-constraint abort.
  * Positive controls show the harness raises DRIFT_EXCEEDED for storable offsets.
  */
-import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { nodeClock, runDriftCheck, type TimeReference } from '../../src/time/drift-monitor.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { grantPermission, installStubHooks, testActor } from '../platform/helpers.ts';
+import { grantPermission, installStubHooks, registerValidatedTimeSource, testActor } from '../platform/helpers.ts';
 
 let db: TestDatabase;
 let system: ActorContext;
@@ -43,14 +42,11 @@ async function rows<T extends pg.QueryResultRow>(text: string, params: unknown[]
 }
 
 async function registerSource(name: string, reference: string): Promise<string> {
-  const admin = await testActor(db, { roleCode: 'CSV_DI_LEAD' });
-  return withCommand(db.app, admin, async (c) => {
-    const { rows: r } = await c.query<{ id: string }>(
-      "select platform.register_time_source($1, 'NTP', $2, $3, $4, 'VAL-TS-2026-001') as id",
-      [name, `${name.toLowerCase().replace(/\W+/g, '-')}.example`, reference, randomUUID()],
-    );
-    return r[0]?.id ?? '';
-  });
+  // Set-up corrected for the fix of F49: a source is registered by one person and confirmed by the
+  // named validator, another person (kernel 0520).
+  const registrant = await testActor(db, { roleCode: 'CSV_DI_LEAD' });
+  const validator = await testActor(db, { roleCode: 'CSV_DI_LEAD' });
+  return registerValidatedTimeSource(db, registrant, validator, name, reference);
 }
 
 /** A reference whose clock is `skewMicros` behind the database node (the node is ahead by that much). */
@@ -101,7 +97,7 @@ async function incidentRequests(node: string): Promise<number> {
 beforeAll(async () => {
   db = await createTestDatabase();
   await installStubHooks(db);
-  await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.alarm.clear');
+  await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.time_source.validate', 'platform.alarm.clear');
   await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
   await grantPermission(db, 'SERVICE_ACCOUNT', 'platform.time_check.record');
   npl = await registerSource('NPL India NTP', 'NPL India, traceable to UTC(NPLI)');

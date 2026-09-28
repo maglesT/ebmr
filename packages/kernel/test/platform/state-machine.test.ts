@@ -235,7 +235,13 @@ describe('transitions through the engine', () => {
     const admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', reasonCode: 'IT', reasonText: 'maintenance' });
     await grantPermission(db, 'SYSTEM_ADMINISTRATOR', 'sample_record.submit');
     await expect(create(admin)).rejects.toThrow('EBMR-IAM-042');
+    await expect(withCommand(db.app, admin, (c) => c.query("insert into platform.stub_record (title, body) values ('Admin SOP', 'x')"))).rejects.toThrow(
+      'EBMR-IAM-042',
+    );
     const id = await newRecord();
+    await expect(withCommand(db.app, admin, (c) => c.query("update platform.stub_record set body = 'admin edit' where id = $1", [id]))).rejects.toThrow(
+      'EBMR-IAM-042',
+    );
     await expect(fire(id, 'SUBMIT', 1, admin)).rejects.toThrow('EBMR-IAM-042');
     expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'DRAFT', version: 1 });
     const [created] = await rows<{ permission_code: string; role_code: string }>(

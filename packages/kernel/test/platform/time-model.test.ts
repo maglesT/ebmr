@@ -146,6 +146,15 @@ describe('two times per event', () => {
     expect(relayed).toMatchObject({ occurred_trust: 'DEVICE_SYNCED', time_basis: 'OCCURRED_AT', is_late: false });
   });
 
+  it('[DI-18] an administrator can record neither a step nor an entry', async () => {
+    const admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR' });
+    await expect(
+      withCommand(db.app, admin, (c) => c.query('insert into platform.stub_step (batch_id) values ($1)', [randomUUID()])),
+    ).rejects.toThrow('EBMR-IAM-042');
+    const { stepId } = await newStep();
+    await expect(addEntry(stepId, {}, admin)).rejects.toThrow('EBMR-IAM-042');
+  });
+
   it('[INV-16] a PAPER back-entry is a late entry too', async () => {
     const { stepId } = await newStep({ startedAgo: '1 hour' });
     await expect(addEntry(stepId, { occurredAgo: '30 minutes', trust: 'PAPER' })).rejects.toThrow('EBMR-PLAT-015');

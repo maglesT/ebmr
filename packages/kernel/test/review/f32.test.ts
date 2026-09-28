@@ -92,7 +92,7 @@ describe('F32 PERMANENT retention with dependants', () => {
       effectiveStatus: 'OPEN',
       effectiveRetainUntil: null,
       approval: 'REFUSED EBMR-REC-030',
-      purged: expect.stringMatching(/^REFUSED EBMR-REC-03\d$/),
+      purged: expect.stringMatching(/^REFUSED EBMR-REC-03\d$/) as unknown,
       rowsLeft: '1',
       tombstones: '0',
     });

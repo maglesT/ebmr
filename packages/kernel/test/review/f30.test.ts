@@ -134,10 +134,10 @@ describe('F30: a DI investigation holds and blocks the records the person signed
       disposal,
     };
     expect(observed).toMatchObject({
-      links: expect.arrayContaining([`esig_stub:${stub1}`, `esig_stub:${stub2}`]),
-      holds: expect.arrayContaining([`esig_stub:${stub1}`, `esig_stub:${stub2}`]),
+      links: expect.arrayContaining([`esig_stub:${stub1}`, `esig_stub:${stub2}`]) as unknown,
+      holds: expect.arrayContaining([`esig_stub:${stub1}`, `esig_stub:${stub2}`]) as unknown,
       blockers: { stub1: ['DI_INVESTIGATION', 'HOLD'], stub2: ['DI_INVESTIGATION', 'HOLD'] },
-      disposal: expect.stringContaining('EBMR-REC-032'),
+      disposal: expect.stringContaining('EBMR-REC-032') as unknown,
     });
   });
 });

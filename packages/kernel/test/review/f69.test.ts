@@ -41,14 +41,18 @@ const codeOf = (e: unknown): string => {
   return m.match(/EBMR-[A-Z]+-\d+/)?.[0] ?? `UNEXPECTED: ${m}`;
 };
 
-async function registerSource(admin: ActorContext, name: string, reference: string): Promise<string> {
-  return withCommand(db.app, again(admin), async (c) => {
+// Set-up corrected for the fix of F49: the administrator registers a source naming its validator,
+// the CSV / data-integrity lead, who confirms it (kernel 0520, 0900).
+async function registerSource(admin: ActorContext, validator: ActorContext, name: string, reference: string): Promise<string> {
+  const id = await withCommand(db.app, again(admin), async (c) => {
     const { rows } = await c.query<{ id: string }>(
       "select platform.register_time_source($1, 'NTP', $2, $3, $4, 'VAL-TS-F69') as id",
-      [name, `${name.toLowerCase().replace(/\W+/g, '-')}.example`, reference, randomUUID()],
+      [name, `${name.toLowerCase().replace(/\W+/g, '-')}.example`, reference, validator.personId],
     );
     return rows[0]?.id ?? '';
   });
+  await withCommand(db.app, again(validator), (c) => c.query('select platform.confirm_time_source($1)', [id]));
+  return id;
 }
 
 /** The time monitor (SYSTEM service identity holding PLATFORM.TIME_CHECK_RECORD) submits a drift check: the node is 3.5 s ahead of both references. */
@@ -96,8 +100,9 @@ async function incidentForAlarm(alarmId: string) {
 beforeAll(async () => {
   db = await createTestDatabase();
   const { admin } = await seedAdministration(db); // SYSTEM_ADMINISTRATOR holds PLATFORM.TIME_SOURCE_MANAGE
-  npl = await registerSource(admin, `NPL India NTP ${randomBytes(2).toString('hex')}`, 'NPL India, traceable to UTC(NPLI)');
-  nic = await registerSource(admin, `NIC NTP ${randomBytes(2).toString('hex')}`, 'NIC time service, traceable to NPL India');
+  const csv = await seededTestActor(db, { roleCode: 'CSV_DI_LEAD', legalName: 'F69 CSV lead' }); // PLATFORM.TIME_SOURCE_VALIDATE
+  npl = await registerSource(admin, csv, `NPL India NTP ${randomBytes(2).toString('hex')}`, 'NPL India, traceable to UTC(NPLI)');
+  nic = await registerSource(admin, csv, `NIC NTP ${randomBytes(2).toString('hex')}`, 'NIC time service, traceable to NPL India');
   monitor = await seededTestActor(db, { source: 'SYSTEM', legalName: 'F69 time monitor' });
   operator = await seededTestActor(db, { roleCode: 'OPERATOR', legalName: 'F69 Operator' });
 });

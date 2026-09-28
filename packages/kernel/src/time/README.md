@@ -24,6 +24,12 @@ time comes from the database clock (`clock_timestamp()`).
 - **`platform.time_basis(occurred_at, trust, recorded_at)`**: the time that drives time constraints. It is
   `occurred_at` only when the trust is `DEVICE_SYNCED`, otherwise `recorded_at`. Tables store the
   choice in `time_basis` and `time_basis_at`.
+- **The trust is not the caller's word.** `platform.check_time_trust_source(trust)` refuses a device time
+  (`DEVICE_SYNCED`, `DEVICE_UNSYNCED`) unless the validated command comes from a machine identity: an
+  instrument interface or gateway, source `INTEGRATION` or `SYSTEM`, which only service and integration
+  accounts can use (EBMR-PLAT-009). A person (source `UI` or `API`) typing a time, even one read off an
+  instrument display, states `USER_CLAIMED` (or `PAPER`) and goes through the late-entry rules below.
+  `mayClaimTrust(source, trust)` mirrors it in TypeScript.
 - **Late entries.** A person-claimed time (`USER_CLAIMED`, `PAPER`) makes an entry late.
   `platform.assess_late_entry(...)` returns `is_late`, `window_ends_at` and `beyond_window`, and
   `platform.check_late_entry(...)` enforces the rules:
@@ -40,10 +46,15 @@ time comes from the database clock (`clock_timestamp()`).
 - **Monotonic order.** `platform.next_aggregate_seq(type, id, recorded_at)` (owner-only; call it from
   triggers) gives each aggregate event the next counter value. A `recorded_at` earlier than the
   aggregate's latest one is returned as `regressed` and logged in `platform.time_anomaly`.
+- **Site zone of an entry.** `platform.entry_site_zone()` returns the site's zone (`kernel.site_zone()`, the
+  identity module's policy `site.zone`), never a zone the client declares, and refuses a command whose
+  context declares another zone (EBMR-PLAT-023), as e-signatures do (EBMR-ESIG-035). The stored offset
+  and the site-local calendar day therefore always belong to the site (DI-27).
 - **Demonstration of the pattern.** `platform.stub_step` and `platform.stub_step_entry` show how block
   tables will apply all of the above. Their trigger `platform.stub_step_entry_time_model()` sets
   `review_flags` to any of `LATE_ENTRY`, `LATE_BEYOND_WINDOW`, `DEVICE_TIME_UNSYNCED`,
-  `CLOCK_REGRESSION` and `TIME_FAULT_WINDOW`.
+  `CLOCK_REGRESSION` and `TIME_FAULT_WINDOW`. `platform.refuse_administrator()` keeps administrators
+  out of them (DI-18, EBMR-IAM-042).
 
 ## Site time (`site-time.ts`, `instant.ts`)
 
@@ -59,32 +70,58 @@ time comes from the database clock (`clock_timestamp()`).
 ## Drift monitor (`drift-monitor.ts`, migration 0520)
 
 - **Time sources.** `platform.time_source` is a validated configuration item: kind NTP, endpoint, a
-  reference such as NPL or NIC traceability, validated_by and a validation reference. Sources are
-  added with `platform.register_time_source` and switched with `platform.set_time_source_active`,
-  both requiring the permission `platform.time_source.manage`. The table is audited.
+  reference such as NPL or NIC traceability, validated_by and a validation reference. No person alone
+  decides which references the monitor trusts (DI-27, DI-24):
+  - `platform.register_time_source(...)` (permission `platform.time_source.manage`, the system
+    administrator) records a pending registration in `platform.time_source_registration`, naming the
+    validator: an active person other than the registrant (EBMR-PLAT-033). The monitor does not use it.
+  - `platform.confirm_time_source(registration_id)`: the named validator, holding
+    `platform.time_source.validate` (the CSV / data-integrity lead, kernel 0900), confirms it in their
+    own command (EBMR-PLAT-034 for anyone else). Only then does the source exist in
+    `platform.time_source`, active, with `validated_by` taken from that command.
+  - `platform.set_time_source_active` switches a source with `platform.time_source.manage` and a reason;
+    a deactivation that leaves fewer active sources than `time.min_references` needs
+    `platform.time_source.validate` instead (EBMR-PLAT-035).
+  All three tables are audited on the chain `time_source:<id>`.
 - **Running a check.** `runDriftCheck(pool, { node, actor, references })` reads each injected
   `TimeReference`. It computes the offset against the database clock, bracketing each read with
   `clock_timestamp()`, and calls `platform.record_drift_check`. That function stores an insert-only,
-  audited sample for every active source.
+  audited sample for every active source. The default read timeout is twice the threshold
+  (`defaultReadTimeoutMs`): a slower read cannot give a usable reading.
+- **What a reading proves.** Offsets and uncertainties are stored exactly as measured (no precision
+  limit, so a clock reset to 1970 alarms instead of overflowing). The threshold keeps the three
+  decimals its setting allows (`max_scale`). Each sample stores three verdicts, computed from the
+  stored values and held to them by check constraints:
+  - `within_threshold`: |offset| + uncertainty is within the threshold, which proves the clock was good;
+  - `over_threshold`: |offset| is above the threshold and the reading is conclusive;
+  - `usable`: the uncertainty is within the threshold, or even |offset| - uncertainty is above it. A
+    reading that is too uncertain proves nothing: it neither raises nor clears an offset alarm, and it
+    counts as no usable reference.
 - **Alarms and incidents.** Each condition raises one alarm while it lasts:
 
-  | Alarm | Raised when | Incident requested |
-  |---|---|---|
-  | `DRIFT_EXCEEDED` | a reachable source's absolute offset is above `time.drift_alarm_threshold_s` (default 1 s, allowed 0.1-5 s) | yes |
-  | `REFERENCE_LOST` | no source can be reached | yes |
-  | `NO_TIME_SOURCE` | no source is active | yes |
-  | `REFERENCE_DEGRADED` | fewer sources are reachable than `time.min_references` (default 2) | no |
+  | Alarm | Raised when | Clears when | Incident requested |
+  |---|---|---|---|
+  | `DRIFT_EXCEEDED` | a usable reading is over `time.drift_alarm_threshold_s` (default 1 s, allowed 0.1-5 s) | every usable reading proves the clock within it | yes |
+  | `REFERENCE_LOST` | no usable reading | a usable reading | yes |
+  | `NO_TIME_SOURCE` | no source is active | a source is active | yes |
+  | `REFERENCE_DEGRADED` | fewer usable readings than `time.min_references` (default 2) | enough usable readings | no |
 
-  An alarm clears once its condition is gone. `platform.clear_alarm` clears one by hand and needs a
-  reason plus the permission `platform.alarm.clear`.
-- **Incident hook.** `platform.raise_time_incident(kind, node, severity, details)` writes the alarm and
-  the outbox message `incident.requested` (payload: `incident_type` DATA_INTEGRITY, `incident_source`
-  TIME_SYNC, severity, alarm id, window start). The lead wires this message to
-  `records.raise_incident`.
+  Only `record_drift_check` raises and clears these, from recorded readings. `platform.report_time_fault`
+  lets a time service (source SYSTEM, `platform.time_check.record`) report a fault the monitor does not
+  evaluate (today `CLOCK_REGRESSION`; EBMR-PLAT-036 for the monitored kinds), so nobody can raise an
+  alarm early and keep the monitor from raising its own. `platform.clear_alarm` clears such an alarm by
+  hand and needs a reason plus the permission `platform.alarm.clear`.
+- **Incident hook.** `platform.raise_time_incident(kind, node, severity, details)` (owner only) writes the
+  alarm, raises the data-integrity incident (kernel 0900) and the outbox message `incident.requested`.
 - **Flagging entries.** `platform.time_fault_windows()` spans from the last good sample to the
-  clearance. `platform.entries_in_time_fault_windows()` lists every audited GMP entry recorded in a
-  window, for review. Capture is never blocked; entries made while a fault is open carry
-  `TIME_FAULT_WINDOW`.
+  clearance. It is bounded by audit positions (`platform.audit_position()`, the highest audit-event id
+  handed out): each sample records it, an alarm starts at its last good sample's position and a
+  clearance records the position when it was made. `platform.entries_in_time_fault_windows()` lists
+  every audited GMP entry whose audit event lies in that range, for review, whatever time the faulty
+  clock stamped on it, so entries recorded across a clock step are listed too. Capture is never
+  blocked; entries made while a fault is open carry `TIME_FAULT_WINDOW`.
+- **A silent monitor.** `platform.time_monitor_violations()` (must return no rows) reports every node
+  whose newest check is older than `time.drift_check_max_age_s` (default 300 s).
 
 ## Calling it from other modules
 
@@ -94,6 +131,11 @@ time comes from the database clock (`clock_timestamp()`).
   - grant INSERT on explicit columns only;
   - add `occurred_at timestamptz` and `occurred_trust platform.time_trust` where a claimed time is
     meaningful;
-  - call `check_occurred_at`, `time_basis`, `assess_late_entry` and `check_late_entry` from its
-    BEFORE INSERT trigger, as `stub_step_entry_time_model` does.
+  - call `check_occurred_at`, `check_time_trust_source`, `time_basis`, `assess_late_entry` and
+    `check_late_entry` from its BEFORE INSERT trigger, and store `entry_site_zone()`, as
+    `stub_step_entry_time_model` does.
+- `platform.time_model_violations()` must return no rows for the whole installation. A registered
+  column is checked for its forcing trigger, default and privileges. An audited table's unregistered
+  `recorded_at` is reported when the application role may write it or its default is not the database
+  clock.
 - Display: `siteTime(Instant.parse(row.recorded_at_text), siteZone).display`.

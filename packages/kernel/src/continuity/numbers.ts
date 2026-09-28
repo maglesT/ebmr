@@ -5,10 +5,14 @@
  * then acknowledged in the database (continuity.reserve_counter_ceiling), and only then can the owning
  * module issue values up to that ceiling (continuity.next_counter_value, called from its SECURITY
  * DEFINER functions). Because the ceiling outside the database is always at least the highest value
- * ever issued, a restore can move every counter past the lost window (continuity.after_restore).
+ * ever issued, a restore can move every counter past the lost window (continuity.after_restore). A
+ * block is also bound to the server start: after any start (which may follow a physical copy or a
+ * snapshot rollback that keeps the database incarnation) the rest of the block is retired and a new
+ * block is reserved (EBMR-CONT-011, handled by withProtectedNumbers).
  */
 import type pg from 'pg';
-import { toDbContext, withCommand, type ActorContext } from '../db/command.ts';
+import { withCommand, type ActorContext } from '../db/command.ts';
+import { withGuardedCommand } from '../identity/authority.ts';
 import { ledgerMaxCeiling, type ExternalLedger, type HighWaterMark } from './ledger.ts';
 
 export type Db = pg.Pool | pg.PoolClient;
@@ -41,61 +45,41 @@ export function counterNeedingReservation(error: unknown): string | null {
 
 /**
  * Reserve the next block of a protected counter: write the new ceiling to the external ledger first,
- * then acknowledge it in the database. Serialised per counter with an advisory lock, so the ledger and
- * the database see reservations in the same order. Returns the ceiling now in force.
+ * then acknowledge it in the database. One transaction, in this order:
+ *   1. continuity.prepare_counter_reservation authorises the actor (DI-18, DI-17 in the counter's scope),
+ *      locks the counter and checks the database incarnation. A refused actor, or a restored database,
+ *      writes NOTHING outside the database: no ceiling reaches the ledger that the database could never
+ *      acknowledge (which would later skip serials and raise a false LEDGER_AHEAD alarm).
+ *   2. the new ceiling is appended to the external ledger (write-ahead);
+ *   3. continuity.reserve_counter_ceiling acknowledges it, and the transaction commits.
+ * Reservations of one counter are serialised (transaction advisory lock plus the counter row lock), so
+ * the ledger and the database see them in the same order. A refusal on authority is logged again
+ * outside the rolled-back transaction (withGuardedCommand, DI-17). Returns the ceiling now in force.
  */
 export async function reserveCounterBlock(pool: pg.Pool, ctx: ActorContext, ledger: ExternalLedger, sequenceKey: string): Promise<bigint> {
-  const client = await pool.connect();
-  const lockKey = `continuity.counter:${sequenceKey}`;
-  try {
-    await client.query('select pg_advisory_lock(hashtextextended($1, 0))', [lockKey]);
-    try {
-      const { rows } = await client.query<{
-        last_value: string;
-        reserved_ceiling: string;
-        block_size: string;
-        ceiling_incarnation: string | null;
-        current_incarnation: string;
-      }>(
-        `select c.last_value, c.reserved_ceiling, p.block_size, c.ceiling_incarnation, continuity.current_incarnation() as current_incarnation
-           from continuity.counter c join continuity.protected_sequence p on p.sequence_key = c.sequence_key
-          where c.sequence_key = $1`,
-        [sequenceKey],
-      );
-      const state = rows[0];
-      if (!state) throw new ContinuityError('EBMR-CONT-010', `${sequenceKey} is not a protected counter`);
-      if (state.ceiling_incarnation !== null && state.ceiling_incarnation !== state.current_incarnation) {
-        // Nothing is written to the ledger: the restore procedure must run first.
-        throw new ContinuityError(INCARNATION_CHANGED, `the database incarnation changed since the ceiling of ${sequenceKey} was reserved; run the restore procedure`);
-      }
-      const floor = (await ledgerMaxCeiling(ledger, sequenceKey)) ?? 0n;
-      const last = BigInt(state.last_value);
-      const reserved = BigInt(state.reserved_ceiling);
-      let base = last > reserved ? last : reserved;
-      if (floor > base) base = floor;
-      const ceiling = base + BigInt(state.block_size);
-      const receipt = await ledger.append({ type: 'CEILING', database: ledger.database, sequenceKey, ceiling: ceiling.toString(), floor: floor.toString() });
-      await client.query('begin');
-      try {
-        await client.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
-        const res = await client.query<{ ceiling: string }>('select continuity.reserve_counter_ceiling($1, $2, $3, $4) as ceiling', [
-          sequenceKey,
-          floor.toString(),
-          ceiling.toString(),
-          receipt.id,
-        ]);
-        await client.query('commit');
-        return BigInt(res.rows[0]?.ceiling ?? '0');
-      } catch (error) {
-        await client.query('rollback');
-        throw error;
-      }
-    } finally {
-      await client.query('select pg_advisory_unlock(hashtextextended($1, 0))', [lockKey]);
-    }
-  } finally {
-    client.release();
-  }
+  return withGuardedCommand(pool, ctx, async (client) => {
+    await client.query('select pg_advisory_xact_lock(hashtextextended($1, 0))', [`continuity.counter:${sequenceKey}`]);
+    const { rows } = await client.query<{ last_value: string; reserved_ceiling: string; block_size: string }>(
+      'select last_value::text, reserved_ceiling::text, block_size::text from continuity.prepare_counter_reservation($1)',
+      [sequenceKey],
+    );
+    const state = rows[0];
+    if (!state) throw new ContinuityError('EBMR-CONT-010', `${sequenceKey} is not a protected counter`);
+    const floor = (await ledgerMaxCeiling(ledger, sequenceKey)) ?? 0n;
+    const last = BigInt(state.last_value);
+    const reserved = BigInt(state.reserved_ceiling);
+    let base = last > reserved ? last : reserved;
+    if (floor > base) base = floor;
+    const ceiling = base + BigInt(state.block_size);
+    const receipt = await ledger.append({ type: 'CEILING', database: ledger.database, sequenceKey, ceiling: ceiling.toString(), floor: floor.toString() });
+    const res = await client.query<{ ceiling: string }>('select continuity.reserve_counter_ceiling($1, $2, $3, $4)::text as ceiling', [
+      sequenceKey,
+      floor.toString(),
+      ceiling.toString(),
+      receipt.id,
+    ]);
+    return BigInt(res.rows[0]?.ceiling ?? '0');
+  });
 }
 
 /**

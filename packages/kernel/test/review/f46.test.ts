@@ -80,7 +80,7 @@ async function addEntry(stepId: string, itemNo: number, ctx: ActorContext): Prom
 }
 
 describe('F46: the site zone stored with a GMP entry (DI-27)', () => {
-  it('an entry does not store a caller-declared foreign zone and offset: it is refused or stored with the site zone', async () => {
+  it('[DI-27] an entry does not store a caller-declared foreign zone and offset: it is refused or stored with the site zone', async () => {
     // 1. Positive control: the site's configured zone.
     const { rows: policy } = await db.app.query<{ z: string }>("select iam.policy_text('site.zone') as z");
     expect(policy[0]?.z).toBe('Asia/Kolkata');

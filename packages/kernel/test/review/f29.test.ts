@@ -23,7 +23,6 @@
  *   2. the approval signature (RECORD_TYPE_APPROVED) of a record-type version in force in the
  *      record register (records.record_type_approval.approval_signature_id).
  */
-import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import type { RetentionInputs } from '../../src/records/retention.ts';

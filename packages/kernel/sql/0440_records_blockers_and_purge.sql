@@ -92,6 +92,7 @@ declare
   v_sched records.retention_schedule%rowtype;
   v_eff jsonb := records.compute_effective_retention(p_schedule_id);
   v_today date;
+  v_problem text;
   n record;
 begin
   select * into v_sched from records.retention_schedule where id = p_schedule_id;
@@ -100,10 +101,9 @@ begin
     code := 'EBMR-REC-023'; detail := format('%s has already been purged', v_sched.record_key); return next;
   end if;
   -- Only aggregate types declared for retention, under a retention key their module names (F29, F75).
-  code := 'EBMR-REC-024';
-  detail := substr(records.retention_aggregate_problem(v_sched.aggregate_type, v_sched.retention_key), length('EBMR-REC-024 ') + 1);
-  if detail is not null then
-    return next;
+  v_problem := records.retention_aggregate_problem(v_sched.aggregate_type, v_sched.retention_key);
+  if v_problem is not null then
+    code := split_part(v_problem, ' ', 1); detail := substr(v_problem, strpos(v_problem, ' ') + 1); return next;
   end if;
   if v_eff ->> 'status' = 'OPEN' then
     code := 'EBMR-REC-030'; detail := format('retention of %s is open: %s', v_sched.record_key, v_eff -> 'openBecause'); return next;
@@ -553,6 +553,13 @@ begin
 
   return query
   select 'PURGED_ON_OR_BEFORE_RETAIN_UNTIL'::text, tb.record_key from records.tombstone tb where tb.purged_on_site_date <= tb.retain_until;
+
+  -- Only declared aggregate types under an allowed retention key are ever purged, and never a PERMANENT record (F29, F32, F75).
+  return query
+  select 'PURGED_UNDECLARED_AGGREGATE'::text, tb.record_key from records.tombstone tb
+  where records.retention_aggregate_problem(tb.aggregate_type, tb.retention_key) is not null;
+  return query
+  select 'PURGED_PERMANENT_RECORD'::text, tb.record_key from records.tombstone tb where tb.retention_key = 'PERMANENT';
 
   return query
   select 'PURGED_WHILE_ON_HOLD'::text, tb.record_key || ' hold ' || h.id

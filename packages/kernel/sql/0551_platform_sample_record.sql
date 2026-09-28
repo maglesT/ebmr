@@ -52,6 +52,8 @@ end
 $$;
 create trigger a2_content_version before insert or update on platform.stub_record
   for each row execute function platform.stub_record_content_version();
+create trigger a0a_not_administrator before insert or update on platform.stub_record
+  for each row execute function platform.refuse_administrator();
 
 create function platform.guard_sample_record_has_body(p_aggregate_type text, p_aggregate_id uuid, p_transition jsonb, p_payload jsonb, p_actor jsonb)
 returns text
