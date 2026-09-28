@@ -1,10 +1,10 @@
 /**
  * Authority checks at the moment of action (DI-17, DI-18, DI-21, INV-26).
  *
- * The database decides (iam.evaluate_authority / iam.require_permission) and stores every
- * evaluation. A refused command rolls back, which would also roll back the stored refusal, so
- * withGuardedCommand logs the refusal again in its own transaction: "a failed check blocks the
- * action and is logged".
+ * The database decides (iam.evaluate_authority / iam.require_permission, and the platform's AUTHORITY
+ * adapter iam.platform_authority) and stores every evaluation. A refused command rolls back, which
+ * would also roll back the stored refusal, so withGuardedCommand logs the refusal again in its own
+ * transaction: "a failed check blocks the action and is logged".
  */
 import type pg from 'pg';
 import { withCommand, type ActorContext } from '../db/command.ts';
@@ -59,7 +59,9 @@ async function logRefusal(pool: pg.Pool, error: unknown): Promise<void> {
   const d = errorDetail(error);
   if (!d) return;
   try {
-    if (code === 'EBMR-IAM-040') {
+    // A platform permission denied by the AUTHORITY adapter (EBMR-PLAT-006, kernel 0710) carries the
+    // same detail as an EBMR-IAM-040 refusal: the catalogue permission in the actor's location (F72).
+    if (code === 'EBMR-IAM-040' || code === 'EBMR-PLAT-006') {
       await pool.query('select iam.evaluate_authority($1, $2, $3, $4::jsonb, null, $5)', [
         d['person_id'],
         d['account_id'],
@@ -76,15 +78,16 @@ async function logRefusal(pool: pg.Pool, error: unknown): Promise<void> {
 }
 
 /**
- * withCommand plus refusal logging: when the database refuses on authority (EBMR-IAM-040) or
- * segregation (EBMR-IAM-041), the refusal is stored again outside the rolled-back command.
+ * withCommand plus refusal logging: when the database refuses on authority (EBMR-IAM-040, or a
+ * platform permission, EBMR-PLAT-006) or segregation (EBMR-IAM-041), the refusal is stored again
+ * outside the rolled-back command.
  */
 export async function withGuardedCommand<T>(pool: pg.Pool, ctx: ActorContext, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   try {
     return await withCommand(pool, ctx, work);
   } catch (error) {
     const code = ebmrCode(error);
-    if (code === 'EBMR-IAM-040' || code === 'EBMR-IAM-041') await logRefusal(pool, error);
+    if (code === 'EBMR-IAM-040' || code === 'EBMR-IAM-041' || code === 'EBMR-PLAT-006') await logRefusal(pool, error);
     throw error;
   }
 }

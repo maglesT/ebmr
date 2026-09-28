@@ -371,11 +371,24 @@ describe('sign (esig.sign)', () => {
     const id = await createStub(db, op);
     const ch = await challengeFor(db, op, id, { meaning: 'PERFORMED' });
     const ev = await signatureAuth(db, op, op, ch.challengeId);
+    // Through the product path the command itself is refused when it starts (DI-27).
     await expectRefused(
       withCommand(db.app, await cmd(db, op, { siteZone: 'Europe/Berlin' }), (c) =>
         sign(c, { challengeId: ch.challengeId, authEventId: ev, expectedState: 'OPEN' }, testSealKey)),
-      'EBMR-ESIG-035', /declares zone Europe\/Berlin but the site zone is Asia\/Kolkata/,
+      'EBMR-IAM-118', /declares the time zone Europe\/Berlin, but the site's time zone \(policy site\.zone\) is Asia\/Kolkata/,
     );
+    // Defence in depth: a validated context declaring another zone that did not come through
+    // kernel.begin_command (installed by owner-level code; here a superuser) is still refused by the
+    // signing function's own zone check.
+    await asSuperuserTransaction(db, async (c) => {
+      const berlin = toDbContext(await cmd(db, op, { siteZone: 'Europe/Berlin' }));
+      await c.query('select iam.set_internal_actor($1::jsonb)', [JSON.stringify(berlin)]);
+      await c.query('set local role ebmr_app');
+      const { rows: [validated] } = await c.query<{ ok: boolean }>('select iam.actor_is_validated() as ok');
+      expect(validated?.ok, 'the Berlin context is a validated actor, so only the zone check can refuse it').toBe(true);
+      await expectRefused(c.query("select esig.sign($1, $2, 'OPEN', null, false)", [ch.challengeId, ev]),
+                          'EBMR-ESIG-035', /declares zone Europe\/Berlin but the site zone is Asia\/Kolkata/);
+    });
     expect(await signaturesOn(id, 'PERFORMED')).toBe(0);
     const sig = await signWith(db, op, ch.challengeId, ev);
     expect(sig.manifestation.siteZone).toBe('Asia/Kolkata');

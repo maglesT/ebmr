@@ -502,16 +502,24 @@ describe('Phase 1 exit: retention and purge hardening', () => {
     await withCommand(db.app, again(author), (c) => linkRetentionDependency(c, lotKey, `batch:${batch}`, 'COMPONENT_LOT_CONSUMED'));
     await withCommand(db.app, again(author), (c) => updateRetentionInputs(c, `batch:${batch}`, { expiryDate: '2010-02-28' }, 'expiry corrected'));
     expect((await retentionOf(db.app, 'component_lot', lot)).effective).toMatchObject({ status: 'DATED', retainUntil: '2011-02-28' });
-    // Neither the lot's nor the batch's disposal can be approved by that person: the signature is refused
-    // (the disposal content names the authors, INV-03) or, failing that, approve_purge refuses them.
-    await expect(approveDisposal(db, author, lotKey, 'retention ended')).rejects.toThrow(/EBMR-ESIG-044|EBMR-REC-035/);
-    await expect(approveDisposal(db, author, `batch:${batch}`, 'retention ended')).rejects.toThrow(/EBMR-ESIG-044|EBMR-REC-035/);
-    expect(await scalar<string>(db.app, 'select count(*)::text as v from records.purge_approval where record_key = $1', [lotKey])).toBe('0');
-    // The database's own rule: a signature made before the person became an author does not let them approve.
+    // 1. The signing path: the disposal content names the authors (entered_by), so esig refuses their
+    //    RECORD_DISPOSAL_APPROVED signature (INV-03) before approve_purge is reached.
+    await expect(approveDisposal(db, author, lotKey, 'retention ended')).rejects.toThrow(
+      'EBMR-ESIG-044 INV-03: RECORD_DISPOSAL_APPROVED is never signed by a person who performed, entered data in or corrected the record',
+    );
+    await expect(approveDisposal(db, author, `batch:${batch}`, 'retention ended')).rejects.toThrow(
+      'EBMR-ESIG-044 INV-03: RECORD_DISPOSAL_APPROVED is never signed by a person who performed, entered data in or corrected the record',
+    );
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from records.purge_approval where record_key in ($1, $2)', [lotKey, `batch:${batch}`])).toBe('0');
+    // 2. The database's own rule (EBMR-REC-035), with a signature that is itself independent: made
+    //    before its signer became an author. Linking a dependant with an earlier date changes neither
+    //    the record's content nor its retain-until, so the signature stays valid; approve_purge still
+    //    refuses the signer, who now shaped the record's retention.
     const other = await batchWithRecords(PAST_BATCH);
     const early = await signFor(db, author, await disposalAggregate(db, `batch:${other}`), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
     const dependant = await batchWithRecords({ ...PAST_BATCH, expiryDate: '2009-12-31' });
     await withCommand(db.app, again(author), (c) => linkRetentionDependency(c, `batch:${other}`, `batch:${dependant}`, 'REWORKED_INTO'));
+    expect(await db.app.query<{ valid: boolean }>('select (esig.signature_state($1) ->> $2)::boolean as valid', [early, 'valid']).then((r) => r.rows[0]?.valid)).toBe(true);
     await expect(withCommand(db.app, again(author), (c) => approvePurge(c, `batch:${other}`, early, 'retention ended'))).rejects.toThrow(
       `EBMR-REC-035 the approver entered retention inputs or dependency links that decide when batch:${other}`,
     );
@@ -648,18 +656,12 @@ describe('Phase 1 exit: retention and purge hardening', () => {
     ).rejects.toThrow("EBMR-REC-020 site zone 'Pacific/Kiritimati' is not the zone of this site (Asia/Kolkata)");
     await withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'batch', batch, 'BATCH_PROCESSING_RECORD', FUTURE_BATCH));
     expect((await retentionOf(db.app, 'batch', batch)).siteZone).toBe('Asia/Kolkata');
-    // The zone a command context declares is not taken either: either the context is refused, or the site zone is kept.
-    const viaContext = randomUUID();
-    const created = await withCommand(db.app, { ...again(qa), siteZone: 'Pacific/Kiritimati' }, (c) =>
-      createRetentionSchedule(c, 'batch', viaContext, 'BATCH_PROCESSING_RECORD', FUTURE_BATCH),
-    ).then(
-      () => true,
-      (error: unknown) => {
-        expect(String(error)).toMatch(/EBMR-[A-Z]+-\d+/);
-        return false;
-      },
-    );
-    if (created) expect((await retentionOf(db.app, 'batch', viaContext)).siteZone).toBe('Asia/Kolkata');
+    // A command context declaring another zone never reaches the schedule: the identity module refuses the
+    // context itself (EBMR-IAM-118). With the site policy in place records reads the zone from it, never
+    // from the context (the default schedule above keeps the site zone).
+    await expect(
+      withCommand(db.app, { ...again(qa), siteZone: 'Pacific/Kiritimati' }, (c) => createRetentionSchedule(c, 'batch', randomUUID(), 'BATCH_PROCESSING_RECORD', FUTURE_BATCH)),
+    ).rejects.toThrow('EBMR-IAM-118');
   });
 });
 
