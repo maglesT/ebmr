@@ -285,3 +285,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   tablets web (document-first designer, shop-floor step screen, sandbox runs, audit trail), site gateway + scale
   simulator and Playwright end-to-end tests. Goal: first clickable version early.
   Resume notes: review workflow wf_2867a725-d77 (script scratchpad/workflows/review.js).
+- 2026-09-28: App design finished (winner: operator-first proposal, with grafts from the compliance and delivery
+  proposals; both judges agreed). Plan and module briefs saved in docs/build-plan/phase-2/apps/ (00-plan, 01-build-order,
+  02-dependencies, M1-C0 spine .. M6-C5 gateway, judges.json). Wave 0 (C0 spine: dependencies, frozen api-contract,
+  browser-safe recipe-core, test-kit, server/web skeletons with session core, demo tooling, Playwright harness)
+  delegated to one agent with lead permissions (installs and root configs allowed; no commits). Wave 1 (C1 access/esig/
+  audit, C2 designer, C3 execution store and sandbox runs, C4 shop-floor web, C5 gateway and scale simulator) starts
+  when exit A0 is green. First clickable version = journey spec fcv.spec.ts (login, designer, validate/simulate, send to
+  sandbox, issue TEST- batch, kiosk entries with badge taps, scale capture, limits/exceptions, PERFORMED/VERIFIED
+  ceremony, hold point, stage sign-off, replay, audit trail on both installations).
