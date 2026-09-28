@@ -94,11 +94,60 @@ async function viewContext(app: AppContext, db: Db, run: RunContext, state: engi
   };
 }
 
-/** The canonical envelope hash and version a signature on `content` would bind, given the stored head. */
-async function bindingOf(db: Db, runId: string, c: engine.AggregateContent): Promise<{ version: number; text: string; hash: string }> {
+/**
+ * The `intent` of a content preview: the meaning code, and for an exception disposition the proposal being
+ * signed, `EXCEPTION_DISPOSITIONED|<base64url of the JSON {outcome, justification}>` (the proposal is part of the
+ * signed content, so the signer's preview must show and hash it).
+ */
+export function parseIntent(intent: string): { meaning: string; proposal: { outcome: 'NO_IMPACT' | 'DEVIATION_RAISED'; justification: string } | null } {
+  const bar = intent.indexOf('|');
+  if (bar < 0) return { meaning: intent, proposal: null };
+  const meaning = intent.slice(0, bar);
+  let p: unknown;
+  try {
+    p = JSON.parse(Buffer.from(intent.slice(bar + 1), 'base64url').toString('utf8'));
+  } catch {
+    p = null;
+  }
+  const r = (p ?? {}) as Record<string, unknown>;
+  if ((r['outcome'] !== 'NO_IMPACT' && r['outcome'] !== 'DEVIATION_RAISED') || typeof r['justification'] !== 'string' || r['justification'].trim() === '') {
+    throw refusal(400, { code: 'SCHEMA', kind: 'INVALID_INPUT', whatHappened: 'The proposed disposition in the request is not in the expected form.', why: 'Expected <meaning>|<base64url JSON {outcome, justification}>.', controls: ['DI-37'], whatYouCanDo: ['Reload the screen and start the signing again.'] });
+  }
+  return { meaning, proposal: { outcome: r['outcome'], justification: r['justification'] } };
+}
+
+const sameProposal = (a: execution.DispositionProposal | null, b: execution.DispositionProposal | null): boolean =>
+  a !== null && b !== null && a.outcome === b.outcome && a.justification === b.justification && a.deviationRef === b.deviationRef;
+
+function proposalOf(state: engine.BatchState, exceptionId: string, p: { outcome: 'NO_IMPACT' | 'DEVIATION_RAISED'; justification: string }): execution.DispositionProposal {
+  return { outcome: p.outcome, justification: p.justification, deviationRef: state.exceptions[exceptionId]?.deviation?.ref ?? null };
+}
+
+function proposalChanged(exceptionId: string): Refusal {
+  return {
+    code: 'EBMR-EXE-086',
+    kind: 'CONTENT_CHANGED',
+    whatHappened: 'The disposition to sign is not the one reviewed at the start of the signing. Nothing was signed.',
+    why: `The outcome, justification or linked deviation of exception ${exceptionId} differs from the disposition prepared for the signature.`,
+    controls: ['DI-37', 'PR-49'],
+    whatYouCanDo: ['Review the disposition again, then sign again.'],
+    whoCanHelp: [],
+  };
+}
+
+/**
+ * The canonical envelope hash and version a signature on `c` would bind, given the stored head. An exception's
+ * signed content also carries its proposed disposition (`proposal`; when undefined, the one stored on the head).
+ */
+async function bindingOf(db: Db, runId: string, c: engine.AggregateContent, proposal?: execution.DispositionProposal | null): Promise<{ version: number; text: string; hash: string }> {
   const head = await execution.loadContentHead(db, c.type, runId, c.key);
   const version = head && head.hash === c.contentHash ? head.version : (head?.version ?? 0) + 1;
-  const env = engine.signingEnvelope(c.type, `${runId}:${c.key}`, version, c.content);
+  let content = c.content;
+  if (c.type === 'batch_exception') {
+    const p = proposal !== undefined ? proposal : head && version === head.version ? await execution.loadProposal(db, runId, c.key, version) : null;
+    content = { ...content, proposedDisposition: p ? { outcome: p.outcome, justification: p.justification, deviationRef: p.deviationRef } : null };
+  }
+  const env = engine.signingEnvelope(c.type, `${runId}:${c.key}`, version, content);
   return { version, text: env.text, hash: env.hash };
 }
 
@@ -112,7 +161,7 @@ function previewTarget(def: engine.BatchDefinition, state: engine.BatchState, ty
   return meaning === engine.performMeaning(def, t.step) ? { type: 'SIGN_PERFORMED', step: t.step, context: t.context } : { type: 'VERIFY' };
 }
 
-function rendering(vc: ViewContext, type: engine.AggregateType, key: string, meaning: { code: string; text: string }): { title: string; data: Record<string, unknown> & { kind: string } } {
+function rendering(vc: ViewContext, type: engine.AggregateType, key: string, meaning: { code: string; text: string }, proposal: execution.DispositionProposal | null): { title: string; data: Record<string, unknown> & { kind: string } } {
   const run = vc.run;
   const common = {
     runId: run.batch.id,
@@ -191,11 +240,18 @@ function rendering(vc: ViewContext, type: engine.AggregateType, key: string, mea
           }
         : null,
       deviation: e.deviation ? { ref: e.deviation.ref, linkedBy: vc.rows.person(e.deviation.linkedBy), at: vc.app.formatInstant(e.deviation.at) } : null,
-      // The outcome and justification travel in the signed action itself; they are stored with the signed
-      // command row (hash-chained, with the signature id), not in the exception's content.
-      disposition: null,
+      // The disposition being signed is part of the signed content (proposedDisposition), bound when the
+      // signing challenge is prepared; a preview without it cannot be signed as shown.
+      disposition: proposal ? { proposed: proposal } : { proposed: null, note: 'The proposed disposition is part of the signed content: preview it with the intent EXCEPTION_DISPOSITIONED|<base64url JSON {outcome, justification}>.' },
     },
   };
+}
+
+/** The proposal stored on the exception's current content version is the action's (outcome, justification, deviation). */
+async function proposalHolds(db: Db, runId: string, state: engine.BatchState, intent: { exception: string; outcome: 'NO_IMPACT' | 'DEVIATION_RAISED'; justification: string }): Promise<boolean> {
+  const head = await execution.loadContentHead(db, 'batch_exception', runId, intent.exception);
+  if (!head) return false;
+  return sameProposal(await execution.loadProposal(db, runId, intent.exception, head.version), proposalOf(state, intent.exception, intent));
 }
 
 export function engineCommandHandler(app: AppContext): SignableActionHandler<EngineAction> {
@@ -234,7 +290,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const stored = await execution.loadState(db, runId);
       if (!stored) throw notFound('test run');
       const nowUs = await dbNowUs(db);
-      const meaning = await meaningInfo(db, query.intent);
+      const parsed = parseIntent(query.intent);
+      const meaning = await meaningInfo(db, parsed.meaning);
       const viewer = viewerOf(ctx);
       const actor: engine.Actor = { id: viewer.personId, kind: 'PERSON', roles: await displayRoles(app, db, viewer.roleCode) };
       const exists = type === 'batch_step' ? stored.state.steps[key] : type === 'batch_stage' ? stored.state.stages[key] : stored.state.exceptions[key];
@@ -242,9 +299,10 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const prepared = engine.prepareForSignature(run.def, stored.state, previewTarget(run.def, stored.state, type, key, meaning.code), actor, { nowUs });
       const c = engine.aggregateContent(run.def, prepared.state, type, key);
       if (!c) throw notFound('record to be signed');
-      const binding = await bindingOf(db, runId, c);
+      const proposal = type === 'batch_exception' ? (parsed.proposal ? proposalOf(prepared.state, key, parsed.proposal) : null) : undefined;
+      const binding = await bindingOf(db, runId, c, proposal);
       const vc = await viewContext(app, db, run, prepared.state, nowUs, viewer);
-      const r = rendering(vc, type, key, meaning);
+      const r = rendering(vc, type, key, meaning, proposal ?? null);
       return {
         aggregateType: type,
         aggregateId: `${runId}:${key}`,
@@ -268,6 +326,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
       const c = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
       if (!c) throw notFound('record to be signed');
+      // The disposition being signed becomes part of the exception's signed content (never a change of its data).
+      if (a.intent.type === 'DISPOSITION_EXCEPTION') await execution.proposeDisposition(client, a.runId, a.intent.exception, proposalOf(o.tx.state, a.intent.exception, a.intent));
       const binding = await bindingOf(client, a.runId, c);
       return { contentVersion: String(binding.version), contentHash: binding.hash, changed };
     },
@@ -278,6 +338,10 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const roles = await engineRoles(client);
       const actor = engineActor(ctx.actor.personId, roles);
       await o.tx.prepare(o.subject.target, actor, roles, o.meaning);
+      if (a.intent.type === 'DISPOSITION_EXCEPTION' && !(await proposalHolds(client, a.runId, o.tx.state, a.intent))) {
+        cache.set(a.runId, { def: o.run.def, state: o.tx.state });
+        return { accepted: false, status: 409, refusal: proposalChanged(a.intent.exception) };
+      }
       const placeholder: engine.SignatureRef = { id: engine.PLACEHOLDER_SIGNATURE_ID, meaning: o.meaning, signer: actor.id };
       const command = signedCommand(o.tx.state, a.intent, actor, placeholder, `ESIG-DRY:${randomUUID()}`, a.expectedVersion);
       const dry = o.tx.dryRun(command);
@@ -299,6 +363,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const o = await open(client, ctx, a);
       if (o.problem) throw new Error(`${o.problem.code} ${o.problem.why}`);
       if (signature.meaning !== o.meaning || signature.signer !== ctx.actor.personId) throw new Error(`EBMR-EXE-080 the signature (${signature.meaning}, ${signature.signer}) is not the one this action needs`);
+      if (a.intent.type === 'DISPOSITION_EXCEPTION' && !(await proposalHolds(client, a.runId, o.tx.state, a.intent))) throw new Error(`EBMR-EXE-086 ${proposalChanged(a.intent.exception).why}`);
       const roles = await engineRoles(client);
       const actor = engineActor(ctx.actor.personId, roles);
       const before = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key)?.contentHash;

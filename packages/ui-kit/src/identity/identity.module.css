@@ -231,3 +231,37 @@
 .factRow {
   display: contents;
 }
+
+/* The proposed disposition of an exception: first and prominent in the content being signed. */
+.disposition {
+  border: 2px solid var(--ebmr-warning-border);
+  border-left-width: 8px;
+  background: var(--ebmr-warning-bg);
+  color: var(--ebmr-warning-fg);
+  border-radius: var(--ebmr-radius);
+  padding: 10px 14px;
+  font-size: 1.05em;
+}
+.disposition dt,
+.disposition dd {
+  color: inherit;
+  font-weight: 700;
+}
+.disposition[data-present='false'] {
+  border-style: dashed;
+}
+
+/* Tables inside the content being signed (the steps of a stage). */
+.contentTable {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.95em;
+}
+.contentTable th,
+.contentTable td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--ebmr-border);
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}

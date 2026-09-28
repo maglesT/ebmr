@@ -108,11 +108,11 @@ describe('PinPad and BadgePrompt', () => {
 });
 
 describe('what is signed', () => {
-  it('[DI-37] every field of the record is shown, known and unknown, and the exact signed text is available with its hash', () => {
+  it('[DI-37] a rendering kind this terminal does not know still shows every field as labelled text', () => {
     const view: SignableContentView = {
       ...CONTENT,
       rendering: {
-        kind: 'batch_exception',
+        kind: 'batch_kind_added_later',
         batchNumber: 'TEST-B-0001',
         stepNumber: '2.1.4',
         exceptionId: 'EX-1',

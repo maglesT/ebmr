@@ -41,6 +41,52 @@ export function dcMini(): flow.MbrContent {
   return parsed.mbr;
 }
 
+type Json = Record<string, unknown>;
+
+/** A variant of dc-mini: `edit` receives the children of the dispensing preparation (O-DISP-PREP) and the content. */
+export function dcMiniVariant(edit: (prep: Json[], content: Json) => Json[]): flow.MbrContent {
+  const content = JSON.parse(JSON.stringify(dcMini())) as Json;
+  const stage = ((((content['procedure'] as Json)['body'] as Json)['children'] as Json[])[0] as Json)['body'] as Json;
+  const prep = ((stage['children'] as Json[])[0] as Json)['body'] as Json;
+  prep['children'] = edit(prep['children'] as Json[], content);
+  const parsed = flow.parseMbr(content);
+  if (!parsed.ok) throw new Error(`the dc-mini variant does not parse: ${JSON.stringify(parsed.problems.slice(0, 3))}`);
+  return parsed.mbr;
+}
+
+/** A QA hold point right after the booth clearance (APPROVED or NOT_APPROVED). */
+export const withEarlyHoldPoint = (): flow.MbrContent =>
+  dcMiniVariant(([clear, ...rest]) => [clear as Json, { kind: 'holdPoint', id: 'H-TEST', name: 'QA release of the dispensing booth', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] }, ...rest]);
+
+/** The booth clearance is witnessed (check meaning WITNESSED) and runs in parallel with the balance check. */
+export const withWitnessedClearance = (): flow.MbrContent =>
+  dcMiniVariant((prep) => {
+    const [clear, bal, ...rest] = prep as [Json, Json, ...Json[]];
+    const witnessed = { ...clear, signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } };
+    return [{ kind: 'parallel', id: 'par-prep', branches: [{ id: 'br-clear', name: 'Clearance', body: witnessed }, { id: 'br-bal', name: 'Balance', body: bal }] }, ...rest];
+  });
+
+/** A process-window of 1 s from the start to the end of the booth clearance (a breach is quick to provoke). */
+export const withShortWindow = (): flow.MbrContent =>
+  dcMiniVariant((prep, content) => {
+    (content['timeConstraints'] as Json[]).push({
+      id: 'TC-CLEAR-WINDOW', name: 'Booth clearance window', kind: 'PROCESS_WINDOW', from: { node: 'p-disp-clear', event: 'START' }, to: { node: 'p-disp-clear', event: 'END' },
+      max: { value: '1', unit: 's' }, source: { kind: 'VALIDATION_REPORT', ref: 'VR-BLEND-01' }, breach: 'EXCEPTION', pauses: 'INCLUDED',
+    });
+    return prep;
+  });
+
+/** Blend time recorded first in the dispensing stage (its internal-action limits make a PR-08 breach easy). */
+export const withEarlyParameter = (): flow.MbrContent =>
+  dcMiniVariant((prep, content) => {
+    const blend = (((((content['procedure'] as Json)['body'] as Json)['children'] as Json[])[1] as Json)['body'] as Json)['children'] as Json[];
+    const mix = ((blend[0] as Json)['body'] as Json)['children'] as Json[];
+    const p = mix.find((x) => x['id'] === 'p-blend') as Json;
+    p['records'] = ['blenderSpeed'];
+    const early = { ...p, id: 'p-early-time', name: 'Record the blend time', records: ['blendTime'], equipment: [] };
+    return [early, ...prep];
+  });
+
 /** A package of `content` as the GMP designer exports it (unless overridden), written into the inbox. */
 export function writePackage(server: ExecServer, content: flow.MbrContent, overrides: Partial<execution.TestPackageInput> = {}, fileName?: string): execution.TestPackageV1 {
   const pkg = execution.buildTestPackage({
@@ -142,17 +188,20 @@ export class RunDriver {
   }
 
   /** The full ceremony: content preview, challenge (tapped on a kiosk), PIN or password, sign. */
-  async sign(persona: string, intent: SignedIntent, opts: { meaning?: string; expectedVersion?: number; credentials?: SignatureCredentials } = {}) {
+  async sign(persona: string, intent: SignedIntent, opts: { meaning?: string; expectedVersion?: number; credentials?: SignatureCredentials; proposal?: { outcome: 'NO_IMPACT' | 'DEVIATION_RAISED'; justification: string }; signAction?: SignedIntent } = {}) {
     const b = this.browser(persona);
     const s = await this.signing(persona, intent);
     const meaning = opts.meaning ?? s.meaning;
-    const content = await b.call(routes.esig.content, { query: { aggregateType: s.aggregateType, aggregateId: s.aggregateId, intent: meaning } });
+    // An exception disposition previews the proposal it signs (the proposal is part of the signed content).
+    const previewIntent = intent.type === 'DISPOSITION_EXCEPTION' ? `${meaning}|${Buffer.from(JSON.stringify({ outcome: opts.proposal?.outcome ?? intent.outcome, justification: opts.proposal?.justification ?? intent.justification }), 'utf8').toString('base64url')}` : meaning;
+    const content = await b.call(routes.esig.content, { query: { aggregateType: s.aggregateType, aggregateId: s.aggregateId, intent: previewIntent } });
     if (!content.ok) return { stage: 'content' as const, content, challenge: undefined, result: content as Result<never> };
     const action = { kind: 'ENGINE_COMMAND' as const, runId: this.runId, expectedVersion: opts.expectedVersion ?? (await this.version(persona)), intent };
     const body = { aggregateType: s.aggregateType, aggregateId: s.aggregateId, contentVersion: content.value.contentVersion, meaning, clientContentHash: sha256Hex(content.value.canonicalText), action };
     const challenge = await b.call(routes.esig.createChallenge, { body, ...(kiosk(b) ? { attribution: await this.tap(b, persona, '/api/esig/challenges', body) } : {}) });
     if (!challenge.ok) return { stage: 'challenge' as const, content, challenge, result: challenge as Result<never> };
-    const signBody = { challengeId: challenge.value.challengeId, credentials: opts.credentials ?? (kiosk(b) ? pinOf(this.server, persona) : passwordOf(this.server, persona)), action };
+    const signAction = opts.signAction ? { ...action, intent: opts.signAction } : action;
+    const signBody = { challengeId: challenge.value.challengeId, credentials: opts.credentials ?? (kiosk(b) ? pinOf(this.server, persona) : passwordOf(this.server, persona)), action: signAction };
     const proof = await b.proof('POST', '/api/esig/sign', signBody);
     const result = await b.call(routes.esig.sign, { body: { ...signBody, proof } });
     if (result.ok) this.signatures += 1;

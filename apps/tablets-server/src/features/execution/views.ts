@@ -728,7 +728,8 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     exceptions: exceptions.map((e) => exceptionView(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
     actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx)),
-    signable: inst ? { aggregateType: 'batch_step', aggregateId } : null,
+    // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
+    signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
   };
 }
 

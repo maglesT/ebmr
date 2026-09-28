@@ -488,6 +488,8 @@ function BatchException({ r }: { r: Obj }) {
   const recorded = isObj(r['recorded']) ? r['recorded'] : null;
   const deviation = isObj(r['deviation']) ? r['deviation'] : null;
   const limits = recorded ? arr(recorded['limits']) : [];
+  // The limits carry no unit of their own: they are in the unit of the recorded value.
+  const recordedUnit = recorded && isObj(recorded['value']) ? str(recorded['value']['unit']) : null;
   const recordedValue = recorded ? (recorded['value'] !== null && recorded['value'] !== undefined ? valueText(recorded['value']) : (str(recorded['text']) ?? '—')) : null;
   return (
     <>
@@ -512,7 +514,7 @@ function BatchException({ r }: { r: Obj }) {
               ) : (
                 <ul>
                   {limits.map((l, i) => (
-                    <li key={i}>{limitText(l)}</li>
+                    <li key={i}>{limitText(l, recordedUnit)}</li>
                   ))}
                 </ul>
               )}
