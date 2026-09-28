@@ -1,0 +1,14 @@
+{
+  "name": "@ebmr/tool-sql-mutation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mutation testing of the kernel's database-enforced rules: mutates SQL functions and checks the tests detect each change",
+  "type": "module",
+  "dependencies": {
+    "@ebmr/kernel": "workspace:0.1.0",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

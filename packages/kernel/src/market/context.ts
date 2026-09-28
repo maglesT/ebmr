@@ -7,7 +7,8 @@
  * from the market.stub_* tables through market.scope_markets.
  *
  * Scope rules every implementation must honour:
- *  - PRODUCT (a batch) and PACK: the batch's market set;
+ *  - PRODUCT (a batch) and PACK: the batch's market set; a PACK resolves PER_DESTINATION keys for its
+ *    own destination only;
  *  - SITE: the site's markets plus those of every product qualified there;
  *  - LINE, ROOM, EQUIPMENT: the union of the markets of every product qualified there, and for
  *    sterile rules a PIC/S-member destination counts as EU; PERSON: the union over the lines and
@@ -77,7 +78,11 @@ export class StubResolutionContext implements ResolutionContextProvider {
   }
 }
 
-/** Resolve a key for a scope with any provider and the pure engine (no storage). */
+/**
+ * Resolve a key for a scope with any provider and the pure engine (no storage). A PACK scope
+ * resolves a PER_DESTINATION key for its own destination: a stated destination that differs is
+ * refused (EBMR-MKT-057), as market.evaluate_stub_scope does.
+ */
 export async function resolveForScope(
   provider: ResolutionContextProvider,
   table: RuleTableSnapshot,
@@ -87,7 +92,13 @@ export async function resolveForScope(
   options: { predicates?: Predicates; stated?: StatedMethod } = {},
 ): Promise<{ context: ScopeContext; resolution: Resolution }> {
   const context = await provider.scopeContext(scope, table.tableCode);
-  const stated = options.stated && context.destination && !options.stated.destination ? { ...options.stated, destination: context.destination } : options.stated;
+  if (options.stated && context.destination && options.stated.destination && options.stated.destination !== context.destination) {
+    throw new MarketRuleError(
+      'EBMR-MKT-057',
+      `pack ${scope.id} goes to ${context.destination}; its label rules are resolved for that destination, not for ${options.stated.destination}`,
+    );
+  }
+  const stated = options.stated && context.destination ? { ...options.stated, destination: context.destination } : options.stated;
   const resolution = resolve(table, { key, marketSet: context.markets, predicates: { ...options.predicates, ...context.predicates }, asOf, stated: stated ?? null });
   return { context, resolution };
 }

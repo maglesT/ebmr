@@ -192,19 +192,28 @@ $$;
 --
 -- Contract: fn(aggregate_id text) returns jsonb with
 --   exists           boolean (required)
+--   aggregate_id     text, the record's canonical id (recommended): a record has exactly one id for
+--                    signing, so a challenge naming it any other way (an upper-case or braced UUID,
+--                    for example) is refused (EBMR-ESIG-014). Without it, a UUID-shaped id must be
+--                    in PostgreSQL's canonical text form.
 --   content_version  integer >= 1, the version of the signable content (required when exists)
 --   content          JSON object: the canonical content (values, units, limit evaluations,
 --                    performers, master-record version, attachment hashes); decimals as strings
 --   state            text, the record's current state (optional; checked against the caller's
---                    expected state at signing)
+--                    expected state at signing, stored with the signature, and a signature applied
+--                    in one state never authorises a state-engine transition out of another)
 --   scope            {"site", "area", "product"} for the authority evaluation (optional)
 --   market           text, for market-bound meanings and delegations (optional)
---   act              {"device_id": uuid, "at": timestamptz} of the act a WITNESSED signature
---                    witnesses (optional)
+--   act              {"device_id": uuid, "at": timestamptz, "next_step_started": boolean} of the
+--                    act a WITNESSED signature witnesses (optional; without it nothing can be
+--                    witnessed). next_step_started is derived from the record: whether the step
+--                    after the act has started. When it is missing, witnessing is refused.
 --   entered_by       uuid[] persons who entered or corrected data in the record, in addition to
 --                    those esig records itself for registered signed tables (optional)
 --   involved         uuid[] the record's involvement set for review and release meanings (optional)
--- The provider must not change data. Providers are registered by migrations only.
+-- The provider must not change data. Its content must cover exactly the data held in the tables
+-- registered for the aggregate type (esig.register_signed_table), so a change that supersedes
+-- nothing never changes the content hash (INV-09). Providers are registered by migrations only.
 -- ---------------------------------------------------------------------------------------------
 
 create table esig.content_provider (
@@ -251,8 +260,38 @@ begin
       raise exception using errcode = 'P0001',
         message = format('EBMR-ESIG-004 the content provider of %s must return content_version >= 1 and a content object', p_aggregate_type);
     end if;
+    if v_out ? 'aggregate_id' and jsonb_typeof(v_out -> 'aggregate_id') is distinct from 'string' then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-ESIG-004 the content provider of %s must return aggregate_id as text', p_aggregate_type);
+    end if;
   end if;
   return v_out || jsonb_build_object('provider', true);
+end
+$$;
+
+-- NULL when p_aggregate_id is the record's canonical id, otherwise why not. Every signature, lock,
+-- change log and independence rule is keyed on the id text, so a second spelling of the same record
+-- (an upper-case, braced or unhyphenated UUID) would be a second identity that none of them sees.
+create function esig.aggregate_id_problem(p_aggregate_id text, p_provided jsonb) returns text
+language plpgsql stable set search_path = pg_catalog, pg_temp as $$
+declare
+  v_uuid uuid;
+begin
+  if p_provided ? 'aggregate_id' then
+    if p_provided ->> 'aggregate_id' is distinct from p_aggregate_id then
+      return format('the record''s canonical id is %s', p_provided ->> 'aggregate_id');
+    end if;
+    return null;
+  end if;
+  begin
+    v_uuid := p_aggregate_id::uuid;
+  exception when invalid_text_representation then
+    return null;
+  end;
+  if v_uuid::text <> p_aggregate_id then
+    return format('the record''s canonical id is %s', v_uuid);
+  end if;
+  return null;
 end
 $$;
 
@@ -274,10 +313,16 @@ $$;
 create function esig.content_for_signing(p_aggregate_type text, p_aggregate_id text) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, esig, pg_temp as $$
 declare
-  v jsonb := esig.provide(p_aggregate_type, p_aggregate_id);
+  v         jsonb := esig.provide(p_aggregate_type, p_aggregate_id);
+  v_problem text;
 begin
   if not (v ->> 'exists')::boolean then
     return jsonb_build_object('exists', false, 'aggregate_type', p_aggregate_type, 'aggregate_id', p_aggregate_id);
+  end if;
+  v_problem := esig.aggregate_id_problem(p_aggregate_id, v);
+  if v_problem is not null then
+    return jsonb_build_object('exists', false, 'aggregate_type', p_aggregate_type, 'aggregate_id', p_aggregate_id,
+                              'problem', format('EBMR-ESIG-014 %s names the record by another id than its own: %s', p_aggregate_id, v_problem));
   end if;
   return jsonb_build_object('exists', true, 'aggregate_type', p_aggregate_type, 'aggregate_id', p_aggregate_id,
                             'content_version', v ->> 'content_version', 'state', v ->> 'state',

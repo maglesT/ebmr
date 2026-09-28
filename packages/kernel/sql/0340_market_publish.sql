@@ -7,11 +7,16 @@
 --   3. stores keys and rows (insert-only) and a SHA-256 content hash of the canonical content;
 --   4. compares the new version with the previous one, date by date and for every predicate
 --      branch: any loosening that reaches today or earlier (retroactive) is refused unless the
---      version is a SOURCE_CORRECTION, which needs a citation and two approvers other than the
---      publisher (L-38). A loosening that starts in the future (a regulatory relaxation with a later
---      legal effective date) is allowed and recorded on the version;
+--      version is a SOURCE_CORRECTION, which needs a citation, a vendor-notice reference and the
+--      RULE_TABLE_CORRECTION_APPROVED e-signatures (0360) of two QA approvers other than the publisher
+--      on exactly this document (table, version and content hash) (L-38; outline 3.3.2). "Today" is
+--      the date at the configured site zone (iam site.zone), never a zone the command declares. A
+--      loosening that starts in the future (a regulatory relaxation with a later legal effective date)
+--      is allowed and recorded on the version. For ALL_APPLY keys a criterion whose definition changes
+--      under the same id is a loosening too (market.criteria_cover, 0300);
 --   5. writes the change-impact list: stub MBR limits and site values whose pinned value is looser
---      than the new resolved value, due by the rule's effective date (3.3.5).
+--      than the new resolved value, and approved site loosenings whose basis the new version changes,
+--      due by the rule's effective date (3.3.5).
 
 set local role ebmr_owner;
 
@@ -136,7 +141,9 @@ $$;
 
 -- The change-impact list for a new version: stub MBR limits whose pinned value is looser than the
 -- new resolved value, and site values in force that the new version makes inadmissible (looser than
--- a binding value or a DESIGN value, or a loosening that was never approved). Each item is due by the
+-- a binding value or a DESIGN value, a loosening that was never approved, or an approved loosening
+-- whose basis the new version changes: the value it departs from, its floor type, binding floor,
+-- governing markets or branch, so the approval no longer covers it, F25). Each item is due by the
 -- first date on which the new rule applies (today if it already applies).
 create function market.compute_change_impact(p_version uuid, p_today date) returns integer
 language plpgsql volatile security definer set search_path = pg_catalog, market, pg_temp as $$
@@ -151,12 +158,13 @@ declare
 begin
   for ref in
     select 'MBR_LIMIT' as ref_type, m.id, format('%s v%s', m.mbr_code, m.mbr_version) as label, m.key, m.value, m.markets,
-           m.predicates, false as approved, null::text as note
+           m.predicates, false as approved, null::text as note, null::jsonb as approved_basis
       from market.stub_mbr_limit m
      where exists (select 1 from market.rule_key k2 where k2.version_id = p_version and k2.key = m.key)
     union all
     select 'SITE_VALUE', sv.id, format('site %s', sv.site_id), sv.key, sv.value, sv.market_set, sv.predicates,
-           sv.outcome = 'LOOSENED', case when sv.outcome = 'LOOSENED' then 'approved loosening ' || sv.justification_ref end
+           sv.outcome = 'LOOSENED', case when sv.outcome = 'LOOSENED' then 'approved loosening ' || sv.justification_ref end,
+           case when sv.outcome = 'LOOSENED' then market.loosening_basis(sv.resolution) end
       from (select distinct on (s.site_id, s.key) s.* from market.site_value s
              where s.effective_from <= p_today
              order by s.site_id, s.key, s.effective_from desc, s.recorded_at desc) sv
@@ -189,7 +197,13 @@ begin
         v_hit := not coalesce(market.at_least_as_strict(k.method, k.ordered_values, ref.value, v_res -> 'value'), false);
       else
         a := market.assess_site_value(v_res, ref.value);
-        v_hit := a ->> 'outcome' = 'REFUSED' or (a ->> 'outcome' = 'LOOSENING' and not ref.approved);
+        v_hit := a ->> 'outcome' = 'REFUSED'
+                 or (a ->> 'outcome' = 'LOOSENING' and (not ref.approved or market.loosening_basis(v_res) is distinct from ref.approved_basis));
+        if v_hit and a ->> 'outcome' = 'LOOSENING' and ref.approved then
+          a := a || jsonb_build_object('message', format(
+            'the loosening to %s was approved as a departure from %s (%s); this version resolves %s (%s), so it needs a new approval',
+            ref.value::text, (ref.approved_basis -> 'value')::text, ref.approved_basis ->> 'floorType', (v_res -> 'value')::text, v_res ->> 'floorType'));
+        end if;
       end if;
       if v_hit then
         insert into market.change_impact (version_id, ref_type, ref_id, ref_label, key, market_set, pinned_value, required_value,
@@ -205,9 +219,37 @@ begin
 end
 $$;
 
+-- The aggregate a QA approver signs to approve a source correction (content provider in 0360):
+-- <table>:<version>:<content hash hex> of the corrected document.
+create function market.rule_correction_ref(p_table text, p_version integer, p_content_hash bytea) returns text
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select p_table || ':' || p_version::text || ':' || encode(p_content_hash, 'hex')
+$$;
+
+-- What the QA approvers of a source correction sign for this document, without writing anything:
+-- {meaning, aggregateType, aggregateId, table, version, contentHash}.
+create function market.rule_correction_target(p_doc jsonb) returns jsonb
+language plpgsql stable security definer set search_path = pg_catalog, market, pg_temp as $$
+declare
+  v_version integer := case when (p_doc ->> 'version') ~ '^[1-9][0-9]{0,5}$' then (p_doc ->> 'version')::integer end;
+  v_hash    bytea;
+begin
+  if p_doc is null or jsonb_typeof(p_doc) <> 'object' or v_version is null
+     or not exists (select 1 from market.rule_table t where t.code = p_doc ->> 'table') then
+    raise exception using errcode = 'P0001', message = 'EBMR-MKT-010 a rule-table document with a known table and a version number is required';
+  end if;
+  v_hash := market.document_content_hash(p_doc);
+  return jsonb_build_object('meaning', 'RULE_TABLE_CORRECTION_APPROVED', 'aggregateType', 'market_rule_correction',
+                            'aggregateId', market.rule_correction_ref(p_doc ->> 'table', v_version, v_hash),
+                            'table', p_doc ->> 'table', 'version', v_version, 'contentHash', encode(v_hash, 'hex'));
+end
+$$;
+
 -- Publish a rule-table document as the next version of its table.
 -- p_change (merged over the document's "change"): {kind: INITIAL | UPDATE | SOURCE_CORRECTION,
--- description, citation?, approverIds?: [uuid, uuid], vendorNoticeRef?, sourceFile?, sourceSha256?}.
+-- description, citation?, vendorNoticeRef?, approvalSignatureIds?: [uuid, uuid], sourceFile?,
+-- sourceSha256?}. approvalSignatureIds are the RULE_TABLE_CORRECTION_APPROVED e-signatures of the
+-- document (market.rule_correction_target names what to sign); the approvers are their signers.
 create function market.publish_rule_table(p_doc jsonb, p_change jsonb default '{}') returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, market, kernel, pg_temp as $$
 declare
@@ -226,6 +268,10 @@ declare
   v_loose      jsonb := '[]'::jsonb;
   v_retro      jsonb;
   v_approvers  uuid[] := '{}';
+  v_sigs       uuid[] := '{}';
+  v_sig        uuid;
+  v_signer     uuid;
+  v_ref        text;
   v_impact     integer := 0;
 begin
   if v_ctx is null then
@@ -265,21 +311,32 @@ begin
   if v_has_prev and (v_kind is null or v_kind not in ('UPDATE', 'SOURCE_CORRECTION')) then
     raise exception using errcode = 'P0001', message = 'EBMR-MKT-033 a later version is an UPDATE or a SOURCE_CORRECTION';
   end if;
+  v_hash := market.document_content_hash(p_doc);
   if v_kind = 'SOURCE_CORRECTION' then
-    if jsonb_typeof(v_change -> 'approverIds') = 'array' then
-      begin
-        v_approvers := array(select (a #>> '{}')::uuid from jsonb_array_elements(v_change -> 'approverIds') a);
-      exception when others then
-        v_approvers := '{}';
-      end;
+    -- Two QA approvals, each an e-signature RULE_TABLE_CORRECTION_APPROVED of exactly this document
+    -- (table, version, content hash), by two different persons, neither of them the publisher.
+    if jsonb_typeof(v_change -> 'approvalSignatureIds') = 'array' then
+      v_sigs := array(select market.try_uuid(a #>> '{}') from jsonb_array_elements(v_change -> 'approvalSignatureIds') a);
     end if;
-    if coalesce(trim(v_change ->> 'citation'), '') = ''
-       or cardinality(v_approvers) < 2
-       or (select count(distinct a) from unnest(v_approvers) a) <> cardinality(v_approvers)
-       or (v_ctx ->> 'person_id')::uuid = any(v_approvers) then
+    if coalesce(trim(v_change ->> 'citation'), '') = '' or coalesce(trim(v_change ->> 'vendorNoticeRef'), '') = ''
+       or cardinality(v_sigs) < 2 or array_position(v_sigs, null) is not null
+       or (select count(distinct a) from unnest(v_sigs) a) <> cardinality(v_sigs) then
       raise exception using errcode = 'P0001', message =
-        'EBMR-MKT-032 a source correction needs a citation and two distinct approvers other than the publisher';
+        'EBMR-MKT-032 a source correction needs a citation, a vendor-notice reference and the approval e-signatures (approvalSignatureIds) of two QA approvers other than the publisher';
     end if;
+    v_ref := market.rule_correction_ref(v_table, v_next, v_hash);
+    foreach v_sig in array v_sigs loop
+      v_signer := (esig.assert_signature(v_sig, 'RULE_TABLE_CORRECTION_APPROVED', 'market_rule_correction', v_ref) ->> 'signer_person')::uuid;
+      if v_signer = (v_ctx ->> 'person_id')::uuid then
+        raise exception using errcode = 'P0001', message =
+          'EBMR-MKT-032 the publisher of a source correction cannot also approve it; two other persons sign the approvals';
+      end if;
+      if v_signer = any(v_approvers) then
+        raise exception using errcode = 'P0001', message =
+          'EBMR-MKT-032 both approvals of a source correction are signed by the same person; two different persons approve it';
+      end if;
+      v_approvers := v_approvers || v_signer;
+    end loop;
   end if;
 
   insert into market.rule_key (version_id, key, title, method, value_type, unit, ordered_values, stated_method, india_governs,
@@ -297,12 +354,12 @@ begin
          sha256(convert_to(market.canonical_row(r)::text, 'UTF8'))
   from jsonb_array_elements(p_doc -> 'rows') r;
 
-  v_hash := market.document_content_hash(p_doc);
   if v_has_prev and v_hash = v_prev.content_hash then
     raise exception using errcode = 'P0001', message = format('EBMR-MKT-030 the document is identical to rule table %s version %s; nothing to publish', v_table, v_prev.version);
   end if;
 
-  v_today := (clock_timestamp() at time zone coalesce(v_ctx ->> 'site_zone', 'UTC'))::date;
+  -- Today at the configured site zone: the zone a command declares is not trusted here (F27).
+  v_today := (clock_timestamp() at time zone iam.policy_text('site.zone'))::date;
   if v_has_prev then
     v_loose := market.classify_changes(v_prev.id, v_id, v_today);
     select coalesce(jsonb_agg(x), '[]'::jsonb) into v_retro from jsonb_array_elements(v_loose) x where (x ->> 'retroactive')::boolean;
@@ -314,9 +371,10 @@ begin
   end if;
 
   insert into market.rule_table_version (id, table_code, version, content_hash, change_kind, change_description, citation, approver_ids,
-                                         vendor_notice_ref, loosening, source_file, source_sha256, previous_version_id, key_count,
-                                         row_count, published_by)
+                                         approval_signatures, vendor_notice_ref, loosening, source_file, source_sha256, previous_version_id,
+                                         key_count, row_count, published_by)
   values (v_id, v_table, v_next, v_hash, v_kind, trim(v_change ->> 'description'), nullif(trim(v_change ->> 'citation'), ''), v_approvers,
+          case when v_kind = 'SOURCE_CORRECTION' then v_sigs else '{}' end,
           nullif(trim(v_change ->> 'vendorNoticeRef'), ''), v_loose, v_change ->> 'sourceFile', v_change ->> 'sourceSha256',
           case when v_has_prev then v_prev.id end,
           jsonb_array_length(p_doc -> 'keys'), jsonb_array_length(p_doc -> 'rows'), (v_ctx ->> 'person_id')::uuid);
@@ -373,6 +431,6 @@ $$;
 select kernel.register_audited_table('market.change_impact', 'market_rule_version', 'version_id', true);
 
 grant select on market.change_impact to ebmr_app;
-grant execute on function market.publish_rule_table(jsonb, jsonb), market.verify_table_version(uuid) to ebmr_app;
+grant execute on function market.publish_rule_table(jsonb, jsonb), market.verify_table_version(uuid), market.rule_correction_target(jsonb) to ebmr_app;
 
 reset role;

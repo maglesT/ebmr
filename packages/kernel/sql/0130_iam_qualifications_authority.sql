@@ -6,6 +6,8 @@
 -- through the account, held a role granting the permission in that scope at that instant AND every
 -- qualification the role or permission requires, on data recorded by that instant and (for
 -- mirrored sources) within the mirror's freshness bound. Every evaluation is stored with its inputs.
+-- Both scope tests fail closed: a grant limited to a site does not cover a request without a site,
+-- and a requirement limited to a site does apply to a request without one (iam.requirement_applies).
 -- The training gate is a hard block: every site is India-licensed, so the flag-and-review relaxation
 -- DI-21 allows elsewhere is not offered (IN-04).
 
@@ -231,11 +233,13 @@ begin
       v_grants := v_grants || jsonb_build_object('grant_id', v_grant.id, 'role_code', v_grant.role_code,
                     'scope', jsonb_strip_nulls(jsonb_build_object('site', v_grant.scope_site, 'area', v_grant.scope_area, 'product', v_grant.scope_product)),
                     'approved_at', v_grant.decided_at, 'valid_to', v_grant.valid_to);
+      -- A requirement limited to a site, area or product applies unless the request names another
+      -- value there: a request without a site may be work at that site, so it fails closed (INV-26).
       for v_req in
         select q.* from iam.qualification_requirement q
         where (q.role_code = v_grant.role_code or q.permission_code = p_permission)
           and q.effective_from <= v_at and (q.effective_to is null or v_at < q.effective_to)
-          and iam.scope_covers(q.scope_site, q.scope_area, q.scope_product, v_scope)
+          and iam.requirement_applies(q.scope_site, q.scope_area, q.scope_product, v_scope)
         order by q.qualification_code
       loop
         select pq.* into v_pq from iam.person_qualification pq

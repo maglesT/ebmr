@@ -115,15 +115,17 @@ end
 $$;
 
 -- The actor context lives in the transaction-local setting ebmr.ctx, which any session can write
--- with set_config. It counts only if kernel code established it in this transaction: every context
--- that kernel.set_actor_context installs leaves a marker (transaction, backend, context hash) in a
--- table only ebmr_owner can write. current_actor() ignores a context without its marker, and the
--- audit writer refuses it, so set_config alone can never attribute a write to anyone.
+-- with set_config. It counts only while it is the context kernel code installed last in this
+-- transaction: kernel.set_actor_context keeps exactly one marker per connection (backend), holding
+-- the transaction and the hash of the context it installed, in a table only ebmr_owner can write.
+-- Installing another context replaces the marker, so a context that kernel code switched away from
+-- (a co-signer's, an internal actor's, an earlier command's) is no longer validated, even if
+-- set_config later puts its exact text back. current_actor() ignores a context without the current
+-- marker, and the audit writer refuses it, so set_config alone can never attribute a write to anyone.
 create unlogged table kernel.command_marker (
+  backend_pid integer primary key,
   xact_id     xid8    not null,
-  backend_pid integer not null,
-  ctx_hash    bytea   not null,
-  primary key (xact_id, backend_pid, ctx_hash)
+  ctx_hash    bytea   not null
 );
 
 create function kernel.context_hash(p_ctx jsonb) returns bytea
@@ -131,27 +133,28 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
   select sha256(convert_to(p_ctx::text, 'UTF8'))
 $$;
 
--- Owner-only: installs p_ctx as the validated actor context of this transaction (NULL clears it).
+-- Owner-only: installs p_ctx as the one validated actor context of this transaction (NULL clears
+-- it). The connection's marker is replaced (or removed), so the previous context stops counting at
+-- once; a savepoint rollback restores the previous marker together with the previous setting.
 -- Module SECURITY DEFINER code that must switch context inside a command (an internal actor, an
--- added reason) calls this instead of set_config. Markers of this backend's finished transactions
--- are pruned on the way, so the table holds at most a few rows per connection.
+-- added reason) calls this, and restores the command's context by calling it again with the context
+-- kernel.current_actor() returned before the switch, never with set_config.
 create function kernel.set_actor_context(p_ctx jsonb) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 begin
   if p_ctx is null then
+    delete from kernel.command_marker m where m.backend_pid = pg_backend_pid();
     perform set_config('ebmr.ctx', '', true);
     return;
   end if;
-  delete from kernel.command_marker m
-  where m.backend_pid = pg_backend_pid() and m.xact_id <> pg_current_xact_id();
-  insert into kernel.command_marker (xact_id, backend_pid, ctx_hash)
-  values (pg_current_xact_id(), pg_backend_pid(), kernel.context_hash(p_ctx))
-  on conflict do nothing;
+  insert into kernel.command_marker (backend_pid, xact_id, ctx_hash)
+  values (pg_backend_pid(), pg_current_xact_id(), kernel.context_hash(p_ctx))
+  on conflict (backend_pid) do update set xact_id = excluded.xact_id, ctx_hash = excluded.ctx_hash;
   perform set_config('ebmr.ctx', p_ctx::text, true);
 end
 $$;
 
--- True when ebmr.ctx holds a context kernel code established in this transaction.
+-- True when ebmr.ctx holds the context kernel code installed last in this transaction.
 create function kernel.actor_context_validated() returns boolean
 language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
@@ -169,7 +172,7 @@ begin
   end;
   return exists (
     select 1 from kernel.command_marker m
-    where m.xact_id = v_xact and m.backend_pid = pg_backend_pid() and m.ctx_hash = kernel.context_hash(v_ctx));
+    where m.backend_pid = pg_backend_pid() and m.xact_id = v_xact and m.ctx_hash = kernel.context_hash(v_ctx));
 end
 $$;
 
@@ -177,6 +180,46 @@ $$;
 create function kernel.current_actor() returns jsonb
 language sql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
   select case when kernel.actor_context_validated() then current_setting('ebmr.ctx', true)::jsonb end
+$$;
+
+-- ---------------------------------------------------------------------------------------------
+-- Server-side facts of every entry (DI-22, INV-07)
+-- ---------------------------------------------------------------------------------------------
+
+-- True when p is NULL, empty or only white space.
+create function kernel.is_blank(p text) returns boolean
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select coalesce(p !~ '[^[:space:]]', true)
+$$;
+
+-- The site's time zone: every entry records it with the server's UTC time, whatever zone the
+-- client declared. The identity module keeps it as policy 'site.zone' (0100); a foundation-only
+-- installation has no site policy, and the context's zone is recorded then.
+create function kernel.site_zone() returns text
+language plpgsql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
+begin
+  if pg_catalog.to_regprocedure('iam.policy_text(text)') is null then
+    return null;
+  end if;
+  return iam.policy_text('site.zone');
+end
+$$;
+
+-- The actor's printed name at the time. The identity module checks a legal_name the context
+-- carries against the person (EBMR-IAM-117); when the context carries none, the server fills it
+-- from the person register, so no entry lacks the name.
+create function kernel.actor_legal_name(p_ctx jsonb) returns text
+language plpgsql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
+begin
+  if not kernel.is_blank(p_ctx ->> 'legal_name') then
+    return p_ctx ->> 'legal_name';
+  end if;
+  if pg_catalog.to_regclass('iam.person') is null
+     or not coalesce(pg_catalog.pg_input_is_valid(p_ctx ->> 'person_id', 'uuid'), false) then
+    return null;
+  end if;
+  return (select p.legal_name from iam.person p where p.id = (p_ctx ->> 'person_id')::uuid);
+end
 $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -215,16 +258,16 @@ begin
     'chain_key', p_chain_key,
     'seq', v_seq,
     'recorded_at', to_char(v_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
-    'site_zone', v_ctx ->> 'site_zone',
+    'site_zone', coalesce(kernel.site_zone(), v_ctx ->> 'site_zone'),
     'action', p_action,
     'table', p_table,
     'record_id', p_record,
     'actor', jsonb_build_object(
       'person_id', v_ctx ->> 'person_id', 'account_id', v_ctx ->> 'account_id', 'role_code', v_ctx ->> 'role_code',
       'session_id', v_ctx ->> 'session_id', 'device_id', v_ctx ->> 'device_id', 'auth_event_id', v_ctx ->> 'auth_event_id',
-      'legal_name', v_ctx ->> 'legal_name'),
+      'legal_name', kernel.actor_legal_name(v_ctx)),
     'source', v_ctx ->> 'source',
-    'correlation_id', v_ctx ->> 'correlation_id',
+    'correlation_id', (v_ctx ->> 'correlation_id')::uuid,
     'reason_code', v_ctx ->> 'reason_code',
     'reason_text', v_ctx ->> 'reason_text',
     'body', p_body);
@@ -255,16 +298,30 @@ $$;
 -- Row triggers
 -- ---------------------------------------------------------------------------------------------
 
+-- Canonical JSON of a row: what the audit trigger hashes (insert-only tables) or records (old and
+-- new values). How time stamps, ranges, intervals, bytea and floating-point values are written
+-- depends on session settings the application may change (TimeZone, DateStyle, IntervalStyle,
+-- bytea_output, extra_float_digits), so they are pinned here. A true copy or a purge digest that
+-- must reproduce the audit trigger's row hash renders the row with this function.
+create function kernel.row_json(p_row anyelement) returns jsonb
+language sql stable
+set search_path = pg_catalog, pg_temp
+set timezone = 'UTC' set datestyle = 'ISO, MDY' set intervalstyle = 'postgres' set bytea_output = 'hex' set extra_float_digits = 1
+as $$
+  select to_jsonb(p_row)
+$$;
+
 create function kernel.audit_row_change() returns trigger
 language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
-  v_reg    kernel.audited_table%rowtype;
-  v_row    jsonb;
-  v_old    jsonb;
-  v_key    text;
-  v_ctx    jsonb := kernel.current_actor();
-  v_body   jsonb;
-  v_record text;
+  v_reg     kernel.audited_table%rowtype;
+  v_row     jsonb;
+  v_old     jsonb;
+  v_key     text;
+  v_old_key text;
+  v_ctx     jsonb := kernel.current_actor();
+  v_body    jsonb;
+  v_record  text;
 begin
   select * into v_reg from kernel.audited_table where table_name = tg_relid;
   if not found then
@@ -276,11 +333,21 @@ begin
     end if;
     raise exception using errcode = 'P0001', message = 'EBMR-AUDIT-001 no actor context: call kernel.begin_command first';
   end if;
-  if tg_op in ('UPDATE', 'DELETE') and coalesce(v_ctx ->> 'reason_code', '') = '' then
-    raise exception using errcode = 'P0001', message = format('EBMR-AUDIT-002 a reason is required to %s %s', lower(tg_op), tg_relid::regclass);
+  -- Outline 5.4: the reason code and the reason text are both mandatory for every change or removal
+  -- after first entry; white space is no reason.
+  if tg_op in ('UPDATE', 'DELETE') and (kernel.is_blank(v_ctx ->> 'reason_code') or kernel.is_blank(v_ctx ->> 'reason_text')) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-AUDIT-002 a reason is required to %s %s: give a reason code and a reason text', lower(tg_op), tg_relid::regclass);
   end if;
-  v_row := case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end;
-  v_old := case when tg_op = 'UPDATE' then to_jsonb(old) else null end;
+  if tg_op = 'DELETE' then
+    v_row := kernel.row_json(old);
+  else
+    v_row := kernel.row_json(new);
+  end if;
+  if tg_op = 'UPDATE' then
+    v_old := kernel.row_json(old);
+    v_old_key := v_reg.aggregate_type || ':' || coalesce(v_old ->> v_reg.aggregate_column, '?');
+  end if;
   v_key := v_reg.aggregate_type || ':' || coalesce(v_row ->> v_reg.aggregate_column, '?');
   v_record := coalesce(v_row ->> 'id', v_row ->> v_reg.aggregate_column);
   if v_reg.insert_only then
@@ -290,6 +357,11 @@ begin
                                  'new', (select jsonb_object_agg(key, value) from jsonb_each(v_row) where v_old -> key is distinct from value));
   else
     v_body := jsonb_build_object(case when tg_op = 'DELETE' then 'old' else 'new' end, v_row);
+  end if;
+  -- A change of the aggregate column moves the row to another aggregate: both trails record it, so
+  -- the trail of the aggregate the row left shows it leaving (DI-22, DI-25).
+  if v_old_key is distinct from v_key and tg_op = 'UPDATE' then
+    perform kernel.append_audit_event(v_old_key, tg_op, tg_relid::regclass::text, v_record, v_body);
   end if;
   perform kernel.append_audit_event(v_key, tg_op, tg_relid::regclass::text, v_record, v_body);
   return null;
@@ -304,35 +376,51 @@ begin
 end
 $$;
 
+-- The triggers the kernel puts on a registered table, by one naming rule for registering and for
+-- checking: the audit trigger and, on an insert-only table, the guard against UPDATE and DELETE and
+-- the guard against TRUNCATE (both calling kernel.reject_mutation).
+create function kernel.required_triggers(p_table regclass, p_insert_only boolean)
+returns table (trigger_name text, trigger_function regprocedure, purpose text)
+language sql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
+  select g.prefix || replace(replace(p_table::text, '.', '_'), '"', ''), g.fn, g.purpose
+  from (values ('zz_audit_', 'kernel.audit_row_change()'::regprocedure, 'AUDIT', false),
+               ('aa_insert_only_', 'kernel.reject_mutation()'::regprocedure, 'NO_UPDATE_OR_DELETE', true),
+               ('aa_no_truncate_', 'kernel.reject_mutation()'::regprocedure, 'NO_TRUNCATE', true)) g(prefix, fn, purpose, insert_only_guard)
+  where p_insert_only or not g.insert_only_guard
+$$;
+
 create function kernel.register_audited_table(p_table regclass, p_aggregate_type text, p_aggregate_column text, p_insert_only boolean)
 returns void
 language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
-  v_name text := p_table::text;
-  v_trigger text := 'zz_audit_' || replace(replace(v_name, '.', '_'), '"', '');
+  r record;
 begin
   insert into kernel.audited_table (table_name, aggregate_type, aggregate_column, insert_only)
   values (p_table, p_aggregate_type, p_aggregate_column, p_insert_only);
-  execute format('create trigger %I after insert or update or delete on %s for each row execute function kernel.audit_row_change()', v_trigger, v_name);
-  if p_insert_only then
-    execute format('create trigger %I before update or delete on %s for each row execute function kernel.reject_mutation()',
-                   'aa_insert_only_' || replace(replace(v_name, '.', '_'), '"', ''), v_name);
-    execute format('create trigger %I before truncate on %s for each statement execute function kernel.reject_mutation()',
-                   'aa_no_truncate_' || replace(replace(v_name, '.', '_'), '"', ''), v_name);
-  end if;
+  for r in select * from kernel.required_triggers(p_table, p_insert_only) loop
+    execute format(case r.purpose
+                     when 'AUDIT' then 'create trigger %I after insert or update or delete on %s for each row execute function %s'
+                     when 'NO_UPDATE_OR_DELETE' then 'create trigger %I before update or delete on %s for each row execute function %s'
+                     else 'create trigger %I before truncate on %s for each statement execute function %s'
+                   end, r.trigger_name, p_table, r.trigger_function);
+  end loop;
 end
 $$;
 
--- DI-23: every registered table must have its audit trigger present and enabled.
+-- DI-23 / INV-06: every registered table must have its audit trigger, and every insert-only one its
+-- two guards, present, enabled and calling the kernel's own trigger functions. begin_command refuses
+-- GMP writes while any is missing (EBMR-AUDIT-005).
 create function kernel.audit_triggers_ok() returns boolean
 language sql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
   select not exists (
     select 1
     from kernel.audited_table a
+    cross join lateral kernel.required_triggers(a.table_name, a.insert_only) want
     where not exists (
       select 1 from pg_catalog.pg_trigger t
       where t.tgrelid = a.table_name
-        and t.tgname = 'zz_audit_' || replace(replace(a.table_name::text, '.', '_'), '"', '')
+        and t.tgname = want.trigger_name
+        and t.tgfoid = want.trigger_function
         and t.tgenabled in ('O', 'A')
     )
   )
@@ -350,6 +438,7 @@ declare
   v_prev   bytea;
   v_expect bigint := p_from_seq;
   v_head   kernel.audit_chain_head%rowtype;
+  v_last   bigint;
 begin
   if p_from_seq = 1 then
     v_prev := sha256(convert_to('genesis:' || p_chain_key, 'UTF8'));
@@ -366,20 +455,53 @@ begin
     if r.hash <> sha256(r.prev_hash || convert_to(r.payload::text, 'UTF8')) then
       seq := r.seq; problem := 'hash does not match the payload (event altered)'; return next;
     end if;
-    if (r.payload ->> 'seq')::bigint <> r.seq or r.payload ->> 'chain_key' <> r.chain_key
-       or r.payload ->> 'action' <> r.action or (r.payload ->> 'correlation_id')::uuid <> r.correlation_id
-       or r.payload ->> 'recorded_at' <> to_char(r.recorded_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') then
+    -- Every stored column that readers use (record trails, involvement sets, extracts) must be the
+    -- hashed value. Compared as text with IS DISTINCT FROM: a NULL cannot hide a difference and a
+    -- malformed payload value is reported for this entry instead of aborting the whole run.
+    if r.payload ->> 'seq' is distinct from r.seq::text or r.payload ->> 'chain_key' is distinct from r.chain_key
+       or r.payload ->> 'action' is distinct from r.action or r.payload ->> 'correlation_id' is distinct from r.correlation_id::text
+       or r.payload ->> 'recorded_at' is distinct from to_char(r.recorded_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+       or r.payload ->> 'table' is distinct from r.table_name or r.payload ->> 'record_id' is distinct from r.record_id then
       seq := r.seq; problem := 'indexed columns differ from the hashed payload'; return next;
     end if;
     v_prev := r.hash;
     v_expect := r.seq + 1;
   end loop;
   select * into v_head from kernel.audit_chain_head h where h.chain_key = p_chain_key;
-  if found and (v_head.last_seq <> v_expect - 1 or v_head.last_hash is distinct from v_prev) then
-    seq := v_head.last_seq; problem := 'chain head does not match the last event (events removed or head altered)'; return next;
+  if found then
+    if v_head.last_seq <> v_expect - 1 or v_head.last_hash is distinct from v_prev then
+      seq := v_head.last_seq; problem := 'chain head does not match the last event (events removed or head altered)'; return next;
+    end if;
+  else
+    -- Events without a head: the head row was deleted (whole-database verification enumerates
+    -- chains from the events as well, so the chain is still checked).
+    select max(e.seq) into v_last from kernel.audit_event e where e.chain_key = p_chain_key;
+    if v_last is not null then
+      seq := v_last; problem := 'chain head is missing although the chain has events (head deleted)'; return next;
+    end if;
   end if;
   return;
 end
+$$;
+
+-- Every chain that has events or a head, in byte order: what whole-database verification checks.
+-- A chain whose head row was deleted is still found through its events.
+create function kernel.chain_keys() returns setof text
+language sql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
+  select k from (select h.chain_key as k from kernel.audit_chain_head h
+                 union
+                 select distinct e.chain_key from kernel.audit_event e) x
+  order by k collate "C"
+$$;
+
+-- DI-23 / INV-08: every problem of every chain, each naming its chain and entry.
+create function kernel.verify_all_chains()
+returns table (chain_key text, seq bigint, problem text)
+language sql stable security definer set search_path = pg_catalog, kernel, pg_temp as $$
+  select k.k, v.seq, v.problem
+  from kernel.chain_keys() k(k)
+  cross join lateral kernel.verify_chain(k.k) v
+  order by k.k collate "C", v.seq
 $$;
 
 create function kernel.checkpoint_chain(p_chain_key text, p_reason text) returns bigint
@@ -403,8 +525,9 @@ begin
 end
 $$;
 
--- Merkle root over sorted chain heads: leaf = sha256(chain_key || ':' || seq || ':' || hash_hex);
--- pairs hashed upward; an odd node is carried up unchanged.
+-- Merkle root over chain heads sorted by chain key in byte order (COLLATE "C", so the root never
+-- depends on the database's locale or collation library version): leaf = sha256(chain_key || ':' ||
+-- seq || ':' || hash_hex); pairs hashed upward; an odd node is carried up unchanged.
 create function kernel.merkle_root(p_heads jsonb) returns bytea
 language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
 declare
@@ -413,7 +536,7 @@ declare
   i int;
 begin
   select coalesce(array_agg(sha256(convert_to((h ->> 'chain_key') || ':' || (h ->> 'seq') || ':' || (h ->> 'hash_hex'), 'UTF8'))
-                  order by h ->> 'chain_key'), '{}')
+                  order by (h ->> 'chain_key') collate "C"), '{}')
   into level
   from jsonb_array_elements(p_heads) h;
   if coalesce(array_length(level, 1), 0) = 0 then
@@ -442,7 +565,8 @@ declare
   v_heads jsonb;
   v_id bigint;
 begin
-  select coalesce(jsonb_agg(jsonb_build_object('chain_key', chain_key, 'seq', last_seq, 'hash_hex', encode(last_hash, 'hex')) order by chain_key), '[]'::jsonb)
+  select coalesce(jsonb_agg(jsonb_build_object('chain_key', chain_key, 'seq', last_seq, 'hash_hex', encode(last_hash, 'hex'))
+                            order by chain_key collate "C"), '[]'::jsonb)
   into v_heads from kernel.audit_chain_head;
   insert into kernel.audit_anchor (heads, merkle_root, head_count)
   values (v_heads, kernel.merkle_root(v_heads), jsonb_array_length(v_heads))
@@ -466,11 +590,66 @@ begin
     problem := 'anchor root does not match its heads'; return next;
   end if;
   for h in select * from jsonb_array_elements(a.heads) loop
-    select e.hash into v_hash from kernel.audit_event e where e.chain_key = h ->> 'chain_key' and e.seq = (h ->> 'seq')::bigint;
+    v_hash := null;
+    if coalesce(pg_catalog.pg_input_is_valid(h ->> 'seq', 'bigint'), false) then
+      select e.hash into v_hash from kernel.audit_event e where e.chain_key = h ->> 'chain_key' and e.seq = (h ->> 'seq')::bigint;
+    end if;
     if v_hash is null or encode(v_hash, 'hex') <> h ->> 'hash_hex' then
       problem := format('chain %s at seq %s differs from the anchor', h ->> 'chain_key', h ->> 'seq'); return next;
     end if;
   end loop;
+end
+$$;
+
+-- ---------------------------------------------------------------------------------------------
+-- The verification job (DI-23: a break raises a critical alarm and names the entry; INV-08)
+-- ---------------------------------------------------------------------------------------------
+
+-- Every run of the scheduled verification is kept, with every problem it found. A run with problems
+-- is a CRITICAL data-integrity alarm: it names each altered entry (chain and sequence number), it
+-- stays in this insert-only table, and it is announced at once on the notification channel
+-- ebmr_integrity_alarm for the monitoring that pages the on-call engineer.
+create table kernel.audit_verification_run (
+  id              bigint generated always as identity primary key,
+  started_at      timestamptz not null,
+  finished_at     timestamptz not null,
+  chains_checked  integer not null check (chains_checked >= 0),
+  problem_count   integer not null check (problem_count >= 0),
+  problems        jsonb not null,          -- [{chain_key, seq, problem}] in chain and sequence order
+  alarm_severity  text check (alarm_severity = 'CRITICAL'),
+  run_by          text not null,           -- the database login that ran the job
+  check ((problem_count = 0) = (alarm_severity is null))
+);
+create trigger aa_insert_only_kernel_audit_verification_run before update or delete on kernel.audit_verification_run
+  for each row execute function kernel.reject_mutation();
+create trigger aa_no_truncate_kernel_audit_verification_run before truncate on kernel.audit_verification_run
+  for each statement execute function kernel.reject_mutation();
+
+-- Runs the verification over every chain, records the run and raises the alarm; returns the run id.
+create function kernel.run_chain_verification() returns bigint
+language plpgsql volatile security definer set search_path = pg_catalog, kernel, pg_temp as $$
+declare
+  v_started  timestamptz := clock_timestamp();
+  v_chains   integer;
+  v_problems jsonb;
+  v_count    integer;
+  v_id       bigint;
+begin
+  select count(*) into v_chains from kernel.chain_keys();
+  select coalesce(jsonb_agg(jsonb_build_object('chain_key', v.chain_key, 'seq', v.seq, 'problem', v.problem)
+                            order by v.chain_key collate "C", v.seq), '[]'::jsonb),
+         count(*)
+    into v_problems, v_count
+    from kernel.verify_all_chains() v;
+  insert into kernel.audit_verification_run (started_at, finished_at, chains_checked, problem_count, problems, alarm_severity, run_by)
+  values (v_started, clock_timestamp(), v_chains, v_count, v_problems, case when v_count > 0 then 'CRITICAL' end, session_user)
+  returning id into v_id;
+  if v_count > 0 then
+    perform pg_notify('ebmr_integrity_alarm',
+      jsonb_build_object('source', 'kernel.audit_verification_run', 'run_id', v_id, 'severity', 'CRITICAL',
+                         'problem_count', v_count, 'first', v_problems -> 0)::text);
+  end if;
+  return v_id;
 end
 $$;
 
@@ -480,15 +659,20 @@ $$;
 
 revoke all on all tables in schema kernel from ebmr_app;
 grant select on kernel.audited_table, kernel.audit_chain_head, kernel.audit_event, kernel.audit_checkpoint,
-                kernel.audit_anchor, kernel.ddl_log to ebmr_app;
+                kernel.audit_anchor, kernel.ddl_log, kernel.audit_verification_run to ebmr_app;
 grant execute on function kernel.begin_command(jsonb), kernel.current_actor(), kernel.audit_business_event(text, text, jsonb),
                           kernel.audit_triggers_ok(), kernel.verify_chain(text, bigint), kernel.checkpoint_chain(text, text),
-                          kernel.create_anchor(), kernel.verify_anchor(bigint), kernel.merkle_root(jsonb) to ebmr_app;
--- register_audited_table, append_audit_event, audit_row_change and reject_mutation stay private to the owner.
+                          kernel.create_anchor(), kernel.verify_anchor(bigint), kernel.merkle_root(jsonb),
+                          kernel.chain_keys(), kernel.verify_all_chains(), kernel.run_chain_verification(),
+                          kernel.row_json(anyelement), kernel.is_blank(text) to ebmr_app;
+-- register_audited_table, append_audit_event, audit_row_change, reject_mutation, set_actor_context,
+-- site_zone and actor_legal_name stay private to the owner.
 
 reset role;
 
--- DDL log needs an event trigger, which only a superuser can create.
+-- DDL log needs event triggers, which only a superuser can create. PostgreSQL reports no commands
+-- to ddl_command_end for DROP statements, so dropped objects (a guard trigger, a table, a function,
+-- a column) are logged from sql_drop.
 create function kernel.log_ddl() returns event_trigger
 language plpgsql security definer set search_path = pg_catalog, kernel, pg_temp as $$
 declare
@@ -501,3 +685,19 @@ end
 $$;
 alter function kernel.log_ddl() owner to ebmr_owner;
 create event trigger ebmr_log_ddl on ddl_command_end execute function kernel.log_ddl();
+
+create function kernel.log_ddl_drop() returns event_trigger
+language plpgsql security definer set search_path = pg_catalog, kernel, pg_temp as $$
+declare
+  r record;
+begin
+  -- Objects named by the command or dropped through CASCADE; not the internal parts of a dropped
+  -- object (its row type, indexes backing constraints, TOAST table), which go with it.
+  for r in select * from pg_event_trigger_dropped_objects() d where d.original or d.normal loop
+    insert into kernel.ddl_log (session_user_name, command_tag, object_identity)
+    values (session_user, tg_tag, coalesce(r.object_identity, r.object_type));
+  end loop;
+end
+$$;
+alter function kernel.log_ddl_drop() owner to ebmr_owner;
+create event trigger ebmr_log_ddl_drop on sql_drop execute function kernel.log_ddl_drop();

@@ -8,12 +8,28 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
-import { syncRuleTables } from '../../src/market/loader.ts';
+import { ruleCorrectionApprovalTarget, syncRuleTables } from '../../src/market/loader.ts';
 import { currentRuleTableVersion, loadRuleTableVersion, resolveInDatabase, verifyRuleTableVersion } from '../../src/market/repository.ts';
 import { resolve } from '../../src/market/resolve.ts';
 import { validateRuleTableDocument } from '../../src/market/validate.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, createTestTable, miniDocument, publishDocument, publishDocumentAs, publishSeedTables, RULE_TABLE_ROOT, seedDocument, testActor } from './helpers.ts';
+import { seedActor } from '../identity/seed.ts';
+import { inSecondRole } from '../records/helpers.ts';
+import {
+  approvalIntegrity,
+  approverActor,
+  approveSourceCorrection,
+  asApp,
+  createTestTable,
+  miniDocument,
+  publishDocument,
+  publishDocumentAs,
+  publishSeedTables,
+  RULE_TABLE_ROOT,
+  seedDocument,
+  signApproval,
+  testActor,
+} from './helpers.ts';
 
 let db: TestDatabase;
 let seed: Map<string, string>;
@@ -278,20 +294,71 @@ describe('loosening, source corrections and prospective changes', () => {
     const v2 = miniDocument(table, 2);
     rows(v2)[1] = { ...rows(v2)[1], value: '25' };
     const publisher = await testActor(db, { roleCode: 'REGULATORY_SIGNER' });
-    const correction = { kind: 'SOURCE_CORRECTION', description: 'EU value mis-keyed', citation: 'EU GMP Annex 1 (2022) 9.17, re-read' };
-    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approverIds: [randomUUID()] })).rejects.toThrow('EBMR-MKT-032');
-    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approverIds: [randomUUID(), publisher.personId] })).rejects.toThrow('EBMR-MKT-032');
-    await expect(publishDocumentAs(db, publisher, v2, { ...correction, citation: ' ', approverIds: [randomUUID(), randomUUID()] })).rejects.toThrow('EBMR-MKT-032');
-    const approvers = [randomUUID(), randomUUID()];
-    const result = await publishDocumentAs(db, publisher, v2, { ...correction, approverIds: approvers });
-    const { rows: v } = await db.app.query<{ change_kind: string; approver_ids: string[]; citation: string; loosening: { retroactive: boolean }[] }>(
-      'select change_kind, approver_ids, citation, loosening from market.rule_table_version where id = $1',
+    const correction = { kind: 'SOURCE_CORRECTION', description: 'EU value mis-keyed', citation: 'EU GMP Annex 1 (2022) 9.17, re-read', vendorNoticeRef: 'VN-2026-007' };
+    // The two approvals are QA e-signatures of exactly this document (0360).
+    const qa = [await approverActor(db, 'QA_REVIEWER'), await approverActor(db, 'QA_MBR_APPROVER')] as const;
+    const signatures = await approveSourceCorrection(db, v2, [qa[0], qa[1]]);
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approvalSignatureIds: [signatures[0]] })).rejects.toThrow('EBMR-MKT-032');
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approvalSignatureIds: [signatures[0], signatures[0]] })).rejects.toThrow('EBMR-MKT-032');
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, citation: ' ', approvalSignatureIds: signatures })).rejects.toThrow('EBMR-MKT-032');
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, vendorNoticeRef: ' ', approvalSignatureIds: signatures })).rejects.toThrow('EBMR-MKT-032');
+    // Approver ids alone are no approval.
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approverIds: qa.map((a) => a.personId) })).rejects.toThrow('EBMR-MKT-032');
+    const result = await publishDocumentAs(db, publisher, v2, { ...correction, approvalSignatureIds: signatures });
+    const { rows: v } = await db.app.query<{ change_kind: string; approver_ids: string[]; approval_signatures: string[]; citation: string; loosening: { retroactive: boolean }[] }>(
+      'select change_kind, approver_ids, approval_signatures, citation, loosening from market.rule_table_version where id = $1',
       [result.versionId],
     );
     expect(v[0]?.change_kind).toBe('SOURCE_CORRECTION');
-    expect(v[0]?.approver_ids.sort()).toEqual(approvers.sort());
+    expect(v[0]?.approver_ids).toEqual(qa.map((a) => a.personId));
+    expect(v[0]?.approval_signatures).toEqual(signatures);
+    // The approvals stay valid once the correction is published (its signed content never changes).
+    expect(await approvalIntegrity(db, signatures)).toEqual(signatures.map(() => ({ status: 'VALID', problems: [] })));
     expect(v[0]?.citation).toContain('9.17');
     expect(v[0]?.loosening.some((l) => l.retroactive)).toBe(true);
+  });
+
+  it('[IN-52][DI-35] a source correction\'s approvals are QA e-signatures of exactly that document, by two persons other than the publisher', async () => {
+    const table = await freshTable();
+    await publishDocument(db, miniDocument(table));
+    const v2 = miniDocument(table, 2);
+    rows(v2)[0] = { ...rows(v2)[0], value: '45' }; // a retroactive loosening of a HARD India value
+    const publisher = await testActor(db, { roleCode: 'REGULATORY_SIGNER' });
+    const correction = { kind: 'SOURCE_CORRECTION', description: 'India interval re-read', citation: 'source re-read', vendorNoticeRef: 'VN-2026-008' };
+    // Signature ids of nothing.
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approvalSignatureIds: [randomUUID(), randomUUID()] })).rejects.toThrow('EBMR-ESIG-070');
+    // Real approvals of another document (the same table and version with other content).
+    const other = miniDocument(table, 2);
+    rows(other)[0] = { ...rows(other)[0], value: '40' };
+    await expect(publishDocumentAs(db, publisher, v2, { ...correction, approvalSignatureIds: await approveSourceCorrection(db, other) })).rejects.toThrow('EBMR-ESIG-070');
+    // The publisher cannot be one of the approvers, even holding a QA role.
+    const qaPublisher = await approverActor(db, 'QA_REVIEWER');
+    const signatures = await approveSourceCorrection(db, v2, [qaPublisher, await approverActor(db, 'QA_MBR_APPROVER')]);
+    await expect(publishDocumentAs(db, await inSecondRole(db, qaPublisher, 'REGULATORY_SIGNER'), v2, { ...correction, approvalSignatureIds: signatures })).rejects.toThrow(
+      'EBMR-MKT-032',
+    );
+    // Nothing was published by any of these attempts.
+    const { rows: versions } = await db.app.query<{ v: number }>('select max(version) as v from market.rule_table_version where table_code = $1', [table]);
+    expect(versions[0]?.v).toBe(1);
+    // An operator cannot sign such an approval at all.
+    await expect(signApproval(db, await seedActor(db, { roleCode: 'OPERATOR' }), await ruleCorrectionApprovalTarget(db.app, v2))).rejects.toThrow('EBMR-ESIG-040');
+  });
+
+  it('[IN-52][INV-28] ALL_APPLY: an UPDATE that keeps a criterion id but changes its definition in force is a loosening (the HARD IP weight bands cannot be edited in place)', async () => {
+    const tablets = seedDocument('tablets');
+    const ip = tablets.rows.find((r) => r.ref === 'B-14.IN.ipBands');
+    expect(ip?.floor).toBe('HARD');
+    const criterion = (ip?.value as { id: string }[])[0] as Record<string, unknown>;
+    const edited = (change: Record<string, unknown>) => ({
+      ...tablets,
+      version: 2,
+      change: { kind: 'UPDATE', description: 'IP weight bands edited' },
+      rows: tablets.rows.map((r) => (r.ref === 'B-14.IN.ipBands' ? { ...r, value: [{ ...criterion, ...change }] } : r)),
+    });
+    // Looser bands, and also bands that merely look tighter: criteria are not ranked, any change of definition is a change of criterion.
+    await expect(publishDocument(db, edited({ bands: [{ deviationPercent: '50' }] }))).rejects.toThrow('EBMR-MKT-031');
+    await expect(publishDocument(db, edited({ bands: [{ deviationPercent: '1' }] }))).rejects.toThrow('EBMR-MKT-031');
+    expect((await currentRuleTableVersion(db.app, 'tablets'))?.version).toBe(1);
   });
 
   it('[IN-52] a loosening that starts in the future (a later legal effective date) is allowed as an UPDATE and recorded', async () => {

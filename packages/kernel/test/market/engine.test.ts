@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { compareDecimal, isCanonicalDecimal } from '../../src/market/decimal.ts';
 import { resolve } from '../../src/market/resolve.ts';
 import { snapshotFromDocument } from '../../src/market/snapshot.ts';
+import { isAtLeastAsStrict } from '../../src/market/strictness.ts';
 import type { RuleKeyDoc, RuleRowDoc, RuleTableDocument, RuleTableSnapshot } from '../../src/market/types.ts';
 import { validateRuleTableDocument } from '../../src/market/validate.ts';
 import { seedDocument } from './helpers.ts';
@@ -83,6 +84,19 @@ describe('comparison methods', () => {
     expect(r.governingMarkets).toEqual(['EU', 'IN', 'US']);
     const inOnly = resolve(tablets, { key: 'tablets.uniformity.acceptanceCriteria', marketSet: ['IN'], asOf: '2026-01-15' });
     expect((inOnly.value as { id: string }[]).map((c) => c.id)).toEqual(['IP_UNIFORMITY_OF_WEIGHT_BANDS']);
+  });
+
+  it('[IN-52][INV-28] ALL_APPLY compares criteria by their whole definition: a criterion that keeps its id but changes its content is not at least as strict', () => {
+    const ip = { id: 'IP_UNIFORMITY_OF_WEIGHT_BANDS', stage: 'IN_PROCESS', bands: [{ deviationPercent: '10' }, { deviationPercent: '7.5' }] };
+    const usp = { id: 'USP_905', plan: 'L1' };
+    const weakened = { ...ip, bands: [{ deviationPercent: '50' }] };
+    const reordered = { bands: ip.bands, stage: ip.stage, id: ip.id }; // same definition, keys in another order
+    expect(isAtLeastAsStrict('ALL_APPLY', null, [ip, usp], [ip])).toBe(true);
+    expect(isAtLeastAsStrict('ALL_APPLY', null, [reordered], [ip])).toBe(true);
+    expect(isAtLeastAsStrict('ALL_APPLY', null, [weakened, usp], [ip])).toBe(false);
+    expect(isAtLeastAsStrict('ALL_APPLY', null, [{ ...ip, bands: [{ deviationPercent: '1' }] }], [ip])).toBe(false);
+    expect(isAtLeastAsStrict('ALL_APPLY', null, [usp], [ip])).toBe(false);
+    expect(isAtLeastAsStrict('ALL_APPLY', null, [ip], [ip, usp])).toBe(false);
   });
 
   it('[IN-52] a NOT_COMPARABLE key is resolved only by its stated method (per destination, with a decision reference)', () => {

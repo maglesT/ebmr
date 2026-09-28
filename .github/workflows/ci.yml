@@ -17,21 +17,17 @@ jobs:
     name: Typecheck, lint, boundaries, register, tests, traceability
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: ebmr_dev
-          POSTGRES_PASSWORD: ebmr_dev
-          POSTGRES_DB: postgres
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U ebmr_dev"
-          --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
+      # The runner's own PostgreSQL 16 (Debian layout, pg_hba allows replication from localhost): the physical-copy
+      # reproducer (review/f55) takes a pg_basebackup of the running cluster and starts the copy with these binaries.
+      - name: Start PostgreSQL 16
+        run: |
+          sudo systemctl start postgresql.service
+          until pg_isready -h localhost -p 5432; do sleep 1; done
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "create role ebmr_dev superuser login password 'ebmr_dev'"
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -44,6 +40,15 @@ jobs:
       - run: pnpm pins:check
       - run: pnpm register:validate
       - run: pnpm test:json
+      - name: Failed tests (summary)
+        if: failure()
+        run: |
+          node -e '
+            const r = require("./.reports/vitest.json");
+            for (const f of r.testResults) for (const t of f.assertionResults)
+              if (t.status === "failed") console.log(`FAILED ${f.name.replace(process.cwd() + "/", "")} > ${t.fullName}\n  ${(t.failureMessages || []).join("\n").split("\n").slice(0, 12).join("\n  ")}`);
+            console.log(`${r.numFailedTests} failed, ${r.numPassedTests} passed, ${r.numTotalTests} total`);
+          '
       - run: pnpm trace
       - name: Upload traceability matrix
         if: always()

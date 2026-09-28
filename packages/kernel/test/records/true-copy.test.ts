@@ -1,12 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import pg from 'pg';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { buildTrueCopyBundle, registerTrueCopy, serializeBundle, verifyTrueCopyBundle, verifyTrueCopyBundleText } from '../../src/records/true-copy.ts';
-import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import { again, testActor, withReason } from './helpers.ts';
 
 let db: TestDatabase;
@@ -30,6 +31,15 @@ beforeAll(async () => {
     grant select, insert on stub_tc.reading to ebmr_app;
     select kernel.register_audited_table('stub_tc.entry', 'tc_batch', 'batch_id', false);
     select kernel.register_audited_table('stub_tc.reading', 'tc_batch', 'batch_id', true);
+    -- Column types whose text form follows the session settings (time zone, date style, interval style, bytea, float).
+    create table stub_tc.timed_entry (id uuid primary key default gen_random_uuid(), batch_id uuid not null, taken_at timestamptz not null,
+      on_day date not null, span interval not null, ratio double precision not null, raw bytea not null);
+    create table stub_tc.timed_reading (id uuid primary key default gen_random_uuid(), batch_id uuid not null, taken_at timestamptz not null,
+      on_day date not null, span interval not null, ratio double precision not null, raw bytea not null);
+    grant select, insert, update on stub_tc.timed_entry to ebmr_app;
+    grant select, insert on stub_tc.timed_reading to ebmr_app;
+    select kernel.register_audited_table('stub_tc.timed_entry', 'tc_timed', 'batch_id', false);
+    select kernel.register_audited_table('stub_tc.timed_reading', 'tc_timed', 'batch_id', true);
     reset role;
   `);
   operator = await testActor(db, { roleCode: 'OPERATOR' });
@@ -201,5 +211,104 @@ describe('true-copy bundle and offline verifier (groundwork for DI-40, DI-41, DI
     expect(report.ok).toBe(true);
     expect(report.summary.rows).toBe(2);
     await expect(buildTrueCopyBundle(db.app, { chainKey: key(batch), tables: ['testgmp.sample'] })).rejects.toThrow('EBMR-REC-070');
+  });
+});
+
+describe('true copies after the Phase 1 exit review (F34, critic: session settings)', () => {
+  const oddSession = '-c TimeZone=Pacific/Kiritimati -c DateStyle=SQL,DMY -c IntervalStyle=sql_standard -c extra_float_digits=-3 -c bytea_output=escape';
+
+  it('[INV-08][DI-47] a bundle of rows with time stamps, dates, intervals, floats and bytes verifies and is identical whatever the session settings of the writer and the builder', async () => {
+    const odd = new pg.Pool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 1, options: oddSession });
+    try {
+      const batch = randomUUID();
+      const values = "($1, '2026-01-02T03:04:05.123456Z', '2026-01-02', interval '5 hours 30 minutes', 0.1::float8 + 0.2::float8, '\\x00ff'::bytea)";
+      const entry = await withCommand(odd, again(operator), async (c) => {
+        await c.query(`insert into stub_tc.timed_reading (batch_id, taken_at, on_day, span, ratio, raw) values ${values}`, [batch]);
+        const { rows } = await c.query<{ id: string }>(`insert into stub_tc.timed_entry (batch_id, taken_at, on_day, span, ratio, raw) values ${values} returning id`, [batch]);
+        return rows[0]?.id ?? '';
+      });
+      await withCommand(odd, withReason(operator, 'TRANSCRIPTION_ERROR', 'wrong time'), (c) =>
+        c.query("update stub_tc.timed_entry set taken_at = '2026-01-02T04:04:05Z', span = interval '1 day 2 hours' where id = $1", [entry]),
+      );
+      const fromOdd = await buildTrueCopyBundle(odd, { chainKey: `tc_timed:${batch}` });
+      const fromDefault = await buildTrueCopyBundle(db.app, { chainKey: `tc_timed:${batch}` });
+      for (const bundle of [fromOdd, fromDefault]) {
+        const report = verifyTrueCopyBundleText(serializeBundle(bundle));
+        expect(report.problems).toEqual([]);
+        expect(report.summary).toMatchObject({ rows: 2, events: 3, omittedTables: [] });
+      }
+      expect(fromOdd.parts['records.json']).toBe(fromDefault.parts['records.json']);
+      expect(fromOdd.parts['audit-chain.json']).toBe(fromDefault.parts['audit-chain.json']);
+      expect(fromOdd.parts['records.json']).toContain('2026-01-02T04:04:05+00:00');
+    } finally {
+      await odd.end();
+    }
+  });
+
+  it('[INV-08][DI-47] a self-consistent bundle is proven to be the registered copy only against the manifest SHA-256 of the register; without it the verifier says so (UNANCHORED)', async () => {
+    const { batch } = await realBatch();
+    const { batch: otherBatch } = await realBatch();
+    const bundle = await buildTrueCopyBundle(db.app, { chainKey: key(batch) });
+    const substitute = await buildTrueCopyBundle(db.app, { chainKey: key(otherBatch) });
+    const id = await withCommand(db.app, again(qa), (c) => registerTrueCopy(c, bundle, 'archive before disposal'));
+    const registered = await db.app.query<{ manifest_sha256: string; head_hash: Buffer; tables: string[] }>(
+      'select manifest_sha256, head_hash, tables from records.true_copy where id = $1',
+      [id],
+    );
+    const reference = { manifestSha256: registered.rows[0]?.manifest_sha256 ?? '' };
+    expect(registered.rows[0]?.tables).toEqual(['stub_tc.entry', 'stub_tc.reading']);
+    // The substitute agrees with itself; only the comparison with the register shows it is another record.
+    expect(verifyTrueCopyBundleText(serializeBundle(substitute)).summary.reference).toBe('NONE');
+    expect(verifyTrueCopyBundleText(serializeBundle(substitute)).ok).toBe(true);
+    const mismatch = verifyTrueCopyBundleText(serializeBundle(substitute), reference);
+    expect(mismatch.ok).toBe(false);
+    expect(mismatch.problems).toContain('manifest SHA-256 differs from the expected reference (this is not the registered copy)');
+    expect(verifyTrueCopyBundleText(serializeBundle(bundle), reference)).toMatchObject({ ok: true, summary: { reference: 'MATCHED' } });
+    const head = { headHash: registered.rows[0]?.head_hash.toString('hex') ?? '' };
+    expect(verifyTrueCopyBundleText(serializeBundle(bundle), head).summary.reference).toBe('MATCHED');
+    expect(verifyTrueCopyBundleText(serializeBundle(substitute), head).problems).toContain('chain head differs from the expected reference (this is not the anchored record)');
+
+    // The command line: UNANCHORED without a reference, ANCHORED with the registered one, exit 1 with another.
+    const file = join(dir, 'anchored.json');
+    writeFileSync(file, serializeBundle(bundle));
+    const plain = spawnSync(TSX, [CLI, file], { encoding: 'utf8' });
+    expect(plain.status).toBe(0);
+    expect(plain.stdout).toContain('UNANCHORED: the bundle agrees with itself only');
+    const anchored = spawnSync(TSX, [CLI, file, '--expect-manifest-sha256', reference.manifestSha256], { encoding: 'utf8' });
+    expect(anchored.status).toBe(0);
+    expect(anchored.stdout).toContain('ANCHORED: the bundle matches the expected reference');
+    const other = spawnSync(TSX, [CLI, file, '--expect-manifest-sha256', substitute.manifestSha256], { encoding: 'utf8' });
+    expect(other.status).toBe(1);
+    expect(other.stdout).toContain('manifest SHA-256 differs from the expected reference');
+    expect(spawnSync(TSX, [CLI, file, '--expect-manifest-sha256', 'xyz'], { encoding: 'utf8' }).status).toBe(2);
+  });
+
+  it('[INV-08][DI-47] a bundle limited to some tables is reported as partial, and the register records which tables a copy holds', async () => {
+    const { batch } = await realBatch();
+    const subset = await buildTrueCopyBundle(db.app, { chainKey: key(batch), tables: ['stub_tc.reading'] });
+    const report = verifyTrueCopyBundleText(serializeBundle(subset));
+    expect(report.ok).toBe(true);
+    expect(report.summary.omittedTables).toEqual(['stub_tc.entry']);
+    const file = join(dir, 'partial.json');
+    writeFileSync(file, serializeBundle(subset));
+    expect(spawnSync(TSX, [CLI, file], { encoding: 'utf8' }).stdout).toContain('PARTIAL: the copy leaves out stub_tc.entry');
+    const id = await withCommand(db.app, again(qa), (c) => registerTrueCopy(c, subset, 'extract for an inspector'));
+    expect(await db.app.query<{ tables: string[] }>('select tables from records.true_copy where id = $1', [id]).then((r) => r.rows[0]?.tables)).toEqual(['stub_tc.reading']);
+  });
+
+  it('[INV-08] the register computes the manifest SHA-256 itself and refuses a manifest whose hash, head or tables do not fit the record', async () => {
+    const { batch } = await realBatch();
+    const bundle = await buildTrueCopyBundle(db.app, { chainKey: key(batch) });
+    const register = (manifest: string, sha: string) =>
+      withCommand(db.app, again(qa), (c) => c.query('select records.register_true_copy($1, $2, $3) as id', [manifest, sha, 'archive before disposal']));
+    await expect(register(bundle.manifest, bundle.manifestSha256.replace(/^./, (ch) => (ch === '0' ? '1' : '0')))).rejects.toThrow(
+      'EBMR-REC-070 the manifest SHA-256 does not match the manifest',
+    );
+    const sha = (text: string) => createHash('sha256').update(text).digest('hex');
+    const foreignTable = bundle.manifest.replace('"stub_tc.entry"', '"stub_b4.batch_entry"');
+    await expect(register(foreignTable, sha(foreignTable))).rejects.toThrow('EBMR-REC-070 stub_b4.batch_entry is not a registered table of aggregate type tc_batch');
+    const otherChain = bundle.manifest.replace(`"chainKey": "${key(batch)}"`, `"chainKey": "tc_batch:${randomUUID()}"`);
+    await expect(register(otherChain, sha(otherChain))).rejects.toThrow('EBMR-REC-070');
+    await expect(register(bundle.manifest, bundle.manifestSha256)).resolves.toBeDefined();
   });
 });

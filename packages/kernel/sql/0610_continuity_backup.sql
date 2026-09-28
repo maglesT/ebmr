@@ -46,8 +46,11 @@ create table continuity.backup_catalogue (
   snapshot_taken_at  timestamptz not null,   -- claimed: the consistent point the backup represents
   recorded_at        timestamptz not null default clock_timestamp(),
   correlation_id     uuid not null,
-  -- A retention-grade copy is the FDA 211.68(b) backup: kept for the retention period on write-once storage.
-  check (tier <> 'RETENTION_GRADE' or immutable_until is not null)
+  -- A retention-grade copy is the FDA 211.68(b) backup: kept for the retention period on write-once
+  -- storage, so its write-once lock must still run after the day the backup was taken (a date on or
+  -- before that day claims a lock that has already lapsed).
+  constraint retention_grade_needs_write_once_lock check (tier <> 'RETENTION_GRADE' or immutable_until is not null),
+  constraint write_once_lock_runs_past_snapshot check (immutable_until is null or immutable_until > (snapshot_taken_at at time zone 'UTC')::date)
 );
 
 create table continuity.restore_drill (

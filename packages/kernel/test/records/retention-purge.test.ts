@@ -1,8 +1,11 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { verifyChain } from '../../src/audit/verify.ts';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { buildTrueCopyBundle, registerTrueCopy, verifyTrueCopyBundle } from '../../src/records/true-copy.ts';
+import { raiseIncident } from '../../src/records/incidents.ts';
+import { closeDiInvestigation, openDiInvestigation } from '../../src/records/investigations.ts';
 import type { RetentionInputs } from '../../src/records/retention.ts';
 import {
   approvePurge,
@@ -18,10 +21,11 @@ import {
   verifyAnchorPurgeAware,
   verifyChainPurgeAware,
 } from '../../src/records/retention-store.ts';
-import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import type { SeededActor } from '../identity/seed.ts';
 import {
   again,
+  allowRetention,
   approveDisposal,
   correctEntry,
   createStubTables,
@@ -461,5 +465,292 @@ describe('INV-22 bypass attempts through the application role', () => {
     await db.admin.query('delete from kernel.audit_checkpoint where chain_key = $1', [key]);
     expect((await inv22Violations(db.app)).filter((v) => v.detail.includes(batch)).map((v) => v.check)).toContain('PURGE_WITHOUT_CHECKPOINT');
     expect((await verifyChainPurgeAware(db.app, key)).map((p) => p.problem)).toContain('purged chain: checkpoint missing or different from the tombstone');
+  });
+});
+
+describe('Phase 1 exit: retention and purge hardening', () => {
+  it('[INV-22][DI-47] only aggregate types a module declares can have a retention schedule, under a retention key it names (EBMR-REC-024; F29, F75)', async () => {
+    await registerType(db, recordType('PERMANENT_LOT_FILE', { retentionKey: 'PERMANENT' }));
+    const schedule = (type: string, id: string, recordTypeCode: string, inputs: RetentionInputs = PAST_BATCH) =>
+      withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, type, id, recordTypeCode, inputs));
+    // Records tied to a subject, kernel registers and the records module's own records are never disposed of on their own.
+    for (const type of ['esig_signature', 'esig_challenge', 'state', 'incident', 'di_investigation', 'record_type', 'iam_policy', 'time_node', 'number_sequence']) {
+      await expect(schedule(type, `x-${randomUUID()}`, 'BATCH_PROCESSING_RECORD'), type).rejects.toThrow(`EBMR-REC-024 ${type} records are not disposed of on their own`);
+    }
+    // A declared aggregate type only under the retention keys its module names; PERMANENT (longer) is always accepted.
+    await expect(schedule('batch', randomUUID(), 'COMPONENT_LOT_RECORD', { markets: ['IN'] })).rejects.toThrow(
+      'EBMR-REC-024 a record type with retention key SUPPORTING_RECORD cannot govern batch records',
+    );
+    await expect(schedule('component_lot', randomUUID(), 'BATCH_PROCESSING_RECORD')).rejects.toThrow('EBMR-REC-024 a record type with retention key BATCH_RECORD cannot govern component_lot records');
+    await expect(schedule('component_lot', randomUUID(), 'PERMANENT_LOT_FILE', { markets: ['IN'] })).resolves.toMatch(/^[0-9a-f-]{36}$/);
+    // The list is written only by module migrations: the application can neither write it nor call the declaration.
+    await expect(withCommand(db.app, withReason(operator, 'ATTACK', 'x'), (c) => c.query("insert into records.retention_aggregate (aggregate_type, retention_keys, owning_module, note) values ('esig_stub', '{BATCH_RECORD}', 'x', 'x')"))).rejects.toThrow(/permission denied/);
+    await expect(withCommand(db.app, withReason(operator, 'ATTACK', 'x'), (c) => c.query("select records.declare_retention_aggregate('esig_stub', '{BATCH_RECORD}', 'x', 'x')"))).rejects.toThrow(/permission denied/);
+    // Even the owner cannot declare a record tied to a subject.
+    await expect(allowRetention(db, 'esig_signature', ['BATCH_RECORD'])).rejects.toThrow(/violates check constraint/);
+    expect(await scalar<string>(db.app, "select string_agg(aggregate_type, ',' order by aggregate_type) as v from records.retention_aggregate")).toBe('batch,component_lot');
+  });
+
+  it('[DI-47][INV-22] nobody who entered retention inputs of the record or of a record depending on it, or linked the dependency, approves its disposal (EBMR-REC-035, -033; F33)', async () => {
+    const author = await signerActor(db, 'QA_REVIEWER', 'QA Reviewer who changed inputs');
+    const lot = randomUUID();
+    const lotKey = `component_lot:${lot}`;
+    const batch = await batchWithRecords(PAST_BATCH);
+    await withCommand(db.app, again(operator), (c) => c.query("insert into stub_b4.lot_record (lot_id, note) values ($1, 'received')", [lot]));
+    await withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'component_lot', lot, 'COMPONENT_LOT_RECORD', { markets: ['IN'] }));
+    // A different QA reviewer links the dependency that gives the lot its date, and corrects the batch's expiry.
+    await withCommand(db.app, again(author), (c) => linkRetentionDependency(c, lotKey, `batch:${batch}`, 'COMPONENT_LOT_CONSUMED'));
+    await withCommand(db.app, again(author), (c) => updateRetentionInputs(c, `batch:${batch}`, { expiryDate: '2010-02-28' }, 'expiry corrected'));
+    expect((await retentionOf(db.app, 'component_lot', lot)).effective).toMatchObject({ status: 'DATED', retainUntil: '2011-02-28' });
+    // 1. The signing path: the disposal content names the authors (entered_by), so esig refuses their
+    //    RECORD_DISPOSAL_APPROVED signature (INV-03) before approve_purge is reached.
+    await expect(approveDisposal(db, author, lotKey, 'retention ended')).rejects.toThrow(
+      'EBMR-ESIG-044 INV-03: RECORD_DISPOSAL_APPROVED is never signed by a person who performed, entered data in or corrected the record',
+    );
+    await expect(approveDisposal(db, author, `batch:${batch}`, 'retention ended')).rejects.toThrow(
+      'EBMR-ESIG-044 INV-03: RECORD_DISPOSAL_APPROVED is never signed by a person who performed, entered data in or corrected the record',
+    );
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from records.purge_approval where record_key in ($1, $2)', [lotKey, `batch:${batch}`])).toBe('0');
+    // 2. The database's own rule (EBMR-REC-035), with a signature that is itself independent: made
+    //    before its signer became an author. Linking a dependant with an earlier date changes neither
+    //    the record's content nor its retain-until, so the signature stays valid; approve_purge still
+    //    refuses the signer, who now shaped the record's retention.
+    const other = await batchWithRecords(PAST_BATCH);
+    const early = await signFor(db, author, await disposalAggregate(db, `batch:${other}`), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    const dependant = await batchWithRecords({ ...PAST_BATCH, expiryDate: '2009-12-31' });
+    await withCommand(db.app, again(author), (c) => linkRetentionDependency(c, `batch:${other}`, `batch:${dependant}`, 'REWORKED_INTO'));
+    expect(await db.app.query<{ valid: boolean }>('select (esig.signature_state($1) ->> $2)::boolean as valid', [early, 'valid']).then((r) => r.rows[0]?.valid)).toBe(true);
+    await expect(withCommand(db.app, again(author), (c) => approvePurge(c, `batch:${other}`, early, 'retention ended'))).rejects.toThrow(
+      `EBMR-REC-035 the approver entered retention inputs or dependency links that decide when batch:${other}`,
+    );
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from records.purge_approval where record_key = $1', [`batch:${other}`])).toBe('0');
+    // An independent approver can; but once the approver changes an input of a dependant, the approval no longer counts for the purge.
+    await approveDisposal(db, qa2, lotKey, 'retention ended; inputs reviewed');
+    await withCommand(db.app, again(qa2), (c) => updateRetentionInputs(c, `batch:${batch}`, { distributionDate: '2009-05-01' }, 'distribution date recorded'));
+    expect((await retentionOf(db.app, 'component_lot', lot)).effective).toMatchObject({ retainUntil: '2011-02-28' });
+    await expect(runPurge(lotKey)).rejects.toThrow(/EBMR-REC-033 no QA disposal approval for .* by a person who entered none of its retention inputs/);
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from stub_b4.lot_record where lot_id = $1', [lot])).toBe('1');
+  });
+
+  it('[INV-22][DI-24] a purge needs a reason code and a reason text; white space is no reason (EBMR-REC-036)', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    await approve(key);
+    for (const ctx of [withReason(retentionJob, 'RETENTION_ENDED'), withReason(retentionJob, 'RETENTION_ENDED', ' \t\n'), withReason(retentionJob, '\t', 'approved disposal')]) {
+      await expect(withCommand(db.app, ctx, (c) => purge(c, key))).rejects.toThrow('EBMR-REC-036 a purge needs a reason code and a reason text');
+    }
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from stub_b4.batch_entry where batch_id = $1', [batch])).toBe('1');
+    await expect(runPurge(key)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[INV-22][DI-47][INV-08] the purge digest is the audit row hash whatever the session TimeZone, DateStyle, IntervalStyle, float and bytea output', async () => {
+    await db.admin.query(`
+      set role ebmr_owner;
+      create table stub_b4.timed_reading (id uuid primary key default gen_random_uuid(), batch_id uuid not null, taken_at timestamptz not null,
+        on_day date not null, span interval not null, ratio double precision not null, raw bytea not null);
+      grant select, insert on stub_b4.timed_reading to ebmr_app;
+      select kernel.register_audited_table('stub_b4.timed_reading', 'tz_batch', 'batch_id', true);
+      reset role;`);
+    await allowRetention(db, 'tz_batch', ['BATCH_RECORD']);
+    // A session with settings the application might use: every rendering of the row differs from the default.
+    const odd = new pg.Pool({
+      connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }),
+      max: 1,
+      options: '-c TimeZone=Pacific/Kiritimati -c DateStyle=SQL,DMY -c IntervalStyle=sql_standard -c extra_float_digits=-3 -c bytea_output=escape',
+    });
+    try {
+      const batch = randomUUID();
+      const key = `tz_batch:${batch}`;
+      await withCommand(odd, again(operator), async (c) => {
+        const insert = "insert into stub_b4.timed_reading (batch_id, taken_at, on_day, span, ratio, raw) values ($1, $2, '2026-01-02', interval '5 hours 30 minutes', 0.1::float8 + 0.2::float8, '\\x00ff'::bytea)";
+        await c.query(insert, [batch, '2026-01-02T03:04:05.123456Z']);
+        await c.query(insert, [batch, '2026-01-02T23:59:59.5Z']);
+      });
+      // The digest purge must give: SHA-256 over the sorted row hashes the audit trigger recorded.
+      const { rows: hashes } = await db.app.query<{ h: string }>(
+        "select payload -> 'body' ->> 'row_hash' as h from kernel.audit_event where chain_key = $1 and action = 'INSERT' order by 1",
+        [key],
+      );
+      expect(hashes).toHaveLength(2);
+      const expected = createHash('sha256').update(hashes.map((r) => r.h).join('\n')).digest('hex');
+      await withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'tz_batch', batch, 'BATCH_PROCESSING_RECORD', PAST_BATCH));
+      await approve(key);
+      const tombstone = await withCommand(odd, withReason(retentionJob, 'RETENTION_ENDED', 'approved disposal'), (c) => purge(c, key));
+      const { rows } = await db.app.query<{ purged_tables: { table: string; rowCount: number; rowsDigestSha256: string }[] }>(
+        'select purged_tables from records.tombstone where id = $1',
+        [tombstone],
+      );
+      expect(rows[0]?.purged_tables).toEqual([{ table: 'stub_b4.timed_reading', rowCount: 2, rowsDigestSha256: expected }]);
+    } finally {
+      await odd.end();
+    }
+  });
+
+  it('[INV-22][DI-47] the insert-only guard of a table in the records schema is found, so such a record can be purged, and the guard is back afterwards (F36)', async () => {
+    const guard = await scalar<string | null>(db.admin, "select records.insert_only_trigger('records.incident'::regclass) as v");
+    expect(guard).toBe('aa_insert_only_records_incident');
+    // A stand-in insert-only aggregate in the records schema (this test database only).
+    await db.admin.query(`
+      set role ebmr_owner;
+      create table records.stub_note (id uuid primary key default gen_random_uuid(), note_id uuid not null, note text not null);
+      select kernel.register_audited_table('records.stub_note', 'rs_note', 'note_id', true);
+      reset role;`);
+    await allowRetention(db, 'rs_note', ['BATCH_RECORD']);
+    const note = randomUUID();
+    const key = `rs_note:${note}`;
+    await withCommand(db.admin, again(operator), (c) => c.query("insert into records.stub_note (note_id, note) values ($1, 'kept note')", [note]));
+    await withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'rs_note', note, 'BATCH_PROCESSING_RECORD', PAST_BATCH));
+    await approve(key);
+    await expect(runPurge(key)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+    expect(await scalar<string>(db.admin, 'select count(*)::text as v from records.stub_note where note_id = $1', [note])).toBe('0');
+    const { rows } = await db.admin.query<{ tgenabled: string }>("select tgenabled from pg_trigger where tgname = 'aa_insert_only_records_stub_note'");
+    expect(rows[0]?.tgenabled).toBe('O');
+  });
+
+  it('[INV-22] the invariant query reports a purge of an aggregate type no module declares, or of a PERMANENT record', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    await approve(key);
+    const tombstone = await runPurge(key);
+    const found = async () => (await inv22Violations(db.app)).filter((v) => v.detail === key).map((v) => v.check);
+    expect(await found()).toEqual([]);
+    // States no function produces, arranged by the superuser on the insert-only tombstone.
+    await db.admin.query('alter table records.tombstone disable trigger user');
+    try {
+      await db.admin.query("update records.tombstone set aggregate_type = 'esig_signature' where id = $1", [tombstone]);
+      expect(await found()).toContain('PURGED_UNDECLARED_AGGREGATE');
+      await db.admin.query("update records.tombstone set aggregate_type = 'batch', retention_key = 'PERMANENT' where id = $1", [tombstone]);
+      expect(await found()).toContain('PURGED_PERMANENT_RECORD');
+      await db.admin.query("update records.tombstone set retention_key = 'BATCH_RECORD' where id = $1", [tombstone]);
+    } finally {
+      await db.admin.query('alter table records.tombstone enable trigger user');
+    }
+    expect(await found()).toEqual([]);
+  });
+
+  it('[INV-22][INV-08] an anchor taken after a purge verifies against the chain written again under the purged key, and a changed event is still reported (F37)', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const before = await scalar<string>(db.app, 'select kernel.create_anchor()::text as v');
+    await approve(key);
+    await runPurge(key);
+    // An incident linked to the purged batch writes a business entry: a new chain from genesis under the same key.
+    await withCommand(db.app, again(operator), (c) =>
+      raiseIncident(c, { source: 'OTHER', type: 'LATE_FINDING', severity: 'MINOR', title: 'finding on a disposed batch', links: [{ aggregateType: 'batch', aggregateId: batch }] }),
+    );
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from kernel.audit_event where chain_key = $1', [key])).toBe('1');
+    const after = await scalar<string>(db.app, 'select kernel.create_anchor()::text as v');
+    const mine = async (anchor: string) => (await verifyAnchorPurgeAware(db.app, anchor)).filter((p) => p.includes(key));
+    expect(await mine(before)).toEqual([]);
+    expect(await mine(after)).toEqual([]);
+    // Tampering with the new chain is still found.
+    await db.admin.query("update kernel.audit_event set hash = sha256(convert_to('forged', 'UTF8')) where chain_key = $1 and seq = 1", [key]);
+    expect(await mine(after)).toEqual([`chain ${key} at seq 1 differs from the anchor`]);
+    expect(await mine(before)).toEqual([]);
+  });
+
+  it('[INV-22] retention ends on the site date: a schedule keeps the site zone, and a zone of the caller that differs is refused (F84)', async () => {
+    const batch = randomUUID();
+    await expect(
+      withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'batch', batch, 'BATCH_PROCESSING_RECORD', FUTURE_BATCH, 'Pacific/Kiritimati')),
+    ).rejects.toThrow("EBMR-REC-020 site zone 'Pacific/Kiritimati' is not the zone of this site (Asia/Kolkata)");
+    await withCommand(db.app, again(qa), (c) => createRetentionSchedule(c, 'batch', batch, 'BATCH_PROCESSING_RECORD', FUTURE_BATCH));
+    expect((await retentionOf(db.app, 'batch', batch)).siteZone).toBe('Asia/Kolkata');
+    // A command context declaring another zone never reaches the schedule: the identity module refuses the
+    // context itself (EBMR-IAM-118). With the site policy in place records reads the zone from it, never
+    // from the context (the default schedule above keeps the site zone).
+    await expect(
+      withCommand(db.app, { ...again(qa), siteZone: 'Pacific/Kiritimati' }, (c) => createRetentionSchedule(c, 'batch', randomUUID(), 'BATCH_PROCESSING_RECORD', FUTURE_BATCH)),
+    ).rejects.toThrow('EBMR-IAM-118');
+  });
+});
+
+describe('owner decision 0004: a hold voids the disposal approvals given before it', () => {
+  // The signed disposal content carries the hold watermark (kernel 0720), so a hold supersedes the
+  // signatures made before it (esig SUPERSEDED_BY_CHANGE). The new approval comes from another QA reviewer
+  // here; the same reviewer may sign it again too (test/integration/authorization.test.ts).
+  let qa3: SeededActor;
+  beforeAll(async () => {
+    qa3 = await signerActor(db, 'QA_REVIEWER', 'QA Deputy after the hold');
+  });
+  const approveAgain = (key: string) => approveDisposal(db, qa3, key, 'retention ended; hold released, inputs and archive reviewed again');
+  const signatureOf = (approvalId: string) => scalar<string>(db.app, 'select approval_signature_id::text as v from records.purge_approval where id = $1', [approvalId]);
+  const rows = (batch: string) => scalar<string>(db.app, 'select count(*)::text as v from stub_b4.batch_entry where batch_id = $1', [batch]);
+
+  it('[DI-47][INV-22] an approval given before a legal hold no longer authorises the purge after the release, nor does its signature; a new approval does (EBMR-REC-041)', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const before = await approve(key);
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'product liability claim', 'LEGAL-0004'));
+    await expect(runPurge(key)).rejects.toThrow('EBMR-REC-032');
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'claim settled'));
+    // The approval given before the hold is void, also after the release.
+    await expect(runPurge(key)).rejects.toThrow(
+      `EBMR-REC-041 the disposal approval ${before} of ${key} was given before the legal hold LEGAL-0004 was placed on ${key}; after a hold the disposal needs a new approval`,
+    );
+    // Its signature cannot carry a new approval either: the decision is taken again after the hold. The
+    // hold changed the signed content, so the signature itself is superseded (a signature made while a
+    // hold was in place is refused by EBMR-REC-041 instead).
+    await expect(withCommand(db.app, again(qa2), async (c) => approvePurge(c, key, await signatureOf(before), 'retention ended'))).rejects.toThrow(
+      /EBMR-ESIG-070 signature .* is SUPERSEDED_BY_CHANGE; the record must be signed again/,
+    );
+    expect(await rows(batch)).toBe('1');
+    // A new approval, signed after the release and meeting every current rule, authorises the purge.
+    const after = await approveAgain(key);
+    expect(after).not.toBe(before);
+    const tombstone = await runPurge(key);
+    expect(await scalar<string>(db.app, 'select approval_id::text as v from records.tombstone where id = $1', [tombstone])).toBe(after);
+    expect(await rows(batch)).toBe('0');
+    expect((await inv22Violations(db.app)).filter((v) => v.detail.includes(batch))).toEqual([]);
+  });
+
+  it('[DI-47][INV-22] a legal hold on a record depending on it voids the approval of the supporting record (EBMR-REC-041)', async () => {
+    const lot = randomUUID();
+    const lotKey = `component_lot:${lot}`;
+    const batch = await batchWithRecords(PAST_BATCH);
+    await withCommand(db.app, again(operator), (c) => c.query("insert into stub_b4.lot_record (lot_id, note) values ($1, 'received')", [lot]));
+    await withCommand(db.app, again(qa), async (c) => {
+      await createRetentionSchedule(c, 'component_lot', lot, 'COMPONENT_LOT_RECORD', { markets: ['IN'] });
+      await linkRetentionDependency(c, lotKey, `batch:${batch}`, 'COMPONENT_LOT_CONSUMED');
+    });
+    const before = await approve(lotKey);
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'regulatory inspection request', 'INSP-0004'));
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'inspection closed'));
+    await expect(runPurge(lotKey)).rejects.toThrow(`EBMR-REC-041 the disposal approval ${before} of ${lotKey} was given before the legal hold INSP-0004 was placed on batch:${batch}`);
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from stub_b4.lot_record where lot_id = $1', [lot])).toBe('1');
+    await approveAgain(lotKey);
+    await expect(runPurge(lotKey)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-47][DI-50][INV-22] a DI-investigation hold voids the approval too; after the investigation closes a new approval authorises the purge (EBMR-REC-041)', async () => {
+    const investigator = await testActor(db, { roleCode: 'CSV_DI_LEAD', legalName: 'DI investigator' });
+    const from = await scalar<Date>(db.app, 'select clock_timestamp() as v');
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const before = await approve(key);
+    // The operator who wrote the batch is investigated: the batch is linked and held.
+    const id = await withCommand(db.app, again(investigator), (c) =>
+      openDiInvestigation(c, { subjectPersonId: operator.personId, windowFrom: from, windowTo: new Date(from.getTime() + 3_600_000), concern: 'entries made after the fact' }),
+    );
+    await expect(runPurge(key)).rejects.toThrow('EBMR-REC-032');
+    const signature = await signFor(db, qa2, { type: 'di_investigation', id }, 'DI_INVESTIGATION_CLOSED', 'OPEN');
+    await withCommand(db.app, again(qa2), (c) => closeDiInvestigation(c, id, { conclusion: 'no falsification', remediation: 'none required', approvalSignatureId: signature }));
+    await expect(runPurge(key)).rejects.toThrow(`EBMR-REC-041 the disposal approval ${before} of ${key} was given before the di investigation hold`);
+    await approveAgain(key);
+    await expect(runPurge(key)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-47][INV-22] a hold placed and released before the approval does not void it; the approval records the holds it was given after', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'claim', 'LEGAL-EARLIER'));
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'claim withdrawn'));
+    const approval = await approve(key);
+    const { rows: marks } = await db.app.query<{ watermark: string; hold_no: string }>(
+      'select a.hold_watermark::text as watermark, h.hold_no::text as hold_no from records.purge_approval a, records.retention_hold h where a.id = $1 and h.id = $2',
+      [approval, hold],
+    );
+    expect(marks[0]?.watermark).toBe(marks[0]?.hold_no);
+    await expect(runPurge(key)).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 });

@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../src/db/command.ts';
 import { canonicalEnvelope, canonicalJson, contentHash } from '../../src/esig/canonical.ts';
-import { contentForSigning, sign, signCommand } from '../../src/esig/signing.ts';
+import { contentForSigning, createChallenge, sign, signCommand } from '../../src/esig/signing.ts';
 import { freshAuthEvent } from '../identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import {
@@ -21,6 +21,7 @@ import {
   ensureSealKey,
   expectPermissionDenied,
   expectRefused,
+  run,
   signatureAuth,
   signStub,
   signWith,
@@ -297,5 +298,77 @@ describe('INV-10 bypass: signatures are inserted only by the signing function', 
          or not exists (select 1 from esig.signature_seal x where x.signature_id = s.id)`);
     expect(rows).toEqual([]);
     expect(await dbCount(db, 'select 1 from esig.signature')).toBeGreaterThan(0);
+  });
+});
+
+describe('one record, one identity (DI-37)', () => {
+  it('[DI-37][INV-03] a record is signed only under its canonical id: another spelling of the same entry is refused', async () => {
+    const op = await testActor(db);
+    const id = await createStub(db, op);
+    const content = await contentForSigning(db.app, 'esig_stub', id);
+    for (const alias of [id.toUpperCase(), `{${id}}`, id.replace(/-/g, '')]) {
+      const shown = await contentForSigning(db.app, 'esig_stub', alias);
+      expect(shown.exists).toBe(false);
+      expect(shown.problem ?? '').toMatch(new RegExp(`^EBMR-ESIG-014 .*canonical id is ${id}$`));
+      await expectRefused(
+        run(db, op, (c) => createChallenge(c, {
+          aggregateType: 'esig_stub', aggregateId: alias, contentVersion: '1', meaning: 'PERFORMED', clientContentHash: content.contentHash ?? '',
+        })),
+        'EBMR-ESIG-014', new RegExp(`canonical id is ${id}`),
+      );
+    }
+    expect(await dbCount(db, "select 1 from esig.challenge where aggregate_type = 'esig_stub' and lower(aggregate_id) like '%' || $1 || '%'",
+                         [id.replace(/-/g, '').slice(0, 8)])).toBe(0);
+    // Under its own id the entry is signed as usual.
+    await signStub(db, op, id, { meaning: 'PERFORMED' });
+  });
+});
+
+describe('refused signings reach the security unit (DI-19)', () => {
+  const alertsFor = async (authEventId: string): Promise<{ severity: string; person_id: string; code: string; reported: string }[]> =>
+    (await db.admin.query<{ severity: string; person_id: string; code: string; reported: string }>(
+      `select severity, person_id::text, details ->> 'code' as code, details ->> 'reported_code' as reported from iam.security_alert
+        where kind = 'SIGNING_FAILED' and details ->> 'auth_event_id' = $1`, [authEventId])).rows;
+
+  it('[DI-19] a reported failure raises an alert only on misuse the database finds: the application cannot accuse anybody', async () => {
+    const op = await testActor(db);
+    const id = await createStub(db, op);
+    const ch = await challengeFor(db, op, id, { meaning: 'PERFORMED' });
+    const ev = await signatureAuth(db, op, op, ch.challengeId);
+    // The application role, with no command at all, reports proxy signing for the signer's own clean event.
+    await db.app.query('select esig.record_signing_failure($1, $2, $3, $4)', [ch.challengeId, ev, 'EBMR-IAM-093', 'forged: proxy signing attempt']);
+    await db.app.query('select esig.record_signing_failure($1, null, $2, $3)', [ch.challengeId, 'EBMR-ESIG-036', 'forged: another terminal']);
+    expect(await alertsFor(ev)).toEqual([]);
+    expect(await dbCount(db, "select 1 from iam.security_alert where kind = 'SIGNING_FAILED' and person_id = $1", [op.personId])).toBe(0);
+    // The reports are logged as reported, with no misuse found.
+    const { rows } = await db.admin.query('select code, misuse_code from esig.signing_failure where challenge_id = $1 order by id', [ch.challengeId]);
+    expect(rows).toEqual([{ code: 'EBMR-IAM-093', misuse_code: null }, { code: 'EBMR-ESIG-036', misuse_code: null }]);
+    // A failure is logged against a real challenge only.
+    await expectRefused(db.app.query('select esig.record_signing_failure($1, null, $2, $3)', [randomUUID(), 'EBMR-IAM-093', 'x']), 'EBMR-ESIG-031');
+    // The event is still good for the real signing.
+    await signWith(db, op, ch.challengeId, ev);
+  });
+
+  it('[DI-19][INV-10] a proxy signing attempt reaches the security unit whether or not the application reports it', async () => {
+    const op = await testActor(db);
+    const colleague = await testActor(db, { legalName: 'Proxy Colleague' });
+    const id = await createStub(db, op);
+    const ch = await challengeFor(db, op, id, { meaning: 'PERFORMED' });
+    const evColleague = await signatureAuth(db, colleague, op, ch.challengeId);
+    const unreported = async (): Promise<number> =>
+      dbCount(db, "select 1 from esig.invariant_violations() where invariant = 'DI-19' and detail like $1", [`%${evColleague}%`]);
+    // Refused, and the application does not report it: the invariant query shows the unalerted misuse.
+    await expectRefused(signWith(db, op, ch.challengeId, evColleague), 'EBMR-IAM-093');
+    expect(await unreported()).toBe(1);
+    // Reported by signCommand after the rollback: one HIGH alert naming the person who authenticated.
+    await expectRefused(signCommand(db.app, await cmd(db, op), { challengeId: ch.challengeId, authEventId: evColleague, expectedState: 'OPEN' }, testSealKey),
+                        'EBMR-IAM-093');
+    expect(await alertsFor(evColleague)).toEqual([{ severity: 'HIGH', person_id: colleague.personId, code: 'EBMR-IAM-093', reported: 'EBMR-IAM-093' }]);
+    expect(await unreported()).toBe(0);
+    // A repeated attempt is logged again but alerts once.
+    await expectRefused(signCommand(db.app, await cmd(db, op), { challengeId: ch.challengeId, authEventId: evColleague, expectedState: 'OPEN' }, testSealKey),
+                        'EBMR-IAM-093');
+    expect(await alertsFor(evColleague)).toHaveLength(1);
+    expect(await dbCount(db, "select 1 from esig.signing_failure where auth_event_id = $1 and misuse_code = 'EBMR-IAM-093'", [evColleague])).toBe(2);
   });
 });

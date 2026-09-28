@@ -178,11 +178,16 @@ language sql stable security definer set search_path = pg_catalog, iam, pg_temp 
   select coalesce((select e.event = 'LOCKED' from iam.account_lock_event e where e.account_id = p_account order by e.id desc limit 1), false)
 $$;
 
+-- DI-19: failed login or signing attempts in a row. Only a success that proved a secret (a password,
+-- a PIN or a service key: the attempt names the credential it verified) ends the run; a badge tap
+-- proves possession of the badge only, so a victim's routine taps on a shared terminal never reset
+-- the count an attacker guessing their password is driving towards the lockout.
 create function iam.consecutive_failures(p_account uuid) returns bigint
 language sql stable security definer set search_path = pg_catalog, iam, pg_temp as $$
   select count(*) from iam.authn_attempt a
   where a.account_id = p_account and a.outcome = 'FAILURE'
-    and a.id > coalesce((select max(s.id) from iam.authn_attempt s where s.account_id = p_account and s.outcome = 'SUCCESS'), 0)
+    and a.id > coalesce((select max(s.id) from iam.authn_attempt s
+                         where s.account_id = p_account and s.outcome = 'SUCCESS' and cardinality(s.credential_ids) > 0), 0)
     and a.attempted_at > coalesce((select max(u.recorded_at) from iam.account_lock_event u
                                    where u.account_id = p_account and u.event = 'UNLOCKED'), '-infinity'::timestamptz)
 $$;
@@ -477,12 +482,10 @@ $$;
 create function iam.change_event_check(p_auth_event uuid, p_kind text) returns iam.auth_event
 language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
-  v_ev iam.auth_event%rowtype;
+  -- Locks the event and refuses it once its account, person or badge is no longer active, as for
+  -- every other consumer (iam.lock_auth_event).
+  v_ev iam.auth_event := iam.lock_auth_event(p_auth_event);
 begin
-  select * into v_ev from iam.auth_event where id = p_auth_event for update;
-  if not found then
-    raise exception using errcode = 'P0001', message = 'EBMR-IAM-090 unknown authentication event';
-  end if;
   if v_ev.purpose <> 'CREDENTIAL_CHANGE' then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-096 the authentication event was not made to change a secret';
   end if;
@@ -494,9 +497,6 @@ begin
   end if;
   if not ((p_kind = 'PASSWORD' and 'PASSWORD' = any (v_ev.components)) or (p_kind = 'PIN' and 'PIN' = any (v_ev.components))) then
     raise exception using errcode = 'P0001', message = format('EBMR-IAM-096 changing the %s needs an authentication with the current %s', p_kind, p_kind);
-  end if;
-  if iam.account_locked(v_ev.account_id) or (select status from iam.account where id = v_ev.account_id) <> 'ACTIVE' then
-    raise exception using errcode = 'P0001', message = 'EBMR-IAM-103 the account is not active or is locked';
   end if;
   return v_ev;
 end
@@ -522,7 +522,7 @@ create function iam.authn_change_secret(p_auth_event uuid, p_kind text, p_new_ve
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 declare
   v_ev   iam.auth_event := iam.change_event_check(p_auth_event, p_kind);
-  v_prev text := current_setting('ebmr.ctx', true);
+  v_prev jsonb := kernel.current_actor();
   v_ctx  jsonb;
   v_id   uuid;
 begin
@@ -535,7 +535,9 @@ begin
   perform iam.set_internal_actor(v_ctx);
   insert into iam.auth_event_use (auth_event_id, use_kind, correlation_id) values (v_ev.id, 'CREDENTIAL_CHANGE', (v_ctx ->> 'correlation_id')::uuid);
   v_id := iam.store_credential(v_ev.account_id, p_kind, 'USER_CHANGE', p_new_verifier, v_ctx);
-  perform set_config('ebmr.ctx', coalesce(v_prev, ''), true);
+  -- Only the context installed last is validated (ADR-0016): restore the caller's validated context
+  -- (or none) through the kernel, so the internal actor above stops counting.
+  perform kernel.set_actor_context(v_prev);
   return v_id;
 end
 $$;
@@ -544,7 +546,9 @@ $$;
 -- Consuming authentication events
 -- ---------------------------------------------------------------------------------------------
 
--- Common checks; locks the event row so concurrent consumers are serialised.
+-- Common checks of every consumer of an authentication event (a login, an unlock, a keep-alive, a
+-- command's attribution, a signature, a secret change); locks the event row so concurrent consumers
+-- are serialised.
 create function iam.lock_auth_event(p_auth_event uuid) returns iam.auth_event
 language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
@@ -557,6 +561,14 @@ begin
   if (select status from iam.account where id = v_ev.account_id) <> 'ACTIVE'
      or (select status from iam.person where id = v_ev.person_id) <> 'ACTIVE' or iam.account_locked(v_ev.account_id) then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-103 the account of the authentication event is no longer active or is locked';
+  end if;
+  -- DI-19: a badge is de-authorised at once when it is lost, revoked or replaced, and so is every
+  -- authentication event it made that has not been used yet. (The badge functions take the badge's
+  -- account before the badge, like every login and command, so a consumer either finishes before the
+  -- badge changes or sees the change here.)
+  if v_ev.badge_id is not null and (select b.status from iam.badge b where b.id = v_ev.badge_id) is distinct from 'ACTIVE' then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-IAM-097 DI-19: the badge that made the authentication event is no longer active (lost, revoked or replaced)';
   end if;
   return v_ev;
 end
@@ -647,8 +659,8 @@ $$;
 create function iam.open_session(p_auth_event uuid, p_fingerprint text) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
-  v_ev   iam.auth_event := iam.lock_auth_event(p_auth_event);
-  v_dev  jsonb := iam.resolve_device(p_fingerprint);
+  v_ev   iam.auth_event;
+  v_dev  jsonb;
   v_acc  iam.account%rowtype;
   v_id   uuid;
   v_idle integer;
@@ -658,6 +670,17 @@ declare
   v_personal boolean;
   s      uuid;
 begin
+  -- DI-19, DI-20: the event's account and terminal are taken in share mode before any check. A
+  -- lockout (iam.authn_resolve locks the account for update), a suspension or deactivation (they
+  -- update the account), and a block or relocation (they update the device) therefore either wait
+  -- until this login has committed and then end its session with the others, or commit first and
+  -- are seen by the checks below, which refuse the login. Without the locks a session still being
+  -- opened is invisible to their sweep and would come back to life once the account is unlocked or
+  -- the terminal re-activated.
+  perform 1 from iam.account a join iam.auth_event e on e.account_id = a.id where e.id = p_auth_event for share of a;
+  perform 1 from iam.device d join iam.auth_event e on e.device_id = d.id where e.id = p_auth_event for share of d;
+  v_ev := iam.lock_auth_event(p_auth_event);
+  v_dev := iam.resolve_device(p_fingerprint);
   if not (v_dev ->> 'accepted')::boolean then
     raise exception using errcode = 'P0001', message = format('%s the device is not registered or not active', v_dev ->> 'code');
   end if;

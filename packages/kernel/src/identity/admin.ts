@@ -102,6 +102,31 @@ export function revokeRoleGrant(client: pg.PoolClient, grantId: string, reason: 
   return scalar(client, 'select iam.revoke_role_grant($1, $2) as v', [grantId, reason]);
 }
 
+export interface RolePermissionRequest {
+  roleCode: string;
+  permission: string;
+  /** Defaults to the reason text of the command. */
+  reason?: string;
+}
+
+/**
+ * Request that a permission be added to a role (IAM.ROLE_MANAGE). It takes effect only when a second
+ * person approves it with decideRolePermission (IAM.GRANT_APPROVE); neither may hold the role.
+ * Returns the request id.
+ */
+export function requestRolePermission(client: pg.PoolClient, r: RolePermissionRequest): Promise<string> {
+  return scalar(client, 'select iam.add_role_permission($1, $2, $3) as v', [r.roleCode, r.permission, r.reason ?? null]);
+}
+
+export function decideRolePermission(client: pg.PoolClient, requestId: string, approve: boolean, reason: string): Promise<void> {
+  return scalar(client, 'select iam.decide_role_permission($1, $2, $3) as v', [requestId, approve, reason]);
+}
+
+/** Remove a permission from a role (IAM.ROLE_MANAGE); effective at once, like a revocation. */
+export function removeRolePermission(client: pg.PoolClient, roleCode: string, permission: string): Promise<void> {
+  return scalar(client, 'select iam.remove_role_permission($1, $2) as v', [roleCode, permission]);
+}
+
 export interface DeviceInput {
   code: string;
   deviceClass: DeviceClass;

@@ -47,6 +47,8 @@ export const SAMPLE_RECORD_V1: MachineDescriptor = {
   version: 1,
   aggregateType: 'sample_record',
   description: 'Sample controlled-record life cycle proving the state-machine engine (Phase 1)',
+  // Drafting a sample record is the author's act: the permission that submits it also creates it.
+  createPermission: 'sample_record.submit',
   machine: sampleRecordMachine,
   seedFile: '0552_machine_sample_record_v1.sql',
 };

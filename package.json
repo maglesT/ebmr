@@ -17,10 +17,14 @@
     "register:validate": "tsx tools/register/src/cli.ts validate",
     "trace": "tsx tools/register/src/cli.ts trace --results .reports/vitest.json",
     "pins:check": "tsx tools/register/src/cli.ts pins",
+    "mutation:ts": "stryker run",
+    "mutation:sql": "tsx tools/sql-mutation/src/run.ts",
     "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm register:validate && pnpm test:json && pnpm trace"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "^22.20.4",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
@@ -37,6 +41,9 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
-    ]
+    ],
+    "patchedDependencies": {
+      "@stryker-mutator/vitest-runner@10.0.0": "patches/@stryker-mutator__vitest-runner@10.0.0.patch"
+    }
   }
 }

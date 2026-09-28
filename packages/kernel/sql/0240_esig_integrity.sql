@@ -3,11 +3,13 @@
 --
 -- esig.verify_signatures() re-derives, for every signature, what the database alone can check:
 -- the seal payload digest (any change to the row, including a copy or move to another record,
--- changes the payload), the manifestation, the binding to its challenge, authentication event,
--- authority evaluation and audit event, the register entry, and the current content hash of the
--- record (a change without invalidation). The cryptographic seal itself is verified by the
--- application with its trusted key ring (verifySignatures in src/esig/integrity.ts), because the
--- seal key never enters the database. Both must report nothing; production runs them on a schedule.
+-- changes the payload: it covers every column, see esig.seal_payload), the manifestation, the
+-- binding to its challenge, authentication event (person, account, terminal, method), terminal
+-- session (owner and terminal), authority evaluation and audit event, the register entry, and the
+-- current content hash of the record (a change without invalidation). The cryptographic seal
+-- itself is verified by the application with its trusted key ring (verifySignatures in
+-- src/esig/integrity.ts), because the seal key never enters the database. Both must report
+-- nothing; production runs them on a schedule.
 
 set local role ebmr_owner;
 
@@ -19,6 +21,7 @@ declare
   v_ch   esig.challenge%rowtype;
   v_ev   iam.auth_event%rowtype;
   v_ae   iam.authority_evaluation%rowtype;
+  v_ses  iam.session%rowtype;
   v_inv  esig.signature_invalidation%rowtype;
   v_hash text;
 begin
@@ -47,12 +50,17 @@ begin
   select * into v_ch from esig.challenge c where c.id = s.challenge_id;
   if not found or v_ch.aggregate_ref <> s.aggregate_ref or v_ch.content_hash <> s.content_hash or v_ch.content_version <> s.content_version
      or v_ch.meaning_code <> s.meaning_code or v_ch.signer_account <> s.signer_account or v_ch.signer_person <> s.signer_person
-     or v_ch.session_id <> s.session_id or v_ch.device_id <> s.device_id then
+     or v_ch.session_id <> s.session_id or v_ch.session_person <> s.session_person or v_ch.cosignature <> s.cosignature
+     or v_ch.device_id <> s.device_id then
     return next 'CHALLENGE_MISMATCH: the signature is not bound to the challenge it names';
+  end if;
+  select * into v_ses from iam.session x where x.id = s.session_id;
+  if not found or v_ses.person_id <> s.session_person or v_ses.device_id <> s.device_id then
+    return next 'SESSION_MISMATCH: the terminal session the signature names is not owned by the recorded session person on the recorded terminal';
   end if;
   select * into v_ev from iam.auth_event e where e.id = s.auth_event_id;
   if not found or v_ev.person_id <> s.signer_person or v_ev.account_id <> s.signer_account or v_ev.challenge_id is distinct from s.challenge_id
-     or v_ev.purpose <> 'SIGNATURE' or v_ev.device_id <> s.device_id then
+     or v_ev.purpose <> 'SIGNATURE' or v_ev.device_id <> s.device_id or v_ev.method <> s.auth_method then
     return next 'AUTH_EVENT_MISMATCH: the authentication event is not the signer''s event for this challenge (INV-10)';
   elsif not exists (select 1 from iam.auth_event_use u where u.auth_event_id = s.auth_event_id and u.use_kind = 'SIGNATURE'
                       and u.correlation_id = s.correlation_id) then
@@ -116,20 +124,44 @@ $$;
 -- Invariant queries (outline 5.3): each must return no rows; production runs them on a schedule.
 -- ---------------------------------------------------------------------------------------------
 
+-- The independence rules are checked in both signing orders here too (as esig.check_independence
+-- enforces them): a pair of signatures of one person that breaks a rule is reported whichever of the
+-- two came first. A data change after a signature supersedes it (INV-09), so only changes up to the
+-- signature count against it.
 create function esig.invariant_violations() returns table (invariant text, signature_id uuid, detail text)
 language plpgsql volatile security definer set search_path = pg_catalog, esig, iam, kernel, pg_temp as $$
 begin
   -- INV-03: a verifier or witness (any type that excludes performers) is never a person who
-  -- performed, entered data in or corrected the record before signing it.
+  -- performed the record (a performer signature, before or after), or entered data in or corrected
+  -- it before signing.
   return query
-    select 'INV-03'::text, s.id, 'the signer performed, entered data in or corrected the record before signing'::text
+    select 'INV-03'::text, s.id, 'the signer performed, entered data in or corrected the record'::text
     from esig.signature s join esig.meaning_type m on m.code = s.meaning_code and m.version = s.meaning_version
     where m.excludes_performers
       and (exists (select 1 from esig.content_change c
                    where c.aggregate_ref = s.aggregate_ref and c.person_id = s.signer_person and c.recorded_at <= s.recorded_at)
            or exists (select 1 from esig.signature p join esig.meaning_type pm on pm.code = p.meaning_code and pm.version = p.meaning_version
                       where p.aggregate_ref = s.aggregate_ref and pm.role_class = 'PERFORMER' and p.signer_person = s.signer_person
-                        and p.recorded_at < s.recorded_at));
+                        and p.id <> s.id));
+  -- DI-35 independence (INV-04 for master records): the signer of a type never also signed, before
+  -- or after, a type it must be independent of on the same record.
+  return query
+    select 'ESIG.INDEPENDENT'::text, s.id,
+           format('the signer of %s also signed %s on the record, of which %s must be independent', s.meaning_code, o.meaning_code, s.meaning_code)
+    from esig.signature s join esig.meaning_type m on m.code = s.meaning_code and m.version = s.meaning_version
+    join esig.signature o on o.aggregate_ref = s.aggregate_ref and o.signer_person = s.signer_person and o.id <> s.id
+                         and o.meaning_code = any (m.independent_of);
+  -- Outline 7.2 S10: a review or release signer is not involved in the record: no other signature of
+  -- theirs on it (before or after) other than review and release ones, and no data entry before.
+  return query
+    select 'ESIG.INVOLVEMENT'::text, s.id, 'the review or release signer is involved in the record'::text
+    from esig.signature s join esig.meaning_type m on m.code = s.meaning_code and m.version = s.meaning_version
+    where m.excludes_involved
+      and (exists (select 1 from esig.content_change c
+                   where c.aggregate_ref = s.aggregate_ref and c.person_id = s.signer_person and c.recorded_at <= s.recorded_at)
+           or exists (select 1 from esig.signature o join esig.meaning_type om on om.code = o.meaning_code and om.version = o.meaning_version
+                      where o.aggregate_ref = s.aggregate_ref and o.signer_person = s.signer_person and o.id <> s.id
+                        and om.role_class not in ('REVIEWER', 'RELEASE')));
   -- INV-09: a signature that is not superseded is bound to the record's current content hash.
   return query
     select 'INV-09'::text, s.id, 'the record changed but the signature was not superseded'::text
@@ -152,6 +184,17 @@ begin
   return query
     select 'INV-27'::text, s.id, 'the signature ID is not in the permanent register'::text
     from esig.signature s where not exists (select 1 from esig.signature_id_register r where r.signature_id = s.id);
+  -- DI-19: signing misuse that committed rows prove (another person, account or terminal
+  -- authenticated for a challenge) reached the security unit, whether or not the application
+  -- reported the refused signing (esig.record_signing_failure raises the alert).
+  return query
+    select 'DI-19'::text, null::uuid,
+           format('authentication event %s for challenge %s shows %s (%s) and no security alert was raised', e.id, c.id,
+                  x.misuse ->> 'code', x.misuse ->> 'reason')
+    from iam.auth_event e join esig.challenge c on c.id = e.challenge_id
+    cross join lateral (select esig.signing_misuse(c.id, e.id, false) as misuse) x
+    where e.purpose = 'SIGNATURE' and x.misuse is not null
+      and not exists (select 1 from esig.signing_failure f where f.auth_event_id = e.id and f.misuse_code is not null);
 end
 $$;
 

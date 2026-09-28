@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -17,6 +17,7 @@ import {
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 
 const OPS = new URL('../../../../ops/postgres/', import.meta.url).pathname;
+const SQL = new URL('../../sql/', import.meta.url).pathname;
 
 const TLS = { certFile: '/etc/ebmr/tls/server.crt', keyFile: '/etc/ebmr/tls/server.key', minVersion: 'TLSv1.2' as const };
 const HSTS = { maxAgeSeconds: 31_536_000, includeSubDomains: true };
@@ -54,6 +55,19 @@ describe('production configuration', () => {
     expect(checkDatabaseUrl('postgres://ebmr_app@db1/ebmr_tablets?sslmode=require').map((f) => [f.severity, f.code])).toEqual([['WARNING', 'EBMR-SEC-012']]);
     // A local socket has no network path, but must be allowed explicitly.
     expect(errors(checkDatabaseUrl('postgres://ebmr_app@%2Fvar%2Frun%2Fpostgresql/ebmr_tablets'))).toEqual(['EBMR-SEC-013']);
+
+    // A parameter given twice: the check would read the first value and the driver the last, so a
+    // URL that looks verified could connect without TLS or without verifying the server (F61).
+    for (const url of [
+      'postgres://ebmr_app@db1/ebmr_tablets?sslmode=verify-full&sslmode=disable',
+      'postgres://ebmr_app@db1/ebmr_tablets?sslmode=verify-full&sslmode=no-verify',
+      'postgres://ebmr_app@db1/ebmr_tablets?host=%2Frun%2Fpg&host=db2&sslmode=verify-full',
+    ]) {
+      expect(errors(checkDatabaseUrl(url, 'database.url', { allowLocalSocket: true })), url).toEqual(['EBMR-SEC-017']);
+    }
+    expect(() => assertProductionConfig({ ...goodConfig, database: { url: 'postgres://ebmr_app@db1/ebmr_tablets?sslmode=verify-full&sslmode=disable' } })).toThrow(
+      /EBMR-SEC-017 database\.url/,
+    );
 
     const bad: ProductionConfig = { ...goodConfig, database: { url: 'postgres://ebmr_app:secret@db1/ebmr_tablets' } };
     expect(() => assertProductionConfig(bad)).toThrow(SecurityBaselineError);
@@ -137,6 +151,23 @@ describe('database connections at run time', () => {
 });
 
 describe('database server templates', () => {
+  it('[DI-13] the pg_hba.conf template names only roles of the installation: those the migrations create and the provisioned ones it lists (F64)', () => {
+    const template = readFileSync(`${OPS}pg_hba.conf.template`, 'utf8');
+    const created = readdirSync(SQL)
+      .filter((f) => f.endsWith('.sql'))
+      .flatMap((f) => [...readFileSync(`${SQL}${f}`, 'utf8').matchAll(/create role\s+([a-z_][a-z0-9_]*)/gi)].map((m) => m[1] ?? ''));
+    expect(created).toEqual(expect.arrayContaining(['ebmr_owner', 'ebmr_app', 'ebmr_authn']));
+    const provisioned = (/^# provisioned-roles:(.*)$/m.exec(template)?.[1] ?? '').trim().split(/\s+/);
+    expect(provisioned).toContain('ebmr_backup');
+    const knownRoles = [...created, ...provisioned];
+    expect(checkPgHba(template, 'pg_hba.conf', { knownRoles })).toEqual([]);
+    // The authentication service connects as ebmr_authn: a rule naming anything else never matches it.
+    expect(template).toMatch(/^hostssl\s+\S+\s+ebmr_app,ebmr_authn\s/m);
+    expect(checkPgHba('hostssl ebmr_tablets ebmr_app,ebmr_auth 10.10.20.0/24 scram-sha-256', 'pg_hba.conf', { knownRoles }).map((f) => [f.code, f.message])).toEqual([
+      ['EBMR-SEC-045', 'role ebmr_auth is not a role of the installation; the rule would never match it'],
+    ]);
+  });
+
   it('[DI-13] the pg_hba.conf template admits network connections only over TLS with SCRAM or certificates', () => {
     expect(checkPgHba(readFileSync(`${OPS}pg_hba.conf.template`, 'utf8'))).toEqual([]);
     const bad = [

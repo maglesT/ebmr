@@ -2,8 +2,8 @@
  * External continuity ledger: the record kept OUTSIDE the database (build outline 4.2, 5.4; ADR 0007).
  *
  * It holds what a restore must not be able to take back: external copies of audit anchors, the
- * high-water marks of every protected identifier source, write-ahead ceilings of protected counters,
- * and restore events. In production it lives on write-once storage (object lock in compliance mode or
+ * high-water marks of every protected identifier source, every login name issued (user IDs, INV-27),
+ * write-ahead ceilings of protected counters, and restore events. In production it lives on write-once storage (object lock in compliance mode or
  * a WORM appliance) under credentials the database administrators do not hold. `FileLedger` is the
  * demo and test stand-in: an append-only JSON-lines file in which every line carries the hash of the
  * previous one, so an edited, removed or reordered line is detected on read. It is labelled demo-only.
@@ -19,6 +19,10 @@ export interface ExternalAnchor {
   merkle_root_hex: string;
   head_count: number;
   heads: { chain_key: string; seq: number; hash_hex: string }[];
+  /** Database incarnation that exported the anchor (continuity.current_incarnation). */
+  incarnation?: string;
+  /** Start of the server that exported the anchor (UTC); with the incarnation it names that running server. */
+  server_started_at?: string;
 }
 
 /** High-water mark of one protected identifier source (continuity.sequence_high_water). */
@@ -38,7 +42,7 @@ export interface SequenceBump {
 }
 
 export type LedgerEntry =
-  | { type: 'ANCHOR'; database: string; anchor: ExternalAnchor; highWater: HighWaterMark[] }
+  | { type: 'ANCHOR'; database: string; anchor: ExternalAnchor; highWater: HighWaterMark[]; loginNames?: string[] }
   | { type: 'CEILING'; database: string; sequenceKey: string; ceiling: string; floor: string }
   | { type: 'RESTORE_EVENT'; database: string; restoreEventId: string; eventKind: string; contentHashHex: string; discardedAnchorIds: string[] }
   | { type: 'RESTORE_COMPLETED'; database: string; restoreEventId: string; bumps: SequenceBump[] };
@@ -239,4 +243,31 @@ export async function ledgerHighWater(ledger: ExternalLedger): Promise<Map<strin
     }
   }
   return out;
+}
+
+/**
+ * Highest last value the anchors exported for every protected counter: values the database had
+ * already issued when the anchor was taken (a counter below it lost issued values).
+ */
+export async function ledgerCounterLastValues(ledger: ExternalLedger): Promise<Map<string, bigint>> {
+  const out = new Map<string, bigint>();
+  for (const e of await ledger.entries()) {
+    if (e.type !== 'ANCHOR') continue;
+    for (const h of e.highWater) {
+      if (h.sourceKind !== 'COUNTER') continue;
+      const v = BigInt(h.lastValue);
+      const current = out.get(h.sequenceKey);
+      if (current === undefined || v > current) out.set(h.sequenceKey, v);
+    }
+  }
+  return out;
+}
+
+/** Every login name (user ID) the anchors exported: none of them is ever issued again, to anyone (INV-27). */
+export async function ledgerLoginNames(ledger: ExternalLedger): Promise<string[]> {
+  const names = new Set<string>();
+  for (const e of await ledger.entries()) {
+    if (e.type === 'ANCHOR') for (const n of e.loginNames ?? []) names.add(n);
+  }
+  return [...names].sort();
 }

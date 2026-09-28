@@ -50,11 +50,19 @@ export interface TransitionRequest extends AggregateRef {
 
 type Db = pg.Pool | pg.PoolClient;
 
+/**
+ * Creates the state of a new aggregate at the newest published machine version (the actor needs
+ * the version's create permission and must not be an administrator). `machineVersion` pins another
+ * version through platform.create_aggregate_state_at, which only owner-level (module) code may
+ * execute and which needs the command's reason when the version is not the newest (ADR 0010).
+ */
 export async function createAggregateState(client: pg.PoolClient, machine: string, ref: AggregateRef, machineVersion?: number): Promise<AggregateState> {
   try {
     const { rows } = await client.query<{ r: { machine: string; machine_version: number; state: string; version: number } }>(
-      'select platform.create_aggregate_state($1, $2, $3, $4) as r',
-      [machine, ref.aggregateType, ref.aggregateId, machineVersion ?? null],
+      machineVersion === undefined
+        ? 'select platform.create_aggregate_state($1, $2, $3) as r'
+        : 'select platform.create_aggregate_state_at($1, $2, $3, $4) as r',
+      machineVersion === undefined ? [machine, ref.aggregateType, ref.aggregateId] : [machine, ref.aggregateType, ref.aggregateId, machineVersion],
     );
     const r = rows[0]?.r;
     if (!r) throw new Error('platform.create_aggregate_state returned nothing');

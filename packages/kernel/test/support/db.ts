@@ -45,6 +45,11 @@ export async function createTestDatabase(): Promise<TestDatabase> {
     admin,
     app,
     async drop() {
+      // pool.end() resolves once its clients are removed, before their sockets finish closing, so the
+      // forced DROP below can terminate a backend whose client is still closing (FATAL 57P01). The pool
+      // re-emits that as an 'error' event; without a listener it becomes an unhandled error that fails
+      // the whole run. At teardown it is noise, not a test result.
+      for (const pool of [admin, app]) pool.on('error', () => undefined);
       await admin.end();
       await app.end();
       const s = new pg.Client({ connectionString: ADMIN_URL });

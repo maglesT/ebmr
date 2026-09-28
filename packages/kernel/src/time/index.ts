@@ -6,6 +6,7 @@ export {
   evaluateAtInstants,
   guardInstants,
   isLateEntry,
+  mayClaimTrust,
   timeBasis,
   type GuardInstant,
   type GuardVerdict,
@@ -15,6 +16,7 @@ export {
   type TimeTrust,
 } from './entry-time.ts';
 export {
+  defaultReadTimeoutMs,
   measureReference,
   nodeClock,
   runDriftCheck,

@@ -9,6 +9,7 @@ select platform.publish_machine_version($machine$
   "version": 1,
   "aggregate_type": "sample_record",
   "description": "Sample controlled-record life cycle proving the state-machine engine (Phase 1)",
+  "create_permission": "sample_record.submit",
   "initial": "DRAFT",
   "states": [
     "APPROVED",
@@ -88,7 +89,7 @@ select platform.publish_machine_version($machine$
       "permission": "sample_record.check"
     }
   ],
-  "definition_hash": "e5cc37742b6c50bf314c788241c6549efe5eacf3020a3d3619d7f2442d940219"
+  "definition_hash": "090933b46637da67ae4da1dca0a2d3a0295e9308788d49be0203d102463ed296"
 }
 $machine$::jsonb);
 

@@ -122,7 +122,8 @@ export async function openBlockers(db: Db, aggregateType: string, aggregateId: s
 /**
  * Locks the record's blocker epoch inside the caller's transaction and returns it. The release module
  * evaluates openBlockers outside the signing transaction, then inside it calls this and refuses if the
- * epoch moved (outline 5.7).
+ * epoch moved (outline 5.7). A DI-investigation blocker that appeared without a link (the person
+ * investigated wrote to the record inside the window) is linked and held first, which moves the epoch.
  */
 export async function lockBlockerEpoch(client: pg.PoolClient, aggregateType: string, aggregateId: string): Promise<bigint> {
   const { rows } = await client.query<{ v: string }>('select records.lock_blocker_epoch($1, $2)::text as v', [aggregateType, aggregateId]);

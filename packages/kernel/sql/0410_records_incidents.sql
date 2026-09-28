@@ -151,7 +151,7 @@ declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
 begin
   -- Take the record's blocker-epoch lock first so a concurrent purge or disposition serialises with this link.
-  perform records.lock_blocker_epoch(p_aggregate_type, p_aggregate_id);
+  perform records.lock_blocker_epoch_row(p_aggregate_type, p_aggregate_id);
   insert into records.incident_link (incident_id, aggregate_type, aggregate_id, step_ref, linked_by_person)
   values (p_incident.id, p_aggregate_type, p_aggregate_id, nullif(btrim(coalesce(p_step_ref, '')), ''), records.actor_person())
   on conflict do nothing;

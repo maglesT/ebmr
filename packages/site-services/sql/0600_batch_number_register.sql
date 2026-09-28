@@ -208,8 +208,11 @@ begin
     when check_violation or not_null_violation or unique_violation then
       raise exception using errcode = 'P0001', message = format('EBMR-SITE-010 invalid numbering rule: %s', sqlerrm);
   end;
+  -- The serial belongs to the rule's site: its write-ahead ceilings are reserved only under a grant
+  -- covering that site (DI-17; a grant limited to another site, area or product does not cover it).
   perform continuity.register_protected_counter(v_key, 'BATCH_NUMBER', 'site-services',
-    format('Batch-number serial of rule %s (site %s)', p ->> 'rule_code', p ->> 'site_code'), v_block);
+    format('Batch-number serial of rule %s (site %s)', p ->> 'rule_code', p ->> 'site_code'), v_block,
+    jsonb_build_object('site', p ->> 'site_code'));
   return v_id;
 end
 $$;
@@ -372,9 +375,33 @@ begin
 end
 $$;
 
+-- The pattern a rule's format gives for one serial: the site, product and parent are fixed, the
+-- calendar tokens (the allocation date, which a recovery cannot know) match any year and month.
+create function site.batch_number_pattern(p_format text, p_site text, p_product text, p_serial bigint, p_parent text) returns text
+language plpgsql immutable set search_path = pg_catalog, pg_temp as $$
+declare
+  v_width integer := (regexp_match(p_format, '\{SEQ:([1-9])\}'))[1]::integer;
+  v_out   text := replace(p_format, '.', '\.');
+begin
+  if v_width is null or p_serial is null or p_serial < 1 or length(p_serial::text) > v_width then
+    return null;
+  end if;
+  v_out := regexp_replace(v_out, '\{SEQ:[1-9]\}', lpad(p_serial::text, v_width, '0'));
+  v_out := replace(v_out, '{PARENT}', replace(coalesce(p_parent, ''), '.', '\.'));
+  v_out := replace(v_out, '{SITE}', coalesce(p_site, ''));
+  v_out := replace(v_out, '{PRODUCT}', coalesce(p_product, ''));
+  v_out := replace(v_out, '{YYYY}', '[0-9]{4}');
+  v_out := replace(v_out, '{YY}', '[0-9]{2}');
+  v_out := replace(v_out, '{MM}', '(0[1-9]|1[0-2])');
+  return '^' || v_out || '$';
+end
+$$;
+
 -- After a completed restore, re-enter a number that was issued in the lost window (known from paper,
--- ERP or labels). Only serials inside the range the restore skipped for that rule are accepted, and a
--- number or serial already in the register is refused.
+-- ERP or labels). Only serials inside the range the restore skipped for that rule are accepted, the
+-- number must be what the rule's format gives for that serial, a product-specific rule takes only its
+-- own product (the scope is the rule's site and product), a packaging number links to a processing
+-- number of the same site, and a number or serial already in the register is refused.
 -- p: {restore_event_id, rule_code, serial, batch_number, product_code, product_name, edition, batch_size,
 --     batch_size_unit, parent_batch_number?, evidence_reference}
 create function site.recover_batch_number(p jsonb) returns uuid
@@ -397,9 +424,13 @@ begin
   if v_rule.id is null then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-016 unknown numbering rule %s', p ->> 'rule_code');
   end if;
-  -- DI-18, then DI-17 in the rule's site and the product's scope.
+  -- DI-18, then DI-17 in the rule's site and product scope (a site-wide rule: the product given).
   perform iam.assert_not_administrator();
-  perform iam.require_permission('BATCH_NUMBER.RECOVER', site.batch_number_scope(v_rule.site_code, p ->> 'product_code'));
+  perform iam.require_permission('BATCH_NUMBER.RECOVER', site.batch_number_scope(v_rule.site_code, coalesce(v_rule.product_code, p ->> 'product_code')));
+  if v_rule.product_code is not null and (p ->> 'product_code') is distinct from v_rule.product_code then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-SITE-016 rule %s numbers product %s only, not %s', v_rule.rule_code, v_rule.product_code, p ->> 'product_code');
+  end if;
   if not exists (select 1 from continuity.restore_event_status s where s.id = v_event and s.status = 'COMPLETED') then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-016 recovery needs a completed restore event';
   end if;
@@ -420,10 +451,16 @@ begin
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-013 that batch number or serial is already in the allocation register';
   end if;
   if v_rule.batch_kind = 'PACKAGING' then
+    -- The parent may have been voided since; it must still be a processing number of the rule's site.
     select * into v_parent from site.batch_number_allocation a where a.batch_number = p ->> 'parent_batch_number';
-    if v_parent.id is null or v_parent.batch_kind <> 'PROCESSING' then
-      raise exception using errcode = 'P0001', message = 'EBMR-SITE-014 a recovered packaging number needs its processing batch number';
+    if v_parent.id is null or v_parent.batch_kind <> 'PROCESSING' or v_parent.site_code <> v_rule.site_code then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-SITE-014 a recovered packaging number needs its processing batch number of the same site (%s)', p ->> 'parent_batch_number');
     end if;
+  end if;
+  if (p ->> 'batch_number') !~ coalesce(site.batch_number_pattern(v_rule.format, v_rule.site_code, p ->> 'product_code', v_serial, v_parent.batch_number), '^$.') then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-SITE-016 %s is not what rule %s (format %s) gives for serial %s', p ->> 'batch_number', v_rule.rule_code, v_rule.format, v_serial);
   end if;
   begin
     insert into site.batch_number_allocation (id, batch_number, site_code, site_zone, product_code, product_name, edition, batch_kind,
@@ -479,6 +516,7 @@ revoke all on all tables in schema site from ebmr_app;
 grant select on site.batch_number_rule, site.batch_number_allocation, site.batch_number_void, site.batch_number_serial_skip,
                 site.batch_number_register to ebmr_app;
 grant execute on function site.render_batch_number(text, text, text, timestamptz, text, bigint, text),
+                          site.batch_number_pattern(text, text, text, bigint, text),
                           site.define_batch_number_rule(jsonb), site.rule_in_force(text, text, text, timestamptz),
                           site.allocate_batch_number(jsonb), site.register_external_batch_number(jsonb),
                           site.void_batch_number(uuid, text, text), site.recover_batch_number(jsonb),

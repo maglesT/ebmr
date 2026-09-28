@@ -78,7 +78,8 @@ $$;
 
 -- Scopes are jsonb objects with the optional keys site, area and product (text values). A grant
 -- or requirement scope column that is null covers every value of that dimension; a request that
--- leaves a dimension empty is covered only by a grant that leaves it empty too.
+-- leaves a dimension empty is covered only by a grant that leaves it empty too, and is held to every
+-- requirement of that dimension (iam.requirement_applies).
 create function iam.check_scope(p_scope jsonb) returns jsonb
 language plpgsql immutable set search_path = pg_catalog, iam, pg_temp as $$
 declare
@@ -112,6 +113,21 @@ language sql immutable set search_path = pg_catalog, iam, pg_temp as $$
        and (p_area is null or p_area = nullif(p_request ->> 'area', ''))
        and (p_product is null or p_product = nullif(p_request ->> 'product', '')),
          false)
+$$;
+
+-- Does a qualification requirement limited to (site, area, product) apply to a request? Both
+-- directions fail closed (INV-26, IN-04): a grant covers a dimension the request leaves empty only
+-- when the grant leaves it empty too (iam.scope_covers), and a requirement applies unless the request
+-- names a different value in a dimension the requirement limits. A request that leaves the dimension
+-- empty (an installation-wide object, or a provider that returns no site) may be work in that site,
+-- area or product, so the requirement applies.
+create function iam.requirement_applies(p_site text, p_area text, p_product text, p_request jsonb) returns boolean
+language sql immutable set search_path = pg_catalog, iam, pg_temp as $$
+  select coalesce(
+           (p_site is null or nullif(p_request ->> 'site', '') is null or p_site = p_request ->> 'site')
+       and (p_area is null or nullif(p_request ->> 'area', '') is null or p_area = p_request ->> 'area')
+       and (p_product is null or nullif(p_request ->> 'product', '') is null or p_product = p_request ->> 'product'),
+         true)
 $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -350,7 +366,8 @@ select iam.protect_rows('iam.policy_key');
 
 revoke all on all tables in schema iam from ebmr_app, ebmr_authn;
 grant select on iam.policy_key, iam.policy_value, iam.security_alert, iam.security_alert_action to ebmr_app;
-grant execute on function iam.check_scope(jsonb), iam.scope_covers(text, text, text, jsonb), iam.policy_text(text),
+grant execute on function iam.check_scope(jsonb), iam.scope_covers(text, text, text, jsonb),
+                          iam.requirement_applies(text, text, text, jsonb), iam.policy_text(text),
                           iam.policy_int(text), iam.policy_bool(text), iam.policy_values(), iam.actor_is_validated(),
                           iam.assert_validated_actor() to ebmr_app;
 grant execute on function iam.policy_text(text), iam.policy_int(text), iam.policy_bool(text) to ebmr_authn;

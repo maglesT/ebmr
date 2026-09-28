@@ -1,0 +1,87 @@
+name: Mutation testing
+
+# Full mutation runs are too slow for every pull request (build outline 9.1: incremental in CI,
+# full weekly). This workflow runs them weekly and on demand: StrykerJS on the kernel's TypeScript
+# logic, and the SQL mutation harness on the database-enforced guards, one job per group.
+
+on:
+  schedule:
+    - cron: '17 2 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typescript:
+    name: StrykerJS (kernel TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ebmr_dev
+          POSTGRES_PASSWORD: ebmr_dev
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ebmr_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm mutation:ts
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-ts
+          path: .reports/mutation/
+          if-no-files-found: ignore
+
+  sql:
+    name: SQL guards (${{ matrix.group }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [audit-trail, actor-validation, signing, signature-invalidation, segregation-and-grants,
+                authentication-events, retention-and-purge, site-values-and-policies, protected-numbers]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ebmr_dev
+          POSTGRES_PASSWORD: ebmr_dev
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ebmr_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm mutation:sql --group ${{ matrix.group }} --workers 2 --out .reports/sql-mutation/${{ matrix.group }}
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-sql-${{ matrix.group }}
+          path: .reports/sql-mutation/
+          if-no-files-found: ignore

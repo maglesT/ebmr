@@ -6,7 +6,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext } from '../../src/db/command.ts';
-import { evaluateStubScope, type StoredEvaluation } from '../../src/market/repository.ts';
+import { evaluateStubScope, type EvaluateStubScopeRequest, type StoredEvaluation } from '../../src/market/repository.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asApp, publishSeedTables, seedStubWorld, testActor, type StubWorld } from './helpers.ts';
 
@@ -101,6 +101,50 @@ describe('INV-29 bypass attempts', () => {
     await expect(asApp(db, (c) => c.query(`update market.evaluation set resolved_value = '"60"' where id = $1`, [evaluation.id]), { reasonCode: 'X' })).rejects.toThrow(/permission denied/);
     await expect(asApp(db, (c) => c.query('delete from market.evaluation where id = $1', [evaluation.id]), { reasonCode: 'X' })).rejects.toThrow(/permission denied/);
     await expect(asApp(db, (c) => c.query('truncate market.evaluation'))).rejects.toThrow(/permission denied/);
+  });
+
+  it('[INV-29][INV-28] the application entry point files an evaluation only under a subject its scope entails (F22)', async () => {
+    const evaluate = (request: Parameters<typeof evaluateStubScope>[1]) => asApp(db, (c) => evaluateStubScope(c, request));
+    const key = 'kernel.referenceSamples.monthsAfterExpiry';
+    const base = { key, resolutionPoint: 'RELEASE' as const, asOf: '2026-02-01' };
+    // Another batch, or a subject type the scope does not entail, is refused.
+    await expect(evaluate({ ...base, scope: { kind: 'PRODUCT', id: world.batch.tabletIn }, subject: { type: 'BATCH', id: world.batch.tabletAll } })).rejects.toThrow('EBMR-MKT-058');
+    await expect(evaluate({ ...base, scope: { kind: 'PRODUCT', id: world.batch.tabletIn }, subject: { type: 'MBR', id: randomUUID() } })).rejects.toThrow('EBMR-MKT-058');
+    await expect(evaluate({ ...base, scope: { kind: 'PERSON', id: world.person }, subject: { type: 'BATCH', id: world.batch.tabletIn } })).rejects.toThrow('EBMR-MKT-058');
+    // A consuming batch belongs to a MATERIAL_LOT scope only.
+    await expect(evaluate({ ...base, scope: { kind: 'PRODUCT', id: world.batch.tabletIn, consumingBatchId: world.batch.tabletAll } })).rejects.toThrow('EBMR-MKT-052');
+    // Subjects the scope entails: the pack's batch, the consuming batch of a lot, a batch of a product qualified on the line.
+    const pack = await evaluate({ ...base, scope: { kind: 'PACK', id: world.pack.tabletAllUs }, subject: { type: 'BATCH', id: world.batch.tabletAll } });
+    expect([pack.subjectType, pack.subjectId, pack.marketSet]).toEqual(['BATCH', world.batch.tabletAll, ['EU', 'IN', 'US']]);
+    const lot = await evaluate({
+      ...base,
+      key: 'kernel.excipient.identityTestEachLot',
+      resolutionPoint: 'CONSUMPTION',
+      scope: { kind: 'MATERIAL_LOT', id: world.lot, consumingBatchId: world.batch.tabletIn },
+      subject: { type: 'BATCH', id: world.batch.tabletIn },
+    });
+    expect([lot.subjectType, lot.subjectId, lot.consumingBatchId]).toEqual(['BATCH', world.batch.tabletIn, world.batch.tabletIn]);
+    const line = await evaluate({
+      ...base,
+      key: 'tablets.compression.ipcSampleMaxInterval',
+      resolutionPoint: 'EXECUTION',
+      scope: { kind: 'LINE', id: world.line.tablets },
+      subject: { type: 'BATCH', id: world.batch.tabletAll },
+    });
+    expect([line.subjectId, line.scopeKind, line.marketSet]).toEqual([world.batch.tabletAll, 'LINE', ['EU', 'IN', 'US']]);
+    // Naming the scope itself as the subject is the same as naming nothing.
+    const self = await evaluate({ ...base, scope: { kind: 'PRODUCT', id: world.batch.tabletAll }, subject: { type: 'BATCH', id: world.batch.tabletAll } });
+    expect([self.subjectId, self.marketSet, self.resolvedValue]).toEqual([world.batch.tabletAll, ['EU', 'IN', 'US'], '12']);
+  });
+
+  it('[INV-29][IN-52] the site whose value applies is the scope\'s own: a request may repeat it but never name another one or null (F21, F80)', async () => {
+    const evaluate = (extra: Partial<EvaluateStubScopeRequest>) =>
+      asApp(db, (c) => evaluateStubScope(c, { key: 'tablets.compression.ipcSampleMaxInterval', scope: { kind: 'PRODUCT', id: world.batch.tabletIn }, resolutionPoint: 'EXECUTION', asOf: '2026-02-01', ...extra }));
+    expect((await evaluate({ siteId: world.siteId })).siteId).toBe(world.siteId);
+    expect((await evaluate({})).siteId).toBe(world.siteId);
+    await expect(evaluate({ siteId: null })).rejects.toThrow('EBMR-MKT-056');
+    await expect(evaluate({ siteId: randomUUID() })).rejects.toThrow('EBMR-MKT-056');
+    await expect(evaluate({ siteId: 'not-a-uuid' })).rejects.toThrow('EBMR-MKT-056');
   });
 
   it('[INV-29] the application role cannot call the internal writer with a market set of its choosing', async () => {

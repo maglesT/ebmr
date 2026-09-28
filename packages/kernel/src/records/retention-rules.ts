@@ -14,7 +14,9 @@
  * - A rule applies when the record's retention key is in `retentionKeys`, its market is in the
  *   record's market set (null = every record), and every predicate fact matches.
  * - An applying rule gives anchor date + period (calendar arithmetic, see calendar.ts), or OPEN when
- *   its anchor is OPEN or the anchor date is missing (retention never ends on an unknown input).
+ *   its anchor is OPEN or the anchor date is missing (retention never ends on an unknown input). An
+ *   expiry date not yet known is such a missing input; only the stated fact noLabelledExpiry turns the
+ *   expiry rules off (Schedule M expiry + 1 y applies to every product that carries an expiry).
  * - The record's own retain-until is the latest date over all applying rules; any OPEN rule keeps the
  *   whole record OPEN. Dependants then extend it (retention dependency, see retention.ts).
  */
@@ -23,7 +25,8 @@ export type Market = 'IN' | 'US' | 'EU';
 
 /**
  * Retention key of a record type (DI-01 register). PERMANENT: kept for the life of the installation
- * (no rule applies, so retention stays OPEN), e.g. tombstones and holds of the retention machinery.
+ * (no rule applies, so retention stays OPEN, and records depending on it never give it a date), e.g.
+ * tombstones and holds of the retention machinery.
  */
 export type RetentionKey = 'BATCH_RECORD' | 'SUPPORTING_RECORD' | 'DSCSA_RECORD' | 'VALIDATION_RAW_DATA' | 'PERMANENT';
 
@@ -43,6 +46,7 @@ export type Verification = 'CHECKED' | 'S' | 'U' | 'P~' | 'DESIGN';
 /** Facts a predicate can test; derived from the inputs in retention.ts (and in SQL). */
 export interface RetentionPredicate {
   licenceForm?: 'FORM_25' | 'FORM_28';
+  /** False only when the inputs state noLabelledExpiry; a missing expiry date is an unknown input (OPEN). */
   expiryLabelled?: boolean;
   otcExpiryExempt?: boolean;
   euCertification?: 'PENDING' | 'CERTIFIED' | 'NEVER_CERTIFIED';

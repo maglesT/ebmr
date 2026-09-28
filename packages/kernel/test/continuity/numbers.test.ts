@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { exportAnchor } from '../../src/continuity/anchors.ts';
 import { ledgerMaxCeiling } from '../../src/continuity/ledger.ts';
 import { numberInvariantViolations, reserveCounterBlock, unprotectedSequences, withProtectedNumbers } from '../../src/continuity/numbers.ts';
+import { checkAgainstLedger } from '../../src/continuity/restore.ts';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { installNumberStub, tempDir, tempLedger, testActor } from './helpers.ts';
@@ -12,7 +14,9 @@ const dir = tempDir('numbers');
 beforeAll(async () => {
   db = await createTestDatabase();
   ops = await testActor(db, { roleCode: 'SERVICE_ACCOUNT', source: 'SYSTEM' });
-  for (const key of ['test.number:A', 'test.number:B', 'test.number:C', 'test.number:D']) await installNumberStub(db, key, 5);
+  for (const key of ['test.number:A', 'test.number:B', 'test.number:C', 'test.number:D', 'test.number:E', 'test.number:F', 'test.number:G']) {
+    await installNumberStub(db, key, 5);
+  }
 });
 afterAll(async () => {
   await db.drop();
@@ -69,6 +73,90 @@ describe('write-ahead ceilings', () => {
     await reserveCounterBlock(db.app, ops, ledger, 'test.number:C');
     const emptyLedger = tempLedger('numbers-c-lost', dir.path);
     await expect(reserveCounterBlock(db.app, ops, emptyLedger, 'test.number:C')).rejects.toThrow('EBMR-CONT-013');
+  });
+});
+
+describe('server start and refused reservations', () => {
+  /** As the table owner: the block in force looks as if it had been reserved before the server started. */
+  async function reservedBeforeServerStart(key: string): Promise<void> {
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local role ebmr_owner');
+      await c.query("update continuity.counter set ceiling_started_at = pg_postmaster_start_time() - interval '1 hour' where sequence_key = $1", [key]);
+      await c.query('commit');
+    } catch (error) {
+      await c.query('rollback');
+      throw error;
+    } finally {
+      c.release();
+    }
+  }
+
+  it('[INV-27] after a server start the rest of a block is never issued: it may have been issued before a rollback that kept the incarnation (F55)', async () => {
+    const ledger = tempLedger('numbers-e', dir.path);
+    const key = 'test.number:E';
+    expect(await reserveCounterBlock(db.app, ops, ledger, key)).toBe(5n);
+    expect([await issue(key), await issue(key)]).toEqual(['1', '2']);
+    // A physical copy started by crash recovery (or a snapshot rolled back) has the same incarnation but
+    // was started after the block was reserved: values 3..5 may already be on labels elsewhere.
+    await reservedBeforeServerStart(key);
+    await expect(issue(key)).rejects.toThrow(/^EBMR-CONT-011 the server started after the block of test\.number:E was reserved/);
+    // The command wrapper reserves a new block (ledger first); the rest of the old one is retired and recorded.
+    const next = await withProtectedNumbers(db.app, ops, ledger, async (c) => (await c.query<{ v: string }>('select testgmp.issue_number($1)::text as v', [key])).rows[0]?.v);
+    expect(next).toBe('6');
+    const bumps = await db.app.query<{ reason: string; value_before: string; value_after: string }>(
+      'select reason, value_before::text, value_after::text from continuity.sequence_bump where sequence_key = $1',
+      [key],
+    );
+    expect(bumps.rows).toEqual([{ reason: 'SERVER_RESTART', value_before: '2', value_after: '5' }]);
+    // A retirement is routine after every start, not a restore: no LEDGER_AHEAD alarm.
+    const alarms = await db.app.query("select 1 from continuity.alarm where details ->> 'sequence_key' = $1", [key]);
+    expect(alarms.rowCount).toBe(0);
+    expect(await numberInvariantViolations(db.app)).toEqual([]);
+  });
+
+  it('[INV-27][DI-17] a reservation the database refuses writes nothing to the external ledger, and the refusal is logged (F58)', async () => {
+    const ledger = tempLedger('numbers-f', dir.path);
+    const key = 'test.number:F';
+    const operator = await testActor(db, { roleCode: 'OPERATOR' });
+    await expect(reserveCounterBlock(db.app, operator, ledger, key)).rejects.toThrow(/^EBMR-IAM-040 .*CONTINUITY\.COUNTER_RESERVE/);
+    await expect(reserveCounterBlock(db.app, operator, ledger, 'test.number:missing')).rejects.toThrow('EBMR-IAM-040');
+    expect(await ledger.entries()).toEqual([]);
+    const logged = await db.app.query<{ allowed: boolean }>(
+      "select allowed from iam.authority_evaluation where person_id = $1 and permission_code = 'CONTINUITY.COUNTER_RESERVE'",
+      [operator.personId],
+    );
+    expect(logged.rows.length).toBeGreaterThanOrEqual(1);
+    expect(logged.rows.every((r) => !r.allowed)).toBe(true);
+    // An authorised reservation afterwards starts at the first block: nothing was burnt, no alarm.
+    expect(await reserveCounterBlock(db.app, ops, ledger, key)).toBe(5n);
+    expect(await ledgerMaxCeiling(ledger, key)).toBe(5n);
+  });
+
+  it('[INV-27] the start-up check sees a counter rolled back inside its block: the anchors saw higher values issued (F55)', async () => {
+    const ledger = tempLedger('numbers-g', dir.path);
+    const key = 'test.number:G';
+    await reserveCounterBlock(db.app, ops, ledger, key);
+    for (let i = 0; i < 3; i++) await issue(key);
+    await exportAnchor(db.app, ledger);
+    expect((await checkAgainstLedger(db.app, ledger)).findings.filter((f) => f.subject === key)).toEqual([]);
+    // The storage is rolled back to a point where only 1 value was issued (triggers bypassed, as a
+    // restored copy would be): same ceiling, same incarnation.
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query('update continuity.counter set last_value = 1 where sequence_key = $1', [key]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    const check = await checkAgainstLedger(db.app, ledger);
+    expect(check.ok).toBe(false);
+    expect(check.findings.filter((f) => f.subject === key).map((f) => [f.code, f.message])).toEqual([
+      ['COUNTER_BEHIND_LEDGER', `the ledger saw value 3 issued but the counter is at 1: a restore without the restore procedure is suspected`],
+    ]);
   });
 });
 

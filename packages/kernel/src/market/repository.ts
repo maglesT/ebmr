@@ -169,17 +169,28 @@ export interface ScopeRef {
   consumingBatchId?: string;
 }
 
+/**
+ * A Phase 1 evaluation request. What the scope fixes (its markets and predicates, its site, a pack's
+ * destination, the subject the evaluation is filed under) the request can repeat but never change.
+ */
 export interface EvaluateStubScopeRequest {
   key: string;
   scope: ScopeRef;
   resolutionPoint: ResolutionPoint;
   asOf: string;
   tableVersionId?: string;
-  /** Extra predicate attributes the scope does not fix. */
+  /** Extra predicate attributes the scope does not fix (a different value for a fixed one: EBMR-MKT-055). */
   predicates?: Predicates;
+  /** PER_DESTINATION keys; for a PACK scope the destination is the pack's own (another one: EBMR-MKT-057). */
   stated?: StatedMethod;
+  /**
+   * Defaults to the scope (a PRODUCT scope's batch). Another subject only where the scope entails it:
+   * a PACK's batch, a MATERIAL_LOT's consuming batch, a batch made at a SITE or of a product qualified
+   * on a LINE, ROOM or EQUIPMENT (anything else: EBMR-MKT-058).
+   */
   subject?: { type: string; id: string };
-  siteId?: string;
+  /** Assert-only: the site is always the scope's own; any other value, or null for a sited scope, is refused (EBMR-MKT-056). */
+  siteId?: string | null;
 }
 
 export type SiteOutcome = 'NO_SITE_VALUE' | 'SITE_TIGHTER' | 'SITE_EQUAL' | 'SITE_LOOSENED' | 'SITE_VALUE_INADMISSIBLE';
@@ -270,8 +281,13 @@ export interface SiteValueRequest {
   key: string;
   value: RuleValue;
   effectiveFrom: string;
-  /** Needed to loosen a GUIDANCE or adopted EXAMPLE value: CCS (justification) reference and QA approval record. */
+  /** Needed to loosen a GUIDANCE or adopted EXAMPLE value: the CCS (justification) reference. */
   justificationRef?: string;
+  /**
+   * Needed to loosen a GUIDANCE or adopted EXAMPLE value: the id of the QA approver's
+   * SITE_VALUE_LOOSENING_APPROVED e-signature of exactly this loosening (siteValuePreview names the
+   * aggregate), signed by someone other than the person setting the value. Read only for a loosening.
+   */
   qaApprovalId?: string;
   tableVersionId?: string;
   predicates?: Predicates;
@@ -284,7 +300,9 @@ export interface SiteValueRecord {
   value: RuleValue;
   outcome: 'TIGHTER' | 'EQUAL' | 'LOOSENED';
   justificationRef: string | null;
+  /** LOOSENED only: the QA approval e-signature and the person who signed it. */
   qaApprovalId: string | null;
+  qaApproverId: string | null;
   tableVersionId: string;
 }
 
@@ -311,8 +329,41 @@ export async function setSiteValue(client: Queryable, request: SiteValueRequest)
       outcome: sv['outcome'] as SiteValueRecord['outcome'],
       justificationRef: (sv['justification_ref'] as string | null) ?? null,
       qaApprovalId: (sv['qa_approval_id'] as string | null) ?? null,
+      qaApproverId: (sv['qa_approver_id'] as string | null) ?? null,
       tableVersionId: sv['table_version_id'] as string,
     };
+  });
+}
+
+/** What an approver e-signs to approve a market loosening: the signature type and the signed aggregate. */
+export interface ApprovalTarget {
+  meaning: string;
+  aggregateType: string;
+  aggregateId: string;
+}
+
+export interface SiteValuePreview {
+  outcome: 'TIGHTER' | 'EQUAL' | 'LOOSENING' | 'REFUSED';
+  code?: string;
+  message?: string;
+  resolution: Resolution;
+  /** For a loosening with a justification reference: what the QA approver signs. */
+  approval: ApprovalTarget | null;
+}
+
+/** What market.set_site_value would decide for a candidate value, without writing anything. */
+export async function siteValuePreview(db: Queryable, request: Omit<SiteValueRequest, 'qaApprovalId'>): Promise<SiteValuePreview> {
+  return run(async () => {
+    const { rows } = await db.query<{ p: SiteValuePreview }>('select market.site_value_preview($1, $2, $3::jsonb, $4::date, $5::jsonb) as p', [
+      request.siteId,
+      request.key,
+      JSON.stringify(request.value),
+      request.effectiveFrom,
+      JSON.stringify({ justificationRef: request.justificationRef, tableVersionId: request.tableVersionId, predicates: request.predicates }),
+    ]);
+    const p = rows[0]?.p;
+    if (!p) throw new MarketRuleError('EBMR-MKT-062', 'the site-value preview returned no result');
+    return { ...p, approval: p.approval ?? null };
   });
 }
 

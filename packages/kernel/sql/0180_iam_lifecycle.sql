@@ -96,7 +96,7 @@ create function iam.bootstrap_installation(p_admin_name text, p_admin_login text
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 declare
   v_nil    uuid := '00000000-0000-0000-0000-000000000000';
-  v_prev   text := current_setting('ebmr.ctx', true);
+  v_prev   jsonb := kernel.current_actor();
   v_ctx    jsonb;
   v_iq     uuid;
   v_admin  uuid;
@@ -149,7 +149,9 @@ begin
   values ('BOOTSTRAP-CONSOLE-1', 'PERSONAL', p_site, iam.normalize_fingerprint(p_admin_console), 'administration console (installation)', v_iq),
          ('BOOTSTRAP-CONSOLE-2', 'PERSONAL', p_site, iam.normalize_fingerprint(p_owner_console), 'process-owner console (installation)', v_iq);
 
-  perform set_config('ebmr.ctx', coalesce(v_prev, ''), true);
+  -- Only the context installed last is validated (ADR-0016): restore the caller's validated context
+  -- (or none) through the kernel, so the installation actors above stop counting.
+  perform kernel.set_actor_context(v_prev);
   return jsonb_build_object('admin_person_id', v_admin, 'admin_account_id', v_aacc, 'owner_person_id', v_owner, 'owner_account_id', v_oacc,
                             'installation_person_id', v_iq);
 end
@@ -178,9 +180,17 @@ language sql stable security definer set search_path = pg_catalog, iam, pg_temp 
   from live l where l.is_break_glass and (iam.role_has_domain(l.role_code, 'GMP', clock_timestamp())
                                           or iam.role_has_effect(l.role_code, array['SIGN', 'ACKNOWLEDGE'], clock_timestamp()))
   union all
-  select 'ADMINISTRATOR_AND_GMP_ROLE', a.person_id, a.account_id, a.login_name, a.role_code, 'INV-11/DI-18: also holds GMP role ' || b.role_code
-  from live a join live b on b.person_id = a.person_id and b.id <> a.id
+  -- b = a when one role itself holds both (not reachable through the product; the role is reported below too).
+  select 'ADMINISTRATOR_AND_GMP_ROLE', a.person_id, a.account_id, a.login_name, a.role_code,
+         case when b.id = a.id then 'INV-11/DI-18: the role itself holds administration and GMP permissions'
+              else 'INV-11/DI-18: also holds GMP role ' || b.role_code end
+  from live a join live b on b.person_id = a.person_id
   where iam.role_has_domain(a.role_code, 'ADMINISTRATION', clock_timestamp()) and iam.role_has_domain(b.role_code, 'GMP', clock_timestamp())
+  union all
+  select 'ROLE_MIXES_ADMINISTRATION_AND_GMP', null::uuid, null::uuid, null::text, r.code,
+         'INV-11/DI-18: the role holds administration and GMP permissions'
+  from iam.role r
+  where iam.role_has_domain(r.code, 'ADMINISTRATION', clock_timestamp()) and iam.role_has_domain(r.code, 'GMP', clock_timestamp())
   union all
   select 'MORE_THAN_ONE_GMP_ACCOUNT', a.person_id, null, null, null, 'INV-11: ' || count(*) || ' live GMP-capable accounts'
   from iam.account a where a.gmp_capable and a.status <> 'DISABLED' group by a.person_id having count(*) > 1
@@ -198,6 +208,10 @@ language sql stable security definer set search_path = pg_catalog, iam, pg_temp 
   select 'LOGIN_NAME_NOT_IN_REGISTER', a.person_id, a.id, a.login_name, null, 'INV-27'
   from iam.account a left join iam.issued_identifier i on i.identifier = a.login_name
   where i.account_id is distinct from a.id
+  union all
+  select 'LOGIN_NAME_REUSED_AFTER_RESTORE', a.person_id, a.id, a.login_name, null,
+         'INV-27: the login name was issued before the restore point and reserved from the external ledger'
+  from iam.account a join iam.reserved_identifier r on r.identifier = a.login_name
 $$;
 
 grant execute on function iam.deactivate_account(uuid, text), iam.process_leaver(uuid, text), iam.rehire_person(uuid, text),

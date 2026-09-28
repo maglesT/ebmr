@@ -102,11 +102,13 @@ describe('manifestation elements (DI-36)', () => {
 
   it('[DI-36] the date and time use the configured site zone and its offset; a command declaring another zone cannot sign', async () => {
     const { admin } = await seedAdministration(db);
-    await withCommand(db.app, withReason(admin), (c) => setIamPolicy(c, 'site.zone', 'Europe/Berlin', 'test: site in the EU'));
+    // Everything that runs commands in the Indian site zone happens before the switch.
+    const op = await testActor(db);
+    const id = await createStub(db, op);
     try {
-      const op = await testActor(db);
-      const id = await createStub(db, op);
-      await expectRefused(signStub(db, op, id, { meaning: 'PERFORMED' }), 'EBMR-ESIG-035');
+      await withCommand(db.app, withReason({ ...admin, siteZone: 'Asia/Kolkata' }), (c) => setIamPolicy(c, 'site.zone', 'Europe/Berlin', 'test: site in the EU'));
+      // A command still declaring the old zone is refused when it starts (DI-27), so it cannot sign.
+      await expectRefused(signStub(db, op, id, { meaning: 'PERFORMED' }), 'EBMR-IAM-118', /declares the time zone Asia\/Kolkata/);
       const berlin = { ...op, siteZone: 'Europe/Berlin' };
       const sig = await signStub(db, berlin, id, { meaning: 'PERFORMED' });
       const expected = (await db.admin.query<{ local: string }>(
@@ -116,7 +118,12 @@ describe('manifestation elements (DI-36)', () => {
       expect(['+01:00', '+02:00']).toContain(sig.manifestation.utcOffset);
       expect(sig.manifestation.signedAtLocal).toBe(expected?.local);
     } finally {
-      await withCommand(db.app, withReason(admin), (c) => setIamPolicy(c, 'site.zone', 'Asia/Kolkata', 'test: back to the Indian site'));
+      // Back to the Indian site, declaring whatever zone is in force now, so a failure above never
+      // leaves the policy switched for the tests that follow.
+      const zone = (await db.admin.query<{ z: string }>("select iam.policy_text('site.zone') as z")).rows[0]?.z ?? 'Asia/Kolkata';
+      if (zone !== 'Asia/Kolkata') {
+        await withCommand(db.app, withReason({ ...admin, siteZone: zone }), (c) => setIamPolicy(c, 'site.zone', 'Asia/Kolkata', 'test: back to the Indian site'));
+      }
     }
   });
 });

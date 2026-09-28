@@ -48,10 +48,10 @@ insert into iam.permission (code, domain, effect, description) values
   -- continuity
   ('CONTINUITY.RESTORE_OPERATE', 'ADMINISTRATION', 'ADMINISTER', 'Record a database restore or failover and complete the restore procedure once it is approved'),
   ('CONTINUITY.RESTORE_APPROVE', 'GMP', 'SIGN', 'Approve a recorded restore event as a named second person'),
-  ('CONTINUITY.BACKUP_RECORD', 'GOVERNANCE', 'WRITE', 'Record backup job runs and restore-drill results (system service accounts)'),
+  ('CONTINUITY.BACKUP_RECORD', 'GOVERNANCE', 'WRITE', 'Record backup job runs, restore-drill results and integrity-verification alarms (system service accounts)'),
   ('CONTINUITY.HARDENING_ATTEST', 'ADMINISTRATION', 'ADMINISTER', 'Record and revoke hardening attestations of shop-floor terminals'),
-  ('CONTINUITY.ALARM_ACKNOWLEDGE', 'GOVERNANCE', 'ACKNOWLEDGE', 'Acknowledge continuity alarms (backup, restore-drill and number-ledger alarms)'),
-  ('CONTINUITY.COUNTER_RESERVE', 'GMP', 'WRITE', 'Acknowledge a write-ahead ceiling of a protected number counter'),
+  ('CONTINUITY.ALARM_ACKNOWLEDGE', 'GOVERNANCE', 'ACKNOWLEDGE', 'Acknowledge continuity alarms (backup, restore-drill, number-ledger and audit-chain alarms)'),
+  ('CONTINUITY.COUNTER_RESERVE', 'GMP', 'WRITE', 'Acknowledge a write-ahead ceiling of a protected number counter (in the counter''s site)'),
   -- site services: batch-number register
   ('BATCH_NUMBER.RULE_DEFINE', 'GMP', 'WRITE', 'Define a batch-number rule of a site'),
   ('BATCH_NUMBER.ALLOCATE', 'GMP', 'WRITE', 'Allocate a batch number from the rule in force'),

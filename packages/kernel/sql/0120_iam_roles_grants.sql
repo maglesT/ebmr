@@ -10,7 +10,13 @@
 --     SERVICE and INTEGRATION accounts never hold SIGN or ACKNOWLEDGE permissions;
 --   * break-glass accounts never hold GMP, SIGN or ACKNOWLEDGE permissions;
 --   * the requester, the approver and the grantee are three different persons, and nobody
---     revokes their own grants (a person's admin account never acts on their own grants).
+--     revokes their own grants (a person's admin account never acts on their own grants);
+--   * adding a permission to a role grants it to every holder, so it is requested by one person and
+--     approved by a second, neither of whom holds the role (DI-16, DI-18).
+-- Every static check locks the role, then the person, then (for a grant) the account, and reads
+-- everything as it stands once the locks are held, so concurrent grants, catalogue changes and
+-- account deactivations are checked one after the other. A grant is approved only for an active
+-- account.
 
 set local role ebmr_owner;
 
@@ -287,23 +293,40 @@ language sql volatile set search_path = pg_catalog, pg_temp as $$
 $$;
 
 -- Static checks for one account and role (DI-14, DI-18, INV-11). p_exclude is the grant being
--- checked, so it is not counted against itself. Locks the person row, so two concurrent
--- approvals for the same person are checked one after the other.
+-- checked, so it is not counted against itself.
+--
+-- Concurrency. Every static check takes its locks in one order: the role, the person, then the
+-- account (iam.process_leaver also takes the person before the account). This function takes the
+-- granted role in share mode (a change of that role's permissions, which takes it exclusively in
+-- iam.check_role_permission_addition, waits for this grant or is waited for), then the person row
+-- (two grants for the same person, or a grant and a catalogue change that reaches the same person,
+-- are checked one after the other), then the account in share mode (a deactivation, a suspension or a
+-- leaver, which update it, wait until this grant has committed and then revoke it with the account's
+-- other grants, or commit first and are seen here). Everything is read as it stands once the locks
+-- are held: the account row after its lock, and the catalogue and the other grants live now or later
+-- (instant 'infinity'), never at an instant taken before a lock wait.
 create function iam.check_static_segregation(p_account uuid, p_role text, p_exclude uuid) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
   v_acc  iam.account%rowtype;
   v_role iam.role%rowtype;
-  v_now  timestamptz := clock_timestamp();
+  v_now  constant timestamptz := 'infinity';
 begin
   select * into v_acc from iam.account where id = p_account;
   if not found then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-022 unknown account';
   end if;
-  perform 1 from iam.person where id = v_acc.person_id for update;
-  select * into v_role from iam.role where code = p_role;
+  select * into v_role from iam.role where code = p_role for share;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-IAM-030 unknown role %s', p_role);
+  end if;
+  perform 1 from iam.person where id = v_acc.person_id for update;
+  select * into v_acc from iam.account where id = p_account for share;
+  -- INV-11 / DI-18: a role that holds administration and GMP permissions is never granted
+  -- (iam.check_role_permission_addition keeps any role from mixing them; this is defence in depth).
+  if iam.role_has_domain(p_role, 'ADMINISTRATION', v_now) and iam.role_has_domain(p_role, 'GMP', v_now) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-IAM-033 INV-11/DI-18: role %s combines administration and GMP permissions and cannot be granted', p_role);
   end if;
   if v_acc.status = 'DISABLED' then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-026 a disabled account receives no grants';
@@ -396,18 +419,170 @@ begin
   if new.status in ('REQUESTED', 'APPROVED') then
     perform iam.check_static_segregation(new.account_id, new.role_code, new.id);
   end if;
+  -- DI-16: authority is approved only for an active account (read after the share lock the check above
+  -- took, so a deactivation or suspension that committed while it waited is seen). A request may be
+  -- raised while the account awaits activation; it is approved once the account is active.
+  if tg_op = 'UPDATE' and new.status = 'APPROVED' and old.status = 'REQUESTED'
+     and (select a.status from iam.account a where a.id = new.account_id) <> 'ACTIVE' then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-IAM-026 a grant is approved only for an active account; this account is %s',
+                       (select a.status from iam.account a where a.id = new.account_id));
+  end if;
   return new;
 end
 $$;
 create trigger aa_role_grant_guard before insert or update on iam.role_grant for each row execute function iam.role_grant_guard();
 
--- Adding a permission to a role re-checks every live holder, and a role never mixes
--- administration and GMP permissions (INV-11 cannot be bypassed through the catalogue).
-create function iam.role_permission_guard() returns trigger
-language plpgsql security definer set search_path = pg_catalog, iam, pg_temp as $$
+-- Would adding p_permission to p_role keep every static rule? A role never mixes administration and
+-- GMP permissions, and every holder of the role (live grants and pending requests) is re-checked
+-- (INV-11 cannot be bypassed through the catalogue; DI-14; DI-18 break-glass). Run when a change is
+-- requested and again when it is approved (the insert into iam.role_permission).
+--
+-- Concurrency: the role is taken exclusively (no key update), so two changes of one role's
+-- permissions are checked one after the other and a grant of the role (which takes it in share mode
+-- in iam.check_static_segregation) waits or is waited for; then the holders' person rows, in
+-- person order, as every static check does (role first, then person). The catalogue and the holders'
+-- other grants are read as they stand once the locks are held, live now or later ('infinity').
+create function iam.check_role_permission_addition(p_role text, p_permission text) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
   v_perm iam.permission%rowtype;
+  v_now  constant timestamptz := 'infinity';
   g      record;
+begin
+  select * into v_perm from iam.permission where code = p_permission;
+  if not found then
+    raise exception using errcode = 'P0001', message = format('EBMR-IAM-030 unknown permission %s', p_permission);
+  end if;
+  perform 1 from iam.role where code = p_role for no key update;
+  if not found then
+    raise exception using errcode = 'P0001', message = format('EBMR-IAM-030 unknown role %s', p_role);
+  end if;
+  if v_perm.domain = 'GMP' and iam.role_has_domain(p_role, 'ADMINISTRATION', v_now)
+     or v_perm.domain = 'ADMINISTRATION' and iam.role_has_domain(p_role, 'GMP', v_now) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-IAM-033 INV-11/DI-18: role %s cannot combine administration and GMP permissions (%s)', p_role, p_permission);
+  end if;
+  for g in
+    select r.* from iam.role_grant r
+    where r.role_code = p_role and (r.status = 'REQUESTED' or iam.grant_is_live(r.status, r.valid_to, r.revoked_at))
+    order by r.person_id, r.id
+  loop
+    declare
+      v_acc iam.account%rowtype;
+    begin
+      select * into v_acc from iam.account where id = g.account_id;
+      perform 1 from iam.person where id = g.person_id for update;
+      if (v_acc.is_generic or v_acc.kind = 'READONLY_DISPLAY') and v_perm.effect <> 'READ' then
+        raise exception using errcode = 'P0001',
+          message = format('EBMR-IAM-034 DI-14: generic or display account %s holds role %s; %s cannot be added', v_acc.login_name, p_role, p_permission);
+      end if;
+      if v_acc.kind in ('SERVICE', 'INTEGRATION') and v_perm.effect in ('SIGN', 'ACKNOWLEDGE') then
+        raise exception using errcode = 'P0001',
+          message = format('EBMR-IAM-035 DI-14: service account %s holds role %s; %s cannot be added', v_acc.login_name, p_role, p_permission);
+      end if;
+      if v_acc.is_break_glass and (v_perm.domain = 'GMP' or v_perm.effect in ('SIGN', 'ACKNOWLEDGE')) then
+        raise exception using errcode = 'P0001',
+          message = format('EBMR-IAM-036 DI-18: break-glass account %s holds role %s; %s cannot be added', v_acc.login_name, p_role, p_permission);
+      end if;
+      if v_perm.domain in ('GMP', 'ADMINISTRATION') and exists (
+           select 1 from iam.role_grant o
+           where o.person_id = g.person_id and o.id <> g.id and iam.grant_is_live(o.status, o.valid_to, o.revoked_at)
+             and iam.role_has_domain(o.role_code, case v_perm.domain when 'GMP' then 'ADMINISTRATION' else 'GMP' end, v_now)) then
+        raise exception using errcode = 'P0001',
+          message = format('EBMR-IAM-033 INV-11/DI-18: a holder of role %s would hold administrator and GMP permissions if %s were added',
+                           p_role, p_permission);
+      end if;
+    end;
+  end loop;
+end
+$$;
+
+-- Does the person hold the role (a live grant or a pending request, through any account)?
+create function iam.person_holds_role(p_person uuid, p_role text) returns boolean
+language sql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
+  select exists (select 1 from iam.role_grant g
+                 where g.person_id = p_person and g.role_code = p_role
+                   and (g.status = 'REQUESTED' or iam.grant_is_live(g.status, g.valid_to, g.revoked_at)))
+$$;
+
+-- ---------------------------------------------------------------------------------------------
+-- Changes of a role's permissions (DI-16, DI-18). Adding a permission to a role grants it to every
+-- holder of the role, so it follows the rule of every grant of authority: one person requests it
+-- (IAM.ROLE_MANAGE, iam.add_role_permission) and a second person approves it (IAM.GRANT_APPROVE,
+-- iam.decide_role_permission); only the approval adds the iam.role_permission row. Nobody requests or
+-- approves a permission for a role they hold themselves (administrators never grant themselves
+-- authority). Removing a permission takes authority away and is effective at once, like revoking a
+-- grant. Role names and permission bundles stay customer configuration (features spec A.7); the
+-- versioned change control of all configuration (DI-09) comes later.
+-- ---------------------------------------------------------------------------------------------
+
+create table iam.role_permission_request (
+  id                    uuid primary key default gen_random_uuid(),
+  role_code             text not null references iam.role (code),
+  permission_code       text not null references iam.permission (code),
+  reason                text not null check (btrim(reason) <> ''),
+  status                text not null check (status in ('REQUESTED', 'APPROVED', 'REJECTED')),
+  requested_by_person   uuid not null,
+  requested_by_account  uuid not null,
+  requested_at          timestamptz not null default clock_timestamp(),
+  decided_by_person     uuid,
+  decided_by_account    uuid,
+  decided_at            timestamptz,
+  decision_reason       text,
+  -- The catalogue row the approval added (inserted right after the approval, in the same command).
+  role_permission_id    uuid unique references iam.role_permission (id) deferrable initially deferred,
+  check (status = 'REQUESTED' or (decided_by_person is not null and decided_at is not null)),
+  check (decided_by_person is null or decided_by_person <> requested_by_person),
+  check ((status = 'APPROVED') = (role_permission_id is not null))
+);
+create unique index role_permission_request_open on iam.role_permission_request (role_code, permission_code) where status = 'REQUESTED';
+
+create function iam.role_permission_request_guard() returns trigger
+language plpgsql security definer set search_path = pg_catalog, iam, pg_temp as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.status <> 'REQUESTED' or new.decided_by_person is not null or new.decided_at is not null or new.role_permission_id is not null then
+      raise exception using errcode = 'P0001', message = 'EBMR-IAM-039 a permission is added to a role on request; a second person approves it';
+    end if;
+    new.requested_at := clock_timestamp();
+    perform iam.check_role_permission_addition(new.role_code, new.permission_code);
+    if iam.person_holds_role(new.requested_by_person, new.role_code) then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-IAM-003 DI-18: nobody requests a permission for a role they hold (%s)', new.role_code);
+    end if;
+    if exists (select 1 from iam.role_permission rp where rp.role_code = new.role_code and rp.permission_code = new.permission_code and rp.removed_at is null) then
+      raise exception using errcode = 'P0001', message = format('EBMR-IAM-030 role %s already holds %s', new.role_code, new.permission_code);
+    end if;
+    return new;
+  end if;
+  if new.id <> old.id or new.role_code <> old.role_code or new.permission_code <> old.permission_code or new.reason <> old.reason
+     or new.requested_by_person <> old.requested_by_person or new.requested_by_account <> old.requested_by_account
+     or new.requested_at <> old.requested_at then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-039 what was requested never changes; request again';
+  end if;
+  if not (old.status = 'REQUESTED' and new.status in ('APPROVED', 'REJECTED')) then
+    raise exception using errcode = 'P0001', message = format('EBMR-IAM-039 a role-permission request cannot go from %s to %s', old.status, new.status);
+  end if;
+  if new.decided_by_person is null or new.decided_by_person = new.requested_by_person
+     or iam.person_holds_role(new.decided_by_person, new.role_code) then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-IAM-032 a role-permission request is decided by a second person: never the requester, never a holder of the role';
+  end if;
+  new.decided_at := clock_timestamp();
+  return new;
+end
+$$;
+create trigger aa_role_permission_request_guard before insert or update on iam.role_permission_request
+  for each row execute function iam.role_permission_request_guard();
+
+-- The catalogue rows themselves. Inside a person's command (a validated actor) a row is added only by
+-- the approval of a request of a second person, which names the row; outside a command only a
+-- software release (the SOFTWARE_RELEASE pipeline identity of the catalogue migrations) adds rows.
+-- Either way the static rules are checked again at that moment. A row is never changed except to
+-- remove it, once.
+create function iam.role_permission_guard() returns trigger
+language plpgsql security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 begin
   if tg_op = 'UPDATE' then
     if new.id <> old.id or new.role_code <> old.role_code or new.permission_code <> old.permission_code or new.added_at <> old.added_at
@@ -419,43 +594,18 @@ begin
   end if;
   new.added_at := clock_timestamp();
   new.removed_at := null;
-  select * into v_perm from iam.permission where code = new.permission_code;
-  if v_perm.domain = 'GMP' and iam.role_has_domain(new.role_code, 'ADMINISTRATION', new.added_at)
-     or v_perm.domain = 'ADMINISTRATION' and iam.role_has_domain(new.role_code, 'GMP', new.added_at) then
+  if iam.actor_is_validated() then
+    if not exists (select 1 from iam.role_permission_request r
+                   where r.role_permission_id = new.id and r.role_code = new.role_code and r.permission_code = new.permission_code
+                     and r.status = 'APPROVED') then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-IAM-039 DI-18: %s reaches role %s only through a request approved by a second person', new.permission_code, new.role_code);
+    end if;
+  elsif coalesce(kernel.current_actor() ->> 'role_code', '') <> 'SOFTWARE_RELEASE' then
     raise exception using errcode = 'P0001',
-      message = format('EBMR-IAM-033 INV-11/DI-18: role %s cannot combine administration and GMP permissions (%s)', new.role_code, new.permission_code);
+      message = 'EBMR-IAM-039 outside a command, only a software release adds permissions to roles';
   end if;
-  for g in
-    select r.* from iam.role_grant r
-    where r.role_code = new.role_code and (r.status = 'REQUESTED' or iam.grant_is_live(r.status, r.valid_to, r.revoked_at))
-  loop
-    declare
-      v_acc iam.account%rowtype;
-    begin
-      select * into v_acc from iam.account where id = g.account_id;
-      perform 1 from iam.person where id = g.person_id for update;
-      if (v_acc.is_generic or v_acc.kind = 'READONLY_DISPLAY') and v_perm.effect <> 'READ' then
-        raise exception using errcode = 'P0001',
-          message = format('EBMR-IAM-034 DI-14: generic or display account %s holds role %s; %s cannot be added', v_acc.login_name, new.role_code, new.permission_code);
-      end if;
-      if v_acc.kind in ('SERVICE', 'INTEGRATION') and v_perm.effect in ('SIGN', 'ACKNOWLEDGE') then
-        raise exception using errcode = 'P0001',
-          message = format('EBMR-IAM-035 DI-14: service account %s holds role %s; %s cannot be added', v_acc.login_name, new.role_code, new.permission_code);
-      end if;
-      if v_acc.is_break_glass and (v_perm.domain = 'GMP' or v_perm.effect in ('SIGN', 'ACKNOWLEDGE')) then
-        raise exception using errcode = 'P0001',
-          message = format('EBMR-IAM-036 DI-18: break-glass account %s holds role %s; %s cannot be added', v_acc.login_name, new.role_code, new.permission_code);
-      end if;
-      if v_perm.domain in ('GMP', 'ADMINISTRATION') and exists (
-           select 1 from iam.role_grant o
-           where o.person_id = g.person_id and o.id <> g.id and iam.grant_is_live(o.status, o.valid_to, o.revoked_at)
-             and iam.role_has_domain(o.role_code, case v_perm.domain when 'GMP' then 'ADMINISTRATION' else 'GMP' end, new.added_at)) then
-        raise exception using errcode = 'P0001',
-          message = format('EBMR-IAM-033 INV-11/DI-18: a holder of role %s would hold administrator and GMP permissions if %s were added',
-                           new.role_code, new.permission_code);
-      end if;
-    end;
-  end loop;
+  perform iam.check_role_permission_addition(new.role_code, new.permission_code);
   return new;
 end
 $$;
@@ -537,7 +687,8 @@ begin
 end
 $$;
 
--- Customer roles and permission bundles (CONFIG), under the same static checks.
+-- Customer roles and permission bundles (CONFIG), under the same static checks. A new role holds no
+-- permission until a request to add one is approved by a second person.
 create function iam.create_role(p_code text, p_name text, p_group text, p_description text, p_account_kinds text[]) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
 begin
@@ -547,11 +698,55 @@ begin
 end
 $$;
 
-create function iam.add_role_permission(p_role text, p_permission text) returns void
+-- Request that a permission be added to a role (it takes effect when a second person approves it,
+-- iam.decide_role_permission). The reason defaults to the reason text of the command. Returns the
+-- request id.
+create function iam.add_role_permission(p_role text, p_permission text, p_reason text default null) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
+declare
+  v_actor  jsonb := iam.require_permission('IAM.ROLE_MANAGE', '{}'::jsonb);
+  v_reason text := coalesce(nullif(btrim(p_reason), ''), nullif(btrim(v_actor ->> 'reason_text'), ''));
+  v_id     uuid;
 begin
-  perform iam.require_permission('IAM.ROLE_MANAGE', '{}'::jsonb);
-  insert into iam.role_permission (role_code, permission_code) values (p_role, p_permission);
+  if v_reason is null then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-004 a reason is required';
+  end if;
+  if exists (select 1 from iam.role_permission_request where role_code = p_role and permission_code = p_permission and status = 'REQUESTED') then
+    raise exception using errcode = 'P0001', message = format('EBMR-IAM-039 adding %s to role %s is already requested', p_permission, p_role);
+  end if;
+  insert into iam.role_permission_request (role_code, permission_code, reason, status, requested_by_person, requested_by_account)
+  values (p_role, p_permission, v_reason, 'REQUESTED', (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
+  returning id into v_id;
+  return v_id;
+end
+$$;
+
+-- A second person approves or rejects a requested addition. The approval adds the catalogue row,
+-- which the static rules check again at that moment.
+create function iam.decide_role_permission(p_request uuid, p_approve boolean, p_reason text) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
+declare
+  v_actor jsonb;
+  v_req   iam.role_permission_request%rowtype;
+  v_row   uuid;
+begin
+  if not exists (select 1 from iam.role_permission_request where id = p_request) then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-039 unknown role-permission request';
+  end if;
+  v_actor := iam.require_permission('IAM.GRANT_APPROVE', '{}'::jsonb);
+  select * into v_req from iam.role_permission_request where id = p_request for update;
+  if v_req.status <> 'REQUESTED' then
+    raise exception using errcode = 'P0001', message = format('EBMR-IAM-039 the request is already %s', lower(v_req.status));
+  end if;
+  v_row := case when coalesce(p_approve, false) then gen_random_uuid() end;
+  update iam.role_permission_request
+     set status = case when v_row is not null then 'APPROVED' else 'REJECTED' end,
+         decided_by_person = (v_actor ->> 'person_id')::uuid, decided_by_account = (v_actor ->> 'account_id')::uuid,
+         decision_reason = p_reason, role_permission_id = v_row
+   where id = p_request;
+  if v_row is not null then
+    insert into iam.role_permission (id, role_code, permission_code) values (v_row, v_req.role_code, v_req.permission_code);
+  end if;
 end
 $$;
 
@@ -675,21 +870,24 @@ $$;
 select kernel.register_audited_table('iam.permission', 'iam_permission', 'code', false);
 select kernel.register_audited_table('iam.role', 'iam_role', 'code', false);
 select kernel.register_audited_table('iam.role_permission', 'iam_role', 'role_code', false);
+select kernel.register_audited_table('iam.role_permission_request', 'iam_role', 'role_code', false);
 select kernel.register_audited_table('iam.role_grant', 'account', 'account_id', false);
 select kernel.register_audited_table('iam.access_recertification', 'account', 'account_id', true);
 select iam.protect_rows('iam.permission');
 select iam.protect_rows('iam.role');
 select iam.protect_rows('iam.role_permission');
+select iam.protect_rows('iam.role_permission_request');
 select iam.protect_rows('iam.role_grant');
 
-grant select on iam.permission, iam.role, iam.role_permission, iam.role_grant, iam.access_recertification to ebmr_app;
+grant select on iam.permission, iam.role, iam.role_permission, iam.role_permission_request, iam.role_grant, iam.access_recertification to ebmr_app;
 grant execute on function iam.role_permission_live_at(timestamptz, timestamptz, timestamptz), iam.role_has_domain(text, text, timestamptz),
                           iam.role_has_effect(text, text[], timestamptz), iam.role_permissions_at(text, timestamptz),
                           iam.grant_held_at(text, timestamptz, timestamptz, timestamptz, timestamptz, timestamptz),
                           iam.grant_is_live(text, timestamptz, timestamptz), iam.grant_scope(uuid),
                           iam.request_role_grant(uuid, text, jsonb, timestamptz, timestamptz, text),
                           iam.decide_role_grant(uuid, boolean, text), iam.revoke_role_grant(uuid, text),
-                          iam.create_role(text, text, text, text, text[]), iam.add_role_permission(text, text),
+                          iam.create_role(text, text, text, text, text[]), iam.add_role_permission(text, text, text),
+                          iam.decide_role_permission(uuid, boolean, text),
                           iam.remove_role_permission(text, text), iam.access_list(timestamptz),
                           iam.recertify_account(uuid, text, text), iam.recertification_due(timestamptz) to ebmr_app;
 

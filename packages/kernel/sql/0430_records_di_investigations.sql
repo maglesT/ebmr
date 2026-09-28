@@ -9,6 +9,13 @@
 -- investigation was opened). Closing needs a conclusion, the remediation, and an approver who is
 -- neither the investigator nor the person investigated. All tables are insert-only.
 --
+-- A person's act on a record is not always written to the record's own chain: a signature or a
+-- challenge goes to 'esig_signature:<record key>' / 'esig_challenge:<record key>' (esig 0220), a
+-- retention change to 'retention:<record key>', a state transition to 'state:<id>' (platform 0550).
+-- Scoping, linking, holding and blocking therefore resolve such a chain to the record it belongs to
+-- (records.subject_of_chain, records.chains_of_record), so a verifier, witness or approver whose only
+-- act is a signature still has the signed record linked, held and blocked (F30).
+--
 -- Not in this module: revoking the person's GMP rights at once (identity module, B1) and the QMS
 -- route for tips and suspected falsification (the investigation stores the QMS reference).
 
@@ -88,6 +95,49 @@ language sql stable security definer set search_path = pg_catalog, records, kern
   order by e.chain_key collate "C", e.table_name collate "C", e.record_id collate "C"
 $$;
 
+-- Derived chains whose aggregate id is the record key of the record they belong to.
+create function records.derived_chain_types() returns text[]
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select array['esig_signature', 'esig_challenge', 'retention']
+$$;
+
+-- The record a derived chain belongs to (see the header), or nulls for any other chain.
+create function records.subject_of_chain(p_chain_key text, out aggregate_type text, out aggregate_id text)
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+declare
+  v_prefix text := split_part(p_chain_key, ':', 1);
+  v_rest text := substr(p_chain_key, strpos(p_chain_key, ':') + 1);
+begin
+  if v_prefix = any(records.derived_chain_types()) and v_rest ~ '^[a-z][a-z0-9_]*:.' then
+    aggregate_type := split_part(v_rest, ':', 1);
+    aggregate_id := substr(v_rest, strpos(v_rest, ':') + 1);
+  elsif v_prefix = 'state' and pg_catalog.to_regclass('platform.aggregate_state') is not null then
+    execute 'select s.aggregate_type, s.aggregate_id::text from platform.aggregate_state s where s.aggregate_id::text = $1
+             order by s.aggregate_type limit 1'
+      into aggregate_type, aggregate_id using v_rest;
+  end if;
+end
+$$;
+
+-- Every chain that records acts on one record: its own chain and the derived chains that belong to it.
+create function records.chains_of_record(p_aggregate_type text, p_aggregate_id text) returns text[]
+language plpgsql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+declare
+  v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
+  v_chains text[] := array[v_key] || array(select t || ':' || v_key from unnest(records.derived_chain_types()) t);
+  v_state boolean := false;
+begin
+  if pg_catalog.to_regclass('platform.aggregate_state') is not null then
+    execute 'select exists (select 1 from platform.aggregate_state s where s.aggregate_type = $1 and s.aggregate_id::text = $2)'
+      into v_state using p_aggregate_type, p_aggregate_id;
+    if v_state then
+      v_chains := v_chains || ('state:' || p_aggregate_id);
+    end if;
+  end if;
+  return v_chains;
+end
+$$;
+
 create function records.investigation_scope(p_investigation_id uuid)
 returns table (chain_key text, aggregate_type text, aggregate_id text, table_name text, record_id text, actions text[],
                event_count bigint, first_recorded_at timestamptz, last_recorded_at timestamptz)
@@ -110,7 +160,7 @@ language plpgsql volatile security definer set search_path = pg_catalog, records
 declare
   v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
 begin
-  perform records.lock_blocker_epoch(p_aggregate_type, p_aggregate_id);
+  perform records.lock_blocker_epoch_row(p_aggregate_type, p_aggregate_id);
   insert into records.di_investigation_link (investigation_id, record_key, aggregate_type, aggregate_id, link_source, note, linked_by_person)
   values (p_investigation.id, v_key, p_aggregate_type, p_aggregate_id, p_source, p_note, records.actor_person())
   on conflict do nothing;
@@ -128,6 +178,7 @@ end
 $$;
 
 -- Internal: link every record in the current scope that is not yet linked; returns how many were added.
+-- A derived chain in scope links both the chain and the record it belongs to (F30).
 create function records.link_investigation_scope(p_investigation records.di_investigation_current) returns integer
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
 declare
@@ -135,10 +186,20 @@ declare
   v_added integer := 0;
 begin
   for r in
-    select distinct s.aggregate_type, s.aggregate_id
-    from records.person_activity(p_investigation.subject_person_id, p_investigation.window_from, p_investigation.window_to) s
+    with activity as (
+      select distinct a.chain_key, a.aggregate_type, a.aggregate_id
+      from records.person_activity(p_investigation.subject_person_id, p_investigation.window_from, p_investigation.window_to) a
+    ), touched as (
+      select a.aggregate_type, a.aggregate_id from activity a
+      union
+      select subj.aggregate_type, subj.aggregate_id
+      from activity a cross join lateral records.subject_of_chain(a.chain_key) subj
+      where subj.aggregate_type is not null
+    )
+    select t.aggregate_type, t.aggregate_id from touched t
     -- The investigation's own records are not evidence about the person.
-    where s.aggregate_type not in ('di_investigation', 'record_hold')
+    where t.aggregate_type not in ('di_investigation', 'record_hold')
+    order by t.aggregate_type collate "C", t.aggregate_id collate "C"
   loop
     if records.add_investigation_link(p_investigation, r.aggregate_type, r.aggregate_id, 'SCOPE', null) then
       v_added := v_added + 1;
@@ -159,6 +220,56 @@ begin
   end if;
   select * into v from records.di_investigation_current where id = p_investigation_id;
   return v;
+end
+$$;
+
+-- The OPEN investigations whose person acted on the record (its own or a derived chain) inside the
+-- window: the DI_INVESTIGATION blocker records.open_blockers shows even before the record is linked.
+create function records.implicit_investigations(p_aggregate_type text, p_aggregate_id text) returns setof uuid
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  with c as (select records.chains_of_record(p_aggregate_type, p_aggregate_id) as chains)
+  select d.id
+  from records.di_investigation_current d cross join c
+  where d.status = 'OPEN'
+    and exists (select 1 from kernel.audit_event e
+                where e.chain_key = any(c.chains)
+                  and e.action in ('INSERT', 'UPDATE', 'DELETE')
+                  and e.recorded_at >= d.window_from and e.recorded_at < d.window_to
+                  and e.payload -> 'actor' ->> 'person_id' = d.subject_person_id::text)
+  order by d.id
+$$;
+
+-- The release module's lock (outline 5.7): locks the record's blocker epoch inside the disposition
+-- transaction and returns it. First it links and holds the record for every OPEN investigation that
+-- blocks it implicitly but has not linked it yet (the person investigated wrote to it inside the window
+-- after the investigation was opened or last refreshed). That makes the blocker explicit and moves the
+-- epoch, so an epoch seen when open_blockers was evaluated before such a write never equals the one
+-- locked after it (F35). The link is what records.refresh_di_investigation_scope would add; it is
+-- written by the caller's command, and an administrator never writes it (DI-18).
+create function records.lock_blocker_epoch(p_aggregate_type text, p_aggregate_id text) returns bigint
+language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+declare
+  v_key text := records.record_key(p_aggregate_type, p_aggregate_id);
+  v_ids uuid[];
+  v_id uuid;
+  v records.di_investigation_current%rowtype;
+begin
+  if p_aggregate_type not in ('di_investigation', 'record_hold') then
+    select array_agg(i.id order by i.id) into v_ids
+    from records.implicit_investigations(p_aggregate_type, p_aggregate_id) i(id)
+    where not exists (select 1 from records.di_investigation_link l where l.investigation_id = i.id and l.record_key = v_key);
+  end if;
+  if v_ids is not null then
+    perform iam.assert_not_administrator();
+    -- Investigation first, then the record's epoch: the order closing and refreshing take them in.
+    foreach v_id in array v_ids loop
+      v := records.lock_di_investigation(v_id);
+      if v.status = 'OPEN' then
+        perform records.add_investigation_link(v, p_aggregate_type, p_aggregate_id, 'SCOPE', null);
+      end if;
+    end loop;
+  end if;
+  return records.lock_blocker_epoch_row(p_aggregate_type, p_aggregate_id);
 end
 $$;
 
@@ -296,9 +407,13 @@ grant select on records.di_investigation, records.di_investigation_link, records
                 records.di_investigation_current to ebmr_app;
 grant execute on function records.person_activity(uuid, timestamptz, timestamptz),
                           records.investigation_scope(uuid),
+                          records.lock_blocker_epoch(text, text),
                           records.open_di_investigation(uuid, timestamptz, timestamptz, text, uuid, text, jsonb),
                           records.link_di_investigation(uuid, text, text, text),
                           records.refresh_di_investigation_scope(uuid),
                           records.close_di_investigation(uuid, text, text, uuid) to ebmr_app;
+
+-- records.derived_chain_types, subject_of_chain, chains_of_record, implicit_investigations,
+-- add_investigation_link, link_investigation_scope and lock_di_investigation stay private.
 
 reset role;

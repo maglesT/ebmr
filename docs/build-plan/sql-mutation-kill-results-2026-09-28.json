@@ -1,0 +1,464 @@
+[
+ {
+  "group": "segregation-and-grants",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/segregation-and-grants.test.ts",
+  "killed": [
+   "iam.check_static_segregation#3",
+   "iam.check_static_segregation#6",
+   "iam.check_static_segregation#13",
+   "iam.check_static_segregation#33",
+   "iam.role_grant_guard#2",
+   "iam.role_grant_guard#14",
+   "iam.role_grant_guard#17",
+   "iam.role_grant_guard#22",
+   "iam.role_grant_guard#24",
+   "iam.role_grant_guard#26",
+   "iam.role_grant_guard#28",
+   "iam.role_grant_guard#30",
+   "iam.role_grant_guard#34",
+   "iam.role_grant_guard#36",
+   "iam.role_grant_guard#41",
+   "iam.role_grant_guard#42",
+   "iam.role_grant_guard#43",
+   "iam.role_grant_guard#45",
+   "iam.role_grant_guard#46",
+   "iam.role_grant_guard#48",
+   "iam.role_grant_guard#50",
+   "iam.role_grant_guard#52",
+   "iam.role_grant_guard#58",
+   "iam.role_grant_guard#60",
+   "iam.role_grant_guard#62",
+   "iam.role_grant_guard#66",
+   "iam.role_grant_guard#69",
+   "iam.role_grant_guard#71",
+   "iam.role_grant_guard#73",
+   "iam.role_grant_guard#74",
+   "iam.role_grant_guard#77",
+   "iam.role_permission_guard#2",
+   "iam.role_permission_guard#3",
+   "iam.role_permission_guard#4",
+   "iam.role_permission_guard#5",
+   "iam.role_permission_guard#6",
+   "iam.role_permission_guard#7",
+   "iam.role_permission_guard#8",
+   "iam.role_permission_guard#9",
+   "iam.role_permission_guard#10",
+   "iam.role_permission_guard#11",
+   "iam.role_permission_guard#12",
+   "iam.role_permission_guard#16",
+   "iam.role_permission_guard#17",
+   "iam.role_permission_guard#18",
+   "iam.role_permission_guard#19",
+   "iam.role_permission_guard#20",
+   "iam.role_permission_guard#21",
+   "iam.role_permission_guard#24",
+   "iam.role_permission_guard#25",
+   "iam.role_permission_guard#26",
+   "iam.role_permission_guard#28",
+   "iam.role_permission_guard#29",
+   "iam.role_permission_guard#30",
+   "iam.role_permission_guard#33",
+   "iam.role_permission_guard#34",
+   "iam.role_permission_guard#37",
+   "iam.role_permission_guard#38",
+   "iam.role_permission_guard#41",
+   "iam.role_permission_guard#42",
+   "iam.role_permission_guard#43",
+   "iam.role_permission_guard#44",
+   "iam.role_permission_guard#47",
+   "iam.role_permission_guard#48",
+   "iam.role_permission_guard#49",
+   "iam.role_permission_guard#51",
+   "iam.role_permission_guard#52",
+   "iam.request_role_grant#7",
+   "iam.decide_role_grant#2",
+   "iam.decide_role_grant#3"
+  ],
+  "equivalent_upheld": [],
+  "defects": [
+   {
+    "id": "role-permission-mix-race",
+    "severity": "high",
+    "description": "iam.role_permission_guard (packages/kernel/sql/0120_iam_roles_grants.sql lines 423-427) enforces 'a role never mixes administration and GMP permissions' with a check that takes no lock on the role. Two concurrent iam.add_role_permission calls on the same role, one adding a GMP permission and one adding an ADMINISTRATION permission, each see the role without the other's uncommitted row, so both pass. The second call then waits only on the audit chain-head row lock (an AFTER trigger), after the check has already passed. The per-holder loop cannot catch this either: it only compares the holder's OTHER grants (o.id <> g.id). iam.check_static_segregation also never checks for a mixed role, because it compares across grants only. So the mixed role can be granted to anyone afterwards. This breaks INV-11 and DI-18.",
+    "failure_scenario": "Reproduced against the unmutated migrations with a scratch vitest outside the repo (scratchpad/defect/race.test.ts). Administrator A: begin; kernel.begin_command; iam.add_role_permission('RACE_MIX','STEP.EXECUTE') (not yet committed). Administrator B, in a second session: begin; kernel.begin_command; iam.add_role_permission('RACE_MIX','IAM.UNLOCK'), which blocks on a transactionid ShareLock (the audit chain head). A commits, then B's call returns successfully and B commits. iam.role_permissions_at('RACE_MIX', now) = {IAM.UNLOCK, STEP.EXECUTE}. The role is then requested and approved for a fresh AUDITOR_READONLY person without refusal. iam.evaluate_authority allows both STEP.EXECUTE (GMP) and IAM.UNLOCK (administration) for that person. iam.directory_scan() returns [] because its ADMINISTRATOR_AND_GMP_ROLE finding needs two different grants (b.id <> a.id). So the INV-11 invariant query also misses the state.",
+    "suggested_fix": "At the start of iam.role_permission_guard, serialise per role with `perform 1 from iam.role where code = new.role_code for update` (or a transaction advisory lock on the role code) before the line-423 check. Make iam.check_static_segregation take the same role lock (for share) and refuse a role that holds both ADMINISTRATION and GMP permissions (defence in depth). Add a directory_scan finding for a role that mixes the two domains and for a single live grant whose role does. After the fix, add a concurrency test like the race() helper in the mutation test file."
+   },
+   {
+    "id": "stale-check-instant",
+    "severity": "low",
+    "description": "Both guards read the permission catalogue at an instant fixed BEFORE they wait for the person-row lock: v_now in iam.check_static_segregation (declared before `perform ... for update`, line 297/303), and new.added_at in iam.role_permission_guard (set at line 420, before the lock at line 436). iam.role_has_domain(..., at) counts only permissions with added_at <= that instant. So a conflicting permission that another transaction adds and commits while this one waits on the lock is invisible when the check finally runs.",
+    "failure_scenario": "Person P holds roles R and S (both READ-only). T1 runs add_role_permission(R, 'IAM.UNLOCK'), which sets added_at = t1. Before T1 requests P's row lock, T2 runs add_role_permission(S, 'STEP.EXECUTE') with added_at = t2 > t1, takes P's lock first, sees R without administration permissions (T1 uncommitted) and commits. T1 then takes P's lock and checks S for GMP at t1 < t2. S's new row is not live at t1, so T1 commits too. P now holds an administration role and a GMP role. The same interleaving applies to check_static_segregation's v_now against a concurrent permission addition. The window is only the few statements between taking the instant and requesting the lock, so this was not reproduced deterministically.",
+    "suggested_fix": "After the person lock is acquired, evaluate the catalogue at clock_timestamp() taken at that point, or as 'live now or later' (removed_at is null), instead of at the pre-lock instant. Combined with the role lock above, this closes the window."
+   }
+  ],
+  "still_surviving": [],
+  "refuted_equivalence": [],
+  "notes": "All 70 survivors of group segregation-and-grants were killed: `run.ts --group segregation-and-grants --only <all 70 ids> --workers 2` reported 70/70 detected, 0 survived, score 100 % (log in scratchpad/kill-run1.log; report in .reports/sql-mutation/kill-segregation-and-grants). The test file passes on the real code (18 tests, run 3 times). tsc and eslint are clean. No other repo file was edited. The defect was confirmed with a scratch vitest config and test outside the repo, in scratchpad/defect/.\n\nHow the kills were done:\n- Raw writes run as the table owner (superuser) inside kernel.begin_command, always rolled back, so the audit trigger accepts the mutant's write and the kill does not depend on an unrelated error.\n- The two person-row lock mutants (check_static_segregation#6, role_permission_guard#29) are killed by real INV-11 races. Approving a GMP grant races against adding an administration permission to a role the grantee holds, in both orders. Instead of a fixed pause, the race() helper waits until the second session is either finished or waiting on a lock (pg_stat_activity). This is deterministic for both the original and the mutant.\n- Most LOGICAL mutants in the role_grant_guard field-change chain are killed by changing exactly one field during a legitimate transition (REQUESTED to APPROVED, or APPROVED to REVOKED). So the mutated guard lets the tampered row through.\n- Legitimate catalogue changes kill the over-refusing mutants:\n  - removing a permission;\n  - adding a GMP permission to a GMP role while other people hold administrator and display roles;\n  - adding administration permissions to an administration role;\n  - adding a WRITE permission to a service account's role;\n  - adding IAM.UNLOCK to a break-glass account's role.\n\nKills that depend only on the error code (a database constraint would also refuse, but with a different code; codes are the stable API per src/identity/errors.ts):\n- role_grant_guard#2: the mutant is refused by the FK (23503) instead of EBMR-IAM-031.\n- role_grant_guard#14/#17: the self-revoke is refused by CHECK (23514) instead of EBMR-IAM-003.\n- role_grant_guard#22: also killed by behaviour (a REQUESTED insert with decided_by_person goes through).\n- role_grant_guard#66: the API call gets IAM-038 instead of IAM-037, but the raw APPROVED-to-REJECTED update kills it by behaviour. That update would remove the grant from past access lists (DI-16).\n\nKills where the mutant fails open:\n- check_static_segregation#3: called directly as superuser, the mutated check passes an unknown account. The test also asserts that ebmr_app cannot execute the function.\n- decide_role_grant#2/#3 and request_role_grant#7: the call completes with no refusal, or with a different error.\n\nDefects: see the defects list. The high-severity one was reproduced against the unmutated code. The low-severity one is an analysed interleaving that was not reproduced. I did not add failing tests for them, because the file must pass on the current code."
+ },
+ {
+  "group": "protected-numbers",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/protected-numbers.test.ts",
+  "killed": [
+   "continuity.next_counter_value#3",
+   "continuity.reserve_counter_ceiling#3",
+   "continuity.reserve_counter_ceiling#6",
+   "continuity.reserve_counter_ceiling#7",
+   "continuity.reserve_counter_ceiling#10",
+   "continuity.reserve_counter_ceiling#14",
+   "continuity.reserve_counter_ceiling#16",
+   "continuity.reserve_counter_ceiling#17",
+   "continuity.reserve_counter_ceiling#19",
+   "continuity.reserve_counter_ceiling#22",
+   "continuity.reserve_counter_ceiling#24",
+   "continuity.reserve_counter_ceiling#32",
+   "continuity.reserve_counter_ceiling#33",
+   "continuity.after_restore#4",
+   "continuity.after_restore#16",
+   "continuity.after_restore#19",
+   "continuity.after_restore#21",
+   "continuity.after_restore#24",
+   "continuity.after_restore#25",
+   "continuity.after_restore#26",
+   "continuity.after_restore#35",
+   "continuity.after_restore#36",
+   "continuity.after_restore#37",
+   "continuity.after_restore#38",
+   "continuity.after_restore#42",
+   "continuity.after_restore#43",
+   "continuity.after_restore#51",
+   "continuity.after_restore#52",
+   "continuity.after_restore#53",
+   "continuity.after_restore#57",
+   "continuity.after_restore#58",
+   "continuity.after_restore#59",
+   "continuity.after_restore#60",
+   "continuity.after_restore#63",
+   "continuity.approve_restore_event#4",
+   "continuity.approve_restore_event#7",
+   "continuity.approve_restore_event#8",
+   "continuity.approve_restore_event#12",
+   "continuity.approve_restore_event#21",
+   "continuity.approve_restore_event#25",
+   "continuity.approve_restore_event#30",
+   "continuity.approve_restore_event#34",
+   "continuity.restore_event_is_approved#5",
+   "continuity.restore_event_is_approved#7",
+   "continuity.restore_event_is_approved#11",
+   "continuity.restore_event_is_approved#15"
+  ],
+  "equivalent_upheld": [],
+  "defects": [
+   {
+    "id": "after_restore-refused-completion-moves-sequences-unrecorded",
+    "severity": "low",
+    "description": "Not a surviving mutant. I found this while writing the tests. continuity.after_restore calls setval on each registered PG_SEQUENCE while it loops through the protected sources. It checks the counters (EBMR-CONT-023/013) and the maxima (EBMR-CONT-024, registered and unregistered) during the same loop, so some checks run after sequences were already moved. setval is not transactional. When a completion is refused, every sequence moved before the refusal stays moved, but the sequence_bump rows and the audit event are rolled back. INV-27 still holds, because sequences only move forward. What breaks is the rule stated on continuity.sequence_bump that every move of a protected source is recorded, and nothing explains the gap in the numbers.",
+    "failure_scenario": "The external ledger is incomplete for a counter whose key sorts after the kernel/platform/records sequences, or an unregistered ebmr_owner sequence is close to its maximum. The operator calls after_restore and gets EBMR-CONT-023 or EBMR-CONT-024. By then kernel.audit_event.id has already moved +100,000,000, records.incident.incident_no +100,000, platform.outbox.id +10,000,000, and every other registered sequence by its margin, with no sequence_bump row and no audit entry. Each retry moves them again. The test run observed this: testgmp.pn_small_seq was already at 10 before the successful completion, left there by the refused EBMR-CONT-024 attempt. Users see incident numbers jump by 100,000 with no record of why.",
+    "suggested_fix": "Split after_restore into two passes. First compute and check every planned move: the counter ledger checks, v_after <= max_value for registered sequences, and v_after <= max_value for unregistered ebmr_owner sequences. Call setval and write the sequence_bump / restore_completion rows only after every check has passed. Alternatively, record refused attempts outside the rolled-back transaction. This is for the owner to decide; no control was changed."
+   }
+  ],
+  "still_surviving": [],
+  "refuted_equivalence": [],
+  "notes": "All 46 survivors of the protected-numbers group are now killed and none were classified as equivalent. The harness command was: npx tsx tools/sql-mutation/src/run.ts --group protected-numbers --only <all 46 ids> --workers 2 --out .reports/sql-mutation/kill-protected-numbers. Result: 46/46 detected, 0 invalid, score 100.0 %. The file passes on the real code (14 tests, about 12 s with the normal global setup). npx tsc -p tsconfig.json and npx eslint on the file are both clean.\n\nWhy the survivors lived: the existing tests go through the TypeScript wrappers (reserveCounterBlock, completeRestore), and those check the incarnation and the ledger floor before the SQL runs. Many guards also sit behind another guard that raises the same code with a different message. The new file calls continuity.reserve_counter_ceiling and continuity.after_restore directly and asserts each exact refusal message. I checked that each asserted message is the correct diagnosis, not an incidental one.\n\nGroups of tests in the file (only ids that survived before this run are listed):\n- Counter tests, [INV-27]:\n  - An unknown key, or a PG_SEQUENCE key, is refused as \"not a protected counter\" (EBMR-CONT-010) for both issuing and reserving. Kills next_counter_value#3 and reserve#3.\n  - Null or negative floor, null ceiling, and null, empty or blank receipt each give EBMR-CONT-014. Kills #14, #16, #17 and #19.\n  - An idempotent retry, or a late lower reservation, returns the ceiling in force and records nothing. Kills #22 and #24.\n  - The allowed interval (base, base+block]: 0 and block+1 are refused with the exact interval text, and a ledger-ahead ceiling equal to the floor is refused without a bump. Kills #6, #32 and #33. Counter C uses a unique block size (7).\n- Restore tests, all in one DB, [DI-45][DI-37][INV-08][INV-27][INV-03]:\n  - A non-existent event is never approved, approvable or completable. Kills is_approved#15, approve#4 and after_restore#4.\n  - Two named approvers: one approval is not enough, another approver's signature or no signature gives EBMR-CONT-025, and the second approval is then accepted. Kills is_approved#5/#7 and approve#34/#30/#25.\n  - An event altered by a superuser with triggers disabled is refused at approval on the content hash. Kills approve#21.\n  - Malformed high-water marks (null, {}) and a margin of 0, -5 or null are refused. Kills after_restore#19/#21/#24/#26.\n  - A missing ledger entry for a counter with values (K) or with only a reserved block (R) gives EBMR-CONT-023, and a ledger value below the ceiling gives EBMR-CONT-013. Kills #38, #36 and #43.\n  - Moving a registered or an unregistered sequence beyond its maximum gives EBMR-CONT-024 with the correct maximum. Kills #51/#53 and #58/#60.\n  - A former operator: a SYSTEM_ADMINISTRATOR records an event, their admin grant is revoked and QA_REVIEWER is granted. They still cannot approve their own event (EBMR-CONT-021, operator message). Their approval of a different event leaves their own event approved. Kills approve#12 and is_approved#11.\n  - A successful completion with margin 1, a ledger ceiling equal to the database ceiling, a never-used counter with no ledger entry, a registered and an unregistered sequence moved exactly to their maximum, a stray ebmr_owner sequence bumped and recorded, and nextval above the value it was moved to. Kills #25, #42, #35/#37, #52, #59, #57 and #63.\n  - A completed event cannot be approved again, while another pending event is still approvable. Kills approve#8/#7.\n  - A real pg_dump/pg_restore copy refuses after_restore for an event recorded under the old incarnation, and refuses reserve_counter_ceiling for a ceiling reserved before the copy (EBMR-CONT-012). Kills after_restore#16 and reserve#7/#10.\n\nArrangements that bypass the product: one superuser tamper, done with session_replication_role = replica as other suites do. Test sequences created and registered in the testgmp schema. The 'ledger' for after_restore marks is taken from the acknowledged counter ceilings, which is the write-ahead guarantee. No SQL, source, other test, targets.ts or equivalent.json was edited. The one defect reported (low) was not revealed by a mutant; I noticed it while writing the tests, and it is a note for the owner."
+ },
+ {
+  "group": "authentication-events",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/authentication-events.test.ts",
+  "killed": [
+   "iam.consume_auth_event#7",
+   "iam.consume_auth_event#8",
+   "iam.consume_auth_event#11",
+   "iam.consume_auth_event#15",
+   "iam.consume_auth_event#22",
+   "iam.use_auth_event_for_command#2",
+   "iam.session_guard#3",
+   "iam.session_guard#5",
+   "iam.session_guard#9",
+   "iam.session_guard#11",
+   "iam.session_guard#13",
+   "iam.session_guard#15",
+   "iam.session_guard#17",
+   "iam.session_guard#19",
+   "iam.session_guard#20",
+   "iam.session_guard#22",
+   "iam.session_guard#24",
+   "iam.session_guard#26",
+   "iam.session_guard#28",
+   "iam.session_guard#30",
+   "iam.session_guard#32",
+   "iam.open_session#3",
+   "iam.open_session#6",
+   "iam.open_session#23",
+   "iam.open_session#26",
+   "iam.open_session#28",
+   "iam.open_session#32",
+   "iam.open_session#34"
+  ],
+  "equivalent_upheld": [],
+  "defects": [],
+  "still_surviving": [
+   "iam.consume_auth_event#14",
+   "iam.use_auth_event_for_command#16",
+   "iam.open_session#21"
+  ],
+  "refuted_equivalence": [],
+  "notes": "Result: 28 of the 31 survivors are now killed. I checked this with the harness: `npx tsx tools/sql-mutation/src/run.ts --group authentication-events --only <all 31 ids> --workers 2 --out .reports/sql-mutation/kill-authentication-events`. The group score is 90.3 % (28/31) against a 90 % target. The new test file passes on the real code (13 tests, about 5 s). `npx tsc -p tsconfig.json` and eslint on the file are both clean. I created only packages/kernel/test/mutation/authentication-events.test.ts. The 0160 definitions are the last ones for all five functions; no later migration redefines them.\n\nWhat kills what (every refusal is checked by its EBMR code):\n- consume_auth_event #7/#8: a COMMAND event and a LOGIN event must be refused with 096 and never consumed.\n- consume_auth_event #11: a SIGNATURE event consumed for another challenge, or for no challenge, must be refused with 094. The positive control is that its own challenge consumes it.\n- consume_auth_event #15: an event 30 s old with a 10 s window must be refused with 092. So must one called with no window, and one 125 s old with a 1 h window (the policy maximum of 120 s caps the window). The positive control is 30 s old with a 60 s window.\n- consume_auth_event #22, two cases, both must be refused with 091: (a) the event attributed a command that committed, and a later transaction reuses the same correlation ID to consume it for a signature; (b) one transaction runs begin_command twice with different correlation IDs.\n- use_auth_event_for_command #2, a realistic DI-18 scenario: a system administrator works at a SHARED kiosk and also holds a break-glass account with an approved window. A COMMAND badge-tap event from that break-glass account (same person, other account) must be refused with 122 when used for the personal account's command. The positive control is the holder's own tap.\n- open_session #28 and #26: a break-glass LOGIN made while the window was open must not open a session once the window has closed (130). The window is closed by moving its end time back with time-travel setup only, which the test file uses solely to arrange state.\n- open_session #3 and #6: a LOGIN event with an unregistered fingerprint must be refused with 070, and with its own device blocked after authentication with 071. Mutant #6 turns `->>` into `->>=` inside the error message, so the refusal fails with \"operator does not exist\" instead of the EBMR code. After the device is re-activated, the same event opens a session.\n- open_session #23: a LOGIN event 121 s old must be refused with 092. The positive control is 100 s old.\n- open_session #32, #34 (and #26): a person's READONLY_DISPLAY account logs in on a line display, which is a SHARED device. The person's kiosk session must stay ACTIVE (not superseded) and still accept commands. The display session must have personal=false. The documented rule is that a line display's read-only account does not count against its owner.\n- open_session #32 (second test): a SERVICE session must have personal=false, a HUMAN one personal=true.\n- session_guard #3/#5: the table owner inserts a session row that is already locked, already ended, or both, in a rolled-back superuser transaction. Each must be refused with 080. The same row inserted open and unlocked is accepted.\n- session_guard #9\u2013#30 and #32: each of the 12 fixed columns is updated on its own. Every update must be refused with 081; one column per update kills every or-to-and mutant. Lock and unlock are allowed. Ending the session records the server's time, not the one the writer supplied. After the session has ended, changing locked_at, ended_at or end_reason must be refused with 081.\n\nStill surviving (3), neither equivalent nor a defect. These are consume_auth_event#14 (line 587), use_auth_event_for_command#16 (line 620) and open_session#21 (line 675). Each changes the age check `clock_timestamp() - recorded_at > window` to `>=`. The original matches the contract \"no older than the window\": an event exactly at the limit is accepted. The mutant would refuse only when the elapsed time equals the window to the microsecond at the moment of the check. That state can occur, so the mutants are not equivalent, but no test can set it up deterministically:\n- clock_timestamp() is the real server clock, and search_path puts pg_catalog first, so a test cannot pin it.\n- The delay between arranging recorded_at and the check varies by several microseconds from run to run.\n- Every window is finite: a policy integer passed through make_interval.\n- On this server (PostgreSQL 16.13) infinite intervals do not exist, and subtracting infinite timestamps raises \"cannot subtract infinite timestamps\" in both versions.\n\nThe tests do cover both sides near the limit (100 s accepted, 121 s refused; 30 s accepted with 60 s, refused with 10 s). Killing these three would need a clock seam, such as a kernel \"now\" that a test fixture can pin. That is a design decision for the owner, not a change I may make."
+ },
+ {
+  "group": "signing",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/signing.test.ts",
+  "killed": [
+   "esig.required_components#11",
+   "esig.component_problem#3",
+   "esig.component_problem#7",
+   "esig.check_independence#12",
+   "esig.check_witness#4",
+   "esig.check_witness#7",
+   "esig.check_witness#10",
+   "esig.check_witness#13",
+   "esig.create_challenge#4",
+   "esig.sign#7",
+   "esig.sign#19",
+   "esig.sign#25",
+   "esig.sign#28",
+   "esig.sign#31",
+   "esig.sign#39",
+   "esig.sign#40",
+   "esig.sign#44",
+   "esig.sign#57",
+   "esig.sign#62",
+   "esig.sign#80",
+   "esig.sign#89",
+   "esig.sign#92",
+   "esig.sign#101",
+   "esig.create_challenge#12"
+  ],
+  "equivalent_upheld": [
+   {
+    "id": "esig.check_witness#2",
+    "justification": "The mutant turns `v_act is null OR jsonb_typeof(v_act) <> 'object' OR coalesce(v_act->>'device_id','')='' OR coalesce(v_act->>'at','')=''` into `(v_act is null AND jsonb_typeof(v_act) <> 'object') OR C OR D`, because AND binds tighter than OR. Whenever the first or the second term is true, v_act is SQL NULL or a non-object jsonb (null, string, number, boolean or array). For every one of those, the text-field operator `->> 'device_id'` returns NULL without raising, so term C, `coalesce(...,'') = ''`, is already true and ESIG-050 is still raised. When both terms are false, the change makes no difference. None of the terms has a side effect or can raise. The result is identical for every value of p_provided."
+   },
+   {
+    "id": "esig.check_witness#18",
+    "justification": "This is a clock boundary: `v_act_at > clock_timestamp()` becomes `>=`. The two differ only when the stored act time equals, to the microsecond, the value clock_timestamp() returns inside this comparison. clock_timestamp() is the server wall clock read at evaluation. No caller or role can set or freeze it: search_path pins pg_catalog first, so it cannot be shadowed. The act time is fixed before the call. So no input, stored state or call sequence can produce the equal case deterministically. Any attempt is decided by microsecond timing, not by what the test controls. At the boundary the original accepts an act recorded exactly 'now', which is not in the future, and that is the correct reading."
+   },
+   {
+    "id": "esig.check_witness#20",
+    "justification": "This is a clock boundary: `clock_timestamp() - v_act_at > v_window` becomes `>=`. The two differ only when the elapsed time equals the witness window (300 s by default) exactly to the microsecond, measured against the clock_timestamp() read inside the comparison. As for check_witness#18, that reading cannot be set, frozen or predicted by any input, state or call sequence, so the difference cannot be observed deterministically. At the boundary the original keeps the window inclusive: an act exactly one window old is 'within the witness window', which is correct."
+   },
+   {
+    "id": "esig.sign#14",
+    "justification": "This is a clock boundary: `clock_timestamp() > v_ch.expires_at` becomes `>=`. The two differ only when the clock_timestamp() read inside the comparison equals the stored expires_at to the microsecond. Time travel can move expires_at to any value, but not to the unknown clock reading taken later inside esig.sign. The clock cannot be frozen or shadowed (pg_catalog is first on the pinned search_path). No input, state or call sequence can observe the difference deterministically. The existing test covers both sides away from the instant: an expired challenge is refused (ESIG-033), a fresh one is accepted."
+   }
+  ],
+  "defects": [
+   {
+    "id": "DEFECT-esig.check_witness-null-room-fail-open",
+    "severity": "high",
+    "description": "esig.check_witness (0230_esig_sign.sql lines 208-213) fails open under SQL three-valued logic. The ESIG-053 condition is `not v_same and not (v_act_dev.room_code is not null and v_act_dev.room_code = v_sig_dev.room_code and v_act_dev.site_code = v_sig_dev.site_code)`. When the act terminal has a room and the witness terminal has none (room_code NULL, the normal case for PERSONAL devices), `room = NULL` is NULL. The inner AND becomes NULL, `not NULL` is NULL, and `true and NULL` is NULL. IF treats NULL as false, so ESIG-053 is never raised and the witness signature is accepted. The stored witness evidence then reads room_code = the act's room with same_device false, which looks like a valid same-room witness. This breaks the WITNESSED rule (DI-35, outline 5.5 L-03): the witness signs on the act's terminal or on a terminal registered to the same room.",
+    "failure_scenario": "Reproduced on the current code (temporary test, since removed). A performer on a GRADE_A_B terminal registered to ROOM-X1 creates a stub entry (act = that terminal, now). A VERIFIER on a PERSONAL terminal (no room, same site SITE-1) runs signStub(..., { meaning: 'WITNESSED' }). Expected: EBMR-ESIG-053. Actual: the signature is sealed and committed, with esig.signature.witness = {\"room_code\":\"ROOM-X1\",\"same_device\":false,\"act_device_id\":<performer terminal>,\"witness_device_id\":<personal laptop>,\"window_seconds\":300}. A person at a desk can therefore 'witness' an aseptic act they never saw.",
+    "suggested_fix": "Make the check null-safe and fail closed. For example: `if v_act_dev.id is null or v_sig_dev.id is null then raise ... EBMR-ESIG-053 ...; end if; v_same := v_act_dev.id = v_sig_dev.id; if not v_same and not coalesce(v_act_dev.room_code = v_sig_dev.room_code and v_act_dev.site_code = v_sig_dev.site_code, false) then raise ... EBMR-ESIG-053 ...`. Equivalently, write `(...) is not true`. Add tests: a witness on a room-less terminal is refused with ESIG-053, and the existing same-room and same-terminal tests still pass."
+   },
+   {
+    "id": "DEFECT-esig.check_witness-unknown-act-device-fail-open",
+    "severity": "medium",
+    "description": "Same root cause as the null-room defect. If the provider's act.device_id is a well-formed UUID that names no registered device, `select * into v_act_dev` finds nothing and every v_act_dev field is NULL. Then v_same is NULL and the ESIG-053 condition is `NULL and true`, which is NULL. The witness signature is accepted from any terminal in any room. The stored evidence records act_device_id NULL and same_device NULL. The provider contract (0200: act {device_id, at}) lets any module supply act.device_id. The reference stub always records the validated session device, so today this is reachable through a provider bug or imported data, not through the stub's normal path.",
+    "failure_scenario": "Reproduced on the current code (temporary test, since removed). A performer on a GRADE_A_B terminal in ROOM-X2 creates a stub entry. As setup, its entered_device_id is set to a random UUID (asTimeTraveller). A VERIFIER on a GRADE_A_B terminal in another room (ROOM-Y9) signs WITNESSED. Expected: refused (unknown act terminal). Actual: accepted, with witness = {\"act_device_id\":null,\"same_device\":null,\"room_code\":null,...}.",
+    "suggested_fix": "Refuse when the act terminal is not a registered device (for example `if v_act_dev.id is null then raise ... EBMR-ESIG-050/053 the act names an unknown terminal`) and make the room comparison null-safe as in the null-room fix. Add a test in which the act names an unregistered terminal and the witness is refused."
+   },
+   {
+    "id": "iam.assert_validated_actor-stale-context",
+    "severity": "medium",
+    "description": "iam.assert_validated_actor (0100, via iam.actor_is_validated and kernel.actor_context_validated) only checks that the context JSON in ebmr.ctx has a kernel.command_marker row and an iam.command_log row for the current transaction and backend. It never checks the account or session again. Once kernel.begin_command has validated a context, any role (ebmr_app included) can put it back later in the same transaction with set_config('ebmr.ctx', ctx, true), even after that account was DISABLED, its role grants were revoked and its session ENDED. The FOR SHARE lock in kernel.validate_actor_context only holds off other transactions, so the intent in its comment (\"a concurrent deactivation waits for this command\") is lost inside the same transaction. This breaks DI-14 and DI-16 (a disabled account can no longer act, and removal takes effect at once) and makes the INV-07 audit attribution wrong: the write is attributed to an account that was disabled when it was made.",
+    "failure_scenario": "Confirmed on a throwaway database built from all migrations, using only the ebmr_app login role (scratch script /tmp/claude-0/-home-user/0f393df3-64ef-5de6-9328-48ce9ce2b1a5/scratchpad/stale-ctx-app-only.ts). In one transaction: begin_command(ctxA) while operator account A is ACTIVE; then begin_command(admin ctx with a reason) and iam.deactivate_account(A, 'leaver'), which sets A to DISABLED, revokes its OPERATOR grant and ends session S_A; then select set_config('ebmr.ctx', ctxA, true). After that, iam.assert_validated_actor() returns A's context, and an insert into esig.stub_signable is accepted and committed. Its audit event names actor account A with recorded_at 07:58:37.329, 10 ms after A's status_changed_at to DISABLED (07:58:37.319), while iam.session_state(S_A) = 'ENDED'. With ebmr_app and ebmr_authn in one transaction, the same stale context also reaches esig.create_challenge for the person's replacement account B. Only the EBMR-ESIG-010 session-owner guard stops that; the new test covers it.",
+    "suggested_fix": "Allow only the context most recently installed in the transaction. kernel.set_actor_context (and iam.set_internal_actor) should delete this backend's other command_marker rows for the current xact before inserting the new one, so set_config back to an earlier context fails with IAM-002. Existing code that restores an actor goes through kernel.set_actor_context, so it keeps working. Alternatively, or in addition, iam.assert_validated_actor could re-check at use time that the context's account is ACTIVE and its session is not ENDED, EXPIRED or LOCKED. The owner should decide; no control or SQL was changed."
+   }
+  ],
+  "still_surviving": [],
+  "refuted_equivalence": [
+   "esig.create_challenge#12"
+  ],
+  "notes": "I added 17 tests in /home/user/ebmr/packages/kernel/test/mutation/signing.test.ts. All pass on the real code (npx vitest run). `npx tsc -p tsconfig.json --noEmit` and eslint on the file are both clean. I ran the harness on the 23 survivors I expected to kill: `--group signing --only <23 ids> --workers 2 --out .reports/sql-mutation/kill-signing` reports 23/23 detected, 0 invalid, 0 surviving. I did not run the 5 mutants classified as equivalent. equivalent.json was not edited; that is for the orchestrator or owner.\n\nHow each kill works:\n- component_problem#3/#7: tests the function directly with the identification component alone ('ALL', ['USER_ID'] or ['BADGE']) and expects ALL_COMPONENTS_REQUIRED. The signing path is checked with forged events, anchored on the ESIG-038 problem code.\n- required_components#11: the UNLOCKED session event is time-travelled onto the first full signing's instant, which gives PRIVATE; 1 \u00b5s later it gives ALL.\n- check_independence#12: the exact set of iam.segregation_evaluation rows stored for PERFORMED, VERIFIED and CHECKED.\n- check_witness#4/#7/#10: a stub whose act has no terminal, and one with no time, must both be refused with ESIG-050.\n- check_witness#13: raw esig.sign with p_next_step_started NULL must give ESIG-051. The same event then signs with false.\n- create_challenge#4: unknown signer account gives ESIG-010, not IAM-054.\n- sign#7: unknown challenge gives ESIG-031, not ESIG-034.\n- sign#19: a second login of the same person on the same PERSONAL device gives ESIG-034.\n- sign#25/#28: a context zone of Europe/Berlin gives ESIG-035. #28 (`->>=`) only fails when that raise's message runs.\n- sign#31: a forged SIGNATURE event from the same person's active break-glass account gives ESIG-036.\n- sign#39/#40: an auth event recorded 1 \u00b5s before the challenge is refused; one at the challenge instant is accepted.\n- sign#44: a customer meaning text is changed between challenge and sign, giving ESIG-037.\n- sign#57: the stub row is deleted, giving ESIG-011 whether the expected state is 'OPEN' or null.\n- sign#62: the value is changed with no version bump, giving ESIG-012.\n- sign#80: an approved delegation that names VERIFIED (iam.delegation_valid says valid) is still refused with ESIG-041 'cannot be signed under a delegation'.\n- sign#89: signer_role_code/name and the manifestation role equal the evaluated role.\n- sign#92/#101: a single-connection ebmr_app pool shows esig.signing_challenge and esig.unsealed are empty after commit. With the mutants they keep the ids at session level.\n\nEquivalents: check_witness#18/#20 and sign#14 are clock-boundary mutants. They differ only when a stored timestamp equals clock_timestamp() inside the comparison to the microsecond, which no input can arrange. If the orchestrator's policy does not accept clock-boundary equivalence, move these three to still_surviving. create_challenge#12 is a guard that INV-11 plus DI-18 make unreachable (dead defence in depth).\n\nDefects: while analysing check_witness I found that ESIG-053 fails open under NULL logic, and confirmed it on the real code with two temporary tests, since removed. Accepted today: (1) a witness on a terminal with no room (any PERSONAL device) for an act in a GRADE_A_B room; (2) an act naming an unregistered terminal. I did not add a test for the correct behaviour because it would fail on the current code; both are reported as defects with fixes.\n\nOther observations for the owner, not defects:\n- DI-38's behaviour text says 'ID plus password/PIN, or badge plus PIN'. component_problem accepts only USER_ID+PASSWORD and BADGE+PIN, so USER_ID+PIN is refused. That is stricter than the control text, and I did not lock in either reading.\n- sign#14 accepts a challenge at exactly expires_at, whereas token conventions such as JWT exp refuse at that instant. This has no practical effect.\nesig.create_challenge#12 is killed; the harness confirmed it with --only esig.create_challenge#12: 1/1 detected, report in .reports/sql-mutation/kill-signing.\n\nNew test in packages/kernel/test/mutation/signing.test.ts, in the 'challenge (esig.create_challenge)' block: \"[DI-36][DI-14][INV-10][INV-11] a context of the person's replaced account, still registered in the transaction, cannot issue a challenge for the person's new account\". It follows the skeptic's scenario inside one rolled-back superuser transaction (asSuperuserTransaction). Every step goes through the product helpers (withCommand, authenticate, changeSecret, openSession, acknowledgeEsigPolicy) using SET LOCAL ROLE ebmr_app / ebmr_authn. A small withinTransaction() pool facade turns each helper's begin/commit into a savepoint. The steps are:\n1. Validate A's context.\n2. Deactivate A.\n3. Create, activate and grant OPERATOR to account B for the same person, with the owner's approval.\n4. Change B's initial password, log B in, open a session and acknowledge the e-signature policy as B.\n5. Before the attack, check that A is DISABLED, S_A is ENDED and iam.can_sign(B) is true.\n6. As ebmr_app, restore A's context with set_config, then call esig.create_challenge(..., signer = B).\n\nThe test asserts a refusal and that no challenge exists for the record, for B or for S_A. The code must be EBMR-ESIG-010 with 'the session owner signs with the account of the session', or EBMR-IAM-103 / EBMR-IAM-112. The IAM codes are the stale-context refusals, allowed so the test still passes once the reported assert_validated_actor defect is fixed and the refusal moves earlier. IAM-002 is deliberately not accepted, so a mistake in restoring the context cannot let the test pass without testing anything.\n\nOn the original code the full file passes (18/18); tsc -p tsconfig.json and eslint on the file are clean. Only this test file was edited."
+ },
+ {
+  "group": "site-values-and-policies",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/site-values-and-policies.test.ts",
+  "killed": [
+   "market.assess_site_value#19",
+   "market.set_site_value#1",
+   "market.set_site_value#4",
+   "market.set_site_value#5",
+   "market.set_site_value#8",
+   "market.set_site_value#12",
+   "market.set_site_value#44",
+   "market.policy_pin_guard#1",
+   "market.policy_pin_guard#6",
+   "market.policy_pin_guard#8",
+   "market.policy_pin_guard#12",
+   "market.policy_pin_guard#13",
+   "market.policy_pin_guard#14",
+   "market.policy_pin_guard#20",
+   "market.policy_pin_guard#21",
+   "market.policy_pin_guard#22",
+   "market.policy_pin_guard#23",
+   "market.policy_pin_guard#26",
+   "market.policy_pin_guard#29",
+   "market.policy_pin_guard#30",
+   "market.policy_pin_guard#35",
+   "market.policy_version_guard#1",
+   "market.policy_version_guard#5",
+   "market.policy_version_guard#14",
+   "market.policy_version_guard#18",
+   "market.policy_version_guard#19"
+  ],
+  "equivalent_upheld": [],
+  "defects": [],
+  "still_surviving": [],
+  "refuted_equivalence": [],
+  "notes": "All 26 survivors of the group are now killed. The harness confirmed it: `npx tsx tools/sql-mutation/src/run.ts --group site-values-and-policies --only <all 26 ids> --workers 2 --out .reports/sql-mutation/kill-site-values-and-policies` gave 26/26 detected, 0 invalid, 100 %. I also checked that each mutant is killed by the test meant for it. For that I applied each mutant to a copy of a migrated template and ran only my file with the verbose reporter. Every mutant made my targeted test fail, so no kill is a side effect of a flaky existing test. The new file passes on the real code (20 tests, 6 runs in a row), and eslint on the file and `tsc -p tsconfig.json --noEmit` are clean. The only file I changed is the test file.\n\nOnly the last definitions matter: 0320 (assess_site_value, set_site_value) and 0350 (policy_version_guard, policy_pin_guard). No later migration redefines them.\n\nWhat kills what:\n- assess_site_value#19 (NOT removed on the DESIGN check): a test table with IN at 10 (DESIGN, hard floor 5) and US at 12 (GUIDANCE). A value of 8 with justification and QA approval must be refused with EBMR-MKT-061. A value of 11 only loosens the GUIDANCE value, so with approvals it must be accepted as LOOSENED. The mutant accepts 8 and refuses 11.\n- set_site_value#44 (loosening audit event): the same LOOSENED value must write exactly one BUSINESS audit event in the site's chain, carrying siteValueId and qaApprovalId.\n- set_site_value#1: a call without begin_command must fail with EBMR-AUDIT-001. The mutant fails later with EBMR-IAM-001.\n- set_site_value#4 (DI-17, which site's code is checked): I added a second stub site and two stewards, each scoped to one site. The steward of site A may set site A's value; the steward of site B is refused with EBMR-IAM-040. Under the mutant the wrong site code (or none) is checked, so the positive case fails.\n- set_site_value#5, #8 and #12: each test asserts the exact message (EBMR-MKT-041 \"belongs to no rule table\"; EBMR-MKT-002 \"a site value needs an effective-from date\", for a normal and a NOT_COMPARABLE key; EBMR-MKT-040 \"has no published version\", using a registered table with no version). Without these checks the mutants still refuse, but later and with a different message or code (040 unknown version, resolve's 002 as-of message, 063).\n- policy_version_guard#1: an owner insert with no actor must fail with EBMR-AUDIT-001. The mutant hits a not-null violation on author_person_id instead.\n- policy_version_guard#18 and #19: a new version at the same position is UNCHANGED and needs a change reference but no approval.\n- policy_version_guard#14: two scheduled versions may share an effective instant, and the newer one is in force from then. This matches the tie-break (version desc) in policy_version_at.\n- policy_pin_guard#1: with the audit trigger zz_audit_market_batch_policy_pin disabled inside a rolled-back transaction, an unattributed ISSUE pin must still be refused by the guard itself. Without that, the mutant is masked by the audit trigger's identical EBMR-AUDIT-001.\n- policy_pin_guard#6 and #8: a TIGHTENING pin naming another policy's version, or an unknown version id, must fail with EBMR-MKT-080. Under the mutant the foreign version is accepted.\n- policy_pin_guard#12 and #14: an ISSUE pin dated one hour ahead, or left undated, must fail with EBMR-MKT-081. The mutant accepts the future one.\n- policy_pin_guard#20, #21, #23 and #26: a tightening for a batch that was never issued must fail with EBMR-MKT-083, even when another batch holds an issue pin for the policy. The mutants accept it. A further test checks the tightening pin copies its own batch's issue instant.\n- policy_pin_guard#22: a policy defined after a batch was issued has no issue pin for that batch. A TIGHTENING pin of its least strict version must fail with EBMR-MKT-083, because without a baseline the rank check does nothing. The mutant accepts it.\n- policy_pin_guard#30: a tightening scheduled one hour ahead must fail with EBMR-MKT-084.\n- policy_pin_guard#35: positions LO/MID/HI. The early batch is issued at HI. A loosening to LO takes effect now, a late batch is issued at LO, then a tightening to MID. Applying MID to the early batch must fail with EBMR-MKT-085, while applying it to the late batch works. The mutant compares against the late batch's pin and lets the loosening reach the early batch (an INV-47 breach).\n\nThree mutants only change a comparison at an instant exactly equal to the trigger's own clock_timestamp() reading: policy_version_guard#5 (effective_from = recorded_at), policy_pin_guard#13 (issue_instant = recorded_at) and policy_pin_guard#29 (the version's effective_from = the pin's recorded_at). These are observable, so they are not equivalent. The correct behaviour is to treat that instant as \"now\": a version set for now gets effective_from = recorded_at, the table check is `>=`, and policy_version_at uses `<=`. To hit that exact microsecond, plpgsql probes created in pg_temp write clock_timestamp() + offset in the inserting statement. First they learn the trigger's lag from attempts that are always accepted, then they offer offsets drawn from those lags until one lands exactly on the trigger's reading. Each attempt is rolled back in a subtransaction, and there is a 20 s budget. On real code a hit came within 66 to 1,401 attempts (well under 2 s) over 12 runs. Under the mutants the exact instant is always refused, so the test fails every time. Learning attempts are kept apart from trials so that which trials happen to be accepted cannot skew the learned lags; an earlier version without that separation did fail once.\n\nNo defects found. One design limit you should know about, and I did not test around it: a policy defined after a batch was issued can never be applied to that batch, even as a tightening, because EBMR-MKT-083 requires an issue pin. That is the safe side of INV-47, and my test asserts it."
+ },
+ {
+  "group": "audit-trail",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/audit-trail.test.ts",
+  "killed": [
+   "kernel.begin_command#1",
+   "kernel.begin_command#3",
+   "kernel.begin_command#13",
+   "kernel.set_actor_context#1",
+   "kernel.set_actor_context#2",
+   "kernel.set_actor_context#4",
+   "kernel.actor_context_validated#1",
+   "kernel.actor_context_validated#5",
+   "kernel.append_audit_event#1",
+   "kernel.append_audit_event#2",
+   "kernel.append_audit_event#3",
+   "kernel.append_audit_event#6",
+   "kernel.audit_row_change#3",
+   "kernel.audit_row_change#6",
+   "kernel.audit_row_change#11",
+   "kernel.verify_chain#2",
+   "kernel.verify_chain#3",
+   "kernel.verify_chain#4",
+   "kernel.verify_chain#12",
+   "kernel.verify_chain#15",
+   "kernel.verify_chain#18",
+   "kernel.verify_chain#21",
+   "kernel.verify_chain#27",
+   "kernel.actor_context_validated#3"
+  ],
+  "equivalent_upheld": [
+   {
+    "id": "kernel.current_actor#1",
+    "justification": "The body is `select case when kernel.actor_context_validated() then current_setting('ebmr.ctx', true)::jsonb end`. The mutant only changes missing_ok (true to false) in the THEN branch. That branch runs only after actor_context_validated() has returned true, which needs coalesce(current_setting('ebmr.ctx', true), '') <> ''. So the setting exists and is non-empty at that moment. Nothing between the WHEN and the THEN can change or remove it: it is the same expression evaluation, and actor_context_validated() does not call set_config. When the setting exists, current_setting(name, false) returns the same text as current_setting(name, true). current_setting is STABLE, so the planner never evaluates the THEN branch early; the harness confirms this, since the fresh-connection test (setting absent) calls current_actor() and passes under the mutant. Every input and state gives the same result with no error."
+   }
+  ],
+  "defects": [
+   {
+    "id": "test-support.db-drop-race",
+    "severity": "low",
+    "description": "Test infrastructure, not product code: TestDatabase.drop() in packages/kernel/test/support/db.ts awaits admin.end() and app.end() and then runs DROP DATABASE ... WITH (FORCE). pg-pool's end() resolves once the clients are removed from the pool, before their sockets finish closing. The forced drop can terminate a backend whose client is still closing; the client receives FATAL 57P01, the pool re-emits it as an 'error' event with no listener, and Vitest reports an unhandled error, so the run exits non-zero.",
+    "failure_scenario": "Observed on the first harness run for this group. The baseline run of the 5 audit-trail test files ended 'Tests 58 passed, Errors 1' with error 57P01 'terminating connection due to administrator command' on an ebmr_dev pool client, attributed to packages/kernel/test/records/true-copy.test.ts. run.ts aborted with 'baseline tests fail for audit-trail'. The same race inside a mutant run (vitest --bail=1, KILLED when the exit code is non-zero) would count a surviving mutant as KILLED, which inflates the score. It did not reproduce in 3 reruns and 2 later harness runs.",
+    "suggested_fix": "In drop(), attach a no-op 'error' listener to both pools before ending them (for example `admin.on('error', () => undefined)`), or wait for every client's 'end' event before the forced drop. My test file does the first locally in its afterAll, the same pattern authnLoginPool uses, but support/db.ts is outside what I was allowed to edit."
+   }
+  ],
+  "still_surviving": [],
+  "refuted_equivalence": [
+   "kernel.actor_context_validated#3"
+  ],
+  "notes": "Harness result (npx tsx tools/sql-mutation/src/run.ts --group audit-trail --only <all 25 survivors> --workers 2 --out .reports/sql-mutation/kill-audit-trail): 23 of 25 detected, score 92.0 % against a 90 % target. The 2 left are the equivalents above; with them excluded the score is 100 %. The new file passes on the real code (15 tests); tsc -p tsconfig.json (which includes the file) and eslint are both clean.\n\nTo check that no kill came from the teardown flake: a scratchpad script (outside the repo) applied each mutant to a fresh template and ran only my file. Every one of the 23 kills fails an intended assertion. For example, begin_command#13 lets source 'KIOSK' through validate_actor_context for a real person, verify_chain#27 misses a head where only the hash or only the seq is wrong, and set_actor_context#1 leaves the session-level ebmr.ctx at '' after commit. current_actor#1 and actor_context_validated#3 fail nothing.\n\nWhat the tests cover, all with control or invariant IDs:\n- begin_command: a null, array or scalar context is refused as 'actor context is required'. A source outside UI/API/INTEGRATION/SYSTEM is refused even for a real, active person, whom the identity check alone would accept.\n- A brand-new connection, where ebmr.ctx never existed: current_actor() is NULL, and a GMP write or business entry gets EBMR-AUDIT-001 rather than 'unrecognized configuration parameter'.\n- The audit writer, called directly through kernel.audit_business_event: AUDIT-001 without a context, AUDIT-009 with a context set by set_config, both before and after an XID is assigned.\n- A validated command whose ebmr.ctx is then overwritten with non-JSON has no actor.\n- UPDATE or DELETE without an actor gets AUDIT-001, not AUDIT-002.\n- set_actor_context(NULL) is transaction-local: a session-level value stays unchanged and is still never trusted.\n- An internal actor installed and then restored with set_config, as iam.authn_change_secret and the bootstrap do, keeps the command's own actor.\n- Marker pruning keeps only the connection's current transaction (the ADR-0016 housekeeping).\n- AUDIT-003 when a table has the audit trigger but no registration, or its registration was deleted.\n- verify_chain from seq 2 to 4 on a chain interleaved with another one, plus a forged hash just before the start point.\n- Each indexed-column check fires on its own, with hashes recomputed so no other check fires: seq renumbering, move to another chain, action, correlation_id, recorded_at.\n- Both head checks separately: tail deleted with the head hash repointed, and head hash overwritten.\n\nAll tampering runs in rolled-back superuser transactions. The afterAll adds no-op pool error listeners before db.drop() because of the teardown race (see defect test-support.db-drop-race). I created and then removed a stray .vitest/ output directory and a scratch script in tools/; the only repo change is the test file.\nI added one test to /home/user/ebmr/packages/kernel/test/mutation/audit-trail.test.ts, in the describe block 'only a context installed by kernel code in this transaction is an actor (ADR-0016)'. Its name is '[DI-22][DI-23][INV-07] a context not established by kernel code is ignored at once, without touching the marker table: a lock held on it neither delays nor fails the answer'.\n\nHow it works: a superuser transaction (asSuperuserTransaction) holds LOCK TABLE kernel.command_marker IN ACCESS EXCLUSIVE MODE. A second, fresh ebmr_app connection sets lock_timeout = '500ms', starts a transaction and puts a well-formed JSON context in ebmr.ctx with set_config(..., true), which takes no XID. The test then asserts:\n- current_actor() returns NULL and pg_current_xact_id_if_assigned() is still NULL.\n- kernel.audit_business_event is refused with EBMR-AUDIT-009 ('not established by kernel.begin_command'), not with lock timeout 55P03.\n- No audit event is written.\n\nIn the original code, `v_raw = '' or v_xact is null` returns before the table is touched. In the mutant, parse and plan of the exists() query take AccessShareLock and fail with 55P03.\n\nTags: I used [DI-22][DI-23][INV-07] instead of the suggested [DI-23][INV-06]. INV-06 in build outline section 5.3 is about insert-only rows. INV-07 (attribution in the same transaction) and DI-22 (only contexts installed by kernel code are attributed) are the ones this test proves. DI-23 covers the audit path staying available ('always on').\n\nVerification:\n- The file passes on the real code: 16/16 tests, run three times with no flakes.\n- The harness run `--group audit-trail --only kernel.actor_context_validated#3`: 1/1 detected, 100 %, status KILLED (report in .reports/sql-mutation/kill-audit-trail-ctx3). The report does not say which test detected it. The mutant survived the previous run and this new test is the only change since, so this test is almost certainly the one that detects it; I did not check that against the mutant by hand.\n- `npx tsc -p tsconfig.json` shows no errors for this file, and `npx eslint` passes.\n\nI found no defect: the original short-circuit is the correct, safe behaviour. The other audit-trail survivors listed in survivors.json were not part of this task and were not run."
+ },
+ {
+  "group": "retention-and-purge",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/retention-and-purge.test.ts",
+  "killed": [
+   "records.approve_purge#5",
+   "records.approve_purge#8",
+   "records.approve_purge#16",
+   "records.approve_purge#18",
+   "records.purge#5",
+   "records.purge#6",
+   "records.purge#7",
+   "records.purge#28",
+   "records.purge#30",
+   "records.purge#40",
+   "records.purge#41",
+   "records.purge#56",
+   "records.disposal_refusals#5",
+   "records.disposal_refusals#8"
+  ],
+  "equivalent_upheld": [],
+  "defects": [],
+  "still_surviving": [],
+  "refuted_equivalence": [],
+  "notes": "All 14 survivors of the group are now killed. The harness run (--group retention-and-purge --only <14 ids> --workers 2) scored 100 % (14/14 detected, 0 invalid) in 57 s. I also checked each kill against my file alone, using a scratchpad script that applies each mutant to a fresh template. Every mutant fails the test designed for it, for the reason predicted:\n\n- approve_purge#5: a blank or null reason must be refused with 'EBMR-REC-035 a disposal approval needs a reason', even with a valid signature, and the same signature is accepted once a reason is given. The mutant is still refused, but only by the purge_approval check constraint (23514), so it is not equivalent: the error differs.\n- approve_purge#8: an approval started while update_retention_inputs holds the schedule row must wait, then refuse with EBMR-REC-031 at the new retain-until (2031-01-31). The mutant skips the lock, waits only on the purge_approval foreign key, and records the approval at the old retain-until.\n- approve_purge#16 and #18: citing a true copy of another record, or an unknown copy id while the record has its own copy, must give 'EBMR-REC-035 true copy X is not a copy of K'. Both mutants fall through to EBMR-ESIG-070. Citing the record's own copy with a matching signature is accepted.\n- purge#6: a retention change of the record left open means the purge waits, then refuses with EBMR-REC-031. The mutant does not lock this record's schedule and purges once the change commits.\n- purge#7: a legal hold on the record left open means the purge waits, then refuses with 'EBMR-REC-032 HOLD LEGAL ... blocks disposal'.\n- purge#5 and disposal_refusals#8: a hold on a dependant left open means the purge of the supporting lot waits, then refuses 'of dependant batch:D'.\n  - This test only kills these mutants while no other dependency exists in the database. It asserts that as a precondition (retention_dependency count = 0) and must stay the first test that creates a dependency.\n  - A second test kills #5, #6 and #7 regardless of test order. An unrelated batch (dependant of another lot) is on hold, and a retention change plus a second hold on it are left open. The record's refusals must be empty, and its purge must succeed under lock_timeout 3s. The mutants over-lock (unrelated schedules or blocker epochs) and time out. disposal_refusals#8 over-reaches and reports the unrelated holds.\n- purge#28 and #30 (the true copy must cover exactly the kept head):\n  - #30: the superuser rewrites the last event, recomputes its hash and the chain head, so kernel.verify_chain still passes (asserted). The copy then matches the seq but not the hash, and EBMR-REC-038 is expected.\n  - #28 (and #30 again): a register entry inserted by the superuser with the head hash at seq N-1 must be refused with EBMR-REC-038.\n- purge#41: rows referenced by another record's row (new stub tables stub_rp.part (insert-only) and stub_rp.part_use) must give EBMR-REC-037 with nothing deleted. The command sets statement_timeout 20s, so the mutant's endless loop fails instead of hanging.\n- purge#40: this is not equivalent. The original allows n+1 passes, so a table referenced in pass 1 is retried once more; the mutant raises EBMR-REC-037 without that retry when n=1. The test forces the interleaving with Postgres' lock queue, deterministically:\n  1. Another operator's write holds the table, so pass 1 waits to disable the insert-only trigger.\n  2. The correction (reference set to null, not yet committed) queues its own insert behind the purge.\n  3. Committing the other write runs pass 1, which fails on the still-committed reference. Leaving the pass frees the table, so the queued write goes first.\n  4. Pass 2 waits for the correction. Committing it lets the purge complete. The mutant fails with EBMR-REC-037.\n  The test asserts the documented retry ('a table whose rows are still referenced is retried in a later pass').\n- purge#56: this is only reachable by a concurrent write between the final checkpoint and the hash count. A superuser transaction inserts a copied event at seq 1000000 and pre-inserts checkpoint rows for seqs N+1..N+20. The purge's final checkpoint insert waits on that unique key; after the tamper commits, the count mismatches and 'EBMR-REC-034 ... is incomplete' must be raised. The mutant is caught only by the tombstone cardinality check constraint (23514), so again the difference is the error.\n- disposal_refusals#5: on the retain-until day itself (expiry = site date minus one year, IN/US), the refusals must be exactly [EBMR-REC-031] with 'must be kept until D (site date D)', and approve and purge must refuse. A record whose retain-until was the day before has no refusals. The site zone avoids 29 February (it falls back to Pacific/Kiritimati or Pacific/Pago_Pago).\n\nHarness details: kernel.begin_command locks the actor's session row (0190), so each concurrently open command uses a different actor; I added a second operator 'stores' for this. Open commands are managed by withOpenCommands, which terminates their backends afterwards, and begin_command runs under a 10s lock_timeout so a clash fails fast.\n\nChecks: all 13 tests pass on the real code, taking about 7 s, stable over 4 repeated runs. tsc -p tsconfig.json is clean and eslint on the file is clean.\n\nObservation outside the mutant set (not a defect found by a mutant): records.purge accepts the latest purge_approval at the current retain-until without checking that it was given after the last hold was released. An approval given before a legal hold therefore still authorises the purge once the hold is released. Whether QA must re-approve after a hold is an owner question under DI-47."
+ },
+ {
+  "group": "signature-invalidation",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/signature-invalidation.test.ts",
+  "killed": [
+   "esig.content_changed#1",
+   "esig.content_changed#9",
+   "esig.on_signed_content_change#1",
+   "esig.on_signed_content_change#4",
+   "esig.on_signed_content_change#8",
+   "esig.on_signed_content_change#9",
+   "esig.on_signed_content_change#12",
+   "esig.on_signed_content_change#23",
+   "esig.signature_guard#6"
+  ],
+  "equivalent_upheld": [
+   {
+    "id": "esig.content_changed#10",
+    "justification": "With the mutant (0220:309, `v_computed := true` becomes false) the hash `esig.content_hash_of(type, id, esig.provide(type, id))` is recomputed on every loop iteration instead of once per call. Results can differ only if that expression returns different values between two iterations of one call.\n(1) content_hash_of is immutable over the provider output, and the provider contract in 0200 forbids a provider from changing data. A non-deterministic provider could never be signed: the hash at the challenge would differ from the hash at signing (EBMR-ESIG-012), so there would be no signature for the loop to visit.\n(2) The only writes between iterations are the esig.signature_invalidation row (its stamp trigger and audit trigger) and the kernel.audit_business_event entry (a kernel.audit_event row, action BUSINESS or table esig.signature_invalidation). No trigger on those tables touches a signed table, and no registered provider's hashed fields (content, content_version) read them:\n- esig_stub reads only esig.stub_signable.\n- sample_record counts only audit events with table_name 'platform.stub_record' and action 'UPDATE'.\n- The records and continuity providers have no signed tables. content_changed is owner-private (no grant; migration 0220 comment at line 489), so it runs only from esig.on_signed_content_change and never for those types.\n(3) A concurrent commit cannot change hashed content between iterations. content_changed holds the aggregate's transaction-scoped advisory lock (esig.aggregate_lock) until commit, and every other change to that aggregate's hashed content goes through the same trigger, which waits on the same lock before its transaction can commit. For sample_record the changed row's row lock is also held. Only a superuser disabling triggers (session_replication_role = replica) could interleave a change; that is outside the trust boundary and is detected separately by esig.verify_signatures and the INV-09 invariant.\nThe only difference left is the number of provider calls, which is performance and not behaviour. Checked with a per-mutant run of all 7 new tests plus the group's existing tests: none detects it."
+   }
+  ],
+  "defects": [
+   {
+    "id": "D1-sample-record-noop-save-breaks-INV-09",
+    "severity": "medium",
+    "description": "platform.sample_record_content (kernel 0910) derives content_version as 1 plus the number of UPDATE audit events of platform.stub_record. The invalidation trigger for that table is registered with content columns [title, body], so esig.on_signed_content_change calls esig.content_changed only when title or body actually change. An UPDATE that changes no content value still writes an UPDATE audit event. That changes the record's content hash, but no signature is superseded. The provider's hashed content and the signed-table registration disagree. This is outside the mutated functions, but it defeats their purpose for this aggregate type.",
+    "failure_scenario": "Verified with a temporary probe, since removed. The author (MBR_AUTHOR) creates a sample record in DRAFT, and the checker signs CHECKED (expected state DRAFT). The author, through the application role with reason REWORK, runs `update platform.stub_record set title = title where id = X`. Result: the content hash changes (17cd...f6aa to 2189...5e66), esig.signature_invalidation has no row for the signature, esig.signature_state reports CONTENT_MISMATCH (valid=false), and esig.invariant_violations() returns an INV-09 row ('the record changed but the signature was not superseded'). Any application user allowed to update title or body can raise false INV-09 integrity violations at will. A harmless re-save turns a documented supersession (DI-37) into an integrity alarm.",
+    "suggested_fix": "Make the sample record's content_version a stored column kept by a BEFORE UPDATE trigger that increments it only when title or body change (the pattern of esig.stub_signable_guard). Alternatively, count only UPDATE audit events whose body changes title or body. Add a test that a no-op re-save of a signed sample record leaves the signature VALID and esig.invariant_violations() empty. Also consider a check in esig.verify_signatures (or documentation in the provider contract) that a provider hashes only data covered by its registered signed tables and content columns."
+   },
+   {
+    "id": "D2-sample-record-invalidation-records-transient-hash",
+    "severity": "low",
+    "description": "For sample_record, the invalidation row and its 'superseded' audit entry record a current_content_hash the record never has at commit. The invalidation trigger esig_signed_platform_stub_record fires before zz_audit_platform_stub_record for the same UPDATE, because AFTER ROW triggers run in name order. esig.content_changed therefore hashes the new title and body with the old content_version; the UPDATE audit event that bumps content_version is written only afterwards.",
+    "failure_scenario": "Verified with a temporary probe, since removed. Sign CHECKED on a DRAFT sample record, then update its body with a reason. esig.signature_invalidation.current_content_hash is 6618...79b9, while esig.content_for_signing for the record afterwards returns 9b96...91a. The DI-37 evidence (the invalidation row and the audit details current_content_hash) names a content hash that cannot be reproduced from the record.",
+    "suggested_fix": "Apply the D1 fix (a stored content_version maintained in a BEFORE trigger), so the content is final when the AFTER triggers run. Then assert in a test that current_content_hash equals the record's content hash after the change, as the new tests do for esig_stub and the si_step module."
+   }
+  ],
+  "still_surviving": [],
+  "refuted_equivalence": [],
+  "notes": "Final harness run (`--group signature-invalidation --only <10 survivors>`): 9 of 10 detected (90.0 %). The only survivor is esig.content_changed#10, classified above as equivalent. It is not added to equivalent.json, which is off-limits for this task. The file passes on the real code (7 tests), `npx tsc -p tsconfig.json` exits 0, and eslint on the file is clean.\n\nI confirmed each kill came from the intended test with a scratch script in the scratchpad. It applied each mutant to a fresh template and ran only the new file.\n\n**The seven tests and what each kills:**\n1. `[DI-37][INV-09]` The invalidation row and its audit details record the signed hash, the record's hash after the change, and the change's content_change id, table, operation and person. Kills content_changed#1 and #9, which leave current_content_hash NULL.\n2. `[DI-37][INV-09]` A change to a registered row that leaves the hash unchanged (a reading's note, which the provider does not hash) is logged but supersedes nothing. Kills content_changed#1 and #9, which supersede every signature.\n3. `[DI-37][INV-09]` Deleting a row of signed content supersedes the record's signatures, logged as DELETE. Kills on_signed_content_change#8 and #23. The RELATIONAL mutant #23 turns the `->>` on line 363 into the non-existent operator `->>=`, which only runs for a delete or a move.\n4. `[DI-37][INV-09]` Moving a reading to another step supersedes the signatures of both records and logs the change on both. Kills #12, #8 and #23.\n5. `[DI-37][INV-03]` A verifier who completes an entry (state change only) or re-saves it unchanged gets no content_change row. After the performer's correction, the verifier can verify again, with no INV-03 violation. Kills #1 and #9 (the change filter) and also #8.\n6. `[DI-37][INV-09]` The invalidation trigger fails closed with EBMR-ESIG-006 on an unregistered table, and on a registered table whose esig.signed_table row was removed. This runs in a rolled-back superuser transaction. Kills #4.\n7. `[INV-10]` The signing marker is transaction-local. On a single pooled connection holding a session-level esig.signing_challenge value, the marker is '' inside the signing transaction and the earlier value is back after commit. Kills signature_guard#6 (set_config true to false). I checked with psql that a placeholder GUC is not listed in pg_settings, so a pre-set session value is the only way to observe this difference.\n\n**Test setup:** each test file gets its own database, so I registered a second test module there, si_mod (aggregate type si_step, a step with its readings). It is set up so that readings can be deleted, moved between steps, and changed without changing the hash.\n\n**Pitfall I hit:** `select id::text ... order by id` sorts by the text alias, so '10' comes before '9'. The helper orders by `c.id`.\n\n**Defects:** both are in migration 0910 (the sample-record provider), not in the mutated functions. I found them while checking whether #10 could be observed through that provider's audit-count content_version."
+ },
+ {
+  "group": "actor-validation",
+  "test_file": "/home/user/ebmr/packages/kernel/test/mutation/actor-validation.test.ts",
+  "killed": [
+   "kernel.validate_actor_context#27",
+   "kernel.validate_actor_context#30",
+   "kernel.validate_actor_context#81",
+   "kernel.validate_actor_context#92"
+  ],
+  "equivalent_upheld": [],
+  "defects": [
+   {
+    "id": "open-session-escapes-device-block",
+    "severity": "low",
+    "description": "iam.open_session (kernel 0160) does not serialise with iam.set_device_status (0140). open_session reads the device status without a lock (iam.resolve_device) and inserts the session, whose FK takes only FOR KEY SHARE on the device row. set_device_status UPDATEs the row with FOR NO KEY UPDATE, which does not conflict, and then iam.end_device_sessions ends only the sessions it can see. So a session that is still being opened, not yet committed, survives the block. It stays ACTIVE in iam.session_state and iam.keep_session_alive accepts it. Today only the EBMR-IAM-115 check in kernel.validate_actor_context stops commands in it. After an administrator sets the device back to ACTIVE, the old session can run GMP commands again with no new login. This breaks the DI-20 guarantee that blocked devices' sessions end, which devices-sessions.test.ts states as '[DI-20] blocked and decommissioned devices are refused and their sessions end'.",
+    "failure_scenario": "Seed a person on a PERSONAL device D and take a LOGIN auth event. Transaction A runs select iam.open_session(ev, fp_D) and stays uncommitted. Transaction B, run as the administrator, calls setDeviceStatus(D, 'BLOCKED', 'suspected tampering') and commits. It is not blocked and ends only the older session. A commits. Verified: the new session's state is ACTIVE and keep_session_alive succeeds. After setDeviceStatus(D, 'ACTIVE', 'inspected'), an insert into testgmp.sample in that session SUCCEEDS with no re-authentication. Found with a temporary probe that was then removed; the committed test asserts only that the command is refused, IAM-115 today.",
+    "suggested_fix": "In iam.open_session, lock the device row FOR SHARE (select ... from iam.device where id = v_ev.device_id for share) before checking its status, and check the status after the lock. FOR SHARE conflicts with the UPDATE in set_device_status and relocate_device. Then either the sweep sees the committed session, or the login sees the BLOCKED status and is refused. A fix in the sweep could work instead: end_device_sessions could lock the device FOR UPDATE and re-scan after other sessions commit. Add a race test that asserts the session is ENDED or the login is refused."
+   },
+   {
+    "id": "open-session-escapes-lockout",
+    "severity": "low",
+    "description": "The same missing serialisation exists between iam.open_session and the lockout in iam.authn_finish (0160). open_session checks iam.account_locked once, in iam.lock_auth_event at its start, and does not lock the account row until the FK check at the session insert, which takes FOR KEY SHARE. authn_resolve takes the account FOR UPDATE, so if the lockout runs between those two points, iam.end_account_sessions does not see the new session and it survives the lock. Today only EBMR-IAM-105 in kernel.validate_actor_context stops commands in it. After an administrator calls iam.unlock_account, the escaped session runs GMP commands again with no new login. This breaks the DI-19 guard 'lockout ... sessions end'. A leaver or deactivation that races a login leaves an escaped session on a DISABLED account by the same path. That case is harmless today because DISABLED is terminal and IAM-103 refuses.",
+    "failure_scenario": "Seed a person on PERSONAL device D, register a second workstation D2 and take a LOGIN event on D. Transaction A calls iam.open_session and is paused at the session's device FK: the test widens the window by holding D's registry row FOR UPDATE in a third transaction. The lock threshold (5) of wrong-password logins then run from D2. The last one locks the account and ends the committed session. Release the row, then A completes and commits. Verified: the account is locked while the new session is ACTIVE. After iam.unlock_account('identity confirmed'), an insert in that session SUCCEEDS with no re-authentication. Found with a temporary probe that was then removed; the committed test asserts only that the command is refused, IAM-105 today.",
+    "suggested_fix": "In iam.open_session, take select ... from iam.account where id = v_ev.account_id for share before the account and lock checks, or move the lock_auth_event checks after it. FOR SHARE conflicts with the FOR UPDATE in authn_resolve and with the status UPDATE in deactivate_account_internal. Then either the lockout or deactivation sweep sees the committed session, or the login sees the lock or disabled status and is refused. Add a race test asserting that the session is ENDED or the login is refused."
+   }
+  ],
+  "still_surviving": [],
+  "refuted_equivalence": [],
+  "notes": "All 4 actor-validation survivors are killed. Confirmed with the harness: npx tsx tools/sql-mutation/src/run.ts --group actor-validation --only #27,#30,#81,#92 gave 4/4 detected, 100 %. I also ran each mutant alone against only the new file to see which test kills it:\n- #27 (EBMR-IAM-104 guard removed). Killed by '[DI-16][DI-14] a person recorded as LEFT cannot act...'. A direct owner write sets iam.person.status to LEFT while leaving the account ACTIVE and the session live, which is the state iam.directory_scan reports as LEFT_PERSON_WITH_LIVE_ACCOUNT. Under the mutant the command SUCCEEDS. Through the API alone this state is unreachable: process_leaver disables every account in the same transaction, account_guard refuses to activate an account of a person who is not ACTIVE, and authn_resolve and lock_auth_event refuse LEFT persons. So IAM-104 is defence in depth against a state the database allows but no constraint prevents. It is not equivalent, and I did not report it as a defect.\n- #30 (EBMR-IAM-105 guard removed). Killed by two tests. (a) After a normal lockout the refusal is IAM-105; the mutant gives IAM-112 because the sweep ended the session. (b) In a login that races the lockout, the escaped session is refused as locked; under the mutant the command SUCCEEDS.\n- #81 (EBMR-IAM-115 guard removed). Killed by the device-block race test: a session opened while the terminal is being blocked escapes the sweep. Under the mutant the command SUCCEEDS on the BLOCKED device.\n- #92 (RELATIONAL at line 124). This is a harness artefact. The '>' it mutated belongs to the named-argument arrow in make_interval(secs => ...), which the mutator turned into 'secs =>= ...'. At run time that is the error 'column \"secs\" does not exist'. The cause is in mutators.ts: the '=' rule skips when the next character is '>', but the '>' rule lacks a before === '=' skip. The mutant still breaks the path where a personal device sends an auth_event_id. That path had no test in the group, so I added '[DI-14][INV-40] a command on a personal device may carry an authentication event...'. It checks that the event is consumed (auth_event_use COMMAND plus the session), that iam.command_log records it, and that reuse is refused (IAM-126), another person's event is refused (IAM-122), and an event older than authn.event_max_age_seconds is refused (IAM-125) and not consumed.\nThe race tests use explicit transactions. They never assert that the session survives. They assert only that no command runs in it: the refusal is IAM-112 if the session was swept, IAM-105 or IAM-115 otherwise, or the login itself is refused. They release after at most 3 s if a future fix makes the sweep wait, so they stay valid once the two reported defects are fixed. The file passes on the real code. I ran it 5 times in a row with no flakiness, and together with the group's four identity test files (59 tests passed). tsc -p tsconfig.json exits 0 and includes the file; eslint on the file is clean. The only file I changed is the test file. The scratch script used to map kills to tests is in the scratchpad (which-test-kills.mts)."
+ }
+]

@@ -26,8 +26,8 @@ heartbeat stub (`iam.mirror_heartbeat`) already shows that pattern for qualifica
 | Area | Tables | Audit |
 |---|---|---|
 | Persons | `person` (NATURAL or SYSTEM identity; status ACTIVE/LEFT), `person_name_event`, `person_status_event`, `identity_verification` (who verified, method, document type, evidence, when) | audited, person chain |
-| Accounts | `issued_identifier` (permanent register of login names), `account` (HUMAN, SERVICE, INTEGRATION, READONLY_DISPLAY; generic and break-glass flags; never deleted), `account_status_event` | audited, account chain |
-| Roles | `permission` (domain GMP/ADMINISTRATION/GOVERNANCE/READ_ONLY; effect READ/WRITE/SIGN/ACKNOWLEDGE/ADMINISTER), `role` (kernel roles K1–K29 from the features spec A.2, plus X1 line display and X2 break-glass administrator), `role_permission` (validity window), `role_grant` (scope site/area/product, window, requester, approver, reason, revocation), `access_recertification` | audited |
+| Accounts | `issued_identifier` (permanent register of login names), `reserved_identifier` (login names known only from the external continuity ledger after a restore; never issued again), `account` (HUMAN, SERVICE, INTEGRATION, READONLY_DISPLAY; generic and break-glass flags; never deleted), `account_status_event` | audited, account chain (reservations: `reserved_identifier` chain) |
+| Roles | `permission` (domain GMP/ADMINISTRATION/GOVERNANCE/READ_ONLY; effect READ/WRITE/SIGN/ACKNOWLEDGE/ADMINISTER), `role` (kernel roles K1–K29 from the features spec A.2, plus X1 line display and X2 break-glass administrator), `role_permission` (validity window), `role_permission_request` (a requested addition to a role and its second-person decision), `role_grant` (scope site/area/product, window, requester, approver, reason, revocation), `access_recertification` | audited |
 | Qualifications | `qualification_type`, `qualification_source` (INTERNAL, LMS mirror stub), `person_qualification`, `qualification_requirement` (per role or permission and scope), `authority_evaluation` (every evaluation, stored) | audited; evaluations are a protected insert-only log |
 | Devices | `device` (PERSONAL, SHARED, GRADE_A_B, SERVER, INSTRUMENT; site, room, line; enrolled key fingerprint; ACTIVE/BLOCKED/DECOMMISSIONED) | audited, device chain |
 | Credentials | `credential` (metadata), `credential_secret` (argon2id verifier), `badge`, `badge_secret` (peppered UID hash), `badge_test`, `badge_technology`, `installation_secret` (pepper), `break_glass_window` | metadata audited; secrets never |
@@ -87,9 +87,40 @@ SQL (inside a command started with `kernel.begin_command`):
   market set (BLOCK or FLAG per policy `esig.us_certification_mode`).
 - `iam.access_list(at)`, `iam.signature_register(at)`, `iam.recertification_due(at)`,
   `iam.badges_due_for_test(at)`, `iam.directory_scan()` (invariant query; zero rows expected).
+- For the continuity module (INV-27 user IDs after a restore): `iam.issued_login_names()` lists every
+  login name issued here or reserved (the anchor job copies it to the external ledger), and
+  `iam.reserve_identifiers(names jsonb, reason, restore_event)` (owner-only, for `continuity.after_restore`
+  inside its validated command) reserves the ledger's names this database no longer knows, so
+  `iam.create_account` refuses them (EBMR-IAM-021).
 
 Every function that changes an existing row needs `reason_code` in the actor context (kernel audit
 rule EBMR-AUDIT-002).
+
+## Changing a role's permissions (DI-16, DI-18, INV-11)
+
+Adding a permission to a role grants it to every holder, so it follows the rule of every grant: one
+person requests it (`iam.add_role_permission(role, permission, reason)`, IAM.ROLE_MANAGE; the reason
+defaults to the command's reason text) and a second person approves or rejects it
+(`iam.decide_role_permission(request, approve, reason)`, IAM.GRANT_APPROVE). Only the approval adds the
+`role_permission` row. Neither the requester nor the approver may hold the role (EBMR-IAM-003,
+EBMR-IAM-032): administrators never grant themselves authority. Removing a permission
+(`iam.remove_role_permission`) takes authority away and is effective at once, like a revocation. Inside a
+command even the table owner adds a row only through an approved request; outside a command only a
+software release (`SOFTWARE_RELEASE` identity, as in 0700) does (EBMR-IAM-039). Role names and bundles
+stay customer configuration (features spec A.7); versioned change control of all configuration (DI-09)
+comes later.
+
+The static rules (a role never mixes administration and GMP permissions, every holder is re-checked)
+run at the request and again at the approval. Every static check locks the role before the person: a
+catalogue change takes the role exclusively and its holders' person rows in person order; a grant
+request or approval takes the granted role in share mode, then the person, then the account in share
+mode (the order `iam.process_leaver` uses), so a deactivation, suspension or leaver either waits for
+the approval and then revokes the new grant too, or is seen and the approval is refused. A grant is
+approved only for an ACTIVE account (EBMR-IAM-026); a request may be raised during onboarding. The catalogue is then
+read as it stands once the locks are held (live now), so concurrent changes are checked one after the
+other and none can leave a role or a person with both domains. `iam.check_static_segregation` also
+refuses a role that holds both domains, and `iam.directory_scan()` reports such a role
+(`ROLE_MIXES_ADMINISTRATION_AND_GMP`) and any grant of it (`ADMINISTRATOR_AND_GMP_ROLE`).
 
 ## Authority checks in the other modules (B7, migrations 0700 and 0710)
 
@@ -104,7 +135,10 @@ accounts hold WRITE effects only. The catalogue tables are audited, so the rows 
 labelled pipeline identity (nil person, account and session; role and reason `SOFTWARE_RELEASE`), like
 the installation bootstrap; later migrations extend the catalogue the same way.
 
-**Scope of a check.** An object with its own site (and product) is checked in that scope (site
+**Scope of a check.** Grants and qualification requirements both fail closed on a dimension the
+request leaves empty: a grant limited to a site does not cover it, and a requirement limited to a site
+applies to it (`iam.requirement_applies`; a request without a site may be work at that site, INV-26,
+IN-04). A request that names another site is outside the requirement. An object with its own site (and product) is checked in that scope (site
 values, batch numbers). Installation-wide objects (rule tables, policies, the record register,
 retention, incident handling, DI investigations, restores, attestations) are checked in the empty
 scope `{}`, which only a grant not limited to a site, area or product covers. Point-of-work actions
@@ -125,8 +159,11 @@ the remaining segments joined by underscores, all upper case: `platform.settings
 `PLATFORM.SETTINGS_CHANGE`, `sample_record.submit` -> `SAMPLE_RECORD.SUBMIT`), and evaluates it with
 `iam.evaluate_authority` for the actor's person and account in the declared role, at the database
 clock, at the actor's location (the platform passes no object scope). Every evaluation is stored
-(INV-26). NULL means allowed; otherwise the reason names the role, permission, scope, aggregate,
-reasons and the evaluation id. The platform tests install stub hooks over it.
+(INV-26). NULL means allowed. An actor it cannot trust or a name it cannot map is returned as the
+reason; a denied evaluation is raised as the platform's refusal (`EBMR-PLAT-006 permission <name>
+denied: ...`, naming the role, permission, scope, aggregate, reasons and the evaluation id) with the
+same JSON DETAIL as `EBMR-IAM-040`, so `withGuardedCommand` stores the failed check again outside the
+rolled-back command (DI-17). The platform tests install stub hooks over it.
 
 **Signature types.** `0720_authorization_signatures.sql` gives the approval signature types of the
 records and continuity modules the approving permissions (`RECORD_TYPE_APPROVED` ->
@@ -150,9 +187,25 @@ signature, within the device class's freshness window (default 60 s), used by no
 activity is touched and the validated context is logged in `iam.command_log`, so
 `iam.assert_validated_actor()` can tell it from a context set by other means.
 
+**Sessions and the sweeps (DI-19, DI-20).** A lockout, a suspension, a deactivation, a device block or
+a relocation ends every session of the account or device it can see. `iam.open_session` takes the
+login's account and terminal in share mode before its checks, so such a change either waits until the
+login has committed and then ends its session too, or commits first and the login is refused: no
+session escapes the sweep and comes back to life when the account is unlocked or the terminal
+re-activated. The gate still refuses a locked account (IAM-105) and a blocked device (IAM-115) on its
+own, as defence in depth against direct writes.
+
+**Badges (DI-19).** A lost, revoked or replaced badge is de-authorised at once, and so is every
+authentication event it made that has not been used yet: `iam.lock_auth_event`, which every consumer
+goes through (login, unlock, keep-alive, a command's attribution, a signature, a secret change),
+refuses such an event (EBMR-IAM-097). The badge functions take the badge's account before the badge,
+as logins and commands take it before consuming an event, so a consumer either finishes before the
+badge changes (and the loss or revocation then ends its session) or sees the change.
+
 ## Policy values (data; ranges enforced by `iam.set_policy`)
 
-Lockout 3–5 (default 5); kiosk idle lock 60–900 s (default 300); personal idle 60–3600 s (900);
+Lockout 3–5 (default 5; consecutive failed login or signing attempts, counted since the last success
+that proved a secret: a badge tap never resets the count); kiosk idle lock 60–900 s (default 300); personal idle 60–3600 s (900);
 absolute session 1–24 h (12 h); attribution freshness per shop-floor class 1–300 s (60);
 authentication event max age 10–600 s (120); password length ≥ 8 (12), aging 0–365 days (90; 0
 needs compromised-password screening), history 0–24 (5), PIN length 4–12 (6); initial secret
@@ -166,10 +219,11 @@ India-licensed, IN-04), so the DI-21 flag-and-review relaxation is not offered.
 
 001–007 actor and generic (002 context not validated, 003 self-administration, 005/006 rows never
 deleted or changed, 007 immutable field); 010–013 persons and identity verification; 020–027
-accounts and login names (021 never reused, 024 second GMP account); 030–038 roles and grants (032
-approver, 033 INV-11, 034/035 DI-14, 036 kind or break-glass); 040–042 authority, segregation,
+accounts and login names (021 never reused, also after a restore; 024 second GMP account); 030–039
+roles and grants (032 approver, 033 INV-11, 034/035 DI-14, 036 kind or break-glass, 039 a role's
+permissions change only by an approved request); 040–042 authority, segregation,
 administrator on GMP data; 043 platform authority adapter (actor or permission name not accepted); 050–055 credentials and signing readiness; 060–063 badges; 070–073
-devices; 080–084 sessions; 090–096 authentication events; 100–117 actor context; 120–126 INV-40
+devices; 080–084 sessions; 090–097 authentication events (097 the event's badge is no longer active); 100–117 actor context; 120–126 INV-40
 attribution; 130 break-glass; 140 authentication failed; 150 alerts; 160 qualifications; 170 US
 certification; 180–182 delegation; 190 bootstrap.
 

@@ -9,9 +9,12 @@ import {
   activateAccount,
   createAccount,
   decideRoleGrant,
+  decideRolePermission,
   issueInitialSecret,
   processLeaver,
+  removeRolePermission,
   requestRoleGrant,
+  requestRolePermission,
   revokeRoleGrant,
   setPolicy,
 } from '../../src/identity/admin.ts';
@@ -386,13 +389,95 @@ describe('INV-11 bypass attempts', () => {
     const asAdminRoles = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin, 'ROLE_CHANGE'), work);
     await expectRefused(asAdminRoles((c) => c.query("select iam.add_role_permission('SYSTEM_ADMINISTRATOR', 'STEP.EXECUTE')")), 'EBMR-IAM-033');
     const code = `SITE_VIEWER_${randomBytes(2).toString('hex').toUpperCase()}`;
-    await asAdminRoles(async (c) => {
+    const read = await asAdminRoles(async (c) => {
       await c.query("select iam.create_role($1, 'Site viewer', 'ADMINISTRATION_SECURITY', 'custom read-only role', array['HUMAN'])", [code]);
-      await c.query("select iam.add_role_permission($1, 'RECORD.READ')", [code]);
+      return requestRolePermission(c, { roleCode: code, permission: 'RECORD.READ' });
     });
+    await asOwner((c) => decideRolePermission(c, read, true, 'read-only role for site visitors'));
     const qa = await seedActor(db, { roleCode: 'QA_REVIEWER', acknowledgeEsig: false });
     await grantRole(qa.accountId, code);
     await expectRefused(asAdminRoles((c) => c.query("select iam.add_role_permission($1, 'IAM.ACCOUNT_MANAGE')", [code])), 'EBMR-IAM-033');
+  });
+
+  it('[DI-16][DI-18][DI-17] a permission reaches a role only when a second person approves the request; nobody requests or approves one for a role they hold', async () => {
+    const asAdminRoles = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin, 'ROLE_CHANGE', 'extend the verifier bundle'), work);
+    const op = await seedActor(db, { roleCode: 'VERIFIER', acknowledgeEsig: false });
+    // A process owner (who approves access requests) who is also a verifier.
+    const verifierApprover = await seedActor(db, { roleCode: 'PROCESS_OWNER', acknowledgeEsig: false });
+    await grantRole(verifierApprover.accountId, 'VERIFIER');
+    const canSupervise = async () => (await evaluateAuthority(db.app, { personId: op.personId, accountId: op.accountId, permission: 'STEP.SUPERVISE' })).allowed;
+    const live = async () =>
+      (await db.app.query("select 1 from iam.role_permission where role_code = 'VERIFIER' and permission_code = 'STEP.SUPERVISE' and removed_at is null")).rowCount;
+
+    // A lone administrator's request changes nothing yet: the reason is the command's reason text.
+    const req = await asAdminRoles((c) => requestRolePermission(c, { roleCode: 'VERIFIER', permission: 'STEP.SUPERVISE' }));
+    expect(await live()).toBe(0);
+    expect(await canSupervise()).toBe(false);
+    const { rows } = await db.app.query('select status, reason, requested_by_person, role_permission_id from iam.role_permission_request where id = $1', [req]);
+    expect(rows[0]).toEqual({ status: 'REQUESTED', reason: 'extend the verifier bundle', requested_by_person: adm.admin.personId, role_permission_id: null });
+    await expectRefused(asAdminRoles((c) => requestRolePermission(c, { roleCode: 'VERIFIER', permission: 'STEP.SUPERVISE' })), 'EBMR-IAM-039', /already requested/);
+
+    // The requester never approves; a holder of the role never approves (it would extend their own
+    // authority); approving needs IAM.GRANT_APPROVE; the application cannot write the rows.
+    await expectRefused(asAdmin((c) => decideRolePermission(c, req, true, 'self-approved')), 'EBMR-IAM-032');
+    await expectRefused(withCommand(db.app, withReason(verifierApprover), (c) => decideRolePermission(c, req, true, 'for my own role')), 'EBMR-IAM-032');
+    await expectRefused(withCommand(db.app, withReason(op), (c) => decideRolePermission(c, req, true, 'mine')), 'EBMR-IAM-040');
+    await expectPermissionDenied(db.app.query("update iam.role_permission_request set status = 'APPROVED' where id = $1", [req]));
+    await expectPermissionDenied(db.app.query("insert into iam.role_permission (role_code, permission_code) values ('VERIFIER', 'STEP.SUPERVISE')"));
+    expect(await canSupervise()).toBe(false);
+
+    // A second person who does not hold the role approves: the permission is live for every holder from then on.
+    await asOwner((c) => decideRolePermission(c, req, true, 'verifiers supervise hand-over on line 2'));
+    expect(await live()).toBe(1);
+    expect(await canSupervise()).toBe(true);
+    const decided = (await db.app.query<{ status: string; decided_by_person: string; role_permission_id: string | null }>(
+      'select status, decided_by_person, role_permission_id from iam.role_permission_request where id = $1', [req])).rows[0];
+    expect(decided).toMatchObject({ status: 'APPROVED', decided_by_person: adm.owner.personId });
+    const catalogue = await db.app.query('select role_code, permission_code from iam.role_permission where id = $1', [decided?.role_permission_id]);
+    expect(catalogue.rows).toEqual([{ role_code: 'VERIFIER', permission_code: 'STEP.SUPERVISE' }]);
+    await expectRefused(withCommand(db.app, withReason(adm.owner), (c) => decideRolePermission(c, req, false, 'too late')), 'EBMR-IAM-039', /already approved/);
+
+    // A rejected request never becomes live. Removing a permission takes it away at once.
+    const rejected = await asAdminRoles((c) => requestRolePermission(c, { roleCode: 'VERIFIER', permission: 'DEVIATION.APPROVE_INLINE' }));
+    await asOwner((c) => decideRolePermission(c, rejected, false, 'not a verifier duty'));
+    expect((await evaluateAuthority(db.app, { personId: op.personId, accountId: op.accountId, permission: 'DEVIATION.APPROVE_INLINE' })).allowed).toBe(false);
+    await asAdminRoles((c) => removeRolePermission(c, 'VERIFIER', 'STEP.SUPERVISE'));
+    expect(await canSupervise()).toBe(false);
+
+    // Nobody requests a permission for a role they hold, nor approves one for a role they hold.
+    await expectRefused(asAdminRoles((c) => requestRolePermission(c, { roleCode: 'SYSTEM_ADMINISTRATOR', permission: 'PLATFORM.ALARM_CLEAR' })), 'EBMR-IAM-003');
+    const forOwners = await asAdminRoles((c) => requestRolePermission(c, { roleCode: 'PROCESS_OWNER', permission: 'RECORD.EXPORT' }));
+    await expectRefused(asOwner((c) => decideRolePermission(c, forOwners, true, 'for my own role')), 'EBMR-IAM-032');
+    expect((await db.app.query("select 1 from iam.role_permission where role_code = 'PROCESS_OWNER' and permission_code = 'RECORD.EXPORT'")).rowCount).toBe(0);
+  });
+
+  it('[DI-18][INV-11] bypass: even the table owner, inside a command, adds a permission to a role only through an approved request', async () => {
+    const insert = (id: string) =>
+      asDefinerCommand(db, withReason(adm.admin, 'ROLE_CHANGE'), (c) =>
+        c.query("insert into iam.role_permission (id, role_code, permission_code) values ($1, 'OPERATOR', 'RECORD.LEGAL_HOLD')", [id]));
+    await expectRefused(insert(randomUUID()), 'EBMR-IAM-039', /approved by a second person/);
+    // Nor can a request be born approved, or a decision be forged by the requester.
+    const forged = (sql: string, params: unknown[]) => asDefinerCommand(db, withReason(adm.admin, 'ROLE_CHANGE'), (c) => c.query(sql, params));
+    await expectRefused(
+      forged(
+        `insert into iam.role_permission_request (role_code, permission_code, reason, status, requested_by_person, requested_by_account, decided_by_person, decided_at, role_permission_id)
+         values ('OPERATOR', 'RECORD.LEGAL_HOLD', 'x', 'APPROVED', $1, $2, $3, clock_timestamp(), gen_random_uuid())`,
+        [adm.admin.personId, adm.admin.accountId, adm.owner.personId],
+      ),
+      'EBMR-IAM-039',
+    );
+    const req = await withCommand(db.app, withReason(adm.admin, 'ROLE_CHANGE'), (c) => requestRolePermission(c, { roleCode: 'OPERATOR', permission: 'RECORD.LEGAL_HOLD' }));
+    await expectRefused(
+      forged("update iam.role_permission_request set reason = 'widened' where id = $1", [req]),
+      'EBMR-IAM-039',
+      /never changes/,
+    );
+    await expectRefused(
+      forged("update iam.role_permission_request set status = 'APPROVED', decided_by_person = $2, role_permission_id = gen_random_uuid() where id = $1", [req, adm.admin.personId]),
+      'EBMR-IAM-032',
+    );
+    await withCommand(db.app, withReason(adm.owner), (c) => decideRolePermission(c, req, false, 'operators never place legal holds'));
+    expect((await db.app.query("select 1 from iam.role_permission where role_code = 'OPERATOR' and permission_code = 'RECORD.LEGAL_HOLD'")).rowCount).toBe(0);
   });
 
   it('[INV-11] bypass: two concurrent approvals cannot give one person both an administrator and a GMP role', async () => {

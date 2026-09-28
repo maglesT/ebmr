@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { verifyChain } from '../../kernel/src/audit/verify.ts';
 import { exportAnchor } from '../../kernel/src/continuity/anchors.ts';
@@ -18,7 +19,20 @@ import {
   type BatchNumberRuleInput,
 } from '../src/index.ts';
 import type { SeededActor } from '../../kernel/test/identity/seed.ts';
-import { backupTestDatabase, createTestDatabase, dbTime, ensureSealKey, restoreCopy, signerActor, signFor, tempDir, tempLedger, testActor, type TestDatabase } from './helpers.ts';
+import {
+  backupTestDatabase,
+  createTestDatabase,
+  dbTime,
+  ensureSealKey,
+  restoreCopy,
+  scopedTestActor,
+  signerActor,
+  signFor,
+  tempDir,
+  tempLedger,
+  testActor,
+  type TestDatabase,
+} from './helpers.ts';
 
 const SITE = 'PLANT1';
 const ZONE = 'Asia/Kolkata';
@@ -277,6 +291,95 @@ describe('batch-number register across a restore', () => {
       [`PLANT9${yy}005`, 'GENERATED'],
       [lost, 'RECOVERED_AFTER_RESTORE'],
     ]);
+    expect(await batchNumberInvariantViolations(restored.app)).toEqual([]);
+  });
+});
+
+describe('recovery after a restore is held to the rule it recovers for (F62)', () => {
+  const site = 'PLANT7';
+  let src: TestDatabase;
+  let restored: TestDatabase;
+  let ledger: FileLedger;
+  let issuer: ActorContext;
+  let otherProductIssuer: ActorContext;
+  let restoreEventId: string;
+  let lostProcessing: string;
+  let lostPackaging: string;
+  const rpa: AllocationRequest = { siteCode: site, productCode: 'RPA5', productName: 'Ramipril Tablets 5 mg', edition: 'TABLETS', batchSize: '50000', batchSizeUnit: '{tbl}' };
+  let yy: string;
+
+  const allocateIn = (db: TestDatabase, req: AllocationRequest) => withProtectedNumbers(db.app, issuer, ledger, (c) => allocateBatchNumber(c, req));
+  const recoverAs = (ctx: ActorContext, over: Partial<Parameters<typeof recoverBatchNumber>[1]>) =>
+    withCommand(restored.app, { ...ctx, correlationId: randomUUID() }, (c) =>
+      recoverBatchNumber(c, { ...rpa, restoreEventId, ruleCode: 'RP-TAB', serial: '2', batchNumber: lostProcessing, evidenceReference: 'Paper BMR page 1 and label specimen', ...over }),
+    );
+
+  beforeAll(async () => {
+    src = await createTestDatabase();
+    ledger = tempLedger('site-recovery', dir.path);
+    issuer = await testActor(src, { roleCode: 'BATCH_ISSUER' });
+    // A BATCH_ISSUER whose grant is limited to another product at the same site.
+    otherProductIssuer = await scopedTestActor(src, 'BATCH_ISSUER', { site, product: 'RPB9' });
+    const operator = await testActor(src, { roleCode: 'SYSTEM_ADMINISTRATOR' });
+    const approver = await signerActor(src, 'QA_REVIEWER');
+    await ensureSealKey(src);
+    const steward = await testActor(src, { roleCode: 'MASTER_DATA_STEWARD' });
+    const base = { siteCode: site, siteZone: ZONE, reason: 'SOP', blockSize: 1 };
+    await withCommand(src.app, steward, (c) => defineBatchNumberRule(c, { ...base, ruleCode: 'RP-TAB', productCode: 'RPA5', batchKind: 'PROCESSING', format: 'RP{YY}{SEQ:3}' }));
+    await withCommand(src.app, steward, (c) => defineBatchNumberRule(c, { ...base, ruleCode: 'RP-PACK', productCode: 'RPA5', batchKind: 'PACKAGING', format: '{PARENT}-P{SEQ:2}' }));
+    const first = (await allocateIn(src, rpa)).batchNumber;
+    await exportAnchor(src.app, ledger);
+    const backup = await backupTestDatabase(src, dir.path);
+    // Issued after the backup (on paper and labels), then lost by the restore.
+    lostProcessing = (await allocateIn(src, rpa)).batchNumber;
+    lostPackaging = (await allocateIn(src, { ...rpa, batchKind: 'PACKAGING', parentBatchNumber: first })).batchNumber;
+    await exportAnchor(src.app, ledger);
+    restored = await restoreCopy(src, backup, dir.path);
+    const event = await recordRestoreEvent(restored.app, operator, ledger, {
+      eventKind: 'FULL_RESTORE',
+      backupId: backup.backupId,
+      backupTakenAt: backup.snapshotTakenAt,
+      performedAt: await dbTime(restored),
+      reason: 'Disk failure',
+      changeReference: 'INC-2026-0162',
+      approverPersonIds: [approver.personId],
+    });
+    restoreEventId = event.restoreEventId;
+    const signature = await signFor(restored, approver, { type: 'restore_event', id: restoreEventId }, 'RESTORE_APPROVED', 'RECORDED', { registerKey: false });
+    await approveRestoreEvent(restored.app, approver, restoreEventId, signature);
+    await completeRestore(restored.app, operator, ledger, restoreEventId);
+    yy = await siteYear(restored, 'YY');
+    expect(lostProcessing).toBe(`RP${yy}002`);
+    expect(lostPackaging).toBe(`${first}-P01`);
+  }, 90_000);
+  afterAll(async () => {
+    await restored?.drop();
+    await src?.drop();
+  });
+
+  it('[DI-17][INV-27] a product-specific rule recovers only its own product, and only under a grant covering that product', async () => {
+    await expect(recoverAs(issuer, { productCode: 'RPB9' })).rejects.toThrow('EBMR-SITE-016 rule RP-TAB numbers product RPA5 only, not RPB9');
+    // A BATCH_ISSUER limited to another product at the same site is refused in the rule's product scope.
+    await expect(recoverAs(otherProductIssuer, { productCode: 'RPB9' })).rejects.toThrow(/EBMR-IAM-040 .*BATCH_NUMBER\.RECOVER/);
+    expect((await restored.app.query('select 1 from site.batch_number_allocation where serial = 2 and rule_id = (select id from site.batch_number_rule where rule_code = $1)', ['RP-TAB'])).rowCount).toBe(0);
+  });
+
+  it('[INV-27][IN-18] the recovered number must be what the rule gives for that serial; a packaging number links to a processing number of its own site', async () => {
+    await expect(recoverAs(issuer, { batchNumber: `RP${yy}005` })).rejects.toThrow(`EBMR-SITE-016 RP${yy}005 is not what rule RP-TAB (format RP{YY}{SEQ:3}) gives for serial 2`);
+    await expect(recoverAs(issuer, { batchNumber: 'XX99002' })).rejects.toThrow('EBMR-SITE-016');
+    // A processing number of another site, registered from outside, cannot be the parent.
+    const elsewhere = `EXT${yy}777`;
+    await withCommand(restored.app, { ...issuer, correlationId: randomUUID() }, (c) =>
+      registerExternalBatchNumber(c, { ...rpa, siteCode: 'PLANT8', batchNumber: elsewhere, siteZone: ZONE }),
+    );
+    const packaging = { ruleCode: 'RP-PACK', serial: '1' };
+    await expect(recoverAs(issuer, { ...packaging, batchNumber: `${elsewhere}-P01`, parentBatchNumber: elsewhere })).rejects.toThrow('EBMR-SITE-014');
+    // The genuine numbers are re-entered.
+    await recoverAs(issuer, {});
+    const parent = lostPackaging.slice(0, -'-P01'.length);
+    await recoverAs(issuer, { ...packaging, batchNumber: lostPackaging, parentBatchNumber: parent });
+    const rows = await exportBatchNumberRegister(restored.app, { siteCode: site });
+    expect(rows.filter((r) => r.source === 'RECOVERED_AFTER_RESTORE').map((r) => r.batchNumber).sort()).toEqual([lostPackaging, lostProcessing].sort());
     expect(await batchNumberInvariantViolations(restored.app)).toEqual([]);
   });
 });

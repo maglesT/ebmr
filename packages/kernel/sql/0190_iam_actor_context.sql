@@ -12,6 +12,8 @@
 --   * the session exists, belongs to the account, has not ended, expired or locked (idle or
 --     explicit), runs on an ACTIVE device, and the context names that same device;
 --   * legal_name, when given, is the person's current legal name;
+--   * site_zone is the site's configured time zone (policy site.zone): the zone decides the dates
+--     and local times the modules record (DI-27), so a client cannot choose it;
 --   * on SHARED and GRADE_A_B devices, auth_event_id names an authentication event of this same
 --     person and account, made on this device for a command or signature, within the device class's
 --     freshness window (default 60 s), not used by any other command; the command consumes it.
@@ -84,6 +86,11 @@ begin
   end if;
   if p_ctx ? 'legal_name' and (p_ctx ->> 'legal_name') is distinct from v_per.legal_name then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-117 legal_name in the actor context is not the person''s legal name';
+  end if;
+  if (p_ctx ->> 'site_zone') is distinct from iam.policy_text('site.zone') then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-IAM-118 DI-27: the actor context declares the time zone %s, but the site''s time zone (policy site.zone) is %s',
+                       coalesce(p_ctx ->> 'site_zone', 'NULL'), iam.policy_text('site.zone'));
   end if;
 
   -- Session and device (DI-20: the device comes from the session, which the server bound to the

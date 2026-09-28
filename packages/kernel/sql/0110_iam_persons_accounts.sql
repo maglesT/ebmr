@@ -176,6 +176,83 @@ begin
 end
 $$;
 
+-- Login names issued outside this database's surviving history (INV-27 "including after a
+-- restore"). The register above is rolled back by a restore like every other table, so the login
+-- names issued in the lost window would be free again. The external continuity ledger keeps every
+-- issued name (iam.issued_login_names); the restore procedure hands them back to
+-- iam.reserve_identifiers, which reserves the names this database no longer knows. A reserved name is
+-- never issued again, to anyone.
+create table iam.reserved_identifier (
+  identifier           text primary key check (identifier ~ '^[a-z0-9][a-z0-9._-]{2,63}$'),
+  reason               text not null check (btrim(reason) <> ''),
+  restore_event_id     uuid,
+  reserved_by_person   uuid not null,
+  reserved_by_account  uuid not null,
+  reserved_at          timestamptz not null default clock_timestamp()
+);
+
+-- The two registers never share a name, and every writer (the table owner included) is held to it.
+-- Writers of one name are serialised on it, so an issue and a reservation of the same name never both
+-- pass their check.
+create function iam.identifier_register_guard() returns trigger
+language plpgsql security definer set search_path = pg_catalog, iam, pg_temp as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended('iam.login_name:' || new.identifier, 0));
+  if tg_table_name = 'issued_identifier' then
+    if exists (select 1 from iam.reserved_identifier r where r.identifier = new.identifier) then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-IAM-021 login name %s was issued before the last restore and is never issued again', new.identifier);
+    end if;
+    new.issued_at := clock_timestamp();
+  else
+    if exists (select 1 from iam.issued_identifier i where i.identifier = new.identifier) then
+      raise exception using errcode = 'P0001', message = format('EBMR-IAM-021 login name %s is already in the register', new.identifier);
+    end if;
+    new.reserved_at := clock_timestamp();
+  end if;
+  return new;
+end
+$$;
+create trigger aa_issued_identifier_guard before insert on iam.issued_identifier for each row execute function iam.identifier_register_guard();
+create trigger aa_reserved_identifier_guard before insert on iam.reserved_identifier for each row execute function iam.identifier_register_guard();
+
+-- Every login name issued here or reserved after a restore: what the external ledger keeps.
+create function iam.issued_login_names() returns table (identifier text)
+language sql stable security definer set search_path = pg_catalog, iam, pg_temp as $$
+  select i.identifier from iam.issued_identifier i
+  union
+  select r.identifier from iam.reserved_identifier r
+  order by 1
+$$;
+
+-- For the restore procedure only (SECURITY DEFINER code owned by ebmr_owner, inside its validated
+-- command): reserve the login names the external ledger holds that this database does not know.
+-- p_identifiers is a JSON array of login names. Returns how many names were newly reserved.
+create function iam.reserve_identifiers(p_identifiers jsonb, p_reason text, p_restore_event uuid default null) returns integer
+language plpgsql volatile security definer set search_path = pg_catalog, iam, kernel, pg_temp as $$
+declare
+  v_actor jsonb := iam.assert_validated_actor();
+  v_login text;
+  v_count integer := 0;
+begin
+  if p_identifiers is null or jsonb_typeof(p_identifiers) <> 'array' then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-020 the login names to reserve must be a JSON array';
+  end if;
+  if coalesce(btrim(p_reason), '') = '' then
+    raise exception using errcode = 'P0001', message = 'EBMR-IAM-004 a reason is required';
+  end if;
+  for v_login in select distinct iam.normalize_login_name(x) from jsonb_array_elements_text(p_identifiers) x order by 1 loop
+    if not exists (select 1 from iam.issued_identifier i where i.identifier = v_login)
+       and not exists (select 1 from iam.reserved_identifier r where r.identifier = v_login) then
+      insert into iam.reserved_identifier (identifier, reason, restore_event_id, reserved_by_person, reserved_by_account)
+      values (v_login, btrim(p_reason), p_restore_event, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid);
+      v_count := v_count + 1;
+    end if;
+  end loop;
+  return v_count;
+end
+$$;
+
 -- ---------------------------------------------------------------------------------------------
 -- Accounts
 -- ---------------------------------------------------------------------------------------------
@@ -345,9 +422,10 @@ declare
   v_id    uuid := gen_random_uuid();
 begin
   perform iam.require_permission('IAM.ACCOUNT_MANAGE', '{}'::jsonb);
-  if exists (select 1 from iam.issued_identifier where identifier = v_login) then
+  if exists (select 1 from iam.issued_identifier where identifier = v_login)
+     or exists (select 1 from iam.reserved_identifier where identifier = v_login) then
     raise exception using errcode = 'P0001',
-      message = format('EBMR-IAM-021 login name %s was issued before and is never issued again, even after deactivation', v_login);
+      message = format('EBMR-IAM-021 login name %s was issued before and is never issued again, even after deactivation or a restore', v_login);
   end if;
   insert into iam.issued_identifier (identifier, account_id) values (v_login, v_id);
   insert into iam.account (id, person_id, login_name, kind, is_generic, is_break_glass)
@@ -404,14 +482,17 @@ $$;
 select kernel.register_audited_table('iam.person', 'person', 'id', false);
 select kernel.register_audited_table('iam.identity_verification', 'person', 'person_id', true);
 select kernel.register_audited_table('iam.issued_identifier', 'account', 'account_id', true);
+select kernel.register_audited_table('iam.reserved_identifier', 'reserved_identifier', 'identifier', true);
 select kernel.register_audited_table('iam.account', 'account', 'id', false);
 select iam.protect_rows('iam.person');
 select iam.protect_rows('iam.account');
 
 grant select on iam.person, iam.person_status_event, iam.person_name_event, iam.identity_verification, iam.issued_identifier,
-                iam.account, iam.account_status_event to ebmr_app;
+                iam.reserved_identifier, iam.account, iam.account_status_event to ebmr_app;
+-- iam.reserve_identifiers is for the restore procedure (owner-only SECURITY DEFINER code); not granted.
 grant execute on function iam.person_status_at(uuid, timestamptz), iam.person_name_at(uuid, timestamptz),
                           iam.current_identity_verification(uuid), iam.normalize_login_name(text), iam.account_status_at(uuid, timestamptz),
+                          iam.issued_login_names(),
                           iam.create_person(text, text, text), iam.rename_person(uuid, text),
                           iam.record_identity_verification(uuid, text, text, text, text, timestamptz),
                           iam.create_account(uuid, text, text, boolean, boolean), iam.activate_account(uuid),
