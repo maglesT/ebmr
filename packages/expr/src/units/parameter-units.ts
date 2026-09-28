@@ -95,7 +95,7 @@ export function resolveParameterUnit(text: string, kind: string): ParameterUnitR
         diagnostic(
           'EXPR-UNIT-030',
           'WARNING',
-          `The registered unit "kg/cm²" is a pressure, but hardness is a force: values are recorded in kgf (1 kgf = ${newtonFactor} N). Record why the dossier unit is kept and that the tester reads kgf (outline 6.3, L-39)`,
+          `The registered unit "kg/cm²" is a pressure, but hardness is a force: values are recorded in kgf (1 kgf = ${newtonFactor} N). Record why the dossier unit is kept and that the tester reads kgf, as outline 6.3 (L-39) requires`,
         ),
       ],
     };
@@ -128,7 +128,7 @@ export function resolveParameterUnit(text: string, kind: string): ParameterUnitR
           diagnostic(
             'EXPR-UNIT-021',
             'ERROR',
-            `"${written}" is a pressure (or a mass per area), not a force: breaking force is recorded in N or kgf. If the dossier registers "kg/cm²" for a tester that reads kgf, use the controlled alias "${LEGACY_HARDNESS_ALIAS}" with a justification (outline 6.3, L-39)`,
+            `"${written}" is a pressure (or a mass per area), not a force: breaking force is recorded in N or kgf. If the dossier registers "kg/cm²" for a tester that reads kgf, use the controlled alias "${LEGACY_HARDNESS_ALIAS}" with a justification, as outline 6.3 (L-39) allows`,
           ),
         ],
       };

@@ -217,6 +217,7 @@ class Evaluation {
       throw new ExprEvaluationError('DERIVED_RECORD_INVALID', `Input "${path}": the computed result offered ${why}`, { paths: [path] });
     };
     if (typeof record !== 'object' || record === null || !recordHashValid(record)) bad('does not verify against its content hash');
+    if (record.calculation !== path) bad(`comes from ${record.calculation === undefined ? 'an unnamed calculation' : `calculation "${record.calculation}"`}, not from "${path}"`);
     const out = record.output;
     const t = decl.type;
     if (t.kind === 'boolean') {
@@ -276,7 +277,7 @@ class Evaluation {
   }
 
   run(): EvaluationOutcome['value'] {
-    const v = this.eval(this.program.ast);
+    const v = this.evalNode(this.program.ast);
     const out = this.program.outputType;
     if (out.kind === 'boolean') {
       if (v.kind !== 'boolean') throw new Error('internal: boolean result expected');
@@ -288,7 +289,7 @@ class Evaluation {
     return { kind: 'quantity', value: r.value, unit: out.unit, tag: out.tag };
   }
 
-  private eval(e: Expr): RuntimeValue {
+  private evalNode(e: Expr): RuntimeValue {
     switch (e.type) {
       case 'Number': {
         const t = this.typeOf(e);
@@ -311,7 +312,7 @@ class Evaluation {
         return b.value;
       }
       case 'Unary': {
-        const v = this.eval(e.operand);
+        const v = this.evalNode(e.operand);
         if (e.op === '!') {
           if (v.kind !== 'boolean') throw new Error('internal: boolean operand');
           return { kind: 'boolean', value: !v.value };
@@ -322,10 +323,10 @@ class Evaluation {
       case 'Binary':
         return this.binary(e);
       case 'Conditional': {
-        const test = this.eval(e.test);
+        const test = this.evalNode(e.test);
         if (test.kind !== 'boolean') throw new Error('internal: boolean condition');
         const branch = test.value ? e.consequent : e.alternate;
-        const v = this.eval(branch);
+        const v = this.evalNode(branch);
         const t = this.typeOf(e);
         if (t.kind !== 'quantity' || v.kind !== 'quantity') return v;
         return this.toStaticUnit(v, t, e, '?:');
@@ -354,15 +355,15 @@ class Evaluation {
 
   private binary(e: BinaryExpr): RuntimeValue {
     if (e.op === '&&' || e.op === '||') {
-      const l = this.eval(e.left);
+      const l = this.evalNode(e.left);
       if (l.kind !== 'boolean') throw new Error('internal: boolean operand');
       if (e.op === '&&' ? !l.value : l.value) return l;
-      const r = this.eval(e.right);
+      const r = this.evalNode(e.right);
       if (r.kind !== 'boolean') throw new Error('internal: boolean operand');
       return r;
     }
-    const l = this.eval(e.left);
-    const r = this.eval(e.right);
+    const l = this.evalNode(e.left);
+    const r = this.evalNode(e.right);
     switch (e.op) {
       case '+':
       case '-':
@@ -443,7 +444,7 @@ class Evaluation {
   private call(e: Extract<Expr, { type: 'Call' }>): RuntimeValue {
     const fn = LIBRARY.get(e.callee);
     if (fn === undefined) throw new Error('internal: unknown function');
-    const args = e.args.map((a) => this.eval(a));
+    const args = e.args.map((a) => this.evalNode(a));
     const argPaths = e.args.map((a) => referencedPaths(a));
     const failArg = (code: 'DOMAIN_ERROR' | 'DIVISION_BY_ZERO' | 'EMPTY_SERIES', message: string, i?: number): never => {
       const node = i === undefined ? e : (e.args[i] ?? e);

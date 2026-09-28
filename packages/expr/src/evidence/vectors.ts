@@ -292,7 +292,8 @@ export function generateCalculationVectors(program: CompiledExpression, options:
   for (const path of program.reads) {
     const rest: Record<string, InputValue | undefined> = { ...options.baseline };
     delete rest[path];
-    push('ABSENT_INPUT', `Input "${path}" is absent: the calculation must stop with a missing-input error, never assume a value`, rest);
+    const about = program.inputs[path]?.description;
+    push('ABSENT_INPUT', `Input "${path}"${about === undefined ? '' : ` (${about})`} is absent: the calculation must stop with a missing-input error, never assume a value`, rest);
   }
   return { vectors, notGenerated };
 }

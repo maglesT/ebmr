@@ -231,3 +231,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
 - 2026-09-28: OWNER DECISION (docs/decisions/0003): testing = logic and execution only (unit, property, model-based,
   golden batch, bypass, correctness-under-concurrency, mutation, end-to-end through screens). No load/soak/performance
   testing, no deployment/HA/pen-test work: deployment is a separate system design.
+- 2026-09-28: A1 (expression language, packages/expr) finished: 214 tests (property tests, golden vectors for every
+  library function, unit table generated with exact factors and cross-checked with ucum-lhc); DI-33 kept SPECIFIED
+  (reprocessing half is Phase 3); INV-25 calculation part proven. Injectables-only functions deferred (F0, fill
+  volume/weight, vial counts). ucum-lhc moved to devDependencies (generator/tests only). Lead to add a cross-check
+  test of expr canonicalJson/sha256Hex against kernel esig. Owner/QA questions: docs/decisions/phase-2-open-questions.md.

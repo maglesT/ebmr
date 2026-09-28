@@ -13,6 +13,7 @@ import { LIBRARY } from '../library/index.ts';
 import { isTag, TAG_LABEL, tagUnitProblem, type Tag } from '../units/tags.ts';
 import { DIMENSIONLESS, describeDimension, divideUnits, multiplyUnits, parseUnit, UnitError, type Unit } from '../units/unit.ts';
 import { referencedPaths, type BinaryExpr, type Expr } from './ast.ts';
+import { RESERVED_WORDS } from './parser.ts';
 import { barePercentConflict, describeQuantity, describeTag, productTag, unifyTags } from './rules.ts';
 import { MAX_SERIES_LENGTH, type ExprType, type InputDeclarations, type OutputDeclaration, type QuantityType } from './types.ts';
 
@@ -64,8 +65,8 @@ export function resolveDeclarations(inputs: InputDeclarations, diagnostics: Diag
   for (const path of Object.keys(inputs).sort()) {
     const d = inputs[path];
     if (d === undefined) continue;
-    if (!PATH.test(path)) {
-      err('EXPR-DECL-001', `"${path}" is not a valid input name (letters, digits and "_", parts joined by ".")`);
+    if (!PATH.test(path) || path.split('.').some((part) => RESERVED_WORDS.has(part) || part === 'true' || part === 'false')) {
+      err('EXPR-DECL-001', `"${path}" is not a valid input name (letters, digits and "_", parts joined by "."; not a reserved word)`);
       continue;
     }
     const kind = d.kind ?? 'quantity';

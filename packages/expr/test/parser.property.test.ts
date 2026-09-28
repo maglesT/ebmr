@@ -24,7 +24,7 @@ const tree = fc.letrec<{ expr: Expr }>((tie) => ({
     fc.record({ type: fc.constant('Number' as const), text: numberText, unit: fc.option(unit, { nil: null }), span: fc.constant(span) }),
     fc.record({ type: fc.constant('Path' as const), path: fc.array(ident, { minLength: 1, maxLength: 3 }).map((p) => p.join('.')), span: fc.constant(span) }),
     fc.record({ type: fc.constant('Bool' as const), value: fc.boolean(), span: fc.constant(span) }),
-    fc.record({ type: fc.constant('String' as const), value: fc.string({ maxLength: 8 }).filter((s) => !/[\x00-\x1f]/.test(s)), span: fc.constant(span) }),
+    fc.record({ type: fc.constant('String' as const), value: fc.string({ maxLength: 8 }).filter((s) => [...s].every((ch) => ch >= ' ')), span: fc.constant(span) }),
     fc.record({ type: fc.constant('Unary' as const), op: fc.constantFrom('-' as const, '!' as const), operand: tie('expr'), span: fc.constant(span) }),
     fc.record({ type: fc.constant('Binary' as const), op: binaryOp, left: tie('expr'), right: tie('expr'), span: fc.constant(span) }),
     fc.record({ type: fc.constant('Conditional' as const), test: tie('expr'), consequent: tie('expr'), alternate: tie('expr'), span: fc.constant(span) }),

@@ -30,7 +30,7 @@ export interface SamplingShortfall {
   purpose: string;
   needed: number;
   planned: number;
-  /** Criteria that need this sampling. */
+  /** Criteria this plan does not serve. */
   criteria: string[];
 }
 
@@ -45,7 +45,7 @@ export function samplingShortfalls(scheme: AcceptanceScheme, plan: readonly Samp
         purpose: need.purpose,
         needed: need.units,
         planned,
-        criteria: scheme.criteria.filter((c) => c.sampling.some((s) => s.point === need.point && s.purpose === need.purpose)).map((c) => c.id),
+        criteria: scheme.criteria.filter((c) => c.sampling.some((s) => s.point === need.point && s.purpose === need.purpose && s.units > planned)).map((c) => c.id),
       });
     }
   }

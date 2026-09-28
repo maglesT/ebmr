@@ -22,7 +22,8 @@ import { SyntaxFailure, syntaxError, tokenize, type Token } from './lexer.ts';
 export const MAX_SOURCE_LENGTH = 4000;
 export const MAX_NESTING_DEPTH = 64;
 
-const RESERVED = new Set([
+/** Words that can never be input names or appear in an expression (they would suggest statements). */
+export const RESERVED_WORDS: ReadonlySet<string> = new Set([
   'null',
   'let',
   'var',
@@ -92,7 +93,7 @@ class Parser {
   }
 
   private reservedHere(t: Token): void {
-    if (t.type === 'ident' && RESERVED.has(t.value)) {
+    if (t.type === 'ident' && RESERVED_WORDS.has(t.value)) {
       throw syntaxError('EXPR-SYN-020', `"${t.value}" is reserved: the expression language has no statements, loops, variables or user-defined functions`, t.start, t.end);
     }
   }
@@ -226,7 +227,7 @@ class Parser {
       this.next();
       const part = this.next();
       if (part.type !== 'ident') throw syntaxError('EXPR-SYN-015', 'Expected a name after "."', part.start, Math.max(part.end, part.start + 1));
-      if (RESERVED.has(part.value)) throw syntaxError('EXPR-SYN-020', `"${part.value}" is reserved`, part.start, part.end);
+      if (RESERVED_WORDS.has(part.value)) throw syntaxError('EXPR-SYN-020', `"${part.value}" is reserved`, part.start, part.end);
       path += `.${part.value}`;
       end = part.end;
     }

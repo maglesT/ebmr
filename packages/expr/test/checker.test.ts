@@ -222,6 +222,7 @@ describe('declarations', () => {
     const bad = compile('a', { inputs: { a: { unit: 'kg' }, 'bad-name': { unit: 'kg' }, s: { kind: 'series', unit: 'mg' }, t: { unit: 'mg', tag: 'lod' }, u: {} } });
     expect(bad.diagnostics.map((d) => d.code).sort()).toEqual(['EXPR-DECL-001', 'EXPR-DECL-005', 'EXPR-DECL-006', 'EXPR-DECL-007']);
     expect(compile('a', { inputs: { a: { kind: 'category', values: ['X', 'X'] } } }).diagnostics[0]?.code).toBe('EXPR-DECL-003');
+    expect(compile('a', { inputs: { a: { unit: 'kg' }, 'lot.in': { unit: 'kg' }, true: { unit: 'kg' } } }).diagnostics.filter((d) => d.code === 'EXPR-DECL-001')).toHaveLength(2);
   });
 });
 

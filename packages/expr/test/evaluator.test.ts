@@ -155,6 +155,13 @@ describe('derived inputs (INV-25)', () => {
     expect(fails(yieldCalc, { actual: q('50.300'), theoretical: { derived: forged } })).toMatchObject({ code: 'DERIVED_RECORD_INVALID', path: 'theoretical' });
   });
 
+  it('[INV-25] a derived input takes only the result of the calculation it names', () => {
+    const other = evaluate(program('sum(parts)', { parts: { kind: 'series', unit: 'kg', maxLength: 10 } }, { unit: 'kg' }, 'other_total'), { parts: { values: ['51.2'], source: 'x' } });
+    const e = fails(yieldCalc, { actual: q('50.300'), theoretical: { derived: other } });
+    expect(e).toMatchObject({ code: 'DERIVED_RECORD_INVALID', path: 'theoretical' });
+    expect(e.message).toMatch(/comes from calculation "other_total", not from "theoretical"/);
+  });
+
   it('[INV-25] a recorded input cannot be fed a computed result instead of its recorded value', () => {
     expect(fails(yieldCalc, { actual: { derived: t }, theoretical: { derived: t } })).toMatchObject({ code: 'INVALID_INPUT', path: 'actual' });
   });

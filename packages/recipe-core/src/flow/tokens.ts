@@ -6,7 +6,8 @@
  * (e.g. drying loop iteration 2 of sub-lot 3). Iterations and instances never share a context, so
  * every iteration's and instance's data is kept apart (INV-19). A loop test offers CONTINUE only
  * below the maximum; at the maximum an unmet exit condition is EXHAUSTED: an exception is raised and
- * the loop never runs again (INV-19).
+ * the loop never runs again (INV-19). Instances of a SEQUENTIAL replicate section are released one at
+ * a time, each after the previous one has finished; CONCURRENT instances start together.
  */
 import { forwardTopologicalOrder, indexGraph, type ExecutionGraph, type GraphEdge, type GraphIndex, type GraphNode } from './graph.ts';
 import { childrenOf, type FlowNode, type LoopNode, type ReplicateNode } from './model.ts';
@@ -31,6 +32,8 @@ export interface Enabled {
   frames: readonly Frame[];
   /** Tokens consumed when it fires. */
   consumes: Token[];
+  /** A sequential replicate join releasing the next instance (the previous one has finished). */
+  release?: true;
 }
 
 export type Choice =
@@ -54,7 +57,10 @@ export interface GameException {
 
 export interface Marking {
   tokens: ReadonlyMap<string, Token>;
-  /** Instance counts chosen at each replicate split, by `${context}|${construct}`. */
+  /**
+   * Instance counts chosen at each replicate split, by `${context}|${construct}`, and for sequential
+   * sections the number of instances released so far, by `${context}|${construct}|released`.
+   */
   counts: ReadonlyMap<string, number>;
 }
 
@@ -147,7 +153,12 @@ export class TokenGame {
           }
           for (const [key, list] of groups) {
             const count = m.counts.get(`${key}|${construct}`);
-            if (count !== undefined && list.length === count) out.push({ node: n.id, frames: (list[0] as Token).frames.slice(0, -1), consumes: list });
+            if (count === undefined) continue;
+            const released = m.counts.get(`${key}|${construct}|released`) ?? count;
+            const parent = (list[0] as Token).frames.slice(0, -1);
+            if (list.length === count) out.push({ node: n.id, frames: parent, consumes: list });
+            // Sequential instances: the next one starts only when every released instance has finished.
+            else if (released < count && list.length === released) out.push({ node: n.id, frames: parent, consumes: [], release: true });
           }
           break;
         }
@@ -193,6 +204,14 @@ export class TokenGame {
     const outs = this.index.out.get(n.id) ?? [];
     let occurrence: Occurrence | undefined;
     let exception: GameException | undefined;
+    if (e.release) {
+      const split = n.partner === undefined ? undefined : this.index.node.get(n.partner);
+      const releasedKey = `${contextKey(e.frames)}|${n.source}|released`;
+      const next = (counts.get(releasedKey) ?? 0) + 1;
+      counts.set(releasedKey, next);
+      for (const x of split ? (this.index.out.get(split.id) ?? []) : []) put(x, [...e.frames, { construct: n.source, index: next }]);
+      return { marking: { tokens, counts } };
+    }
     switch (n.kind) {
       case 'END':
         break;
@@ -229,8 +248,11 @@ export class TokenGame {
       case 'REP_SPLIT': {
         const choice = this.choiceFor(e);
         if (choice?.kind !== 'COUNT' || !choice.options.includes(option as number)) throw new Error(`instance count ${String(option)} is not allowed at ${n.id}`);
-        counts.set(`${contextKey(e.frames)}|${n.source}`, option as number);
-        for (let k = 1; k <= (option as number); k++) for (const x of outs) put(x, [...e.frames, { construct: n.source, index: k }]);
+        const key = `${contextKey(e.frames)}|${n.source}`;
+        counts.set(key, option as number);
+        const sequential = this.bounds.replicates.get(n.source)?.instances === 'SEQUENTIAL';
+        if (sequential) counts.set(`${key}|released`, 1);
+        for (let k = 1; k <= (sequential ? 1 : (option as number)); k++) for (const x of outs) put(x, [...e.frames, { construct: n.source, index: k }]);
         break;
       }
       default:
