@@ -53,7 +53,7 @@ describe('MBR content model: parsing', () => {
   });
 
   it('[DI-34] an operator choice or a run-time instance count must always require a reason', () => {
-    const json = JSON.parse(JSON.stringify(fixtureJson('tablet-granulation-compression')).replaceAll('"reasonRequired":true', '"reasonRequired":false'));
+    const json: unknown = JSON.parse(JSON.stringify(fixtureJson('tablet-granulation-compression')).replaceAll('"reasonRequired":true', '"reasonRequired":false'));
     const r = parseMbr(json);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.problems.filter((p) => p.path.endsWith('.reasonRequired')).length).toBe(2);
