@@ -5,7 +5,8 @@
   "description": "Recipe engine: flow model, validator, execution engine, simulator, limits, generic blocks, MBR life cycle",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./pure": "./src/pure.ts"
   },
   "dependencies": {
     "@ebmr/expr": "workspace:0.1.0",

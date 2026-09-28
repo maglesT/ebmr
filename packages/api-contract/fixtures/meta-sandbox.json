@@ -1,0 +1,22 @@
+{
+  "installation": "SANDBOX",
+  "edition": "tablets",
+  "version": "0.1.0",
+  "watermark": {
+    "text": "TEST, NOT GMP",
+    "source": "SANDBOX",
+    "notice": "Produced in the sandbox (test, training and simulation store); not a GMP record.",
+    "control": "DI-05"
+  },
+  "site": {
+    "code": "SITE-1",
+    "zone": "Asia/Kolkata"
+  },
+  "serverTime": {
+    "us": "1790584743000000",
+    "text": "28-SEP-2026 14:09:03 +05:30 (Asia/Kolkata)"
+  },
+  "demo": true,
+  "publicOrigin": "http://localhost:3011",
+  "otherInstallationUrl": "http://localhost:3001"
+}

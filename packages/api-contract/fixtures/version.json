@@ -1,0 +1,63 @@
+{
+  "versionId": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+  "familyId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f7a",
+  "familyCode": "PCM500-DC",
+  "product": {
+    "code": "PCM500",
+    "name": "Paracetamol 500 mg tablets",
+    "strength": "500 mg"
+  },
+  "number": "1.0",
+  "revision": 3,
+  "state": "DRAFT",
+  "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f",
+  "content": {
+    "format": "ebmr.mbr",
+    "formatVersion": 1,
+    "header": {
+      "title": "Paracetamol 500 mg tablets, direct compression (mini)"
+    }
+  },
+  "markets": [
+    "IN"
+  ],
+  "evidence": [
+    {
+      "kind": "VALIDATOR_REPORT",
+      "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f",
+      "at": {
+        "us": "1790580903000000",
+        "text": "28-SEP-2026 13:05:03 +05:30 (Asia/Kolkata)"
+      },
+      "valid": true,
+      "summary": "0 errors, 2 warnings (justified)"
+    }
+  ],
+  "justifications": [
+    {
+      "findingKey": "G07-TOLERANCE-MISSING:p-disp-exc",
+      "text": "Excipients are dispensed against the batch formula only; tolerance is checked at reconciliation.",
+      "by": {
+        "personId": "7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11",
+        "legalName": "Asha Rao",
+        "loginName": "asha.rao",
+        "role": "MBR_AUTHOR"
+      },
+      "at": {
+        "us": "1790580783000000",
+        "text": "28-SEP-2026 13:03:03 +05:30 (Asia/Kolkata)"
+      }
+    }
+  ],
+  "savedAt": {
+    "us": "1790580603000000",
+    "text": "28-SEP-2026 13:00:03 +05:30 (Asia/Kolkata)"
+  },
+  "savedBy": {
+    "personId": "7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11",
+    "legalName": "Asha Rao",
+    "loginName": "asha.rao",
+    "role": "MBR_AUTHOR"
+  },
+  "auditChain": "mbr_version:c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f"
+}

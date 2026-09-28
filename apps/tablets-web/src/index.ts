@@ -1,9 +1,4 @@
-/**
- * Tablets edition web application.
- *
- * Phase 0 skeleton: exposes the package identity only. Real modules arrive in the phase
- * that owns them (see docs/outline/build-outline.md section 11).
- */
+/** Tablets edition web application (the SPA's entry is main.tsx; this module exposes its identity). */
 import { PACKAGE as UiKitPackage } from '@ebmr/ui-kit';
 
 export const PACKAGE = { name: '@ebmr/tablets-web', version: '0.1.0' } as const;

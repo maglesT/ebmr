@@ -1,0 +1,202 @@
+{
+  "asOf": {
+    "us": "1790584743000000",
+    "text": "28-SEP-2026 14:09:03 +05:30 (Asia/Kolkata)"
+  },
+  "run": {
+    "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "batchNumber": "TEST-B26-0001",
+    "product": {
+      "code": "PCM500",
+      "name": "Paracetamol 500 mg tablets",
+      "strength": "500 mg"
+    },
+    "markets": [
+      "IN"
+    ],
+    "status": "IN_PROGRESS",
+    "statusText": "In progress",
+    "watermark": {
+      "text": "TEST, NOT GMP",
+      "source": "SANDBOX_TEST_RUN",
+      "notice": "Sandbox test run of an MBR version; not a GMP record.",
+      "control": "DI-05"
+    },
+    "version": 7,
+    "mbr": {
+      "familyCode": "PCM500-DC",
+      "versionNumber": "1.0",
+      "revision": 3,
+      "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f"
+    },
+    "stage": {
+      "stageKey": "S-DISP@",
+      "number": "1",
+      "name": "Dispensing"
+    },
+    "room": "DISP-1",
+    "equipment": [
+      {
+        "ref": "balance",
+        "code": "TEST-BAL-01",
+        "name": "Balance 60 kg, d = 1 g"
+      }
+    ],
+    "timers": [],
+    "scale": {
+      "deviceCode": "TEST-BAL-01",
+      "roomCode": "DISP-1",
+      "status": "ONLINE",
+      "lastHeartbeat": {
+        "us": "1790584723000000",
+        "text": "28-SEP-2026 14:08:43 +05:30 (Asia/Kolkata)"
+      },
+      "gatewayCode": "TEST-GW-01",
+      "resolution": "0.001",
+      "unit": "kg"
+    },
+    "identity": {
+      "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e51",
+      "legalName": "TEST-Priya Nair",
+      "loginName": "test-operator-1",
+      "role": "OPERATOR"
+    },
+    "lastSavedAt": {
+      "us": "1790584683000000",
+      "text": "28-SEP-2026 14:08:03 +05:30 (Asia/Kolkata)"
+    }
+  },
+  "step": {
+    "stepKey": "p-disp-recon@",
+    "stepId": "p-disp-recon",
+    "number": "1.3.1",
+    "ordinal": 6,
+    "of": 13,
+    "title": "Dispensing reconciliation",
+    "kind": "PHASE",
+    "block": "G-20@1",
+    "blockTitle": "Yield and reconciliation",
+    "status": "IN_PROGRESS",
+    "statusText": "In progress",
+    "instruction": {
+      "text": "The reconciliation is computed from the dispensed containers; review it and sign.",
+      "sop": {
+        "refId": "SOP-DISP-001",
+        "code": "SOP-DISP-001",
+        "title": "Dispensing of raw materials",
+        "version": "4",
+        "hash": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+      }
+    },
+    "dispositions": []
+  },
+  "fields": [
+    {
+      "item": "dispRecon",
+      "name": "Dispensing reconciliation",
+      "valueType": "DECIMAL",
+      "unit": "%",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 1
+      },
+      "categories": null,
+      "capture": "MANUAL",
+      "target": null,
+      "limits": [
+        {
+          "tier": "INTERNAL_ACTION",
+          "low": {
+            "value": "99.0",
+            "inclusive": true
+          },
+          "high": {
+            "value": "101.0",
+            "inclusive": true
+          },
+          "source": {
+            "kind": "SOP",
+            "ref": "SOP-DISP-001",
+            "text": "Dispensing reconciliation limits"
+          },
+          "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+        }
+      ],
+      "attempts": [
+        {
+          "pointId": "D-1",
+          "attempt": 1,
+          "version": 1,
+          "value": {
+            "kind": "DECIMAL",
+            "value": "100.0",
+            "unit": "%"
+          },
+          "echo": "Computed: 100.0 %",
+          "by": {
+            "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e51",
+            "legalName": "TEST-Priya Nair",
+            "loginName": "test-operator-1",
+            "role": "OPERATOR"
+          },
+          "at": {
+            "us": "1790584683000000",
+            "text": "28-SEP-2026 14:08:03 +05:30 (Asia/Kolkata)"
+          },
+          "source": {
+            "mode": "BLOCK",
+            "deviceCode": null,
+            "raw": null,
+            "code": null
+          },
+          "verdict": {
+            "tier": null,
+            "failed": false,
+            "text": "Within limits (99.0 - 101.0 %)"
+          },
+          "flags": [],
+          "status": "VALID"
+        }
+      ],
+      "computed": true,
+      "required": true
+    }
+  ],
+  "entries": [],
+  "entryForms": [],
+  "exceptions": [],
+  "signatures": [],
+  "actions": [
+    {
+      "action": "SIGN_PERFORMED",
+      "available": true,
+      "primary": true,
+      "requires": "SIGNATURE",
+      "meaning": "PERFORMED",
+      "reason": null,
+      "target": null
+    },
+    {
+      "action": "RAISE_EXCEPTION",
+      "available": true,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": null,
+      "target": null
+    },
+    {
+      "action": "HOLD_BATCH",
+      "available": false,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": "Only a production supervisor or QA may hold the batch",
+      "target": null
+    }
+  ],
+  "signable": {
+    "aggregateType": "batch_step",
+    "aggregateId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:p-disp-recon@"
+  }
+}

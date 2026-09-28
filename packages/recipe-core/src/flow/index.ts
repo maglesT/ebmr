@@ -28,6 +28,7 @@ export { indexGraph, forwardTopologicalOrder, type EdgeKind, type ExecutionGraph
 export { TokenGame, boundsOf, contextKey, type Bounds, type Choice, type Enabled, type Frame, type GameException, type Marking, type Occurrence, type Token } from './tokens.ts';
 export { evaluateTimeConstraint, TimeConstraintError, type TimeConstraintEvaluation, type TimeConstraintStatus, type TimeObservation } from './time.ts';
 export { diffMbr, structureHash, type Change, type ChangeClass, type MbrDiff } from './diff.ts';
+export { numberMbr, numberFlow, instanceNumber, NumberingError, type InstanceNumber, type MbrNumbering, type NumberedKind, type NumberedNode } from './numbering.ts';
 export type {
   BoundaryVector,
   BoundComparison,

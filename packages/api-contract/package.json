@@ -1,0 +1,16 @@
+{
+  "name": "@ebmr/api-contract",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Typed HTTP contract of the Tablets edition: routes, views, client intents, refusal envelope (browser-safe)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./examples": "./src/examples.ts"
+  },
+  "dependencies": {
+    "@ebmr/expr": "workspace:0.1.0",
+    "@ebmr/recipe-core": "workspace:0.1.0",
+    "zod": "4.6.5"
+  }
+}

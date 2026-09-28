@@ -10,3 +10,6 @@ tools/regulatory/pdf/package-lock.json
 .reports/
 *.tsbuildinfo
 .turbo/
+var/
+test-results/
+playwright-report/

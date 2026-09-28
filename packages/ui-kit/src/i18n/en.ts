@@ -1,0 +1,47 @@
+/**
+ * The English catalogue (A1). Typed keys, so the switch to i18next with Hindi in A2 is mechanical: the same
+ * keys become i18next resources. Plain words, as the outline's message style asks.
+ */
+export const EN = {
+  'app.name': 'eBMR Tablets',
+  'app.loading': 'Loading…',
+  'app.installationMismatch': 'This page belongs to another installation. Reload the page.',
+  'watermark.band': 'TEST, NOT GMP',
+  'watermark.notice': 'Sandbox: test data only. Nothing here is a GMP record.',
+  'installation.gmp': 'GMP installation',
+  'installation.sandbox': 'Sandbox (test runs)',
+  'session.signIn': 'Sign in',
+  'session.signOut': 'Sign out',
+  'session.userId': 'User ID',
+  'session.password': 'Password',
+  'session.badge': 'Badge',
+  'session.pin': 'PIN',
+  'session.tapBadge': 'Tap your badge on the reader',
+  'session.enterPin': 'Enter your PIN',
+  'session.chooseRole': 'Choose the role you are working in',
+  'session.changeSecret': 'Choose a new {kind}',
+  'session.newSecret': 'New {kind}',
+  'session.repeatSecret': 'Repeat the new {kind}',
+  'session.secretsDiffer': 'The two entries differ.',
+  'session.signedInAs': 'Signed in as {name} ({login}), {role}',
+  'device.notEnrolled': 'This browser is not an enrolled terminal.',
+  'device.notEnrolledHelp': 'Ask the system administrator to enrol this terminal.',
+  'device.pickTitle': 'Demo: choose the terminal this browser is',
+  'device.pickHelp': 'DEMO-ONLY keys. A real terminal is enrolled by the system administrator.',
+  'device.use': 'Use this terminal',
+  'device.forget': 'Forget this terminal',
+  'home.title': 'What do you want to do?',
+  'home.notAvailable': 'Not available yet',
+  'common.cancel': 'Cancel',
+  'common.continue': 'Continue',
+  'common.close': 'Close',
+  'common.retry': 'Try again',
+  'decimal.echo': 'You entered {value} {unit}',
+  'decimal.invalid': 'Enter a number such as 12.503 (a point for decimals, no exponent).',
+  'decimal.tooManyDecimals': 'At most {digits} decimals.',
+  'refusal.whatYouCanDo': 'What you can do',
+  'refusal.whoCanHelp': 'Who can help',
+  'refusal.why': 'Why',
+} as const;
+
+export type MessageKey = keyof typeof EN;

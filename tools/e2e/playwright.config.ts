@@ -1,0 +1,32 @@
+/**
+ * End-to-end tests through the real screens (plan section 13; decision 0003): Playwright 1.56.1 with the
+ * chromium revision preinstalled in /opt/pw-browsers (PLAYWRIGHT_BROWSERS_PATH), 2 workers, one persona set per
+ * worker. Office contexts run at 1440x900, kiosk contexts at 1280x800 (projects select by tag).
+ * The global set-up creates unique e2e databases, builds the SPA once and starts the stack on free ports.
+ */
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: 'specs',
+  globalSetup: './global-setup.ts',
+  workers: 2,
+  fullyParallel: false,
+  forbidOnly: !!process.env['CI'],
+  retries: 0,
+  timeout: 90_000,
+  expect: { timeout: 15_000 },
+  outputDir: '../../.reports/playwright-output',
+  reporter: [['list'], ['json', { outputFile: '../../.reports/playwright.json' }], ['./reporters/evidence-reporter.ts', { outputFile: '../../.reports/e2e-evidence.json' }]],
+  use: {
+    headless: true,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'off',
+    locale: 'en-IN',
+    timezoneId: 'Asia/Kolkata',
+  },
+  projects: [
+    { name: 'office', grep: /@office/, use: { browserName: 'chromium', viewport: { width: 1440, height: 900 } } },
+    { name: 'kiosk', grep: /@kiosk/, use: { browserName: 'chromium', viewport: { width: 1280, height: 800 } } },
+  ],
+});

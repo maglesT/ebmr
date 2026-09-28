@@ -30,3 +30,6 @@ export * as lifecycle from './lifecycle/index.ts';
 export * as engine from './engine/index.ts';
 export * as blocks from './blocks/index.ts';
 // ---- end of module B1 exports ---------------------------------------------------------------------
+
+// ---- Phase 2 apps, module C3: database-backed execution store (node-only; stub until C3 lands) -----
+export * as execution from './execution/index.ts';

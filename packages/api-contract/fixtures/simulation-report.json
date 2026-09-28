@@ -1,0 +1,41 @@
+{
+  "watermark": {
+    "text": "TEST, NOT GMP",
+    "source": "SIMULATION",
+    "notice": "Simulation output; not a GMP record.",
+    "control": "DI-05"
+  },
+  "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f",
+  "passed": true,
+  "paths": 4,
+  "coverage": {
+    "nodes": {
+      "covered": 31,
+      "total": 31
+    },
+    "decisions": {
+      "covered": 2,
+      "total": 2
+    },
+    "percent": "100.0"
+  },
+  "problems": [],
+  "runs": [
+    {
+      "pathId": "P1",
+      "outcome": "EXECUTION_COMPLETE",
+      "exceptions": []
+    },
+    {
+      "pathId": "P2",
+      "outcome": "EXECUTION_COMPLETE",
+      "exceptions": [
+        "LIMIT_BREACH"
+      ]
+    }
+  ],
+  "simulatedAt": {
+    "us": "1790580963000000",
+    "text": "28-SEP-2026 13:06:03 +05:30 (Asia/Kolkata)"
+  }
+}

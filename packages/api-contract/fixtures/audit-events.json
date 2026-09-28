@@ -1,0 +1,88 @@
+{
+  "events": [
+    {
+      "eventId": "1024",
+      "chainKey": "batch:b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "seq": "12",
+      "at": {
+        "us": "1790586663000000",
+        "text": "28-SEP-2026 14:41:03 +05:30 (Asia/Kolkata)"
+      },
+      "kind": "BUSINESS",
+      "action": "STEP_VERIFIED",
+      "summary": "Step 2.1.4 Blend verified by TEST-Kavya Reddy (VERIFIED)",
+      "table": null,
+      "recordId": null,
+      "who": {
+        "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61",
+        "legalName": "TEST-Kavya Reddy",
+        "loginName": "test-verifier-1",
+        "role": "VERIFIER"
+      },
+      "device": "TEST-KIOSK-BLEND-1",
+      "why": null,
+      "correlationId": "0b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e",
+      "changes": []
+    },
+    {
+      "eventId": "1023",
+      "chainKey": "batch:b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "seq": "11",
+      "at": {
+        "us": "1790586363000000",
+        "text": "28-SEP-2026 14:36:03 +05:30 (Asia/Kolkata)"
+      },
+      "kind": "BUSINESS",
+      "action": "DATA_RECORDED",
+      "summary": "Blender speed 15 /min recorded at step 2.1.4; above the alert limit 14 /min",
+      "table": null,
+      "recordId": null,
+      "who": {
+        "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52",
+        "legalName": "TEST-Arjun Das",
+        "loginName": "test-operator-2",
+        "role": "OPERATOR"
+      },
+      "device": "TEST-KIOSK-BLEND-1",
+      "why": null,
+      "correlationId": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "changes": []
+    },
+    {
+      "eventId": "1019",
+      "chainKey": "mbr_version:c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+      "seq": "5",
+      "at": {
+        "us": "1790580603000000",
+        "text": "28-SEP-2026 13:00:03 +05:30 (Asia/Kolkata)"
+      },
+      "kind": "ROW",
+      "action": "UPDATE",
+      "summary": "MBR version 1.0 content saved as revision 3",
+      "table": "recipe.mbr_version",
+      "recordId": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+      "who": {
+        "personId": "7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11",
+        "legalName": "Asha Rao",
+        "loginName": "asha.rao",
+        "role": "MBR_AUTHOR"
+      },
+      "device": "PC-DESIGN-01",
+      "why": "Added the blend alert tier",
+      "correlationId": "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
+      "changes": [
+        {
+          "field": "revision",
+          "old": "2",
+          "new": "3"
+        },
+        {
+          "field": "content_hash",
+          "old": "4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d",
+          "new": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f"
+        }
+      ]
+    }
+  ],
+  "nextCursor": null
+}

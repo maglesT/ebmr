@@ -294,3 +294,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   when exit A0 is green. First clickable version = journey spec fcv.spec.ts (login, designer, validate/simulate, send to
   sandbox, issue TEST- batch, kiosk entries with badge taps, scale capture, limits/exceptions, PERFORMED/VERIFIED
   ceremony, hold point, stage sign-off, replay, audit trail on both installations).
+- 2026-09-28: PHASE 1 REVIEW DONE (wf_2867a725-d77): 88 findings -> 55 confirmed with failing reproducers (4 critical,
+  15 high, 36 medium), 14 plausible, 19 rejected; critic added 4. Critical: (1) co-signature leaves the co-signer's
+  context re-installable for the rest of the transaction (ADR 0016 marker flaw; F1=F68=F74=F12); (2) ALL_APPLY
+  strictness compared criterion ids only (F20). On branch phase-1/mutation-testing (/home/user/ebmr):
+  docs/build-plan/phase-1-exit/ (results, fix briefs K/E/I/M/R/P/C), reproducers packages/kernel/test/review/*.test.ts.
+  Fix agents running: K audit core, E esig, I identity, M market. Next: R records, P platform, C continuity.

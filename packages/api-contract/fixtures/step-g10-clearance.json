@@ -1,0 +1,195 @@
+{
+  "asOf": {
+    "us": "1790584743000000",
+    "text": "28-SEP-2026 14:09:03 +05:30 (Asia/Kolkata)"
+  },
+  "run": {
+    "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "batchNumber": "TEST-B26-0001",
+    "product": {
+      "code": "PCM500",
+      "name": "Paracetamol 500 mg tablets",
+      "strength": "500 mg"
+    },
+    "markets": [
+      "IN"
+    ],
+    "status": "IN_PROGRESS",
+    "statusText": "In progress",
+    "watermark": {
+      "text": "TEST, NOT GMP",
+      "source": "SANDBOX_TEST_RUN",
+      "notice": "Sandbox test run of an MBR version; not a GMP record.",
+      "control": "DI-05"
+    },
+    "version": 7,
+    "mbr": {
+      "familyCode": "PCM500-DC",
+      "versionNumber": "1.0",
+      "revision": 3,
+      "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f"
+    },
+    "stage": {
+      "stageKey": "S-DISP@",
+      "number": "1",
+      "name": "Dispensing"
+    },
+    "room": "DISP-1",
+    "equipment": [
+      {
+        "ref": "balance",
+        "code": "TEST-BAL-01",
+        "name": "Balance 60 kg, d = 1 g"
+      }
+    ],
+    "timers": [],
+    "scale": {
+      "deviceCode": "TEST-BAL-01",
+      "roomCode": "DISP-1",
+      "status": "ONLINE",
+      "lastHeartbeat": {
+        "us": "1790584723000000",
+        "text": "28-SEP-2026 14:08:43 +05:30 (Asia/Kolkata)"
+      },
+      "gatewayCode": "TEST-GW-01",
+      "resolution": "0.001",
+      "unit": "kg"
+    },
+    "identity": {
+      "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e51",
+      "legalName": "TEST-Priya Nair",
+      "loginName": "test-operator-1",
+      "role": "OPERATOR"
+    },
+    "lastSavedAt": {
+      "us": "1790584683000000",
+      "text": "28-SEP-2026 14:08:03 +05:30 (Asia/Kolkata)"
+    }
+  },
+  "step": {
+    "stepKey": "p-disp-clear@",
+    "stepId": "p-disp-clear",
+    "number": "1.1.1",
+    "ordinal": 1,
+    "of": 13,
+    "title": "Dispensing booth clearance",
+    "kind": "PHASE",
+    "block": "G-10@1",
+    "blockTitle": "Clearance checklist",
+    "status": "IN_PROGRESS",
+    "statusText": "In progress",
+    "instruction": {
+      "text": "Confirm the booth is clear of the previous product, documents and labels, then record the previous batch.",
+      "sop": {
+        "refId": "SOP-CLEAN-003",
+        "code": "SOP-CLEAN-003",
+        "title": "Line and area clearance",
+        "version": "6",
+        "hash": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3"
+      }
+    },
+    "dispositions": []
+  },
+  "fields": [],
+  "entries": [],
+  "entryForms": [
+    {
+      "kind": "CLEARANCE_CHECK",
+      "title": "Clearance checklist",
+      "description": "Answer every item; NOT CONFIRMED stops the step until QA decides.",
+      "fields": [
+        {
+          "name": "answers",
+          "label": "Checklist",
+          "type": "checklist",
+          "unit": null,
+          "options": [
+            {
+              "value": "NO_PREVIOUS_MATERIAL",
+              "label": "No material of the previous product in the booth"
+            },
+            {
+              "value": "NO_PREVIOUS_DOCUMENTS",
+              "label": "No documents or labels of the previous batch"
+            },
+            {
+              "value": "EQUIPMENT_CLEAN_LABEL",
+              "label": "Equipment carries a valid CLEAN label"
+            }
+          ],
+          "required": true,
+          "description": "CONFIRMED, NOT CONFIRMED or NOT APPLICABLE for each item"
+        }
+      ]
+    },
+    {
+      "kind": "PREVIOUS_BATCH",
+      "title": "Previous batch",
+      "description": "Product and batch number last processed in this booth.",
+      "fields": [
+        {
+          "name": "product",
+          "label": "Previous product",
+          "type": "string",
+          "unit": null,
+          "options": null,
+          "required": true,
+          "description": "As shown on the previous batch record"
+        },
+        {
+          "name": "batchNumber",
+          "label": "Previous batch number",
+          "type": "string",
+          "unit": null,
+          "options": null,
+          "required": true,
+          "description": "As shown on the previous batch record"
+        }
+      ]
+    }
+  ],
+  "exceptions": [],
+  "signatures": [],
+  "actions": [
+    {
+      "action": "RECORD_ENTRY",
+      "available": true,
+      "primary": true,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": null,
+      "target": null
+    },
+    {
+      "action": "SIGN_PERFORMED",
+      "available": false,
+      "primary": false,
+      "requires": "SIGNATURE",
+      "meaning": "LINE_CLEARANCE_PERFORMED",
+      "reason": "Record the checklist and the previous batch first (G10-INCOMPLETE; PR-03)",
+      "target": null
+    },
+    {
+      "action": "RAISE_EXCEPTION",
+      "available": true,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": null,
+      "target": null
+    },
+    {
+      "action": "HOLD_BATCH",
+      "available": false,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": "Only a production supervisor or QA may hold the batch",
+      "target": null
+    }
+  ],
+  "signable": {
+    "aggregateType": "batch_step",
+    "aggregateId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:p-disp-clear@"
+  }
+}

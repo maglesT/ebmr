@@ -1,0 +1,170 @@
+/**
+ * Wire rules shared by every namespace (Phase 2 apps plan section 4, "Wire rules" and "Refusal envelope").
+ *
+ *  - GMP decimals travel as DecimalString text, never as JSON numbers (and never in exponent form).
+ *  - Instants travel as {us, text}: UTC epoch microseconds as a decimal string plus the site-time text the
+ *    server formatted (kernel time.siteTime); the browser never formats GMP time.
+ *  - Persons travel as {personId, legalName, loginName, role}.
+ *  - Every non-2xx response is a RefusalEnvelope.
+ * JSON numbers are used only for counts, indices and versions (safe integers).
+ */
+import { z } from 'zod';
+
+export const DECIMAL_PATTERN = /^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/;
+
+/** A GMP decimal as text, e.g. "12.503" or "-0.5". JSON numbers and exponent forms are refused. */
+export const DecimalString = z
+  .string()
+  .regex(DECIMAL_PATTERN, 'a decimal travels as plain decimal text such as 12.503, never as a number or in exponent form');
+export type DecimalString = z.infer<typeof DecimalString>;
+
+/** A non-negative integer as text (content versions, sequence numbers beyond 2^53 in the database). */
+export const IntegerString = z.string().regex(/^(0|[1-9][0-9]*)$/, 'a whole number as text');
+
+/** UTC epoch microseconds as text (may be negative before 1970). */
+export const EpochMicros = z.string().regex(/^-?(0|[1-9][0-9]*)$/, 'UTC epoch microseconds as text');
+
+export const Uuid = z.uuid();
+
+/** Base64url (or base64) text without line breaks: device keys, nonces, signatures. */
+export const Base64Text = z.string().regex(/^[A-Za-z0-9_+/-]+={0,2}$/, 'base64 text');
+
+export const InstallationKind = z.enum(['GMP', 'SANDBOX']);
+export type InstallationKind = z.infer<typeof InstallationKind>;
+
+/** A point in time: epoch microseconds and the server's site-time text, e.g. "28-SEP-2026 14:05:03 +05:30 (Asia/Kolkata)". */
+export const Instant = z.strictObject({
+  us: EpochMicros,
+  text: z.string().min(1),
+});
+export type Instant = z.infer<typeof Instant>;
+
+/** A person as shown on every screen, signature and audit entry. `role` is the role they acted in. */
+export const PersonRef = z.strictObject({
+  personId: Uuid,
+  legalName: z.string().min(1),
+  loginName: z.string().min(1),
+  role: z.string(),
+});
+export type PersonRef = z.infer<typeof PersonRef>;
+
+/** The TEST, NOT GMP watermark (kernel sandbox.watermarkFor); null on GMP output. */
+export const Watermark = z.strictObject({
+  text: z.literal('TEST, NOT GMP'),
+  source: z.enum(['SANDBOX', 'SANDBOX_TEST_RUN', 'TRAINING', 'SIMULATION', 'ANALYTICS']),
+  notice: z.string().min(1),
+  control: z.literal('DI-05'),
+});
+export type Watermark = z.infer<typeof Watermark>;
+
+// ---------------------------------------------------------------------------------------------
+// Values
+
+/** A value as it travels: decimals as DecimalString, instants as epoch microseconds text. */
+export const DataValueWire = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('DECIMAL'), value: DecimalString, unit: z.string().min(1) }),
+  z.strictObject({ kind: z.literal('COUNT'), value: IntegerString }),
+  z.strictObject({ kind: z.literal('BOOLEAN'), value: z.boolean() }),
+  z.strictObject({ kind: z.literal('CATEGORY'), value: z.string().min(1) }),
+  z.strictObject({ kind: z.literal('TEXT'), value: z.string() }),
+  z.strictObject({ kind: z.literal('INSTANT'), us: EpochMicros }),
+  z.strictObject({ kind: z.literal('SERIES'), values: z.array(DecimalString).min(1), unit: z.string().min(1) }),
+]);
+export type DataValueWire = z.infer<typeof DataValueWire>;
+
+// ---------------------------------------------------------------------------------------------
+// Devices and attribution (plan section 5)
+
+/**
+ * Proof of possession of the browser's device key: an ECDSA P-256 signature (IEEE P1363, as WebCrypto
+ * produces it) over `nonce|METHOD|path|sha256hex(canonical JSON of the body without its proof)`.
+ * The fingerprint is SHA-256 of the SPKI DER (kernel identity.deviceFingerprint).
+ */
+export const DeviceProof = z.strictObject({
+  spki: Base64Text,
+  nonce: z.string().min(16).max(128),
+  sig: Base64Text,
+});
+export type DeviceProof = z.infer<typeof DeviceProof>;
+
+/**
+ * Per-entry attribution on SHARED and GRADE_A_B devices (INV-40): a badge tap by the session's own person,
+ * with the device proof. TAP_PIN device classes add the PIN (decision D8).
+ */
+export const Attribution = z.strictObject({
+  method: z.literal('BADGE_TAP'),
+  badgeUid: z.string().min(1).max(64),
+  pin: z.string().min(4).max(12).optional(),
+  proof: DeviceProof,
+});
+export type Attribution = z.infer<typeof Attribution>;
+
+/** Adds the optional attribution member to a FRESH_ON_SHARED route body (the server enforces it on shared devices). */
+export function withAttribution<const S extends z.ZodRawShape>(shape: S) {
+  return z.strictObject({ ...shape, attribution: Attribution.optional() });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Refusals
+
+export const REFUSAL_KINDS = [
+  'NOT_ENABLED',
+  'NOT_ALLOWED',
+  'INDEPENDENCE',
+  'STALE',
+  'BLOCKED_BY_EXCEPTION',
+  'AUTH_FAILED',
+  'LOCKED',
+  'INVALID_INPUT',
+  'NOT_SAVED',
+  'CONTENT_CHANGED',
+  'SWITCH_USER',
+] as const;
+export const RefusalKind = z.enum(REFUSAL_KINDS);
+export type RefusalKind = z.infer<typeof RefusalKind>;
+
+/** Plain-language refusal: what happened, why (the engine's or kernel's own message), what to do, who can help. */
+export const Refusal = z.strictObject({
+  /** Stable code, e.g. EBMR-IAM-140, ENG-STEP-ORDER, EBMR-PLAT-041, MUST_CHANGE_SECRET. */
+  code: z.string().min(1),
+  kind: RefusalKind,
+  whatHappened: z.string().min(1),
+  why: z.string(),
+  controls: z.array(z.string()),
+  whatYouCanDo: z.array(z.string()),
+  whoCanHelp: z.array(z.string()),
+  /** Extra facts for the screen, e.g. {switchToLegalName} for SWITCH_USER or {roles} for a role choice. */
+  details: z.record(z.string(), z.string()).optional(),
+});
+export type Refusal = z.infer<typeof Refusal>;
+
+export const RefusalEnvelope = z.strictObject({
+  refusal: Refusal,
+  correlationId: z.string().min(1),
+  retryable: z.boolean(),
+});
+export type RefusalEnvelope = z.infer<typeof RefusalEnvelope>;
+
+/** HTTP status for each situation (plan section 4). */
+export const REFUSAL_STATUS = {
+  SCHEMA: 400,
+  NO_SESSION: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  RULE: 422,
+  LOCKED: 423,
+  PRECONDITION_REQUIRED: 428,
+  TOO_MANY_REQUESTS: 429,
+  NOT_IMPLEMENTED: 501,
+  UNAVAILABLE: 503,
+} as const;
+
+/** Shared small views. */
+export const SignableRef = z.strictObject({
+  aggregateType: z.string().min(1),
+  aggregateId: z.string().min(1),
+});
+export type SignableRef = z.infer<typeof SignableRef>;
+
+export const Empty = z.strictObject({});

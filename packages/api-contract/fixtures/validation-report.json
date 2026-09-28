@@ -1,0 +1,78 @@
+{
+  "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f",
+  "validatedAt": {
+    "us": "1790580903000000",
+    "text": "28-SEP-2026 13:05:03 +05:30 (Asia/Kolkata)"
+  },
+  "gate": {
+    "passed": false,
+    "errors": 1,
+    "warnings": 2,
+    "unjustifiedWarnings": 1
+  },
+  "findings": [
+    {
+      "key": "GMP-STAGE-CLEARANCE:S-BLEND",
+      "rule": "GMP-STAGE-CLEARANCE",
+      "severity": "ERROR",
+      "controls": [
+        "PR-03"
+      ],
+      "section": "8",
+      "subjectPath": [
+        "procedure",
+        "S-BLEND"
+      ],
+      "nodeId": "S-BLEND",
+      "message": "Stage 2 Blending has no clearance step before its first material step: add a line clearance (G-10) at the start of the stage.",
+      "justification": null
+    },
+    {
+      "key": "G07-TOLERANCE-MISSING:p-disp-exc",
+      "rule": "G07-TOLERANCE-MISSING",
+      "severity": "WARNING",
+      "controls": [
+        "PR-19"
+      ],
+      "section": "8",
+      "subjectPath": [
+        "procedure",
+        "S-DISP",
+        "O-DISP-WEIGH",
+        "p-disp-exc"
+      ],
+      "nodeId": "p-disp-exc",
+      "message": "Dispensing step 1.2.2 reads a target but has no tolerance.",
+      "justification": {
+        "findingKey": "G07-TOLERANCE-MISSING:p-disp-exc",
+        "text": "Excipients are dispensed against the batch formula only; tolerance is checked at reconciliation.",
+        "by": {
+          "personId": "7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11",
+          "legalName": "Asha Rao",
+          "loginName": "asha.rao",
+          "role": "MBR_AUTHOR"
+        },
+        "at": {
+          "us": "1790580783000000",
+          "text": "28-SEP-2026 13:03:03 +05:30 (Asia/Kolkata)"
+        }
+      }
+    },
+    {
+      "key": "LIMIT-SOURCE-EDITION:blendTime",
+      "rule": "LIMIT-SOURCE-EDITION",
+      "severity": "WARNING",
+      "controls": [
+        "PR-08"
+      ],
+      "section": "6",
+      "subjectPath": [
+        "parameters",
+        "blendTime"
+      ],
+      "nodeId": null,
+      "message": "The registered limit of blend time cites a registration without an edition date.",
+      "justification": null
+    }
+  ]
+}
