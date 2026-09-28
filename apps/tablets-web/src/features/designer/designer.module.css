@@ -1,0 +1,240 @@
+/* Document-first MBR designer (module C2), office density. */
+.page {
+  display: grid;
+  gap: var(--ebmr-gap);
+}
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  background: var(--ebmr-background);
+  border-bottom: 1px solid var(--ebmr-border);
+}
+.toolbarGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.spacer {
+  flex: 1;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+.document {
+  min-width: 0;
+}
+.side {
+  position: sticky;
+  top: 64px;
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  border: 1px solid var(--ebmr-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--ebmr-background);
+}
+.section {
+  border-top: 2px solid var(--ebmr-border);
+  padding: 8px 0 16px;
+  scroll-margin-top: 72px;
+}
+.sectionTitle {
+  font-size: 1.15em;
+  margin: 8px 0;
+}
+.sectionNo {
+  color: var(--ebmr-muted);
+  margin-right: 8px;
+}
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.grid th,
+.grid td {
+  border: 1px solid var(--ebmr-border);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.grid th {
+  background: var(--ebmr-surface-alt);
+}
+.stageRow td {
+  background: var(--ebmr-info-bg);
+  font-weight: 700;
+}
+.operationRow td {
+  background: var(--ebmr-surface-alt);
+  font-weight: 600;
+}
+.constructRow td {
+  background: var(--ebmr-pending-bg);
+  font-style: italic;
+}
+.stepRow {
+  cursor: pointer;
+}
+.stepRow:focus-visible {
+  outline: 3px solid var(--ebmr-focus);
+  outline-offset: -3px;
+}
+.stepRow[data-selected='true'] td {
+  background: #fff8e1;
+}
+.stepRow[data-severity='ERROR'] td:first-child {
+  box-shadow: inset 4px 0 0 var(--ebmr-error-border);
+}
+.stepRow[data-severity='WARNING'] td:first-child {
+  box-shadow: inset 4px 0 0 var(--ebmr-warning-border);
+}
+.no {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.small {
+  font-size: 0.85em;
+  color: var(--ebmr-muted);
+}
+.mono {
+  font-family: ui-monospace, 'Noto Sans Mono', monospace;
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+.list {
+  margin: 0;
+  padding-left: 18px;
+}
+.inline {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.stack {
+  display: grid;
+  gap: 8px;
+}
+.panelTitle {
+  font-size: 1.05em;
+  margin: 4px 0 8px;
+}
+.finding {
+  border: 1px solid var(--ebmr-border);
+  border-radius: 6px;
+  padding: 8px;
+  margin: 6px 0;
+}
+.findingGroup {
+  margin: 10px 0 4px;
+  font-size: 0.95em;
+}
+.menu {
+  background: var(--ebmr-background);
+  border: 1px solid var(--ebmr-border);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 200px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
+}
+.menuItem {
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: default;
+  outline: none;
+}
+.menuItem[data-focused] {
+  background: var(--ebmr-info-bg);
+}
+.menuItem[data-disabled] {
+  color: var(--ebmr-muted);
+}
+.fieldset {
+  border: 1px solid var(--ebmr-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0;
+}
+.legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+.checkbox {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 32px;
+}
+.select {
+  font: inherit;
+  padding: 6px 8px;
+  min-height: 36px;
+  border: 1px solid var(--ebmr-border);
+  border-radius: 6px;
+  background: var(--ebmr-background);
+}
+.textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 96px;
+  padding: 8px;
+  border: 1px solid var(--ebmr-border);
+  border-radius: 6px;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--ebmr-border);
+  margin-bottom: 8px;
+}
+.tab {
+  padding: 8px 10px;
+  border-bottom: 3px solid transparent;
+  cursor: default;
+  outline: none;
+}
+.tab[data-selected] {
+  border-bottom-color: var(--ebmr-focus);
+  font-weight: 700;
+}
+.tab[data-focus-visible] {
+  outline: 3px solid var(--ebmr-focus);
+}
+.paletteItem {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  width: 100%;
+}
+.limitCell {
+  min-width: 120px;
+}
+.dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+.dl dt {
+  color: var(--ebmr-muted);
+}
+.dl dd {
+  margin: 0;
+}

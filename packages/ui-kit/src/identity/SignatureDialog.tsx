@@ -78,11 +78,16 @@ export interface SignatureDialogProps {
   secondsLeft: number | null;
   signerName: string;
   demoBadges?: readonly DemoBadge[];
+  /** TAP_PIN terminal classes: after the badge, the PIN confirms the signing request too. */
+  tapStage?: 'badge' | 'pin';
+  /** A failed switch in switchOffered (e.g. a wrong PIN). */
+  switchError?: RefusalEnvelope | null;
   onSign: () => void;
   onCancel: () => void;
   onRestart: () => void;
   onClose: () => void;
   onTap: (badgeUid: string) => void;
+  onTapPin?: (pin: string) => void;
   onTapTimeout: () => void;
   onPin: (pin: string) => void;
   onPassword: (loginName: string, password: string) => void;
@@ -123,7 +128,10 @@ export function SignatureDialog(p: SignatureDialogProps) {
                 <Button onPress={p.onCancel}>Cancel</Button>
               </div>
             ) : null}
-            {p.state === 'awaitingTap' ? <BadgePrompt reason={`Tap your badge to sign as ${p.signerName}.`} onTap={p.onTap} onCancel={p.onCancel} onTimeout={p.onTapTimeout} demoBadges={p.demoBadges ?? []} /> : null}
+            {p.state === 'awaitingTap' && p.tapStage !== 'pin' ? (
+              <BadgePrompt reason={`Tap your badge to sign as ${p.signerName}.`} onTap={p.onTap} onCancel={p.onCancel} onTimeout={p.onTapTimeout} demoBadges={p.demoBadges ?? []} />
+            ) : null}
+            {p.state === 'awaitingTap' && p.tapStage === 'pin' && p.onTapPin ? <PinPad label="Enter your PIN to confirm the signing request" onSubmit={p.onTapPin} /> : null}
             {p.state === 'challenging' ? <p aria-busy="true">Preparing the signature…</p> : null}
             {(p.state === 'awaitingSecret' || p.state === 'signing') && c.challenge ? (
               <>
@@ -156,6 +164,7 @@ export function SignatureDialog(p: SignatureDialogProps) {
         return (
           <>
             {c.refusal ? <RefusalNotice envelope={c.refusal} tone="warning" /> : null}
+            {p.switchError ? <RefusalNotice envelope={p.switchError} /> : null}
             <p>{`Switch to ${c.refusal?.refusal.details?.['switchToLegalName'] ?? 'this person'}? Their session opens on this terminal and the signing starts again for them.`}</p>
             <PinPad label={`Enter the PIN of ${c.refusal?.refusal.details?.['switchToLegalName'] ?? 'the person who tapped'}`} onSubmit={p.onSwitchPin} />
             <Button onPress={p.onCancel}>Cancel</Button>

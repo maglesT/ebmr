@@ -64,6 +64,8 @@ export interface LockOverlayProps {
   /** Another person's badge was tapped at the unlock: offer to switch to them. */
   offer: SwitchOffer | null;
   demoBadges?: readonly DemoBadge[];
+  /** Kiosk: open straight at "Switch user" (the banner's Switch user locks first, then asks the next badge). */
+  switchFirst?: boolean;
   onUnlockBadge: (badgeUid: string, pin: string) => void;
   onUnlockPassword: (loginName: string, password: string) => void;
   onSwitch: (badgeUid: string, pin: string) => void;
@@ -81,6 +83,9 @@ export function LockOverlay(p: LockOverlayProps) {
   useEffect(() => {
     if (p.offer) setStep('offerPin');
   }, [p.offer]);
+  useEffect(() => {
+    if (p.isOpen && p.switchFirst && p.kiosk) setStep('switchTap');
+  }, [p.isOpen, p.switchFirst, p.kiosk]);
   const { clear: clearBadge } = kept;
   useEffect(() => {
     if (!p.isOpen) {

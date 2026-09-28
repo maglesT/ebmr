@@ -7,8 +7,10 @@
  * reported now and become mandatory when the UI and renderer work lands (CI will then refuse an
  * incomplete version, outline 6.6).
  */
+import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import type { BlockCatalog } from '../flow/blocks.ts';
 import { CONTRACT_PARTS, RENDERING_PARTS, type BlockVersion, type ContractPart } from './contract.ts';
+import { describeSchema } from './schema.ts';
 
 export interface BlockVersionReport {
   key: string;
@@ -101,6 +103,29 @@ export class BlockRegistry {
       for (const version of catalog.describe(type)?.versions ?? []) if (!this.versions.has(blockKey(type, version))) out.push(blockKey(type, version));
     }
     return out.sort();
+  }
+
+  /**
+   * Fingerprint of the registered block versions (ADR 0010: a batch runs, and is replayed, on the block
+   * versions it was issued with): SHA-256 over each version's key, title, availability, controls,
+   * configuration and data schemas (as text), exception types and signature meanings.
+   */
+  fingerprint(): string {
+    return sha256Hex(
+      canonicalJson(
+        this.all().map((b) => ({
+          key: blockKey(b.type, b.version),
+          title: b.title,
+          level: b.level,
+          availability: b.availability ?? 'ALL',
+          controls: [...b.controls],
+          config: b.configSchema ? describeSchema(b.configSchema) : null,
+          data: b.dataSchema ? Object.entries(b.dataSchema.entries).map(([kind, sc]) => ({ kind, schema: describeSchema(sc) })) : null,
+          exceptions: (b.exceptionRules ?? []).map((r) => r.type).sort(),
+          meanings: { perform: [...(b.handler?.meanings?.perform ?? [])], check: [...(b.handler?.meanings?.check ?? [])] },
+        })),
+      ),
+    );
   }
 
   /** Keys (`type@version`) of the versions that may run only in the sandbox (sorted). */

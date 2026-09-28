@@ -1,0 +1,403 @@
+/**
+ * The designer of one MBR version (module C2; plan section 8, screens 6-8): toolbar, the document view and the side
+ * panel (findings, step properties, simulation).
+ *
+ * Editing happens in the browser on a copy of the saved revision (pure operations with undo and redo); the server
+ * validates every change (debounced) and saves a revision only when the author saves with a change note, based on
+ * the revision the edits started from (409 when someone saved meanwhile). Unsaved edits are kept as a local draft
+ * (decision D7) and, when restored, shown as UNSAVED until saved.
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useParams } from '@tanstack/react-router';
+import { Tab, TabList, TabPanel, Tabs } from 'react-aria-components';
+import { routes, type VersionView } from '@ebmr/api-contract';
+import { flow } from '@ebmr/recipe-core/pure';
+import { Banner, Button, StatusChip } from '@ebmr/ui-kit';
+import { api } from '../../api/client.ts';
+import { useApiQuery } from '../../api/hooks.ts';
+import { RefusalMessage } from '../../app/refusal.tsx';
+import { dcls } from './classes.ts';
+import { StateChip, shortHash } from './components/common.tsx';
+import { CommandDialog, NoteField, ReadOnlyNotice } from './components/Dialogs.tsx';
+import { DocumentView } from './components/DocumentView.tsx';
+import { FindingsPanel, gateSummary } from './components/FindingsPanel.tsx';
+import { rowId } from './components/ProcedureTable.tsx';
+import { SimulationPanel } from './components/SimulationPanel.tsx';
+import { StepEditor } from './components/StepEditor.tsx';
+import { clearDraft, loadDraft, saveDraft, type Draft } from './model/draft.ts';
+import { canRedo, canUndo, initHistory, locate, OpError, perform, redo, undo, type History, type Op } from './model/ops.ts';
+import { jumpTarget } from './model/sections.ts';
+import type { FindingItem, PackageResult, PaletteItem } from './model/types.ts';
+import { useDebouncedValidation } from './model/validation.ts';
+import { asWire, fromWire } from './model/wire.ts';
+
+export const auditLink = (versionId: string): string => `/audit?chain=${encodeURIComponent(`mbr_version:${versionId}`)}`;
+
+export function DesignerPage() {
+  const params = useParams({ strict: false }) as { versionId?: string };
+  const versionId = params.versionId ?? '';
+  const version = useApiQuery(routes.designer.version, { params: { versionId } }, { enabled: versionId !== '' });
+  const palette = useApiQuery(routes.designer.palette);
+  if (version.error) return version.error.error ? <RefusalMessage error={version.error.error} /> : <p>The version could not be loaded.</p>;
+  if (!version.data || !palette.data) return <p>Loading the master record…</p>;
+  return <DesignerEditor key={`${version.data.versionId}`} initial={version.data} palette={palette.data.blocks} />;
+}
+
+type Dialogs = 'save' | 'start' | 'package' | { justify: FindingItem } | null;
+
+export function DesignerEditor({ initial, palette }: { initial: VersionView; palette: readonly PaletteItem[] }) {
+  const queryClient = useQueryClient();
+  const [saved, setSaved] = useState<VersionView>(initial);
+  const [history, setHistory] = useState<History>(() => initHistory(fromWire(initial.content)));
+  const [selected, setSelected] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<Dialogs>(null);
+  const [note, setNote] = useState('');
+  const [justification, setJustification] = useState('');
+  const [pkg, setPkg] = useState<PackageResult | null>(null);
+  const [draftOffer, setDraftOffer] = useState<Draft | null>(() => loadDraft(initial.versionId));
+  const [restored, setRestored] = useState(false);
+  const [generation, setGeneration] = useState(0);
+  const [tab, setTab] = useState<string>('findings');
+
+  const readOnly = saved.state !== 'DRAFT';
+  const present = history.present;
+  const presentHash = useMemo(() => flow.mbrContentHash(present), [present]);
+  const dirty = presentHash !== saved.contentHash;
+  const validation = useDebouncedValidation(saved.versionId, present, generation);
+
+  // D7: the unsaved content (only) is kept in this browser while it differs from the saved revision.
+  useEffect(() => {
+    if (readOnly || draftOffer) return;
+    if (dirty) saveDraft({ versionId: saved.versionId, baseRevision: saved.revision, baseHash: saved.contentHash, content: present });
+    else clearDraft(saved.versionId);
+  }, [present, dirty, readOnly, saved.versionId, saved.revision, saved.contentHash, draftOffer]);
+
+  // Applies one operation; an OpError is shown in plain language and changes nothing.
+  const apply = useCallback(
+    (op: Op): boolean => {
+      if (readOnly) return false;
+      try {
+        const next = perform(history, op);
+        setHistory(next);
+        setMessage(null);
+        return true;
+      } catch (e) {
+        setMessage(e instanceof OpError ? e.message : String(e));
+        return false;
+      }
+    },
+    [history, readOnly],
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (!(e.ctrlKey || e.metaKey) || readOnly) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) return;
+      if (e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        setHistory(undo);
+      } else if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        setHistory(redo);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [readOnly]);
+
+  const numbering = useMemo(() => flow.numberMbr(present), [present]);
+  const findingsByNode = useMemo(() => {
+    const m = new Map<string, FindingItem[]>();
+    for (const f of validation.report?.findings ?? []) if (f.nodeId) m.set(f.nodeId, [...(m.get(f.nodeId) ?? []), f]);
+    return m;
+  }, [validation.report]);
+
+  const isStep = (id: string): boolean => {
+    const k = locate(present, id)?.node.kind;
+    return k === 'phase' || k === 'holdPoint';
+  };
+  const locationLabel = (f: FindingItem): string => {
+    if (f.nodeId) {
+      const n = numbering.byId.get(f.nodeId);
+      return n ? `${n.kind === 'STAGE' ? 'stage' : n.kind === 'OPERATION' ? 'operation' : 'step'} ${n.number}` : f.nodeId;
+    }
+    return f.subjectPath.length > 0 ? `${f.subjectPath.join(' / ')} (section ${f.section})` : `section ${f.section}`;
+  };
+  const jump = (f: FindingItem): void => {
+    const t = jumpTarget(f, isStep);
+    if (t.stepId) {
+      setSelected(t.stepId);
+      setTab('step');
+    }
+    requestAnimationFrame(() => {
+      const el = document.getElementById(t.elementId);
+      el?.scrollIntoView({ block: 'center' });
+      (el as HTMLElement | null)?.focus?.();
+    });
+  };
+
+  const afterServerChange = (v: VersionView): void => {
+    setSaved(v);
+    setGeneration((g) => g + 1);
+    void queryClient.invalidateQueries({ queryKey: [routes.designer.families.id] });
+    queryClient.setQueryData([routes.designer.version.id, { versionId: v.versionId }, {}], v);
+  };
+
+  const gatePassed = validation.report?.gate.passed === true && !validation.pending && !dirty;
+  const justifyBlocked = readOnly ? 'Only a DRAFT takes justifications.' : dirty ? 'Save your changes first: a justification is recorded against the saved revision.' : null;
+
+  return (
+    <div className={dcls('page')}>
+      <nav className={dcls('small')} aria-label="Breadcrumb">
+        <Link to="/mbr">Master records</Link> / {saved.familyCode} / version {saved.number}
+      </nav>
+      <h1>
+        {present.header.title} <span className={dcls('small')}>MBR-{saved.familyCode}-v{saved.number}</span>
+      </h1>
+
+      <div className={dcls('toolbar')} role="toolbar" aria-label="Designer">
+        <div className={dcls('toolbarGroup')}>
+          <StateChip state={saved.state} />
+          <span className={dcls('small')}>
+            revision {saved.revision} · {shortHash(saved.contentHash)} · saved {saved.savedAt.text} by {saved.savedBy.legalName}
+          </span>
+          {dirty ? <StatusChip tone="warning" label={restored ? 'UNSAVED (restored draft)' : 'Unsaved changes'} /> : <StatusChip tone="ok" label="Saved" />}
+          <StatusChip
+            tone={validation.pending ? 'pending' : validation.report?.gate.passed ? 'ok' : 'error'}
+            label={validation.pending ? 'Checking…' : validation.report ? gateSummary(validation.report) : 'Not checked'}
+          />
+        </div>
+        <span className={dcls('spacer')} />
+        <div className={dcls('toolbarGroup')}>
+          <Button onPress={() => setHistory(undo)} isDisabled={readOnly || !canUndo(history)} aria-keyshortcuts="Control+Z">
+            Undo
+          </Button>
+          <Button onPress={() => setHistory(redo)} isDisabled={readOnly || !canRedo(history)} aria-keyshortcuts="Control+Y">
+            Redo
+          </Button>
+          <Button
+            variant="primary"
+            isDisabled={readOnly || !dirty}
+            onPress={() => {
+              setNote('');
+              setDialog('save');
+            }}
+          >
+            Save revision…
+          </Button>
+          <Button isDisabled={readOnly || !gatePassed} onPress={() => setDialog('start')}>
+            Start verification…
+          </Button>
+          <Button isDisabled={dirty || validation.report?.gate.passed !== true} onPress={() => setDialog('package')}>
+            Send to sandbox…
+          </Button>
+          <a href={auditLink(saved.versionId)}>Audit trail</a>
+        </div>
+      </div>
+
+      {draftOffer ? (
+        draftOffer.baseRevision === saved.revision ? (
+          <Banner tone="warning" title="Unsaved changes from an earlier session were found in this browser.">
+            <p>They are based on the saved revision {draftOffer.baseRevision}. They are not saved and not part of the master until you save them as a new revision.</p>
+            <div className={dcls('inline')}>
+              <Button
+                variant="primary"
+                onPress={() => {
+                  setHistory((h) => ({ past: [...h.past, h.present], present: draftOffer.content, future: [] }));
+                  setRestored(true);
+                  setDraftOffer(null);
+                }}
+              >
+                Restore unsaved changes
+              </Button>
+              <Button
+                onPress={() => {
+                  clearDraft(saved.versionId);
+                  setDraftOffer(null);
+                }}
+              >
+                Discard them
+              </Button>
+            </div>
+          </Banner>
+        ) : (
+          <Banner tone="warning" title="An unsaved draft in this browser is out of date.">
+            <p>
+              It was based on revision {draftOffer.baseRevision}, but revision {saved.revision} has been saved since, so it cannot be applied.
+            </p>
+            <Button
+              onPress={() => {
+                clearDraft(saved.versionId);
+                setDraftOffer(null);
+              }}
+            >
+              Discard the old draft
+            </Button>
+          </Banner>
+        )
+      ) : null}
+      {readOnly ? <ReadOnlyNotice state={saved.state} /> : null}
+      {message ? (
+        <Banner tone="warning" title="That change was not made.">
+          <p>{message}</p>
+        </Banner>
+      ) : null}
+      {pkg ? (
+        <Banner tone="ok" title="The test package is in the sandbox inbox.">
+          <p>
+            Package {shortHash(pkg.packageHash)} ({pkg.fileName}). Test runs in the sandbox are TEST, NOT GMP.
+          </p>
+          {pkg.sandboxUrl ? (
+            <a href={pkg.sandboxUrl} target="_blank" rel="noopener noreferrer">
+              Open the sandbox test packages
+            </a>
+          ) : (
+            <p>The sandbox address is not configured on this installation.</p>
+          )}
+        </Banner>
+      ) : null}
+
+      <div className={dcls('workspace')}>
+        <DocumentView
+          content={present}
+          version={saved}
+          palette={palette}
+          selected={selected}
+          onSelect={(id) => {
+            setSelected(id);
+            setTab('step');
+          }}
+          dispatch={apply}
+          readOnly={readOnly}
+          findingsByNode={findingsByNode}
+        />
+        <aside className={dcls('side')} aria-label="Findings, step properties and simulation">
+          <Tabs selectedKey={tab} onSelectionChange={(k) => setTab(String(k))}>
+            <TabList className={dcls('tabs')} aria-label="Panels">
+              <Tab id="findings" className={dcls('tab')}>
+                Findings{validation.report ? ` (${validation.report.findings.filter((f) => f.severity !== 'INFO').length})` : ''}
+              </Tab>
+              <Tab id="step" className={dcls('tab')}>
+                Step
+              </Tab>
+              <Tab id="simulation" className={dcls('tab')}>
+                Simulation
+              </Tab>
+            </TabList>
+            <TabPanel id="findings">
+              <FindingsPanel
+                report={validation.report}
+                pending={validation.pending}
+                error={validation.error}
+                justifyBlocked={justifyBlocked}
+                onJump={jump}
+                onJustify={(f) => {
+                  setJustification('');
+                  setDialog({ justify: f });
+                }}
+                locationLabel={locationLabel}
+              />
+            </TabPanel>
+            <TabPanel id="step">
+              {selected ? (
+                <StepEditor content={present} stepId={selected} number={numbering.byId.get(selected)?.number ?? '?'} palette={palette} readOnly={readOnly} dispatch={apply} />
+              ) : (
+                <p>Select a step in the procedure (click it, or focus it and press Enter).</p>
+              )}
+              {selected ? (
+                <Button variant="quiet" onPress={() => document.getElementById(rowId(selected))?.focus()}>
+                  Back to the step in the document
+                </Button>
+              ) : null}
+            </TabPanel>
+            <TabPanel id="simulation">
+              <SimulationPanel versionId={saved.versionId} revision={saved.revision} dirty={dirty} />
+            </TabPanel>
+          </Tabs>
+        </aside>
+      </div>
+
+      <CommandDialog
+        title={`Save revision ${saved.revision + 1}`}
+        open={dialog === 'save'}
+        onClose={() => setDialog(null)}
+        confirmLabel="Save revision"
+        canConfirm={note.trim().length > 0}
+        run={(idempotencyKey) =>
+          api.call(routes.designer.saveContent, { params: { versionId: saved.versionId }, body: { baseRevision: saved.revision, content: asWire(present), note: note.trim() }, idempotencyKey })
+        }
+        onDone={(v) => {
+          clearDraft(v.versionId);
+          setRestored(false);
+          afterServerChange(v);
+          setDialog(null);
+        }}
+      >
+        <p>
+          The new revision replaces revision {saved.revision} as the version&apos;s content. Evidence gathered on the earlier content no longer applies to it.
+        </p>
+        <NoteField label="Change note (what changed and why)" value={note} onChange={setNote} max={2000} />
+      </CommandDialog>
+
+      <CommandDialog
+        title="Justify a warning"
+        open={typeof dialog === 'object' && dialog !== null}
+        onClose={() => setDialog(null)}
+        confirmLabel="Record the justification"
+        canConfirm={justification.trim().length > 0}
+        run={(idempotencyKey) =>
+          api.call(routes.designer.justify, {
+            params: { versionId: saved.versionId },
+            body: { findingKey: typeof dialog === 'object' && dialog !== null ? dialog.justify.key : '', text: justification.trim() },
+            idempotencyKey,
+          })
+        }
+        onDone={(v) => {
+          afterServerChange(v);
+          setDialog(null);
+        }}
+      >
+        {typeof dialog === 'object' && dialog !== null ? <p>{dialog.justify.message}</p> : null}
+        <p className={dcls('small')}>The justification is recorded with your name and the time, on the saved revision {saved.revision}; it travels with the version to verification and to the sandbox.</p>
+        <NoteField label="Why the warning is acceptable" value={justification} onChange={setJustification} max={4000} />
+      </CommandDialog>
+
+      <CommandDialog
+        title="Start verification"
+        open={dialog === 'start'}
+        onClose={() => setDialog(null)}
+        confirmLabel="Start verification"
+        run={(idempotencyKey) => api.call(routes.designer.startVerification, { params: { versionId: saved.versionId }, body: { baseRevision: saved.revision }, idempotencyKey })}
+        onDone={(v) => {
+          afterServerChange(v);
+          setDialog(null);
+        }}
+      >
+        <p>
+          The server validates revision {saved.revision} again and records the result with its content hash. If it passes, the version moves to IN VERIFICATION and can no longer be edited.
+        </p>
+      </CommandDialog>
+
+      <CommandDialog
+        title="Send to a sandbox test run"
+        open={dialog === 'package'}
+        onClose={() => setDialog(null)}
+        confirmLabel="Write the test package"
+        run={(idempotencyKey) => api.call(routes.designer.testPackage, { params: { versionId: saved.versionId }, body: {}, idempotencyKey })}
+        onDone={(r) => {
+          setPkg(r);
+          setDialog(null);
+          setGeneration((g) => g + 1);
+        }}
+      >
+        <p>
+          A copy of the saved revision {saved.revision} is written, once, to the sandbox exchange inbox with its hash and the GMP origin stamp. The sandbox imports it for a test run; nothing from the sandbox ever comes back as
+          a GMP record.
+        </p>
+      </CommandDialog>
+    </div>
+  );
+}

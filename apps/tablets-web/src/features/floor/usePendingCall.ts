@@ -60,6 +60,8 @@ export interface PendingCallOptions<R extends AnyRoute> {
    * by the entry are used up even by a refused command, so forms clear them: a retry needs a fresh capture.
    */
   onNotApplied?: () => void;
+  /** The entry was discarded because another person's badge was tapped: forms clear what was typed. */
+  onDiscarded?: () => void;
 }
 
 const newKey = (): string => globalThis.crypto.randomUUID();
@@ -127,6 +129,7 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
         // Another person's badge: the entry is discarded and never sent under that person; C1 then offers the
         // switch ("Switch to <name>?" + PIN). If they switch, they enter their own values themselves.
         live.current.options.onNotApplied?.();
+        live.current.options.onDiscarded?.();
         send({ type: 'SWITCH_USER', refusal: outcome.envelope });
         await live.current.tap.offerSwitch(outcome.envelope);
         return;
@@ -175,7 +178,7 @@ export interface RunCommand extends PendingCall {
  * A plain engine intent on a test run (POST /api/test-runs/:runId/commands). `viewStepKey` names the step whose
  * view comes back (and is reloaded when the entry arrives stale).
  */
-export function useRunCommand(runId: string, viewStepKey: string | null, reason: string, extra: { onSaved?: () => void; onNotApplied?: () => void } = {}): RunCommand {
+export function useRunCommand(runId: string, viewStepKey: string | null, reason: string, extra: { onSaved?: () => void; onNotApplied?: () => void; onDiscarded?: () => void } = {}): RunCommand {
   const qc = useQueryClient();
   const extraRef = useRef(extra);
   useEffect(() => {
@@ -189,6 +192,7 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
       extraRef.current.onSaved?.();
     },
     onNotApplied: () => extraRef.current.onNotApplied?.(),
+    onDiscarded: () => extraRef.current.onDiscarded?.(),
     onStale: async () => {
       if (!viewStepKey) {
         await qc.invalidateQueries({ queryKey: runQueryKey(runId) });
@@ -203,6 +207,7 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
     },
     onDiscard: () => {
       extraRef.current.onNotApplied?.();
+      extraRef.current.onDiscarded?.();
       return refreshRun(qc, { steps: true });
     },
   });

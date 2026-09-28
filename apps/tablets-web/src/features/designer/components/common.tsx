@@ -1,0 +1,177 @@
+/**
+ * Small building blocks of the designer (module C2): state and severity chips (colour + icon + word), fields that
+ * commit on blur or Enter (so one edit is one undoable operation), native selects and checkboxes with labels.
+ * GMP values go only through DecimalField (text, never a number).
+ */
+import { useEffect, useId, useState, type ReactNode } from 'react';
+import { ROLE_TITLES } from '@ebmr/api-contract';
+import { DecimalField, decimalProblem, StatusChip } from '@ebmr/ui-kit';
+import { dcls } from '../classes.ts';
+
+const STATE_TONE: Readonly<Record<string, 'ok' | 'warning' | 'error' | 'info' | 'neutral' | 'pending'>> = {
+  DRAFT: 'neutral',
+  IN_VERIFICATION: 'pending',
+  SUBMITTED: 'info',
+  CHECKED: 'info',
+  APPROVED: 'ok',
+  RETIRED: 'neutral',
+  WITHDRAWN: 'error',
+};
+
+export function StateChip({ state }: { state: string }) {
+  return <StatusChip tone={STATE_TONE[state] ?? 'neutral'} label={state.replace(/_/g, ' ')} />;
+}
+
+export function SeverityChip({ severity }: { severity: 'ERROR' | 'WARNING' | 'INFO' }) {
+  return <StatusChip tone={severity === 'ERROR' ? 'error' : severity === 'WARNING' ? 'warning' : 'info'} label={severity === 'ERROR' ? 'Error' : severity === 'WARNING' ? 'Warning' : 'Information'} />;
+}
+
+export const roleTitle = (role: string | undefined): string => (role ? (ROLE_TITLES[role] ?? role.replace(/_/g, ' ').toLowerCase()) : '—');
+
+/** A decimal that commits a complete value on blur or Enter; empty commits null (removes the value). */
+export function CommitDecimal({
+  label,
+  unit,
+  value,
+  onCommit,
+  readOnly,
+  allowEmpty = true,
+  maxDecimals,
+}: {
+  label: string;
+  unit: string;
+  value: string | undefined;
+  onCommit: (value: string | null) => void;
+  readOnly?: boolean;
+  allowEmpty?: boolean;
+  maxDecimals?: number;
+}) {
+  const [text, setText] = useState(value ?? '');
+  const [problem, setProblem] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    setText(value ?? '');
+    setProblem(undefined);
+  }, [value]);
+  if (readOnly) {
+    return (
+      <span>
+        {value ?? '—'} {value ? unit : ''}
+      </span>
+    );
+  }
+  const commit = (): void => {
+    if (text === (value ?? '')) return;
+    if (text === '') {
+      if (!allowEmpty) {
+        setProblem('A value is required.');
+        return;
+      }
+      setProblem(undefined);
+      onCommit(null);
+      return;
+    }
+    const p = decimalProblem(text, maxDecimals !== undefined ? { maxDecimals } : {});
+    if (p) {
+      setProblem(p);
+      return;
+    }
+    setProblem(undefined);
+    onCommit(text);
+  };
+  return (
+    <div
+      className={dcls('limitCell')}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') commit();
+      }}
+    >
+      <DecimalField label={label} unit={unit} value={text} onChange={setText} {...(problem ? { errorMessage: problem } : {})} {...(maxDecimals !== undefined ? { maxDecimals } : {})} />
+    </div>
+  );
+}
+
+/** A text input that commits on blur or Enter. */
+export function CommitText({ label, value, onCommit, readOnly, multiline }: { label: string; value: string; onCommit: (value: string) => void; readOnly?: boolean; multiline?: boolean }) {
+  const id = useId();
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const commit = (): void => {
+    if (text !== value) onCommit(text);
+  };
+  return (
+    <div className={dcls('stack')}>
+      <label htmlFor={id}>{label}</label>
+      {multiline ? (
+        <textarea id={id} className={dcls('textarea')} value={text} readOnly={readOnly ?? false} onChange={(e) => setText(e.target.value)} onBlur={commit} />
+      ) : (
+        <input
+          id={id}
+          className={dcls('select')}
+          value={text}
+          readOnly={readOnly ?? false}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+export interface Option {
+  value: string;
+  label: string;
+}
+
+export function Select({ label, value, options, onChange, disabled }: { label: string; value: string; options: readonly Option[]; onChange: (value: string) => void; disabled?: boolean }) {
+  const id = useId();
+  return (
+    <div className={dcls('stack')}>
+      <label htmlFor={id}>{label}</label>
+      <select id={id} className={dcls('select')} value={value} disabled={disabled ?? false} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export function Check({ label, checked, onChange, disabled, description }: { label: ReactNode; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean; description?: string }) {
+  const id = useId();
+  return (
+    <div className={dcls('checkbox')}>
+      <input id={id} type="checkbox" checked={checked} disabled={disabled ?? false} onChange={(e) => onChange(e.target.checked)} />
+      <label htmlFor={id}>
+        {label}
+        {description ? <span className={dcls('small')}> · {description}</span> : null}
+      </label>
+    </div>
+  );
+}
+
+/** A group of checkboxes over items; `selected` is kept in the items' order. */
+export function CheckList({ legend, items, selected, onChange, disabled }: { legend: string; items: readonly Option[]; selected: readonly string[]; onChange: (next: string[]) => void; disabled?: boolean }) {
+  if (items.length === 0) return null;
+  return (
+    <fieldset className={dcls('fieldset')}>
+      <legend className={dcls('legend')}>{legend}</legend>
+      {items.map((i) => (
+        <Check
+          key={i.value}
+          label={i.label}
+          checked={selected.includes(i.value)}
+          {...(disabled !== undefined ? { disabled } : {})}
+          onChange={(on) => onChange(items.map((x) => x.value).filter((v) => (v === i.value ? on : selected.includes(v))))}
+        />
+      ))}
+    </fieldset>
+  );
+}
+
+export const shortHash = (h: string): string => `${h.slice(0, 12)}…`;

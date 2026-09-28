@@ -93,11 +93,14 @@ export function stepVariant(name: Parameters<typeof example>[0], change: (v: Ste
   return v;
 }
 
+export type FakeTap = ReturnType<typeof fakeTap>;
+export type FakeCeremony = ReturnType<typeof fakeCeremony>;
+
 export interface RenderOptions {
   fixtures?: FixtureMap;
   intercept?: Intercept;
   session?: Partial<FloorSession>;
-  tap?: BadgeTapPort;
+  tap?: FakeTap;
   ceremony?: SignatureCeremonyPort;
   scaleSlot?: ComponentType<ScaleCaptureSlotProps>;
 }
@@ -142,7 +145,7 @@ export function renderFloor(path: string, opts: RenderOptions = {}) {
 /** Step fixtures by step key, including test variants (the fixture fetch answers step views from this map). */
 export function stepFixtures(...views: StepScreenView[]): FixtureMap {
   const base = Object.values(EXAMPLES)
-    .filter((e) => e.routeId === 'execution.step')
+    .filter((e) => 'routeId' in e && e.routeId === 'execution.step')
     .map((e) => e.data as StepScreenView);
   return {
     'execution.step': ({ params }: { params: Record<string, string> }) => views.find((v) => v.step.stepKey === params['stepKey']) ?? base.find((v) => v.step.stepKey === params['stepKey']) ?? { status: 404, body: envelope('NOT_ALLOWED', 'STEP-UNKNOWN') },

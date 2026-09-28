@@ -64,7 +64,7 @@ function replay(events: readonly Event[], tapRequired: boolean): { event: Event;
   return out;
 }
 
-const eventsOf = (p: ReturnType<typeof paths>[number]) => p.steps.map((s) => s.event).filter((e) => e.type !== 'xstate.init');
+const eventsOf = (p: ReturnType<typeof paths>[number]) => p.steps.map((s) => s.event).filter((e) => (e.type as string) !== 'xstate.init');
 
 describe('pendingEntry machine (kiosk: a badge tap per send)', () => {
   const all = paths(true);

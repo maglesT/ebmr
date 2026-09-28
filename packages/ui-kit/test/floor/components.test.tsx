@@ -3,8 +3,6 @@
  * value; checklists pre-select nothing; scans take a keyboard-wedge burst; the action bar keeps unavailable
  * actions visible with the server's reason; glove-sized targets at floor density (computed styles).
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -13,6 +11,9 @@ import { example } from '@ebmr/api-contract/examples';
 import { floor } from '../../src/index.ts';
 import { cls } from '../../src/primitives/classes.ts';
 import { fcls } from '../../src/floor/classes.ts';
+import floorCss from '../../src/floor/floor.module.css?raw';
+import uiCss from '../../src/primitives/ui.module.css?raw';
+import tokensCss from '../../src/tokens/tokens.css?raw';
 
 const G04 = example('step-g04-parameters');
 const blendTime = G04.fields[0]!;
@@ -213,7 +214,6 @@ describe('PrimaryActionBar, RefusalPanel, ExceptionBanner, StatusOutline', () =>
 });
 
 describe('glove-sized targets at floor density (computed styles)', () => {
-  const read = (rel: string) => readFileSync(join(import.meta.dirname, '../../src', rel), 'utf8');
   /** A CSS module's text with its class selectors renamed to the hashed names the components use. */
   const hashed = (css: string, name: (c: string) => string) => css.replace(/\.([A-Za-z][A-Za-z0-9_-]*)/g, (m: string, c: string) => (name(c) ? `.${name(c)}` : m));
   let style: HTMLStyleElement | null = null;
@@ -226,7 +226,7 @@ describe('glove-sized targets at floor density (computed styles)', () => {
 
   it('keypad keys are 72 px, buttons and choices at least 56 px, the primary bar 80 px', () => {
     style = document.createElement('style');
-    style.textContent = [read('tokens/tokens.css'), hashed(read('primitives/ui.module.css'), cls), hashed(read('floor/floor.module.css'), fcls)].join('\n');
+    style.textContent = [tokensCss, hashed(uiCss, cls), hashed(floorCss, fcls)].join('\n');
     document.head.appendChild(style);
     document.documentElement.dataset['density'] = 'floor';
     render(

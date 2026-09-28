@@ -118,7 +118,7 @@ function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenV
     setChoice(null);
     setScan(null);
   };
-  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: field.name }), { onSaved: clear });
+  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: field.name }), { onSaved: clear, onDiscarded: clear });
   useSessionChange(clear);
   const locked = cmd.busy || cmd.state === 'notSaved';
   const value = valueOf(field, { text, choice, scan });
@@ -345,7 +345,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const clear = () => setState(EMPTY_FORM);
   // A reading is used up even by a refused command (DEV-105): after a definite "not applied" the person captures again.
   const dropReadings = () => setState((s) => ({ ...s, readings: {} }));
-  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings });
+  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings, onDiscarded: clear });
   useSessionChange(clear);
   const locked = cmd.busy || cmd.state === 'notSaved';
 

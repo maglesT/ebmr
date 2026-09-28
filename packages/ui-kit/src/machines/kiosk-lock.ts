@@ -25,8 +25,10 @@ export interface SwitchOffer {
 export interface KioskLockContext {
   error: RefusalEnvelope | null;
   offer: SwitchOffer | null;
-  /** Whether the session was locked when the switch started (a failed switch returns there). */
+  /** Whether the session was locked at start or when the switch started (a failed switch returns there). */
   wasLocked: boolean;
+  /** A switch started from a "Switch to <name>?" offer (a failed switch returns to the offer). */
+  fromOffer: boolean;
 }
 
 export type KioskLockEvent =
@@ -92,11 +94,12 @@ export const kioskLockMachine = setup({
     },
     switchUser: (_, params: { error: unknown }) => kindOf(params.error) === 'SWITCH_USER',
     wasLocked: ({ context }) => context.wasLocked,
+    fromOffer: ({ context }) => context.fromOffer,
   },
 }).createMachine({
   id: 'kioskLock',
   initial: 'starting',
-  context: ({ input }) => ({ error: null, offer: null, wasLocked: input.locked }),
+  context: ({ input }) => ({ error: null, offer: null, wasLocked: input.locked, fromOffer: false }),
   states: {
     starting: {
       always: [{ guard: 'wasLocked', target: 'locked' }, { target: 'active' }],
@@ -106,7 +109,7 @@ export const kioskLockMachine = setup({
       on: {
         LOCK: 'locking',
         SERVER_LOCKED: 'locked',
-        SWITCH: { target: 'switching', actions: assign({ wasLocked: false }) },
+        SWITCH: { target: 'switching', actions: assign({ wasLocked: false, fromOffer: false }) },
         OFFER_SWITCH: { target: 'offering', actions: assign({ offer: ({ event }) => event.offer, error: null }) },
         ENDED: 'ended',
       },
@@ -114,7 +117,7 @@ export const kioskLockMachine = setup({
     /** "Switch to <name>?" after a tap by another person (the badge is kept by the host for 30 s). */
     offering: {
       on: {
-        SWITCH: { target: 'switching', actions: assign({ wasLocked: false }) },
+        SWITCH: { target: 'switching', actions: assign({ wasLocked: false, fromOffer: true, error: null }) },
         DISMISS: 'active',
         SERVER_LOCKED: 'locked',
         ENDED: 'ended',
@@ -123,7 +126,7 @@ export const kioskLockMachine = setup({
     locking: {
       invoke: {
         src: 'lockSession',
-        onDone: 'locked',
+        onDone: { target: 'locked', actions: assign({ wasLocked: true }) },
         onError: [
           { guard: { type: 'ended', params: ({ event }) => ({ error: event.error }) }, target: 'ended' },
           { target: 'active', actions: assign({ error: ({ event }) => refusalOfFailure(event.error) }) },
@@ -133,7 +136,8 @@ export const kioskLockMachine = setup({
     locked: {
       on: {
         UNLOCK: { target: 'unlocking', actions: assign({ error: null }) },
-        SWITCH: { target: 'switching', actions: assign({ wasLocked: true, error: null }) },
+        SWITCH: { target: 'switching', actions: assign({ wasLocked: true, fromOffer: false, error: null }) },
+        OFFER_SWITCH: { actions: assign({ offer: ({ event }) => event.offer }) },
         SERVER_ACTIVE: 'active',
         ENDED: 'ended',
       },
@@ -152,9 +156,10 @@ export const kioskLockMachine = setup({
     switching: {
       invoke: {
         src: 'switchUser',
-        onDone: { target: 'active', actions: assign({ error: null, offer: null }) },
+        onDone: { target: 'active', actions: assign({ error: null, offer: null, wasLocked: false, fromOffer: false }) },
         onError: [
           { guard: { type: 'ended', params: ({ event }) => ({ error: event.error }) }, target: 'ended', actions: assign({ error: ({ event }) => refusalOfFailure(event.error) }) },
+          { guard: 'fromOffer', target: 'offering', actions: assign({ error: ({ event }) => refusalOfFailure(event.error) }) },
           { guard: 'wasLocked', target: 'locked', actions: assign({ error: ({ event }) => refusalOfFailure(event.error) }) },
           { target: 'active', actions: assign({ error: ({ event }) => refusalOfFailure(event.error) }) },
         ],
