@@ -9,7 +9,7 @@
  */
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import pg from 'pg';
 import { KERNEL_MIGRATIONS, migrate } from '@ebmr/kernel';
@@ -22,7 +22,7 @@ const ADMIN_URL = process.env['EBMR_PG_ADMIN_URL'] ?? 'postgres://ebmr_dev:ebmr_
 const SQL_DIRS = [join(ROOT, 'packages/kernel/sql'), join(ROOT, 'packages/site-services/sql')];
 const TIMEOUT_MS = 240_000;
 
-type Status = 'KILLED' | 'SURVIVED' | 'TIMEOUT' | 'INVALID';
+type Status = 'KILLED' | 'SURVIVED' | 'TIMEOUT' | 'INVALID' | 'EQUIVALENT';
 interface Result extends Omit<Mutant, 'statement'> {
   group: string;
   status: Status;
@@ -49,6 +49,18 @@ export function loadDefinitions(): Map<string, FunctionDef> {
     }
   }
   return defs;
+}
+
+/** Tests written specifically to kill a group's mutants: packages/kernel/test/mutation/<group>.test.ts. */
+export function testsFor(target: Target): string[] {
+  const extra = `packages/kernel/test/mutation/${target.group}.test.ts`;
+  return existsSync(join(ROOT, extra)) ? [...target.tests, extra] : target.tests;
+}
+
+/** Mutants reviewed as equivalent (no observable behaviour differs), with the justification. */
+export function loadEquivalents(): Record<string, string> {
+  const file = join(ROOT, 'tools/sql-mutation/equivalent.json');
+  return existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Record<string, string>) : {};
 }
 
 export function mutantsFor(target: Target, defs: Map<string, FunctionDef>): Mutant[] {
@@ -125,7 +137,7 @@ async function runMutant(base: string, group: Target, m: Mutant): Promise<Result
     } catch (e) {
       return { ...info, group: group.group, status: 'INVALID', detail: e instanceof Error ? e.message.slice(0, 200) : String(e) };
     }
-    const r = await runTests(db, group.tests);
+    const r = await runTests(db, testsFor(group));
     if (r.timedOut) return { ...info, group: group.group, status: 'TIMEOUT' };
     return { ...info, group: group.group, status: r.code === 0 ? 'SURVIVED' : 'KILLED' };
   } finally {
@@ -150,16 +162,20 @@ async function pool<T, R>(items: T[], workers: number, work: (t: T, i: number) =
 }
 
 function score(rs: Result[]): { valid: number; detected: number; survived: number; invalid: number; score: number } {
-  const valid = rs.filter((r) => r.status !== 'INVALID').length;
+  // Invalid (rejected by PostgreSQL) and reviewed-equivalent mutants are excluded from the score.
+  const valid = rs.filter((r) => r.status !== 'INVALID' && r.status !== 'EQUIVALENT').length;
   const detected = rs.filter((r) => r.status === 'KILLED' || r.status === 'TIMEOUT').length;
-  return { valid, detected, survived: valid - detected, invalid: rs.length - valid, score: valid === 0 ? 100 : (100 * detected) / valid };
+  const invalid = rs.filter((r) => r.status === 'INVALID').length;
+  return { valid, detected, survived: valid - detected, invalid, score: valid === 0 ? 100 : (100 * detected) / valid };
 }
 
 async function main(): Promise<void> {
   const defs = loadDefinitions();
   const only = arg('group');
   const targets = TARGETS.filter((t) => !only || t.group === only);
-  const plan = targets.map((t) => ({ target: t, mutants: mutantsFor(t, defs) }));
+  const onlyIds = arg('only') ? new Set((arg('only') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) : undefined;
+  const equivalents = loadEquivalents();
+  const plan = targets.map((t) => ({ target: t, mutants: mutantsFor(t, defs).filter((m) => !onlyIds || onlyIds.has(m.id)) }));
   for (const p of plan) console.log(`${p.target.group}: ${p.mutants.length} mutants in ${p.target.functions.length} functions`);
   if (process.argv.includes('--count')) return;
 
@@ -170,10 +186,16 @@ async function main(): Promise<void> {
   const all: Result[] = [];
   try {
     for (const p of plan) {
-      const baseline = await runTests(base, p.target.tests);
+      const baseline = await runTests(base, testsFor(p.target));
       if (baseline.code !== 0) throw new Error(`baseline tests fail for ${p.target.group}:\n${baseline.tail}`);
       const started = process.hrtime.bigint();
       const rs = await pool(p.mutants, workers, async (m, i) => {
+        const why = equivalents[m.id];
+        if (why) {
+          const { statement: _st, ...rest } = m;
+          void _st;
+          return { ...rest, group: p.target.group, status: 'EQUIVALENT' as const, detail: why };
+        }
         const r = await runMutant(base, p.target, m);
         if (r.status === 'SURVIVED') console.log(`  SURVIVED ${r.id} ${r.operator} ${r.file}:${r.line} [${r.original}] -> [${r.replacement}]`);
         if ((i + 1) % 25 === 0) console.log(`  ${p.target.group}: ${i + 1}/${p.mutants.length}`);
@@ -189,13 +211,14 @@ async function main(): Promise<void> {
     await admin((c) => c.query(`drop database if exists ${base} with (force)`));
   }
 
-  const lines = ['# SQL mutation report', '', '| Group | Mutants | Invalid | Detected | Survived | Score | Target |', '|---|---|---|---|---|---|---|'];
+  const lines = ['# SQL mutation report', '', '| Group | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |', '|---|---|---|---|---|---|---|---|'];
   let failed = false;
   for (const p of plan) {
     const rs = all.filter((r) => r.group === p.target.group);
     const s = score(rs);
     if (s.score < p.target.threshold) failed = true;
-    lines.push(`| ${p.target.group} | ${rs.length} | ${s.invalid} | ${s.detected} | ${s.survived} | ${s.score.toFixed(1)} % | ${p.target.threshold} % |`);
+    const eq = rs.filter((r) => r.status === 'EQUIVALENT').length;
+    lines.push(`| ${p.target.group} | ${rs.length} | ${s.invalid} | ${eq} | ${s.detected} | ${s.survived} | ${s.score.toFixed(1)} % | ${p.target.threshold} % |`);
   }
   const survivors = all.filter((r) => r.status === 'SURVIVED');
   lines.push('', '## Surviving mutants', '');

@@ -226,3 +226,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   matches the name filter against 'suite > test'; every test inside a describe block was skipped and mutants counted as
   survived (first run: 22 % with zero tests per mutant). Fixed with a pnpm patch (patches/@stryker-mutator__vitest-runner@10.0.0.patch,
   both test-helpers.js and stryker-setup.js). Full runs in progress; results and any added tests go into the PR.
+- 2026-09-28: SQL mutation run 1 (1,284 mutants): audit-trail 74.5, actor-validation 92.7, signing 85.4,
+  signature-invalidation 76.2, segregation-and-grants 53.9, authentication-events 65.9, retention-and-purge 82.5,
+  site-values-and-policies 73.2, protected-numbers 60.3 (%; target 90). 254 survivors. Harness now supports per-group
+  kill tests (packages/kernel/test/mutation/<group>.test.ts), --only <ids>, and reviewed equivalent mutants
+  (tools/sql-mutation/equivalent.json, excluded from the score). An ultracode workflow writes kill tests per group,
+  a skeptic challenges every equivalence claim, and mutants that reveal defects are reported, not locked in.
