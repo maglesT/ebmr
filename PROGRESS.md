@@ -280,3 +280,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   on returns to DRAFT (L10); platform AUTHORITY adapter to pass product scope (product-limited grants cannot transition
   versions today); btree_gist extension is created in recipe 0100 (needs superuser at migration time: note for the
   deployment design); SANDBOX_RUN evidence cross-check against the sandbox store (import of sandbox run results).
+- 2026-09-28: Phase 2 app design workflow running (wf_253d23e7-749; script copy scratchpad/workflows/app-design.js):
+  three architects (operator, compliance, delivery), two judges, synthesis into module briefs for the tablets server,
+  tablets web (document-first designer, shop-floor step screen, sandbox runs, audit trail), site gateway + scale
+  simulator and Playwright end-to-end tests. Goal: first clickable version early.
+  Resume notes: review workflow wf_2867a725-d77 (script scratchpad/workflows/review.js).
