@@ -29,6 +29,13 @@ export default {
     'packages/kernel/src/continuity/security-baseline.ts',
     'packages/kernel/src/identity/secrets.ts',
   ],
+  // Static mutants (module-level constants evaluated at import) need the whole suite per mutant:
+  // about 1,300 of them at ~3 min each. They are skipped here and in the weekly run; the constants
+  // they touch (catalogues, regexes, defaults) are asserted directly by the module tests.
+  ignoreStatic: true,
+  // Keep results between runs so the weekly job only re-tests changed code.
+  incremental: true,
+  incrementalFile: '.reports/mutation/stryker-incremental.json',
   concurrency: 4,
   timeoutMS: 60000,
   thresholds: { high: 90, low: 80, break: null },
