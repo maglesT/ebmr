@@ -219,3 +219,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Open questions for the owner: docs/decisions/phase-1-open-questions.md (plus B7 role choices: rule tables published by
   the master-data steward, source corrections by the regulatory signer, policies by the QA MBR approver, CERT-In by
   QA/CSV-DI lead, CSV_DI_LEAD is a GMP role).
+- 2026-09-28: OWNER DECISION (docs/decisions/0002): Tablets edition first; Injectables edition deferred (Phase 5 on hold).
+  Architecture unchanged (shared packages stay edition-neutral; injectables skeletons, docs and sterile data kept).
+  Phase 2 agents told: no injectables-only calculations or sterile validator rules; tablets fixtures only.
+- 2026-09-28: Phase 2 started in worktree /home/user/ebmr-p2 (branch phase-2/recipe-core): A1 expression language
+  (packages/expr), A2 flow model/validator/limits/simulator (packages/recipe-core). Briefs in docs/build-plan/phase-2/.
+  Ultracode adversarial review of the merged Phase 1 kernel running as a workflow in worktree /home/user/ebmr-review
+  (read-only; reproducers write packages/kernel/test/review-tmp/*.test.ts there). SQL mutation run in /home/user/ebmr
+  (branch phase-1/mutation-testing) in progress: audit-trail 74.5 %, actor-validation 92.7 %, signing 85.4 %,
+  signature-invalidation 76.2 % (target 90 %; tests to be added for survivors).
