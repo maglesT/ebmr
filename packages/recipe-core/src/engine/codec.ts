@@ -24,6 +24,7 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 
 export class CodecError extends Error {}
 
+// eslint-disable-next-line no-control-regex -- U+0000 is escaped on purpose: jsonb cannot hold it.
 const escape = (s: string): string => s.replace(/[%\u0000]/g, (c) => (c === '%' ? '%25' : '%00'));
 const unescape = (s: string): string => s.replace(/%(25|00)/g, (m) => (m === '%25' ? '%' : '\u0000'));
 

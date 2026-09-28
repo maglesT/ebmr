@@ -5,7 +5,7 @@
  */
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { decode, encode, type JsonValue } from '../../src/engine/codec.ts';
+import { decode, encode } from '../../src/engine/codec.ts';
 import type { BatchDefinition } from '../../src/engine/definition.ts';
 import { replay, type ExecutionRow } from '../../src/engine/replay.ts';
 import type { Command, IssueRequest } from '../../src/engine/types.ts';
@@ -42,7 +42,7 @@ function recordedRun(name: Name, scenario: Scenario): { def: BatchDefinition; ro
     const cmd = { ...input, commandId: input.commandId ?? `R-${n}` } as Command;
     if (n % 7 === 0) rec.sweep(run.nowUs);
     rec.exec(cmd, run.nowUs);
-    return original(cmd as never);
+    return original(cmd);
   };
   // A refused command (out of sequence) is stored too.
   run.exec({ type: 'START_STEP', actor: OP1, step: [...def.steps.keys()].at(-1) ?? '' });
@@ -65,7 +65,7 @@ function fixtureRows(name: Name): { def: BatchDefinition; rows: ExecutionRow[] }
 function withCommand(row: ExecutionRow, change: (c: Record<string, unknown>) => void): ExecutionRow {
   const c = decode(row.command) as Record<string, unknown>;
   change(c);
-  return { ...row, command: encode(c) as JsonValue };
+  return { ...row, command: encode(c) };
 }
 
 describe('replay of stored execution rows', { timeout: 240_000 }, () => {
@@ -115,7 +115,7 @@ describe('replay of stored execution rows', { timeout: 240_000 }, () => {
           run.nowUs = now;
           const c = candidateCommands(def, run, m.k, m.k % 2 === 0, GENERATED_DATA);
           const input = c.all[m.pick % Math.max(1, c.all.length)];
-          if (input) rec.exec({ ...input, commandId: `G-${++n}` } as Command, now);
+          if (input) rec.exec({ ...input, commandId: `G-${++n}` }, now);
         }
         const r = replay(def, rec.rows);
         expect(r.firstDifference).toBeNull();

@@ -51,7 +51,7 @@ function exercise(def: BatchDefinition, moves: readonly { pick: number; minutes:
     const list = m.mode < 7 && c.progress.length > 0 ? c.progress : c.all;
     const input = list[m.pick % list.length];
     if (!input) continue;
-    rec.exec({ ...input, commandId: `C-${rec.rows.length + 1}` } as never, now);
+    rec.exec({ ...input, commandId: `C-${rec.rows.length + 1}` }, now);
     // INV-09 / DI-37, first half: an accepted signing command never changed the content it was signed on.
     expect(rec.invarianceBreaches).toEqual([]);
     // Second half: the kernel's valid set equals the engine's (on the signatures both know).

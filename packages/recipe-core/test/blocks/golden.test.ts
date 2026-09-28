@@ -9,7 +9,8 @@ import { RENDERING_PARTS, type BlockVersion } from '../../src/blocks/contract.ts
 import { GENERIC_BLOCK_VERSIONS, genericBlockRegistry } from '../../src/blocks/generic/index.ts';
 import { BlockRegistry, BlockRegistryError } from '../../src/blocks/registry.ts';
 import { validateSchema } from '../../src/blocks/schema.ts';
-import { defineBatch, EngineDefinitionError } from '../../src/engine/definition.ts';
+import type { EngineDefinitionError } from '../../src/engine/definition.ts';
+import { defineBatch } from '../../src/engine/definition.ts';
 import { genericBlockCatalog } from '../../src/flow/blocks.ts';
 import { mbrWith, phase } from '../flow/support.ts';
 import { expr, loadFixture } from '../flow/support.ts';

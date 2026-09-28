@@ -4,7 +4,7 @@
  */
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { CodecError, decode, decodeState, encode, encodeState, hashJson, stateHash } from '../../src/engine/codec.ts';
+import { CodecError, decode, decodeState, encode, encodeState, hashJson, stateHash, type JsonValue } from '../../src/engine/codec.ts';
 import { autopilot, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, PACKAGING_SCENARIO, Run } from './support.ts';
 
 const nasty = fc.constantFrom('', '$u', '$s', '~', '~x', '$', 'a\u0000b', '%', '%00', '%25', '\u0000', 'plain', 'Ω', ' ');
@@ -69,7 +69,7 @@ describe('execution codec', () => {
       expect(back.marking.tokens.size).toBe(run.state.marking.tokens.size);
       expect(text).toContain('"$m"');
       expect(stateHash(back)).toBe(h);
-      expect(hashJson(JSON.parse(text))).toBe(h);
+      expect(hashJson(JSON.parse(text) as JsonValue)).toBe(h);
       // The engine's NUL-prefixed bookkeeping key survives (jsonb cannot hold U+0000).
       expect(text).not.toContain('\\u0000');
     }
