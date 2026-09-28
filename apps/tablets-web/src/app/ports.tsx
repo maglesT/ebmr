@@ -50,6 +50,8 @@ export interface BadgeTapPort {
 export interface ScaleCaptureSlotProps {
   deviceCodes: readonly string[];
   purpose: 'TARE' | 'GROSS' | 'CHECK';
+  /** Optional tolerance band for the live gauge (decimal text, e.g. the G-07 target and limits); display only. */
+  band?: { low?: string; high?: string; target?: string; unit: string };
   onCaptured: (reading: ReadingView) => void;
   disabled?: boolean;
 }

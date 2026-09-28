@@ -25,6 +25,8 @@ export interface FeatureSeedContext {
   /** The installation's system administrator, for configuration (SYSTEM.CONFIGURE). */
   adminActor(): Promise<ActorContext>;
   exchangeDir: string;
+  /** Sandbox: base64 SPKI of the site gateway's Ed25519 key (set-up `--gateway-spki`); null when none was given. */
+  gatewaySpki: string | null;
   log(message: string): void;
 }
 

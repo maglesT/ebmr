@@ -148,6 +148,7 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
       },
       adminActor: () => passwordActor(db, seed.bootstrap.admin, seed.bootstrap.admin.fingerprint, { reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
       exchangeDir: opts.exchangeDir,
+      gatewaySpki: opts.gatewaySpki ?? null,
       log,
     };
     for (const f of FEATURES.filter((x) => x.installations.includes(kind))) {
