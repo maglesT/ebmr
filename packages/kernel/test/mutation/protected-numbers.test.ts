@@ -325,8 +325,17 @@ describe('restore events', () => {
     expect(await counter(R)).toMatchObject({ last_value: '0', reserved_ceiling: '5' });
   });
 
-  it('[DI-45][INV-27] completion never moves a sequence beyond its maximum, registered or not (EBMR-CONT-024)', async () => {
+  it('[DI-45][INV-27] completion never moves a sequence beyond its maximum, registered or not (EBMR-CONT-024), and a refused completion moves nothing', async () => {
     const marks = await ledgerCeilings();
+    // setval is not transactional: every check runs before the first move, so a refusal leaves every
+    // protected source where it was (no move without its sequence_bump record). (The DDL log counts the
+    // test's own create and drop sequence statements.)
+    const positions = async () =>
+      (await db.admin.query<{ k: string; v: string }>(
+        `select sequence_key as k, coalesce(pg_sequence_last_value(pg_sequence), 0)::text as v from continuity.protected_sequence
+          where source_kind = 'PG_SEQUENCE' and sequence_key <> 'kernel.ddl_log.id' order by 1`,
+      )).rows;
+    const before = await positions();
     // Registered: max(0, 991) + restore margin 10 = 1001 > 1000.
     await expect(complete(e1, [...marks, { sequence_key: SMALL, value: '991' }])).rejects.toThrow(
       'EBMR-CONT-024 moving testgmp.pn_small_seq to 1001 would exceed its maximum 1000',
@@ -339,6 +348,8 @@ describe('restore events', () => {
       await db.admin.query('drop sequence testgmp.pn_tiny_seq');
     }
     expect(await completions(e1)).toBe(0);
+    expect(await positions()).toEqual(before);
+    expect(await counter(K)).toMatchObject({ last_value: '2', reserved_ceiling: '5' });
   });
 
   it('[DI-45][INV-03][INV-08] the operator of a restore never approves it, even after moving to an approver role; their approval of another restore leaves this one approved', async () => {
@@ -378,10 +389,11 @@ describe('restore events', () => {
     expect(bump(R)).toEqual({ sequence_key: R, source_kind: 'COUNTER', value_before: '0', external_value: '5', value_after: '5' });
     // A counter that never issued or reserved anything needs no ledger entry.
     expect(bump(U)).toEqual({ sequence_key: U, source_kind: 'COUNTER', value_before: '0', external_value: null, value_after: '0' });
-    // max(current, 990) + 10 = 1000: exactly the maximum, which is allowed (it is not exceeded). (The
-    // refused completions above may already have moved it forward: setval is not transactional.)
+    // 990 + 10 = 1000: exactly the maximum, which is allowed (it is not exceeded). The refused
+    // completions above moved nothing; recording the first event secured the identifiers of this
+    // database, which moved it to its margin (10) and recorded that move.
     expect(bump(SMALL)).toMatchObject({ source_kind: 'PG_SEQUENCE', external_value: '990', value_after: '1000' });
-    expect(BigInt(bump(SMALL)?.value_before ?? '-1')).toBeLessThanOrEqual(990n);
+    expect(bump(SMALL)?.value_before).toBe('10');
     // Unregistered sequences owned by ebmr_owner move by the margin (1 is a positive margin), up to their maximum.
     expect(bump('unregistered:testgmp.pn_stray')).toMatchObject({ source_kind: 'PG_SEQUENCE', value_before: '41', external_value: null, value_after: '42' });
     expect(bump('unregistered:testgmp.pn_edge')).toMatchObject({ value_before: '99', value_after: '100' });

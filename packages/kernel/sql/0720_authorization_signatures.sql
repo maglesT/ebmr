@@ -118,9 +118,12 @@ end
 $$;
 
 -- The disposal of one record at one retain-until date, with the archived true copy it cites (if
--- any) and the tables that copy holds, and the retention inputs in force (their latest version: a new
--- version supersedes the one signed, so the signature no longer matches). The state says whether the
--- record may be disposed of at that date now (retention ended there and nothing blocks disposal).
+-- any) and the tables that copy holds, the retention inputs in force (their latest version: a new
+-- version supersedes the one signed, so the signature no longer matches) and the hold watermark (the
+-- last hold placed on the record or on a record depending on it: a hold voids every approval given
+-- before it, owner decision 0004, so a signature made before a hold no longer matches either). The
+-- state says whether the record may be disposed of at that date now (retention ended there and
+-- nothing blocks disposal).
 -- Everyone who entered what decides that date (the schedule, every version of the retention inputs and
 -- every dependency link of the record and of the records depending on it: records.retention_authors)
 -- is an author of the disposal, so the independence rules refuse their signature (F33, DI-47).
@@ -159,6 +162,7 @@ begin
                                   'retention_inputs', case when i.id is null then null else
                                     jsonb_build_object('input_version', i.input_version::text, 'inputs', i.inputs,
                                                        'change_reason', i.change_reason) end,
+                                  'hold_watermark', records.hold_watermark(s.id)::text,
                                   'true_copy', case when c.id is null then null else
                                     jsonb_build_object('id', c.id, 'manifest_sha256', c.manifest_sha256, 'head_seq', c.head_seq::text,
                                                        'head_hash', encode(c.head_hash, 'hex'), 'tables', to_jsonb(c.tables)) end),
@@ -168,6 +172,41 @@ begin
                            '[]'::jsonb));
 end
 $$;
+
+-- A disposal signature covers the record's retention inputs and its hold watermark: a new version of
+-- the inputs, or a hold placed on the record or on a record depending on it, supersedes it in the same
+-- transaction (esig.content_changed, INV-09), so the disposal is unsigned and a fresh approval can be
+-- signed, by the same QA reviewer too (owner decision 0004: a hold voids every earlier approval).
+create function records.disposal_content_changed() returns trigger
+language plpgsql volatile security definer set search_path = pg_catalog, records, esig, pg_temp as $$
+declare
+  v_aggregate text;
+  v_key       text;
+begin
+  for v_aggregate, v_key in
+    select distinct g.aggregate_id, (regexp_match(g.aggregate_id, '^(.+)@[0-9]{4}-[0-9]{2}-[0-9]{2}(@[0-9a-f-]{36})?$'))[1]
+    from esig.signature g
+    where g.aggregate_type = 'record_disposal'
+      and not exists (select 1 from esig.signature_invalidation i where i.signature_id = g.id)
+    order by 1
+  loop
+    if tg_table_name = 'retention_hold' then
+      continue when not exists (select 1 from records.retention_schedule sup, records.retention_schedule held
+                                where sup.record_key = v_key and held.record_key = new.record_key
+                                  and held.id = any (records.retention_closure(sup.id)));
+    else
+      continue when not exists (select 1 from records.retention_schedule sup where sup.record_key = v_key and sup.id = new.schedule_id);
+    end if;
+    perform esig.content_changed('record_disposal', v_aggregate, tg_table_schema || '.' || tg_table_name, tg_op);
+  end loop;
+  return null;
+end
+$$;
+
+create trigger zz_disposal_signatures after insert on records.retention_hold
+  for each row execute function records.disposal_content_changed();
+create trigger zz_disposal_signatures after insert on records.retention_input
+  for each row execute function records.disposal_content_changed();
 
 -- A recorded restore event exactly as its content hash covers it; its operator is its author.
 create function continuity.restore_event_signing_content(p_id text) returns jsonb

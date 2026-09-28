@@ -159,8 +159,11 @@ the remaining segments joined by underscores, all upper case: `platform.settings
 `PLATFORM.SETTINGS_CHANGE`, `sample_record.submit` -> `SAMPLE_RECORD.SUBMIT`), and evaluates it with
 `iam.evaluate_authority` for the actor's person and account in the declared role, at the database
 clock, at the actor's location (the platform passes no object scope). Every evaluation is stored
-(INV-26). NULL means allowed; otherwise the reason names the role, permission, scope, aggregate,
-reasons and the evaluation id. The platform tests install stub hooks over it.
+(INV-26). NULL means allowed. An actor it cannot trust or a name it cannot map is returned as the
+reason; a denied evaluation is raised as the platform's refusal (`EBMR-PLAT-006 permission <name>
+denied: ...`, naming the role, permission, scope, aggregate, reasons and the evaluation id) with the
+same JSON DETAIL as `EBMR-IAM-040`, so `withGuardedCommand` stores the failed check again outside the
+rolled-back command (DI-17). The platform tests install stub hooks over it.
 
 **Signature types.** `0720_authorization_signatures.sql` gives the approval signature types of the
 records and continuity modules the approving permissions (`RECORD_TYPE_APPROVED` ->

@@ -24,7 +24,7 @@ Format tokens: `{SITE}` `{PRODUCT}` `{YYYY}` `{YY}` `{MM}` (site-local calendar 
 | `site.allocate_batch_number(jsonb)` | `allocateBatchNumber` | Next number of the rule in force; product rule before site-wide rule. |
 | `site.register_external_batch_number(jsonb)` | `registerExternalBatchNumber` | A number issued by ERP; an existing number (voided included) is refused (`EBMR-SITE-013`); input is never silently changed. |
 | `site.void_batch_number(uuid, text, text)` | `voidBatchNumber` | Void with reason; never reissued. |
-| `site.recover_batch_number(jsonb)` | `recoverBatchNumber` | After a completed restore: re-enter a number issued in the lost window, with evidence, only for a serial inside the range the restore skipped. |
+| `site.recover_batch_number(jsonb)` | `recoverBatchNumber` | After a completed restore: re-enter a number issued in the lost window, with evidence, only for a serial inside the range the restore skipped, only for the rule's own product, only as the number the rule's format gives for that serial (any year and month), and a packaging number only under a processing number of the rule's site. |
 | `site.batch_number_invariant_violations()` | `batchNumberInvariantViolations` | Invariant query (must be empty). |
 | view `site.batch_number_register` | `exportBatchNumberRegister`, `registerToCsv` | Export (CSV cells quoted, spreadsheet formulas neutralised). |
 
@@ -42,16 +42,17 @@ product scope (`iam.require_permission`, `EBMR-IAM-040`; `site.batch_number_scop
 | `allocate_batch_number` | `BATCH_NUMBER.ALLOCATE` | site + product | batch issuer |
 | `register_external_batch_number` | `BATCH_NUMBER.REGISTER_EXTERNAL` | site + product | batch issuer, service accounts (ERP) |
 | `void_batch_number` | `BATCH_NUMBER.VOID` | site + product of the allocation | batch issuer |
-| `recover_batch_number` | `BATCH_NUMBER.RECOVER` | rule's site + product | batch issuer |
+| `recover_batch_number` | `BATCH_NUMBER.RECOVER` | rule's site + the rule's product (a site-wide rule: the product given) | batch issuer |
 
 A missing site or product is left out of the scope, and such a request is covered only by a grant not
-limited in that dimension. Issuing numbers may reserve a write-ahead ceiling in the issuer's context:
-`continuity.reserve_counter_ceiling` needs `CONTINUITY.COUNTER_RESERVE` at the issuer's location (see the
-continuity README). Tests: `test/authorization.test.ts`.
+limited in that dimension. Issuing numbers may reserve a write-ahead ceiling in the issuer's context: each
+rule's counter is registered with the rule's site (`{site}`), so `continuity.reserve_counter_ceiling` needs
+`CONTINUITY.COUNTER_RESERVE` in that site; a grant limited to another site, or to a product or area, does
+not cover it (see the continuity README). Tests: `test/authorization.test.ts`.
 
 ## Tests
 
-`packages/site-services/test/batch-number-register.test.ts`: format and immediate register entry, voids never reissued, uniqueness across editions, export fields, packaging linkage, site-wide rule, no wrap-around, bypass attempts, a rewound counter, and a real restore (a number allocated in the lost window is never reissued and can be recovered only inside the skipped range).
+`packages/site-services/test/batch-number-register.test.ts`: format and immediate register entry, voids never reissued, uniqueness across editions, export fields, packaging linkage, site-wide rule, no wrap-around, bypass attempts, a rewound counter, and a real restore (a number allocated in the lost window is never reissued and can be recovered only inside the skipped range, for the rule's product, in the rule's format, under a parent of the same site).
 
 ## Later phases
 

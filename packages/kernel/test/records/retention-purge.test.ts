@@ -666,8 +666,9 @@ describe('Phase 1 exit: retention and purge hardening', () => {
 });
 
 describe('owner decision 0004: a hold voids the disposal approvals given before it', () => {
-  // The first approver's signature stays valid as a signature (esig refuses them a second one on the same
-  // disposal, EBMR-ESIG-042), so the new approval comes from another QA reviewer.
+  // The signed disposal content carries the hold watermark (kernel 0720), so a hold supersedes the
+  // signatures made before it (esig SUPERSEDED_BY_CHANGE). The new approval comes from another QA reviewer
+  // here; the same reviewer may sign it again too (test/integration/authorization.test.ts).
   let qa3: SeededActor;
   beforeAll(async () => {
     qa3 = await signerActor(db, 'QA_REVIEWER', 'QA Deputy after the hold');
@@ -687,9 +688,11 @@ describe('owner decision 0004: a hold voids the disposal approvals given before 
     await expect(runPurge(key)).rejects.toThrow(
       `EBMR-REC-041 the disposal approval ${before} of ${key} was given before the legal hold LEGAL-0004 was placed on ${key}; after a hold the disposal needs a new approval`,
     );
-    // Its signature cannot carry a new approval either: the decision is taken again after the hold.
+    // Its signature cannot carry a new approval either: the decision is taken again after the hold. The
+    // hold changed the signed content, so the signature itself is superseded (a signature made while a
+    // hold was in place is refused by EBMR-REC-041 instead).
     await expect(withCommand(db.app, again(qa2), async (c) => approvePurge(c, key, await signatureOf(before), 'retention ended'))).rejects.toThrow(
-      /EBMR-REC-041 the disposal-approval signature of .* was made before the legal hold LEGAL-0004 on .* was released/,
+      /EBMR-ESIG-070 signature .* is SUPERSEDED_BY_CHANGE; the record must be signed again/,
     );
     expect(await rows(batch)).toBe('1');
     // A new approval, signed after the release and meeting every current rule, authorises the purge.

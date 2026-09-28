@@ -19,13 +19,13 @@ import { evaluateStubScope, setSiteValue } from '../../src/market/repository.ts'
 import { raiseIncident, reclassifyIncident, startIncidentInvestigation } from '../../src/records/incidents.ts';
 import { openDiInvestigation } from '../../src/records/investigations.ts';
 import { defineRecordType } from '../../src/records/register.ts';
-import { approvePurge, createRetentionSchedule, placeLegalHold } from '../../src/records/retention-store.ts';
+import { approvePurge, createRetentionSchedule, placeLegalHold, releaseLegalHold } from '../../src/records/retention-store.ts';
 import { createAggregateState, transition } from '../../src/state/engine.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { SEED_SITE, seedActor, seedAdministration, seedServiceActor, withFreshAuth, withReason, type SeededActor } from '../identity/seed.ts';
 import { approveSourceCorrection, createTestTable, miniDocument, publishDocumentAs, publishSeedTables } from '../market/helpers.ts';
 import { registerValidatedTimeSource } from '../platform/helpers.ts';
-import { approveDisposal, recordType, registerType, signFor } from '../records/helpers.ts';
+import { approveDisposal, disposalAggregate, recordType, registerType, signFor } from '../records/helpers.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -352,6 +352,38 @@ describe('records', () => {
     expect(logged.rows.length).toBeGreaterThanOrEqual(1);
     expect(logged.rows.every((r) => !r.allowed)).toBe(true);
     await expect(approveDisposal(db, qa, `batch:${batch}`, 'retention ended')).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-47][INV-09] a disposal signature covers the retention inputs and the holds: a hold placed after it unsigns the disposal, and the same QA reviewer signs the fresh approval', async () => {
+    const batch = randomUUID();
+    const key = `batch:${batch}`;
+    const keeper = await actor('QA_REVIEWER');
+    await withCommand(db.app, again(keeper), (c) =>
+      createRetentionSchedule(c, 'batch', batch, 'AUTHZ_BATCH_RECORD', { markets: ['IN', 'US'], manufactureDate: '2008-01-10', expiryDate: '2010-01-31' }),
+    );
+    const aggregate = await disposalAggregate(db, key);
+    // The signed content names the inputs in force, the hold watermark and, as authors, whoever entered the inputs.
+    const content = await db.admin.query<{ c: { content: Record<string, unknown>; entered_by: string[]; aggregate_id: string } }>(
+      'select records.record_disposal_content($1) as c',
+      [aggregate.id],
+    );
+    expect(content.rows[0]?.c).toMatchObject({ aggregate_id: aggregate.id, entered_by: [keeper.personId] });
+    expect(content.rows[0]?.c.content).toMatchObject({ retention_inputs: { input_version: '1' }, hold_watermark: expect.any(String) as string });
+    const before = await signFor(db, qa, aggregate, 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    const state = async (id: string) => (await db.app.query<{ s: { valid: boolean; status: string } }>('select esig.signature_state($1) as s', [id])).rows[0]?.s;
+    expect(await state(before)).toMatchObject({ valid: true, status: 'VALID' });
+
+    // Another reviewer places a legal hold (and releases it): the signature made before it no longer
+    // holds. (Whoever changes signed content is one of its authors, so the hold is placed by another person.)
+    const holdId = await withCommand(db.app, again(keeper), (c) => placeLegalHold(c, 'batch', batch, 'claim received', 'LEGAL-AZ-1'));
+    await withCommand(db.app, withReason(keeper, 'CLAIM_SETTLED', 'claim withdrawn'), (c) => releaseLegalHold(c, holdId, 'claim withdrawn'));
+    expect(await state(before)).toMatchObject({ valid: false, status: 'SUPERSEDED_BY_CHANGE' });
+    await expect(withCommand(db.app, again(qa), (c) => approvePurge(c, key, before, 'retention ended'))).rejects.toThrow('EBMR-ESIG-070');
+
+    // The same reviewer signs the disposal again, now with the hold in its content, and approves.
+    const after = await signFor(db, qa, aggregate, 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    expect(await state(after)).toMatchObject({ valid: true });
+    await expect(withCommand(db.app, again(qa), (c) => approvePurge(c, key, after, 'retention ended; hold released'))).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('[DI-17] an operator cannot place a legal hold or investigate an incident; a service account raises an incident but cannot reclassify it', async () => {
