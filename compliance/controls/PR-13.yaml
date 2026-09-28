@@ -16,8 +16,23 @@ requirement_rows:
 sources: "US: 211.100(b); 11.10(f) | EU: Ch.5 5.15; Ch.4 4.20(h); 4.21(g) | ICH/EMA/draft: none"
 behaviour: The engine enforces step order, prerequisites and branch conditions. A user cannot skip or reorder a mandatory step, or use equipment or material the master does not list. The only way around the defined flow is an in-line deviation record (description, immediate action, impact) approved by the e-signature of a user designated competent for that deviation class. Planned departures are approved before execution; unplanned events are approved after the fact. Quality-relevant classes are routed to QC/QA. The deviation ID is linked to the step and shown in the record.
 catalog_test: Skipping a mandatory step is blocked until a deviation is approved by an authorised role. A user cannot approve their own deviation.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (requestSkip, chooseAlternative)"
+    - "packages/recipe-core/src/engine/batch.ts (raiseException, attachDeviation, dispositionException)"
+    - "packages/recipe-core/src/engine/guards.ts"
+  guards:
+    - "Start, record or sign out of sequence is refused (ENG-NOT-ENABLED)"
+    - "REQUEST_SKIP only for steps the MBR declares skippable, approved by a different person, never for CPP/CQA inputs, yield, clearance, dispensing, charge-in, sign-off or hold points (ENG-SKIP-FORBIDDEN); it raises STEP_SKIPPED"
+    - "Exceptions: an ACTION exception blocks until a deviation is linked (ENG-DEVIATION-REQUIRED); it is dispositioned by a person outside the involvement set of its step (ENG-SEGREGATION)"
+tests:
+  - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21][PR-13] a container holding an intermediate the step does not charge is rejected as unplanned"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-13] a person can raise an exception at a step; ACTION stops the steps after it until a deviation is linked"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > skip (PR-13) > [PR-13][DI-26] a skippable step is skipped only with a different approver; it appears in the exception register and the flow moves on"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > skip (PR-13) > [PR-13] never for a step not declared skippable, a CPP/CQA input, a yield or clearance step, or a QA hold point"
+  - "packages/recipe-core/test/engine/flow.test.ts > sequencing (DI-34) > [DI-34][PR-13] step N+1 cannot be started, recorded in or signed before step N completes; then it is enabled"
+  - "packages/recipe-core/test/engine/flow.test.ts > sequencing (DI-34) > [DI-34][PR-13] an operator choice needs an authorised role and a reason, and only when it is due"
+  - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][PR-13] an exception is dispositioned by a person outside the involvement set of the step that raised it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

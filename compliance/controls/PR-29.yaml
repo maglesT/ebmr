@@ -34,8 +34,18 @@ behaviour: |-
     - PAT or model results are accepted as IPC records carrying the model ID and version and the validity diagnostics.
     - A model output outside its validity domain requires a confirmatory test. This follows the FDA draft position (draft).
 catalog_test: Taking fewer units than the plan requires creates a deviation. Both results of a repeated IPC are visible. An expired pH buffer is blocked. [T] A skipped hardness check puts output since the last passing check on hold.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/process.ts (G-12)"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-13)"
+  guards:
+    - "G-12: fewer units than the sampling plan requires raises SAMPLING_SHORTFALL; sample ids and labels are system-generated"
+    - "G-13: all readings kept with their statistics; a failing IPC and its re-test are both visible (IPC_RESULT_FAILED, REPEAT_AFTER_FAIL)"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-29] G-13 IPC with readings and statistics: Twenty tablet weights with their mean and RSD computed, all readings kept"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-29] G-12 Sampling: A plan of 2 locations x 3 units with one location short: a sampling-shortfall exception (PR-29 catalog test)"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [PR-29][IN-20][DI-29] a failing categorical IPC stops the step until a deviation is linked, and a passing re-test never replaces it"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-12 sampling > [IN-20][PR-29] sample ids are system-generated and the label carries product, batch, sample, sampler and time; an unplanned point is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

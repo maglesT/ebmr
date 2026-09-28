@@ -21,8 +21,13 @@ behaviour: |-
   - Downtime fallback: printable instructions and forms are generated from the Effective master. Each carries a unique form ID, the batch ID, "page x of y" and a dedicated space for every entry.
   - Issued fallback forms are counted and reconciled on return. Their data are transcribed back with verification, and a scan of the form is linked to the record.
 catalog_test: A backdating attempt is impossible. A late entry shows both times, the reason and an exception flag. Issued fallback forms reconcile to returned forms.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (startStep, recordData)"
+  guards:
+    - "A late entry records both times, needs a reason and is flagged LATE_ENTRY; an event time before the step started (ENG-OCCURRED-AT) or a person-claimed start (ENG-BACKDATING) is refused"
+tests:
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

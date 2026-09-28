@@ -30,8 +30,13 @@ behaviour: |-
   - Recurrence and register: a counter warns when the same deviation recurs. A register of batches certified under this route is kept for the PQR.
   - Availability impact (design choice): an optional field for shortage-sensitive products. Availability can never override a quality disposition.
 catalog_test: A failure of a registered limit creates a deviation with the MA flag. The third recurrence shows a warning on the certification screen.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/exceptions.ts, packages/recipe-core/src/engine/batch.ts (dispositionException)"
+  guards:
+    - "A registered-limit breach raises a registration-relevant deviation requirement that only QA dispositions; the operator cannot clear it"
+tests:
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -29,6 +29,7 @@ implemented_by:
     - "compliance/rule-tables/kernel/kernel.v1.yaml"
     - "compliance/rule-tables/tablets/tablets.v1.yaml"
     - "compliance/rule-tables/sterile/sterile.v1.yaml"
+    - "packages/recipe-core/src/engine/batch.ts (initialState)"
   invariants:
     - "INV-28"
     - "INV-29"
@@ -37,6 +38,7 @@ implemented_by:
     - "market.publish_rule_table: validation (unknown method, scalar method on a multi-component key, unit mismatch, overlapping windows, ambiguous predicates, India missing); a loosening already in force only as a SOURCE_CORRECTION with citation and two approvers"
     - "market.set_site_value: site values only tighten; looser than HARD or DESIGN refused; GUIDANCE or adopted EXAMPLE loosening needs a CCS reference and QA approval and is flagged (market.batch_flags)"
     - "market.evaluate_stub_scope and ResolutionContextProvider: scope market sets (batch, pack, site, union over line, room, equipment and person, per consuming batch for lots; PIC/S counts as EU for sterile line rules)"
+    - "Issue: India is always in the batch market set; a market the MBR is not approved for is refused (ENG-ISSUE-MARKETS)"
   db_constraints:
     - "market.evaluation_complete: every stored evaluation is recomputed from its inputs; a result the rule table does not give is refused (INV-29)"
     - "rule-table versions, keys, rows, evaluations, site values and impact items are insert-only and audited; ebmr_app has SELECT only"
@@ -138,6 +140,7 @@ tests:
   - "packages/kernel/test/market/site-values.test.ts > [IN-52] a set-valued rule accepts added elements but never removed ones; a NOT_COMPARABLE rule takes no site value"
   - "packages/kernel/test/market/site-values.test.ts > [IN-52] site values are insert-only and written only through the function"
   - "packages/kernel/test/market/site-values.test.ts > [IN-52] loosening an adopted EXAMPLE value needs the same justification and approval; a site value that a later table makes too loose is not applied but flagged"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [IN-52][PR-10] India is in every market set, and a batch cannot target a market the MBR is not approved for"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

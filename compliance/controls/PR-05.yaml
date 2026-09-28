@@ -22,11 +22,39 @@ behaviour: |-
   - A retired master blocks new batches, but every executed record stays retrievable and printable.
   - The system exports an inventory of its controlled documents (masters, templates, forms, label templates, embedded instructions) with ID, version, status, effective date and review date.
 catalog_test: After v2 is effective, starting a batch on v1 is blocked. An overdue review appears on the dashboard. The inventory export reconciles with the site document list.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0160_market_authorisation.sql (supersession per market and scope in the same transaction, withdrawal, recipe.retire_version)"
+    - "packages/recipe-core/sql/0170_batch_issue.sql (selection at issue, pin record, in-flight dispositions)"
+    - "packages/recipe-core/sql/0180_review_inventory_invariants.sql (periodic review, overdue list, document inventory, where-used)"
+    - "packages/recipe-core/src/lifecycle/inventory.ts (CSV export, reconciliation with the site document list)"
+  invariants:
+    - "INV-01"
+    - "INV-17"
+  guards:
+    - "batch_mbr_pin trigger: a new batch pins only the version the selection gives at the issue instant; after v2 is CURRENT, v1 is refused (EBMR-RCP-101)"
+    - "mbr_version.review_due_set: every approved master carries a review due date after its effective date; recipe.overdue_reviews for the dashboard"
+    - "mbr_version.no_open_authorisation and recipe.retire_version: retirement ends every open authorisation; retired versions are never selected, issued records stay readable (recipe.verify_control_recipe)"
+    - "mbr_version.in_flight_dispositioned: issued and running batches of earlier versions get CONTINUE (default), HOLD_FOR_ASSESSMENT or CANCEL_UNSTARTED before a successor is approved"
+  db_constraints:
+    - "authorisation_cell_one_current (unique partial index) and authorisation_cell_current_no_overlap (exclusion constraint)"
+    - "batch_mbr_pin.batch_id unique; control_recipe insert-only"
+tests:
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-05] every approved master carries a periodic-review due date after its effective date"
+  - "packages/recipe-core/test/lifecycle/concurrency.test.ts > [INV-17][PR-05] a market activation racing the retirement of its version never leaves a retired version CURRENT"
+  - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-05][INV-01] once v2 is CURRENT, a new batch cannot be pinned to v1"
+  - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-05] a retired master blocks new batches; every executed record stays retrievable and verifiable"
+  - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-05][INV-01] approving a successor needs a disposition for every issued or running batch of an earlier version"
+  - "packages/recipe-core/test/lifecycle/machine.test.ts > [PR-02][PR-05][INV-04] every event in every state is accepted by the engine exactly when XState allows it"
+  - "packages/recipe-core/test/lifecycle/market.test.ts > [INV-17][PR-05] the successor supersedes the predecessor for its market and scope in the same transaction; partial scope leaves the rest CURRENT"
+  - "packages/recipe-core/test/lifecycle/market.test.ts > [PR-05][INV-17] withdrawal ends the authorisation; retirement ends every open authorisation and the version"
+  - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] an overdue review appears on the dashboard until the review is recorded"
+  - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] only approved versions are reviewed; a retired version leaves the overdue list"
+  - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05][PR-02] the inventory export lists every version with ID, version, status and dates, and reconciles with the site document list"
+  - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] where-used lists the batches pinned to a version"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: EU requires periodic review (4.5) and a document inventory (4.32) explicitly, so EU is stricter. Blocking superseded versions comes from 4.3 (effective date) and 4.20/4.21 (currently approved instructions), not from 4.5 (see D-11).
 type_detail: ENFORCED (supersession and retirement) + CONFIGURABLE (review interval, set by customer SOP; the texts give no number)

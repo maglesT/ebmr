@@ -51,6 +51,7 @@ implemented_by:
     - "packages/kernel/sql/0250_esig_stub.sql (stub signable entries; esig.stub_complete: completion only by a signature)"
     - "packages/kernel/src/esig/catalogue.ts"
     - "packages/kernel/src/esig/signing.ts"
+    - "packages/recipe-core/src/engine/guards.ts (signature meanings per engine signature point)"
   invariants:
     - "INV-03"
   guards:
@@ -58,6 +59,7 @@ implemented_by:
     - "esig.sign: authority for one of the type's permissions evaluated and stored at the instant of signing (iam.evaluate_authority, INV-26); delegation validity (EBMR-ESIG-041); independence rules evaluated on the person (EBMR-ESIG-042 to 045); WITNESSED rules: same terminal or a terminal of the same room, within the witness window, before the next step (EBMR-ESIG-050 to 053)"
     - "esig.stub_complete: a signature point is completed only by a valid signature of the required meaning, never by an acknowledgement (EBMR-ESIG-092, 093)"
     - "esig.add_meaning_type, esig.configure_meaning_type, esig.retire_meaning_type: quality unit only (MBR.APPROVE), never an administrator"
+    - "Every engine signature point requires its kernel meaning (PERFORMED, VERIFIED, WITNESSED, CORRECTED, HOLD_POINT_RELEASED, ...); a signature by someone else, with another meaning or used twice is refused (ENG-SIGNATURE, ENG-SIGNATURE-MEANING, ENG-SIGNATURE-REUSED)"
   db_constraints:
     - "esig.meaning_type: insert-only and audited; checks: re-authentication is ALL_COMPONENTS or SESSION_RELAXABLE (no acknowledgement-only type), master-record and release types always ALL_COMPONENTS, VERIFIER and WITNESS types exclude performers (INV-03), release types exclude the involvement set"
     - "esig.meaning_type_guard: the minimum (vendor) set comes only from migrations and is never removed, disabled or loosened (EBMR-ESIG-020 to 024)"
@@ -81,6 +83,8 @@ tests:
   - "packages/kernel/test/esig/independence.test.ts > [DI-35][INV-03] a witness signs on a terminal in the same room within the window, never from another room"
   - "packages/kernel/test/esig/independence.test.ts > [INV-03][DI-35] the person who performed a step cannot verify it, even acting in a verifier role"
   - "packages/kernel/test/esig/signing.test.ts > [DI-35] only catalogue meanings can be challenged; a stale content version is refused"
+  - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-35] a signature made by someone else, or used twice, is refused"
+  - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-35] a WITNESSED step needs the WITNESSED meaning, and a witness after the window raises an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

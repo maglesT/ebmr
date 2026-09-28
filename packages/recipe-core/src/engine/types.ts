@@ -422,6 +422,8 @@ export interface ContainerRecord {
   holds: string;
   holdsKind: 'INTERMEDIATE' | 'BOM_LINE';
   producedBy: string;
+  /** Loop iteration and sub-lot frames of the producing step (a container of one sub-lot is never charged into another). */
+  producedIn: Frame[];
   net?: { value: string; unit: string };
   status: 'QUARANTINE' | 'CONSUMED';
   consumedBy?: string;
@@ -435,7 +437,8 @@ export interface DecisionRecord {
   construct: string;
   frames: Frame[];
   outcome: string;
-  decidedBy: 'SYSTEM' | string;
+  /** 'SYSTEM' or the deciding person's id. */
+  decidedBy: string;
   reason?: string;
   at: bigint;
   seq: number;
@@ -538,6 +541,13 @@ export interface SubLot {
   createdAt: bigint;
 }
 
+export interface NodeEventRecord {
+  node: string;
+  event: 'START' | 'END';
+  frames: Frame[];
+  at: bigint;
+}
+
 export interface TimeInstanceState {
   key: string;
   constraint: string;
@@ -585,12 +595,16 @@ export interface BatchState {
   holds: Record<string, HoldRecord>;
   stages: Record<string, StageFrameState>;
   subLots: Record<string, SubLot>;
-  /** Instants of node events: `${node}|START|${context}` -> microseconds (time basis). */
-  nodeEvents: Record<string, bigint>;
+  /** Node events (step and construct starts and ends) by `${node}|${event}|${context}`, with their time basis instant. */
+  nodeEvents: Record<string, NodeEventRecord>;
   timeInstances: Record<string, TimeInstanceState>;
   /** Decisions that could not be evaluated yet (exception raised once per decision point). */
   pendingDecisionProblems: Record<string, string>;
   appliedCommands: string[];
+  /** Signature ids already used in this batch (one signature, one purpose). */
+  usedSignatures: Record<string, string>;
+  /** Status to return to when the last hold is released. */
+  statusBeforeHold?: 'ISSUED' | 'IN_PROGRESS';
   counters: Record<string, number>;
   abort?: { reason: string; approvals: string[]; at: bigint };
 }

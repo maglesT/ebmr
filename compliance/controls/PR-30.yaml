@@ -19,8 +19,19 @@ behaviour: |-
   - Holds of intermediates and bulk record the container, location, storage condition and maximum hold time.
   - A maximum filling-to-labelling interval for unlabelled units is a design choice.
 catalog_test: A simulated breach creates a deviation automatically and flags the batch. After a client and server restart, the elapsed time is still correct.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/timing.ts"
+    - "packages/recipe-core/src/blocks/generic/process.ts (G-15)"
+  guards:
+    - "Time constraints per instance: a to-event before its minimum is refused (ENG-MIN-DURATION); every maximum breach creates exactly one exception at the next command or by sweep()"
+    - "G-15: a transfer records issued-by and received-by, two different persons (G15-TRANSFER)"
+  invariants:
+    - "INV-20"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-30] G-15 Timer, hold time, transfer: A hold step with a 10-30 min timer: signing performed after 12 min is on time"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-15 transfer > [IN-15][PR-30] a transfer records issued-by and received-by, two different persons"
+  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][PR-30] a step cannot be signed performed before its minimum duration; at the minimum it can"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

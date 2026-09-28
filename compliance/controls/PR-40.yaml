@@ -15,8 +15,14 @@ requirement_rows:
 sources: "US: 211.125(d)-(e) | EU: Ch.5 5.62; Ch.4 4.21(h) | ICH/EMA/draft: none"
 behaviour: At order close, unused labeling and packaging materials that carry the batch code are destroyed, with quantity, method, date and performer recorded, and cannot be returned to stock. Uncoded printed leftovers can return only through a counted return-to-stock transaction, following the documented procedure, and are identified and stored to prevent mix-ups.
 catalog_test: No transaction exists to return batch-coded cartons to stock. A return of uncoded labels updates stock only after a count verification.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-23)"
+  guards:
+    - "G-23: batch-coded leftovers can only be destroyed, never returned to stock (G23-BATCH-CODED); destruction records its method and a witness (G23-METHOD, G23-WITNESS)"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-40] G-23 Returns, rejects, destruction: Batch-coded cartons destroyed and witnessed; a return of batch-coded cartons to stock is refused"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-23 returns, rejects and destruction > [PR-40] batch-coded leftovers can only be destroyed, never returned to stock; destruction records its method and is witnessed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

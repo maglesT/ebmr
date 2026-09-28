@@ -21,8 +21,23 @@ behaviour: |-
   - If automation is unavailable, the step escalates automatically to two-person mode and the fallback appears as an exception. "Unavailable" means the device is offline, a value is keyed manually, or a barcode is overridden.
   - What the flag can never relax: any other two-person rule, such as the independent check of the master (211.186(a)), the second-person verification of the 100% visual check of hand-applied labeling (211.122(g)(3)), and second-person review of lab records (211.194(a)(8)).
 catalog_test: With the scale disconnected during an automated dispense, the step demands a second, different user. Enabling automated mode on a 211.122(g)(3) step is refused at configuration time.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (verify)"
+    - "packages/recipe-core/src/engine/definition.ts"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-16)"
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
+  guards:
+    - "The verifier or witness never performed, entered data in or corrected the step (ENG-SEGREGATION)"
+    - "Manual weighing with the scale offline makes the step need a second, different person"
+    - "A step with neither performer nor checker cannot be defined (ENG-DEF-ZERO-HUMANS); an automated phase has a human performer unless the one-verifier mode S5a is on"
+  invariants:
+    - "INV-03"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-14] G-16 Verification / witness: An independent line check confirmed and witnessed by a second person"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-03][PR-14] every checked step was verified by a person who neither performed nor entered data in it, and the involvement facts were emitted"
+  - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][PR-14] the person who performed a step cannot verify it, even when they hold the checker role"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -27,14 +27,26 @@ catalog_test: Try to delete an entry through the UI and the API. Only void-with-
 implemented_by:
   modules:
     - packages/kernel/sql/0010_audit_trail.sql
+    - "packages/recipe-core/src/engine/corrections.ts (correction paths a, b, c and dependents)"
+    - "packages/recipe-core/src/engine/data.ts (data-point versions)"
   invariants:
     - INV-06
+    - "INV-41"
   db_constraints:
     - "a change or removal after first entry needs a reason; the audit event keeps the original values (old) with the reason and the actor"
     - "insert-only tables refuse update, delete and truncate (EBMR-AUDIT-004); corrections are new linked rows"
+  guards:
+    - "CORRECT_ENTRY (path a): a new data-point version; the original stays with corrector, reason and CORRECTED signature; device-captured values cannot be corrected (ENG-CORRECT-DEVICE); critical data needs approval (S25, ENG-CORRECT-APPROVAL)"
+    - "VOID_ATTEMPT (path b): only an attempt without a result, with a reason and QA approval (S28; ENG-VOID-RESULT, ENG-VOID-APPROVAL); the voided attempt stays in the record"
+    - "Dependents of a correction: derived values recalculated with the old record kept, signed steps sent back for re-verification, stage sign-off invalidated"
 tests:
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-24][DI-22] an entry is removed only with a reason, and the audit trail keeps the original values"
+  - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-33][INV-03] a correction keeps the original, recalculates dependents keeping the old result, and sends signed steps back for re-verification"
+  - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-29] a device-captured value can never be corrected, only invalidated"
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] an attempt is voided only before a result exists, with a reason and QA approval; the attempt stays in the record"
+  - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-24] correction by a checker-role person makes them involved; the re-verification must come from someone else"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][DI-24] a later correction invalidates the stage sign-off and the batch is no longer execution-complete"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

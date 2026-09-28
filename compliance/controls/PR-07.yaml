@@ -25,8 +25,14 @@ behaviour: |-
   - Linked events raise a re-review task, and review-by-exception for the affected step pauses until QA confirms. Linked events are repeated deviations on a step, a PQR finding, or a change.
   - Reducing IPC frequency requires change control that cites trend data.
 catalog_test: Submitting a master with a critical parameter and no linked assessment is blocked. Three deviations on a low-risk step open a re-review task and pause review-by-exception for that step.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0110_mbr_family_version.sql (risk_assessment stub: id, risk class, rationale reference; mbr_risk_link per element or whole master)"
+    - "packages/recipe-core/sql/0130_mbr_guards.sql (guard critical_elements_risk_assessed)"
+  guards:
+    - "mbr_version.critical_elements_risk_assessed (IN_VERIFICATION -> SUBMITTED): every CRITICAL parameter and calculation is covered by a linked risk assessment"
+tests:
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-07] submitting a master with a critical parameter and no linked risk assessment is blocked"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

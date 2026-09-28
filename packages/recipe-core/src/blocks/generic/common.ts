@@ -1,0 +1,112 @@
+/**
+ * Shared pieces of the generic block versions: schema fragments, unit and decimal helpers, the
+ * expected-answer rule for categorical results, and container arithmetic (net = gross - tare, always
+ * computed, never typed: INV-25).
+ */
+import { Dec, parseUnit, sameDimension, UnitError } from '@ebmr/expr';
+import type { MbrContent, Parameter, PhaseNode } from '../../flow/model.ts';
+import type { DataValue } from '../../engine/types.ts';
+import type { ExceptionRule, HandlerProblem, HandlerView } from '../contract.ts';
+import type { FieldSchema, ObjectSchema } from '../schema.ts';
+
+export const SKIPPABLE: FieldSchema = { type: 'boolean', optional: true, description: 'The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)' };
+
+export const EPOCH_MICROS: FieldSchema = { type: 'string', pattern: /^[0-9]{1,20}$/, description: 'Instant as UTC epoch microseconds (digits)' };
+
+export const QUANTITY_SCHEMA: ObjectSchema = {
+  type: 'object',
+  description: 'A quantity: decimal text and UCUM unit',
+  fields: { value: { type: 'decimal', description: 'Decimal written as text' }, unit: { type: 'string', description: 'UCUM unit' } },
+};
+
+export const LOT_SCHEMA: ObjectSchema = {
+  type: 'object',
+  description: 'The lot as read from site services at the moment of use (status evaluated on fresh data, PR-18)',
+  fields: {
+    id: { type: 'string', description: 'Lot or receiving/control number' },
+    material: { type: 'string', description: 'Material code or MBR material reference on the scanned label' },
+    status: { type: 'string', enum: ['RELEASED', 'QUARANTINE', 'ON_TEST', 'REJECTED', 'ON_HOLD', 'RECALLED', 'RETURNED', 'EXPIRED'], description: 'Material status at the moment of use' },
+    expiresAtUs: { ...EPOCH_MICROS, optional: true },
+    retestAtUs: { ...EPOCH_MICROS, optional: true },
+    identityTested: { type: 'boolean', optional: true, description: 'An identity-test result exists for this lot (IN-24(c))' },
+  },
+};
+
+export function problem(code: string, message: string, controls: string[]): HandlerProblem {
+  return { code, message: `${message} (${code}; ${controls.join(', ')})`, controls };
+}
+
+export function isMassUnit(unit: string | undefined): boolean {
+  if (unit === undefined) return false;
+  try {
+    return sameDimension(parseUnit(unit), parseUnit('kg'));
+  } catch (e) {
+    if (e instanceof UnitError) return false;
+    throw e;
+  }
+}
+
+/** Recorded parameters of a phase whose unit is a mass (container totals are computed into these). */
+export function massItems(phase: PhaseNode, mbr: MbrContent): string[] {
+  return phase.records.filter((r) => {
+    const p = mbr.parameters.find((x) => x.id === r);
+    return p !== undefined && p.valueType === 'DECIMAL' && (p.readings ?? 1) === 1 && isMassUnit(p.unit);
+  });
+}
+
+/** Exact conversion of a quantity to another unit through the expression language (undefined when not exact or not commensurable). */
+export function convert(view: HandlerView, value: string, from: string, to: string): string | undefined {
+  return from === to ? value : view.expr.convert(value, from, to);
+}
+
+/** net = gross - tare, exact; refuses a negative or zero net. */
+export function netOf(gross: string, tare: string): { ok: true; net: string } | { ok: false; message: string } {
+  const g = Dec.parse(gross);
+  const t = Dec.parse(tare);
+  if (t.isNegative() || g.isNegative()) return { ok: false, message: 'gross and tare weights cannot be negative' };
+  const net = g.minus(t);
+  if (!net.isPositive()) return { ok: false, message: `the net weight (${gross} - ${tare}) is not positive` };
+  return { ok: true, net: net.toString() };
+}
+
+export function sumDecimals(values: readonly string[]): string {
+  return values.reduce((acc, v) => acc.plus(Dec.parse(v)), Dec.ZERO).toString();
+}
+
+/**
+ * The answer a categorical result is expected to have (documented default when the MBR's block
+ * configuration names none): PASS, CONFIRMED, YES, ACCEPTABLE or COMPLIES when the list offers one;
+ * true for yes/no values.
+ */
+export function expectedAnswer(p: Parameter | undefined, configured: unknown): string | boolean | undefined {
+  if (typeof configured === 'string') return configured === 'true' ? true : configured === 'false' ? false : configured;
+  if (!p) return undefined;
+  if (p.valueType === 'BOOLEAN') return true;
+  if (p.valueType !== 'CATEGORY') return undefined;
+  return ['PASS', 'CONFIRMED', 'YES', 'ACCEPTABLE', 'COMPLIES'].find((c) => (p.categories ?? []).includes(c));
+}
+
+export function isUnexpected(expected: string | boolean | undefined, value: DataValue): boolean {
+  if (expected === undefined) return false;
+  if (value.kind === 'BOOLEAN') return value.value !== expected;
+  if (value.kind === 'CATEGORY') return value.value !== expected;
+  return false;
+}
+
+export function configRecord(config: Readonly<Record<string, unknown>>, key: string): Readonly<Record<string, unknown>> {
+  const v = config[key];
+  return typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
+/** Engine exception rules a block can trigger through the core (listed so each block's rules are complete). */
+export const CORE_VALUE_RULES: ExceptionRule[] = [
+  { type: 'LIMIT_BREACH', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A value outside a limit tier (behaviour by tier)', controls: ['PR-08'] },
+  { type: 'REPEAT_AFTER_FAIL', category: 'REPEAT_OR_ABORTED', severity: 'ACTION', summary: 'A new attempt after a failing result', controls: ['DI-29', 'INV-41'] },
+  { type: 'MANUAL_ENTRY_FALLBACK', category: 'MANUAL_ENTRY', severity: 'ALERT', summary: 'Manual entry where device capture is configured; two-person mode', controls: ['DI-30', 'PR-14'] },
+  { type: 'LATE_ENTRY', category: 'LATE_ENTRY', severity: 'ALERT', summary: 'Entry with a person-claimed time', controls: ['DI-28'] },
+];
+
+/** Epoch microseconds from a digits string (instants are never JavaScript numbers). */
+export function micros(text: unknown): bigint | undefined {
+  return typeof text === 'string' && /^[0-9]{1,20}$/.test(text) ? BigInt(text) : undefined;
+}

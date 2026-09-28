@@ -26,8 +26,13 @@ behaviour: |-
   - Stock rotation: the system proposes the oldest approved lot first. Picking another lot needs a reason, which appears in a rotation-exception report.
   - Storage conditions: storage-condition attributes stop a lot from being staged in an incompatible location.
 catalog_test: Scanning a quarantined lot is blocked. A lot past its retest date is blocked. Picking a newer lot demands a reason.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
+  guards:
+    - "G-07: a quarantined, expired or past-retest lot and the wrong material are refused with no override (G07-LOT-STATUS, G07-LOT-EXPIRED, G07-LOT-RETEST, G07-WRONG-MATERIAL)"
+tests:
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-18][IN-23] a quarantined lot, an expired lot, a lot past retest and the wrong material are hard-blocked with no override"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

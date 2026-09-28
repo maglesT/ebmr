@@ -43,6 +43,7 @@ export const GUARDS = {
   signedInState: 'mbr_version.signed_in_state',
   checkerIndependent: 'mbr_version.checker_independent',
   approverIndependent: 'mbr_version.approver_independent',
+  regulatoryConfirmed: 'mbr_version.regulatory_confirmed',
   effectiveDateSet: 'mbr_version.effective_date_set',
   reviewDueSet: 'mbr_version.review_due_set',
   changeControlComplete: 'mbr_version.change_control_complete',
@@ -101,6 +102,7 @@ export const mbrVersionMachine = setup({}).createMachine({
           guards: [
             G.signedInState,
             G.approverIndependent,
+            G.regulatoryConfirmed,
             G.evidenceComplete,
             G.effectiveDateSet,
             G.reviewDueSet,

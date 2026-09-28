@@ -24,8 +24,24 @@ behaviour: |-
   - device and recipe versions.
   - A later change to master data never alters how a completed record is displayed or how its results were evaluated.
 catalog_test: Tighten a specification limit after a batch completes. The completed record still shows the original limit version and its original pass/fail evaluation.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/definition.ts, packages/recipe-core/src/engine/batch.ts (pinned MBR version at issue)"
+    - "packages/recipe-core/src/blocks (contract, registry: versioned block types type@version)"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-03)"
+  guards:
+    - "defineBatch compiles one pinned MBR version (content hash) and refuses a phase whose block type@version has no registered execution handler (ENG-DEF-BLOCK) or whose configuration is outside that version's schema (ENG-DEF-CONFIG)"
+    - "Issue (G-01) pins the MBR content hash in the batch state; header and master-data inputs are typed and stored with their source"
+    - "Each data point stores its limit evaluation at recording, and each step instance the targets it showed, so later changes cannot alter them"
+    - "G-03: the SOP code, version and hash pinned by the MBR are written into the acknowledgement entry; another version is refused (G03-SOP-VERSION); an SOP the MBR does not reference cannot be executed (G03-SOP-REF)"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-34][DI-10] the Phase 2 generic block versions are registered: G-01..G-05, G-07, G-08, G-11..G-20, G-22..G-24"
+  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-10] every version has every execution part of the contract; only the rendering parts (UI work) are still missing, and the report says so"
+  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-10] a version is registered once; a phase block without a handler, schemas, exception rules or simulator model is refused"
+  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-34][DI-10] an MBR using a block version the registry cannot execute, or a configuration outside its schema, cannot be defined for execution"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-03 instruction and acknowledgement > [DI-34][DI-10] an instruction cannot be signed before it is acknowledged; the SOP version in force is written into the record"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-03 instruction and acknowledgement > [DI-10] an instruction naming an SOP the MBR does not reference cannot be executed"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-10][DI-10] header and master-data inputs are typed at issue with their source; the MBR hash is pinned; nothing is issued without them"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

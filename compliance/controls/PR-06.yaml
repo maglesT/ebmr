@@ -26,10 +26,29 @@ behaviour: |-
   - a validation reference, for process-impacting changes (CPP ranges, equipment class, materials or suppliers, batch size, sequence, test method).
   A diff report lists the changed fields. Implementation is tracked per site. A post-implementation effectiveness review is scheduled automatically. Shop-floor test methods can only be changed through this route, with a reason and comparative data.
 catalog_test: A direct edit of an Effective master is impossible. A process-impacting change with no validation link cannot be approved. The diff report lists exactly the changed fields.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0110_mbr_family_version.sql (content revisions accepted only in DRAFT; version identity immutable)"
+    - "packages/recipe-core/sql/0130_mbr_guards.sql (recipe.process_impact, guards change_record_linked and change_control_complete)"
+    - "packages/recipe-core/sql/0150_mbr_commands.sql (derive_version; create_version refused once a version was approved)"
+    - "packages/recipe-core/src/lifecycle/change.ts (versionDiff with the flow model diffMbr, processImpact mirror, bulkApprovalPackage)"
+  guards:
+    - "recipe.assert_draft: an APPROVED or CURRENT version never changes (EBMR-RCP-021); a change is a new DRAFT derived from an approved version"
+    - "mbr_version.change_record_linked (SUBMIT) and mbr_version.change_control_complete (APPROVE): a process-impacting change (computed against the baselines, or so classified by the change owner) needs a validation link; a first version is a new process"
+  db_constraints:
+    - "recipe.mbr_content insert-only (kernel.reject_mutation) with a DRAFT-only insert guard; the application role has no write privilege"
+    - "recipe.approved_content_violations(): no content revision after first approval"
+tests:
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-06] a version is submitted only with a linked change record"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] a direct edit of an approved or effective master is impossible; the change is a derived version"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] a process-impacting change with no validation link cannot be approved"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] a change that touches only titles and test data is not process-impacting; a first version is a new process"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] the diff report lists exactly the changed fields"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] the database and the TypeScript mirror agree on the process impact of edits (fast-check)"
+  - "packages/recipe-core/test/lifecycle/concurrency.test.ts > [PR-06][DI-04] a content edit racing the start of verification: verification waits and then refuses the unverified content"
+  - "packages/recipe-core/test/lifecycle/concurrency.test.ts > [PR-06] the start of verification racing a content edit: the edit waits and is then refused (the candidate is frozen)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: The intent is equivalent. EU requires validation of significant process changes explicitly (5.25), and US requires QCU approval of changes to procedures (211.100(a)). The kernel applies both.

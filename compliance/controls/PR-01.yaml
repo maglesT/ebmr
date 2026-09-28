@@ -15,8 +15,15 @@ requirement_rows:
 sources: "US: 211.186(a) (each product and each batch size) | EU: Ch.4 lead-in above 4.17 (each product and batch size); 4.19 (each product, pack size and type) | ICH/EMA/draft: none"
 behaviour: A processing master (manufacturing formula plus processing instructions) is keyed by product code, strength and batch size. A packaging master is keyed by product, pack size and pack type. A batch can only be created for a batch size that an approved master lists explicitly, either as one size or as an approved set of discrete sizes. There is no free scaling at batch creation. Packaging masters are versioned and approved separately and reference the bulk product code.
 catalog_test: Creating a batch at a size that no approved master lists is refused. A packaging order for a pack type with no approved packaging master is refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/batch.ts (initialState)"
+    - "packages/recipe-core/src/blocks/generic/engine-level.ts (G-01)"
+  guards:
+    - "Issue refuses a batch size the MBR does not list, with no free scaling (ENG-ISSUE-SIZE), and an issue-time variant outside its declared values (ENG-ISSUE-VARIANT)"
+tests:
+  - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-01] a batch can only be issued at a batch size the MBR lists; there is no free scaling"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [DI-34][PR-01] an issue-time variant must be given from its declared values"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

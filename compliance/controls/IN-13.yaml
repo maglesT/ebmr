@@ -15,8 +15,16 @@ requirement_rows:
 sources: Schedule M Part I 17.3.6 (master formula list, including hold time as its final item); Part VIII 2.3 (time and temperature for mixing, blending and drying set in the master formula, monitored and recorded).
 behaviour: "(a) One approved master per product and per batch size; a batch of a different size needs its own approved master (or a separately approved scaled master). (b) MBR approval fails validation if any of these is empty: product name and product code linked to its specification; dosage form, strength, batch size; each starting material with INN where one exists, quantity, designated name and unique material code; a flag for substances lost in processing (e.g., granulation water, solvents); expected final yield with limits and pertinent intermediate yields; processing location and principal equipment class; references to methods for preparing critical equipment (cleaning, assembly, calibration, sterilisation, use); stepwise instructions; each IPC with its limits; storage requirements for products (container, labelling, special conditions); special precautions; **the permitted hold time for every intermediate and in-process material**. (c) Tablets edition: each mixing, blending and drying step must carry its critical operating parameters (at least time and temperature) with limits, and the batch record captures the observed values (IN-36)."
 catalog_test: approve an MBR with one intermediate lacking a hold time; approval is refused. Try to issue a 200 kg batch from a 100 kg master; refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/definition.ts (implicit hold-time constraints)"
+    - "packages/recipe-core/src/engine/timing.ts"
+  guards:
+    - "Every intermediate hold time becomes a time constraint from the producing step END to each consuming step START (HOLD-TIME, exception and block): the consuming step waits until QA dispositions the exception"
+  invariants:
+    - "INV-20"
+tests:
+  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][IN-13] an intermediate held beyond its hold time: the consuming step is blocked until QA dispositions the exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

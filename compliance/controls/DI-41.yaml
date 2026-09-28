@@ -23,8 +23,13 @@ behaviour: |-
   - Fading or short-lived media are true-copied promptly: thermal balance, pH or checkweigher slips, and chart-recorder output (e.g., autoclave or lyophiliser charts in the Injectables edition).
   - Paper originals are kept unless QA approves destruction under an SOP after a verified true copy exists (see open questions).
 catalog_test: Scan a thermal printout. The copy carries a checksum, a verifier signature and a link to its step. Alter the file. The checksum check fails.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-05 attachment entry)"
+  guards:
+    - "G-05: an attached scanned paper original carries its SHA-256 and makes a second-person verification of the step mandatory"
+tests:
+  - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [DI-41][DI-30] a scanned paper original attached as evidence makes a second-person verification mandatory"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -18,6 +18,7 @@
 --                    RETURN -> DRAFT                         mbr.check         reason, draft_entry_recorded
 --                    WITHDRAW -> WITHDRAWN                   mbr.approve       reason
 --   CHECKED          APPROVE -> APPROVED  Sig APPROVED       mbr.approve       signed_in_state, approver_independent,
+--                                                                              regulatory_confirmed,
 --                                                                              evidence_complete, effective_date_set,
 --                                                                              review_due_set, change_control_complete,
 --                                                                              registered_ranges_kept, in_flight_dispositioned
@@ -379,6 +380,18 @@ begin
 end
 $$;
 
+-- PR-04 (outline 5.2.1 CHECKED -> APPROVED): the regulatory-conformity sign-off. A valid
+-- REGULATORY_CONFIRMED signature on this version by a regulatory-conformity signer confirms the
+-- registration references and registered details for each market of its content. A return to
+-- DRAFT supersedes it like every other signature.
+create function recipe.guard_regulatory_confirmed(p_type text, p_id uuid, p_transition jsonb, p_payload jsonb, p_actor jsonb) returns text
+language sql volatile security definer set search_path = pg_catalog, recipe, esig, pg_temp as $$
+  select case when not exists (select 1 from esig.signature s
+                               where s.aggregate_ref = 'mbr_version:' || p_id::text and s.meaning_code = 'REGULATORY_CONFIRMED'
+                                 and (esig.signature_state(s.id) ->> 'valid')::boolean)
+              then 'the regulatory-conformity sign-off (REGULATORY_CONFIRMED) for the markets of this version is missing (PR-04)' end
+$$;
+
 create function recipe.guard_effective_date_set(p_type text, p_id uuid, p_transition jsonb, p_payload jsonb, p_actor jsonb) returns text
 language sql stable set search_path = pg_catalog, recipe, pg_temp as $$
   select case when (select v.effective_from from recipe.mbr_version v where v.id = p_id) is null
@@ -523,6 +536,8 @@ select platform.register_guard('mbr_version.checker_independent', 'recipe.guard_
   'The checker is not the author and did not edit the content since it last entered DRAFT (INV-04)');
 select platform.register_guard('mbr_version.approver_independent', 'recipe.guard_approver_independent(text, uuid, jsonb, jsonb, jsonb)',
   'The approver is not the author, not an editor since the last entry into DRAFT, and not the checker unless S4 allows (INV-04)');
+select platform.register_guard('mbr_version.regulatory_confirmed', 'recipe.guard_regulatory_confirmed(text, uuid, jsonb, jsonb, jsonb)',
+  'A valid regulatory-conformity sign-off (REGULATORY_CONFIRMED) of the version exists (PR-04)');
 select platform.register_guard('mbr_version.effective_date_set', 'recipe.guard_effective_date_set(text, uuid, jsonb, jsonb, jsonb)',
   'The effective date is set (PR-02)');
 select platform.register_guard('mbr_version.review_due_set', 'recipe.guard_review_due_set(text, uuid, jsonb, jsonb, jsonb)',

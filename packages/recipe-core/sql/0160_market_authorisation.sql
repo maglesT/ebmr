@@ -369,6 +369,7 @@ declare
   v_ev    jsonb;
   x       jsonb;
   v_old   recipe.authorisation_cell;
+  v_other recipe.authorisation_cell;
   v_new   uuid;
   v_out   jsonb := '[]'::jsonb;
   v_push  jsonb;
@@ -396,7 +397,8 @@ begin
       message = 'QA and the regulatory-conformity signer are two different persons (ADR 0014; EBMR-RCP-085)';
   end if;
   select * into v from recipe.mbr_version where id = a.version_id;
-  if recipe.version_state(v.id) is distinct from 'APPROVED' then
+  -- Locked: a concurrent RETIRE or WITHDRAW of the version waits for this activation, or this one sees it.
+  if recipe.version_state_locked(v.id) is distinct from 'APPROVED' then
     raise exception using errcode = 'P0001',
       message = format('Version %s is %s: only an APPROVED version becomes CURRENT or BRIDGING (ADR 0014; EBMR-RCP-086)', v.version_number, recipe.version_state(v.id));
   end if;
@@ -439,6 +441,17 @@ begin
         end if;
         update recipe.authorisation_cell set status = 'SUPERSEDED', valid_until = v_from, superseded_by = v_new where id = v_old.id;
       end if;
+      -- A predecessor superseded by a version that was later withdrawn before taking effect stays
+      -- valid until then: the new version cannot take effect inside that window (INV-17).
+      select * into v_other from recipe.authorisation_cell c
+      where c.family_id = a.family_id and c.market = a.market and c.site = x ->> 'site' and c.line = x ->> 'line'
+        and c.batch_size = x ->> 'batch_size' and c.kind = 'CURRENT' and tstzrange(c.effective_from, c.valid_until, '[)') && tstzrange(v_from, null, '[)')
+      limit 1;
+      if found then
+        raise exception using errcode = 'P0001',
+          message = format('Version %s remains valid for %s at %s until %s; a new version can take effect for that scope only after it (INV-17; EBMR-RCP-093)',
+                           v_other.version_number, a.market, x, recipe.utc_text(v_other.valid_until));
+      end if;
       insert into recipe.authorisation_cell (id, authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind,
                                              status, effective_from, valid_until, successor_version_id)
       values (v_new, a.id, a.family_id, v.id, v.version_number, a.market, x ->> 'site', x ->> 'line', x ->> 'batch_size', 'CURRENT',
@@ -449,6 +462,15 @@ begin
                        and c.batch_size = x ->> 'batch_size' and c.status = 'SUPERSEDED' and s.version_id = a.successor_version_id) then
         raise exception using errcode = 'P0001',
           message = format('BRIDGING is given only where the named successor superseded this version: not the case for %s at %s (ADR 0014; EBMR-RCP-090)', a.market, x);
+      end if;
+      select * into v_other from recipe.authorisation_cell c
+      where c.family_id = a.family_id and c.market = a.market and c.site = x ->> 'site' and c.line = x ->> 'line'
+        and c.batch_size = x ->> 'batch_size' and c.kind = 'BRIDGING' and tstzrange(c.effective_from, c.valid_until, '[)') && tstzrange(v_from, a.effective_to, '[)')
+      limit 1;
+      if found then
+        raise exception using errcode = 'P0001',
+          message = format('A BRIDGING validity of version %s already covers %s at %s until %s; withdraw it before giving another (INV-17; EBMR-RCP-093)',
+                           v_other.version_number, a.market, x, recipe.utc_text(v_other.valid_until));
       end if;
       insert into recipe.authorisation_cell (id, authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind,
                                              status, effective_from, valid_until, successor_version_id)

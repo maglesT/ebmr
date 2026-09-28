@@ -53,6 +53,9 @@ implemented_by:
     - "packages/expr/src/evidence/hash.ts"
     - "packages/expr/src/evidence/vectors.ts"
     - "docs/adr/0005-in-house-decimal-ucum-expression-language.md"
+    - "packages/recipe-core/src/engine/data.ts (derived values with evaluation records)"
+    - "packages/recipe-core/src/engine/corrections.ts (recalculation of dependents)"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-14, G-20)"
   invariants:
     - "INV-25"
   guards:
@@ -66,6 +69,10 @@ implemented_by:
     - "Rounding only at comparison and display: compareToLimit / compareToBound with USP_HALF_UP_AT_LIMIT_DECIMALS or PH_EUR_SIG_FIGS, ALL_APPLY per criterion; full precision always kept"
     - "Legacy hardness unit: 'kg/cm² (as kgf/kp)' maps to kgf with 1 kgf = 9.80665 N and a WARNING needing justification (EXPR-UNIT-030); a pressure unit on a force parameter refused (EXPR-UNIT-021)"
     - "Dependency graph: calculation cycles refused (EXPR-DEP-001); deterministic evaluation order; dependents of a corrected input classified as derived result, decision input or executed target (outline 5.2.3)"
+    - "Derived values are computed by the engine through @ebmr/expr with an evaluation record; typing one is refused (ENG-DERIVED-TYPED); block-computed quantities (net = gross - tare, container totals) cannot be typed (ENG-NOT-RECORDED-HERE)"
+    - "A calculation that cannot be evaluated raises CALCULATION_FAILED, never a silent zero"
+    - "After a correction the dependents are recalculated: the old record is kept and superseded with the reason; signed steps go back for re-verification; an executed target outside tolerance raises EXECUTED_TARGET_CHANGED"
+    - "G-20 yield needs a verifier (G20-NO-VERIFIER)"
 tests:
   - "packages/expr/test/checker.test.ts > declared inputs only > [DI-33] an expression reads only the inputs its calculation declares"
   - "packages/expr/test/checker.test.ts > declared inputs only > [DI-33] the function library is closed: unknown functions are refused"
@@ -215,6 +222,12 @@ tests:
   - "packages/expr/test/vectors.test.ts > calculation vectors > [DI-33] generates typical, at-limit, rounding-boundary and absent-input vectors with expected outcomes pending the author"
   - "packages/expr/test/vectors.test.ts > calculation vectors > [DI-33] reports vectors it cannot reach instead of inventing them"
   - "packages/expr/test/vectors.test.ts > calculation vectors > [DI-33] re-running the vectors after a value-only change shows which expected outcomes changed (delta verification)"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][DI-33][INV-25] G-14 Calculation: Potency-adjusted quantity from the tablets worked example (C-06): computed with an evaluation record, never typed"
+  - "packages/recipe-core/test/engine/corrections.test.ts > derived values are computed, never typed (INV-25) > [INV-25][DI-33] typing a calculation, a block-computed quantity or a header value is refused"
+  - "packages/recipe-core/test/engine/corrections.test.ts > derived values are computed, never typed (INV-25) > [INV-25][DI-33] a derived value carries its evaluation record: inputs with sources, formula version and the result"
+  - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-33][INV-03] a correction keeps the original, recalculates dependents keeping the old result, and sends signed steps back for re-verification"
+  - "packages/recipe-core/test/engine/corrections.test.ts > executed targets (outline 5.2.3) > [DI-33][PR-19] a corrected input that moves an already dispensed target outside tolerance raises an exception; the dispensed quantity is never recomputed"
+  - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-25][DI-33] derived values equal the golden cases of the MBR and each evaluation record re-verifies"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

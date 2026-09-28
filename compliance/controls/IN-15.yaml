@@ -14,8 +14,19 @@ requirement_rows:
 sources: Schedule M Part I 17.3.8 (batch processing records).
 behaviour: "The executed record is generated from the approved MBR (no re-typing). Before processing, a recorded check that the equipment and workstation are free of previous products, documents and materials and are clean and suitable. Captured at the time of action: product name; batch number; date/time of start of significant intermediate stages and of completion; **named person accountable for each stage** (separate from step performers); initials/IDs of operators of significant steps and, where appropriate, of checkers (e.g., weighing); lot or analytical control number and actual quantity of each starting material, including recovered or reprocessed material; significant operations, events and major equipment IDs; **permitted hold time and actual hold start/stop per intermediate**, with an alarm or deviation when exceeded; IPC results with performer; yields at pertinent stages with a mandatory explanation when outside limits; notes on special problems with signed authorisation for any departure from the master. On completion the processing lead dates and e-signs the record."
 catalog_test: exceed a hold time; the system blocks the next step or opens a deviation. Enter an out-of-limit stage yield; a comment and deviation link are forced.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (signOffStage)"
+    - "packages/recipe-core/src/blocks/generic/engine-level.ts (G-02)"
+    - "packages/recipe-core/src/blocks/generic/process.ts (G-15)"
+  guards:
+    - "G-02: a stage closes only with the responsible person's sign-off (ENG-STAGE-NOT-READY, ENG-STAGE-EXCEPTIONS); the summary statement is derived; a later correction invalidates the sign-off"
+    - "G-15: a transfer records issued-by and received-by, two different persons (G15-TRANSFER)"
+tests:
+  - "packages/recipe-core/test/blocks/process.test.ts > G-15 transfer > [IN-15][PR-30] a transfer records issued-by and received-by, two different persons"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] a stage closes only with the sign-off of the person responsible; the next stage waits for it"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] the summary statement is derived: an exception in the stage makes it \"completed with deviations\""
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][DI-24] a later correction invalidates the stage sign-off and the batch is no longer execution-complete"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

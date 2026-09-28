@@ -70,7 +70,7 @@ begin
     v_out := v_out || format('%s validator error(s)', v_errors);
   end if;
   if (v ->> 'errors') is distinct from v_errors::text then
-    v_out := v_out || 'the error count does not match the findings';
+    v_out := v_out || 'the error count does not match the findings'::text;
   end if;
   v_unjust := array(
     select f ->> 'key' from jsonb_array_elements(v -> 'findings') f
@@ -106,7 +106,7 @@ begin
   if not found then
     raise exception using errcode = 'P0001', message = format('Unknown MBR version %s (EBMR-RCP-020)', new.version_id);
   end if;
-  v_state := recipe.version_state(new.version_id);
+  v_state := recipe.version_state_locked(new.version_id);
   if v_state is null or v_state not in ('DRAFT', 'IN_VERIFICATION') then
     raise exception using errcode = 'P0001',
       message = format('Verification evidence is recorded only in DRAFT or IN_VERIFICATION; this version is %s (DI-04; EBMR-RCP-040)', coalesce(v_state, 'being created'));
@@ -133,7 +133,7 @@ begin
       v_prob := v_prob || format('the verification ran on content %s, not on the current content', coalesce(new.report ->> 'contentHash', '(none)'));
     end if;
     if new.report ->> 'evidenceHash' is distinct from recipe.json_hash(new.report - 'evidenceHash') then
-      v_prob := v_prob || 'the evidence seal does not match its content (altered evidence)';
+      v_prob := v_prob || 'the evidence seal does not match its content (altered evidence)'::text;
     end if;
     if new.report ->> 'verdict' is distinct from 'VERIFIED' then
       v_prob := v_prob || format('the verdict is %s', coalesce(new.report ->> 'verdict', '(none)'));
@@ -143,12 +143,12 @@ begin
       new.reference := v_basis;
       select * into v_pred from recipe.mbr_version where id = v_ver.derived_from;
       if v_pred.id is null or recipe.content_hash_of(v_pred.id) is distinct from v_basis or not recipe.version_was_approved(v_pred.id) then
-        v_prob := v_prob || 'a delta verification must build on the approved version this one was derived from';
+        v_prob := v_prob || 'a delta verification must build on the approved version this one was derived from'::text;
       elsif not exists (select 1 from recipe.mbr_evidence e
                         where e.version_id = v_pred.id and e.kind = 'VERIFICATION' and e.result = 'PASS' and e.content_hash = v_basis
                           and e.report ->> 'evidenceHash' = new.report -> 'basis' ->> 'evidenceHash'
                           and not exists (select 1 from recipe.mbr_evidence_void x where x.evidence_id = e.id)) then
-        v_prob := v_prob || 'the predecessor has no verified evidence with the cited evidence hash';
+        v_prob := v_prob || 'the predecessor has no verified evidence with the cited evidence hash'::text;
       end if;
     end if;
   elsif new.kind = 'TEST_VECTORS' then
@@ -156,14 +156,14 @@ begin
     new.mode := null;
     new.tool_version := coalesce(new.report ->> 'simulatorVersion', '');
     if new.report ->> 'contentHash' is distinct from v_hash then
-      v_prob := v_prob || 'the test vectors were generated for other content';
+      v_prob := v_prob || 'the test vectors were generated for other content'::text;
     end if;
     if (v_ctx ->> 'person_id')::uuid is distinct from v_ver.author_person or new.report ->> 'confirmedBy' is distinct from v_ctx ->> 'person_id' then
-      v_prob := v_prob || 'test vectors are confirmed by the version''s author';
+      v_prob := v_prob || 'test vectors are confirmed by the version''s author'::text;
     end if;
     if jsonb_typeof(new.report -> 'goldenCases') is distinct from 'array'
        or exists (select 1 from jsonb_array_elements(new.report -> 'goldenCases') g where g ->> 'status' is distinct from 'PASS') then
-      v_prob := v_prob || 'not every golden case passes';
+      v_prob := v_prob || 'not every golden case passes'::text;
     end if;
   else
     -- SANDBOX_RUN: {contentHash, runId, sandbox, coverage, passed}
@@ -174,13 +174,13 @@ begin
       raise exception using errcode = 'P0001', message = 'A sandbox run is cited by its run id (outline 6.5; EBMR-RCP-041)';
     end if;
     if new.report ->> 'contentHash' is distinct from v_hash then
-      v_prob := v_prob || 'the sandbox run used other content';
+      v_prob := v_prob || 'the sandbox run used other content'::text;
     end if;
     if new.report ->> 'passed' is distinct from 'true' then
-      v_prob := v_prob || 'the sandbox run did not pass';
+      v_prob := v_prob || 'the sandbox run did not pass'::text;
     end if;
     if jsonb_typeof(new.report -> 'coverage') is distinct from 'object' then
-      v_prob := v_prob || 'the sandbox run has no coverage report';
+      v_prob := v_prob || 'the sandbox run has no coverage report'::text;
     end if;
   end if;
   new.problems := v_prob;

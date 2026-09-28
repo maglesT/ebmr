@@ -30,6 +30,7 @@ implemented_by:
     - packages/kernel/src/time
     - packages/kernel/sql/0520_platform_time_sources.sql
     - packages/kernel/sql/0530_platform_time_model.sql
+    - "packages/recipe-core/src/engine/tx.ts, packages/recipe-core/src/engine/engine.ts (engine clock)"
   invariants:
     - INV-16
   db_constraints:
@@ -43,6 +44,8 @@ implemented_by:
     - time.min_references
     - time.late_entry_window_mode
     - time.late_entry_window_min
+  guards:
+    - "The engine takes time only from the Clock (the transaction's trusted database time); a clock earlier than the last command is flagged CLOCK_REGRESSION and the later instant is kept, so a maximum breach cannot be hidden"
 tests:
   - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] a time source is a validated configuration item, registered with its reference and validation"
   - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] a healthy check stores one sample per active source against the policy threshold and raises nothing"
@@ -67,6 +70,7 @@ tests:
   - "packages/kernel/test/platform/time-model.test.ts > [DI-27][INV-16] a time a person enters is kept apart from the entry time, flagged, and needs the late-entry path"
   - "packages/kernel/test/platform/time-model.test.ts > [DI-27][INV-16] change a terminal clock, then record a step: the stored time is unaffected"
   - "packages/kernel/test/platform/time-model.test.ts > [DI-27] entries store the UTC instant with the site time zone and the offset in force"
+  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][DI-27] a clock that goes backwards is flagged and cannot hide a maximum breach"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -93,6 +93,8 @@ export interface HandlerView {
   readonly config: Readonly<Record<string, JsonValue>>;
   readonly stepKey: string;
   readonly frames: readonly Frame[];
+  /** Sub-lot id when the step runs inside a replicate-per-sub-lot instance (innermost). */
+  readonly subLot: string | undefined;
   readonly nowUs: bigint;
   readonly actor: Actor;
   readonly batch: { readonly batchId: string; readonly batchNumber: string; readonly productCode: string; readonly marketSet: readonly string[] };
@@ -120,6 +122,8 @@ export type EntryResult =
       consumeContainers?: string[];
       exceptions?: ExceptionDraft[];
       notifications?: Notification[];
+      /** Two-person verification becomes mandatory for the step (e.g. a manual weighing, a paper original). */
+      verificationRequired?: boolean;
     }
   | { ok: false; problems: HandlerProblem[] };
 
@@ -179,12 +183,14 @@ export interface SimulatorModel {
    * Block entries a nominal execution records, given the containers available in the batch. The
    * engine and the simulator run the same model, so a nominal path in one is a nominal path in the other.
    */
-  nominalEntries(input: { phase: PhaseNode; config: Readonly<Record<string, JsonValue>>; mbr: MbrContent; containers: readonly ContainerRecord[]; target: (item: string) => DataValue | undefined }): (Record<string, unknown> & { kind: string })[];
+  nominalEntries(input: { phase: PhaseNode; config: Readonly<Record<string, JsonValue>>; mbr: MbrContent; frames: readonly Frame[]; containers: readonly ContainerRecord[]; target: (item: string) => DataValue | undefined }): (Record<string, unknown> & { kind: string })[];
 }
 
 /** A golden fixture: a phase of this block, a scripted execution and what must come out. */
 export interface BlockGoldenFixture {
   description: string;
+  /** Controls this fixture proves besides DI-34 (default: the block's first control); cited in the test name. */
+  controls?: string[];
   /** The phase under test (the harness wraps it in a minimal MBR). */
   phase: Partial<PhaseNode> & Pick<PhaseNode, 'block' | 'config'>;
   parameters?: MbrContent['parameters'];
@@ -192,6 +198,7 @@ export interface BlockGoldenFixture {
   intermediates?: MbrContent['intermediates'];
   bom?: MbrContent['bom'];
   yieldCheckpoints?: MbrContent['yieldCheckpoints'];
+  timeConstraints?: MbrContent['timeConstraints'];
   /** Values of external inputs the calculations need. */
   inputs?: { id: string; valueType: 'DECIMAL' | 'COUNT'; unit?: string; value: string }[];
   /** Containers registered before the step (e.g. a kit for a charge-in). */

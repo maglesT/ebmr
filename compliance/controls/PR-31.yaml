@@ -23,8 +23,14 @@ behaviour: |-
   - Out of limits: a result outside the limits automatically creates an investigation and blocks release.
   - Corrections: changing any input quantity triggers an audit-trailed recalculation of the yield.
 catalog_test: A yield of 94.0% against limits of 95.0-101.0% creates an investigation automatically and blocks release. Without a verifier the step cannot complete. An independent recalculation matches the displayed yield.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-20)"
+    - "packages/recipe-core/src/engine/exceptions.ts"
+  guards:
+    - "G-20: a computed yield outside its limits raises YIELD_OUT_OF_LIMITS, which needs a deviation and blocks the stage sign-off; a yield step needs a verifier (G20-NO-VERIFIER)"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-31] G-20 Yield and reconciliation: A yield of 94.0 % against limits of 95.0-101.0 % creates an exception that needs an investigation and blocks release (PR-31 catalog test)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

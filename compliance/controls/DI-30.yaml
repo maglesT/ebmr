@@ -30,8 +30,24 @@ behaviour: |-
   - each significant step identifies the person performing it and the person directly supervising or checking it (211.188(b)(11)).
   - One-person checking is allowed only where the operation itself is performed by automated equipment under 211.68 and one person checks that the equipment did it correctly (211.68(c)).
 catalog_test: Configure a critical manual field and try to complete the step without verification. Blocked. The same user tries to verify. Refused. Take the interface down. The manual value is flagged "manual" and needs verification.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (verify)"
+    - "packages/recipe-core/src/engine/data.ts (manual critical values)"
+    - "packages/recipe-core/src/blocks/schema.ts"
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-05)"
+  guards:
+    - "A critical manually entered value, a manual fallback weighing or an attached paper original makes a second-person verification mandatory; the verifier was not involved (ENG-SEGREGATION)"
+    - "A manual fallback when a device is down is flagged MANUAL_ENTRY_FALLBACK"
+    - "Entry and configuration schemas refuse unknown fields and JavaScript numbers where decimal text is required"
+  invariants:
+    - "INV-03"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-30] configuration and entry schemas refuse unknown fields and numbers where decimals are required"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [DI-41][DI-30] a scanned paper original attached as evidence makes a second-person verification mandatory"
+  - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-30] a second performer who entered data cannot verify; each performer signs for their own entries before the step moves on"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

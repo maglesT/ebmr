@@ -18,8 +18,16 @@ behaviour: |-
   - Every applicable item of Section (a)-3 or (a)-4 is present. The items are: dates and times; equipment unit IDs; component lots and quantities; IPC and lab results; packaging-area checks before and after use; yields; labeling specimens; container/closure description; sampling; performer and checker IDs; investigations; 211.134 results; the responsible production person's approval.
   Category checks depend on step type; for example, packaging-area checks apply only to packaging orders.
 catalog_test: Removing one label specimen or one checker signature blocks completion, and the message names the gap.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (signPerformed, signOffStage)"
+    - "packages/recipe-core/src/engine/advance.ts (execution completion)"
+  guards:
+    - "PERFORMED only with mandatory data and calculations present (ENG-MANDATORY-DATA) and a signature from every person who entered data"
+    - "A stage closes only with the responsible person's sign-off; execution is complete only with every step terminal and verified and every stage signed off"
+tests:
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] a stage closes only with the sign-off of the person responsible; the next stage waits for it"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] the summary statement is derived: an exception in the stage makes it \"completed with deviations\""
 expert_decision:
   status: PENDING
   pack_version: "0.9"

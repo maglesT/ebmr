@@ -335,11 +335,26 @@ begin
 end
 $$;
 
+-- The version's state, read with a share lock on its state row: a change that depends on the state
+-- (a content revision, evidence, a draft attribute, a market activation) and a transition of the
+-- version (which locks the row for update) never interleave.
+create function recipe.version_state_locked(p_version uuid) returns text
+language plpgsql volatile security definer set search_path = pg_catalog, recipe, platform, pg_temp as $$
+declare
+  v_state text;
+begin
+  select s.state into v_state from platform.aggregate_state s
+  where s.aggregate_type = 'mbr_version' and s.aggregate_id = p_version
+  for share;
+  return v_state;
+end
+$$;
+
 -- Refuses a change to a version that is not in DRAFT. A version without a state row is being created.
 create function recipe.assert_draft(p_version uuid, p_what text) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
-  v_state text := recipe.version_state(p_version);
+  v_state text := recipe.version_state_locked(p_version);
 begin
   if v_state is not null and v_state <> 'DRAFT' then
     raise exception using errcode = 'P0001',

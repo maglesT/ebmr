@@ -24,11 +24,35 @@ behaviour: |-
   - The batch record shows the master version and the registration references used.
   - A change linked to a PACMP stays open until the protocol's acceptance criteria are met on the eBMR batches it names.
 catalog_test: Widening a registered CPP range with no variation reference is blocked. Creating a batch for a market not linked to the master is refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0130_mbr_guards.sql (recipe.registered_ranges, recipe.registered_changes, guard registered_ranges_kept)"
+    - "packages/recipe-core/sql/0110_mbr_family_version.sql (change_record_regulatory: reporting category and variation reference per market)"
+    - "packages/recipe-core/sql/0160_market_authorisation.sql (authorisation per market with regulatory basis, QA and regulatory signatures)"
+    - "packages/recipe-core/sql/0170_batch_issue.sql (recipe.select_version_for_issue)"
+    - "packages/recipe-core/src/lifecycle/change.ts (registeredChanges mirror), packages/recipe-core/src/lifecycle/selection.ts"
+  invariants:
+    - "INV-01"
+  guards:
+    - "mbr_version.regulatory_confirmed (CHECKED -> APPROVED): approval requires a valid regulatory-conformity sign-off (REGULATORY_CONFIRMED, permission MBR.REGULATORY_CONFIRM) of the version for the markets of its content"
+    - "mbr_version.registered_ranges_kept (CHECKED -> APPROVED): a changed registered element (REGISTERED-tier range or REGISTRATION reference) needs a regulatory assessment for every market of the version; a widened registered range also the variation, supplement or approval reference"
+    - "recipe.propose_market_authorisation refuses a market the master content does not list (EBMR-RCP-081)"
+    - "recipe.select_version_for_issue refuses a market set with a market no version is CURRENT or BRIDGING for, naming each market (the master is not linked to it)"
+  db_constraints:
+    - "market_authorisation.regulatory_basis is required; cells exist only for records signed MBR_MARKET_AUTHORISED (QA) and REGULATORY_CONFIRMED (regulatory)"
+    - "batch_mbr_pin trigger recomputes the selection at the issue instant"
+tests:
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-02][PR-04][INV-04] the author prepares, an independent checker checks, regulatory confirms and QA approves: distinct persons, valid signatures"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-04][PR-02] approval requires the regulatory-conformity sign-off for the markets of the version"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] widening a registered range with no variation reference is blocked; with the reference per market it is approved"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] narrowing a registered range needs a regulatory assessment for every market, not a variation reference"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] the database and the TypeScript mirror find the same registered changes (fast-check)"
+  - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-04] creating a batch for a market not linked to the master is refused, naming each market"
+  - "packages/recipe-core/test/lifecycle/market.test.ts > [INV-17][PR-04] an approved version becomes CURRENT for a market and scope only with the QA and regulatory signatures of two persons"
+  - "packages/recipe-core/test/lifecycle/market.test.ts > [PR-04] a master is authorised only for markets it is linked to, and only once approved"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: EU text links production directly to the MA (Ch.5 Principle, 4.2). US reaches the application through 211.100(a) and FD&C Act filing rules (s). For a multi-market batch, the stricter rule is that both registrations must be satisfied at once, i.e. the process must run inside the intersection of the registered ranges.
 type_detail: "CONFIGURABLE. Default: hard block when a registered-flagged limit is wider than the registered value, or when a registered element changes without a recorded regulatory action for that market. Allowed: warning only, for elements not flagged as registered or Established Condition."

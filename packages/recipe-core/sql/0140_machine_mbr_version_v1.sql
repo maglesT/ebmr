@@ -53,6 +53,7 @@ select platform.publish_machine_version($machine$
       "guards": [
         "mbr_version.signed_in_state",
         "mbr_version.approver_independent",
+        "mbr_version.regulatory_confirmed",
         "mbr_version.evidence_complete",
         "mbr_version.effective_date_set",
         "mbr_version.review_due_set",
@@ -173,7 +174,7 @@ select platform.publish_machine_version($machine$
       "permission": "mbr.approve"
     }
   ],
-  "definition_hash": "f5b68f7e23be9c270c1d7cae8c8618ae9e40ab76644d3d28b5ec3d90255e9e62"
+  "definition_hash": "b73add75f84ae84e583775483fcca7d16c03807e88f3b06e5100e09a05e3efa7"
 }
 $machine$::jsonb);
 

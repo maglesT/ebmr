@@ -14,8 +14,13 @@ requirement_rows:
 sources: Schedule M Part I 14.14, 14.16-14.20.
 behaviour: Container-level barcode identity check; hard block on any lot not released by QC, expired, or past retest; only users in the designated-dispenser role may dispense; each weighing or measurement is independently checked by a second person or by a validated balance interface configured as the independent check; dispensed materials for a batch are kept and labelled together with a kit label linked to the batch.
 catalog_test: scan a quarantined lot, an expired lot and a lot past retest; all refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
+  guards:
+    - "G-07: quarantined, expired and past-retest lots and the wrong material are hard-blocked with no override (G07-LOT-STATUS, G07-LOT-EXPIRED, G07-LOT-RETEST, G07-WRONG-MATERIAL); status arrives with the entry until Phase 3 checks it at the database"
+tests:
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-18][IN-23] a quarantined lot, an expired lot, a lot past retest and the wrong material are hard-blocked with no override"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

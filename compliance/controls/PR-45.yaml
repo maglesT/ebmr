@@ -25,8 +25,19 @@ behaviour: |-
   - Status changes are e-signed and audit-trailed.
   - Finished-lot status is held per market (PR-56).
 catalog_test: Shipping a quarantined lot through the ERP interface is rejected. Using a quarantined intermediate in the next step is blocked.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/batch.ts (holdBatch, releaseHold)"
+    - "packages/recipe-core/src/engine/steps.ts (dispositionHoldPoint)"
+    - "packages/recipe-core/src/blocks/generic/engine-level.ts (G-17)"
+  guards:
+    - "Batch on hold: nothing starts, completes or advances (ENG-BATCH-ON-HOLD); only QA lifts a QA hold"
+    - "G-17: steps after a QA hold point wait for its disposition; approval is refused while earlier exceptions lack a QA decision (ENG-HOLD-OPEN-EXCEPTIONS); \"not approved\" rejects the intermediate and holds the batch"
+tests:
+  - "packages/recipe-core/test/engine/flow.test.ts > sequencing (DI-34) > [DI-34][PR-45] while the batch is on hold no step starts, completes or advances; data can still be recorded; only QA lifts a QA hold"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-17 QA hold point > [PR-45][IN-37] everything after a hold point waits for the QA disposition; only the hold point role signs it"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-17 QA hold point > [PR-45] approval is impossible while an exception before it has no QA decision"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-17 QA hold point > [PR-45] \"not approved\" rejects the intermediate: the steps after it never run and the batch goes on a QA hold that only QA lifts"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

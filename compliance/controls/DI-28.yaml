@@ -39,8 +39,15 @@ behaviour: |-
   - they never overwrite server data; a conflict becomes an exception;
   - a status check that needs server data either uses a pre-cached value with a validity window or blocks the step.
 catalog_test: Enter a value, then kill the browser. The value persists with its timestamp. Enter an out-of-limit value. The audit trail shows the value committed before any warning appeared. Submit a late entry without a reason. Blocked. Try to insert a back-dated logbook entry. Blocked.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (startStep, recordData)"
+  guards:
+    - "Late entry: an occurred-at before now needs a reason, must lie between step start and now (ENG-OCCURRED-AT), keeps both times and raises LATE_ENTRY"
+    - "A person-claimed or paper start time is refused (ENG-BACKDATING); only device-synchronised event times drive timers"
+tests:
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible"
+  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][DI-28] a person-claimed start time is refused; a device-synchronised event time drives the timer"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

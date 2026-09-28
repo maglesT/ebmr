@@ -27,11 +27,19 @@ implemented_by:
     - "packages/recipe-core/src/flow/canonical.ts (content hash)"
     - "packages/recipe-core/src/validator"
     - "packages/recipe-core/src/simulator (simulate, evidence)"
+    - "packages/recipe-core/sql/0120_mbr_evidence.sql (MBR life cycle: evidence stored with the exact content hash, result decided by the database, voided by any content edit)"
+    - "packages/recipe-core/sql/0130_mbr_guards.sql (guards validator_passed, evidence_complete)"
+    - "packages/recipe-core/sql/0160_market_authorisation.sql (no market authorisation without complete verification evidence)"
+    - "packages/recipe-core/src/lifecycle/verification.ts (verification port over the validator and simulator)"
   guards:
     - "buildVerificationEvidence / verifyMbr: validator report, warning justifications and simulation report bound to the content hash"
     - "evidenceHolds: only unaltered VERIFIED evidence of exactly this content counts (for the MBR life-cycle gate)"
     - "GMP-SYSTEMS (computerised system and recipe version named), GMP-PAT (PAT acceptance criteria), GMP-REFERENCES (pinned and effective), FLOW-LIBRARY (pinned element hash)"
     - "deltaVerification: value-only changes reuse structural evidence and rerun the changed items"
+    - "mbr_version.validator_passed (DRAFT -> IN_VERIFICATION) and mbr_version.evidence_complete (SUBMIT, APPROVE): validator, simulation, author-confirmed test vectors and a sandbox run (or delta verification) recorded for the exact content hash"
+    - "recipe.activate_market_authorisation: QA cannot make a version CURRENT for a market without a complete verification record (EBMR-RCP-087)"
+  db_constraints:
+    - "recipe.mbr_evidence and recipe.mbr_evidence_void insert-only; a content revision voids all evidence of the version in the same transaction"
 tests:
   - "packages/recipe-core/test/flow/diff.test.ts > [DI-04] identical content is IDENTICAL"
   - "packages/recipe-core/test/flow/diff.test.ts > [DI-04] changing only limit, target and duration values is VALUE_ONLY and names the changed items"
@@ -69,6 +77,13 @@ tests:
   - "packages/recipe-core/test/validator/gate.test.ts > [DI-04] the report is deterministic and bound to the content hash"
   - "packages/recipe-core/test/validator/gate.test.ts > [DI-04] a rule that crashes is a failed check, never a pass"
   - "packages/recipe-core/test/validator/structure.test.ts > [DI-04] FLOW-BLOCKS: unregistered block types, retired versions and construct blocks used as steps are refused"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-02][DI-04] a seeded unit error is caught before the check signature"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04][PR-02] through the verification port: the validator runs on the stored content, its result is stored with the hash, and verification starts only on a pass"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] try to make a new MBR version effective without a verification record: it is blocked"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] evidence is bound to the exact content hash: an edit voids it, and evidence for other content fails"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] the database decides the result: a report that hides an error or an altered evidence seal fails"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] a value-only change reuses the predecessor's structural evidence through delta verification (no new sandbox run)"
+  - "packages/recipe-core/test/lifecycle/concurrency.test.ts > [PR-06][DI-04] a content edit racing the start of verification: verification waits and then refuses the unverified content"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -38,8 +38,17 @@ behaviour: |-
   - Instrument-status and communication logs and alert records are reviewed at a frequency set by a documented risk assessment. Any such event tied to a batch surfaces in that batch's review.
   - Detection is built in: range checks, completeness checks before sign-off, out-of-sequence/late-entry detection, and interface reconciliation.
 catalog_test: Seed a batch with one instance of every exception type. All are listed. A clean batch shows "no exceptions" with its summary. Try to edit an RBE rule without a change record. Blocked.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/exceptions.ts (engine exception rules and review categories)"
+    - "packages/recipe-core/src/blocks/contract.ts (exception rules per block version)"
+  guards:
+    - "Every engine and block exception type maps to a review-by-exception category (ENGINE_EXCEPTION_RULES, BlockVersion.exceptionRules)"
+    - "Skips, late entries, repeats, manual fallbacks, clock regressions and alert-tier breaches each raise a register item; exceptions are never removed (INV-41 check)"
+tests:
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][DI-26] an alert breach is a register item: nothing is blocked; the value is stored exactly as acquired"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [DI-26] every engine exception type maps to a review-by-exception category of the mandatory set"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > skip (PR-13) > [PR-13][DI-26] a skippable step is skipped only with a different approver; it appears in the exception register and the flow moves on"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

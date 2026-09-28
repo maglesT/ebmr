@@ -16,8 +16,16 @@ requirement_rows:
 sources: "US: 211.101(d); 211.68(c); 211.188(b)(3)-(4) | EU: Ch.5 5.39; Ch.4 4.18(d) (sequence of addition); 4.20(d) | ICH/EMA/draft: none"
 behaviour: Materials dispensed for a batch are grouped into a kit with a conspicuous batch label. A kit cannot be issued while a component is missing. Charge-in requires scanning every dispensed container, and each must match the batch, step and material, at the process point the master defines. A missing container blocks step completion, and an unplanned container is rejected. Every addition needs a performer and a different verifier, or one verifier when the addition is automated under 211.68.
 catalog_test: Omitting one container prevents completion. A wrong container is rejected. A verifier who is also the performer is blocked.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-07, G-08)"
+  guards:
+    - "G-08: only planned containers of this batch and sub-lot, label matching, not yet charged (G08-WRONG-CONTAINER, G08-LABEL, G08-UNPLANNED, G08-OTHER-SUBLOT, G08-CONSUMED); a missing container blocks completion (G08-MISSING-CONTAINER); G-07: every BOM line has a container (G07-BOM-INCOMPLETE)"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-21] G-08 Identification and charge-in: Both containers of the kit are scanned and charged; the step completes only when none is missing"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-21][PR-19] a dispensing step cannot be performed while a BOM line it dispenses has no container"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21] a wrong container is rejected, a missing container blocks completion, and a container is charged only once"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21][PR-13] a container holding an intermediate the step does not charge is rejected as unplanned"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

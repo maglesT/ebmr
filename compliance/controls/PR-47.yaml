@@ -27,8 +27,16 @@ behaviour: |-
     - The source batch IDs and quantities are recorded, which also meets 4.20(d).
   - Additional testing: before release of any reprocessed or recovered-material batch, a QC decision on the need for additional testing is a mandatory field.
 catalog_test: Starting reprocessing without QCU approval or a risk evaluation is blocked. Recovering material from a different product is blocked. A missing QC decision on additional testing blocks release.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/process.ts (G-24)"
+  guards:
+    - "G-24: a reprocessing step declares its case (G24-NO-CASE); start needs prior QA authorisation citing an investigation and a risk evaluation (G24-NOT-AUTHORISED, G24-SELF-AUTHORISED); other product, chained recovery, age, percentage and source-batch limits refused; QC_ADDITIONAL_TESTING_DECISION blocks release"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-47] G-24 Reprocessing / rework gate: A recovery addition of 1.0 kg from an in-date batch of the same product, authorised beforehand; QC is flagged to decide on extra testing"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19] recovered material cannot be added without prior authorisation citing an investigation and a risk evaluation"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19] only the same product, within the MBR age, percentage and source-batch limits; chained recovery is blocked; QC must decide on extra testing"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47] a reprocessing step must declare its case"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

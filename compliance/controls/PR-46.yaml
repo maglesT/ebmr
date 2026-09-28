@@ -18,8 +18,13 @@ behaviour: |-
   - Disposition: return to supplier, reprocess or destroy. It needs approval from an authorised role; the action actually carried out and its quantities are recorded.
   - Rejects arising in-process (for example checkweigher or visual-inspection rejects) go into identified reject containers, are counted, and are handled the same way.
 catalog_test: Dispensing a rejected lot is blocked. Moving rejected stock to a released-stock location is blocked.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-23)"
+  guards:
+    - "G-23: rejects are held in an identified container (G23-CONTAINER)"
+tests:
+  - "packages/recipe-core/test/blocks/material.test.ts > G-23 returns, rejects and destruction > [PR-46][IN-35] rejects are held in an identified container"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -22,10 +22,14 @@ implemented_by:
     - "packages/recipe-core/src/limits (model, nesting, evaluate, all-apply)"
     - "packages/recipe-core/src/validator/rules-content.ts (GMP-LIMITS, GMP-CRITICAL-PARAMETERS)"
     - "packages/recipe-core/src/simulator/boundary.ts (limit boundary vectors)"
+    - "packages/recipe-core/src/engine/data.ts (limit evaluation at recording)"
+    - "packages/recipe-core/src/engine/exceptions.ts (tiers and blocking)"
   guards:
     - "checkLimitSpec / checkNestingAfterRounding: alert inside internal action inside registered and validated, exactly and after each tier rounds"
     - "evaluateLimits: value kept as acquired; outermost breached tier decides: REGISTER_ITEM, STOP_UNTIL_DEVIATION, REGISTRATION_RELEVANT_DEVIATION (QA-only, release screen, sign-off blocked); operatorMayClear always false"
     - "evaluateAllApply: every criterion with its own rounding and sampling; sampling plan = union"
+    - "At recording the value is stored as acquired and evaluated: ALERT a register item; INTERNAL_ACTION stops the step and the steps after it until a deviation is linked; REGISTERED or VALIDATED a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off; the operator cannot clear it"
+    - "Loop endpoint limits are judged at loop exit; every iteration is kept"
 tests:
   - "packages/recipe-core/test/flow/model.test.ts > [PR-08] a GMP value sent as a JSON number is refused (decimals travel as strings)"
   - "packages/recipe-core/test/limits/all-apply.test.ts > [PR-08] the sampling plan is the union of what each criterion needs"
@@ -55,6 +59,15 @@ tests:
   - "packages/recipe-core/test/validator/content.test.ts > [PR-08] a registered limit must cite the registration or the pharmacopoeia; a validated range a validation report"
   - "packages/recipe-core/test/validator/content.test.ts > [PR-03][PR-08] the sampling plan of an ALL_APPLY scheme must serve every criterion (the union)"
   - "packages/recipe-core/test/validator/data.test.ts > [PR-08] DATA-UNITS: a limit in another dimension than its parameter is refused"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-08] G-04 Process parameter record: A temperature outside its validated range: stored as acquired, a registration-relevant deviation is required and the step cannot complete until it is linked"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-19][PR-08] a total outside the tolerance of its target cannot be confirmed without an exception and a deviation"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][DI-26] an alert breach is a register item: nothing is blocked; the value is stored exactly as acquired"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08] an internal action breach stops the step and the steps after it until a deviation is linked; \"no impact\" is not an allowed disposition"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08] with \"continue current step\" the measuring step may finish, the next step waits for the deviation"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"
+  - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-13] a person can raise an exception at a step; ACTION stops the steps after it until a deviation is linked"
+  - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-19][INV-41][PR-08] every drying iteration is kept; the endpoint is judged at loop exit; an alert is a register item that blocks nothing"
+  - "packages/recipe-core/test/engine/loops.test.ts > replicate per sub-lot (INV-19) > [INV-19][PR-08] a failing sub-lot blocks what comes after the section but never its sibling instances"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

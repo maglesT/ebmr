@@ -19,3 +19,14 @@ export * as validator from './validator/index.ts';
 export * as limits from './limits/index.ts';
 export * as simulator from './simulator/index.ts';
 // ---- end of module A2 exports ---------------------------------------------------------------------
+
+// ---- Phase 2, module A3: MBR life cycle, per-market effectivity, selection at issue ---------------
+// Namespace `lifecycle`; the database (sql/0100-0180, schema recipe) enforces. See lifecycle/README.md.
+export * as lifecycle from './lifecycle/index.ts';
+// ---- end of module A3 exports ---------------------------------------------------------------------
+
+// ---- Phase 2, module B1: execution engine and engine-level generic blocks --------------------------
+// Namespaces, like the A2 modules. See engine/README.md and blocks/README.md.
+export * as engine from './engine/index.ts';
+export * as blocks from './blocks/index.ts';
+// ---- end of module B1 exports ---------------------------------------------------------------------

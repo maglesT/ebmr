@@ -31,8 +31,22 @@ behaviour: |-
     - a unique container ID (a design choice).
   - Reprints need a reason and void the earlier label.
 catalog_test: An API lot assayed at 98.5% raises the target and lowers the filler, with an audit trail. The label shows all four required elements. A non-designated user is refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
+    - "packages/recipe-core/src/engine/corrections.ts (executed targets)"
+  guards:
+    - "G-07: net = gross - tare computed; the dispensed total is compared with its target within the MBR tolerance (DISPENSE_OUT_OF_TOLERANCE); every BOM line is dispensed before PERFORMED (G07-BOM-INCOMPLETE); a target without tolerance is a warning that needs a justification (G07-TOLERANCE-MISSING)"
+    - "A corrected input that moves an executed target outside tolerance raises EXECUTED_TARGET_CHANGED; the dispensed quantity is never recomputed"
+  invariants:
+    - "INV-25"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [PR-19] a configuration warning must be justified before the MBR can be executed (G-07 target without tolerance)"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-19][INV-25] G-07 Weighing and dispensing: API dispensed into one container: net computed from gross and tare, total within 0.5 % of the potency-adjusted target"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-19][INV-25] the net weight is computed from gross and tare and the dispensed total from the containers; the label carries the batch identity"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-19][PR-08] a total outside the tolerance of its target cannot be confirmed without an exception and a deviation"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-21][PR-19] a dispensing step cannot be performed while a BOM line it dispenses has no container"
+  - "packages/recipe-core/test/engine/corrections.test.ts > executed targets (outline 5.2.3) > [DI-33][PR-19] a corrected input that moves an already dispensed target outside tolerance raises an exception; the dispensed quantity is never recomputed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
