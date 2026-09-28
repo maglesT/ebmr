@@ -36,7 +36,7 @@ export async function resolveMinima(db: Db, request: validator.MinimaRequest): P
   const tableProblem = new Map<string, string>();
   const loadTable = async (code: market.RuleTableCode): Promise<market.TableVersionInfo | null> => {
     if (tables.has(code)) return tables.get(code) ?? null;
-    let info: market.TableVersionInfo | null = null;
+    let info: market.TableVersionInfo | null;
     try {
       info = await market.currentRuleTableVersion(db, code);
       if (!info) tableProblem.set(code, `the ${code} rule table is not published on this installation, so the content minima of the market set cannot be resolved`);
@@ -64,7 +64,7 @@ export async function resolveMinima(db: Db, request: validator.MinimaRequest): P
       out.push(unresolved(key, `${key} is not a key of the kernel or ${editionTable} rule table, so it cannot bind a ${request.edition} MBR`));
       continue;
     }
-    const table = await loadTable(prefix as market.RuleTableCode);
+    const table = await loadTable(prefix);
     if (!table) {
       out.push(unresolved(key, tableProblem.get(prefix) ?? `the ${prefix} rule table is not available`));
       continue;

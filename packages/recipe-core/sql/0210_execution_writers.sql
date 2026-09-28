@@ -248,8 +248,9 @@ begin
 end
 $$;
 
--- Locks the batch for this command and returns the projection and the trusted time (INV-16).
-create function recipe.lock_execution(p_batch uuid) returns jsonb
+-- Locks the batch for this command and returns the projection and the trusted time (INV-16). With
+-- p_skip_locked (the sweeper) a batch another command holds is skipped: the result is null.
+create function recipe.lock_execution(p_batch uuid, p_skip_locked boolean default false) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
   v_actor jsonb := recipe.execution_actor('Running a test batch');
@@ -257,7 +258,14 @@ declare
   p       recipe.execution_state;
   v_now   bigint;
 begin
-  select * into b from recipe.batch_execution where id = p_batch for update;
+  if p_skip_locked then
+    select * into b from recipe.batch_execution where id = p_batch for update skip locked;
+    if not found then
+      return null;
+    end if;
+  else
+    select * into b from recipe.batch_execution where id = p_batch for update;
+  end if;
   if not found then
     raise exception using errcode = 'P0001', message = 'There is no test batch with this id (DI-34). [EBMR-EXE-010]';
   end if;
@@ -856,7 +864,7 @@ revoke all on function recipe.execution_actor(text), recipe.require_command_perm
                        recipe.check_state(recipe.batch_execution, jsonb, text, jsonb, text), recipe.execution_attribution_check(),
                        recipe.execution_content_of(text, text), recipe.batch_step_content(text), recipe.batch_stage_content(text),
                        recipe.batch_exception_content(text), recipe.batch_point_content(text) from public;
-grant execute on function recipe.lock_execution(uuid),
+grant execute on function recipe.lock_execution(uuid, boolean),
                           recipe.append_execution(uuid, bigint, text, jsonb, text, bigint, boolean, jsonb, jsonb, text, jsonb, text, jsonb, jsonb, jsonb),
                           recipe.begin_issue(uuid),
                           recipe.issue_execution(uuid, text, text, jsonb, jsonb, text, text, text, bigint, jsonb, text, jsonb, text, jsonb, jsonb),

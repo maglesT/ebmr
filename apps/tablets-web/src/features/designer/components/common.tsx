@@ -3,7 +3,7 @@
  * commit on blur or Enter (so one edit is one undoable operation), native selects and checkboxes with labels.
  * GMP values go only through DecimalField (text, never a number).
  */
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { ROLE_TITLES } from '@ebmr/api-contract';
 import { DecimalField, decimalProblem, StatusChip } from '@ebmr/ui-kit';
 import { dcls } from '../classes.ts';
@@ -48,10 +48,13 @@ export function CommitDecimal({
 }) {
   const [text, setText] = useState(value ?? '');
   const [problem, setProblem] = useState<string | undefined>(undefined);
-  useEffect(() => {
+  // The committed value changed (undo, a server answer): start again from it (derived state, set during render).
+  const [base, setBase] = useState(value);
+  if (base !== value) {
+    setBase(value);
     setText(value ?? '');
     setProblem(undefined);
-  }, [value]);
+  }
   if (readOnly) {
     return (
       <span>
@@ -95,7 +98,11 @@ export function CommitDecimal({
 export function CommitText({ label, value, onCommit, readOnly, multiline }: { label: string; value: string; onCommit: (value: string) => void; readOnly?: boolean; multiline?: boolean }) {
   const id = useId();
   const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
+  const [base, setBase] = useState(value);
+  if (base !== value) {
+    setBase(value);
+    setText(value);
+  }
   const commit = (): void => {
     if (text !== value) onCommit(text);
   };

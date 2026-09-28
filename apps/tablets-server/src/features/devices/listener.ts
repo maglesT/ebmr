@@ -164,7 +164,7 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       throw new GwError(401, code, message);
     };
     if (!(await consumeNonce(app.pools.app, app.config.secrets.nonceKey, body.nonce))) await refuse('NONCE', 'the nonce is unknown, used or expired');
-    let proofOk = false;
+    let proofOk: boolean;
     try {
       proofOk = verify(null, loginProofMessage(body.nonce, body.gatewayCode, body.loginName, body.spki), ed25519PublicKey(body.spki), Buffer.from(body.sig, 'base64'));
     } catch {

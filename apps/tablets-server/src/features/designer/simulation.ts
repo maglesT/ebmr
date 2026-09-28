@@ -3,6 +3,10 @@
  * plan section 8; DI-04 static verification evidence; DI-05: every simulation output carries the SIMULATION
  * watermark and nothing is written).
  */
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import { sandbox } from '@ebmr/kernel';
 import type { Instant, SimulationReportView, Watermark } from '@ebmr/api-contract';
@@ -13,11 +17,47 @@ export const DEFAULT_SIMULATION_TIMEOUT_MS = 20_000;
 
 export type WorkerOutcome = SimulationResult | { ok: false; timeout: true; message: string };
 
+/**
+ * The worker's bootstrap, an ES module in a data: URL. The server runs from TypeScript source in Phase 2
+ * (`node --import tsx`, or Vitest in tests) and loader hooks registered in the parent do not reach a worker's entry,
+ * so the bootstrap loads the TypeScript worker through tsx's scoped import (tsImport). No fallback: without tsx the
+ * simulation fails with a plain error, never silently. A bundled server replaces this.
+ */
+const BOOTSTRAP = `import { workerData } from 'node:worker_threads';
+let api;
+try {
+  api = await import(workerData.loader);
+} catch (error) {
+  throw new Error('The simulation worker cannot start: the TypeScript loader tsx/esm/api could not be loaded (' + (error && error.message) + ').');
+}
+await api.tsImport(workerData.entry, workerData.base);`;
+
+/** The file URL of tsx's ES-module API, from its package exports (resolved from this module). */
+export function tsxLoaderUrl(): string {
+  const require = createRequire(import.meta.url);
+  let pkgPath: string;
+  try {
+    pkgPath = require.resolve('tsx/package.json');
+  } catch (error) {
+    throw new Error(`The simulation worker cannot start: the TypeScript loader tsx is not installed for the server (${error instanceof Error ? error.message : String(error)}).`, { cause: error });
+  }
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { exports?: Record<string, { import?: { default?: string } } | undefined> };
+  const rel = pkg.exports?.['./esm/api']?.import?.default;
+  if (!rel) throw new Error('The simulation worker cannot start: this tsx version has no ES-module API (tsx/esm/api).');
+  return pathToFileURL(join(dirname(pkgPath), rel)).href;
+}
+
 /** Runs one simulation job in a fresh worker; terminates it after `timeoutMs`. */
 export function simulateInWorker(job: SimulationJob, timeoutMs: number = DEFAULT_SIMULATION_TIMEOUT_MS): Promise<WorkerOutcome> {
+  let loader: string;
+  try {
+    loader = tsxLoaderUrl();
+  } catch (error) {
+    return Promise.resolve({ ok: false, message: error instanceof Error ? error.message : String(error) });
+  }
   return new Promise((resolve) => {
-    const worker = new Worker(new URL('./simulate-worker-boot.mjs', import.meta.url), {
-      workerData: { entry: new URL('./simulate-worker.ts', import.meta.url).href, job },
+    const worker = new Worker(new URL(`data:text/javascript,${encodeURIComponent(BOOTSTRAP)}`), {
+      workerData: { loader, entry: new URL('./simulate-worker.ts', import.meta.url).href, base: import.meta.url, job },
       resourceLimits: { maxOldGenerationSizeMb: 512 },
     });
     let done = false;

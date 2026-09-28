@@ -280,7 +280,7 @@ export function DocumentView(props: DocumentProps) {
 
       <Section id="6">
         {c.parameters.map((p) => (
-          <div key={p.id} id={`mbr-item-${p.id}`}>
+          <div key={p.id} id={`mbr-item-${p.id}`} tabIndex={-1}>
             <h3 className={dcls('panelTitle')}>
               {p.name} <span className={dcls('mono')}>{p.id}</span>
             </h3>
@@ -311,7 +311,7 @@ export function DocumentView(props: DocumentProps) {
           </thead>
           <tbody>
             {c.calculations.map((x) => (
-              <tr key={x.id} id={`mbr-item-${x.id}`}>
+              <tr key={x.id} id={`mbr-item-${x.id}`} tabIndex={-1}>
                 <td>
                   {x.name} <span className={dcls('mono')}>{x.id}</span>
                 </td>
@@ -343,7 +343,7 @@ export function DocumentView(props: DocumentProps) {
       <Section id="9">
         <h3 className={dcls('panelTitle')}>Hold times of intermediates</h3>
         {c.intermediates.map((i) => (
-          <div key={i.id} id={`mbr-item-${i.id}`} className={dcls('inline')}>
+          <div key={i.id} id={`mbr-item-${i.id}`} tabIndex={-1} className={dcls('inline')}>
             <strong>{i.name}</strong>
             {i.holdTime ? (
               <CommitDecimal
@@ -378,7 +378,7 @@ export function DocumentView(props: DocumentProps) {
           </thead>
           <tbody>
             {c.timeConstraints.map((t) => (
-              <tr key={t.id} id={`mbr-item-${t.id}`}>
+              <tr key={t.id} id={`mbr-item-${t.id}`} tabIndex={-1}>
                 <td>
                   {t.name} <span className={dcls('small')}>({t.kind.toLowerCase().replace('_', ' ')})</span>
                 </td>
@@ -404,7 +404,7 @@ export function DocumentView(props: DocumentProps) {
 
       <Section id="10">
         {c.yieldCheckpoints.map((y) => (
-          <div key={y.id} id={`mbr-item-${y.id}`}>
+          <div key={y.id} id={`mbr-item-${y.id}`} tabIndex={-1}>
             <h3 className={dcls('panelTitle')}>
               {y.name} <span className={dcls('small')}>({y.kind.toLowerCase()}, basis {y.basis.toLowerCase().replace('_', ' ')})</span>
             </h3>
@@ -423,7 +423,7 @@ export function DocumentView(props: DocumentProps) {
         {c.riskReductions.length > 0 ? (
           <ul className={dcls('list')}>
             {c.riskReductions.map((r) => (
-              <li key={r.id} id={`mbr-item-${r.id}`}>
+              <li key={r.id} id={`mbr-item-${r.id}`} tabIndex={-1}>
                 {r.id}: {r.kind.toLowerCase().replace(/_/g, ' ')} for {r.subjects.join(', ')} · risk class {r.riskClass ?? 'missing'} · rationale {r.rationale ?? 'missing'}
               </li>
             ))}
@@ -434,7 +434,7 @@ export function DocumentView(props: DocumentProps) {
         <h3 className={dcls('panelTitle')}>Golden test cases</h3>
         <ul className={dcls('list')}>
           {c.goldenCases.map((g) => (
-            <li key={g.id} id={`mbr-item-${g.id}`}>
+            <li key={g.id} id={`mbr-item-${g.id}`} tabIndex={-1}>
               {g.id}: {g.description}
             </li>
           ))}

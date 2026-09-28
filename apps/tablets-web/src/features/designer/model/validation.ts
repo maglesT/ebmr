@@ -3,7 +3,7 @@
  * 8: 600 ms after the last change). Each change cancels the request in flight; only the answer for the latest
  * content is shown. Validation writes nothing (POST without an idempotency key).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { routes, type CallError, type ValidationReportView } from '@ebmr/api-contract';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { api } from '../../../api/client.ts';
@@ -19,22 +19,21 @@ export interface ValidationState {
 }
 
 export function useDebouncedValidation(versionId: string, content: flow.MbrContent, generation: number, delayMs = VALIDATE_DEBOUNCE_MS): ValidationState {
-  const [state, setState] = useState<ValidationState>({ report: null, pending: true, error: null });
-  const seq = useRef(0);
+  // One token per request subject; the answer shown is the latest one, and it is pending while it is for an older token.
+  const token = useMemo(() => ({ versionId, content, generation }), [versionId, content, generation]);
+  const [answer, setAnswer] = useState<{ token: object; report: ValidationReportView | null; error: CallError | null } | null>(null);
   useEffect(() => {
-    const mine = ++seq.current;
     const controller = new AbortController();
-    setState((s) => ({ ...s, pending: true }));
     const timer = setTimeout(() => {
-      void api.call(routes.designer.validate, { body: { versionId, content: asWire(content) }, signal: controller.signal }).then((r) => {
-        if (mine !== seq.current) return;
-        setState(r.ok ? { report: r.value, pending: false, error: null } : { report: null, pending: false, error: r.error });
+      void api.call(routes.designer.validate, { body: { versionId: token.versionId, content: asWire(token.content) }, signal: controller.signal }).then((r) => {
+        if (controller.signal.aborted) return;
+        setAnswer(r.ok ? { token, report: r.value, error: null } : { token, report: null, error: r.error });
       });
     }, delayMs);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [versionId, content, generation, delayMs]);
-  return state;
+  }, [token, delayMs]);
+  return { report: answer?.report ?? null, pending: answer?.token !== token, error: answer?.token === token ? answer.error : null };
 }

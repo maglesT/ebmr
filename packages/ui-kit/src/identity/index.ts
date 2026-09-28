@@ -5,7 +5,7 @@
  */
 export { BadgePrompt, DemoBadgeReader, type BadgePromptProps, type DemoBadge } from './BadgePrompt.tsx';
 export { IdentityBanner, type IdentityBannerProps } from './IdentityBanner.tsx';
-export { LockOverlay, SwitchUserDialog, type LockOverlayProps, type SwitchUserDialogProps } from './LockOverlay.tsx';
+export { KEEP_BADGE_MS, KeptBadge, LockOverlay, SwitchUserDialog, type LockOverlayProps, type SwitchUserDialogProps } from './LockOverlay.tsx';
 export { ManifestationCard, ManifestationPreview, manifestationLine } from './Manifestation.tsx';
 export { PinPad, type PinPadProps } from './PinPad.tsx';
 export { humanize, scalarText, SignableContent } from './SignableContent.tsx';

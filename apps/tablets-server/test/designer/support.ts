@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- tests edit content JSON freely */
 /**
  * Designer test support (module C2): a GMP server copy with the designer seed applied (DEMO-ONLY reference
  * documents and the kernel and tablets rule tables, recorded and published by the master-data steward), and the
@@ -46,7 +45,7 @@ export async function startDesignerServer(opts: DesignerServerOptions = {}): Pro
 
 /** A fresh deep copy of the dc-mini template content (JSON). */
 export function templateJson(): Record<string, unknown> {
-  return structuredClone(template) as Record<string, unknown>;
+  return structuredClone(template);
 }
 
 /** The template parsed into the typed model (throws when it does not parse). */
@@ -93,42 +92,40 @@ export async function saveContent(author: TestBrowser, v: VersionView, content: 
   return author.call(routes.designer.saveContent, { params: { versionId: v.versionId }, body: { baseRevision: v.revision, content: content as VersionView['content'], note } });
 }
 
-/** A deep copy of a version's content, mutated. */
-export function edited(v: VersionView, mutate: (json: Record<string, any>) => void): Record<string, any> {
-  const json = structuredClone(v.content) as Record<string, any>;
-  mutate(json);
-  return json;
+/** A deep copy of a version's content (typed MBR content), mutated. */
+export function edited(v: VersionView, mutate: (c: flow.MbrContent) => void): flow.MbrContent {
+  const c = structuredClone(v.content) as unknown as flow.MbrContent;
+  mutate(c);
+  return c;
 }
 
-/** Removes a phase or hold point from the procedure tree by id (returns true when found). */
-export function removeNode(json: Record<string, any>, id: string): boolean {
-  const visit = (n: any): boolean => {
-    if (!n || typeof n !== 'object') return false;
-    if (Array.isArray(n.children)) {
-      const i = n.children.findIndex((c: any) => c.id === id);
-      if (i >= 0) {
-        n.children.splice(i, 1);
-        return true;
-      }
-      return n.children.some(visit);
+/** Removes a step from its parent sequence by id (returns true when found). */
+export function removeNode(c: flow.MbrContent, id: string): boolean {
+  let removed = false;
+  flow.walk(c.procedure.body, (n) => {
+    if (removed || n.kind !== 'sequence') return;
+    const i = n.children.findIndex((ch) => ch.id === id);
+    if (i >= 0) {
+      n.children.splice(i, 1);
+      removed = true;
     }
-    if (n.body) return visit(n.body);
-    if (Array.isArray(n.branches)) return n.branches.some((b: any) => visit(b.body));
-    return false;
-  };
-  return visit(json['procedure']);
+  });
+  return removed;
 }
 
-/** Finds a node of the procedure tree by id. */
-export function findNode(json: Record<string, any>, id: string): any {
-  let found: any;
-  const visit = (n: any): void => {
-    if (!n || typeof n !== 'object' || found) return;
-    if (n.id === id) found = n;
-    for (const c of n.children ?? []) visit(c);
-    if (n.body) visit(n.body);
-    for (const b of n.branches ?? []) visit(b.body);
-  };
-  visit(json['procedure']['body']);
+/** A phase of the procedure tree by id (throws when there is none). */
+export function findPhase(c: flow.MbrContent, id: string): flow.PhaseNode {
+  let found: flow.PhaseNode | undefined;
+  flow.walk(c.procedure.body, (n) => {
+    if (n.id === id && n.kind === 'phase') found = n;
+  });
+  if (!found) throw new Error(`no phase ${id}`);
   return found;
+}
+
+/** A parameter by id (throws when there is none). */
+export function parameter(c: flow.MbrContent, id: string): flow.Parameter {
+  const p = c.parameters.find((x) => x.id === id);
+  if (!p) throw new Error(`no parameter ${id}`);
+  return p;
 }

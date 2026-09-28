@@ -3,7 +3,7 @@
  * exchange directory for a sandbox test run. No process holds credentials for both databases; the sandbox import
  * (C3) recomputes both hashes, requires the GMP stamp and defines the batch for the SANDBOX.
  *
- * Format `ebmr.mbr-test-package` v1 (agreed with C3's importer, which refuses unknown members):
+ * Format `ebmr.mbr-test-package` v1 (C3's builder and strict parser in recipe-core execution/test-package.ts):
  *   format, formatVersion           "ebmr.mbr-test-package", 1
  *   source                          {installationKind, watermark} from kernel sandbox.readInstallationStamp (GMP, null)
  *   family                          {familyId, familyCode, product {code, name, strength}}
@@ -22,39 +22,21 @@ import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { access, link, mkdir, open, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { canonicalJson, sha256Hex } from '@ebmr/expr';
-import type { sandbox } from '@ebmr/kernel';
-import type { flow, validator } from '@ebmr/recipe-core/pure';
+import { execution } from '@ebmr/recipe-core';
 
-export const TEST_PACKAGE_FORMAT = 'ebmr.mbr-test-package';
+/** The package type and builder are C3's (recipe-core execution/test-package.ts), shared with the importer. */
+export type TestPackage = execution.TestPackageV1;
 
-export interface TestPackageBody {
-  format: typeof TEST_PACKAGE_FORMAT;
-  formatVersion: 1;
-  source: sandbox.InstallationStamp;
-  family: { familyId: string; familyCode: string; product: { code: string; name: string; strength: string } };
-  version: { versionId: string; number: string; revision: number; state: string };
-  content: flow.MbrContent;
-  contentHash: string;
-  justifications: validator.WarningJustification[];
-  exporter: { personId: string; legalName: string; loginName: string };
-  exportedAtUs: string;
-}
-
-export interface TestPackage extends TestPackageBody {
-  packageHash: string;
-}
-
-/** The package with its hash (SHA-256 over the canonical JSON of the body, expr canonicalJson). */
-export function buildTestPackage(body: Omit<TestPackageBody, 'format' | 'formatVersion'>): TestPackage {
-  const full: TestPackageBody = { format: TEST_PACKAGE_FORMAT, formatVersion: 1, ...body };
-  return { ...full, packageHash: sha256Hex(canonicalJson(full)) };
-}
-
-/** Recomputes the package hash (for tests and checks). */
-export function packageHashOf(pkg: TestPackage): string {
-  const { packageHash: _ignored, ...body } = pkg;
-  return sha256Hex(canonicalJson(body));
+/**
+ * Builds the package with the shared builder and checks that the content hash it computes is the saved revision's
+ * hash (the content travels exactly as saved).
+ */
+export function buildTestPackage(input: execution.TestPackageInput, savedContentHash: string): TestPackage {
+  const pkg = execution.buildTestPackage(input);
+  if (pkg.contentHash !== savedContentHash) {
+    throw new Error(`the package content hash ${pkg.contentHash} is not the saved content hash ${savedContentHash}; nothing was exported (DI-04)`);
+  }
+  return pkg;
 }
 
 export const packageFileName = (pkg: Pick<TestPackage, 'packageHash'>): string => `${pkg.packageHash}.json`;

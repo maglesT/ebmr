@@ -59,7 +59,7 @@ export type AuditTables = {
 export type AuditDb = Kysely<ReadDatabase & AuditTables>;
 
 /** The typed read database of the audit viewer (app.readDb never owns the application pool). */
-export const auditDb = (app: AppContext): AuditDb => app.readDb.withTables<AuditTables>() as unknown as AuditDb;
+export const auditDb = (app: AppContext): AuditDb => app.readDb.withTables<AuditTables>();
 
 export const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 export const DEFAULT_LIMIT = 50;
@@ -122,7 +122,7 @@ export async function readEvents(db: AuditDb, f: EventFilter): Promise<EventRow[
   if (f.toUs !== undefined) q = q.where(sql<boolean>`e.recorded_at <= ${fromMicros(f.toUs)}`);
   if (f.afterId !== undefined) q = q.where(sql<boolean>`e.id > ${f.afterId}::bigint`);
   const rows = await q.orderBy('e.id', 'asc').limit(f.limit + 1).execute();
-  return rows as unknown as EventRow[];
+  return rows;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -244,7 +244,7 @@ export async function readChains(db: AuditDb, prefix: string | undefined, limit 
     q = q.where(sql<boolean>`h.chain_key like ${`${escaped}%`} escape '\\'`);
   }
   const rows = await q.orderBy(sql`e.id desc nulls last`).limit(limit).execute();
-  return rows as unknown as { chain_key: string; last_seq: string; us: string | null }[];
+  return rows;
 }
 
 export async function chainLength(db: AuditDb, chainKey: string): Promise<number | null> {

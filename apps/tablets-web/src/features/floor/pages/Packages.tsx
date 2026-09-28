@@ -8,11 +8,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
 import { routes, type TestPackageView } from '@ebmr/api-contract';
-import { Button, StatusChip } from '@ebmr/ui-kit';
+import { Banner, Button, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
 import { useRouteSearch } from '../params.ts';
+import { useLeaveGuard } from '../unsettled.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
 import { st } from '../text.ts';
 import { usePendingCall } from '../usePendingCall.ts';
@@ -74,9 +75,11 @@ function PackageItem({ p, highlighted }: { p: TestPackageView; highlighted: bool
 export function PackagesPage() {
   const packages = useApiQuery(routes.execution.testPackages);
   const wanted = useRouteSearch()['package'] ?? null;
+  const held = useLeaveGuard();
   return (
     <>
       <h1>{st('packages.title')}</h1>
+      {held ? <Banner tone="warning" title={st('leave.held')} /> : null}
       {packages.isPending ? <p>{st('loading')}</p> : null}
       {packages.error ? <RefusalMessage error={packages.error.error} /> : null}
       {packages.data && packages.data.packages.length === 0 ? <p>{st('packages.empty')}</p> : null}

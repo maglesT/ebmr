@@ -7,7 +7,7 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { routes, type DataValueWire } from '@ebmr/api-contract';
-import { Button, DecimalField, decimalProblem, Field, floor } from '@ebmr/ui-kit';
+import { Banner, Button, DecimalField, decimalProblem, Field, floor } from '@ebmr/ui-kit';
 import { Checkbox } from 'react-aria-components';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
@@ -15,6 +15,7 @@ import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
 import { st } from '../text.ts';
+import { useLeaveGuard } from '../unsettled.ts';
 import { usePendingCall } from '../usePendingCall.ts';
 
 type IssueForm = NonNullable<ReturnType<typeof useApiQuery<typeof routes.execution.issueForm>>['data']>;
@@ -146,9 +147,11 @@ export function IssueFormPage() {
   const params = useRouteParams();
   const packageId = params['packageId'] ?? '';
   const form = useApiQuery(routes.execution.issueForm, { params: { packageId } });
+  const held = useLeaveGuard();
   return (
     <>
       <h1>{st('issue.title')}</h1>
+      {held ? <Banner tone="warning" title={st('leave.held')} /> : null}
       {form.isPending ? <p>{st('loading')}</p> : null}
       {form.error ? <RefusalMessage error={form.error.error} /> : null}
       {form.data ? (

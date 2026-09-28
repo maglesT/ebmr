@@ -28,6 +28,9 @@ implemented_by:
   modules:
     - "packages/recipe-core/src/flow/model.ts"
     - "packages/recipe-core/src/validator (rules-content, rules-data, rules-market)"
+    - "apps/tablets-server/src/features/designer (validation with the real reference and market adapters plus the execution-definition check, findings located in document sections 0-11; start of verification and test packages only when the checks pass)"
+    - "apps/tablets-server/src/features/designer/templates/dc-mini.mbr.json (complete test master: passes every gate against the real adapters)"
+    - "apps/tablets-web/src/features/designer (document view, findings panel with jump-to-location and justification)"
   invariants:
     - "INV-34"
   guards:
@@ -72,6 +75,16 @@ tests:
   - "packages/recipe-core/test/validator/market.test.ts > [PR-03] a time constraint longer than the resolved maximum is refused (units converted exactly)"
   - "packages/recipe-core/test/validator/market.test.ts > [PR-03] a key the market engine cannot resolve, or a minimum nothing in the MBR is bound to, fails closed"
   - "packages/recipe-core/test/validator/market.test.ts > [PR-03] a required content item is checked by the rule that covers it; an item no rule covers fails closed"
+  - "apps/tablets-server/test/designer/template.test.ts > dc-mini template against the real adapters (day-1 spike) > [INV-34][PR-03] without the published tablets rule table the market adapter fails closed and the template cannot pass"
+  - "apps/tablets-server/test/designer/template.test.ts > dc-mini template against the real adapters (day-1 spike) > [PR-03][INV-34][DI-04] passes every validator gate with zero errors and no unjustified warning"
+  - "apps/tablets-server/test/designer/routes.test.ts > revisions (PR-06, DI-04) > [PR-03] content that is not a well-formed MBR is not saved and the parser names the path"
+  - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [PR-03][DI-04] the template content passes; the report is bound to its content hash"
+  - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [PR-03] deleting the clearance step gives GMP-STAGE-CLEARANCE naming PR-03 at the stage; start verification is refused"
+  - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [PR-03] a reference not pinned to the registered hash fails the gate (HASH_MISMATCH)"
+  - "apps/tablets-server/test/designer/references.test.ts > reference documents (DMS stand-in) > [PR-03][DI-04] lists the seeded DEMO-ONLY documents with their hash, all EFFECTIVE today"
+  - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [PR-03] any sequence of operations keeps the content well formed (parseMbr) and every step id unique; the input is never changed"
+  - "apps/tablets-web/test/designer/editor.test.tsx > designer screen > [PR-03] findings are grouped by document section and jump to their place in the document"
+  - "tools/e2e/specs/designer/designer.spec.ts > designer > [PR-03][DI-04][DI-05][PR-06] author a master from the template, find and fix, justify, save, simulate and send to the sandbox"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

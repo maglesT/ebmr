@@ -91,7 +91,7 @@ export class Uplink {
       throw new UplinkError(0, 'UNREACHABLE', `the server's gateway listener cannot be reached: ${error instanceof Error ? error.message : String(error)}`, false);
     }
     const text = await res.text();
-    let json: unknown = null;
+    let json: unknown;
     try {
       json = text ? JSON.parse(text) : null;
     } catch {
@@ -264,14 +264,21 @@ export class Uplink {
       gatewayTimeUs: this.options.clock.wallUs().toString(),
       journal: { lastSeq: journal.lastSeq().toString(), ackedSeq: journal.ackedSeq.toString() },
     };
+    let res: HeartbeatResponse;
     try {
-      await this.post('/gw/v1/heartbeat', body, HeartbeatResponse, this.token);
+      res = await this.post('/gw/v1/heartbeat', body, HeartbeatResponse, this.token);
     } catch (error) {
       if (error instanceof UplinkError && error.relogin) {
         this.dropToken();
         void this.ensureLogin();
       }
       return;
+    }
+    // Reconciliation by counts (DI-31): the server holds fewer readings than acknowledged (e.g. restored from a
+    // backup): the watermark moves back to its head and the journal sends the rest again.
+    if (this.login && BigInt(res.head.seq) < journal.ackedSeq) {
+      this.alarm({ kind: 'UPLINK_FAILED', message: `the server holds readings up to ${res.head.seq}, fewer than the ${journal.ackedSeq.toString()} it acknowledged; sending them again`, details: { serverSeq: res.head.seq } });
+      await journal.adoptServerChain(this.login.chainId, res.head);
     }
     if (journal.pending().length > 0) void this.flush();
   }

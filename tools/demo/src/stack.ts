@@ -119,6 +119,31 @@ function serverEnv(kind: 'GMP' | 'SANDBOX', opts: StartStackOptions, origins: { 
   return env;
 }
 
+/**
+ * Waits until the gateway answers /v1/health logged in to the sandbox server with every instrument ONLINE
+ * (module C5). Returns null when ready, else what is missing; a gateway that exited is reported, not thrown.
+ */
+async function waitForGatewayReady(url: string, timeoutMs: number, gw: RunningProcess): Promise<string | null> {
+  const deadline = performance.now() + timeoutMs;
+  let last = 'no answer';
+  while (performance.now() < deadline) {
+    if (gw.child.exitCode !== null || gw.child.signalCode !== null) return `the gateway process exited (${String(gw.child.exitCode ?? gw.child.signalCode)})`;
+    try {
+      const res = await fetch(url);
+      if (res.status === 200) {
+        const h = (await res.json()) as { loggedIn?: boolean; devices?: { deviceCode: string; state: string }[] };
+        const offline = (h.devices ?? []).filter((d) => d.state !== 'ONLINE').map((d) => `${d.deviceCode} ${d.state}`);
+        if (h.loggedIn === true && offline.length === 0) return null;
+        last = h.loggedIn ? `instruments ${offline.join(', ')}` : 'not logged in to the sandbox server yet';
+      } else last = `status ${res.status}`;
+    } catch (error) {
+      last = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return last;
+}
+
 /** The gateway's configuration (module C5 reads it through EBMR_GW_CONFIG). */
 export function writeGatewayConfig(opts: StartStackOptions): string {
   const file = join(opts.keysDir, 'gateway-config.json');
@@ -150,23 +175,31 @@ export async function startStack(opts: StartStackOptions): Promise<RunningStack>
     processes.push(gmp);
     const sbx = spawnNode({ name: 'sbx', entry: SERVER_MAIN, env: serverEnv('SANDBOX', opts, origins), echo: opts.echo ?? true });
     processes.push(sbx);
+    // Gateway and simulator (module C5).
+    let sim: RunningProcess | null = null;
+    let gw: RunningProcess | null = null;
     if (entryExists(SIMULATOR_MAIN)) {
-      processes.push(
-        spawnNode({
-          name: 'sim',
-          entry: SIMULATOR_MAIN,
-          env: { EBMR_SIM_TCP: `127.0.0.1:${opts.ports.simulatorTcp}`, EBMR_SIM_HTTP: `127.0.0.1:${opts.ports.simulatorHttp}`, EBMR_SIM_SERIAL: 'SIM-0001', EBMR_SIM_SEED: '42' },
-          echo: opts.echo ?? true,
-        }),
-      );
+      sim = spawnNode({
+        name: 'sim',
+        entry: SIMULATOR_MAIN,
+        env: { EBMR_SIM_TCP: `127.0.0.1:${opts.ports.simulatorTcp}`, EBMR_SIM_HTTP: `127.0.0.1:${opts.ports.simulatorHttp}`, EBMR_SIM_SERIAL: 'SIM-0001', EBMR_SIM_SEED: '42' },
+        echo: opts.echo ?? true,
+      });
+      processes.push(sim);
     } else missing.push('scale simulator (apps/simulators/src/scale/main.ts, module C5)');
     if (entryExists(GATEWAY_MAIN)) {
-      processes.push(spawnNode({ name: 'gw', entry: GATEWAY_MAIN, env: { EBMR_GW_CONFIG: writeGatewayConfig(opts) }, echo: opts.echo ?? true }));
+      gw = spawnNode({ name: 'gw', entry: GATEWAY_MAIN, env: { EBMR_GW_CONFIG: writeGatewayConfig(opts) }, echo: opts.echo ?? true });
+      processes.push(gw);
     } else missing.push('site gateway (apps/site-gateway/src/main.ts, module C5)');
     await Promise.all([
       waitForHttp(`http://127.0.0.1:${opts.ports.gmp}/api/meta`, 60_000, gmp.child),
       waitForHttp(`http://127.0.0.1:${opts.ports.sandbox}/api/meta`, 60_000, sbx.child),
+      ...(sim ? [waitForHttp(`http://127.0.0.1:${opts.ports.simulatorHttp}/api/state`, 30_000, sim.child)] : []),
     ]);
+    if (gw) {
+      const problem = await waitForGatewayReady(`http://127.0.0.1:${opts.ports.gateway}/v1/health`, 45_000, gw);
+      if (problem) missing.push(`site gateway not ready: ${problem} (scales stay offline; the manual two-person path still works)`);
+    }
   } catch (error) {
     await stop();
     throw error;

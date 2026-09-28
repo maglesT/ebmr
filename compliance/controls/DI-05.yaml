@@ -35,6 +35,9 @@ implemented_by:
     - "packages/kernel/src/sandbox/watermark.ts (watermarkFor, stampText, stampJson)"
     - "packages/kernel/src/sandbox/provision.ts (provisionSandboxDatabase, upgradeSandboxDatabase, applyConnectPolicy, segregationProblems)"
     - "docs/design/sandbox.md (store layout, what is copied, impact assessment of each non-GMP function)"
+    - "apps/tablets-server/src/features/designer/package-export.ts (ebmr.mbr-test-package v1: GMP stamp, content and package hashes, write-once file in the exchange directory)"
+    - "apps/tablets-server/sql/0150_designer.sql (tab.mbr_test_package_export and the business entry on the version chain; GMP installation only)"
+    - "apps/tablets-server/src/features/designer/simulation.ts (SIMULATION watermark on every simulation report)"
   invariants:
     - "INV-18"
   guards:
@@ -75,6 +78,13 @@ tests:
   - "packages/kernel/test/sandbox/watermark.test.ts > [DI-05] catalog: simulation output carries the TEST, NOT GMP watermark"
   - "packages/kernel/test/sandbox/watermark.test.ts > [DI-05] output of the sandbox installation and of every non-GMP function is watermarked; GMP output is not"
   - "packages/kernel/test/sandbox/watermark.test.ts > [DI-05][INV-18] a non-GMP record is never taken into GMP: only a GMP installation stamp passes"
+  - "apps/tablets-server/test/designer/template.test.ts > dc-mini template against the real adapters (day-1 spike) > [DI-05] defines as a batch for the SANDBOX with the generic block registry (G-09@1 and G-10@1 included)"
+  - "apps/tablets-server/test/designer/template.test.ts > dc-mini template against the real adapters (day-1 spike) > [DI-05][INV-18] a GMP definition refuses exactly the SANDBOX_ONLY clearance and equipment-status steps"
+  - "apps/tablets-server/test/designer/package.test.ts > send to sandbox (test package) > [DI-05] writes a write-once package with the GMP stamp, both hashes and the justifications, and records it on the audit chain"
+  - "apps/tablets-server/test/designer/package.test.ts > send to sandbox (test package) > [DI-05] a version that does not pass its checks is not sent to the sandbox, and nothing is written"
+  - "apps/tablets-server/test/designer/simulation.test.ts > simulation (worker thread, SIMULATION watermark) > [DI-04][DI-05] simulates the saved content with full coverage, stamped SIMULATION, writing nothing"
+  - "apps/tablets-server/test/designer/references.test.ts > installation > [DI-05] the designer routes do not exist on the sandbox installation"
+  - "tools/e2e/specs/designer/designer.spec.ts > designer > [PR-03][DI-04][DI-05][PR-06] author a master from the template, find and fix, justify, save, simulate and send to the sandbox"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

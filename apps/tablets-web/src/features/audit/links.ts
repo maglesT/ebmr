@@ -13,7 +13,13 @@ export interface AuditSearch {
   person?: string;
 }
 
-const clean = (s: AuditSearch): AuditSearch => Object.fromEntries(Object.entries(s).filter(([, v]) => typeof v === 'string' && v !== '')) as AuditSearch;
+const clean = (s: AuditSearch): AuditSearch => {
+  const out: AuditSearch = {};
+  if (s.chain) out.chain = s.chain;
+  if (s.correlation) out.correlation = s.correlation;
+  if (s.person) out.person = s.person;
+  return out;
+};
 
 /** Router link props (TanStack Router `Link`, `navigate`). */
 export function auditLink(search: AuditSearch = {}): { to: '/audit'; search: AuditSearch } {
@@ -22,12 +28,15 @@ export function auditLink(search: AuditSearch = {}): { to: '/audit'; search: Aud
 
 /** The same place as a plain href. */
 export function auditHref(search: AuditSearch = {}): string {
-  const q = new URLSearchParams(clean(search) as Record<string, string>).toString();
+  const q = new URLSearchParams({ ...clean(search) }).toString();
   return q ? `/audit?${q}` : '/audit';
 }
 
 export function parseAuditSearch(raw: Record<string, unknown>): AuditSearch {
-  const pick = (k: string): string | undefined => (typeof raw[k] === 'string' && raw[k] !== '' ? (raw[k] as string) : undefined);
+  const pick = (k: string): string | undefined => {
+    const v = raw[k];
+    return typeof v === 'string' && v !== '' ? v : undefined;
+  };
   const chain = pick('chain');
   const correlation = pick('correlation');
   const person = pick('person');

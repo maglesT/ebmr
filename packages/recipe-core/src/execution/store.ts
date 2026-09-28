@@ -113,9 +113,13 @@ function actorFacts(a: Record<string, unknown>): CommandActorFacts {
 }
 
 /** Locks a batch for this command and returns its state and the trusted time (INV-16). */
-export async function lockExecution(client: Queryable, batchId: string): Promise<LockedExecution> {
-  const { rows } = await client.query<{ r: Record<string, unknown> }>('select recipe.lock_execution($1) as r', [batchId]);
+export async function lockExecution(client: Queryable, batchId: string): Promise<LockedExecution>;
+/** With skipLocked (the sweeper): undefined when another command holds the batch. */
+export async function lockExecution(client: Queryable, batchId: string, skipLocked: true): Promise<LockedExecution | undefined>;
+export async function lockExecution(client: Queryable, batchId: string, skipLocked = false): Promise<LockedExecution | undefined> {
+  const { rows } = await client.query<{ r: Record<string, unknown> | null }>('select recipe.lock_execution($1, $2) as r', [batchId, skipLocked]);
   const r = rows[0]?.r;
+  if (!r && skipLocked) return undefined;
   if (!r || !r['state']) throw new ExecutionStoreError('EBMR-EXE-010', 'The test batch has no stored state');
   return {
     batch: batchRecord(r['batch'] as Record<string, unknown>),

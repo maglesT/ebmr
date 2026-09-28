@@ -11,7 +11,7 @@
  * targets, limit bounds of parameters, calculations and yields, time-constraint bounds and hold times.
  * Construct editing (wrap and unwrap) comes in A2.
  */
-import { flow, limits } from '@ebmr/recipe-core/pure';
+import { flow, type limits } from '@ebmr/recipe-core/pure';
 
 export type Content = flow.MbrContent;
 export type Step = flow.PhaseNode | flow.HoldPointNode;

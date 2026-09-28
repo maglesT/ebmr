@@ -193,12 +193,14 @@ describe('capture', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toMatch(/text\/event-stream/);
     expect(res.headers.get('x-ebmr-installation')).toBe('SANDBOX');
-    const reader = res.body!.getReader();
+    const body = res.body;
+    if (!body) throw new Error('no event stream');
+    const reader = body.getReader();
     let text = '';
     while (!text.includes('"value":"1.250"')) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      text += new TextDecoder().decode(value);
+      const chunk = (await reader.read()) as { done: boolean; value?: Uint8Array };
+      if (chunk.done || !chunk.value) break;
+      text += new TextDecoder().decode(chunk.value);
     }
     controller.abort();
     expect(text).toContain('"deviceCode":"TEST-BAL-01"');

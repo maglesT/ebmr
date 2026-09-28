@@ -83,21 +83,21 @@ export interface LockOverlayProps {
 type Step = 'choose' | 'unlockTap' | 'unlockPin' | 'switchTap' | 'switchPin' | 'offerPin';
 
 function OfficeUnlock(p: LockOverlayProps) {
-  const [idEl, setIdEl] = useState<HTMLInputElement | null>(null);
-  const [pwEl, setPwEl] = useState<HTMLInputElement | null>(null);
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        const id = idEl?.value.trim() ?? '';
-        const pw = pwEl?.value ?? '';
-        if (pwEl) pwEl.value = '';
+        const idEl = e.currentTarget.elements.namedItem('unlockUserId');
+        const pwEl = e.currentTarget.elements.namedItem('unlockPassword');
+        const id = idEl instanceof HTMLInputElement ? idEl.value.trim() : '';
+        const pw = pwEl instanceof HTMLInputElement ? pwEl.value : '';
+        if (pwEl instanceof HTMLInputElement) pwEl.value = '';
         if (id && pw) p.onUnlockPassword(id, pw);
       }}
       aria-label="Unlock with your user ID and password"
     >
-      <Field label="User ID" name="unlockUserId" inputRef={setIdEl} autoComplete="off" isRequired autoFocus isDisabled={p.busy} />
-      <Field label="Password" name="unlockPassword" type="password" inputRef={setPwEl} autoComplete="off" isRequired isDisabled={p.busy} />
+      <Field label="User ID" name="unlockUserId" autoComplete="off" isRequired autoFocus isDisabled={p.busy} />
+      <Field label="Password" name="unlockPassword" type="password" autoComplete="off" isRequired isDisabled={p.busy} />
       <div className={icls('row')}>
         <Button type="submit" variant="primary" isDisabled={p.busy}>
           Unlock

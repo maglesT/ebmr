@@ -24,6 +24,8 @@ implemented_by:
     - "packages/recipe-core/src/simulator/boundary.ts (limit boundary vectors)"
     - "packages/recipe-core/src/engine/data.ts (limit evaluation at recording)"
     - "packages/recipe-core/src/engine/exceptions.ts (tiers and blocking)"
+    - "apps/tablets-web/src/features/designer/components/DocumentView.tsx (limit tiers, targets and time bounds edited as decimal text through DecimalField)"
+    - "apps/tablets-server/src/features/designer/validation.ts (GMP-LIMITS findings located at the parameter)"
   guards:
     - "checkLimitSpec / checkNestingAfterRounding: alert inside internal action inside registered and validated, exactly and after each tier rounds"
     - "evaluateLimits: value kept as acquired; outermost breached tier decides: REGISTER_ITEM, STOP_UNTIL_DEVIATION, REGISTRATION_RELEVANT_DEVIATION (QA-only, release screen, sign-off blocked); operatorMayClear always false"
@@ -68,6 +70,9 @@ tests:
   - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-13] a person can raise an exception at a step; ACTION stops the steps after it until a deviation is linked"
   - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-19][INV-41][PR-08] every drying iteration is kept; the endpoint is judged at loop exit; an alert is a register item that blocks nothing"
   - "packages/recipe-core/test/engine/loops.test.ts > replicate per sub-lot (INV-19) > [INV-19][PR-08] a failing sub-lot blocks what comes after the section but never its sibling instances"
+  - "apps/tablets-server/test/designer/template.test.ts > dc-mini template against the real adapters (day-1 spike) > [DI-04][INV-19][INV-20][PR-08] simulates with full coverage of steps, limit bounds, time constraints and calculations"
+  - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [PR-08] a limit-tier nesting error is named with its rule and control"
+  - "apps/tablets-web/test/designer/editor.test.tsx > designer screen > [PR-08] a limit is edited as decimal text; letters are not accepted and nothing but a decimal string enters the content"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

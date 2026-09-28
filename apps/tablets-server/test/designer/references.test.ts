@@ -113,8 +113,8 @@ describe('installation', () => {
     const sbx = await startServer('SANDBOX');
     try {
       const issuer = await sbx.asPersona('issuer');
-      for (const r of [await issuer.call(routes.designer.templates), await issuer.call(routes.designer.families), await issuer.call(routes.designer.palette)]) {
-        const refused = refusalOf(r);
+      const refusals = [refusalOf(await issuer.call(routes.designer.templates)), refusalOf(await issuer.call(routes.designer.families)), refusalOf(await issuer.call(routes.designer.palette))];
+      for (const refused of refusals) {
         expect(refused.status).toBe(404);
         expect(refused.code).toBe('NOT_FOUND');
       }

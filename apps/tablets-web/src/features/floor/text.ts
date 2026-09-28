@@ -20,6 +20,8 @@ export const SCREEN_EN = {
   'action.RELEASE_HOLD': 'Release the hold',
   'action.COMPLETE_LOOP_ITERATION': 'Complete this iteration',
   'action.laterRelease': 'Not on this screen yet; it arrives with the next release.',
+  'action.noMeaning': 'The server did not name what this signature means, so it cannot be signed here.',
+  'action.noSignable': 'The server did not name the record to sign, so it cannot be signed here.',
   'tap.reason.START_STEP': 'Start step {number}',
   'tap.reason.entry': 'Save {what}',
   'tap.reason.RAISE_EXCEPTION': 'Raise an exception',
@@ -161,6 +163,7 @@ export const SCREEN_EN = {
   'dialog.disposition.sign': 'Continue to signature',
   'dialog.send': 'Send',
   'loading': 'Loading…',
+  'leave.held': 'An entry is not settled yet: send it again or discard it before you leave this page.',
   'back.cockpit': 'Back to what you can do now',
 } as const;
 

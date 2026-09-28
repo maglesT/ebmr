@@ -14,7 +14,7 @@
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { useMachine } from '@xstate/react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useId, useRef } from 'react';
 import {
   buildPath,
   routes,
@@ -34,6 +34,7 @@ import { describeChanges, describeIntent } from './describe.ts';
 import { classifyOutcome } from './outcome.ts';
 import { applyStepView, refreshRun, runQueryKey, stepQueryKey } from './queries.ts';
 import { useFloorSession, useSessionChange } from './session.tsx';
+import { markUnsettled } from './unsettled.ts';
 
 export interface PendingCall {
   state: floor.PendingEntryState;
@@ -72,6 +73,8 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
   const tapRequired = session.attribution !== 'NONE';
   const [snapshot, send, actorRef] = useMachine(floor.pendingEntryMachine, { input: { tapRequired, newKey } });
 
+  const id = useId();
+  const idRef = useRef(id);
   const live = useRef({ session, options, params, tap });
   useEffect(() => {
     live.current = { session, options, params, tap };
@@ -119,8 +122,10 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
     const outcome = classifyOutcome(result);
     switch (outcome.kind) {
       case 'SAVED':
-        await live.current.options.onSaved?.(outcome.value);
+        // Settled first, so an onSaved that navigates (issue -> run overview) is not held back by the leave guard.
         send({ type: 'SAVED' });
+        markUnsettled(idRef.current, false);
+        await live.current.options.onSaved?.(outcome.value);
         return;
       case 'LOST':
         send({ type: 'LOST' });
@@ -150,15 +155,18 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
     (body: Record<string, unknown>, summary: string) => {
       const owner = live.current.session.personId;
       if (!owner) return;
+      const before = actorRef.getSnapshot().context.key;
       send({ type: 'SUBMIT', payload: body, summary, owner });
-      void transmit();
+      // Only a SUBMIT the machine took (a new key) sends: a second press while one is under way does nothing.
+      if (actorRef.getSnapshot().context.key !== before) void transmit();
     },
-    [send, transmit],
+    [actorRef, send, transmit],
   );
   const resend = useCallback(() => {
+    if (actorRef.getSnapshot().value !== 'notSaved') return;
     send({ type: 'RESEND' });
     void transmit();
-  }, [send, transmit]);
+  }, [actorRef, send, transmit]);
   const discard = useCallback(() => {
     send({ type: 'DISCARD' });
     void live.current.options.onDiscard?.();
@@ -166,6 +174,11 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
   const reset = useCallback(() => send({ type: 'RESET' }), [send]);
 
   const state: floor.PendingEntryState = snapshot.value;
+  const unsettled = state === 'awaitingTap' || state === 'sending' || state === 'notSaved';
+  useEffect(() => {
+    markUnsettled(id, unsettled);
+    return () => markUnsettled(id, false);
+  }, [id, unsettled]);
   return { state, context: snapshot.context, busy: state === 'awaitingTap' || state === 'sending', tapRequired, submit, resend, discard, reset };
 }
 

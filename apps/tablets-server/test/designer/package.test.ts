@@ -10,9 +10,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { verifyChain } from '@ebmr/kernel';
 import { routes } from '@ebmr/api-contract';
 import { blocks, engine, flow } from '@ebmr/recipe-core/pure';
-import { packageHashOf, type TestPackage } from '../../src/features/designer/package-export.ts';
+import { execution } from '@ebmr/recipe-core';
+import type { TestPackage } from '../../src/features/designer/package-export.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
-import { createFamily, edited, findNode, refusalOf, removeNode, saveContent, startDesignerServer, valueOf } from './support.ts';
+import { createFamily, edited, findPhase, refusalOf, removeNode, saveContent, startDesignerServer, valueOf } from './support.ts';
 
 let server: TestServer;
 let author: TestBrowser;
@@ -31,7 +32,7 @@ afterAll(async () => {
 describe('send to sandbox (test package)', () => {
   it('[DI-05] writes a write-once package with the GMP stamp, both hashes and the justifications, and records it on the audit chain', async () => {
     const v0 = await createFamily(author);
-    const v = valueOf(await saveContent(author, v0, edited(v0, (j) => (findNode(j, 'p-disp-exc').config = {})), 'excipient tolerance removed'));
+    const v = valueOf(await saveContent(author, v0, edited(v0, (j) => (findPhase(j, 'p-disp-exc').config = {})), 'excipient tolerance removed'));
     const key = 'G07-TOLERANCE-MISSING@p-disp-exc';
     valueOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: { findingKey: key, text: 'Checked at reconciliation.' } }));
 
@@ -43,12 +44,16 @@ describe('send to sandbox (test package)', () => {
     const dir = join(exchange, 'to-sandbox');
     expect(readdirSync(dir).filter((f) => f.endsWith('.json'))).toEqual([r.fileName]);
     expect(readdirSync(join(dir, '.staging'))).toEqual([]);
-    const pkg = JSON.parse(readFileSync(join(dir, r.fileName), 'utf8')) as TestPackage;
+    const raw: unknown = JSON.parse(readFileSync(join(dir, r.fileName), 'utf8'));
+    // The sandbox importer's own strict parser (C3) accepts the file: exact members, both hashes, the file name.
+    const parsedPkg = execution.parseTestPackage(raw, r.fileName);
+    expect(parsedPkg.ok ? [] : parsedPkg.problems).toEqual([]);
+    const pkg = raw as TestPackage;
     expect(Object.keys(pkg).sort()).toEqual(['content', 'contentHash', 'exportedAtUs', 'exporter', 'family', 'format', 'formatVersion', 'justifications', 'packageHash', 'source', 'version'].sort());
     expect(pkg.format).toBe('ebmr.mbr-test-package');
     expect(pkg.formatVersion).toBe(1);
     expect(pkg.source).toEqual({ installationKind: 'GMP', watermark: null });
-    expect(pkg.packageHash).toBe(packageHashOf(pkg));
+    expect(pkg.packageHash).toBe(execution.packageHashOf(pkg));
     expect(pkg.contentHash).toBe(v.contentHash);
     const parsed = flow.parseMbr(pkg.content);
     expect(parsed.ok).toBe(true);

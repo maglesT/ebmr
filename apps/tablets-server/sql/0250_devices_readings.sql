@@ -555,6 +555,8 @@ $$;
 
 -- Heartbeat (INTEGRATION command, INTERFACE.WRITE): the instruments' connection states. A serial that is not the
 -- registered one counts as SERIAL_MISMATCH whatever the gateway says, and raises an alert once per occurrence.
+-- Reconciliation by counts (DI-31): a gateway that holds more acknowledged readings than this server raises an alarm
+-- (at most once a minute); the answer carries the server's head, so the gateway sends them again.
 create function tab.record_heartbeat(p_heartbeat jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, kernel, pg_temp as $$
 declare
@@ -567,6 +569,15 @@ declare
 begin
   perform iam.assert_not_administrator();
   v_key := tab.actor_gateway_key();
+  if (p_heartbeat #>> '{journal,ackedSeq}') ~ '^[0-9]{1,18}$'
+     and (p_heartbeat #>> '{journal,ackedSeq}')::bigint > (tab.chain_head(v_key.id) ->> 'seq')::bigint
+     and not exists (select 1 from tab.device_alarm where code = 'EBMR-DEV-070' and gateway_code = v_key.gateway_code
+                                                    and raised_at > clock_timestamp() - interval '1 minute') then
+    perform tab.raise_device_alarm('GATEWAY_ALARM', 'EBMR-DEV-070', v_key.gateway_code, null, null, (v_actor ->> 'session_id')::uuid,
+      format('DI-31: the gateway counts %s acknowledged readings, the server holds %s; the gateway must send the missing readings again',
+             p_heartbeat #>> '{journal,ackedSeq}', tab.chain_head(v_key.id) ->> 'seq'),
+      p_heartbeat -> 'journal');
+  end if;
   for d in select * from jsonb_array_elements(coalesce(p_heartbeat -> 'devices', '[]'::jsonb)) loop
     select * into v_bind from tab.gateway_instrument where gateway_key_id = v_key.id and device_code = d ->> 'deviceCode' and ended_at is null;
     if not found then

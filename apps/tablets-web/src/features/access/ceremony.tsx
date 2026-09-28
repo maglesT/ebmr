@@ -15,7 +15,7 @@
  * Secrets live in refs until the request is built, then are wiped; they never enter machine context, React
  * state, query caches or storage.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMachine } from '@xstate/react';
 import { fromPromise } from 'xstate';
 import { sha256Hex } from '@ebmr/expr';
@@ -27,6 +27,8 @@ import { secondsUntil } from '../../app/clock.ts';
 import type { SignOutcome, SignRequest } from '../../app/ports.tsx';
 import { buildAttribution, failureOf } from './calls.ts';
 import type { AccessController } from './controller.tsx';
+import { Latest, Vault } from './holders.ts';
+import type { Boot } from '../../app/boot.tsx';
 
 export interface SignJob {
   id: number;
@@ -35,35 +37,29 @@ export interface SignJob {
   tapPin: boolean;
 }
 
-function take<T>(ref: RefObject<T | null>): T | null {
-  const v = ref.current;
-  ref.current = null;
-  return v;
-}
-
-const localError = (message: string): machines.CeremonyFailure => ({ kind: 'ERROR', message });
+const localError = (message: string): Error => machines.ceremonyError({ kind: 'ERROR', message });
+const callError = (e: Parameters<typeof failureOf>[0]): Error => machines.ceremonyError(failureOf(e));
 
 export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: AccessController; onFinish: (o: SignOutcome) => void }) {
   const boot = useBoot();
-  const bootRef = useRef(boot);
+  const [latestBoot] = useState(() => new Latest<Boot>(boot));
   useEffect(() => {
-    bootRef.current = boot;
+    latestBoot.set(boot);
   });
-  const tapUid = useRef<string | null>(null);
-  const tapPin = useRef<string | null>(null);
-  const secret = useRef<SignatureCredentials | null>(null);
+  const [tapUid] = useState(() => new Vault<string>());
+  const [tapPin] = useState(() => new Vault<string>());
+  const [secret] = useState(() => new Vault<SignatureCredentials>());
   const [tapStage, setTapStage] = useState<'badge' | 'pin'>('badge');
   const [switchError, setSwitchError] = useState<RefusalEnvelope | null>(null);
   const [switching, setSwitching] = useState(false);
   const req = job.request;
 
-  const machine = useMemo(
-    () =>
+  const [machine] = useState(() =>
       machines.ceremonyMachine.provide({
         actors: {
           loadContent: fromPromise(async () => {
             const r = await api.call(routes.esig.content, { query: { aggregateType: req.aggregateType, aggregateId: req.aggregateId, intent: req.meaning } });
-            if (!r.ok) throw failureOf(r.error);
+            if (!r.ok) throw callError(r.error);
             return r.value;
           }),
           createChallenge: fromPromise(async ({ input }) => {
@@ -78,9 +74,9 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
             };
             let attribution;
             if (job.kiosk) {
-              const uid = tapUid.current;
-              const pin = take(tapPin);
-              const key = bootRef.current.deviceKey;
+              const uid = tapUid.peek();
+              const pin = tapPin.take();
+              const key = latestBoot.get().deviceKey;
               if (!uid || !key) throw localError('no badge was tapped');
               attribution = await buildAttribution(key, uid, pin ?? undefined, { method: 'POST', path: '/api/esig/challenges', body });
             }
@@ -88,34 +84,33 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
             if (!r.ok) {
               const f = failureOf(r.error);
               // Another person's badge: kept (only) for the "Switch to <name>?" PIN step.
-              if (!(f.kind === 'REFUSAL' && f.envelope.refusal.kind === 'SWITCH_USER')) tapUid.current = null;
-              throw f;
+              if (!(f.kind === 'REFUSAL' && f.envelope.refusal.kind === 'SWITCH_USER')) tapUid.clear();
+              throw machines.ceremonyError(f);
             }
-            tapUid.current = null;
+            tapUid.clear();
             return r.value;
           }),
           sign: fromPromise(async ({ input }) => {
-            const credentials = take(secret);
-            const key = bootRef.current.deviceKey;
+            const credentials = secret.take();
+            const key = latestBoot.get().deviceKey;
             if (!credentials || !key) throw localError('no credentials were entered');
             const body = { challengeId: input.challenge.challengeId, credentials, action: req.action };
             const proof = await deviceProof(key, 'POST', '/api/esig/sign', body);
             const r = await api.call(routes.esig.sign, { body: { ...body, proof } });
-            if (!r.ok) throw failureOf(r.error);
+            if (!r.ok) throw callError(r.error);
             return r.value;
           }),
           reconcile: fromPromise(async ({ input }) => {
             const r = await api.call(routes.esig.signatures, { query: { aggregateType: req.aggregateType, aggregateId: req.aggregateId } });
-            if (!r.ok) throw failureOf(r.error);
-            const me = bootRef.current.session?.person.personId;
+            if (!r.ok) throw callError(r.error);
+            const me = latestBoot.get().session?.person.personId;
             return r.value.signatures.find((m) => m.valid && m.meaning === input.challenge.meaning && m.contentHash === input.challenge.contentHash && m.signer.personId === me) ?? null;
           }),
         },
       }),
-    [job.kiosk, req],
   );
   const [snap, send] = useMachine(machine, { input: { kiosk: job.kiosk } });
-  const state = snap.value as machines.CeremonyState;
+  const state = snap.value;
 
   // Display countdown of the challenge from the server-anchored clock; at zero the entry expires (the server
   // decides for a signature already on its way).
@@ -135,13 +130,13 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
   }, [challenge, counting, send]);
 
   const finish = useCallback(() => {
-    tapUid.current = null;
-    tapPin.current = null;
-    secret.current = null;
+    tapUid.clear();
+    tapPin.clear();
+    secret.clear();
     const outcome = machines.ceremonyOutcome(state, snap.context);
     if (outcome?.status === 'REFUSED' && ['NO_SESSION', 'AUTH_LOCKED', 'SESSION_LOCKED'].includes(outcome.refusal.refusal.code)) ctl.checkSession();
     onFinish(outcome ?? { status: 'CANCELLED' });
-  }, [state, snap.context, ctl, onFinish]);
+  }, [state, snap.context, ctl, onFinish, tapUid, tapPin, secret]);
 
   useEffect(() => {
     if (state === 'cancelled' || state === 'closed') finish();
@@ -160,8 +155,8 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
       switchError={switchError}
       onSign={() => send({ type: 'SIGN' })}
       onCancel={() => {
-        tapUid.current = null;
-        tapPin.current = null;
+        tapUid.clear();
+        tapPin.clear();
         send({ type: 'CANCEL' });
       }}
       onRestart={() => {
@@ -173,36 +168,36 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
         else finish();
       }}
       onTap={(uid) => {
-        tapUid.current = uid;
+        tapUid.put(uid);
         if (job.tapPin) setTapStage('pin');
         else send({ type: 'TAPPED' });
       }}
       onTapPin={(pin) => {
-        tapPin.current = pin;
+        tapPin.put(pin);
         setTapStage('badge');
         send({ type: 'TAPPED' });
       }}
       onTapTimeout={() => {
-        tapUid.current = null;
+        tapUid.clear();
         send({ type: 'TAP_TIMEOUT' });
       }}
       onPin={(pin) => {
-        secret.current = { kind: 'PIN', pin };
+        secret.put({ kind: 'PIN', pin });
         send({ type: 'SUBMIT' });
       }}
       onPassword={(loginName, password) => {
-        secret.current = { kind: 'PASSWORD', loginName, password };
+        secret.put({ kind: 'PASSWORD', loginName, password });
         send({ type: 'SUBMIT' });
       }}
       onSwitchPin={(pin) => {
-        const uid = tapUid.current;
+        const uid = tapUid.peek();
         if (!uid || switching) return;
         setSwitching(true);
         setSwitchError(null);
         void ctl.switchTo(uid, pin).then((r) => {
           setSwitching(false);
           if (r.ok) {
-            tapUid.current = null;
+            tapUid.clear();
             setTapStage('badge');
             send({ type: 'SWITCHED' });
           } else {

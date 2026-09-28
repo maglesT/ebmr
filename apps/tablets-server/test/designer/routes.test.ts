@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- tests edit content JSON freely */
 /**
  * Designer routes on the GMP installation (module C2): families from the template, revisions with stale-revision
  * protection, validation with the real adapters, justifications, start of verification and the controls the brief
@@ -8,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type VersionView } from '@ebmr/api-contract';
 import { flow } from '@ebmr/recipe-core/pure';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
-import { createFamily, edited, findNode, NEW_FAMILY, refusalOf, removeNode, saveContent, startDesignerServer, templateMbr, valueOf } from './support.ts';
+import { createFamily, edited, findPhase, NEW_FAMILY, parameter, refusalOf, removeNode, saveContent, startDesignerServer, templateMbr, valueOf } from './support.ts';
 
 let server: TestServer;
 let author: TestBrowser;
@@ -82,7 +81,7 @@ describe('templates, families and versions', () => {
 
   it('[PR-01] content whose batch sizes differ from the family is not saved (the approved set is fixed per family)', async () => {
     const v = await freshVersion();
-    const r = refusalOf(await saveContent(author, v, edited(v, (j) => j['header'].batchSizes.push({ id: 'BS-X', quantity: { value: '75', unit: 'kg' } }))));
+    const r = refusalOf(await saveContent(author, v, edited(v, (j) => j.header.batchSizes.push({ id: 'BS-X', quantity: { value: '75', unit: 'kg' } }))));
     expect(r.status).toBe(422);
     expect(r.code).toBe('EBMR-RCP-023');
     expect(r.why).toMatch(/batch sizes differ/);
@@ -119,9 +118,9 @@ describe('templates, families and versions', () => {
 describe('revisions (PR-06, DI-04)', () => {
   it('[PR-06] a stale base revision is refused with 409 and nothing is saved', async () => {
     const v = await freshVersion();
-    const v2 = valueOf(await saveContent(author, v, edited(v, (j) => (j['header'].title = `${j['header'].title} (edited)`))));
+    const v2 = valueOf(await saveContent(author, v, edited(v, (j) => (j.header.title = `${j.header.title} (edited)`))));
     expect(v2.revision).toBe(2);
-    const stale = refusalOf(await saveContent(author, v, edited(v, (j) => (j['header'].title = 'another edit'))));
+    const stale = refusalOf(await saveContent(author, v, edited(v, (j) => (j.header.title = 'another edit'))));
     expect(stale.status).toBe(409);
     expect(stale.code).toBe('DESIGNER_STALE');
     expect(stale.kind).toBe('STALE');
@@ -137,7 +136,7 @@ describe('revisions (PR-06, DI-04)', () => {
 
   it('[PR-03] content that is not a well-formed MBR is not saved and the parser names the path', async () => {
     const v = await freshVersion();
-    const r = refusalOf(await saveContent(author, v, edited(v, (j) => (j['parameters'][0].unexpected = true))));
+    const r = refusalOf(await saveContent(author, v, edited(v, (j) => ((j.parameters[0] as unknown as Record<string, unknown>)['unexpected'] = true))));
     expect(r.status).toBe(422);
     expect(r.code).toBe('EBMR-RCP-029');
     expect(r.why).toMatch(/parameters/);
@@ -183,8 +182,8 @@ describe('validation with the real adapters', () => {
   it('[PR-08] a limit-tier nesting error is named with its rule and control', async () => {
     const v = await freshVersion();
     const content = edited(v, (j) => {
-      const blendTime = j['parameters'].find((p: any) => p.id === 'blendTime');
-      blendTime.limits.ranges.find((r: any) => r.tier === 'ALERT').high.value = '19'; // outside the internal action range (12-18)
+      const alert = parameter(j, 'blendTime').limits?.ranges.find((r) => r.tier === 'ALERT');
+      if (alert?.high) alert.high.value = '19'; // outside the internal action range (12-18)
     });
     const r = await validate(content, v.versionId);
     const f = r.findings.find((x) => x.rule === 'GMP-LIMITS');
@@ -198,9 +197,8 @@ describe('validation with the real adapters', () => {
   it('[IN-02] a risk-based reduction without a rationale is refused by the gate, naming IN-02', async () => {
     const v = await freshVersion();
     const content = edited(v, (j) => {
-      const speed = j['parameters'].find((p: any) => p.id === 'blenderSpeed');
-      speed.criticality = 'NON_CRITICAL';
-      j['riskReductions'].push({ id: 'RR-SPEED', kind: 'MINOR_CLASSIFICATION', subjects: ['blenderSpeed'], riskClass: 'LOW' });
+      parameter(j, 'blenderSpeed').criticality = 'NON_CRITICAL';
+      j.riskReductions.push({ id: 'RR-SPEED', kind: 'MINOR_CLASSIFICATION', subjects: ['blenderSpeed'], riskClass: 'LOW' });
     });
     const r = await validate(content, v.versionId);
     const f = r.findings.find((x) => x.rule === 'GMP-RISK' && x.subjectPath.includes('RR-SPEED'));
@@ -215,7 +213,7 @@ describe('validation with the real adapters', () => {
     const v = await freshVersion();
     const bound = (max: string) =>
       edited(v, (j) =>
-        j['timeConstraints'].push({
+        j.timeConstraints.push({
           id: 'TC-BLEND-SAMPLE',
           name: 'Blend step duration (bound to the market interval)',
           kind: 'PROCESS_WINDOW',
@@ -240,7 +238,7 @@ describe('validation with the real adapters', () => {
 
   it('[INV-34] the market adapter fails closed on a key it cannot resolve (UNRESOLVED is an error)', async () => {
     const v = await freshVersion();
-    const content = edited(v, (j) => (j['parameters'].find((p: any) => p.id === 'blendTime').marketRule = { key: 'tablets.blend.noSuchKey', bound: 'HIGH' }));
+    const content = edited(v, (j) => (parameter(j, 'blendTime').marketRule = { key: 'tablets.blend.noSuchKey', bound: 'HIGH' }));
     const r = await validate(content, v.versionId);
     const f = r.findings.find((x) => x.rule === 'MKT-MINIMA' && /noSuchKey/.test(x.message));
     expect(f?.severity).toBe('ERROR');
@@ -249,7 +247,10 @@ describe('validation with the real adapters', () => {
 
   it('[PR-03] a reference not pinned to the registered hash fails the gate (HASH_MISMATCH)', async () => {
     const v = await freshVersion();
-    const content = edited(v, (j) => (j['references'].find((r: any) => r.id === 'SOP-DISP-001').hash = '0'.repeat(64)));
+    const content = edited(v, (j) => {
+      const ref = j.references.find((r) => r.id === 'SOP-DISP-001');
+      if (ref) ref.hash = '0'.repeat(64);
+    });
     const r = await validate(content, v.versionId);
     const f = r.findings.find((x) => x.rule === 'GMP-REFERENCES');
     expect(f?.message).toMatch(/does not match its pinned hash/);
@@ -267,7 +268,7 @@ describe('validation with the real adapters', () => {
 describe('justifications and start of verification (IN-02, DI-04, PR-06)', () => {
   it('[DI-04][IN-02] a definition warning is justified by the author, then the version passes and enters verification; evidence is bound to the hash', async () => {
     const v = await freshVersion();
-    const noTolerance = edited(v, (j) => (findNode(j, 'p-disp-exc').config = {}));
+    const noTolerance = edited(v, (j) => (findPhase(j, 'p-disp-exc').config = {}));
     const v2 = valueOf(await saveContent(author, v, noTolerance, 'excipient tolerance removed'));
     const r = await validate(v2.content, v.versionId);
     const w = r.findings.find((f) => f.key === 'G07-TOLERANCE-MISSING@p-disp-exc');
@@ -288,7 +289,7 @@ describe('justifications and start of verification (IN-02, DI-04, PR-06)', () =>
         body: { findingKey: 'G07-TOLERANCE-MISSING@p-disp-exc', text: 'Excipients are checked against the formula at reconciliation (SOP-DISP-001).' },
       }),
     );
-    expect(j.justifications).toEqual([expect.objectContaining({ findingKey: 'G07-TOLERANCE-MISSING@p-disp-exc', by: expect.objectContaining({ legalName: 'Asha Rao' }) })]);
+    expect(j.justifications.map((x) => [x.findingKey, x.by.legalName])).toEqual([['G07-TOLERANCE-MISSING@p-disp-exc', 'Asha Rao']]);
     const r2 = await validate(v2.content, v.versionId);
     expect(r2.gate.passed).toBe(true);
     expect(r2.findings.find((f) => f.key === 'G07-TOLERANCE-MISSING@p-disp-exc')?.justification?.text).toMatch(/reconciliation/);
@@ -300,7 +301,7 @@ describe('justifications and start of verification (IN-02, DI-04, PR-06)', () =>
     expect(validatorEvidence.at(-1)?.summary).toMatch(/^Passed/);
 
     // PR-06: no revision, justification or second start once the version left DRAFT.
-    const save = refusalOf(await saveContent(author, started, edited(started, (x) => (x['header'].title = 'late edit'))));
+    const save = refusalOf(await saveContent(author, started, edited(started, (x) => (x.header.title = 'late edit'))));
     expect(save.code).toBe('EBMR-RCP-021');
     expect(save.controls).toContain('PR-06');
     const late = refusalOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: { findingKey: 'G07-TOLERANCE-MISSING@p-disp-exc', text: 'late' } }));

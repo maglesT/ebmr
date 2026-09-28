@@ -33,7 +33,8 @@ describe('simulation (worker thread, SIMULATION watermark)', () => {
     const before = await auditCount();
     const s = valueOf(await author.call(routes.designer.simulate, { params: { versionId: v.versionId }, body: {} }));
     expect(await auditCount()).toBe(before);
-    expect(s.watermark).toEqual({ text: 'TEST, NOT GMP', source: 'SIMULATION', notice: expect.any(String), control: 'DI-05' });
+    expect([s.watermark.text, s.watermark.source, s.watermark.control]).toEqual(['TEST, NOT GMP', 'SIMULATION', 'DI-05']);
+    expect(s.watermark.notice).toMatch(/not a GMP record/);
     expect(s.contentHash).toBe(v.contentHash);
     expect(s.passed).toBe(true);
     expect(s.problems).toEqual([]);

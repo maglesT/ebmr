@@ -9,13 +9,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { flow } from '@ebmr/recipe-core/pure';
 import { DesignerEditor } from '../../src/features/designer/DesignerPage.tsx';
 import { draftKey, saveDraft } from '../../src/features/designer/model/draft.ts';
-import { finding, fixtureContent, fixtureVersion, PALETTE, renderRouted, report, useFixtures, VERSION_ID } from './support.tsx';
+import { finding, fixtureContent, fixtureVersion, installFixtures, PALETTE, renderRouted, report, VERSION_ID } from './support.tsx';
 
 let validated: unknown[] = [];
 
 function fixtures(extra: Record<string, unknown> = {}): void {
   validated = [];
-  useFixtures({
+  installFixtures({
     'designer.validate': ({ body }: { body: { content: unknown } }) => {
       validated.push(body.content);
       return report([
@@ -48,7 +48,9 @@ describe('designer screen', () => {
     await userEvent.click(within(panel).getByRole('button', { name: /Go to step 1\.1\.1/ }));
     expect(await screen.findByRole('heading', { name: /Step 1\.1\.1: Clear the room or line/ })).toBeTruthy();
     await waitFor(() => expect(document.activeElement?.id).toBe('mbr-node-p-disp-clear'));
-    await userEvent.click(screen.getByRole('button', { name: /Go to parameters \/ lod \(section 6\)/ }));
+    await userEvent.click(screen.getByRole('tab', { name: /Findings/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Go to parameters \/ lod \(section 6\)/ }));
+    await waitFor(() => expect(document.activeElement?.id).toBe('mbr-item-lod'));
   });
 
   it('[PR-08] a limit is edited as decimal text; letters are not accepted and nothing but a decimal string enters the content', async () => {

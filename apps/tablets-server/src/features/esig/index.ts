@@ -24,7 +24,7 @@
  * browser reloading the signatures, never by sending the credentials again.
  */
 import { routes, type ChallengeView, type ManifestationView, type Refusal, type SignableAction, type SignableContentView } from '@ebmr/api-contract';
-import { commands, esig, identity } from '@ebmr/kernel';
+import { esig, identity, type commands } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import { otherTerminal } from '../../platform/auth/attribution.ts';
 import { without } from '../../platform/auth/device-proof.ts';
@@ -180,9 +180,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
               zone: typeof preview['site_zone'] === 'string' ? preview['site_zone'] : app.config.siteZone,
             },
           };
-          return view as unknown as commands.JsonValue;
+          return view;
         });
-        const view = out.result as unknown as ChallengeView;
+        const view = out.result;
         if (out.replayed) {
           const stored = await readChallenge(app.pools.app, view.challengeId);
           if (!stored || stored.secondsLeft <= 0) {

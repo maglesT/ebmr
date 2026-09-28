@@ -17,6 +17,7 @@ import { ExceptionList } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { HoldBatchDialog, RaiseExceptionDialog, ReleaseHoldDialog } from '../dialogs/CommandDialogs.tsx';
 import { useRunView } from '../queries.ts';
+import { useLeaveGuard } from '../unsettled.ts';
 import { actionLabel, st } from '../text.ts';
 
 type Replay = Result<RouteResponse<typeof routes.execution.verifyReplay>>;
@@ -87,6 +88,7 @@ export function RunOverviewPage() {
   const [replay, setReplay] = useState<Replay | null>(null);
   const [replaying, setReplaying] = useState(false);
   const [open, setOpen] = useState<Open>(null);
+  const held = useLeaveGuard();
 
   if (run.isPending) return <p>{st('loading')}</p>;
   if (!run.data) return run.error ? <RefusalMessage error={run.error.error} /> : null;
@@ -112,6 +114,7 @@ export function RunOverviewPage() {
     <>
       <RunHeader run={view.header} connected={!(run.error && run.error.error.kind === 'NETWORK')} />
       <h1>{st('run.title', { batch: view.header.batchNumber })}</h1>
+      {held ? <Banner tone="warning" title={st('leave.held')} /> : null}
       <div className={wcls('row')}>
         <Button variant="primary" onPress={() => void verify()} isDisabled={replaying}>
           {st('run.verify')}

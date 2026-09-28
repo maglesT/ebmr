@@ -6,7 +6,7 @@
 import type pg from 'pg';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import type { ValidationReportView } from '@ebmr/api-contract';
-import { flow, validator } from '@ebmr/recipe-core/pure';
+import { validator, type flow } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { loadValidationContext, type LoadedContext } from './adapters/expressions.ts';
 import { combinedGate, definitionFindings, type CombinedGate, type DefinitionFinding } from './definition.ts';

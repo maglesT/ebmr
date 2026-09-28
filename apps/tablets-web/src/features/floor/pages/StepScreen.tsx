@@ -14,6 +14,7 @@ import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
 import { useRunView, useStepView } from '../queries.ts';
 import { rendererFor } from '../renderers/registry.ts';
 import { st } from '../text.ts';
+import { useLeaveGuard } from '../unsettled.ts';
 import { useSignedAction, type SignedActionResult } from '../useSignedAction.ts';
 import type { RunView, StepScreenView } from '@ebmr/api-contract';
 
@@ -78,6 +79,7 @@ export function StepScreenPage() {
   const stepKey = params['stepKey'] ?? '';
   const step = useStepView(runId, stepKey);
   const run = useRunView(runId);
+  const held = useLeaveGuard();
   if (step.isPending) return <p>{st('loading')}</p>;
   if (!step.data) return step.error ? <RefusalMessage error={step.error.error} /> : null;
   const view = step.data;
@@ -85,6 +87,7 @@ export function StepScreenPage() {
   return (
     <>
       <RunHeader run={view.run} connected={connected} />
+      {held ? <Banner tone="warning" title={st('leave.held')} /> : null}
       {step.error ? <RefusalMessage error={step.error.error} /> : null}
       <StepCard key={`${view.run.runId}:${view.step.stepKey}`} view={view} runView={run.data} />
     </>

@@ -125,6 +125,25 @@ describe('gateway journal', () => {
     await j.close();
   });
 
+  it('[DI-31][DI-28] reconciliation by counts: when the server holds fewer readings than acknowledged, the journal sends them again', async () => {
+    const dir = tempDir();
+    const s = await server();
+    const j = await openJournal(dir);
+    const up = uplinkFor(s, j, dir);
+    await up.logIn();
+    for (let i = 0; i < 4; i += 1) await j.appendNext(builder(s.chainId));
+    await up.flush();
+    expect(j.ackedSeq).toBe(4n);
+    // The server was restored from a backup taken after reading 2.
+    s.readings.length = 2;
+    await up.heartbeat();
+    await up.flush();
+    expect(s.readings.map((r) => r.seq)).toEqual(['1', '2', '3', '4']);
+    expect(j.ackedSeq).toBe(4n);
+    await up.stop();
+    await j.close();
+  });
+
   it('[DI-28] a resend of readings the server already holds is idempotent (duplicates, never second copies)', async () => {
     const dir = tempDir();
     const s = await server();

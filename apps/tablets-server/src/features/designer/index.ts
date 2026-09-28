@@ -21,7 +21,7 @@ import { flow } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
+import { refusal, type HttpRefusal } from '../../platform/http/refusal.ts';
 import { siteToday } from './adapters/expressions.ts';
 import { contentFromTemplate, FamilyInputError } from './family.ts';
 import { DESIGNER_GUIDANCE } from './guidance.ts';
@@ -329,16 +329,18 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           sandbox.assertGmpOrigin(stamp, 'An MBR test package');
           const nowUs = await dbNowUs(c);
           const exporter = await personRef(c, actor.personId, actor.accountId, actor.roleCode);
-          const pkg = buildTestPackage({
-            source: stamp,
-            family: { familyId: head.familyId, familyCode: head.familyCode, product: head.product },
-            version: { versionId: id, number: versionLabel(head.versionNumber), revision: saved.revision, state: head.state },
-            content: parsed.mbr,
-            contentHash: saved.contentHash,
-            justifications: justs,
-            exporter: { personId: exporter.personId, legalName: exporter.legalName, loginName: exporter.loginName },
-            exportedAtUs: nowUs.toString(),
-          });
+          const pkg = buildTestPackage(
+            {
+              source: stamp,
+              family: { familyId: head.familyId, familyCode: head.familyCode, product: head.product },
+              version: { versionId: id, number: versionLabel(head.versionNumber), revision: saved.revision, state: head.state },
+              content: parsed.mbr,
+              justifications: justs,
+              exporter: { personId: exporter.personId, legalName: exporter.legalName, loginName: exporter.loginName },
+              exportedAtUs: nowUs.toString(),
+            },
+            saved.contentHash,
+          );
           staged = await stagePackage(app.config.exchangeDir, pkg);
           await c.query('select tab.record_test_package_export($1, $2, $3, $4, $5, $6::bigint)', [id, saved.revision, saved.contentHash, pkg.packageHash, staged.fileName, nowUs.toString()]);
           return { packageHash: pkg.packageHash, fileName: staged.fileName, stagedPath: staged.stagedPath, finalPath: staged.finalPath };

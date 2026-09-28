@@ -163,8 +163,8 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
 function localBlock(a: ActionView, view: StepScreenView): string | null {
   if (LATER.has(a.action)) return st('action.laterRelease');
   const signature = a.requires === 'SIGNATURE';
-  if (signature && !a.meaning) return st('action.laterRelease');
-  if (signature && (a.action === 'SIGN_PERFORMED' || a.action === 'VERIFY' || a.action === 'WITNESS' || a.action === 'DISPOSITION_HOLD_POINT') && !view.signable) return st('action.laterRelease');
+  if (signature && !a.meaning) return st('action.noMeaning');
+  if (signature && (a.action === 'SIGN_PERFORMED' || a.action === 'VERIFY' || a.action === 'WITNESS' || a.action === 'DISPOSITION_HOLD_POINT') && !view.signable) return st('action.noSignable');
   return null;
 }
 

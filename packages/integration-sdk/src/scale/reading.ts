@@ -144,7 +144,7 @@ export function readingProblem(candidate: unknown, publicKey: KeyObject): { prob
   const r = parsed.data;
   const { hash, signature, ...body } = r;
   if (readingHash(body) !== hash) return { problem: 'HASH', detail: 'the hash does not match the reading content' };
-  let ok = false;
+  let ok: boolean;
   try {
     ok = verify(null, signatureMessage(hash), publicKey, Buffer.from(signature, 'base64'));
   } catch {

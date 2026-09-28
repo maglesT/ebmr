@@ -89,12 +89,12 @@ function ScaleCard({ scale }: { scale: ScaleStatusView }) {
 export function ScalesPage() {
   const scales = useApiQuery(routes.devices.scales, { query: {} }, { refetchInterval: 5000 });
   return (
-    <main className={c('page')}>
+    <div className={c('page')}>
       <h1>{dt('scales.title')}</h1>
       <p>{dt('scales.intro')}</p>
       {scales.isPending ? <p>{dt('slot.checking')}</p> : null}
       {scales.data && scales.data.scales.length === 0 ? <p>{dt('scales.none')}</p> : null}
       {scales.data?.scales.map((s) => <ScaleCard key={s.deviceCode} scale={s} />)}
-    </main>
+    </div>
   );
 }

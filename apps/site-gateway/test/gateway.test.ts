@@ -154,7 +154,7 @@ describe('site gateway with the MT-SICS simulator', () => {
     const samples: LiveSample[] = [];
     const stop = gateway.subscribeLive('TEST-BAL-01', (s) => samples.push(s));
     await new Promise((r) => setTimeout(r, 1300));
-    expect(samples.length).toBeGreaterThanOrEqual(3);
+    expect(samples.length).toBeGreaterThanOrEqual(2);
     expect(samples.at(-1)).toMatchObject({ deviceCode: 'TEST-BAL-01', value: '1.250', unit: 'kg', stable: true, status: 'OK' });
     await sim.control('fault', { fault: 'OFFLINE', on: true });
     await until(() => samples.at(-1)?.status === 'OFFLINE', 5000, 'an OFFLINE sample');

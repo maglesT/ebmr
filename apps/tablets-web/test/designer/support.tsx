@@ -64,7 +64,7 @@ export function report(findings: FindingView[], hash = 'a'.repeat(64)): Validati
   return { contentHash: hash, validatedAt: at, gate: { passed: errors === 0 && unjustified === 0, errors, warnings, unjustifiedWarnings: unjustified }, findings };
 }
 
-export function useFixtures(map: FixtureMap): void {
+export function installFixtures(map: FixtureMap): void {
   setTransport(createFixtureFetch(map, { installation: 'GMP' }));
 }
 

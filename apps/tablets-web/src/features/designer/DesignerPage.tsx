@@ -35,7 +35,7 @@ import { asWire, fromWire } from './model/wire.ts';
 export const auditLink = (versionId: string): string => `/audit?chain=${encodeURIComponent(`mbr_version:${versionId}`)}`;
 
 export function DesignerPage() {
-  const params = useParams({ strict: false }) as { versionId?: string };
+  const params: { versionId?: string } = useParams({ strict: false });
   const versionId = params.versionId ?? '';
   const version = useApiQuery(routes.designer.version, { params: { versionId } }, { enabled: versionId !== '' });
   const palette = useApiQuery(routes.designer.palette);
@@ -135,7 +135,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
     requestAnimationFrame(() => {
       const el = document.getElementById(t.elementId);
       el?.scrollIntoView({ block: 'center' });
-      (el as HTMLElement | null)?.focus?.();
+      el?.focus();
     });
   };
 

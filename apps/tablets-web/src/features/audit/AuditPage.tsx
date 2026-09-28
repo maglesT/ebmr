@@ -134,7 +134,7 @@ function ChainView({ chainKey }: { chainKey: string }) {
 }
 
 export function AuditPage() {
-  const search = route.useSearch() as AuditSearch;
+  const search: AuditSearch = route.useSearch();
   return (
     <section aria-labelledby="audit-title">
       <h1 id="audit-title">Audit trail</h1>

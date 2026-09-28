@@ -16,6 +16,12 @@ import { auditLink } from '../audit/links.ts';
 
 const route = getRouteApi('/esig/demo');
 
+/** The search of /esig/demo: the stub entry and the meaning to sign. */
+export function demoSearch(raw: unknown): { stub: string; meaning: string } {
+  const r = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return { stub: typeof r['stub'] === 'string' ? r['stub'] : '', meaning: typeof r['meaning'] === 'string' && r['meaning'] !== '' ? r['meaning'] : 'PERFORMED' };
+}
+
 function Signatures({ stub }: { stub: string }) {
   const q = useApiQuery(routes.esig.signatures, { query: { aggregateType: 'esig_stub', aggregateId: stub } });
   if (q.isPending) return <p>Loading the signatures…</p>;
@@ -32,8 +38,14 @@ function Signatures({ stub }: { stub: string }) {
 }
 
 export function EsigDemo() {
+  const search: unknown = route.useSearch();
+  const { stub, meaning } = demoSearch(search);
+  return <EsigDemoPage stub={stub} meaning={meaning} />;
+}
+
+/** The page itself (DEMO-ONLY): offers nothing unless the installation is a demo installation. */
+export function EsigDemoPage({ stub, meaning }: { stub: string; meaning: string }) {
   const boot = useBoot();
-  const { stub, meaning } = route.useSearch();
   const ceremony = useSignatureCeremony();
   const [outcome, setOutcome] = useState<SignOutcome | null>(null);
   const [generation, setGeneration] = useState(0);

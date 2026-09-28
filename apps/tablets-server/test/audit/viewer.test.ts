@@ -43,7 +43,8 @@ describe('audit entries', () => {
     const [created, changed] = events;
     expect(created).toMatchObject({ who: { personId: me.personId, legalName: 'Asha Rao', loginName: 'asha.rao', role: 'MBR_AUTHOR' }, device: 'PC-DESIGN-01', why: null, table: 'esig.stub_signable', recordId: stub });
     expect(created?.changes).toContainEqual({ field: 'value', old: null, new: 'granulation v1' });
-    expect(changed).toMatchObject({ why: 'ENTRY_ERROR: transcription error corrected', summary: expect.stringContaining('value') as unknown as string });
+    expect(changed).toMatchObject({ why: 'ENTRY_ERROR: transcription error corrected' });
+    expect(changed?.summary).toContain('value');
     expect(changed?.changes).toContainEqual({ field: 'value', old: 'granulation v1', new: 'granulation v2' });
     expect(changed?.changes).toContainEqual({ field: 'content_version', old: '1', new: '2' });
     expect(changed?.at.text).toMatch(/^\d{2}-[A-Z]{3}-\d{4} \d{2}:\d{2}:\d{2} \+05:30 \(Asia\/Kolkata\)$/);
@@ -64,7 +65,8 @@ describe('audit entries', () => {
     valueOf(await author.call(routes.esig.sign, { body: { ...body, proof: await author.proof('POST', '/api/esig/sign', body) } }));
     const events = await allEvents(author, { chainKey: `esig_stub:${stub}` });
     const business = events.find((e) => e.kind === 'BUSINESS');
-    expect(business).toMatchObject({ summary: expect.stringMatching(/^signed PREPARED by Asha Rao \(asha\.rao\)/) as unknown as string, who: { loginName: 'asha.rao' }, changes: [] });
+    expect(business).toMatchObject({ who: { loginName: 'asha.rao' }, changes: [] });
+    expect(business?.summary).toMatch(/^signed PREPARED by Asha Rao \(asha\.rao\)/);
     const sameCommand = await allEvents(author, { correlationId: business?.correlationId ?? '' });
     expect(sameCommand.map((e) => e.chainKey)).toEqual(expect.arrayContaining([`esig_signature:esig_stub:${stub}`, `esig_stub:${stub}`]));
   });

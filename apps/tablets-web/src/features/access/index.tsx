@@ -24,17 +24,14 @@ import {
 } from '../../app/ports.tsx';
 import { CeremonyHost, type SignJob } from './ceremony.tsx';
 import { AccessRoot, isKiosk, useAccess } from './controller.tsx';
-import { EsigDemo } from './EsigDemo.tsx';
+import { demoSearch, EsigDemo } from './EsigDemo.tsx';
 
 export function routes(root: AnyRootRoute): AnyRoute[] {
   return [
     createRoute({
       getParentRoute: () => root,
       path: '/esig/demo',
-      validateSearch: (s: Record<string, unknown>) => ({
-        stub: typeof s['stub'] === 'string' ? s['stub'] : '',
-        meaning: typeof s['meaning'] === 'string' ? s['meaning'] : 'PERFORMED',
-      }),
+      validateSearch: (s: Record<string, unknown>) => demoSearch(s),
       component: EsigDemo,
     }),
   ];

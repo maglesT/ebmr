@@ -3,9 +3,10 @@
  * signed, hash-chained and sequence-checked; every refused transfer raises an alarm (DI-31).
  */
 import { createHash, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto';
+import fc from 'fast-check';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { asAdmin } from '@ebmr/test-kit';
-import { genesisHash, readingHash, sealReading, ed25519PrivateKey, type ScaleReading } from '@ebmr/integration-sdk/scale';
+import { canonicalReadingText, genesisHash, readingHash, sealReading, ed25519PrivateKey } from '@ebmr/integration-sdk/scale';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
 import { gatewayActor } from '../../src/features/devices/listener.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
@@ -115,10 +116,10 @@ describe('ingestion', () => {
   it('[DI-31] a tampered reading (value changed after signing) or an unsigned one is refused with an alarm', async () => {
     const r = gw.next();
     const tampered = { ...r, value: '1.260', raw: 'S S      1.260 kg' };
-    const res = await gw.uplink([{ reading: tampered as ScaleReading }]);
+    const res = await gw.uplink([{ reading: tampered }]);
     expect(res.body.refused?.code).toBe('EBMR-DEV-045');
     // Re-hashed by an attacker without the key: the signature fails.
-    const rehashed = { ...tampered, hash: readingHash({ ...tampered }) } as ScaleReading;
+    const rehashed = { ...tampered, hash: readingHash(tampered) };
     const res2 = await gw.uplink([{ reading: rehashed }]);
     expect(res2.body.refused?.code).toBe('EBMR-DEV-061');
     // Unsigned: refused by the schema before anything else.
@@ -178,10 +179,41 @@ describe('ingestion', () => {
     await expect(withActorCommand(server.db.app, actor, (c) => c.query('select tab.ingest_reading($1::jsonb, 0)', [JSON.stringify(r)]))).resolves.toBeDefined();
   });
 
+  it('[DI-31] the SQL canonical text equals the SDK canonical text for any printable raw line, value and purpose (fast-check)', async () => {
+    const printable = fc.string({ unit: fc.integer({ min: 0x20, max: 0x7e }).map((c) => String.fromCharCode(c)), minLength: 1, maxLength: 64 });
+    // The helper is not granted to the application role (only the definers use it), so the owner's view is read.
+    await asAdmin(server.database, (admin) =>
+      fc.assert(
+        fc.asyncProperty(printable, fc.option(fc.constantFrom('1.250', '-0.005', '12345.678'), { nil: null }), fc.boolean(), fc.option(fc.constantFrom('TARE' as const, 'GROSS' as const, 'CHECK' as const), { nil: null }), async (raw, value, stable, purpose) => {
+          const r = gw.next({ raw, value, stable, purpose });
+          const { hash, signature, ...body } = r;
+          void hash;
+          void signature;
+          const { rows } = await admin.query<{ t: string }>('select tab.reading_canonical_text($1::jsonb) as t', [JSON.stringify(r)]);
+          expect(rows[0]?.t).toBe(canonicalReadingText(body));
+        }),
+        { numRuns: 60 },
+      ),
+    );
+  });
+
   it('[DI-31] only a bound gateway session of the INTEGRATION identity can ingest; a person or the administrator cannot', async () => {
     const r = gw.next();
     const admin = await adminActor(server);
     await expect(withActorCommand(server.db.app, admin, (c) => c.query('select tab.ingest_reading($1::jsonb, 0)', [JSON.stringify(r)]))).rejects.toThrow(/EBMR-IAM-04[02]|EBMR-DEV-030/);
+  });
+
+  it('[DI-31] reconciliation by counts: a gateway that counts more acknowledged readings than the server holds raises an alarm', async () => {
+    gw.next();
+    gw.next(); // two readings the server never received, counted as acknowledged by this (fake) gateway
+    const res = await gw.heartbeat([{ deviceCode: 'TEST-BAL-01', state: 'ONLINE', serial: 'SIM-0001' }]);
+    expect(res.status).toBe(200);
+    const alarm = await server.db.app.query<{ message: string }>("select message from tab.device_alarm where code = 'EBMR-DEV-070'");
+    expect(alarm.rows.length).toBe(1);
+    expect(alarm.rows[0]?.message).toMatch(/must send the missing readings again/);
+    // Once a minute at most.
+    await gw.heartbeat([{ deviceCode: 'TEST-BAL-01', state: 'ONLINE', serial: 'SIM-0001' }]);
+    expect((await server.db.app.query("select 1 from tab.device_alarm where code = 'EBMR-DEV-070'")).rowCount).toBe(1);
   });
 
   it('[DI-22] an ingested reading is audited on its own chain, attributed to the gateway identity with source INTEGRATION', async () => {

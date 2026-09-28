@@ -148,6 +148,18 @@ describe('value entry (G-04) and the pendingEntry path', () => {
     expect(ui.commands()[2]?.idempotencyKey).not.toBe(a?.idempotencyKey);
   });
 
+  it('[DI-28] leaving the step while an entry is NOT SAVED is held back, so the notice cannot be lost', async () => {
+    const ui = renderFloor(stepPath('p-blend@'), { fixtures: stepFixtures(g04Recording), intercept: (r) => (r.path === commandPath ? 'NETWORK_ERROR' : undefined) });
+    await typeAndSave('21');
+    await screen.findByRole('alertdialog');
+    void ui.router.navigate({ to: '/runs/$runId', params: { runId: RUN_ID } });
+    expect(await screen.findByText(/An entry is not settled yet/)).toBeTruthy();
+    expect(decodeURIComponent(ui.router.state.location.pathname)).toBe(`/runs/${RUN_ID}/steps/p-blend@`);
+    await userEvent.click(screen.getByRole('button', { name: 'Discard and check the record' }));
+    void ui.router.navigate({ to: '/runs/$runId', params: { runId: RUN_ID } });
+    await waitFor(() => expect(ui.router.state.location.pathname).toBe(`/runs/${RUN_ID}`));
+  });
+
   it('[INV-40] a session change discards a NOT SAVED entry: nothing more is sent, the dialog closes and the typed value is cleared', async () => {
     const ui = renderFloor(stepPath('p-blend@'), { fixtures: stepFixtures(g04Recording), intercept: (r) => (r.path === commandPath ? 'NETWORK_ERROR' : undefined) });
     await typeAndSave('21');

@@ -54,7 +54,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         limit,
       });
       const page = rows.slice(0, limit);
-      return { events: page.map((r) => toView(r, app.formatInstant)), nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null };
+      return { events: page.map((r) => toView(r, (us) => app.formatInstant(us))), nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null };
     },
 
     verifyChain: async ({ params }) => {

@@ -50,6 +50,14 @@ export class ExecutionTx {
     return new ExecutionTx(client, def, locked, locked.state, locked.lastSeq);
   }
 
+  /** The sweeper's open: undefined when another command holds the batch (FOR UPDATE SKIP LOCKED). */
+  static async tryOpen(client: Queryable, def: BatchDefinition, batchId: string): Promise<ExecutionTx | undefined> {
+    const locked = await lockExecution(client, batchId, true);
+    if (!locked) return undefined;
+    assertDefinitionFits(def, locked);
+    return new ExecutionTx(client, def, locked, locked.state, locked.lastSeq);
+  }
+
   get nowUs(): bigint {
     return this.locked.nowUs;
   }

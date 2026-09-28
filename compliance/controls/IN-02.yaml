@@ -19,6 +19,8 @@ implemented_by:
   modules:
     - "packages/recipe-core/src/flow/model.ts (RiskScale, RiskReduction, riskClass on steps, parameters, calculations)"
     - "packages/recipe-core/src/validator/rules-content.ts (GMP-RISK, GMP-SIGNIFICANT-STEPS)"
+    - "apps/tablets-server/sql/0150_designer.sql (tab.designer_justification: insert-only, audited on the version chain, bound to the revision and content hash)"
+    - "apps/tablets-server/src/features/designer/definition.ts (combined gate: zero errors, every validator and definition warning justified)"
   guards:
     - "GMP-RISK: every risk-based reduction has a risk class from the controlled scale and a linked risk assessment; a non-critical (minor) classification needs one"
     - "GMP-SIGNIFICANT-STEPS: one-verifier mode (S5a) and no second person on clearance (S24) only through a declared reduction"
@@ -30,6 +32,8 @@ tests:
   - "packages/recipe-core/test/validator/content.test.ts > [IN-02] no second person on a clearance (S24) needs a declared reduction; with one it passes"
   - "packages/recipe-core/test/validator/content.test.ts > [IN-02] a reduction cannot apply to a step of the wrong kind (one-verifier mode on a manual step)"
   - "packages/recipe-core/test/validator/content.test.ts > [IN-02] changing a parameter to critical changes its verification requirements (a checker becomes mandatory)"
+  - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [IN-02] a risk-based reduction without a rationale is refused by the gate, naming IN-02"
+  - "apps/tablets-server/test/designer/routes.test.ts > justifications and start of verification (IN-02, DI-04, PR-06) > [DI-04][IN-02] a definition warning is justified by the author, then the version passes and enters verification; evidence is bound to the hash"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
