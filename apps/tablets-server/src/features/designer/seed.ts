@@ -5,14 +5,13 @@
  *  1. The DEMO-ONLY reference documents (reference-catalogue.ts) into tab.reference_document, recorded by the
  *     master-data steward (MASTERDATA.CHANGE) on PC-QA-01. Idempotent: a document already registered with the same
  *     body is skipped; one registered with another body is an error (registered documents never change).
- *  2. The kernel and tablets rule tables (rule-tables.ts, standalone; the lead moves it into the set-up CLI or
- *     test-kit at integration), because the designer's MarketMinimaPort fails closed without them (decision F12).
+ *  The kernel and tablets rule tables are published by the set-up CLI on both installations before the feature
+ *  seeds run (platform/rule-tables.ts); the designer's MarketMinimaPort fails closed without them (decision F12).
  */
 import type pg from 'pg';
 import { withCommand, type ActorContext } from '@ebmr/kernel';
 import type { FeatureSeedContext } from '../types.ts';
 import { DEMO_REFERENCE_DOCUMENTS, referenceContent, referenceHash, type ReferenceDocumentSeed } from './reference-catalogue.ts';
-import { publishRuleTables } from './rule-tables.ts';
 
 export interface SeededReference {
   code: string;
@@ -45,5 +44,4 @@ export async function seed(ctx: FeatureSeedContext): Promise<void> {
   if (ctx.installation !== 'GMP') return;
   const refs = await seedReferenceDocuments(ctx.pools.app, await ctx.actorFor('steward'));
   ctx.log(`designer: ${refs.filter((r) => r.action === 'RECORDED').length} DEMO-ONLY reference documents recorded, ${refs.filter((r) => r.action !== 'RECORDED').length} already present`);
-  await publishRuleTables(ctx, await ctx.actorFor('steward'));
 }

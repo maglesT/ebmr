@@ -39,6 +39,7 @@ import {
   type SiteSeed,
 } from '@ebmr/test-kit';
 import { FEATURES } from '../features/index.ts';
+import { publishRuleTables } from '../platform/rule-tables.ts';
 import type { FeatureSeedContext } from '../features/types.ts';
 
 export const TABLETS_SQL = new URL('../../sql', import.meta.url).pathname;
@@ -151,6 +152,8 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
       gatewaySpki: opts.gatewaySpki ?? null,
       log,
     };
+    // The vendor rule tables (kernel and tablets) on both installations, before any feature seed needs them.
+    await publishRuleTables(ctx, await ctx.actorFor('steward'));
     for (const f of FEATURES.filter((x) => x.installations.includes(kind))) {
       if (f.module.seed) {
         log(`seeding feature ${f.name}`);

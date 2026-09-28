@@ -6,7 +6,7 @@
 import type { ActorContext } from '@ebmr/kernel';
 import { flow } from '@ebmr/recipe-core/pure';
 import { openPersonaSession } from '@ebmr/test-kit';
-import { publishRuleTables } from '../../src/features/designer/rule-tables.ts';
+import { publishRuleTables } from '../../src/platform/rule-tables.ts';
 import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
 import template from '../../src/features/designer/templates/dc-mini.mbr.json' with { type: 'json' };
 import { routes, type Result, type VersionView } from '@ebmr/api-contract';

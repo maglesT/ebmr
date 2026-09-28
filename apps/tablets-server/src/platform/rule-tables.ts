@@ -1,8 +1,8 @@
 /**
  * Publishing the tablets installation's rule tables (kernel and tablets, from compliance/rule-tables) for demo and
- * E2E installations. Standalone on purpose: it depends on nothing of the designer and takes only a seed context
- * (pools, log) and an actor, so the set-up CLI or test-kit can own it later for both installations (the lead moves
- * it at integration). The designer's MarketMinimaPort fails closed without the edition's table (decision F12).
+ * E2E installations. The set-up CLI runs it on both installations before the feature seeds (the designer's
+ * MarketMinimaPort and the sandbox runs need the published tables; both fail closed without them, decision F12).
+ * Written by C2, moved here by the lead.
  *
  * Idempotent: a version already published with the same content is skipped; one published with other content is
  * an error (published versions never change, kernel EBMR-MKT-035). The actor must hold MARKET.RULE_TABLE_PUBLISH
@@ -13,7 +13,7 @@ import type pg from 'pg';
 import { market, withCommand, type ActorContext } from '@ebmr/kernel';
 
 /** compliance/rule-tables at the repository root (demo and E2E set-up run from the source tree). */
-export const RULE_TABLE_ROOT = fileURLToPath(new URL('../../../../../compliance/rule-tables', import.meta.url));
+export const RULE_TABLE_ROOT = fileURLToPath(new URL('../../../../compliance/rule-tables', import.meta.url));
 
 /** The rule tables a tablets installation needs (the sterile table belongs to the deferred injectables edition). */
 export const TABLETS_RULE_TABLES: readonly market.RuleTableCode[] = ['kernel', 'tablets'];
