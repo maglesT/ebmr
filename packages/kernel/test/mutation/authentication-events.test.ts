@@ -1,17 +1,20 @@
 /**
  * Authentication events and sessions, guard by guard (SQL mutation group "authentication-events":
- * iam.consume_auth_event, iam.use_auth_event_for_command, iam.open_session and the iam.session
- * guard in kernel 0160). The module tests in identity/ and esig/ go through the signing function
- * and the TypeScript wrappers; these tests call the database functions where each rule is enforced
- * and assert every refusal by its stable EBMR code, which names the rule that refused.
+ * iam.consume_auth_event, iam.use_auth_event_for_command, iam.lock_auth_event, iam.open_session
+ * and the iam.session guard in kernel 0160). The module tests in identity/ and esig/ go through the
+ * signing function and the TypeScript wrappers; these tests call the database functions where each
+ * rule is enforced and assert every refusal by its stable EBMR code, which names the rule that
+ * refused.
  *
  * Controls: DI-14 (individually assigned accounts; one active shop-floor session per person; a line
- * display's read-only account is not its owner's working session), DI-18 (break-glass accounts act
- * only inside an approved window and never for a GMP command), DI-20 (registered, active devices
- * only), DI-38 (re-authentication and session rules; the signing event is the signer's own, bound
- * to the challenge, fresh and unused); invariants INV-10 (a signature consumes one unused
- * authentication event of the same person for its challenge) and INV-40 (every command on a shared
- * device carries a fresh authentication event of the person and account it is attributed to).
+ * display's read-only account is not its owner's working session), DI-16 and DI-19 (an event of an
+ * account suspended or locked out since the authentication is never used; a login holds its own
+ * account and terminal, and only those, until it commits), DI-18 (break-glass accounts act only
+ * inside an approved window and never for a GMP command), DI-20 (registered, active devices only),
+ * DI-38 (re-authentication and session rules; the signing event is the signer's own, bound to the
+ * challenge, fresh and unused); invariants INV-10 (a signature consumes one unused authentication
+ * event of the same person for its challenge) and INV-40 (every command on a shared device carries
+ * a fresh authentication event of the person and account it is attributed to).
  *
  * Raw writes to iam.session run as the table owner (superuser) and are always rolled back: they
  * prove that the session guard holds for every writer, not only for the iam.* functions.
