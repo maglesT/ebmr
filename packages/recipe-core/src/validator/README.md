@@ -1,0 +1,56 @@
+# Static MBR validator (`recipe-core/src/validator`)
+
+The same validator runs live in the designer and authoritatively on the server (outline 6.3). It is
+pure and synchronous: everything outside the MBR comes through ports the caller pre-loads
+(`requiredLookups(mbr)` lists the references, rule keys and block types to fetch).
+
+```ts
+validateMbr(mbr, ctx, registry?) -> ValidationReport   // deterministic, bound to the content hash
+gate(report, justifications) -> GateResult             // zero errors, every warning justified
+validateGraph(graph) -> Finding[]                      // structure gates on any execution graph
+```
+
+`ValidationContext`: `expressions` (ExpressionService), `blocks` (BlockCatalog), `references`
+(ReferencePort: EFFECTIVE / NOT_YET_EFFECTIVE / SUPERSEDED / RETIRED / WITHDRAWN / HASH_MISMATCH /
+UNKNOWN), `market` (MarketMinimaPort; absent = fail closed), `asOf` (date passed in; no clock).
+
+Every finding: rule id, controls, severity, subject id, message ("plain language first (RULE-ID;
+CONTROLS)") and a stable key `RULE@subject` that a warning justification names. A rule that throws is
+reported as a failed check, never a pass.
+
+## Rules
+
+| Group | Rules | Controls |
+|---|---|---|
+| Structure (tree) | FLOW-ID-UNIQUE, FLOW-LEVELS, FLOW-CONSTRUCTS, FLOW-LIBRARY, FLOW-BLOCKS, FLOW-LOOPS (bounded, exit on a process endpoint written inside, never on an acceptance/release test), FLOW-REPLICATES, FLOW-DECISIONS | DI-34, INV-19, DI-04 |
+| Structure (graph) | GRAPH-START-END, GRAPH-REACHABLE, GRAPH-TERMINATES, GRAPH-DECLARED-CYCLES, GRAPH-MATCHED (degrees, join rules, single-entry single-exit regions via dominators), GRAPH-BOUNDARIES | DI-34 |
+| Data | DATA-REFERENCES, DATA-WRITTEN-BEFORE-READ (must-analysis: AND-joins unite, XOR-joins intersect), DATA-SINGLE-WRITER, DATA-EXPRESSIONS (via expr), DATA-CALC-CYCLES, DATA-GUARDS (exact decision procedure: exhaustive, non-overlapping, no dead branch; undecidable = warning), DATA-PARALLEL (writes, process equipment, BOM lines; concurrent sub-lots), DATA-UNITS | DI-34, DI-04, DI-33, PR-08 |
+| Time | TIME-BOUNDS, TIME-NEVER-APPLIES, TIME-CONSISTENT (simple temporal network, loops/replicates unrolled to their maximum, alternatives enumerated only when the union is contradictory, exact bigint microseconds) | INV-20 |
+| GMP content | GMP-HEADER, GMP-TYPED-FIELDS, GMP-CRITICAL-PARAMETERS, GMP-LIMITS (nesting exact and after rounding; registered/validated sources), GMP-SIGNIFICANT-STEPS (performer + checker; S5a and S24 only through declared reductions), GMP-WITNESS, GMP-STAGE-CLEARANCE, GMP-STAGE-YIELD, GMP-STAGE-NON-MATERIAL, GMP-EQUIPMENT-STATUS, GMP-BOM-CONSUMED, GMP-YIELDS, GMP-INTERMEDIATES, GMP-TIMERS, GMP-SPECIMENS, GMP-REFERENCES, GMP-RISK, GMP-SYSTEMS, GMP-PAT, GMP-REPROCESSING, GMP-ACCEPTANCE-SCHEMES | PR-03, PR-08, IN-02, INV-34, DI-04, DI-30 |
+| Market minima | MKT-MINIMA: LIMIT minima (every tier / time limit bound to the key at least as strict), REQUIRED_ITEM (must be covered by a registered rule), UNRESOLVED (error) | PR-03, IN-52 |
+
+Design choices a reviewer should know:
+- A stage "starts with clearance": every phase of a room- or line-bound stage except instructions
+  runs after a clearance of that stage on every path. It "ends with yield": a yield/reconciliation
+  step runs on every path through a MATERIAL stage, and after it only sign-off, instruction,
+  sampling, timer, verification or output-container steps that move no material may follow.
+  NON_MATERIAL stages (set-up, readiness) move no material and so need no yield.
+- Equipment status must be checked in the same stage before use (PROCESS and INSTRUMENT; UTILITY
+  status comes from external feeds).
+- A value has one writing step unless the writers are in different branches of one alternative.
+- Every reference must carry a hash (pinned by version and hash, outline 6.5).
+- A value written inside a replicate section and read outside it is the series of its per-instance
+  values; a value written in a loop and read after it is the last iteration's value.
+
+## Edition rule sets
+
+`withEditionRules(rules)` returns the generic registry plus edition rules (`defineRule(id, title,
+controls, check, { edition, covers })`). Rules for another edition never run. `covers` lists the
+market content-minimum items a rule enforces, so MKT-MINIMA knows they are checked. The Tablets rule
+set arrives in Phase 3; the Injectables rule set is deferred with that edition.
+
+## Open points for the owner
+
+- DATA-GUARDS treats values as exact reals: two conditions `x < 3.5` and `x >= 3.51` leave a gap
+  even when x is captured to two decimals. Authors must write complementary conditions.
+- Required hashes on every reference may need a DMS integration for SOP and material versions.

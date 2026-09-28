@@ -100,6 +100,22 @@ function collect(f: GuardFormula, into: Map<string, Set<string | boolean>>): boo
   }
 }
 
+/** True when the formula reads `variable`. */
+function mentions(f: GuardFormula, variable: string): boolean {
+  switch (f.op) {
+    case 'not':
+      return mentions(f.arg, variable);
+    case 'and':
+    case 'or':
+      return f.args.some((x) => mentions(x, variable));
+    case 'cmp':
+    case 'is':
+      return f.variable === variable;
+    default:
+      return false;
+  }
+}
+
 function valueFor(t: ExprType, v: string | boolean): ExprValue | undefined {
   if (t.kind === 'DECIMAL' && typeof v === 'string') return { kind: 'DECIMAL', value: v, unit: t.unit };
   if (t.kind === 'COUNT' && typeof v === 'string') return { kind: 'COUNT', value: v };
@@ -200,7 +216,7 @@ export function guardVectors(a: Analysis, alt: AlternativeNode, maxPoints: numbe
       if (x) values.set(k, x);
     }
     const errors = branches
-      .filter((b) => b.guard && b.formula && JSON.stringify(b.formula).includes(`"variable":${JSON.stringify(variable)}`))
+      .filter((b) => b.guard !== undefined && b.formula !== undefined && mentions(b.formula, variable))
       .map((b) => a.ctx.expressions.evaluate(b.guard as string, env, values, CONDITION));
     const ok = errors.length > 0 && errors.every((e) => !e.ok);
     const r: GuardVectorResult = {

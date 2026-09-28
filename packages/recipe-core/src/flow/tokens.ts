@@ -112,59 +112,76 @@ export class TokenGame {
     return (this.index.in.get(node) ?? []).filter((e) => kind === undefined || e.kind === kind);
   }
 
-  /** Every (node, context) that can fire, in deterministic order. */
-  enabled(m: Marking): Enabled[] {
-    const out: Enabled[] = [];
+  private tokensByEdge(m: Marking): Map<string, Token[]> {
     const byEdge = new Map<string, Token[]>();
     for (const t of m.tokens.values()) {
       const list = byEdge.get(t.edge) ?? [];
       list.push(t);
       byEdge.set(t.edge, list);
     }
-    for (const n of this.graph.nodes) {
-      const ins = this.inEdges(n.id);
-      switch (n.join) {
-        case 'SINGLE':
-        case 'ANY':
-        case 'ENTRY_OR_BACK':
-          for (const e of ins) for (const t of byEdge.get(e.id) ?? []) out.push({ node: n.id, frames: t.frames, consumes: [t] });
-          break;
-        case 'ALL': {
-          const first = ins[0];
-          if (!first) break;
-          for (const t of byEdge.get(first.id) ?? []) {
-            const key = contextKey(t.frames);
-            const all = ins.map((e) => (byEdge.get(e.id) ?? []).find((x) => contextKey(x.frames) === key));
-            if (all.every((x) => x !== undefined)) out.push({ node: n.id, frames: t.frames, consumes: all });
-          }
-          break;
+    return byEdge;
+  }
+
+  /** The ways one node can fire in a marking (one per context). */
+  private enabledFor(m: Marking, n: GraphNode, byEdge: ReadonlyMap<string, Token[]>): Enabled[] {
+    const out: Enabled[] = [];
+    const ins = this.inEdges(n.id);
+    switch (n.join) {
+      case 'SINGLE':
+      case 'ANY':
+      case 'ENTRY_OR_BACK':
+        for (const e of ins) for (const t of byEdge.get(e.id) ?? []) out.push({ node: n.id, frames: t.frames, consumes: [t] });
+        break;
+      case 'ALL': {
+        const first = ins[0];
+        if (!first) break;
+        for (const t of byEdge.get(first.id) ?? []) {
+          const key = contextKey(t.frames);
+          const all = ins.map((e) => (byEdge.get(e.id) ?? []).find((x) => contextKey(x.frames) === key));
+          if (all.every((x) => x !== undefined)) out.push({ node: n.id, frames: t.frames, consumes: all });
         }
-        case 'ALL_INSTANCES': {
-          const e = ins[0];
-          const construct = n.source;
-          if (!e) break;
-          const groups = new Map<string, Token[]>();
-          for (const t of byEdge.get(e.id) ?? []) {
-            const parent = t.frames.slice(0, -1);
-            const key = contextKey(parent);
-            const list = groups.get(key) ?? [];
-            list.push(t);
-            groups.set(key, list);
-          }
-          for (const [key, list] of groups) {
-            const count = m.counts.get(`${key}|${construct}`);
-            if (count === undefined) continue;
-            const released = m.counts.get(`${key}|${construct}|released`) ?? count;
-            const parent = (list[0] as Token).frames.slice(0, -1);
-            if (list.length === count) out.push({ node: n.id, frames: parent, consumes: list });
-            // Sequential instances: the next one starts only when every released instance has finished.
-            else if (released < count && list.length === released) out.push({ node: n.id, frames: parent, consumes: [], release: true });
-          }
-          break;
+        break;
+      }
+      case 'ALL_INSTANCES': {
+        const e = ins[0];
+        const construct = n.source;
+        if (!e) break;
+        const groups = new Map<string, Token[]>();
+        for (const t of byEdge.get(e.id) ?? []) {
+          const key = contextKey(t.frames.slice(0, -1));
+          const list = groups.get(key) ?? [];
+          list.push(t);
+          groups.set(key, list);
         }
+        for (const [key, list] of groups) {
+          const count = m.counts.get(`${key}|${construct}`);
+          if (count === undefined) continue;
+          const released = m.counts.get(`${key}|${construct}|released`) ?? count;
+          const parent = (list[0] as Token).frames.slice(0, -1);
+          if (list.length === count) out.push({ node: n.id, frames: parent, consumes: list });
+          // Sequential instances: the next one starts only when every released instance has finished.
+          else if (released < count && list.length === released) out.push({ node: n.id, frames: parent, consumes: [], release: true });
+        }
+        break;
       }
     }
+    return out;
+  }
+
+  /** Every (node, context) that can fire, in deterministic order. */
+  enabled(m: Marking): Enabled[] {
+    const byEdge = this.tokensByEdge(m);
+    const out = this.graph.nodes.flatMap((n) => this.enabledFor(m, n, byEdge));
     return out.sort((a, b) => (this.order.get(a.node) ?? 0) - (this.order.get(b.node) ?? 0) || (contextKey(a.frames) < contextKey(b.frames) ? -1 : contextKey(a.frames) > contextKey(b.frames) ? 1 : 0));
+  }
+
+  /** True when `e` is one of the ways its node can fire in `m` (same context, same tokens). */
+  isEnabled(m: Marking, e: Enabled): boolean {
+    const n = this.index.node.get(e.node);
+    if (!n) return false;
+    const keys = (x: Enabled): string => `${contextKey(x.frames)}#${x.release ? 'R' : ''}#${x.consumes.map((t) => tokenKey(t.edge, t.frames)).sort().join('|')}`;
+    const wanted = keys(e);
+    return this.enabledFor(m, n, this.tokensByEdge(m)).some((x) => keys(x) === wanted);
   }
 
   /** The decision a node needs before it can fire, if any. */
@@ -194,6 +211,8 @@ export class TokenGame {
    * Returns the new marking, the step occurrence (for tasks and hold points) and any exception.
    */
   fire(m: Marking, e: Enabled, option?: string | number): { marking: Marking; occurrence?: Occurrence; exception?: GameException } {
+    // Nothing runs out of sequence: only a node that holds its tokens in this marking can fire (DI-34).
+    if (!this.isEnabled(m, e)) throw new Error(`${e.node} is not enabled in context "${contextKey(e.frames)}"`);
     const n = this.index.node.get(e.node) as GraphNode;
     const tokens = new Map(m.tokens);
     const counts = new Map(m.counts);

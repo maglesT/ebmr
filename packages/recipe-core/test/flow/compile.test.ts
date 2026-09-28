@@ -79,6 +79,10 @@ describe('token semantics of the compiled graph', () => {
     // Fire until the first task is enabled.
     while (!enabledSteps().includes('n1')) m = g.fire(m, g.enabled(m)[0] as Enabled).marking;
     expect(enabledSteps()).toEqual(['n1']);
+    // Trying to run step N+1 before step N is refused: it holds no token yet.
+    const intoN2 = g.index.in.get('task:n2')?.[0];
+    if (!intoN2) throw new Error('graph changed');
+    expect(() => g.fire(m, { node: 'task:n2', frames: [], consumes: [{ edge: intoN2.id, frames: [] }] })).toThrow(/task:n2 is not enabled/);
     const n1 = g.enabled(m).find((e) => g.index.node.get(e.node)?.source === 'n1') as Enabled;
     m = g.fire(m, n1).marking;
     expect(enabledSteps()).toEqual(['n2']);

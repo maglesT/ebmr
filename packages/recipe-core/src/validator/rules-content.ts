@@ -131,7 +131,8 @@ const significantSteps = defineRule('GMP-SIGNIFICANT-STEPS', 'Performer plus che
     if (!d) continue;
     const automated = d.roles.includes('AUTOMATED_PHASE');
     const clearance = d.roles.includes('CLEARANCE');
-    const criticalManual = criticalManualWithoutEvidence(a, p).length > 0 || p.records.some((id) => a.parameters.get(id)?.criticality === 'CRITICAL' && a.parameters.get(id)?.capture === 'MANUAL');
+    // Critical data typed by hand always needs a second person (PR-14; outline 7.2 S5), with or without a photo.
+    const criticalManual = p.records.some((id) => a.parameters.get(id)?.criticality === 'CRITICAL' && a.parameters.get(id)?.capture === 'MANUAL');
     const significant = d.significant || p.significant || criticalManual;
     const name = label(a, p.id);
     if (!p.signatures.perform) {
