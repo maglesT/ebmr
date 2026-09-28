@@ -50,7 +50,12 @@ describe('block registry and contract', () => {
     const reg = genericBlockRegistry();
     // G-06 and G-21 have no execution version before Phase 3, even in the sandbox.
     try {
-      defineBatch(loadFixture('tablet-granulation-compression'), { registry: reg, expressions: expr, installation: 'SANDBOX' });
+      defineBatch(loadFixture('tablet-granulation-compression'), {
+        registry: reg,
+        expressions: expr,
+        installation: 'SANDBOX',
+        justifications: [{ key: 'G07-TOLERANCE-MISSING@p-disp-api', text: 'fixture predates the G-07 tolerance option', by: 'TEST' }],
+      });
       expect.unreachable();
     } catch (e) {
       expect([...new Set((e as EngineDefinitionError).problems.map((p) => p.code))]).toEqual(['ENG-DEF-BLOCK']);

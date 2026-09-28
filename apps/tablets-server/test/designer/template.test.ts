@@ -8,9 +8,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { blocks, engine, flow, simulator, validator } from '@ebmr/recipe-core/pure';
 import { loadValidationContext } from '../../src/features/designer/adapters/expressions.ts';
 import { demoReferenceIndex } from '../../src/features/designer/reference-catalogue.ts';
-import { seedRuleTables } from '../../src/features/designer/seed.ts';
 import type { TestServer } from '../support/harness.ts';
-import { startDesignerServer, stewardActor, templateMbr } from './support.ts';
+import { publishTables, startDesignerServer, templateMbr } from './support.ts';
 
 let server: TestServer;
 
@@ -36,7 +35,7 @@ describe('dc-mini template against the real adapters (day-1 spike)', () => {
   });
 
   it('[PR-03][INV-34][DI-04] passes every validator gate with zero errors and no unjustified warning', async () => {
-    await seedRuleTables(server.db.app, await stewardActor(server));
+    await publishTables(server);
     const mbr = templateMbr();
     const { context, minima, references } = await loadValidationContext(server.db.app, mbr);
     expect(minima).toEqual([]);

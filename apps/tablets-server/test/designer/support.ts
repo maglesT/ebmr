@@ -6,13 +6,19 @@
 import type { ActorContext } from '@ebmr/kernel';
 import { flow } from '@ebmr/recipe-core/pure';
 import { openPersonaSession } from '@ebmr/test-kit';
-import { seedReferenceDocuments, seedRuleTables } from '../../src/features/designer/seed.ts';
+import { publishRuleTables } from '../../src/features/designer/rule-tables.ts';
+import { seedReferenceDocuments } from '../../src/features/designer/seed.ts';
 import template from '../../src/features/designer/templates/dc-mini.mbr.json' with { type: 'json' };
 import { startServer, type TestServer } from '../support/harness.ts';
 
 export async function stewardActor(server: TestServer): Promise<ActorContext> {
   const a = await openPersonaSession(server.db, server.seed, 'steward');
   return { ...a, reasonCode: 'TEST_SETUP', reasonText: 'designer test set-up' };
+}
+
+/** Publishes the kernel and tablets rule tables as the steward. */
+export async function publishTables(server: TestServer): Promise<void> {
+  await publishRuleTables({ pools: { app: server.db.app } }, await stewardActor(server));
 }
 
 export interface DesignerServerOptions {
@@ -26,7 +32,7 @@ export async function startDesignerServer(opts: DesignerServerOptions = {}): Pro
   const server = await startServer('GMP');
   try {
     if (opts.references !== false) await seedReferenceDocuments(server.db.app, await stewardActor(server));
-    if (opts.ruleTables !== false) await seedRuleTables(server.db.app, await stewardActor(server));
+    if (opts.ruleTables !== false) await publishTables(server);
   } catch (error) {
     await server.close();
     throw error;
