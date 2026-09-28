@@ -90,7 +90,7 @@ describe('F45: platform.create_aggregate_state and DI-18', () => {
     );
 
     expect({ outcome, history, auditEntries: audit[0]?.n, stateRows: state[0]?.n }).toEqual({
-      outcome: expect.stringMatching(/^refused: .*EBMR-IAM-042/),
+      outcome: expect.stringMatching(/^refused: .*EBMR-IAM-042/) as unknown,
       history: [],
       auditEntries: '0',
       stateRows: '0',

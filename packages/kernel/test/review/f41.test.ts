@@ -106,17 +106,15 @@ describe('F41 state engine accepts an out-of-order approval signature', () => {
     const r = await newRecord(author);
     const steps: string[] = [];
     let refusal: string | null = null;
-    let early: string | null = null;
-    let check: string | null = null;
     try {
       // 2. P signs APPROVED while R is still DRAFT.
-      early = (await signStub(db, pApprover, r, { meaning: 'APPROVED', aggregateType: 'sample_record', expectedState: 'DRAFT' })).signatureId;
+      const early = (await signStub(db, pApprover, r, { meaning: 'APPROVED', aggregateType: 'sample_record', expectedState: 'DRAFT' })).signatureId;
       steps.push('P signed APPROVED in DRAFT');
       // 3. The author submits.
       await fire(author, r, 'SUBMIT', 1);
       steps.push('author SUBMIT');
       // 4. P signs CHECKED and fires CHECK.
-      check = (await signStub(db, pChecker, r, { meaning: 'CHECKED', aggregateType: 'sample_record', expectedState: 'SUBMITTED' })).signatureId;
+      const check = (await signStub(db, pChecker, r, { meaning: 'CHECKED', aggregateType: 'sample_record', expectedState: 'SUBMITTED' })).signatureId;
       steps.push('P signed CHECKED in SUBMITTED');
       await fire(pChecker, r, 'CHECK', 2, check);
       steps.push('P fired CHECK');

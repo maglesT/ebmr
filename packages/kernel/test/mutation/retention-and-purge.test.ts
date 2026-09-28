@@ -244,14 +244,6 @@ async function waitsForTable(pid: number, table: string): Promise<boolean> {
   return n !== '0';
 }
 
-/** A zone for the schedule whose site date is not 29 February (no retain-until one year after a date falls on it). */
-async function siteZoneOffLeapDay(): Promise<string> {
-  for (const zone of [SEED_ZONE, 'Pacific/Kiritimati', 'Pacific/Pago_Pago']) {
-    const monthDay = await scalar<string>(db.app, "select to_char((clock_timestamp() at time zone $1)::date, 'MM-DD') as v", [zone]);
-    if (monthDay !== '02-29') return zone;
-  }
-  throw new Error('no site zone off 29 February');
-}
 
 // ---------------------------------------------------------------------------------------------
 // The disposal approval
@@ -310,9 +302,13 @@ describe('DI-47 disposal approval', () => {
 // ---------------------------------------------------------------------------------------------
 
 describe('INV-22 retain-until boundary', () => {
-  it('[DI-47][INV-22] on its retain-until date a record is still kept (EBMR-REC-031); from the next site day it may be disposed of', async () => {
-    const zone = await siteZoneOffLeapDay();
+  it('[DI-47][INV-22] on its retain-until date a record is still kept (EBMR-REC-031); from the next site day it may be disposed of', async ({ skip }) => {
+    // A schedule keeps the site's zone (a caller's other zone is refused: F84), so the boundary is the site's day.
+    const zone = SEED_ZONE;
     const today = await scalar<string>(db.app, "select to_char((clock_timestamp() at time zone $1)::date, 'YYYY-MM-DD') as v", [zone]);
+    // No retain-until falls on 29 February (every rule adds whole years to a real date), so on that site day
+    // the on-the-day case cannot be arranged; the test then has nothing to prove.
+    if (today.endsWith('-02-29')) skip();
     // IN and US keep batch records one year after expiry.
     const expiryFor = (daysBefore: number) =>
       scalar<string>(db.app, "select to_char(($1::date - $2::int - interval '1 year')::date, 'YYYY-MM-DD') as v", [today, daysBefore]);

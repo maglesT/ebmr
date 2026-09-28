@@ -88,7 +88,7 @@ describe('the platform sample record signed through the e-signature module (0910
   const status = async (signatureId: string) =>
     (await db.admin.query<{ s: { status: string } }>('select esig.signature_state($1) as s', [signatureId])).rows[0]?.s.status;
   const inv09 = async (signatureId: string) =>
-    (await db.admin.query("select 1 from esig.invariant_violations() where invariant = 'INV-09' and signature_id = $1", [signatureId])).rows;
+    (await db.admin.query<{ detail: string }>("select detail from esig.invariant_violations() where invariant = 'INV-09' and signature_id = $1", [signatureId])).rows;
   const contentHash = async (id: string) =>
     (await db.admin.query<{ h: string; v: string }>("select c ->> 'content_hash' as h, c ->> 'content_version' as v from esig.content_for_signing('sample_record', $1) c", [id])).rows[0];
 

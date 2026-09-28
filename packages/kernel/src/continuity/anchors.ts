@@ -3,8 +3,8 @@
  *
  * The anchor job creates an anchor in the database (kernel.create_anchor) and copies it, with the
  * high-water marks of every protected identifier source and every login name issued, to the external
- * ledger. Its first export binds the database to the ledger (continuity.bind_incarnation): from then on
- * a restored or copied database writes nothing before its identifiers are secured. Verification
+ * ledger. The first anchor binds the database to the ledger (continuity.database_incarnation): from
+ * then on a restored or copied database writes nothing before its identifiers are secured. Verification
  * compares every external copy with the live chains (a chain purged under its retention against its
  * tombstone): MATCH, COVERED (the difference lies in history an approved restore event discarded) or
  * PROBLEM (tampering, or a restore nobody recorded).
@@ -27,7 +27,6 @@ export interface AnchorVerification {
  * secured yet: its anchor would reuse an anchor id the original already exported.
  */
 export async function exportAnchor(db: Db, ledger: ExternalLedger): Promise<ExternalAnchor> {
-  await db.query('select continuity.bind_incarnation()');
   const created = await db.query<{ id: string }>('select kernel.create_anchor()::text as id');
   const id = created.rows[0]?.id;
   if (id === undefined) throw new Error('kernel.create_anchor returned no anchor');

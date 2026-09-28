@@ -3,14 +3,15 @@
  * ops/backup/drill.sh, or directly: `tsx packages/kernel/src/continuity/drill-cli.ts <drill|backup> ...`.
  *
  * Exit codes: 0 PASS / SUCCEEDED; 1 FAIL / FAILED (report written, alarm recorded when --record-url is
- * given); 2 usage error; 3 the result could not be recorded in the database.
+ * given; this includes an encryption key file that cannot be read when the job runs); 2 usage error
+ * (a missing or malformed argument); 3 the result could not be recorded in the database.
  *
  * Credentials: prefer URLs without passwords plus PGPASSWORD or a password file, so secrets do not
  * appear in process lists; the tool never passes a password on a child process command line.
  */
 import pg from 'pg';
 import type { ActorContext } from '../db/command.ts';
-import { loadKeyFile, recordRestoreDrill, runBackupJob, runRestoreDrill, type BackupJobOptions, type Recorder, type RestoreDrillOptions } from './backup-drill.ts';
+import { recordRestoreDrill, runBackupJob, runRestoreDrill, type BackupJobOptions, type Recorder, type RestoreDrillOptions } from './backup-drill.ts';
 import { readFileSync } from 'node:fs';
 
 const USAGE = `usage:
@@ -86,7 +87,7 @@ async function main(argv: string[]): Promise<number> {
       const backupDir = opts.get('--backup-dir');
       if (backupDir) o.backupDir = backupDir;
       const keyFile = opts.get('--encryption-key-file');
-      if (keyFile) o.encryptionKey = loadKeyFile(keyFile);
+      if (keyFile) o.encryptionKey = { file: keyFile };
       const pgBin = opts.get('--pg-bin');
       if (pgBin) o.pgBin = pgBin;
       const sample = opts.get('--sample-size');
@@ -119,7 +120,9 @@ async function main(argv: string[]): Promise<number> {
           reportDir: required(opts, '--report-dir'),
           jobName: opts.get('--job-name') ?? 'scheduled',
           tier,
-          encryptionKey: loadKeyFile(required(opts, '--encryption-key-file')),
+          // Read by the job: a key file that is missing or unreadable at run time (secrets mount down) is
+          // a failed backup, recorded with its alarm and report, not a usage error.
+          encryptionKey: { file: required(opts, '--encryption-key-file') },
           encryptionKeyRef: required(opts, '--encryption-key-ref'),
         };
         const days = opts.get('--immutable-days');

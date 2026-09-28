@@ -157,11 +157,11 @@ describe('F69: only the time monitor raises time-fault alarms and their data-int
     ]);
 
     expect(observed).toEqual({
-      ghostRaise: expect.stringMatching(/^(PERMISSION_DENIED|EBMR-(PLAT|IAM|REC)-\d+)$/),
+      ghostRaise: expect.stringMatching(/^(PERMISSION_DENIED|EBMR-(PLAT|IAM|REC)-\d+)$/) as unknown,
       timeSyncIncidentsRaisedByOperator: 0,
       ghostNodeAlarms: 0,
       timeFaultOpenAfterOperator: false,
-      preemptRaise: expect.stringMatching(/^(PERMISSION_DENIED|EBMR-(PLAT|IAM|REC)-\d+)$/),
+      preemptRaise: expect.stringMatching(/^(PERMISSION_DENIED|EBMR-(PLAT|IAM|REC)-\d+)$/) as unknown,
       monitorRaisedOnRealNode: ['DRIFT_EXCEEDED'],
       monitorIncidentOnRealNode: [{ source: 'TIME_SYNC', incident_type: 'DATA_INTEGRITY', initial_severity: 'MAJOR', detected_by: 'SYSTEM' }],
       openAlarmsOnRealNode: [{ kind: 'DRIFT_EXCEEDED', severity: 'MAJOR', raisedBy: 'MONITOR' }],
