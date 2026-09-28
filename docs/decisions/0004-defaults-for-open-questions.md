@@ -9,4 +9,4 @@
 - **Except:** questions that decision 0003 moved to the separate deployment design (RPO/RTO, backup schedule, WORM
   storage product, administrator separation of storage) are not answered here.
 - **Note:** the external expert review of the control register (review pack v0.9) is not replaced by this decision;
-  expert decisions stay PENDING in `compliance/controls/`. Decision 0005 narrows what is built.
+  expert decisions stay PENDING in `compliance/controls/`. (Decision 0005, which would have narrowed the scope, was withdrawn.)

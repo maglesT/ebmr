@@ -22,8 +22,53 @@ behaviour: |-
   - At execution, the record captures the system/recipe version actually used and flags any mismatch with the MBR.
   - The MPCR carries author and independent-checker e-signatures from two different people, then QU approval (the signature types are in DI-35; MBR content minima are in the production catalog).
 catalog_test: Try to make a new MBR version Effective without a verification record. It is blocked. Run a batch whose PLC reports a different recipe version from the MBR. It is flagged as an exception.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/flow/canonical.ts (content hash)"
+    - "packages/recipe-core/src/validator"
+    - "packages/recipe-core/src/simulator (simulate, evidence)"
+  guards:
+    - "buildVerificationEvidence / verifyMbr: validator report, warning justifications and simulation report bound to the content hash"
+    - "evidenceHolds: only unaltered VERIFIED evidence of exactly this content counts (for the MBR life-cycle gate)"
+    - "GMP-SYSTEMS (computerised system and recipe version named), GMP-PAT (PAT acceptance criteria), GMP-REFERENCES (pinned and effective), FLOW-LIBRARY (pinned element hash)"
+    - "deltaVerification: value-only changes reuse structural evidence and rerun the changed items"
+tests:
+  - "packages/recipe-core/test/flow/diff.test.ts > [DI-04] identical content is IDENTICAL"
+  - "packages/recipe-core/test/flow/diff.test.ts > [DI-04] changing only limit, target and duration values is VALUE_ONLY and names the changed items"
+  - "packages/recipe-core/test/flow/diff.test.ts > [DI-04] a loop maximum duration and a BOM quantity are values; the loop maximum count is structure"
+  - "packages/recipe-core/test/flow/diff.test.ts > [DI-04][IN-02] structural changes: a step, an expression, a unit, criticality or inclusivity"
+  - "packages/recipe-core/test/flow/expand.test.ts > [DI-04] the fixture expands without problems"
+  - "packages/recipe-core/test/flow/expand.test.ts > [DI-04] an embedded snapshot that does not match its pinned hash is refused"
+  - "packages/recipe-core/test/flow/expand.test.ts > [DI-04] a call to an element that is not pinned by hash, or not embedded, is refused"
+  - "packages/recipe-core/test/flow/expand.test.ts > [DI-04] every element symbol must be bound by the call, and only declared symbols may be bound"
+  - "packages/recipe-core/test/flow/expand.test.ts > [DI-04] an element that uses an undeclared symbol is refused"
+  - "packages/recipe-core/test/flow/expand.test.ts > [DI-04] an operation-level element called at stage level is refused"
+  - "packages/recipe-core/test/flow/expand.test.ts > [DI-04] an element that calls itself is refused"
+  - "packages/recipe-core/test/flow/model.test.ts > [DI-04] the content hash uses the kernel e-signature canonical JSON rules and SHA-256"
+  - "packages/recipe-core/test/flow/model.test.ts > [DI-04] the hash does not depend on key order but changes with any edit"
+  - "packages/recipe-core/test/flow/model.test.ts > [DI-04] the embedded library element matches its pinned hash"
+  - "packages/recipe-core/test/simulator/evidence.test.ts > [DI-04] a complete MBR yields VERIFIED evidence bound to its content hash"
+  - "packages/recipe-core/test/simulator/evidence.test.ts > [DI-04] any edit to the content voids the evidence (the MBR cannot become effective on it)"
+  - "packages/recipe-core/test/simulator/evidence.test.ts > [DI-04] altered evidence does not hold"
+  - "packages/recipe-core/test/simulator/evidence.test.ts > [DI-04] an MBR with a failing gate or a failing simulation gets NOT_VERIFIED evidence with the reasons"
+  - "packages/recipe-core/test/simulator/evidence.test.ts > [DI-04] delta verification: a value-only change reuses the path evidence and reruns the boundary vectors of the changed items"
+  - "packages/recipe-core/test/simulator/evidence.test.ts > [DI-04] delta verification is refused for a structural change or without valid predecessor evidence"
+  - "packages/recipe-core/test/simulator/paths.test.ts > [DI-04] when the bound is hit the report says so clearly, and targeted runs still reach every decision option"
+  - "packages/recipe-core/test/simulator/simulate.test.ts > [DI-04] the granulation fixture: every path enumerated, every step, decision, limit bound, guard, time constraint and calculation covered"
+  - "packages/recipe-core/test/simulator/simulate.test.ts > [DI-04] the output is deterministic: the same content gives the same report and report hash"
+  - "packages/recipe-core/test/simulator/simulate.test.ts > [DI-04] calculations are checked against the golden inputs; a wrong confirmed result fails the simulation"
+  - "packages/recipe-core/test/simulator/simulate.test.ts > [DI-04] the packaging fixture simulates every path (4) with full coverage"
+  - "packages/recipe-core/test/validator/content.test.ts > [DI-04] an MBR relying on a reference that is not effective cannot pass"
+  - "packages/recipe-core/test/validator/content.test.ts > [DI-04] automated steps name the computerised system they rely on; a PAT step without acceptance criteria cannot be approved"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34][DI-04] DATA-WRITTEN-BEFORE-READ: a value read before it is recorded is refused"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-04] DATA-SINGLE-WRITER: a value written by two steps on one path is refused"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-04][DI-33] DATA-EXPRESSIONS: a unit error in a calculation is refused with the expression language rule and control"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-04] DATA-EXPRESSIONS: a loop exit condition must give true or false"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-04][DI-33] DATA-CALC-CYCLES: calculations depending on each other in a cycle are refused"
+  - "packages/recipe-core/test/validator/gate.test.ts > [DI-04] a warning blocks until it is justified by a named person; errors always block"
+  - "packages/recipe-core/test/validator/gate.test.ts > [DI-04] the report is deterministic and bound to the content hash"
+  - "packages/recipe-core/test/validator/gate.test.ts > [DI-04] a rule that crashes is a failed check, never a pass"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-04] FLOW-BLOCKS: unregistered block types, retired versions and construct blocks used as steps are refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

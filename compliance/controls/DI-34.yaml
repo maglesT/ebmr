@@ -19,8 +19,56 @@ behaviour: |-
   - guarded batch lifecycle transitions: Issued, In Execution, Production Complete, Under Review, Released/Rejected, with Hold and Cancelled.
   - Out-of-sequence execution is possible only through a deviation path approved in the system. It is recorded and appears in review (design).
 catalog_test: Try step N+1 before step N. Blocked. Try disposition before review is complete. Blocked.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/flow (model, parse, expand, compile, graph, tokens)"
+    - "packages/recipe-core/src/validator (rules-structure, graph-checks, rules-data, guards)"
+  invariants:
+    - "INV-19"
+    - "INV-20"
+  guards:
+    - "TokenGame.fire: only a node holding its tokens in the current marking fires, so no step runs before its predecessor (out-of-sequence refused)"
+    - "TokenGame loop test: CONTINUE only below maxIterations; at the maximum an unmet exit is EXHAUSTED (exception)"
+    - "Validator structure gates FLOW-ID-UNIQUE, FLOW-LEVELS, FLOW-CONSTRUCTS, FLOW-LIBRARY, FLOW-LOOPS, FLOW-REPLICATES, FLOW-DECISIONS"
+    - "Graph gates GRAPH-START-END, GRAPH-REACHABLE, GRAPH-TERMINATES, GRAPH-DECLARED-CYCLES, GRAPH-MATCHED, GRAPH-BOUNDARIES"
+    - "Data gates DATA-WRITTEN-BEFORE-READ, DATA-GUARDS (exhaustive, non-overlapping, reachable), DATA-PARALLEL (no unsequenced writes or claims)"
+tests:
+  - "packages/recipe-core/test/flow/compile.test.ts > [DI-34] both fixtures compile to graphs that pass every structure gate"
+  - "packages/recipe-core/test/flow/compile.test.ts > [DI-34] step N+1 is not enabled before step N completes"
+  - "packages/recipe-core/test/flow/compile.test.ts > [DI-34] parallel branches are enabled together and the join waits for every branch"
+  - "packages/recipe-core/test/flow/compile.test.ts > [DI-34] an alternative runs exactly one branch; the other branch never runs"
+  - "packages/recipe-core/test/flow/model.test.ts > [DI-34] an operator choice or a run-time instance count must always require a reason"
+  - "packages/recipe-core/test/simulator/simulate.test.ts > [DI-34] boundary values for every guard select exactly one branch, and a missing value raises an exception"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] both fixtures pass every data gate"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34][DI-04] DATA-WRITTEN-BEFORE-READ: a value read before it is recorded is refused"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] DATA-WRITTEN-BEFORE-READ: a value recorded in only one branch of an alternative is not available after it"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] DATA-WRITTEN-BEFORE-READ: a parallel branch cannot read what a sibling branch writes (unsequenced)"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] DATA-WRITTEN-BEFORE-READ: after a parallel join, every branch has run, so all their values are available"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] DATA-PARALLEL: parallel branches may not write the same value, use the same process equipment or consume the same BOM line"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] DATA-PARALLEL: concurrent replicate instances cannot share process equipment"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] conditions that cover every case exactly once pass"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] a gap is refused and names a value no branch covers"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] an overlap is refused and names a value both branches accept"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] a branch that can never be taken is refused"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] conditions outside the decidable form need a justification (warning), never a silent pass"
+  - "packages/recipe-core/test/validator/data.test.ts > [DI-34] the decision procedure is exact on counts and categories"
+  - "packages/recipe-core/test/validator/property.test.ts > [DI-34][INV-19] every generated block-structured flow passes every structure gate"
+  - "packages/recipe-core/test/validator/property.test.ts > [DI-34][INV-19] every generated flow completes on every path, and enumeration finds exactly the closed-form number of paths"
+  - "packages/recipe-core/test/validator/property.test.ts > [DI-34][INV-19] mutating one construct breaks exactly the expected gate"
+  - "packages/recipe-core/test/validator/property.test.ts > [DI-34] an edge added between two parallel branches of a generated flow is refused as a boundary crossing"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] a well-formed minimal flow passes every structure gate"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-LEVELS: a phase outside an operation, an operation outside a stage and a stage inside a stage are refused"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-LEVELS: a procedure without any stage is refused"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-CONSTRUCTS: a parallel needs two non-empty branches, an alternative at most one empty branch"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-DECISIONS: data-decided branches need conditions; variant branches must cover the variant exactly once"
+  - "packages/recipe-core/test/validator/structure.test.ts > [INV-19][DI-34] FLOW-LOOPS: a loop may only repeat on a process endpoint, never until a test passes"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-ID-UNIQUE: two steps with the same id are refused"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] the unmodified fixture graph passes every graph gate"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] GRAPH-BOUNDARIES: an edge from one parallel branch into the other is refused"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34][INV-19] GRAPH-DECLARED-CYCLES: a jump back that is not a declared loop is refused"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] GRAPH-REACHABLE and GRAPH-TERMINATES: a step cut off from the start, or from the end, is refused"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] GRAPH-START-END: a second end is refused"
+  - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] GRAPH-MATCHED: a split whose partner is a join of another kind is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -236,7 +236,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (reprocessing half is Phase 3); INV-25 calculation part proven. Injectables-only functions deferred (F0, fill
   volume/weight, vial counts). ucum-lhc moved to devDependencies (generator/tests only). Lead to add a cross-check
   test of expr canonicalJson/sha256Hex against kernel esig. Owner/QA questions: docs/decisions/phase-2-open-questions.md.
-- 2026-09-28: OWNER DECISIONS 0004 (defaults for every open question) and 0005 (build to the core of the binding
-  regulations only: Schedule M, 21 CFR 210/211 + Part 11, EU Vol 4 Part I + Annex 11 (+ Annex 16 for EU release);
-  guidance only where it defines how a binding rule is met). Controls get build_scope CORE/DEFERRED via an ultracode
-  triage workflow (classifiers + skeptic per DEFERRED call); CI traces CORE only. Running agents told to build core only.
+- 2026-09-28: OWNER DECISION 0004: defaults for every open question (phase-1 and phase-2 open-question files; later
+  questions too). Decision 0005 (core-compliance-only scope) was proposed and WITHDRAWN by the owner the same day:
+  the full register and outline v0.2 remain the scope; the triage workflow was stopped with no changes; agents follow
+  their original briefs.

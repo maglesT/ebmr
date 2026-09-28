@@ -15,8 +15,21 @@ requirement_rows:
 sources: "Schedule M Part I section 2 (QRM: systematic, science-based, effort proportionate to risk)."
 behaviour: MBR steps, parameters, deviations and change requests carry a risk class from a controlled, versioned scale. Any risk-based reduction (e.g., no second-person verification, "minor" deviation, reduced IPC frequency) cannot be saved without a linked risk assessment and written rationale. Changing a step's criticality in a new MBR version changes its verification requirements.
 catalog_test: classify a deviation as minor without a rationale; saving is refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/flow/model.ts (RiskScale, RiskReduction, riskClass on steps, parameters, calculations)"
+    - "packages/recipe-core/src/validator/rules-content.ts (GMP-RISK, GMP-SIGNIFICANT-STEPS)"
+  guards:
+    - "GMP-RISK: every risk-based reduction has a risk class from the controlled scale and a linked risk assessment; a non-critical (minor) classification needs one"
+    - "GMP-SIGNIFICANT-STEPS: one-verifier mode (S5a) and no second person on clearance (S24) only through a declared reduction"
+tests:
+  - "packages/recipe-core/test/flow/diff.test.ts > [DI-04][IN-02] structural changes: a step, an expression, a unit, criticality or inclusivity"
+  - "packages/recipe-core/test/validator/content.test.ts > [IN-02] classifying a parameter as non-critical (minor) without a risk class and rationale is refused"
+  - "packages/recipe-core/test/validator/content.test.ts > [IN-02] a risk-based reduction cannot be saved without a risk class from the controlled scale"
+  - "packages/recipe-core/test/validator/content.test.ts > [IN-02] one-verifier mode (S5a) needs a declared reduction; without it the automated step is refused"
+  - "packages/recipe-core/test/validator/content.test.ts > [IN-02] no second person on a clearance (S24) needs a declared reduction; with one it passes"
+  - "packages/recipe-core/test/validator/content.test.ts > [IN-02] a reduction cannot apply to a step of the wrong kind (one-verifier mode on a manual step)"
+  - "packages/recipe-core/test/validator/content.test.ts > [IN-02] changing a parameter to critical changes its verification requirements (a checker becomes mandatory)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

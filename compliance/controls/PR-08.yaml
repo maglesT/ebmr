@@ -17,8 +17,44 @@ requirement_rows:
 sources: "US: 211.110(b); 211.186(b)(9); 211.100(b) | EU: Ch.4 4.18(d)-(e); Ch.5 5.43 | ICH/EMA/draft: EU Annex 15 section 5 (u); Annex 16 section 3 and EMA Q&A on Annex 16 (s)"
 behaviour: 'Each CPP and IPC field stores its unit, precision, limits and source (validation report or registration). Limits are tiered: registered, internal action, and optional alert. A result outside a registered limit automatically creates a deviation flagged "registration-relevant", which appears on the QCU/QP release screen. Out-of-limit values are stored exactly as acquired. The operator cannot suppress the flag, and re-entry is a correction, not a replacement.'
 catalog_test: A value outside a registered limit creates a deviation with the registration flag, and it is visible on the release screen. The operator cannot clear the flag.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/limits (model, nesting, evaluate, all-apply)"
+    - "packages/recipe-core/src/validator/rules-content.ts (GMP-LIMITS, GMP-CRITICAL-PARAMETERS)"
+    - "packages/recipe-core/src/simulator/boundary.ts (limit boundary vectors)"
+  guards:
+    - "checkLimitSpec / checkNestingAfterRounding: alert inside internal action inside registered and validated, exactly and after each tier rounds"
+    - "evaluateLimits: value kept as acquired; outermost breached tier decides: REGISTER_ITEM, STOP_UNTIL_DEVIATION, REGISTRATION_RELEVANT_DEVIATION (QA-only, release screen, sign-off blocked); operatorMayClear always false"
+    - "evaluateAllApply: every criterion with its own rounding and sampling; sampling plan = union"
+tests:
+  - "packages/recipe-core/test/flow/model.test.ts > [PR-08] a GMP value sent as a JSON number is refused (decimals travel as strings)"
+  - "packages/recipe-core/test/limits/all-apply.test.ts > [PR-08] the sampling plan is the union of what each criterion needs"
+  - "packages/recipe-core/test/limits/all-apply.test.ts > [PR-08] a plan that misses what one criterion needs is reported with that criterion"
+  - "packages/recipe-core/test/limits/all-apply.test.ts > [PR-08] every criterion is evaluated on its own, with its own rounding; the result passes only if every criterion passes"
+  - "packages/recipe-core/test/limits/all-apply.test.ts > [PR-08] a missing statistic fails its criterion and the scheme"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: inside all tiers nothing is required"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: an alert breach needs an exception-register item only"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: an internal action breach stops the dependent step until a deviation is opened"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] a value outside a registered limit requires a registration-relevant deviation that only QA dispositions, shown on the release screen; the operator cannot clear it"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] a validated range (CPP proven acceptable range) breach is treated like a registered one"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] a missing value is an exception, never a pass"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the value is stored exactly as acquired; rounding only decides the comparison (USP: raw 94.95 passes 95.0, 94.94 fails)"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] strict bounds are respected after rounding"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] a value captured in another unit is converted exactly before comparison; an incommensurable unit is an error"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] each tier rounds with its own rule (Ph. Eur. significant figures, USP decimals)"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table is data for renderers and reviewers"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] property: moving a value outward never makes the breach less severe"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] properly nested tiers pass, before and after rounding"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] an internal action range reaching outside the registered limit is refused"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] an inclusive inner bound on an exclusive outer bound is not nested"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] an inner tier that accepts, after its own rounding, a value the outer tier rejects is refused"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] empty ranges, missing bounds and duplicate tiers are refused"
+  - "packages/recipe-core/test/simulator/simulate.test.ts > [PR-08] boundary values for every limit: on, just inside and just outside at the rounding boundary, and missing"
+  - "packages/recipe-core/test/validator/content.test.ts > [PR-08] limit tiers must nest: an alert limit outside the action limit is refused"
+  - "packages/recipe-core/test/validator/content.test.ts > [PR-08] limit tiers must also nest after rounding: an inner tier with fewer decimals is refused"
+  - "packages/recipe-core/test/validator/content.test.ts > [PR-08] a registered limit must cite the registration or the pharmacopoeia; a validated range a validation report"
+  - "packages/recipe-core/test/validator/content.test.ts > [PR-03][PR-08] the sampling plan of an ALL_APPLY scheme must serve every criterion (the union)"
+  - "packages/recipe-core/test/validator/data.test.ts > [PR-08] DATA-UNITS: a limit in another dimension than its parameter is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
