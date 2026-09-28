@@ -30,7 +30,7 @@ import type { EsigSignableContext } from '../esig/content.ts';
 import { meaningInfo } from '../esig/views.ts';
 import { engineRefusal } from './guidance.ts';
 import { signedCommand, signedMeaning, signedSubject, stepTarget, wireOf } from './intents.ts';
-import { displayRoles, engineActor, engineRoles } from './roles.ts';
+import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
 import { loadRowFacts, notFound, runCache, runContext, type Db, type RunContext } from './runs.ts';
 import { entriesOf, exceptionsOfStep, exceptionView, fieldsOf, limitViews, specOf, stageRef, stepScreen, stepSummary, type ViewContext, type ViewerInfo } from './views.ts';
 
@@ -91,6 +91,7 @@ async function viewContext(app: AppContext, db: Db, run: RunContext, state: engi
     rows: await loadRowFacts(db, run.batch.id),
     session: viewer,
     viewer: { id: viewer.personId, kind: 'PERSON', roles: await displayRoles(app, db, viewer.roleCode) },
+    permissions: await displayPermissions(app, db, viewer.roleCode),
   };
 }
 

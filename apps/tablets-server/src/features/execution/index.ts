@@ -26,7 +26,7 @@ import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent } from './intents.ts';
 import { lotView, resolveLot } from './lots.ts';
 import { checkIssue, issueForm, packageToImport, packageView, packageViews } from './packages.ts';
-import { displayRoles, engineActor, engineRoles } from './roles.ts';
+import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
 import { loadPackage, loadRowFacts, notFound, preloadRuns, runCache, runContext, defineForSandbox, type Db } from './runs.ts';
 import { engineCommandHandler } from './signable.ts';
 import { startSweeper } from './sweeper.ts';
@@ -59,6 +59,7 @@ export async function viewContextFor(app: AppContext, db: Db, runId: string, s: 
     rows: await loadRowFacts(db, runId),
     session: viewer,
     viewer: { id: viewer?.personId ?? 'VIEWER', kind: 'PERSON', roles: await displayRoles(app, db, viewer?.roleCode ?? null) },
+    permissions: await displayPermissions(app, db, viewer?.roleCode ?? null),
   };
 }
 

@@ -3,7 +3,8 @@
  *  - `e2e`: the stack state and the seeds (worker-scoped);
  *  - `persona(installation, key)`: this worker's persona (set = parallelIndex + 1);
  *  - `officePage(installation, terminal?)` and `kioskPage(terminal)`: a new browser context at office
- *    (1440x900) or kiosk (1280x800) size that has picked a demo terminal on the device picker;
+ *    (1440x900) or kiosk (1280x800) size that has picked a demo terminal on the device picker (recording a video
+ *    into the test's output when the `video` option is 'on', e.g. EBMR_E2E_VIDEO=1);
  *  - `signIn`: office (user ID and password) and kiosk (badge tap as keyboard-wedge input, PIN on the keypad);
  *  - `badge.tap(page, persona)`, `pin.enter(page, pin)`;
  *  - `api(installation)`: the typed contract client against the running server (same-origin headers);
@@ -42,8 +43,12 @@ export interface E2eWorld {
   url(installation: Installation): string;
 }
 
-async function newPage(browser: Browser, viewport: { width: number; height: number }): Promise<Page> {
-  const context = await browser.newContext({ viewport, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+/**
+ * A new context and page. With `videoDir` the context records a video at the viewport's size (the officePage and
+ * kioskPage fixtures pass it when the `video` option is on: Playwright records only its own default context).
+ */
+async function newPage(browser: Browser, viewport: { width: number; height: number }, videoDir?: string): Promise<Page> {
+  const context = await browser.newContext({ viewport, locale: 'en-IN', timezoneId: 'Asia/Kolkata', ...(videoDir ? { recordVideo: { dir: videoDir, size: viewport } } : {}) });
   await context.addInitScript(CSP_LISTENER);
   return context.newPage();
 }
@@ -100,6 +105,13 @@ export const axe = {
   },
 };
 
+/** The mode of Playwright's `video` option (a string, or an object with a mode). */
+function videoMode(video: unknown): string {
+  if (typeof video === 'string') return video;
+  if (video && typeof video === 'object' && 'mode' in video) return String((video as { mode: unknown }).mode);
+  return 'off';
+}
+
 interface Fixtures {
   persona: (installation: Installation, key: string) => SeededPersona;
   officePage: (installation: Installation, terminal?: string) => Promise<Page>;
@@ -143,20 +155,22 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
   persona: async ({ e2e }, use, testInfo) => {
     await use((installation, key) => workerPersona(e2e.seeds[installation], key, testInfo.parallelIndex));
   },
-  officePage: async ({ browser, e2e }, use) => {
+  officePage: async ({ browser, e2e, video }, use, testInfo) => {
     const pages: Page[] = [];
+    const videoDir = videoMode(video) === 'on' ? testInfo.outputPath('videos') : undefined;
     await use(async (installation, terminal) => {
-      const page = await newPage(browser, VIEWPORTS.office);
+      const page = await newPage(browser, VIEWPORTS.office, videoDir);
       pages.push(page);
       await pickTerminal(page, e2e.url(installation), terminal ?? (installation === 'GMP' ? 'PC-DESIGN-01' : 'TEST-PC-01'));
       return page;
     });
     for (const p of pages) await p.context().close();
   },
-  kioskPage: async ({ browser, e2e }, use) => {
+  kioskPage: async ({ browser, e2e, video }, use, testInfo) => {
     const pages: Page[] = [];
+    const videoDir = videoMode(video) === 'on' ? testInfo.outputPath('videos') : undefined;
     await use(async (terminal) => {
-      const page = await newPage(browser, VIEWPORTS.kiosk);
+      const page = await newPage(browser, VIEWPORTS.kiosk, videoDir);
       pages.push(page);
       await pickTerminal(page, e2e.url('SANDBOX'), terminal);
       return page;

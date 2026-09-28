@@ -97,8 +97,15 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
     for (const e of run1.exceptions.filter((x) => x.status === 'OPEN')) {
       await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: 'Scale interface not installed in the sandbox; second person verified each weighing.' });
     }
+    // The stage sign-off is offered on the step cards of the stage (the supervisor signs it off from the last step).
+    expect((await d.stepView('supervisor1', 'p-disp-recon@')).actions.find((a) => a.primary)).toMatchObject({ action: 'SIGN_OFF_STAGE', available: true, target: 'S-DISP@', meaning: 'STAGE_SIGNED_OFF' });
+    expect((await d.stepView('operator1', 'p-disp-recon@')).actions.find((a) => a.action === 'SIGN_OFF_STAGE')).toMatchObject({ available: false });
+    // Before the ceremony the stage shows the summary its sign-off would record (G-02: derived, never typed).
+    const before = (await d.runView('supervisor1')).stages.find((s) => s.stageKey === 'S-DISP@');
+    expect(before).toMatchObject({ status: 'AWAITING_SIGN_OFF', signOff: null, summary: { statement: 'COMPLETED_PER_MBR', deviations: [] } });
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-DISP@' });
     await modelHolds(runId);
+    expect((await d.runView('supervisor1')).stages.find((s) => s.stageKey === 'S-DISP@')?.summary).toEqual(before?.summary);
 
     // Stage 2, blending room BLEND-1.
     await step('operator2', 'verifier2', 'p-blend-clear@', clearance('p-blend-clear@'));

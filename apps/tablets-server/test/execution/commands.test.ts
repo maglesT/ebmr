@@ -229,3 +229,50 @@ describe('views', () => {
     expect(replay).toMatchObject({ runId: d.runId, identical: true, rows: 1, firstDifference: null });
   }, 180_000);
 });
+
+describe('the actions a step card offers (the viewer\'s role and the order of the work)', () => {
+  it('[DI-34] a step that cannot be started yet shows its start as the greyed primary action, with the engine\'s reason', async () => {
+    const d = await driver();
+    const later = await d.stepView('operator1', 'p-disp-bal@');
+    const primary = later.actions.filter((a) => a.primary);
+    expect(primary).toHaveLength(1);
+    expect(primary[0]).toMatchObject({ action: 'START_STEP', available: false });
+    expect(primary[0]?.reason).toMatch(/ENG-/);
+  }, 180_000);
+
+  it('[DI-17][PR-08] linking a deviation is greyed for the operator with the permission it needs, offered to the supervisor; the database refuses the operator\'s link', async () => {
+    const d = await driver();
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const raised = await d.ok('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Booth door found open at start', severity: 'ACTION' });
+    const exc = raised.step?.exceptions[0];
+    expect(exc).toMatchObject({ blocking: true, status: 'OPEN' });
+    // The title names the person who raised it, never their internal id.
+    const operator = await d.runView('operator1');
+    expect(exc?.title).toBe(`${operator.header.identity?.legalName ?? '?'}: Booth door found open at start`);
+    const forOperator = (await d.stepView('operator1', CLEAR)).actions.find((a) => a.action === 'ATTACH_DEVIATION');
+    expect(forOperator).toMatchObject({ available: false, target: exc?.exceptionId });
+    expect(forOperator?.reason).toMatch(/STEP\.SUPERVISE or QA\.FLOOR_APPROVE/);
+    expect((await d.stepView('supervisor1', CLEAR)).actions.find((a) => a.action === 'ATTACH_DEVIATION')).toMatchObject({ available: true, reason: null });
+    const refused = await d.command('operator1', { type: 'ATTACH_DEVIATION', exception: exc?.exceptionId ?? '', deviationRef: 'TEST-DEV-0002' });
+    expect(refused.ok).toBe(false);
+    await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: exc?.exceptionId ?? '', deviationRef: 'TEST-DEV-0002' });
+    expect(await violations(server)).toEqual([]);
+  }, 180_000);
+
+  it('[DI-34][INV-03] once the data is complete, signing is the primary action; after PERFORMED the performer sees Verify greyed with the reason, the verifier sees it offered', async () => {
+    const d = await driver();
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const recording = await d.stepView('operator1', CLEAR);
+    expect(recording.actions.find((a) => a.primary)).toMatchObject({ action: 'RECORD_ENTRY', available: true });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } });
+    const complete = await d.stepView('operator1', CLEAR);
+    expect(complete.actions.find((a) => a.primary)).toMatchObject({ action: 'SIGN_PERFORMED', available: true });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    const own = (await d.stepView('operator1', CLEAR)).actions.find((a) => a.primary);
+    expect(own).toMatchObject({ action: 'VERIFY', available: false });
+    expect(own?.reason).toMatch(/verif/i);
+    expect((await d.stepView('verifier1', CLEAR)).actions.find((a) => a.primary)).toMatchObject({ action: 'VERIFY', available: true, reason: null });
+  }, 180_000);
+});
+

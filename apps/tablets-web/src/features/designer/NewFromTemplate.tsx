@@ -62,6 +62,9 @@ export function NewFromTemplate() {
   };
 
   if (templates.error) return <RefusalMessage error={templates.error.error} />;
+  // The form's defaults come from the template: nothing can be typed before the templates are there (an entry
+  // typed earlier would replace the template's product with blank fields).
+  if (templates.isPending) return <p aria-busy="true">Loading the templates…</p>;
   return (
     <div className={dcls('page')} style={{ maxWidth: 820 }}>
       <h1>New master record from a template</h1>

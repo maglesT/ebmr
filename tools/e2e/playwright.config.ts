@@ -19,9 +19,12 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: '../../.reports/playwright.json' }], ['./reporters/evidence-reporter.ts', { outputFile: '../../.reports/e2e-evidence.json' }]],
   use: {
     headless: true,
+    // A click that cannot happen fails the test where it waits (not at the test timeout).
+    actionTimeout: 30_000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'off',
+    // EBMR_E2E_VIDEO=1 records every office and kiosk context (the owner's demo video of the journey spec).
+    video: process.env['EBMR_E2E_VIDEO'] === '1' ? 'on' : 'off',
     locale: 'en-IN',
     timezoneId: 'Asia/Kolkata',
   },

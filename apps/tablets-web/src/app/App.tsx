@@ -1,6 +1,6 @@
 /**
  * The application: providers (TanStack Query, boot state, the port contexts of C1 and C5) and the gate from
- * start-up to sign-in to the router.
+ * start-up to sign-in to the router. Cached reads are dropped when the signed-in person or role changes.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
@@ -11,6 +11,7 @@ import { BootProvider, useBoot } from './boot.tsx';
 import { FeaturesContext } from './feature-context.ts';
 import { WEB_FEATURES } from './features.ts';
 import { createAppRouter } from './router.tsx';
+import { SessionScopedReads } from './session-reads.tsx';
 import { Frame } from './shell.tsx';
 import { cls } from './classes.ts';
 
@@ -57,6 +58,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <FeaturesContext.Provider value={WEB_FEATURES}>
       <BootProvider>
+        <SessionScopedReads />
         <FeatureProviders>
           <Gate />
         </FeatureProviders>

@@ -106,6 +106,7 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
           isOpen
           onClose={close}
           dispositions={holdPointActions(view).map((a) => a.target ?? '')}
+          unavailable={view.actions.filter((a) => a.action === 'DISPOSITION_HOLD_POINT' && !a.available && a.target !== null).map((a) => ({ disposition: a.target ?? '', reason: a.reason }))}
           onContinue={({ disposition, comment }) => {
             // Each decision is its own server action with its own meaning (release or not released): sign the chosen one.
             const a = holdPointActions(view).find((x) => x.target === disposition);

@@ -400,6 +400,21 @@ describe('signatures through the ceremony port', () => {
     expect(calls[0]).toMatchObject({ meaning: 'HOLD_POINT_RELEASED', aggregateId: `${RUN_ID}:H-BLEND@`, action: { kind: 'ENGINE_COMMAND', intent: { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-BLEND@', disposition: 'RELEASED' } } });
   });
 
+  it('[DI-34][PR-45] a hold-point decision the server does not offer now is listed with its reason; only the offered one can be chosen', async () => {
+    const hold = stepVariant('step-g17-hold-point', (v) => {
+      v.actions = [
+        { action: 'DISPOSITION_HOLD_POINT', available: false, primary: false, requires: 'SIGNATURE', meaning: 'HOLD_POINT_RELEASED', reason: 'Hold point H-BLEND@ cannot be approved while open exceptions have no QA decision: EX-1 (ENG-HOLD-OPEN-EXCEPTIONS; PR-45)', target: 'RELEASED' },
+        { action: 'DISPOSITION_HOLD_POINT', available: true, primary: true, requires: 'SIGNATURE', meaning: 'HOLD_POINT_NOT_RELEASED', reason: null, target: 'REJECTED' },
+      ];
+    });
+    renderFloor(stepPath('H-BLEND@'), { session: { role: 'QA_SHOP_FLOOR' }, fixtures: stepFixtures(hold) });
+    await userEvent.click(await screen.findByRole('button', { name: 'Decide the hold point' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Decide the hold point' });
+    expect(within(dialog).queryByRole('radio', { name: 'Released' })).toBeNull();
+    expect(within(dialog).getByRole('radio', { name: 'Rejected (not released)' })).toBeTruthy();
+    expect(within(dialog).getByTestId('unavailable-decisions').textContent).toContain('Not available now: Released. Hold point H-BLEND@ cannot be approved while open exceptions have no QA decision');
+  });
+
   it('rejecting the hold point signs the not-released meaning of the reject action', async () => {
     const calls: { meaning: string; action: unknown }[] = [];
     renderFloor(stepPath('H-BLEND@'), {

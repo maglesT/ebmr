@@ -9,13 +9,43 @@ import { Button, Dialog, Field, floor } from '@ebmr/ui-kit';
 import { wcls } from '../classes.ts';
 import { st, stEnum } from '../text.ts';
 
-export function HoldPointDialog({ isOpen, onClose, dispositions, onContinue }: { isOpen: boolean; onClose: () => void; dispositions: readonly string[]; onContinue: (d: { disposition: string; comment: string }) => void }) {
+export interface UnavailableDecision {
+  disposition: string;
+  reason: string | null;
+}
+
+/**
+ * The hold-point decision. Only the decisions the server offers now can be chosen; the others are listed with the
+ * server's reason (e.g. a release waits for QA's decision on open exceptions; DI-34).
+ */
+export function HoldPointDialog({
+  isOpen,
+  onClose,
+  dispositions,
+  unavailable = [],
+  onContinue,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  dispositions: readonly string[];
+  unavailable?: readonly UnavailableDecision[];
+  onContinue: (d: { disposition: string; comment: string }) => void;
+}) {
   const [disposition, setDisposition] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   return (
     <Dialog title={st('dialog.holdPoint.title')} isOpen={isOpen} onOpenChange={(o) => (o ? null : onClose())}>
       <div className={wcls('dialogBody')}>
         <floor.ChoiceGroup label={st('dialog.holdPoint.disposition')} options={dispositions.map((d) => ({ value: d, label: stEnum('disposition', d) }))} value={disposition} onChange={setDisposition} />
+        {unavailable.length > 0 ? (
+          <ul className={wcls('entries')} data-testid="unavailable-decisions">
+            {unavailable.map((u) => (
+              <li key={u.disposition} className={wcls('muted')}>
+                {st('dialog.holdPoint.unavailable', { decision: stEnum('disposition', u.disposition), reason: u.reason ?? '' })}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <Field label={st('dialog.holdPoint.comment')} name="comment" value={comment} onChange={setComment} autoComplete="off" />
         <div className={wcls('row')}>
           <Button variant="primary" isDisabled={!disposition} onPress={() => disposition && onContinue({ disposition, comment: comment.trim() })}>

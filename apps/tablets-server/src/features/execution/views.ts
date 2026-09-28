@@ -41,6 +41,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../../platform/context.ts';
 import { manifestationView } from '../esig/views.ts';
 import { wireOf } from './intents.ts';
+import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
 
 type Attempt = z.infer<typeof AttemptView>;
@@ -112,6 +113,8 @@ export interface ViewContext {
   session: ViewerInfo | null;
   /** The viewer as the engine sees them for display (mapped roles, no authority evaluated). */
   viewer: engine.Actor;
+  /** The command permissions the viewer's declared role holds (display only; absent: not checked). */
+  permissions?: DisplayPermissions;
 }
 
 const fmt = (ctx: ViewContext, us: bigint): Instant => ctx.app.formatInstant(us);
@@ -152,14 +155,18 @@ export async function signaturesOf(db: Db, aggregateType: string, aggregateId: s
 // ---------------------------------------------------------------------------------------------
 // Actions
 
+/**
+ * The order of the work on a step card: decide a hold point, start, sign what was done (once the engine accepts
+ * the signature, i.e. the data is complete), verify, record, then the stage and exception actions.
+ */
 const PRIMARY_ORDER: readonly ActionView['action'][] = [
   'DISPOSITION_HOLD_POINT',
   'START_STEP',
-  'RECORD_ENTRY',
-  'RECORD_DATA',
   'SIGN_PERFORMED',
   'VERIFY',
   'WITNESS',
+  'RECORD_ENTRY',
+  'RECORD_DATA',
   'SIGN_OFF_STAGE',
   'ATTACH_DEVIATION',
   'DISPOSITION_EXCEPTION',
@@ -167,27 +174,54 @@ const PRIMARY_ORDER: readonly ActionView['action'][] = [
 ];
 
 /**
- * ActionViews with exactly one primary action: the first available in the order of the work. The engine's
- * reasons name persons by id; the viewer's own id is shown as their name.
+ * Display only (DI-17): the refusal the database would give for the viewer's declared role, when the role holds
+ * none of the permissions the command needs (recipe.require_command_permission: a verification needs
+ * STEP.WITNESS when it means WITNESSED, else STEP.VERIFY).
  */
-export function actionViews(actions: readonly engine.AvailableAction[], shopFloor: boolean, who?: { id: string; name: string }): ActionView[] {
+export function permissionRefusal(p: DisplayPermissions | undefined, action: ActionView['action'], meaning: string | null): string | null {
+  if (!p) return null;
+  const type = action === 'WITNESS' ? 'VERIFY' : action;
+  const listed = p.needs.get(type);
+  if (!listed) return null;
+  const needs = type === 'VERIFY' ? [meaning === 'WITNESSED' ? 'STEP.WITNESS' : 'STEP.VERIFY'] : listed;
+  if (needs.some((x) => p.held.has(x))) return null;
+  return `The role ${p.role ?? '(none)'} of this session does not hold the permission this needs (${needs.join(' or ')}) (EBMR-EXE-ROLE; DI-17)`;
+}
+
+/**
+ * ActionViews with exactly one primary action: the first available in the order of the work, else (nothing
+ * available) the first in that order, shown greyed with its reason (DI-34). An action the engine accepts is
+ * still unavailable when the viewer's role lacks the command's permission. The engine's reasons name persons
+ * by id; the viewer's own id is shown as their name.
+ */
+export function actionViews(actions: readonly engine.AvailableAction[], shopFloor: boolean, who?: { id: string; name: string }, permissions?: DisplayPermissions): ActionView[] {
+  const checked = actions.map((a) => {
+    const denied = a.available ? permissionRefusal(permissions, a.action, a.meaning) : null;
+    return { a, available: a.available && denied === null, reason: a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : denied };
+  });
   let primary = -1;
   for (const kind of PRIMARY_ORDER) {
-    primary = actions.findIndex((a) => a.action === kind && a.available);
+    primary = checked.findIndex((c) => c.a.action === kind && c.available);
     if (primary >= 0) break;
   }
-  return actions.map((a, i) => ({
+  if (primary < 0) {
+    for (const kind of PRIMARY_ORDER) {
+      primary = checked.findIndex((c) => c.a.action === kind);
+      if (primary >= 0) break;
+    }
+  }
+  return checked.map(({ a, available, reason }, i) => ({
     action: a.action,
-    available: a.available,
+    available,
     primary: i === primary,
     requires: a.signed ? 'SIGNATURE' : shopFloor ? 'TAP' : 'NONE',
     meaning: a.meaning,
-    reason: a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : null,
+    reason: available ? null : reason,
     target: a.target,
   }));
 }
 
-/** The actions a step's screen offers for its status (the engine decides each one). */
+/** The actions a step's screen offers for its status (the engine decides each one), plus the run-level ones of the step's card. */
 function stepActions(ctx: ViewContext, inst: engine.StepInstance | undefined, stepKey: string): engine.AvailableAction[] {
   const all = engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }, { stepKey });
   const status = inst?.status ?? 'PENDING';
@@ -208,7 +242,10 @@ function stepActions(ctx: ViewContext, inst: engine.StepInstance | undefined, st
         return true;
     }
   };
-  const run = engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }).filter((a) => a.action === 'HOLD_BATCH');
+  // Run-level actions a step card offers: holding the batch, and signing off the stage frame this step belongs to
+  // (the stage sign-off is taken from any step card of the stage, with the derived summary).
+  const frame = inst ? Object.values(ctx.state.stages).find((f) => engine.stageSteps(ctx.run.def, ctx.state, f).some((i) => i.key === inst.key)) : undefined;
+  const run = engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }).filter((a) => a.action === 'HOLD_BATCH' || (a.action === 'SIGN_OFF_STAGE' && frame !== undefined && a.target === frame.key));
   return [...all.filter(relevant), ...run];
 }
 
@@ -575,10 +612,12 @@ export function exceptionView(ctx: ViewContext, e: engine.ExceptionRecord): Exce
   const derived = e.source.derived !== undefined ? ctx.state.derived[e.source.derived] : undefined;
   const item = point?.item ?? derived?.calculation ?? e.source.item;
   const routedTo = e.qaOnly || e.registrationRelevant ? ['QA'] : e.deviationRequired ? [...ctx.run.def.policy.supervisorRoles, ...ctx.run.def.policy.qaRoles] : [...ctx.run.def.policy.supervisorRoles];
+  // An exception a person raised is titled "<person id>: <what happened>" by the engine; the screen names the person.
+  const raisedBy = personRef(ctx, e.raisedBy, e.raisedSeq);
   return {
     exceptionId: e.id,
     type: e.type,
-    title: e.title,
+    title: raisedBy ? e.title.split(e.raisedBy).join(raisedBy.legalName) : e.title,
     category: e.category,
     severity: e.severity,
     tier: e.tier ?? null,
@@ -590,7 +629,7 @@ export function exceptionView(ctx: ViewContext, e: engine.ExceptionRecord): Exce
     status: e.status,
     deviationRef: e.deviation?.ref ?? null,
     raisedAt: fmt(ctx, e.raisedAt),
-    raisedBy: personRef(ctx, e.raisedBy, e.raisedSeq),
+    raisedBy,
     controls: [...e.controls],
   };
 }
@@ -727,7 +766,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     entryForms: entryFormsOf(def, stepDef),
     exceptions: exceptions.map((e) => exceptionView(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
-    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx)),
+    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions),
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
   };
@@ -750,6 +789,30 @@ export function stepSummary(ctx: ViewContext, inst: engine.StepInstance | undefi
     statusText: stepStatusText(inst, def, stepId),
     openExceptions: Object.values(ctx.state.exceptions).filter((e) => e.status === 'OPEN' && e.source.stepKey === key).length,
   };
+}
+
+function summaryWire(sum: engine.StageSummary): NonNullable<Stage['summary']> {
+  return { statement: sum.statement, exceptions: [...sum.exceptions], deviations: [...sum.deviations] };
+}
+
+/**
+ * The summary a stage frame waiting for its sign-off would carry if it were signed off now (G-02: derived, never
+ * typed): a dry run of SIGN_OFF_STAGE through the engine by the stage's responsible role with a placeholder
+ * signature, so the person signing off sees the statement before the ceremony. Nothing is recorded; null when
+ * the engine would refuse the sign-off now (steps or exceptions still open).
+ */
+function prospectiveSummary(ctx: ViewContext, frame: engine.StageFrameState): Stage['summary'] {
+  const stage = ctx.run.def.stages.get(frame.stage);
+  if (!stage) return null;
+  const actor: engine.Actor = { id: ctx.viewer.id, kind: 'PERSON', roles: [stage.responsibleRole] };
+  const r = engine.step(
+    ctx.run.def,
+    ctx.state,
+    { type: 'SIGN_OFF_STAGE', stage: frame.stage, context: frame.frames, signature: { id: engine.PLACEHOLDER_SIGNATURE_ID, meaning: 'STAGE_SIGNED_OFF', signer: actor.id }, commandId: '$stage-summary-preview', actor },
+    { nowUs: ctx.nowUs },
+  );
+  const sum = r.accepted ? r.state.stages[frame.key]?.signOff?.summary : undefined;
+  return sum ? summaryWire(sum) : null;
 }
 
 async function stagesOf(ctx: ViewContext): Promise<Stage[]> {
@@ -792,7 +855,7 @@ async function stagesOf(ctx: ViewContext): Promise<Stage[]> {
         number: numbered.number,
         name: node?.name ?? numbered.name,
         status: st === 'SIGNED_OFF' ? 'SIGNED_OFF' : st === 'AWAITING_SIGN_OFF' ? 'AWAITING_SIGN_OFF' : 'IN_PROGRESS',
-        summary: frame.signOff ? { statement: frame.signOff.summary.statement, exceptions: [...frame.signOff.summary.exceptions], deviations: [...frame.signOff.summary.deviations] } : null,
+        summary: frame.signOff ? summaryWire(frame.signOff.summary) : st === 'AWAITING_SIGN_OFF' ? prospectiveSummary(ctx, frame) : null,
         signOff,
         signable: { aggregateType: 'batch_stage', aggregateId },
         steps,
@@ -824,7 +887,7 @@ export async function runView(ctx: ViewContext): Promise<RunView> {
       .sort((a, b) => a.raisedSeq - b.raisedSeq)
       .map((e) => exceptionView(ctx, e)),
     holds: Object.values(ctx.state.holds).map((h) => holdView(ctx, h)),
-    actions: actionViews(engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }), shopFloor, whoOf(ctx)),
+    actions: actionViews(engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }), shopFloor, whoOf(ctx), ctx.permissions),
     auditChain: `batch:${ctx.run.batch.id}`,
   };
 }
@@ -859,7 +922,7 @@ export function workQueueItems(ctx: ViewContext, room: string | null): WorkQueue
     const stage = stepDef.stage ? def.stages.get(stepDef.stage) : undefined;
     const rooms = stage?.binding.rooms ?? [];
     if (room !== null && rooms.length > 0 && !rooms.includes(room)) continue;
-    const views = actionViews(stepActions(ctx, inst, inst.key), shopFloor, whoOf(ctx));
+    const views = actionViews(stepActions(ctx, inst, inst.key), shopFloor, whoOf(ctx), ctx.permissions);
     const action = views.find((v) => v.primary) ?? views.find((v) => v.action !== 'RAISE_EXCEPTION' && v.action !== 'HOLD_BATCH') ?? views[0];
     if (!action) continue;
     const sn = stepDef.stage ? n.byId.get(stepDef.stage) : undefined;
