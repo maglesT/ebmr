@@ -246,3 +246,15 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   suite, SQL mutation run + Stryker, `pnpm run ci`, PR, merge; then merge main into phase-2/recipe-core (merge risks
   listed in the lead's scratchpad fix-handoffs.md: four-eyes role permissions in migrations, IAM-118 zone in contexts,
   create_permission on Phase 2 machines, protected sequences for new schemas, retention declarations, IAM-026 order).
+- 2026-09-28: SQL MUTATION RUN 2 (1,712 mutants in 9 groups, after the fix agents): 83 survivors; audit-trail 98.0,
+  actor-validation 96.6, signing 95.7, signature-invalidation 100, segregation-and-grants 94.3, authentication-events
+  94.3, retention-and-purge 89.2, site-values-and-policies 97.3, protected-numbers 86.4 (report in
+  docs/build-plan/phase-1-exit/sql-mutation-run2/). Three kill agents then brought EVERY group to 100 %: 75 survivors
+  killed by new tests in packages/kernel/test/mutation/*, 8 recorded as equivalent (tools/sql-mutation/equivalent.json,
+  now 17 entries), 1 DEFECT fixed (continuity.external_anchor_problems compared the Merkle root with <>, so an external
+  anchor with an incomplete head had a NULL root, no mismatch was reported and it was classed DISCARDABLE instead of
+  UNEXPLAINED; now `is distinct from`, test fails before the fix). Workflow wf_6280ca34-a8e challenges the 8 new
+  equivalence claims (two skeptics each). Follow-ups noted: site.zone policy accepts any text (validate as IANA zone);
+  ALL_APPLY criteria compared in order (reorder = TIGHTER); f55 reproducer can fail under heavy WAL load
+  (pg_basebackup "requested WAL segment has already been removed"; passes alone). Remaining for the Phase 1 PR:
+  equivalence verdicts, the TypeScript (Stryker) run, full `pnpm run ci`, PR, merge.
