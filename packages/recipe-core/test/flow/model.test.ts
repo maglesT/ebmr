@@ -2,7 +2,7 @@ import { esig } from '@ebmr/kernel';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { canonicalJson, libraryElementHash, mbrContentHash } from '../../src/flow/canonical.ts';
-import { parseMbr } from '../../src/flow/parse.ts';
+import { MAX_FLOW_DEPTH, parseFlowNodeStandalone, parseMbr } from '../../src/flow/parse.ts';
 import { clone, fixtureJson, loadFixture, type FixtureName } from './support.ts';
 
 const FIXTURES: FixtureName[] = ['tablet-granulation-compression', 'tablet-blister-packaging'];
@@ -57,6 +57,14 @@ describe('MBR content model: parsing', () => {
     const r = parseMbr(json);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.problems.filter((p) => p.path.endsWith('.reasonRequired')).length).toBe(2);
+  });
+
+  it('a flow nested deeper than the limit is refused instead of exhausting the parser', () => {
+    let node: unknown = { kind: 'holdPoint', id: 'H', name: 'Hold', role: 'QA', dispositions: ['OK'] };
+    for (let i = 0; i < MAX_FLOW_DEPTH + 5; i++) node = { kind: 'sequence', id: `s${i}`, children: [node] };
+    const r = parseFlowNodeStandalone(node);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.some((p) => p.message === `nests flow nodes more than ${MAX_FLOW_DEPTH} deep`)).toBe(true);
   });
 
   it('every problem names the JSON path of the offending field', () => {

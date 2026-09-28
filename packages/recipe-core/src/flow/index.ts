@@ -4,7 +4,7 @@
  * See README.md in this folder.
  */
 export * from './model.ts';
-export { parseMbr, parseFlowNodeStandalone, MAX_LOOP_ITERATIONS, MAX_REPLICATE_INSTANCES, type ParseProblem, type ParseResult } from './parse.ts';
+export { parseMbr, parseFlowNodeStandalone, MAX_FLOW_DEPTH, MAX_LOOP_ITERATIONS, MAX_REPLICATE_INSTANCES, type ParseProblem, type ParseResult } from './parse.ts';
 export { canonicalJson, sha256Hex, mbrContentHash, libraryElementHash, flowNodeHash } from './canonical.ts';
 export {
   isDecimalLiteral,

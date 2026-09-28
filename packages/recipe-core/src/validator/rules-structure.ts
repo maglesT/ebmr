@@ -5,7 +5,7 @@
  */
 import { childrenOf, type FlowNode, type Level } from '../flow/model.ts';
 import { isTimeUnit, durationToMicros, compareDecimal } from '../flow/decimal.ts';
-import { CONDITION, type Analysis } from './analysis.ts';
+import { calculationOptions, CONDITION, GLOBAL_SCOPE, type Analysis } from './analysis.ts';
 import { checkGraph, type GraphProblem, type GraphProblemCode } from './graph-checks.ts';
 import { defineRule, error, label, type Rule } from './rule-kit.ts';
 import type { RuleFinding } from './types.ts';
@@ -188,9 +188,31 @@ const loops = defineRule('FLOW-LOOPS', 'Loops are bounded and exit on a process 
     if (checked.check.ok && !checked.reads.includes(endpoint.id)) {
       out.push(error(n.id, `The exit condition of loop ${label(a, n.id)} does not read its endpoint ${endpoint.name}`));
     }
+    // No test result may drive the loop, not even through a calculation.
+    for (const t of testsBehind(a, checked.reads)) {
+      if (t === endpoint.id) continue;
+      const p = a.parameters.get(t);
+      out.push(error(n.id, `The exit condition of loop ${label(a, n.id)} depends on ${p?.name ?? t}, an acceptance or release test; a loop may only repeat on process endpoints, never until a test passes`));
+    }
   }
   return out;
 });
+
+/** Acceptance and release test parameters an expression depends on, directly or through calculations. */
+function testsBehind(a: Analysis, reads: readonly string[]): string[] {
+  const found = new Set<string>();
+  const seen = new Set<string>();
+  const visit = (id: string): void => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    const p = a.parameters.get(id);
+    if (p && (p.role === 'ACCEPTANCE_TEST' || p.role === 'RELEASE_TEST')) found.add(id);
+    const c = a.calculations.get(id);
+    if (c) for (const r of a.expression(c.expression, GLOBAL_SCOPE, undefined, calculationOptions(a, c.id)).reads) visit(r);
+  };
+  reads.forEach(visit);
+  return [...found].sort();
+}
 
 const replicates = defineRule('FLOW-REPLICATES', 'Replicate sections are bounded', ['DI-34', 'INV-19'], (a) => {
   const out: RuleFinding[] = [];

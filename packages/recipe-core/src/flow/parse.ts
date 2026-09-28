@@ -54,9 +54,12 @@ const HASH = /^[0-9a-f]{64}$/;
 /** Maximum loop iterations and replicate instances accepted in a master record. */
 export const MAX_LOOP_ITERATIONS = 100;
 export const MAX_REPLICATE_INSTANCES = 500;
+/** Maximum nesting of flow nodes (a guard against hostile input; real MBRs nest far less). */
+export const MAX_FLOW_DEPTH = 64;
 
 class Reader {
   readonly problems: ParseProblem[] = [];
+  depth = 0;
 
   fail(path: string, message: string): undefined {
     this.problems.push({ path, message });
@@ -775,6 +778,16 @@ function stageEquipment(r: Reader, v: unknown, path: string): StageEquipment | u
 }
 
 function parseFlowNode(r: Reader, v: unknown, path: string): FlowNode | undefined {
+  if (r.depth >= MAX_FLOW_DEPTH) return r.fail(path, `nests flow nodes more than ${MAX_FLOW_DEPTH} deep`);
+  r.depth++;
+  try {
+    return parseFlowNodeAt(r, v, path);
+  } finally {
+    r.depth--;
+  }
+}
+
+function parseFlowNodeAt(r: Reader, v: unknown, path: string): FlowNode | undefined {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return r.fail(path, 'must be a flow node object');
   const o = v as Record<string, unknown>;
   switch (o['kind']) {

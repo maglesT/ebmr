@@ -1,8 +1,8 @@
 # Phase 1: open questions for the owner and the expert
 
 Collected from the Phase 1 module builds. Each item states the default the build uses today, so nothing is blocked;
-the owner (or the expert, where marked) confirms or changes it. Changing a default is a data or policy change, not a
-redesign, unless noted. Status: all OPEN.
+the owner (or the expert, where marked) may still change it. Changing a default is a data or policy change, not a
+redesign, unless noted. Status: all DECIDED by default (owner decision 0004, 28 September 2026), except C1-C4, which moved to the separate deployment design (decision 0003).
 
 ## Time (module: platform)
 

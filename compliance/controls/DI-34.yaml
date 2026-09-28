@@ -62,6 +62,7 @@ tests:
   - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-CONSTRUCTS: a parallel needs two non-empty branches, an alternative at most one empty branch"
   - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-DECISIONS: data-decided branches need conditions; variant branches must cover the variant exactly once"
   - "packages/recipe-core/test/validator/structure.test.ts > [INV-19][DI-34] FLOW-LOOPS: a loop may only repeat on a process endpoint, never until a test passes"
+  - "packages/recipe-core/test/validator/structure.test.ts > [INV-19][DI-34] FLOW-LOOPS: an exit condition that also depends on a test result, directly or through a calculation, is refused"
   - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] FLOW-ID-UNIQUE: two steps with the same id are refused"
   - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] the unmodified fixture graph passes every graph gate"
   - "packages/recipe-core/test/validator/structure.test.ts > [DI-34] GRAPH-BOUNDARIES: an edge from one parallel branch into the other is refused"

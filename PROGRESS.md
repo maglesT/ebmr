@@ -240,3 +240,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   questions too). Decision 0005 (core-compliance-only scope) was proposed and WITHDRAWN by the owner the same day:
   the full register and outline v0.2 remain the scope; the triage workflow was stopped with no changes; agents follow
   their original briefs.
+- 2026-09-28: A2 (recipe-core flow model, validator, limits, simulator) finished: 191 tests; DI-34, PR-03, PR-08, IN-02,
+  DI-04 static parts (build_status SPECIFIED until the execution-time parts land); INV-19, INV-20 and INV-34 (generic)
+  proven; two tablet fixture MBRs (granulation/compression with every construct; blister packaging). Defaults recorded in
+  docs/decisions/phase-2-open-questions.md (F1-F15). Lead added a cross-check test: expr canonical JSON/SHA-256 equal the
+  kernel's. Note for the designer UI: flow/canonical.ts imports esig from the kernel root (node-only deps): a
+  browser-safe kernel subpath export is needed later.

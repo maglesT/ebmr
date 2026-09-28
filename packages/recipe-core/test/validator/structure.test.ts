@@ -100,6 +100,27 @@ describe('structure gates on the tree', () => {
     expect(refused[0]).toMatch(/\(FLOW-LOOPS; DI-34, INV-19\)$/);
   });
 
+  it('[INV-19][DI-34] FLOW-LOOPS: an exit condition that also depends on a test result, directly or through a calculation, is refused', () => {
+    const withExit = (condition: string): MbrContent =>
+      mbrWith(
+        {
+          kind: 'loop',
+          id: 'L',
+          name: 'Blend',
+          maxIterations: 3,
+          exit: { condition, endpoint: 'ep' },
+          body: phase('blend', { records: ['ep', 'bu'], computes: ['buTwice'] }),
+        },
+        {
+          parameters: [endpoint('ep'), endpoint('bu', 'ACCEPTANCE_TEST')],
+          calculations: [{ id: 'buTwice', name: 'BU doubled', expression: 'bu * 2', output: { valueType: 'DECIMAL', unit: '%' }, criticality: 'CRITICAL', riskClass: 'HIGH' }],
+        },
+      );
+    expect(messages(withExit('ep <= 1 [%]'), 'FLOW-LOOPS')).toEqual([]);
+    expect(messages(withExit('ep <= 1 [%] && bu <= 5.0 [%]'), 'FLOW-LOOPS')).toEqual([expect.stringMatching(/depends on Endpoint bu, an acceptance or release test/)]);
+    expect(messages(withExit('ep <= 1 [%] && buTwice <= 10 [%]'), 'FLOW-LOOPS')).toEqual([expect.stringMatching(/depends on Endpoint bu, an acceptance or release test/)]);
+  });
+
   it('[INV-19] FLOW-LOOPS: the exit condition must read a value written inside the loop', () => {
     const m = mbrWith(
       seq('ops', [phase('measure', { records: ['ep'] }), { kind: 'loop', id: 'L', name: 'Dry', maxIterations: 3, exit: { condition: 'ep <= 1 [%]', endpoint: 'ep' }, body: phase('dry') }]),
