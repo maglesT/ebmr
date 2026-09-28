@@ -23,7 +23,8 @@ import { approvePurge, createRetentionSchedule, placeLegalHold } from '../../src
 import { createAggregateState, transition } from '../../src/state/engine.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { SEED_SITE, seedActor, seedAdministration, seedServiceActor, withFreshAuth, withReason, type SeededActor } from '../identity/seed.ts';
-import { createTestTable, miniDocument, publishDocumentAs, publishSeedTables } from '../market/helpers.ts';
+import { approveSourceCorrection, createTestTable, miniDocument, publishDocumentAs, publishSeedTables } from '../market/helpers.ts';
+import { registerValidatedTimeSource } from '../platform/helpers.ts';
 import { approveDisposal, recordType, registerType, signFor } from '../records/helpers.ts';
 
 let db: TestDatabase;
@@ -86,6 +87,7 @@ const MAP: Record<string, { domain: string; effect: string; roles: string[] }> =
   'PLATFORM.TIME_SOURCE_MANAGE': { domain: 'ADMINISTRATION', effect: 'ADMINISTER', roles: ['SYSTEM_ADMINISTRATOR'] },
   'PLATFORM.ALARM_CLEAR': { domain: 'GOVERNANCE', effect: 'WRITE', roles: ['CSV_DI_LEAD'] },
   'PLATFORM.TIME_CHECK_RECORD': { domain: 'GOVERNANCE', effect: 'WRITE', roles: ['SERVICE_ACCOUNT'] },
+  'PLATFORM.TIME_SOURCE_VALIDATE': { domain: 'GOVERNANCE', effect: 'WRITE', roles: ['CSV_DI_LEAD'] },
   'SAMPLE_RECORD.SUBMIT': { domain: 'GMP', effect: 'WRITE', roles: ['MBR_AUTHOR'] },
   'SAMPLE_RECORD.CHECK': { domain: 'GMP', effect: 'SIGN', roles: ['MBR_CHECKER', 'QA_REVIEWER'] },
   'SAMPLE_RECORD.APPROVE': { domain: 'GMP', effect: 'SIGN', roles: ['QA_REVIEWER'] },
@@ -94,6 +96,20 @@ const MAP: Record<string, { domain: string; effect: string; roles: string[] }> =
 
 /** App-callable functions that may write but are deliberately not gated (with the reason). */
 const UNGATED: Record<string, string> = {
+  // Platform plumbing: no GMP content, and the command each serves is gated itself.
+  'platform.audit_position()': 'reads the audit-trail position (a sequence value); volatile only because sequences are; writes nothing',
+  'platform.check_late_entry(platform.late_entry_assessment,text,uuid,text,text)':
+    'validation called by the time-model triggers of block tables (refuses or returns); writes nothing',
+  'platform.check_time_trust_source(text)': 'validation called by the time-model triggers of block tables (refuses or returns); writes nothing',
+  'platform.entry_site_zone()': 'returns the site time zone an entry is stored with, refusing a context that declares another; writes nothing',
+  'platform.claim_idempotency_key(text,text)':
+    "command plumbing: records the caller's own idempotency key for its own command, bound to its account and correlation; the command is gated",
+  'platform.complete_idempotency_key(text,text)': 'command plumbing: completes the key this transaction claimed; the command is gated',
+  'platform.enqueue(text,text,jsonb)': "application messages on the caller's own topics (kernel topics are refused), in the transaction of a gated command",
+  'platform.outbox_claim(text,integer)': 'relay bookkeeping: claims messages for delivery; no record content',
+  'platform.outbox_mark_delivered(bigint,text)': 'relay bookkeeping of a message this transaction claimed; no record content',
+  'platform.outbox_mark_failed(bigint,text,text)': 'relay bookkeeping of a message this transaction claimed; no record content',
+  'platform.consume_once(text,uuid)': "consumer bookkeeping (a message is processed once), in the transaction of the consumer's own gated effect",
   'records.lock_blocker_epoch(text,text)':
     'derived concurrency token read and locked inside a disposition transaction (0400, 0430); the disposition itself is gated. Before locking it only adds ' +
     'the DI-50 link and hold that an open investigation already requires (what the scope refresh adds), refusing administrators; it never removes anything',
@@ -103,15 +119,34 @@ interface Fn {
   fn: string;
   src: string;
 }
-/** Functions of the four modules the application role may execute and that are VOLATILE (only those can write). */
+/**
+ * Functions of the gated modules (market, records, continuity, site services and the platform) the
+ * application role may execute and that are VOLATILE (only those can write).
+ */
 async function appWritableFunctions(): Promise<Fn[]> {
   const { rows } = await db.admin.query<Fn>(`
     select p.oid::regprocedure::text as fn, p.prosrc as src
     from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid = p.pronamespace
-    where n.nspname in ('market', 'records', 'continuity', 'site') and p.provolatile = 'v' and p.prokind = 'f'
+    where n.nspname in ('market', 'records', 'continuity', 'site', 'platform') and p.provolatile = 'v' and p.prokind = 'f'
       and has_function_privilege('ebmr_app', p.oid, 'EXECUTE')
     order by 1`);
   return rows;
+}
+/** An authority check: the identity module's, or the platform's AUTHORITY hook (which calls it). */
+const checksAuthority = (src: string): boolean => src.includes('iam.require_permission(') || src.includes('platform.authorize(');
+/** App-callable functions that only delegate to an owner-only function, which checks authority (proven below, F78). */
+const DELEGATES: Record<string, string> = {
+  'platform.create_aggregate_state(text,text,uuid)': 'platform.create_aggregate_state_at',
+};
+async function delegateChecksAuthority(fn: string): Promise<boolean> {
+  const target = DELEGATES[fn];
+  if (!target) return false;
+  const { rows } = await db.admin.query<{ src: string }>(
+    "select p.prosrc as src from pg_catalog.pg_proc p where p.oid::regprocedure::text like $1 || '(%'",
+    [target],
+  );
+  const own = (await db.admin.query<{ src: string }>('select prosrc as src from pg_catalog.pg_proc where oid = $1::regprocedure', [fn])).rows[0]?.src ?? '';
+  return own.includes(`${target}(`) && rows.length === 1 && checksAuthority(rows[0]?.src ?? '');
 }
 const permissionLiterals = (src: string): string[] => [...src.matchAll(/'([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*)'/g)].map((m) => m[1] ?? '');
 
@@ -165,10 +200,11 @@ describe('the permission catalogue (DI-17, DI-18, INV-11)', () => {
 });
 
 describe('every mutating function checks authority (DI-17) and GMP writes refuse administrators (DI-18)', () => {
-  it('[DI-17] every function of market, records and continuity (and site services) that the application may call and that can write checks a known permission', async () => {
+  it('[DI-17] every function of market, records, continuity, site services and the platform that the application may call and that can write checks a known permission', async () => {
     const fns = await appWritableFunctions();
     expect(fns.length).toBeGreaterThanOrEqual(40);
-    const ungated = fns.filter((f) => !f.src.includes('iam.require_permission(') && !(f.fn in UNGATED)).map((f) => f.fn);
+    const ungated: string[] = [];
+    for (const f of fns) if (!checksAuthority(f.src) && !(f.fn in UNGATED) && !(await delegateChecksAuthority(f.fn))) ungated.push(f.fn);
     expect(ungated).toEqual([]);
     const { rows } = await db.admin.query<{ code: string }>('select code from iam.permission');
     const known = new Set(rows.map((r) => r.code));
@@ -226,7 +262,13 @@ describe('market-profile engine', () => {
 
     const v2 = miniDocument(table, 2);
     (v2['rows'] as Record<string, unknown>[])[1] = { ...(v2['rows'] as Record<string, unknown>[])[1], value: '25' };
-    const correction = { kind: 'SOURCE_CORRECTION', description: 'EU value mis-keyed', citation: 'source re-read', approverIds: [randomUUID(), randomUUID()] };
+    const correction = {
+      kind: 'SOURCE_CORRECTION',
+      description: 'EU value mis-keyed',
+      citation: 'source re-read',
+      vendorNoticeRef: 'VN-AZ-1',
+      approvalSignatureIds: await approveSourceCorrection(db, v2),
+    };
     await expect(publishAs(steward, v2, correction)).rejects.toThrow(/EBMR-IAM-040 .*MARKET\.RULE_TABLE_CORRECT/);
     const signer = await actor('REGULATORY_SIGNER');
     await publishDocumentAs(db, again(signer), v2, correction);
@@ -491,16 +533,31 @@ describe('platform AUTHORITY adapter', () => {
     const operator = await actor('OPERATOR');
     const setting = (ctx: ActorContext) => sql(withReason(ctx, 'CHANGE_CONTROL', 'CC-AZ-1'), "select platform.set_setting('time.late_entry_window_min', '20')");
     await expect(setting(operator)).rejects.toThrow(/EBMR-PLAT-006 permission platform\.settings\.change denied: .*PLATFORM\.SETTINGS_CHANGE/);
+    // The refusal carries what is needed to log the failed check outside the rolled-back command (F72):
+    // the same JSON detail as an EBMR-IAM-040 refusal, naming the actor and the catalogue permission.
+    const refusal = await setting(operator).then(
+      () => undefined,
+      (error: unknown) => error as { detail?: string },
+    );
+    expect(JSON.parse(refusal?.detail ?? '{}')).toMatchObject({
+      person_id: operator.personId,
+      account_id: operator.accountId,
+      role_code: 'OPERATOR',
+      permission: 'PLATFORM.SETTINGS_CHANGE',
+      scope: { site: SEED_SITE },
+    });
     await setting(owner);
     const { rows } = await db.app.query<{ allowed: boolean; scope: Record<string, string>; role_code: string }>(
       "select allowed, scope, role_code from iam.authority_evaluation where person_id = $1 and permission_code = 'PLATFORM.SETTINGS_CHANGE'",
       [owner.personId],
     );
     expect(rows).toEqual([{ allowed: true, scope: { site: SEED_SITE }, role_code: 'PROCESS_OWNER' }]);
+    // A time source is registered with the person who validated it, who then confirms it (DI-27).
+    const validator = await actor('CSV_DI_LEAD');
     const register = (ctx: ActorContext) =>
-      sql(ctx, "select platform.register_time_source($1, 'NTP', 'ntp.example', 'NPL India', gen_random_uuid(), 'VAL-TS-AZ')", [`AZ ${randomBytes(3).toString('hex')}`]);
+      sql(ctx, "select platform.register_time_source($1, 'NTP', 'ntp.example', 'NPL India', $2, 'VAL-TS-AZ')", [`AZ ${randomBytes(3).toString('hex')}`, validator.personId]);
     await expect(register(operator)).rejects.toThrow('EBMR-PLAT-006');
-    await register(await actor('SYSTEM_ADMINISTRATOR'));
+    await registerValidatedTimeSource(db, again(await actor('SYSTEM_ADMINISTRATOR')), again(validator), `AZ ${randomBytes(3).toString('hex')}`, 'NPL India');
   });
 
   it('[DI-17] the sample state machine reaches the catalogue: an MBR author submits a record, an operator cannot', async () => {
@@ -538,7 +595,9 @@ describe('platform AUTHORITY adapter', () => {
       expect(await call('platform.settings.change', { ...(current as object), person_id: randomUUID() })).toMatch(/^EBMR-IAM-043/);
       expect(await call('platform.settings.change', { ...(current as object), role_code: 'SYSTEM_ADMINISTRATOR' })).toMatch(/^EBMR-IAM-043/);
       expect(await call('Platform settings', current)).toMatch(/^EBMR-IAM-043/);
-      expect(await call('platform.nothing.here', current)).toMatch(/PERMISSION_UNKNOWN/);
+      // A denied evaluation is raised as the platform's refusal, with the JSON detail that lets the
+      // guarded-command wrapper log it after the rollback (F72).
+      await expect(call('platform.nothing.here', current)).rejects.toThrow(/^EBMR-PLAT-006 permission platform\.nothing\.here denied: .*PERMISSION_UNKNOWN/);
       await client.query('rollback');
     } finally {
       client.release();

@@ -382,6 +382,9 @@ create index retention_dependency_dependant on records.retention_dependency (dep
 
 create table records.retention_hold (
   id                uuid primary key default gen_random_uuid(),
+  -- Placement order of holds, installation-wide: a purge approval records the highest number placed on
+  -- its record and closure when it was given, so a hold placed later voids it (owner decision 0004).
+  hold_no           bigint generated always as identity unique,
   record_key        text not null,
   aggregate_type    text not null,
   aggregate_id      text not null,
@@ -429,6 +432,9 @@ create table records.true_copy (
 create index true_copy_record on records.true_copy (record_key);
 
 -- QA approval to dispose of one record after its retention ended (DI-47: who approved).
+-- hold_watermark: the highest retention_hold.hold_no placed on the record or on any record depending
+-- on it when the approval was given (0 when none), taken under their blocker-epoch locks. A hold placed
+-- later (legal or DI investigation) voids the approval, also after its release (owner decision 0004).
 create table records.purge_approval (
   id                     uuid primary key default gen_random_uuid(),
   schedule_id            uuid not null references records.retention_schedule (id),
@@ -437,6 +443,7 @@ create table records.purge_approval (
   approval_signature_id  uuid not null,
   reason                 text not null check (length(btrim(reason)) > 0),
   retain_until           date not null,
+  hold_watermark         bigint not null check (hold_watermark >= 0),
   true_copy_id           uuid references records.true_copy (id),
   recorded_at            timestamptz not null default clock_timestamp()
 );

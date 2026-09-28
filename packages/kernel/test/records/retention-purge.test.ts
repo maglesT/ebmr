@@ -5,6 +5,7 @@ import { verifyChain } from '../../src/audit/verify.ts';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { buildTrueCopyBundle, registerTrueCopy, verifyTrueCopyBundle } from '../../src/records/true-copy.ts';
 import { raiseIncident } from '../../src/records/incidents.ts';
+import { closeDiInvestigation, openDiInvestigation } from '../../src/records/investigations.ts';
 import type { RetentionInputs } from '../../src/records/retention.ts';
 import {
   approvePurge,
@@ -501,10 +502,20 @@ describe('Phase 1 exit: retention and purge hardening', () => {
     await withCommand(db.app, again(author), (c) => linkRetentionDependency(c, lotKey, `batch:${batch}`, 'COMPONENT_LOT_CONSUMED'));
     await withCommand(db.app, again(author), (c) => updateRetentionInputs(c, `batch:${batch}`, { expiryDate: '2010-02-28' }, 'expiry corrected'));
     expect((await retentionOf(db.app, 'component_lot', lot)).effective).toMatchObject({ status: 'DATED', retainUntil: '2011-02-28' });
-    // Neither the lot's nor the batch's disposal can be approved by that person.
-    await expect(approveDisposal(db, author, lotKey, 'retention ended')).rejects.toThrow(`EBMR-REC-035 the approver entered retention inputs or dependency links that decide when ${lotKey}`);
-    await expect(approveDisposal(db, author, `batch:${batch}`, 'retention ended')).rejects.toThrow('EBMR-REC-035');
+    // Neither the lot's nor the batch's disposal can be approved by that person: the signature is refused
+    // (the disposal content names the authors, INV-03) or, failing that, approve_purge refuses them.
+    await expect(approveDisposal(db, author, lotKey, 'retention ended')).rejects.toThrow(/EBMR-ESIG-044|EBMR-REC-035/);
+    await expect(approveDisposal(db, author, `batch:${batch}`, 'retention ended')).rejects.toThrow(/EBMR-ESIG-044|EBMR-REC-035/);
     expect(await scalar<string>(db.app, 'select count(*)::text as v from records.purge_approval where record_key = $1', [lotKey])).toBe('0');
+    // The database's own rule: a signature made before the person became an author does not let them approve.
+    const other = await batchWithRecords(PAST_BATCH);
+    const early = await signFor(db, author, await disposalAggregate(db, `batch:${other}`), 'RECORD_DISPOSAL_APPROVED', 'DISPOSABLE');
+    const dependant = await batchWithRecords({ ...PAST_BATCH, expiryDate: '2009-12-31' });
+    await withCommand(db.app, again(author), (c) => linkRetentionDependency(c, `batch:${other}`, `batch:${dependant}`, 'REWORKED_INTO'));
+    await expect(withCommand(db.app, again(author), (c) => approvePurge(c, `batch:${other}`, early, 'retention ended'))).rejects.toThrow(
+      `EBMR-REC-035 the approver entered retention inputs or dependency links that decide when batch:${other}`,
+    );
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from records.purge_approval where record_key = $1', [`batch:${other}`])).toBe('0');
     // An independent approver can; but once the approver changes an input of a dependant, the approval no longer counts for the purge.
     await approveDisposal(db, qa2, lotKey, 'retention ended; inputs reviewed');
     await withCommand(db.app, again(qa2), (c) => updateRetentionInputs(c, `batch:${batch}`, { distributionDate: '2009-05-01' }, 'distribution date recorded'));
@@ -649,5 +660,92 @@ describe('Phase 1 exit: retention and purge hardening', () => {
       },
     );
     if (created) expect((await retentionOf(db.app, 'batch', viaContext)).siteZone).toBe('Asia/Kolkata');
+  });
+});
+
+describe('owner decision 0004: a hold voids the disposal approvals given before it', () => {
+  // The first approver's signature stays valid as a signature (esig refuses them a second one on the same
+  // disposal, EBMR-ESIG-042), so the new approval comes from another QA reviewer.
+  let qa3: SeededActor;
+  beforeAll(async () => {
+    qa3 = await signerActor(db, 'QA_REVIEWER', 'QA Deputy after the hold');
+  });
+  const approveAgain = (key: string) => approveDisposal(db, qa3, key, 'retention ended; hold released, inputs and archive reviewed again');
+  const signatureOf = (approvalId: string) => scalar<string>(db.app, 'select approval_signature_id::text as v from records.purge_approval where id = $1', [approvalId]);
+  const rows = (batch: string) => scalar<string>(db.app, 'select count(*)::text as v from stub_b4.batch_entry where batch_id = $1', [batch]);
+
+  it('[DI-47][INV-22] an approval given before a legal hold no longer authorises the purge after the release, nor does its signature; a new approval does (EBMR-REC-041)', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const before = await approve(key);
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'product liability claim', 'LEGAL-0004'));
+    await expect(runPurge(key)).rejects.toThrow('EBMR-REC-032');
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'claim settled'));
+    // The approval given before the hold is void, also after the release.
+    await expect(runPurge(key)).rejects.toThrow(
+      `EBMR-REC-041 the disposal approval ${before} of ${key} was given before the legal hold LEGAL-0004 was placed on ${key}; after a hold the disposal needs a new approval`,
+    );
+    // Its signature cannot carry a new approval either: the decision is taken again after the hold.
+    await expect(withCommand(db.app, again(qa2), async (c) => approvePurge(c, key, await signatureOf(before), 'retention ended'))).rejects.toThrow(
+      /EBMR-REC-041 the disposal-approval signature of .* was made before the legal hold LEGAL-0004 on .* was released/,
+    );
+    expect(await rows(batch)).toBe('1');
+    // A new approval, signed after the release and meeting every current rule, authorises the purge.
+    const after = await approveAgain(key);
+    expect(after).not.toBe(before);
+    const tombstone = await runPurge(key);
+    expect(await scalar<string>(db.app, 'select approval_id::text as v from records.tombstone where id = $1', [tombstone])).toBe(after);
+    expect(await rows(batch)).toBe('0');
+    expect((await inv22Violations(db.app)).filter((v) => v.detail.includes(batch))).toEqual([]);
+  });
+
+  it('[DI-47][INV-22] a legal hold on a record depending on it voids the approval of the supporting record (EBMR-REC-041)', async () => {
+    const lot = randomUUID();
+    const lotKey = `component_lot:${lot}`;
+    const batch = await batchWithRecords(PAST_BATCH);
+    await withCommand(db.app, again(operator), (c) => c.query("insert into stub_b4.lot_record (lot_id, note) values ($1, 'received')", [lot]));
+    await withCommand(db.app, again(qa), async (c) => {
+      await createRetentionSchedule(c, 'component_lot', lot, 'COMPONENT_LOT_RECORD', { markets: ['IN'] });
+      await linkRetentionDependency(c, lotKey, `batch:${batch}`, 'COMPONENT_LOT_CONSUMED');
+    });
+    const before = await approve(lotKey);
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'regulatory inspection request', 'INSP-0004'));
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'inspection closed'));
+    await expect(runPurge(lotKey)).rejects.toThrow(`EBMR-REC-041 the disposal approval ${before} of ${lotKey} was given before the legal hold INSP-0004 was placed on batch:${batch}`);
+    expect(await scalar<string>(db.app, 'select count(*)::text as v from stub_b4.lot_record where lot_id = $1', [lot])).toBe('1');
+    await approveAgain(lotKey);
+    await expect(runPurge(lotKey)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-47][DI-50][INV-22] a DI-investigation hold voids the approval too; after the investigation closes a new approval authorises the purge (EBMR-REC-041)', async () => {
+    const investigator = await testActor(db, { roleCode: 'CSV_DI_LEAD', legalName: 'DI investigator' });
+    const from = await scalar<Date>(db.app, 'select clock_timestamp() as v');
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const before = await approve(key);
+    // The operator who wrote the batch is investigated: the batch is linked and held.
+    const id = await withCommand(db.app, again(investigator), (c) =>
+      openDiInvestigation(c, { subjectPersonId: operator.personId, windowFrom: from, windowTo: new Date(from.getTime() + 3_600_000), concern: 'entries made after the fact' }),
+    );
+    await expect(runPurge(key)).rejects.toThrow('EBMR-REC-032');
+    const signature = await signFor(db, qa2, { type: 'di_investigation', id }, 'DI_INVESTIGATION_CLOSED', 'OPEN');
+    await withCommand(db.app, again(qa2), (c) => closeDiInvestigation(c, id, { conclusion: 'no falsification', remediation: 'none required', approvalSignatureId: signature }));
+    await expect(runPurge(key)).rejects.toThrow(`EBMR-REC-041 the disposal approval ${before} of ${key} was given before the di investigation hold`);
+    await approveAgain(key);
+    await expect(runPurge(key)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-47][INV-22] a hold placed and released before the approval does not void it; the approval records the holds it was given after', async () => {
+    const batch = await batchWithRecords(PAST_BATCH);
+    const key = `batch:${batch}`;
+    const hold = await withCommand(db.app, again(qa), (c) => placeLegalHold(c, 'batch', batch, 'claim', 'LEGAL-EARLIER'));
+    await withCommand(db.app, again(qa), (c) => releaseLegalHold(c, hold, 'claim withdrawn'));
+    const approval = await approve(key);
+    const { rows: marks } = await db.app.query<{ watermark: string; hold_no: string }>(
+      'select a.hold_watermark::text as watermark, h.hold_no::text as hold_no from records.purge_approval a, records.retention_hold h where a.id = $1 and h.id = $2',
+      [approval, hold],
+    );
+    expect(marks[0]?.watermark).toBe(marks[0]?.hold_no);
+    await expect(runPurge(key)).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 });

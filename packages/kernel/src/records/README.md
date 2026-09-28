@@ -86,12 +86,25 @@ proposed starting register for customer QA to review and approve.
   transitively, recomputed and stored in the same transaction whenever a dependant's inputs change.
 - **Holds**: `records.place_legal_hold` / `release_legal_hold`; DI-investigation holds are placed and
   released only by the investigation. A hold on a record or on any record depending on it blocks disposal.
+- **A hold voids earlier disposal approvals** (owner decision 0004): a hold (legal or DI investigation)
+  placed on a record, or on any record depending on it, voids every purge approval given before it was
+  placed, also after its release. Holds carry a placement number (`retention_hold.hold_no`); an approval
+  records the highest number on its record and closure when it was given (`purge_approval.hold_watermark`,
+  under the closure's schedule and blocker-epoch locks, so a concurrent hold is either seen or numbered
+  after it). `purge` refuses an approval with a later hold on the closure (EBMR-REC-041), and
+  `approve_purge` refuses a signature made before the release of any hold on the closure (EBMR-REC-041),
+  so the old decision cannot be replayed. After the release the disposal needs a new signature and
+  approval under the rules in force (approver independence, disposal refusals, true-copy coverage).
+  esig refuses the first approver a second signature on the same disposal while the first stays valid
+  (EBMR-ESIG-042), so today another QA reviewer gives it, unless the disposal content (0720) includes
+  `records.hold_watermark`.
 - **Purge**: `records.approve_purge(record_key, signature_id, reason[, true_copy_id])` (a person;
   only when eligible; never a person who entered a retention input version of the record or of a
   record depending on it, or linked a dependency in that closure: EBMR-REC-035) then
   `records.purge(record_key)` (reason code and reason text required, EBMR-REC-036). Refuses when OPEN,
   on or before retain-until, under any disposal blocker, without an approval matching the current
-  retain-until by a person who is (still) none of those authors (EBMR-REC-033), or when the chain
+  retain-until by a person who is (still) none of those authors (EBMR-REC-033) and given after every
+  hold on the record and its closure (EBMR-REC-041), or when the chain
   does not verify. Seals a checkpoint of the record as kept; when the approval cites an archived true
   copy, that copy must cover exactly this head and hold every table the purge deletes rows from
   (EBMR-REC-038, so the archive is complete at purge time). Deletes the record's rows from every registered
@@ -105,8 +118,8 @@ proposed starting register for customer QA to review and approve.
   verifies when it matches the tombstone's hash or the live event at that sequence number, so heads of
   a chain written again after its purge verify too. `records.inv22_violations()` is the invariant
   query (must return no rows): DELETE/TRUNCATE grants to the app on GMP tables, purges on or before
-  retain-until, under hold, of an undeclared aggregate type or of a PERMANENT record, tombstones
-  without checkpoint, writes after purge.
+  retain-until, under hold, of an undeclared aggregate type or of a PERMANENT record, under an
+  approval a later hold voided, tombstones without checkpoint, writes after purge.
 
 ## True copies
 
@@ -189,8 +202,11 @@ typed at closure (they are stored with the signature id in the closure row).
 
 Raising and linking incidents are checked at the actor's location (session site and room), so a person
 whose grant is limited to a site or room can report a failure where it happens; everything else acts on
-installation-wide records and needs a grant not limited to a site, area or product. The time monitor
-raises incidents through `platform.raise_time_incident` under its service account. Not gated:
+installation-wide records and needs a grant not limited to a site, area or product. Time faults reach
+the incident register through the platform module: the drift monitor raises them itself, and a time
+service (source SYSTEM) reports the others through `platform.report_time_fault`, which checks
+`platform.time_check.record` (PLATFORM.TIME_CHECK_RECORD); `platform.raise_time_incident` is owner-only
+and not callable by the application (F69). Not gated:
 `lock_blocker_epoch` (a derived concurrency token taken inside the disposition transaction, which is
 itself gated; the only rows it may add are the DI-50 link and hold an open investigation already
 requires, and it refuses administrators when it does) and the read functions.
@@ -213,5 +229,6 @@ requires, and it refuses administrators when it does) and the read functions.
   someone else), 020-023 retention inputs and schedules, 024 aggregate type not declared for retention
   (or retention key not allowed for it), 030-039 disposal and purge (035 also: the approver entered
   retention inputs or dependency links; 038 also: the cited copy leaves out a table; 039 disposal
-  signature by someone else), 040 holds, 050-056 incidents, 060-065 investigations (065 closure signature by someone
+  signature by someone else), 040 holds, 041 a hold placed after the disposal approval (or released after
+  its signature) voids it, 050-056 incidents, 060-065 investigations (065 closure signature by someone
   else), 070 true copies. Signature refusals keep their EBMR-ESIG codes (070 not valid for this use).

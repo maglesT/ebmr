@@ -240,6 +240,39 @@ language sql stable security definer set search_path = pg_catalog, records, kern
   select d.linked_by_person from records.retention_dependency d join closure c on c.schedule_id = d.supporting_schedule_id
 $$;
 
+-- The record and every record depending on it, transitively (schedule ids, in id order).
+create function records.retention_closure(p_schedule_id uuid) returns uuid[]
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  with recursive closure(schedule_id) as (
+    select p_schedule_id
+    union
+    select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
+  )
+  select array_agg(schedule_id order by schedule_id) from closure
+$$;
+
+-- The highest hold number placed on the record or on any record depending on it (0 when none): what
+-- a purge approval records as its watermark. It only grows; the disposal content provider (0720) can
+-- include it so that a hold also changes what a disposal signature covers.
+create function records.hold_watermark(p_schedule_id uuid) returns bigint
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  select coalesce(max(h.hold_no), 0)
+  from records.retention_hold h join records.retention_schedule s on s.record_key = h.record_key
+  where s.id = any(records.retention_closure(p_schedule_id))
+$$;
+
+-- Owner decision 0004: a hold (legal or DI investigation) placed on a record, or on any record
+-- depending on it, voids every purge approval given before it was placed, also once it is released;
+-- the disposal then needs a new approval under the rules in force. The first hold on the closure
+-- placed after the approval (hold_no above its watermark), or nothing when the approval still counts.
+create function records.hold_voiding_approval(p_approval records.purge_approval, p_closure uuid[]) returns records.retention_hold
+language sql stable security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
+  select h.* from records.retention_hold h
+  join records.retention_schedule s on s.record_key = h.record_key
+  where s.id = any(p_closure) and h.hold_no > p_approval.hold_watermark
+  order by h.hold_no limit 1
+$$;
+
 create function records.approve_purge(p_record_key text, p_approval_signature_id uuid, p_reason text, p_true_copy_id uuid default null)
 returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, records, kernel, pg_temp as $$
@@ -247,6 +280,10 @@ declare
   v_sched records.retention_schedule%rowtype := records.schedule_for(p_record_key);
   v_refusal record;
   v_eff jsonb;
+  v_ids uuid[];
+  v_watermark bigint;
+  v_signed_at timestamptz;
+  v_released record;
   v_id uuid;
 begin
   if records.actor_is_machine() or p_approval_signature_id is null then
@@ -258,7 +295,14 @@ begin
   if records.is_blank(p_reason) then
     raise exception using errcode = 'P0001', message = 'EBMR-REC-035 a disposal approval needs a reason';
   end if;
-  perform 1 from records.retention_schedule where id = v_sched.id for update;
+  -- Serialise with every change that could extend retention or add a blocker, as purge does: the
+  -- schedules of the record and of everything depending on it, then their blocker epochs. A hold on
+  -- any of them is therefore placed either before this approval (and seen below) or after it (and then
+  -- above its watermark).
+  v_ids := records.retention_closure(v_sched.id);
+  perform 1 from records.retention_schedule where id = any(v_ids) order by id for update;
+  perform records.lock_blocker_epoch_row(s.aggregate_type, s.aggregate_id)
+  from records.retention_schedule s where s.id = any(v_ids) order by s.record_key;
   select * into v_refusal from records.disposal_refusals(v_sched.id) limit 1;
   if found then
     raise exception using errcode = 'P0001', message = format('%s %s', v_refusal.code, v_refusal.detail);
@@ -280,8 +324,26 @@ begin
     raise exception using errcode = 'P0001',
       message = format('EBMR-REC-039 the disposal-approval signature of %s was made by another person', v_sched.record_key);
   end if;
-  insert into records.purge_approval (schedule_id, record_key, approved_by_person, approval_signature_id, reason, retain_until, true_copy_id)
-  values (v_sched.id, v_sched.record_key, records.actor_person(), p_approval_signature_id, p_reason, (v_eff ->> 'retainUntil')::date, p_true_copy_id)
+  -- Owner decision 0004: the approval is a decision taken after every hold on the record and its
+  -- closure ended. A signature made before a hold was released (it cannot be made while one is in
+  -- force) belongs to the decision the hold voided, so the approver signs again.
+  select s.recorded_at into v_signed_at from esig.signature s where s.id = p_approval_signature_id;
+  select h.kind, h.record_key, coalesce(h.reference, '-') as reference, r.recorded_at as released_at into v_released
+  from records.retention_hold h
+  join records.retention_hold_release r on r.hold_id = h.id
+  join records.retention_schedule s on s.record_key = h.record_key
+  where s.id = any(v_ids) and r.recorded_at >= v_signed_at
+  order by r.recorded_at desc limit 1;
+  if found then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-REC-041 the disposal-approval signature of %s was made before the %s hold %s on %s was released; after a hold the disposal needs a new signature and approval',
+                       v_sched.record_key, lower(replace(v_released.kind, '_', ' ')), v_released.reference, v_released.record_key);
+  end if;
+  v_watermark := records.hold_watermark(v_sched.id);
+  insert into records.purge_approval (schedule_id, record_key, approved_by_person, approval_signature_id, reason, retain_until,
+                                      hold_watermark, true_copy_id)
+  values (v_sched.id, v_sched.record_key, records.actor_person(), p_approval_signature_id, p_reason, (v_eff ->> 'retainUntil')::date,
+          v_watermark, p_true_copy_id)
   returning id into v_id;
   return v_id;
 end
@@ -326,6 +388,7 @@ declare
   v_hashes bytea[];
   v_tombstone uuid;
   v_missing text;
+  v_void records.retention_hold%rowtype;
 begin
   -- Outline 5.4: every removal carries a reason code and a reason text (the audit trigger refuses the
   -- deletions without them; this says so before anything is locked).
@@ -337,12 +400,7 @@ begin
   perform iam.require_permission('RECORD.PURGE', '{}'::jsonb);
   -- Serialise with every change that could extend retention or add a blocker: the schedules of this
   -- record and of everything depending on it, and their blocker epochs (holds, incidents, investigations).
-  with recursive closure(schedule_id) as (
-    select v_sched.id
-    union
-    select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
-  )
-  select array_agg(schedule_id order by schedule_id) into v_ids from closure;
+  v_ids := records.retention_closure(v_sched.id);
   perform 1 from records.retention_schedule where id = any(v_ids) order by id for update;
   perform records.lock_blocker_epoch_row(s.aggregate_type, s.aggregate_id)
   from records.retention_schedule s where s.id = any(v_ids) order by s.record_key;
@@ -356,11 +414,20 @@ begin
 
   -- The approval must still come from a person who entered none of the entries that decide the date
   -- (an approver who changed the inputs afterwards no longer counts: F33).
+  -- It must also have been given after every hold placed on the record and its closure (owner decision
+  -- 0004): a hold placed after it voids it, also once released.
   select * into v_approval from records.purge_approval a
   where a.schedule_id = v_sched.id and a.retain_until = (v_eff ->> 'retainUntil')::date
     and a.approved_by_person not in (select records.retention_authors(v_sched.id))
   order by a.recorded_at desc limit 1;
-  if not found then
+  if found then
+    v_void := records.hold_voiding_approval(v_approval, v_ids);
+    if v_void.id is not null then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-REC-041 the disposal approval %s of %s was given before the %s hold %s was placed on %s; after a hold the disposal needs a new approval',
+                         v_approval.id, v_sched.record_key, lower(replace(v_void.kind, '_', ' ')), coalesce(v_void.reference, '-'), v_void.record_key);
+    end if;
+  else
     raise exception using errcode = 'P0001',
       message = format('EBMR-REC-033 no QA disposal approval for %s at its current retain-until %s by a person who entered none of its retention inputs or dependency links',
                        v_sched.record_key, v_eff ->> 'retainUntil');
@@ -561,6 +628,24 @@ begin
   return query
   select 'PURGED_PERMANENT_RECORD'::text, tb.record_key from records.tombstone tb where tb.retention_key = 'PERMANENT';
 
+  -- Owner decision 0004: no purge under an approval given before a hold on the record or on a record
+  -- that depended on it when it was purged.
+  return query
+  select 'PURGED_UNDER_APPROVAL_VOIDED_BY_HOLD'::text, tb.record_key || ' hold ' || h.id
+  from records.tombstone tb
+  join records.purge_approval pa on pa.id = tb.approval_id
+  join lateral (
+    with recursive closure(schedule_id) as (
+      select tb.schedule_id
+      union
+      select d.dependant_schedule_id from records.retention_dependency d join closure c on d.supporting_schedule_id = c.schedule_id
+      where d.recorded_at < tb.recorded_at
+    )
+    select array_agg(schedule_id) as ids from closure
+  ) cl on true
+  join records.retention_schedule s on s.id = any(cl.ids)
+  join records.retention_hold h on h.record_key = s.record_key and h.hold_no > pa.hold_watermark and h.recorded_at < tb.recorded_at;
+
   return query
   select 'PURGED_WHILE_ON_HOLD'::text, tb.record_key || ' hold ' || h.id
   from records.tombstone tb
@@ -597,6 +682,7 @@ grant execute on function records.open_blockers(text, text), records.has_disposi
                           records.register_true_copy(text, text, text),
                           records.approve_purge(text, uuid, text, uuid), records.purge(text),
                           records.verify_chain(text), records.verify_anchor(bigint), records.inv22_violations() to ebmr_app;
--- records.insert_only_trigger and records.retention_authors stay private.
+-- records.insert_only_trigger, retention_authors, retention_closure, hold_watermark and hold_voiding_approval
+-- stay private (the content providers of 0720 run as the owner).
 
 reset role;

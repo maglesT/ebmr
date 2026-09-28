@@ -5,7 +5,7 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { Instant } from '../../src/time/instant.ts';
 import { evaluateAtInstants, guardInstants } from '../../src/time/entry-time.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
@@ -424,12 +424,34 @@ describe('recorded_at is the database clock', () => {
     expect(india.site_utc_offset).toBe('05:30:00');
     const expected = (await sql<{ o: string }>("select platform.utc_offset($1, 'Asia/Kolkata')::text as o", [india.recorded_at]))[0]?.o;
     expect(india.site_utc_offset).toBe(expected);
-    // A terminal set to another zone is refused, not recorded with the wrong offset and calendar day.
-    await expect(addEntry(stepId, { itemNo: 2 }, await testActor(db, { siteZone: 'Europe/Berlin' }))).rejects.toThrow(
-      'EBMR-PLAT-023 the command declares the time zone Europe/Berlin, but the site\'s time zone is Asia/Kolkata',
-    );
-    await expect(addEntry(stepId, { itemNo: 3 }, await testActor(db, { siteZone: 'Mars/Olympus' }))).rejects.toThrow('EBMR-PLAT-017');
-    await expect(addEntry(stepId, { itemNo: 3 }, await testActor(db, { siteZone: 'IST' }))).rejects.toThrow('EBMR-PLAT-017');
+    // A terminal set to another zone is refused, not recorded with the wrong offset and calendar day:
+    // the identity module refuses the command itself (kernel.validate_actor_context, 0190), whatever it
+    // would write, because the site's zone is configuration and not the client's choice.
+    for (const zone of ['Europe/Berlin', 'Mars/Olympus', 'IST']) {
+      await expect(addEntry(stepId, { itemNo: 2 }, await testActor(db, { siteZone: zone }))).rejects.toThrow(
+        `EBMR-IAM-118 DI-27: the actor context declares the time zone ${zone}, but the site's time zone (policy site.zone) is Asia/Kolkata`,
+      );
+    }
+    await expect(withCommand(db.app, await testActor(db, { siteZone: 'Europe/Berlin' }), (c) => c.query('select 1'))).rejects.toThrow('EBMR-IAM-118');
+    // Defence in depth: a context that owner-level code installed without that check still cannot give
+    // an entry another zone (platform.entry_site_zone), nor an unknown one.
+    const client = await db.admin.connect();
+    try {
+      const zoneUnder = async (zone: string) => {
+        await client.query('begin');
+        try {
+          await client.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify(toDbContext({ ...(await testActor(db)), siteZone: zone }))]);
+          return (await client.query<{ z: string }>('select platform.entry_site_zone() as z')).rows[0]?.z;
+        } finally {
+          await client.query('rollback');
+        }
+      };
+      expect(await zoneUnder('Asia/Kolkata')).toBe('Asia/Kolkata');
+      await expect(zoneUnder('Europe/Berlin')).rejects.toThrow('EBMR-PLAT-023 the command declares the time zone Europe/Berlin, but the site\'s time zone is Asia/Kolkata');
+      await expect(zoneUnder('Mars/Olympus')).rejects.toThrow('EBMR-PLAT-017');
+    } finally {
+      client.release();
+    }
   });
 });
 
