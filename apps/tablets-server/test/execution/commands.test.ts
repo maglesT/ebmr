@@ -180,7 +180,8 @@ describe('commands', () => {
     expect(outcomeOf(both)).toBe('422:EBMR-EXE-073');
     // The released lot with values keyed by hand (no scale in this room): accepted, flagged, two-person.
     const ok = valueOf(await d.command('operator1', weigh('TEST-L26-0101')));
-    expect(ok.step?.entries.at(-1)?.data).toMatchObject({ container: expect.stringMatching(/^TEST-B\d{2}-\d{4}\/C1$/), source: 'MANUAL', lot: { id: 'TEST-L26-0101', status: 'RELEASED' } });
+    expect(ok.step?.entries.at(-1)?.data).toMatchObject({ source: 'MANUAL', lot: { id: 'TEST-L26-0101', status: 'RELEASED' } });
+    expect(String(ok.step?.entries.at(-1)?.data['container'])).toMatch(/^TEST-B\d{2}-\d{4}\/C1$/);
     expect(ok.step?.exceptions.map((e) => e.type)).toContain('MANUAL_ENTRY_FALLBACK');
     expect(await violations(server)).toEqual([]);
   }, 240_000);

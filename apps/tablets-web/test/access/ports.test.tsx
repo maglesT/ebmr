@@ -21,6 +21,7 @@ const { setTransport } = await import('../../src/api/client.ts');
 const { Provider } = await import('../../src/features/access/index.tsx');
 const { EsigDemoPage } = await import('../../src/features/access/EsigDemo.tsx');
 const { useBadgeTap, useSignatureCeremony } = await import('../../src/app/ports.tsx');
+const { base64UrlOfUtf8, previewIntent } = await import('../../src/features/access/calls.ts');
 type Ports = { tap: ReturnType<typeof useBadgeTap>; ceremony: ReturnType<typeof useSignatureCeremony> };
 
 const KIOSK = EXAMPLES['session-kiosk'].data as SessionView;
@@ -70,6 +71,7 @@ const manifestation = (person = KIOSK.person): ManifestationView => ({
 interface Recorded {
   method: string;
   path: string;
+  query: Record<string, string>;
   body: Record<string, unknown> | undefined;
 }
 type Answer = unknown;
@@ -84,7 +86,7 @@ const isAnswer = (v: unknown): v is { status: number; body: unknown } => typeof 
 
 const transport: FetchLike = (url, init) => {
   const u = new URL(url, 'http://test.local');
-  const r: Recorded = { method: init.method, path: u.pathname, body: init.body ? (JSON.parse(init.body) as Record<string, unknown>) : undefined };
+  const r: Recorded = { method: init.method, path: u.pathname, query: Object.fromEntries(u.searchParams), body: init.body ? (JSON.parse(init.body) as Record<string, unknown>) : undefined };
   recorded.push(r);
   const headers = { get: () => null };
   let a: unknown;
@@ -357,6 +359,88 @@ describe('SignatureCeremonyPort', () => {
     expect(await screen.findByRole('button', { name: 'Review again' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(await outcome).toMatchObject({ status: 'REFUSED', refusal: { refusal: { code: 'EBMR-ESIG-013' } } });
+  });
+});
+
+describe('the proposal of an exception disposition in the content preview', () => {
+  const RUN = '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a';
+  // Hindi, accented Latin, a check mark and a character outside the Basic Multilingual Plane.
+  const JUSTIFICATION = 'लेबल प्रिंटर एक बार अटका; लेबल दोबारा छापा गया। Café résumé: no impact ✓ 𝛼';
+  // What C3's server test encodes for this proposal: Buffer.from(JSON.stringify({outcome, justification}), 'utf8').toString('base64url').
+  const SERVER_ENCODED =
+    'eyJvdXRjb21lIjoiTk9fSU1QQUNUIiwianVzdGlmaWNhdGlvbiI6IuCksuClh-CkrOCksiDgpKrgpY3gpLDgpL_gpILgpJ_gpLAg4KSP4KSVIOCkrOCkvuCksCDgpIXgpJ_gpJXgpL47IOCksuClh-CkrOCksiDgpKbgpYvgpKzgpL7gpLDgpL4g4KSb4KS-4KSq4KS-IOCkl-Ckr-CkvuClpCBDYWbDqSByw6lzdW3DqTogbm8gaW1wYWN0IOKckyDwnZu8In0';
+  const disposition = (justification: string) => ({ kind: 'ENGINE_COMMAND' as const, runId: RUN, expectedVersion: 7, intent: { type: 'DISPOSITION_EXCEPTION' as const, exception: 'EX-1', outcome: 'NO_IMPACT' as const, justification } });
+  /** What the server's parseIntent does with the part after the bar (Buffer base64url, UTF-8, JSON). */
+  const serverParse = (intent: string): unknown => JSON.parse(Buffer.from(intent.slice(intent.indexOf('|') + 1), 'base64url').toString('utf8'));
+  /** The signed envelope of the exception as C3 binds it: the record plus proposedDisposition {outcome, justification, deviationRef}. */
+  const boundHash = (p: { outcome: string; justification: string }) =>
+    sha256Hex(canonicalJson({ aggregate_type: 'batch_exception', aggregate_id: `${RUN}:EX-1`, content_version: 3, content: { title: 'Label printer jammed', status: 'OPEN', proposedDisposition: { outcome: p.outcome, justification: p.justification, deviationRef: null } } }));
+
+  it('[DI-37] every other signing previews the plain meaning', () => {
+    expect(previewIntent('PERFORMED', { kind: 'ESIG_STUB', stubId: STUB })).toBe('PERFORMED');
+    expect(previewIntent('VERIFIED', { kind: 'ENGINE_COMMAND', runId: RUN, expectedVersion: 7, intent: { type: 'VERIFY', stepKey: 'p-blend@', meaning: 'VERIFIED' } })).toBe('VERIFIED');
+    expect(previewIntent('STAGE_SIGNED_OFF', { kind: 'ENGINE_COMMAND', runId: RUN, expectedVersion: 7, intent: { type: 'SIGN_OFF_STAGE', stageKey: 'ST-1@' } })).toBe('STAGE_SIGNED_OFF');
+  });
+
+  it('[DI-37] a disposition previews its proposal byte for byte as the server encodes it; non-ASCII text round-trips through the server parser', () => {
+    const intent = previewIntent('EXCEPTION_DISPOSITIONED', disposition(JUSTIFICATION));
+    expect(intent).toBe(`EXCEPTION_DISPOSITIONED|${SERVER_ENCODED}`);
+    expect(intent).toMatch(/^EXCEPTION_DISPOSITIONED\|[A-Za-z0-9_-]+$/);
+    expect(serverParse(intent)).toEqual({ outcome: 'NO_IMPACT', justification: JUSTIFICATION });
+    // A lone surrogate is escaped by JSON.stringify, so it too comes back unchanged (never replaced).
+    const odd = 'half a pair: \ud800 end';
+    expect(serverParse(previewIntent('EXCEPTION_DISPOSITIONED', disposition(odd)))).toEqual({ outcome: 'NO_IMPACT', justification: odd });
+    expect(base64UrlOfUtf8('')).toBe('');
+    expect(base64UrlOfUtf8('é')).toBe(Buffer.from('é', 'utf8').toString('base64url'));
+  });
+
+  it('[DI-37] the previewed proposal gives the hash the challenge binds for the same action', () => {
+    const action = disposition(JUSTIFICATION);
+    const previewed = serverParse(previewIntent('EXCEPTION_DISPOSITIONED', action)) as { outcome: string; justification: string };
+    expect(boundHash(previewed)).toBe(boundHash(action.intent));
+    // Any other text is another hash: the server refuses the challenge (EBMR-ESIG-013) instead of signing it.
+    expect(boundHash({ ...previewed, justification: `${JUSTIFICATION} ` })).not.toBe(boundHash(action.intent));
+  });
+
+  it('[DI-37][INV-03] the ceremony previews, challenges and signs one frozen action: a change to the caller\'s object afterwards is not sent', async () => {
+    const text = JSON.stringify({ aggregate_type: 'batch_exception', aggregate_id: `${RUN}:EX-1`, content: { proposedDisposition: { outcome: 'NO_IMPACT', justification: JUSTIFICATION, deviationRef: null } }, content_version: 3 });
+    const content: SignableContentView = {
+      aggregateType: 'batch_exception',
+      aggregateId: `${RUN}:EX-1`,
+      contentVersion: '3',
+      canonicalText: text,
+      contentHash: sha256Hex(text),
+      meaning: 'EXCEPTION_DISPOSITIONED',
+      meaningText: 'I dispositioned this exception.',
+      title: 'Exception dispositioned: Exception EX-1: Label printer jammed',
+      preview: true,
+      rendering: { kind: 'batch_exception', disposition: { proposed: { outcome: 'NO_IMPACT', justification: JUSTIFICATION, deviationRef: null } } },
+    };
+    const base = challenge(['PIN']);
+    answers['GET /api/esig/content'] = content;
+    answers['POST /api/esig/challenges'] = { ...base, aggregateType: 'batch_exception', aggregateId: `${RUN}:EX-1`, contentVersion: '3', contentHash: content.contentHash, meaning: 'EXCEPTION_DISPOSITIONED', manifestation: { ...base.manifestation, meaning: 'EXCEPTION_DISPOSITIONED' } };
+    answers['POST /api/esig/sign'] = { manifestation: { ...manifestation(), aggregateType: 'batch_exception', aggregateId: `${RUN}:EX-1`, contentVersion: '3', contentHash: content.contentHash, meaning: 'EXCEPTION_DISPOSITIONED' }, result: null };
+    const action = disposition(JUSTIFICATION);
+    const request = { aggregateType: 'batch_exception', aggregateId: `${RUN}:EX-1`, meaning: 'EXCEPTION_DISPOSITIONED', action, title: 'Disposition exception EX-1' };
+    const ports = renderPorts();
+    let outcome: ReturnType<Ports['ceremony']['sign']> = Promise.resolve({ status: 'CANCELLED' });
+    act(() => {
+      outcome = ports.ceremony.sign(request);
+    });
+    const shown = await screen.findByRole('region', { name: 'Proposed disposition' });
+    expect(within(shown).getByText(JUSTIFICATION)).toBeTruthy();
+    expect(calls('/api/esig/content')[0]?.query).toEqual({ aggregateType: 'batch_exception', aggregateId: `${RUN}:EX-1`, intent: `EXCEPTION_DISPOSITIONED|${SERVER_ENCODED}` });
+    // The caller's own object changes after the ceremony started: nothing of it reaches the challenge or the sign.
+    action.intent.justification = 'Changed after the preview.';
+    await userEvent.click(screen.getByRole('button', { name: 'Sign' }));
+    await tapBadge('04A10000000001');
+    await enterPin('Enter your PIN to sign', '482913');
+    expect(await screen.findByText('Signed.')).toBeTruthy();
+    const sent = disposition(JUSTIFICATION);
+    expect(calls('/api/esig/challenges')[0]?.body).toMatchObject({ clientContentHash: content.contentHash, meaning: 'EXCEPTION_DISPOSITIONED', action: sent });
+    expect(calls('/api/esig/sign')[0]?.body).toMatchObject({ action: sent });
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect((await outcome).status).toBe('SIGNED');
   });
 });
 

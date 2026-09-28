@@ -2,8 +2,8 @@
  * The e-signature ceremony of the web app (module C1; plan section 6): the SignatureCeremonyPort. One signing at a
  * time runs the ui-kit ceremony machine and renders its SignatureDialog.
  *
- *  1. content: GET /api/esig/content (intent = the meaning code); the machine refuses text whose SHA-256 is not the
- *     server's hash;
+ *  1. content: GET /api/esig/content (intent = the meaning code; for an exception disposition also the proposal,
+ *     from the action: see previewIntent); the machine refuses text whose SHA-256 is not the server's hash;
  *  2. kiosk: the signer taps (and, on TAP_PIN classes, enters the PIN): the challenge request carries that
  *     attribution; office: no tap;
  *  3. challenge: POST /api/esig/challenges with the client's hash of the text it showed (EBMR-ESIG-013 when the
@@ -25,7 +25,7 @@ import { api, deviceProof } from '../../api/client.ts';
 import { useBoot } from '../../app/boot.tsx';
 import { secondsUntil } from '../../app/clock.ts';
 import type { SignOutcome, SignRequest } from '../../app/ports.tsx';
-import { buildAttribution, failureOf } from './calls.ts';
+import { buildAttribution, failureOf, frozenRequest, previewIntent } from './calls.ts';
 import type { AccessController } from './controller.tsx';
 import { Latest, Vault } from './holders.ts';
 import type { Boot } from '../../app/boot.tsx';
@@ -52,13 +52,14 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
   const [tapStage, setTapStage] = useState<'badge' | 'pin'>('badge');
   const [switchError, setSwitchError] = useState<RefusalEnvelope | null>(null);
   const [switching, setSwitching] = useState(false);
-  const req = job.request;
+  // One frozen copy of the request for the whole ceremony: preview, challenge and sign carry the same action.
+  const [req] = useState(() => frozenRequest(job.request));
 
   const [machine] = useState(() =>
       machines.ceremonyMachine.provide({
         actors: {
           loadContent: fromPromise(async () => {
-            const r = await api.call(routes.esig.content, { query: { aggregateType: req.aggregateType, aggregateId: req.aggregateId, intent: req.meaning } });
+            const r = await api.call(routes.esig.content, { query: { aggregateType: req.aggregateType, aggregateId: req.aggregateId, intent: previewIntent(req.meaning, req.action) } });
             if (!r.ok) throw callError(r.error);
             return r.value;
           }),

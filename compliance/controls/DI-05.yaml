@@ -38,6 +38,12 @@ implemented_by:
     - "apps/tablets-server/src/features/designer/package-export.ts (ebmr.mbr-test-package v1: GMP stamp, content and package hashes, write-once file in the exchange directory)"
     - "apps/tablets-server/sql/0150_designer.sql (tab.mbr_test_package_export and the business entry on the version chain; GMP installation only)"
     - "apps/tablets-server/src/features/designer/simulation.ts (SIMULATION watermark on every simulation report)"
+    - "packages/recipe-core/sql/0200_execution_store.sql, 0210_execution_writers.sql (test batches and packages: sandbox-only writers, TEST- batch numbers, execution_violations() reports anything of the store in a GMP database)"
+    - "packages/recipe-core/src/blocks (availability SANDBOX_ONLY; G-09@1 and G-10@1; registry.sandboxOnly())"
+    - "packages/recipe-core/src/engine/definition.ts (DefineOptions.installation, default GMP; ENG-DEF-SANDBOX-ONLY)"
+    - "packages/recipe-core/src/execution/test-package.ts (strict parse of ebmr.mbr-test-package v1, hashes recomputed)"
+    - "apps/tablets-server/src/features/execution (package inbox and import, TEST- issue, TEST, NOT GMP watermark on every run view)"
+    - "apps/tablets-server/sql/0200_execution.sql (tab.sandbox_lot: TEST- lots only, insert-only, audited)"
   invariants:
     - "INV-18"
   guards:
@@ -46,6 +52,10 @@ implemented_by:
     - "sandbox.assert_identifier_allowed(kind, value) and trigger sandbox.guard_identifier: GMP refuses TEST- identifiers (EBMR-SBX-021), the sandbox refuses anything else (EBMR-SBX-022)"
     - "sandbox.assert_batch_issue_allowed(market states): GMP batches only from CURRENT or BRIDGING versions (EBMR-SBX-012)"
     - "assertInstallationKind at process start-up (EBMR-SBX-007); assertGmpOrigin on anything imported into GMP (EBMR-SBX-013)"
+    - "recipe.execution_actor: every execution writer refuses a GMP installation (EBMR-SBX-011) and administrators"
+    - "recipe.import_test_package: package and content hashes recomputed in SQL, file name = package hash, GMP source stamp without watermark (EBMR-EXE-016..019)"
+    - "recipe.begin_issue / issue_execution: TEST-B<yy>-<nnnn> from a sequence, only the number allocated in this transaction (EBMR-EXE-012); guard trigger on recipe.batch_execution"
+    - "defineBatch(installation GMP) refuses SANDBOX_ONLY block versions (ENG-DEF-SANDBOX-ONLY); test runs execute only SANDBOX definitions (EBMR-EXE-064)"
   db_constraints:
     - "sandbox.installation: one row, written by the migration; update, delete, truncate and a second insert refused for every role including the owner (EBMR-SBX-002/003)"
     - "GMP databases: CONNECT revoked from PUBLIC and granted to ebmr_app and ebmr_authn only; sandbox databases: CONNECT for ebmr_sandbox only (sandbox.apply_connect_policy)"
@@ -85,6 +95,12 @@ tests:
   - "apps/tablets-server/test/designer/simulation.test.ts > simulation (worker thread, SIMULATION watermark) > [DI-04][DI-05] simulates the saved content with full coverage, stamped SIMULATION, writing nothing"
   - "apps/tablets-server/test/designer/references.test.ts > installation > [DI-05] the designer routes do not exist on the sandbox installation"
   - "tools/e2e/specs/designer/designer.spec.ts > designer > [PR-03][DI-04][DI-05][PR-06] author a master from the template, find and fix, justify, save, simulate and send to the sandbox"
+  - "apps/tablets-server/test/execution/store.test.ts > installation (DI-05, INV-18) > [INV-18][DI-05] a GMP database refuses importing packages and issuing test batches; anything that lands there anyway is reported"
+  - "apps/tablets-server/test/execution/store.test.ts > installation (DI-05, INV-18) > [INV-18][DI-05] the sandbox refuses a batch number that is not TEST- and one not allocated in the issuing transaction"
+  - "apps/tablets-server/test/execution/store.test.ts > privileges and the role map > [DI-05][ADR-0012] the application roles (ebmr_sandbox here, ebmr_app in GMP) cannot insert, update or delete execution records"
+  - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [DI-05][INV-18] only packages exported from GMP are imported; a changed package or a wrong file name is refused; the listing shows why"
+  - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [DI-05][PR-10][PR-01] issue: every header input is required (a count is positive); the TEST- number, the engine version, the block registry and the policy are pinned"
+  - "packages/recipe-core/test/blocks/status.test.ts > G-09@1 and G-10@1 are sandbox only (decision D3) > [DI-05][INV-18] defineBatch refuses G-09@1 and G-10@1 for a GMP installation, by default and explicitly, and names Phase 3"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -26,12 +26,14 @@ implemented_by:
     - "packages/recipe-core/src/engine/exceptions.ts (tiers and blocking)"
     - "apps/tablets-web/src/features/designer/components/DocumentView.tsx (limit tiers, targets and time bounds edited as decimal text through DecimalField)"
     - "apps/tablets-server/src/features/designer/validation.ts (GMP-LIMITS findings located at the parameter)"
+    - "apps/tablets-server/src/features/execution/views.ts (limits with tier and source reference, the stored verdict of each attempt, blocking exceptions with what to do)"
   guards:
     - "checkLimitSpec / checkNestingAfterRounding: alert inside internal action inside registered and validated, exactly and after each tier rounds"
     - "evaluateLimits: value kept as acquired; outermost breached tier decides: REGISTER_ITEM, STOP_UNTIL_DEVIATION, REGISTRATION_RELEVANT_DEVIATION (QA-only, release screen, sign-off blocked); operatorMayClear always false"
     - "evaluateAllApply: every criterion with its own rounding and sampling; sampling plan = union"
     - "At recording the value is stored as acquired and evaluated: ALERT a register item; INTERNAL_ACTION stops the step and the steps after it until a deviation is linked; REGISTERED or VALIDATED a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off; the operator cannot clear it"
     - "Loop endpoint limits are judged at loop exit; every iteration is kept"
+    - "Sandbox test runs: an internal-action breach is recorded as acquired, the exception blocks, and signing the step is refused (BLOCKED_BY_EXCEPTION) until a supervisor links a deviation"
 tests:
   - "packages/recipe-core/test/flow/model.test.ts > [PR-08] a GMP value sent as a JSON number is refused (decimals travel as strings)"
   - "packages/recipe-core/test/limits/all-apply.test.ts > [PR-08] the sampling plan is the union of what each criterion needs"
@@ -73,6 +75,7 @@ tests:
   - "apps/tablets-server/test/designer/template.test.ts > dc-mini template against the real adapters (day-1 spike) > [DI-04][INV-19][INV-20][PR-08] simulates with full coverage of steps, limit bounds, time constraints and calculations"
   - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [PR-08] a limit-tier nesting error is named with its rule and control"
   - "apps/tablets-web/test/designer/editor.test.tsx > designer screen > [PR-08] a limit is edited as decimal text; letters are not accepted and nothing but a decimal string enters the content"
+  - "apps/tablets-server/test/execution/commands.test.ts > commands > [PR-08] an internal-action breach blocks until the supervisor links a deviation"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

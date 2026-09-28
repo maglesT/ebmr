@@ -64,6 +64,8 @@ version). `unregistered(catalogue)` names the catalogue types still without an e
 | G-05 | Observation capture | phase | paper original attached makes a second-person check mandatory | PR-11, DI-28, DI-41 |
 | G-07 | Weighing and dispensing | phase | lot status, expiry, retest, identity, material hard blocks (G07-LOT-*, G07-WRONG-MATERIAL); net = gross - tare computed, never typed (G07-NET); every BOM line dispensed (G07-BOM-INCOMPLETE); tolerance exception; manual fallback needs a second person; target without tolerance is a warning needing justification | PR-18, PR-19, PR-20, IN-23, IN-24, INV-25 |
 | G-08 | Identification and charge-in | phase | only planned containers of this batch and sub-lot, label matches, not consumed (G08-*); every planned container charged | PR-21, DI-30, IN-26 |
+| G-09@1 | Equipment status (manual attestation) | phase | SANDBOX_ONLY; an attestation per STATUS_CHECK equipment ref with its status label; any NO raises a blocking EQUIPMENT_STATUS_FAILED that QA dispositions; PERFORMED needs every ref attested (G09-INCOMPLETE) | PR-23, IN-25, DI-05 |
+| G-10@1 | Clearance checklist | phase | SANDBOX_ONLY; configured or default checklist; NOT_CONFIRMED raises a blocking CLEARANCE_FAILED that QA dispositions; NOT_APPLICABLE only where allowed (G10-NOT-APPLICABLE); previous batch recorded; always checked by a second person (G10-NO-CHECKER); meanings LINE_CLEARANCE_PERFORMED and LINE_CLEARANCE_VERIFIED | PR-26, PR-34, IN-21, DI-05 |
 | G-11 | Environmental condition check | phase | out-of-limit is an ENVIRONMENT_EXCURSION with notification of production and QA | PR-25, IN-39 |
 | G-12 | Sampling | phase | system-generated sample ids and labels; unplanned points refused (G12-NOT-PLANNED); shortfall exception | PR-29, IN-20 |
 | G-13 | IPC with readings and statistics | phase | every reading kept; categorical FAIL is IPC_RESULT_FAILED; repeats never replace | PR-29, IN-35, DI-29 |
@@ -83,15 +85,20 @@ Each block's exact controls are in its `controls` field; `report()` returns them
 ## Tests
 
 `test/blocks/golden.test.ts` (registry, contract completeness, schemas, every phase block's golden
-fixture through the engine), `test/blocks/material.test.ts` (G-07, G-08, G-22, G-23) and
+fixture through the engine), `test/blocks/status.test.ts` (G-09@1, G-10@1 and their GMP refusal), `test/blocks/material.test.ts` (G-07, G-08, G-22, G-23) and
 `test/blocks/process.test.ts` (G-03, G-05, G-11, G-12, G-13, G-15, G-24). Engine-level blocks are
 proven by `test/engine/*.test.ts`.
 
 ## Later phases
 
-G-06 (automated equipment phase), G-09 (equipment status), G-10 (room and line clearance), G-21
-(printed materials) and G-25 (sign-off, review and release) need database-backed status, device
-interfaces or the review work and arrive in Phase 3 and 4; `unregistered()` reports them. Material
+G-06 (automated equipment phase), G-21 (printed materials) and G-25 (sign-off, review and release) need
+database-backed status, device interfaces or the review work and arrive in Phase 3 and 4; `unregistered()`
+reports them. G-09@1 and G-10@1 are available in the sandbox only (`availability: 'SANDBOX_ONLY'`,
+`registry.sandboxOnly()`): the person attests equipment status and clearance by hand. Their GMP versions,
+with equipment, room and cleaning status from site services, arrive in Phase 3. `defineBatch` refuses the
+v1 versions in a GMP definition (ENG-DEF-SANDBOX-ONLY), and `recipe.execution_violations()` reports any of
+them held by a GMP database (DI-05, INV-18). `registry.fingerprint()` is the hash of every version's
+contract; a batch pins it at issue and is never run or replayed with other block versions (ADR 0010). Material
 lot status, expiry and identity arrive with each entry today; Phase 3 checks them against site
 services at the database. Rendering parts arrive with the UI (Phase 2 screens) and renderers (Phase 4).
 The edition blocks (TB-xx, IB-xx) register through `extend()`.

@@ -25,6 +25,10 @@ implemented_by:
     - "packages/recipe-core/src/validator (rules-structure, graph-checks, rules-data, guards)"
     - "packages/recipe-core/src/engine (engine.ts step(), advance.ts, guards.ts, steps.ts, invariants.ts)"
     - "packages/recipe-core/src/blocks/generic/engine-level.ts (G-19 flow control)"
+    - "packages/recipe-core/sql/0200_execution_store.sql, 0210_execution_writers.sql (one row per engine call, refusals included; hash chain; projection; execution_violations())"
+    - "packages/recipe-core/src/execution (ExecutionTx, issueBatch, replayExecution)"
+    - "packages/recipe-core/src/engine/replay.ts, codec.ts, actions.ts (replay at stored clocks; availableActions by dry run)"
+    - "apps/tablets-server/src/features/execution (command route: lock, engine roles, intent resolution, engine.step, append; timeline; verify-replay)"
   invariants:
     - "INV-19"
     - "INV-20"
@@ -38,6 +42,9 @@ implemented_by:
     - "Data-decided branches and loop exits are decided from recorded data, never by a person; operator choices and run-time sub-lot counts need a role and a reason (ENG-DECISION-MODE, ENG-REPLICATE-COUNT, ENG-LOOP-EXIT)"
     - "Batch on hold: nothing starts, completes or advances (ENG-BATCH-ON-HOLD); stale commands are refused (ENG-STALE)"
     - "checkInvariants after every command in the model-based tests: tokens safe and matching the enabled steps; no step started before its predecessors completed; simulator paths and engine completions agree"
+    - "recipe.append_execution: gapless sequence and hash chain (EBMR-EXE-023), state and events hashes recomputed in SQL, unique command id (EBMR-EXE-024); refused engine calls are rows with their refusal"
+    - "replayExecution: the stored rows re-executed with the pinned engine and block versions give the stored accepted flags, events and states row by row; a batch pinned to another engine or registry is refused (EBMR-EXE-061, 062)"
+    - "Screens offer only what the engine accepts (availableActions dry-runs engine.step); the command itself is decided again by the engine in the command transaction"
 tests:
   - "packages/recipe-core/test/flow/compile.test.ts > [DI-34] both fixtures compile to graphs that pass every structure gate"
   - "packages/recipe-core/test/flow/compile.test.ts > [DI-34] step N+1 is not enabled before step N completes"
@@ -123,6 +130,12 @@ tests:
   - "packages/recipe-core/test/engine/model.test.ts > model-based: the tablet fixtures > [DI-34][INV-19][INV-20][INV-25][INV-03] random command sequences on tablet-blister-packaging never break an invariant"
   - "packages/recipe-core/test/engine/model.test.ts > model-based: the tablet fixtures > [DI-34][INV-03][INV-25] adversarial commands injected at random points of the golden run are refused and the batch still completes"
   - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [DI-34][PR-01] an issue-time variant must be given from its declared values"
+  - "apps/tablets-server/test/execution/commands.test.ts > commands > [DI-34] starting a later step is refused, recorded as a refused row and shown on the timeline with its reason"
+  - "apps/tablets-server/test/execution/commands.test.ts > commands > [DI-34] a stale screen is answered 409 (ENG-STALE) and recorded; an idempotent resend returns the stored result without a second row"
+  - "apps/tablets-server/test/execution/commands.test.ts > commands > [DI-34] two commands at once on one run are serialised: one applies, the other is refused as stale; the rows stay gapless"
+  - "apps/tablets-server/test/execution/golden.test.ts > golden run of dc-mini (TEST- batch, sandbox) > [DI-34][DI-35][DI-37][INV-09][INV-10][INV-26][INV-40] runs every step to EXECUTION_COMPLETE; the model holds after every command; the signature count is recorded"
+  - "packages/recipe-core/test/engine/replay.test.ts > replay of stored execution rows > [DI-34] a tampered value, clock or state hash is reported at the row where it was changed"
+  - "packages/recipe-core/test/engine/actions.test.ts > availableActions agrees with step() > [DI-34] on random states of generated flows, every offered action is accepted by step and every withheld one refused with the same reason"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

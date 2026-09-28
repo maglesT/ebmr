@@ -142,12 +142,10 @@ export async function packageViews(app: AppContext): Promise<TestPackageView[]> 
   const imported = await importedPackages(app.pools.app);
   const byHash = new Map(imported.map((p) => [p.packageHash, p]));
   const out: TestPackageView[] = [];
-  const seen = new Set<string>();
   for (const p of await listInbox(app)) {
     const hash = p.pkg?.packageHash;
     if (hash && byHash.has(hash)) continue;
     out.push(packageView(app, p, undefined));
-    if (hash) seen.add(hash);
   }
   for (const p of imported) out.push(packageView(app, null, p));
   return out;

@@ -43,6 +43,9 @@ implemented_by:
     - "packages/ui-kit/src/identity/SignatureDialog.tsx"
     - "packages/ui-kit/src/identity/SignableContent.tsx"
     - "packages/ui-kit/src/identity/Manifestation.tsx"
+    - "packages/recipe-core/src/engine/signing-content.ts (batch_step, batch_stage, batch_exception, batch_point content; kernel envelope)"
+    - "packages/recipe-core/sql/0200_execution_store.sql, 0210_execution_writers.sql (versioned signed content tables registered with esig; content providers; disposition proposals)"
+    - "apps/tablets-server/src/features/execution/signable.ts (ENGINE_COMMAND: preview, prepare, dry run, apply)"
   invariants:
     - "INV-09"
     - "INV-10"
@@ -52,6 +55,9 @@ implemented_by:
     - "esig.on_signed_content_change (trigger on every registered signed table): a permitted change supersedes every affected signature in the same transaction through an insert-only SUPERSEDED_BY_CHANGE row"
     - "esig.assert_signature and esig.platform_signature_check: a signature is used only for its own record and meaning and only while valid (EBMR-ESIG-070)"
     - "esig.assert_change_triggers_ok: no challenge or signature while an invalidation trigger is missing or disabled (EBMR-ESIG-008)"
+    - "The preview is the content prepared at database time (sweep and PERFORMED finalisation); the challenge prepares it for real and the kernel refuses a differing hash (EBMR-ESIG-013)"
+    - "An exception disposition signs its proposed outcome, justification and deviation (proposedDisposition in the batch_exception content); a differing action at signing is refused (EBMR-EXE-086)"
+    - "apply asserts the signed content is unchanged by the command; any failure rolls back signature, seal and row together (EBMR-EXE-082, 083)"
   db_constraints:
     - "esig.signature_invalidation: insert-only and audited; one per signature"
     - "esig.signature: auth_event_id and challenge_id unique; seal required before commit (deferred constraint trigger esig_signature_sealed)"
@@ -80,6 +86,11 @@ tests:
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-37] every field of the record is shown, known and unknown, and the exact signed text is available with its hash"
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-37] changed content and expiry offer to start again; a lost answer that found nothing says not confirmed"
   - "packages/ui-kit/test/machines/ceremony.test.ts > [DI-37] content whose text does not hash to the server's hash is never signed; a changed record leads to \"changed\", then back to review"
+  - "apps/tablets-server/test/execution/signing.test.ts > signing an engine command > [DI-35][DI-37] PERFORMED binds the previewed content; the sign result is the step screen; the challenge names the block meaning"
+  - "apps/tablets-server/test/execution/signing.test.ts > exception dispositions (PR-49; Part 11 signature and record linking) > [DI-37][PR-49][INV-03] the proposed outcome and justification are in the signed content; the same QA reviewer prepares and signs"
+  - "apps/tablets-server/test/execution/signing.test.ts > exception dispositions (PR-49; Part 11 signature and record linking) > [DI-37][PR-49] a justification changed between the challenge and the signature is refused; nothing is signed"
+  - "apps/tablets-server/test/execution/signing.test.ts > superseded signatures (INV-09) > [INV-09][DI-37] data recorded after a PERFORMED signature on a step still in progress supersedes it in the kernel and in the engine alike"
+  - "packages/recipe-core/test/engine/signing-content.test.ts > signing content: what it includes and excludes > [INV-09][DI-37] recording data, an entry or a correction changes the step content; PERFORMED, VERIFIED and the status do not"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

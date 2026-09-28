@@ -118,6 +118,50 @@ exceptions never disappear (INV-41). The model-based tests run it after every co
 (`corrections.test.ts`), issue, stage frames and hold points (`stage.test.ts`), model-based property
 tests (`model.test.ts`) and the simulator/engine agreement (`agreement.test.ts`).
 
+## Phase 2 apps additions (module C3)
+
+**Installation.** `defineBatch(mbr, {installation})` defaults to `'GMP'`, which fails closed: a
+SANDBOX_ONLY block version (G-09@1, G-10@1) is refused with ENG-DEF-SANDBOX-ONLY, whose message names
+Phase 3 (DI-05, INV-18). Sandbox test runs pass `'SANDBOX'`.
+
+**Preparation for signing.** `prepareForSignature(def, state, target, actor, clock) -> {state, events,
+changed}` produces the system facts a signing command sees before its own guards: the sweep, and for
+SIGN_PERFORMED the finalisation. It shares its code with `step()`'s pre-dispatch part, so the two are
+identical by construction.
+- A PERFORMED signature on a step that is still in progress is invalidated when the step's signed content
+  changes afterwards (`resignAfterChange`). The signer must sign again, exactly as the kernel supersedes
+  the signature (INV-09).
+
+**Signing content (`signing-content.ts`).** The content of the four signable aggregates: `batch_step`,
+`batch_stage`, `batch_exception` and `batch_point`. The include and exclude lists are in the file header.
+- Excluded from the signed text: status, signatures, performers, targets, and exceptions raised by acts.
+  Also excluded are the times of facts computed while a step is prepared for signing (see the execution
+  README for why).
+- `signingEnvelope` is the kernel's canonical envelope. Its SHA-256 is the content hash a signature
+  binds.
+- `changedContents` and `touchedAggregates` decide what the store writes. `nextStepStarted` tells
+  whether a witnessed act can still be watched.
+- `engineSignatures` lists the signatures the engine holds, used to prove "kernel valid set = engine
+  valid set".
+
+**Actions (`actions.ts`).** `availableActions(def, state, actor, clock, {stepKey?})` works by dry run:
+each offered action is the real command run through `step()`, with a placeholder signature
+(`$dry-run`). Its verdict and refusal are therefore exactly what `step()` decides. A hold point offers
+one decision per disposition, each with its own meaning and the disposition as `target`.
+`performMeaning`, `checkMeaning` and `holdPointMeaning` name the meanings.
+
+**Codec (`codec.ts`).** A canonical JSON form of states, events and commands:
+- a bigint becomes `{"$u": "..."}` and a Map becomes `{"$m": [[k, v], ...]}`;
+- `$`, `~` and NUL are escaped;
+- only safe integers are allowed.
+
+`stateHash` and `eventsHash` are the SHA-256 of expr canonical JSON, which equals the database's
+`esig.canonical_json`.
+
+**Replay (`replay.ts`).** Folds ISSUE, COMMAND, PREPARE and SWEEP rows at their stored clocks. After every
+row it compares the accepted flag, the events hash and the state hash, and runs `checkInvariants`. It
+reports the first difference.
+
 ## Later phases
 
 Database-backed execution (SECURITY DEFINER transitions, locks, idempotency table, outbox), the

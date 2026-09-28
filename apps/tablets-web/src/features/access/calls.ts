@@ -3,10 +3,10 @@
  * so the proof matches the server's app.devices.identify), and the kiosk session calls. Secrets arrive as arguments,
  * go into one request body and are not kept anywhere.
  */
-import { routes, type Attribution, type CallError, type SessionView } from '@ebmr/api-contract';
+import { routes, type Attribution, type CallError, type SessionView, type SignableAction } from '@ebmr/api-contract';
 import type { machines } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
-import type { TapRequest } from '../../app/ports.tsx';
+import type { SignRequest, TapRequest } from '../../app/ports.tsx';
 import type { StoredDeviceKey } from '../../device/keystore.ts';
 
 /** The failure a machine actor throws for a call error (a lost answer is LOST: never re-send credentials). */
@@ -57,4 +57,43 @@ export async function switchCall(key: StoredDeviceKey, badgeUid: string, pin: st
 
 export async function sessionCall(): Promise<CallOutcome<SessionView>> {
   return wrap(await api.call(routes.session.get));
+}
+
+/** UTF-8 bytes of `text` as unpadded base64url (what node's Buffer.from(x, 'base64url') reads back byte for byte). */
+export function base64UrlOfUtf8(text: string): string {
+  let binary = '';
+  for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * The `intent` of the content preview (GET /api/esig/content) for a signing. It is the meaning code, except for an
+ * exception disposition: its proposal is part of the signed content (C3), so the preview names it as
+ * `<meaning>|<base64url of the UTF-8 JSON {outcome, justification}>`, taken only from the action that the challenge
+ * and the sign request also carry (never from dialog state), so the signer previews and hashes exactly the proposal
+ * the challenge binds. The server reads those two members; the linked deviation comes from the record itself.
+ */
+export function previewIntent(meaning: string, action: SignableAction): string {
+  if (action.kind === 'ENGINE_COMMAND' && action.intent.type === 'DISPOSITION_EXCEPTION') {
+    const { outcome, justification } = action.intent;
+    return `${meaning}|${base64UrlOfUtf8(JSON.stringify({ outcome, justification }))}`;
+  }
+  return meaning;
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === 'object') {
+    for (const v of Object.values(value)) deepFreeze(v);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+/**
+ * A frozen copy of a signing request, taken once when the ceremony starts: the preview intent, the challenge and
+ * the sign request all read this one copy, so a caller changing its own object meanwhile cannot make the signed
+ * command differ from what was previewed (the server refuses that too: EBMR-ESIG-013 or EBMR-EXE-086).
+ */
+export function frozenRequest(request: SignRequest): SignRequest {
+  return deepFreeze(structuredClone(request));
 }
