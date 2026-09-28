@@ -8,7 +8,12 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@ebmr/expr": "workspace:0.1.0",
     "@ebmr/kernel": "workspace:0.1.0",
-    "@ebmr/expr": "workspace:0.1.0"
+    "pg": "8.23.0",
+    "xstate": "5.33.2"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
   }
 }
