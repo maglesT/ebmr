@@ -171,8 +171,10 @@ async function issueTestBatch(page: Page, base: string): Promise<string | null> 
   for (const group of await page.getByRole('radiogroup').all()) {
     if ((await group.getByRole('radio', { checked: true }).count()) === 0) await group.getByRole('radio').first().check();
   }
-  const count = page.getByRole('textbox', { name: 'Tablets per batch' });
-  if (await count.isVisible()) await count.fill('100000');
+  // Every header input the form asks for (dc-mini: the batch size in tablets, a COUNT sent as text).
+  for (const input of await page.getByRole('textbox').all()) {
+    if ((await input.inputValue()) === '') await input.fill('100000');
+  }
   await page.getByRole('button', { name: 'Issue the test batch' }).click();
   await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
   return new URL(page.url()).pathname.split('/').pop() ?? null;
