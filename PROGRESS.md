@@ -254,3 +254,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   call sandbox.assert_gmp_installation; restore runbook re-applies apply_connect_policy; production CONNECT grants for
   backup/monitoring roles (deployment design).
   B1 (execution engine and engine-level generic blocks) launched.
+- 2026-09-28: CONTAINER RESTART stopped the review workflow, the engine agent (B1) and the lifecycle agent's (A3)
+  background test runs. Files survived; snapshot 2bba0bd. Resumed: review workflow wf_2867a725-d77 from its journal
+  (script copied to scratchpad/workflows/review.js; 55 agent results reused), B1 and A3 agents via SendMessage.
+  SQL mutation gap-closing finished before the restart: kill tests on branch phase-1/mutation-testing (bd1cd5f);
+  9 reviewed equivalent mutants in tools/sql-mutation/equivalent.json; defects found (to fix with the review's
+  confirmed findings): HIGH iam.role_permission_guard race lets a role mix administration and GMP permissions (INV-11);
+  HIGH esig.check_witness fails open when the act terminal has no room (NULL logic); MEDIUM check_witness with an unknown
+  act device; MEDIUM iam.assert_validated_actor does not re-check account/session later in the same transaction;
+  MEDIUM platform sample_record no-op save vs INV-09; LOW: stale check instants in segregation guards, after_restore
+  partial setval on refusal, test harness drop race, transient hash on sample-record invalidation, open_session races
+  with device block and lockout. Details: scratchpad/kill-results.json.
