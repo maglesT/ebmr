@@ -87,7 +87,10 @@ async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<
   };
 }
 
-/** The INTEGRATION actor of a gateway session (source INTEGRATION; the role holding INTERFACE.WRITE). */
+/**
+ * The INTEGRATION actor of a gateway session (source INTEGRATION; the role holding INTERFACE.WRITE). `siteZone` is
+ * the site policy's zone (ServerConfig.siteZone): the kernel refuses any other (EBMR-IAM-118, DI-27).
+ */
 export function gatewayActor(gw: GatewaySession, siteZone: string, correlationId: string): ActorContext & { deviceId: string } {
   return {
     personId: gw.personId,

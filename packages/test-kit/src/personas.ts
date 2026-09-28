@@ -9,7 +9,7 @@
 import type { InstallationKind } from './db.ts';
 
 export const SITE_CODE = 'SITE-1';
-export const SITE_ZONE = 'Asia/Kolkata';
+// No site time zone here: contexts declare the database's site policy site.zone (seed.ts siteZoneOf; DI-27).
 
 export type TerminalClass = 'PERSONAL' | 'SHARED' | 'GRADE_A_B' | 'SERVER' | 'INSTRUMENT';
 

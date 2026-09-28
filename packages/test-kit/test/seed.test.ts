@@ -1,9 +1,12 @@
 /**
  * The demo and test installations (C0): a GMP database and a sandbox built from the edition's migrations,
  * bootstrapped and seeded through the kernel's own identity functions, with TEST- identifiers in the sandbox.
+ * The GMP site is moved to a time zone other than the kernel's default site.zone before it is seeded (DI-27), so
+ * the seed cannot pass merely because a constant happens to equal the policy's default.
  */
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { identity, sandbox } from '@ebmr/kernel';
+import { identity, sandbox, withCommand } from '@ebmr/kernel';
 import {
   createGmpDatabase,
   dropDatabase,
@@ -13,14 +16,19 @@ import {
   openPersonaSession,
   openServiceSession,
   bootstrapInstallation,
+  passwordActor,
   provisionBootstrappedSandbox,
   seedDemoSite,
+  siteZoneOf,
   uniqueSuffix,
   type DatabaseHandle,
   type SiteSeed,
 } from '../src/index.ts';
 
 const LONG = 240_000;
+/** The GMP test site's zone: not the kernel's default site.zone (Asia/Kolkata), another UTC offset. */
+const GMP_ZONE = 'Europe/Berlin';
+let defaultZone: string;
 let gmp: DatabaseHandle;
 let sbx: DatabaseHandle;
 let gmpSeed: SiteSeed;
@@ -30,7 +38,13 @@ beforeAll(async () => {
   const gmpName = `ebmr_tk_${uniqueSuffix()}`;
   await createGmpDatabase(gmpName, editionMigrationSources());
   gmp = openDatabase(gmpName, 'GMP');
-  gmpSeed = await seedDemoSite(gmp, 'GMP', await bootstrapInstallation(gmpName, 'GMP'));
+  const bootstrap = await bootstrapInstallation(gmpName, 'GMP');
+  defaultZone = await siteZoneOf(gmp.app);
+  // The site moves to another zone through the kernel (iam.set_policy) before the seed runs (DI-27).
+  const admin = await passwordActor(gmp, bootstrap.admin, bootstrap.admin.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'DI-27 test site zone', correlationId: randomUUID() });
+  await withCommand(gmp.app, admin, (c) => identity.setPolicy(c, 'site.zone', GMP_ZONE, 'DI-27 test: a site outside the default zone'));
+  await identity.endSession(gmp.app, admin.sessionId);
+  gmpSeed = await seedDemoSite(gmp, 'GMP', bootstrap);
 
   const sbxName = `ebmr_sandbox_tk${uniqueSuffix()}`;
   const provisioned = await provisionBootstrappedSandbox(sbxName, editionMigrationSources());
@@ -88,6 +102,22 @@ describe('test-kit installations', () => {
     expect(await freshTap(sbx, sbxSeed, 'operator1')).toMatch(/^[0-9a-f-]{36}$/);
     const w1 = await openPersonaSession(sbx, sbxSeed, 'operator1-w1');
     expect(w1.personId).not.toBe(op.personId);
+  });
+
+  it('[DI-27] seeds and sessions declare the site policy site.zone, also on a site outside the default zone', async () => {
+    expect(defaultZone).not.toBe(GMP_ZONE);
+    expect(await siteZoneOf(gmp.app)).toBe(GMP_ZONE);
+    expect(gmpSeed.zone).toBe(GMP_ZONE);
+    expect(sbxSeed.zone).toBe(await siteZoneOf(sbx.app));
+    const author = await openPersonaSession(gmp, gmpSeed, 'author');
+    expect(author.siteZone).toBe(GMP_ZONE);
+    const admin = await passwordActor(gmp, gmpSeed.bootstrap.admin, gmpSeed.bootstrap.admin.fingerprint);
+    expect(admin.siteZone).toBe(GMP_ZONE);
+    // The kernel accepts the context and refuses the same context declaring the default zone (EBMR-IAM-118).
+    await withCommand(gmp.app, { ...author, correlationId: randomUUID() }, () => Promise.resolve());
+    await expect(withCommand(gmp.app, { ...author, siteZone: defaultZone, correlationId: randomUUID() }, () => Promise.resolve())).rejects.toThrow(/EBMR-IAM-118/);
+    const sweeper = await openServiceSession(sbx, sbxSeed, 'sweeper');
+    expect(sweeper.siteZone).toBe(sbxSeed.zone);
   });
 
   it('[DI-14] the sweeper and the gateway are service identities on SERVER terminals that open SERVICE_KEY sessions', async () => {

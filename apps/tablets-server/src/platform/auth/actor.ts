@@ -1,7 +1,9 @@
 /**
  * The ActorContext of a request (kernel withCommand): built from the resolved session only. Source UI; site
- * zone from the configuration; device and room from the kernel registry, never from the client. On shared
- * terminals the attribution hook adds the fresh badge-tap authentication event (INV-40).
+ * zone from the site policy site.zone as the server read it at start-up (AppContext.siteZone, which refuses once
+ * the policy changed; the kernel refuses any other zone, EBMR-IAM-118, DI-27); device and room from the kernel
+ * registry, never from the client.
+ * On shared terminals the attribution hook adds the fresh badge-tap authentication event (INV-40).
  */
 import type { ActorContext } from '@ebmr/kernel';
 import { refusal } from '../http/refusal.ts';

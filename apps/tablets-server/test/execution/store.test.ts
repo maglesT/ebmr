@@ -258,6 +258,61 @@ describe('privileges and the role map', () => {
   }, 180_000);
 });
 
+// Last in this file: it moves the batch-number sequence forward as a restore would, and any later test would see that.
+describe('TEST- batch numbers after a restore (INV-27)', () => {
+  const KEY = 'recipe.batch_execution.batch_number';
+  const NUMBER = /^TEST-B(\d{2})-(\d+)$/;
+
+  /** The batch number of an issued test batch, as stored. */
+  async function numberOf(runId: string): Promise<string> {
+    const { rows } = await sbx.db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [runId]);
+    return rows[0]?.n ?? '';
+  }
+
+  /** The serial written into a batch number (digits after TEST-B<yy>-). */
+  const serialOf = (batchNumber: string): string => NUMBER.exec(batchNumber)?.[2] ?? '';
+
+  it('[INV-27] once the restore procedure has moved the batch-number sequence past its high-water mark, each test batch gets a distinct TEST- number with the serial in full, never one cut back to four digits', async () => {
+    const { admin } = sbx.db;
+    // Before the restore: a serial below 10000 is zero-padded to four digits.
+    const before = await numberOf((await newRun()).runId);
+    expect(before).toMatch(/^TEST-B\d{2}-\d{4}$/);
+
+    // The high-water mark of the sequence as exported to the external ledger with each anchor.
+    const { rows: marks } = await admin.query<{ v: string }>('select last_value::text as v from continuity.sequence_high_water() where sequence_key = $1', [KEY]);
+    const highWater = marks[0]?.v ?? '';
+    expect(serialOf(before)).toBe(highWater.padStart(4, '0'));
+    const { rows: issued } = await admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution');
+    const issuedBefore = issued.map((r) => r.n);
+
+    // The move the restore procedure plans for the sequence (continuity.plan_sequence_moves, as after_restore and
+    // secure_identifiers call it, with the ledger's mark), applied the way they apply it: setval, value marked as used.
+    const { rows: moves } = await admin.query<{ seq: string; value_after: string }>(
+      `select (x ->> 'sequence')::oid::regclass::text as seq, x ->> 'value_after' as value_after
+         from jsonb_array_elements(continuity.plan_sequence_moves(jsonb_build_array(jsonb_build_object('sequence_key', $1::text, 'value', $2::text)), 1000000, false)) x
+        where x ->> 'sequence_key' = $1`,
+      [KEY, highWater],
+    );
+    expect(moves).toEqual([{ seq: 'recipe.test_batch_number_seq', value_after: (BigInt(highWater) + 10_000n).toString() }]);
+    const valueAfter = BigInt(moves[0]?.value_after ?? '0');
+    await admin.query('select pg_catalog.setval($1::regclass, $2::bigint, true)', [moves[0]?.seq, valueAfter.toString()]);
+
+    // After the move: two test batches, each numbered with its whole serial (five digits here), distinct from each
+    // other and from every number issued before the restore.
+    const first = await numberOf((await newRun()).runId);
+    const second = await numberOf((await newRun()).runId);
+    expect(first).toMatch(/^TEST-B\d{2}-\d{5}$/);
+    expect(second).toMatch(/^TEST-B\d{2}-\d{5}$/);
+    expect(serialOf(first)).toBe((valueAfter + 1n).toString());
+    expect(serialOf(second)).toBe((valueAfter + 2n).toString());
+    expect(first).not.toBe(second);
+    expect(issuedBefore).toContain(before);
+    expect(issuedBefore).not.toContain(first);
+    expect(issuedBefore).not.toContain(second);
+    expect(await violations(sbx)).toEqual([]);
+  }, 180_000);
+});
+
 function personIn(key: string) {
   return personaIn(sbx, key);
 }

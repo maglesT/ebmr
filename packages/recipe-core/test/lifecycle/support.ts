@@ -194,14 +194,19 @@ export class World {
     const out: { changeRecordId?: string; riskAssessmentId?: string } = {};
     if (opts.changeRecord ?? true) out.changeRecordId = await this.changeRecord(opts.validationLink === false ? { validationRef: null } : {});
     if (opts.risk ?? true) out.riskAssessmentId = await this.riskAssessment();
-    await this.run(this.cast.author, async (c) => {
-      await lc.setDraftAttributes(c, versionId, {
-        ...(out.changeRecordId ? { changeRecordId: out.changeRecordId } : {}),
-        effectiveFrom: opts.effectiveFrom === undefined ? '2026-01-01T00:00:00Z' : opts.effectiveFrom,
-        reviewDue: opts.reviewDue === undefined ? '2027-12-31' : opts.reviewDue,
-      });
-      if (out.riskAssessmentId) await lc.linkRiskAssessment(c, versionId, out.riskAssessmentId);
-    });
+    // A draft-attribute edit carries the author's own reason, both halves (EBMR-AUDIT-002; migration 0250).
+    await this.run(
+      this.cast.author,
+      async (c) => {
+        await lc.setDraftAttributes(c, versionId, {
+          ...(out.changeRecordId ? { changeRecordId: out.changeRecordId } : {}),
+          effectiveFrom: opts.effectiveFrom === undefined ? '2026-01-01T00:00:00Z' : opts.effectiveFrom,
+          reviewDue: opts.reviewDue === undefined ? '2027-12-31' : opts.reviewDue,
+        });
+        if (out.riskAssessmentId) await lc.linkRiskAssessment(c, versionId, out.riskAssessmentId);
+      },
+      reason('draft attributes set for the test'),
+    );
     const evidence = opts.evidence ?? 'stub';
     if (evidence !== 'none') await this.recordEvidence(versionId, content, evidence);
     return out;
@@ -263,10 +268,14 @@ export class World {
     await this.run(this.cast.author, (c) => lc.saveContent(c, ref.versionId, content, 'edited'));
     const cr = await this.changeRecord({ ...(opts.regulatory ? { regulatory: opts.regulatory } : {}) });
     const ra = await this.riskAssessment();
-    await this.run(this.cast.author, async (c) => {
-      await lc.setDraftAttributes(c, ref.versionId, { changeRecordId: cr, effectiveFrom: opts.effectiveFrom ?? '2026-01-01T00:00:00Z', reviewDue: opts.reviewDue ?? '2027-12-31' });
-      await lc.linkRiskAssessment(c, ref.versionId, ra);
-    });
+    await this.run(
+      this.cast.author,
+      async (c) => {
+        await lc.setDraftAttributes(c, ref.versionId, { changeRecordId: cr, effectiveFrom: opts.effectiveFrom ?? '2026-01-01T00:00:00Z', reviewDue: opts.reviewDue ?? '2027-12-31' });
+        await lc.linkRiskAssessment(c, ref.versionId, ra);
+      },
+      reason('draft attributes of the successor set for the test'),
+    );
     await this.recordEvidence(ref.versionId, content, opts.evidence === 'real' ? 'real' : 'stub');
     await this.startVerification(ref.versionId);
     await this.submit(ref.versionId);
@@ -286,7 +295,8 @@ export class World {
   async issue(familyId: string, markets: string[], scope: lc.IssueScope, versionId?: string): Promise<lc.IssueResult & { batchNumber: string }> {
     const batchNumber = `B${randomBytes(4).toString('hex').toUpperCase()}`;
     const batchId = await this.run(this.cast.issuer, (c) => lc.createStubBatch(c, { batchNumber, familyId, markets, site: scope.site, line: scope.line, batchSize: scope.batch_size }));
-    const r = await this.run(this.cast.issuer, (c) => lc.issueStubBatch(c, batchId, versionId));
+    // Issuing carries the issuer's own reason, both halves (EBMR-AUDIT-002; migration 0250).
+    const r = await this.run(this.cast.issuer, (c) => lc.issueStubBatch(c, batchId, versionId), reason('batch issued for the test'));
     return { ...r, batchNumber };
   }
 

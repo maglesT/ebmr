@@ -75,6 +75,19 @@ export async function sweepAll(app: AppContext, actor: ActorContext): Promise<Sw
   return result;
 }
 
+/**
+ * Opens a SERVICE_KEY session of the sweeper identity on its SERVER terminal and returns its SYSTEM actor. The
+ * zone is the site policy's (ServerConfig.siteZone): the kernel refuses any other (EBMR-IAM-118, DI-27).
+ */
+export async function openSweeperActor(app: AppContext, c: { loginName: string; serviceKey: string; fingerprint: string }): Promise<ActorContext & { deviceId: string }> {
+  const ev = await identity.authenticate(app.pools.authn, { method: 'SERVICE_KEY', identifier: c.loginName, secret: c.serviceKey, deviceFingerprint: c.fingerprint, purpose: 'LOGIN' });
+  const s = await identity.openSession(app.pools.app, ev.authEventId, c.fingerprint);
+  const { rows } = await app.pools.app.query<{ person_id: string; account_id: string }>('select a.person_id, a.id as account_id from iam.account a where a.login_name = $1', [c.loginName]);
+  const who = rows[0];
+  if (!who) throw new Error(`the sweeper account ${c.loginName} does not exist`);
+  return { personId: who.person_id, accountId: who.account_id, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId, source: 'SYSTEM', siteZone: app.config.siteZone, legalName: 'TEST-sweeper' };
+}
+
 /** Starts the 15 s sweeper; returns its stop function (null when no identity is configured). */
 export function startSweeper(app: AppContext, log: { warn(obj: object, msg: string): void; info(obj: object, msg: string): void }): { stop(): Promise<void> } | null {
   let creds: ReturnType<typeof sweeperCredentials>;
@@ -91,13 +104,7 @@ export function startSweeper(app: AppContext, log: { warn(obj: object, msg: stri
   let stopped = false;
 
   const session = async (): Promise<ActorContext> => {
-    if (actor) return actor;
-    const ev = await identity.authenticate(app.pools.authn, { method: 'SERVICE_KEY', identifier: c.loginName, secret: c.serviceKey, deviceFingerprint: c.fingerprint, purpose: 'LOGIN' });
-    const s = await identity.openSession(app.pools.app, ev.authEventId, c.fingerprint);
-    const { rows } = await app.pools.app.query<{ person_id: string; account_id: string }>('select a.person_id, a.id as account_id from iam.account a where a.login_name = $1', [c.loginName]);
-    const who = rows[0];
-    if (!who) throw new Error(`the sweeper account ${c.loginName} does not exist`);
-    actor = { personId: who.person_id, accountId: who.account_id, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId, source: 'SYSTEM', siteZone: app.config.siteZone, legalName: 'TEST-sweeper' };
+    actor ??= await openSweeperActor(app, c);
     return actor;
   };
 

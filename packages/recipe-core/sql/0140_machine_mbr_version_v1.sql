@@ -9,6 +9,7 @@ select platform.publish_machine_version($machine$
   "version": 1,
   "aggregate_type": "mbr_version",
   "description": "MBR version life cycle: preparation, verification, independent check and QA approval (outline 5.2.1; ADR 0014)",
+  "create_permission": "mbr.author",
   "initial": "DRAFT",
   "states": [
     "APPROVED",
@@ -174,7 +175,7 @@ select platform.publish_machine_version($machine$
       "permission": "mbr.approve"
     }
   ],
-  "definition_hash": "b73add75f84ae84e583775483fcca7d16c03807e88f3b06e5100e09a05e3efa7"
+  "definition_hash": "b7ecdfa2f5e95e536db1e1c78f7135b88aeed4b43fb2aecbd9da958ac9e36576"
 }
 $machine$::jsonb);
 

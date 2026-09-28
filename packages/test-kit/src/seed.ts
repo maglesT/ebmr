@@ -5,6 +5,9 @@
  * administrator, approved by the process owner); badges and PINs; devices, with a hardening attestation for
  * kiosks; and the sandbox's service identities (SERVICE_KEY secrets on SERVER devices).
  *
+ * Every actor context built here declares the site's time zone as the database's site policy holds it now
+ * (siteZoneOf): the kernel refuses any other (EBMR-IAM-118, DI-27), so no zone is a constant here.
+ *
  * Every credential produced here is DEMO-ONLY.
  */
 import { randomBytes } from 'node:crypto';
@@ -12,7 +15,7 @@ import pg from 'pg';
 import { continuity, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { ADMIN_URL, urlFor, type DatabaseHandle, type InstallationKind } from './db.ts';
 import { fingerprintOfSpki, generateDeviceKey, generateServiceKey, type DeviceKey } from './keys.ts';
-import { BOOTSTRAP_NAMES, PERSONAS, SERVICES, SITE_CODE, SITE_ZONE, TERMINALS, personaForSet, type PersonaSpec, type TerminalSpec } from './personas.ts';
+import { BOOTSTRAP_NAMES, PERSONAS, SERVICES, SITE_CODE, TERMINALS, personaForSet, type PersonaSpec, type TerminalSpec } from './personas.ts';
 
 export interface BootstrapAccount {
   personId: string;
@@ -74,6 +77,7 @@ export interface SiteSeed {
   installation: InstallationKind;
   database: string;
   siteCode: string;
+  /** The site policy's time zone when the site was seeded (sessions opened later read the policy again). */
   zone: string;
   bootstrap: BootstrapResult;
   terminals: SeededTerminal[];
@@ -82,6 +86,18 @@ export interface SiteSeed {
 }
 
 const randomFingerprint = (): string => randomBytes(32).toString('hex');
+
+/**
+ * The site's time zone: the site policy site.zone of the database, the only zone the kernel accepts in an actor
+ * context (EBMR-IAM-118, DI-27). Read each time, so a context follows a change of the policy.
+ */
+export async function siteZoneOf(db: Pick<pg.Pool, 'query'>): Promise<string> {
+  const { rows } = await db.query<{ zone: string | null }>("select iam.policy_text('site.zone') as zone");
+  const zone = rows[0]?.zone;
+  if (!zone) throw new Error('the database holds no site time zone (policy site.zone)');
+  return zone;
+}
+
 const newPassword = (): string => `Seed-${randomBytes(9).toString('base64url')}`;
 
 /** The authentication service's connection for seeding: a superuser pool switched to ebmr_authn per transaction. */
@@ -107,10 +123,11 @@ export async function bootstrapInstallation(database: string, kind: Installation
   const ownerFp = randomFingerprint();
   const admin = new pg.Pool({ connectionString: urlFor(database, undefined, adminUrl), max: 2 });
   try {
+    const zone = await siteZoneOf(admin);
     const { rows } = await admin.query<{ r: Record<string, string> }>('select iam.bootstrap_installation($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) as r', [
       names.admin[0], names.admin[1], await identity.hashSecret(adminInitial), adminFp,
       names.owner[0], names.owner[1], await identity.hashSecret(ownerInitial), ownerFp,
-      SITE_CODE, 'IQ-DEMO-001', SITE_ZONE,
+      SITE_CODE, 'IQ-DEMO-001', zone,
     ]);
     const r = rows[0]?.r ?? {};
     const authn = seedAuthn(admin);
@@ -139,7 +156,7 @@ export async function passwordActor(
   const s = await identity.openSession(db.app, ev.authEventId, fingerprint);
   return {
     personId: account.personId, accountId: account.accountId, roleCode: account.roleCode, sessionId: s.sessionId, deviceId: s.deviceId,
-    source: 'UI', siteZone: SITE_ZONE, legalName: account.legalName, ...extra,
+    source: 'UI', siteZone: await siteZoneOf(db.app), legalName: account.legalName, ...extra,
   };
 }
 
@@ -229,7 +246,7 @@ export async function seedDemoSite(db: DatabaseHandle, kind: InstallationKind, b
 
   await identity.endSession(db.app, adminCtx.sessionId);
   await identity.endSession(db.app, ownerCtx.sessionId);
-  return { installation: kind, database: db.name, siteCode: SITE_CODE, zone: SITE_ZONE, bootstrap, terminals, personas, services };
+  return { installation: kind, database: db.name, siteCode: SITE_CODE, zone: await siteZoneOf(db.app), bootstrap, terminals, personas, services };
 }
 
 async function seedPersona(
@@ -318,7 +335,7 @@ export async function openPersonaSession(
   const s = await identity.openSession(db.app, ev.authEventId, t.fingerprint);
   return {
     personId: p.personId, accountId: p.accountId, roleCode: p.roleCode, sessionId: s.sessionId, deviceId: s.deviceId, fingerprint: t.fingerprint,
-    source: 'UI', siteZone: seed.zone, legalName: p.legalName,
+    source: 'UI', siteZone: await siteZoneOf(db.app), legalName: p.legalName,
   };
 }
 
@@ -340,6 +357,6 @@ export async function openServiceSession(db: Pick<DatabaseHandle, 'app' | 'authn
   const session = await identity.openSession(db.app, ev.authEventId, t.fingerprint);
   return {
     personId: s.personId, accountId: s.accountId, roleCode: 'SERVICE_ACCOUNT', sessionId: session.sessionId, deviceId: session.deviceId,
-    source: key === 'gateway' ? 'INTEGRATION' : 'SYSTEM', siteZone: seed.zone, legalName: s.legalName,
+    source: key === 'gateway' ? 'INTEGRATION' : 'SYSTEM', siteZone: await siteZoneOf(db.app), legalName: s.legalName,
   };
 }

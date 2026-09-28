@@ -16,7 +16,8 @@
  *       esig.sign and the seal (kernel: the only writer of signatures; unsealed signatures cannot commit);
  *       handler.apply with the real signature.
  *     Any failure rolls the whole command back (signature, seal, consumed event); esig.logSigningFailure then
- *     records it outside the rolled-back transaction (INV-10).
+ *     records it outside the rolled-back transaction (INV-10), with the authentication event it used so the kernel
+ *     can alert the security unit on misuse the committed rows prove (DI-19; proxy signing included).
  *  4. GET signatures: the stored manifestations of a record, with their current validity (DI-36, INV-09).
  *
  * Credentials: badge and PIN on kiosks (the badge of the challenge's tap is kept by the server, see badges.ts),
@@ -116,9 +117,14 @@ function signableContext(session: ResolvedSession, actor: EsigSignableContext['a
   return { actor, room: session.roomCode, deviceClass: session.deviceClass, meaning };
 }
 
-/** A refusal answered for a signing, recorded in the kernel's signing-failure log first (after any rollback). */
-async function logged(app: AppContext, challengeId: string, error: unknown): Promise<void> {
-  await esig.logSigningFailure(app.pools.app, challengeId, error);
+/**
+ * A refusal answered for a signing, recorded in the kernel's signing-failure log first (after any rollback). With
+ * the signature authentication the attempt used, the kernel alerts the security unit on misuse that the committed
+ * rows of that event prove, such as another person authenticating for the challenge (DI-19); without it (no event,
+ * or one that attributed a refusal committed on purpose) the failure is logged against the challenge only.
+ */
+async function logged(app: AppContext, challengeId: string, error: unknown, authEventId?: string): Promise<void> {
+  await esig.logSigningFailure(app.pools.app, challengeId, error, authEventId);
 }
 
 /** A failed signature authentication in plain language; why it failed stays in the security log (DI-19). */
@@ -206,7 +212,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
               role: typeof preview['role_code'] === 'string' ? preview['role_code'] : (s.roleCode ?? ''),
               meaning: ch.meaning.code,
               meaningText: meaningPhrase(ch.meaning.title),
-              zone: typeof preview['site_zone'] === 'string' ? preview['site_zone'] : app.config.siteZone,
+              zone: typeof preview['site_zone'] === 'string' ? preview['site_zone'] : app.siteZone.current(),
             },
           };
           return view;
@@ -281,7 +287,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             controls: ['DI-38'],
             whatYouCanDo: ['The person named on the signature enters their own credentials.'],
           });
-          await logged(app, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`));
+          await logged(app, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev.authEventId);
           throw e;
         }
         const a = { ...actor(), authEventId: ev.authEventId };
@@ -304,10 +310,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           });
           work = out.result as unknown as SignWork;
         } catch (error) {
-          if (!(error instanceof HttpRefusal)) await logged(app, ch.challengeId, error);
+          if (!(error instanceof HttpRefusal)) await logged(app, ch.challengeId, error, ev.authEventId);
           throw error;
         }
         if ('refused' in work) {
+          // Refused before esig.sign, in a command that committed on purpose and is attributed by this authentication:
+          // the event is the signer's own (checked above) and its committed use is this attempt's, not another
+          // command's. Reported with the event, the kernel would read that use as re-use (EBMR-IAM-091) and alert
+          // against the rightful signer, so the refusal is logged against the challenge only.
           await logged(app, ch.challengeId, new Error(`${work.refused.refusal.code} ${work.refused.refusal.why || work.refused.refusal.whatHappened}`));
           throw new HttpRefusal(work.refused.status, work.refused.refusal);
         }

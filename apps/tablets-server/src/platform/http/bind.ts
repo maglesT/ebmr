@@ -221,7 +221,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
           },
           actor(extras = {}) {
             if (!session) throw noSession();
-            return actorFrom(session, app.config.siteZone, {
+            return actorFrom(session, app.siteZone.current(), {
               correlationId,
               ...(request.ebmrAuthEventId ? { authEventId: request.ebmrAuthEventId } : {}),
               ...extras,

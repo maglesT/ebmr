@@ -205,7 +205,8 @@ signature/record linking and EU GMP Annex 11 section 14.
 - The provider scope is `{site}` of the batch.
 
 **Batches and rows**
-- Test batch numbers are `TEST-B<yy>-<nnnn>`, from a sequence.
+- Test batch numbers are `TEST-B<yy>-<nnnn>`, from a protected sequence (INV-27, sql 0220): the serial is
+  zero-padded to four digits and never shortened, so 10001 stays 10001 after a restore moves the sequence on (sql 0240).
 - A test run's engine purpose is VALIDATION (a run validates an MBR version).
 - A PREPARE row is written only when the preparation produced events; a SWEEP row likewise.
 

@@ -1,14 +1,17 @@
 /**
- * buildApp(config, deps): the platform first, then the features of features/index.ts gated by installation
+ * buildApp(env, deps): the platform first, then the features of features/index.ts gated by installation
  * (plan section 3). The same function serves main.ts, the server tests (app.inject through the typed client)
- * and the E2E processes.
+ * and the E2E processes. The start-up guards run first: the kind of database, then the site's time zone from
+ * the site policy (DI-27), which completes the environment's configuration into ctx.config. While the server
+ * runs, ctx.siteZone re-reads that policy before every API request and on an interval: after a change every
+ * request is refused (SITE_ZONE_CHANGED) and an operations alert is logged, never a time shown in the old zone.
  */
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { Writable } from 'node:stream';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
-import type { ServerConfig } from './config.ts';
+import type { EnvConfig, ServerConfig } from './config.ts';
 import { FEATURES, type FeatureEntry } from './features/index.ts';
 import { webCryptoDeviceProvider } from './platform/auth/device-proof.ts';
 import type { AppContext } from './platform/context.ts';
@@ -19,8 +22,9 @@ import { GuidanceCatalogue, PLATFORM_GUIDANCE } from './platform/http/guidance.t
 import { loggerOptions } from './platform/http/logging.ts';
 import { installSecurity } from './platform/http/security.ts';
 import { installSpa } from './platform/http/static.ts';
-import { assertInstallation, demoState } from './platform/installation.ts';
+import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
+import { SiteZoneGuard, SITE_ZONE_CHECK_INTERVAL_MS } from './platform/site-zone.ts';
 
 export interface AppDeps {
   /** Pools to use instead of opening them from the configuration (tests). */
@@ -29,6 +33,8 @@ export interface AppDeps {
   logStream?: Writable;
   /** Feature list override (tests of the platform). */
   features?: readonly FeatureEntry[];
+  /** How often the site policy site.zone is re-read while no request does it (default SITE_ZONE_CHECK_INTERVAL_MS). */
+  siteZoneCheckIntervalMs?: number;
 }
 
 /** Request line plus headers a request may carry (see serverFactory below). */
@@ -41,11 +47,13 @@ export interface BuiltApp {
   close(): Promise<void>;
 }
 
-export async function buildApp(config: ServerConfig, deps: AppDeps = {}): Promise<BuiltApp> {
-  const pools = deps.pools ?? createPools(config.appUrl, config.authnUrl);
+export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<BuiltApp> {
+  const pools = deps.pools ?? createPools(env.appUrl, env.authnUrl);
   const ownPools = deps.pools === undefined;
   try {
-    await assertInstallation(pools.app, config);
+    await assertInstallation(pools.app, env);
+    // Every actor context this server builds declares this zone (EBMR-IAM-118): never a configured constant.
+    const config: ServerConfig = { ...env, siteZone: await siteZoneFromPolicy(pools.app, env) };
     const demo = await demoState(pools.app, config);
     const app = Fastify({
       logger: loggerOptions(config.logLevel, config.logPretty, deps.logStream),
@@ -64,6 +72,7 @@ export async function buildApp(config: ServerConfig, deps: AppDeps = {}): Promis
     const guidance = new GuidanceCatalogue();
     guidance.register('platform', PLATFORM_GUIDANCE);
     const signables = new SignableActionRegistry();
+    const siteZone = new SiteZoneGuard(pools.app, config.siteZone, app.log);
     const ctx: AppContext = {
       config,
       installation: config.installation,
@@ -75,7 +84,8 @@ export async function buildApp(config: ServerConfig, deps: AppDeps = {}): Promis
       deviceReadings: REFUSING_DEVICE_READING_PORT,
       sealKey: sealKeyFromFile(config.sealKeyFile),
       demo: { enabled: demo.enabled, devices: demo.devices },
-      formatInstant: (us) => formatInstant(us, config.siteZone),
+      siteZone,
+      formatInstant: (us) => formatInstant(us, siteZone.current()),
       boundRoutes: new Map(),
     };
     let port: DeviceReadingPort | undefined;
@@ -91,15 +101,21 @@ export async function buildApp(config: ServerConfig, deps: AppDeps = {}): Promis
 
     installErrorHandling(app, ctx);
     await installSecurity(app, ctx);
+    // After the security hook (the refusal carries X-Ebmr-Installation): a changed site zone refuses the request (DI-27).
+    app.addHook('onRequest', async (request) => {
+      if (request.url.startsWith('/api/')) await siteZone.check();
+    });
     for (const f of features) {
       await app.register(async (scope) => f.module.plugin(scope, ctx), { prefix: '' });
     }
     await installSpa(app, ctx);
     await app.ready();
+    const siteZoneWatch = siteZone.watch(deps.siteZoneCheckIntervalMs ?? SITE_ZONE_CHECK_INTERVAL_MS);
     return {
       app,
       ctx,
       async close() {
+        await siteZoneWatch.stop();
         await app.close();
         await ctx.readDb.destroy().catch(() => undefined);
         if (ownPools) await pools.close().catch(() => undefined);
