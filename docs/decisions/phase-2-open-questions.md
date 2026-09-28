@@ -33,3 +33,19 @@ Defaults in use today are listed. Status: all DECIDED by default (owner decision
 | F13 | Bounds | At most 100 loop iterations, 500 replicate instances, 64 nesting levels; the simulator enumerates up to 10,000 paths, then adds one targeted run per remaining decision option so decision coverage stays complete. |
 | F14 | Sequential replicate instances | Released one at a time. |
 | F15 | What counts as a value-only change (delta verification) | Limit values, targets, batch-size quantities, reference version/hash and texts; anything else is structural. |
+
+## MBR life cycle (lifecycle module) - decided by default (0004)
+
+| # | Question | Default in the build |
+|---|---|---|
+| L1 | Returning a version to DRAFT | Only before approval; a change to an approved master is always a new derived version. |
+| L2 | Regulatory sign-off at approval | A valid REGULATORY_CONFIRMED signature on the version by a person other than the approver. |
+| L3 | What counts as process-impacting | Conservative: only titles, product display name, reference titles and golden test data are non-process; a first version is a new process and needs a validation link. |
+| L4 | Registered elements | REGISTERED-tier ranges and REGISTRATION references; any change needs a reporting category per market; a widening also needs the variation/supplement reference; a unit change counts as widening. |
+| L5 | Scope cells for market authorisation | Concrete (site, line, batch size). |
+| L6 | Effective dates | A successor cannot take effect inside a predecessor's remaining validity; withdrawing a successor does not reinstate the predecessor. |
+| L7 | Withdrawal | By QA from SUBMITTED, CHECKED or APPROVED; from APPROVED only if never authorised. |
+| L8 | Periodic review | Recorded by QA (MBR.APPROVE). |
+| L9 | S4 "checker may also approve" | Not allowed (outline default). The e-signature catalogue requires APPROVED to be independent of CHECKED, so allowing it later needs a kernel catalogue change. |
+| L10 | A person who returned a version to DRAFT | Is treated as an editor by the e-signature independence rule, so cannot sign CHECKED/APPROVED on that version (stricter than INV-04; a kernel option to mark administrative changes as "not a data entry" is a follow-up). |
+| L11 | New permission MBR.CHANGE_RECORD | GMP write, held by QA MBR approver and regulatory signer. |

@@ -273,3 +273,10 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   INVALIDATION_APPROVED, BATCH_ABORT_APPROVED, BATCH_CANCELLED). Engine defaults recorded in engine/README.md.
   Phase 3 items: DB-backed execution, esig ceremony at run time, INV-03 in SQL, site-services status checks,
   hand-over, G-06/G-09/G-10/G-21/G-25 blocks, rendering parts, edition blocks.
+- 2026-09-28: A3 (MBR life cycle, recipe schema 0100-0180) finished: 68 tests; PR-02, PR-04, PR-05, PR-06 IMPLEMENTED;
+  PR-07 and DI-04 SPECIFIED (one later-phase line each); INV-01, INV-02, INV-04, INV-17 proven with bypass and
+  model-based tests (version machine through the real engine; selection vs model after every command). Defaults L1-L11
+  in docs/decisions/phase-2-open-questions.md. Follow-ups: kernel option for "administrative change, not a data entry"
+  on returns to DRAFT (L10); platform AUTHORITY adapter to pass product scope (product-limited grants cannot transition
+  versions today); btree_gist extension is created in recipe 0100 (needs superuser at migration time: note for the
+  deployment design); SANDBOX_RUN evidence cross-check against the sandbox store (import of sandbox run results).
