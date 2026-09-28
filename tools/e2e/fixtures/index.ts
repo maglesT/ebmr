@@ -12,8 +12,11 @@
  *  - `evidence.step(title, expected, fn)`: a test step with a screenshot for the evidence reporter;
  *  - `dcMiniPackage.get()`: a dc-mini test package exported from GMP by this worker's MBR author through the real
  *    designer API, in the sandbox exchange inbox (worker-scoped; see test-package.ts);
+ *  - `withSimulator(state, work)`: the shared scale simulator, one spec at a time across workers;
  *  - CSP violations collected from every page (`cspViolations(page)`).
  */
+import { mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { AxeBuilder } from '@axe-core/playwright';
 import { test as base, expect, type Browser, type Page } from '@playwright/test';
 import { createApiClient, type ApiClient, type FetchLike } from '@ebmr/api-contract';
@@ -59,6 +62,30 @@ export async function pickTerminal(page: Page, baseUrl: string, terminal: string
   await expect(page.getByRole('heading', { name: 'Demo: choose the terminal this browser is' })).toBeVisible();
   await page.getByRole('button', { name: `Use this terminal ${terminal}` }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+}
+
+/**
+ * The scale simulator is one physical balance for the whole stack: specs that put loads on it or inject faults
+ * (devices, journey) take it in turn, across workers, through a lock directory beside the stack's keys.
+ */
+export async function withSimulator<T>(state: E2eState, work: () => Promise<T>, timeoutMs = 300_000): Promise<T> {
+  const lock = join(state.keysDir, '..', 'simulator.lock');
+  const deadline = performance.now() + timeoutMs;
+  for (;;) {
+    try {
+      mkdirSync(lock);
+      break;
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'EEXIST') throw error;
+      if (performance.now() > deadline) throw new Error(`the scale simulator stayed in use for ${timeoutMs / 1000} s (${lock})`);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  try {
+    return await work();
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
+  }
 }
 
 export const badge = {

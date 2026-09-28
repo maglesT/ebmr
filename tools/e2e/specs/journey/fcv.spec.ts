@@ -24,7 +24,7 @@ import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
-import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.ts';
+import { axe, cspViolations, expect, signIn, test, withSimulator } from '../../fixtures/index.ts';
 import { card, choose, Milestones, openStep, primary, saveForm, sign, signPrimary, simulator, startStep, switchUser, tap } from './support.ts';
 
 test.describe('first clickable version (journey)', () => {
@@ -34,8 +34,13 @@ test.describe('first clickable version (journey)', () => {
     async ({ officePage, kioskPage, persona, e2e, evidence }, testInfo) => {
       test.setTimeout(40 * 60_000);
       const shots = new Milestones(testInfo);
+      /** Ends one segment of the demo: its browser context closes, and with video on its video is kept by name. */
+      const endSegment = async (page: Page, name: string): Promise<void> => {
+        const video = page.video();
+        await page.context().close();
+        if (video) await video.saveAs(testInfo.outputPath('videos', `${name}.webm`));
+      };
       const tag = `J${testInfo.parallelIndex + 1}${randomBytes(3).toString('hex').toUpperCase()}`;
-      const gmp = e2e.url('GMP');
       const sbx = e2e.url('SANDBOX');
       const sim = e2e.state.urls.simulatorConsole;
       const author = persona('GMP', 'author');
@@ -91,6 +96,7 @@ test.describe('first clickable version (journey)', () => {
       }, designer);
       await shots.shot(designer, 'gmp-package-sent');
       expect(await cspViolations(designer)).toEqual([]);
+      await endSegment(designer, '1-gmp-designer');
 
       // ---------------------------------------------------------------------------------------------
       // 2. Sandbox office: import and issue
@@ -123,11 +129,11 @@ test.describe('first clickable version (journey)', () => {
         await expect(office.getByRole('note', { name: 'TEST, NOT GMP' })).toBeVisible();
       }, office);
       await shots.shot(office, 'sandbox-batch-issued');
+      expect(await cspViolations(office)).toEqual([]);
+      await endSegment(office, '2-sandbox-import-and-issue');
 
       // ---------------------------------------------------------------------------------------------
       // 3. Kiosk of the dispensing booth DISP-1
-      await simulator(sim, 'clear-faults');
-      await simulator(sim, 'reset');
       const disp = await kioskPage('TEST-KIOSK-DISP-1');
       await signIn.kiosk(disp, operator1);
       await evidence.step('DISP-1 kiosk: the operator signs in with badge and PIN and opens the work of the room', 'The cockpit lists step 1.1.1 of the new TEST- batch', async () => {
@@ -149,7 +155,13 @@ test.describe('first clickable version (journey)', () => {
         await previous.getByRole('textbox', { name: 'Previous product' }).fill('TEST-Ibuprofen tablets 400 mg');
         await previous.getByRole('textbox', { name: 'Previous batch number' }).fill('TEST-B26-9001');
         await saveForm(disp, previous, operator1);
-        await signPrimary(disp, 'Sign as performed', operator1);
+        await signPrimary(disp, 'Sign as performed', operator1, {
+          review: async (dialog) => {
+            await expect(dialog).toContainText('LINE_CLEARANCE_PERFORMED');
+            await shots.shot(disp, 'kiosk-signature-review');
+          },
+          secret: () => shots.shot(disp, 'kiosk-signature-pin'),
+        });
       }, disp);
       await shots.shot(disp, 'kiosk-clearance-performed');
 
@@ -215,32 +227,37 @@ test.describe('first clickable version (journey)', () => {
         await simulator(sim, 'remove');
       };
 
-      await evidence.step('1.2.1 dispense paracetamol (G-07) on the DISP-1 balance through the gateway', 'The live gauge is "live, not recorded"; tare and gross are captured from TEST-BAL-01 with the raw line; the net is computed by the server', async () => {
-        await openStep(disp, sbx, runId, 'p-disp-pcm@', 'Dispense paracetamol');
-        await startStep(disp, operator1);
-        await weigh(/Paracetamol/, 'TEST-L26-0101', '1.250', '51.250');
-        // The entry names the lot, the net the server computed from the two captured readings, and the balance.
-        await expect(card(disp).getByRole('region', { name: 'Entries so far' })).toContainText(/lot TEST-L26-0101, net 50(\.000)? kg \(gross 51\.250 kg, tare 1\.250 kg\) on TEST-BAL-01/);
-      }, disp);
-      await shots.shot(disp, 'kiosk-weighing-captured');
+      // The balance is shared with the devices spec: the weighings take it in turn (withSimulator).
+      await withSimulator(e2e.state, async () => {
+        await simulator(sim, 'clear-faults');
+        await simulator(sim, 'remove');
+        await evidence.step('1.2.1 dispense paracetamol (G-07) on the DISP-1 balance through the gateway', 'The live gauge is "live, not recorded"; tare and gross are captured from TEST-BAL-01 with the raw line; the net is computed by the server', async () => {
+          await openStep(disp, sbx, runId, 'p-disp-pcm@', 'Dispense paracetamol');
+          await startStep(disp, operator1);
+          await weigh(/Paracetamol/, 'TEST-L26-0101', '1.250', '51.250');
+          // The entry names the lot, the net the server computed from the two captured readings, and the balance.
+          await expect(card(disp).getByRole('region', { name: 'Entries so far' })).toContainText(/lot TEST-L26-0101, net 50(\.000)? kg \(gross 51\.250 kg, tare 1\.250 kg\) on TEST-BAL-01/);
+        }, disp);
+        await shots.shot(disp, 'kiosk-weighing-captured');
 
-      await evidence.step('1.2.1 signed PERFORMED by the operator and VERIFIED by the verifier', 'Two different people', async () => {
-        await signPrimary(disp, 'Sign as performed', operator1);
-        await switchUser(disp, verifier1);
-        await signPrimary(disp, 'Verify', verifier1);
-        await switchUser(disp, operator1);
-      }, disp);
+        await evidence.step('1.2.1 signed PERFORMED by the operator and VERIFIED by the verifier', 'Two different people', async () => {
+          await signPrimary(disp, 'Sign as performed', operator1);
+          await switchUser(disp, verifier1);
+          await signPrimary(disp, 'Verify', verifier1);
+          await switchUser(disp, operator1);
+        }, disp);
 
-      await evidence.step('1.2.2 dispense the excipients (G-07): two containers on the balance', 'Both weighings captured from the scale; signed PERFORMED and VERIFIED', async () => {
-        await openStep(disp, sbx, runId, 'p-disp-exc@', 'Dispense excipients');
-        await startStep(disp, operator1);
-        await weigh(/MCC|Microcrystalline/i, 'TEST-L26-0102', '1.000', '10.400');
-        await weigh(/MGS|Magnesium/i, 'TEST-L26-0103', '0.200', '0.800');
-        await signPrimary(disp, 'Sign as performed', operator1);
-        await switchUser(disp, verifier1);
-        await signPrimary(disp, 'Verify', verifier1);
-        await switchUser(disp, operator1);
-      }, disp);
+        await evidence.step('1.2.2 dispense the excipients (G-07): two containers on the balance', 'Both weighings captured from the scale; signed PERFORMED and VERIFIED', async () => {
+          await openStep(disp, sbx, runId, 'p-disp-exc@', 'Dispense excipients');
+          await startStep(disp, operator1);
+          await weigh(/MCC|Microcrystalline/i, 'TEST-L26-0102', '1.000', '10.400');
+          await weigh(/MGS|Magnesium/i, 'TEST-L26-0103', '0.200', '0.800');
+          await signPrimary(disp, 'Sign as performed', operator1);
+          await switchUser(disp, verifier1);
+          await signPrimary(disp, 'Verify', verifier1);
+          await switchUser(disp, operator1);
+        }, disp);
+      });
 
       await evidence.step('1.3.1 dispensing reconciliation (G-20): computed by the server, never typed', 'Signed PERFORMED and VERIFIED', async () => {
         await openStep(disp, sbx, runId, 'p-disp-recon@', 'Dispensing reconciliation');
@@ -282,6 +299,7 @@ test.describe('first clickable version (journey)', () => {
         }
       }
       expect(containers).toHaveLength(3);
+      await endSegment(disp, '3-kiosk-dispensing-DISP-1');
 
       // ---------------------------------------------------------------------------------------------
       // 4. Kiosk of the blending room BLEND-1
@@ -350,6 +368,9 @@ test.describe('first clickable version (journey)', () => {
         const action = card(blend).locator('[data-testid^="exception-"]').filter({ hasText: 'Blocks the next steps until it is resolved' });
         await expect(action).toHaveCount(1);
         await expect(action.getByTestId('reason-ATTACH_DEVIATION')).toContainText('STEP.SUPERVISE');
+        await expect(blend.getByTestId('primary-action')).toHaveText('Sign as performed');
+        await expect(blend.getByTestId('primary-action')).toBeDisabled();
+        await expect(blend.getByTestId('primary-reason')).toContainText('cannot complete while these exceptions are unresolved');
       }, blend);
       await shots.shot(blend, 'kiosk-limit-breaches');
 
@@ -443,32 +464,45 @@ test.describe('first clickable version (journey)', () => {
       await shots.shot(blend, 'kiosk-run-complete');
       await axe.check(blend);
       expect(await cspViolations(blend)).toEqual([]);
+      await endSegment(blend, '4-kiosk-blending-BLEND-1');
 
       // ---------------------------------------------------------------------------------------------
       // 5. Verify record (replay) and the audit trails
+      const review = await officePage('SANDBOX', 'TEST-PC-01');
+      await signIn.office(review, issuer);
       await evidence.step('Run overview: "Verify record" replays the stored rows', 'Replay identical: the stored state matches', async () => {
-        await office.goto(`${sbx}/runs/${runId}`);
-        await office.getByRole('button', { name: 'Verify record (replay)' }).click();
-        await expect(office.getByTestId('replay-result')).toContainText(/^Replay identical: \d+ rows replayed, the stored state matches\./);
-      }, office);
-      await shots.shot(office, 'sandbox-replay-identical');
+        await review.getByRole('link', { name: /^Test runs/ }).click();
+        await review.getByRole('link', { name: `Open run ${batchNumber}` }).click();
+        await expect(review.getByRole('heading', { name: `Run ${batchNumber}` })).toBeVisible();
+        await review.getByRole('button', { name: 'Verify record (replay)' }).click();
+        await expect(review.getByTestId('replay-result')).toContainText(/^Replay identical: \d+ rows replayed, the stored state matches\./);
+      }, review);
+      await shots.shot(review, 'sandbox-replay-identical');
 
       await evidence.step('Sandbox audit trail of the batch chain: who, when, why; the chain verifies', 'Chain intact', async () => {
-        await office.getByRole('link', { name: 'Audit trail of this run' }).click();
-        await expect(office.getByRole('heading', { name: `Chain batch:${runId}` })).toBeVisible();
-        await office.getByRole('button', { name: 'Verify chain' }).click();
-        await expect(office.getByText(/^Chain intact: \d+ entries verified$/)).toBeVisible();
-      }, office);
-      await shots.shot(office, 'sandbox-audit-chain-verified');
+        await review.getByRole('link', { name: 'Audit trail of this run' }).click();
+        await expect(review.getByRole('heading', { name: `Chain batch:${runId}` })).toBeVisible();
+        await review.getByRole('button', { name: 'Verify chain' }).click();
+        await expect(review.getByText(/^Chain intact: \d+ entries verified$/)).toBeVisible();
+      }, review);
+      await shots.shot(review, 'sandbox-audit-chain-verified');
+      expect(await cspViolations(review)).toEqual([]);
+      await endSegment(review, '5-sandbox-replay-and-audit');
 
+      const audit = await officePage('GMP', 'PC-DESIGN-01');
+      await signIn.office(audit, author);
       await evidence.step('GMP audit trail of the MBR version: the creation and the export; the chain verifies', 'Chain intact', async () => {
-        await designer.goto(`${gmp}/audit?chain=${encodeURIComponent(`mbr_version:${versionId}`)}`);
-        await expect(designer.getByRole('heading', { name: `Chain mbr_version:${versionId}` })).toBeVisible();
-        await designer.getByRole('button', { name: 'Verify chain' }).click();
-        await expect(designer.getByText(/^Chain intact: \d+ entries verified$/)).toBeVisible();
-      }, designer);
-      await shots.shot(designer, 'gmp-audit-chain-verified');
-      expect(await cspViolations(office)).toEqual([]);
+        await audit.getByRole('link', { name: /Master records/ }).click();
+        await audit.getByRole('link', { name: `Open FAM-${tag} version 1` }).click();
+        await expect(audit.getByRole('heading', { level: 1 })).toContainText('Paracetamol tablets 500 mg');
+        await audit.getByRole('link', { name: 'Audit trail' }).click();
+        await expect(audit.getByRole('heading', { name: `Chain mbr_version:${versionId}` })).toBeVisible();
+        await audit.getByRole('button', { name: 'Verify chain' }).click();
+        await expect(audit.getByText(/^Chain intact: \d+ entries verified$/)).toBeVisible();
+      }, audit);
+      await shots.shot(audit, 'gmp-audit-chain-verified');
+      expect(await cspViolations(audit)).toEqual([]);
+      await endSegment(audit, '6-gmp-audit-trail');
     },
   );
 });

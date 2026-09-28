@@ -10,10 +10,11 @@
  * The claimed weight on a batch record (G-07 step) is covered by the journey spec (fcv.spec.ts), which runs the
  * execution (C3) and step screen (C4) end to end.
  *
- * The simulator is shared by the whole stack, so this file runs serially and always clears the faults it injects.
+ * The simulator is shared by the whole stack, so this file runs serially, takes the simulator lock of the stack
+ * (withSimulator; the journey spec weighs on the same balance) and always clears the faults it injects.
  */
 import { routes } from '@ebmr/api-contract';
-import { axe, expect, signIn, test } from '../../fixtures/index.ts';
+import { axe, expect, signIn, test, withSimulator } from '../../fixtures/index.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -23,7 +24,7 @@ async function simulator(url: string, action: string, body: Record<string, unkno
 }
 
 test.describe('devices', () => {
-  test('[DI-32][DI-20] the kiosk of the scale\'s room shows the live weight "live, not recorded"; a captured weight shows its device and raw line', { tag: '@kiosk' }, async ({ kioskPage, persona, e2e, evidence }) => {
+  test('[DI-32][DI-20] the kiosk of the scale\'s room shows the live weight "live, not recorded"; a captured weight shows its device and raw line', { tag: '@kiosk' }, async ({ kioskPage, persona, e2e, evidence }) => withSimulator(e2e.state, async () => {
     const sim = e2e.state.urls.simulatorConsole;
     await simulator(sim, 'clear-faults');
     await simulator(sim, 'reset');
@@ -51,7 +52,7 @@ test.describe('devices', () => {
       await expect(card.getByTestId('reading-raw')).toHaveText('S S      1.255 kg');
     }, page);
     await axe.check(page);
-  });
+  }));
 
   test('[DI-20] a kiosk in another room has no scale of DISP-1 to capture from', { tag: '@kiosk' }, async ({ kioskPage, persona, api }) => {
     const page = await kioskPage('TEST-KIOSK-BLEND-1');
@@ -63,7 +64,7 @@ test.describe('devices', () => {
     expect(anonymous.ok).toBe(false);
   });
 
-  test('[DI-32] with the simulator OFFLINE the scale turns offline and only the manual two-person path is offered', { tag: '@kiosk' }, async ({ kioskPage, persona, e2e, evidence }) => {
+  test('[DI-32] with the simulator OFFLINE the scale turns offline and only the manual two-person path is offered', { tag: '@kiosk' }, async ({ kioskPage, persona, e2e, evidence }) => withSimulator(e2e.state, async () => {
     const sim = e2e.state.urls.simulatorConsole;
     const page = await kioskPage('TEST-KIOSK-DISP-1');
     await signIn.kiosk(page, persona('SANDBOX', 'operator1'));
@@ -81,5 +82,5 @@ test.describe('devices', () => {
       await simulator(sim, 'fault', { fault: 'OFFLINE', on: false });
     }
     await expect(card.getByText('Online', { exact: true })).toBeVisible({ timeout: 30_000 });
-  });
+  }));
 });

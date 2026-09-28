@@ -223,6 +223,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     await evidence.step('The operator starts the first step with a badge tap', 'The step is in progress', async () => {
       await page.getByTestId('primary-action').click();
       await tapBadge(page, operator);
+      await expect(page.getByTestId('step-card').getByText(/^Saved: Start step/)).toBeVisible();
       await expect(page.getByTestId('step-card')).not.toContainText('Ready to start');
     }, page);
 
@@ -273,8 +274,12 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     await page.locator('[data-testid^="outline-"]').first().click();
     await page.getByTestId('primary-action').click();
     await tapBadge(page, operator);
+    await expect(page.getByTestId('step-card').getByText(/^Saved: Start step/)).toBeVisible();
 
     await evidence.step('The operator records every entry of the first step (clearance) with a tap each', 'Every entry saved', async () => {
+      // The entry forms of the clearance (G-10): the checklist and the previous batch, offered once the step is in progress.
+      await expect(page.getByTestId('form-CLEARANCE_CHECK').getByRole('radiogroup').first()).toBeVisible();
+      await expect(page.getByTestId('form-PREVIOUS_BATCH')).toBeVisible();
       for (const form of await page.locator('[data-testid^="form-"]').all()) {
         for (const group of await form.getByRole('radiogroup').all()) await choose(group.getByRole('radio').first());
         for (const box of await form.getByRole('textbox').all()) await box.fill('TEST-E2E');
@@ -285,6 +290,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     }, page);
 
     await evidence.step('The operator signs the step as performed through the ceremony (tap, then PIN)', 'The signature dialog is axe clean; the signature appears on the step', async () => {
+      await expect(page.getByTestId('primary-action')).toHaveText('Sign as performed');
       await page.getByTestId('primary-action').click();
       // C1's signature dialog: review the content, Sign, badge tap for the challenge, PIN on the keypad, Close.
       const dialog = page.getByRole('dialog');
@@ -299,6 +305,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     }, page);
 
     await evidence.step('The same person may not verify', 'Verify is greyed with the engine\'s reason (INV-03)', async () => {
+      await expect(page.getByTestId('primary-action')).toHaveText('Verify');
       await expect(page.getByTestId('primary-action')).toBeDisabled();
       await expect(page.getByTestId('primary-reason')).toContainText(/verif|different person|independ/i);
     }, page);

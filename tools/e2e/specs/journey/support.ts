@@ -65,18 +65,26 @@ export async function saveForm(page: Page, form: Locator, who: SeededPersona): P
  * A signature through the real ceremony (module C1): the primary action (or a named More-menu item), the content
  * review, Sign, the signer's badge tap for the challenge, the PIN on the keypad; the stored manifestation is shown.
  */
-export async function signPrimary(page: Page, label: string | RegExp, who: SeededPersona, before?: (dialog: Locator) => Promise<void>): Promise<void> {
-  await (await primary(page, label)).click();
-  await sign(page, who, before);
+export interface SignHooks {
+  /** While the content is reviewed, before Sign. */
+  review?: (dialog: Locator) => Promise<void>;
+  /** After the challenge: the manifestation preview and the PIN pad are shown. */
+  secret?: () => Promise<void>;
 }
 
-export async function sign(page: Page, who: SeededPersona, before?: (dialog: Locator) => Promise<void>): Promise<void> {
+export async function signPrimary(page: Page, label: string | RegExp, who: SeededPersona, hooks: SignHooks = {}): Promise<void> {
+  await (await primary(page, label)).click();
+  await sign(page, who, hooks);
+}
+
+export async function sign(page: Page, who: SeededPersona, hooks: SignHooks = {}): Promise<void> {
   const dialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Sign', exact: true }) });
   await expect(dialog).toBeVisible();
-  if (before) await before(dialog);
+  if (hooks.review) await hooks.review(dialog);
   await dialog.getByRole('button', { name: 'Sign', exact: true }).click();
   await tap(page, who);
   await expect(page.getByRole('region', { name: 'Your signature will show' })).toContainText(who.legalName);
+  if (hooks.secret) await hooks.secret();
   await pin.enter(page, who.pin ?? '');
   const done = page.getByRole('dialog').filter({ hasText: 'Signed.' });
   await expect(done).toBeVisible();
@@ -112,9 +120,11 @@ export class Milestones {
     this.n += 1;
     const file = this.testInfo.outputPath('milestones', `${String(this.n).padStart(2, '0')}-${name}.png`);
     mkdirSync(dirname(file), { recursive: true });
-    // From the top, so the fixed header and action bar sit where a person sees them first.
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({ path: file, fullPage: true });
+    // A dialog is shown as the person sees it (the viewport); a page in full, from the top, so the fixed header
+    // and action bar sit where a person sees them first.
+    const dialog = (await page.getByRole('dialog').count()) > 0 || (await page.getByRole('alertdialog').count()) > 0;
+    if (!dialog) await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: file, fullPage: !dialog });
     await this.testInfo.attach(`milestone ${String(this.n).padStart(2, '0')}: ${name}`, { path: file, contentType: 'image/png' });
   }
 }

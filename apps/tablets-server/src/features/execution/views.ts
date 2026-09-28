@@ -189,8 +189,9 @@ export function permissionRefusal(p: DisplayPermissions | undefined, action: Act
 }
 
 /**
- * ActionViews with exactly one primary action: the first available in the order of the work, else (nothing
- * available) the first in that order, shown greyed with its reason (DI-34). An action the engine accepts is
+ * ActionViews with exactly one primary action: the step's signature when an open exception blocks its completion,
+ * else the first available in the order of the work, else (nothing available) the first in that order, shown
+ * greyed with its reason (DI-34). An action the engine accepts is
  * still unavailable when the viewer's role lacks the command's permission. The engine's reasons name persons
  * by id; the viewer's own id is shown as their name.
  */
@@ -199,10 +200,12 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
     const denied = a.available ? permissionRefusal(permissions, a.action, a.meaning) : null;
     return { a, available: a.available && denied === null, reason: a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : denied };
   });
-  let primary = -1;
+  // A step whose completion an open exception blocks (ENG-BLOCKED; PR-08): its signature is the greyed primary,
+  // so the card says why the work stops rather than inviting more recording.
+  let primary = checked.findIndex((c) => c.a.action === 'SIGN_PERFORMED' && !c.available && c.a.refusal?.code === 'ENG-BLOCKED');
   for (const kind of PRIMARY_ORDER) {
-    primary = checked.findIndex((c) => c.a.action === kind && c.available);
     if (primary >= 0) break;
+    primary = checked.findIndex((c) => c.a.action === kind && c.available);
   }
   if (primary < 0) {
     for (const kind of PRIMARY_ORDER) {

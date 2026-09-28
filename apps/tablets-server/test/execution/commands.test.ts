@@ -198,6 +198,10 @@ describe('commands', () => {
     const blocked = await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: key });
     expect(blocked.result.ok).toBe(false);
     expect(refusalOf(blocked.result).kind).toBe('BLOCKED_BY_EXCEPTION');
+    // The step card's primary action is the blocked signature, greyed with the engine's reason.
+    const card = (await d.stepView('operator1', key)).actions.find((a) => a.primary);
+    expect(card).toMatchObject({ action: 'SIGN_PERFORMED', available: false });
+    expect(card?.reason).toMatch(/ENG-BLOCKED/);
     const sup = await server.asPersona('supervisor1');
     const d2 = new RunDriver(server, d.runId, { supervisor1: sup, operator1: d.browser('operator1') });
     d2.beforeTap = d.beforeTap;

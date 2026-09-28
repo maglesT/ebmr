@@ -23,8 +23,10 @@ export default defineConfig({
     actionTimeout: 30_000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    // EBMR_E2E_VIDEO=1 records every office and kiosk context (the owner's demo video of the journey spec).
+    // EBMR_E2E_VIDEO=1 records every office and kiosk context (the owner's demo video of the journey spec);
+    // EBMR_E2E_SLOWMO=<ms> slows every browser action so the recording can be followed.
     video: process.env['EBMR_E2E_VIDEO'] === '1' ? 'on' : 'off',
+    launchOptions: /^\d+$/.test(process.env['EBMR_E2E_SLOWMO'] ?? '') ? { slowMo: Number(process.env['EBMR_E2E_SLOWMO']) } : {},
     locale: 'en-IN',
     timezoneId: 'Asia/Kolkata',
   },
