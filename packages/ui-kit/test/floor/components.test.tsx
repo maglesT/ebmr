@@ -1,8 +1,10 @@
+/// <reference types="node" />
 /**
  * Floor kit components (module C4): NumericEntry and Keypad work on text only, never pre-fill and echo the
  * value; checklists pre-select nothing; scans take a keyboard-wedge burst; the action bar keeps unavailable
  * actions visible with the server's reason; glove-sized targets at floor density (computed styles).
  */
+import { readFileSync } from 'node:fs';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -11,9 +13,7 @@ import { example } from '@ebmr/api-contract/examples';
 import { floor } from '../../src/index.ts';
 import { cls } from '../../src/primitives/classes.ts';
 import { fcls } from '../../src/floor/classes.ts';
-import floorCss from '../../src/floor/floor.module.css?raw';
-import uiCss from '../../src/primitives/ui.module.css?raw';
-import tokensCss from '../../src/tokens/tokens.css?raw';
+
 
 const G04 = example('step-g04-parameters');
 const blendTime = G04.fields[0]!;
@@ -226,7 +226,8 @@ describe('glove-sized targets at floor density (computed styles)', () => {
 
   it('keypad keys are 72 px, buttons and choices at least 56 px, the primary bar 80 px', () => {
     style = document.createElement('style');
-    style.textContent = [tokensCss, hashed(uiCss, cls), hashed(floorCss, fcls)].join('\n');
+    const read = (rel: string) => readFileSync(`${import.meta.dirname}/../../src/${rel}`, 'utf8');
+    style.textContent = [read('tokens/tokens.css'), hashed(read('primitives/ui.module.css'), cls), hashed(read('floor/floor.module.css'), fcls)].join('\n');
     document.head.appendChild(style);
     document.documentElement.dataset['density'] = 'floor';
     render(

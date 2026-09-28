@@ -35,20 +35,18 @@ function PackageItem({ p, highlighted }: { p: TestPackageView; highlighted: bool
   return (
     <li ref={ref} className={wcls('item')} data-testid={`package-${p.packageId}`} data-highlight={String(highlighted)} {...(highlighted ? { 'aria-current': 'true' as const } : {})}>
       <h2 className={wcls('itemTitle')}>
-        <span>
-          {p.product.name} · {p.familyCode} version {p.versionNumber} revision {p.revision}
-        </span>
+        <span>{st('packages.version', { product: p.product.name, family: p.familyCode, version: p.versionNumber, revision: p.revision })}</span>
         <StatusChip tone="neutral" label={p.state} />
         {p.imported ? <StatusChip tone="ok" label={st('packages.imported', { at: p.importedAt?.text ?? '' })} /> : null}
       </h2>
       <dl className={wcls('facts')}>
-        <dt>Package hash</dt>
+        <dt>{st('packages.packageHash')}</dt>
         <dd className={wcls('hash')}>{p.packageHash}</dd>
-        <dt>Content hash</dt>
+        <dt>{st('packages.contentHash')}</dt>
         <dd className={wcls('hash')}>{p.contentHash}</dd>
-        <dt>Origin</dt>
+        <dt>{st('packages.originLabel')}</dt>
         <dd>{st('packages.origin', { installation: p.sourceInstallation, exporter: p.exporter, at: p.exportedAt.text })}</dd>
-        <dt>File</dt>
+        <dt>{st('packages.file')}</dt>
         <dd className={wcls('hash')}>{p.fileName}</dd>
       </dl>
       {p.sourceInstallation !== 'GMP' ? <p role="alert">{st('packages.notGmp')}</p> : null}

@@ -86,6 +86,11 @@ export const SCREEN_EN = {
   'packages.imported': 'Imported {at}',
   'packages.issue': 'Issue a test batch',
   'packages.origin': 'Exported from {installation} by {exporter}, {at}',
+  'packages.packageHash': 'Package hash',
+  'packages.contentHash': 'Content hash',
+  'packages.originLabel': 'Origin',
+  'packages.file': 'File',
+  'packages.version': '{product} · {family} version {version} revision {revision}',
   'packages.notGmp': 'This package does not come from the GMP installation; it cannot be imported.',
   'issue.title': 'Issue a test batch',
   'issue.size': 'Batch size (approved sizes only)',
@@ -117,6 +122,7 @@ export const SCREEN_EN = {
   'timeline.who': 'Who',
   'timeline.what': 'What',
   'timeline.refused': 'Refused: {why}',
+  'timeline.system': 'System',
   'dialog.cancel': 'Cancel',
   'dialog.exception.title': 'Raise an exception',
   'dialog.exception.description': 'What happened',
@@ -137,6 +143,9 @@ export const SCREEN_EN = {
   'dialog.holdPoint.disposition': 'Decision',
   'dialog.holdPoint.comment': 'Comment (optional)',
   'dialog.holdPoint.sign': 'Continue to signature',
+  'disposition.RELEASED': 'Released',
+  'disposition.REJECTED': 'Rejected (not released)',
+  'holdPoint.decisions': 'Decisions available: {list}.',
   'dialog.signOff.title': 'Sign off stage {number} {name}',
   'dialog.signOff.summary': 'Summary of the stage (derived by the system; it cannot be typed)',
   'dialog.signOff.exceptions': 'Exceptions: {list}',
@@ -156,6 +165,12 @@ export const SCREEN_EN = {
 } as const;
 
 export type ScreenKey = keyof typeof SCREEN_EN;
+
+/** The screen text for a server enum value under a prefix, or the value itself. */
+export function stEnum(prefix: string, value: string): string {
+  const key = `${prefix}.${value}`;
+  return key in SCREEN_EN ? st(key as ScreenKey) : value;
+}
 
 export function st(key: ScreenKey, params: Readonly<Record<string, string | number>> = {}): string {
   return SCREEN_EN[key].replace(/\{(\w+)\}/g, (m, name: string) => (name in params ? String(params[name]) : m));

@@ -1,8 +1,9 @@
 /**
  * Web feature `floor` (module C4): the sandbox test-run screens and the shop-floor step screen.
  *
- * Routes: /packages and /test-packages (inbox and import; ?package=<hash> highlights one), /packages/$packageId/issue (issue a TEST- batch), /runs, /runs/$runId
- * (overview, record, replay), /runs/$runId/steps/$stepKey (the step screen), /cockpit ("What you can do now").
+ * Routes: /packages and /test-packages (inbox and import; ?package=<hash> highlights one),
+ * /packages/$packageId/issue (issue a TEST- batch), /runs, /runs/$runId (overview, record, replay),
+ * /runs/$runId/steps/$stepKey (the step screen), /cockpit ("What you can do now").
  * Every route sits in the C0 shell, which shows the TEST, NOT GMP band and watermark on the sandbox (DI-05).
  *
  * The Provider supplies the floor's view of the session (who is signed in, tap per entry). It supplies no port:

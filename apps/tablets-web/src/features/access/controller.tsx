@@ -5,10 +5,10 @@
  *    GET /api/session every 15 s (the kernel locks idle sessions; the overlay follows within 15 s);
  *  - the session-change announcements C4's pending entries listen to ('ebmr:session-change').
  *
- * Secrets: badge UIDs and PINs live in refs only, for as long as the next step needs them (a badge tapped for an
- * entry is kept 30 s so a "Switch to <name>?" offer needs only the PIN), and are wiped when used.
+ * Secrets: badge UIDs and PINs live in Vault / KeptBadge holders only, for as long as the next step needs them (a
+ * badge tapped for an entry is kept 30 s so a "Switch to <name>?" offer needs only the PIN), and are wiped when used.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useMachine } from '@xstate/react';
 import { fromPromise } from 'xstate';
 import { routes, type Attribution, type RefusalEnvelope, type SessionView } from '@ebmr/api-contract';
@@ -17,20 +17,20 @@ import { api } from '../../api/client.ts';
 import { useBoot, type Boot } from '../../app/boot.tsx';
 import type { TapRequest } from '../../app/ports.tsx';
 import { buildAttribution, lockCall, sessionCall, switchCall, unlockWithBadge, unlockWithPassword, type CallOutcome } from './calls.ts';
+import { Latest, Vault } from './holders.ts';
 
-export const KEEP_TAP_MS = 30_000;
 export const SESSION_POLL_MS = 15_000;
 
 export interface AccessController {
   demoBadges: readonly identity.DemoBadge[];
-  requestTap(reason: string, request: TapRequest): Promise<Attribution | null>;
-  offerSwitch(refusal: RefusalEnvelope): Promise<boolean>;
+  requestTap: (reason: string, request: TapRequest) => Promise<Attribution | null>;
+  offerSwitch: (refusal: RefusalEnvelope) => Promise<boolean>;
   /** Switch to another person with badge and PIN (the ceremony's own "Switch to <name>?"). */
-  switchTo(badgeUid: string, pin: string): Promise<CallOutcome<SessionView>>;
-  lock(): void;
-  lockAndSwitch(): void;
-  checkSession(): void;
-  signOut(): Promise<void>;
+  switchTo: (badgeUid: string, pin: string) => Promise<CallOutcome<SessionView>>;
+  lock: () => void;
+  lockAndSwitch: () => void;
+  checkSession: () => void;
+  signOut: () => Promise<void>;
 }
 
 const AccessContext = createContext<AccessController | null>(null);
@@ -64,10 +64,10 @@ function useDemoBadges(boot: Boot): readonly identity.DemoBadge[] {
 }
 
 interface SessionControlHandle {
-  offer(refusal: RefusalEnvelope): Promise<boolean>;
-  lock(): void;
-  lockAndSwitch(): void;
-  check(): void;
+  offer: (refusal: RefusalEnvelope) => Promise<boolean>;
+  lock: () => void;
+  lockAndSwitch: () => void;
+  check: () => void;
 }
 
 interface TapJob {
@@ -77,120 +77,106 @@ interface TapJob {
 
 export function AccessRoot({ children, render }: { children: ReactNode; render: (ctl: AccessController) => ReactNode }) {
   const boot = useBoot();
-  const bootRef = useRef(boot);
+  const [latestBoot] = useState(() => new Latest<Boot>(boot));
   useEffect(() => {
-    bootRef.current = boot;
+    latestBoot.set(boot);
   });
   const demoBadges = useDemoBadges(boot);
 
   // ---- The badge-tap service --------------------------------------------------------------
   const [tapPrompt, setTapPrompt] = useState<{ reason: string; stage: 'badge' | 'pin' } | null>(null);
-  const tapJob = useRef<TapJob | null>(null);
-  const tapUid = useRef<string | null>(null);
-  const remembered = useRef<string | null>(null);
-  const rememberTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tapJob] = useState(() => new Vault<TapJob>());
+  const [tapUid] = useState(() => new Vault<string>());
   const [hasRemembered, setHasRemembered] = useState(false);
+  const [remembered] = useState(() => new identity.KeptBadge(setHasRemembered));
+  useEffect(() => () => remembered.clear(), [remembered]);
 
-  const forgetRemembered = useCallback(() => {
-    remembered.current = null;
-    if (rememberTimer.current) clearTimeout(rememberTimer.current);
-    rememberTimer.current = null;
-    setHasRemembered(false);
-  }, []);
-  const remember = useCallback(
-    (uid: string) => {
-      forgetRemembered();
-      remembered.current = uid;
-      setHasRemembered(true);
-      rememberTimer.current = setTimeout(forgetRemembered, KEEP_TAP_MS);
+  const finishTap = useCallback(
+    (a: Attribution | null) => {
+      const job = tapJob.take();
+      tapUid.clear();
+      setTapPrompt(null);
+      job?.resolve(a);
     },
-    [forgetRemembered],
+    [tapJob, tapUid],
   );
-  useEffect(() => forgetRemembered, [forgetRemembered]);
-
-  const finishTap = useCallback((a: Attribution | null) => {
-    const job = tapJob.current;
-    tapJob.current = null;
-    tapUid.current = null;
-    setTapPrompt(null);
-    job?.resolve(a);
-  }, []);
 
   const completeTap = useCallback(
     async (uid: string, pin: string | undefined) => {
-      const job = tapJob.current;
-      const key = bootRef.current.deviceKey;
+      const job = tapJob.peek();
+      const key = latestBoot.get().deviceKey;
       if (!job || !key) {
         finishTap(null);
         return;
       }
       try {
         const attribution = await buildAttribution(key, uid, pin, job.request);
-        remember(uid);
+        remembered.keep(uid);
         finishTap(attribution);
       } catch {
         finishTap(null);
       }
     },
-    [finishTap, remember],
+    [finishTap, latestBoot, remembered, tapJob],
   );
 
-  const requestTap = useCallback((reason: string, request: TapRequest): Promise<Attribution | null> => {
-    const s = bootRef.current.session;
-    if (!s || !isKiosk(s) || !bootRef.current.deviceKey) return Promise.resolve(null);
-    // One prompt at a time: an earlier unanswered request is cancelled.
-    tapJob.current?.resolve(null);
-    return new Promise((resolve) => {
-      tapJob.current = { request, resolve };
-      tapUid.current = null;
-      setTapPrompt({ reason, stage: 'badge' });
-    });
-  }, []);
+  const requestTap = useCallback(
+    (reason: string, request: TapRequest): Promise<Attribution | null> => {
+      const b = latestBoot.get();
+      if (!b.session || !isKiosk(b.session) || !b.deviceKey) return Promise.resolve(null);
+      // One prompt at a time: an earlier unanswered request is cancelled.
+      tapJob.take()?.resolve(null);
+      return new Promise((resolve) => {
+        tapJob.put({ request, resolve });
+        tapUid.clear();
+        setTapPrompt({ reason, stage: 'badge' });
+      });
+    },
+    [latestBoot, tapJob, tapUid],
+  );
 
   // ---- Session control (mounted per signed-in person) ---------------------------------------
-  const control = useRef<SessionControlHandle | null>(null);
+  const [control] = useState(() => new Latest<SessionControlHandle | null>(null));
 
   const ctl = useMemo<AccessController>(
     () => ({
       demoBadges,
       requestTap,
-      offerSwitch: (refusal) => control.current?.offer(refusal) ?? Promise.resolve(false),
+      offerSwitch: (refusal) => control.get()?.offer(refusal) ?? Promise.resolve(false),
       switchTo: async (badgeUid, pin) => {
-        const key = bootRef.current.deviceKey;
+        const key = latestBoot.get().deviceKey;
         if (!key) return { ok: false, failure: { kind: 'ERROR', message: 'this terminal has no device key' } };
         const r = await switchCall(key, badgeUid, pin);
         if (r.ok) {
           machines.announceSessionChange({ reason: 'SWITCH', personId: r.value.person.personId });
-          bootRef.current.setSession(r.value);
+          latestBoot.get().setSession(r.value);
         }
         return r;
       },
-      lock: () => control.current?.lock(),
-      lockAndSwitch: () => control.current?.lockAndSwitch(),
-      checkSession: () => control.current?.check(),
+      lock: () => control.get()?.lock(),
+      lockAndSwitch: () => control.get()?.lockAndSwitch(),
+      checkSession: () => control.get()?.check(),
       signOut: async () => {
         machines.announceSessionChange({ reason: 'ENDED', personId: null });
-        await bootRef.current.signOut();
+        await latestBoot.get().signOut();
       },
     }),
-    [demoBadges, requestTap],
+    [demoBadges, requestTap, control, latestBoot],
   );
 
   const session = boot.phase === 'ready' ? boot.session : null;
-  const kiosk = isKiosk(session);
   return (
     <AccessContext.Provider value={ctl}>
       {children}
       {session ? (
         <SessionControl
           key={session.person.personId}
-          handle={control}
+          control={control}
           session={session}
-          kiosk={kiosk}
+          kiosk={isKiosk(session)}
           demoBadges={demoBadges}
           remembered={remembered}
           hasRemembered={hasRemembered}
-          forgetRemembered={forgetRemembered}
         />
       ) : null}
       {tapPrompt ? (
@@ -201,7 +187,7 @@ export function AccessRoot({ children, render }: { children: ReactNode; render: 
               demoBadges={demoBadges}
               onTap={(uid) => {
                 if (session?.attribution === 'TAP_PIN') {
-                  tapUid.current = uid;
+                  tapUid.put(uid);
                   setTapPrompt({ reason: tapPrompt.reason, stage: 'pin' });
                 } else {
                   void completeTap(uid, undefined);
@@ -210,17 +196,14 @@ export function AccessRoot({ children, render }: { children: ReactNode; render: 
               onCancel={() => finishTap(null)}
             />
           ) : (
-            <>
-              <identity.PinPad
-                label="Enter your PIN to confirm"
-                onSubmit={(pin) => {
-                  const uid = tapUid.current;
-                  tapUid.current = null;
-                  if (uid) void completeTap(uid, pin);
-                  else finishTap(null);
-                }}
-              />
-            </>
+            <identity.PinPad
+              label="Enter your PIN to confirm"
+              onSubmit={(pin) => {
+                const uid = tapUid.take();
+                if (uid) void completeTap(uid, pin);
+                else finishTap(null);
+              }}
+            />
           )}
         </Dialog>
       ) : null}
@@ -231,98 +214,86 @@ export function AccessRoot({ children, render }: { children: ReactNode; render: 
 
 type Secret = { kind: 'badge'; badgeUid: string; pin: string } | { kind: 'password'; loginName: string; password: string };
 
-function take<T>(ref: RefObject<T | null>): T | null {
-  const v = ref.current;
-  ref.current = null;
-  return v;
-}
-
 const offerOf = (refusal: RefusalEnvelope): machines.SwitchOffer => ({
   legalName: refusal.refusal.details?.['switchToLegalName'] ?? 'another person',
   loginName: refusal.refusal.details?.['switchToLoginName'] ?? '',
 });
 
 function SessionControl(props: {
-  handle: RefObject<SessionControlHandle | null>;
+  control: Latest<SessionControlHandle | null>;
   session: SessionView;
   kiosk: boolean;
   demoBadges: readonly identity.DemoBadge[];
-  remembered: RefObject<string | null>;
+  remembered: identity.KeptBadge;
   hasRemembered: boolean;
-  forgetRemembered: () => void;
 }) {
-  const { handle, session, kiosk, demoBadges, remembered, hasRemembered, forgetRemembered } = props;
+  const { control, session, kiosk, demoBadges, remembered, hasRemembered } = props;
   const boot = useBoot();
-  const bootRef = useRef(boot);
+  const [latestBoot] = useState(() => new Latest<Boot>(boot));
   useEffect(() => {
-    bootRef.current = boot;
+    latestBoot.set(boot);
   });
-  const secret = useRef<Secret | null>(null);
-  const offerBadge = useRef<string | null>(null);
+  const [secret] = useState(() => new Vault<Secret>());
+  const [offerBadge] = useState(() => new Vault<string>());
+  const [offerResolve] = useState(() => new Vault<(ok: boolean) => void>());
   const [offerBadgeTapped, setOfferBadgeTapped] = useState(false);
-  const offerResolve = useRef<((ok: boolean) => void) | null>(null);
   const [switchFirst, setSwitchFirst] = useState(false);
 
-  const machine = useMemo(
-    () =>
-      machines.kioskLockMachine.provide({
-        actors: {
-          lockSession: fromPromise(async () => {
-            const r = await lockCall();
-            if (!r.ok) throw r.failure;
-            machines.announceSessionChange({ reason: 'LOCK', personId: r.value.person.personId });
-            bootRef.current.setSession(r.value);
-            return r.value;
-          }),
-          unlockSession: fromPromise(async () => {
-            const s = take(secret);
-            const key = bootRef.current.deviceKey;
-            if (!s || !key) throw { kind: 'ERROR', message: 'nothing to unlock with' } satisfies machines.CeremonyFailure;
-            const r = s.kind === 'badge' ? await unlockWithBadge(key, s.badgeUid, s.pin) : await unlockWithPassword(key, s.loginName, s.password);
-            if (!r.ok) throw r.failure;
-            machines.announceSessionChange({ reason: 'UNLOCK', personId: r.value.person.personId });
-            bootRef.current.setSession(r.value);
-            return r.value;
-          }),
-          switchUser: fromPromise(async () => {
-            const s = take(secret);
-            const key = bootRef.current.deviceKey;
-            if (!s || s.kind !== 'badge' || !key) throw { kind: 'ERROR', message: 'nothing to switch with' } satisfies machines.CeremonyFailure;
-            const r = await switchCall(key, s.badgeUid, s.pin);
-            if (!r.ok) throw r.failure;
-            take(offerResolve)?.(true);
-            machines.announceSessionChange({ reason: 'SWITCH', personId: r.value.person.personId });
-            bootRef.current.setSession(r.value);
-            return r.value;
-          }),
-        },
-      }),
-    [],
+  const [machine] = useState(() =>
+    machines.kioskLockMachine.provide({
+      actors: {
+        lockSession: fromPromise(async () => {
+          const r = await lockCall();
+          if (!r.ok) throw machines.ceremonyError(r.failure);
+          machines.announceSessionChange({ reason: 'LOCK', personId: r.value.person.personId });
+          latestBoot.get().setSession(r.value);
+          return r.value;
+        }),
+        unlockSession: fromPromise(async () => {
+          const s = secret.take();
+          const key = latestBoot.get().deviceKey;
+          if (!s || !key) throw machines.ceremonyError({ kind: 'ERROR', message: 'nothing to unlock with' });
+          const r = s.kind === 'badge' ? await unlockWithBadge(key, s.badgeUid, s.pin) : await unlockWithPassword(key, s.loginName, s.password);
+          if (!r.ok) throw machines.ceremonyError(r.failure);
+          machines.announceSessionChange({ reason: 'UNLOCK', personId: r.value.person.personId });
+          latestBoot.get().setSession(r.value);
+          return r.value;
+        }),
+        switchUser: fromPromise(async () => {
+          const s = secret.take();
+          const key = latestBoot.get().deviceKey;
+          if (!s || s.kind !== 'badge' || !key) throw machines.ceremonyError({ kind: 'ERROR', message: 'nothing to switch with' });
+          const r = await switchCall(key, s.badgeUid, s.pin);
+          if (!r.ok) throw machines.ceremonyError(r.failure);
+          offerResolve.take()?.(true);
+          machines.announceSessionChange({ reason: 'SWITCH', personId: r.value.person.personId });
+          latestBoot.get().setSession(r.value);
+          return r.value;
+        }),
+      },
+    }),
   );
   const [snap, send] = useMachine(machine, { input: { locked: session.locked } });
   const state = snap.value as string;
-  const stateRef = useRef(state);
+  const [latestState] = useState(() => new Latest<string>(state));
   useEffect(() => {
-    stateRef.current = state;
+    latestState.set(state);
   });
 
-  const ended = useCallback(() => {
-    take(offerResolve)?.(false);
-    machines.announceSessionChange({ reason: 'ENDED', personId: null });
-    bootRef.current.setSession(null);
-  }, []);
-
   useEffect(() => {
-    if (state === 'ended') ended();
-  }, [state, ended]);
+    if (state !== 'ended') return;
+    offerResolve.take()?.(false);
+    machines.announceSessionChange({ reason: 'ENDED', personId: null });
+    latestBoot.get().setSession(null);
+  }, [state, offerResolve, latestBoot]);
 
   // The kernel decides: poll the session so an idle lock, an end or a lock elsewhere shows here.
   const check = useCallback(() => {
     void sessionCall().then((r) => {
       if (r.ok) {
-        const now = stateRef.current;
-        if (r.value.person.personId !== bootRef.current.session?.person.personId) {
-          bootRef.current.setSession(r.value);
+        const now = latestState.get();
+        if (r.value.person.personId !== latestBoot.get().session?.person.personId) {
+          latestBoot.get().setSession(r.value);
           return;
         }
         if (r.value.locked && (now === 'active' || now === 'offering')) {
@@ -333,7 +304,7 @@ function SessionControl(props: {
         send({ type: 'ENDED' });
       }
     });
-  }, [send]);
+  }, [send, latestState, latestBoot]);
 
   useEffect(() => {
     const id = setInterval(check, SESSION_POLL_MS);
@@ -341,13 +312,12 @@ function SessionControl(props: {
   }, [check]);
 
   useEffect(() => {
-    handle.current = {
+    control.set({
       offer: (refusal) => {
-        take(offerResolve)?.(false);
-        offerBadge.current = null;
-        setOfferBadgeTapped(false);
+        offerResolve.take()?.(false);
+        offerBadge.clear();
         return new Promise<boolean>((resolve) => {
-          offerResolve.current = resolve;
+          offerResolve.put(resolve);
           send({ type: 'OFFER_SWITCH', offer: offerOf(refusal) });
         });
       },
@@ -360,12 +330,12 @@ function SessionControl(props: {
         send({ type: 'LOCK' });
       },
       check,
-    };
+    });
     return () => {
-      handle.current = null;
-      take(offerResolve)?.(false);
+      control.set(null);
+      offerResolve.take()?.(false);
     };
-  }, [handle, send, check]);
+  }, [control, send, check, offerBadge, offerResolve]);
 
   const lockOpen = state === 'locked' || state === 'unlocking' || state === 'locking' || (state === 'switching' && snap.context.wasLocked && !snap.context.fromOffer);
   const offerOpen = state === 'offering' || (state === 'switching' && snap.context.fromOffer);
@@ -384,20 +354,20 @@ function SessionControl(props: {
         switchFirst={switchFirst}
         demoBadges={demoBadges}
         onUnlockBadge={(badgeUid, pin) => {
-          secret.current = { kind: 'badge', badgeUid, pin };
+          secret.put({ kind: 'badge', badgeUid, pin });
           send({ type: 'UNLOCK' });
         }}
         onUnlockPassword={(loginName, password) => {
-          secret.current = { kind: 'password', loginName, password };
+          secret.put({ kind: 'password', loginName, password });
           send({ type: 'UNLOCK' });
         }}
         onSwitch={(badgeUid, pin) => {
-          secret.current = { kind: 'badge', badgeUid, pin };
+          secret.put({ kind: 'badge', badgeUid, pin });
           send({ type: 'SWITCH' });
         }}
         onSignOut={() => {
           machines.announceSessionChange({ reason: 'ENDED', personId: null });
-          void bootRef.current.signOut();
+          void latestBoot.get().signOut();
         }}
       />
       {offer && offerOpen ? (
@@ -409,22 +379,22 @@ function SessionControl(props: {
           error={snap.context.error}
           demoBadges={demoBadges}
           onTap={(uid) => {
-            offerBadge.current = uid;
+            offerBadge.put(uid);
             setOfferBadgeTapped(true);
           }}
           onPin={(pin) => {
-            const uid = take(offerBadge) ?? take(remembered);
-            forgetRemembered();
+            const uid = offerBadge.take() ?? remembered.take();
+            remembered.clear();
             setOfferBadgeTapped(false);
             if (!uid) return;
-            secret.current = { kind: 'badge', badgeUid: uid, pin };
+            secret.put({ kind: 'badge', badgeUid: uid, pin });
             send({ type: 'SWITCH' });
           }}
           onCancel={() => {
-            offerBadge.current = null;
+            offerBadge.clear();
             setOfferBadgeTapped(false);
-            forgetRemembered();
-            take(offerResolve)?.(false);
+            remembered.clear();
+            offerResolve.take()?.(false);
             send({ type: 'DISMISS' });
           }}
         />

@@ -74,6 +74,11 @@ export const UNVERIFIED_REFUSAL = localRefusal(
   ['Reload the screen. If it happens again, report it.'],
 );
 
+/** A failure as a throwable Error (actors throw it; the machine reads its `kind`). */
+export function ceremonyError(f: CeremonyFailure): Error & CeremonyFailure {
+  return Object.assign(new Error(f.kind === 'REFUSAL' ? f.envelope.refusal.code : f.message), f);
+}
+
 const asFailure = (e: unknown): CeremonyFailure =>
   e !== null && typeof e === 'object' && 'kind' in e && ((e as CeremonyFailure).kind === 'REFUSAL' || (e as CeremonyFailure).kind === 'LOST' || (e as CeremonyFailure).kind === 'ERROR')
     ? (e as CeremonyFailure)

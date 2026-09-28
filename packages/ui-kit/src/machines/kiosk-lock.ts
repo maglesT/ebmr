@@ -52,13 +52,13 @@ export interface SessionChangeDetail {
 }
 
 /** Announces a session change to the page (C4's pending entries listen and discard unsent work). */
-export function announceSessionChange(detail: SessionChangeDetail, target: EventTarget | undefined = globalThis as unknown as EventTarget): void {
+export function announceSessionChange(detail: SessionChangeDetail, target: EventTarget | undefined = globalThis): void {
   if (!target || typeof (target as { dispatchEvent?: unknown }).dispatchEvent !== 'function') return;
   target.dispatchEvent(new CustomEvent<SessionChangeDetail>(SESSION_CHANGE_EVENT, { detail }));
 }
 
 /** Subscribes to session changes; returns the unsubscribe function. */
-export function onSessionChange(listener: (detail: SessionChangeDetail) => void, target: EventTarget | undefined = globalThis as unknown as EventTarget): () => void {
+export function onSessionChange(listener: (detail: SessionChangeDetail) => void, target: EventTarget | undefined = globalThis): () => void {
   if (!target || typeof (target as { addEventListener?: unknown }).addEventListener !== 'function') return () => undefined;
   const handler = (e: Event) => listener((e as CustomEvent<SessionChangeDetail>).detail);
   target.addEventListener(SESSION_CHANGE_EVENT, handler);

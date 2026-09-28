@@ -7,9 +7,7 @@ import { useState } from 'react';
 import type { ExceptionView, RunView } from '@ebmr/api-contract';
 import { Button, Dialog, Field, floor } from '@ebmr/ui-kit';
 import { wcls } from '../classes.ts';
-import { st } from '../text.ts';
-
-const DISPOSITION_WORDS: Readonly<Record<string, string>> = { RELEASED: 'Released', REJECTED: 'Rejected (not released)' };
+import { st, stEnum } from '../text.ts';
 
 export function HoldPointDialog({ isOpen, onClose, dispositions, onContinue }: { isOpen: boolean; onClose: () => void; dispositions: readonly string[]; onContinue: (d: { disposition: string; comment: string }) => void }) {
   const [disposition, setDisposition] = useState<string | null>(null);
@@ -17,7 +15,7 @@ export function HoldPointDialog({ isOpen, onClose, dispositions, onContinue }: {
   return (
     <Dialog title={st('dialog.holdPoint.title')} isOpen={isOpen} onOpenChange={(o) => (o ? null : onClose())}>
       <div className={wcls('dialogBody')}>
-        <floor.ChoiceGroup label={st('dialog.holdPoint.disposition')} options={dispositions.map((d) => ({ value: d, label: DISPOSITION_WORDS[d] ?? d }))} value={disposition} onChange={setDisposition} />
+        <floor.ChoiceGroup label={st('dialog.holdPoint.disposition')} options={dispositions.map((d) => ({ value: d, label: stEnum('disposition', d) }))} value={disposition} onChange={setDisposition} />
         <Field label={st('dialog.holdPoint.comment')} name="comment" value={comment} onChange={setComment} autoComplete="off" />
         <div className={wcls('row')}>
           <Button variant="primary" isDisabled={!disposition} onPress={() => disposition && onContinue({ disposition, comment: comment.trim() })}>

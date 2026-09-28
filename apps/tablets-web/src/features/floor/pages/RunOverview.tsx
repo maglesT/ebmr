@@ -65,7 +65,7 @@ function Timeline({ runId }: { runId: string }) {
             <td>{e.seq}</td>
             <td>{e.kind}</td>
             <td>{e.at.text}</td>
-            <td>{e.actor ? floor.personLine(e.actor) : 'System'}</td>
+            <td>{e.actor ? floor.personLine(e.actor) : st('timeline.system')}</td>
             <td>
               {e.summary}
               {e.accepted ? null : <strong> {st('timeline.refused', { why: e.refusal ?? '' })}</strong>}
@@ -157,7 +157,7 @@ export function RunOverviewPage() {
         <ul className={wcls('entries')}>
           {view.holds.map((h) => (
             <li key={h.holdId} className={wcls('entry')}>
-              <strong>{h.type === 'QA' ? st('dialog.hold.QA') : st('dialog.hold.SUPERVISOR')}</strong>: {h.reason} · {h.placedBy ? floor.personLine(h.placedBy) : 'System'} · {h.at.text}
+              <strong>{h.type === 'QA' ? st('dialog.hold.QA') : st('dialog.hold.SUPERVISOR')}</strong>: {h.reason} · {h.placedBy ? floor.personLine(h.placedBy) : st('timeline.system')} · {h.at.text}
               {h.released ? <div>{st('run.holdReleased', { name: floor.personLine(h.released.by), at: h.released.at.text, reason: h.released.reason })}</div> : null}
             </li>
           ))}

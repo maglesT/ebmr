@@ -108,7 +108,7 @@ function Value({ value, depth }: { value: unknown; depth: number }): ReactNode {
     if (value.length === 0) return <span>none</span>;
     return (
       <ol>
-        {value.map((item, i) => (
+        {(value as unknown[]).map((item, i) => (
           <li key={i}>
             <Value value={item} depth={depth + 1} />
           </li>

@@ -15,7 +15,16 @@ export interface LiveSource {
   close(): void;
 }
 
-let factory: (url: string) => LiveSource = (url) => new EventSource(url, { withCredentials: false });
+/** Same-origin EventSource: the session cookie goes with it; the server checks the session and the room. */
+function eventSource(url: string): LiveSource {
+  const es = new EventSource(url);
+  const source: LiveSource = { onmessage: null, onerror: null, close: () => es.close() };
+  es.onmessage = (ev: MessageEvent<unknown>) => source.onmessage?.({ data: typeof ev.data === 'string' ? ev.data : '' });
+  es.onerror = () => source.onerror?.();
+  return source;
+}
+
+let factory: (url: string) => LiveSource = eventSource;
 
 /** Replaces the EventSource factory (tests). */
 export function setLiveSourceFactory(f: (url: string) => LiveSource): void {
