@@ -73,7 +73,9 @@ const criticalParameters = defineRule('GMP-CRITICAL-PARAMETERS', 'Critical param
   const out: RuleFinding[] = [];
   for (const p of a.mbr.parameters) {
     const name = `Parameter ${label(a, p.id)}`;
-    const needsLimits = p.role === 'IPC' || (p.criticality === 'CRITICAL' && LIMIT_ROLES.has(p.role) && (p.valueType === 'DECIMAL' || p.valueType === 'COUNT'));
+    const numeric = p.valueType === 'DECIMAL' || p.valueType === 'COUNT';
+    // Numeric IPCs always need limits; categorical IPCs are typed by their list of values (GMP-TYPED-FIELDS).
+    const needsLimits = numeric && (p.role === 'IPC' || (p.criticality === 'CRITICAL' && LIMIT_ROLES.has(p.role)));
     if (needsLimits && (!p.limits || p.limits.ranges.length === 0)) {
       out.push(error(p.id, `${name} is ${p.role === 'IPC' ? 'an in-process control' : 'a critical parameter'} but has no limits; every CPP and IPC needs limits with their source`));
     }
@@ -482,7 +484,7 @@ const acceptance = defineRule('GMP-ACCEPTANCE-SCHEMES', 'ALL_APPLY schemes are c
       ids.add(c.id);
       if (c.governingMarkets.length === 0) out.push(error(s.id, `Criterion ${c.id} of ${s.id} names no governing market`));
       for (const m of c.governingMarkets) if (!a.mbr.header.marketSet.includes(m)) out.push(error(s.id, `Criterion ${c.id} of ${s.id} is governed by ${m}, which is not in the market set`));
-      out.push(...limitFindings(a, s.id, `Criterion ${c.id} of ${s.id}`, { unit: s.unit, ranges: [c.range] }));
+      out.push(...limitFindings(a, s.id, `Criterion ${c.id} of ${s.id}`, { unit: c.unit, ranges: [c.range] }));
     }
     const users = a.phases.filter((p) => p.acceptanceScheme === s.id);
     if (users.length === 0) out.push(warning(s.id, `Acceptance scheme ${s.id} is not used by any step`));

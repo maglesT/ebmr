@@ -420,8 +420,10 @@ function outputType(result: ExprType, output: OutputDeclaration, diagnostics: Di
       );
       return undefined;
     }
-    if (barePercentConflict(unit, result.unit)) {
-      diagnostics.push(diagnostic('EXPR-UNIT-011', 'ERROR', `The formula gives a plain number, but the output is declared in ${output.unit}; write the formula with units`, span));
+    // A plain-number result stored as a percentage would be multiplied by 100 (98.24 -> 9824 %);
+    // the reverse (a ratio of units such as kg/mg stored as a plain count) is ordinary conversion.
+    if (result.unit.bareNumber && barePercentConflict(unit, result.unit)) {
+      diagnostics.push(diagnostic('EXPR-UNIT-011', 'ERROR', `The formula gives a plain number, but the output is declared in ${output.unit}; write the formula with units, e.g. a / b * 100 [%]`, span));
       return undefined;
     }
   }

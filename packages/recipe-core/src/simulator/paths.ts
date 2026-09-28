@@ -14,7 +14,7 @@
  * `enumeratePaths` runs them one by one in a fixed order up to a bound; the report says clearly when
  * the bound was hit, and targeted runs still cover every decision option.
  */
-import { childrenOf, type FlowNode } from '../flow/model.ts';
+import type { FlowNode } from '../flow/model.ts';
 import { contextKey, type Choice, type GameException, type Marking, type Occurrence, type TokenGame } from '../flow/tokens.ts';
 
 export function exactPathCount(node: FlowNode): bigint {
@@ -163,8 +163,4 @@ export function coveredOptions(paths: readonly PathResult[]): Set<string> {
     }
   }
   return out;
-}
-
-export function childrenCount(node: FlowNode): number {
-  return childrenOf(node).length;
 }

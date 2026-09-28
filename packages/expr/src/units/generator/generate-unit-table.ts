@@ -11,8 +11,8 @@
  * Run: npx tsx packages/expr/src/units/generator/cli.ts
  */
 import { createRequire } from 'node:module';
-import ucum, { type UcumUnit } from '@lhncbc/ucum-lhc';
-import prefixTables from '@lhncbc/ucum-lhc/source-cjs/prefixTables.js';
+import { UcumLhcUtils, UnitTables, type UcumUnit } from '@lhncbc/ucum-lhc';
+import { PrefixTables } from '@lhncbc/ucum-lhc/source-cjs/prefixTables.js';
 import { formatRational, R_ONE, rAdd, rational, rDiv, rMul, rPow, terminatingDecimal, type Rational } from '../../decimal/exact.ts';
 import type { BaseAxis, NamedUnitRecord, QuantityKindRecord, UnitAtomRecord, UnitTable } from '../unit-table-types.ts';
 import { parseUcumSyntax, type AtomResolver } from '../ucum-syntax.ts';
@@ -93,8 +93,8 @@ export interface UcumSource {
 export function loadUcumSource(): UcumSource {
   const require = createRequire(import.meta.url);
   const pkg = require('@lhncbc/ucum-lhc/package.json') as { version: string };
-  const utils = ucum.UcumLhcUtils.getInstance();
-  const tables = ucum.UnitTables.getInstance();
+  const utils = UcumLhcUtils.getInstance();
+  const tables = UnitTables.getInstance();
   const atomCodes = Object.keys(tables.unitCodes_)
     .filter((c) => tables.getUnitByCode(c)?.source_ === 'UCUM')
     .sort(compareCodePoints);
@@ -103,7 +103,7 @@ export function loadUcumSource(): UcumSource {
     return u !== undefined && (u.isMetric_ || UCUM_BASE_UNITS.has(c));
   }));
   // ucum-lhc stores prefix exponents as strings ("18"), and null for the binary prefixes.
-  const prefixes = new Map(prefixTables.PrefixTables.getInstance().allPrefixesByCode().map((p) => [p.code_, p.exp_ === null ? null : Number(p.exp_)] as const));
+  const prefixes = new Map(PrefixTables.getInstance().allPrefixesByCode().map((p) => [p.code_, p.exp_ === null ? null : Number(p.exp_)] as const));
   return {
     version: pkg.version,
     unit: (code) => tables.getUnitByCode(code),
@@ -290,7 +290,7 @@ function quantityKinds(src: UcumSource, atoms: Record<string, UnitAtomRecord>): 
       }
       units.push({ code, factor: formatRational(factor), factorDecimal: terminatingDecimal(factor) ?? null });
     }
-    out[kind] = { dimension: dimRecord(dimension ?? new Map()), scale: spec.scale, units };
+    out[kind] = { dimension: dimRecord(dimension ?? new Map<BaseAxis, number>()), scale: spec.scale, units };
   }
   return out;
 }

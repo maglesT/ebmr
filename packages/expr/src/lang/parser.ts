@@ -91,9 +91,18 @@ class Parser {
     return t.type === 'punct' && t.value === value;
   }
 
+  private reservedHere(t: Token): void {
+    if (t.type === 'ident' && RESERVED.has(t.value)) {
+      throw syntaxError('EXPR-SYN-020', `"${t.value}" is reserved: the expression language has no statements, loops, variables or user-defined functions`, t.start, t.end);
+    }
+  }
+
   private expectPunct(value: string, what: string): Token {
     const t = this.peek();
-    if (t.type !== 'punct' || t.value !== value) throw syntaxError('EXPR-SYN-010', `Expected ${what}`, t.start, Math.max(t.end, t.start + 1));
+    if (t.type !== 'punct' || t.value !== value) {
+      this.reservedHere(t);
+      throw syntaxError('EXPR-SYN-010', `Expected ${what}`, t.start, Math.max(t.end, t.start + 1));
+    }
     return this.next();
   }
 
@@ -109,6 +118,7 @@ class Parser {
   parseTop(): Expr {
     const e = this.parseExpr();
     const t = this.peek();
+    this.reservedHere(t);
     if (t.type !== 'eof') throw syntaxError('EXPR-SYN-011', `Unexpected "${t.value}" after the end of the expression`, t.start, t.end);
     return e;
   }
@@ -183,7 +193,7 @@ class Parser {
           this.leave();
           const close = this.expectPunct(')', '")"');
           // Parentheses do not create a node; widen the span so diagnostics point at the group.
-          return { ...inner, span: { start: t.start, end: close.end } } as Expr;
+          return { ...inner, span: { start: t.start, end: close.end } };
         }
         throw syntaxError('EXPR-SYN-013', `Unexpected "${t.value}"`, t.start, t.end);
       case 'eof':
@@ -192,9 +202,7 @@ class Parser {
   }
 
   private parseIdent(t: Token): Expr {
-    if (RESERVED.has(t.value)) {
-      throw syntaxError('EXPR-SYN-020', `"${t.value}" is reserved: the expression language has no statements, loops, variables or user-defined functions`, t.start, t.end);
-    }
+    this.reservedHere(t);
     if (t.value === 'true' || t.value === 'false') return { type: 'Bool', value: t.value === 'true', span: { start: t.start, end: t.end } };
     if (this.isPunct('(')) {
       this.next();

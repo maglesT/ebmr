@@ -132,7 +132,7 @@ class Evaluation {
     const t = decl.type;
     if (has(raw, 'derived')) {
       if (decl.source !== 'DERIVED') invalid(path, 'is a recorded input: supply the recorded value with its source, not a computed result');
-      return this.bindDerived(path, decl, raw.derived as EvaluationRecord);
+      return this.bindDerived(path, decl, raw.derived);
     }
     if (decl.source === 'DERIVED') {
       throw new ExprEvaluationError('DERIVED_VALUE_TYPED', `Input "${path}" is a derived value: it must come from the calculation that computes it, never be typed (INV-25)`, { paths: [path] });
@@ -146,7 +146,7 @@ class Evaluation {
         const value = decimal(path, raw.value);
         const unitText = has(raw, 'unit') ? raw.unit : undefined;
         const unit = this.inputUnit(path, decl, unitText, t);
-        if (tagGiven !== undefined && tagGiven !== t.tag) invalid(path, `the value is tagged ${String(tagGiven)}, but the input is declared as ${TAG_LABEL[t.tag ?? 'none']}`);
+        if (tagGiven !== undefined && tagGiven !== t.tag) invalid(path, `the value is tagged ${JSON.stringify(tagGiven)}, but the input is declared as ${TAG_LABEL[t.tag ?? 'none']}`);
         const converted = this.convertInto(path, value, unit, t.unit);
         return {
           value: { kind: 'quantity', value: converted, unit: t.unit, tag: t.tag },
@@ -162,7 +162,7 @@ class Evaluation {
         const values = texts.map((x) => decimal(path, x));
         const unitText = has(raw, 'unit') ? raw.unit : undefined;
         const unit = this.inputUnit(path, decl, unitText, t.element);
-        if (tagGiven !== undefined && tagGiven !== t.element.tag) invalid(path, `the values are tagged ${String(tagGiven)}, but the input is declared as ${TAG_LABEL[t.element.tag ?? 'none']}`);
+        if (tagGiven !== undefined && tagGiven !== t.element.tag) invalid(path, `the values are tagged ${JSON.stringify(tagGiven)}, but the input is declared as ${TAG_LABEL[t.element.tag ?? 'none']}`);
         let conversion: ConversionRecord | null = null;
         let exact = true;
         const converted = values.map((v) => {

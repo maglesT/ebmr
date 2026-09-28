@@ -13,7 +13,7 @@
 import { canonicalJson, mbrContentHash, sha256Hex } from '../flow/canonical.ts';
 import { childrenOf, isNodeEvent, type AlternativeNode, type MbrContent } from '../flow/model.ts';
 import { boundsOf, contextKey, TokenGame } from '../flow/tokens.ts';
-import { Analysis } from '../validator/analysis.ts';
+import { Analysis, CONDITION } from '../validator/analysis.ts';
 import type { ValidationContext } from '../validator/types.ts';
 import { guardVectors, limitVectors, timeVectors, type GuardVectorResult, type LimitVectorResult, type TimeVectorResult } from './boundary.ts';
 import { runGoldenCase, type GoldenResult } from './golden.ts';
@@ -143,7 +143,7 @@ export function simulate(mbr: MbrContent, ctx: ValidationContext, options: Simul
     ...mbr.parameters.map((p): [string, typeof p.limits] => [p.id, p.limits]),
     ...mbr.calculations.map((c): [string, typeof c.limits] => [c.id, c.limits]),
     ...mbr.yieldCheckpoints.map((y): [string, typeof y.limits] => [y.id, y.limits]),
-    ...mbr.acceptanceSchemes.flatMap((s) => s.criteria.map((c): [string, (typeof mbr.parameters)[number]['limits']] => [`${s.id}/${c.id}`, { unit: s.unit, ranges: [c.range] }])),
+    ...mbr.acceptanceSchemes.flatMap((s) => s.criteria.map((c): [string, (typeof mbr.parameters)[number]['limits']] => [`${s.id}/${c.id}`, { unit: c.unit, ranges: [c.range] }])),
   ];
   for (const [subject, spec] of specs) {
     if (!spec) continue;
@@ -162,7 +162,7 @@ export function simulate(mbr: MbrContent, ctx: ValidationContext, options: Simul
   for (const alt of alternatives) {
     if (!include(alt.id) && options.only) {
       // Delta verification: guards reading a changed value are re-run.
-      const reads = alt.branches.flatMap((b) => (b.guard ? a.expression(b.guard, alt.id, a.graphNodeOf(alt.id, 'XOR_SPLIT')).reads : []));
+      const reads = alt.branches.flatMap((b) => (b.guard ? a.expression(b.guard, alt.id, a.graphNodeOf(alt.id, 'XOR_SPLIT'), CONDITION).reads : []));
       if (!reads.some((r) => options.only?.has(r))) continue;
     }
     const r = guardVectors(a, alt, options.maxGuardPoints ?? 20_000);

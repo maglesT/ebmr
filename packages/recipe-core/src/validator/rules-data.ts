@@ -4,16 +4,17 @@
  * no calculation cycles; branch conditions cover every case and never overlap; parallel branches
  * never write the same value or claim the same equipment or BOM line unsequenced.
  */
-import type { ExprType, GuardFormula } from '../flow/expression-port.ts';
+import type { ExpressionOptions, ExprType, GuardFormula } from '../flow/expression-port.ts';
 import type { GraphNode } from '../flow/graph.ts';
 import { childrenOf, isNodeEvent, type FlowNode, type PhaseNode } from '../flow/model.ts';
-import type { Analysis, CheckedExpression } from './analysis.ts';
+import { calculationOptions, CONDITION, GLOBAL_SCOPE, type Analysis, type CheckedExpression } from './analysis.ts';
 import { analyseGuards, describePoint, type GuardBranch } from './guards.ts';
 import { defineRule, error, label, warning, type Rule } from './rule-kit.ts';
 import type { RuleFinding } from './types.ts';
 
-/** Tree id used for MBR-level expressions (calculations): they read MBR ids, never library-local names. */
-const GLOBAL = '\u0000global';
+
+/** A replicate count: a derived plain number (converted to a count). */
+const COUNT_EXPRESSION: ExpressionOptions = { role: 'CALCULATION', output: { kind: 'COUNT' } };
 
 function phasesIn(node: FlowNode): PhaseNode[] {
   const out: PhaseNode[] = [];
@@ -51,7 +52,8 @@ const references = defineRule('DATA-REFERENCES', 'Every id a record refers to ex
   for (const p of a.mbr.parameters) for (const r of p.limits?.ranges ?? []) ref(p.id, r.source.ref, 'limit source');
   for (const c of a.mbr.calculations) for (const r of c.limits?.ranges ?? []) ref(c.id, r.source.ref, 'limit source');
   for (const y of a.mbr.yieldCheckpoints) {
-    for (const id of [y.theoretical, y.result]) if (!a.calculations.has(id)) out.push(error(y.id, `Yield checkpoint ${label(a, y.id)} names calculation ${id}, which is not declared`));
+    if (!a.data.has(y.theoretical)) out.push(error(y.id, `Yield checkpoint ${label(a, y.id)} takes its theoretical basis from ${y.theoretical}, which is not a declared value`));
+    if (!a.calculations.has(y.result)) out.push(error(y.id, `Yield checkpoint ${label(a, y.id)} names ${y.result} as its result, which is not a declared calculation; yields are computed, never typed`));
     for (const r of y.limits?.ranges ?? []) ref(y.id, r.source.ref, 'limit source');
   }
   for (const s of a.mbr.acceptanceSchemes) {
@@ -105,17 +107,17 @@ const writtenBeforeRead = defineRule('DATA-WRITTEN-BEFORE-READ', 'Every value is
       for (const c of p.computes) {
         const calc = a.calculations.get(c);
         if (!calc) continue;
-        say(p.id, `Calculation ${label(a, c)} in ${label(a, p.id)}`, missing(set, a.expression(calc.expression, GLOBAL, g).reads));
+        say(p.id, `Calculation ${label(a, c)} in ${label(a, p.id)}`, missing(set, a.expression(calc.expression, GLOBAL_SCOPE, g, calculationOptions(a, c)).reads));
         set.add(c);
       }
       say(p.id, label(a, p.id), missing(set, p.reads));
-      if (p.pat?.acceptance) say(p.id, `The PAT acceptance criteria of ${label(a, p.id)}`, missing(set, a.expression(p.pat.acceptance, p.id, g).reads));
+      if (p.pat?.acceptance) say(p.id, `The PAT acceptance criteria of ${label(a, p.id)}`, missing(set, a.expression(p.pat.acceptance, p.id, g, CONDITION).reads));
     } else if (g.kind === 'XOR_SPLIT' && info?.node.kind === 'alternative' && info.node.decision.mode === 'DATA') {
-      for (const b of info.node.branches) if (b.guard) say(info.node.id, `The condition of branch ${b.id}`, missing(have, a.expression(b.guard, info.node.id, g).reads));
+      for (const b of info.node.branches) if (b.guard) say(info.node.id, `The condition of branch ${b.id}`, missing(have, a.expression(b.guard, info.node.id, g, CONDITION).reads));
     } else if (g.kind === 'LOOP_TEST' && info?.node.kind === 'loop') {
-      say(info.node.id, `The exit condition of loop ${label(a, info.node.id)}`, missing(have, a.expression(info.node.exit.condition, info.node.id, g).reads));
+      say(info.node.id, `The exit condition of loop ${label(a, info.node.id)}`, missing(have, a.expression(info.node.exit.condition, info.node.id, g, CONDITION).reads));
     } else if (g.kind === 'REP_SPLIT' && info?.node.kind === 'replicate' && info.node.count.mode === 'EXPRESSION') {
-      say(info.node.id, `The instance count of ${label(a, info.node.id)}`, missing(have, a.expression(info.node.count.expression, info.node.id, g).reads));
+      say(info.node.id, `The instance count of ${label(a, info.node.id)}`, missing(have, a.expression(info.node.count.expression, info.node.id, g, COUNT_EXPRESSION).reads));
     }
   }
   return out;
@@ -170,7 +172,7 @@ const expressions = defineRule('DATA-EXPRESSIONS', 'Expressions parse, type-chec
   for (const calc of a.mbr.calculations) {
     const where = (a.writers.get(calc.id) ?? []).map((w) => a.taskOf(w));
     for (const g of where.length > 0 ? where : [undefined]) {
-      const checked = a.expression(calc.expression, GLOBAL, g);
+      const checked = a.expression(calc.expression, GLOBAL_SCOPE, g, calculationOptions(a, calc.id));
       const what = `Calculation ${label(a, calc.id)}`;
       if (!report(calc.id, what, checked) || !checked.check.type) continue;
       const t = checked.check.type;
@@ -188,11 +190,11 @@ const expressions = defineRule('DATA-EXPRESSIONS', 'Expressions parse, type-chec
     const n = info.node;
     if (n.kind === 'alternative' && n.decision.mode === 'DATA') {
       const g = a.graphNodeOf(n.id, 'XOR_SPLIT');
-      for (const b of n.branches) if (b.guard) expectBoolean(n.id, `The condition of branch ${b.id} of ${n.id}`, a.expression(b.guard, n.id, g));
+      for (const b of n.branches) if (b.guard) expectBoolean(n.id, `The condition of branch ${b.id} of ${n.id}`, a.expression(b.guard, n.id, g, CONDITION));
     } else if (n.kind === 'loop') {
-      expectBoolean(n.id, `The exit condition of loop ${label(a, n.id)}`, a.expression(n.exit.condition, n.id, a.graphNodeOf(n.id, 'LOOP_TEST')));
+      expectBoolean(n.id, `The exit condition of loop ${label(a, n.id)}`, a.expression(n.exit.condition, n.id, a.graphNodeOf(n.id, 'LOOP_TEST'), CONDITION));
     } else if (n.kind === 'replicate' && n.count.mode === 'EXPRESSION') {
-      const checked = a.expression(n.count.expression, n.id, a.graphNodeOf(n.id, 'REP_SPLIT'));
+      const checked = a.expression(n.count.expression, n.id, a.graphNodeOf(n.id, 'REP_SPLIT'), COUNT_EXPRESSION);
       const what = `The instance count of ${label(a, n.id)}`;
       if (report(n.id, what, checked) && checked.check.type) {
         const t = checked.check.type;
@@ -200,7 +202,7 @@ const expressions = defineRule('DATA-EXPRESSIONS', 'Expressions parse, type-chec
         if (!ok) push(error(n.id, `${what} must be a count, but it gives ${typeName(t)}`));
       }
     } else if (n.kind === 'phase' && n.pat?.acceptance) {
-      expectBoolean(n.id, `The PAT acceptance criteria of ${label(a, n.id)}`, a.expression(n.pat.acceptance, n.id, a.taskOf(n.id)));
+      expectBoolean(n.id, `The PAT acceptance criteria of ${label(a, n.id)}`, a.expression(n.pat.acceptance, n.id, a.taskOf(n.id), CONDITION));
     }
   }
   return out;
@@ -209,7 +211,7 @@ const expressions = defineRule('DATA-EXPRESSIONS', 'Expressions parse, type-chec
 const calcCycles = defineRule('DATA-CALC-CYCLES', 'No calculation depends on itself', ['DI-04', 'DI-33'], (a) => {
   const out: RuleFinding[] = [];
   const deps = new Map<string, string[]>();
-  for (const c of a.mbr.calculations) deps.set(c.id, a.expression(c.expression, GLOBAL, undefined).reads.filter((r) => a.calculations.has(r)));
+  for (const c of a.mbr.calculations) deps.set(c.id, a.expression(c.expression, GLOBAL_SCOPE, undefined, calculationOptions(a, c.id)).reads.filter((r) => a.calculations.has(r)));
   // Tarjan's strongly connected components.
   let index = 0;
   const idx = new Map<string, number>();
@@ -264,7 +266,7 @@ const guards = defineRule('DATA-GUARDS', 'Branch conditions cover every case and
         checkable = false;
         continue;
       }
-      const checked = a.expression(b.guard, n.id, split);
+      const checked = a.expression(b.guard, n.id, split, CONDITION);
       if (!checked.check.ok || checked.check.type?.kind !== 'BOOLEAN') {
         checkable = false;
         continue;
@@ -351,7 +353,14 @@ const units = defineRule('DATA-UNITS', 'Units are valid and limits are in commen
       commensurable(y.id, y.limits.unit, result.output.unit ?? '1', `The limits of yield checkpoint ${label(a, y.id)} do not match its result`);
     }
   }
-  for (const s of a.mbr.acceptanceSchemes) valid(s.id, s.unit, `Acceptance scheme ${s.id}`);
+  for (const s of a.mbr.acceptanceSchemes) {
+    for (const c of s.criteria) {
+      if (!valid(s.id, c.unit, `Criterion ${c.id} of acceptance scheme ${s.id}`)) continue;
+      const t = a.declaredType(c.statistic);
+      const unit = t?.kind === 'DECIMAL' ? t.unit : undefined;
+      if (unit !== undefined) commensurable(s.id, c.unit, unit, `Criterion ${c.id} of ${s.id} is in another dimension than ${c.statistic}`);
+    }
+  }
   for (const b of a.mbr.bom) valid(b.id, b.quantity.unit, `BOM line ${b.id}`);
   for (const b of a.mbr.header.batchSizes) valid(b.id, b.quantity.unit, `Batch size ${b.id}`);
   for (const i of a.mbr.inputs) if (i.valueType === 'DECIMAL') valid(i.id, i.unit, `Input ${label(a, i.id)}`);

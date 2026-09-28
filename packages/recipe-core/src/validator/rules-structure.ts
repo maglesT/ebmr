@@ -5,7 +5,7 @@
  */
 import { childrenOf, type FlowNode, type Level } from '../flow/model.ts';
 import { isTimeUnit, durationToMicros, compareDecimal } from '../flow/decimal.ts';
-import type { Analysis } from './analysis.ts';
+import { CONDITION, type Analysis } from './analysis.ts';
 import { checkGraph, type GraphProblem, type GraphProblemCode } from './graph-checks.ts';
 import { defineRule, error, label, type Rule } from './rule-kit.ts';
 import type { RuleFinding } from './types.ts';
@@ -184,7 +184,7 @@ const loops = defineRule('FLOW-LOOPS', 'Loops are bounded and exit on a process 
       out.push(error(n.id, `The exit condition of loop ${label(a, n.id)} reads ${endpoint.name}, but no step inside the loop records it, so the loop could never see a new value`));
     }
     const test = a.graphNodeOf(n.id, 'LOOP_TEST');
-    const checked = a.expression(n.exit.condition, n.id, test);
+    const checked = a.expression(n.exit.condition, n.id, test, CONDITION);
     if (checked.check.ok && !checked.reads.includes(endpoint.id)) {
       out.push(error(n.id, `The exit condition of loop ${label(a, n.id)} does not read its endpoint ${endpoint.name}`));
     }

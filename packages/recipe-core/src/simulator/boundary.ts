@@ -17,7 +17,7 @@ import type { AlternativeNode, TimeConstraint } from '../flow/model.ts';
 import { evaluateTimeConstraint, type TimeConstraintStatus } from '../flow/time.ts';
 import { evaluateLimits } from '../limits/evaluate.ts';
 import type { LimitSpec, LimitTier } from '../limits/model.ts';
-import type { Analysis } from '../validator/analysis.ts';
+import { CONDITION, type Analysis } from '../validator/analysis.ts';
 import { evaluateGuard } from '../validator/guards.ts';
 
 export interface LimitVectorResult {
@@ -158,7 +158,7 @@ export function guardVectors(a: Analysis, alt: AlternativeNode, maxPoints: numbe
     for (const b of branches) {
       if (!b.guard || !b.formula) continue;
       const exact = evaluateGuard(b.formula, point);
-      const ev = a.ctx.expressions.evaluate(b.guard, env, values);
+      const ev = a.ctx.expressions.evaluate(b.guard, env, values, CONDITION);
       const byExpr = ev.ok && ev.value.kind === 'BOOLEAN' ? ev.value.value : undefined;
       if (byExpr !== exact) disagreement = `branch ${b.id}: the expression gives ${String(byExpr)} but its analysed form gives ${String(exact)}`;
       if (exact) selected.push(b.id);
@@ -201,7 +201,7 @@ export function guardVectors(a: Analysis, alt: AlternativeNode, maxPoints: numbe
     }
     const errors = branches
       .filter((b) => b.guard && b.formula && JSON.stringify(b.formula).includes(`"variable":${JSON.stringify(variable)}`))
-      .map((b) => a.ctx.expressions.evaluate(b.guard as string, env, values));
+      .map((b) => a.ctx.expressions.evaluate(b.guard as string, env, values, CONDITION));
     const ok = errors.length > 0 && errors.every((e) => !e.ok);
     const r: GuardVectorResult = {
       alternative: alt.id,

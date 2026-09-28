@@ -16,7 +16,8 @@ export type ExprType =
   | { kind: 'CATEGORY'; values: readonly string[] }
   | { kind: 'TEXT' }
   | { kind: 'INSTANT' }
-  | { kind: 'SERIES'; of: ExprType };
+  /** Recorded readings or per-instance values; `maxLength` bounds the static cost. */
+  | { kind: 'SERIES'; of: ExprType; maxLength?: number };
 
 export interface ExpressionProblem {
   /** Stable code from the expression language (e.g. unit mismatch, unknown identifier). */
@@ -45,7 +46,9 @@ export type ExprValue =
   | { kind: 'COUNT'; value: string }
   | { kind: 'BOOLEAN'; value: boolean }
   | { kind: 'CATEGORY'; value: string }
-  | { kind: 'TEXT'; value: string };
+  | { kind: 'TEXT'; value: string }
+  /** Recorded readings (all in one unit). */
+  | { kind: 'SERIES'; values: string[]; unit: string };
 
 export type EvaluationOutcome =
   | { ok: true; value: ExprValue }
@@ -72,23 +75,30 @@ export interface BoundaryVector {
  * category/boolean tests, and/or/not). Anything else is OPAQUE and cannot be proven exhaustive.
  */
 export type GuardFormula =
-  | { op: 'const'; value: boolean }
-  | { op: 'not'; arg: GuardFormula }
-  | { op: 'and'; args: GuardFormula[] }
-  | { op: 'or'; args: GuardFormula[] }
+  | { readonly op: 'const'; readonly value: boolean }
+  | { readonly op: 'not'; readonly arg: GuardFormula }
+  | { readonly op: 'and'; readonly args: readonly GuardFormula[] }
+  | { readonly op: 'or'; readonly args: readonly GuardFormula[] }
   /** variable <cmp> constant, the constant expressed in the variable's declared unit. */
-  | { op: 'cmp'; variable: string; cmp: '<' | '<=' | '>' | '>=' | '==' | '!='; constant: string }
+  | { readonly op: 'cmp'; readonly variable: string; readonly cmp: '<' | '<=' | '>' | '>=' | '==' | '!='; readonly constant: string }
   /** variable == value for categories and booleans. */
-  | { op: 'is'; variable: string; value: string | boolean }
-  | { op: 'opaque'; reason: string };
+  | { readonly op: 'is'; readonly variable: string; readonly value: string | boolean }
+  | { readonly op: 'opaque'; readonly reason: string };
+
+/** What an expression is: a CALCULATION derives a value from inputs; a CONDITION gives true or false. */
+export interface ExpressionOptions {
+  role: 'CALCULATION' | 'CONDITION';
+  /** Declared result of a calculation (converted to exactly, tag checked). */
+  output?: ExprType;
+}
 
 export interface ExpressionService {
   /** Expression-language version stored with every result (ADR 0005). */
   readonly languageVersion: string;
   /** Parses, type- and unit-checks an expression against the declared inputs. */
-  check(source: string, inputs: ReadonlyMap<string, ExprType>): ExpressionCheck;
+  check(source: string, inputs: ReadonlyMap<string, ExprType>, options: ExpressionOptions): ExpressionCheck;
   /** Evaluates a checked expression; values missing from `values` are missing inputs (an error). */
-  evaluate(source: string, inputs: ReadonlyMap<string, ExprType>, values: ReadonlyMap<string, ExprValue>): EvaluationOutcome;
+  evaluate(source: string, inputs: ReadonlyMap<string, ExprType>, values: ReadonlyMap<string, ExprValue>, options: ExpressionOptions): EvaluationOutcome;
   /** Normalises a boolean guard for the exhaustiveness/overlap decision procedure. */
   guard(source: string, inputs: ReadonlyMap<string, ExprType>): GuardFormula;
   /**

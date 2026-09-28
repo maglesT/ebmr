@@ -101,6 +101,8 @@ export interface AcceptanceCriterion {
   pharmacopoeia: PharmacopoeiaEdition;
   /** Id of the calculation (or parameter) whose value is compared with the range. */
   statistic: string;
+  /** UCUM unit of the range (each criterion has its own statistic, unit and rounding). */
+  unit: string;
   range: LimitRange;
   sampling: SamplingNeed[];
 }
@@ -109,6 +111,5 @@ export interface AcceptanceScheme {
   id: string;
   title: string;
   method: 'ALL_APPLY';
-  unit: string;
   criteria: AcceptanceCriterion[];
 }

@@ -74,7 +74,7 @@ export function evaluateAllApply(
   expr: ExpressionService,
 ): SchemeResult {
   const criteria = scheme.criteria.map((c): CriterionResult => {
-    const evaluation = evaluateLimits({ unit: scheme.unit, ranges: [c.range] }, statistics.get(c.statistic), expr);
+    const evaluation = evaluateLimits({ unit: c.unit, ranges: [c.range] }, statistics.get(c.statistic), expr);
     return {
       criterion: c.id,
       governingMarkets: [...c.governingMarkets],

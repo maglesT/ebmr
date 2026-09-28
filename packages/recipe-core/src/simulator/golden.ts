@@ -7,7 +7,7 @@
  */
 import type { ExprType, ExprValue } from '../flow/expression-port.ts';
 import type { GoldenCase, GoldenValue } from '../flow/model.ts';
-import type { Analysis } from '../validator/analysis.ts';
+import { calculationOptions, GLOBAL_SCOPE, type Analysis } from '../validator/analysis.ts';
 
 export interface GoldenResult {
   case: string;
@@ -21,6 +21,13 @@ export interface GoldenResult {
 function toValue(a: Analysis, g: GoldenValue, t: ExprType | undefined): ExprValue | undefined {
   if ('bool' in g) return { kind: 'BOOLEAN', value: g.bool };
   if ('category' in g) return { kind: 'CATEGORY', value: g.category };
+  if ('series' in g) {
+    const element = t?.kind === 'SERIES' ? t.of : undefined;
+    const target = element?.kind === 'DECIMAL' ? element.unit : (g.unit ?? '1');
+    const from = g.unit ?? target;
+    const values = g.series.map((x) => (from === target ? x : a.ctx.expressions.convert(x, from, target)));
+    return values.every((x): x is string => x !== undefined) ? { kind: 'SERIES', values, unit: target } : undefined;
+  }
   if (t?.kind === 'COUNT') return { kind: 'COUNT', value: g.value };
   const unit = g.unit ?? (t?.kind === 'DECIMAL' ? t.unit : '1');
   if (t?.kind === 'DECIMAL' && t.unit !== unit) {
@@ -31,12 +38,14 @@ function toValue(a: Analysis, g: GoldenValue, t: ExprType | undefined): ExprValu
 }
 
 function show(v: ExprValue): string {
+  if (v.kind === 'SERIES') return `[${v.values.join(', ')}] ${v.unit}`;
   return v.kind === 'DECIMAL' ? `${v.value} ${v.unit}` : String(v.value);
 }
 
 function matches(a: Analysis, expected: GoldenValue, actual: ExprValue): boolean {
   if ('bool' in expected) return actual.kind === 'BOOLEAN' && actual.value === expected.bool;
   if ('category' in expected) return actual.kind === 'CATEGORY' && actual.value === expected.category;
+  if ('series' in expected) return false;
   if (actual.kind !== 'DECIMAL' && actual.kind !== 'COUNT') return false;
   const unit = actual.kind === 'DECIMAL' ? actual.unit : '1';
   const value = expected.unit !== undefined && expected.unit !== unit ? a.ctx.expressions.convert(actual.value, unit, expected.unit) : actual.value;
@@ -48,7 +57,7 @@ function matches(a: Analysis, expected: GoldenValue, actual: ExprValue): boolean
 
 /** Calculations in dependency order (cycles are left out; the validator reports them). */
 export function calculationOrder(a: Analysis): string[] {
-  const deps = new Map(a.mbr.calculations.map((c) => [c.id, a.expression(c.expression, '\u0000global', a.taskOf(a.writers.get(c.id)?.[0] ?? '')).reads.filter((r) => a.calculations.has(r))]));
+  const deps = new Map(a.mbr.calculations.map((c) => [c.id, a.expression(c.expression, GLOBAL_SCOPE, a.taskOf(a.writers.get(c.id)?.[0] ?? ''), calculationOptions(a, c.id)).reads.filter((r) => a.calculations.has(r))]));
   const order: string[] = [];
   const state = new Map<string, 1 | 2>();
   const visit = (id: string): boolean => {
@@ -77,7 +86,7 @@ export function runGoldenCase(a: Analysis, g: GoldenCase): GoldenResult[] {
     const calc = a.calculations.get(id);
     if (!calc) continue;
     const reader = a.taskOf(a.writers.get(id)?.[0] ?? '');
-    const checked = a.expression(calc.expression, '\u0000global', reader);
+    const checked = a.expression(calc.expression, GLOBAL_SCOPE, reader, calculationOptions(a, id));
     const expected = g.expected[id];
     if (!checked.check.ok || !checked.reads.every((r) => values.has(r))) {
       if (expected) {
@@ -86,8 +95,8 @@ export function runGoldenCase(a: Analysis, g: GoldenCase): GoldenResult[] {
       }
       continue;
     }
-    const env = a.envAt('\u0000global', reader);
-    const result = a.ctx.expressions.evaluate(calc.expression, env, values);
+    const env = a.envAt(GLOBAL_SCOPE, reader);
+    const result = a.ctx.expressions.evaluate(calc.expression, env, values, calculationOptions(a, id));
     if (!result.ok) {
       if (expected) out.push({ case: g.id, calculation: id, status: 'ERROR', expected: 'value' in expected ? expected.value : null, actual: null, message: `${result.code}: ${result.message}` });
       continue;
@@ -100,7 +109,7 @@ export function runGoldenCase(a: Analysis, g: GoldenCase): GoldenResult[] {
         case: g.id,
         calculation: id,
         status: ok ? 'PASS' : 'FAIL',
-        expected: 'value' in expected ? `${expected.value}${expected.unit ? ` ${expected.unit}` : ''}` : 'bool' in expected ? String(expected.bool) : expected.category,
+        expected: 'value' in expected ? `${expected.value}${expected.unit ? ` ${expected.unit}` : ''}` : 'bool' in expected ? String(expected.bool) : 'category' in expected ? expected.category : `[${expected.series.join(', ')}]`,
         actual: show(result.value),
         message: ok ? 'matches the confirmed result' : 'differs from the confirmed result',
       });

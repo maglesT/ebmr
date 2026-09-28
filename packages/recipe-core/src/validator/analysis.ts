@@ -7,7 +7,7 @@
 import type { BlockDescriptor, BlockRole } from '../flow/blocks.ts';
 import { compileMbr } from '../flow/compile.ts';
 import type { ExpandedFlow } from '../flow/expand.ts';
-import type { ExpressionCheck, ExprType } from '../flow/expression-port.ts';
+import type { ExpressionCheck, ExpressionOptions, ExprType } from '../flow/expression-port.ts';
 import { forwardTopologicalOrder, indexGraph, type ExecutionGraph, type GraphIndex, type GraphNode } from '../flow/graph.ts';
 import {
   childrenOf,
@@ -68,6 +68,17 @@ export function valueType(kind: ValueKind, unit: string | undefined, tag: string
       return { kind: 'INSTANT' };
   }
 }
+
+/** Tree id for MBR-level expressions (calculations): they read MBR ids, never library-local names. */
+export const GLOBAL_SCOPE = '\u0000global';
+
+/** How a calculation is checked and evaluated: a derived value with its declared output. */
+export function calculationOptions(a: Analysis, id: string): ExpressionOptions {
+  const out = a.declaredType(id);
+  return out ? { role: 'CALCULATION', output: out } : { role: 'CALCULATION' };
+}
+
+export const CONDITION: ExpressionOptions = { role: 'CONDITION' };
 
 export class Analysis {
   readonly limits: AnalysisLimits;
@@ -169,7 +180,8 @@ export class Analysis {
       const o = item.def.output;
       return valueType(o.valueType, o.unit, o.semanticTag, undefined);
     }
-    return valueType(item.def.valueType, item.def.unit, item.kind === 'parameter' ? item.def.semanticTag : undefined, item.def.categories);
+    const t = valueType(item.def.valueType, item.def.unit, item.kind === 'parameter' ? item.def.semanticTag : undefined, item.def.categories);
+    return item.kind === 'parameter' && (item.def.readings ?? 1) > 1 ? { kind: 'SERIES', of: t, maxLength: item.def.readings ?? 1 } : t;
   }
 
   /**
@@ -185,7 +197,11 @@ export class Analysis {
     if (!writerNode || !reader) return base;
     let t = base;
     for (const key of writerNode.regions) {
-      if (key.startsWith('rep:') && !reader.regions.includes(key)) t = { kind: 'SERIES', of: t };
+      if (!key.startsWith('rep:') || reader.regions.includes(key)) continue;
+      const rep = this.nodes.get(key.slice(4))?.node;
+      const count = rep?.kind === 'replicate' ? rep.count.max : 1;
+      const inner = t.kind === 'SERIES' ? (t.maxLength ?? 1) : 1;
+      t = t.kind === 'SERIES' ? { kind: 'SERIES', of: t.of, maxLength: inner * count } : { kind: 'SERIES', of: t, maxLength: count };
     }
     return t;
   }
@@ -213,13 +229,13 @@ export class Analysis {
   }
 
   /** Checks an expression at a place in the flow (cached). */
-  expression(source: string, treeId: string, reader: GraphNode | undefined): CheckedExpression {
+  expression(source: string, treeId: string, reader: GraphNode | undefined, options: ExpressionOptions): CheckedExpression {
     const scope = this.expanded.scopes.get(treeId);
     const env = this.envAt(treeId, reader);
-    const key = `${source}\u0000${scope?.callId ?? ''}|${scope?.element ?? ''}|${reader?.regions.join(',') ?? ''}`;
+    const key = `${source}\u0000${scope?.callId ?? ''}|${scope?.element ?? ''}|${reader?.regions.join(',') ?? ''}\u0000${JSON.stringify(options)}`;
     const cached = this.exprCache.get(key);
     if (cached) return cached;
-    const check = this.ctx.expressions.check(source, env);
+    const check = this.ctx.expressions.check(source, env, options);
     const reads: string[] = [];
     const unbound: string[] = [];
     for (const name of check.reads) {

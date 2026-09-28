@@ -138,6 +138,8 @@ export interface Parameter {
   semanticTag?: string;
   precision?: { kind: 'DECIMALS' | 'SIGNIFICANT_FIGURES'; digits: number };
   categories?: string[];
+  /** Readings per capture (e.g. 20 tablet weights); more than 1 makes the value a series of that length. */
+  readings?: number;
   role: ParameterRole;
   /** CRITICAL until classified (DI-07); NON_CRITICAL is a risk-based reduction (IN-02). */
   criticality: 'CRITICAL' | 'NON_CRITICAL';
@@ -169,7 +171,7 @@ export interface YieldCheckpoint {
   id: string;
   name: string;
   kind: 'YIELD' | 'RECONCILIATION';
-  /** Calculation giving the theoretical quantity (basis). */
+  /** Value (calculation, parameter or input) giving the theoretical quantity: the basis. */
   theoretical: string;
   /** Calculation giving the yield or reconciliation percentage. */
   result: string;
@@ -249,7 +251,7 @@ export interface GoldenCase {
   expected: Record<string, GoldenValue>;
 }
 
-export type GoldenValue = { value: string; unit?: string } | { bool: boolean } | { category: string };
+export type GoldenValue = { value: string; unit?: string } | { bool: boolean } | { category: string } | { series: string[]; unit?: string };
 
 // ---------------------------------------------------------------------------------------------
 // The flow tree

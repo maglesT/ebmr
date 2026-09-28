@@ -39,11 +39,10 @@ declare module '@lhncbc/ucum-lhc' {
     unitCodes_: Record<string, UcumUnit>;
     getUnitByCode(code: string): UcumUnit | undefined;
   }
-  const ucum: {
-    UcumLhcUtils: { getInstance(): UcumLhcUtilsInstance };
-    UnitTables: { getInstance(): UnitTablesInstance };
-  };
-  export default ucum;
+  // Named exports (the package is CommonJS with __esModule; named imports work in Node ESM,
+  // esbuild/vite interop and CommonJS alike, a default import does not).
+  export const UcumLhcUtils: { getInstance(): UcumLhcUtilsInstance };
+  export const UnitTables: { getInstance(): UnitTablesInstance };
 }
 
 declare module '@lhncbc/ucum-lhc/source-cjs/prefixTables.js' {
@@ -53,8 +52,5 @@ declare module '@lhncbc/ucum-lhc/source-cjs/prefixTables.js' {
     exp_: string | null;
     value_: number;
   }
-  const prefixTables: {
-    PrefixTables: { getInstance(): { allPrefixesByCode(): UcumPrefix[] } };
-  };
-  export default prefixTables;
+  export const PrefixTables: { getInstance(): { allPrefixesByCode(): UcumPrefix[] } };
 }

@@ -364,7 +364,7 @@ function parameter(r: Reader, v: unknown, path: string): Parameter | undefined {
     v,
     path,
     ['id', 'name', 'valueType', 'role', 'criticality', 'riskClass', 'capture'],
-    ['unit', 'semanticTag', 'precision', 'categories', 'evidence', 'accuracyCheck', 'target', 'limits', 'marketRule'],
+    ['unit', 'semanticTag', 'precision', 'categories', 'readings', 'evidence', 'accuracyCheck', 'target', 'limits', 'marketRule'],
   );
   if (!o) return undefined;
   const id = r.string(o, 'id', path, IDENT);
@@ -386,6 +386,7 @@ function parameter(r: Reader, v: unknown, path: string): Parameter | undefined {
     }
   }
   const categories = r.strings(o, 'categories', path);
+  const readings = r.integer(o, 'readings', path, 1, 10_000);
   const evidence = r.literal(o, 'evidence', path, ['NONE', 'PHOTO', 'PRINTOUT'] as const);
   const accuracyCheck = r.literal(o, 'accuracyCheck', path, ['SECOND_PERSON', 'VALIDATED_DEVICE'] as const);
   const target = r.decimal(o, 'target', path);
@@ -397,6 +398,7 @@ function parameter(r: Reader, v: unknown, path: string): Parameter | undefined {
   opt(out, 'semanticTag', semanticTag);
   opt(out, 'precision', precision);
   opt(out, 'categories', categories);
+  opt(out, 'readings', readings);
   opt(out, 'evidence', evidence);
   opt(out, 'accuracyCheck', accuracyCheck);
   opt(out, 'target', target);
@@ -459,14 +461,13 @@ function samplingNeed(r: Reader, v: unknown, path: string): SamplingNeed | undef
 }
 
 function acceptanceScheme(r: Reader, v: unknown, path: string): AcceptanceScheme | undefined {
-  const o = r.object(v, path, ['id', 'title', 'method', 'unit', 'criteria']);
+  const o = r.object(v, path, ['id', 'title', 'method', 'criteria']);
   if (!o) return undefined;
   const id = r.id(o, 'id', path);
   const title = r.string(o, 'title', path);
   const method = r.literal(o, 'method', path, ['ALL_APPLY'] as const);
-  const unit = r.string(o, 'unit', path);
   const criteria = r.array(o, 'criteria', path, (x, cp): AcceptanceCriterion | undefined => {
-    const c = r.object(x, cp, ['id', 'title', 'governingMarkets', 'pharmacopoeia', 'statistic', 'range', 'sampling']);
+    const c = r.object(x, cp, ['id', 'title', 'governingMarkets', 'pharmacopoeia', 'statistic', 'unit', 'range', 'sampling']);
     if (!c) return undefined;
     const cid = r.id(c, 'id', cp);
     const ctitle = r.string(c, 'title', cp);
@@ -479,13 +480,14 @@ function acceptanceScheme(r: Reader, v: unknown, path: string): AcceptanceScheme
       if (code && edition) pharmacopoeia = { code, edition };
     }
     const statistic = r.string(c, 'statistic', cp, IDENT);
+    const cunit = r.string(c, 'unit', cp);
     const range = c['range'] === undefined ? undefined : limitRange(r, c['range'], `${cp}.range`);
     const sampling = r.array(c, 'sampling', cp, (s, sp) => samplingNeed(r, s, sp));
-    if (!cid || !ctitle || !governingMarkets || !pharmacopoeia || !statistic || !range || !sampling) return undefined;
-    return { id: cid, title: ctitle, governingMarkets, pharmacopoeia, statistic, range, sampling };
+    if (!cid || !ctitle || !governingMarkets || !pharmacopoeia || !statistic || !cunit || !range || !sampling) return undefined;
+    return { id: cid, title: ctitle, governingMarkets, pharmacopoeia, statistic, unit: cunit, range, sampling };
   });
-  if (!id || !title || !method || !unit || !criteria) return undefined;
-  return { id, title, method, unit, criteria };
+  if (!id || !title || !method || !criteria) return undefined;
+  return { id, title, method, criteria };
 }
 
 function eventRef(r: Reader, v: unknown, path: string): EventRef | undefined {
@@ -548,6 +550,19 @@ function goldenValue(r: Reader, v: unknown, path: string): GoldenValue | undefin
     const o = r.object(v, path, ['bool']);
     const b = o ? r.boolean(o, 'bool', path) : undefined;
     return b === undefined ? undefined : { bool: b };
+  }
+  if (typeof v === 'object' && v !== null && 'series' in v) {
+    const o = r.object(v, path, ['series'], ['unit']);
+    if (!o) return undefined;
+    const series = r.array(o, 'series', path, (x, p) => {
+      if (typeof x === 'number') return r.fail(p, 'is a JSON number: GMP values travel as decimal strings');
+      return isDecimalLiteral(x) ? x : r.fail(p, 'must be a decimal literal string');
+    });
+    const unit = r.string(o, 'unit', path);
+    if (!series) return undefined;
+    const out: { series: string[]; unit?: string } = { series };
+    opt(out, 'unit', unit);
+    return out;
   }
   if (typeof v === 'object' && v !== null && 'category' in v) {
     const o = r.object(v, path, ['category']);

@@ -13,7 +13,7 @@
  *   (the kernel's canonical decimal form, packages/kernel/src/market/decimal.ts).
  * - Converting a Dec to a JavaScript number is impossible by design (toPrimitive throws).
  */
-import Decimal from 'decimal.js';
+import { Decimal } from 'decimal.js';
 
 export const DEC_SIGNIFICANT_DIGITS = 34;
 /** Parsed values must lie within 10^-1000 .. 10^1000 (keeps canonical text bounded). */

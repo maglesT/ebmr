@@ -1,0 +1,3639 @@
+{
+  "format": "ebmr.mbr-content",
+  "formatVersion": 1,
+  "header": {
+    "family": "ATV40-GRAN-COMP-200K",
+    "title": "Atorvastatin 40 mg tablets (cores): dispensing, wet granulation, blending and compression, 2,00,000 tablets",
+    "edition": "tablets",
+    "recordKind": "PROCESSING",
+    "product": {
+      "code": "ATV-40-FCT",
+      "name": "Atorvastatin calcium tablets",
+      "strength": "40 mg",
+      "dosageForm": "Film-coated tablet (cores)"
+    },
+    "batchSizes": [
+      {
+        "id": "BS-200K",
+        "quantity": {
+          "value": "51.2",
+          "unit": "kg"
+        }
+      }
+    ],
+    "marketSet": [
+      "IN",
+      "US"
+    ],
+    "predicates": {},
+    "variants": []
+  },
+  "riskScale": {
+    "ref": "RSK-SCALE",
+    "classes": [
+      "LOW",
+      "MEDIUM",
+      "HIGH"
+    ]
+  },
+  "references": [
+    {
+      "id": "RSK-SCALE",
+      "kind": "RISK_SCALE",
+      "code": "QRM-SCALE",
+      "version": "2",
+      "hash": "95552c3fdb7bf22c3236a99d0889fb2d2811eb2ef0afac64df72964165a1c0ed",
+      "title": "Controlled risk scale"
+    },
+    {
+      "id": "RA-GRAN-01",
+      "kind": "RISK_ASSESSMENT",
+      "code": "RA-ATV-GRAN",
+      "version": "1",
+      "hash": "624185860a2f2b8d58f828f61b4ef2d3ec240ff1c89a3044fe884615ef2d6532",
+      "title": "Risk assessment: automated dry mix, one verifier"
+    },
+    {
+      "id": "RA-MINOR-01",
+      "kind": "RISK_ASSESSMENT",
+      "code": "RA-ATV-SPEED",
+      "version": "1",
+      "hash": "4d064ce6d79fe048cb6bc298a35b9b06a3cd05f04cecd0587b14c2959b3a9a06",
+      "title": "Risk assessment: press speed not critical"
+    },
+    {
+      "id": "VR-GRAN",
+      "kind": "VALIDATION_REPORT",
+      "code": "PV-ATV-GRAN",
+      "version": "1",
+      "hash": "9588a1e155ccd8bc7b5725109f23035b8ea6f6815673a7ecbbc009fbff61d036",
+      "title": "Process validation report, granulation and drying"
+    },
+    {
+      "id": "VR-BLEND",
+      "kind": "VALIDATION_REPORT",
+      "code": "PV-ATV-BLEND",
+      "version": "1",
+      "hash": "5ca58ed1bf739860a6e6c3da2b9f1937c38036417500f424be54a077e2f1033d",
+      "title": "Process validation report, blending"
+    },
+    {
+      "id": "VR-COMP",
+      "kind": "VALIDATION_REPORT",
+      "code": "PV-ATV-COMP",
+      "version": "1",
+      "hash": "e110421d0c33e4560d02b5a540533661aa1501cad80c5eab68dc35624cc27320",
+      "title": "Process validation report, compression"
+    },
+    {
+      "id": "HS-ATV",
+      "kind": "HOLD_STUDY",
+      "code": "HTS-ATV",
+      "version": "2",
+      "hash": "5b65dcff1701f2874e5cd62cb30a499897dc8b6b785c5c474e058e9e92dc6be2",
+      "title": "Hold-time study for intermediates"
+    },
+    {
+      "id": "REG-ATV",
+      "kind": "REGISTRATION",
+      "code": "MA-ATV-40",
+      "version": "3",
+      "hash": "600e8f85c8709033023267b9e040c2e0725737339963f83eb5c93fa5719eff93",
+      "title": "Registered specification (dossier)"
+    },
+    {
+      "id": "IP-2026",
+      "kind": "PHARMACOPOEIA",
+      "code": "IP",
+      "version": "2026",
+      "hash": "d0941abba80ed93be0ca6029a146e9e3b1336492a3b8afcd2afba81af00c3c07",
+      "title": "Indian Pharmacopoeia 2026"
+    },
+    {
+      "id": "SOP-IPC",
+      "kind": "SOP",
+      "code": "SOP-QA-021",
+      "version": "5",
+      "hash": "f4d8ad9270d6137dec37d19724a60ed361fef13ab60ccb65dc6062d87f10d273",
+      "title": "In-process control SOP"
+    },
+    {
+      "id": "SOP-DISP",
+      "kind": "SOP",
+      "code": "SOP-PR-007",
+      "version": "4",
+      "hash": "80643d9758dd6276f662a11b383f137afd4d349ed58c267c7ba0dcadb368505b",
+      "title": "Dispensing SOP"
+    },
+    {
+      "id": "MAT-ATV",
+      "kind": "MATERIAL",
+      "code": "RM-ATV-CA",
+      "version": "2",
+      "hash": "a510d236dcc87e10e4829095a9180ab8f9467fa5da5a38e0936c86e62eafe78a",
+      "title": "Atorvastatin calcium (API)"
+    },
+    {
+      "id": "MAT-MCC",
+      "kind": "MATERIAL",
+      "code": "RM-MCC-102",
+      "version": "1",
+      "hash": "e62526d36aec1ab8b4c23bc31ed47f602dc8293081ccd554c0e763f04f78a07a",
+      "title": "Microcrystalline cellulose"
+    },
+    {
+      "id": "MAT-LAC",
+      "kind": "MATERIAL",
+      "code": "RM-LAC-MH",
+      "version": "1",
+      "hash": "ee15022499bdc20cdb0c0198bea7d08624c8bb85ade4831d2c7d9b4bc05778f5",
+      "title": "Lactose monohydrate"
+    },
+    {
+      "id": "MAT-PVP",
+      "kind": "MATERIAL",
+      "code": "RM-PVP-K30",
+      "version": "1",
+      "hash": "870e182b274ddf8bc33858c01f852e05f3cbf522266162423eb5df7058ab9172",
+      "title": "Povidone K30"
+    },
+    {
+      "id": "MAT-IPA",
+      "kind": "MATERIAL",
+      "code": "RM-IPA",
+      "version": "1",
+      "hash": "eff639f58d669301e422d253096c98a9544e85c573dc856eb0849980874cbc48",
+      "title": "Isopropyl alcohol"
+    },
+    {
+      "id": "MAT-CCS",
+      "kind": "MATERIAL",
+      "code": "RM-CCS",
+      "version": "1",
+      "hash": "af04216286197cc88864f4510bdf828e9ad5af28db42962c716e8a517d059004",
+      "title": "Croscarmellose sodium"
+    },
+    {
+      "id": "MAT-MGS",
+      "kind": "MATERIAL",
+      "code": "RM-MGST",
+      "version": "1",
+      "hash": "d3587f69fd10794c176214ccda42ddc01037e572c4702219c89c69bc77625e60",
+      "title": "Magnesium stearate"
+    },
+    {
+      "id": "EQC-BAL",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-BALANCE-60KG",
+      "version": "1",
+      "hash": "92fe29b841f63f755583ac2abefdc4442640f3146e2347715d3569a10289d0df",
+      "title": "Floor balance 60 kg"
+    },
+    {
+      "id": "EQC-RMG",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-RMG-150",
+      "version": "1",
+      "hash": "626b790546b6ca70542445afb8308f8df7a50c6d6420f2eabf2cc8669d5a785b",
+      "title": "Rapid mixer granulator 150 L"
+    },
+    {
+      "id": "EQC-FBD",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-FBD-60",
+      "version": "1",
+      "hash": "2fc54d5a4c86b1743a34a3283df29137eeb283cd82fc97edd84ea23ffd445774",
+      "title": "Fluid bed dryer 60 kg"
+    },
+    {
+      "id": "EQC-VES",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-VESSEL-50",
+      "version": "1",
+      "hash": "b9bc47c10e0fb2109f42026737bcfa7fc8fd4c48f5cde1370ece232aef8f6b83",
+      "title": "Binder vessel with stirrer"
+    },
+    {
+      "id": "EQC-MA",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-MOIST-AN",
+      "version": "1",
+      "hash": "c89661adb7a55171cb34b6bf321681f5beec0367b617108867be78f682d10b45",
+      "title": "Moisture analyser"
+    },
+    {
+      "id": "EQC-BLD",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-BIN-BLEND-200",
+      "version": "1",
+      "hash": "32288c6bfe240f6dac688f810948cd1bda063df16bd87f19beb434f038dac0aa",
+      "title": "Bin blender 200 L"
+    },
+    {
+      "id": "EQC-PRS",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-PRESS-D27",
+      "version": "1",
+      "hash": "fbe259bb7ec541c9b8daaefefe15cce6af059f104bb9f97b2b34931a957029ca",
+      "title": "Double-sided rotary press"
+    },
+    {
+      "id": "EQC-HT",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-HARDNESS",
+      "version": "1",
+      "hash": "5dbb29bbffddd8ef1f7f1e2fe70666aa5aa82854690dd0799f8275807682091d",
+      "title": "Hardness tester"
+    },
+    {
+      "id": "SYS-WEIGH",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-WEIGHING",
+      "version": "3",
+      "hash": "7146e29ef2c34f377e482dc58e8371c0df69e647b26ebb08677f2d9eb633c66c",
+      "title": "Weighing and dispensing system"
+    },
+    {
+      "id": "SYS-LIMS",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-LIMS",
+      "version": "7",
+      "hash": "21b0e8f7971ce010437a67305cc6868894827c092c033726e3c89c78947a1c58",
+      "title": "LIMS"
+    },
+    {
+      "id": "SYS-RMG",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-RMG-SCADA",
+      "version": "2",
+      "hash": "f074d577539d1363858fd48f92bce924da1ca824178beab86f61335744d0c65b",
+      "title": "RMG SCADA"
+    },
+    {
+      "id": "SYS-FBD",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-FBD-PLC",
+      "version": "2",
+      "hash": "53621bef4f73cfa8400742b0760e8b72e136c97429018a7d5d4b96c6585dfba4",
+      "title": "FBD PLC"
+    },
+    {
+      "id": "SYS-MA",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-MA-IF",
+      "version": "1",
+      "hash": "d5f8203766704bb6d13510e2a2bf28c0a31791de002e10ed8fd29579e3937a52",
+      "title": "Moisture analyser interface"
+    },
+    {
+      "id": "SYS-BLD",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-BLENDER-PLC",
+      "version": "1",
+      "hash": "cd834a14ae49bfe85b4f2331bb296384117f5f7ed8bb76c1b5c52a7643f6b989",
+      "title": "Blender PLC"
+    },
+    {
+      "id": "SYS-PRS",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-PRESS-PLC",
+      "version": "4",
+      "hash": "8a61233d55af9e750db6a9c62e83755b0596279d841a7ec888575d82870abfba",
+      "title": "Press PLC"
+    },
+    {
+      "id": "SYS-HT",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-HT-IF",
+      "version": "1",
+      "hash": "912574998eef608b5258a1a7724cff846d258e460888e070c7a45029ab6da451",
+      "title": "Hardness tester interface"
+    },
+    {
+      "id": "LIB-LOD",
+      "kind": "LIBRARY_ELEMENT",
+      "code": "LIB-LOD-TEST",
+      "version": "3",
+      "hash": "f457ae1bf5a580d25936121d08c4f3f99ae8191fb5f23c1451706dfea980e730",
+      "title": "LOD test"
+    }
+  ],
+  "library": [
+    {
+      "ref": "LIB-LOD",
+      "level": "OPERATION",
+      "symbols": [
+        "lodValue",
+        "analyser"
+      ],
+      "body": {
+        "kind": "phase",
+        "id": "lod-test",
+        "name": "Loss on drying test (moisture analyser)",
+        "block": {
+          "type": "G-13",
+          "version": "1"
+        },
+        "config": {
+          "method": "Moisture analyser, 105 degC, auto endpoint",
+          "sampleMassGrams": "5"
+        },
+        "records": [
+          "lodValue"
+        ],
+        "computes": [],
+        "reads": [],
+        "consumes": [],
+        "produces": [],
+        "uses": [],
+        "equipment": [
+          {
+            "ref": "analyser",
+            "use": "USE"
+          }
+        ],
+        "signatures": {
+          "perform": {
+            "role": "PRODUCTION_OPERATOR"
+          },
+          "check": {
+            "meaning": "VERIFIED",
+            "role": "PRODUCTION_VERIFIER"
+          }
+        },
+        "significant": false,
+        "riskClass": "HIGH",
+        "system": {
+          "kind": "OTHER",
+          "ref": "SYS-MA"
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "labelClaim",
+      "name": "Label claim per tablet (as base)",
+      "source": "MASTER_DATA",
+      "valueType": "DECIMAL",
+      "unit": "mg",
+      "ref": "REG-ATV"
+    },
+    {
+      "id": "batchSizeTablets",
+      "name": "Batch size in tablets",
+      "source": "BATCH_HEADER",
+      "valueType": "COUNT"
+    },
+    {
+      "id": "mwSalt",
+      "name": "Molar mass, atorvastatin calcium (anhydrous)",
+      "source": "MASTER_DATA",
+      "valueType": "DECIMAL",
+      "unit": "g/mol",
+      "ref": "MAT-ATV"
+    },
+    {
+      "id": "mwBase",
+      "name": "Molar mass, atorvastatin (free acid)",
+      "source": "MASTER_DATA",
+      "valueType": "DECIMAL",
+      "unit": "g/mol",
+      "ref": "MAT-ATV"
+    },
+    {
+      "id": "excipientStd",
+      "name": "Standard quantity of excipients",
+      "source": "MASTER_DATA",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "ref": "REG-ATV"
+    },
+    {
+      "id": "targetWeight",
+      "name": "Target core weight",
+      "source": "MASTER_DATA",
+      "valueType": "DECIMAL",
+      "unit": "mg",
+      "ref": "REG-ATV"
+    }
+  ],
+  "bom": [
+    {
+      "id": "BOM-ATV",
+      "material": "MAT-ATV",
+      "role": "ACTIVE",
+      "quantity": {
+        "value": "8.272662",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-MCC",
+      "material": "MAT-MCC",
+      "role": "EXCIPIENT",
+      "quantity": {
+        "value": "20.000",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-LAC",
+      "material": "MAT-LAC",
+      "role": "EXCIPIENT",
+      "quantity": {
+        "value": "18.960",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-PVP",
+      "material": "MAT-PVP",
+      "role": "EXCIPIENT",
+      "quantity": {
+        "value": "1.500",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-IPA",
+      "material": "MAT-IPA",
+      "role": "PROCESSING_AID",
+      "quantity": {
+        "value": "12.0",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-CCS",
+      "material": "MAT-CCS",
+      "role": "EXCIPIENT",
+      "quantity": {
+        "value": "1.280",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-MGS",
+      "material": "MAT-MGS",
+      "role": "EXCIPIENT",
+      "quantity": {
+        "value": "0.270",
+        "unit": "kg"
+      }
+    }
+  ],
+  "intermediates": [
+    {
+      "id": "I-KIT",
+      "name": "Dispensed granulation kit",
+      "holdTime": {
+        "max": {
+          "value": "72",
+          "unit": "h"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-ATV"
+        },
+        "storage": "Closed containers, 15-25 degC"
+      }
+    },
+    {
+      "id": "I-KIT-EG",
+      "name": "Dispensed extragranular kit",
+      "holdTime": {
+        "max": {
+          "value": "7",
+          "unit": "d"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-ATV"
+        }
+      }
+    },
+    {
+      "id": "I-BINDER",
+      "name": "Binder solution (povidone in IPA)",
+      "holdTime": {
+        "max": {
+          "value": "24",
+          "unit": "h"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-ATV"
+        }
+      }
+    },
+    {
+      "id": "I-WET",
+      "name": "Wet mass",
+      "holdTime": {
+        "max": {
+          "value": "2",
+          "unit": "h"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-ATV"
+        }
+      }
+    },
+    {
+      "id": "I-DRIED",
+      "name": "Dried granules",
+      "holdTime": {
+        "max": {
+          "value": "30",
+          "unit": "d"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-ATV"
+        }
+      }
+    },
+    {
+      "id": "I-BLEND",
+      "name": "Lubricated blend",
+      "holdTime": {
+        "max": {
+          "value": "15",
+          "unit": "d"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-ATV"
+        }
+      }
+    },
+    {
+      "id": "I-CORES",
+      "name": "Compressed cores",
+      "holdTime": {
+        "max": {
+          "value": "30",
+          "unit": "d"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-ATV"
+        }
+      },
+      "finalOutput": true
+    }
+  ],
+  "parameters": [
+    {
+      "id": "apiAssay",
+      "name": "API assay (anhydrous basis, CoA/LIMS)",
+      "valueType": "DECIMAL",
+      "unit": "%",
+      "semanticTag": "w/w",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 1
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "LIMS"
+    },
+    {
+      "id": "apiWater",
+      "name": "API water content (KF, LIMS)",
+      "valueType": "DECIMAL",
+      "unit": "%",
+      "semanticTag": "w/w",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 1
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "LIMS"
+    },
+    {
+      "id": "apiDispensed",
+      "name": "API dispensed (net)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 3
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "excipientsDispensed",
+      "name": "Excipients dispensed (net total)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 3
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "kitCharged",
+      "name": "Granulation kit charged (sub-lot)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 2
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "impellerSpeedDry",
+      "name": "Impeller speed, dry mix",
+      "valueType": "DECIMAL",
+      "unit": "/min",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "PROCESS_PARAMETER",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION",
+      "limits": {
+        "unit": "/min",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "100",
+              "inclusive": true
+            },
+            "high": {
+              "value": "150",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-GRAN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "binderTemp",
+      "name": "Binder solution temperature",
+      "valueType": "DECIMAL",
+      "unit": "Cel",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 1
+      },
+      "role": "PROCESS_PARAMETER",
+      "criticality": "CRITICAL",
+      "riskClass": "MEDIUM",
+      "capture": "MANUAL",
+      "evidence": "NONE",
+      "accuracyCheck": "SECOND_PERSON",
+      "limits": {
+        "unit": "Cel",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "20.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "30.0",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-GRAN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "extraIpa",
+      "name": "Extra IPA added",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 2
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "endpointPower",
+      "name": "Wet massing endpoint (impeller motor load)",
+      "valueType": "DECIMAL",
+      "unit": "%",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 1
+      },
+      "role": "PROCESS_PARAMETER",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "60.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "80.0",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-GRAN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "inletTemp",
+      "name": "Inlet air temperature (drying)",
+      "valueType": "DECIMAL",
+      "unit": "Cel",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 1
+      },
+      "role": "PROCESS_PARAMETER",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION",
+      "limits": {
+        "unit": "Cel",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "55.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "65.0",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-GRAN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "lod",
+      "name": "Loss on drying of granules",
+      "valueType": "DECIMAL",
+      "unit": "%",
+      "semanticTag": "lod",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 2
+      },
+      "role": "PROCESS_ENDPOINT",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "2.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "3.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-GRAN"
+            }
+          },
+          {
+            "tier": "ALERT",
+            "low": {
+              "value": "2.2",
+              "inclusive": true
+            },
+            "high": {
+              "value": "3.4",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-IPC"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "driedNet",
+      "name": "Dried granules (net, sub-lot)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 2
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "egCharged",
+      "name": "Extragranular kit charged",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 3
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "blendSpeed",
+      "name": "Blender speed",
+      "valueType": "DECIMAL",
+      "unit": "/min",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "PROCESS_PARAMETER",
+      "criticality": "CRITICAL",
+      "riskClass": "MEDIUM",
+      "capture": "AUTOMATION",
+      "limits": {
+        "unit": "/min",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "10",
+              "inclusive": true
+            },
+            "high": {
+              "value": "14",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-BLEND"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "blendNet",
+      "name": "Lubricated blend (net)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 2
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "blendCharged",
+      "name": "Blend charged to the press",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 2
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "tabletWeight",
+      "name": "Individual tablet weight (20 tablets)",
+      "valueType": "DECIMAL",
+      "unit": "mg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 1
+      },
+      "readings": 20,
+      "role": "IPC",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE",
+      "limits": {
+        "unit": "mg",
+        "ranges": [
+          {
+            "tier": "INTERNAL_ACTION",
+            "low": {
+              "value": "237.5",
+              "inclusive": true
+            },
+            "high": {
+              "value": "262.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-IPC"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "hardness",
+      "name": "Breaking force",
+      "valueType": "DECIMAL",
+      "unit": "N",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "IPC",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE",
+      "limits": {
+        "unit": "N",
+        "ranges": [
+          {
+            "tier": "INTERNAL_ACTION",
+            "low": {
+              "value": "60",
+              "inclusive": true
+            },
+            "high": {
+              "value": "120",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-IPC"
+            }
+          },
+          {
+            "tier": "ALERT",
+            "low": {
+              "value": "70",
+              "inclusive": true
+            },
+            "high": {
+              "value": "110",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-IPC"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "machineSpeed",
+      "name": "Press speed",
+      "valueType": "DECIMAL",
+      "unit": "/h",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "PROCESS_PARAMETER",
+      "criticality": "NON_CRITICAL",
+      "riskClass": "LOW",
+      "capture": "AUTOMATION"
+    },
+    {
+      "id": "coresNet",
+      "name": "Good cores (net)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 2
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "rejectsNet",
+      "name": "Compression rejects (net)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 3
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "MEDIUM",
+      "capture": "DEVICE"
+    }
+  ],
+  "calculations": [
+    {
+      "id": "baseQty",
+      "name": "Base quantity of atorvastatin for the batch",
+      "expression": "labelClaim * batchSizeTablets",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "kg"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "formFactor",
+      "name": "Salt-to-base factor",
+      "expression": "salt_factor(mwSalt, mwBase, 2)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "1"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "asisAssay",
+      "name": "As-is assay of the API lot",
+      "expression": "assay_as_is_anhydrous(apiAssay, apiWater)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%",
+        "semanticTag": "w/w"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "adjustedApiQty",
+      "name": "Potency-adjusted API quantity",
+      "expression": "potency_adjusted_quantity(baseQty, formFactor, 0 [%], asisAssay)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "kg"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "dispRecon",
+      "name": "Dispensing accountability",
+      "expression": "yield(apiDispensed + excipientsDispensed, adjustedApiQty + excipientStd)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%",
+        "semanticTag": "yield"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "granYield",
+      "name": "Granulation and drying yield (sub-lot)",
+      "expression": "yield(driedNet, kitCharged)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%",
+        "semanticTag": "yield"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "blendTheoretical",
+      "name": "Theoretical blend mass",
+      "expression": "sum(driedNet) + egCharged",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "kg"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "blendYield",
+      "name": "Blending yield",
+      "expression": "yield(blendNet, blendTheoretical)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%",
+        "semanticTag": "yield"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "meanWeight",
+      "name": "Average tablet weight",
+      "expression": "mean(tabletWeight)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "mg"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "rsdWeight",
+      "name": "Relative standard deviation of tablet weight",
+      "expression": "rsd(tabletWeight)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%",
+        "semanticTag": "rsd"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "theoreticalTablets",
+      "name": "Theoretical number of tablets",
+      "expression": "convert(blendCharged / targetWeight, [1])",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "1"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "compYield",
+      "name": "Compression yield",
+      "expression": "yield(coresNet, blendCharged)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%",
+        "semanticTag": "yield"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    }
+  ],
+  "yieldCheckpoints": [
+    {
+      "id": "Y-DISP",
+      "name": "Dispensing accountability",
+      "kind": "RECONCILIATION",
+      "theoretical": "adjustedApiQty",
+      "result": "dispRecon",
+      "basis": "AS_IS",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "INTERNAL_ACTION",
+            "low": {
+              "value": "99.5",
+              "inclusive": true
+            },
+            "high": {
+              "value": "100.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-DISP"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "Y-GRAN",
+      "name": "Granulation and drying yield",
+      "kind": "YIELD",
+      "theoretical": "kitCharged",
+      "result": "granYield",
+      "basis": "AS_IS",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "97.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "100.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-GRAN"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "Y-BLEND",
+      "name": "Blending yield",
+      "kind": "YIELD",
+      "theoretical": "blendTheoretical",
+      "result": "blendYield",
+      "basis": "AS_IS",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "98.5",
+              "inclusive": true
+            },
+            "high": {
+              "value": "100.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-BLEND"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "Y-COMP",
+      "name": "Compression yield",
+      "kind": "YIELD",
+      "theoretical": "blendCharged",
+      "result": "compYield",
+      "basis": "AS_IS",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "97.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "100.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-COMP"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "acceptanceSchemes": [
+    {
+      "id": "AS-UOW",
+      "title": "Tablet weight (in-process): every criterion applies",
+      "method": "ALL_APPLY",
+      "criteria": [
+        {
+          "id": "IP-AVG",
+          "title": "Average weight within the IP band of the target (IN)",
+          "governingMarkets": [
+            "IN"
+          ],
+          "pharmacopoeia": {
+            "code": "IP",
+            "edition": "2026"
+          },
+          "statistic": "meanWeight",
+          "unit": "mg",
+          "range": {
+            "tier": "REGISTERED",
+            "low": {
+              "value": "237.5",
+              "inclusive": true
+            },
+            "high": {
+              "value": "262.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "PHARMACOPOEIA",
+              "ref": "IP-2026"
+            },
+            "pharmacopoeia": {
+              "code": "IP",
+              "edition": "2026"
+            }
+          },
+          "sampling": [
+            {
+              "point": "first-off",
+              "purpose": "weight",
+              "units": 20,
+              "destructive": false
+            }
+          ]
+        },
+        {
+          "id": "US-RSD",
+          "title": "Weight RSD within the in-house limit derived from process data (US)",
+          "governingMarkets": [
+            "US"
+          ],
+          "pharmacopoeia": {
+            "code": "USP",
+            "edition": "2026"
+          },
+          "statistic": "rsdWeight",
+          "unit": "%",
+          "range": {
+            "tier": "INTERNAL_ACTION",
+            "high": {
+              "value": "2.0",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-IPC"
+            }
+          },
+          "sampling": [
+            {
+              "point": "first-off",
+              "purpose": "weight",
+              "units": 10,
+              "destructive": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "timeConstraints": [
+    {
+      "id": "TC-DRYMIX",
+      "name": "Dry mixing time",
+      "kind": "TIMER",
+      "from": {
+        "node": "p-drymix",
+        "event": "START"
+      },
+      "to": {
+        "node": "p-drymix",
+        "event": "END"
+      },
+      "min": {
+        "value": "10",
+        "unit": "min"
+      },
+      "max": {
+        "value": "15",
+        "unit": "min"
+      },
+      "source": {
+        "kind": "VALIDATION_REPORT",
+        "ref": "VR-GRAN"
+      },
+      "breach": "EXCEPTION",
+      "pauses": "INCLUDED"
+    },
+    {
+      "id": "TC-BINDER-ADD",
+      "name": "Binder addition time",
+      "kind": "TIMER",
+      "from": {
+        "node": "p-binder-add",
+        "event": "START"
+      },
+      "to": {
+        "node": "p-binder-add",
+        "event": "END"
+      },
+      "max": {
+        "value": "4",
+        "unit": "min"
+      },
+      "source": {
+        "kind": "VALIDATION_REPORT",
+        "ref": "VR-GRAN"
+      },
+      "breach": "EXCEPTION",
+      "pauses": "INCLUDED"
+    },
+    {
+      "id": "TC-WETMASS",
+      "name": "Wet massing time",
+      "kind": "TIMER",
+      "from": {
+        "node": "p-wetmass",
+        "event": "START"
+      },
+      "to": {
+        "node": "p-wetmass",
+        "event": "END"
+      },
+      "min": {
+        "value": "2",
+        "unit": "min"
+      },
+      "max": {
+        "value": "5",
+        "unit": "min"
+      },
+      "source": {
+        "kind": "VALIDATION_REPORT",
+        "ref": "VR-GRAN"
+      },
+      "breach": "EXCEPTION",
+      "pauses": "INCLUDED"
+    },
+    {
+      "id": "TC-DRYCYCLE",
+      "name": "Drying cycle per iteration",
+      "kind": "TIMER",
+      "from": {
+        "node": "p-drycycle",
+        "event": "START"
+      },
+      "to": {
+        "node": "p-drycycle",
+        "event": "END"
+      },
+      "min": {
+        "value": "20",
+        "unit": "min"
+      },
+      "max": {
+        "value": "60",
+        "unit": "min"
+      },
+      "source": {
+        "kind": "VALIDATION_REPORT",
+        "ref": "VR-GRAN"
+      },
+      "breach": "EXCEPTION",
+      "pauses": "EXCLUDED"
+    },
+    {
+      "id": "TC-GRAN-WINDOW",
+      "name": "Charge-in to end of drying (per sub-lot)",
+      "kind": "PROCESS_WINDOW",
+      "from": {
+        "node": "p-charge",
+        "event": "START"
+      },
+      "to": {
+        "node": "L-DRY",
+        "event": "END"
+      },
+      "max": {
+        "value": "6",
+        "unit": "h"
+      },
+      "warnBefore": {
+        "value": "30",
+        "unit": "min"
+      },
+      "source": {
+        "kind": "VALIDATION_REPORT",
+        "ref": "VR-GRAN"
+      },
+      "breach": "EXCEPTION_AND_BLOCK",
+      "pauses": "INCLUDED"
+    },
+    {
+      "id": "TC-LUBE",
+      "name": "Lubrication time",
+      "kind": "TIMER",
+      "from": {
+        "node": "p-lube",
+        "event": "START"
+      },
+      "to": {
+        "node": "p-lube",
+        "event": "END"
+      },
+      "min": {
+        "value": "3",
+        "unit": "min"
+      },
+      "max": {
+        "value": "5",
+        "unit": "min"
+      },
+      "source": {
+        "kind": "VALIDATION_REPORT",
+        "ref": "VR-BLEND"
+      },
+      "breach": "EXCEPTION",
+      "pauses": "INCLUDED"
+    }
+  ],
+  "riskReductions": [
+    {
+      "id": "RR-DRYMIX-1V",
+      "kind": "ONE_VERIFIER",
+      "subjects": [
+        "p-drymix"
+      ],
+      "riskClass": "LOW",
+      "rationale": "RA-GRAN-01"
+    },
+    {
+      "id": "RR-SPEED-MINOR",
+      "kind": "MINOR_CLASSIFICATION",
+      "subjects": [
+        "machineSpeed"
+      ],
+      "riskClass": "LOW",
+      "rationale": "RA-MINOR-01"
+    }
+  ],
+  "goldenCases": [
+    {
+      "id": "G-POTENCY",
+      "description": "Worked example of the tablets spec C-06: 40 mg x 2,00,000 tablets, salt factor 1155.36 / (2 x 558.64), assay 99.2 % anhydrous, water 4.6 %; target rounded up to 8.742 kg for dispensing",
+      "inputs": {
+        "labelClaim": {
+          "value": "40",
+          "unit": "mg"
+        },
+        "batchSizeTablets": {
+          "value": "200000"
+        },
+        "mwSalt": {
+          "value": "1155.36",
+          "unit": "g/mol"
+        },
+        "mwBase": {
+          "value": "558.64",
+          "unit": "g/mol"
+        },
+        "apiAssay": {
+          "value": "99.2",
+          "unit": "%"
+        },
+        "apiWater": {
+          "value": "4.6",
+          "unit": "%"
+        },
+        "apiDispensed": {
+          "value": "8.742",
+          "unit": "kg"
+        },
+        "excipientsDispensed": {
+          "value": "43.260",
+          "unit": "kg"
+        },
+        "excipientStd": {
+          "value": "43.260",
+          "unit": "kg"
+        }
+      },
+      "expected": {
+        "baseQty": {
+          "value": "8.000",
+          "unit": "kg"
+        },
+        "formFactor": {
+          "value": "1.034083"
+        },
+        "asisAssay": {
+          "value": "94.6368",
+          "unit": "%"
+        },
+        "adjustedApiQty": {
+          "value": "8.741486",
+          "unit": "kg"
+        },
+        "dispRecon": {
+          "value": "100.00",
+          "unit": "%"
+        }
+      }
+    },
+    {
+      "id": "G-GRAN-YIELD",
+      "description": "Sub-lot yield: 25.10 kg dried from 25.60 kg charged",
+      "inputs": {
+        "driedNet": {
+          "value": "25.10",
+          "unit": "kg"
+        },
+        "kitCharged": {
+          "value": "25.60",
+          "unit": "kg"
+        }
+      },
+      "expected": {
+        "granYield": {
+          "value": "98.05",
+          "unit": "%"
+        }
+      }
+    },
+    {
+      "id": "G-BLEND",
+      "description": "Two sub-lots of 25.10 and 24.95 kg plus 1.550 kg extragranular; 51.20 kg blend",
+      "inputs": {
+        "driedNet": {
+          "series": [
+            "25.10",
+            "24.95"
+          ],
+          "unit": "kg"
+        },
+        "egCharged": {
+          "value": "1.550",
+          "unit": "kg"
+        },
+        "blendNet": {
+          "value": "51.20",
+          "unit": "kg"
+        }
+      },
+      "expected": {
+        "blendTheoretical": {
+          "value": "51.600",
+          "unit": "kg"
+        },
+        "blendYield": {
+          "value": "99.22",
+          "unit": "%"
+        }
+      }
+    },
+    {
+      "id": "G-COMPRESSION",
+      "description": "Twenty tablet weights around 250 mg; 51.00 kg blend charged, 50.35 kg good cores",
+      "inputs": {
+        "tabletWeight": {
+          "series": [
+            "249.8",
+            "251.2",
+            "250.4",
+            "248.9",
+            "252.0",
+            "250.1",
+            "249.5",
+            "251.7",
+            "250.9",
+            "248.6",
+            "250.3",
+            "251.1",
+            "249.2",
+            "250.8",
+            "249.9",
+            "251.5",
+            "250.6",
+            "249.4",
+            "250.2",
+            "250.7"
+          ],
+          "unit": "mg"
+        },
+        "blendCharged": {
+          "value": "51.00",
+          "unit": "kg"
+        },
+        "targetWeight": {
+          "value": "250.0",
+          "unit": "mg"
+        },
+        "coresNet": {
+          "value": "50.35",
+          "unit": "kg"
+        }
+      },
+      "expected": {
+        "meanWeight": {
+          "value": "250.34",
+          "unit": "mg"
+        },
+        "rsdWeight": {
+          "value": "0.37",
+          "unit": "%"
+        },
+        "theoreticalTablets": {
+          "value": "204000"
+        },
+        "compYield": {
+          "value": "98.73",
+          "unit": "%"
+        }
+      }
+    }
+  ],
+  "procedure": {
+    "id": "PROC-ATV40",
+    "name": "Atorvastatin 40 mg cores, 2,00,000 tablets",
+    "body": {
+      "kind": "sequence",
+      "id": "proc-seq",
+      "children": [
+        {
+          "kind": "stage",
+          "id": "S-DISP",
+          "name": "Dispensing",
+          "binding": {
+            "rooms": [
+              "DISP-01"
+            ],
+            "equipment": [
+              {
+                "ref": "BAL",
+                "equipmentClass": "EQC-BAL",
+                "kind": "INSTRUMENT"
+              }
+            ]
+          },
+          "purpose": "MATERIAL",
+          "responsibleRole": "HEAD_OF_PRODUCTION",
+          "body": {
+            "kind": "sequence",
+            "id": "s-disp-seq",
+            "children": [
+              {
+                "kind": "operation",
+                "id": "O-DISP-PREP",
+                "name": "Booth clearance and balance check",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-DISP-PREP-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-disp-clear",
+                      "name": "Dispensing booth clearance",
+                      "block": {
+                        "type": "G-10",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": true,
+                      "riskClass": "MEDIUM"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-disp-bal",
+                      "name": "Balance status and daily check",
+                      "block": {
+                        "type": "G-09",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BAL",
+                          "use": "STATUS_CHECK"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-DISP-CALC",
+                "name": "Potency calculation",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-DISP-CALC-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-potency",
+                      "name": "Potency-adjusted API quantity",
+                      "block": {
+                        "type": "G-14",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "apiAssay",
+                        "apiWater"
+                      ],
+                      "computes": [
+                        "baseQty",
+                        "formFactor",
+                        "asisAssay",
+                        "adjustedApiQty"
+                      ],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-DISP-WEIGH",
+                "name": "Dispense",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-DISP-WEIGH-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-disp-api",
+                      "name": "Dispense atorvastatin calcium",
+                      "block": {
+                        "type": "G-07",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "apiDispensed"
+                      ],
+                      "computes": [],
+                      "reads": [
+                        "adjustedApiQty"
+                      ],
+                      "consumes": [
+                        "BOM-ATV"
+                      ],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BAL",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-disp-exc",
+                      "name": "Dispense excipients and IPA",
+                      "block": {
+                        "type": "G-07",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "excipientsDispensed"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [
+                        "BOM-MCC",
+                        "BOM-LAC",
+                        "BOM-PVP",
+                        "BOM-IPA",
+                        "BOM-CCS",
+                        "BOM-MGS"
+                      ],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BAL",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-disp-kits",
+                      "name": "Label and seal the kits",
+                      "block": {
+                        "type": "G-22",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [
+                        "I-KIT",
+                        "I-KIT-EG"
+                      ],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-DISP-RECON",
+                "name": "Dispensing accountability",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-DISP-RECON-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-disp-recon",
+                      "name": "Dispensing accountability",
+                      "block": {
+                        "type": "G-20",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [
+                        "dispRecon"
+                      ],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "yieldCheckpoint": "Y-DISP"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "replicate",
+          "id": "R-SUBLOT",
+          "name": "Granulation sub-lots",
+          "count": {
+            "mode": "RUNTIME",
+            "min": 1,
+            "max": 2,
+            "reasonRequired": true
+          },
+          "instances": "SEQUENTIAL",
+          "subLotPrefix": "GS",
+          "body": {
+            "kind": "stage",
+            "id": "S-GRAN",
+            "name": "Wet granulation and drying (per sub-lot)",
+            "binding": {
+              "rooms": [
+                "GRAN-01"
+              ],
+              "equipment": [
+                {
+                  "ref": "RMG",
+                  "equipmentClass": "EQC-RMG",
+                  "kind": "PROCESS"
+                },
+                {
+                  "ref": "FBD",
+                  "equipmentClass": "EQC-FBD",
+                  "kind": "PROCESS"
+                },
+                {
+                  "ref": "VESSEL",
+                  "equipmentClass": "EQC-VES",
+                  "kind": "PROCESS"
+                },
+                {
+                  "ref": "MA",
+                  "equipmentClass": "EQC-MA",
+                  "kind": "INSTRUMENT"
+                },
+                {
+                  "ref": "SCALE",
+                  "equipmentClass": "EQC-BAL",
+                  "kind": "INSTRUMENT"
+                }
+              ]
+            },
+            "purpose": "MATERIAL",
+            "responsibleRole": "HEAD_OF_PRODUCTION",
+            "body": {
+              "kind": "sequence",
+              "id": "s-gran-seq",
+              "children": [
+                {
+                  "kind": "operation",
+                  "id": "O-GRAN-PREP",
+                  "name": "Clearance and equipment status",
+                  "body": {
+                    "kind": "sequence",
+                    "id": "O-GRAN-PREP-seq",
+                    "children": [
+                      {
+                        "kind": "phase",
+                        "id": "p-gran-clear",
+                        "name": "Granulation area clearance",
+                        "block": {
+                          "type": "G-10",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [],
+                        "uses": [],
+                        "equipment": [],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": true,
+                        "riskClass": "MEDIUM"
+                      },
+                      {
+                        "kind": "phase",
+                        "id": "p-gran-status",
+                        "name": "RMG, FBD, moisture analyser and scale status",
+                        "block": {
+                          "type": "G-09",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [],
+                        "uses": [],
+                        "equipment": [
+                          {
+                            "ref": "RMG",
+                            "use": "STATUS_CHECK"
+                          },
+                          {
+                            "ref": "FBD",
+                            "use": "STATUS_CHECK"
+                          },
+                          {
+                            "ref": "MA",
+                            "use": "STATUS_CHECK"
+                          },
+                          {
+                            "ref": "SCALE",
+                            "use": "STATUS_CHECK"
+                          }
+                        ],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": false,
+                        "riskClass": "MEDIUM"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "operation",
+                  "id": "O-GRAN-MIX",
+                  "name": "Dry mix with binder preparation in parallel",
+                  "body": {
+                    "kind": "sequence",
+                    "id": "O-GRAN-MIX-seq",
+                    "children": [
+                      {
+                        "kind": "parallel",
+                        "id": "P-MIX",
+                        "branches": [
+                          {
+                            "id": "b-drymix",
+                            "name": "Charge and dry mix",
+                            "body": {
+                              "kind": "sequence",
+                              "id": "b-drymix-seq",
+                              "children": [
+                                {
+                                  "kind": "phase",
+                                  "id": "p-charge",
+                                  "name": "Charge the granulation kit",
+                                  "block": {
+                                    "type": "G-08",
+                                    "version": "1"
+                                  },
+                                  "config": {},
+                                  "records": [
+                                    "kitCharged"
+                                  ],
+                                  "computes": [],
+                                  "reads": [],
+                                  "consumes": [],
+                                  "produces": [],
+                                  "uses": [
+                                    "I-KIT"
+                                  ],
+                                  "equipment": [
+                                    {
+                                      "ref": "RMG",
+                                      "use": "USE"
+                                    },
+                                    {
+                                      "ref": "SCALE",
+                                      "use": "USE"
+                                    }
+                                  ],
+                                  "signatures": {
+                                    "perform": {
+                                      "role": "PRODUCTION_OPERATOR"
+                                    },
+                                    "check": {
+                                      "meaning": "VERIFIED",
+                                      "role": "PRODUCTION_VERIFIER"
+                                    }
+                                  },
+                                  "significant": false,
+                                  "riskClass": "MEDIUM",
+                                  "system": {
+                                    "kind": "WEIGHING",
+                                    "ref": "SYS-WEIGH"
+                                  }
+                                },
+                                {
+                                  "kind": "phase",
+                                  "id": "p-drymix",
+                                  "name": "Dry mix",
+                                  "block": {
+                                    "type": "G-06",
+                                    "version": "1"
+                                  },
+                                  "config": {},
+                                  "records": [
+                                    "impellerSpeedDry"
+                                  ],
+                                  "computes": [],
+                                  "reads": [],
+                                  "consumes": [],
+                                  "produces": [],
+                                  "uses": [],
+                                  "equipment": [
+                                    {
+                                      "ref": "RMG",
+                                      "use": "USE"
+                                    }
+                                  ],
+                                  "signatures": {
+                                    "check": {
+                                      "meaning": "VERIFIED",
+                                      "role": "PRODUCTION_VERIFIER"
+                                    }
+                                  },
+                                  "significant": false,
+                                  "riskClass": "HIGH",
+                                  "system": {
+                                    "kind": "SCADA",
+                                    "ref": "SYS-RMG",
+                                    "recipe": "ATV-DRYMIX",
+                                    "recipeVersion": "3"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "b-binder",
+                            "name": "Binder preparation",
+                            "body": {
+                              "kind": "sequence",
+                              "id": "b-binder-seq",
+                              "children": [
+                                {
+                                  "kind": "phase",
+                                  "id": "p-vessel-status",
+                                  "name": "Binder vessel status",
+                                  "block": {
+                                    "type": "G-09",
+                                    "version": "1"
+                                  },
+                                  "config": {},
+                                  "records": [],
+                                  "computes": [],
+                                  "reads": [],
+                                  "consumes": [],
+                                  "produces": [],
+                                  "uses": [],
+                                  "equipment": [
+                                    {
+                                      "ref": "VESSEL",
+                                      "use": "STATUS_CHECK"
+                                    }
+                                  ],
+                                  "signatures": {
+                                    "perform": {
+                                      "role": "PRODUCTION_OPERATOR"
+                                    },
+                                    "check": {
+                                      "meaning": "VERIFIED",
+                                      "role": "PRODUCTION_VERIFIER"
+                                    }
+                                  },
+                                  "significant": false,
+                                  "riskClass": "MEDIUM"
+                                },
+                                {
+                                  "kind": "phase",
+                                  "id": "p-binder-prep",
+                                  "name": "Prepare the binder solution",
+                                  "block": {
+                                    "type": "G-04",
+                                    "version": "1"
+                                  },
+                                  "config": {},
+                                  "records": [
+                                    "binderTemp"
+                                  ],
+                                  "computes": [],
+                                  "reads": [],
+                                  "consumes": [],
+                                  "produces": [
+                                    "I-BINDER"
+                                  ],
+                                  "uses": [],
+                                  "equipment": [
+                                    {
+                                      "ref": "VESSEL",
+                                      "use": "USE"
+                                    }
+                                  ],
+                                  "signatures": {
+                                    "perform": {
+                                      "role": "PRODUCTION_OPERATOR"
+                                    },
+                                    "check": {
+                                      "meaning": "WITNESSED",
+                                      "role": "PRODUCTION_VERIFIER"
+                                    }
+                                  },
+                                  "significant": false,
+                                  "riskClass": "MEDIUM"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "operation",
+                  "id": "O-GRAN-WET",
+                  "name": "Binder addition and wet massing",
+                  "body": {
+                    "kind": "sequence",
+                    "id": "O-GRAN-WET-seq",
+                    "children": [
+                      {
+                        "kind": "phase",
+                        "id": "p-binder-add",
+                        "name": "Add the binder solution",
+                        "block": {
+                          "type": "G-06",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [],
+                        "uses": [
+                          "I-BINDER"
+                        ],
+                        "equipment": [
+                          {
+                            "ref": "RMG",
+                            "use": "USE"
+                          }
+                        ],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": false,
+                        "riskClass": "HIGH",
+                        "system": {
+                          "kind": "SCADA",
+                          "ref": "SYS-RMG",
+                          "recipe": "ATV-BINDER",
+                          "recipeVersion": "3"
+                        }
+                      },
+                      {
+                        "kind": "alternative",
+                        "id": "ALT-IPA",
+                        "decision": {
+                          "mode": "OPERATOR_CHOICE",
+                          "roles": [
+                            "PRODUCTION_SUPERVISOR"
+                          ],
+                          "reasonRequired": true
+                        },
+                        "branches": [
+                          {
+                            "id": "b-extra-ipa",
+                            "name": "Add extra IPA (if the mass is too dry)",
+                            "body": {
+                              "kind": "phase",
+                              "id": "p-extra-ipa",
+                              "name": "Add extra IPA",
+                              "block": {
+                                "type": "G-08",
+                                "version": "1"
+                              },
+                              "config": {},
+                              "records": [
+                                "extraIpa"
+                              ],
+                              "computes": [],
+                              "reads": [],
+                              "consumes": [],
+                              "produces": [],
+                              "uses": [],
+                              "equipment": [
+                                {
+                                  "ref": "RMG",
+                                  "use": "USE"
+                                },
+                                {
+                                  "ref": "SCALE",
+                                  "use": "USE"
+                                }
+                              ],
+                              "signatures": {
+                                "perform": {
+                                  "role": "PRODUCTION_OPERATOR"
+                                },
+                                "check": {
+                                  "meaning": "VERIFIED",
+                                  "role": "PRODUCTION_VERIFIER"
+                                }
+                              },
+                              "significant": false,
+                              "riskClass": "MEDIUM",
+                              "system": {
+                                "kind": "WEIGHING",
+                                "ref": "SYS-WEIGH"
+                              }
+                            }
+                          },
+                          {
+                            "id": "b-no-ipa",
+                            "name": "No extra IPA"
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "phase",
+                        "id": "p-wetmass",
+                        "name": "Wet massing to endpoint",
+                        "block": {
+                          "type": "G-06",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [
+                          "endpointPower"
+                        ],
+                        "computes": [],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [],
+                        "uses": [],
+                        "equipment": [
+                          {
+                            "ref": "RMG",
+                            "use": "USE"
+                          }
+                        ],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": false,
+                        "riskClass": "HIGH",
+                        "system": {
+                          "kind": "SCADA",
+                          "ref": "SYS-RMG",
+                          "recipe": "ATV-WETMASS",
+                          "recipeVersion": "3"
+                        }
+                      },
+                      {
+                        "kind": "phase",
+                        "id": "p-wet-out",
+                        "name": "Discharge the wet mass",
+                        "block": {
+                          "type": "G-22",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [
+                          "I-WET"
+                        ],
+                        "uses": [],
+                        "equipment": [],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": false,
+                        "riskClass": "MEDIUM"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "operation",
+                  "id": "O-GRAN-DRY",
+                  "name": "Drying to LOD endpoint",
+                  "body": {
+                    "kind": "sequence",
+                    "id": "O-GRAN-DRY-seq",
+                    "children": [
+                      {
+                        "kind": "phase",
+                        "id": "p-fbd-load",
+                        "name": "Load the dryer",
+                        "block": {
+                          "type": "G-08",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [],
+                        "uses": [
+                          "I-WET"
+                        ],
+                        "equipment": [
+                          {
+                            "ref": "FBD",
+                            "use": "USE"
+                          }
+                        ],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": false,
+                        "riskClass": "MEDIUM"
+                      },
+                      {
+                        "kind": "loop",
+                        "id": "L-DRY",
+                        "name": "Dry until LOD is at most 3.5 %",
+                        "maxIterations": 5,
+                        "maxDuration": {
+                          "value": "3",
+                          "unit": "h"
+                        },
+                        "exit": {
+                          "condition": "lod <= 3.5 [%]",
+                          "endpoint": "lod"
+                        },
+                        "body": {
+                          "kind": "sequence",
+                          "id": "l-dry-seq",
+                          "children": [
+                            {
+                              "kind": "phase",
+                              "id": "p-drycycle",
+                              "name": "Drying cycle",
+                              "block": {
+                                "type": "G-06",
+                                "version": "1"
+                              },
+                              "config": {},
+                              "records": [
+                                "inletTemp"
+                              ],
+                              "computes": [],
+                              "reads": [],
+                              "consumes": [],
+                              "produces": [],
+                              "uses": [],
+                              "equipment": [
+                                {
+                                  "ref": "FBD",
+                                  "use": "USE"
+                                }
+                              ],
+                              "signatures": {
+                                "perform": {
+                                  "role": "PRODUCTION_OPERATOR"
+                                },
+                                "check": {
+                                  "meaning": "VERIFIED",
+                                  "role": "PRODUCTION_VERIFIER"
+                                }
+                              },
+                              "significant": false,
+                              "riskClass": "HIGH",
+                              "system": {
+                                "kind": "PLC",
+                                "ref": "SYS-FBD",
+                                "recipe": "ATV-DRY",
+                                "recipeVersion": "2"
+                              }
+                            },
+                            {
+                              "kind": "libraryCall",
+                              "id": "c-lod",
+                              "element": "LIB-LOD",
+                              "bind": {
+                                "lodValue": "lod",
+                                "analyser": "MA"
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "alternative",
+                        "id": "ALT-OVERDRY",
+                        "decision": {
+                          "mode": "DATA"
+                        },
+                        "branches": [
+                          {
+                            "id": "b-overdried",
+                            "name": "Over-dried: QA assessment",
+                            "guard": "lod < 2.0 [%]",
+                            "body": {
+                              "kind": "holdPoint",
+                              "id": "H-OVERDRY",
+                              "name": "QA assessment of over-dried granules",
+                              "role": "QA",
+                              "dispositions": [
+                                "CONTINUE",
+                                "REJECT"
+                              ]
+                            }
+                          },
+                          {
+                            "id": "b-dry-ok",
+                            "name": "Within range",
+                            "otherwise": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "kind": "operation",
+                  "id": "O-GRAN-OUT",
+                  "name": "Output and yield",
+                  "body": {
+                    "kind": "sequence",
+                    "id": "O-GRAN-OUT-seq",
+                    "children": [
+                      {
+                        "kind": "phase",
+                        "id": "p-gran-out",
+                        "name": "Weigh dried granules into labelled containers",
+                        "block": {
+                          "type": "G-22",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [
+                          "driedNet"
+                        ],
+                        "computes": [],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [
+                          "I-DRIED"
+                        ],
+                        "uses": [],
+                        "equipment": [
+                          {
+                            "ref": "SCALE",
+                            "use": "USE"
+                          }
+                        ],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": false,
+                        "riskClass": "MEDIUM",
+                        "system": {
+                          "kind": "WEIGHING",
+                          "ref": "SYS-WEIGH"
+                        }
+                      },
+                      {
+                        "kind": "phase",
+                        "id": "p-gran-yield",
+                        "name": "Granulation and drying yield",
+                        "block": {
+                          "type": "G-20",
+                          "version": "1"
+                        },
+                        "config": {},
+                        "records": [],
+                        "computes": [
+                          "granYield"
+                        ],
+                        "reads": [],
+                        "consumes": [],
+                        "produces": [],
+                        "uses": [],
+                        "equipment": [],
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          },
+                          "check": {
+                            "meaning": "VERIFIED",
+                            "role": "PRODUCTION_VERIFIER"
+                          }
+                        },
+                        "significant": false,
+                        "riskClass": "HIGH",
+                        "yieldCheckpoint": "Y-GRAN"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "kind": "stage",
+          "id": "S-BLEND",
+          "name": "Blending and lubrication",
+          "binding": {
+            "rooms": [
+              "BLND-01"
+            ],
+            "equipment": [
+              {
+                "ref": "BLENDER",
+                "equipmentClass": "EQC-BLD",
+                "kind": "PROCESS"
+              },
+              {
+                "ref": "SCALE2",
+                "equipmentClass": "EQC-BAL",
+                "kind": "INSTRUMENT"
+              }
+            ]
+          },
+          "purpose": "MATERIAL",
+          "responsibleRole": "HEAD_OF_PRODUCTION",
+          "body": {
+            "kind": "sequence",
+            "id": "s-blend-seq",
+            "children": [
+              {
+                "kind": "operation",
+                "id": "O-BLEND-PREP",
+                "name": "Clearance and equipment status",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-BLEND-PREP-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-blend-clear",
+                      "name": "Blending area clearance",
+                      "block": {
+                        "type": "G-10",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": true,
+                      "riskClass": "MEDIUM"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-blend-status",
+                      "name": "Blender and scale status",
+                      "block": {
+                        "type": "G-09",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BLENDER",
+                          "use": "STATUS_CHECK"
+                        },
+                        {
+                          "ref": "SCALE2",
+                          "use": "STATUS_CHECK"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-BLEND-RUN",
+                "name": "Blend and lubricate",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-BLEND-RUN-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-blend-charge",
+                      "name": "Charge granules and extragranular kit",
+                      "block": {
+                        "type": "G-08",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "egCharged"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [
+                        "I-DRIED",
+                        "I-KIT-EG"
+                      ],
+                      "equipment": [
+                        {
+                          "ref": "BLENDER",
+                          "use": "USE"
+                        },
+                        {
+                          "ref": "SCALE2",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-blend",
+                      "name": "Pre-lubrication blending",
+                      "block": {
+                        "type": "G-06",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "blendSpeed"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BLENDER",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "PLC",
+                        "ref": "SYS-BLD",
+                        "recipe": "ATV-BLEND",
+                        "recipeVersion": "1"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-lube",
+                      "name": "Lubrication",
+                      "block": {
+                        "type": "G-06",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BLENDER",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "PLC",
+                        "ref": "SYS-BLD",
+                        "recipe": "ATV-LUBE",
+                        "recipeVersion": "1"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-bu-sample",
+                      "name": "Blend uniformity sampling",
+                      "block": {
+                        "type": "G-12",
+                        "version": "1"
+                      },
+                      "config": {
+                        "locations": 10,
+                        "replicates": 3
+                      },
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-BLEND-OUT",
+                "name": "Output and yield",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-BLEND-OUT-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-blend-out",
+                      "name": "Discharge and weigh the blend",
+                      "block": {
+                        "type": "G-22",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "blendNet"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [
+                        "I-BLEND"
+                      ],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "SCALE2",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-blend-yield",
+                      "name": "Blending yield",
+                      "block": {
+                        "type": "G-20",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [
+                        "blendTheoretical",
+                        "blendYield"
+                      ],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "yieldCheckpoint": "Y-BLEND"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "stage",
+          "id": "S-COMP",
+          "name": "Compression",
+          "binding": {
+            "rooms": [
+              "COMP-01"
+            ],
+            "equipment": [
+              {
+                "ref": "PRESS",
+                "equipmentClass": "EQC-PRS",
+                "kind": "PROCESS"
+              },
+              {
+                "ref": "BAL2",
+                "equipmentClass": "EQC-BAL",
+                "kind": "INSTRUMENT"
+              },
+              {
+                "ref": "HT",
+                "equipmentClass": "EQC-HT",
+                "kind": "INSTRUMENT"
+              },
+              {
+                "ref": "SCALE3",
+                "equipmentClass": "EQC-BAL",
+                "kind": "INSTRUMENT"
+              }
+            ]
+          },
+          "purpose": "MATERIAL",
+          "responsibleRole": "HEAD_OF_PRODUCTION",
+          "body": {
+            "kind": "sequence",
+            "id": "s-comp-seq",
+            "children": [
+              {
+                "kind": "operation",
+                "id": "O-COMP-PREP",
+                "name": "Clearance and equipment status",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-COMP-PREP-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-comp-clear",
+                      "name": "Compression cubicle clearance",
+                      "block": {
+                        "type": "G-10",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": true,
+                      "riskClass": "MEDIUM"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-comp-status",
+                      "name": "Press, balance, hardness tester and scale status",
+                      "block": {
+                        "type": "G-09",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "PRESS",
+                          "use": "STATUS_CHECK"
+                        },
+                        {
+                          "ref": "BAL2",
+                          "use": "STATUS_CHECK"
+                        },
+                        {
+                          "ref": "HT",
+                          "use": "STATUS_CHECK"
+                        },
+                        {
+                          "ref": "SCALE3",
+                          "use": "STATUS_CHECK"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-COMP-SETUP",
+                "name": "Set-up and first-off",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-COMP-SETUP-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-comp-charge",
+                      "name": "Charge the blend to the hopper",
+                      "block": {
+                        "type": "G-08",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "blendCharged"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [
+                        "I-BLEND"
+                      ],
+                      "equipment": [
+                        {
+                          "ref": "PRESS",
+                          "use": "USE"
+                        },
+                        {
+                          "ref": "SCALE3",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-first-off",
+                      "name": "First-off weight and hardness",
+                      "block": {
+                        "type": "G-13",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "tabletWeight",
+                        "hardness"
+                      ],
+                      "computes": [
+                        "meanWeight",
+                        "rsdWeight"
+                      ],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BAL2",
+                          "use": "USE"
+                        },
+                        {
+                          "ref": "HT",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "acceptanceScheme": "AS-UOW",
+                      "sampling": [
+                        {
+                          "point": "first-off",
+                          "purpose": "weight",
+                          "units": 20,
+                          "destructive": false
+                        }
+                      ],
+                      "system": {
+                        "kind": "OTHER",
+                        "ref": "SYS-HT"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-COMP-RUN",
+                "name": "Compression run",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-COMP-RUN-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-compress",
+                      "name": "Compress",
+                      "block": {
+                        "type": "G-06",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "machineSpeed"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "PRESS",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "PLC",
+                        "ref": "SYS-PRS",
+                        "recipe": "ATV-40-COMP",
+                        "recipeVersion": "5"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-comp-out",
+                      "name": "Weigh good cores into labelled containers",
+                      "block": {
+                        "type": "G-22",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "coresNet"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [
+                        "I-CORES"
+                      ],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "SCALE3",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-comp-rejects",
+                      "name": "Weigh and segregate rejects",
+                      "block": {
+                        "type": "G-23",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "rejectsNet"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "SCALE3",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-COMP-YIELD",
+                "name": "Yield",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-COMP-YIELD-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-comp-yield",
+                      "name": "Compression yield",
+                      "block": {
+                        "type": "G-20",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [
+                        "theoreticalTablets",
+                        "compYield"
+                      ],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "yieldCheckpoint": "Y-COMP"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "holdPoint",
+          "id": "H-CORES",
+          "name": "Cores approved for coating",
+          "role": "QA",
+          "dispositions": [
+            "APPROVED",
+            "NOT_APPROVED"
+          ]
+        }
+      ]
+    }
+  }
+}
