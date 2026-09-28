@@ -409,8 +409,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   version 1 changed (b73add75... -> b7ecdfa2...), and so did the file's migration checksum (519557f5... -> dfbaed05...).
   WHY IN PLACE: the Phase 1 exit kernel refuses to publish a machine version that names no create permission
   (kernel 0550, EBMR-PLAT-062, DI-17). The old 0140 therefore fails on every fresh database, and no later migration can
-  stand in for it: versions publish in sequence, so a version 2 still needs a version 1 that publishes. WHY ALLOWED: the
-  runner's rule (`packages/kernel/src/db/migrate.ts`) is that a RELEASED migration is never edited. Phase 2 has never
+  stand in for it: versions publish in sequence, so a version 2 still needs a version 1 that publishes. No earlier one can
+  either. Checked on a scratch database (current kernel, site services, recipe-core 0100-0130; dropped afterwards): the
+  old file fails with the create_permission error, and after a version 1 published first it fails with "1 is not next".
+  OWNER ACKNOWLEDGEMENT PENDING: the edit contradicts the migration rule the 0230/0240 headers restate, so it is written
+  up for the owner as docs/decisions/phase-2-open-questions.md O1 (status OPEN). Do not merge the branch to main before
+  the owner records an answer there. WHY WE CONSIDER IT ACCEPTABLE (for the owner to confirm): the runner's rule (`packages/kernel/src/db/migrate.ts`) is that a RELEASED migration is never edited. Phase 2 has never
   been released or merged to main, and no database outside development, test and demo has applied it (the Phase 1 exit
   edited 38 unreleased kernel and site-services migrations the same way, 0550 among them). The recipe-core 0230 header
   ("applied migrations are never edited") states the rule that holds from release on; 0140 is the one Phase 2 file the

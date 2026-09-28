@@ -9,9 +9,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { identity, withCommand } from '@ebmr/kernel';
 import { execution } from '@ebmr/recipe-core';
-import { openServiceSession, terminalOf } from '@ebmr/test-kit';
-import { sweepAll, sweeperCredentials } from '../../src/features/execution/sweeper.ts';
+import { openServiceSession, passwordActor, terminalOf } from '@ebmr/test-kit';
+import { openSweeperActor, sweepAll, sweeperCredentials } from '../../src/features/execution/sweeper.ts';
+import { withActorCommand } from '../../src/platform/db/commands.ts';
 import { importAndIssue, rowsOf, RunDriver, startExecServer, violations, withShortWindow, writePackage, type ExecServer } from './support.ts';
 
 let server: ExecServer;
@@ -77,4 +79,41 @@ describe('time sweeper', () => {
     expect(sweeperCredentials(file)).toEqual({ loginName: s?.loginName, serviceKey: s?.serviceKey, fingerprint: t.key?.fingerprint ?? t.fingerprint });
     expect(sweeperCredentials(null)).toBeNull();
   });
+
+  it('[DI-14] the sweeper context names the legal name its person holds now, not the name of the demo seed (EBMR-IAM-117)', async () => {
+    const s = server.seed.services.find((x) => x.key === 'sweeper');
+    if (!s) throw new Error('no sweeper identity in the seed');
+    const creds = { loginName: s.loginName, serviceKey: s.serviceKey, fingerprint: terminalOf(server.seed, s.terminal).fingerprint };
+    const rename = async (legalName: string): Promise<void> => {
+      const admin = await passwordActor(server.db, server.seed.bootstrap.admin, server.seed.bootstrap.admin.fingerprint, {
+        reasonCode: 'NAME_CHANGE',
+        reasonText: `DI-14 test: the sweeper identity is recorded as ${legalName}`,
+        correlationId: randomUUID(),
+      });
+      try {
+        await withCommand(server.db.app, admin, (c) => identity.renamePerson(c, s.personId, legalName));
+      } finally {
+        await identity.endSession(server.db.app, admin.sessionId);
+      }
+    };
+    const renamed = 'TEST-SWEEPER-02';
+    expect(renamed).not.toBe(s.legalName);
+    await rename(renamed);
+    try {
+      const sweeper = await openSweeperActor(server.built.ctx, creds);
+      try {
+        expect(sweeper.legalName).toBe(renamed);
+        // The kernel accepts the context the server builds, and a sweep runs under it ...
+        await withActorCommand(server.db.app, { ...sweeper, correlationId: randomUUID() }, () => Promise.resolve());
+        expect((await sweepAll(server.built.ctx, sweeper)).failures).toEqual([]);
+        // ... while a context still carrying the seed's name is refused: the name is not the person's any more.
+        await expect(withActorCommand(server.db.app, { ...sweeper, legalName: s.legalName, correlationId: randomUUID() }, () => Promise.resolve())).rejects.toThrow(/EBMR-IAM-117/);
+      } finally {
+        await identity.endSession(server.db.app, sweeper.sessionId);
+      }
+    } finally {
+      await rename(s.legalName);
+    }
+    expect(await violations(server)).toEqual([]);
+  }, 120_000);
 });
