@@ -27,9 +27,24 @@ export interface SignatureCeremonyPort {
   sign(request: SignRequest): Promise<SignOutcome>;
 }
 
+/**
+ * The exact request the tap confirms. The device proof inside the attribution covers method, path and body, and the
+ * server verifies it over the body it receives minus the `attribution` member, so pass the body exactly as sent.
+ */
+export interface TapRequest {
+  method: string;
+  /** The URL path with parameters filled in, without the query string. */
+  path: string;
+  /** The request body exactly as sent, without `attribution`. */
+  body: Record<string, unknown>;
+}
+
 export interface BadgeTapPort {
-  /** Asks for a badge tap of the signed-in person; null when cancelled or timed out. */
-  requestTap(reason: string): Promise<Attribution | null>;
+  /**
+   * Asks for a badge tap of the signed-in person and returns the attribution for `request` (a fresh device proof over
+   * it); null when cancelled or timed out. A resend asks again with the same request (a proof is single use).
+   */
+  requestTap(reason: string, request: TapRequest): Promise<Attribution | null>;
 }
 
 export interface ScaleCaptureSlotProps {
