@@ -320,3 +320,16 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Lead items: kernel migration so iam.bootstrap_installation uses TEST- labels in a sandbox (C0-1; test-kit
   provisions in two stages until then); review D1's departure from ADR 0006 item 4; commit; then start wave 1
   (C1..C5) with the briefs.
+- 2026-09-28: C0 committed (b0ef9d9). WAVE 1 STARTED (background agents in /home/user/ebmr-p2, no commits by agents;
+  the lead reviews, runs `pnpm run ci` and E2E, commits): C1 access/esig ceremony/audit viewer, C2 MBR designer
+  (dc-mini spike report first), C3 execution store + G-09/G-10 v1 + sandbox runs + ENGINE_COMMAND (critical
+  path), C4 floor web (fixtures first), C5 gateway/MT-SICS simulator/readings/live gauge. Agents were told to code
+  for the Phase 1 exit kernel changes (reason code AND text on audited UPDATE/DELETE; restore contexts only via
+  kernel.set_actor_context). Contract and lead-owned change requests come to the lead by message.
+- 2026-09-28: Phase 1 exit: fix agent K (audit core) DONE in /home/user/ebmr: F1/F68/F74/F12 fixed (one marker row
+  per backend; only the last installed context is valid; 0160/0180 restore via set_actor_context), F2-F8, F77,
+  session-independent kernel.row_json, kernel.run_chain_verification with integrity alarm notify, ADR 0016
+  rewritten. Cross-module follow-ups handed on: F6 (reason text required) breaks 6 platform/records tests
+  (platform.engine_reason must overlay text; records.purge must require text); records true-copy and purge digest
+  must use kernel.row_json; continuity backup drill must use kernel.verify_all_chains. Notes in the lead's
+  scratchpad fix-handoffs.md and in the R/C launch prompts. P (platform) started; R and C start when E/I/M free CPU.
