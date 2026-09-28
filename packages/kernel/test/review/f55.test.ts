@@ -53,8 +53,17 @@ let restoredAdmin: pg.Pool | undefined;
 const issueOn = (pool: pg.Pool) =>
   withCommand(pool, ops, async (c) => (await c.query<{ v: string }>('select testgmp.issue_number($1)::text as v', [KEY])).rows[0]?.v ?? '');
 
+// Root in local development runs these directly; a CI runner (not root) uses its passwordless sudo.
+const IS_ROOT = process.getuid?.() === 0;
+
 function asPostgres(cmd: string, args: string[]): string {
-  return execFileSync('runuser', ['-u', 'postgres', '--', cmd, ...args], { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+  const [bin, argv] = IS_ROOT ? ['runuser', ['-u', 'postgres', '--', cmd, ...args]] : ['sudo', ['-n', '-u', 'postgres', '--', cmd, ...args]];
+  return execFileSync(bin, argv, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+}
+
+function privileged(cmd: string, args: string[]): void {
+  if (IS_ROOT) execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+  else execFileSync('sudo', ['-n', cmd, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 function restoredUrl(database: string, user: { name: string; password: string }): string {
@@ -95,7 +104,8 @@ afterAll(async () => {
       /* already stopped */
     }
   }
-  rmSync(work, { recursive: true, force: true });
+  if (IS_ROOT) rmSync(work, { recursive: true, force: true });
+  else privileged('rm', ['-rf', work]);
   await db.drop();
   dir.cleanup();
 }, 180_000);
@@ -107,7 +117,9 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
     // (2) Physical backup of the running cluster at time T (WAL streamed into the backup). A replication slot created
     // before the backup starts holds the WAL until the stream has it: under other load the server may otherwise
     // recycle a segment the stream still needs ("requested WAL segment has already been removed").
-    execFileSync(join(BIN, 'pg_basebackup'), ['-d', ADMIN_URL, '-D', dataDir, '-X', 'stream', '-C', '-S', SLOT, '-c', 'fast', '--no-sync'], {
+    // The slot reserves WAL from its creation (before the backup's start checkpoint); -C would create it later.
+    await db.admin.query('select pg_create_physical_replication_slot($1, true)', [SLOT]);
+    execFileSync(join(BIN, 'pg_basebackup'), ['-d', ADMIN_URL, '-D', dataDir, '-X', 'stream', '-S', SLOT, '-c', 'fast', '--no-sync'], {
       stdio: ['ignore', 'pipe', 'pipe'],
       maxBuffer: 64 * 1024 * 1024,
     });
@@ -126,8 +138,8 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
     // Debian keeps postgresql.conf outside the data directory; give the copy a minimal one like the original's.
     writeFileSync(join(dataDir, 'postgresql.conf'), "timezone = 'Etc/UTC'\ndatestyle = 'iso, mdy'\n");
     chmodSync(work, 0o755);
-    execFileSync('chown', ['-R', 'postgres:postgres', dataDir, sockDir]);
-    chmodSync(dataDir, 0o700);
+    privileged('chown', ['-R', 'postgres:postgres', dataDir, sockDir]);
+    privileged('chmod', ['700', dataDir]);
     const opts = [
       `-p ${port}`,
       "-c listen_addresses='127.0.0.1'",
@@ -139,7 +151,7 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
       '-c archive_mode=off',
     ].join(' ');
     execFileSync('touch', [logFile]);
-    execFileSync('chown', ['postgres:postgres', logFile]);
+    privileged('chown', ['postgres:postgres', logFile]);
     started = true;
     try {
       asPostgres(join(BIN, 'pg_ctl'), ['-D', dataDir, '-l', logFile, '-w', '-t', '180', '-o', opts, 'start']);
