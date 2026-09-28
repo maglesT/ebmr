@@ -16,6 +16,8 @@ export interface BlockVersionReport {
   version: string;
   title: string;
   level: BlockVersion['level'];
+  /** 'SANDBOX_ONLY' versions are refused by defineBatch for a GMP installation (ENG-DEF-SANDBOX-ONLY). */
+  availability: NonNullable<BlockVersion['availability']>;
   controls: string[];
   missing: ContractPart[];
   /** Missing parts other than the rendering parts (these block registration once CI enforces the contract). */
@@ -84,6 +86,7 @@ export class BlockRegistry {
         version: b.version,
         title: b.title,
         level: b.level,
+        availability: b.availability ?? 'ALL',
         controls: [...b.controls],
         missing,
         missingExecutionParts: missing.filter((p) => !RENDERING_PARTS.includes(p)),
@@ -98,6 +101,13 @@ export class BlockRegistry {
       for (const version of catalog.describe(type)?.versions ?? []) if (!this.versions.has(blockKey(type, version))) out.push(blockKey(type, version));
     }
     return out.sort();
+  }
+
+  /** Keys (`type@version`) of the versions that may run only in the sandbox (sorted). */
+  sandboxOnly(): string[] {
+    return this.all()
+      .filter((b) => b.availability === 'SANDBOX_ONLY')
+      .map((b) => blockKey(b.type, b.version));
   }
 
   /** A new registry with more versions (e.g. an edition's TB-xx blocks, or test stand-ins). */

@@ -1,7 +1,10 @@
 /**
  * Test support for module B1 (execution engine and generic blocks): persons and roles, TEST STAND-INS
- * for the block versions that arrive in Phase 3 (G-06, G-09, G-10, G-21; never part of src), fixture
- * definitions, and a driver that issues commands, keeps the clock and can run a batch on autopilot.
+ * for the block versions that arrive in Phase 3 (G-06, G-21; never part of src), fixture definitions,
+ * and a driver that issues commands, keeps the clock and can run a batch on autopilot.
+ *
+ * G-09@1 and G-10@1 are real SANDBOX_ONLY block versions (module C3), so every definition here is made
+ * for the sandbox installation (`installation: 'SANDBOX'`); a GMP definition refuses them.
  */
 import { Dec } from '@ebmr/expr';
 import type { BlockVersion } from '../../src/blocks/contract.ts';
@@ -40,9 +43,9 @@ export const DUAL1 = person('DUAL1', ['PRODUCTION_OPERATOR', 'OPERATOR', 'PRODUC
 export const PEOPLE: readonly Actor[] = [OP1, OP2, VER1, VER2, VER3, SUP1, HEAD1, QA1, QA2, DUAL1];
 
 // ---------------------------------------------------------------------------------------------
-// TEST STAND-INS for block versions that arrive with Phase 3 persistence (equipment, rooms, devices,
+// TEST STAND-INS for block versions that arrive with Phase 3 persistence (automated equipment phases,
 // printed materials). They carry no block rules at all: the golden runs exercise the engine core on
-// these phases. They are NOT registered in src and must never be.
+// these phases. They are NOT registered in src and must never be. G-09 and G-10 are real versions now.
 
 function standIn(type: string, title: string): BlockVersion {
   return {
@@ -63,8 +66,6 @@ function standIn(type: string, title: string): BlockVersion {
 
 export const PHASE3_STAND_INS: readonly BlockVersion[] = [
   standIn('G-06', 'Automated equipment phase'),
-  standIn('G-09', 'Equipment status, cleaning, logbook'),
-  standIn('G-10', 'Room/line status and clearance'),
   standIn('G-21', 'Printed materials, coding, challenges, serialisation'),
 ];
 
@@ -77,11 +78,11 @@ export const FIXTURE_JUSTIFICATIONS = [
 ];
 
 export function fixtureDefinition(name: FixtureName, policy: Partial<EnginePolicy> = {}): BatchDefinition {
-  return defineBatch(loadFixture(name), { registry: testRegistry(), expressions: expr, policy, justifications: FIXTURE_JUSTIFICATIONS });
+  return defineBatch(loadFixture(name), { registry: testRegistry(), expressions: expr, policy, justifications: FIXTURE_JUSTIFICATIONS, installation: 'SANDBOX' });
 }
 
 export function define(mbr: MbrContent, options: Partial<DefineOptions> = {}): BatchDefinition {
-  return defineBatch(mbr, { registry: testRegistry(), expressions: expr, ...options });
+  return defineBatch(mbr, { registry: testRegistry(), expressions: expr, installation: 'SANDBOX', ...options });
 }
 
 /** 2026-09-28T08:00:00Z in epoch microseconds. */

@@ -94,8 +94,16 @@ export class EngineDefinitionError extends Error {
   }
 }
 
+/** The installation a definition is for (ADR 0001 item 2; DI-05, INV-18). */
+export type Installation = 'GMP' | 'SANDBOX';
+
 export interface DefineOptions {
   registry: BlockRegistry;
+  /**
+   * The installation the batch runs in. Default 'GMP' (fails closed): a GMP definition refuses every
+   * SANDBOX_ONLY block version (ENG-DEF-SANDBOX-ONLY). Sandbox test runs pass 'SANDBOX'.
+   */
+  installation?: Installation;
   expressions?: ExpressionService;
   /** Validator catalogue used for the analysis (default: the generic catalogue). */
   catalog?: BlockCatalog;
@@ -107,6 +115,8 @@ export interface DefineOptions {
 export interface BatchDefinition {
   mbr: MbrContent;
   contentHash: string;
+  /** The installation this definition was checked for (SANDBOX_ONLY blocks only in 'SANDBOX'). */
+  installation: Installation;
   analysis: Analysis;
   game: TokenGame;
   gi: GraphIndex;
@@ -167,6 +177,8 @@ function outputDeclaration(t: ExprType | undefined): OutputDeclaration | undefin
 }
 
 export function defineBatch(mbr: MbrContent, options: DefineOptions): BatchDefinition {
+  const installation: Installation = options.installation ?? 'GMP';
+  if (installation !== 'GMP' && installation !== 'SANDBOX') throw new Error(`unknown installation ${String(installation)}`);
   const expr = options.expressions ?? createExprService();
   const policy: EnginePolicy = { ...DEFAULT_POLICY, ...options.policy };
   const analysis = new Analysis(mbr, { expressions: expr, blocks: options.catalog ?? genericBlockCatalog, references: { status: () => 'EFFECTIVE' }, asOf: 'execution' });
@@ -241,6 +253,16 @@ export function defineBatch(mbr: MbrContent, options: DefineOptions): BatchDefin
       if (!block || block.level !== 'PHASE' || !block.handler) {
         problems.push(
           problem('ENG-DEF-BLOCK', 'ERROR', id, `Step ${id} uses block ${n.block.type}@${n.block.version}, which has no execution handler in this registry`, ['DI-34', 'DI-10']),
+        );
+      } else if ((block.availability ?? 'ALL') === 'SANDBOX_ONLY' && installation !== 'SANDBOX') {
+        problems.push(
+          problem(
+            'ENG-DEF-SANDBOX-ONLY',
+            'ERROR',
+            id,
+            `Step ${id} uses block ${block.type}@${block.version} (${block.title}), which runs only in the sandbox: it records a person's attestation where GMP needs the equipment, room and cleaning status from site services, which arrives in Phase 3. A GMP batch can never run on it`,
+            ['DI-05', 'INV-18'],
+          ),
         );
       } else {
         def.block = block;
@@ -406,6 +428,7 @@ export function defineBatch(mbr: MbrContent, options: DefineOptions): BatchDefin
   return {
     mbr,
     contentHash: mbrContentHash(mbr),
+    installation,
     analysis,
     game,
     gi,

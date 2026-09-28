@@ -222,6 +222,14 @@ export interface RendererSlot {
   version: string;
 }
 
+/**
+ * Where a block version may run (Phase 2 apps plan section 7, decision D3). SANDBOX_ONLY versions are
+ * stand-ins that record a person's attestation where the real version checks database-backed status
+ * (G-09@1, G-10@1 until Phase 3): `defineBatch` refuses them unless the definition is for the sandbox
+ * (ENG-DEF-SANDBOX-ONLY), so no GMP batch can ever run on them (DI-05, INV-18).
+ */
+export type BlockAvailability = 'ALL' | 'SANDBOX_ONLY';
+
 export interface BlockVersion {
   /** Canonical type id: G-xx (generic), TB-xx, IB-xx. */
   type: string;
@@ -230,6 +238,8 @@ export interface BlockVersion {
   edition: 'generic' | 'tablets' | 'injectables';
   aliases: { tablets?: string; injectables?: string };
   level: BlockLevel;
+  /** Default 'ALL'. SANDBOX_ONLY versions are refused by `defineBatch` for a GMP installation. */
+  availability?: BlockAvailability;
   controls: string[];
   configSchema?: ObjectSchema;
   /** Block entry kinds and their schemas. PHASE blocks without entries declare an empty map. */

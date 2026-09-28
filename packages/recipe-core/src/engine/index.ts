@@ -3,7 +3,7 @@
  * batch issue, and the invariant checks. See README.md in this folder.
  */
 export * from './types.ts';
-export { defineBatch, reachFrom, EngineDefinitionError, RELEASING_DISPOSITIONS, type BatchDefinition, type DefineOptions, type DefinitionProblem, type RuntimeConstraint, type StepDef } from './definition.ts';
+export { defineBatch, reachFrom, EngineDefinitionError, RELEASING_DISPOSITIONS, type BatchDefinition, type DefineOptions, type DefinitionProblem, type Installation, type RuntimeConstraint, type StepDef } from './definition.ts';
 export { createEngine, issue, step, sweep, IssueRefusedError, type Engine } from './engine.ts';
 export { ENGINE_EXCEPTION_RULES, blockingExceptions, blockActive } from './exceptions.ts';
 export { MEANINGS, VERIFICATION_MEANINGS } from './guards.ts';
