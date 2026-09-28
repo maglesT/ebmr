@@ -80,6 +80,13 @@ begin
   if clock_timestamp() - v_opened > interval '10 seconds' then
     raise exception using errcode = 'P0001', message = 'Only a session opened in the last 10 seconds can be bound to a cookie. [EBMR-TAB-011]';
   end if;
+  -- Only a person's session on a terminal becomes a browser session (DI-31): never a service, integration or
+  -- display account, and never a session on a SERVER or INSTRUMENT device (e.g. the gateway's service session).
+  if exists (select 1 from iam.session s join iam.account a on a.id = s.account_id
+              where s.id = p_session and (a.kind <> 'HUMAN' or s.device_class in ('SERVER', 'INSTRUMENT'))) then
+    raise exception using errcode = 'P0001',
+      message = 'Only a person''s session on a terminal can be bound to a browser cookie (DI-31). [EBMR-TAB-016]';
+  end if;
   if exists (select 1 from tab.session_binding where session_id = p_session) then
     raise exception using errcode = 'P0001', message = 'The session is already bound to a cookie; a session is bound once only. [EBMR-TAB-012]';
   end if;

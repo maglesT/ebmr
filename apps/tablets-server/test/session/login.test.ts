@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { identity, withCommand } from '@ebmr/kernel';
 import { routes, type DeviceProof } from '@ebmr/api-contract';
-import { generateDeviceKey, passwordActor, signDeviceProof, terminalOf } from '@ebmr/test-kit';
+import { generateDeviceKey, openServiceSession, passwordActor, signDeviceProof, terminalOf } from '@ebmr/test-kit';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { startServer, type TestServer } from '../support/harness.ts';
 
@@ -203,6 +203,11 @@ describe('logout and the opaque cookie', () => {
     const s = await identity.openSession(gmp.db.app, ev.authEventId, t.fingerprint);
     await gmp.db.app.query('select tab.bind_session($1, $2, null)', [s.sessionId, 'a'.repeat(64)]);
     await expect(gmp.db.app.query('select tab.bind_session($1, $2, null)', [s.sessionId, 'b'.repeat(64)])).rejects.toThrow(/EBMR-TAB-012/);
+  });
+
+  it('[DI-31] a service session on a SERVER terminal is never bound to a browser cookie', async () => {
+    const svc = await openServiceSession(sbx.db, sbx.seed, 'sweeper');
+    await expect(sbx.db.app.query('select tab.bind_session($1, $2, null)', [svc.sessionId, 'c'.repeat(64)])).rejects.toThrow(/EBMR-TAB-016/);
   });
 
   it('[DI-13] the application role cannot read or write the binding and nonce tables', async () => {
