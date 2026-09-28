@@ -142,7 +142,7 @@ describe('F71 counter ceiling reservation is authorised at the actor location, n
     const after = await snapshot();
 
     expect({ outcome, stateUnchanged: after }).toEqual({
-      outcome: expect.stringMatching(/EBMR-IAM-040 .*CONTINUITY\.COUNTER_RESERVE/),
+      outcome: expect.stringMatching(/EBMR-IAM-040 .*CONTINUITY\.COUNTER_RESERVE/) as unknown,
       stateUnchanged: before,
     });
   });

@@ -134,7 +134,7 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
     try {
       asPostgres(join(BIN, 'pg_ctl'), ['-D', dataDir, '-l', logFile, '-w', '-t', '180', '-o', opts, 'start']);
     } catch (error) {
-      throw new Error(`setup: the restored cluster did not start: ${(error as Error).message}\n${readFileSync(logFile, 'utf8')}`);
+      throw new Error(`setup: the restored cluster did not start: ${(error as Error).message}\n${readFileSync(logFile, 'utf8')}`, { cause: error });
     }
     const serverLog = readFileSync(logFile, 'utf8');
 
