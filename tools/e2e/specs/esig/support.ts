@@ -5,6 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
+import type pg from 'pg';
 import { openDatabase, openPersonaSession, type SiteSeed } from '@ebmr/test-kit';
 import type { E2eState } from '../../fixtures/state.ts';
 
@@ -18,7 +19,7 @@ export interface StubInput {
 }
 
 /** Runs one command of an office persona (kernel.begin_command), then ends the persona's session. */
-async function asPersona<T>(state: E2eState, seed: SiteSeed, installation: Installation, personaKey: string, reason: { code: string; text: string } | null, work: (c: import('pg').PoolClient) => Promise<T>): Promise<T> {
+async function asPersona<T>(state: E2eState, seed: SiteSeed, installation: Installation, personaKey: string, reason: { code: string; text: string } | null, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
   const db = openDatabase(state.databases[installation], installation);
   try {
     const actor = await openPersonaSession(db, seed, personaKey);

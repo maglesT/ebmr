@@ -121,6 +121,35 @@ async function logged(app: AppContext, challengeId: string, error: unknown): Pro
   await esig.logSigningFailure(app.pools.app, challengeId, error);
 }
 
+/** A failed signature authentication in plain language; why it failed stays in the security log (DI-19). */
+function signingAuthRefusal(error: unknown, kind: 'PIN' | 'PASSWORD'): unknown {
+  if (!(error instanceof identity.AuthenticationFailedError)) return error;
+  if (error.locked || error.reason === 'ACCOUNT_LOCKED') {
+    return refusal(423, {
+      code: 'AUTH_LOCKED',
+      kind: 'LOCKED',
+      whatHappened: 'The account is locked after too many failed attempts. Nothing was signed.',
+      why: 'Failed signing attempts count toward the account lock.',
+      controls: ['DI-19', 'DI-38'],
+      whatYouCanDo: ['Ask for the account to be unlocked; do not keep trying.'],
+      whoCanHelp: ['The system administrator'],
+    });
+  }
+  return refusal(
+    401,
+    {
+      code: 'EBMR-IAM-140',
+      kind: 'AUTH_FAILED',
+      whatHappened: kind === 'PIN' ? 'The PIN was not accepted. Nothing was signed.' : 'The user ID or password was not accepted. Nothing was signed.',
+      why: 'Each failed attempt counts toward the account lock.',
+      controls: ['DI-19', 'DI-38'],
+      whatYouCanDo: [kind === 'PIN' ? 'Enter your own PIN again.' : 'Enter your own user ID and password again.'],
+      whoCanHelp: ['Your supervisor', 'The system administrator (to unlock or reset)'],
+    },
+    true,
+  );
+}
+
 type SignWork = { refused: { status: number; refusal: Refusal } } | { signed: { manifestation: ManifestationView; result: Record<string, unknown> | null } };
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
@@ -240,7 +269,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         } catch (error) {
           await logged(app, ch.challengeId, error);
           if (error instanceof identity.AuthenticationFailedError && (error.locked || error.reason === 'ACCOUNT_LOCKED')) badges.forget(ch.challengeId);
-          throw error;
+          throw signingAuthRefusal(error, c.kind);
         }
         badges.forget(ch.challengeId);
         if (ev.personId !== ch.signerPerson || ev.accountId !== ch.signerAccount) {

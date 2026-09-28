@@ -37,7 +37,7 @@ import { stepSigningContent } from './signing-content.ts';
 import { sweepTime } from './timing.ts';
 import { cloneState, RefusalError, Tx } from './tx.ts';
 import type { Frame } from '../flow/tokens.ts';
-import type { Actor, BatchState, Clock, Command, EngineEvent, IssueRequest, StepResult } from './types.ts';
+import type { Actor, BatchState, Clock, Command, EngineEvent, IssueRequest, SignatureTarget, StepResult } from './types.ts';
 
 function openTx(def: BatchDefinition, state: BatchState, clock: Clock, actor: Actor | undefined): Tx {
   const s = cloneState(state);
