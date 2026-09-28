@@ -86,8 +86,7 @@ function immediateDominators(order: readonly string[], preds: ReadonlyMap<string
       const dx = depth.get(x) ?? 0;
       const dy = depth.get(y) ?? 0;
       if (dx >= dy) x = idom.get(x) ?? root;
-      else y = idom.get(y) ?? root;
-      if (dx === 0 && dy === 0 && x !== y) return root;
+      if (dy >= dx) y = idom.get(y) ?? root;
     }
     return x;
   };
@@ -104,14 +103,14 @@ function immediateDominators(order: readonly string[], preds: ReadonlyMap<string
 }
 
 function dominates(idom: ReadonlyMap<string, string>, a: string, b: string): boolean {
-  let x: string | undefined = b;
-  for (let guard = 0; x !== undefined && guard <= idom.size + 1; guard++) {
+  // Walks up the dominator tree from b; each step strictly decreases the depth, so this ends at the root.
+  let x = b;
+  for (;;) {
     if (x === a) return true;
     const next = idom.get(x);
-    if (next === undefined || next === x) return x === a;
+    if (next === undefined || next === x) return false;
     x = next;
   }
-  return false;
 }
 
 function findCycle(nodes: readonly GraphNode[], edges: readonly GraphEdge[]): string[] {
