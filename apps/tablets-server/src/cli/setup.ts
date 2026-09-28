@@ -163,7 +163,7 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
     if (kind === 'SANDBOX') {
       writeJson(join(opts.keysDir, 'sandbox-service-keys.json'), {
         label: 'DEMO-ONLY service secrets',
-        services: seed.services.map((s) => ({ ...s, fingerprint: seed.terminals.find((t) => t.code === s.terminal)?.fingerprint ?? null, key: seed.terminals.find((t) => t.code === s.terminal)?.key ?? null })),
+        services: seed.services.map((s) => ({ ...s, fingerprint: seed.terminals.find((t) => t.code === s.terminal)?.fingerprint ?? null, terminalKey: seed.terminals.find((t) => t.code === s.terminal)?.key ?? null })),
       });
     }
     log(`${kind} installation ${opts.database} is ready (${seed.personas.length} personas, ${seed.terminals.length} terminals)`);
