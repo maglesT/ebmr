@@ -78,7 +78,14 @@ beforeAll(async () => {
   await exportAnchor(db.app, ledger);
 }, 120_000);
 
+/** The backup's replication slot: unique per run, always dropped so it never holds WAL on the shared server. */
+const SLOT = `ebmr_f55_${process.pid}_${Math.floor(performance.now())}`;
+async function dropSlot(): Promise<void> {
+  await db.admin.query('select pg_drop_replication_slot(slot_name) from pg_replication_slots where slot_name = $1', [SLOT]).catch(() => undefined);
+}
+
 afterAll(async () => {
+  await dropSlot();
   await restoredApp?.end().catch(() => undefined);
   await restoredAdmin?.end().catch(() => undefined);
   if (started) {
@@ -97,11 +104,14 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
   it('[INV-27] a pg_basebackup copy started without recovery.signal does not reissue counter values issued after the backup', async () => {
     const incarnationBefore = (await db.admin.query<{ i: string }>('select continuity.current_incarnation() as i')).rows[0]?.i;
 
-    // (2) Physical backup of the running cluster at time T (WAL streamed into the backup).
-    execFileSync(join(BIN, 'pg_basebackup'), ['-d', ADMIN_URL, '-D', dataDir, '-X', 'stream', '-c', 'fast', '--no-sync'], {
+    // (2) Physical backup of the running cluster at time T (WAL streamed into the backup). A replication slot created
+    // before the backup starts holds the WAL until the stream has it: under other load the server may otherwise
+    // recycle a segment the stream still needs ("requested WAL segment has already been removed").
+    execFileSync(join(BIN, 'pg_basebackup'), ['-d', ADMIN_URL, '-D', dataDir, '-X', 'stream', '-C', '-S', SLOT, '-c', 'fast', '--no-sync'], {
       stdio: ['ignore', 'pipe', 'pipe'],
       maxBuffer: 64 * 1024 * 1024,
     });
+    await dropSlot();
     expect(existsSync(join(dataDir, 'backup_label'))).toBe(true);
     expect(existsSync(join(dataDir, 'recovery.signal'))).toBe(false);
     expect(existsSync(join(dataDir, 'standby.signal'))).toBe(false);
