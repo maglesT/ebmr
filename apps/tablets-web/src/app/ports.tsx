@@ -45,6 +45,13 @@ export interface BadgeTapPort {
    * it); null when cancelled or timed out. A resend asks again with the same request (a proof is single use).
    */
   requestTap(reason: string, request: TapRequest): Promise<Attribution | null>;
+  /**
+   * After a 409 SWITCH_USER refusal (refusal.kind === 'SWITCH_USER', a tap by another person): offers "Switch to
+   * <details.switchToLegalName>?" and asks that person's PIN. Resolves true when the terminal now runs that person's
+   * session (new cookie, useBoot().session updated), false when cancelled. The caller discards its unsent entry
+   * either way; it is never sent under the other person.
+   */
+  offerSwitch(refusal: RefusalEnvelope): Promise<boolean>;
 }
 
 export interface ScaleCaptureSlotProps {
@@ -76,6 +83,7 @@ export const STUB_CEREMONY: SignatureCeremonyPort = {
 
 export const STUB_BADGE_TAP: BadgeTapPort = {
   requestTap: () => Promise.resolve(null),
+  offerSwitch: () => Promise.resolve(false),
 };
 
 export function StubScaleCaptureSlot(props: ScaleCaptureSlotProps) {
@@ -90,10 +98,13 @@ export function StubScaleCaptureSlot(props: ScaleCaptureSlotProps) {
 const CeremonyContext = createContext<SignatureCeremonyPort>(STUB_CEREMONY);
 const BadgeTapContext = createContext<BadgeTapPort>(STUB_BADGE_TAP);
 const ScaleSlotContext = createContext<ComponentType<ScaleCaptureSlotProps>>(StubScaleCaptureSlot);
+/** The signed-in identity banner (C1: name, user ID, role, terminal, room, lock, switch, sign out); null = the shell's basic one. */
+const SessionBannerContext = createContext<ComponentType | null>(null);
 
 export const useSignatureCeremony = (): SignatureCeremonyPort => useContext(CeremonyContext);
 export const useBadgeTap = (): BadgeTapPort => useContext(BadgeTapContext);
 export const useScaleCaptureSlot = (): ComponentType<ScaleCaptureSlotProps> => useContext(ScaleSlotContext);
+export const useSessionBanner = (): ComponentType | null => useContext(SessionBannerContext);
 
 /** The scale capture slot the step screen renders (C5 provides the gauge and capture buttons). */
 export function ScaleCaptureSlot(props: ScaleCaptureSlotProps) {
@@ -108,4 +119,7 @@ export function BadgeTapPortProvider({ value, children }: { value: BadgeTapPort;
 }
 export function ScaleSlotProvider({ value, children }: { value: ComponentType<ScaleCaptureSlotProps>; children: ReactNode }) {
   return <ScaleSlotContext.Provider value={value}>{children}</ScaleSlotContext.Provider>;
+}
+export function SessionBannerProvider({ value, children }: { value: ComponentType; children: ReactNode }) {
+  return <SessionBannerContext.Provider value={value}>{children}</SessionBannerContext.Provider>;
 }

@@ -1,11 +1,13 @@
 /**
  * The shell (plan sections 5 and 12): the TEST, NOT GMP band and watermark on every sandbox screen, the basic
- * identity banner (C1 replaces it with the full IdentityBanner), density by terminal class.
+ * identity banner (C1 supplies the full one through SessionBannerProvider in app/ports.tsx), density by terminal class.
  */
+import { createElement } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { Button, Layout, StatusChip, t, WatermarkBand, WatermarkOverlay } from '@ebmr/ui-kit';
 import { cls } from './classes.ts';
 import { useBoot } from './boot.tsx';
+import { useSessionBanner } from './ports.tsx';
 
 export function IdentityBanner() {
   const boot = useBoot();
@@ -35,11 +37,13 @@ export function IdentityBanner() {
 /** The frame every screen sits in, signed in or not. */
 export function Frame({ children, withBanner }: { children: React.ReactNode; withBanner: boolean }) {
   const boot = useBoot();
+  const FullBanner = useSessionBanner();
   const watermark = boot.meta?.watermark ?? null;
+  const banner = withBanner ? (FullBanner && boot.session ? createElement(FullBanner) : <IdentityBanner />) : undefined;
   return (
     <>
       {watermark ? <WatermarkOverlay text={watermark.text} /> : null}
-      <Layout top={watermark ? <WatermarkBand text={watermark.text} notice={watermark.notice} /> : undefined} header={withBanner ? <IdentityBanner /> : undefined}>
+      <Layout top={watermark ? <WatermarkBand text={watermark.text} notice={watermark.notice} /> : undefined} header={banner}>
         {children}
       </Layout>
     </>
