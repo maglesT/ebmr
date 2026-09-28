@@ -119,9 +119,9 @@ interface Command {
 /**
  * Runs `first` in an open transaction, then starts `second` on another connection. Once `second`
  * has finished or waits for a lock, `first` commits; returns how `second` ended ('done' or the
- * error message). `second` is always rolled back.
+ * error message). `second` is rolled back, unless `commitSecond` is set and it succeeded.
  */
-async function race(first: Command, second: Command): Promise<string> {
+async function race(first: Command, second: Command, commitSecond = false): Promise<string> {
   const c1 = await db.app.connect();
   const c2 = await db.app.connect();
   try {
@@ -146,7 +146,9 @@ async function race(first: Command, second: Command): Promise<string> {
       await pause(20);
     }
     await c1.query('commit');
-    return await outcome;
+    const result = await outcome;
+    if (commitSecond && result === 'done') await c2.query('commit');
+    return result;
   } finally {
     await c2.query('rollback').catch(() => undefined);
     await c1.query('rollback').catch(() => undefined);
@@ -577,5 +579,61 @@ describe('catalogue changes are serialised on the role and see what committed wh
     await asTimeTraveller(db, "update iam.role_permission set removed_at = clock_timestamp() where role_code = $1 and permission_code = 'IAM.UNLOCK'", [role]);
     await asAdmin((c) => revokeRoleGrant(c, g, 'test clean-up'));
     expect((await db.app.query('select * from iam.directory_scan()')).rows).toEqual([]);
+  });
+});
+
+/**
+ * A grant approval racing the account's deactivation (found after the kill run): the approval reads
+ * the account in share mode after the person, so the deactivation either waits for the approval and
+ * then revokes the new grant with the account's other grants, or commits first and the approval,
+ * which waited for it, is refused. A grant is approved only for an active account.
+ */
+describe('a grant is approved only for an active account, whatever runs at the same time (DI-16)', () => {
+  const deactivate = (accountId: string): Command => ({
+    ctx: withReason(adm.admin, 'LEAVER', 'left the company'), sql: "select iam.deactivate_account($1, 'left the company')", params: [accountId],
+  });
+  const approveGrant = (grant: string): Command => ({ ctx: withReason(adm.owner), sql: "select iam.decide_role_grant($1, true, 'approved')", params: [grant] });
+  const liveOnInactive = async (accountId: string) =>
+    (await db.app.query("select 1 from iam.directory_scan() where finding = 'LIVE_GRANT_ON_INACTIVE_ACCOUNT' and account_id = $1", [accountId])).rowCount;
+
+  it('[DI-16][DI-14] bypass: an approval racing the deactivation of the account never leaves a live grant on a disabled account', async () => {
+    // The deactivation commits first: the approval waits for it and is refused.
+    const p = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
+    const g = await request(p.accountId, 'CONTRACT_GIVER_REVIEWER');
+    expect(await race(deactivate(p.accountId), approveGrant(g))).toMatch(/^EBMR-IAM-026/);
+    expect(await grantRow(g)).toMatchObject({ status: 'REQUESTED', decided_by_person: null });
+    expect(await liveOnInactive(p.accountId)).toBe(0);
+
+    // The approval commits first: the deactivation waits for it and revokes the new grant too.
+    const q = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
+    const h = await request(q.accountId, 'CONTRACT_GIVER_REVIEWER');
+    expect(await race(approveGrant(h), deactivate(q.accountId), true)).toBe('done');
+    expect((await db.app.query('select status from iam.account where id = $1', [q.accountId])).rows).toEqual([{ status: 'DISABLED' }]);
+    expect(await grantRow(h)).toMatchObject({ status: 'REVOKED', decided_by_person: adm.owner.personId });
+    expect(await liveOnInactive(q.accountId)).toBe(0);
+  });
+
+  it('[DI-16] a pending grant is not approved while the account awaits activation or is suspended', async () => {
+    const suspended = await account({ kind: 'HUMAN' });
+    const newcomer = await asAdmin(async (c) => {
+      const personId = await createPerson(c, 'NATURAL', `Newcomer ${hex(2)}`);
+      await recordIdentityVerification(c, {
+        personId, purpose: 'INITIAL', method: 'IN_PERSON_DOCUMENT', documentType: 'ID card', evidenceRef: `HR-${hex()}`, occurredAt: '2026-01-05T09:00:00Z',
+      });
+      return { personId, accountId: await createAccount(c, { personId, loginName: `seg-${hex()}`, kind: 'HUMAN' }) };
+    });
+    // A request may be raised during onboarding; the approval waits until the account is active.
+    const early = await request(newcomer.accountId, 'AUDITOR_READONLY');
+    await expectRefused(asOwner((c) => decideRoleGrant(c, early, true, 'approved')), 'EBMR-IAM-026', /this account is PENDING_ACTIVATION/);
+    await asAdmin((c) => activateAccount(c, newcomer.accountId));
+    await asOwner((c) => decideRoleGrant(c, early, true, 'approved'));
+    expect(await grantRow(early)).toMatchObject({ status: 'APPROVED' });
+
+    const later = await request(suspended.accountId, 'AUDITOR_READONLY');
+    await asAdmin((c) => c.query("select iam.suspend_account($1, 'under investigation')", [suspended.accountId]));
+    await expectRefused(asOwner((c) => decideRoleGrant(c, later, true, 'approved')), 'EBMR-IAM-026', /this account is SUSPENDED/);
+    await asAdmin((c) => c.query("select iam.reinstate_account($1, 'investigation closed')", [suspended.accountId]));
+    await asOwner((c) => decideRoleGrant(c, later, true, 'approved'));
+    expect(await grantRow(later)).toMatchObject({ status: 'APPROVED' });
   });
 });

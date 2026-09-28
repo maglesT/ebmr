@@ -113,7 +113,10 @@ comes later.
 The static rules (a role never mixes administration and GMP permissions, every holder is re-checked)
 run at the request and again at the approval. Every static check locks the role before the person: a
 catalogue change takes the role exclusively and its holders' person rows in person order; a grant
-request or approval takes the granted role in share mode and then the person. The catalogue is then
+request or approval takes the granted role in share mode, then the person, then the account in share
+mode (the order `iam.process_leaver` uses), so a deactivation, suspension or leaver either waits for
+the approval and then revokes the new grant too, or is seen and the approval is refused. A grant is
+approved only for an ACTIVE account (EBMR-IAM-026); a request may be raised during onboarding. The catalogue is then
 read as it stands once the locks are held (live now), so concurrent changes are checked one after the
 other and none can leave a role or a person with both domains. `iam.check_static_segregation` also
 refuses a role that holds both domains, and `iam.directory_scan()` reports such a role
@@ -189,6 +192,13 @@ session escapes the sweep and comes back to life when the account is unlocked or
 re-activated. The gate still refuses a locked account (IAM-105) and a blocked device (IAM-115) on its
 own, as defence in depth against direct writes.
 
+**Badges (DI-19).** A lost, revoked or replaced badge is de-authorised at once, and so is every
+authentication event it made that has not been used yet: `iam.lock_auth_event`, which every consumer
+goes through (login, unlock, keep-alive, a command's attribution, a signature, a secret change),
+refuses such an event (EBMR-IAM-097). The badge functions take the badge's account before the badge,
+as logins and commands take it before consuming an event, so a consumer either finishes before the
+badge changes (and the loss or revocation then ends its session) or sees the change.
+
 ## Policy values (data; ranges enforced by `iam.set_policy`)
 
 Lockout 3–5 (default 5; consecutive failed login or signing attempts, counted since the last success
@@ -210,7 +220,7 @@ accounts and login names (021 never reused, also after a restore; 024 second GMP
 roles and grants (032 approver, 033 INV-11, 034/035 DI-14, 036 kind or break-glass, 039 a role's
 permissions change only by an approved request); 040–042 authority, segregation,
 administrator on GMP data; 043 platform authority adapter (actor or permission name not accepted); 050–055 credentials and signing readiness; 060–063 badges; 070–073
-devices; 080–084 sessions; 090–096 authentication events; 100–117 actor context; 120–126 INV-40
+devices; 080–084 sessions; 090–097 authentication events (097 the event's badge is no longer active); 100–117 actor context; 120–126 INV-40
 attribution; 130 break-glass; 140 authentication failed; 150 alerts; 160 qualifications; 170 US
 certification; 180–182 delegation; 190 bootstrap.
 

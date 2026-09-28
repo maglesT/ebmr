@@ -13,7 +13,28 @@
 set local role ebmr_owner;
 
 -- A time source is a validated configuration item (outline 5.6; R-33): e.g. an NTP service
--- traceable to NPL India or NIC, recorded with the validation that approved it.
+-- traceable to NPL India or NIC, recorded with the validation that approved it. No person alone
+-- decides which references the drift monitor trusts (DI-27, DI-24):
+--   * the registrant (permission platform.time_source.manage, an IT function) records a source
+--     and names the person who validated it; the registration is pending
+--     (platform.time_source_registration) and the monitor does not use it;
+--   * the named validator, another person holding platform.time_source.validate (the CSV / data-
+--     integrity function), confirms the validation in their own command; only then does the source
+--     exist in platform.time_source, with validated_by taken from that command, never supplied;
+--   * deactivating a source so that fewer than time.min_references stay active is the validator's
+--     decision too: the registrant's permission alone is not enough.
+create table platform.time_source_registration (
+  id                uuid primary key default gen_random_uuid(),
+  name              text not null unique check (name ~ '^[A-Za-z0-9][A-Za-z0-9 ._()/-]{1,99}$'),
+  kind              text not null check (kind in ('NTP')),
+  endpoint          text not null check (btrim(endpoint) <> ''),
+  reference         text not null check (btrim(reference) <> ''),
+  validator_person  uuid not null,
+  validation_ref    text not null check (btrim(validation_ref) <> ''),
+  registered_by     text not null,
+  recorded_at       timestamptz not null default clock_timestamp()
+);
+
 create table platform.time_source (
   id               uuid primary key default gen_random_uuid(),
   name             text not null unique check (name ~ '^[A-Za-z0-9][A-Za-z0-9 ._()/-]{1,99}$'),
@@ -27,23 +48,44 @@ create table platform.time_source (
   recorded_at      timestamptz not null default clock_timestamp()
 );
 
+-- One sample per active source and check. Offsets and uncertainties are stored exactly as the
+-- monitor measured them (no precision limit: a clock reset to 1970 is an offset of about 1.8e9 s and
+-- must alarm, not overflow). The threshold has the three decimals its setting allows. The three
+-- verdicts are computed from exactly the stored values, and the check constraints hold them to it:
+--   within_threshold  the offset is within the threshold even at the edge of its uncertainty
+--                     (|offset| + uncertainty <= threshold): proof that the clock was good;
+--   over_threshold    the offset is above the threshold and the reading is conclusive (its
+--                     uncertainty is within the threshold, or even |offset| - uncertainty is above it);
+--   usable            the reading is conclusive either way. A reading whose uncertainty is above the
+--                     threshold and that does not prove an exceedance proves nothing: it neither raises
+--                     nor clears an offset alarm and counts as an unusable reference.
+-- audit_position is platform.audit_position() when the sample was recorded (review windows, below).
 create table platform.drift_sample (
   id             bigint generated always as identity primary key,
   check_id       uuid not null,
   node           text not null,
   source_id      uuid not null references platform.time_source (id),
   reachable      boolean not null,
-  offset_s       numeric(14, 6),
-  uncertainty_s  numeric(14, 6) check (uncertainty_s is null or uncertainty_s >= 0),
+  offset_s       numeric,
+  uncertainty_s  numeric check (uncertainty_s is null or uncertainty_s >= 0),
   threshold_s    numeric(6, 3) not null,
   within_threshold boolean not null,
+  over_threshold boolean not null,
+  usable         boolean not null,
   error          text,
+  audit_position bigint not null,
   recorded_at    timestamptz not null default clock_timestamp(),
   check (reachable = (offset_s is not null)),
-  check (within_threshold = (reachable and abs(offset_s) <= threshold_s))
+  check (not reachable or uncertainty_s is not null),
+  check (within_threshold = coalesce(reachable and abs(offset_s) + uncertainty_s <= threshold_s, false)),
+  check (usable = coalesce(reachable and (uncertainty_s <= threshold_s or abs(offset_s) - uncertainty_s > threshold_s), false)),
+  check (over_threshold = coalesce(usable and abs(offset_s) > threshold_s, false))
 );
-create index drift_sample_node on platform.drift_sample (node, recorded_at);
+create index drift_sample_node on platform.drift_sample (node, id);
 
+-- An alarm's review window runs from the node's last good sample to the alarm's clearance. It is
+-- bounded by audit positions as well as times: window_start_position is the audit position of the
+-- last good sample, the clearance's window_end_position the audit position when it was recorded.
 create table platform.alarm (
   id                  uuid primary key default gen_random_uuid(),
   kind                text not null check (kind in ('DRIFT_EXCEEDED', 'REFERENCE_LOST', 'REFERENCE_DEGRADED', 'NO_TIME_SOURCE', 'CLOCK_REGRESSION')),
@@ -51,6 +93,7 @@ create table platform.alarm (
   severity            text not null check (severity in ('MINOR', 'MAJOR', 'CRITICAL')),
   incident_requested  boolean not null,
   window_start        timestamptz not null,
+  window_start_position bigint not null,
   check_id            uuid,
   details             jsonb not null default '{}'::jsonb,
   raised_by_person    text not null,
@@ -63,6 +106,7 @@ create table platform.alarm_clearance (
   subject      text not null,
   check_id     uuid,
   note         text not null,
+  window_end_position bigint not null,
   recorded_at  timestamptz not null default clock_timestamp()
 );
 
@@ -72,29 +116,57 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p_kind in ('DRIFT_EXCEEDED', 'REFERENCE_LOST', 'NO_TIME_SOURCE')
 $$;
 
--- Start of the window of doubt for a node: the last sample within threshold, else the node's
--- first sample, else now.
-create function platform.time_window_start(p_node text, p_exclude_check uuid default null) returns timestamptz
-language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
-  select coalesce(
-    (select max(recorded_at) from platform.drift_sample
-      where node = p_node and within_threshold and check_id is distinct from p_exclude_check),
-    (select min(recorded_at) from platform.drift_sample where node = p_node),
-    clock_timestamp())
+-- Alarm kinds whose condition the drift monitor evaluates on every check: only
+-- platform.record_drift_check raises and clears them, from the readings it records.
+create function platform.is_monitored_condition(p_kind text) returns boolean
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select p_kind in ('DRIFT_EXCEEDED', 'REFERENCE_LOST', 'NO_TIME_SOURCE', 'REFERENCE_DEGRADED')
+$$;
+
+-- Position in the audit trail: the highest kernel.audit_event id handed out so far by any session
+-- (sequence values are not transactional). Positions order entries by when they were recorded,
+-- whatever the database clock said, so a review window bounded by positions still holds every entry
+-- made while the clock was wrong, even when the fault came or went with a clock step (DI-27).
+create function platform.audit_position() returns bigint
+language sql volatile security definer set search_path = pg_catalog, pg_temp as $$
+  select coalesce(pg_sequence_last_value(pg_get_serial_sequence('kernel.audit_event', 'id')::regclass), 0)
+$$;
+
+-- Start of the window of doubt for a node: the last sample within threshold (the latest in the
+-- order samples were recorded, not by their clock time), else the node's first sample, else now.
+create function platform.time_window_start(p_node text, p_exclude_check uuid default null,
+                                           out window_start timestamptz, out window_start_position bigint)
+language plpgsql volatile security definer set search_path = pg_catalog, platform, pg_temp as $$
+begin
+  select d.recorded_at, d.audit_position into window_start, window_start_position
+  from platform.drift_sample d
+  where d.node = p_node and d.within_threshold and d.check_id is distinct from p_exclude_check
+  order by d.id desc limit 1;
+  if not found then
+    select d.recorded_at, d.audit_position into window_start, window_start_position
+    from platform.drift_sample d where d.node = p_node order by d.id limit 1;
+  end if;
+  if window_start is null then
+    window_start := clock_timestamp();
+    window_start_position := platform.audit_position();
+  end if;
+end
 $$;
 
 create function platform.raise_alarm(p_kind text, p_subject text, p_severity text, p_incident boolean,
                                      p_details jsonb, p_check_id uuid default null) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
 declare
-  v_ctx jsonb := platform.require_actor();
-  v_id  uuid;
+  v_ctx   jsonb := platform.require_actor();
+  v_start record;
+  v_id    uuid;
 begin
   if coalesce(trim(p_subject), '') = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-PLAT-031 an alarm needs a subject (e.g. the database node)';
   end if;
-  insert into platform.alarm (kind, subject, severity, incident_requested, window_start, check_id, details, raised_by_person)
-  values (p_kind, p_subject, p_severity, p_incident, platform.time_window_start(p_subject, p_check_id), p_check_id,
+  v_start := platform.time_window_start(p_subject, p_check_id);
+  insert into platform.alarm (kind, subject, severity, incident_requested, window_start, window_start_position, check_id, details, raised_by_person)
+  values (p_kind, p_subject, p_severity, p_incident, v_start.window_start, v_start.window_start_position, p_check_id,
           coalesce(p_details, '{}'::jsonb), v_ctx ->> 'person_id')
   returning id into v_id;
   return v_id;
@@ -102,7 +174,9 @@ end
 $$;
 
 -- Hook to the data-integrity incident register (records module). For now it records the alarm
--- and emits outbox message incident.requested; the lead wires the consumer to records.raise_incident.
+-- and emits outbox message incident.requested; kernel 0900 replaces it to raise the incident in
+-- the same transaction. Owner only: the drift monitor (platform.record_drift_check) and
+-- platform.report_time_fault call it; the application cannot raise a time fault directly.
 create function platform.raise_time_incident(p_kind text, p_node text, p_severity text, p_details jsonb default '{}'::jsonb,
                                              p_check_id uuid default null) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
@@ -141,6 +215,39 @@ language sql stable security definer set search_path = pg_catalog, platform, pg_
   limit 1
 $$;
 
+-- A time fault the drift monitor does not evaluate itself (today CLOCK_REGRESSION, e.g. a failover
+-- check that sees the clock step back), reported by a time service: source SYSTEM and the
+-- permission platform.time_check.record, like the monitor's readings. The conditions the monitor
+-- evaluates (offset, lost or degraded references, no source) are raised only from recorded readings,
+-- so nobody can raise them early and keep the monitor from raising its own alarm and incident.
+create function platform.report_time_fault(p_kind text, p_node text, p_severity text, p_details jsonb default '{}'::jsonb) returns uuid
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_ctx jsonb := platform.require_actor();
+begin
+  if coalesce(v_ctx ->> 'source', '') <> 'SYSTEM' then
+    raise exception using errcode = 'P0001', message = 'EBMR-PLAT-037 time faults are reported only by a time service (source SYSTEM)';
+  end if;
+  if p_node is null or p_node !~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$' then
+    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-031 invalid node name %s', coalesce(p_node, 'NULL'));
+  end if;
+  perform platform.authorize('platform.time_check.record', 'time_node', p_node);
+  if p_kind is null or platform.is_monitored_condition(p_kind) or p_kind not in ('CLOCK_REGRESSION') then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-PLAT-036 %s cannot be reported: offset and reference alarms come only from the drift monitor''s recorded readings', coalesce(p_kind, 'NULL'));
+  end if;
+  if p_severity is null or p_severity not in ('MINOR', 'MAJOR', 'CRITICAL') then
+    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-036 unknown severity %s', coalesce(p_severity, 'NULL'));
+  end if;
+  if platform.open_alarm_id(p_node, p_kind) is not null then
+    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-036 a %s alarm is already open for %s', p_kind, p_node);
+  end if;
+  return platform.raise_time_incident(p_kind, p_node, p_severity, p_details, null);
+end
+$$;
+
+-- Registers a time source, pending the validation confirmation of p_validated_by (a person other
+-- than the registrant). Returns the id the source will have once confirmed.
 create function platform.register_time_source(p_name text, p_kind text, p_endpoint text, p_reference text,
                                               p_validated_by uuid, p_validation_ref text) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
@@ -149,23 +256,85 @@ declare
   v_id  uuid;
 begin
   perform platform.authorize('platform.time_source.manage', 'time_source', p_name);
-  insert into platform.time_source (name, kind, endpoint, reference, validated_by, validation_ref, registered_by)
+  if p_validated_by is null
+     or not exists (select 1 from iam.person p where p.id = p_validated_by and p.kind = 'NATURAL' and p.status = 'ACTIVE') then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-PLAT-033 validated_by %s is not an active person: a time source is registered with the person who validated it',
+                       coalesce(p_validated_by::text, 'NULL'));
+  end if;
+  if p_validated_by::text = v_ctx ->> 'person_id' then
+    raise exception using errcode = 'P0001', message = 'EBMR-PLAT-033 the registrant cannot be the validator of the time source they register';
+  end if;
+  if exists (select 1 from platform.time_source where name = p_name) then
+    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-033 a time source named %s already exists', p_name);
+  end if;
+  insert into platform.time_source_registration (name, kind, endpoint, reference, validator_person, validation_ref, registered_by)
   values (p_name, p_kind, p_endpoint, p_reference, p_validated_by, p_validation_ref, v_ctx ->> 'person_id')
   returning id into v_id;
   return v_id;
 end
 $$;
 
--- Activating or deactivating a source is a change and needs a reason (audit trail, DI-24).
+-- The named validator confirms a pending registration; the source becomes an active, validated
+-- source of the drift monitor. Returns its id (the registration id).
+create function platform.confirm_time_source(p_registration_id uuid) returns uuid
+language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_ctx jsonb := platform.require_actor();
+  r     platform.time_source_registration%rowtype;
+begin
+  select * into r from platform.time_source_registration where id = p_registration_id for update;
+  if not found then
+    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-030 unknown time source registration %s', p_registration_id);
+  end if;
+  perform platform.authorize('platform.time_source.validate', 'time_source', r.name);
+  if (v_ctx ->> 'person_id') is distinct from r.validator_person::text then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-PLAT-034 only %s, named as the validator of time source %s, can confirm its validation', r.validator_person, r.name);
+  end if;
+  if (v_ctx ->> 'person_id') = r.registered_by then
+    raise exception using errcode = 'P0001', message = 'EBMR-PLAT-034 the registrant cannot confirm the validation of the time source they registered';
+  end if;
+  if exists (select 1 from platform.time_source where id = r.id) then
+    raise exception using errcode = 'P0001', message = format('EBMR-PLAT-034 time source %s is already confirmed', r.name);
+  end if;
+  insert into platform.time_source (id, name, kind, endpoint, reference, validated_by, validation_ref, active, registered_by)
+  values (r.id, r.name, r.kind, r.endpoint, r.reference, (v_ctx ->> 'person_id')::uuid, r.validation_ref, true, r.registered_by);
+  return r.id;
+end
+$$;
+
+-- Activating or deactivating a source is a change and needs a reason (audit trail, DI-24). A
+-- deactivation that leaves fewer active sources than time.min_references needs the validator's
+-- permission platform.time_source.validate instead of the registrant's.
 create function platform.set_time_source_active(p_source_id uuid, p_active boolean) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, platform, kernel, pg_temp as $$
+declare
+  v_src       platform.time_source%rowtype;
+  v_remaining integer;
+  v_min       integer := platform.setting_numeric('time.min_references')::integer;
+  v_problem   text;
 begin
   perform platform.require_actor();
-  perform platform.authorize('platform.time_source.manage', 'time_source', p_source_id::text);
-  update platform.time_source set active = p_active where id = p_source_id;
+  -- Deactivations are serialised, so two of them cannot each leave the minimum.
+  perform 1 from platform.time_source where active order by id for update;
+  select * into v_src from platform.time_source where id = p_source_id for update;
   if not found then
+    perform platform.authorize('platform.time_source.manage', 'time_source', p_source_id::text);
     raise exception using errcode = 'P0001', message = format('EBMR-PLAT-030 unknown time source %s', p_source_id);
   end if;
+  v_remaining := (select count(*) from platform.time_source where active and id <> p_source_id);
+  if v_src.active and not coalesce(p_active, true) and v_remaining < v_min then
+    v_problem := platform.permission_problem('platform.time_source.validate', 'time_source', p_source_id::text);
+    if v_problem is not null then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-PLAT-035 deactivating %s would leave %s active time source(s), fewer than time.min_references (%s); '
+                         'that is the validator''s decision (platform.time_source.validate): %s', v_src.name, v_remaining, v_min, v_problem);
+    end if;
+  else
+    perform platform.authorize('platform.time_source.manage', 'time_source', p_source_id::text);
+  end if;
+  update platform.time_source set active = p_active where id = p_source_id;
 end
 $$;
 

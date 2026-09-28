@@ -13,8 +13,10 @@
 --     revokes their own grants (a person's admin account never acts on their own grants);
 --   * adding a permission to a role grants it to every holder, so it is requested by one person and
 --     approved by a second, neither of whom holds the role (DI-16, DI-18).
--- Every static check locks the role before the person and reads the catalogue as it stands once
--- the locks are held, so concurrent grants and catalogue changes are checked one after the other.
+-- Every static check locks the role, then the person, then (for a grant) the account, and reads
+-- everything as it stands once the locks are held, so concurrent grants, catalogue changes and
+-- account deactivations are checked one after the other. A grant is approved only for an active
+-- account.
 
 set local role ebmr_owner;
 

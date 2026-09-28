@@ -5,14 +5,24 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { withCommand } from '../../src/db/command.ts';
+import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { activateBadge, issueBadge, recordBadgeTest, recordIdentityVerification, setPolicy } from '../../src/identity/admin.ts';
-import { authenticate, changeSecret } from '../../src/identity/authentication.ts';
-import { AuthenticationFailedError } from '../../src/identity/errors.ts';
-import { openSession } from '../../src/identity/sessions.ts';
+import { authenticate, changeSecret, type AuthPurpose } from '../../src/identity/authentication.ts';
+import { AuthenticationFailedError, ebmrCode } from '../../src/identity/errors.ts';
+import { openSession, sessionState } from '../../src/identity/sessions.ts';
 import { createTestDatabase, type TestDatabase, urlFor } from '../support/db.ts';
-import { asTimeTraveller, expectPermissionDenied, expectRefused, pause } from './helpers.ts';
-import { seedActor, seedAdministration, seedAuthn, seedServiceActor, withFreshAuth, withReason, type SeedAdministration, type SeededActor } from './seed.ts';
+import { asDefinerCommand, asTimeTraveller, expectPermissionDenied, expectRefused, pause } from './helpers.ts';
+import {
+  freshAuthEvent,
+  seedActor,
+  seedAdministration,
+  seedAuthn,
+  seedServiceActor,
+  withFreshAuth,
+  withReason,
+  type SeedAdministration,
+  type SeededActor,
+} from './seed.ts';
 
 let db: TestDatabase;
 let adm: SeedAdministration;
@@ -207,6 +217,113 @@ describe('badges (DI-19)', () => {
       'EBMR-IAM-060',
       /never issued again/,
     );
+  });
+
+  it('[DI-19][INV-40] an authentication event a badge made stops counting when the badge is revoked or replaced: no command, login, signature or PIN change (EBMR-IAM-097)', async () => {
+    const op = await seedActor(db, { deviceClass: 'SHARED', withPin: true, acknowledgeEsig: false });
+    const authn = seedAuthn(db);
+    const fp = op.seed.deviceFingerprint;
+    const badgeEvent = async (purpose: AuthPurpose, challengeId?: string) =>
+      (await authenticate(authn, purpose === 'COMMAND'
+        ? { method: 'BADGE_TAP', identifier: op.seed.badgeUid ?? '', deviceFingerprint: fp, purpose }
+        : { method: 'BADGE_PIN', identifier: op.seed.badgeUid ?? '', secret: op.seed.pin ?? '', deviceFingerprint: fp, purpose, ...(challengeId ? { challengeId } : {}) })).authEventId;
+    // Events made with the badge while it is still active, not used yet.
+    const challenge = randomUUID();
+    const tap = await badgeEvent('COMMAND');
+    const login = await badgeEvent('LOGIN');
+    const signature = await badgeEvent('SIGNATURE', challenge);
+    const pinChange = await badgeEvent('CREDENTIAL_CHANGE');
+    await asAdmin((c) => c.query("select iam.revoke_badge($1, 'reported cloned')", [op.seed.badgeId]));
+
+    // The person logs in again with user ID and password on the same terminal; each command there
+    // carries its own authentication event (here the password, as the badge no longer works).
+    const pw = (purpose: AuthPurpose) => authenticate(authn, { method: 'PASSWORD', identifier: op.seed.loginName, secret: op.seed.password, deviceFingerprint: fp, purpose });
+    const session = await openSession(db.app, (await pw('LOGIN')).authEventId, fp);
+    const inSession = (authEventId: string): ActorContext => ({ ...op, sessionId: session.sessionId, authEventId, correlationId: randomUUID() });
+    const command = (ctx: ActorContext) => withCommand(db.app, ctx, (c) => c.query('select 1'));
+    await expectRefused(command(inSession(tap)), 'EBMR-IAM-097', /no longer active/);
+    await expectRefused(openSession(db.app, login, fp), 'EBMR-IAM-097');
+    await expectRefused(
+      asDefinerCommand(db, inSession((await pw('COMMAND')).authEventId), (c) =>
+        c.query("select iam.consume_auth_event($1, $2, $3, interval '120 seconds')", [signature, op.personId, challenge])),
+      'EBMR-IAM-097',
+    );
+    await expectRefused(changeSecret(authn, { authEventId: pinChange, kind: 'PIN', newSecret: '739214' }), 'EBMR-IAM-097');
+    expect((await db.admin.query('select 1 from iam.auth_event_use where auth_event_id = any ($1::uuid[])', [[tap, login, signature, pinChange]])).rowCount).toBe(0);
+    await command(inSession((await pw('COMMAND')).authEventId));
+
+    // A replaced badge: activating the replacement ends the old badge, and its unused events with it.
+    const other = await seedActor(db, { deviceClass: 'SHARED', acknowledgeEsig: false });
+    const oldTap = await freshAuthEvent(db, other);
+    const newUid = uid();
+    await asAdmin(async (c) => {
+      const iv = await recordIdentityVerification(c, {
+        personId: other.personId, purpose: 'BADGE_REPLACEMENT', method: 'IN_PERSON_DOCUMENT', documentType: 'Passport', evidenceRef: 'HR-R9', occurredAt: '2026-09-27T08:00:00Z',
+      });
+      const b = await issueBadge(c, { accountId: other.accountId, uid: newUid, technology: 'ISO14443_SEOS', label: 'B-9009', identityVerificationId: iv, replacesBadgeId: other.seed.badgeId ?? '' });
+      await recordBadgeTest(c, b, 'AT_ISSUE', 'PASS');
+      await activateBadge(c, b);
+    });
+    await expectRefused(command({ ...other, authEventId: oldTap, correlationId: randomUUID() }), 'EBMR-IAM-097');
+    const newTap = await authenticate(authn, { method: 'BADGE_TAP', identifier: newUid, deviceFingerprint: other.seed.deviceFingerprint, purpose: 'COMMAND' });
+    await command({ ...other, authEventId: newTap.authEventId, correlationId: randomUUID() });
+  });
+
+  it('[DI-19] a badge login racing the revocation of its badge is refused, or its session ends with the others', async () => {
+    const badgeLogin = async (a: SeededActor) =>
+      (await authenticate(seedAuthn(db), { method: 'BADGE_PIN', identifier: a.seed.badgeUid ?? '', secret: a.seed.pin ?? '', deviceFingerprint: a.seed.deviceFingerprint, purpose: 'LOGIN' })).authEventId;
+    const admin = await db.app.connect();
+    const opener = await db.app.connect();
+    const revoke = (a: SeededActor) => admin.query("select iam.revoke_badge($1, 'reported cloned')", [a.seed.badgeId]);
+    const pidOf = async (c: pg.PoolClient) => (await c.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]?.pid;
+    const settledOrWaiting = async (pid: number | undefined, work: Promise<unknown>): Promise<void> => {
+      const state = { settled: false };
+      void work.then(() => { state.settled = true; }, () => { state.settled = true; });
+      for (let i = 0; i < 250 && !state.settled; i++) {
+        const { rows } = await db.admin.query<{ w: string | null }>('select wait_event_type as w from pg_stat_activity where pid = $1', [pid]);
+        if (rows[0]?.w === 'Lock') return;
+        await pause(20);
+      }
+    };
+    const beginAsAdmin = async () => {
+      await admin.query('begin');
+      await admin.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(withReason(adm.admin, 'BADGE_REVOKED', 'reported cloned')))]);
+    };
+    try {
+      const adminPid = await pidOf(admin);
+      const openerPid = await pidOf(opener);
+
+      // The revocation commits first: the login waits for it and is refused.
+      const a = await seedActor(db, { withBadge: true, withPin: true, acknowledgeEsig: false });
+      const loginA = await badgeLogin(a);
+      await beginAsAdmin();
+      await revoke(a);
+      await opener.query('begin');
+      const opening = openSession(opener, loginA, a.seed.deviceFingerprint).then((s) => s.sessionId, (e: unknown) => ebmrCode(e) ?? String(e));
+      await settledOrWaiting(openerPid, opening);
+      await admin.query('commit');
+      expect(await opening).toBe('EBMR-IAM-097');
+      await opener.query('rollback');
+
+      // The login opens its session first: the revocation waits for it, then ends that session too.
+      const b = await seedActor(db, { withBadge: true, withPin: true, acknowledgeEsig: false });
+      const loginB = await badgeLogin(b);
+      await opener.query('begin');
+      const opened = await openSession(opener, loginB, b.seed.deviceFingerprint);
+      await beginAsAdmin();
+      const revoking = revoke(b).then(() => 'done', (e: Error) => e.message);
+      await settledOrWaiting(adminPid, revoking);
+      await opener.query('commit');
+      expect(await revoking).toBe('done');
+      await admin.query('commit');
+      expect(await sessionState(db.app, opened.sessionId)).toBe('ENDED');
+      expect((await db.app.query('select end_reason from iam.session where id = $1', [opened.sessionId])).rows).toEqual([{ end_reason: 'BADGE_REVOKED' }]);
+    } finally {
+      for (const c of [admin, opener]) {
+        await c.query('rollback').catch(() => undefined);
+        c.release();
+      }
+    }
   });
 });
 

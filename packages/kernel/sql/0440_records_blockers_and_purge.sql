@@ -264,7 +264,7 @@ begin
   )
   select array_agg(schedule_id order by schedule_id) into v_ids from closure;
   perform 1 from records.retention_schedule where id = any(v_ids) order by id for update;
-  perform records.lock_blocker_epoch(s.aggregate_type, s.aggregate_id)
+  perform records.lock_blocker_epoch_row(s.aggregate_type, s.aggregate_id)
   from records.retention_schedule s where s.id = any(v_ids) order by s.record_key;
 
   select * into v_refusal from records.disposal_refusals(v_sched.id) limit 1;
