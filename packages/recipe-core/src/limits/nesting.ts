@@ -104,11 +104,9 @@ export function checkNestingAfterRounding(spec: LimitSpec, expr: ExpressionServi
   const problems: LimitProblem[] = [];
   const byTier = new Map(spec.ranges.map((r) => [r.tier, r]));
   const accepts = (r: LimitRange, value: string): boolean =>
-    (!r.low || expr.compareToBound(value, r.low, 'LOW', r.rounding).pass) && (!r.high || expr.compareToBound(value, r.high, 'HIGH', r.rounding).pass);
-  const vectorsOf = (r: LimitRange): string[] => [
-    ...(r.low ? expr.boundaryVectors(r.low, 'LOW', r.rounding) : []),
-    ...(r.high ? expr.boundaryVectors(r.high, 'HIGH', r.rounding) : []),
-  ].map((v) => v.value);
+    (!r.low || expr.compareToBound(value, r.low, 'LOW', r.rounding, r.high).pass) && (!r.high || expr.compareToBound(value, r.high, 'HIGH', r.rounding, r.low).pass);
+  const vectorsOf = (r: LimitRange): string[] =>
+    [...(r.low ? expr.boundaryVectors(r.low, 'LOW', r.rounding, r.high) : []), ...(r.high ? expr.boundaryVectors(r.high, 'HIGH', r.rounding, r.low) : [])].map((v) => v.value);
   for (const [tier, inner] of byTier) {
     for (const outerTier of OUTER_OF[tier]) {
       const outer = byTier.get(outerTier);

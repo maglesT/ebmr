@@ -38,12 +38,12 @@ export function limitVectors(a: Analysis, subject: string, spec: LimitSpec): Lim
   const out: LimitVectorResult[] = [];
   const expr = a.ctx.expressions;
   for (const r of spec.ranges) {
-    for (const [side, bound] of [
-      ['LOW', r.low],
-      ['HIGH', r.high],
+    for (const [side, bound, other] of [
+      ['LOW', r.low, r.high],
+      ['HIGH', r.high, r.low],
     ] as const) {
       if (!bound) continue;
-      for (const v of expr.boundaryVectors(bound, side, r.rounding)) {
+      for (const v of expr.boundaryVectors(bound, side, r.rounding, other)) {
         const ev = evaluateLimits(spec, { value: v.value, unit: spec.unit }, expr);
         const tier = ev.tiers.find((t) => t.tier === r.tier);
         const sideResult = side === 'LOW' ? tier?.low : tier?.high;

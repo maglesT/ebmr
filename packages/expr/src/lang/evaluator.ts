@@ -478,7 +478,7 @@ class Evaluation {
   }
 
   private lookup(e: Expr, tableId: string, key: QuantityValue): QuantityValue {
-    const fail = (message: string): never => {
+    const fail: (message: string) => never = (message) => {
       throw new ExprEvaluationError('TABLE_LOOKUP_FAILED', message, { paths: referencedPaths(e), span: e.span, fn: 'table_lookup' });
     };
     const table = this.tables[tableId];

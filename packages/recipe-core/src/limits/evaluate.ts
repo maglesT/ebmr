@@ -106,11 +106,11 @@ export function evaluateLimits(spec: LimitSpec, captured: { value: string; unit:
     const t: TierResult = { tier: r.tier, pass: true, rounding: r.rounding, source: r.source };
     if (r.pharmacopoeia) t.pharmacopoeia = r.pharmacopoeia;
     if (r.low) {
-      t.low = expr.compareToBound(value, r.low, 'LOW', r.rounding);
+      t.low = expr.compareToBound(value, r.low, 'LOW', r.rounding, r.high);
       t.pass &&= t.low.pass;
     }
     if (r.high) {
-      t.high = expr.compareToBound(value, r.high, 'HIGH', r.rounding);
+      t.high = expr.compareToBound(value, r.high, 'HIGH', r.rounding, r.low);
       t.pass &&= t.high.pass;
     }
     return t;

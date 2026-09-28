@@ -91,10 +91,14 @@ export interface ExpressionService {
   evaluate(source: string, inputs: ReadonlyMap<string, ExprType>, values: ReadonlyMap<string, ExprValue>): EvaluationOutcome;
   /** Normalises a boolean guard for the exhaustiveness/overlap decision procedure. */
   guard(source: string, inputs: ReadonlyMap<string, ExprType>): GuardFormula;
-  /** Compares a full-precision value with one bound, rounding per the rule (the only place rounding happens). */
-  compareToBound(value: string, bound: LimitBound, side: 'LOW' | 'HIGH', rounding: RoundingRule): BoundComparison;
+  /**
+   * Compares a full-precision value with one bound, rounding per the rule (the only place rounding
+   * happens). `other` is the opposite bound of the same range: USP rounds to the decimals of the
+   * limit as written, i.e. of the more precise of the two bounds.
+   */
+  compareToBound(value: string, bound: LimitBound, side: 'LOW' | 'HIGH', rounding: RoundingRule, other?: LimitBound): BoundComparison;
   /** On-limit, just-inside and just-outside vectors at the rounding boundary of one bound. */
-  boundaryVectors(bound: LimitBound, side: 'LOW' | 'HIGH', rounding: RoundingRule): BoundaryVector[];
+  boundaryVectors(bound: LimitBound, side: 'LOW' | 'HIGH', rounding: RoundingRule, other?: LimitBound): BoundaryVector[];
   /** Validates a UCUM unit code; returns its dimension signature when valid. */
   unit(code: string): { ok: true; dimension: string } | { ok: false; message: string };
   /** Exact conversion between commensurable units; undefined when not commensurable. */
