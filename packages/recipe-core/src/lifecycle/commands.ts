@@ -122,6 +122,7 @@ export async function saveContent(c: pg.PoolClient, versionId: string, content: 
   return { revision: r.revision, contentHash: r.content_hash };
 }
 
+/** DRAFT only. The command carries the author's own reason, code and text, or the update is refused (EBMR-AUDIT-002). */
 export function setDraftAttributes(c: pg.PoolClient, versionId: string, attrs: DraftAttributes): Promise<void> {
   return exec(c, 'select recipe.set_draft_attributes($1, $2::jsonb)', [versionId, JSON.stringify(attrs)]);
 }
@@ -325,7 +326,10 @@ export function createStubBatch(c: pg.PoolClient, def: StubBatchDefinition): Pro
   return one<string>(c, 'select recipe.create_stub_batch($1::jsonb) as r', [JSON.stringify(def)]);
 }
 
-/** PLANNED -> ISSUED: selection at the database clock, pin, control recipe (INV-01, INV-02). */
+/**
+ * PLANNED -> ISSUED: selection at the database clock, pin, control recipe (INV-01, INV-02). The command
+ * carries the issuer's own reason, code and text, or the issue is refused (EBMR-AUDIT-002).
+ */
 export async function issueStubBatch(c: pg.PoolClient, batchId: string, versionId?: string): Promise<IssueResult> {
   const r = await one<{
     batch_id: string;
@@ -351,6 +355,7 @@ export async function issueStubBatch(c: pg.PoolClient, batchId: string, versionI
   };
 }
 
+/** The command carries the user's own reason, code and text, or the status change is refused (EBMR-AUDIT-002). */
 export function setStubBatchStatus(c: pg.PoolClient, batchId: string, status: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'): Promise<void> {
   return exec(c, 'select recipe.set_stub_batch_status($1, $2)', [batchId, status]);
 }
