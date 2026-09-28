@@ -3,10 +3,11 @@
  * step card with the instruction as issued, the block renderer, exceptions, signatures and one primary action.
  * Everything shown is the server's view; what can be done is the server's answer.
  */
-import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { Banner, floor } from '@ebmr/ui-kit';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
+import { useRouteParams } from '../params.ts';
 import { StepExceptions } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
@@ -72,9 +73,9 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
 }
 
 export function StepScreenPage() {
-  const params = useParams({ strict: false }) as { runId?: string; stepKey?: string };
-  const runId = params.runId ?? '';
-  const stepKey = params.stepKey ?? '';
+  const params = useRouteParams();
+  const runId = params['runId'] ?? '';
+  const stepKey = params['stepKey'] ?? '';
   const step = useStepView(runId, stepKey);
   const run = useRunView(runId);
   if (step.isPending) return <p>{st('loading')}</p>;

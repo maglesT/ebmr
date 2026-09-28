@@ -5,13 +5,14 @@
  */
 import type pg from 'pg';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
-import type { JustificationView, ValidationReportView } from '@ebmr/api-contract';
+import type { ValidationReportView } from '@ebmr/api-contract';
 import { flow, validator } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { loadValidationContext, type LoadedContext } from './adapters/expressions.ts';
 import { combinedGate, definitionFindings, type CombinedGate, type DefinitionFinding } from './definition.ts';
 import { findingViews, sectionOfPath, type AnyFinding } from './findings.ts';
 import { nowInstant } from './views.ts';
+import type { JustificationView } from './wire.ts';
 
 type Db = pg.Pool | pg.PoolClient;
 

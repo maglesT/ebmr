@@ -58,6 +58,7 @@ export type AuditTables = {
 
 export type AuditDb = Kysely<ReadDatabase & AuditTables>;
 
+/** The typed read database of the audit viewer (app.readDb never owns the application pool). */
 export const auditDb = (app: AppContext): AuditDb => app.readDb.withTables<AuditTables>() as unknown as AuditDb;
 
 export const NIL_UUID = '00000000-0000-0000-0000-000000000000';

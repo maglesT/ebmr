@@ -94,7 +94,7 @@ export const FLOOR_EN = {
   'pending.awaitingTap': 'Tap your badge to save',
   'pending.sending': 'Saving…',
   'pending.saved': 'Saved',
-  'pending.discarded.SESSION_CHANGED': 'The unsent entry was discarded because another person signed in on this terminal.',
+  'pending.discarded.SESSION_CHANGED': 'The entry was discarded because the session on this terminal changed (switch, lock or sign-out). It will not be sent; the step shows what the record holds.',
   'pending.discarded.SWITCH_USER': 'The unsent entry was discarded: the badge belongs to another person.',
   'pending.discarded.DISCARDED': 'The unsent entry was discarded. The step below shows what the record holds.',
   'pending.stale': 'The step changed before your entry arrived. Nothing was saved. Check the changes, then save again.',

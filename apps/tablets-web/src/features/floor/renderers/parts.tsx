@@ -221,8 +221,25 @@ function purposeOf(name: string): 'TARE' | 'GROSS' | 'CHECK' {
   return /tare/i.test(name) ? 'TARE' : /gross/i.test(name) ? 'GROSS' : 'CHECK';
 }
 
+const BAND_TIERS = ['ALERT', 'INTERNAL_ACTION', 'VALIDATED', 'REGISTERED'] as const;
+
+/**
+ * The display band for the live gauge (C5): target and the tightest limit tier of the step's one weighed
+ * (computed, device-captured) item, as decimal text. Display only; the engine decides acceptance.
+ */
+export function gaugeBand(view: StepScreenView): { low?: string; high?: string; target?: string; unit: string } | undefined {
+  const weighed = view.fields.filter((f) => f.computed && f.capture === 'DEVICE');
+  const field = weighed.length === 1 ? weighed[0] : undefined;
+  if (!field?.unit) return undefined;
+  const limit = BAND_TIERS.map((t) => field.limits.find((l) => l.tier === t)).find((l) => l !== undefined);
+  const target = field.target?.value.kind === 'DECIMAL' ? field.target.value.value : undefined;
+  if (!limit && target === undefined) return undefined;
+  return { unit: field.unit, ...(limit?.low ? { low: limit.low.value } : {}), ...(limit?.high ? { high: limit.high.value } : {}), ...(target !== undefined ? { target } : {}) };
+}
+
 function ReadingCapture({ label, purpose, reading, onReading, view, disabled }: { label: string; purpose: 'TARE' | 'GROSS' | 'CHECK'; reading: ReadingView | null; onReading: (r: ReadingView | null) => void; view: StepScreenView; disabled: boolean }) {
   const devices = view.run.scale ? [view.run.scale.deviceCode] : view.run.equipment.map((e) => e.code);
+  const band = purpose === 'GROSS' ? gaugeBand(view) : undefined;
   if (reading) {
     return (
       <div className={wcls('readingBox')} data-testid={`reading-${purpose}`}>
@@ -236,7 +253,7 @@ function ReadingCapture({ label, purpose, reading, onReading, view, disabled }: 
   return (
     <div className={wcls('section')}>
       <p className={wcls('formTitle')}>{label}</p>
-      <ScaleCaptureSlot deviceCodes={devices} purpose={purpose} onCaptured={(r) => onReading(r)} disabled={disabled} />
+      <ScaleCaptureSlot deviceCodes={devices} purpose={purpose} {...(band ? { band } : {})} onCaptured={(r) => onReading(r)} disabled={disabled} />
     </div>
   );
 }
@@ -326,7 +343,9 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const record = availability(view, 'RECORD_ENTRY');
   const [state, setState] = useState<FormState>(EMPTY_FORM);
   const clear = () => setState(EMPTY_FORM);
-  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear });
+  // A reading is used up even by a refused command (DEV-105): after a definite "not applied" the person captures again.
+  const dropReadings = () => setState((s) => ({ ...s, readings: {} }));
+  const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings });
   useSessionChange(clear);
   const locked = cmd.busy || cmd.state === 'notSaved';
 

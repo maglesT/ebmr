@@ -3,8 +3,9 @@
  * per entry (SessionView.attribution: NONE on office PCs, TAP or TAP_PIN on kiosks; decision D8).
  *
  * Session changes: C1's access Provider dispatches a window CustomEvent `ebmr:session-change` with
- * {reason: SWITCH | LOCK | UNLOCK | LOCKED_BY_SERVER, personId}; the boot state's person changes too. A pending
- * entry listens to both and is discarded when the person changes, so it is never sent under another person.
+ * {reason: SWITCH | LOCK | UNLOCK | ENDED, personId}; the boot state's person changes too. Pending entries are
+ * discarded on SWITCH, LOCK and ENDED, and whenever the person differs, so an entry is never sent under
+ * another person (and a locked kiosk keeps nothing typed for the next person).
  * Nothing here is stored: the session lives in the boot state (memory) only.
  */
 import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
@@ -25,9 +26,12 @@ export interface FloorSession {
 export const SESSION_CHANGE_EVENT = 'ebmr:session-change';
 
 export interface SessionChangeDetail {
-  reason: 'SWITCH' | 'LOCK' | 'UNLOCK' | 'LOCKED_BY_SERVER' | 'PERSON_CHANGED';
+  reason: 'SWITCH' | 'LOCK' | 'UNLOCK' | 'ENDED' | 'PERSON_CHANGED';
   personId: string | null;
 }
+
+/** Reasons that discard pending entries even when the person is the same. */
+const DISCARDING: ReadonlySet<string> = new Set(['SWITCH', 'LOCK', 'ENDED']);
 
 /** Without a session nothing can be sent; a tap is required by default (fails closed). */
 export const NO_SESSION: FloorSession = { personId: null, legalName: null, loginName: null, role: null, attribution: 'TAP', deviceCode: null, roomCode: null };
@@ -57,7 +61,7 @@ export function FloorSessionProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Calls `onChange` when the person on this terminal may have changed: a switch-user event, any session event
+ * Calls `onChange` when pending entries must go: a switch, lock or end of the session, any session event
  * naming another person, or the session's person changing in the boot state.
  */
 export function useSessionChange(onChange: (detail: SessionChangeDetail) => void): void {
@@ -77,7 +81,8 @@ export function useSessionChange(onChange: (detail: SessionChangeDetail) => void
     const listener = (e: Event) => {
       const detail = (e as CustomEvent<Partial<SessionChangeDetail> | undefined>).detail;
       const personId = typeof detail?.personId === 'string' ? detail.personId : null;
-      if (detail?.reason === 'SWITCH' || personId !== current.current) callback.current({ reason: detail?.reason ?? 'SWITCH', personId });
+      const reason = detail?.reason ?? 'SWITCH';
+      if (DISCARDING.has(reason) || personId !== current.current) callback.current({ reason, personId });
     };
     window.addEventListener(SESSION_CHANGE_EVENT, listener);
     return () => window.removeEventListener(SESSION_CHANGE_EVENT, listener);

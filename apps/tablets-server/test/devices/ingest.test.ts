@@ -9,7 +9,7 @@ import { genesisHash, readingHash, sealReading, ed25519PrivateKey, type ScaleRea
 import { withActorCommand } from '../../src/platform/db/commands.ts';
 import { gatewayActor } from '../../src/features/devices/listener.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
-import { adminActor, enrol, fakeGateway, gatewayKey, loginAt, type FakeGateway } from './support.ts';
+import { adminActor, enrol, fakeGateway, gatewayKey, loginAt, operatorActor, type FakeGateway } from './support.ts';
 
 let server: TestServer;
 let gw: FakeGateway;
@@ -204,6 +204,10 @@ describe('ingestion', () => {
     await withActorCommand(server.db.app, admin, (c) => c.query("select tab.revoke_gateway_key($1, 'KEY_COMPROMISED', 'gateway key compromised in test')", [gw.login.chainId]));
     expect((await gw.uplink([{ reading: gw.next() }])).status).toBe(401);
     expect((await loginAt(gw.base, server)).status).toBe(401);
+    const op = await operatorActor(server);
+    await expect(
+      withActorCommand(server.db.app, op, (c) => server.built.ctx.deviceReadings.claim(c, { readingIds: [r.readingId], room: 'DISP-1', maxAgeUs: 120_000_000n, purpose: 'GROSS' })),
+    ).rejects.toThrow(/EBMR-DEV-109/);
     // Re-enrol for the other tests (a new chain).
     await enrol(server);
     await resync();

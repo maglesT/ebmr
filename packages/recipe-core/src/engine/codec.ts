@@ -26,6 +26,11 @@ export class CodecError extends Error {}
 const escape = (s: string): string => s.replace(/[%\u0000]/g, (c) => (c === '%' ? '%25' : '%00'));
 const unescape = (s: string): string => s.replace(/%(25|00)/g, (m) => (m === '%25' ? '%' : '\u0000'));
 
+/** Sets an own enumerable member, even one named __proto__ (never the prototype). */
+function define(o: object, k: string, v: unknown): void {
+  Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true });
+}
+
 function encodeKey(k: string): string {
   return k.startsWith('$') || k.startsWith('~') || k.includes('\u0000') ? `~${escape(k)}` : k;
 }
@@ -52,7 +57,7 @@ export function encode(value: unknown, path = '$'): JsonValue {
       const out: { [key: string]: JsonValue } = {};
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
         if (v === undefined) continue;
-        out[encodeKey(k)] = encode(v, `${path}.${k}`);
+        define(out, encodeKey(k), encode(v, `${path}.${k}`));
       }
       return out;
     }
@@ -85,7 +90,7 @@ export function decode(json: unknown, path = '$'): unknown {
     const out: Record<string, unknown> = {};
     for (const k of keys) {
       if (k.startsWith('$')) throw new CodecError(`${path}: unexpected tag ${k}`);
-      out[decodeKey(k)] = decode(o[k], `${path}.${k}`);
+      define(out, decodeKey(k), decode(o[k], `${path}.${k}`));
     }
     return out;
   }

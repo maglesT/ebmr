@@ -57,7 +57,7 @@ export function simulationReportView(report: simulator.SimulationReport, simulat
     ...report.paths.decisions.map((_d, i) => ({ pathId: `P${i + 1}`, outcome: 'COMPLETED', exceptions: [] as string[] })),
     ...report.paths.targeted.map((t, i) => ({ pathId: `T${i + 1}`, outcome: `TARGETED: ${t}`, exceptions: [] as string[] })),
   ];
-  const problems = report.problems.map((p) => ({ code: 'SIMULATION', message: p, path: null }));
+  const problems: SimulationReportView['problems'] = report.problems.map((p) => ({ code: 'SIMULATION', message: p, path: null }));
   for (const [dimension, c] of Object.entries(report.coverage)) {
     for (const m of c.missing) problems.push({ code: `NOT_COVERED_${dimension.toUpperCase()}`, message: `${dimension}: ${m} is not reached by any simulated path`, path: m });
   }

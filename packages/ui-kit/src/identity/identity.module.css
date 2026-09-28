@@ -1,0 +1,230 @@
+/* Identity, lock and signature components (module C1). Sizes follow the density tokens (floor: 56 px targets,
+   72 px keypad keys, 32 px values). No inline styles: the strict CSP allows stylesheets from 'self' only. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ebmr-gap);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ebmr-gap);
+  align-items: center;
+}
+.muted {
+  color: var(--ebmr-muted);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* PIN pad */
+.dots {
+  min-height: 1.6em;
+  font-size: var(--ebmr-value-font);
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--ebmr-keypad-key));
+  gap: 10px;
+  justify-content: center;
+}
+.key {
+  width: var(--ebmr-keypad-key);
+  height: var(--ebmr-keypad-key);
+  font-size: calc(var(--ebmr-value-font) * 0.9);
+}
+
+/* Badge prompt */
+.badgePrompt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ebmr-gap);
+  min-width: min(520px, 90vw);
+}
+.drawer {
+  border-top: 1px dashed var(--ebmr-border);
+  padding-top: var(--ebmr-gap);
+}
+.drawerTitle {
+  font-size: 1em;
+  margin: 0 0 8px 0;
+}
+
+/* Identity banner */
+.banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ebmr-gap);
+  padding: 8px 24px;
+  flex-wrap: wrap;
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.who {
+  font-weight: 700;
+}
+.product {
+  font-weight: 800;
+}
+
+/* Signature dialog */
+.signature {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ebmr-gap);
+  min-width: min(640px, 92vw);
+}
+.meaning {
+  border-left: 4px solid var(--ebmr-info-border);
+  background: var(--ebmr-info-bg);
+  color: var(--ebmr-info-fg);
+  padding: 10px 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.countdown {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.countdown[data-urgent='true'] {
+  color: var(--ebmr-error-fg);
+}
+.canonical {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: ui-monospace, 'Noto Sans Mono', monospace;
+  font-size: 0.85em;
+  background: var(--ebmr-surface-alt);
+  border: 1px solid var(--ebmr-border);
+  padding: 8px;
+  max-height: 240px;
+  overflow: auto;
+}
+.hash {
+  font-family: ui-monospace, 'Noto Sans Mono', monospace;
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
+/* Content renderers and manifestation */
+.facts {
+  display: grid;
+  grid-template-columns: minmax(8em, max-content) 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+.facts dt {
+  font-weight: 600;
+  color: var(--ebmr-neutral-fg);
+}
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sectionTitle {
+  font-size: 1.05em;
+  margin: 8px 0 4px 0;
+}
+.valueCell {
+  font-variant-numeric: tabular-nums;
+}
+.manifestation {
+  border: 2px solid var(--ebmr-ok-border);
+  background: var(--ebmr-ok-bg);
+  color: var(--ebmr-ok-fg);
+  border-radius: var(--ebmr-radius);
+  padding: 10px 14px;
+}
+.manifestation[data-valid='false'] {
+  border-color: var(--ebmr-error-border);
+  background: var(--ebmr-error-bg);
+  color: var(--ebmr-error-fg);
+}
+.preview {
+  border: 2px dashed var(--ebmr-info-border);
+  border-radius: var(--ebmr-radius);
+  padding: 10px 14px;
+}
+
+/* Lock overlay */
+.lock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ebmr-gap);
+  min-width: min(560px, 92vw);
+}
+
+/* Audit list */
+.audit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.entry {
+  border: 1px solid var(--ebmr-border);
+  border-radius: var(--ebmr-radius);
+  padding: 10px 14px;
+  background: var(--ebmr-background);
+}
+.entry[data-kind='BUSINESS'] {
+  border-left: 4px solid var(--ebmr-info-border);
+}
+.entryHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.entrySummary {
+  font-weight: 700;
+  margin: 0;
+}
+.entryMeta {
+  color: var(--ebmr-neutral-fg);
+  font-size: 0.92em;
+  margin: 4px 0 0 0;
+}
+.changes {
+  margin-top: 6px;
+}
+.changes table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92em;
+}
+.changes th,
+.changes td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--ebmr-border);
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.oldValue {
+  color: var(--ebmr-error-fg);
+}
+.newValue {
+  color: var(--ebmr-ok-fg);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

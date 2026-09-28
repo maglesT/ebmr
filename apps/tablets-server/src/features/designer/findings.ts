@@ -11,8 +11,9 @@
  *   4 Bill of materials             10 Yields and reconciliation
  *   5 Equipment and rooms           11 Risk and verification (risk scale, reductions, golden cases)
  */
-import type { FindingView, JustificationView } from '@ebmr/api-contract';
+import type { FindingView } from '@ebmr/api-contract';
 import { flow, type validator } from '@ebmr/recipe-core/pure';
+import type { JustificationView } from './wire.ts';
 
 export const DOCUMENT_SECTIONS: readonly { id: string; title: string }[] = [
   { id: '0', title: 'Title and signatures' },

@@ -8,7 +8,7 @@
  * G-18, G-19: they are not steps). SANDBOX_ONLY versions (G-09@1, G-10@1) are badged: a GMP batch refuses them
  * (ENG-DEF-SANDBOX-ONLY) until their database-backed versions arrive in Phase 3.
  */
-import type { PaletteBlock } from '@ebmr/api-contract';
+import type { PaletteBlock } from './wire.ts';
 import { blocks, flow } from '@ebmr/recipe-core/pure';
 
 const HIDDEN = new Set(['G-06', 'G-21']);

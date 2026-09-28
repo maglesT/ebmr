@@ -41,10 +41,10 @@ export interface PendingCall {
   /** A tap is awaited or the request is on its way: other actions wait. */
   busy: boolean;
   tapRequired: boolean;
-  submit(body: Record<string, unknown>, summary: string): void;
-  resend(): void;
-  discard(): void;
-  reset(): void;
+  submit: (body: Record<string, unknown>, summary: string) => void;
+  resend: () => void;
+  discard: () => void;
+  reset: () => void;
 }
 
 export interface PendingCallOptions<R extends AnyRoute> {
@@ -55,6 +55,11 @@ export interface PendingCallOptions<R extends AnyRoute> {
   onStale?: () => Promise<string[]>;
   /** After the person discards a NOT SAVED entry: reload what the record holds. */
   onDiscard?: () => void | Promise<void>;
+  /**
+   * A definite answer that nothing was applied (refused, stale, another person's badge). Scale readings named
+   * by the entry are used up even by a refused command, so forms clear them: a retry needs a fresh capture.
+   */
+  onNotApplied?: () => void;
 }
 
 const newKey = (): string => globalThis.crypto.randomUUID();
@@ -70,7 +75,12 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
     live.current = { session, options, params, tap };
   });
 
-  useSessionChange(() => send({ type: 'SESSION_CHANGED' }));
+  useSessionChange(() => {
+    const was = actorRef.getSnapshot().value;
+    send({ type: 'SESSION_CHANGED' });
+    // Something may have reached the server before the change: reload what the record holds.
+    if (was === 'sending' || was === 'notSaved') void live.current.options.onDiscard?.();
+  });
 
   const transmit = useCallback(async () => {
     const start = actorRef.getSnapshot();
@@ -90,7 +100,6 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
         return;
       }
       if (live.current.session.personId !== owner) {
-        attribution = null;
         send({ type: 'SESSION_CHANGED' });
         return;
       }
@@ -102,7 +111,6 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
       return;
     }
     const input = { params: p, body, idempotencyKey: key, ...(attribution ? { attribution } : {}) } as unknown as CallInput<R>;
-    attribution = null;
     const result = await api.call(route, input);
     const now = actorRef.getSnapshot();
     if (now.value !== 'sending' || now.context.key !== key) return;
@@ -116,12 +124,18 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
         send({ type: 'LOST' });
         return;
       case 'SWITCH_USER':
+        // Another person's badge: the entry is discarded and never sent under that person; C1 then offers the
+        // switch ("Switch to <name>?" + PIN). If they switch, they enter their own values themselves.
+        live.current.options.onNotApplied?.();
         send({ type: 'SWITCH_USER', refusal: outcome.envelope });
+        await live.current.tap.offerSwitch(outcome.envelope);
         return;
       case 'REFUSED':
+        live.current.options.onNotApplied?.();
         send({ type: 'REFUSED', refusal: outcome.envelope });
         return;
       case 'STALE': {
+        live.current.options.onNotApplied?.();
         const changes = (await live.current.options.onStale?.()) ?? [];
         send({ type: 'STALE', refusal: outcome.envelope, changes });
         return;
@@ -148,32 +162,33 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
   }, [send]);
   const reset = useCallback(() => send({ type: 'RESET' }), [send]);
 
-  const state = snapshot.value as floor.PendingEntryState;
+  const state: floor.PendingEntryState = snapshot.value;
   return { state, context: snapshot.context, busy: state === 'awaitingTap' || state === 'sending', tapRequired, submit, resend, discard, reset };
 }
 
 export interface RunCommand extends PendingCall {
   /** Sends a plain intent against the run version the person is looking at. */
-  send(intent: ClientIntent, expectedVersion: number, view?: StepScreenView): void;
+  send: (intent: ClientIntent, expectedVersion: number, view?: StepScreenView) => void;
 }
 
 /**
  * A plain engine intent on a test run (POST /api/test-runs/:runId/commands). `viewStepKey` names the step whose
  * view comes back (and is reloaded when the entry arrives stale).
  */
-export function useRunCommand(runId: string, viewStepKey: string | null, reason: string, extra: { onSaved?: () => void } = {}): RunCommand {
+export function useRunCommand(runId: string, viewStepKey: string | null, reason: string, extra: { onSaved?: () => void; onNotApplied?: () => void } = {}): RunCommand {
   const qc = useQueryClient();
-  const onSavedExtra = useRef(extra.onSaved);
+  const extraRef = useRef(extra);
   useEffect(() => {
-    onSavedExtra.current = extra.onSaved;
+    extraRef.current = extra;
   });
   const call = usePendingCall(routes.execution.command, { runId }, {
     reason,
     onSaved: async (value) => {
       if (value.step) applyStepView(qc, value.step);
       await refreshRun(qc, { steps: value.step === null });
-      onSavedExtra.current?.();
+      extraRef.current.onSaved?.();
     },
+    onNotApplied: () => extraRef.current.onNotApplied?.(),
     onStale: async () => {
       if (!viewStepKey) {
         await qc.invalidateQueries({ queryKey: runQueryKey(runId) });
@@ -186,7 +201,10 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
       await refreshRun(qc, { steps: false });
       return after ? describeChanges(before, after) : ['The step was reloaded from the server.'];
     },
-    onDiscard: () => refreshRun(qc, { steps: true }),
+    onDiscard: () => {
+      extraRef.current.onNotApplied?.();
+      return refreshRun(qc, { steps: true });
+    },
   });
   const { submit } = call;
   const sendIntent = useCallback(

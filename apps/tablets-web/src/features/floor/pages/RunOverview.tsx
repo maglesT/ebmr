@@ -4,21 +4,22 @@
  * included), "Verify record" (the server replays the stored rows and reports identical or the first
  * difference) and the link to the run's audit trail.
  */
-import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { routes, type ActionView, type CallError } from '@ebmr/api-contract';
+import { routes, type ActionView, type Result, type RouteResponse } from '@ebmr/api-contract';
 import { Banner, Button, floor } from '@ebmr/ui-kit';
 import { api } from '../../../api/client.ts';
 import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
+import { useRouteParams } from '../params.ts';
 import { ExceptionList } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { HoldBatchDialog, RaiseExceptionDialog, ReleaseHoldDialog } from '../dialogs/CommandDialogs.tsx';
 import { useRunView } from '../queries.ts';
 import { actionLabel, st } from '../text.ts';
 
-type Replay = { ok: true; value: { identical: boolean; rows: number; firstDifference: { seq: string; field: string; expected: string; actual: string } | null; invariantViolations: string[]; checkedAt: { text: string } } } | { ok: false; error: CallError };
+type Replay = Result<RouteResponse<typeof routes.execution.verifyReplay>>;
 
 /** The audit trail viewer (C1) filtered on this run's chain. */
 export function auditHref(chain: string): string {
@@ -79,8 +80,8 @@ function Timeline({ runId }: { runId: string }) {
 type Open = { kind: 'HOLD_BATCH' } | { kind: 'RAISE_EXCEPTION' } | { kind: 'RELEASE_HOLD'; hold: string } | null;
 
 export function RunOverviewPage() {
-  const params = useParams({ strict: false }) as { runId?: string };
-  const runId = params.runId ?? '';
+  const params = useRouteParams();
+  const runId = params['runId'] ?? '';
   const run = useRunView(runId);
   const navigate = useNavigate();
   const [replay, setReplay] = useState<Replay | null>(null);
@@ -94,7 +95,7 @@ export function RunOverviewPage() {
   const verify = async () => {
     setReplaying(true);
     try {
-      setReplay((await api.call(routes.execution.verifyReplay, { params: { runId }, body: {} })) as Replay);
+      setReplay(await api.call(routes.execution.verifyReplay, { params: { runId }, body: {} }));
     } finally {
       setReplaying(false);
     }

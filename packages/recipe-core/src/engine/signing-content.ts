@@ -65,12 +65,25 @@ export interface AggregateContent {
 /** Exception types raised by acts about a step (signing, deciding, a person's report), not by its data. */
 export const ACT_EXCEPTION_TYPES: ReadonlySet<string> = new Set(['WITNESS_LATE', 'OPERATOR_RAISED', 'HOLD_POINT_NOT_APPROVED', 'STEP_SKIPPED', 'EXECUTED_TARGET_CHANGED']);
 
+/**
+ * True when a data point is the endpoint of a repeat-until loop recorded inside that loop: its limits are
+ * judged only when the loop exits (ADR 0004), a system fact after the step was signed, so the signed
+ * content shows it as "judged at the loop exit" and the verdict lives in the loop decision and exceptions.
+ */
+export function judgedAtLoopExit(def: BatchDefinition, p: DataPoint): boolean {
+  const constructs = def.steps.get(p.step)?.constructs ?? [];
+  return (def.loopEndpoints.get(p.item) ?? []).some((l) => constructs.includes(l));
+}
+
 /** True when an exception belongs to the signed content of the step that raised it. */
-export function isStepDataException(e: ExceptionRecord, stepKey: string): boolean {
+export function isStepDataException(def: BatchDefinition, s: BatchState, e: ExceptionRecord, stepKey: string): boolean {
   if (e.source.stepKey !== stepKey) return false;
   if (ACT_EXCEPTION_TYPES.has(e.type)) return false;
   // A derived value withdrawn after the fact (its inputs were invalidated elsewhere) is a later act too.
   if (e.type === 'CALCULATION_FAILED' && e.source.derived !== undefined) return false;
+  // The verdict on a loop endpoint, judged when the loop exits.
+  const p = e.source.point !== undefined ? s.points[e.source.point] : undefined;
+  if (e.type === 'LIMIT_BREACH' && p !== undefined && judgedAtLoopExit(def, p)) return false;
   return true;
 }
 
@@ -137,8 +150,10 @@ function plain(v: unknown): ContentJson {
   }
 }
 
+const AT_LOOP_EXIT: ContentJson = { requirement: 'ENDPOINT_IN_PROGRESS', judged: 'at the loop exit' };
+
 /** The recorded facts of a data point (no status, no successor, no exception list). */
-export function pointFacts(p: DataPoint): { [key: string]: ContentJson } {
+export function pointFacts(p: DataPoint, loopEndpoint = false): { [key: string]: ContentJson } {
   return {
     id: p.id,
     item: p.item,
@@ -155,8 +170,8 @@ export function pointFacts(p: DataPoint): { [key: string]: ContentJson } {
     supersedes: p.supersedes ?? null,
     correction: p.correction ? { reason: p.correction.reason, signature: p.correction.signature, evidence: p.correction.evidence ?? null, approvedBy: p.correction.approvedBy ?? null } : null,
     voidReason: p.voidReason ?? null,
-    evaluation: evaluationContent(p.evaluation),
-    failed: p.failed,
+    evaluation: loopEndpoint ? AT_LOOP_EXIT : evaluationContent(p.evaluation),
+    failed: loopEndpoint ? null : p.failed,
     flags: [...p.flags],
   };
 }
@@ -257,7 +272,7 @@ export function stepSigningContent(def: BatchDefinition, s: BatchState, key: str
     .filter((e) => e.stepKey === key)
     .sort((a, b) => a.recordedSeq - b.recordedSeq);
   const exceptions = Object.values(s.exceptions)
-    .filter((e) => isStepDataException(e, key))
+    .filter((e) => isStepDataException(def, s, e, key))
     .sort((a, b) => a.raisedSeq - b.raisedSeq);
   const content: { [k: string]: ContentJson } = {
     schema: 'ebmr.batch-step-content',
@@ -277,7 +292,7 @@ export function stepSigningContent(def: BatchDefinition, s: BatchState, key: str
       text: node.kind === 'phase' && typeof node.config['text'] === 'string' ? node.config['text'] : null,
       sop: sop ? { code: sop.code, version: sop.version, hash: sop.hash ?? null } : null,
     },
-    points: points.map(pointFacts),
+    points: points.map((p) => pointFacts(p, judgedAtLoopExit(def, p))),
     derived: derived.map(derivedFacts),
     entries: entries.map(entryFacts),
     exceptions: exceptions.map(exceptionFacts),
@@ -326,7 +341,7 @@ export function exceptionSigningContent(def: BatchDefinition, s: BatchState, id:
     schema: 'ebmr.batch-exception-content',
     batch: header(def, s),
     exception: exceptionFacts(e),
-    recorded: point ? { point: point.id, item: point.item, value: valueContent(point.value), evaluation: evaluationContent(point.evaluation) } : derived ? { derived: derived.id, item: derived.calculation, value: valueContent(derived.value), evaluation: evaluationContent(derived.evaluation) } : null,
+    recorded: point ? { point: point.id, item: point.item, value: valueContent(point.value), evaluation: judgedAtLoopExit(def, point) ? AT_LOOP_EXIT : evaluationContent(point.evaluation) } : derived ? { derived: derived.id, item: derived.calculation, value: valueContent(derived.value), evaluation: evaluationContent(derived.evaluation) } : null,
     deviation: e.deviation ? { ref: e.deviation.ref, linkedBy: e.deviation.linkedBy, at: e.deviation.at.toString() } : null,
   };
   const enteredBy = [e.raisedBy, ...(e.deviation ? [e.deviation.linkedBy] : [])].filter((p) => p !== 'SYSTEM');
@@ -337,7 +352,7 @@ export function exceptionSigningContent(def: BatchDefinition, s: BatchState, id:
 export function pointSigningContent(def: BatchDefinition, s: BatchState, id: string): AggregateContent {
   const p = s.points[id];
   if (!p) throw new Error(`data point ${id} does not exist`);
-  const content: { [k: string]: ContentJson } = { schema: 'ebmr.batch-point-content', batch: header(def, s), point: pointFacts(p) };
+  const content: { [k: string]: ContentJson } = { schema: 'ebmr.batch-point-content', batch: header(def, s), point: pointFacts(p, judgedAtLoopExit(def, p)) };
   return { type: 'batch_point', key: id, content, contentHash: hashContent(content), enteredBy: [p.enteredBy], state: p.status };
 }
 

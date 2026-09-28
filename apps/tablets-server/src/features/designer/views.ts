@@ -4,11 +4,12 @@
  * only, through the application role; every instant is formatted by the server ({us, text}).
  */
 import type pg from 'pg';
-import type { EvidenceView, FamilyView, Instant, JustificationView, PersonRef, ReferenceDocumentView, VersionView } from '@ebmr/api-contract';
+import type { Instant, PersonRef, VersionView } from '@ebmr/api-contract';
 import type { flow, validator } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { loadReferenceRows, referenceStatus } from './adapters/references.ts';
+import type { EvidenceView, FamilyView, JustificationView, ReferenceDocumentView } from './wire.ts';
 
 type Db = pg.Pool | pg.PoolClient;
 
