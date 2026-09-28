@@ -21,7 +21,10 @@ import { refusal } from './refusal.ts';
 export const CSP_DIRECTIVES: Readonly<Record<string, string[]>> = {
   'default-src': ["'self'"],
   'script-src': ["'self'"],
-  'style-src': ["'self'"],
+  // Plus exactly one inline <style>: react-aria's usePreventScroll injects `@layer { * { overscroll-behavior: contain; } }`
+  // on mobile WebKit only (react-aria 3.52.1; the kit's stylesheet carries the same rule). A hash admits that text and
+  // nothing else; style attributes stay blocked. Recompute it when react-aria changes the text.
+  'style-src': ["'self'", "'sha256-gYiS/BvZvRcK27JIXTuwhZ3hs2+VJ1X+2gUlE+farlg='"],
   'img-src': ["'self'", 'data:'],
   'font-src': ["'self'"],
   'connect-src': ["'self'"],

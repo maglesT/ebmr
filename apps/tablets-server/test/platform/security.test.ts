@@ -4,7 +4,22 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
-import { CSP_HEADER } from '../../src/platform/http/security.ts';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { CSP_DIRECTIVES, CSP_HEADER } from '../../src/platform/http/security.ts';
+
+/** The one inline style the CSP admits: react-aria's mobile-WebKit overscroll rule, as the installed react-aria writes it. */
+function reactAriaStyleHash(): string {
+  const web = createRequire(join(import.meta.dirname, '../../../tablets-web/package.json'));
+  const rac = createRequire(web.resolve('react-aria-components/package.json'));
+  const source = readFileSync(join(dirname(rac.resolve('react-aria/package.json')), 'dist/private/overlays/usePreventScroll.mjs'), 'utf8');
+  const match = /style\.textContent = `([^`]*)`\.trim\(\)/.exec(source);
+  if (!match?.[1]) throw new Error('react-aria no longer injects its overscroll style this way; review the CSP style-src hash');
+  return `sha256-${createHash('sha256').update(match[1].trim(), 'utf8').digest('base64')}`;
+}
+const REACT_ARIA_STYLE_HASH = 'sha256-gYiS/BvZvRcK27JIXTuwhZ3hs2+VJ1X+2gUlE+farlg=';
 import { logCollector, ORIGINS, startServer, type TestServer } from '../support/harness.ts';
 
 let gmp: TestServer;
@@ -91,12 +106,17 @@ describe('request checks', () => {
     expect(ORIGINS.GMP).toBe(gmp.config.publicOrigin);
   });
 
+  it('[DI-13] the only inline style the CSP admits is the one the installed react-aria injects on mobile WebKit', () => {
+    expect(reactAriaStyleHash()).toBe(REACT_ARIA_STYLE_HASH);
+    expect(CSP_DIRECTIVES['style-src']).toEqual(["'self'", `'${REACT_ARIA_STYLE_HASH}'`]);
+  });
+
   it('[DI-13] every response carries the installation header, the exact CSP, no-store on the API and the other security headers', async () => {
     const res = await gmp.app.inject({ method: 'GET', url: '/api/meta' });
     expect(res.statusCode).toBe(200);
     expect(res.headers['x-ebmr-installation']).toBe('GMP');
     expect(String(res.headers['content-security-policy']).split(';').map((d) => d.trim())).toEqual([
-      "default-src 'self'", "script-src 'self'", "style-src 'self'", "img-src 'self' data:", "font-src 'self'", "connect-src 'self'",
+      "default-src 'self'", "script-src 'self'", `style-src 'self' '${REACT_ARIA_STYLE_HASH}'`, "img-src 'self' data:", "font-src 'self'", "connect-src 'self'",
       "worker-src 'self'", "object-src 'none'", "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'",
     ]);
     expect(res.headers['content-security-policy']).toBe(CSP_HEADER);
