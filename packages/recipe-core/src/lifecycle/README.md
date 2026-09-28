@@ -22,7 +22,7 @@ designer and are proven equal to them by tests.
 | Thing | Where | Notes |
 |---|---|---|
 | MBR family | `recipe.mbr_family` | product, strength, batch-size set (discrete sizes, PR-01), dosage form, edition, record kind; one family per such combination (unique), so INV-17 cannot be sidestepped with a twin family; insert-only |
-| MBR version | `recipe.mbr_version` | number per family, author, derived-from version; draft attributes change record, effective date, periodic-review due date (UPDATE only in DRAFT, audited with reason) |
+| MBR version | `recipe.mbr_version` | number per family, author, derived-from version; draft attributes change record, effective date, periodic-review due date (UPDATE only in DRAFT, audited with the author's own reason: `setDraftAttributes` needs a reason code and a reason text in the command, EBMR-AUDIT-002, migration 0250) |
 | Content | `recipe.mbr_content` | revisions of the flow model's MBR JSON with the canonical SHA-256 (the database recomputes it; TypeScript `flow.mbrContentHash` gives the same); insert-only; a revision is accepted only in DRAFT; the header must match the family (family code, edition, product, strength, form, batch sizes, India in the market set) |
 | Draft cycles | `recipe.mbr_draft_entry` | creation is cycle 1; each return to DRAFT adds a cycle (part of the signed content, so the return supersedes every signature) |
 | Version log | `recipe.mbr_version_log` | every change of the signed data per cycle, written by triggers; `is_edit` rows since the last entry into DRAFT are the INV-04 basis |
@@ -96,6 +96,14 @@ proves it equal to the database function after random signed authorisation comma
 `issueStubBatch` pins the version (the pin trigger recomputes the selection at the issue instant and
 refuses any other version, whoever inserts), builds the control recipe and sets ISSUED in one
 transaction. `verifyControlRecipe` recomputes the snapshot hash in SQL and in TypeScript (INV-02).
+
+A change a user starts carries that user's own reason. `setDraftAttributes`, `issueStubBatch` and
+`setStubBatchStatus` update audited rows in the command's context unchanged: the command gives a reason code
+and a reason text, or the kernel refuses the update (EBMR-AUDIT-002) and the whole command rolls back. Recipe
+code writes no half of that reason (migration 0250; DI-22, DI-24). A server route that exposes one of them
+takes the reason from the user and passes it into the command context. Only updates that follow from
+another act of the same command get a fixed reason naming the act (`recipe.push_reason`, 0100/0230): a
+cell superseded on activation, or cells ended by a withdrawal or a retirement.
 
 ## Public API (`lifecycle` namespace of `@ebmr/recipe-core`)
 

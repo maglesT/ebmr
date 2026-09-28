@@ -37,6 +37,9 @@ export default {
   incremental: true,
   incrementalFile: '.reports/mutation/stryker-incremental.json',
   concurrency: 4,
+  // The initial (dry) run executes all kernel and site-services tests in one worker thread, including the
+  // template database build: 912 tests took about 9 minutes locally, beyond Stryker's 5-minute default.
+  dryRunTimeoutMinutes: 30,
   timeoutMS: 60000,
   thresholds: { high: 90, low: 80, break: null },
   reporters: ['clear-text', 'progress', 'html', 'json'],

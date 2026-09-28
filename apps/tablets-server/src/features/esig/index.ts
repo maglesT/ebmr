@@ -10,13 +10,20 @@
  *  3. POST sign: the signer authenticates for the challenge on the authentication pool (identity.authenticate,
  *     purpose SIGNATURE; a failure is recorded and counts toward lockout), then ONE idempotent command whose
  *     actor carries that event (it attributes the command and is consumed by the signature):
- *       handler.dryRun, with a placeholder signature. Refused: the command commits only what the handler records
- *       on purpose (its refusal record), nothing is signed, and the refusal is answered. Accepted with another
- *       content hash than the challenge's: the same, answered CONTENT_CHANGED;
+ *       handler.dryRun, with a placeholder signature (refused, or accepted with another content hash than the
+ *       challenge's: see below);
  *       esig.sign and the seal (kernel: the only writer of signatures; unsealed signatures cannot commit);
  *       handler.apply with the real signature.
  *     Any failure rolls the whole command back (signature, seal, consumed event); esig.logSigningFailure then
- *     records it outside the rolled-back transaction (INV-10).
+ *     records it outside the rolled-back transaction (INV-10), with the authentication event it used, so the kernel
+ *     checks the attempt for misuse and alerts the security unit on what the committed rows prove (DI-19; proxy
+ *     signing included). Every signing failure is logged with its event whenever authentication produced one.
+ *     Refused before signing (the dry run refused, or CONTENT_CHANGED): the attempt rolls back like any failure and
+ *     is logged with its event. The kernel reads any committed use of the event as another command's (re-use,
+ *     EBMR-IAM-091), so logging comes first. Then the refusal is written: a second command attributed by the same
+ *     event runs the dry run again, commits only what the handler records on purpose (its refusal record, plan
+ *     section 6), and stores the answer under the idempotency key. Nothing is signed, and the logged refusal is
+ *     answered. A resend of a stored refusal rolls back too, and is logged with its own event.
  *  4. GET signatures: the stored manifestations of a record, with their current validity (DI-36, INV-09).
  *
  * Credentials: badge and PIN on kiosks (the badge of the challenge's tap is kept by the server, see badges.ts),
@@ -116,9 +123,15 @@ function signableContext(session: ResolvedSession, actor: EsigSignableContext['a
   return { actor, room: session.roomCode, deviceClass: session.deviceClass, meaning };
 }
 
-/** A refusal answered for a signing, recorded in the kernel's signing-failure log first (after any rollback). */
-async function logged(app: AppContext, challengeId: string, error: unknown): Promise<void> {
-  await esig.logSigningFailure(app.pools.app, challengeId, error);
+/**
+ * A refusal answered for a signing, recorded in the kernel's signing-failure log first (after the attempt rolled
+ * back). With the signature authentication the attempt used, the kernel checks the attempt for misuse (re-use, an
+ * authentication for another challenge or made before it, missing components, another person, account or terminal)
+ * and alerts the security unit on what the committed rows prove (DI-19). It is omitted only when authentication
+ * produced no event (a wrong PIN or password, a locked account).
+ */
+async function logged(app: AppContext, challengeId: string, error: unknown, authEventId?: string): Promise<void> {
+  await esig.logSigningFailure(app.pools.app, challengeId, error, authEventId);
 }
 
 /** A failed signature authentication in plain language; why it failed stays in the security log (DI-19). */
@@ -150,7 +163,25 @@ function signingAuthRefusal(error: unknown, kind: 'PIN' | 'PASSWORD'): unknown {
   );
 }
 
-type SignWork = { refused: { status: number; refusal: Refusal } } | { signed: { manifestation: ManifestationView; result: Record<string, unknown> | null } };
+type RefusedWork = { refused: { status: number; refusal: Refusal } };
+type SignedWork = { signed: { manifestation: ManifestationView; result: Record<string, unknown> | null } };
+type SignWork = RefusedWork | SignedWork;
+
+/**
+ * A refusal before esig.sign (the handler's dry run, or content changed since the challenge), thrown so that the
+ * attempt's command rolls back before the refusal is logged with its authentication event; `replayed`: the stored
+ * answer of an earlier request with the same idempotency key. Its message carries no refusal code, so the command
+ * wrapper passes it through unchanged.
+ */
+class RefusedBeforeSigning extends Error {
+  constructor(
+    readonly refused: RefusedWork['refused'],
+    readonly replayed: boolean,
+  ) {
+    super('the signing was refused before signing; the attempt rolls back and is logged with its authentication');
+    this.name = 'RefusedBeforeSigning';
+  }
+}
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const badges = challengeBadges(app);
@@ -206,7 +237,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
               role: typeof preview['role_code'] === 'string' ? preview['role_code'] : (s.roleCode ?? ''),
               meaning: ch.meaning.code,
               meaningText: meaningPhrase(ch.meaning.title),
-              zone: typeof preview['site_zone'] === 'string' ? preview['site_zone'] : app.config.siteZone,
+              zone: typeof preview['site_zone'] === 'string' ? preview['site_zone'] : app.siteZone.current(),
             },
           };
           return view;
@@ -281,37 +312,74 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             controls: ['DI-38'],
             whatYouCanDo: ['The person named on the signature enters their own credentials.'],
           });
-          await logged(app, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`));
+          await logged(app, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev.authEventId);
           throw e;
         }
         const a = { ...actor(), authEventId: ev.authEventId };
         const ctx = signableContext(s, a, ch.meaning);
-        let work: SignWork;
+        const key = idempotencyKey ?? '';
+        let signed: SignedWork['signed'];
         try {
-          const out = await withIdempotentActorCommand(app.pools.app, a, idempotencyKey ?? '', requestHash, async (client) => {
-            const dry = await handler.dryRun(client, ctx, body.action);
-            let result: SignWork;
-            if (!dry.accepted) {
-              result = { refused: { status: dry.status, refusal: dry.refusal } };
-            } else if (dry.contentHash !== ch.contentHash || dry.contentVersion !== ch.contentVersion) {
-              result = { refused: { status: 409, refusal: contentChanged(`The record is now at content version ${dry.contentVersion}; the challenge was for version ${ch.contentVersion}.`) } };
-            } else {
+          // The attempt. A refusal before esig.sign rolls it back (RefusedBeforeSigning), and so does the replay of a
+          // stored refusal: the refusal is then logged while no committed row uses this authentication (see below).
+          const out = await withIdempotentActorCommand(
+            app.pools.app,
+            a,
+            key,
+            requestHash,
+            async (client) => {
+              const dry = await handler.dryRun(client, ctx, body.action);
+              if (!dry.accepted) throw new RefusedBeforeSigning({ status: dry.status, refusal: dry.refusal }, false);
+              if (dry.contentHash !== ch.contentHash || dry.contentVersion !== ch.contentVersion) {
+                throw new RefusedBeforeSigning({ status: 409, refusal: contentChanged(`The record is now at content version ${dry.contentVersion}; the challenge was for version ${ch.contentVersion}.`) }, false);
+              }
               const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState: d.expectedState ?? null }, sealKey);
               const applied = await handler.apply(client, ctx, body.action, { signatureId: sig.signatureId, meaning: ch.meaning, signer: ch.signerPerson });
-              result = { signed: { manifestation: manifestationView(sig.manifestation, ch.signerPerson, true), result: applied } };
-            }
-            return result as unknown as commands.JsonValue;
-          });
-          work = out.result as unknown as SignWork;
+              const result: SignWork = { signed: { manifestation: manifestationView(sig.manifestation, ch.signerPerson, true), result: applied } };
+              return result as unknown as commands.JsonValue;
+            },
+            {
+              beforeReplay: (stored) => {
+                const w = stored as unknown as SignWork;
+                if ('refused' in w) throw new RefusedBeforeSigning(w.refused, true);
+              },
+            },
+          );
+          signed = (out.result as unknown as SignedWork).signed;
         } catch (error) {
-          if (!(error instanceof HttpRefusal)) await logged(app, ch.challengeId, error);
-          throw error;
+          if (!(error instanceof RefusedBeforeSigning)) {
+            if (!(error instanceof HttpRefusal)) await logged(app, ch.challengeId, error, ev.authEventId);
+            throw error;
+          }
+          // Logged with the authentication the attempt used while no committed row uses it (the attempt rolled back),
+          // so the kernel runs every attempted-misuse check on it (DI-19: re-use, another challenge, pre-signing,
+          // missing components; esig.signing_misuse reads a committed use as another command's).
+          const { refused } = error;
+          await logged(app, ch.challengeId, new Error(`${refused.refusal.code} ${refused.refusal.why || refused.refusal.whatHappened}`), ev.authEventId);
+          // Then the refusal is written (plan section 6: the refused COMMAND row, attributed by this authentication):
+          // the dry run runs again in a command that commits what the handler records on purpose (the refusal it
+          // finds now, normally this one) and stores the answer given here under the idempotency key; it never signs.
+          // A replayed refusal was written when it was first answered.
+          if (!error.replayed) {
+            let written: SignWork;
+            try {
+              const out = await withIdempotentActorCommand(app.pools.app, a, key, requestHash, async (client) => {
+                await handler.dryRun(client, ctx, body.action);
+                const result: SignWork = { refused };
+                return result as unknown as commands.JsonValue;
+              });
+              written = out.result as unknown as SignWork;
+            } catch (e) {
+              if (!(e instanceof HttpRefusal)) await logged(app, ch.challengeId, e, ev.authEventId);
+              throw e;
+            }
+            // A concurrent resend with the same key may have answered first: its stored result is the answer.
+            if ('signed' in written) return written.signed;
+            throw new HttpRefusal(written.refused.status, written.refused.refusal);
+          }
+          throw new HttpRefusal(refused.status, refused.refusal);
         }
-        if ('refused' in work) {
-          await logged(app, ch.challengeId, new Error(`${work.refused.refusal.code} ${work.refused.refusal.why || work.refused.refusal.whatHappened}`));
-          throw new HttpRefusal(work.refused.status, work.refused.refusal);
-        }
-        return work.signed;
+        return signed;
       },
 
       signatures: async ({ query }) => {

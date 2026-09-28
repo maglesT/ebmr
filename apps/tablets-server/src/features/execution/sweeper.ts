@@ -8,6 +8,14 @@
  * The identity comes from the DEMO-ONLY service-keys file (EBMR_SERVICE_KEYS_FILE; the entry on terminal
  * TEST-SRV-SWEEPER, its service key and its terminal key's fingerprint). Without the file the sweeper does not
  * start (commands still sweep).
+ *
+ * The sweeper acts in the role EXECUTION_SWEEPER (recipe-core 0260), which holds EXECUTION.SWEEP and nothing else
+ * and is only for SERVICE accounts (DI-17 least privilege). The kernel's SERVICE_ACCOUNT role, which the gateway
+ * holds, cannot sweep, and the sweeper holds none of its permissions (INTERFACE.WRITE and the other service rights).
+ *
+ * Before every sweep the sweeper re-reads the site policy site.zone (AppContext.siteZone.check(), DI-27): after
+ * a change while the server runs it sweeps nothing and opens no session until the server restarts (the guard
+ * raises the operations alert once; the sweeper adds no warning of its own).
  */
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -19,6 +27,8 @@ import { runCache, runContext } from './runs.ts';
 
 export const SWEEP_INTERVAL_MS = 15_000;
 export const SWEEPER_TERMINAL = 'TEST-SRV-SWEEPER';
+/** The sweeper's own role (recipe-core 0260): EXECUTION.SWEEP only; the kernel checks the account holds it (EBMR-IAM-108). */
+export const SWEEPER_ROLE = 'EXECUTION_SWEEPER';
 
 interface ServiceEntry {
   terminal: string;
@@ -75,8 +85,36 @@ export async function sweepAll(app: AppContext, actor: ActorContext): Promise<Sw
   return result;
 }
 
-/** Starts the 15 s sweeper; returns its stop function (null when no identity is configured). */
-export function startSweeper(app: AppContext, log: { warn(obj: object, msg: string): void; info(obj: object, msg: string): void }): { stop(): Promise<void> } | null {
+/**
+ * Opens a SERVICE_KEY session of the sweeper identity on its SERVER terminal and returns its SYSTEM actor in the
+ * sweeper's own role (SWEEPER_ROLE; the kernel refuses the context unless the account holds it, EBMR-IAM-108). The
+ * zone is the site policy's as the server holds it (AppContext.siteZone.current(), which refuses once the policy
+ * changed, before any authentication): the kernel refuses any other (EBMR-IAM-118, DI-27). The legal name is the
+ * one the identity's person holds (iam.person), never a name assumed here: the kernel refuses a context naming
+ * anyone else (EBMR-IAM-117, DI-14).
+ */
+export async function openSweeperActor(app: AppContext, c: { loginName: string; serviceKey: string; fingerprint: string }): Promise<ActorContext & { deviceId: string }> {
+  const siteZone = app.siteZone.current();
+  const ev = await identity.authenticate(app.pools.authn, { method: 'SERVICE_KEY', identifier: c.loginName, secret: c.serviceKey, deviceFingerprint: c.fingerprint, purpose: 'LOGIN' });
+  const s = await identity.openSession(app.pools.app, ev.authEventId, c.fingerprint);
+  const { rows } = await app.pools.app.query<{ person_id: string; account_id: string; legal_name: string }>(
+    'select a.person_id, a.id as account_id, p.legal_name from iam.account a join iam.person p on p.id = a.person_id where a.login_name = $1',
+    [c.loginName],
+  );
+  const who = rows[0];
+  if (!who) throw new Error(`the sweeper account ${c.loginName} does not exist`);
+  return { personId: who.person_id, accountId: who.account_id, roleCode: SWEEPER_ROLE, sessionId: s.sessionId, deviceId: s.deviceId, source: 'SYSTEM', siteZone, legalName: who.legal_name };
+}
+
+/**
+ * Starts the 15 s sweeper (`options.intervalMs`: tests only); returns its stop function (null when no identity is
+ * configured).
+ */
+export function startSweeper(
+  app: AppContext,
+  log: { warn(obj: object, msg: string): void; info(obj: object, msg: string): void },
+  options: { intervalMs?: number } = {},
+): { stop(): Promise<void> } | null {
   let creds: ReturnType<typeof sweeperCredentials>;
   try {
     creds = sweeperCredentials(app.config.serviceKeysFile);
@@ -91,13 +129,7 @@ export function startSweeper(app: AppContext, log: { warn(obj: object, msg: stri
   let stopped = false;
 
   const session = async (): Promise<ActorContext> => {
-    if (actor) return actor;
-    const ev = await identity.authenticate(app.pools.authn, { method: 'SERVICE_KEY', identifier: c.loginName, secret: c.serviceKey, deviceFingerprint: c.fingerprint, purpose: 'LOGIN' });
-    const s = await identity.openSession(app.pools.app, ev.authEventId, c.fingerprint);
-    const { rows } = await app.pools.app.query<{ person_id: string; account_id: string }>('select a.person_id, a.id as account_id from iam.account a where a.login_name = $1', [c.loginName]);
-    const who = rows[0];
-    if (!who) throw new Error(`the sweeper account ${c.loginName} does not exist`);
-    actor = { personId: who.person_id, accountId: who.account_id, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId, source: 'SYSTEM', siteZone: app.config.siteZone, legalName: 'TEST-sweeper' };
+    actor ??= await openSweeperActor(app, c);
     return actor;
   };
 
@@ -105,6 +137,8 @@ export function startSweeper(app: AppContext, log: { warn(obj: object, msg: stri
     if (running || stopped) return;
     running = (async () => {
       try {
+        // DI-27: nothing is swept in the zone of before a change of the site policy (SITE_ZONE_CHANGED).
+        await app.siteZone.check();
         const r = await sweepAll(app, await session());
         if (r.failures.length > 0) {
           log.warn({ failures: r.failures.length, first: r.failures[0]?.error }, 'the sweeper could not sweep every test run');
@@ -113,6 +147,7 @@ export function startSweeper(app: AppContext, log: { warn(obj: object, msg: stri
           log.info({ swept: r.swept, events: r.events }, 'time sweep recorded events');
         }
       } catch (e) {
+        if (app.siteZone.changedTo) return; // the guard raised the operations alert; nothing is swept until a restart
         actor = null;
         log.warn({ err: e instanceof Error ? e.message : String(e) }, 'the sweeper failed; it retries at the next interval');
       } finally {
@@ -120,7 +155,7 @@ export function startSweeper(app: AppContext, log: { warn(obj: object, msg: stri
       }
     })();
   };
-  const timer = setInterval(tick, SWEEP_INTERVAL_MS);
+  const timer = setInterval(tick, options.intervalMs ?? SWEEP_INTERVAL_MS);
   timer.unref();
   return {
     async stop() {

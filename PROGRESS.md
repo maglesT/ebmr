@@ -403,3 +403,46 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   entries with no evidence (decide); computed weights lose trailing zeros ("50 kg" not "50.000 kg": keep the balance
   resolution); run-level exceptions cannot be dispositioned from the run overview; engine texts show internal ids;
   BLEND-1 has no simulated balance. Adversarial review workflow wf_915b8c27-4a5 running on the wave-1 commit.
+- 2026-09-28: MIGRATION EDITED IN PLACE while merging main (Phase 1 exit) into phase-2/recipe-core: recipe-core
+  `0140_machine_mbr_version_v1.sql` (generated from `packages/recipe-core/src/lifecycle/machine.ts`; the seed test
+  compares the two) now declares `create_permission: mbr.author`. The sealed definition_hash of machine mbr_version
+  version 1 changed (b73add75... -> b7ecdfa2...), and so did the file's migration checksum (519557f5... -> dfbaed05...).
+  WHY IN PLACE: the Phase 1 exit kernel refuses to publish a machine version that names no create permission
+  (kernel 0550, EBMR-PLAT-062, DI-17). The old 0140 therefore fails on every fresh database, and no later migration can
+  stand in for it: versions publish in sequence, so a version 2 still needs a version 1 that publishes. No earlier one can
+  either. Checked on a scratch database (current kernel, site services, recipe-core 0100-0130; dropped afterwards): the
+  old file fails with the create_permission error, and after a version 1 published first it fails with "1 is not next".
+  OWNER ACKNOWLEDGEMENT: the edit contradicts the migration rule the 0230/0240 headers restate, so it is written up as
+  docs/decisions/phase-2-open-questions.md O1. Decided by default under decision 0004 (the owner was told and did not
+  object): the edit is acknowledged, and from the Phase 2 release on a released migration is never edited. WHY IT IS
+  ACCEPTABLE: the runner's rule (`packages/kernel/src/db/migrate.ts`) is that a RELEASED migration is never edited. Phase 2 has never
+  been released or merged to main, and no database outside development, test and demo has applied it (the Phase 1 exit
+  edited 38 unreleased kernel and site-services migrations the same way, 0550 among them). The recipe-core 0230 header
+  ("applied migrations are never edited") states the rule that holds from release on; 0140 is the one Phase 2 file the
+  kernel forced. From the Phase 2 release on, a changed machine gets a new version in a new migration (the recipe
+  write-seeds reports `differs` for an edited seed). THE CONTROL IS NOT WEAKER: `mbr.author` is the narrowest
+  permission there is (the author creates the version; recipe.create_version and recipe.derive_version already require
+  MBR.AUTHOR, and platform.create_aggregate_state now checks it again through the AUTHORITY hook), and the kernel refuses
+  administrators there (DI-18). CONSEQUENCE, REBUILD: every database built before this merge must be dropped and built
+  again, not migrated. Migrating one stops with "migration <namespace>/<file> changed after it was applied" (at kernel
+  0550 first, then at recipe-core 0140); nothing upgrades one silently, because the server does not run migrations at
+  start. On this machine that means `ebmr_tablets_demo`, `ebmr_sandbox_tablets_demo` and the two `*_probe_demo` databases
+  (checked 2026-09-28: they hold the old 0140 checksum 519557f5... and the old kernel 0550). Run `pnpm demo:setup`
+  (it drops and re-creates both demo databases) before the next demo. They were left in place here because other work
+  may be using them. Test and E2E databases are unaffected: each run builds its own under a new name.
+- 2026-09-28: MERGE OF MAIN (PHASE 1 EXIT) INTO phase-2/recipe-core DONE. Merge commit 08c7c0d, then the adaptation of
+  Phase 2 to the stricter kernel (workflow wf_2dfdc7c8-5b0: triage, 3 fix rounds, an adversarial verifier each round).
+  Final verification: `pnpm run ci` green (259/259 files, 2020/2020 tests, trace ok), E2E 19/19 (FCV journey included),
+  no failure cluster left. Main adaptations: mbr_version create_permission (O1 above); INV-27 protected sequences and
+  DI-27 db time for the Phase 2 tables (recipe-core 0220, tablets 0260); recipe reasons need both halves and a white-space
+  code is refused (0230); draft edits, batch issue and batch status need the user's own reason (0250); TEST- batch
+  numbers never cut short (0240); the sweeper holds a SERVICE-only EXECUTION_SWEEPER role (0260) and names its person's
+  current legal name; the server reads site.zone from the policy, refuses a non-IANA value and latches SITE_ZONE_CHANGED
+  on a change; a refusal before signing is logged with the signer's authentication event (kernel item K2); the kernel
+  backup-drill tests got a 120 s limit (load only; the change reaches main with this branch). Kernel items K1 (site.zone
+  IANA check) and K2 (signing_misuse vs the attempt's own command) are in docs/decisions/phase-2-open-questions.md.
+  OPEN from the final verifier, for the Phase 2 review-fix workflow: (1) activate_market_authorisation still writes a
+  system reason (MBR_SUPERSEDED) for the superseded cell when the command gave none (0160 via recipe.push_reason); the
+  stricter default is to require the user's own reason there as 0250 does; (2) the test-kit gateway TEST-gw holds the
+  broad SERVICE_ACCOUNT role although the seed test calls it least privilege; give it an INTERFACE.WRITE-only role or stop
+  the claim. A backup of the unverified adaptation is on the branch wip/phase-2-merge-adaptation (kept; not for merging).

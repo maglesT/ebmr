@@ -4,7 +4,9 @@
  *  - POST /api/devices/scales/:code/capture   a trigger, not a GMP write by the person: the gateway takes a stable
  *    reading, journals it, uplinks it under its integration identity; the answer is the ReadingView once the row
  *    exists. The committing G-07/G-22 entry claims it by id (DeviceReadingPort), so capture needs no badge tap;
- *  - GET  /api/devices/scales/:code/live      SSE relay of the gateway's live display ("live, not recorded").
+ *  - GET  /api/devices/scales/:code/live      SSE relay of the gateway's live display ("live, not recorded"); an
+ *    open stream ends when the site policy site.zone changes while the server runs, and the browser's reconnect is
+ *    refused like every API request (SITE_ZONE_CHANGED, DI-27).
  * The browser never supplies a value, a device or a time: everything in a ReadingView comes from the reading row.
  * Capture and live display are for the scale of the terminal's own room only (DI-20).
  */
@@ -116,6 +118,7 @@ async function live(ctx: HandlerContext<typeof routes.devices.live>): Promise<Li
   const session = ctx.requireSession();
   const scale = await scaleInRoom(app, session, ctx.params.code);
   const first: LiveSample = { deviceCode: scale.deviceCode, value: null, unit: scale.unit, stable: false, status: scale.status === 'ONLINE' ? 'UNSTABLE' : 'OFFLINE' };
+  app.siteZone.current(); // DI-27: a change noticed since the request began is still refused as a request
   const reply = ctx.reply;
   reply.hijack();
   const raw = reply.raw;
@@ -135,14 +138,18 @@ async function live(ctx: HandlerContext<typeof routes.devices.live>): Promise<Li
     if (!raw.writableEnded) raw.write(': keep-alive\n\n');
   }, 15_000);
   let ended = false;
+  let offZoneChange = (): void => undefined;
   const end = () => {
     if (ended) return;
     ended = true;
     clearInterval(keepAlive);
     unsubscribe();
+    offZoneChange();
     if (!raw.writableEnded) raw.end();
   };
   raw.once('close', end);
+  // DI-27: after a change of the site's time zone the server shows nothing until it restarts; the stream ends too.
+  offZoneChange = app.siteZone.onChange(end);
   // The reply is hijacked, so bindRoutes sends nothing more; the stream ends when the browser leaves.
   return first;
 }

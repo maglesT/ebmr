@@ -18,7 +18,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       edition: 'tablets' as const,
       version: SERVER_VERSION,
       watermark: sandbox.watermarkFor(app.installation),
-      site: { code: app.config.siteCode, zone: app.config.siteZone },
+      site: { code: app.config.siteCode, zone: app.siteZone.current() },
       serverTime: app.formatInstant(await dbNowUs(app.pools.app)),
       demo: app.demo.enabled,
       publicOrigin: app.config.publicOrigin,

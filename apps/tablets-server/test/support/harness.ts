@@ -51,6 +51,8 @@ export interface ServerOptions {
   env?: Record<string, string>;
   /** Capture the log (redaction tests). */
   logStream?: Writable;
+  /** Changes the copy before the server starts (e.g. a site policy the server reads at start-up). */
+  beforeStart?: (db: DatabaseHandle, seed: SiteSeed) => Promise<void>;
 }
 
 export interface TestBrowser {
@@ -106,19 +108,22 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
   await copyDatabase(t.template, database);
   if (opts.demoMarker) await asAdmin(database, (c) => c.query("select tab.mark_demo_installation('server test')"));
   const db = openDatabase(database, kind);
-  const config = parseConfig(
+  const env = parseConfig(
     { EBMR_INSTALLATION: kind, EBMR_DATABASE: database, EBMR_PUBLIC_ORIGIN: ORIGINS[kind], EBMR_ENV: 'test', EBMR_LOG_LEVEL: opts.logStream ? 'debug' : 'silent', ...opts.env },
     randomKey,
   );
   let built: BuiltApp;
   try {
-    built = await buildApp(config, { pools: { app: db.app, authn: db.authn, close: () => Promise.resolve() }, ...(opts.logStream ? { logStream: opts.logStream } : {}) });
+    await opts.beforeStart?.(db, t.seed);
+    built = await buildApp(env, { pools: { app: db.app, authn: db.authn, close: () => Promise.resolve() }, ...(opts.logStream ? { logStream: opts.logStream } : {}) });
   } catch (error) {
     await db.close();
     await dropDatabase(database);
     throw error;
   }
   const app = built.app;
+  // The configuration the server runs with (its site zone is the site policy's, read at start-up).
+  const config: ServerConfig = built.ctx.config;
   const seed = t.seed;
 
   const makeBrowser = (terminalCode?: string): TestBrowser => {

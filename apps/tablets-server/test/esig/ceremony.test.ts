@@ -51,10 +51,10 @@ async function challengeFor(server: TestServer, b: TestBrowser, personaKey: stri
   return { content, r };
 }
 
-async function sign(b: TestBrowser, challengeId: string, stubId: string, credentials: SignatureCredentials, proofFrom?: TestBrowser) {
+async function sign(b: TestBrowser, challengeId: string, stubId: string, credentials: SignatureCredentials, proofFrom?: TestBrowser, idempotencyKey?: string) {
   const body = { challengeId, credentials, action: { kind: 'ESIG_STUB' as const, stubId } };
   const proof = await (proofFrom ?? b).proof('POST', '/api/esig/sign', body);
-  return b.call(routes.esig.sign, { body: { ...body, proof } });
+  return b.call(routes.esig.sign, { body: { ...body, proof }, ...(idempotencyKey ? { idempotencyKey } : {}) });
 }
 
 const pinOf = (server: TestServer, key: string): SignatureCredentials => ({ kind: 'PIN', pin: personaIn(server, key).pin ?? '' });
@@ -72,6 +72,63 @@ async function stubState(server: TestServer, stubId: string) {
 async function failures(server: TestServer, challengeId: string): Promise<string[]> {
   const { rows } = await server.db.admin.query<{ code: string; message: string }>('select code, message from esig.signing_failure where challenge_id = $1 order by id', [challengeId]);
   return rows.map((r) => (r.code === 'UNKNOWN' ? `UNKNOWN:${r.message.split(' ')[0] ?? ''}` : r.code));
+}
+
+interface LoggedFailure {
+  code: string;
+  event: string | null;
+  event_person: string | null;
+  for_challenge: boolean | null;
+  misuse: string | null;
+  uses: string;
+}
+
+/**
+ * The signing-failure log of a challenge with the authentication event each entry names (DI-19): whose it is,
+ * whether it was made for this challenge, what the kernel's misuse check found and the event's committed uses.
+ */
+async function loggedFailures(server: TestServer, challengeId: string): Promise<LoggedFailure[]> {
+  const { rows } = await server.db.admin.query<LoggedFailure & { message: string }>(
+    `select f.code, f.message, f.auth_event_id::text as event, e.person_id::text as event_person, (e.challenge_id = f.challenge_id) as for_challenge,
+            f.misuse_code as misuse,
+            coalesce((select string_agg(u.use_kind, ',' order by u.use_kind) from iam.auth_event_use u where u.auth_event_id = f.auth_event_id), '') as uses
+       from esig.signing_failure f left join iam.auth_event e on e.id = f.auth_event_id
+      where f.challenge_id = $1
+      order by f.id`,
+    [challengeId],
+  );
+  return rows.map(({ message, ...r }) => ({ ...r, code: r.code === 'UNKNOWN' ? `UNKNOWN:${message.split(' ')[0] ?? ''}` : r.code }));
+}
+
+/** The authentication events made for a challenge (the signing attempts' own), oldest first. */
+async function challengeEvents(server: TestServer, challengeId: string): Promise<string[]> {
+  const { rows } = await server.db.admin.query<{ id: string }>('select id::text as id from iam.auth_event where challenge_id = $1 order by recorded_at, id', [challengeId]);
+  return rows.map((r) => r.id);
+}
+
+interface SigningAlert {
+  severity: string;
+  person_id: string | null;
+  account_id: string | null;
+  code: string | null;
+  reported: string | null;
+  event_purpose: string | null;
+  event_person: string | null;
+  event_account: string | null;
+}
+
+/** The security alerts raised for misuse at a challenge (DI-19), with the authentication event each one names. */
+async function signingAlerts(server: TestServer, challengeId: string): Promise<SigningAlert[]> {
+  const { rows } = await server.db.admin.query<SigningAlert>(
+    `select a.severity, a.person_id::text, a.account_id::text, a.details ->> 'code' as code, a.details ->> 'reported_code' as reported,
+            e.purpose as event_purpose, e.person_id::text as event_person, e.account_id::text as event_account
+       from iam.security_alert a
+       left join iam.auth_event e on e.id::text = a.details ->> 'auth_event_id' and e.challenge_id::text = a.details ->> 'challenge_id'
+      where a.kind = 'SIGNING_FAILED' and a.details ->> 'challenge_id' = $1
+      order by a.raised_at`,
+    [challengeId],
+  );
+  return rows;
 }
 
 describe('kiosk ceremony', () => {
@@ -192,6 +249,12 @@ describe('kiosk ceremony', () => {
     expect(await signatureRows(sbx, stub)).toEqual([]);
     expect(await stubState(sbx, stub)).toEqual({ state: 'OPEN', content_version: '2', value: '12.531' });
     expect(await failures(sbx, ch.challengeId)).toEqual(['UNKNOWN:CONTENT_CHANGED']);
+    // Logged with the signer's own authentication for this challenge, which the kernel checked for misuse (DI-19).
+    const [event] = await challengeEvents(sbx, ch.challengeId);
+    expect(await loggedFailures(sbx, ch.challengeId)).toEqual([
+      { code: 'UNKNOWN:CONTENT_CHANGED', event, event_person: personaIn(sbx, 'operator1').personId, for_challenge: true, misuse: null, uses: 'COMMAND' },
+    ]);
+    expect(await signingAlerts(sbx, ch.challengeId)).toEqual([]);
   });
 
   it('[INV-10] a dry-run refusal creates no signature: the committed command holds only its attempt records, never a change to the record', async () => {
@@ -207,12 +270,19 @@ describe('kiosk ceremony', () => {
     const auditAfter = await sbx.db.admin.query<{ n: string }>("select count(*)::text as n from kernel.audit_event where chain_key in ('esig_stub:' || $1, 'esig_signature:esig_stub:' || $1)", [stub]);
     expect(auditAfter.rows[0]?.n).toBe(auditBefore.rows[0]?.n);
     // The refused command committed: its signature authentication was used once to attribute it, never to sign.
-    const uses = await sbx.db.admin.query<{ use_kind: string }>(
-      "select u.use_kind from iam.auth_event e join iam.auth_event_use u on u.auth_event_id = e.id where e.challenge_id = $1 order by u.use_kind",
+    const uses = await sbx.db.admin.query<{ id: string; use_kind: string }>(
+      "select e.id::text as id, u.use_kind from iam.auth_event e join iam.auth_event_use u on u.auth_event_id = e.id where e.challenge_id = $1 order by u.use_kind",
       [ch.challengeId],
     );
     expect(uses.rows.map((u) => u.use_kind)).toEqual(['COMMAND']);
     expect(await failures(sbx, ch.challengeId)).toEqual(['UNKNOWN:ESIG_STUB_ORDER']);
+    // DI-19: the refusal was logged with that same authentication, the signer's own for this challenge, so the kernel
+    // checked the attempt for misuse; it found none, because the log came before the refusal record committed.
+    expect(await loggedFailures(sbx, ch.challengeId)).toEqual([
+      { code: 'UNKNOWN:ESIG_STUB_ORDER', event: uses.rows[0]?.id, event_person: personaIn(sbx, 'verifier2').personId, for_challenge: true, misuse: null, uses: 'COMMAND' },
+    ]);
+    // That committed use is the refused attempt's own: the rightful signer is not reported for re-using it.
+    expect(await signingAlerts(sbx, ch.challengeId)).toEqual([]);
   });
 
   it('[INV-10] a failure after the seal rolls everything back: no signature, no seal, the authentication event unconsumed, the entry unchanged', async () => {
@@ -283,6 +353,39 @@ describe('office ceremony', () => {
     expect(approved.result).toEqual({ stubId: stub, state: 'COMPLETED' });
     const all = valueOf(await approver.call(routes.esig.signatures, { query: { aggregateType: 'esig_stub', aggregateId: stub } }));
     expect(all.signatures.map((s) => `${s.meaning}:${s.signer.loginName}:${s.valid}`)).toEqual(['PREPARED:asha.rao:true', 'CHECKED:vikram.shah:true', 'APPROVED:meera.iyer:true']);
+    // The proxy attempt reached the security unit (DI-19): one HIGH alert for the checker's challenge, naming the
+    // approver, whose SIGNATURE authentication for that challenge the committed rows show as misuse.
+    const proxy = personaIn(gmp, 'approver');
+    expect(await signingAlerts(gmp, ch.challengeId)).toEqual([
+      { severity: 'HIGH', person_id: proxy.personId, account_id: proxy.accountId, code: 'EBMR-IAM-093', reported: 'EBMR-IAM-093', event_purpose: 'SIGNATURE', event_person: proxy.personId, event_account: proxy.accountId },
+    ]);
+    const violations = await gmp.db.admin.query('select * from esig.invariant_violations()');
+    expect(violations.rows).toEqual([]);
+  });
+
+  it('[DI-19][INV-10] a refusal before signing and its resend are each logged with their own authentication; the refusal is written once and nobody is alerted', async () => {
+    const author = await gmp.asPersona('author');
+    const approver = await gmp.asPersona('approver');
+    const me = personaIn(gmp, 'approver');
+    const stub = await createStub(gmp, author, 'author', { kind: 'MASTER_DOCUMENT', title: 'Paracetamol 500 mg MBR section 6', value: 'v1' });
+    valueOf(await sign(author, valueOf((await challengeFor(gmp, author, 'author', stub, 'PREPARED')).r).challengeId, stub, passwordOf(gmp, 'author')));
+    // APPROVED before CHECKED: the dry run refuses; a resend with the same idempotency key replays the stored refusal.
+    const ch = valueOf((await challengeFor(gmp, approver, 'approver', stub, 'APPROVED')).r);
+    const key = randomUUID();
+    const first = refusalOf(await sign(approver, ch.challengeId, stub, passwordOf(gmp, 'approver'), undefined, key));
+    expect(first).toMatchObject({ status: 422, code: 'ESIG_STUB_ORDER' });
+    expect(refusalOf(await sign(approver, ch.challengeId, stub, passwordOf(gmp, 'approver'), undefined, key))).toEqual(first);
+    expect((await signatureRows(gmp, stub)).map((s) => s.meaning_code)).toEqual(['PREPARED']);
+    // Each attempt is logged with the approver's own authentication for this challenge, which the kernel checked and
+    // found no misuse in. The first one attributes the written refusal (one COMMAND use); the resend's replay rolled
+    // back, so its authentication is used by nothing.
+    const events = await challengeEvents(gmp, ch.challengeId);
+    expect(events).toHaveLength(2);
+    expect(await loggedFailures(gmp, ch.challengeId)).toEqual([
+      { code: 'UNKNOWN:ESIG_STUB_ORDER', event: events[0], event_person: me.personId, for_challenge: true, misuse: null, uses: 'COMMAND' },
+      { code: 'UNKNOWN:ESIG_STUB_ORDER', event: events[1], event_person: me.personId, for_challenge: true, misuse: null, uses: '' },
+    ]);
+    expect(await signingAlerts(gmp, ch.challengeId)).toEqual([]);
     const violations = await gmp.db.admin.query('select * from esig.invariant_violations()');
     expect(violations.rows).toEqual([]);
   });

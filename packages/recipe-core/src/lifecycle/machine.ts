@@ -133,6 +133,10 @@ export const MBR_VERSION_V1: state.MachineDescriptor = {
   version: 1,
   aggregateType: MBR_VERSION_AGGREGATE,
   description: 'MBR version life cycle: preparation, verification, independent check and QA approval (outline 5.2.1; ADR 0014)',
+  // DI-17: creating a version is the author's act. recipe.create_version and recipe.derive_version
+  // already require MBR.AUTHOR; platform.create_aggregate_state checks it again (and refuses
+  // administrators, DI-18) when the version's state row is created at DRAFT.
+  createPermission: PERMISSIONS.author,
   machine: mbrVersionMachine,
   seedFile: '0140_machine_mbr_version_v1.sql',
 };

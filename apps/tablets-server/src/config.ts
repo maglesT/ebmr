@@ -2,6 +2,11 @@
  * Server configuration from the environment, parsed with Zod (Phase 2 apps plan section 2). One binary serves
  * both installations: EBMR_INSTALLATION=GMP (designer, audit, sessions, e-signatures) or SANDBOX (test runs,
  * shop floor, audit, sweeper). A wrong database refuses start-up (platform/installation.ts).
+ *
+ * The site's time zone is not configuration (DI-27): the kernel refuses any actor context whose zone differs
+ * from the site policy site.zone (EBMR-IAM-118), so buildApp reads the zone from that policy at start-up and
+ * completes the environment's EnvConfig into the ServerConfig the running server uses. EBMR_SITE_ZONE is only
+ * an expectation checked against the policy: when it is set and differs, the server refuses to start.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
@@ -42,12 +47,14 @@ export const EnvSchema = z.object({
   EBMR_SERVICE_KEYS_FILE: z.string().optional(),
   EBMR_OTHER_INSTALLATION_URL: z.string().optional(),
   EBMR_SITE_CODE: z.string().default('SITE-1'),
-  EBMR_SITE_ZONE: z.string().default('Asia/Kolkata'),
+  /** Optional: the site time zone the operator expects; start-up refuses a site policy site.zone that differs (DI-27). */
+  EBMR_SITE_ZONE: z.string().min(1).optional(),
   EBMR_LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   EBMR_LOG_PRETTY: bool.default(false),
 });
 
-export interface ServerConfig {
+/** What the environment configures (parseConfig). */
+export interface EnvConfig {
   installation: 'GMP' | 'SANDBOX';
   env: 'development' | 'test' | 'production';
   database: string;
@@ -68,10 +75,23 @@ export interface ServerConfig {
   serviceKeysFile: string | null;
   otherInstallationUrl: string | null;
   siteCode: string;
-  siteZone: string;
+  /** EBMR_SITE_ZONE: the zone the site policy must hold for the server to start (null: not checked). */
+  expectedSiteZone: string | null;
   logLevel: z.infer<typeof EnvSchema>['EBMR_LOG_LEVEL'];
   logPretty: boolean;
   cookies: { session: string; csrf: string };
+}
+
+/** The configuration the running server uses (buildApp): the environment's, plus the site's time zone. */
+export interface ServerConfig extends EnvConfig {
+  /**
+   * The site's IANA time zone: the site policy site.zone as read at start-up (DI-27). Every actor context the
+   * server builds declares it (requests, the sweeper, the gateway), as the kernel requires (EBMR-IAM-118); a
+   * change of the policy takes effect when the server restarts. Until then the kernel refuses the commands, and
+   * AppContext.siteZone (platform/site-zone.ts), through which the running server takes this zone, refuses every
+   * API and gateway request and every formatted time, ends open live displays and stops the sweeper.
+   */
+  siteZone: string;
 }
 
 export class ConfigError extends Error {}
@@ -86,7 +106,7 @@ export function cookieNames(installation: 'GMP' | 'SANDBOX', https: boolean): { 
   return https ? { session: `__Host-ebmr-${short}`, csrf: `__Host-ebmr-${short}-csrf` } : { session: `ebmr_${short}_sid`, csrf: `ebmr_${short}_csrf` };
 }
 
-export function parseConfig(env: Readonly<Record<string, string | undefined>>, randomKey: () => string): ServerConfig {
+export function parseConfig(env: Readonly<Record<string, string | undefined>>, randomKey: () => string): EnvConfig {
   const parsed = EnvSchema.safeParse(env);
   if (!parsed.success) throw new ConfigError(`invalid server configuration: ${z.prettifyError(parsed.error)}`);
   const e = parsed.data;
@@ -107,7 +127,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     secrets = s;
   }
   const port = e.EBMR_PORT ?? Number(origin.port || (https ? 443 : 80));
-  let gatewayListen: ServerConfig['gatewayListen'] = null;
+  let gatewayListen: EnvConfig['gatewayListen'] = null;
   if (e.EBMR_GATEWAY_LISTEN) {
     const [host = '127.0.0.1', p = '0'] = e.EBMR_GATEWAY_LISTEN.split(':');
     gatewayListen = { host, port: Number(p) };
@@ -133,7 +153,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     serviceKeysFile: e.EBMR_SERVICE_KEYS_FILE ?? null,
     otherInstallationUrl: e.EBMR_OTHER_INSTALLATION_URL ?? null,
     siteCode: e.EBMR_SITE_CODE,
-    siteZone: e.EBMR_SITE_ZONE,
+    expectedSiteZone: e.EBMR_SITE_ZONE ?? null,
     logLevel: e.EBMR_LOG_LEVEL,
     logPretty: e.EBMR_LOG_PRETTY,
     cookies: cookieNames(e.EBMR_INSTALLATION, https),

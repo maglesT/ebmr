@@ -52,7 +52,11 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
   previewContent(ctx: SignableContext, query: { aggregateType: string; aggregateId: string; intent: string }): Promise<SignableContentView>;
   /** Inside the challenge command: prepare the record at database time (PREPARE row when it changed). */
   prepareForChallenge(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<{ contentVersion: string; contentHash: string; changed: boolean }>;
-  /** Inside the sign command, before sealing: run the action with a placeholder signature; refusals sign nothing. */
+  /**
+   * Inside the sign command, before sealing: run the action with a placeholder signature; refusals sign nothing.
+   * After a refusal the attempt rolls back and C1 runs this again in a command of its own that commits what it
+   * records on purpose (its refusal record) and never signs (features/esig: the refusal is logged in between).
+   */
   dryRun(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<DryRunOutcome>;
   /** After sealing, in the same transaction: apply with the real signature; asserts the content hash is unchanged. */
   apply(client: pg.PoolClient, ctx: SignableContext, action: A, signature: { signatureId: string; meaning: string; signer: string }): Promise<Record<string, unknown> | null>;

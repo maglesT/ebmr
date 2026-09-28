@@ -12,7 +12,7 @@ import { createTestDatabase, type TestDatabase } from '../../../kernel/test/supp
 import { mbrContentHash } from '../../src/flow/canonical.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as lc from '../../src/lifecycle/index.ts';
-import { clone, loadFixture, seedCast, uniqueContent, World } from './support.ts';
+import { clone, loadFixture, reason, seedCast, uniqueContent, World } from './support.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -44,10 +44,14 @@ async function checkedSuccessor(v1: string, edit: (m: MbrContent) => void, chang
   edit(content);
   await w.run(w.cast.author, (c) => lc.saveContent(c, v2.versionId, content));
   const ra = await w.riskAssessment();
-  await w.run(w.cast.author, async (c) => {
-    await lc.setDraftAttributes(c, v2.versionId, { changeRecordId: changeRecord, effectiveFrom: '2026-03-01T00:00:00Z', reviewDue: '2028-03-01' });
-    await lc.linkRiskAssessment(c, v2.versionId, ra);
-  });
+  await w.run(
+    w.cast.author,
+    async (c) => {
+      await lc.setDraftAttributes(c, v2.versionId, { changeRecordId: changeRecord, effectiveFrom: '2026-03-01T00:00:00Z', reviewDue: '2028-03-01' });
+      await lc.linkRiskAssessment(c, v2.versionId, ra);
+    },
+    reason('change record and dates of the successor'),
+  );
   await w.recordEvidence(v2.versionId, content, 'stub');
   await w.startVerification(v2.versionId);
   await w.submit(v2.versionId);
@@ -69,7 +73,8 @@ describe('an approved master never changes (PR-06)', () => {
     const edited = clone(content);
     sealRange(edited).high.value = '205';
     await expect(w.run(w.cast.author, (c) => lc.saveContent(c, v1.versionId, edited))).rejects.toThrow(/This MBR version is APPROVED: its content can change only in DRAFT.*EBMR-RCP-021/);
-    await expect(w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v1.versionId, { effectiveFrom: '2030-01-01T00:00:00Z' }))).rejects.toThrow(/EBMR-RCP-021/);
+    // Refused for PR-06 even with the author's own reason (both halves, EBMR-AUDIT-002 satisfied).
+    await expect(w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v1.versionId, { effectiveFrom: '2030-01-01T00:00:00Z' }), reason('effective date moved'))).rejects.toThrow(/EBMR-RCP-021/);
     const ra = await w.riskAssessment();
     await expect(w.run(w.cast.author, (c) => lc.linkRiskAssessment(c, v1.versionId, ra))).rejects.toThrow(/EBMR-RCP-021/);
     await expect(w.run(w.cast.author, (c) => lc.createVersion(c, v1.familyId, edited))).rejects.toThrow(/EBMR-RCP-025/);

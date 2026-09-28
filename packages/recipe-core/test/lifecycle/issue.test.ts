@@ -103,10 +103,14 @@ describe('selection at issue and the pin (INV-01)', () => {
     const before = await w.issue(m.familyId, ['IN', 'US'], S1, m.versionId);
     expect(before.versionNumber).toBe(1);
     // The v1 batch runs to completion (an issued or running one would need an in-flight disposition first: next test).
-    await w.run(w.cast.issuer, async (c) => {
-      await lc.setStubBatchStatus(c, before.batchId, 'IN_PROGRESS');
-      await lc.setStubBatchStatus(c, before.batchId, 'COMPLETED');
-    });
+    await w.run(
+      w.cast.issuer,
+      async (c) => {
+        await lc.setStubBatchStatus(c, before.batchId, 'IN_PROGRESS');
+        await lc.setStubBatchStatus(c, before.batchId, 'COMPLETED');
+      },
+      reason('v1 batch run to completion'),
+    );
     const v2 = await w.approvedSuccessor(m.versionId, (c) => (c.header.title = `${c.header.title} v2`));
     await w.authorise(current(v2.versionId, 'IN'));
     await w.authorise(current(v2.versionId, 'US'));
@@ -137,12 +141,16 @@ describe('in-flight disposition of the predecessor\'s batches (ADR 0014 item 7, 
     const m = await currentMaster();
     const issued = await w.issue(m.familyId, ['IN'], S1);
     const running = await w.issue(m.familyId, ['IN', 'US'], S1);
-    await w.run(w.cast.issuer, (c) => lc.setStubBatchStatus(c, running.batchId, 'IN_PROGRESS'));
+    await w.run(w.cast.issuer, (c) => lc.setStubBatchStatus(c, running.batchId, 'IN_PROGRESS'), reason('line clearance done'));
     const done = await w.issue(m.familyId, ['IN'], S1);
-    await w.run(w.cast.issuer, async (c) => {
-      await lc.setStubBatchStatus(c, done.batchId, 'IN_PROGRESS');
-      await lc.setStubBatchStatus(c, done.batchId, 'COMPLETED');
-    });
+    await w.run(
+      w.cast.issuer,
+      async (c) => {
+        await lc.setStubBatchStatus(c, done.batchId, 'IN_PROGRESS');
+        await lc.setStubBatchStatus(c, done.batchId, 'COMPLETED');
+      },
+      reason('batch run to completion'),
+    );
     // v2 up to CHECKED.
     const v2 = await w.run(w.cast.author, (c) => lc.deriveVersion(c, m.versionId, 'improvement'));
     const content = (await lc.loadContent(db.app, v2.versionId)).content;

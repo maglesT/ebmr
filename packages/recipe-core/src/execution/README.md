@@ -1,4 +1,4 @@
-# Execution store (`recipe-core/src/execution`, `sql/0200-0249`)
+# Execution store (`recipe-core/src/execution`, `sql/0200-0249`, `sql/0260`)
 
 Phase 2 apps, module C3. The database-backed store of batch executions. In Phase 2 it holds sandbox
 test runs of MBR versions only (TEST- batches). The pure engine (`../engine`) decides; this store writes
@@ -201,11 +201,15 @@ signature/record linking and EU GMP Annex 11 section 14.
 **Permissions and roles**
 - HOLD_BATCH, RELEASE_HOLD and ATTACH_DEVIATION: STEP.SUPERVISE or QA.FLOOR_APPROVE.
 - RAISE_EXCEPTION: any shop-floor permission.
-- The sweeper: a new permission, EXECUTION.SWEEP, granted to SERVICE_ACCOUNT.
+- The sweeper: a new permission, EXECUTION.SWEEP, held only by the role EXECUTION_SWEEPER (sql 0260; SERVICE
+  accounts only). Only the sweeper identity is granted that role. sql 0200 first granted the permission to the kernel's
+  SERVICE_ACCOUNT role, which the gateway holds too; 0260 removes that row (DI-17 least privilege). The sweeper no
+  longer holds SERVICE_ACCOUNT, and so no longer holds INTERFACE.WRITE or the kernel's other service permissions.
 - The provider scope is `{site}` of the batch.
 
 **Batches and rows**
-- Test batch numbers are `TEST-B<yy>-<nnnn>`, from a sequence.
+- Test batch numbers are `TEST-B<yy>-<nnnn>`, from a protected sequence (INV-27, sql 0220): the serial is
+  zero-padded to four digits and never shortened, so 10001 stays 10001 after a restore moves the sequence on (sql 0240).
 - A test run's engine purpose is VALIDATION (a run validates an MBR version).
 - A PREPARE row is written only when the preparation produced events; a SWEEP row likewise.
 

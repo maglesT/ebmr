@@ -9,7 +9,7 @@
 import type { InstallationKind } from './db.ts';
 
 export const SITE_CODE = 'SITE-1';
-export const SITE_ZONE = 'Asia/Kolkata';
+// No site time zone here: contexts declare the database's site policy site.zone (seed.ts siteZoneOf; DI-27).
 
 export type TerminalClass = 'PERSONAL' | 'SHARED' | 'GRADE_A_B' | 'SERVER' | 'INSTRUMENT';
 
@@ -73,13 +73,20 @@ export interface ServiceSpec {
   legalName: string;
   loginName: string;
   accountKind: 'SERVICE' | 'INTEGRATION';
+  /** The one role the identity is granted, and the role its contexts declare (DI-17: only what it needs). */
+  roleCode: string;
   terminal: string;
 }
 
-/** Service identities of the sandbox (plan section 2): the in-process sweeper and the site gateway. */
+/**
+ * Service identities of the sandbox (plan section 2): the in-process sweeper and the site gateway. Each holds only
+ * the role its work needs (DI-17). The sweeper holds EXECUTION_SWEEPER (recipe-core 0260: EXECUTION.SWEEP and
+ * nothing else; SERVICE accounts only). The gateway holds the kernel's SERVICE_ACCOUNT (INTERFACE.WRITE), which no
+ * longer carries EXECUTION.SWEEP.
+ */
 export const SERVICES: readonly ServiceSpec[] = [
-  { key: 'sweeper', legalName: 'TEST-sweeper', loginName: 'test-sweeper', accountKind: 'SERVICE', terminal: 'TEST-SRV-SWEEPER' },
-  { key: 'gateway', legalName: 'TEST-gw', loginName: 'test-gw', accountKind: 'INTEGRATION', terminal: 'TEST-GW-01' },
+  { key: 'sweeper', legalName: 'TEST-sweeper', loginName: 'test-sweeper', accountKind: 'SERVICE', roleCode: 'EXECUTION_SWEEPER', terminal: 'TEST-SRV-SWEEPER' },
+  { key: 'gateway', legalName: 'TEST-gw', loginName: 'test-gw', accountKind: 'INTEGRATION', roleCode: 'SERVICE_ACCOUNT', terminal: 'TEST-GW-01' },
 ];
 
 /** Names of the installation's first administrator and process owner (sandbox names carry TEST-). */

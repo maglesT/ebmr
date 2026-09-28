@@ -18,6 +18,15 @@ export interface IdempotentResult<T> {
   replayed: boolean;
 }
 
+export interface IdempotentOptions<T> {
+  /**
+   * Runs inside the transaction before a stored result is replayed. When it throws, the replay rolls back and
+   * commits nothing, not even the use of the actor's authentication event (the e-signature ceremony uses this for a
+   * replayed refusal, which it logs with that event afterwards, see features/esig).
+   */
+  beforeReplay?: (result: T) => void;
+}
+
 /**
  * One idempotent command (outline 5.7; kernel platform.claim_idempotency_key): the key is claimed in the
  * command's own transaction and the JSON result stored with it, so a resend with the same key and request hash
@@ -30,6 +39,7 @@ export async function withIdempotentActorCommand<T extends commands.JsonValue>(
   key: string,
   requestHash: string,
   work: (client: pg.PoolClient) => Promise<T>,
+  options: IdempotentOptions<T> = {},
 ): Promise<IdempotentResult<T>> {
   try {
     return await identity.withGuardedCommand(pool, actor, async (client) => {
@@ -38,7 +48,9 @@ export async function withIdempotentActorCommand<T extends commands.JsonValue>(
       if (!claim) throw new Error('platform.claim_idempotency_key returned nothing');
       if (claim.status === 'REPLAY') {
         if (claim.result_json === undefined) throw new Error(`idempotency key ${key} has no stored result`);
-        return { result: JSON.parse(claim.result_json) as T, replayed: true };
+        const stored = JSON.parse(claim.result_json) as T;
+        options.beforeReplay?.(stored);
+        return { result: stored, replayed: true };
       }
       const result = await work(client);
       const json = JSON.stringify(result) as string | undefined;

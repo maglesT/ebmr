@@ -6,8 +6,9 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../../kernel/src/db/command.ts';
-import { challengeFor, ensureSealKey } from '../../../kernel/test/esig/helpers.ts';
+import { challengeFor, cmd, ensureSealKey } from '../../../kernel/test/esig/helpers.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { approvePolicyVersion } from '../../../kernel/test/market/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { canonicalJson, mbrContentHash, sha256Hex } from '../../src/flow/canonical.ts';
 import * as lc from '../../src/lifecycle/index.ts';
@@ -40,11 +41,51 @@ async function signatureStatus(id: string): Promise<string> {
   return (await q<{ s: string }>("select esig.signature_state($1) ->> 'status' as s", [id]))[0]?.s ?? '';
 }
 
+const FORGED_COLUMNS = `aggregate_type, aggregate_id, aggregate_ref, content_version, content_hash, meaning_code, meaning_version,
+  meaning_title, meaning_text, signer_person, signer_account, signer_login, signer_legal_name, signer_role_code, signer_role_name,
+  session_id, session_person, cosignature, device_id, auth_event_id, auth_method, components_used, components_required,
+  authority_evaluation_id, challenge_id, correlation_id, site_zone, utc_offset, record_state, manifestation, manifestation_text`;
+
+/** The forged row's values from the signer's challenge ($1 version id, $2 challenge id, $3 role code, $4 record state). */
+const FORGED_VALUES = `select 'mbr_version', $1, 'mbr_version:' || $1, c.content_version, c.content_hash, c.meaning_code, c.meaning_version,
+  'forged', 'forged', c.signer_person, c.signer_account, 'forged', 'forged', $3, 'forged', c.session_id, c.session_person, false,
+  c.device_id, gen_random_uuid(), 'PASSWORD', array['PASSWORD'], 'ALL', gen_random_uuid(), c.id, gen_random_uuid(),
+  iam.policy_text('site.zone'), '+00:00', $4::text, '{}'::jsonb, 'forged'
+  from esig.challenge c where c.id = $2`;
+
+const FORGED_SEAL = `insert into esig.signature_seal (signature_id, aggregate_ref, key_id, algorithm, payload_sha256, seal)
+  values ($1, 'mbr_version:' || $2, 'test-hmac-1', 'HMAC-SHA256', repeat('0', 64), encode(sha256('x'), 'base64'))`;
+
 /**
- * A superuser forges a sealed signature row (triggers off): the attack INV-04's database guard must
- * stop even when a signature passes the engine's SIGNATURE hook.
+ * An owner-level writer forges a sealed signature row that passes the engine's SIGNATURE hook: the
+ * attack INV-04's database guard must stop. The row is inserted in a command of the signer, naming
+ * its challenge exactly as esig.sign does (so the insert is audited, after the transition that
+ * entered `recordState`, and bound to that state, kernel 0230/0910), but without the e-signature
+ * module's authentication, authority and independence checks (EBMR-ESIG-043/044).
  */
-async function forgeSignature(signer: SeededActor, versionId: string, meaning: string): Promise<string> {
+async function forgeSignature(signer: SeededActor, versionId: string, meaning: 'CHECKED' | 'APPROVED', recordState: string): Promise<string> {
+  await ensureSealKey(db);
+  const ch = await challengeFor(db, signer, versionId, { meaning, aggregateType: 'mbr_version' });
+  return withCommand(db.admin, await cmd(db, signer), async (c) => {
+    await c.query("select set_config('esig.signing_challenge', $1, true)", [ch.challengeId]);
+    const { rows } = await c.query<{ id: string }>(`insert into esig.signature (${FORGED_COLUMNS}) ${FORGED_VALUES} returning id`, [
+      versionId,
+      ch.challengeId,
+      signer.roleCode,
+      recordState,
+    ]);
+    const id = rows[0]?.id ?? '';
+    await c.query(FORGED_SEAL, [id, versionId]);
+    return id;
+  });
+}
+
+/**
+ * A superuser forges a sealed signature row with triggers off (session_replication_role = replica):
+ * no record state, no audited insert. The kernel's SIGNATURE hook refuses it before any guard of the
+ * machine runs (EBMR-PLAT-008).
+ */
+async function forgeReplicaSignature(signer: SeededActor, versionId: string, meaning: 'CHECKED' | 'APPROVED'): Promise<string> {
   await ensureSealKey(db);
   const ch = await challengeFor(db, signer, versionId, { meaning, aggregateType: 'mbr_version' });
   const client = await db.admin.connect();
@@ -52,22 +93,11 @@ async function forgeSignature(signer: SeededActor, versionId: string, meaning: s
     await client.query('begin');
     await client.query("set local session_replication_role = 'replica'");
     const { rows } = await client.query<{ id: string }>(
-      `insert into esig.signature (id, aggregate_type, aggregate_id, aggregate_ref, content_version, content_hash, meaning_code, meaning_version,
-         meaning_title, meaning_text, signer_person, signer_account, signer_login, signer_legal_name, signer_role_code, signer_role_name,
-         session_id, session_person, cosignature, device_id, auth_event_id, auth_method, components_used, components_required,
-         authority_evaluation_id, challenge_id, correlation_id, site_zone, utc_offset, manifestation, manifestation_text)
-       select gen_random_uuid(), 'mbr_version', $1, 'mbr_version:' || $1, c.content_version, c.content_hash, c.meaning_code, c.meaning_version,
-         'forged', 'forged', c.signer_person, c.signer_account, 'forged', 'forged', 'MBR_CHECKER', 'forged', c.session_id, c.session_person, false,
-         c.device_id, gen_random_uuid(), 'PASSWORD', array['PASSWORD'], 'ALL', gen_random_uuid(), c.id, gen_random_uuid(), 'Asia/Kolkata', '+05:30',
-         '{}'::jsonb, 'forged'
-       from esig.challenge c where c.id = $2 returning id`,
-      [versionId, ch.challengeId],
+      `insert into esig.signature (id, recorded_at, ${FORGED_COLUMNS}) select gen_random_uuid(), clock_timestamp(), f.* from (${FORGED_VALUES}) f returning id`,
+      [versionId, ch.challengeId, signer.roleCode, null],
     );
     const id = rows[0]?.id ?? '';
-    await client.query(
-      "insert into esig.signature_seal (signature_id, aggregate_ref, key_id, algorithm, payload_sha256, seal) values ($1, 'mbr_version:' || $2, 'test-hmac-1', 'HMAC-SHA256', repeat('0', 64), encode(sha256('x'), 'base64'))",
-      [id, versionId],
-    );
+    await client.query(FORGED_SEAL, [id, versionId]);
     await client.query('commit');
     return id;
   } catch (error) {
@@ -76,6 +106,15 @@ async function forgeSignature(signer: SeededActor, versionId: string, meaning: s
   } finally {
     client.release();
   }
+}
+
+/** A recipe guard of the mbr_version machine evaluated directly on a signature (its reason, or null). */
+async function guardOn(guard: 'checker_independent' | 'approver_independent' | 'signed_in_state', versionId: string, transition: object, signatureId: string): Promise<string | null> {
+  const rows = await q<{ r: string | null }>(
+    `select recipe.guard_${guard}('mbr_version', $1, $2::jsonb, jsonb_build_object('signature_id', $3::text), '{}'::jsonb) as r`,
+    [versionId, JSON.stringify(transition), signatureId],
+  );
+  return rows[0]?.r ?? null;
 }
 
 describe('preparation, independent check and QA approval (PR-02, INV-04)', () => {
@@ -116,9 +155,15 @@ describe('preparation, independent check and QA approval (PR-02, INV-04)', () =>
     // The author also holds the checker role: e-signature independence refuses the CHECKED signature.
     const authorAsChecker = await withSecondRole(db, w.cast.author, 'MBR_CHECKER');
     await expect(w.signVersion(authorAsChecker, v.versionId, 'CHECKED', 'SUBMITTED')).rejects.toThrow(/EBMR-ESIG-04[34]/);
-    // Even a forged, sealed CHECKED signature of the author is refused by the database guard (INV-04).
-    const forged = await forgeSignature(authorAsChecker, v.versionId, 'CHECKED');
     const s = await w.state(v.versionId);
+    // A sealed CHECKED row written with triggers off (no record state, no audited insert) is refused by
+    // the kernel's SIGNATURE hook before any guard of the machine runs.
+    const replica = await forgeReplicaSignature(authorAsChecker, v.versionId, 'CHECKED');
+    await expect(w.run(w.cast.checker, (c) => lc.checkVersion(c, v.versionId, s.version, replica))).rejects.toThrow(
+      /EBMR-PLAT-008 .*applied while the record was in state \(none\)/,
+    );
+    // Even a forged, sealed CHECKED signature of the author that passes the hook is refused by the database guard (INV-04).
+    const forged = await forgeSignature(authorAsChecker, v.versionId, 'CHECKED', 'SUBMITTED');
     await expect(w.run(w.cast.checker, (c) => lc.checkVersion(c, v.versionId, s.version, forged))).rejects.toThrow(
       /mbr_version\.checker_independent: the author cannot check their own MBR version/,
     );
@@ -140,11 +185,12 @@ describe('preparation, independent check and QA approval (PR-02, INV-04)', () =>
     await w.submit(v.versionId);
     const coAuthorAsChecker = await withSecondRole(db, w.cast.coAuthor, 'MBR_CHECKER');
     await expect(w.signVersion(coAuthorAsChecker, v.versionId, 'CHECKED', 'SUBMITTED')).rejects.toThrow(/EBMR-ESIG-044/);
-    const forged = await forgeSignature(coAuthorAsChecker, v.versionId, 'CHECKED');
+    const forged = await forgeSignature(coAuthorAsChecker, v.versionId, 'CHECKED', 'SUBMITTED');
     const s = await w.state(v.versionId);
     await expect(w.run(w.cast.checker, (c) => lc.checkVersion(c, v.versionId, s.version, forged))).rejects.toThrow(
       /the checker edited this version since it last entered DRAFT/,
     );
+    expect((await w.state(v.versionId)).state).toBe('SUBMITTED');
     // An independent checker is accepted.
     await w.check(v.versionId);
     expect((await w.state(v.versionId)).state).toBe('CHECKED');
@@ -156,15 +202,16 @@ describe('preparation, independent check and QA approval (PR-02, INV-04)', () =>
     const checkedSig = await w.check(v.versionId);
     const checkerAsQa = await withSecondRole(db, w.cast.checker, 'QA_MBR_APPROVER');
     await expect(w.signVersion(checkerAsQa, v.versionId, 'APPROVED', 'CHECKED')).rejects.toThrow(/EBMR-ESIG-043/);
-    const forged = await forgeSignature(checkerAsQa, v.versionId, 'APPROVED');
+    const forged = await forgeSignature(checkerAsQa, v.versionId, 'APPROVED', 'CHECKED');
     const s = await w.state(v.versionId);
     await expect(w.run(w.cast.qa, (c) => lc.approveVersion(c, v.versionId, s.version, forged))).rejects.toThrow(
       /mbr_version\.approver_independent: the checker cannot also approve/,
     );
-    const forgedByAuthor = await forgeSignature(await withSecondRole(db, w.cast.author, 'QA_MBR_APPROVER'), v.versionId, 'APPROVED');
+    const forgedByAuthor = await forgeSignature(await withSecondRole(db, w.cast.author, 'QA_MBR_APPROVER'), v.versionId, 'APPROVED', 'CHECKED');
     await expect(w.run(w.cast.qa, (c) => lc.approveVersion(c, v.versionId, s.version, forgedByAuthor))).rejects.toThrow(
       /the author cannot approve their own MBR version/,
     );
+    expect((await w.state(v.versionId)).state).toBe('CHECKED');
     // The guard itself, evaluated on the real CHECKED signature: checker = approver needs S4.
     const reasonText = (await q<{ r: string | null }>(
       "select recipe.guard_approver_independent('mbr_version', $1, '{}'::jsonb, jsonb_build_object('signature_id', $2::text), '{}'::jsonb) as r",
@@ -184,7 +231,7 @@ describe('preparation, independent check and QA approval (PR-02, INV-04)', () =>
     // Back to DRAFT, set the date, and the full route again with fresh signatures.
     const s = await w.state(v.versionId);
     await w.run(w.cast.qa, (c) => lc.returnToDraft(c, v.versionId, s.version), reason('effective date missing'));
-    await w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v.versionId, { effectiveFrom: '2026-02-01T00:00:00Z' }));
+    await w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v.versionId, { effectiveFrom: '2026-02-01T00:00:00Z' }), reason('effective date agreed with QA'));
     await w.startVerification(v.versionId);
     await w.submit(v.versionId);
     // The QA person who returned it changed its signed content (a new draft cycle), so another checker and approver sign.
@@ -278,7 +325,7 @@ describe('preparation, independent check and QA approval (PR-02, INV-04)', () =>
     const s = await w.state(v.versionId);
     await w.run(w.cast.author, (c) => lc.returnToDraft(c, v.versionId, s.version), reason('author rework'));
     expect((await q<{ e: string[] }>('select recipe.editors_since_draft($1)::text[] as e', [v.versionId]))[0]?.e).toEqual([]);
-    await w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v.versionId, { reviewDue: '2027-11-30' }));
+    await w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v.versionId, { reviewDue: '2027-11-30' }), reason('periodic review brought forward'));
     expect((await q<{ e: string[] }>('select recipe.editors_since_draft($1)::text[] as e', [v.versionId]))[0]?.e).toEqual([w.cast.author.personId]);
     // A real signature of the cycle-1 editor passes the INV-04 guard (the e-signature module stays stricter:
     // anyone who ever changed the signed content is excluded from CHECKED and APPROVED).
@@ -468,10 +515,16 @@ describe('risk assessment and change record before submission (PR-07, PR-06)', (
     // The e-signature module accepts the CHECKED signature on the content as it stands ...
     const early = await w.signVersion(w.cast.checker, v.versionId, 'CHECKED', 'IN_VERIFICATION');
     await w.submit(v.versionId);
-    // ... but the check is a step after the submission: a signature given before it does not count.
+    // ... but the check is a step after the submission: a signature given before it does not count. The
+    // signature is bound to the state it was applied in, so the kernel's SIGNATURE hook refuses it first.
     const s = await w.state(v.versionId);
     await expect(w.run(w.cast.checker, (c) => lc.checkVersion(c, v.versionId, s.version, early))).rejects.toThrow(
-      /signed_in_state: the CHECK signature was applied before the version entered SUBMITTED/,
+      /EBMR-PLAT-008 .*was applied while the record was in state IN_VERIFICATION; it cannot authorise a step out of state SUBMITTED/,
+    );
+    expect((await w.state(v.versionId)).state).toBe('SUBMITTED');
+    // The machine's own guard refuses it as well, on the same signature (defence in depth, INV-04).
+    expect(await guardOn('signed_in_state', v.versionId, { from: 'SUBMITTED', event: 'CHECK' }, early)).toMatch(
+      /the CHECK signature was applied before the version entered SUBMITTED/,
     );
     expect((await w.state(v.versionId)).state).toBe('SUBMITTED');
   });
@@ -489,12 +542,18 @@ describe('S4: may the checker also approve?', () => {
         [v.versionId, checkedSig],
       ))[0]?.r;
     expect(await guard()).toMatch(/unless QA policy S4/);
-    await w.run(w.cast.qa, async (c) => {
-      await c.query('select market.define_policy($1::jsonb)', [
+    await w.run(w.cast.qa, (c) =>
+      c.query('select market.define_policy($1::jsonb)', [
         JSON.stringify({ code: 'mbr.checker_may_approve', title: 'S4: the MBR checker may also approve', level: 'TENANT', controls: ['PR-02'], positions: ['ALLOWED', 'NOT_ALLOWED'], defaultPosition: 'NOT_ALLOWED', looseningRequires: 'QA_APPROVAL', reason: 'test' }),
-      ]);
-      await c.query("select market.set_policy_version('mbr.checker_may_approve', 'ALLOWED', null, $1::jsonb)", [JSON.stringify({ approvalId: randomUUID(), changeRef: 'CC-S4', reason: 'test' })]);
-    });
+      ]),
+    );
+    // Switching S4 on is a loosening: its approval is a real POLICY_LOOSENING_APPROVED e-signature of
+    // exactly this version (policy, number, position) by a quality-unit person other than its author,
+    // w.cast.qa (kernel 0350/0360; EBMR-MKT-073/075). A free approval id is refused.
+    const approvalId = await approvePolicyVersion(db, 'mbr.checker_may_approve', 'ALLOWED', w.cast.qa2);
+    await w.run(w.cast.qa, (c) =>
+      c.query("select market.set_policy_version('mbr.checker_may_approve', 'ALLOWED', null, $1::jsonb)", [JSON.stringify({ approvalId, changeRef: 'CC-S4', reason: 'test' })]),
+    );
     expect((await q<{ r: boolean }>('select recipe.checker_may_approve() as r'))[0]?.r).toBe(true);
     expect(await guard()).toBeNull();
     const checkerAsQa = await withSecondRole(db, w.cast.checker, 'QA_MBR_APPROVER');

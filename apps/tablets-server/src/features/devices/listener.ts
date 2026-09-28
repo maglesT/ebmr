@@ -14,6 +14,10 @@
  *   POST /gw/v1/logout
  * Integration identities never sign: the kernel refuses SERVICE_KEY authentication for anything but LOGIN, and
  * iam.can_sign refuses non-human accounts.
+ *
+ * Every request re-reads the site policy site.zone first (AppContext.siteZone, DI-27): after a change while the
+ * server runs, every request is refused with SITE_ZONE_CHANGED (503, no relogin) until the server restarts, so no
+ * reading is taken or refused as bad in a context of the old zone; the gateway keeps its journal and sends again.
  */
 import { createHash, randomBytes, randomUUID, verify } from 'node:crypto';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
@@ -35,6 +39,7 @@ import {
 import { consumeNonce, mintNonce } from '../../platform/auth/nonces.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
+import { HttpRefusal } from '../../platform/http/refusal.ts';
 import { runtimeOf } from './runtime.ts';
 
 const tokenHash = (token: string): string => createHash('sha256').update(token, 'utf8').digest('hex');
@@ -87,7 +92,11 @@ async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<
   };
 }
 
-/** The INTEGRATION actor of a gateway session (source INTEGRATION; the role holding INTERFACE.WRITE). */
+/**
+ * The INTEGRATION actor of a gateway session (source INTEGRATION; the role holding INTERFACE.WRITE). `siteZone` is
+ * the site policy's zone as the server holds it (AppContext.siteZone.current(), which refuses once the policy
+ * changed): the kernel refuses any other (EBMR-IAM-118, DI-27).
+ */
 export function gatewayActor(gw: GatewaySession, siteZone: string, correlationId: string): ActorContext & { deviceId: string } {
   return {
     personId: gw.personId,
@@ -145,9 +154,19 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       void reply.code(error.status).send({ error: { code: error.code, message: error.message, relogin: error.relogin } });
       return;
     }
+    if (error instanceof HttpRefusal) {
+      // SITE_ZONE_CHANGED (DI-27): the gateway's session and token stay valid; it retries after the restart.
+      void reply.code(error.status).send({ error: { code: error.refusal.code, message: `${error.refusal.whatHappened} ${error.refusal.why}`.trim(), relogin: false } });
+      return;
+    }
     const code = commands.errorCode(error) ?? 'INTERNAL';
     const status = code === 'INTERNAL' ? 500 : 422;
     void reply.code(status).send({ error: { code, message: error instanceof Error ? error.message : String(error), relogin: false } });
+  });
+
+  // DI-27: a change of the site policy site.zone while the server runs refuses every gateway request.
+  server.addHook('onRequest', async () => {
+    await app.siteZone.check();
   });
 
   server.post('/gw/v1/nonce', async () => {
@@ -214,7 +233,7 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       throw new GwError(400, 'SCHEMA', 'DI-31: the readings are not in the expected form');
     }
     const correlationId = randomUUID();
-    const actor = gatewayActor(gw, app.config.siteZone, correlationId);
+    const actor = gatewayActor(gw, app.siteZone.current(), correlationId);
     const publicKey = ed25519PublicKey(gw.publicKeySpki);
     const results: UplinkResponse['results'] = [];
     let head: UplinkResponse['head'] | null = null;
@@ -268,7 +287,7 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
     }
     const parsed = HeartbeatRequest.safeParse(request.body);
     if (!parsed.success) throw new GwError(400, 'SCHEMA', 'the heartbeat is not in the expected form');
-    const actor = gatewayActor(gw, app.config.siteZone, randomUUID());
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
     const out = await withActorCommand(app.pools.app, actor, async (client) => {
       const { rows } = await client.query<{ r: HeartbeatResponse }>('select tab.record_heartbeat($1::jsonb) as r', [JSON.stringify(parsed.data)]);
       if (!rows[0]) throw new Error('tab.record_heartbeat returned nothing');
