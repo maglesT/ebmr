@@ -31,6 +31,8 @@ export interface ContentForSigning {
   /** The canonical text to render and hash. */
   canonical?: string;
   contentHash?: string;
+  /** Why a record that exists cannot be signed under this id (EBMR-ESIG-014: not its canonical id). */
+  problem?: string;
 }
 
 /** The server's canonical content of a record: the UI renders it and hashes exactly this text. */
@@ -38,6 +40,7 @@ export async function contentForSigning(db: Db, aggregateType: string, aggregate
   const { rows } = await db.query<{ r: Record<string, unknown> }>('select esig.content_for_signing($1, $2) as r', [aggregateType, aggregateId]);
   const r = rows[0]?.r ?? {};
   const out: ContentForSigning = { exists: r['exists'] === true, aggregateType, aggregateId };
+  if (typeof r['problem'] === 'string') out.problem = r['problem'];
   if (out.exists) {
     out.contentVersion = String(r['content_version']);
     out.state = typeof r['state'] === 'string' ? r['state'] : null;
@@ -108,7 +111,11 @@ export interface SignRequest {
   expectedState?: string | null;
   /** A cited delegation, for delegable meanings (outline 7.1). */
   delegationId?: string;
-  /** WITNESSED: whether the next step has already started (then witnessing is refused). */
+  /**
+   * WITNESSED: the caller's knowledge that the next step has already started. The database decides
+   * from the record itself (the provider's act.next_step_started); this flag can only make the rule
+   * stricter (true refuses witnessing), never let a witness through.
+   */
   nextStepStarted?: boolean;
 }
 
@@ -155,14 +162,16 @@ export async function sign(client: pg.PoolClient, req: SignRequest, key: SealKey
 
 /**
  * Logs a refused signing after its command rolled back: the failure itself (esig.signing_failure,
- * with a security alert for misuse patterns) and, for authority and independence refusals, the
- * stored evaluation that the rollback removed (INV-26, DI-17: a failed check is logged).
+ * against the challenge and the authentication event the attempt used; the database alerts the
+ * security unit only on misuse it can prove from committed rows, DI-19) and, for authority and
+ * independence refusals, the stored evaluation that the rollback removed (INV-26, DI-17: a failed
+ * check is logged).
  */
-export async function logSigningFailure(pool: pg.Pool, challengeId: string, error: unknown): Promise<void> {
+export async function logSigningFailure(pool: pg.Pool, challengeId: string, error: unknown, authEventId?: string): Promise<void> {
   const code = ebmrCode(error) ?? 'UNKNOWN';
   const message = error instanceof Error ? error.message : String(error);
   try {
-    await pool.query('select esig.record_signing_failure($1, $2, $3)', [challengeId, code, message]);
+    await pool.query('select esig.record_signing_failure($1, $2, $3, $4)', [challengeId, authEventId ?? null, code, message]);
     const d = errorDetail(error);
     if (!d) return;
     if (code === 'EBMR-ESIG-040') {
@@ -189,7 +198,7 @@ export async function signCommand(pool: pg.Pool, ctx: ActorContext, req: SignReq
   try {
     return await withGuardedCommand(pool, ctx, (client) => sign(client, req, key));
   } catch (error) {
-    await logSigningFailure(pool, req.challengeId, error);
+    await logSigningFailure(pool, req.challengeId, error, req.authEventId);
     throw error;
   }
 }

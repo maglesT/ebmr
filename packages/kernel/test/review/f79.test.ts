@@ -95,7 +95,7 @@ async function verifiedCount(id: string): Promise<number> {
 }
 
 describe('F79: site-scoped qualification requirements are skipped when the request has no site (INV-26, DI-21, IN-04)', () => {
-  it('sanity: the requirement is live, the verifier is unqualified, holds an installation-wide grant and works at a SITE-1 terminal', async () => {
+  it('[INV-26] sanity: the requirement is live, the verifier is unqualified, holds an installation-wide grant and works at a SITE-1 terminal', async () => {
     const req = await db.admin.query<{ permission_code: string; scope_site: string | null }>(
       'select permission_code, scope_site from iam.qualification_requirement where qualification_code = $1 and effective_to is null',
       [code],

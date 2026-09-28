@@ -5,10 +5,20 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { toDbContext } from '../../src/db/command.ts';
-import { applyPolicyTightening, batchPolicy, definePolicy, pinPoliciesForBatch, policyForBatch, setPolicyVersion, type PolicyVersion } from '../../src/market/policy.ts';
+import { toDbContext, withCommand } from '../../src/db/command.ts';
+import {
+  applyPolicyTightening,
+  batchPolicy,
+  definePolicy,
+  pinPoliciesForBatch,
+  policyForBatch,
+  policyVersionApprovalTarget,
+  setPolicyVersion,
+  type PolicyVersion,
+} from '../../src/market/policy.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, MARKET_ROLES, testActor } from './helpers.ts';
+import { seedActor } from '../identity/seed.ts';
+import { approvalIntegrity, approvePolicyVersion, asApp, MARKET_ROLES, signApproval, testActor } from './helpers.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -56,7 +66,8 @@ describe('policies as versioned data', () => {
     const { code, v1 } = await newPolicy(['OFF', 'ON'], 'ON');
     expect([v1.version, v1.position, v1.direction]).toEqual([1, 'ON', 'INITIAL']);
     const later = await dbInstant('1 hour');
-    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: later, approvalId: randomUUID(), changeRef: 'CC-101' }), { roleCode: MARKET_ROLES.policy });
+    const approvalId = await approvePolicyVersion(db, code, 'OFF');
+    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: later, approvalId, changeRef: 'CC-101' }), { roleCode: MARKET_ROLES.policy });
     expect([v2.version, v2.direction]).toEqual([2, 'LOOSENING']);
     const later2 = await dbInstant('2 hours');
     const v3 = await asApp(db, (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: later2, changeRef: 'CC-102' }), { roleCode: MARKET_ROLES.policy });
@@ -66,7 +77,8 @@ describe('policies as versioned data', () => {
   it('[INV-47] policy_for_batch returns the version in force at the batch issue instant', async () => {
     const { code, v1 } = await newPolicy(['OFF', 'ON'], 'ON');
     const effective = await dbInstant('1 hour');
-    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: effective, approvalId: randomUUID(), changeRef: 'CC-103' }), { roleCode: MARKET_ROLES.policy });
+    const approvalId = await approvePolicyVersion(db, code, 'OFF');
+    const v2 = await asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: effective, approvalId, changeRef: 'CC-103' }), { roleCode: MARKET_ROLES.policy });
     expect((await policyForBatch(db.app, code, await dbInstant('1 minute'))).id).toBe(v1.id);
     expect((await policyForBatch(db.app, code, await dbInstant('59 minutes'))).id).toBe(v1.id);
     expect((await policyForBatch(db.app, code, effective)).id).toBe(v2.id);
@@ -90,8 +102,66 @@ describe('policies as versioned data', () => {
     await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { changeRef: 'CC-106' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-073');
     await expect(asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { approvalId: randomUUID() }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-073');
     await expect(asApp(db, (c) => setPolicyVersion(c, code, 'MAYBE', { changeRef: 'CC-106' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-071');
-    await asApp(db, async (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: await dbInstant('2 hours'), approvalId: randomUUID(), changeRef: 'CC-107' }), { roleCode: MARKET_ROLES.policy });
+    const approvalId = await approvePolicyVersion(db, code, 'OFF');
+    await asApp(db, async (c) => setPolicyVersion(c, code, 'OFF', { effectiveFrom: await dbInstant('2 hours'), approvalId, changeRef: 'CC-107' }), { roleCode: MARKET_ROLES.policy });
     await expect(asApp(db, async (c) => setPolicyVersion(c, code, 'ON', { effectiveFrom: await dbInstant('1 hour'), changeRef: 'CC-108' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-072');
+  });
+});
+
+describe('approval of a policy version (DI-09) and the level of a switch', () => {
+  it('[INV-47][DI-09][DI-35] a loosening\'s approval is an approver\'s e-signature of exactly that version: an unknown id or the signature of another version or position is refused', async () => {
+    const { code } = await newPolicy(['OFF', 'LOW', 'ON'], 'ON');
+    const loosen = (approvalId: string) => asApp(db, (c) => setPolicyVersion(c, code, 'OFF', { approvalId, changeRef: 'CC-201' }), { roleCode: MARKET_ROLES.policy });
+    await expect(loosen(randomUUID())).rejects.toThrow('EBMR-ESIG-070');
+    const ofLow = await approvePolicyVersion(db, code, 'LOW');
+    await expect(loosen(ofLow)).rejects.toThrow('EBMR-ESIG-070');
+    const ok = await approvePolicyVersion(db, code, 'OFF');
+    const v2 = await loosen(ok);
+    expect([v2.version, v2.direction, v2.approvalId]).toEqual([2, 'LOOSENING', ok]);
+    const { rows } = await db.admin.query<{ signer_person: string }>('select signer_person from esig.signature where id = $1', [ok]);
+    expect(v2.approverPersonId).toBe(rows[0]?.signer_person);
+    expect(v2.approverPersonId).not.toBe(v2.authorPersonId);
+    // The approval stays valid once the version is recorded (its signed content never changes).
+    expect(await approvalIntegrity(db, [ok])).toEqual([{ status: 'VALID', problems: [] }]);
+    // The approval of version 2 does not carry over to a later version at the same position.
+    await asApp(db, (c) => setPolicyVersion(c, code, 'ON', { changeRef: 'CC-202' }), { roleCode: MARKET_ROLES.policy });
+    await expect(loosen(ok)).rejects.toThrow('EBMR-ESIG-070');
+  });
+
+  it('[INV-47][DI-09] the author of a loosening cannot approve it, and nobody outside the quality unit can sign the approval', async () => {
+    const author = await seedActor(db, { roleCode: MARKET_ROLES.policy });
+    const code = `S9.self${randomUUID().slice(0, 6)}`;
+    await withCommand(db.app, { ...author, correlationId: randomUUID() }, (c) =>
+      definePolicy(c, { code, title: 'self-approval test', level: 'TENANT', positions: ['OFF', 'ON'], defaultPosition: 'ON', controls: ['DI-09'] }),
+    );
+    const own = await approvePolicyVersion(db, code, 'OFF', author);
+    await expect(
+      withCommand(db.app, { ...author, correlationId: randomUUID() }, (c) => setPolicyVersion(c, code, 'OFF', { approvalId: own, changeRef: 'CC-203' })),
+    ).rejects.toThrow('EBMR-MKT-075');
+    const operator = await seedActor(db, { roleCode: 'OPERATOR' });
+    await expect(signApproval(db, operator, await policyVersionApprovalTarget(db.app, code, 'OFF'))).rejects.toThrow('EBMR-ESIG-040');
+  });
+
+  it('[INV-47][DI-09] a vendor-profile switch is neither defined nor changed through the tenant path, and a loosening that needs owner confirmation is refused there', async () => {
+    const def = { title: 'vendor switch', positions: ['OFF', 'ON'], defaultPosition: 'ON', controls: ['DI-09'] };
+    await expect(asApp(db, (c) => definePolicy(c, { ...def, code: `S10.v${randomUUID().slice(0, 6)}`, level: 'VENDOR' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow(
+      'EBMR-MKT-074',
+    );
+    // A vendor switch as the vendor profile would install it (owner rights).
+    const vendor = `S10.vendor${randomUUID().slice(0, 6)}`;
+    await asAdmin(
+      "insert into market.policy (code, title, level, controls, positions, default_position, loosening_requires, defined_by) values ($1, 'vendor', 'VENDOR', '{DI-09}', $2::jsonb, 'OFF', 'QA_APPROVAL', gen_random_uuid())",
+      [vendor, JSON.stringify(['OFF', 'ON'])],
+    );
+    await asAdmin("insert into market.policy_version (policy_code, position, effective_from, reason) values ($1, 'OFF', null, 'vendor profile')", [vendor]);
+    await expect(asApp(db, (c) => setPolicyVersion(c, vendor, 'ON', { changeRef: 'CC-204' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-074');
+    // A tenant switch whose loosening needs the owner's confirmation: tightening is fine, loosening is refused even with an approval.
+    const owned = `S10.owner${randomUUID().slice(0, 6)}`;
+    await asApp(db, (c) => definePolicy(c, { ...def, code: owned, level: 'TENANT', defaultPosition: 'OFF', looseningRequires: 'OWNER_CONFIRMATION' }), { roleCode: MARKET_ROLES.policy });
+    const on = await asApp(db, (c) => setPolicyVersion(c, owned, 'ON', { changeRef: 'CC-205' }), { roleCode: MARKET_ROLES.policy });
+    expect(on.direction).toBe('TIGHTENING');
+    const approvalId = await approvePolicyVersion(db, owned, 'OFF');
+    await expect(asApp(db, (c) => setPolicyVersion(c, owned, 'OFF', { approvalId, changeRef: 'CC-206' }), { roleCode: MARKET_ROLES.policy })).rejects.toThrow('EBMR-MKT-074');
   });
 });
 
@@ -104,7 +174,8 @@ describe('INV-47: a loosening never reaches a batch issued before it took effect
 
   beforeAll(async () => {
     ({ code, v1 } = await newPolicy(['ONE_VERIFIER', 'TWO_PERSONS'], 'TWO_PERSONS'));
-    loosening = await asApp(db, async (c) => setPolicyVersion(c, code, 'ONE_VERIFIER', { effectiveFrom: await dbInstant('2 seconds'), approvalId: randomUUID(), changeRef: 'CC-S5a' }), { roleCode: MARKET_ROLES.policy });
+    const approvalId = await approvePolicyVersion(db, code, 'ONE_VERIFIER');
+    loosening = await asApp(db, async (c) => setPolicyVersion(c, code, 'ONE_VERIFIER', { effectiveFrom: await dbInstant('2 seconds'), approvalId, changeRef: 'CC-S5a' }), { roleCode: MARKET_ROLES.policy });
     await asApp(db, (c) => pinPoliciesForBatch(c, early), { roleCode: MARKET_ROLES.issuer });
     await sleep(2300);
     await asApp(db, (c) => pinPoliciesForBatch(c, late), { roleCode: MARKET_ROLES.issuer });

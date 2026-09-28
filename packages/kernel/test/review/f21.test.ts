@@ -22,7 +22,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { evaluateStubScope, setSiteValue, type StoredEvaluation } from '../../src/market/repository.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, MARKET_ROLES, publishSeedTables, seedStubWorld, type StubWorld } from '../market/helpers.ts';
+import { approveSiteLoosening, asApp, MARKET_ROLES, publishSeedTables, seedStubWorld, type StubWorld } from '../market/helpers.ts';
 
 let db: TestDatabase;
 let world: StubWorld;
@@ -53,19 +53,11 @@ beforeAll(async () => {
   });
   expect(tighter.outcome).toBe('TIGHTER');
   // Site B: an approved loosening of the India GUIDANCE management-review interval (12 -> 15 months).
-  const loosened = await asApp(
-    db,
-    (c) =>
-      setSiteValue(c, {
-        siteId: siteB,
-        key: MR_KEY,
-        value: '15',
-        effectiveFrom: '2026-01-01',
-        justificationRef: 'MR-JUST-B',
-        qaApprovalId: randomUUID(),
-      }),
-    { roleCode: MARKET_ROLES.siteValues },
-  );
+  // Setup corrected after the F24/F76 fix: the QA approval is a real SITE_VALUE_LOOSENING_APPROVED
+  // e-signature of this loosening (a random uuid is refused now).
+  const request = { siteId: siteB, key: MR_KEY, value: '15', effectiveFrom: '2026-01-01', justificationRef: 'MR-JUST-B' };
+  const qaApprovalId = await approveSiteLoosening(db, request);
+  const loosened = await asApp(db, (c) => setSiteValue(c, { ...request, qaApprovalId }), { roleCode: MARKET_ROLES.siteValues });
   expect(loosened.outcome).toBe('LOOSENED');
 });
 

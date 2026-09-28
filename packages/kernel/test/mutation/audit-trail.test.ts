@@ -240,21 +240,33 @@ describe('only a context installed by kernel code in this transaction is an acto
     expect(await eventCount(`batch:${batch}`)).toBe(1);
   });
 
-  it('[INV-07][DI-22] an internal actor installed inside a command and then restored the way the identity module restores it leaves the command attributed to its own actor', async () => {
+  it('[INV-07][DI-22] an internal actor installed inside a command and then restored through kernel.set_actor_context leaves the command attributed to its own actor; set_config cannot put either context back', async () => {
     const outer = cmd();
     const batch = randomUUID();
     await asSuperuserTransaction(db, async (c) => {
       await c.query('select kernel.begin_command($1::jsonb)', [ctxJson(outer)]);
       await c.query(INSERT_SAMPLE, [batch, '1']);
-      const saved = (await c.query<{ v: string }>("select current_setting('ebmr.ctx') as v")).rows[0]?.v ?? '';
+      // What iam.authn_change_secret and the installation bootstrap keep before they switch: the validated actor.
+      const saved = (await c.query<{ actor: Record<string, string> }>('select kernel.current_actor() as actor')).rows[0]?.actor;
+      expect(saved).toEqual(toDbContext(outer));
+      const savedText = (await c.query<{ v: string }>("select current_setting('ebmr.ctx') as v")).rows[0]?.v ?? '';
       const internal = { ...toDbContext(outer), role_code: 'SELF_SERVICE', reason_code: 'CREDENTIAL_CHANGE', reason_text: 'internal step' };
       await c.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify(internal)]);
       await c.query(INSERT_SAMPLE, [batch, '2']);
-      // iam.authn_change_secret and the installation bootstrap put the previous context back with set_config.
-      await c.query("select set_config('ebmr.ctx', $1, true)", [saved]);
+      // ADR-0016: only the context installed last is validated. set_config back to the command's own
+      // context is not a restore: that context stopped counting when the internal actor was installed.
+      await c.query("select set_config('ebmr.ctx', $1, true)", [savedText]);
+      expect((await c.query<{ actor: unknown }>('select kernel.current_actor() as actor')).rows[0]?.actor).toBeNull();
+      await refusedIn(c, INSERT_SAMPLE, [batch, '22'], 'EBMR-AUDIT-009');
+      // The restore goes through the kernel, with the context current_actor() returned before the switch.
+      await c.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify(saved)]);
       const { rows: now } = await c.query<{ actor: Record<string, string> | null }>('select kernel.current_actor() as actor');
       expect(now[0]?.actor).toEqual(toDbContext(outer));
       await c.query(INSERT_SAMPLE, [batch, '3']);
+      // The internal actor's context is gone for good: set_config cannot bring it back either.
+      await c.query("select set_config('ebmr.ctx', $1, true)", [JSON.stringify(internal)]);
+      expect((await c.query<{ actor: unknown }>('select kernel.current_actor() as actor')).rows[0]?.actor).toBeNull();
+      await refusedIn(c, INSERT_SAMPLE, [batch, '4'], 'EBMR-AUDIT-009');
       const { rows } = await c.query<{ role: string }>(
         "select payload -> 'actor' ->> 'role_code' as role from kernel.audit_event where chain_key = $1 order by seq",
         [`batch:${batch}`],
@@ -348,6 +360,12 @@ describe('kernel.verify_chain: every check fires on its own', () => {
                 hash = sha256(sha256(convert_to('genesis:' || $2::text, 'UTF8')) || convert_to(payload::text, 'UTF8'))
           where chain_key = $1 and seq = 1`,
         [key, moved],
+      );
+      // A consistent forger also gives the target chain a matching head, so only the chain-key check can fire.
+      await c.query(
+        `insert into kernel.audit_chain_head (chain_key, last_seq, last_hash, last_event)
+         select e.chain_key, e.seq, e.hash, e.id from kernel.audit_event e where e.chain_key = $1`,
+        [moved],
       );
       expect(await verifyChain(c, moved)).toEqual([{ chainKey: moved, seq: 1, problem: INDEXED }]);
     });

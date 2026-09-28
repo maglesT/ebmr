@@ -86,7 +86,7 @@ describe('F76: market-engine loosening approvals must be real, verified approval
       const resolved = await resolveInDatabase(db.app, published.versionId, { key: `${table}.interval`, marketSet: ['IN'], asOf: today });
       return { loosening: published.loosening, resolvedIndiaValueToday: resolved.value };
     });
-    expect(result).toEqual({ refused: true, code: expect.stringMatching(/^EBMR-/) });
+    expect(result).toEqual({ refused: true, code: expect.stringMatching(/^EBMR-/) as unknown });
   });
 
   it('[IN-52][ST-01] loosening a GUIDANCE site value is refused when its QA approval id is the UUID of nothing', async () => {
@@ -105,7 +105,7 @@ describe('F76: market-engine loosening approvals must be real, verified approval
       );
       return { siteValueOutcome: sv.outcome, qaApprovalId: sv.qaApprovalId, batchEffectiveValue: e.effectiveValue, batchSiteOutcome: e.siteOutcome };
     });
-    expect(result).toEqual({ refused: true, code: expect.stringMatching(/^EBMR-/) });
+    expect(result).toEqual({ refused: true, code: expect.stringMatching(/^EBMR-/) as unknown });
   });
 
   it('[INV-47] a policy loosening is refused when its approval id is the UUID of nothing', async () => {
@@ -128,6 +128,6 @@ describe('F76: market-engine loosening approvals must be real, verified approval
       });
       return { version: v.version, direction: v.direction, position: v.position };
     });
-    expect(result).toEqual({ refused: true, code: expect.stringMatching(/^EBMR-/) });
+    expect(result).toEqual({ refused: true, code: expect.stringMatching(/^EBMR-/) as unknown });
   });
 });

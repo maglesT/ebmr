@@ -130,7 +130,7 @@ describe('F68: the co-signer context cannot be re-installed by the application a
     expect(observed).toEqual({
       actorIsValidated: false,
       currentActorPerson: null,
-      forgedIncident: expect.stringMatching(/^EBMR-(IAM|AUDIT)-\d+$/),
+      forgedIncident: expect.stringMatching(/^EBMR-(IAM|AUDIT)-\d+$/) as unknown,
     });
   });
 });

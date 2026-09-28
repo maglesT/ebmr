@@ -75,6 +75,25 @@ describe('lockout and misuse alerts (DI-19)', () => {
     await expect(rightLogin(op)).resolves.toMatchObject({ purpose: 'LOGIN' });
   });
 
+  it('[DI-19] only a success that proves the secret ends a run of failed attempts; badge taps in between do not', async () => {
+    const op = await seedActor(db, { roleCode: 'VERIFIER', deviceClass: 'SHARED' });
+    const tap = () => authenticate(seedAuthn(db), { method: 'BADGE_TAP', identifier: op.seed.badgeUid ?? '', deviceFingerprint: op.seed.deviceFingerprint, purpose: 'COMMAND' });
+    const count = async () => Number((await db.admin.query<{ n: string }>('select iam.consecutive_failures($1) as n', [op.accountId])).rows[0]?.n);
+    for (let i = 1; i <= 3; i++) await expect(wrongSignature(op)).rejects.toMatchObject({ locked: false });
+    await tap();
+    await tap();
+    expect(await count()).toBe(3);
+    // The user ID and password prove the secret: the run ends.
+    await rightLogin(op);
+    expect(await count()).toBe(0);
+    for (let i = 1; i <= 4; i++) {
+      await expect(wrongSignature(op)).rejects.toMatchObject({ locked: false });
+      await tap();
+    }
+    await expect(wrongSignature(op)).rejects.toMatchObject({ reason: 'WRONG_SECRET', locked: true });
+    await expect(tap()).rejects.toMatchObject({ reason: 'ACCOUNT_LOCKED' });
+  });
+
   it('[DI-19] the lockout threshold is a policy value allowed between 3 and 5', async () => {
     await expectRefused(policy('authn.lockout_threshold', '6'), 'EBMR-IAM-110');
     await expectRefused(policy('authn.lockout_threshold', '2'), 'EBMR-IAM-110');

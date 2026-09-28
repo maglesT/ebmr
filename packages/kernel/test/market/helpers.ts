@@ -6,8 +6,14 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import type { ActorContext } from '../../src/db/command.ts';
 import { withCommand } from '../../src/db/command.ts';
-import { readRuleTableFile, syncRuleTables, type SyncOutcome } from '../../src/market/loader.ts';
+import { contentForSigning, createChallenge, sign } from '../../src/esig/signing.ts';
+import { authenticate } from '../../src/identity/authentication.ts';
+import { readRuleTableFile, ruleCorrectionApprovalTarget, syncRuleTables, type SyncOutcome } from '../../src/market/loader.ts';
+import { policyVersionApprovalTarget } from '../../src/market/policy.ts';
+import { siteValuePreview, type ApprovalTarget, type SiteValueRequest } from '../../src/market/repository.ts';
 import type { RuleTableCode, RuleTableDocument } from '../../src/market/types.ts';
+import { ensureSealKey, testSealKey } from '../esig/helpers.ts';
+import { seedActor, seedAuthn, type SeededActor } from '../identity/seed.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 import type { TestDatabase } from '../support/db.ts';
 
@@ -187,4 +193,96 @@ export function miniDocument(table: string, version = 1): Record<string, unknown
       { ref: 'R.US', key: `${table}.retention`, market: 'US', value: '24', unit: 'mo', floor: 'GUIDANCE', source: 'test source', verification: 'CHK', effectiveFrom: '2024-01-01' },
     ],
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Approvals: real electronic signatures (0360_market_signatures.sql)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A quality-unit person who can sign market approvals (MBR.APPROVE or RECORD.QA_REVIEW). The actor
+ * keeps the credentials the signer re-enters at every signing (DI-38).
+ */
+export function approverActor(db: TestDatabase, roleCode: 'QA_REVIEWER' | 'QA_MBR_APPROVER' = 'QA_REVIEWER'): Promise<SeededActor> {
+  return seedActor(db, { roleCode });
+}
+
+/**
+ * The signing flow as production runs it (esig README): the server's canonical content, a challenge
+ * in the signer's own command, the signer's authentication for that challenge through the
+ * authentication service, then sign and seal. Returns the signature id.
+ */
+export async function signApproval(db: TestDatabase, signer: SeededActor, target: ApprovalTarget, expectedState: string | null = 'PROPOSED'): Promise<string> {
+  await ensureSealKey(db);
+  const content = await contentForSigning(db.app, target.aggregateType, target.aggregateId);
+  const challenge = await withCommand(db.app, { ...signer, correlationId: randomUUID() }, (c) =>
+    createChallenge(c, {
+      aggregateType: target.aggregateType,
+      aggregateId: target.aggregateId,
+      contentVersion: content.contentVersion ?? '1',
+      meaning: target.meaning,
+      clientContentHash: content.contentHash ?? '',
+    }),
+  );
+  const ev = await authenticate(seedAuthn(db), {
+    method: 'PASSWORD',
+    identifier: signer.seed.loginName,
+    secret: signer.seed.password,
+    deviceFingerprint: signer.seed.deviceFingerprint,
+    purpose: 'SIGNATURE',
+    challengeId: challenge.challengeId,
+  });
+  const result = await withCommand(db.app, { ...signer, correlationId: randomUUID() }, (c) =>
+    sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState }, testSealKey),
+  );
+  return result.signatureId;
+}
+
+/**
+ * After the approved change is made, its approval signatures must still be valid and raise no
+ * integrity problem (the signed content never changes, INV-09): returns each signature's status and
+ * problems from esig.signature_state and esig.signature_problems.
+ */
+export async function approvalIntegrity(db: TestDatabase, signatureIds: string[]): Promise<{ status: string; problems: string[] }[]> {
+  const { rows } = await db.admin.query<{ status: string; problems: string[] }>(
+    `select esig.signature_state(s.id) ->> 'status' as status,
+            coalesce((select array_agg(p) from esig.signature_problems(s.id) p), '{}') as problems
+       from unnest($1::uuid[]) with ordinality as s(id, n) order by s.n`,
+    [signatureIds],
+  );
+  return rows;
+}
+
+/**
+ * A QA approval of a site-value loosening: the SITE_VALUE_LOOSENING_APPROVED signature of exactly the
+ * loosening the request describes (market.site_value_preview names it). Returns the signature id to
+ * pass as qaApprovalId.
+ */
+export async function approveSiteLoosening(
+  db: TestDatabase,
+  request: Omit<SiteValueRequest, 'qaApprovalId'>,
+  approver?: SeededActor,
+): Promise<string> {
+  const preview = await siteValuePreview(db.app, request);
+  if (!preview.approval) throw new Error(`not a loosening that can be approved: ${JSON.stringify(preview)}`);
+  return signApproval(db, approver ?? (await approverActor(db)), preview.approval);
+}
+
+/**
+ * The two QA approvals of a source correction: RULE_TABLE_CORRECTION_APPROVED signatures of exactly
+ * this document by two different quality-unit persons. Returns the ids to pass as approvalSignatureIds.
+ */
+export async function approveSourceCorrection(db: TestDatabase, doc: unknown, approvers?: [SeededActor, SeededActor]): Promise<string[]> {
+  const target = await ruleCorrectionApprovalTarget(db.app, doc as Record<string, unknown>);
+  const [a, b] = approvers ?? [await approverActor(db, 'QA_REVIEWER'), await approverActor(db, 'QA_MBR_APPROVER')];
+  return [await signApproval(db, a, target), await signApproval(db, b, target)];
+}
+
+/**
+ * The approval of the next version of a policy at a position: a POLICY_LOOSENING_APPROVED signature
+ * of that version by a quality-unit person other than its author. Returns the id to pass as approvalId.
+ */
+export async function approvePolicyVersion(db: TestDatabase, policy: string, position: string, approver?: SeededActor): Promise<string> {
+  const target = await policyVersionApprovalTarget(db.app, policy, position);
+  return signApproval(db, approver ?? (await approverActor(db)), target);
 }

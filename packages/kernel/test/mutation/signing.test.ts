@@ -270,14 +270,21 @@ describe('challenge (esig.create_challenge)', () => {
 
     // One transaction on one connection that acts only as ebmr_app and ebmr_authn, through the public
     // functions (no trigger bypass, no direct DML; the superuser only reads, to check the state); rolled
-    // back at the end. The stale context gets past iam.assert_validated_actor because it was validated
-    // earlier in this transaction (reported as a defect); this guard is what then refuses it.
+    // back at the end. Since kernel.set_actor_context keeps only the context installed last, the stale
+    // context is refused as not validated (EBMR-IAM-002; a control below shows the restored text is
+    // exactly the validated one); before that fix it got past iam.assert_validated_actor and the
+    // session-owner guard (EBMR-ESIG-010) was what refused it.
     await asSuperuserTransaction(db, async (c) => {
       const app = withinTransaction(c, 'ebmr_app');
       const authn: AuthnDb = { pool: withinTransaction(c), setRole: 'ebmr_authn' };
       await c.query('set local role ebmr_app');
       // A's context is validated while A is ACTIVE.
       await c.query('select kernel.begin_command($1::jsonb)', [staleCtx]);
+      // Control: the exact text put back below is the context validated here, so a later refusal as
+      // not validated (EBMR-IAM-002) can only mean the context has gone stale, never a wrong restore.
+      await c.query("select set_config('ebmr.ctx', $1, true)", [staleCtx]);
+      const { rows: [fresh] } = await c.query<{ ok: boolean }>('select iam.actor_is_validated() as ok');
+      expect(fresh?.ok, 'the context text the attack restores is the one begin_command validated').toBe(true);
       // The administrator replaces the account: A is disabled (S_A ends), B is created for P (INV-11 allows it
       // now that A is disabled), activated and granted OPERATOR by the process owner.
       await withCommand(app, withReason(admin), (x) => deactivateAccount(x, replaced.accountId, 'account replaced'));
@@ -321,10 +328,11 @@ describe('challenge (esig.create_challenge)', () => {
         refusal = error;
       }
       await c.query('rollback to savepoint attempt');
-      // Refused: by the session-owner rule, or (once the actor check re-validates the account) as a stale context.
+      // Refused: as a context that is no longer the validated one, by the session-owner rule, or (if the
+      // actor check re-validates the account) as a context of a disabled account or an ended session.
       expect(refusal, 'a challenge was issued for B on the ended session of the disabled account A').toBeDefined();
       const message = refusal instanceof Error ? refusal.message : String(refusal);
-      expect(['EBMR-ESIG-010', 'EBMR-IAM-103', 'EBMR-IAM-112']).toContain(ebmrCode(refusal));
+      expect(['EBMR-IAM-002', 'EBMR-ESIG-010', 'EBMR-IAM-103', 'EBMR-IAM-112']).toContain(ebmrCode(refusal));
       if (ebmrCode(refusal) === 'EBMR-ESIG-010') expect(message).toMatch(/the session owner signs with the account of the session/);
       await c.query('set local role none');
       const { rows: [issued] } = await c.query<{ n: string }>(

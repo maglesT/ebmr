@@ -19,7 +19,18 @@ import { toDbContext, withCommand, type ActorContext } from '../../src/db/comman
 import { applyPolicyTightening, batchPolicy, definePolicy, pinPoliciesForBatch, policyForBatch, setPolicyVersion, type PolicyVersion } from '../../src/market/policy.ts';
 import { setSiteValue, type SiteValueRequest } from '../../src/market/repository.ts';
 import { seedActor } from '../identity/seed.ts';
-import { asApp, createTestTable, MARKET_ROLES, publishDocument, publishSeedTables, seedStubWorld, testActor, type StubWorld } from '../market/helpers.ts';
+import {
+  approvePolicyVersion,
+  approveSiteLoosening,
+  asApp,
+  createTestTable,
+  MARKET_ROLES,
+  publishDocument,
+  publishSeedTables,
+  seedStubWorld,
+  testActor,
+  type StubWorld,
+} from '../market/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
@@ -191,7 +202,12 @@ describe('site values: every refusal where it is enforced', () => {
       { market: 'IN', value: '10', floor: 'DESIGN', hardFloor: '5' },
       { market: 'US', value: '12', floor: 'GUIDANCE' },
     ]);
-    const approvals = { justificationRef: 'CCS-9.1', qaApprovalId: randomUUID() };
+    // The QA approval is the e-signature of exactly the loosening to 11 (0360; before the F24/F76 fix
+    // any uuid was accepted here). The refusal of 8 comes before any approval is read.
+    const approvals = {
+      justificationRef: 'CCS-9.1',
+      qaApprovalId: await approveSiteLoosening(db, { siteId: world.siteId, key, value: '11', effectiveFrom: '2026-01-01', justificationRef: 'CCS-9.1' }),
+    };
     // 8 is above the binding floor but below the DESIGN value.
     await expect(set({ key, value: '8', ...approvals })).rejects.toThrow('EBMR-MKT-061');
     // 11 loosens only the GUIDANCE value; the DESIGN value (10) still holds.
@@ -240,7 +256,8 @@ describe('policy versions: every rule of the version guard', () => {
   it('[DI-09][INV-47] two scheduled versions may share an effective instant; the newer one is in force from then', async () => {
     const { code, v1 } = await newPolicy(['OFF', 'ON'], 'ON');
     const at = await dbInstant('1 hour');
-    const loosening = await setVersion(code, 'OFF', { effectiveFrom: at, approvalId: randomUUID(), changeRef: 'CC-M4' });
+    // A loosening's approval is the approver's e-signature of this version (0360; F24/F76).
+    const loosening = await setVersion(code, 'OFF', { effectiveFrom: at, approvalId: await approvePolicyVersion(db, code, 'OFF'), changeRef: 'CC-M4' });
     const cancel = await setVersion(code, 'ON', { effectiveFrom: at, changeRef: 'CC-M5' });
     expect([loosening.version, loosening.direction, cancel.version, cancel.direction]).toEqual([2, 'LOOSENING', 3, 'TIGHTENING']);
     expect(new Date(cancel.effectiveFrom).toISOString()).toBe(at);
@@ -347,7 +364,7 @@ describe('batch pins: every rule of the pin guard', () => {
     const { code, v1 } = await newPolicy(['LO', 'MID', 'HI'], 'HI');
     const early = randomUUID();
     await issue(early); // HI
-    const loosening = await setVersion(code, 'LO', { approvalId: randomUUID(), changeRef: 'CC-M9' });
+    const loosening = await setVersion(code, 'LO', { approvalId: await approvePolicyVersion(db, code, 'LO'), changeRef: 'CC-M9' });
     const late = randomUUID();
     await issue(late); // LO, pinned after the early batch's pins
     const mid = await setVersion(code, 'MID', { changeRef: 'CC-M10' });

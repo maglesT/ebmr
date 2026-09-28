@@ -190,6 +190,20 @@ describe('scopes: union of markets for lines, rooms, equipment and persons; per 
     const us = await evaluate('kernel.label.manufacturingDate', { kind: 'PACK', id: world.pack.tabletAllUs }, { stated });
     expect([us.resolvedValue, us.governingMarkets]).toEqual(['NOT_REQUIRED', ['US']]);
     await expect(evaluate('kernel.label.manufacturingDate', { kind: 'PACK', id: world.pack.tabletAllUs })).rejects.toThrow('EBMR-MKT-046');
+    // A pack cannot be resolved for another destination of its batch (F23): the India-domestic pack keeps India's label rule.
+    await expect(evaluate('kernel.label.manufacturingDate', { kind: 'PACK', id: world.pack.tabletAllIn }, { stated: { ...stated, destination: 'US' } })).rejects.toThrow(
+      'EBMR-MKT-057',
+    );
+    const named = await evaluate('kernel.label.manufacturingDate', { kind: 'PACK', id: world.pack.tabletAllIn }, { stated: { ...stated, destination: 'IN' } });
+    expect([named.resolvedValue, named.governingMarkets]).toEqual(['MANDATORY_UNCODED', ['IN']]);
+    // The pure engine through the port refuses it the same way.
+    const { rows } = await db.app.query<{ id: string }>("select id from market.rule_table_version where table_code = 'kernel' and version = 1");
+    const kernel = await loadRuleTableVersion(db.app, rows[0]?.id ?? '');
+    await expect(
+      resolveForScope(new StubResolutionContext(db.app), kernel, 'kernel.label.manufacturingDate', { kind: 'PACK', id: world.pack.tabletAllIn }, AS_OF, {
+        stated: { ...stated, destination: 'US' },
+      }),
+    ).rejects.toThrow('EBMR-MKT-057');
   });
 
   it('[IN-52] the ResolutionContextProvider port gives the same result with the pure engine as the stored evaluation', async () => {

@@ -56,7 +56,8 @@ describe('platform SIGNATURE hook adapter', () => {
     const id = await newRecord(author);
     // A CHECKED signature made on the draft, then the draft is edited: the signature is superseded.
     const early = await signStub(db, checker, id, { meaning: 'CHECKED', aggregateType: 'sample_record', expectedState: 'DRAFT' });
-    await run(db, author, (c) => c.query("update platform.stub_record set body = 'Version 1 text, revised' where id = $1", [id]), { reasonCode: 'REWORK' });
+    await run(db, author, (c) => c.query("update platform.stub_record set body = 'Version 1 text, revised' where id = $1", [id]),
+              { reasonCode: 'REWORK', reasonText: 'draft revised before submission' });
     await fire(author, id, 'SUBMIT', 1);
     await expectRefused(fire(checker, id, 'CHECK', 2, early.signatureId), 'EBMR-PLAT-008', /SUPERSEDED_BY_CHANGE/);
     // A signature of another record, or of another meaning, is refused.
@@ -74,6 +75,32 @@ describe('platform SIGNATURE hook adapter', () => {
                              payload: { signature_id: s.signatureId } });
     });
     expect(result).toMatchObject({ from: 'SUBMITTED', to: 'CHECKED' });
+  });
+
+  it('[DI-37][INV-04] a signature applied in an earlier state of the record never authorises a transition out of a later one', async (ctx) => {
+    if (!available) ctx.skip();
+    const author = await testActor(db, { roleCode: 'MBR_AUTHOR' });
+    const checker = await testActor(db, { roleCode: 'MBR_CHECKER' });
+    const earlyApprover = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
+    const approver = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
+    const reviewer = await testActor(db, { roleCode: 'QA_REVIEWER' });
+    const id = await newRecord(author);
+    // An approval signed while the record is still a draft, before submission and before the check.
+    const early = await signStub(db, earlyApprover, id, { meaning: 'APPROVED', aggregateType: 'sample_record', expectedState: 'DRAFT' });
+    await fire(author, id, 'SUBMIT', 1);
+    const checked = await signStub(db, checker, id, { meaning: 'CHECKED', aggregateType: 'sample_record', expectedState: 'SUBMITTED' });
+    await fire(checker, id, 'CHECK', 2, checked.signatureId);
+    await expectRefused(fire(reviewer, id, 'APPROVE', 3, early.signatureId), 'EBMR-PLAT-008', /applied while the record was in state DRAFT/);
+    // The early signer still holds a valid APPROVED signature of this content version, so they cannot
+    // sign it again (once per version); an approval signed in the state the transition leaves, by
+    // another approver, is accepted, also when yet another person fires it.
+    await expectRefused(signStub(db, earlyApprover, id, { meaning: 'APPROVED', aggregateType: 'sample_record', expectedState: 'CHECKED' }), 'EBMR-ESIG-042');
+    const approved = await signStub(db, approver, id, { meaning: 'APPROVED', aggregateType: 'sample_record', expectedState: 'CHECKED' });
+    expect(await fire(reviewer, id, 'APPROVE', 3, approved.signatureId)).toMatchObject({ from: 'CHECKED', to: 'APPROVED' });
+    // The state each signature was applied in is stored with it (and sealed).
+    const { rows } = await db.admin.query<{ id: string; record_state: string }>(
+      'select id, record_state from esig.signature where id = any ($1::uuid[]) order by recorded_at', [[early.signatureId, approved.signatureId]]);
+    expect(rows).toEqual([{ id: early.signatureId, record_state: 'DRAFT' }, { id: approved.signatureId, record_state: 'CHECKED' }]);
   });
 
   it('[DI-37] an unknown signature id or a stub-entry signature can never authorise a platform transition', async (ctx) => {

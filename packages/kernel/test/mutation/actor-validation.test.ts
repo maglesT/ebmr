@@ -112,10 +112,14 @@ async function openSessionDuring(actor: SeededActor, loginEventId: string, durin
   }
 }
 
-/** No command can run in `sessionId`: refused as ended if the session was swept, otherwise with `code`. */
-async function expectNoCommandIn(actor: SeededActor, sessionId: string | null, code: string): Promise<void> {
+/**
+ * No command can run in `sessionId`: refused with `code` while the session is live, and with `ifEnded`
+ * once the sweep has ended it (IAM-112, unless a rule the gate checks before the session refuses
+ * first, as the account lock IAM-105 does).
+ */
+async function expectNoCommandIn(actor: SeededActor, sessionId: string | null, code: string, ifEnded = 'EBMR-IAM-112'): Promise<void> {
   if (sessionId === null) return; // the login itself was refused: there is no session to act in
-  const expected = (await sessionState(db.app, sessionId)) === 'ENDED' ? 'EBMR-IAM-112' : code;
+  const expected = (await sessionState(db.app, sessionId)) === 'ENDED' ? ifEnded : code;
   await expectRefused(insert(command(actor, { sessionId })), expected);
 }
 
@@ -165,7 +169,7 @@ describe('kernel.validate_actor_context: the person and the account (DI-14, DI-1
 
     expect(await accountLocked(op.accountId)).toBe(true);
     expect(await sessionState(db.app, op.sessionId)).toBe('ENDED');
-    await expectNoCommandIn(op, fresh, 'EBMR-IAM-105');
+    await expectNoCommandIn(op, fresh, 'EBMR-IAM-105', 'EBMR-IAM-105');
   });
 });
 
@@ -180,6 +184,57 @@ describe('kernel.validate_actor_context: the session device (DI-20)', () => {
     expect((await db.app.query('select status from iam.device where id = $1', [op.deviceId])).rows[0]).toEqual({ status: 'BLOCKED' });
     expect(await sessionState(db.app, op.sessionId)).toBe('ENDED');
     await expectNoCommandIn(op, fresh, 'EBMR-IAM-115');
+  });
+
+  it('[DI-20][DI-14] a live session on a device that a direct write blocked without ending its sessions is refused as on a blocked device', async () => {
+    const op = await seedActor(db, { acknowledgeEsig: false });
+    await insert(command(op));
+    // A direct write by the table owner that bypasses iam.set_device_status: the terminal is BLOCKED,
+    // but its sessions were not ended. The command gate must refuse the device on its own.
+    await asDefinerCommand(db, withReason(adm.admin), (c) =>
+      c.query("update iam.device set status = 'BLOCKED', status_reason = 'direct owner write' where id = $1", [op.deviceId]));
+    expect(await sessionState(db.app, op.sessionId)).toBe('ACTIVE');
+    await expectRefused(insert(command(op)), 'EBMR-IAM-115');
+  });
+});
+
+/**
+ * The two races above, closed at their root (kill run defects open-session-escapes-lockout and
+ * open-session-escapes-device-block): iam.open_session takes the account and the terminal in share
+ * mode before its checks, so a lockout, a deactivation, a block or a relocation either waits for the
+ * login and then ends its session with the others, or is seen by the login, which is refused. A
+ * session that escaped the sweep would come back to life when an administrator unlocks the account
+ * or re-activates the terminal; these tests prove that no session survives the race.
+ */
+describe('iam.open_session is serialised with the lockout and the device block (DI-19, DI-20)', () => {
+  it('[DI-19][DI-14] a login that races the lockout is refused or its session ends with the others: unlocking the account does not revive it', async () => {
+    const op = await seedActor(db, { acknowledgeEsig: false });
+    const fp2 = fingerprint();
+    await asAdmin((c) =>
+      registerDevice(c, { code: `PC-${hex()}`, deviceClass: 'PERSONAL', site: SEED_SITE, fingerprint: fp2, description: 'second workstation' }));
+    const threshold = await policyInt('authn.lockout_threshold');
+    const login = await passwordAuth(op, 'LOGIN');
+    const fresh = await openSessionDuring(op, login.authEventId, async () => {
+      for (let i = 1; i <= threshold; i++) {
+        await expect(passwordAuth(op, 'LOGIN', { fp: fp2, secret: 'wrong-password' })).rejects.toMatchObject({ reason: 'WRONG_SECRET' });
+      }
+    }, true);
+
+    expect(await accountLocked(op.accountId)).toBe(true);
+    if (fresh !== null) expect(await sessionState(db.app, fresh)).toBe('ENDED');
+    await asAdmin((c) => c.query("select iam.unlock_account($1, 'identity confirmed by the security unit')", [op.accountId]));
+    expect(await accountLocked(op.accountId)).toBe(false);
+    if (fresh !== null) await expectRefused(insert(command(op, { sessionId: fresh })), 'EBMR-IAM-112');
+  });
+
+  it('[DI-20][DI-14] a login that races the blocking of its terminal is refused or its session ends with the others: re-activating the terminal does not revive it', async () => {
+    const op = await seedActor(db, { acknowledgeEsig: false });
+    const login = await passwordAuth(op, 'LOGIN');
+    const fresh = await openSessionDuring(op, login.authEventId, () => asAdmin((c) => setDeviceStatus(c, op.deviceId, 'BLOCKED', 'suspected tampering')), false);
+
+    if (fresh !== null) expect(await sessionState(db.app, fresh)).toBe('ENDED');
+    await asAdmin((c) => setDeviceStatus(c, op.deviceId, 'ACTIVE', 'inspected; no tampering found'));
+    if (fresh !== null) await expectRefused(insert(command(op, { sessionId: fresh })), 'EBMR-IAM-112');
   });
 });
 

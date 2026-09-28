@@ -118,6 +118,68 @@ describe('the integrity job', () => {
     expect(problems).not.toContain('SEAL_PAYLOAD_MISMATCH');
   });
 
+  it('[DI-36][DI-37][DI-13] the terminal session owner and the authentication method of a co-signature are sealed and cross-checked', async () => {
+    const kiosk = await testActor(db, { deviceClass: 'SHARED', withPin: true, legalName: 'Kiosk Owner' });
+    const verifier = await testActor(db, { roleCode: 'VERIFIER', deviceClass: 'SHARED', withPin: true, legalName: 'Kiosk Co-signer' });
+    const third = await testActor(db, { legalName: 'Uninvolved Third Person' });
+    const id = await createStub(db, kiosk);
+    const sig = await signStub(db, kiosk, id, { meaning: 'VERIFIED', signer: verifier, method: 'BADGE_PIN' });
+    expect(await problemsOf(sig.signatureId)).toEqual([]);
+    // A superuser rewrites in whose session, and by which method, the co-signer authenticated (row and challenge).
+    await asAttacker(`update esig.signature set session_person = '${third.personId}', auth_method = 'PASSWORD' where id = '${sig.signatureId}';
+                      update esig.challenge set session_person = '${third.personId}'
+                      where id = (select challenge_id from esig.signature where id = '${sig.signatureId}')`);
+    const problems = await problemsOf(sig.signatureId);
+    expect(problems).toEqual(expect.arrayContaining(['SEAL_PAYLOAD_MISMATCH', 'SESSION_MISMATCH', 'AUTH_EVENT_MISMATCH', 'SEAL_INVALID']));
+    expect((await evidencePackage(db.app, sig.signatureId, testKeyRing)).problems).toEqual(expect.arrayContaining(['SESSION_MISMATCH: the terminal session the signature names is not owned by the recorded session person on the recorded terminal']));
+  });
+
+  it('[INV-03][INV-04][DI-35] the invariant queries report a pair of signatures that breaks a rule, whichever of the two came first', async () => {
+    // Pairs the signing function refuses in either order are forged by a superuser: the detective
+    // control must see them even though the later signature is the "other side" of the rule.
+    const forgeLater = async (template: string, meaning: string): Promise<string> => {
+      const forged = randomUUID();
+      await asAttacker(`
+        insert into esig.signature
+        select * from jsonb_populate_record(null::esig.signature, (
+          select to_jsonb(s) || jsonb_build_object('id', '${forged}', 'meaning_code', '${meaning}', 'meaning_version', 1,
+                                                   'auth_event_id', gen_random_uuid(), 'challenge_id', gen_random_uuid(),
+                                                   'recorded_at', s.recorded_at + interval '1 second')
+          from esig.signature s where s.id = '${template}'))`);
+      return forged;
+    };
+    const rowsOf = async (invariant: string, ids: string[]): Promise<string[]> =>
+      (await db.app.query<{ signature_id: string }>('select signature_id from esig.invariant_violations() where invariant = $1 and signature_id = any ($2::uuid[])',
+                                                    [invariant, ids])).rows.map((r) => r.signature_id);
+
+    // INV-03: B verified the step; a PERFORMED signature of B's comes after it.
+    const enterer = await testActor(db);
+    const b = await testActor(db, { roleCode: 'VERIFIER' });
+    const step = await createStub(db, enterer);
+    const verified = await signStub(db, b, step, { meaning: 'VERIFIED' });
+    expect(await rowsOf('INV-03', [verified.signatureId])).toEqual([]);
+    const performed = await forgeLater(verified.signatureId, 'PERFORMED');
+    expect(await rowsOf('INV-03', [verified.signatureId, performed])).toEqual([verified.signatureId]);
+
+    // Independence (INV-04): Q approved the master document; a CHECKED signature of Q's comes after it.
+    const author = await testActor(db, { roleCode: 'MBR_AUTHOR' });
+    const q = await testActor(db, { roleCode: 'QA_MBR_APPROVER' });
+    const doc = await createStub(db, author, { kind: 'MASTER_DOCUMENT', title: 'MBR v3', value: 'text' });
+    const approved = await signStub(db, q, doc, { meaning: 'APPROVED' });
+    expect(await rowsOf('ESIG.INDEPENDENT', [approved.signatureId])).toEqual([]);
+    const checked = await forgeLater(approved.signatureId, 'CHECKED');
+    expect(await rowsOf('ESIG.INDEPENDENT', [approved.signatureId, checked])).toEqual([approved.signatureId]);
+
+    // Involvement: R reviewed the audit trail; a VERIFIED signature of R's comes after it.
+    const op = await testActor(db);
+    const r = await testActor(db, { roleCode: 'QA_REVIEWER' });
+    const rec = await createStub(db, op);
+    const reviewed = await signStub(db, r, rec, { meaning: 'AUDIT_TRAIL_REVIEWED' });
+    expect(await rowsOf('ESIG.INVOLVEMENT', [reviewed.signatureId])).toEqual([]);
+    const involved = await forgeLater(reviewed.signatureId, 'VERIFIED');
+    expect(await rowsOf('ESIG.INVOLVEMENT', [reviewed.signatureId, involved])).toEqual([reviewed.signatureId]);
+  });
+
   it('[INV-10] a seal made with a key outside the trusted key ring is reported', async () => {
     const op = await testActor(db);
     const id = await createStub(db, op);

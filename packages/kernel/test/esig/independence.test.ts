@@ -133,6 +133,53 @@ describe('independence and involvement rules of each type (on the person)', () =
   });
 });
 
+describe('the rules hold whatever order the signatures are applied in (reverse order)', () => {
+  it('[INV-03][DI-35][DI-17] a person who verified a step never performs it afterwards; the reverse check is stored like the forward one', async () => {
+    const enterer = await testActor(db, { legalName: 'Step Enterer (reverse INV-03)' });
+    const b = await testActor(db, { roleCode: 'VERIFIER', legalName: 'Verifier Then Operator' });
+    await grantRole(b, 'OPERATOR');
+    const id = await createStub(db, enterer);
+    await signStub(db, b, id, { meaning: 'VERIFIED' });
+    await expectRefused(signStub(db, as(b, 'OPERATOR'), id, { meaning: 'PERFORMED' }), 'EBMR-ESIG-044', /INV-03: a person who signed \{VERIFIED\}/);
+    expect(await dbCount(db, "select 1 from esig.signature where aggregate_ref = $1 and meaning_code = 'PERFORMED'", [`esig_stub:${id}`])).toBe(0);
+    // Another operator performs it; the evaluation against the verifier is stored with the signature.
+    const op = await testActor(db);
+    await signStub(db, op, id, { meaning: 'PERFORMED' });
+    const { rows } = await db.admin.query(
+      "select allowed, excluded_persons from iam.segregation_evaluation where rule_code = 'INV-03' and subject = $1 and person_id = $2", [`esig_stub:${id}`, op.personId]);
+    expect(rows).toEqual([{ allowed: true, excluded_persons: [b.personId] }]);
+  });
+
+  it('[INV-04][DI-35] checker, approver and preparer of a master document are three persons whatever the signing order', async () => {
+    const author = await testActor(db, { roleCode: 'MBR_AUTHOR' });
+    const q = await testActor(db, { roleCode: 'QA_MBR_APPROVER', legalName: 'Approver Then Checker' });
+    await grantRole(q, 'MBR_CHECKER');
+    const doc = await createStub(db, author, { kind: 'MASTER_DOCUMENT', title: 'MBR v2', value: 'text' });
+    await signStub(db, author, doc, { meaning: 'PREPARED' });
+    await signStub(db, q, doc, { meaning: 'APPROVED' });
+    await expectRefused(signStub(db, as(q, 'MBR_CHECKER'), doc, { meaning: 'CHECKED' }), 'EBMR-ESIG-043', /APPROVED is independent of CHECKED/);
+    // A person who checked never prepares the document afterwards either (CHECKED is independent of PREPARED).
+    const c = await testActor(db, { roleCode: 'MBR_CHECKER', legalName: 'Checker Then Preparer' });
+    await grantRole(c, 'MBR_AUTHOR');
+    await signStub(db, c, doc, { meaning: 'CHECKED' });
+    await expectRefused(signStub(db, as(c, 'MBR_AUTHOR'), doc, { meaning: 'PREPARED' }), 'EBMR-ESIG-043', /CHECKED is independent of PREPARED/);
+    const { rows } = await db.admin.query<{ n: number }>("select count(*)::int as n from esig.invariant_violations() where signature_id in (select id from esig.signature where aggregate_ref = $1)", [`esig_stub:${doc}`]);
+    expect(rows[0]?.n).toBe(0);
+  });
+
+  it('[DI-35] a person who reviewed the audit trail of a record never takes part in it afterwards (outline 7.2 S10)', async () => {
+    const op = await testActor(db);
+    const r = await testActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Reviewer Then Verifier' });
+    await grantRole(r, 'VERIFIER');
+    const id = await createStub(db, op);
+    await signStub(db, op, id, { meaning: 'PERFORMED' });
+    await signStub(db, r, id, { meaning: 'AUDIT_TRAIL_REVIEWED' });
+    await expectRefused(signStub(db, as(r, 'VERIFIER'), id, { meaning: 'VERIFIED' }), 'EBMR-ESIG-045', /AUDIT_TRAIL_REVIEWED/);
+    const verifier = await testActor(db, { roleCode: 'VERIFIER' });
+    await signStub(db, verifier, id, { meaning: 'VERIFIED' });
+  });
+});
+
 describe('WITNESSED (outline 5.5 meanings)', () => {
   it('[DI-35][INV-03] a witness signs on a terminal in the same room within the window, never from another room', async () => {
     const performer = await testActor(db, { deviceClass: 'GRADE_A_B', roomCode: 'ROOM-A1' });
@@ -161,11 +208,46 @@ describe('WITNESSED (outline 5.5 meanings)', () => {
     const performer = await testActor(db, { deviceClass: 'GRADE_A_B', roomCode: 'ROOM-C3' });
     const witness = await testActor(db, { roleCode: 'VERIFIER', deviceClass: 'GRADE_A_B', roomCode: 'ROOM-C3' });
     const id = await createStub(db, performer);
+    // The caller can only make the rule stricter.
     await expectRefused(signStub(db, witness, id, { meaning: 'WITNESSED', nextStepStarted: true }), 'EBMR-ESIG-051');
     await asTimeTraveller(db, "update esig.stub_signable set entered_at = entered_at - interval '6 minutes' where id = $1", [id]);
     await expectRefused(signStub(db, witness, id, { meaning: 'WITNESSED' }), 'EBMR-ESIG-052');
     // VERIFIED (review of recorded evidence) may be signed later.
     await signStub(db, witness, id, { meaning: 'VERIFIED' });
+    // The database itself knows the next step has started: the performer recorded the next entry.
+    const act = await createStub(db, performer, { title: 'Manual reading before charging' });
+    await createStub(db, performer, { title: 'Charging started' });
+    await expectRefused(signStub(db, witness, act, { meaning: 'WITNESSED' }), 'EBMR-ESIG-051', /next step has started/);
+    expect(await dbCount(db, "select 1 from esig.signature where aggregate_ref = $1 and meaning_code = 'WITNESSED'", [`esig_stub:${act}`])).toBe(0);
+  });
+
+  it('[DI-35] an entry recorded meanwhile by another person on another terminal is not the next step of the act', async () => {
+    const performer = await testActor(db, { deviceClass: 'GRADE_A_B', roomCode: 'ROOM-C4' });
+    const witness = await testActor(db, { roleCode: 'VERIFIER', deviceClass: 'GRADE_A_B', roomCode: 'ROOM-C4' });
+    const elsewhere = await testActor(db, { deviceClass: 'GRADE_A_B', roomCode: 'ROOM-C5' });
+    const act = await createStub(db, performer, { title: 'Manual pressure reading' });
+    await createStub(db, elsewhere, { title: 'Unrelated step in another room' });
+    await signStub(db, witness, act, { meaning: 'WITNESSED' });
+  });
+
+  it('[DI-35][INV-03] a witness on a terminal registered to no room is refused, even at the site of the act', async () => {
+    const performer = await testActor(db, { deviceClass: 'GRADE_A_B', roomCode: 'ROOM-X1' });
+    const deskWitness = await testActor(db, { roleCode: 'VERIFIER', legalName: 'Witness At A Desk' }); // PERSONAL terminal, no room
+    const id = await createStub(db, performer, { title: 'Aseptic connection made' });
+    await signStub(db, performer, id, { meaning: 'PERFORMED' });
+    await expectRefused(signStub(db, deskWitness, id, { meaning: 'WITNESSED' }), 'EBMR-ESIG-053', /same room/);
+    expect(await dbCount(db, "select 1 from esig.signature where aggregate_ref = $1 and meaning_code = 'WITNESSED'", [`esig_stub:${id}`])).toBe(0);
+  });
+
+  it('[DI-35] an act that names an unregistered terminal cannot be witnessed from any terminal', async () => {
+    const performer = await testActor(db, { deviceClass: 'GRADE_A_B', roomCode: 'ROOM-X2' });
+    const witnessSameRoom = await testActor(db, { roleCode: 'VERIFIER', deviceClass: 'GRADE_A_B', roomCode: 'ROOM-X2' });
+    const witnessOtherRoom = await testActor(db, { roleCode: 'VERIFIER', deviceClass: 'GRADE_A_B', roomCode: 'ROOM-Y9' });
+    const id = await createStub(db, performer, { title: 'Manual temperature reading' });
+    await asTimeTraveller(db, 'update esig.stub_signable set entered_device_id = $2 where id = $1', [id, randomUUID()]);
+    await expectRefused(signStub(db, witnessOtherRoom, id, { meaning: 'WITNESSED' }), 'EBMR-ESIG-053', /not a registered terminal/);
+    await expectRefused(signStub(db, witnessSameRoom, id, { meaning: 'WITNESSED' }), 'EBMR-ESIG-053', /not a registered terminal/);
+    expect(await dbCount(db, "select 1 from esig.signature where aggregate_ref = $1 and meaning_code = 'WITNESSED'", [`esig_stub:${id}`])).toBe(0);
   });
 });
 

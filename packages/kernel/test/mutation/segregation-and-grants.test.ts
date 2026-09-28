@@ -17,21 +17,26 @@ import {
   createPerson,
   deactivateAccount,
   decideRoleGrant,
+  decideRolePermission,
   recordIdentityVerification,
   requestRoleGrant,
+  requestRolePermission,
   revokeRoleGrant,
   type AccountKind,
 } from '../../src/identity/admin.ts';
 import { evaluateAuthority } from '../../src/identity/authority.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { dbNow, expectPermissionDenied, expectRefused, pause } from '../identity/helpers.ts';
+import { asTimeTraveller, dbNow, expectPermissionDenied, expectRefused, pause } from '../identity/helpers.ts';
 import { SEED_SITE, seedActor, seedAdministration, seedServiceActor, withReason, type SeedAdministration } from '../identity/seed.ts';
 
 let db: TestDatabase;
 let adm: SeedAdministration;
+/** A second approver with a session of their own (concurrent commands need different sessions). */
+let approver2: ActorContext;
 beforeAll(async () => {
   db = await createTestDatabase();
   adm = await seedAdministration(db);
+  approver2 = await seedActor(db, { roleCode: 'PROCESS_OWNER', acknowledgeEsig: false });
 });
 afterAll(async () => {
   await db.drop();
@@ -53,18 +58,23 @@ async function grantRole(accountId: string, roleCode: string, scope = {}): Promi
   return id;
 }
 
+/** The administrator requests that a permission be added to a role; returns the request. */
+const requestPermission = (role: string, permission: string) =>
+  asRoleAdmin((c) => requestRolePermission(c, { roleCode: role, permission }));
+
+/** Adds a permission to a role as the product does: the administrator requests it, a second person approves it. */
+async function addPermission(role: string, permission: string): Promise<void> {
+  const id = await requestPermission(role, permission);
+  await asOwner((c) => decideRolePermission(c, id, true, 'approved'));
+}
+
 /** A customer role with the given permissions (created and filled through the iam functions). */
 async function customRole(permissions: string[], kinds: AccountKind[] = ['HUMAN'], group = 'EXECUTION'): Promise<string> {
   const code = `MUT_${hex(3).toUpperCase()}`;
-  await asRoleAdmin(async (c) => {
-    await c.query('select iam.create_role($1, $2, $3, $4, $5)', [code, `Role ${code}`, group, 'customer role of a segregation test', kinds]);
-    for (const p of permissions) await c.query('select iam.add_role_permission($1, $2)', [code, p]);
-  });
+  await asRoleAdmin((c) => c.query('select iam.create_role($1, $2, $3, $4, $5)', [code, `Role ${code}`, group, 'customer role of a segregation test', kinds]));
+  for (const p of permissions) await addPermission(code, p);
   return code;
 }
-
-const addPermission = (role: string, permission: string) =>
-  asRoleAdmin((c) => c.query('select iam.add_role_permission($1, $2)', [role, permission]));
 
 async function permissionsOf(role: string, at?: string): Promise<string[]> {
   const { rows } = await db.app.query<{ p: string[] }>('select iam.role_permissions_at($1, coalesce($2::timestamptz, clock_timestamp())) as p', [role, at ?? null]);
@@ -424,7 +434,10 @@ describe('the role catalogue cannot be used to bypass segregation (DI-14, DI-18,
 });
 
 describe('concurrent changes are serialised on the person (INV-11)', () => {
-  const addUnlock = (role: string): Command => ({ ctx: withReason(adm.admin, 'ROLE_CHANGE'), sql: "select iam.add_role_permission($1, 'IAM.UNLOCK')", params: [role] });
+  // A permission reaches a role when a second person approves the request: the approval is the change that races.
+  const addUnlock = async (role: string): Promise<Command> => ({
+    ctx: withReason(approver2), sql: "select iam.decide_role_permission($1, true, 'approved')", params: [await requestPermission(role, 'IAM.UNLOCK')],
+  });
   const approve = (grant: string): Command => ({ ctx: withReason(adm.owner), sql: "select iam.decide_role_grant($1, true, 'approved')", params: [grant] });
 
   it('[INV-11][DI-18] bypass: approving a GMP grant while a role the grantee holds gains an administration permission is refused', async () => {
@@ -432,7 +445,7 @@ describe('concurrent changes are serialised on the person (INV-11)', () => {
     const role = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
     await grantRole(p.accountId, role);
     const qa = await request(p.accountId, 'QA_REVIEWER');
-    expect(await race(addUnlock(role), approve(qa))).toMatch(/^EBMR-IAM-033/);
+    expect(await race(await addUnlock(role), approve(qa))).toMatch(/^EBMR-IAM-033/);
     expect(await grantRow(qa)).toMatchObject({ status: 'REQUESTED' });
     expect((await db.app.query('select * from iam.directory_scan()')).rows).toEqual([]);
   });
@@ -442,8 +455,127 @@ describe('concurrent changes are serialised on the person (INV-11)', () => {
     const role = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
     await grantRole(p.accountId, role);
     const qa = await request(p.accountId, 'QA_REVIEWER');
-    expect(await race(approve(qa), addUnlock(role))).toMatch(/^EBMR-IAM-033/);
+    expect(await race(approve(qa), await addUnlock(role))).toMatch(/^EBMR-IAM-033/);
     expect(await permissionsOf(role)).toEqual(['RECORD.READ']);
+    expect((await db.app.query('select * from iam.directory_scan()')).rows).toEqual([]);
+  });
+});
+
+/**
+ * Kill-run defects of this group (role-permission-mix-race, stale-check-instant), closed at their
+ * root: every catalogue change takes its role in exclusive mode and every grant check takes the
+ * granted role in share mode, before the person, and both evaluate the catalogue as it stands once
+ * the locks are held (live now), not at an instant taken before waiting.
+ */
+describe('catalogue changes are serialised on the role and see what committed while they waited (INV-11)', () => {
+  // The change that races is the approval of a requested addition. Concurrent commands need different
+  // sessions (a command holds its session row until it ends), hence two approvers besides the owner.
+  let admin2: ActorContext;
+  let admin3: ActorContext;
+  beforeAll(async () => {
+    admin2 = await seedActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', acknowledgeEsig: false });
+    admin3 = await seedActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', acknowledgeEsig: false });
+  });
+  const addition = async (role: string, permission: string, by: ActorContext): Promise<Command> => ({
+    ctx: withReason(by), sql: "select iam.decide_role_permission($1, true, 'approved')", params: [await requestPermission(role, permission)],
+  });
+
+  it('[INV-11][DI-18] bypass: two concurrent additions cannot give one role both an administration and a GMP permission', async () => {
+    const role = await customRole(['RECORD.READ']);
+    expect(await race(await addition(role, 'STEP.EXECUTE', admin2), await addition(role, 'IAM.UNLOCK', admin3))).toMatch(/^EBMR-IAM-033/);
+    expect(await permissionsOf(role)).toEqual(['RECORD.READ', 'STEP.EXECUTE']);
+    const other = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
+    expect(await race(await addition(other, 'IAM.UNLOCK', admin2), await addition(other, 'STEP.EXECUTE', admin3))).toMatch(/^EBMR-IAM-033/);
+    expect(await permissionsOf(other)).toEqual(['IAM.UNLOCK', 'RECORD.READ']);
+    expect((await db.app.query('select * from iam.directory_scan()')).rows).toEqual([]);
+  });
+
+  it('[INV-11][DI-18] bypass: a GMP permission committed while an administration permission waits for a holder is seen when the wait ends', async () => {
+    // p0 and p both hold the administration-side role R; p also holds the GMP-side role S.
+    const p0 = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
+    const p = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
+    const r = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
+    const s = await customRole(['RECORD.READ']);
+    await grantRole(p0.accountId, r);
+    await grantRole(p.accountId, r);
+    await grantRole(p.accountId, s);
+    const blocker = await request(p0.accountId, 'CONTRACT_GIVER_REVIEWER');
+    const a = await addition(r, 'IAM.UNLOCK', admin2);
+    const b = await addition(s, 'STEP.EXECUTE', admin3);
+
+    const c3 = await db.app.connect();
+    const c1 = await db.app.connect();
+    const c2 = await db.app.connect();
+    const settle = (q: Promise<unknown>) => q.then(() => 'done', (e: Error) => e.message);
+    const pids = new Map<typeof c1, number | undefined>();
+    for (const c of [c1, c2]) pids.set(c, (await c.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]?.pid);
+    const waitsForLock = async (c: typeof c1, work: Promise<string>): Promise<void> => {
+      const pid = pids.get(c);
+      const state = { settled: false };
+      void work.then(() => { state.settled = true; });
+      for (let i = 0; i < 250 && !state.settled; i++) {
+        const { rows } = await db.admin.query<{ w: string | null }>('select wait_event_type as w from pg_stat_activity where pid = $1', [pid]);
+        if (rows[0]?.w === 'Lock') return;
+        await pause(20);
+      }
+    };
+    const begin = async (c: typeof c1, ctx: ActorContext) => {
+      await c.query('begin');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+    };
+    const outcomes: string[] = [];
+    try {
+      // A third transaction holds p0's person row (an approval for p0 that has not committed yet).
+      await begin(c3, withReason(adm.owner));
+      await c3.query("select iam.decide_role_grant($1, true, 'approved')", [blocker]);
+      // First change: R gains an administration permission and waits (for p0, or for a holder lock).
+      await begin(c1, a.ctx);
+      const first = settle(c1.query(a.sql, a.params));
+      await waitsForLock(c1, first);
+      // Second change: S gains a GMP permission; it commits, or waits for the first change.
+      await begin(c2, b.ctx);
+      const second = settle(c2.query(b.sql, b.params));
+      await waitsForLock(c2, second);
+      await c3.query('rollback');
+      // Finish whichever change is done first; the other may be waiting for it.
+      const pending = new Map([[c1, first], [c2, second]]);
+      while (pending.size > 0) {
+        const [c, outcome] = await Promise.race([...pending].map(([k, v]) => v.then((o) => [k, o] as const)));
+        pending.delete(c);
+        await c.query(outcome === 'done' ? 'commit' : 'rollback');
+        outcomes.push(outcome);
+      }
+    } finally {
+      for (const c of [c1, c2, c3]) {
+        await c.query('rollback').catch(() => undefined);
+        c.release();
+      }
+    }
+    // Whichever change came second saw the first one: never both.
+    expect(outcomes.filter((o) => o === 'done')).toHaveLength(1);
+    expect(outcomes.find((o) => o !== 'done')).toMatch(/^EBMR-IAM-033/);
+    expect((await db.app.query('select * from iam.directory_scan() where person_id = $1', [p.personId])).rows).toEqual([]);
+  });
+
+  it('[INV-11][DI-18] defence in depth: a role that mixes the two domains is reported by the directory scan and is never granted', async () => {
+    const holder = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
+    const newcomer = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
+    const role = await customRole(['STEP.EXECUTE']);
+    const g = await grantRole(holder.accountId, role);
+    // A direct owner write with every trigger off (not reachable through the product) mixes the role.
+    await asTimeTraveller(db, "insert into iam.role_permission (role_code, permission_code) values ($1, 'IAM.UNLOCK')", [role]);
+    const scan = await db.app.query<{ finding: string; person_id: string | null; role_code: string | null }>(
+      'select finding, person_id, role_code from iam.directory_scan() order by finding',
+    );
+    expect(scan.rows).toEqual([
+      { finding: 'ADMINISTRATOR_AND_GMP_ROLE', person_id: holder.personId, role_code: role },
+      { finding: 'ROLE_MIXES_ADMINISTRATION_AND_GMP', person_id: null, role_code: role },
+    ]);
+    // The static check refuses the mixed role on its own, for a person who holds nothing else of either domain.
+    await expectRefused(request(newcomer.accountId, role), 'EBMR-IAM-033', /INV-11/);
+    // Put the catalogue and the grant back (same owner path), so the rest of the file sees a clean directory.
+    await asTimeTraveller(db, "update iam.role_permission set removed_at = clock_timestamp() where role_code = $1 and permission_code = 'IAM.UNLOCK'", [role]);
+    await asAdmin((c) => revokeRoleGrant(c, g, 'test clean-up'));
     expect((await db.app.query('select * from iam.directory_scan()')).rows).toEqual([]);
   });
 });

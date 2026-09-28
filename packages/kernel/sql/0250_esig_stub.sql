@@ -73,12 +73,17 @@ $$;
 create trigger aa_stub_signable_guard before insert or update on esig.stub_signable for each row execute function esig.stub_signable_guard();
 create trigger aa_stub_signable_no_delete before delete on esig.stub_signable for each row execute function esig.forbid_change();
 
--- Canonical-content provider for aggregate type esig_stub.
+-- Canonical-content provider for aggregate type esig_stub. It names the entry by its canonical id
+-- (any other spelling of the UUID resolves to the entry but is refused for signing, EBMR-ESIG-014).
+-- Stub entries have no step sequence, so "the next step has started" (WITNESSED) is modelled as: a
+-- later entry of the same kind was recorded on the act's terminal or by a person who entered data
+-- in this entry. A module with real steps derives it from its own sequence.
 create function esig.stub_content(p_id text) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, esig, pg_temp as $$
 declare
-  r    esig.stub_signable%rowtype;
-  v_id uuid;
+  r      esig.stub_signable%rowtype;
+  v_id   uuid;
+  v_next boolean;
 begin
   begin
     v_id := p_id::uuid;
@@ -89,14 +94,22 @@ begin
   if not found then
     return jsonb_build_object('exists', false);
   end if;
+  v_next := exists (
+    select 1 from esig.stub_signable n
+    where n.id <> r.id and n.kind = r.kind and n.recorded_at > r.entered_at
+      and (n.entered_device_id = r.entered_device_id
+           or exists (select 1 from esig.content_change a join esig.content_change b on b.person_id = a.person_id
+                      where a.aggregate_ref = 'esig_stub:' || r.id::text and b.aggregate_ref = 'esig_stub:' || n.id::text
+                        and b.operation = 'INSERT')));
   return jsonb_build_object(
     'exists', true,
+    'aggregate_id', r.id::text,
     'content_version', r.content_version,
     'content', jsonb_build_object('kind', r.kind, 'title', r.title, 'value', r.value, 'unit', r.unit,
                                   'site', r.site, 'area', r.area, 'product', r.product),
     'state', r.state,
     'scope', jsonb_strip_nulls(jsonb_build_object('site', r.site, 'area', r.area, 'product', r.product)),
-    'act', jsonb_build_object('device_id', r.entered_device_id, 'at', r.entered_at));
+    'act', jsonb_build_object('device_id', r.entered_device_id, 'at', r.entered_at, 'next_step_started', v_next));
 end
 $$;
 

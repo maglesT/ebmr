@@ -159,8 +159,8 @@ describe('F74: the co-signer context is not installable by the application after
     expect(observed).toEqual({
       actorIsValidated: false,
       currentActorPerson: null,
-      forgedUpdate: expect.stringMatching(/^EBMR-(AUDIT|IAM)-\d+$/),
-      forgedIncident: expect.stringMatching(/^EBMR-(AUDIT|IAM)-\d+$/),
+      forgedUpdate: expect.stringMatching(/^EBMR-(AUDIT|IAM)-\d+$/) as unknown,
+      forgedIncident: expect.stringMatching(/^EBMR-(AUDIT|IAM)-\d+$/) as unknown,
       committedUpdateAuditedAsVerifier: 0,
       committedContentChangesByVerifier: 0,
       committedIncidentsRaisedByVerifier: 0,

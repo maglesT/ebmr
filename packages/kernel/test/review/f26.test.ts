@@ -27,6 +27,7 @@ import { toDbContext, withCommand, type ActorContext } from '../../src/db/comman
 import { applyPolicyTightening, batchPolicy, definePolicy, pinPoliciesForBatch, setPolicyVersion } from '../../src/market/policy.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
+import { approvePolicyVersion } from '../market/helpers.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -81,7 +82,10 @@ describe('F26 concurrent policy tightenings on one batch', () => {
     expect((await batchPolicy(db.app, batch, code))?.position).toBe('A');
 
     const v2 = await as(ROLE.policy, (c) => setPolicyVersion(c, code, 'C', { changeRef: 'CC-V2' }));
-    const v3 = await as(ROLE.policy, (c) => setPolicyVersion(c, code, 'B', { approvalId: randomUUID(), changeRef: 'CC-V3' }));
+    // Setup corrected after the F24/F76 fix: the loosening's approval is a real POLICY_LOOSENING_APPROVED
+    // e-signature of version 3 at B by a QA person other than the author (a random uuid is refused now).
+    const approvalId = await approvePolicyVersion(db, code, 'B');
+    const v3 = await as(ROLE.policy, (c) => setPolicyVersion(c, code, 'B', { approvalId, changeRef: 'CC-V3' }));
     expect([v2.position, v2.direction]).toEqual(['C', 'TIGHTENING']);
     expect([v3.position, v3.direction]).toEqual(['B', 'LOOSENING']);
 

@@ -27,7 +27,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { evaluateStubScope, setSiteValue } from '../../src/market/repository.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, createTestTable, MARKET_ROLES, publishDocument, seedStubWorld, type StubWorld } from '../market/helpers.ts';
+import { approveSiteLoosening, asApp, createTestTable, MARKET_ROLES, publishDocument, seedStubWorld, type StubWorld } from '../market/helpers.ts';
 
 let db: TestDatabase;
 let world: StubWorld;
@@ -56,21 +56,11 @@ describe('F25 approved site loosening bound to the resolution it was approved ag
     };
     await publishDocument(db, v1);
 
-    // Step 2: QA approves the loosening 12 -> 18.
-    const approval = randomUUID();
-    const sv = await asApp(
-      db,
-      (c) =>
-        setSiteValue(c, {
-          siteId: world.siteId,
-          key,
-          value: '18',
-          effectiveFrom: '2026-01-01',
-          justificationRef: 'JUST-12-TO-18',
-          qaApprovalId: approval,
-        }),
-      { roleCode: MARKET_ROLES.siteValues },
-    );
+    // Step 2: QA approves the loosening 12 -> 18. Setup corrected after the F24/F76 fix: the approval
+    // is a real SITE_VALUE_LOOSENING_APPROVED e-signature of this loosening (a random uuid is refused now).
+    const request = { siteId: world.siteId, key, value: '18', effectiveFrom: '2026-01-01', justificationRef: 'JUST-12-TO-18' };
+    const approval = await approveSiteLoosening(db, request);
+    const sv = await asApp(db, (c) => setSiteValue(c, { ...request, qaApprovalId: approval }), { roleCode: MARKET_ROLES.siteValues });
     expect(sv.outcome).toBe('LOOSENED');
     const { rows: stored } = await db.admin.query<{ approved_against: unknown }>(
       "select resolution -> 'value' as approved_against from market.site_value where id = $1",
@@ -120,7 +110,7 @@ describe('F25 approved site loosening bound to the resolution it was approved ag
     }).toEqual({
       impactItemForApprovedLoosening: true,
       appliesUnapprovedLoosening: false,
-      observed: expect.anything(),
+      observed: expect.anything() as unknown,
     });
   });
 });

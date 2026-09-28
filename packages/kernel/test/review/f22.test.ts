@@ -21,11 +21,10 @@
  * Positive controls: without a subject, T-ALL resolves to 12 over {EU, IN, US} and is filed under
  * T-ALL; I-ALL's managementReview evaluation is SITE_LOOSENED and flagged on I-ALL.
  */
-import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { batchFlags, evaluateStubScope, listEvaluations, setSiteValue, type EvaluateStubScopeRequest, type StoredEvaluation } from '../../src/market/repository.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { asApp, MARKET_ROLES, publishSeedTables, seedStubWorld, type StubWorld } from '../market/helpers.ts';
+import { approveSiteLoosening, asApp, MARKET_ROLES, publishSeedTables, seedStubWorld, type StubWorld } from '../market/helpers.ts';
 
 let db: TestDatabase;
 let world: StubWorld;
@@ -39,20 +38,11 @@ beforeAll(async () => {
   await publishSeedTables(db);
   world = await seedStubWorld(db);
   // An approved loosening of the GUIDANCE management-review interval (12 -> 15 months) at the site
-  // where every stub batch is made.
-  const loosened = await asApp(
-    db,
-    (c) =>
-      setSiteValue(c, {
-        siteId: world.siteId,
-        key: MR_KEY,
-        value: '15',
-        effectiveFrom: '2026-01-01',
-        justificationRef: 'MR-JUST-F22',
-        qaApprovalId: randomUUID(),
-      }),
-    { roleCode: MARKET_ROLES.siteValues },
-  );
+  // where every stub batch is made. Setup corrected after the F24/F76 fix: the QA approval is a real
+  // SITE_VALUE_LOOSENING_APPROVED e-signature of this loosening (a random uuid is refused now).
+  const request = { siteId: world.siteId, key: MR_KEY, value: '15', effectiveFrom: '2026-01-01', justificationRef: 'MR-JUST-F22' };
+  const qaApprovalId = await approveSiteLoosening(db, request);
+  const loosened = await asApp(db, (c) => setSiteValue(c, { ...request, qaApprovalId }), { roleCode: MARKET_ROLES.siteValues });
   expect(loosened.outcome).toBe('LOOSENED');
 });
 

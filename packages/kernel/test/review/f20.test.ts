@@ -96,7 +96,7 @@ describe('F20: ALL_APPLY strictness must compare criterion content, not only ids
       ...tablets,
       version: 2,
       change: { kind: 'UPDATE', description: 'F20 control: India criterion under a new id' },
-      rows: rowsOf(tablets).map((r) => (r.ref === 'B-14.IN.ipBands' ? { ...r, value: [{ ...ip, id: 'IP_UNIFORMITY_OF_WEIGHT_BANDS_X' }] as unknown as RuleValue } : r)),
+      rows: rowsOf(tablets).map((r) => (r.ref === 'B-14.IN.ipBands' ? { ...r, value: [{ ...ip, id: 'IP_UNIFORMITY_OF_WEIGHT_BANDS_X' }] } : r)),
     };
     const controlPublish = await outcomeOf(publishDocument(db, renamed), (p) => `PUBLISHED loosening=${p.loosening.length} impact=${p.impactCount}`);
 
@@ -130,13 +130,13 @@ describe('F20: ALL_APPLY strictness must compare criterion content, not only ids
       controlSite: 'REFUSED EBMR-MKT-064',
       controlPublish: 'REFUSED EBMR-MKT-031',
       // A site value looser than a HARD value is refused (IN-52); the same id does not make it tighter.
-      attackSite: expect.stringMatching(/^REFUSED EBMR-MKT-06[04]$/),
+      attackSite: expect.stringMatching(/^REFUSED EBMR-MKT-06[04]$/) as unknown,
       evaluation: {
         resolvedIsIndiaBands: true,
         // The India HARD bands stay in force for the {IN} batch.
         effectiveIpIsIndiaBands: true,
-        siteOutcome: expect.not.stringMatching(/^SITE_TIGHTER$|^SITE_EQUAL$/),
-        batchFlagged: expect.any(Boolean),
+        siteOutcome: expect.not.stringMatching(/^SITE_TIGHTER$|^SITE_EQUAL$/) as unknown,
+        batchFlagged: expect.any(Boolean) as unknown,
       },
       // Loosening a value already in force needs a SOURCE_CORRECTION (EBMR-MKT-031).
       attackPublish: 'REFUSED EBMR-MKT-031',
