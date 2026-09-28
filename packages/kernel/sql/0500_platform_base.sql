@@ -148,12 +148,14 @@ language sql stable security definer set search_path = pg_catalog, pg_temp as $$
   where has_column_privilege('ebmr_app', c.table_name, c.column_name, 'INSERT')
      or has_column_privilege('ebmr_app', c.table_name, c.column_name, 'UPDATE')
   union all
+  -- The privilege test takes the column by number from the joined pg_attribute row: by name it raises for a table
+  -- without recorded_at whenever the planner evaluates it before the existence test (plan-dependent).
   select a.table_name::text, 'recorded_at', 'audited table has a recorded_at column that the application role may write'
   from kernel.audited_table a
-  where exists (select 1 from pg_attribute x where x.attrelid = a.table_name and x.attname = 'recorded_at' and not x.attisdropped)
-    and not exists (select 1 from platform.db_time_column c where c.table_name = a.table_name and c.column_name = 'recorded_at')
-    and (has_column_privilege('ebmr_app', a.table_name, 'recorded_at', 'INSERT')
-         or has_column_privilege('ebmr_app', a.table_name, 'recorded_at', 'UPDATE'))
+  join pg_attribute x on x.attrelid = a.table_name and x.attname = 'recorded_at' and not x.attisdropped
+  where not exists (select 1 from platform.db_time_column c where c.table_name = a.table_name and c.column_name = 'recorded_at')
+    and (has_column_privilege('ebmr_app', a.table_name, x.attnum, 'INSERT')
+         or has_column_privilege('ebmr_app', a.table_name, x.attnum, 'UPDATE'))
   union all
   select a.table_name::text, 'recorded_at', 'audited table has a recorded_at column whose default is not the database clock'
   from kernel.audited_table a
