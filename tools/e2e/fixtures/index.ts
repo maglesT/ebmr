@@ -57,7 +57,8 @@ export const badge = {
   /** A badge tap as the keyboard-wedge reader sends it: the UID as a burst of keys, then Enter. */
   async tap(page: Page, persona: SeededPersona): Promise<void> {
     if (!persona.badgeUid) throw new Error(`${persona.key} has no badge`);
-    const field = page.getByRole('textbox', { name: 'Badge', exact: true });
+    // By label: the sign-in field is a textbox, the badge prompt of the tap and signing dialogs a password input.
+    const field = page.getByLabel('Badge', { exact: true });
     await field.focus();
     await page.keyboard.type(persona.badgeUid, { delay: 5 });
     await page.keyboard.press('Enter');

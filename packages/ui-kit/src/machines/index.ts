@@ -3,3 +3,4 @@
  */
 export * from './ceremony.ts';
 export * from './kiosk-lock.ts';
+export * from './pending-entry.ts';
