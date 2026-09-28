@@ -49,9 +49,14 @@ describe('path counts on known shapes (ADR 0004 decision 7)', () => {
     const m = shape(rep('R', 1, 2, loop('L', 3, phase('d'))), ['L']);
     const { graph, expanded } = compileMbr(m);
     const game = new TokenGame(graph, boundsOf(expanded.root));
-    const longest = [...enumeratePaths(game, 100_000)].reduce((a, b) => (b.occurrences.length > a.occurrences.length ? b : a));
-    expect(pathSteps(longest).filter((s) => s.startsWith('d@'))).toEqual(['d@R=1/L=1', 'd@R=1/L=2', 'd@R=1/L=3', 'd@R=2/L=1', 'd@R=2/L=2', 'd@R=2/L=3']);
-    expect(longest.exceptions.map((e) => e.kind)).toEqual(['LOOP_EXHAUSTED', 'LOOP_EXHAUSTED']);
+    const paths = [...enumeratePaths(game, 100_000)];
+    const most = Math.max(...paths.map((p) => p.occurrences.length));
+    const longest = paths.filter((p) => p.occurrences.length === most);
+    // Sub-lot 2 starts only after sub-lot 1 has finished (sequential instances).
+    for (const p of longest) expect(pathSteps(p).filter((s) => s.startsWith('d@'))).toEqual(['d@R=1/L=1', 'd@R=1/L=2', 'd@R=1/L=3', 'd@R=2/L=1', 'd@R=2/L=2', 'd@R=2/L=3']);
+    // Exit at the third iteration or exhausted there, per sub-lot: 4 longest paths, one exhausted in both.
+    expect(longest).toHaveLength(4);
+    expect(longest.map((p) => p.exceptions.length).sort()).toEqual([0, 1, 1, 2]);
   });
 
   it('[DI-04] when the bound is hit the report says so clearly, and targeted runs still reach every decision option', () => {

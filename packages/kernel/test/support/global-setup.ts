@@ -29,6 +29,9 @@ export default async function setup(project: TestProject): Promise<() => Promise
   const sources: MigrationSource[] = [{ ...KERNEL_MIGRATIONS, ...(filter ? { include: filter } : {}) }];
   const siteServices = new URL('../../../site-services/sql', import.meta.url).pathname;
   if (existsSync(siteServices)) sources.push({ namespace: 'site-services', directory: siteServices, ...(filter ? { include: filter } : {}) });
+  // recipe-core's schema is applied to every edition database after the kernel (ADR 0011).
+  const recipeCore = new URL('../../../recipe-core/sql', import.meta.url).pathname;
+  if (existsSync(recipeCore)) sources.push({ namespace: 'recipe-core', directory: recipeCore, ...(filter ? { include: filter } : {}) });
   sources.push({ namespace: 'test-fixtures', directory: new URL('.', import.meta.url).pathname });
 
   const client = new pg.Client({ connectionString: urlFor(template) });
