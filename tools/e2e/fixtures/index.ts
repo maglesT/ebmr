@@ -9,6 +9,8 @@
  *  - `api(installation)`: the typed contract client against the running server (same-origin headers);
  *  - `axe.check(page)`: WCAG 2.2 AA, zero serious or critical findings;
  *  - `evidence.step(title, expected, fn)`: a test step with a screenshot for the evidence reporter;
+ *  - `dcMiniPackage.get()`: a dc-mini test package exported from GMP by this worker's MBR author through the real
+ *    designer API, in the sandbox exchange inbox (worker-scoped; see test-package.ts);
  *  - CSP violations collected from every page (`cspViolations(page)`).
  */
 import { AxeBuilder } from '@axe-core/playwright';
@@ -16,6 +18,7 @@ import { test as base, expect, type Browser, type Page } from '@playwright/test'
 import { createApiClient, type ApiClient, type FetchLike } from '@ebmr/api-contract';
 import type { SeededPersona, SiteSeed } from '@ebmr/test-kit';
 import { readSeeds, readState, workerPersona, type E2eState } from './state.ts';
+import { cachedPackage, exportDcMiniPackage, packageTag, type DcMiniPackages } from './test-package.ts';
 
 type Installation = 'GMP' | 'SANDBOX';
 
@@ -107,6 +110,7 @@ interface Fixtures {
 
 interface WorkerFixtures {
   e2e: E2eWorld;
+  dcMiniPackage: DcMiniPackages;
 }
 
 export const test = base.extend<Fixtures, WorkerFixtures>({
@@ -115,6 +119,24 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
     async ({}, use) => {
       const state = readState();
       await use({ state, seeds: readSeeds(state), url: (i) => (i === 'GMP' ? state.urls.gmp : state.urls.sandbox) });
+    },
+    { scope: 'worker' },
+  ],
+  dcMiniPackage: [
+    async ({ browser, e2e }, use, workerInfo) => {
+      const author = workerPersona(e2e.seeds.GMP, 'author', workerInfo.parallelIndex);
+      await use(
+        cachedPackage(async () => {
+          const page = await newPage(browser, VIEWPORTS.office);
+          try {
+            await pickTerminal(page, e2e.url('GMP'), 'PC-DESIGN-01');
+            await signIn.office(page, author);
+            return await exportDcMiniPackage(page, e2e.state, packageTag(workerInfo.parallelIndex + 1));
+          } finally {
+            await page.context().close();
+          }
+        }),
+      );
     },
     { scope: 'worker' },
   ],

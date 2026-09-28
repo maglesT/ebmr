@@ -7,8 +7,8 @@
  * every floor route.
  *
  * Part 2 (live, after checkpoint D5): the same screens against C3's execution routes, C1's badge tap and
- * ceremony. Each test skips, with the reason, while a piece it needs is not live yet (the stub routes answer
- * 501) or while the exchange inbox holds no test package.
+ * ceremony. Each test issues its own TEST- batch from this worker's dc-mini package, which the `dcMiniPackage`
+ * fixture exports from GMP through the real designer API, so none of them depends on another spec.
  */
 import type { Locator, Page } from '@playwright/test';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
@@ -144,34 +144,25 @@ async function tapBadge(page: Page, who: SeededPersona): Promise<void> {
   await page.keyboard.press('Enter');
 }
 
-interface Readiness {
-  execution: boolean;
-  esig: boolean;
-}
-
-async function readiness(page: Page): Promise<Readiness> {
-  return page.evaluate(async () => {
-    const status = async (path: string) => (await fetch(path, { headers: { accept: 'application/json' }, cache: 'no-store' })).status;
-    return { execution: ![404, 501].includes(await status('/api/test-runs')), esig: ![404, 501].includes(await status('/api/esig/signatures?aggregateType=batch_step&aggregateId=none')) };
-  });
-}
-
 /** Chooses a react-aria radio the way a person does: its label covers the input, so the label is what is tapped. */
 async function choose(radio: Locator): Promise<void> {
   await radio.locator('xpath=ancestor::label[1]').click();
   await expect(radio).toBeChecked();
 }
 
-/** Issues a TEST- batch through the floor screens as the batch issuer on the sandbox PC; null when no package is in the inbox. */
-async function issueTestBatch(page: Page, base: string): Promise<string | null> {
-  await open(page, base, '/packages');
+/**
+ * Imports the package (when it is not imported yet) and issues a TEST- batch of it through the floor screens, as
+ * the batch issuer on the sandbox PC; returns the run id.
+ */
+async function issueTestBatch(page: Page, base: string, packageHash: string): Promise<string> {
+  await open(page, base, `/packages?package=${packageHash}`);
   await expect(page.getByRole('heading', { name: 'Test-run packages' })).toBeVisible();
-  const items = page.locator('[data-testid^="package-"]');
-  if ((await items.count()) === 0) return null;
-  const item = items.first();
+  const item = page.getByTestId(`package-${packageHash}`);
   const importButton = item.getByRole('button', { name: 'Import' });
+  const issueLink = item.getByRole('link', { name: 'Issue a test batch' });
+  await expect(importButton.or(issueLink)).toBeVisible();
   if (await importButton.isVisible()) await importButton.click();
-  await item.getByRole('link', { name: 'Issue a test batch' }).click();
+  await issueLink.click();
   await expect(page.getByRole('heading', { name: 'Issue a test batch' })).toBeVisible();
   await choose(page.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').first());
   for (const group of await page.getByRole('radiogroup').all()) {
@@ -183,18 +174,16 @@ async function issueTestBatch(page: Page, base: string): Promise<string | null> 
   }
   await page.getByRole('button', { name: 'Issue the test batch' }).click();
   await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
-  return new URL(page.url()).pathname.split('/').pop() ?? null;
+  return new URL(page.url()).pathname.split('/').pop() ?? '';
 }
 
 test.describe('floor screens against the live sandbox (after checkpoint D5)', () => {
-  test('[DI-05][INV-18][DI-34] every floor screen carries TEST, NOT GMP and TEST- numbers; a later step is shown unavailable with the engine\'s reason', { tag: '@office' }, async ({ officePage, persona, e2e, evidence }) => {
+  test('[DI-05][INV-18][DI-34] every floor screen carries TEST, NOT GMP and TEST- numbers; a later step is shown unavailable with the engine\'s reason', { tag: '@office' }, async ({ officePage, persona, e2e, evidence, dcMiniPackage }) => {
+    const { packageHash } = await dcMiniPackage.get();
     const page = await officePage('SANDBOX', 'TEST-PC-01');
     await signIn.office(page, persona('SANDBOX', 'issuer'));
-    const ready = await readiness(page);
-    test.skip(!ready.execution, 'C3 execution routes are not live yet (checkpoint D5)');
     const base = e2e.url('SANDBOX');
-    const runId = await issueTestBatch(page, base);
-    test.skip(runId === null, 'no test package in the exchange inbox (C2 send-to-sandbox, or the journey spec, provides one)');
+    const runId = await issueTestBatch(page, base, packageHash);
 
     await evidence.step('Run overview of the new TEST- batch', 'TEST- batch number and the TEST, NOT GMP band', async () => {
       await expect(page.getByTestId('batch-number')).toHaveText(/^TEST-/);
@@ -210,7 +199,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
       await expect(page.getByTestId('primary-reason')).not.toBeEmpty();
     }, page);
 
-    for (const path of ['/runs', '/cockpit', '/packages', `/runs/${runId ?? ''}`]) {
+    for (const path of ['/runs', '/cockpit', '/packages', `/runs/${runId}`]) {
       await open(page, base, path);
       if (path.startsWith('/runs')) await expect(page.getByText(/TEST-/).first()).toBeVisible();
     }
@@ -218,19 +207,17 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     expect(await cspViolations(page)).toEqual([]);
   });
 
-  test('[PR-08] an ACTION exception raised at a step blocks until a supervisor links a deviation, with the explanation on the step card', { tag: '@kiosk' }, async ({ officePage, kioskPage, persona, e2e, evidence }) => {
+  test('[PR-08] an ACTION exception raised at a step blocks until a supervisor links a deviation, with the explanation on the step card', { tag: '@kiosk' }, async ({ officePage, kioskPage, persona, e2e, evidence, dcMiniPackage }) => {
+    const { packageHash } = await dcMiniPackage.get();
     const office = await officePage('SANDBOX', 'TEST-PC-01');
     await signIn.office(office, persona('SANDBOX', 'issuer'));
-    const ready = await readiness(office);
-    test.skip(!ready.execution || !ready.esig, 'C3 execution routes and the C1 attribution are not both live yet (checkpoint D5)');
     const base = e2e.url('SANDBOX');
-    const runId = await issueTestBatch(office, base);
-    test.skip(runId === null, 'no test package in the exchange inbox (C2 send-to-sandbox, or the journey spec, provides one)');
+    const runId = await issueTestBatch(office, base, packageHash);
 
     const operator = persona('SANDBOX', 'operator1');
     const page = await kioskPage('TEST-KIOSK-DISP-1');
     await signIn.kiosk(page, operator);
-    await open(page, base, `/runs/${runId ?? ''}`);
+    await open(page, base, `/runs/${runId}`);
     await page.locator('[data-testid^="outline-"]').first().click();
 
     await evidence.step('The operator starts the first step with a badge tap', 'The step is in progress', async () => {
@@ -257,7 +244,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     const sup = await officePage('SANDBOX', 'TEST-PC-01');
     await signIn.office(sup, persona('SANDBOX', 'supervisor1'));
     await evidence.step('The supervisor links a deviation to the exception', 'The exception shows the deviation', async () => {
-      await open(sup, base, `/runs/${runId ?? ''}`);
+      await open(sup, base, `/runs/${runId}`);
       await sup.locator('[data-testid^="outline-"]').first().click();
       const exception = sup.locator('[data-testid^="exception-"]').first();
       await exception.getByRole('button', { name: 'Link a deviation' }).click();
@@ -272,19 +259,17 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     expect(await cspViolations(page)).toEqual([]);
   });
 
-  test('[INV-03] after performing a step, the performer\'s own verification is refused with the reason naming who may verify', { tag: '@kiosk' }, async ({ officePage, kioskPage, persona, e2e, evidence }) => {
+  test('[INV-03] after performing a step, the performer\'s own verification is refused with the reason naming who may verify', { tag: '@kiosk' }, async ({ officePage, kioskPage, persona, e2e, evidence, dcMiniPackage }) => {
+    const { packageHash } = await dcMiniPackage.get();
     const office = await officePage('SANDBOX', 'TEST-PC-01');
     await signIn.office(office, persona('SANDBOX', 'issuer'));
-    const ready = await readiness(office);
-    test.skip(!ready.execution || !ready.esig, 'C3 execution routes and the C1 ceremony are not both live yet (checkpoint D5)');
     const base = e2e.url('SANDBOX');
-    const runId = await issueTestBatch(office, base);
-    test.skip(runId === null, 'no test package in the exchange inbox (C2 send-to-sandbox, or the journey spec, provides one)');
+    const runId = await issueTestBatch(office, base, packageHash);
 
     const operator = persona('SANDBOX', 'operator1');
     const page = await kioskPage('TEST-KIOSK-DISP-1');
     await signIn.kiosk(page, operator);
-    await open(page, base, `/runs/${runId ?? ''}`);
+    await open(page, base, `/runs/${runId}`);
     await page.locator('[data-testid^="outline-"]').first().click();
     await page.getByTestId('primary-action').click();
     await tapBadge(page, operator);
