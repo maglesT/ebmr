@@ -482,12 +482,10 @@ $$;
 create function iam.change_event_check(p_auth_event uuid, p_kind text) returns iam.auth_event
 language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
-  v_ev iam.auth_event%rowtype;
+  -- Locks the event and refuses it once its account, person or badge is no longer active, as for
+  -- every other consumer (iam.lock_auth_event).
+  v_ev iam.auth_event := iam.lock_auth_event(p_auth_event);
 begin
-  select * into v_ev from iam.auth_event where id = p_auth_event for update;
-  if not found then
-    raise exception using errcode = 'P0001', message = 'EBMR-IAM-090 unknown authentication event';
-  end if;
   if v_ev.purpose <> 'CREDENTIAL_CHANGE' then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-096 the authentication event was not made to change a secret';
   end if;
@@ -499,9 +497,6 @@ begin
   end if;
   if not ((p_kind = 'PASSWORD' and 'PASSWORD' = any (v_ev.components)) or (p_kind = 'PIN' and 'PIN' = any (v_ev.components))) then
     raise exception using errcode = 'P0001', message = format('EBMR-IAM-096 changing the %s needs an authentication with the current %s', p_kind, p_kind);
-  end if;
-  if iam.account_locked(v_ev.account_id) or (select status from iam.account where id = v_ev.account_id) <> 'ACTIVE' then
-    raise exception using errcode = 'P0001', message = 'EBMR-IAM-103 the account is not active or is locked';
   end if;
   return v_ev;
 end
@@ -551,7 +546,9 @@ $$;
 -- Consuming authentication events
 -- ---------------------------------------------------------------------------------------------
 
--- Common checks; locks the event row so concurrent consumers are serialised.
+-- Common checks of every consumer of an authentication event (a login, an unlock, a keep-alive, a
+-- command's attribution, a signature, a secret change); locks the event row so concurrent consumers
+-- are serialised.
 create function iam.lock_auth_event(p_auth_event uuid) returns iam.auth_event
 language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
@@ -564,6 +561,14 @@ begin
   if (select status from iam.account where id = v_ev.account_id) <> 'ACTIVE'
      or (select status from iam.person where id = v_ev.person_id) <> 'ACTIVE' or iam.account_locked(v_ev.account_id) then
     raise exception using errcode = 'P0001', message = 'EBMR-IAM-103 the account of the authentication event is no longer active or is locked';
+  end if;
+  -- DI-19: a badge is de-authorised at once when it is lost, revoked or replaced, and so is every
+  -- authentication event it made that has not been used yet. (The badge functions take the badge's
+  -- account before the badge, like every login and command, so a consumer either finishes before the
+  -- badge changes or sees the change here.)
+  if v_ev.badge_id is not null and (select b.status from iam.badge b where b.id = v_ev.badge_id) is distinct from 'ACTIVE' then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-IAM-097 DI-19: the badge that made the authentication event is no longer active (lost, revoked or replaced)';
   end if;
   return v_ev;
 end

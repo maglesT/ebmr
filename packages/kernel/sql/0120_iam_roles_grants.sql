@@ -293,13 +293,16 @@ $$;
 -- Static checks for one account and role (DI-14, DI-18, INV-11). p_exclude is the grant being
 -- checked, so it is not counted against itself.
 --
--- Concurrency. Every static check takes its locks in one order: the role, then the person. This
--- function takes the granted role in share mode (a change of that role's permissions, which takes it
--- exclusively in iam.check_role_permission_addition, waits for this grant or is waited for) and then
--- the person row (two grants for the same person, or a grant and a catalogue change that reaches the
--- same person, are checked one after the other). The catalogue and the other grants are then read as
--- they stand once the locks are held, live now or later (instant 'infinity'), never at an instant
--- taken before a lock wait: a permission committed while this check waited is seen.
+-- Concurrency. Every static check takes its locks in one order: the role, the person, then the
+-- account (iam.process_leaver also takes the person before the account). This function takes the
+-- granted role in share mode (a change of that role's permissions, which takes it exclusively in
+-- iam.check_role_permission_addition, waits for this grant or is waited for), then the person row
+-- (two grants for the same person, or a grant and a catalogue change that reaches the same person,
+-- are checked one after the other), then the account in share mode (a deactivation, a suspension or a
+-- leaver, which update it, wait until this grant has committed and then revoke it with the account's
+-- other grants, or commit first and are seen here). Everything is read as it stands once the locks
+-- are held: the account row after its lock, and the catalogue and the other grants live now or later
+-- (instant 'infinity'), never at an instant taken before a lock wait.
 create function iam.check_static_segregation(p_account uuid, p_role text, p_exclude uuid) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, iam, pg_temp as $$
 declare
@@ -316,6 +319,7 @@ begin
     raise exception using errcode = 'P0001', message = format('EBMR-IAM-030 unknown role %s', p_role);
   end if;
   perform 1 from iam.person where id = v_acc.person_id for update;
+  select * into v_acc from iam.account where id = p_account for share;
   -- INV-11 / DI-18: a role that holds administration and GMP permissions is never granted
   -- (iam.check_role_permission_addition keeps any role from mixing them; this is defence in depth).
   if iam.role_has_domain(p_role, 'ADMINISTRATION', v_now) and iam.role_has_domain(p_role, 'GMP', v_now) then
@@ -412,6 +416,15 @@ begin
   end if;
   if new.status in ('REQUESTED', 'APPROVED') then
     perform iam.check_static_segregation(new.account_id, new.role_code, new.id);
+  end if;
+  -- DI-16: authority is approved only for an active account (read after the share lock the check above
+  -- took, so a deactivation or suspension that committed while it waited is seen). A request may be
+  -- raised while the account awaits activation; it is approved once the account is active.
+  if tg_op = 'UPDATE' and new.status = 'APPROVED' and old.status = 'REQUESTED'
+     and (select a.status from iam.account a where a.id = new.account_id) <> 'ACTIVE' then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-IAM-026 a grant is approved only for an active account; this account is %s',
+                       (select a.status from iam.account a where a.id = new.account_id));
   end if;
   return new;
 end
