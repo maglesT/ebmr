@@ -4,7 +4,7 @@
  *
  * bindRoutes calls resolveAttribution for every FRESH_ON_SHARED route on a shop-floor terminal. In order:
  *  1. no attribution: 428 TAP_REQUIRED ("Tap your badge");
- *  2. at most 10 taps a minute per terminal and badge (429; the kernel lockout stays authoritative);
+ *  2. at most 30 taps a minute per terminal and badge (429; the kernel lockout stays authoritative);
  *  3. the device proof inside the attribution, verified over the request itself: method, path and the body
  *     without its `attribution` member (a fresh single-use nonce, the terminal's enrolled key). The proven
  *     terminal must be the session's own terminal;
@@ -44,9 +44,10 @@ export interface AttributionResult {
 export type AttributionMethod = 'TAP' | 'TAP_PIN' | 'NONE';
 
 // ---------------------------------------------------------------------------------------------
-// Tap rate limit: 10 a minute per terminal and badge (plan section 5). A monotonic clock, never a GMP time.
+// Tap rate limit: 30 a minute per terminal and badge (plan section 5 said 10; raised so a fast operator working a
+// checklist is not refused, decision C0-9). A monotonic clock, never a GMP time.
 
-export const TAP_LIMIT = { max: 10, windowMs: 60_000 } as const;
+export const TAP_LIMIT = { max: 30, windowMs: 60_000 } as const;
 
 export class TapRateLimiter {
   private readonly hits = new Map<string, number[]>();
@@ -100,7 +101,7 @@ export function tapRateLimited(): Error {
       code: 'RATE_LIMITED',
       kind: 'LOCKED',
       whatHappened: 'Too many badge taps in a short time.',
-      why: 'At most 10 badge taps a minute are accepted per terminal and badge.',
+      why: `At most ${TAP_LIMIT.max} badge taps a minute are accepted per terminal and badge.`,
       controls: ['DI-19'],
       whatYouCanDo: ['Wait a minute and try again.'],
       whoCanHelp: ['Your supervisor'],

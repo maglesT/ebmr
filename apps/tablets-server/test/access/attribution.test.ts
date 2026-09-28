@@ -11,6 +11,7 @@ import { routes, type Attribution } from '@ebmr/api-contract';
 import { freshTap, passwordActor } from '@ebmr/test-kit';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
+import { TAP_LIMIT } from '../../src/platform/auth/attribution.ts';
 import { actorOfBrowser, createStub, outcome, personaIn, refusalOf, startSigningServer, tapFor, valueOf } from '../esig/support.ts';
 
 let sbx: TestServer;
@@ -155,15 +156,15 @@ describe('attribution on a kiosk', () => {
     expect(refusalOf(await op.call(routes.esig.createChallenge, { body, attribution: tap }))).toMatchObject({ status: 401, code: 'EBMR-IAM-140', kind: 'AUTH_FAILED', whatHappened: 'The badge was not accepted.' });
   });
 
-  it('[DI-19][INV-40] taps are limited to 10 a minute per terminal and badge', async () => {
+  it('[DI-19][INV-40] taps are limited per minute per terminal and badge (TAP_LIMIT)', async () => {
     const qa = await sbx.asPersona('qa1');
     const me = personaIn(sbx, 'qa1');
     const stub = await createStub(sbx, qa, 'qa1');
     const body = await challengeBody(qa, stub);
     const seen: string[] = [];
-    for (let i = 0; i < 11; i += 1) seen.push(outcome(await qa.call(routes.esig.createChallenge, { body, attribution: await tapFor(qa, me, 'POST', PATH, body) })));
-    expect(seen.slice(0, 10).every((s) => s === 'ok')).toBe(true);
-    expect(seen[10]).toBe('429:RATE_LIMITED');
+    for (let i = 0; i <= TAP_LIMIT.max; i += 1) seen.push(outcome(await qa.call(routes.esig.createChallenge, { body, attribution: await tapFor(qa, me, 'POST', PATH, body) })));
+    expect(seen.slice(0, TAP_LIMIT.max).every((s) => s === 'ok')).toBe(true);
+    expect(seen[TAP_LIMIT.max]).toBe('429:RATE_LIMITED');
   });
 });
 
