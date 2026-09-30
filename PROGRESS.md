@@ -446,3 +446,38 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   stricter default is to require the user's own reason there as 0250 does; (2) the test-kit gateway TEST-gw holds the
   broad SERVICE_ACCOUNT role although the seed test calls it least privilege; give it an INTERFACE.WRITE-only role or stop
   the claim. A backup of the unverified adaptation is on the branch wip/phase-2-merge-adaptation (kept; not for merging).
+- 2026-09-30: PHASE 2 REVIEW FIXES (review wf_915b8c27-4a5: 27 confirmed, 13 plausible, 2 critic findings, plus merge
+  leftovers V1/V2 and kernel items K1/K2 = 46 items). Workflows: wf_a6702877-416 (13 fix clusters in lanes, a skeptic
+  attack per fix and a second attempt where it broke, verifier round 1, 3 repairs) and, after a container restart, the
+  strictly sequential continuation wf_ec853157-518 (15 more round-1 repairs, verifier rounds 2-4 with 6 + 1 repairs).
+  RESULT: 45 of 46 closed with regression tests that fail without the fix (mutation-checked). Final verifier (round 4):
+  `pnpm run ci` green (325 files, 2493 tests, trace ok 80/241; one of three runs had a teardown race, see below), E2E
+  20/20 (one of two runs had the device-nonce load failure, see below), no migration existing at b5b7d40 edited, no
+  weakening found, only the intended new EXECUTE grants for ebmr_app.
+  Main changes (all new migrations; nothing at b5b7d40 edited): execution guards in the database (engine role evidence
+  evaluated in the declared role/location/map P22; signatures fail closed, exact meaning, made in this transaction
+  P24/P37; dispositions and hold-point decisions bound to the signed proposal P25/P26/P38; system facts recorded as the
+  system's and proven from the MBR P28/P35; SCAN only when attested, recorded state bound to its command P34/P58/P36;
+  operator and limit exceptions derived from the command and the MBR; initial issue state checked), recipe-core
+  0270-0305; devices (Ed25519 and raw-line binding in the database P48, kiosk room from the session P49, reading age incl.
+  server wait P53, manual-weighing gate in the database P50, scale readiness P51, gateway journal fail-safe P52), tablets
+  0270-0340; designer (market codes P13, export audit/file consistency P14/P65, justifications bound to the revision
+  P15/P59, simulation role and caps P18/P20); spine (sign-out P5, secrets never in React state or the DOM P1/CN2, audit
+  view only from chain-covered data P7, encoded API paths P8, audit paging P11); floor web (resend P42/P45, per-person
+  views P43/P44, E2E tests reach their checks P46/P47); kernel 0940 (site.zone must be an IANA zone, K1), 0950 (a refused
+  signing's own command is not re-use, K2), 0960 (visible reason text); V1 activation needs the user's own reason; V2
+  the gateway has its own least-privilege role (tablets 0290). Defaults X1-X14 recorded in
+  docs/decisions/phase-2-open-questions.md (decision 0004).
+  STILL OPEN (next, before the draft PR): (1) P50 residual: a holder of the application role's DB credentials can starve
+  or cancel the gateway listener's heartbeat queries (advisory room locks; pg_cancel_backend on same-role backends), so a
+  working scale reads OFFLINE and the manual path opens. Proposed: owner-only row locks instead of advisory locks, a
+  dedicated DB login role for the listener (or revoke pg_cancel_backend/pg_terminate_backend from PUBLIC). (2) E2E load
+  failure: the device-nonce rate limit (apps/tablets-server/src/features/session/index.ts, 120/min keyed only by IP)
+  trips when parallel kiosk specs run from 127.0.0.1; key it by device + IP, keep the brute-force protection. (3) test-kit
+  teardown race: FATAL 57P01 from a pool client still ending when `drop database ... with (force)` runs (seed.test.ts,
+  signed-content-hold-point.test.ts); vitest counts it as an unhandled error. Also a load-sensitive test:
+  apps/site-gateway/test/delivery-readiness.test.ts.
+  RESTART LESSONS: parallel lanes do not resume deterministically (the agent-call order differs), so continuation
+  workflows are strictly sequential; agents' `until ! pgrep -f "<pattern>"` wait loops match their own shell and never
+  end (killed by hand). Backups of the unverified work were kept on branches wip/phase-2-merge-adaptation and
+  wip/phase-2-review-fixes (not for merging; kept on the owner's instruction not to delete things).

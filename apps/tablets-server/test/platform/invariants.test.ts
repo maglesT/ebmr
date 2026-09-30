@@ -11,7 +11,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { gatewayActor } from '../../src/features/devices/listener.ts';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
-import { enrol, fakeGateway } from '../devices/support.ts';
+import { INGEST_READING_SQL, enrol, fakeGateway, provenIngestParams } from '../devices/support.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 
 const KINDS = ['GMP', 'SANDBOX'] as const;
@@ -150,15 +150,16 @@ describe('scale readings (sandbox)', () => {
           chainId: String(s['chain_id']),
           gatewayCode: 'TEST-GW-01',
           publicKeySpki: '',
-          roles: ['SERVICE_ACCOUNT'],
+          roles: ['SITE_GATEWAY'],
         },
         server.config.siteZone,
         randomUUID(),
       );
       const b = gw.next();
+      const params = await provenIngestParams(server, actor, b);
       const beforeB = await clock();
       const answer = await withActorCommand(server.db.app, actor, async (c) =>
-        (await c.query<{ r: { outcome: string; recordedUs: string } }>('select tab.ingest_reading($1::jsonb, 0) as r', [JSON.stringify(b)])).rows[0]?.r,
+        (await c.query<{ r: { outcome: string; recordedUs: string } }>(INGEST_READING_SQL, params)).rows[0]?.r,
       );
       const afterB = await clock();
       expect(answer?.outcome).toBe('INGESTED');

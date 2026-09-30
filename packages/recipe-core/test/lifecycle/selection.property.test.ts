@@ -11,7 +11,7 @@ import fc from 'fast-check';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as lc from '../../src/lifecycle/index.ts';
-import { cell, scope, seedCast, uniqueContent, World } from './support.ts';
+import { cell, reason, scope, seedCast, uniqueContent, World } from './support.ts';
 
 const T = (n: number): string => `2026-0${n}-01T00:00:00.000000Z`; // instants 1..9, ordered as text
 const MARKETS = ['IN', 'US', 'EU'] as const;
@@ -218,7 +218,8 @@ describe('recipe.select_version_for_issue equals the model (model-based, real si
                 active.push(r.authorisationId);
               } else if (active.length > 0) {
                 const id = active.splice(o.pick % active.length, 1)[0] ?? '';
-                await w.run(w.cast.qa, (c) => lc.withdrawMarketAuthorisation(c, id, 'model withdrawal'));
+                // The withdrawal carries the QA person's own reason, both halves (migration 0290).
+                await w.run(w.cast.qa, (c) => lc.withdrawMarketAuthorisation(c, id, 'model withdrawal'), reason('model withdrawal'));
               }
             } catch (e) {
               // Refusals are part of the model (older over newer, bridging without supersession, duplicates).

@@ -13,7 +13,7 @@ import { blocks, engine, flow } from '@ebmr/recipe-core/pure';
 import { execution } from '@ebmr/recipe-core';
 import type { TestPackage } from '../../src/features/designer/package-export.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
-import { createFamily, edited, findPhase, refusalOf, removeNode, saveContent, startDesignerServer, valueOf } from './support.ts';
+import { createFamily, edited, findPhase, justifyBody, refusalOf, removeNode, saveContent, startDesignerServer, valueOf } from './support.ts';
 
 let server: TestServer;
 let author: TestBrowser;
@@ -34,7 +34,7 @@ describe('send to sandbox (test package)', () => {
     const v0 = await createFamily(author);
     const v = valueOf(await saveContent(author, v0, edited(v0, (j) => (findPhase(j, 'p-disp-exc').config = {})), 'excipient tolerance removed'));
     const key = 'G07-TOLERANCE-MISSING@p-disp-exc';
-    valueOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: { findingKey: key, text: 'Checked at reconciliation.' } }));
+    valueOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: justifyBody(v, key, 'Checked at reconciliation.') }));
 
     const r = valueOf(await author.call(routes.designer.testPackage, { params: { versionId: v.versionId }, body: {} }));
     expect(r.fileName).toBe(`${r.packageHash}.json`);

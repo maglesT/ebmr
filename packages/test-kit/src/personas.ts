@@ -32,6 +32,7 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'TEST-BAL-01', installation: 'SANDBOX', deviceClass: 'INSTRUMENT', room: 'DISP-1', description: 'Balance 60 kg in DISP-1 (simulated MT-SICS scale behind the site gateway)', key: 'NONE' },
   { code: 'TEST-BAL-02', installation: 'SANDBOX', deviceClass: 'INSTRUMENT', room: 'BLEND-1', description: 'Balance 300 kg in BLEND-1 (behind the site gateway)', key: 'NONE' },
   { code: 'TEST-SRV-SWEEPER', installation: 'SANDBOX', deviceClass: 'SERVER', description: 'Sandbox server: in-process time sweeper identity', key: 'SERVICE' },
+  { code: 'TEST-SRV-MONITOR', installation: 'SANDBOX', deviceClass: 'SERVER', description: 'Sandbox server: in-process gateway API monitor identity', key: 'SERVICE' },
   { code: 'TEST-GW-01', installation: 'SANDBOX', deviceClass: 'SERVER', description: 'Site gateway (scales), sandbox installation', key: 'SERVICE' },
 ];
 
@@ -68,8 +69,11 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'qa1', installation: 'SANDBOX', legalName: 'TEST-Fatima Sheikh', loginName: 'test-qa-1', roleCode: 'QA_SHOP_FLOOR', kiosk: true, homeTerminal: 'TEST-KIOSK-BLEND-1', title: 'QA (shop floor)', demo: { password: 'Demo-QaFloor1-2026!', pin: '935172', badgeUid: '04A10000000031' } },
 ];
 
+/** The sandbox's service identities (SERVICES). */
+export type ServiceKey = 'sweeper' | 'gateway' | 'monitor';
+
 export interface ServiceSpec {
-  key: 'sweeper' | 'gateway';
+  key: ServiceKey;
   legalName: string;
   loginName: string;
   accountKind: 'SERVICE' | 'INTEGRATION';
@@ -79,14 +83,24 @@ export interface ServiceSpec {
 }
 
 /**
- * Service identities of the sandbox (plan section 2): the in-process sweeper and the site gateway. Each holds only
- * the role its work needs (DI-17). The sweeper holds EXECUTION_SWEEPER (recipe-core 0260: EXECUTION.SWEEP and
- * nothing else; SERVICE accounts only). The gateway holds the kernel's SERVICE_ACCOUNT (INTERFACE.WRITE), which no
- * longer carries EXECUTION.SWEEP.
+ * Service identities of the sandbox (plan section 2): the in-process sweeper, the site gateway and the server's
+ * in-process gateway API monitor. Each holds only the role its work needs, and that role only the permission its work
+ * uses (DI-17 least privilege; INV-20):
+ *  - the sweeper holds EXECUTION_SWEEPER (recipe-core 0260: EXECUTION.SWEEP and nothing else; SERVICE accounts only);
+ *  - the gateway holds SITE_GATEWAY (tablets migration 0290: INTERFACE.WRITE and nothing else; INTEGRATION accounts
+ *    only), the permission of tab.ingest_reading and tab.record_heartbeat. It does not hold the kernel's broad
+ *    SERVICE_ACCOUNT, whose other permissions (record purge and retention, true copies, backups, counters, external
+ *    batch numbers, time checks, incidents, market rules, record reads) belong to the kernel's own service jobs;
+ *  - the monitor holds GATEWAY_API_MONITOR (tablets migration 0340: GATEWAY.API_CONTACT_RECORD and nothing else;
+ *    SERVICE accounts only), the permission of tab.record_gateway_api_contact: the server records through it whether
+ *    it reaches each gateway's API.
+ * SITE_GATEWAY and GATEWAY_API_MONITOR exist only in a tablets edition database, so the seed runs on one
+ * (editionMigrationSources with the tablets SQL, as the server, the demo and the E2E runs build it).
  */
 export const SERVICES: readonly ServiceSpec[] = [
   { key: 'sweeper', legalName: 'TEST-sweeper', loginName: 'test-sweeper', accountKind: 'SERVICE', roleCode: 'EXECUTION_SWEEPER', terminal: 'TEST-SRV-SWEEPER' },
-  { key: 'gateway', legalName: 'TEST-gw', loginName: 'test-gw', accountKind: 'INTEGRATION', roleCode: 'SERVICE_ACCOUNT', terminal: 'TEST-GW-01' },
+  { key: 'gateway', legalName: 'TEST-gw', loginName: 'test-gw', accountKind: 'INTEGRATION', roleCode: 'SITE_GATEWAY', terminal: 'TEST-GW-01' },
+  { key: 'monitor', legalName: 'TEST-gw-monitor', loginName: 'test-gw-monitor', accountKind: 'SERVICE', roleCode: 'GATEWAY_API_MONITOR', terminal: 'TEST-SRV-MONITOR' },
 ];
 
 /** Names of the installation's first administrator and process owner (sandbox names carry TEST-). */

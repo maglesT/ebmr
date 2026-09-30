@@ -40,7 +40,15 @@ sample machine). Tests: `test/platform/{state-machine,machine-consistency}.test.
 - **Guards.** `platform.state_guard` maps a code to a SQL function
   `(aggregate_type text, aggregate_id uuid, transition jsonb, payload jsonb, actor jsonb) returns text`,
   which returns NULL for pass or a reason for failure. Guards are registered with
-  `platform.register_guard` (migrations only). A built-in guard, `platform.reason_given`, is included.
+  `platform.register_guard` (migrations only). A built-in guard, `platform.reason_given`, is included: the
+  command carries the reason code and the reason text of the person who makes the transition, neither blank by
+  `kernel.is_blank` (0960; before it, the code alone was checked).
+  - **Blank.** `kernel.is_blank` counts a text as blank when it is NULL or holds only characters that show nothing
+    on their own: C0 and C1 controls, Unicode white space, format characters (zero-width space and joiners,
+    bidirectional marks, word joiner, byte order mark, interlinear annotation marks, and the like),
+    default-ignorable code points and the Braille blank, as explicit code points of Unicode 17 (0960). The audit
+    trigger (EBMR-AUDIT-002), `records.is_blank` and the guard use it; the recipe-core execution engine holds the same
+    class.
   - **Locking rule.** The transition holds the state row FOR UPDATE while its guards run. Every trigger
     or function that changes content a guard reads, and allows it only in some states, reads the state
     row FOR SHARE before it decides (`platform.stub_record_edit_guard`). An edit and a transition of the
@@ -72,7 +80,10 @@ sample machine). Tests: `test/platform/{state-machine,machine-consistency}.test.
 
   The audit trail needs a reason code and text for the state-row UPDATE: where the command gave none,
   the code `STATE_TRANSITION` and the event (`SUBMIT: DRAFT -> SUBMITTED`) as text fill the gap, and the
-  command's own context is restored straight after (through `kernel.set_actor_context`).
+  command's own context is restored straight after (through `kernel.set_actor_context`). This happens only on
+  a transition that needs no reason (a new event such as SUBMIT): where `platform.reason_given` guards the
+  transition, it has refused any blank half with the same test on the same context, so the engine writes no
+  part of that reason and the audit entry records the person's own.
 - **Bypass protection.**
   - The application role has only SELECT on state and history.
   - The trigger `platform.guard_state_row` refuses any write that does not come from the engine, and

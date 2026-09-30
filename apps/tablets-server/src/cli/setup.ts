@@ -13,7 +13,7 @@
  *   <kind>-demo-devices.json  the device picker's terminals and keys (EBMR_DEMO_KEYS_FILE)
  *   <kind>-seal-key.json      DEMO-ONLY HMAC seal key (EBMR_SEAL_KEY_FILE), kept when present
  *   <kind>-secrets.json       CSRF and nonce keys (EBMR_SECRETS_FILE), kept when present
- *   sandbox-service-keys.json the sweeper's and the gateway's service secrets (EBMR_SERVICE_KEYS_FILE)
+ *   sandbox-service-keys.json the sweeper's, the gateway's and the gateway API monitor's service secrets (EBMR_SERVICE_KEYS_FILE)
  */
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';

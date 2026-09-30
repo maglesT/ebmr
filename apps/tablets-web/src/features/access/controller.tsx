@@ -2,13 +2,15 @@
  * The access controller of the web app (module C1; plan section 5): one place that owns
  *  - the badge-tap service behind the BadgeTapPort (requestTap over the exact request, offerSwitch);
  *  - the session control: the kiosk-lock machine, the lock overlay, the "Switch to <name>?" dialog, and a poll of
- *    GET /api/session every 15 s (the kernel locks idle sessions; the overlay follows within 15 s);
+ *    GET /api/session every 15 s (the kernel locks idle sessions; the overlay follows within 15 s). Before each poll
+ *    the page joins a sign-out another tab of this browser marked; an answer that arrives after the session on show
+ *    changed (sign-out, switch, lock or unlock meanwhile) is dropped; an unlock seen by the poll is announced as one;
  *  - the session-change announcements C4's pending entries listen to ('ebmr:session-change').
  *
  * Secrets: badge UIDs and PINs live in Vault / KeptBadge holders only, for as long as the next step needs them (a
  * badge tapped for an entry is kept 30 s so a "Switch to <name>?" offer needs only the PIN), and are wiped when used.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useMachine } from '@xstate/react';
 import { fromPromise } from 'xstate';
 import { routes, type Attribution, type RefusalEnvelope, type SessionView } from '@ebmr/api-contract';
@@ -287,19 +289,44 @@ function SessionControl(props: {
     latestBoot.get().setSession(null);
   }, [state, offerResolve, latestBoot]);
 
+  // Whether this control is still mounted: an answer that arrives after it is gone (a sign-out, a switch to another
+  // person) is not about the session on show any more.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   // The kernel decides: poll the session so an idle lock, an end or a lock elsewhere shows here.
   const check = useCallback(() => {
+    const asked = latestBoot.get();
+    // Before each poll: a sign-out that another tab of this browser marked is joined (the page blocks), never polled
+    // past (DI-38, DI-14; review P5).
+    if (asked.joinMarkedSignOut()) return;
+    const polled = asked.session;
     void sessionCall().then((r) => {
+      const b = latestBoot.get();
+      // An answer about another state of the session than the one on show when it was asked (a sign-out, a switch, a
+      // lock or unlock meanwhile) is dropped: the next poll asks again.
+      if (!mounted.current || b.phase !== 'ready' || b.session !== polled || b.joinMarkedSignOut()) return;
       if (r.ok) {
         const now = latestState.get();
-        if (r.value.person.personId !== latestBoot.get().session?.person.personId) {
-          latestBoot.get().setSession(r.value);
+        if (r.value.person.personId !== polled?.person.personId) {
+          b.setSession(r.value);
           return;
         }
         if (r.value.locked && (now === 'active' || now === 'offering')) {
           machines.announceSessionChange({ reason: 'LOCK', personId: r.value.person.personId });
+          b.setSession(r.value);
           send({ type: 'SERVER_LOCKED' });
-        } else if (!r.value.locked && now === 'locked') send({ type: 'SERVER_ACTIVE' });
+        } else if (!r.value.locked && now === 'locked') {
+          // Unlocked elsewhere (another tab): a session change like any unlock, so the floor reads again (DI-28).
+          machines.announceSessionChange({ reason: 'UNLOCK', personId: r.value.person.personId });
+          b.setSession(r.value);
+          send({ type: 'SERVER_ACTIVE' });
+        }
       } else if (r.failure.kind === 'REFUSAL' && r.failure.status === 401) {
         send({ type: 'ENDED' });
       }

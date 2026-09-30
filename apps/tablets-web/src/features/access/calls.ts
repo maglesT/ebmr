@@ -67,16 +67,23 @@ export function base64UrlOfUtf8(text: string): string {
 }
 
 /**
- * The `intent` of the content preview (GET /api/esig/content) for a signing. It is the meaning code, except for an
- * exception disposition: its proposal is part of the signed content (C3), so the preview names it as
- * `<meaning>|<base64url of the UTF-8 JSON {outcome, justification}>`, taken only from the action that the challenge
- * and the sign request also carry (never from dialog state), so the signer previews and hashes exactly the proposal
- * the challenge binds. The server reads those two members; the linked deviation comes from the record itself.
+ * The `intent` of the content preview (GET /api/esig/content) for a signing. It is the meaning code, except for a
+ * decision, which is part of the signed content (C3), so the preview names it after the meaning, taken only from the
+ * action that the challenge and the sign request also carry (never from dialog state), so the signer previews and
+ * hashes exactly the decision the challenge binds:
+ *  - an exception disposition: `<meaning>|<base64url of the UTF-8 JSON {outcome, justification}>` (the server reads
+ *    those two members; the linked deviation comes from the record itself);
+ *  - a hold-point decision: `<meaning>|<base64url of the UTF-8 JSON {disposition, comment}>`, the comment null when
+ *    there is none (recipe-core 0295; review findings P26, P38).
  */
 export function previewIntent(meaning: string, action: SignableAction): string {
   if (action.kind === 'ENGINE_COMMAND' && action.intent.type === 'DISPOSITION_EXCEPTION') {
     const { outcome, justification } = action.intent;
     return `${meaning}|${base64UrlOfUtf8(JSON.stringify({ outcome, justification }))}`;
+  }
+  if (action.kind === 'ENGINE_COMMAND' && action.intent.type === 'DISPOSITION_HOLD_POINT') {
+    const { disposition, comment } = action.intent;
+    return `${meaning}|${base64UrlOfUtf8(JSON.stringify({ disposition, comment: comment ?? null }))}`;
   }
   return meaning;
 }

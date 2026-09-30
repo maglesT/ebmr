@@ -54,8 +54,8 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
   prepareForChallenge(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<{ contentVersion: string; contentHash: string; changed: boolean }>;
   /**
    * Inside the sign command, before sealing: run the action with a placeholder signature; refusals sign nothing.
-   * After a refusal the attempt rolls back and C1 runs this again in a command of its own that commits what it
-   * records on purpose (its refusal record) and never signs (features/esig: the refusal is logged in between).
+   * It runs once per attempt. After a refusal C1 logs it with the attempt's authentication in the same command,
+   * which then commits what this recorded on purpose (its refusal record) and never signs (features/esig).
    */
   dryRun(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<DryRunOutcome>;
   /** After sealing, in the same transaction: apply with the real signature; asserts the content hash is unchanged. */
@@ -110,6 +110,12 @@ export interface DeviceReadingPort {
   claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]>;
   /** The scale status of a room, for the step screen header; null when the room has no scale. */
   scaleStatus(room: string | null): Promise<ScaleStatusView | null>;
+  /**
+   * Every scale of `room` with its status, for the manual two-person path: the balance a hand-keyed weighing may name
+   * and the statuses that justified the fallback (stored with the row). The database checks the same again inside the
+   * command (tablets 0310, EBMR-EXE-074).
+   */
+  scales(room: string): Promise<ScaleStatusView[]>;
 }
 
 /** Until C5 lands: every claim is refused (the manual two-person path still works), and no scale is shown. */
@@ -127,6 +133,7 @@ export const REFUSING_DEVICE_READING_PORT: DeviceReadingPort = {
       }),
     ),
   scaleStatus: () => Promise.resolve(null),
+  scales: () => Promise.resolve([]),
 };
 
 // ---------------------------------------------------------------------------------------------

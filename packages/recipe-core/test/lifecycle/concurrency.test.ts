@@ -107,7 +107,8 @@ describe('life-cycle commands racing each other', () => {
     const s = await w.state(v.versionId);
     // The retirement goes first (directly through the engine, holding the version's state row) ...
     const c1 = await open(w.cast.qa2, reason('retire while activating'));
-    const c2 = await open(w.cast.qa);
+    // The activation carries the QA person's own reason, both halves (migration 0290).
+    const c2 = await open(w.cast.qa, reason('activate while retiring'));
     try {
       await lc.transitionVersion(c1, v.versionId, 'RETIRE', s.version);
       const second = settle(lc.activateMarketAuthorisation(c2, id, qaSig, regSig));
@@ -138,8 +139,9 @@ describe('life-cycle commands racing each other', () => {
     };
     const a1 = await prepared(v1.versionId, w.cast.qa2);
     const a2 = await prepared(v2.versionId, w.cast.qa);
-    const c1 = await open(w.cast.qa2);
-    const c2 = await open(w.cast.qa);
+    // Each activation carries its QA person's own reason, both halves (migration 0290).
+    const c1 = await open(w.cast.qa2, reason('activate v1 for IN'));
+    const c2 = await open(w.cast.qa, reason('activate v2 for IN'));
     try {
       await lc.activateMarketAuthorisation(c2, a2.id, a2.qaSig, a2.regSig);
       const second = settle(lc.activateMarketAuthorisation(c1, a1.id, a1.qaSig, a1.regSig));

@@ -162,13 +162,16 @@ describe('site gateway with the MT-SICS simulator', () => {
     await sim.control('fault', { fault: 'OFFLINE', on: false });
   });
 
-  it('[DI-31] the API needs the token handed to the logged-in server; health shows no secret', async () => {
+  it('[DI-31] the API needs the token handed to the logged-in server; health shows no secret and, asked with a token, answers only the server\'s', async () => {
     const api = await startGatewayApi(gateway, { host: '127.0.0.1', port: 0 });
     try {
       const base = `http://127.0.0.1:${api.port}`;
       const health = (await (await fetch(`${base}/v1/health`)).json()) as { loggedIn: boolean };
       expect(health.loggedIn).toBe(true);
       expect(JSON.stringify(health)).not.toContain(gateway.apiToken);
+      // The server's probe presents its API token (tablets 0320, P51): answered only for the right one.
+      expect((await fetch(`${base}/v1/health`, { headers: { authorization: `Bearer ${gateway.apiToken}` } })).status).toBe(200);
+      expect((await fetch(`${base}/v1/health`, { headers: { authorization: `Bearer ${'x'.repeat(43)}` } })).status).toBe(401);
       const denied = await fetch(`${base}/v1/devices/TEST-BAL-01/capture`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ purpose: 'GROSS' }) });
       expect(denied.status).toBe(401);
       expect(server.apiTokens).toContain(gateway.apiToken);

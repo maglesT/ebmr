@@ -1,7 +1,8 @@
 /**
  * The time sweeper (module C3; INV-20): the SYSTEM identity TEST-sweeper evaluates the time limits of every
- * running test batch; a maximum breach is raised exactly once, whether the sweeper or a command notices it
- * first; a SWEEP row is written only when the sweep produced events; a batch another command holds is skipped.
+ * running test batch; a maximum breach is raised exactly once, and by SYSTEM, whether the sweeper or a command
+ * notices it first (review P35); a SWEEP row is written only when the sweep produced events; a batch another
+ * command holds is skipped.
  */
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
@@ -70,7 +71,40 @@ describe('time sweeper', () => {
     expect(await violations(server)).toEqual([]);
   }, 180_000);
 
-  it('[DI-17][INV-20] only the sweeper identity records a time sweep: the gateway (SERVICE_ACCOUNT) is refused even as source SYSTEM, and nothing is written', async () => {
+  it('[INV-20][DI-14] a command that notices the breach first records it as the system\'s, exactly once; the sweeper then finds nothing new and writes no row', async () => {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, withShortWindow()));
+    const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-clear@' });
+    await sleep(1_300);
+    const breaches = async () => Object.values((await execution.loadState(server.db.admin, runId))?.state.exceptions ?? {}).filter((e) => e.type === 'TIME_MAX_BREACH');
+
+    // operator1's command evaluates the time first (review P35): the breach is SYSTEM's, not operator1's, and the
+    // command itself is operator1's own, accepted, row.
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-clear@', entry: { kind: 'PREVIOUS_BATCH', product: 'X', batchNumber: 'TEST-B26-7' } });
+    expect((await breaches()).map((e) => e.raisedBy)).toEqual(['SYSTEM']);
+    const operator1 = server.seed.personas.find((p) => p.key === 'operator1')?.personId;
+    const { rows } = await server.db.admin.query<{ kind: string; command_type: string; actor_person: string; accepted: boolean }>(
+      "select kind, command_type, actor_person::text as actor_person, accepted from recipe.execution_command where batch_id = $1 and kind <> 'ISSUE' order by seq",
+      [runId],
+    );
+    expect(rows.slice(-1)).toEqual([{ kind: 'COMMAND', command_type: 'RECORD_ENTRY', actor_person: operator1, accepted: true }]);
+
+    // The sweeper finds the breach already recorded: no second exception, no SWEEP row.
+    const sweeper = { ...(await openServiceSession(server.db, server.seed, 'sweeper')), correlationId: randomUUID() };
+    try {
+      const swept = await sweepAll(server.built.ctx, sweeper);
+      expect(swept.failures).toEqual([]);
+    } finally {
+      await identity.endSession(server.db.app, sweeper.sessionId);
+    }
+    expect((await rowsOf(server, runId)).filter((r) => r.kind === 'SWEEP')).toEqual([]);
+    expect((await breaches()).map((e) => e.raisedBy)).toEqual(['SYSTEM']);
+    expect(await violations(server)).toEqual([]);
+  }, 180_000);
+
+  it('[DI-17][INV-20] only the sweeper identity records a time sweep: the gateway (SITE_GATEWAY) is refused even as source SYSTEM, and nothing is written', async () => {
     const issuer = await server.asPersona('issuer');
     const runId = await importAndIssue(server, issuer, writePackage(server, withShortWindow()));
     const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1') });
@@ -81,12 +115,13 @@ describe('time sweeper', () => {
     const sweepRows = async () =>
       (await server.db.admin.query<{ actor_role: string; actor_person: string }>("select actor_role, actor_person from recipe.execution_command where batch_id = $1 and kind = 'SWEEP'", [runId])).rows;
 
-    // The gateway holds the kernel's SERVICE_ACCOUNT role, which no longer carries EXECUTION.SWEEP (recipe-core 0260).
-    // An INTEGRATION account may declare source SYSTEM (kernel 0190), so the permission check itself refuses it.
+    // The gateway holds its own role SITE_GATEWAY (tablets 0290: INTERFACE.WRITE only); neither it nor the kernel's
+    // SERVICE_ACCOUNT carries EXECUTION.SWEEP (recipe-core 0260). An INTEGRATION account may declare source SYSTEM
+    // (kernel 0190), so the permission check itself refuses it.
     const gateway = await openServiceSession(server.db, server.seed, 'gateway');
-    expect(gateway.roleCode).toBe('SERVICE_ACCOUNT');
+    expect(gateway.roleCode).toBe('SITE_GATEWAY');
     const refused = await sweepAll(server.built.ctx, { ...gateway, source: 'SYSTEM', correlationId: randomUUID() });
-    expect(refused.failures.find((f) => f.runId === runId)?.error).toMatch(/EBMR-IAM-040 .* acting as SERVICE_ACCOUNT lacks permission EXECUTION\.SWEEP/);
+    expect(refused.failures.find((f) => f.runId === runId)?.error).toMatch(/EBMR-IAM-040 .* acting as SITE_GATEWAY lacks permission EXECUTION\.SWEEP/);
     expect(await sweepRows()).toEqual([]);
     expect(await breaches()).toHaveLength(0);
 

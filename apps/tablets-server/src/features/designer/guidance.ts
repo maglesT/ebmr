@@ -1,7 +1,8 @@
 /**
  * Guidance for the refusals the designer's routes pass on from the MBR life cycle (recipe EBMR-RCP-0xx) and the
- * designer's own SQL (EBMR-TAB-15x/16x). `why` is always the database's own message; these entries add what
- * happened, what to do and who can help. Exact codes only (the recipe family prefix may be used by other modules).
+ * designer's own SQL (EBMR-TAB-15x/16x, migrations 0150 and 0280). `why` is always the database's own message; these
+ * entries add what happened, what to do and who can help. Exact codes only (the recipe family prefix may be used by
+ * other modules).
  */
 import type { GuidanceEntry } from '../../platform/http/guidance.ts';
 
@@ -77,6 +78,22 @@ export const DESIGNER_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-TAB-153': { status: 404, kind: 'NOT_ENABLED', whatHappened: 'This reference document does not exist.', whatYouCanDo: ['Choose the document again.'], whoCanHelp: STEWARD },
   'EBMR-TAB-154': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'A document cannot be retired before it took effect.', whatYouCanDo: ['Choose a later date.'], whoCanHelp: STEWARD, controls: ['DI-04'] },
   'EBMR-TAB-155': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'There is no saved content to justify.', whatYouCanDo: ['Save the version first.'], whoCanHelp: AUTHOR },
+  'EBMR-TAB-156': {
+    status: 409,
+    kind: 'STALE',
+    whatHappened: 'The justification was not recorded: the version was saved again, so the content it was written for is no longer the saved revision.',
+    whatYouCanDo: ['Reload the version, validate again and justify the warnings the saved content reports.'],
+    whoCanHelp: AUTHOR,
+    controls: ['IN-02', 'DI-04'],
+  },
+  'EBMR-TAB-165': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The content was not saved: its market set lists a market the market engine does not know.',
+    whatYouCanDo: ['List only markets the market engine knows, each once, with India (IN) always in the set.'],
+    whoCanHelp: QA,
+    controls: ['IN-52', 'INV-34', 'INV-28'],
+  },
   'EBMR-TAB-160': {
     status: 409,
     kind: 'STALE',

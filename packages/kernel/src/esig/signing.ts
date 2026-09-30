@@ -165,7 +165,11 @@ export async function sign(client: pg.PoolClient, req: SignRequest, key: SealKey
  * against the challenge and the authentication event the attempt used; the database alerts the
  * security unit only on misuse it can prove from committed rows, DI-19) and, for authority and
  * independence refusals, the stored evaluation that the rollback removed (INV-26, DI-17: a failed
- * check is logged).
+ * check is logged). It runs on the pool, outside any command, and swallows its own errors, so it is
+ * only for a failure whose command has already rolled back. A refusal before signing that commits its
+ * own command on purpose (the refused record, the stored answer) is logged instead INSIDE that command,
+ * on its client, by calling esig.record_signing_failure directly and letting errors through: the
+ * database then sets aside only that command's own use of the event (kernel 0950; see README, DI-19).
  */
 export async function logSigningFailure(pool: pg.Pool, challengeId: string, error: unknown, authEventId?: string): Promise<void> {
   const code = ebmrCode(error) ?? 'UNKNOWN';

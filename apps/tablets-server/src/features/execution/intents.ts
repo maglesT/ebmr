@@ -5,20 +5,33 @@
  *  - the actor and the engine roles (stored authority evaluations, INV-26);
  *  - lot facts from tab.sandbox_lot (PR-18), by code;
  *  - weights from the scale readings claimed by id through the DeviceReadingPort (source DEVICE with the
- *    raw line and time trust set here, DI-32), or, when the room's scale is not online, the values keyed by
- *    hand (source MANUAL: the block flags the entry and forces a second person, PR-20);
+ *    raw line and time trust set here, DI-32), or, when no scale of the step's room is online, the values keyed
+ *    by hand at a terminal of that room (source MANUAL: the block flags the entry and forces a second person,
+ *    PR-20), with the balance read (the one the operator names, else the room's only scale, else MANUAL) and
+ *    the statuses of the room's scales that opened the fallback (review finding P50);
  *  - container ids (TEST- lot-number pattern, prefixed by the batch number) and the batch read from a
  *    scanned container label;
+ *  - the source of a recorded value: the server cannot attest a scan made on the terminal, so a value is a
+ *    hand entry (MANUAL, with the hand-entry rules of DI-30) unless the server captured it itself; a SCAN claim
+ *    for a parameter the MBR does not scan, and a photo or printout hash that names no stored attachment, are
+ *    refused (review findings P34, P58);
+ *  - the room: a step whose stage names rooms is started and recorded only from a terminal of one of those
+ *    rooms, and its scale readings are claimed for that room (DI-20, the stricter reading of plan section 7's
+ *    "kiosk's room"; review finding P36);
  *  - the command id, and the signature of a signed intent (from the ceremony only).
- * A refusal here (unknown lot, a reading that cannot be claimed, both readings and manual values) is thrown,
- * so the command transaction rolls back with nothing written; a refusal by the engine is persisted.
+ * A refusal here (unknown lot, a reading that cannot be claimed, both readings and manual values, a scan or an
+ * attachment the server cannot attest, a terminal outside the step's room) is thrown, so the command
+ * transaction rolls back with nothing written; a refusal by the engine is persisted. The database refuses the
+ * same sources and rooms again (recipe-core 0285_evidence_source, 0300), and a hand-keyed weighing beside an
+ * online scale of the room, from a terminal of no room or naming a balance that is not an active instrument of
+ * the room, checked inside the command's transaction (tablets 0310, EBMR-EXE-074).
  */
 import type pg from 'pg';
 import { sandbox } from '@ebmr/kernel';
 import { engine, type flow } from '@ebmr/recipe-core';
-import type { ClientEntry, ClientIntent, DataValueWire, SignedIntent } from '@ebmr/api-contract';
+import type { ClientDataSource, ClientEntry, ClientIntent, DataValueWire, Refusal, SignedIntent } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
-import { refusal } from '../../platform/http/refusal.ts';
+import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import { lotForEngine, resolveLot } from './lots.ts';
 
 /** Maximum age of a scale reading at database time (plan section 10, default 120 s). */
@@ -110,7 +123,7 @@ export interface IntentContext {
   app: AppContext;
   def: engine.BatchDefinition;
   state: engine.BatchState;
-  /** The kiosk's room (DI-20): readings from another room are refused by the claim. */
+  /** The room of the session's terminal (null for a terminal registered to no room, such as an office PC; DI-20). */
   room: string | null;
   actor: engine.Actor;
   commandId: string;
@@ -133,23 +146,177 @@ interface Weights {
   evidence: JsonRecord;
 }
 
-async function weights(ctx: IntentContext, e: { tareReadingId?: string | undefined; grossReadingId?: string | undefined; manual?: { tare: string; gross: string; unit: string } | undefined }): Promise<Weights> {
+// ---------------------------------------------------------------------------------------------
+// Room of the step (DI-20)
+
+/** The rooms the stage of `step` is bound to; empty when the step is unknown or its stage names no room. */
+export function stepRooms(def: engine.BatchDefinition, step: string): readonly string[] {
+  const stage = def.steps.get(step)?.stage;
+  return (stage === undefined ? undefined : def.stages.get(stage)?.binding.rooms) ?? [];
+}
+
+/**
+ * Why a terminal in `room` may not start, record, sign as performed or verify `step` (DI-20), or null when it may: the
+ * step's stage names no room, or `room` is one of them. Data of a step whose stage names rooms is accepted only from a
+ * terminal of one of those rooms, and readings only from a scale of that room (DI-32); a terminal of another room, or
+ * one registered to no room such as an office PC, is refused. The database refuses the same rows (recipe-core 0285,
+ * 0300); the server says so before anything is written, and before a signature's PIN is asked for.
+ */
+export function stepRoomRefusal(def: engine.BatchDefinition, step: string, room: string | null): Refusal | null {
+  const rooms = stepRooms(def, step);
+  if (rooms.length === 0 || (room !== null && rooms.includes(room))) return null;
+  const stage = def.steps.get(step)?.stage ?? '?';
+  const where = room === null ? 'registered to no room' : `in room ${room}`;
+  return {
+    code: 'EBMR-EXE-123',
+    kind: 'NOT_ALLOWED',
+    whatHappened: `This terminal is ${where}, but this step is done in ${rooms.join(' or ')}. Nothing was saved.`,
+    why: `This terminal is ${where}; step ${step} belongs to stage ${stage}, which is bound to ${rooms.join(', ')}. The data of a step is accepted only from a terminal and a scale of the step's room.`,
+    controls: ['DI-20', 'PR-23'],
+    whatYouCanDo: [`Go to the terminal in ${rooms.join(' or ')} and do the step there.`],
+    whoCanHelp: ['The shift supervisor'],
+  };
+}
+
+/** The same, in the words a greyed action of the step screen shows (null when the terminal may act on the step). */
+export function stepRoomReason(def: engine.BatchDefinition, step: string, room: string | null): string | null {
+  const r = stepRoomRefusal(def, step, room);
+  if (!r) return null;
+  const rooms = stepRooms(def, step).join(' or ');
+  return `This terminal is ${room === null ? 'registered to no room' : `in room ${room}`}, but this step is done in ${rooms}: go to the terminal in ${rooms} (${r.code}; ${r.controls.join(', ')})`;
+}
+
+/**
+ * The room a step command is accepted from, and the room its scale readings are claimed for (DI-20): the terminal's
+ * own room, once stepRoomRefusal accepts it; a refusal is thrown before anything is written.
+ */
+export function roomOfStep(ctx: IntentContext, step: string): string | null {
+  const r = stepRoomRefusal(ctx.def, step, ctx.room);
+  if (r) throw new HttpRefusal(422, r);
+  return ctx.room;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Source of a recorded value (DI-30, DI-32)
+
+const CAPTURED: Readonly<Record<string, string>> = {
+  MANUAL: 'keyed by hand',
+  DEVICE: 'captured from a device',
+  AUTOMATION: 'captured from the automation system',
+  LIMS: 'taken from LIMS',
+};
+
+/**
+ * The engine source of a value the browser sends, with what the server stores about it. The server has no proof
+ * of a scan made on the terminal (the request carries the code as typed or read by a keyboard scanner, nothing a
+ * device signed), so a scan is never objective evidence here:
+ *  - SCAN for a parameter the MBR does not capture by scanning is refused (the claim contradicts the MBR);
+ *  - SCAN for a scanned parameter is a hand entry: MANUAL, so the engine flags the fallback, raises the exception
+ *    and asks for the second person (DI-30, PR-14); the code is kept with the row as what the terminal said;
+ *  - a photo or printout hash is refused: no attachment store exists, so the hash names nothing the server holds.
+ */
+export function dataSourceOf(def: engine.BatchDefinition, item: string, source: ClientDataSource): { source: engine.DataSource; evidence: JsonRecord } {
+  if (source.mode === 'SCAN') {
+    const capture = def.analysis.parameters.get(item)?.capture;
+    if (capture !== 'SCAN') {
+      const how = capture === undefined ? 'not a parameter this MBR scans' : `${CAPTURED[capture] ?? capture.toLowerCase()} in this MBR, not scanned`;
+      throw refuse(
+        'EBMR-EXE-121',
+        `The value was sent as scanned, but ${item} is ${how}. Nothing was saved.`,
+        `${item} is ${how}; a value the terminal only says was scanned is not objective evidence, and the server cannot attest a scan made on the terminal.`,
+        ['DI-30', 'DI-32', 'PR-14'],
+        ['Enter the value as the screen asks; a critical value keyed by hand is checked by a second person.'],
+      );
+    }
+    return { source: { mode: 'MANUAL' }, evidence: { unattestedScan: { code: source.code, recordedAs: 'MANUAL' } } };
+  }
+  if (source.evidence !== undefined) {
+    throw refuse(
+      'EBMR-EXE-122',
+      'A photo or printout cannot be attached to a value on this installation yet: the hash names no stored attachment. Nothing was saved.',
+      `The ${source.evidence.kind.toLowerCase()} hash ${source.evidence.sha256.slice(0, 12)}... names no stored attachment, so it is not evidence of the value.`,
+      ['DI-30', 'DI-32'],
+      ['Enter the value without an attachment; a critical value keyed by hand is checked by a second person.'],
+    );
+  }
+  return { source: { mode: 'MANUAL' }, evidence: {} };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Weights
+
+/** Hand-keyed tare and gross, with the balance the operator names (optional; a scale of the step's room). */
+interface ManualWeights {
+  tare: string;
+  gross: string;
+  unit: string;
+  deviceCode?: string | undefined;
+}
+
+/**
+ * The manual two-person path (PR-20, DI-30): open only at a terminal of a room, while no scale of that room is online.
+ * The balance recorded is the one the operator names (a scale of the room), else the room's only scale, else MANUAL
+ * (the server cannot know which of several the operator read); the statuses of the room's scales that opened the
+ * fallback are stored with the row. The database checks the room, the statuses and the balance again inside the
+ * command's transaction, serialised with the room's heartbeats (tablets 0310), so a scale that comes online after this
+ * read, or a writer that skips it, is refused there.
+ */
+async function manualWeights(ctx: IntentContext, room: string | null, manual: ManualWeights): Promise<Weights> {
+  if (room === null) {
+    throw refuse(
+      'EBMR-EXE-074',
+      'Weights can be keyed by hand only at a terminal of the room where the weighing is done. Nothing was saved.',
+      'This terminal is registered to no room, so the server cannot tell whether a scale where the weighing is done is online; keying by hand is the fallback only when no scale of the room is online (PR-20).',
+      ['DI-20', 'DI-30', 'PR-20'],
+      ['Do the weighing at the terminal of the room where the scale stands.'],
+    );
+  }
+  const scales = await ctx.app.deviceReadings.scales(room);
+  const online = scales.find((s) => s.status === 'ONLINE');
+  if (online) {
+    throw refuse('EBMR-EXE-074', 'A scale of this room is online, so the weights are captured from it. Nothing was saved.', `${online.deviceCode} is online in room ${room}; keying by hand is the fallback only when no scale of the room is online (PR-20).`, ['DI-30', 'PR-20'], ['Capture tare and gross from the scale.']);
+  }
+  const declared = manual.deviceCode;
+  if (declared !== undefined && !scales.some((s) => s.deviceCode === declared)) {
+    throw refuse(
+      'EBMR-EXE-074',
+      `${declared.slice(0, 64)} is not a scale of room ${room}. Nothing was saved.`,
+      `A weight keyed by hand names the balance of the room that was read; the scales of room ${room} are ${scales.map((s) => s.deviceCode).join(', ') || 'none'}.`,
+      ['DI-20', 'DI-30'],
+      ['Name the balance you read, or leave it empty.'],
+    );
+  }
+  const only = scales.length === 1 ? scales[0]?.deviceCode : undefined;
+  const balance = declared ?? only ?? 'MANUAL';
+  return {
+    gross: manual.gross,
+    tare: manual.tare,
+    unit: manual.unit,
+    balance,
+    source: 'MANUAL',
+    evidence: {
+      manual: {
+        room,
+        balance,
+        declaredBalance: declared ?? null,
+        scales: scales.map((s) => ({ deviceCode: s.deviceCode, status: s.status, lastHeartbeatUs: s.lastHeartbeat?.us ?? null })),
+      },
+    },
+  };
+}
+
+/** Tare and gross: claimed readings of a scale in `room` (the step's room, DI-20), or values keyed by hand. */
+async function weights(ctx: IntentContext, room: string | null, e: { tareReadingId?: string | undefined; grossReadingId?: string | undefined; manual?: ManualWeights | undefined }): Promise<Weights> {
   const readings = e.tareReadingId !== undefined || e.grossReadingId !== undefined;
   if (e.manual && readings) {
     throw refuse('EBMR-EXE-073', 'Send the weights either from the scale or keyed by hand, not both. Nothing was saved.', 'The request carries scale readings and hand-keyed values; a weight from the scale is never replaced by a typed one.', ['DI-30', 'DI-32'], ['Capture tare and gross again from the scale.']);
   }
-  if (e.manual) {
-    const scale = await ctx.app.deviceReadings.scaleStatus(ctx.room);
-    if (scale?.status === 'ONLINE') {
-      throw refuse('EBMR-EXE-074', 'The scale is online, so the weights are captured from it. Nothing was saved.', `${scale.deviceCode} is online; keying by hand is the fallback when the scale is offline (PR-20).`, ['DI-30', 'PR-20'], ['Capture tare and gross from the scale.']);
-    }
-    return { gross: e.manual.gross, tare: e.manual.tare, unit: e.manual.unit, balance: scale?.deviceCode ?? 'MANUAL', source: 'MANUAL', evidence: { manual: { scale: scale?.deviceCode ?? null, scaleStatus: scale?.status ?? null } } };
-  }
+  if (e.manual) return manualWeights(ctx, room, e.manual);
   if (e.tareReadingId === undefined || e.grossReadingId === undefined) {
     throw refuse('EBMR-EXE-075', 'Capture both the tare and the gross weight. Nothing was saved.', 'A container weighing needs a tare and a gross reading from the scale (or both keyed by hand when the scale is offline).', ['DI-30', 'PR-19'], ['Capture the missing weight, then save.']);
   }
-  const [tare] = await ctx.app.deviceReadings.claim(ctx.client, { readingIds: [e.tareReadingId], room: ctx.room, maxAgeUs: READING_MAX_AGE_US, purpose: 'TARE' });
-  const [gross] = await ctx.app.deviceReadings.claim(ctx.client, { readingIds: [e.grossReadingId], room: ctx.room, maxAgeUs: READING_MAX_AGE_US, purpose: 'GROSS' });
+  const [tare] = await ctx.app.deviceReadings.claim(ctx.client, { readingIds: [e.tareReadingId], room, maxAgeUs: READING_MAX_AGE_US, purpose: 'TARE' });
+  const [gross] = await ctx.app.deviceReadings.claim(ctx.client, { readingIds: [e.grossReadingId], room, maxAgeUs: READING_MAX_AGE_US, purpose: 'GROSS' });
   if (!tare || !gross) throw refuse('EBMR-EXE-075', 'A scale reading could not be used. Nothing was saved.', 'The scale reading was not returned by the claim.', ['DI-32'], ['Capture the weights again.']);
   if (tare.unit !== gross.unit || tare.deviceCode !== gross.deviceCode) {
     throw refuse('EBMR-EXE-076', 'Tare and gross must come from the same scale, in the same unit. Nothing was saved.', `Tare ${tare.value} ${tare.unit} on ${tare.deviceCode}; gross ${gross.value} ${gross.unit} on ${gross.deviceCode}.`, ['DI-30', 'PR-19'], ['Capture both weights on the same scale.']);
@@ -193,14 +360,14 @@ export function labelBatch(code: string): string {
   return i > 0 ? code.slice(0, i) : code;
 }
 
-async function resolveEntry(ctx: IntentContext, e: ClientEntry): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
+async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
   switch (e.kind) {
     case 'CONTAINER_WEIGHING': {
       const lot = await resolveLot(ctx.client, e.lotCode);
       if (!lot) {
         throw refuse('EBMR-EXE-072', `Lot ${e.lotCode.slice(0, 64)} is not known on this installation. Nothing was saved.`, 'Only registered TEST- lots can be dispensed in a test run; the lot status comes from the lot register, never from the terminal (PR-18).', ['PR-18', 'DI-05'], ['Scan the lot label again, or ask for the lot to be registered.']);
       }
-      const w = await weights(ctx, e);
+      const w = await weights(ctx, room, e);
       const container = containerId(ctx.state, e.container);
       return {
         entry: { kind: 'CONTAINER_WEIGHING', item: e.item, bomLine: e.bomLine, container, lot: lotForEngine(lot), gross: w.gross, tare: w.tare, unit: w.unit, balance: w.balance, source: w.source },
@@ -209,7 +376,7 @@ async function resolveEntry(ctx: IntentContext, e: ClientEntry): Promise<{ entry
       };
     }
     case 'OUTPUT_CONTAINER': {
-      const w = await weights(ctx, e);
+      const w = await weights(ctx, room, e);
       const container = containerId(ctx.state, e.container);
       return {
         entry: { kind: 'OUTPUT_CONTAINER', intermediate: e.intermediate, container, gross: w.gross, tare: w.tare, unit: w.unit, balance: w.balance, source: w.source },
@@ -236,19 +403,21 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
   switch (intent.type) {
     case 'START_STEP': {
       const t = stepTarget(ctx.state, intent.stepKey);
+      roomOfStep(ctx, t.step);
       return { command: { ...base, type: 'START_STEP', step: t.step, context: t.context }, evidence: {} };
     }
     case 'RECORD_DATA': {
       const t = stepTarget(ctx.state, intent.stepKey);
-      const source: engine.DataSource = intent.source.mode === 'SCAN' ? { mode: 'SCAN', code: intent.source.code } : intent.source.evidence ? { mode: 'MANUAL', evidence: { ...intent.source.evidence } } : { mode: 'MANUAL' };
+      roomOfStep(ctx, t.step);
+      const s = dataSourceOf(ctx.def, intent.item, intent.source);
       return {
-        command: { ...base, type: 'RECORD_DATA', step: t.step, context: t.context, item: intent.item, value: dataValueOf(intent.value), source, ...(intent.reason !== undefined ? { reason: intent.reason } : {}) },
-        evidence: {},
+        command: { ...base, type: 'RECORD_DATA', step: t.step, context: t.context, item: intent.item, value: dataValueOf(intent.value), source: s.source, ...(intent.reason !== undefined ? { reason: intent.reason } : {}) },
+        evidence: s.evidence,
       };
     }
     case 'RECORD_ENTRY': {
       const t = stepTarget(ctx.state, intent.stepKey);
-      const r = await resolveEntry(ctx, intent.entry);
+      const r = await resolveEntry(ctx, roomOfStep(ctx, t.step), intent.entry);
       return { command: { ...base, type: 'RECORD_ENTRY', step: t.step, context: t.context, entry: r.entry, ...(r.occurredAt ? { occurredAt: r.occurredAt } : {}) }, evidence: r.evidence };
     }
     case 'RAISE_EXCEPTION': {
@@ -299,7 +468,9 @@ export function signedSubject(state: engine.BatchState | undefined, intent: Sign
  * The meaning the engine requires for a signed intent: the block's PERFORMED meaning, the check meaning of
  * the step (re-verification, witness, the block's own), the hold-point decision's meaning, a stage sign-off
  * or an exception disposition. Undefined when it depends on a state that is not known (describe() without
- * a cached run): the command's transaction checks it then.
+ * a cached run): the command's transaction checks it then. The meaning a VERIFY intent names is never used:
+ * the check a step requires is the step's own, so asking for WITNESSED where the step requires another check
+ * is a meaning mismatch (review finding P37).
  */
 export function signedMeaning(def: engine.BatchDefinition | undefined, state: engine.BatchState | undefined, intent: SignedIntent): string | undefined {
   switch (intent.type) {
@@ -310,7 +481,7 @@ export function signedMeaning(def: engine.BatchDefinition | undefined, state: en
     case 'VERIFY': {
       if (!def || !state) return undefined;
       const inst = state.steps[intent.stepKey];
-      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step, intent.meaning);
+      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step);
     }
     case 'DISPOSITION_HOLD_POINT':
       return engine.holdPointMeaning(intent.disposition);

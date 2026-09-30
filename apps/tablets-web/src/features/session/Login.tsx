@@ -3,29 +3,53 @@
  * badge drawer) and PIN on the keypad at kiosks; the first-login secret change; the role choice.
  *
  * Secrets stay in uncontrolled inputs or refs, are cleared after sending, and never enter React state, caches
- * or storage. Every call carries a device proof.
+ * or storage. Every call carries a device proof. A password, PIN or badge field is a ui-kit Field of type
+ * 'password', which renders a native uncontrolled SecretInput (never a react-aria TextField, whose state would
+ * keep the typed secret and write it back into the field and its value attribute on the next render).
+ * The first-login change keeps the identifier (a badge UID on kiosks) and the server's change ticket in a ref
+ * until the change ends; React state holds only which kind of secret is changed. At the kiosk, the badge tapped waits
+ * for its PIN in a KeptBadge held by a ref for at most KEEP_BADGE_MS: a person who walks away at the PIN step leaves
+ * nothing behind, and the screen asks for a badge again.
  */
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
-import { Banner, Button, Field, t } from '@ebmr/ui-kit';
+import { Banner, Button, Field, identity, t } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 
+/** What the screen shows during a first-login change (no secret). */
 interface ChangeState {
   method: LoginMethod;
+  kind: 'PASSWORD' | 'PIN';
+}
+
+/** Who changes a secret and the server's change ticket: kept in a ref, never in React state; wiped when the change ends. */
+interface ChangeCredentials {
   identifier: string;
   ticket: string;
-  kind: 'PASSWORD' | 'PIN';
 }
 
 function useLogin() {
   const boot = useBoot();
   const [error, setError] = useState<CallError | null>(null);
-  const [change, setChange] = useState<ChangeState | null>(null);
+  const [change, setChangeState] = useState<ChangeState | null>(null);
+  const credentials = useRef<ChangeCredentials | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  useEffect(
+    () => () => {
+      credentials.current = null;
+    },
+    [],
+  );
+
+  /** Ends a first-login change (done or cancelled): the identifier and the ticket are wiped with it. */
+  const endChange = () => {
+    credentials.current = null;
+    setChangeState(null);
+  };
 
   const login = async (method: LoginMethod, identifier: string, secret: string) => {
     if (!boot.deviceKey) return;
@@ -42,7 +66,8 @@ function useLogin() {
       }
       const details = r.error.kind === 'REFUSAL' ? r.error.envelope.refusal.details : undefined;
       if (r.error.kind === 'REFUSAL' && r.error.envelope.refusal.code === 'MUST_CHANGE_SECRET' && details?.['changeTicket']) {
-        setChange({ method, identifier, ticket: details['changeTicket'], kind: details['kind'] === 'PIN' ? 'PIN' : 'PASSWORD' });
+        credentials.current = { identifier, ticket: details['changeTicket'] };
+        setChangeState({ method, kind: details['kind'] === 'PIN' ? 'PIN' : 'PASSWORD' });
         return;
       }
       setError(r.error);
@@ -50,10 +75,10 @@ function useLogin() {
       setBusy(false);
     }
   };
-  return { boot, error, setError, change, setChange, notice, setNotice, busy, login };
+  return { boot, error, setError, change, endChange, credentials, notice, setNotice, busy, login };
 }
 
-function ChangeSecretForm({ change, onDone }: { change: ChangeState; onDone: (message: string | null) => void }) {
+function ChangeSecretForm({ change, credentials, onDone }: { change: ChangeState; credentials: RefObject<ChangeCredentials | null>; onDone: (message: string | null) => void }) {
   const boot = useBoot();
   const first = useRef<HTMLInputElement>(null);
   const second = useRef<HTMLInputElement>(null);
@@ -72,8 +97,9 @@ function ChangeSecretForm({ change, onDone }: { change: ChangeState; onDone: (me
       return;
     }
     setMismatch(false);
-    if (!boot.deviceKey) return;
-    const body = { method: change.method, identifier: change.identifier, changeTicket: change.ticket, newSecret: a, kind: change.kind };
+    const held = credentials.current;
+    if (!boot.deviceKey || !held || !a) return;
+    const body = { method: change.method, identifier: held.identifier, changeTicket: held.ticket, newSecret: a, kind: change.kind };
     const proof = await deviceProof(boot.deviceKey, 'POST', '/api/session/change-secret', body);
     const r = await api.call(routes.session.changeSecret, { body: { ...body, proof } });
     if (r.ok) onDone(`Your new ${kindWord} is set. Sign in with it now.`);
@@ -98,7 +124,7 @@ function ChangeSecretForm({ change, onDone }: { change: ChangeState; onDone: (me
 }
 
 export function OfficeLogin() {
-  const { boot, error, change, setChange, notice, setNotice, busy, login } = useLogin();
+  const { boot, error, change, endChange, credentials, notice, setNotice, busy, login } = useLogin();
   const idRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
 
@@ -107,6 +133,8 @@ export function OfficeLogin() {
     const identifier = idRef.current?.value.trim() ?? '';
     const secret = pwRef.current?.value ?? '';
     if (pwRef.current) pwRef.current.value = '';
+    // An empty field is never sent (after a refusal the password field is empty: pressing again sends nothing).
+    if (!identifier || !secret) return;
     void login('PASSWORD', identifier, secret);
   };
 
@@ -120,8 +148,9 @@ export function OfficeLogin() {
       {change ? (
         <ChangeSecretForm
           change={change}
+          credentials={credentials}
           onDone={(m) => {
-            setChange(null);
+            endChange();
             setNotice(m);
           }}
         />
@@ -182,12 +211,19 @@ function PinPad({ onSubmit, disabled }: { onSubmit: (pin: string) => void; disab
 }
 
 export function KioskLogin() {
-  const { boot, error, setError, change, setChange, notice, setNotice, busy, login } = useLogin();
+  const { boot, error, setError, change, endChange, credentials, notice, setNotice, busy, login } = useLogin();
   const badgeRef = useRef<HTMLInputElement>(null);
-  const badge = useRef<string | null>(null);
   const [step, setStep] = useState<'badge' | 'pin'>('badge');
   const [who, setWho] = useState<string | null>(null);
   const [demo, setDemo] = useState<DemoDeviceView | null>(null);
+  // The badge waits for its PIN (at most KEEP_BADGE_MS); when it is wiped, the screen goes back to the badge step.
+  const onKept = useCallback((kept: boolean) => {
+    if (kept) return;
+    setStep('badge');
+    setWho(null);
+  }, []);
+  const badge = identity.useKeptBadge(onKept);
+  useEffect(() => () => badge().clear(), [badge]);
 
   useEffect(() => {
     if (!boot.meta?.demo) return;
@@ -197,7 +233,7 @@ export function KioskLogin() {
   }, [boot.meta?.demo, boot.device?.deviceCode]);
 
   const tapped = (uid: string, name: string | null) => {
-    badge.current = uid;
+    badge().keep(uid);
     setWho(name);
     setError(null);
     setStep('pin');
@@ -211,10 +247,10 @@ export function KioskLogin() {
   };
 
   const onPin = (pin: string) => {
-    const uid = badge.current ?? '';
-    badge.current = null;
+    const uid = badge().take();
     setStep('badge');
-    void login('BADGE_PIN', uid, pin);
+    // A badge wiped meanwhile (its time ran out) is never replaced by an empty identifier.
+    if (uid) void login('BADGE_PIN', uid, pin);
   };
 
   return (
@@ -228,8 +264,9 @@ export function KioskLogin() {
       {change ? (
         <ChangeSecretForm
           change={change}
+          credentials={credentials}
           onDone={(m) => {
-            setChange(null);
+            endChange();
             setNotice(m);
           }}
         />
@@ -246,7 +283,7 @@ export function KioskLogin() {
           <PinPad onSubmit={onPin} disabled={busy} />
           <Button
             onPress={() => {
-              badge.current = null;
+              badge().clear();
               setStep('badge');
             }}
           >

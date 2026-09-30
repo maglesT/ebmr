@@ -3,6 +3,11 @@
  * bootstrapped and seeded through the kernel's own identity functions, with TEST- identifiers in the sandbox.
  * The GMP site is moved to a time zone other than the kernel's default site.zone before it is seeded (DI-27), so
  * the seed cannot pass merely because a constant happens to equal the policy's default.
+ *
+ * Both installations are built from the tablets edition's migrations (kernel, site services, recipe-core and the
+ * tablets SQL), as the server, the demo and the E2E runs build them: the seed's gateway identity acts in the role
+ * SITE_GATEWAY, which the tablets migration 0290 creates next to the ingest path it serves. The test reads the
+ * tablets SQL directory as data; it imports nothing from the app.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -26,6 +31,9 @@ import {
 } from '../src/index.ts';
 
 const LONG = 240_000;
+/** The tablets edition's own migrations, applied after recipe-core (read as files; test-kit imports no app). */
+const TABLETS_SQL = new URL('../../../apps/tablets-server/sql', import.meta.url).pathname;
+const tabletsSources = () => editionMigrationSources([{ namespace: 'tablets', directory: TABLETS_SQL }]);
 /** The GMP test site's zone: not the kernel's default site.zone (Asia/Kolkata), another UTC offset. */
 const GMP_ZONE = 'Europe/Berlin';
 let defaultZone: string;
@@ -36,7 +44,7 @@ let sbxSeed: SiteSeed;
 
 beforeAll(async () => {
   const gmpName = `ebmr_tk_${uniqueSuffix()}`;
-  await createGmpDatabase(gmpName, editionMigrationSources());
+  await createGmpDatabase(gmpName, tabletsSources());
   gmp = openDatabase(gmpName, 'GMP');
   const bootstrap = await bootstrapInstallation(gmpName, 'GMP');
   defaultZone = await siteZoneOf(gmp.app);
@@ -47,7 +55,7 @@ beforeAll(async () => {
   gmpSeed = await seedDemoSite(gmp, 'GMP', bootstrap);
 
   const sbxName = `ebmr_sandbox_tk${uniqueSuffix()}`;
-  const provisioned = await provisionBootstrappedSandbox(sbxName, editionMigrationSources());
+  const provisioned = await provisionBootstrappedSandbox(sbxName, tabletsSources());
   sbx = openDatabase(sbxName, 'SANDBOX');
   sbxSeed = await seedDemoSite(sbx, 'SANDBOX', provisioned.bootstrap, { personaSets: 2 });
 }, LONG);
@@ -89,7 +97,7 @@ describe('test-kit installations', () => {
     ]);
     expect(sbxSeed.personas.filter((p) => p.set === 1).map((p) => p.loginName)).toContain('test-operator-1-w1');
     expect(new Set(sbxSeed.personas.map((p) => p.badgeUid).filter(Boolean)).size).toBe(sbxSeed.personas.filter((p) => p.badgeUid).length);
-    expect(sbxSeed.terminals.map((t) => t.code)).toEqual(['TEST-PC-01', 'TEST-KIOSK-DISP-1', 'TEST-KIOSK-BLEND-1', 'TEST-BAL-01', 'TEST-BAL-02', 'TEST-SRV-SWEEPER', 'TEST-GW-01']);
+    expect(sbxSeed.terminals.map((t) => t.code)).toEqual(['TEST-PC-01', 'TEST-KIOSK-DISP-1', 'TEST-KIOSK-BLEND-1', 'TEST-BAL-01', 'TEST-BAL-02', 'TEST-SRV-SWEEPER', 'TEST-SRV-MONITOR', 'TEST-GW-01']);
   });
 
   it('[DI-15][DI-20] personas log in with their changed secrets: password in the office, badge and PIN on the kiosk; a kiosk command needs a fresh tap', async () => {
@@ -120,51 +128,93 @@ describe('test-kit installations', () => {
     expect(sweeper.siteZone).toBe(sbxSeed.zone);
   });
 
-  it('[DI-14][DI-17] the sweeper and the gateway are service identities on SERVER terminals that open SERVICE_KEY sessions, each in its own role', async () => {
+  it('[DI-14][DI-17] the sweeper, the gateway and the gateway API monitor are service identities on SERVER terminals that open SERVICE_KEY sessions, each in its own role', async () => {
     const sweeper = await openServiceSession(sbx, sbxSeed, 'sweeper');
     expect(sweeper).toMatchObject({ source: 'SYSTEM', roleCode: 'EXECUTION_SWEEPER', legalName: 'TEST-sweeper' });
     const gw = await openServiceSession(sbx, sbxSeed, 'gateway');
-    expect(gw).toMatchObject({ source: 'INTEGRATION', roleCode: 'SERVICE_ACCOUNT', legalName: 'TEST-gw' });
-    // The kernel accepts both contexts (each account holds the role it declares).
+    expect(gw).toMatchObject({ source: 'INTEGRATION', roleCode: 'SITE_GATEWAY', legalName: 'TEST-gw' });
+    const monitor = await openServiceSession(sbx, sbxSeed, 'monitor');
+    expect(monitor).toMatchObject({ source: 'SYSTEM', roleCode: 'GATEWAY_API_MONITOR', legalName: 'TEST-gw-monitor' });
+    // The kernel accepts the three contexts (each account holds the role it declares).
     await withCommand(sbx.app, { ...sweeper, correlationId: randomUUID() }, () => Promise.resolve());
     await withCommand(sbx.app, { ...gw, correlationId: randomUUID() }, () => Promise.resolve());
+    await withCommand(sbx.app, { ...monitor, correlationId: randomUUID() }, () => Promise.resolve());
     const { rows } = await sbx.admin.query<{ finding: string }>('select finding from iam.directory_scan()');
     expect(rows).toEqual([]);
   });
 
-  it('[DI-17][INV-20] each service identity holds only the role its work needs: the sweeper cannot write through the interface, the gateway can never sweep', async () => {
+  it('[DI-17][INV-20] each service identity holds only the role its work needs, and through it exactly the permissions its work uses: the sweeper EXECUTION.SWEEP, the gateway INTERFACE.WRITE, the monitor GATEWAY.API_CONTACT_RECORD', async () => {
     const live = await sbx.admin.query<{ login_name: string; roles: string[] }>(
       `select a.login_name, array_agg(g.role_code order by g.role_code) as roles
          from iam.role_grant g join iam.account a on a.id = g.account_id
-        where a.login_name in ('test-sweeper', 'test-gw') and iam.grant_is_live(g.status, g.valid_to, g.revoked_at)
+        where a.login_name in ('test-sweeper', 'test-gw', 'test-gw-monitor') and iam.grant_is_live(g.status, g.valid_to, g.revoked_at)
         group by a.login_name order by a.login_name`,
     );
-    expect(live.rows).toEqual([{ login_name: 'test-gw', roles: ['SERVICE_ACCOUNT'] }, { login_name: 'test-sweeper', roles: ['EXECUTION_SWEEPER'] }]);
-    // The sweep permission sits in EXECUTION_SWEEPER alone, a role for SERVICE accounts only (recipe-core 0260).
+    expect(live.rows).toEqual([
+      { login_name: 'test-gw', roles: ['SITE_GATEWAY'] },
+      { login_name: 'test-gw-monitor', roles: ['GATEWAY_API_MONITOR'] },
+      { login_name: 'test-sweeper', roles: ['EXECUTION_SWEEPER'] },
+    ]);
+    // The exact permission set each identity holds now, over all its live grants.
+    const held = await sbx.admin.query<{ login_name: string; perms: string[] }>(
+      `select a.login_name, array_agg(distinct p.perm order by p.perm) as perms
+         from iam.role_grant g join iam.account a on a.id = g.account_id
+         cross join lateral unnest(iam.role_permissions_at(g.role_code, clock_timestamp())) as p(perm)
+        where a.login_name in ('test-sweeper', 'test-gw', 'test-gw-monitor') and iam.grant_is_live(g.status, g.valid_to, g.revoked_at)
+        group by a.login_name order by a.login_name`,
+    );
+    expect(held.rows).toEqual([
+      { login_name: 'test-gw', perms: ['INTERFACE.WRITE'] },
+      { login_name: 'test-gw-monitor', perms: ['GATEWAY.API_CONTACT_RECORD'] },
+      { login_name: 'test-sweeper', perms: ['EXECUTION.SWEEP'] },
+    ]);
+    // Each role is for one account kind and holds one permission: EXECUTION_SWEEPER (recipe-core 0260) and
+    // GATEWAY_API_MONITOR (tablets 0340) for SERVICE accounts, SITE_GATEWAY (tablets 0290) for INTEGRATION accounts. The
+    // sweep permission sits in EXECUTION_SWEEPER alone, the API contact permission in GATEWAY_API_MONITOR alone.
+    const roles = await sbx.admin.query<{ code: string; kinds: string[]; perms: string[] }>(
+      `select r.code, r.account_kinds as kinds, iam.role_permissions_at(r.code, clock_timestamp()) as perms
+         from iam.role r where r.code in ('EXECUTION_SWEEPER', 'SITE_GATEWAY', 'GATEWAY_API_MONITOR') order by r.code`,
+    );
+    expect(roles.rows).toEqual([
+      { code: 'EXECUTION_SWEEPER', kinds: ['SERVICE'], perms: ['EXECUTION.SWEEP'] },
+      { code: 'GATEWAY_API_MONITOR', kinds: ['SERVICE'], perms: ['GATEWAY.API_CONTACT_RECORD'] },
+      { code: 'SITE_GATEWAY', kinds: ['INTEGRATION'], perms: ['INTERFACE.WRITE'] },
+    ]);
     const holders = await sbx.admin.query<{ role_code: string }>("select role_code from iam.role_permission where permission_code = 'EXECUTION.SWEEP' and removed_at is null");
     expect(holders.rows).toEqual([{ role_code: 'EXECUTION_SWEEPER' }]);
-    const role = await sbx.admin.query<{ kinds: string[]; perms: string[] }>(
-      "select r.account_kinds as kinds, iam.role_permissions_at(r.code, clock_timestamp()) as perms from iam.role r where r.code = 'EXECUTION_SWEEPER'",
-    );
-    expect(role.rows).toEqual([{ kinds: ['SERVICE'], perms: ['EXECUTION.SWEEP'] }]);
-    // The catalogue changes are in the audit trail, attributed to the software release; the removal from
-    // SERVICE_ACCOUNT carries its reason (EBMR-AUDIT-002), and the role's chain verifies.
+    const contactHolders = await sbx.admin.query<{ role_code: string }>("select role_code from iam.role_permission where permission_code = 'GATEWAY.API_CONTACT_RECORD' and removed_at is null");
+    expect(contactHolders.rows).toEqual([{ role_code: 'GATEWAY_API_MONITOR' }]);
+    // The catalogue changes are in the audit trail, attributed to the software release with its reason
+    // (EBMR-AUDIT-002 for the removal from SERVICE_ACCOUNT), and both roles' chains verify.
     const audit = await sbx.admin.query<{ chain_key: string; action: string; table_name: string; role: string; reason: string; text: string }>(
       `select chain_key, action, table_name, payload -> 'actor' ->> 'role_code' as role, payload ->> 'reason_code' as reason, payload ->> 'reason_text' as text
          from kernel.audit_event
-        where chain_key = 'iam_role:EXECUTION_SWEEPER' or (chain_key = 'iam_role:SERVICE_ACCOUNT' and action = 'UPDATE')
+        where chain_key in ('iam_role:EXECUTION_SWEEPER', 'iam_role:SITE_GATEWAY', 'iam_role:GATEWAY_API_MONITOR')
+           or (chain_key = 'iam_role:SERVICE_ACCOUNT' and action = 'UPDATE')
         order by id`,
     );
-    const release = { role: 'SOFTWARE_RELEASE', reason: 'SOFTWARE_RELEASE', text: 'the time sweep is allowed only to the sweeper identity, through a role of its own (DI-17, INV-20)' };
+    const sweepRelease = { role: 'SOFTWARE_RELEASE', reason: 'SOFTWARE_RELEASE', text: 'the time sweep is allowed only to the sweeper identity, through a role of its own (DI-17, INV-20)' };
+    const gatewayRelease = { role: 'SOFTWARE_RELEASE', reason: 'SOFTWARE_RELEASE', text: 'the site gateway uploads readings through a role of its own that holds only interface write (DI-17, INV-20)' };
+    const monitorRelease = {
+      role: 'SOFTWARE_RELEASE', reason: 'SOFTWARE_RELEASE',
+      text: 'whether the server reaches a site gateway\'s API is recorded only by the server\'s own monitor identity, in a role that holds nothing else (DI-17, DI-30, PR-20)',
+    };
     expect(audit.rows).toEqual([
-      { chain_key: 'iam_role:EXECUTION_SWEEPER', action: 'INSERT', table_name: 'iam.role', ...release },
-      { chain_key: 'iam_role:EXECUTION_SWEEPER', action: 'INSERT', table_name: 'iam.role_permission', ...release },
-      { chain_key: 'iam_role:SERVICE_ACCOUNT', action: 'UPDATE', table_name: 'iam.role_permission', ...release },
+      { chain_key: 'iam_role:EXECUTION_SWEEPER', action: 'INSERT', table_name: 'iam.role', ...sweepRelease },
+      { chain_key: 'iam_role:EXECUTION_SWEEPER', action: 'INSERT', table_name: 'iam.role_permission', ...sweepRelease },
+      { chain_key: 'iam_role:SERVICE_ACCOUNT', action: 'UPDATE', table_name: 'iam.role_permission', ...sweepRelease },
+      { chain_key: 'iam_role:SITE_GATEWAY', action: 'INSERT', table_name: 'iam.role', ...gatewayRelease },
+      { chain_key: 'iam_role:SITE_GATEWAY', action: 'INSERT', table_name: 'iam.role_permission', ...gatewayRelease },
+      { chain_key: 'iam_role:GATEWAY_API_MONITOR', action: 'INSERT', table_name: 'iam.role', ...monitorRelease },
+      { chain_key: 'iam_role:GATEWAY_API_MONITOR', action: 'INSERT', table_name: 'iam.role_permission', ...monitorRelease },
     ]);
-    expect((await sbx.admin.query("select * from kernel.verify_chain('iam_role:EXECUTION_SWEEPER')")).rows).toEqual([]);
+    for (const chain of ['iam_role:EXECUTION_SWEEPER', 'iam_role:SITE_GATEWAY', 'iam_role:GATEWAY_API_MONITOR']) {
+      expect((await sbx.admin.query('select * from kernel.verify_chain($1)', [chain])).rows).toEqual([]);
+    }
 
-    // The authority checks: the sweeper holds no interface write; the gateway holds no sweep, even when it declares
-    // source SYSTEM (which the kernel allows an INTEGRATION account).
+    // The authority checks: the sweeper holds no interface write; the gateway holds interface write and nothing
+    // else: no sweep, even when it declares source SYSTEM (which the kernel allows an INTEGRATION account), and none
+    // of the kernel service jobs' permissions that SERVICE_ACCOUNT carries.
     const sweeper = await openServiceSession(sbx, sbxSeed, 'sweeper');
     await withCommand(sbx.app, { ...sweeper, correlationId: randomUUID() }, (c) => c.query("select iam.require_permission('EXECUTION.SWEEP', '{}'::jsonb)"));
     await expect(
@@ -174,21 +224,74 @@ describe('test-kit installations', () => {
     await withCommand(sbx.app, { ...gw, correlationId: randomUUID() }, (c) => c.query("select iam.require_permission('INTERFACE.WRITE', '{}'::jsonb)"));
     await expect(
       withCommand(sbx.app, { ...gw, source: 'SYSTEM', correlationId: randomUUID() }, (c) => c.query("select iam.require_permission('EXECUTION.SWEEP', '{}'::jsonb)")),
-    ).rejects.toThrow(/EBMR-IAM-040 .* lacks permission EXECUTION\.SWEEP/);
+    ).rejects.toThrow(/EBMR-IAM-040 .* acting as SITE_GATEWAY lacks permission EXECUTION\.SWEEP/);
+    // The monitor records whether the server reaches a gateway's API and nothing else; nobody else records that.
+    const monitor = await openServiceSession(sbx, sbxSeed, 'monitor');
+    await withCommand(sbx.app, { ...monitor, correlationId: randomUUID() }, (c) => c.query("select iam.require_permission('GATEWAY.API_CONTACT_RECORD', '{}'::jsonb)"));
+    for (const perm of ['INTERFACE.WRITE', 'EXECUTION.SWEEP']) {
+      await expect(
+        withCommand(sbx.app, { ...monitor, correlationId: randomUUID() }, (c) => c.query('select iam.require_permission($1, $2::jsonb)', [perm, '{}'])),
+      ).rejects.toThrow(new RegExp(`EBMR-IAM-040 .* acting as GATEWAY_API_MONITOR lacks permission ${perm.replace('.', '\\.')}`));
+    }
+    for (const [who, role] of [[sweeper, 'EXECUTION_SWEEPER'], [gw, 'SITE_GATEWAY']] as const) {
+      await expect(
+        withCommand(sbx.app, { ...who, source: 'SYSTEM', correlationId: randomUUID() }, (c) => c.query("select iam.require_permission('GATEWAY.API_CONTACT_RECORD', '{}'::jsonb)")),
+      ).rejects.toThrow(new RegExp(`EBMR-IAM-040 .* acting as ${role} lacks permission GATEWAY\\.API_CONTACT_RECORD`));
+    }
+    const service = await sbx.admin.query<{ perm: string }>(
+      "select p.perm from unnest(iam.role_permissions_at('SERVICE_ACCOUNT', clock_timestamp())) as p(perm) where p.perm <> 'INTERFACE.WRITE' order by 1",
+    );
+    expect(service.rows.length).toBeGreaterThan(0);
+    for (const { perm } of service.rows) {
+      await expect(
+        withCommand(sbx.app, { ...gw, correlationId: randomUUID() }, (c) => c.query('select iam.require_permission($1, $2::jsonb)', [perm, '{}'])),
+      ).rejects.toThrow(new RegExp(`EBMR-IAM-040 .* acting as SITE_GATEWAY lacks permission ${perm.replace('.', '\\.')}`));
+    }
+    // Nor can the gateway act as SERVICE_ACCOUNT: it does not hold that role.
+    await expect(withCommand(sbx.app, { ...gw, roleCode: 'SERVICE_ACCOUNT', correlationId: randomUUID() }, () => Promise.resolve())).rejects.toThrow(
+      /EBMR-IAM-108 the account does not hold role SERVICE_ACCOUNT now/,
+    );
 
-    // Nor can the gateway ever be granted the sweeper's role: it is an INTEGRATION account (role account kinds).
+    // Nor can either identity be granted the other's role: each role is for one account kind (role account kinds).
     const gateway = sbxSeed.services.find((s) => s.key === 'gateway');
-    if (!gateway) throw new Error('no gateway identity in the seed');
+    const sweeperId = sbxSeed.services.find((s) => s.key === 'sweeper');
+    if (!gateway || !sweeperId) throw new Error('no gateway or sweeper identity in the seed');
     const admin = await passwordActor(sbx, sbxSeed.bootstrap.admin, sbxSeed.bootstrap.admin.fingerprint, {
-      reasonCode: 'ACCESS_REQUEST', reasonText: 'DI-17 test: the gateway asks for the sweeper role', correlationId: randomUUID(),
+      reasonCode: 'ACCESS_REQUEST', reasonText: 'DI-17 test: a service identity asks for the other one\'s role', correlationId: randomUUID(),
     });
     try {
       await expect(
         withCommand(sbx.app, admin, (c) => identity.requestRoleGrant(c, { accountId: gateway.accountId, roleCode: 'EXECUTION_SWEEPER', reason: 'DI-17 test' })),
       ).rejects.toThrow(/EBMR-IAM-036 role EXECUTION_SWEEPER is not for INTEGRATION accounts/);
+      await expect(
+        withCommand(sbx.app, { ...admin, correlationId: randomUUID() }, (c) => identity.requestRoleGrant(c, { accountId: sweeperId.accountId, roleCode: 'SITE_GATEWAY', reason: 'DI-17 test' })),
+      ).rejects.toThrow(/EBMR-IAM-036 role SITE_GATEWAY is not for SERVICE accounts/);
+      await expect(
+        withCommand(sbx.app, { ...admin, correlationId: randomUUID() }, (c) => identity.requestRoleGrant(c, { accountId: gateway.accountId, roleCode: 'GATEWAY_API_MONITOR', reason: 'DI-17 test' })),
+      ).rejects.toThrow(/EBMR-IAM-036 role GATEWAY_API_MONITOR is not for INTEGRATION accounts/);
     } finally {
       await identity.endSession(sbx.app, admin.sessionId);
     }
-    for (const s of [sweeper, gw]) await identity.endSession(sbx.app, s.sessionId);
+    for (const s of [sweeper, gw, monitor]) await identity.endSession(sbx.app, s.sessionId);
   });
+
+  it('[DI-17][INV-20] a sandbox whose migrations do not create the gateway\'s own role is refused before anything is seeded: the gateway is never seeded in some other, broader role', async () => {
+    // Kernel, site services and recipe-core only: no tablets SQL, so no SITE_GATEWAY and no GATEWAY_API_MONITOR.
+    const name = `ebmr_sandbox_tk${uniqueSuffix()}`;
+    const provisioned = await provisionBootstrappedSandbox(name, editionMigrationSources());
+    const bare = openDatabase(name, 'SANDBOX');
+    try {
+      expect((await bare.admin.query("select code from iam.role where code in ('EXECUTION_SWEEPER', 'SITE_GATEWAY', 'GATEWAY_API_MONITOR')")).rows).toEqual([{ code: 'EXECUTION_SWEEPER' }]);
+      const devices = async () => (await bare.admin.query<{ n: string }>('select count(*)::text as n from iam.device')).rows[0]?.n;
+      const accounts = async () => (await bare.admin.query<{ n: string }>('select count(*)::text as n from iam.account')).rows[0]?.n;
+      const before = { devices: await devices(), accounts: await accounts() };
+      await expect(seedDemoSite(bare, 'SANDBOX', provisioned.bootstrap)).rejects.toThrow(
+        /^the sandbox's service identities need the role\(s\) SITE_GATEWAY, GATEWAY_API_MONITOR, which this database does not define; build it with the edition migrations that create them/,
+      );
+      expect({ devices: await devices(), accounts: await accounts() }).toEqual(before);
+    } finally {
+      await bare.close();
+      await dropDatabase(name);
+    }
+  }, LONG);
 });

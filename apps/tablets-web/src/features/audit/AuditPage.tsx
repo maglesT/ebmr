@@ -4,7 +4,10 @@
  *  - no filter: the chains, newest activity first, filterable by key prefix (mbr_version:, batch:, esig_stub:);
  *  - a chain: its entries in order, grouped by command (business entry first, field changes expandable), and
  *    "Verify chain" (the server recomputes every hash);
- *  - a correlation or a person: the entries of one command, or of one person.
+ *  - a correlation or a person: the entries of one command, or of one person. A list across chains stops before
+ *    entries that an action still in progress may yet add (review P11): a page can then end early (fewer entries
+ *    than asked for, yet a next cursor), the page says so, and "Load more entries" fetches them once that action has
+ *    finished; no entry is skipped.
  */
 import { getRouteApi, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
@@ -17,6 +20,12 @@ import { auditLink, type AuditSearch } from './links.ts';
 
 const route = getRouteApi('/audit');
 const PAGE = '100';
+
+/**
+ * A page that ends early: fewer entries than asked for, and yet the server says there are more. The server only
+ * answers so when it held the list back before entries an action still in progress may yet commit (review P11).
+ */
+const endedEarly = (page: { events: readonly AuditEventView[]; nextCursor: string | null }): boolean => page.nextCursor !== null && page.events.length < Number(PAGE);
 
 function ChainList() {
   const [prefix, setPrefix] = useState('');
@@ -51,6 +60,8 @@ function EventPages({ filter }: { filter: AuditSearch }) {
   const [cursor, setCursor] = useState<string | null>(null);
   const [error, setError] = useState<CallError | null>(null);
   const [loading, setLoading] = useState(true);
+  /** The last page ended early: entries after it may still be being written by an action in progress. */
+  const [heldBack, setHeldBack] = useState(false);
   const key = JSON.stringify(filter);
 
   const load = async (after: string | null, replace: boolean) => {
@@ -73,6 +84,7 @@ function EventPages({ filter }: { filter: AuditSearch }) {
     setError(null);
     setEvents((prev) => (replace ? r.value.events : [...prev, ...r.value.events]));
     setCursor(r.value.nextCursor);
+    setHeldBack(endedEarly(r.value));
   };
 
   useEffect(() => {
@@ -90,6 +102,7 @@ function EventPages({ filter }: { filter: AuditSearch }) {
       }
       setEvents(r.value.events);
       setCursor(r.value.nextCursor);
+      setHeldBack(endedEarly(r.value));
     })();
     return () => {
       live = false;
@@ -100,6 +113,7 @@ function EventPages({ filter }: { filter: AuditSearch }) {
     <section aria-label="Audit entries" aria-busy={loading}>
       {error ? <RefusalMessage error={error} /> : null}
       <audit.AuditEventList events={events} />
+      {heldBack ? <p>More entries are still being written by an action in progress. Load more entries in a moment to see them.</p> : null}
       {cursor ? (
         <Button onPress={() => void load(cursor, false)} isDisabled={loading}>
           Load more entries

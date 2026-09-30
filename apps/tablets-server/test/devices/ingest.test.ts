@@ -8,9 +8,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { asAdmin } from '@ebmr/test-kit';
 import { canonicalReadingText, genesisHash, readingHash, sealReading, ed25519PrivateKey } from '@ebmr/integration-sdk/scale';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
-import { gatewayActor } from '../../src/features/devices/listener.ts';
+import { gatewayActor, gatewaySessionOf } from '../../src/features/devices/listener.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
-import { adminActor, enrol, fakeGateway, gatewayKey, loginAt, operatorActor, type FakeGateway } from './support.ts';
+import { INGEST_READING_SQL, adminActor, enrol, fakeGateway, gatewayKey, ingestProven, loginAt, operatorActor, provenIngestParams, type FakeGateway } from './support.ts';
 
 let server: TestServer;
 let gw: FakeGateway;
@@ -81,10 +81,14 @@ describe('gateway login', () => {
     expect((again.body as { error: { code: string } }).error.code).toBe('NONCE');
   });
 
-  it('[DI-31] readings and heartbeats need the bearer token', async () => {
+  it('[DI-31] readings, their challenges and heartbeats need the bearer token', async () => {
     const r = gw.next();
-    expect((await gw.post('/gw/v1/readings', { items: [{ reading: r, delayUs: '0' }] }, null)).status).toBe(401);
-    expect((await gw.post('/gw/v1/readings', { items: [{ reading: r, delayUs: '0' }] }, randomBytes(32).toString('base64url'))).status).toBe(401);
+    const upload = { challengeId: await gw.challenge(), items: [{ reading: r, delayUs: null, waitSig: null }] };
+    expect((await gw.post('/gw/v1/readings', upload, null)).status).toBe(401);
+    expect((await gw.post('/gw/v1/readings', upload, randomBytes(32).toString('base64url'))).status).toBe(401);
+    expect((await gw.post('/gw/v1/challenge', {}, null)).status).toBe(401);
+    expect((await gw.post('/gw/v1/challenge', {}, randomBytes(32).toString('base64url'))).status).toBe(401);
+    expect((await gw.post('/gw/v1/heartbeat', { gatewayTimeUs: '1790584618000000', devices: [], journal: { lastSeq: '0', ackedSeq: '0' } }, null)).status).toBe(401);
   });
 });
 
@@ -124,7 +128,7 @@ describe('ingestion', () => {
     expect(res2.body.refused?.code).toBe('EBMR-DEV-061');
     // Unsigned: refused by the schema before anything else.
     const unsigned = { ...r, signature: '' };
-    const res3 = await gw.post('/gw/v1/readings', { items: [{ reading: unsigned, delayUs: '0' }] });
+    const res3 = await gw.post('/gw/v1/readings', { challengeId: await gw.challenge(), items: [{ reading: unsigned, delayUs: null, waitSig: null }] });
     expect(res3.status).toBe(400);
     expect((await alarms('READING_REFUSED')).map((a) => a.code)).toEqual(expect.arrayContaining(['EBMR-DEV-045', 'EBMR-DEV-061', 'SCHEMA']));
   });
@@ -165,18 +169,25 @@ describe('ingestion', () => {
   it('[DI-31] the database recomputes the hash itself: a direct call with a hash that does not match the content is refused', async () => {
     const r = gw.next();
     const forged = { ...r, value: '9.999', raw: 'S S      9.999 kg' };
-    const { rows } = await server.db.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [
-      createHash('sha256').update(gw.token).digest('hex'),
-    ]);
-    const s = rows[0]!.r!;
-    const actor = gatewayActor(
-      { tokenHash: '', sessionId: String(s['session_id']), personId: String(s['person_id']), accountId: String(s['account_id']), deviceId: String(s['device_id']), legalName: String(s['legal_name']), state: 'ACTIVE', chainId: String(s['chain_id']), gatewayCode: 'TEST-GW-01', publicKeySpki: '', roles: ['SERVICE_ACCOUNT'] },
-      'Asia/Kolkata',
-      randomUUID(),
-    );
-    await expect(withActorCommand(server.db.app, actor, (c) => c.query('select tab.ingest_reading($1::jsonb, 0)', [JSON.stringify(forged)]))).rejects.toThrow(/EBMR-DEV-045/);
+    // The gateway session's actor as the listener builds it: the roles its account holds now (DI-17).
+    const hash = createHash('sha256').update(gw.token).digest('hex');
+    const { rows } = await server.db.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [hash]);
+    const s = rows[0]?.r;
+    if (!s) throw new Error('test set-up: the fake gateway session did not resolve');
+    const actor = gatewayActor(gatewaySessionOf(hash, s), server.config.siteZone, randomUUID());
+    // Its wait proven as the gateway proves it (tablets 0330), so only the hash can refuse it.
+    await expect(ingestProven(server, actor, forged)).rejects.toThrow(/EBMR-DEV-045/);
     // The same call with the genuine reading is accepted: the SQL canonical text equals the SDK's.
-    await expect(withActorCommand(server.db.app, actor, (c) => c.query('select tab.ingest_reading($1::jsonb, 0)', [JSON.stringify(r)]))).resolves.toBeDefined();
+    await expect(ingestProven(server, actor, r)).resolves.toBeDefined();
+  });
+
+  it('[DI-17][INV-20] the listener acts only in SITE_GATEWAY, never in the kernel\'s SERVICE_ACCOUNT, whatever roles its account holds', async () => {
+    const hash = createHash('sha256').update(gw.token).digest('hex');
+    const { rows } = await server.db.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [hash]);
+    const session = gatewaySessionOf(hash, rows[0]!.r!);
+    expect(gatewayActor(session, server.config.siteZone, randomUUID()).roleCode).toBe(server.seed.services.find((x) => x.key === 'gateway')?.roleCode);
+    expect(gatewayActor({ ...session, roles: ['SERVICE_ACCOUNT', 'SITE_GATEWAY'] }, server.config.siteZone, randomUUID()).roleCode).toBe('SITE_GATEWAY');
+    expect(gatewayActor({ ...session, roles: ['SERVICE_ACCOUNT'] }, server.config.siteZone, randomUUID()).roleCode).toBe('SITE_GATEWAY');
   });
 
   it('[DI-31] the SQL canonical text equals the SDK canonical text for any printable raw line, value and purpose (fast-check)', async () => {
@@ -199,8 +210,15 @@ describe('ingestion', () => {
 
   it('[DI-31] only a bound gateway session of the INTEGRATION identity can ingest; a person or the administrator cannot', async () => {
     const r = gw.next();
+    // Even with the wait proven as the gateway proves it (a challenge issued to the gateway's session, signed).
+    const hash = createHash('sha256').update(gw.token).digest('hex');
+    const { rows } = await server.db.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [hash]);
+    const params = await provenIngestParams(server, gatewayActor(gatewaySessionOf(hash, rows[0]!.r!), server.config.siteZone, randomUUID()), r);
     const admin = await adminActor(server);
-    await expect(withActorCommand(server.db.app, admin, (c) => c.query('select tab.ingest_reading($1::jsonb, 0)', [JSON.stringify(r)]))).rejects.toThrow(/EBMR-IAM-04[02]|EBMR-DEV-030/);
+    await expect(withActorCommand(server.db.app, admin, (c) => c.query(INGEST_READING_SQL, params))).rejects.toThrow(/EBMR-IAM-04[02]|EBMR-DEV-030/);
+    const op = await operatorActor(server);
+    await expect(withActorCommand(server.db.app, op, (c) => c.query(INGEST_READING_SQL, params))).rejects.toThrow(/EBMR-IAM-04[02]|EBMR-DEV-030/);
+    expect((await server.db.app.query('select 1 from tab.device_reading where id = $1', [r.readingId])).rowCount).toBe(0);
   });
 
   it('[DI-31] reconciliation by counts: a gateway that counts more acknowledged readings than the server holds raises an alarm', async () => {

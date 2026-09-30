@@ -32,8 +32,11 @@ export const GatewayConfigFile = z.object({
   serviceKeysFile: z.string().min(1),
   journalDir: z.string().min(1),
   devices: z.array(DeviceConfig).min(1),
-  /** Heartbeat period (default 5 s). */
-  heartbeatMs: z.number().int().min(500).max(60_000).optional(),
+  /**
+   * Heartbeat period (default 5 s). At most half of the server's 10 s freshness window (tab.scale_status), so one
+   * late heartbeat does not show a working scale OFFLINE; a change of readiness is sent at once anyway.
+   */
+  heartbeatMs: z.number().int().min(500).max(5000).optional(),
   /** How long a capture waits for a stable weight (default 10 s). */
   captureTimeoutMs: z.number().int().min(500).max(30_000).optional(),
   /** Live display polling period (default 250 ms = 4 Hz). */

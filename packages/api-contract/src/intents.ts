@@ -28,8 +28,12 @@ export const ClientDataSource = z.discriminatedUnion('mode', [
 ]);
 export type ClientDataSource = z.infer<typeof ClientDataSource>;
 
-/** Hand-entered weighing values when the scale is offline (the engine then requires a second person). */
-const ManualWeighing = z.strictObject({ tare: DecimalString, gross: DecimalString, unit: z.string().min(1) });
+/**
+ * Hand-entered weighing values when no scale of the room is online (the engine then requires a second person), and,
+ * optionally, the balance of the room the operator read them from (`deviceCode`): the server records it as the
+ * balance after checking that it is a scale of the step's room and that none of them is online (review finding P50).
+ */
+const ManualWeighing = z.strictObject({ tare: DecimalString, gross: DecimalString, unit: z.string().min(1), deviceCode: z.string().min(1).max(64).optional() });
 
 /**
  * Block entries as the browser may send them, one variant per entry kind of the template's blocks.

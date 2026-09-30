@@ -3,7 +3,10 @@
  *  - GET  /api/devices/scales?room            scales of a room (default: the terminal's room) with their status;
  *  - POST /api/devices/scales/:code/capture   a trigger, not a GMP write by the person: the gateway takes a stable
  *    reading, journals it, uplinks it under its integration identity; the answer is the ReadingView once the row
- *    exists. The committing G-07/G-22 entry claims it by id (DeviceReadingPort), so capture needs no badge tap;
+ *    exists. The committing G-07/G-22 entry claims it by id (DeviceReadingPort), so capture needs no badge tap. When
+ *    the gateway's API cannot be reached, the database records it and shows the gateway's scales OFFLINE until the
+ *    server reaches it again, so the manual two-person path opens instead of both paths being refused (DI-30, PR-20;
+ *    review finding P51); any answer of the gateway records it reachable;
  *  - GET  /api/devices/scales/:code/live      SSE relay of the gateway's live display ("live, not recorded"); an
  *    open stream ends when the site policy site.zone changes while the server runs, and the browser's reconnect is
  *    refused like every API request (SITE_ZONE_CHANGED, DI-27).
@@ -11,14 +14,14 @@
  * Capture and live display are for the scale of the terminal's own room only (DI-20).
  */
 import type { FastifyInstance } from 'fastify';
-import { routes, type ReadingView, type ScaleStatusView } from '@ebmr/api-contract';
+import { routes, type ReadingView } from '@ebmr/api-contract';
 import type { LiveSample } from '@ebmr/integration-sdk/scale';
 import type { AppContext } from '../../platform/context.ts';
 import { bindRoutes, type HandlerContext } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { ResolvedSession } from '../../platform/auth/session.ts';
 import { DEVICES_GUIDANCE } from './guidance.ts';
-import { scaleStatuses } from './port.ts';
+import { scaleStatusRows, scaleStatuses, type ScaleStatusRow } from './port.ts';
 import { runtimeOf } from './runtime.ts';
 
 interface ReadingRow {
@@ -75,9 +78,9 @@ const guided = (code: keyof typeof DEVICES_GUIDANCE, why: string, details?: Reco
 };
 
 /** The scale of the session's room with this code (DI-20); refused for a scale elsewhere. */
-async function scaleInRoom(app: AppContext, session: ResolvedSession, code: string): Promise<ScaleStatusView> {
+async function scaleInRoom(app: AppContext, session: ResolvedSession, code: string): Promise<ScaleStatusRow> {
   if (session.roomCode === null) throw guided('SCALE_NOT_IN_ROOM', 'This terminal is not registered to a room, so it cannot use a scale.');
-  const scale = (await scaleStatuses(app, session.roomCode)).find((s) => s.deviceCode === code);
+  const scale = (await scaleStatusRows(app, session.roomCode)).find((s) => s.deviceCode === code);
   if (!scale) throw guided('SCALE_NOT_IN_ROOM', `${code} is not a scale of room ${session.roomCode}.`);
   return scale;
 }
@@ -86,12 +89,18 @@ async function capture(ctx: HandlerContext<typeof routes.devices.capture>): Prom
   const app = ctx.app;
   const session = ctx.requireSession();
   const scale = await scaleInRoom(app, session, ctx.params.code);
-  if (scale.status !== 'ONLINE' || scale.gatewayCode === null) {
-    throw guided('SCALE_OFFLINE', `${scale.deviceCode} is ${scale.status === 'UNKNOWN' ? 'not reporting yet' : 'offline'} (no heartbeat from the site gateway in the last 10 seconds, or a serial mismatch).`);
+  if (scale.status !== 'ONLINE') {
+    throw guided('SCALE_OFFLINE', `${scale.deviceCode} is ${scale.status === 'UNKNOWN' ? 'not reporting yet' : 'offline'}: ${scale.reason ?? 'no heartbeat from the site gateway in the last 10 seconds, or a serial mismatch'}.`);
   }
   const runtime = runtimeOf(app);
   const answer = await runtime.capture(scale.gatewayCode, scale.deviceCode, { purpose: ctx.body.purpose });
-  if ('unreachable' in answer) throw guided('SCALE_OFFLINE', `The site gateway could not be reached: ${answer.unreachable}.`);
+  if ('unreachable' in answer) {
+    // DI-30, PR-20 (P51): the heartbeat still says ONLINE, but no capture can reach the gateway. The database records
+    // it and shows the scale OFFLINE until the server reaches the gateway again, so the manual path is open meanwhile.
+    await runtime.recordApiContact(scale.gatewayCode, false, answer.unreachable);
+    throw guided('SCALE_OFFLINE', `The site gateway could not be reached: ${answer.unreachable}. The scale is shown offline until the server reaches the gateway again.`);
+  }
+  await runtime.recordApiContact(scale.gatewayCode, true, 'a capture was answered');
   if (answer.outcome === 'FAILED') {
     const details: Record<string, string> = { error: answer.error };
     if (answer.reading) details['readingId'] = answer.reading.readingId;
@@ -133,7 +142,7 @@ async function live(ctx: HandlerContext<typeof routes.devices.live>): Promise<Li
     if (!raw.writableEnded) raw.write(`data: ${JSON.stringify(sample)}\n\n`);
   };
   send(first);
-  const unsubscribe = scale.gatewayCode ? runtimeOf(app).live.subscribe(scale.gatewayCode, scale.deviceCode, send) : () => undefined;
+  const unsubscribe = runtimeOf(app).live.subscribe(scale.gatewayCode, scale.deviceCode, send);
   const keepAlive = setInterval(() => {
     if (!raw.writableEnded) raw.write(': keep-alive\n\n');
   }, 15_000);

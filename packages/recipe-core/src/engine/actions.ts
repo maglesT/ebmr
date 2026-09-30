@@ -12,7 +12,7 @@
 import { RELEASING_DISPOSITIONS, type BatchDefinition } from './definition.ts';
 import { step as engineStep } from './engine.ts';
 import { blockActive } from './exceptions.ts';
-import { MEANINGS } from './guards.ts';
+import { checkMeanings, MEANINGS, performMeanings } from './guards.ts';
 import { stepKey as keyOf } from './tx.ts';
 import type { Actor, BatchState, Clock, Command, Refusal, SignatureRef, StepInstance } from './types.ts';
 
@@ -67,17 +67,22 @@ export function dryRun(def: BatchDefinition, state: BatchState, actor: Actor, cl
   return r.refusal ?? { code: 'ENG-DUPLICATE', message: 'This command was already applied (ENG-DUPLICATE; DI-34)', controls: ['DI-34'] };
 }
 
-/** The PERFORMED meaning a phase asks for (the block's own, else PERFORMED). */
+/**
+ * The PERFORMED meaning a phase asks for (the block's own, else PERFORMED): the first of the exact set the engine
+ * accepts (guards.ts performMeanings), so the screen, the challenge and the command name the same meaning.
+ */
 export function performMeaning(def: BatchDefinition, stepId: string): string {
-  return def.steps.get(stepId)?.block?.handler?.meanings?.perform?.[0] ?? MEANINGS.PERFORMED;
+  return performMeanings(def.steps.get(stepId))[0] ?? MEANINGS.PERFORMED;
 }
 
-/** The check meaning of a step instance: re-verification, witness, the block's own, else VERIFIED. */
-export function checkMeaning(def: BatchDefinition, inst: StepInstance | undefined, stepId: string, requested: 'VERIFIED' | 'WITNESSED' = 'VERIFIED'): string {
-  const step = def.steps.get(stepId);
-  if (inst?.reverification === true) return MEANINGS.RE_VERIFIED;
-  if (requested === 'WITNESSED' || step?.checkMeaning === 'WITNESSED') return MEANINGS.WITNESSED;
-  return step?.block?.handler?.meanings?.check?.[0] ?? MEANINGS.VERIFIED;
+/**
+ * The check meaning of a step instance: re-verification, the MBR's WITNESSED, the block's own, else VERIFIED: the
+ * first of the exact set the engine accepts (guards.ts checkMeanings). It depends on the step only: a person never
+ * chooses the meaning of the check they sign, so a verifier cannot replace the check a step requires (for example
+ * CONTAINER_CHECKED on a dispensing step) with a witness (review finding P37; DI-35, PR-14, PR-20).
+ */
+export function checkMeaning(def: BatchDefinition, inst: StepInstance | undefined, stepId: string): string {
+  return checkMeanings(def.steps.get(stepId), inst)[0] ?? MEANINGS.VERIFIED;
 }
 
 /** HOLD_POINT_RELEASED for a releasing disposition, else HOLD_POINT_NOT_RELEASED. */

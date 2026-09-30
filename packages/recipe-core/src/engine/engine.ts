@@ -6,6 +6,8 @@
  *   2. applies the trusted time: a clock earlier than the last time seen is flagged and never allowed
  *      to hide a maximum breach;
  *   3. sweeps every time constraint (INV-20: breaches are computed at every command);
+ *      the facts of steps 2 and 3 are the system's (raised by SYSTEM), not the command actor's: the person
+ *      whose command or signing preparation evaluated the time first did not raise them (DI-14, INV-03);
  *   4. refuses a duplicate (idempotency key) or stale (optimistic locking) command;
  *   5. runs the command's guards and effects, then fires every control node that can fire
  *      (advance), and sweeps again;
@@ -34,7 +36,7 @@ import {
   verify,
 } from './steps.ts';
 import { stepSigningContent } from './signing-content.ts';
-import { sweepTime } from './timing.ts';
+import { asSystem, sweepTime } from './timing.ts';
 import { cloneState, RefusalError, Tx } from './tx.ts';
 import type { Actor, BatchState, Clock, Command, EngineEvent, IssueRequest, SignatureTarget, StepResult } from './types.ts';
 
@@ -44,8 +46,11 @@ function openTx(def: BatchDefinition, state: BatchState, clock: Clock, actor: Ac
   const now = regressed ? s.lastRecordedUs : clock.nowUs;
   const tx = new Tx(def, s, now, clock.nowUs, actor);
   if (regressed) {
-    tx.emit({ type: 'CLOCK_REGRESSION', previousUs: s.lastRecordedUs, nowUs: clock.nowUs });
-    tx.raise(engineDraft('CLOCK_REGRESSION', 'The trusted clock went backwards; maximum durations are measured against the latest time seen and minimum durations against the clock as given'), { frames: [] });
+    // A clock regression is a system fact, whoever's call saw it (asSystem).
+    asSystem(tx, (sys) => {
+      sys.emit({ type: 'CLOCK_REGRESSION', previousUs: s.lastRecordedUs, nowUs: clock.nowUs });
+      sys.raise(engineDraft('CLOCK_REGRESSION', 'The trusted clock went backwards; maximum durations are measured against the latest time seen and minimum durations against the clock as given'), { frames: [] });
+    });
   } else s.lastRecordedUs = clock.nowUs;
   return tx;
 }
@@ -104,7 +109,9 @@ export type { SignatureTarget };
  * The system facts a command triggers before its own guards run (shared by `step` and
  * `prepareForSignature`, so both are identical by construction): the sweep of every time constraint at the
  * trusted time and, for SIGN_PERFORMED, the finalisation of the PERFORMED attempt (block-computed totals,
- * calculations, acceptance schemes, the block's end-of-step evaluations). Mutates `base`.
+ * calculations, acceptance schemes, the block's end-of-step evaluations). Mutates `base`. The sweep runs as
+ * the system (sweepTime), so a breach it finds is SYSTEM's exactly as when the sweeper finds it first; the
+ * finalisation stays the command actor's (it completes that person's own attempt).
  */
 function sweepPhase(base: Tx): void {
   sweepTime(base);

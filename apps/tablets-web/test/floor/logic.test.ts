@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { example } from '@ebmr/api-contract/examples';
 import { describeChanges, describeIntent } from '../../src/features/floor/describe.ts';
-import { classifyOutcome } from '../../src/features/floor/outcome.ts';
+import { answersForEntry, classifyOutcome } from '../../src/features/floor/outcome.ts';
 import { envelope } from './support.tsx';
 
 describe('classifyOutcome', () => {
@@ -17,7 +17,7 @@ describe('classifyOutcome', () => {
     expect(classifyOutcome({ ok: false, error: { kind: 'REFUSAL', status: 503, envelope: envelope('NOT_SAVED', 'TIME-FAULT', {}, true) } }).kind).toBe('LOST');
   });
 
-  it('[INV-40] a definite answer is never resent: stale, another person\'s badge, refusals (tap missing, proof, rate limit, rule)', () => {
+  it('[INV-40] on a first send, a definite answer is never resent: stale, another person\'s badge, refusals (tap missing, proof, rate limit, rule); after a lost answer see answersForEntry', () => {
     expect(classifyOutcome({ ok: true, value: 1, status: 200 }).kind).toBe('SAVED');
     expect(classifyOutcome({ ok: false, error: { kind: 'REFUSAL', status: 409, envelope: envelope('STALE', 'ENG-STALE') } }).kind).toBe('STALE');
     expect(classifyOutcome({ ok: false, error: { kind: 'REFUSAL', status: 409, envelope: envelope('SWITCH_USER', 'SWITCH_USER') } }).kind).toBe('SWITCH_USER');
@@ -32,6 +32,47 @@ describe('classifyOutcome', () => {
     ] as const) {
       expect(classifyOutcome({ ok: false, error: { kind: 'REFUSAL', status, envelope: envelope('NOT_ALLOWED', code) } }).kind, code).toBe('REFUSED');
     }
+  });
+});
+
+describe('answersForEntry (after a lost answer)', () => {
+  const refusal = (status: number, code: string, kind: Parameters<typeof envelope>[0] = 'NOT_ALLOWED') => classifyOutcome({ ok: false, error: { kind: 'REFUSAL', status, envelope: envelope(kind, code) } });
+
+  it('[D1][DI-28][INV-40] on the run command (the engine runs after the key is claimed) only an answer for the entry\'s key settles it: a commit, or the engine\'s own refusal', () => {
+    expect(answersForEntry(classifyOutcome({ ok: true, value: 1, status: 200 }), true)).toBe(true);
+    expect(answersForEntry(refusal(422, 'ENG-VALUE-REFUSED'), true)).toBe(true);
+    expect(answersForEntry(refusal(409, 'ENG-STALE', 'STALE'), true)).toBe(true);
+    expect(answersForEntry(refusal(403, 'ENG-SEGREGATION', 'INDEPENDENCE'), true)).toBe(true);
+  });
+
+  it('[D1][DI-28][INV-40] a refusal that can come before the key is claimed says nothing about the first send, nor does another lost answer', () => {
+    for (const engineAfterClaim of [true, false]) {
+      expect(answersForEntry(classifyOutcome({ ok: false, error: { kind: 'NETWORK', message: 'x' } }), engineAfterClaim)).toBe(false);
+      expect(answersForEntry(refusal(409, 'SWITCH_USER', 'SWITCH_USER'), engineAfterClaim)).toBe(false);
+      for (const [status, code] of [
+        [401, 'EBMR-IAM-140'],
+        [401, 'NO_SESSION'],
+        [423, 'SESSION_LOCKED'],
+        [423, 'AUTH_LOCKED'],
+        [429, 'RATE_LIMITED'],
+        [403, 'DEVICE_PROOF'],
+        [403, 'CSRF'],
+        [428, 'TAP_PIN_REQUIRED'],
+        [428, 'IDEMPOTENCY_KEY_REQUIRED'],
+        [409, 'ROLE_CHOICE_REQUIRED'],
+        [403, 'EBMR-IAM-040'],
+        [409, 'EBMR-EXE-024'],
+        [422, 'EBMR-EXE-085'],
+      ] as const) {
+        expect(answersForEntry(refusal(status, code), engineAfterClaim), code).toBe(false);
+      }
+    }
+  });
+
+  it('[D1][DI-28][INV-40] on a route that checks the request with the engine before the claim (issuing a test batch), an engine refusal after a lost answer settles nothing: only a commit does', () => {
+    expect(answersForEntry(classifyOutcome({ ok: true, value: 1, status: 200 }), false)).toBe(true);
+    expect(answersForEntry(refusal(422, 'ENG-ISSUE-SIZE', 'INVALID_INPUT'), false)).toBe(false);
+    expect(answersForEntry(refusal(409, 'ENG-STALE', 'STALE'), false)).toBe(false);
   });
 });
 

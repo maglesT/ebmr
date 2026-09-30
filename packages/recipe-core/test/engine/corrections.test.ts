@@ -81,7 +81,8 @@ describe('path (a): entry-error correction (DI-24)', () => {
     expect(run.exceptions('POST_ENTRY_CORRECTION')).toHaveLength(1);
     run.refused({ type: 'VERIFY', actor: corrector, step: 'in', signature: sig('RE_VERIFIED_AFTER_CORRECTION', corrector) }, 'ENG-SEGREGATION');
     run.verify('in', [], VER2, 'RE_VERIFIED_AFTER_CORRECTION');
-    run.verify('y', [], VER2, 'VERIFIED');
+    // The yield step was sent back too: it is re-verified, not verified again (engine 1.1.0: exactly the step's check).
+    run.verify('y', [], VER2, 'RE_VERIFIED_AFTER_CORRECTION');
   });
 
   it('[DI-24][DI-29] a device-captured value can never be corrected, only invalidated', () => {

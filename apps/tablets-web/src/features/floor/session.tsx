@@ -8,7 +8,7 @@
  * another person (and a locked kiosk keeps nothing typed for the next person).
  * Nothing here is stored: the session lives in the boot state (memory) only.
  */
-import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useBoot } from '../../app/boot.tsx';
 
 export type AttributionMode = 'NONE' | 'TAP' | 'TAP_PIN';
@@ -40,6 +40,30 @@ export const FloorSessionContext = createContext<FloorSession>(NO_SESSION);
 
 export function useFloorSession(): FloorSession {
   return useContext(FloorSessionContext);
+}
+
+/** The person signed in and the role they work as: what the server computes a view for. */
+export type Viewer = Pick<FloorSession, 'personId' | 'role'>;
+
+/** Who is signed in at the moment of the call; null when that is not known here (see useSignedInNow). */
+export type SignedInNow = () => Viewer | null;
+
+/**
+ * Who is signed in now, for work that ends after an await (a command's or a signature's answer arrives later): the
+ * getter reads the latest session at the moment it is called, never the one of the render that started the work.
+ * Once the component is gone it answers null: who is signed in is then not known here, so nothing computed for a
+ * person is put in place on the strength of it (INV-40, DI-34).
+ */
+export function useSignedInNow(): SignedInNow {
+  const session = useFloorSession();
+  const now = useRef<Viewer | null>(session);
+  useLayoutEffect(() => {
+    now.current = session;
+    return () => {
+      now.current = null;
+    };
+  });
+  return useCallback(() => now.current, []);
 }
 
 /** Supplies the floor session from the boot state (the feature's Provider renders inside BootProvider). */

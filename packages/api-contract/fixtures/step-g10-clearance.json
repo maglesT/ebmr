@@ -55,6 +55,20 @@
       "resolution": "0.001",
       "unit": "kg"
     },
+    "scales": [
+      {
+        "deviceCode": "TEST-BAL-01",
+        "roomCode": "DISP-1",
+        "status": "ONLINE",
+        "lastHeartbeat": {
+          "us": "1790584723000000",
+          "text": "28-SEP-2026 14:08:43 +05:30 (Asia/Kolkata)"
+        },
+        "gatewayCode": "TEST-GW-01",
+        "resolution": "0.001",
+        "unit": "kg"
+      }
+    ],
     "identity": {
       "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e51",
       "legalName": "TEST-Priya Nair",
@@ -158,7 +172,8 @@
       "requires": "TAP",
       "meaning": null,
       "reason": null,
-      "target": null
+      "target": null,
+      "whoCanHelp": []
     },
     {
       "action": "SIGN_PERFORMED",
@@ -167,7 +182,8 @@
       "requires": "SIGNATURE",
       "meaning": "LINE_CLEARANCE_PERFORMED",
       "reason": "Record the checklist and the previous batch first (G10-INCOMPLETE; PR-03)",
-      "target": null
+      "target": null,
+      "whoCanHelp": []
     },
     {
       "action": "RAISE_EXCEPTION",
@@ -176,7 +192,8 @@
       "requires": "TAP",
       "meaning": null,
       "reason": null,
-      "target": null
+      "target": null,
+      "whoCanHelp": []
     },
     {
       "action": "HOLD_BATCH",
@@ -185,7 +202,8 @@
       "requires": "TAP",
       "meaning": null,
       "reason": "Only a production supervisor or QA may hold the batch",
-      "target": null
+      "target": null,
+      "whoCanHelp": []
     }
   ],
   "signable": {

@@ -15,6 +15,10 @@
  *    (host countdown EXPIRE, or the server's EBMR-ESIG-033) to `expired`; both offer to start again.
  *  - A lost sign response never re-sends credentials: `reconciling` reloads the signatures; a matching signature
  *    means done, none means `notConfirmed`.
+ *  - A tap by another person at the challenge offers "Switch to <name>?" (`switchOffered`). Once the switch is done
+ *    (SWITCHED) the ceremony ends with nothing signed (`cancelled`): the request, and any decision or justification in
+ *    it, is the previous person's, so it is never challenged or signed under the new person; they start their own
+ *    signing, with their own decision (INV-40, DI-38).
  *  - While a signature is being applied, EXPIRE and CANCEL are ignored: only the server's answer decides.
  */
 import { assign, fromPromise, setup } from 'xstate';
@@ -203,7 +207,8 @@ export const ceremonyMachine = setup({
       },
     },
     switchOffered: {
-      on: { SWITCHED: 'loadingContent', CANCEL: 'cancelled' },
+      // After the switch nothing of the previous person's request goes on: the new person starts their own signing.
+      on: { SWITCHED: 'cancelled', CANCEL: 'cancelled' },
     },
     expired: {
       entry: assign({ refusal: EXPIRED_REFUSAL }),

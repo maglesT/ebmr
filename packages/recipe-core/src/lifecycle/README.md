@@ -52,9 +52,9 @@ DRAFT ... APPROVED --WITHDRAW [reason]--> WITHDRAWN (from APPROVED only if never
 | SUBMIT (PREPARED) | mbr.sign_prepared | signed in this state; signed by the version's author; evidence complete (validator, simulation, author-confirmed test vectors, sandbox run, or delta verification); change record linked; every CRITICAL parameter and calculation covered by a linked risk assessment (PR-07) |
 | CHECK (CHECKED) | mbr.check | signed in this state; checker is not the author and not an editor since the last entry into DRAFT (INV-04) |
 | APPROVE (APPROVED) | mbr.approve | signed in this state; approver not the author, not an editor, not the checker unless S4; a valid regulatory-conformity sign-off (REGULATORY_CONFIRMED by a regulatory signer, PR-04); evidence complete; effective date set (PR-02); review due date set and after the effective date (PR-05); change control complete (PR-06); registered elements with the regulatory action per market (PR-04); in-flight dispositions (ADR 0014) |
-| RETURN | mbr.author / mbr.check / mbr.approve | reason; the new draft cycle recorded in the same command (only `recipe.return_to_draft` does that) |
-| WITHDRAW | mbr.author (DRAFT, IN_VERIFICATION) / mbr.approve | reason; from APPROVED only if never authorised |
-| RETIRE | mbr.approve | reason; no open market authorisation (`recipe.retire_version` ends them in the same command) |
+| RETURN | mbr.author / mbr.check / mbr.approve | reason code and reason text, both the person's own (kernel guard `platform.reason_given`, kernel 0960, and `mbr_version.draft_entry_recorded`, migration 0301); the new draft cycle recorded in the same command (only `recipe.return_to_draft` does that) |
+| WITHDRAW | mbr.author (DRAFT, IN_VERIFICATION) / mbr.approve | reason code and reason text, both the person's own (`platform.reason_given`); from APPROVED only if never authorised (`mbr_version.never_authorised`, which checks both halves too, migration 0301) |
+| RETIRE | mbr.approve | reason code and reason text, both the QA person's own (migration 0290: the guard `mbr_version.no_open_authorisation` checks both halves, so a RETIRE made directly through `platform.transition` needs them too; so does `platform.reason_given` since kernel 0960); no open market authorisation (`recipe.retire_version` ends them in the same command) |
 
 Signatures go through the kernel e-signature module on aggregate `mbr_version`. The content provider
 (`recipe.mbr_version_content`) signs the MBR content hash plus the key fields (family, number,
@@ -76,6 +76,35 @@ supersedes the signatures in the same transaction (INV-09).
    predecessor CURRENT elsewhere; BRIDGING only for cells where the named successor superseded this
    version, time-limited.
 4. `withdrawMarketAuthorisation`, `retireVersion` end open cells (WITHDRAWN).
+
+Steps 3 and 4 are decisions of the QA person, so each command carries that person's own reason, a reason
+code and a reason text in the command context (migration 0290; DI-22, DI-24). `recipe.require_own_reason`
+checks it right after the permission check, before anything is locked or written, and refuses the command
+otherwise (the message starts with EBMR-AUDIT-002, as the kernel's own refusals do). This holds whether or
+not there is a cell to supersede or end: a first activation, and the retirement of a version that was never
+authorised, need it too. The RETIRE transition is also open to the application role directly through
+`platform.transition`; the recipe guard of that transition (`mbr_version.no_open_authorisation`) refuses it
+without both halves, so every retirement records the QA person's own reason. The withdrawal keeps its own
+stated reason as well (the `reason` argument, EBMR-RCP-084). Cells are superseded or ended in the command's
+own context, so each audit entry records the reason exactly as the person gave it.
+
+Every other transition that needs a reason (every RETURN, every WITHDRAW) records the person's own reason, both
+halves, too. The kernel guard `platform.reason_given` checked the code alone, and the engine then wrote the text of
+the state row's audit entry itself (`WITHDRAW: APPROVED -> WITHDRAWN`); since kernel 0960 it refuses a transition
+without both halves. The recipe guards `mbr_version.never_authorised` (APPROVED -WITHDRAW->) and
+`mbr_version.draft_entry_recorded` (every RETURN) check both halves as well (migration 0301). A guard that passed
+leaves the engine nothing to complete, so it writes no part of the reason of these transitions; it still describes
+the transitions that need no reason (START_VERIFICATION and the signed SUBMIT, CHECK, APPROVE) with its own text.
+
+A reason half is blank by one test everywhere, `kernel.is_blank` (kernel 0960; `recipe.reason_is_blank` is the
+same since 0301): NULL, or nothing but characters that show nothing on their own. These are the C0 and C1
+controls, Unicode white space (the no-break and the ideographic space too), the format characters (the zero-width
+space and joiners, bidirectional marks, the word joiner, the byte order mark, the interlinear annotation marks, the
+Egyptian hieroglyph format controls, the prepended number marks, tags), the other default-ignorable code points
+(variation selectors, Hangul fillers) and the Braille blank, all as of Unicode 17. The audit trigger, the kernel
+guard, the three commands, the three recipe guards and the withdrawal's stated reason use it, and the execution
+engine refuses the same texts (`requireReason`, engine 1.1.0). A reason with one readable character among them is
+text and is recorded exactly as given.
 
 INV-17 in the database: unique partial index (one open CURRENT per family, market, scope); exclusion
 constraints (no overlapping CURRENT validities, no overlapping BRIDGING validities; `btree_gist`);
@@ -100,10 +129,10 @@ transaction. `verifyControlRecipe` recomputes the snapshot hash in SQL and in Ty
 A change a user starts carries that user's own reason. `setDraftAttributes`, `issueStubBatch` and
 `setStubBatchStatus` update audited rows in the command's context unchanged: the command gives a reason code
 and a reason text, or the kernel refuses the update (EBMR-AUDIT-002) and the whole command rolls back. Recipe
-code writes no half of that reason (migration 0250; DI-22, DI-24). A server route that exposes one of them
-takes the reason from the user and passes it into the command context. Only updates that follow from
-another act of the same command get a fixed reason naming the act (`recipe.push_reason`, 0100/0230): a
-cell superseded on activation, or cells ended by a withdrawal or a retirement.
+code writes no half of that reason (migration 0250; DI-22, DI-24). The market-authorisation commands follow
+the same rule (migration 0290, above). A server route that exposes any of them takes the reason from the user
+and passes it into the command context. No recipe function completes a missing reason any more: the helpers
+that did (`recipe.push_reason` and `recipe.restore_actor`, 0100/0230) were dropped in 0290.
 
 ## Public API (`lifecycle` namespace of `@ebmr/recipe-core`)
 

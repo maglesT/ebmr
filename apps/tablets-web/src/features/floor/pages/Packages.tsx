@@ -24,13 +24,17 @@ function PackageItem({ p, highlighted }: { p: TestPackageView; highlighted: bool
   useEffect(() => {
     if (highlighted) ref.current?.scrollIntoView?.({ block: 'center' });
   }, [highlighted]);
+  const reload = () => qc.invalidateQueries({ queryKey: [routes.execution.testPackages.id] });
   const importCall = usePendingCall(routes.execution.importPackage, { packageId: p.packageId }, {
     reason: st('tap.reason.import'),
-    onSaved: () => qc.invalidateQueries({ queryKey: [routes.execution.testPackages.id] }),
+    onSaved: reload,
     onStale: async () => {
-      await qc.invalidateQueries({ queryKey: [routes.execution.testPackages.id] });
+      await reload();
       return ['The package list was reloaded.'];
     },
+    // An import that may have reached the server (discarded, or answered after a session change): reload the list.
+    onDiscard: reload,
+    onLateAnswer: reload,
   });
   const unsettled = importCall.busy || importCall.state === 'notSaved';
   return (

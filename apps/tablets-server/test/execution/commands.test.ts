@@ -190,8 +190,8 @@ describe('commands', () => {
     const d = await driver(withEarlyParameter());
     const key = 'p-early-time@';
     await d.ok('operator1', { type: 'START_STEP', stepKey: key });
-    const evidence = { kind: 'PRINTOUT' as const, sha256: 'b'.repeat(64) };
-    const rec = valueOf(await d.command('operator1', { type: 'RECORD_DATA', stepKey: key, item: 'blendTime', value: { kind: 'DECIMAL', value: '19', unit: 'min' }, source: { mode: 'MANUAL', evidence } }));
+    // Keyed by hand: a printout hash would name no attachment the server stored, so none is sent (EBMR-EXE-122).
+    const rec = valueOf(await d.command('operator1', { type: 'RECORD_DATA', stepKey: key, item: 'blendTime', value: { kind: 'DECIMAL', value: '19', unit: 'min' }, source: { mode: 'MANUAL' } }));
     const exc = rec.step?.exceptions.find((e) => e.tier === 'INTERNAL_ACTION');
     expect(exc).toMatchObject({ blocking: true, status: 'OPEN', expected: '12 - 18 min', actual: '19 min' });
     expect(rec.step?.fields.find((f) => f.item === 'blendTime')?.attempts[0]?.verdict).toMatchObject({ tier: 'INTERNAL_ACTION', failed: true });

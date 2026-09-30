@@ -134,6 +134,34 @@ describe('ScaleCaptureSlot (C5 provider)', () => {
     expect(onCaptured).not.toHaveBeenCalled();
   });
 
+  it('[DI-32][PR-20] with several online scales of the step\'s room each is offered and the person names the one they weigh on (nothing pre-selected); the capture is taken on that one', async () => {
+    const reading = example('reading');
+    const captured: unknown[] = [];
+    setTransport(
+      createFixtureFetch(
+        {
+          'devices.scales': { scales: [scale('ONLINE'), { ...scale('ONLINE'), deviceCode: 'TEST-BAL-03' }, { ...scale('OFFLINE'), deviceCode: 'TEST-BAL-04' }] },
+          'devices.capture': ({ params, body }: { params: Record<string, string>; body: unknown }) => {
+            captured.push({ params, body });
+            return reading;
+          },
+        },
+        { installation: 'SANDBOX' },
+      ),
+    );
+    const onCaptured = vi.fn();
+    render(wrap(<ScaleCaptureSlot deviceCodes={['TEST-BAL-01', 'TEST-BAL-03']} purpose="GROSS" onCaptured={onCaptured} />));
+    await screen.findByRole('radiogroup', { name: 'Scale you weigh on' });
+    const options = screen.getAllByRole('radio');
+    expect(options.map((o) => o.closest('label')?.textContent)).toEqual(['TEST-BAL-01', 'TEST-BAL-03']);
+    expect(options.every((o) => !(o as HTMLInputElement).checked)).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Capture gross' })).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: 'TEST-BAL-03' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Capture gross' }));
+    await waitFor(() => expect(onCaptured).toHaveBeenCalledWith(reading));
+    expect(captured).toEqual([{ params: { code: 'TEST-BAL-03' }, body: { purpose: 'GROSS' } }]);
+  });
+
   it('a step without a scale of this room gets the manual path', async () => {
     setTransport(createFixtureFetch({ 'devices.scales': { scales: [scale('ONLINE')] } }, { installation: 'SANDBOX' }));
     render(wrap(<ScaleCaptureSlot deviceCodes={['TEST-BAL-02']} purpose="GROSS" onCaptured={vi.fn()} />));

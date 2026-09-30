@@ -6,6 +6,11 @@
  * The browser never decides a GMP outcome: whether recording is possible comes from the server's actions; the
  * limit verdict appears only in the view the server returns after commit; values are never pre-filled; lots
  * travel as codes and weights as reading ids (or hand-typed values on the two-person path).
+ *
+ * A value read by a scanner on this terminal travels as a hand entry (source MANUAL): the server cannot attest a scan
+ * made here, so it records the value as keyed by hand, flags it, raises the exception and asks for a second person
+ * (DI-30, PR-14; review findings P34, P58), and the field says so before it is saved. A weighing is captured from any
+ * ONLINE scale of the step's room; keying the weights by hand is offered only while none of them is online (PR-20).
  */
 import { useState, type ReactNode } from 'react';
 import {
@@ -124,8 +129,8 @@ function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenV
   const value = valueOf(field, { text, choice, scan });
   const save = () => {
     if (!value) return;
-    const source = field.capture === 'SCAN' && scan ? ({ mode: 'SCAN', code: scan } as const) : ({ mode: 'MANUAL' } as const);
-    cmd.send({ type: 'RECORD_DATA', stepKey: view.step.stepKey, item: field.item, value, source }, view.run.version, view);
+    // Never a SCAN claim: a scan made on this terminal is recorded as a hand entry, as the field says (DI-30).
+    cmd.send({ type: 'RECORD_DATA', stepKey: view.step.stepKey, item: field.item, value, source: { mode: 'MANUAL' } }, view.run.version, view);
   };
   const maxDecimals = maxDecimalsOf(field);
   const target = field.target?.value.kind === 'DECIMAL' ? { value: field.target.value.value, unit: field.target.value.unit, source: field.target.source } : null;
@@ -160,6 +165,11 @@ function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenV
   return (
     <section className={wcls('formCard')} aria-label={field.name} data-testid={`field-${field.item}`}>
       <h3 className={wcls('formTitle')}>{field.name}</h3>
+      {record.available && field.capture === 'SCAN' ? (
+        <p className={wcls('muted')} data-testid={`scan-as-hand-entry-${field.item}`}>
+          {st('field.scanIsHandEntry')}
+        </p>
+      ) : null}
       {input}
       {record.available && field.valueType !== 'INSTANT' ? (
         <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!value || locked}>
@@ -237,8 +247,23 @@ export function gaugeBand(view: StepScreenView): { low?: string; high?: string; 
   return { unit: field.unit, ...(limit?.low ? { low: limit.low.value } : {}), ...(limit?.high ? { high: limit.high.value } : {}), ...(target !== undefined ? { target } : {}) };
 }
 
+/** The ONLINE scales of the step's room, as the server listed them (the header's own scale when it lists none). */
+export function onlineScales(view: StepScreenView): string[] {
+  const listed = view.run.scales.filter((s) => s.status === 'ONLINE').map((s) => s.deviceCode);
+  if (listed.length > 0) return listed;
+  return view.run.scale?.status === 'ONLINE' ? [view.run.scale.deviceCode] : [];
+}
+
+/** The scales a capture is offered on: every ONLINE scale of the step's room, else the room's scale or the step's equipment (the slot says it is offline). */
+export function captureDevices(view: StepScreenView): string[] {
+  const online = onlineScales(view);
+  if (online.length > 0) return online;
+  if (view.run.scales.length > 0) return view.run.scales.map((s) => s.deviceCode);
+  return view.run.scale ? [view.run.scale.deviceCode] : view.run.equipment.map((e) => e.code);
+}
+
 function ReadingCapture({ label, purpose, reading, onReading, view, disabled }: { label: string; purpose: 'TARE' | 'GROSS' | 'CHECK'; reading: ReadingView | null; onReading: (r: ReadingView | null) => void; view: StepScreenView; disabled: boolean }) {
-  const devices = view.run.scale ? [view.run.scale.deviceCode] : view.run.equipment.map((e) => e.code);
+  const devices = captureDevices(view);
   const band = purpose === 'GROSS' ? gaugeBand(view) : undefined;
   if (reading) {
     return (
@@ -351,7 +376,8 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
 
   const readingFields = form.fields.filter((f) => f.type === 'reading');
   const manualUnit = readingFields[0]?.unit ?? view.run.scale?.unit ?? null;
-  const manual = options.weighing && readingFields.length > 0 && view.run.scale?.status !== 'ONLINE' && manualUnit ? { unit: manualUnit } : null;
+  // Keying by hand is the fallback only while no scale of the step's room is online (PR-20; the server refuses it otherwise, EBMR-EXE-074).
+  const manual = options.weighing && readingFields.length > 0 && onlineScales(view).length === 0 && manualUnit ? { unit: manualUnit } : null;
   const { candidate, complete } = buildEntry(form, state, { ...options, manual });
   const missing = (options.required ?? []).filter((m) => !(m in candidate) && !form.fields.some((f) => f.name === m));
   const parsed = complete && missing.length === 0 ? ClientEntry.safeParse(candidate) : null;

@@ -15,7 +15,8 @@
  *
  * States the product never produces by itself (a register entry written outside
  * records.register_true_copy, a chain rewritten and re-hashed, an event slipped into a chain, two
- * instants equal to the microsecond) are arranged with the superuser; the control itself is always
+ * instants equal to the microsecond, a site zone policy value recorded before kernel 0940 refused
+ * it) are arranged with the superuser; the control itself is always
  * exercised through the records functions, as the application role.
  */
 import { createHash, randomUUID } from 'node:crypto';
@@ -35,7 +36,7 @@ import {
   retentionOf,
 } from '../../src/records/retention-store.ts';
 import { BUNDLE_FORMAT, buildTrueCopyBundle, registerTrueCopy } from '../../src/records/true-copy.ts';
-import { asTimeTraveller } from '../identity/helpers.ts';
+import { asDefinerCommand, asTimeTraveller } from '../identity/helpers.ts';
 import { SEED_ZONE, seedAdministration, withReason as seedWithReason, type SeededActor } from '../identity/seed.ts';
 import {
   again,
@@ -434,12 +435,37 @@ describe('DI-47 retention schedules: every refusal where it is enforced', () => 
     const policy = (from: string, to: string, reason: string) =>
       withCommand(db.app, seedWithReason({ ...admin, siteZone: from, correlationId: randomUUID() }), (c) => setIamPolicy(c, 'site.zone', to, reason));
     const batch = randomUUID();
-    await policy(SEED_ZONE, typo, 'test: site zone mistyped');
     try {
+      // Since kernel 0940 the policy itself refuses a zone that is no time zone (EBMR-IAM-119) ...
+      await expect(policy(SEED_ZONE, typo, 'test: site zone mistyped')).rejects.toThrow(/^EBMR-IAM-119 /);
+      // ... and so does the table (0940's row guard) ...
+      await expect(
+        asDefinerCommand(db, seedWithReason({ ...admin, siteZone: SEED_ZONE, correlationId: randomUUID() }), (c) =>
+          c.query("insert into iam.policy_value (key, value, set_by_person, set_by_account, reason) values ('site.zone', $1, $2, $3, 'test: site zone mistyped')", [
+            typo,
+            admin.personId,
+            admin.accountId,
+          ]),
+        ),
+      ).rejects.toThrow(/^EBMR-IAM-119 /);
+      // ... so the value is one recorded before 0940, arranged with the superuser as iam.set_policy recorded it
+      // then: in one transaction, without the row guard that did not exist yet (the audit trigger still fires).
+      await asDefinerCommand(db, seedWithReason({ ...admin, siteZone: SEED_ZONE, correlationId: randomUUID() }), async (c) => {
+        await c.query('alter table iam.policy_value disable trigger aa_site_zone_iam_policy_value');
+        await c.query("insert into iam.policy_value (key, value, set_by_person, set_by_account, reason) values ('site.zone', $1, $2, $3, 'test: site zone mistyped before kernel 0940')", [
+          typo,
+          admin.personId,
+          admin.accountId,
+        ]);
+        await c.query('alter table iam.policy_value enable trigger aa_site_zone_iam_policy_value');
+      });
       // Every command now declares the configured text (EBMR-IAM-118 otherwise); the schedule takes the site's zone.
       await expect(create({ ...qa, siteZone: typo }, 'batch', batch)).rejects.toThrow(`EBMR-REC-020 site zone '${typo}' is not a known time zone`);
     } finally {
-      await policy(typo, SEED_ZONE, 'test: site zone corrected');
+      // Back to the seed zone, declaring whatever zone is in force now, so a failure above never leaves
+      // the policy switched for the tests that follow.
+      const zone = await scalar<string>(db.admin, "select iam.policy_text('site.zone') as v");
+      if (zone !== SEED_ZONE) await policy(zone, SEED_ZONE, 'test: site zone corrected');
     }
     expect(await schedules(`batch:${batch}`)).toBe('0');
     await create(qa, 'batch', batch);

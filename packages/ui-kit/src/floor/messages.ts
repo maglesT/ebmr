@@ -47,6 +47,7 @@ export const FLOOR_EN = {
   'action.more': 'More',
   'action.moreTitle': 'More actions',
   'action.notAvailable': 'Not available now',
+  'action.whoCanHelp': 'Who can do it',
   'action.recordHint': 'Record the values above. Each entry is saved on its own with a badge tap.',
   'refusal.rule': 'Rule',
   'refusal.controls': 'Controls',

@@ -7,7 +7,9 @@
  * validation date:
  *  - the edition's rule table (tablets) must be published and must verify (content and row hashes); otherwise
  *    every answer carries an UNRESOLVED item, so no MBR passes on an installation without its rule table;
- *  - India must be in the market set (INV-28);
+ *  - India must be in the market set (INV-28), and the whole market set must be one the market engine accepts
+ *    (market.checked_market_set: markets it knows, each once), whether or not the MBR binds any rule key, so a
+ *    market whose content minima cannot be resolved never passes by having nothing to resolve (review P13);
  *  - each rule key the MBR binds (parameters and time constraints with a `marketRule`) is resolved in its own table
  *    (`kernel.*` or the edition's); a decimal key compared SMALLER_STRICTER is a maximum (HIGH), LARGER_STRICTER a
  *    minimum (LOW), and becomes a LIMIT minimum with its governing markets and table version;
@@ -26,6 +28,20 @@ const EDITION_TABLE: Readonly<Record<flow.Edition, market.RuleTableCode>> = { ta
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Why the market engine refuses a market set (null when it accepts it): market.checked_market_set in the database,
+ * the engine's own list of markets (market.market), not a copy of it here.
+ */
+export async function marketSetProblem(db: Db, marketSet: readonly string[]): Promise<string | null> {
+  try {
+    await db.query('select market.checked_market_set($1::text[])', [[...marketSet]]);
+    return null;
+  } catch (error) {
+    const reason = messageOf(error).replace(/^\s*EBMR-MKT-\d{3}\s*/, '');
+    return `the market engine does not accept the market set ${marketSet.join(', ') || '(empty)'} (${reason}), so its content minima cannot be resolved (EBMR-MKT-001)`;
+  }
 }
 
 /** Resolves every minimum the request needs (async, in the database). */
@@ -57,6 +73,10 @@ export async function resolveMinima(db: Db, request: validator.MinimaRequest): P
 
   if (!(await loadTable(editionTable))) out.push(unresolved(`${editionTable}.*`, tableProblem.get(editionTable) ?? `the ${editionTable} rule table is not available`));
   if (!request.marketSet.includes('IN')) out.push(unresolved('market-set', 'India (IN) must be in every market set: every batch is made under an Indian licence (INV-28)'));
+  else {
+    const problem = await marketSetProblem(db, request.marketSet);
+    if (problem) out.push(unresolved('market-set', problem));
+  }
 
   for (const key of [...new Set(request.ruleKeys)].sort()) {
     const prefix = key.split('.')[0] ?? '';

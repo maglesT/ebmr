@@ -1,15 +1,17 @@
 /**
  * Test support for module C1 (access, esig, audit): a server with a registered DEMO-ONLY seal key, badge-tap
  * attributions signed with the terminal's seeded key, kernel actor contexts of a browser's own session (so test
- * set-up never opens a second shop-floor session that would supersede it), stub signable entries, and short
- * refusal descriptions.
+ * set-up never opens a second shop-floor session that would supersede it), stub signable entries, the ceremony's
+ * two calls (challenge and sign) on a stub entry, what the kernel logged and alerted for a challenge (DI-19), and
+ * short refusal descriptions.
  */
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { esig, withCommand, type ActorContext } from '@ebmr/kernel';
-import type { Attribution, CallError, Result } from '@ebmr/api-contract';
+import { sha256Hex } from '@ebmr/expr';
+import { routes, type Attribution, type CallError, type Result, type SignatureCredentials } from '@ebmr/api-contract';
 import { freshTap, passwordActor, personaOf, terminalOf, type SeededPersona } from '@ebmr/test-kit';
 import { resolveSession, tokenHash } from '../../src/platform/auth/session.ts';
 import { esigStubHandler } from '../../src/features/esig/stub.ts';
@@ -119,3 +121,108 @@ export function valueOf<T>(r: Result<T>): T {
 }
 
 export { terminalOf };
+
+// ---------------------------------------------------------------------------------------------
+// The ceremony on a stub entry (plan section 6)
+
+export const CHALLENGE_PATH = '/api/esig/challenges';
+
+/** Step 2: the content, then a challenge for it (on a kiosk attributed by the persona's own tap). */
+export async function challengeFor(server: TestServer, b: TestBrowser, personaKey: string, stubId: string, meaning: string, opts: { clientContentHash?: string } = {}) {
+  const content = valueOf(await b.call(routes.esig.content, { query: { aggregateType: 'esig_stub', aggregateId: stubId, intent: meaning } }));
+  const body = {
+    aggregateType: 'esig_stub',
+    aggregateId: stubId,
+    contentVersion: content.contentVersion,
+    meaning,
+    clientContentHash: opts.clientContentHash ?? sha256Hex(content.canonicalText),
+    action: { kind: 'ESIG_STUB' as const, stubId },
+  };
+  const kiosk = b.terminal.includes('KIOSK');
+  const r = await b.call(routes.esig.createChallenge, { body, ...(kiosk ? { attribution: await tapFor(b, personaIn(server, personaKey), 'POST', CHALLENGE_PATH, body) } : {}) });
+  return { content, r };
+}
+
+/** Step 3: sign the challenge (the proof from `proofFrom`, default the browser itself). */
+export async function sign(b: TestBrowser, challengeId: string, stubId: string, credentials: SignatureCredentials, proofFrom?: TestBrowser, idempotencyKey?: string) {
+  const body = { challengeId, credentials, action: { kind: 'ESIG_STUB' as const, stubId } };
+  const proof = await (proofFrom ?? b).proof('POST', '/api/esig/sign', body);
+  return b.call(routes.esig.sign, { body: { ...body, proof }, ...(idempotencyKey ? { idempotencyKey } : {}) });
+}
+
+export const pinOf = (server: TestServer, key: string): SignatureCredentials => ({ kind: 'PIN', pin: personaIn(server, key).pin ?? '' });
+export const passwordOf = (server: TestServer, key: string): SignatureCredentials => ({
+  kind: 'PASSWORD',
+  loginName: personaIn(server, key).loginName,
+  password: personaIn(server, key).password,
+});
+
+export async function signatureRows(server: TestServer, stubId: string): Promise<{ meaning_code: string; signer_person: string }[]> {
+  return (
+    await server.db.admin.query<{ meaning_code: string; signer_person: string }>(
+      "select meaning_code, signer_person from esig.signature where aggregate_ref = 'esig_stub:' || $1 order by recorded_at",
+      [stubId],
+    )
+  ).rows;
+}
+
+// ---------------------------------------------------------------------------------------------
+// What the kernel logged and alerted for a challenge (DI-19)
+
+export interface LoggedFailure {
+  code: string;
+  event: string | null;
+  event_person: string | null;
+  for_challenge: boolean | null;
+  misuse: string | null;
+  uses: string;
+}
+
+/**
+ * The signing-failure log of a challenge with the authentication event each entry names (DI-19): whose it is,
+ * whether it was made for this challenge, what the kernel's misuse check found and the event's committed uses. The
+ * code is the kernel's, or UNKNOWN: and the first word of the message for other refusals.
+ */
+export async function loggedFailures(server: TestServer, challengeId: string): Promise<LoggedFailure[]> {
+  const { rows } = await server.db.admin.query<LoggedFailure & { message: string }>(
+    `select f.code, f.message, f.auth_event_id::text as event, e.person_id::text as event_person, (e.challenge_id = f.challenge_id) as for_challenge,
+            f.misuse_code as misuse,
+            coalesce((select string_agg(u.use_kind, ',' order by u.use_kind) from iam.auth_event_use u where u.auth_event_id = f.auth_event_id), '') as uses
+       from esig.signing_failure f left join iam.auth_event e on e.id = f.auth_event_id
+      where f.challenge_id = $1
+      order by f.id`,
+    [challengeId],
+  );
+  return rows.map(({ message, ...r }) => ({ ...r, code: r.code === 'UNKNOWN' ? `UNKNOWN:${message.split(' ')[0] ?? ''}` : r.code }));
+}
+
+/** The authentication events made for a challenge (the signing attempts' own), oldest first. */
+export async function challengeEvents(server: TestServer, challengeId: string): Promise<string[]> {
+  const { rows } = await server.db.admin.query<{ id: string }>('select id::text as id from iam.auth_event where challenge_id = $1 order by recorded_at, id', [challengeId]);
+  return rows.map((r) => r.id);
+}
+
+export interface SigningAlert {
+  severity: string;
+  person_id: string | null;
+  account_id: string | null;
+  code: string | null;
+  reported: string | null;
+  event_purpose: string | null;
+  event_person: string | null;
+  event_account: string | null;
+}
+
+/** The security alerts raised for misuse at a challenge (DI-19), with the authentication event each one names. */
+export async function signingAlerts(server: TestServer, challengeId: string): Promise<SigningAlert[]> {
+  const { rows } = await server.db.admin.query<SigningAlert>(
+    `select a.severity, a.person_id::text, a.account_id::text, a.details ->> 'code' as code, a.details ->> 'reported_code' as reported,
+            e.purpose as event_purpose, e.person_id::text as event_person, e.account_id::text as event_account
+       from iam.security_alert a
+       left join iam.auth_event e on e.id::text = a.details ->> 'auth_event_id' and e.challenge_id::text = a.details ->> 'challenge_id'
+      where a.kind = 'SIGNING_FAILED' and a.details ->> 'challenge_id' = $1
+      order by a.raised_at`,
+    [challengeId],
+  );
+  return rows;
+}

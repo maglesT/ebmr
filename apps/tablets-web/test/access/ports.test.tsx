@@ -12,6 +12,7 @@ import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
 import type { Attribution, ChallengeView, FetchLike, ManifestationView, SessionView, SignableContentView } from '@ebmr/api-contract';
 import type { Boot } from '../../src/app/boot.tsx';
+import type { SignOutcome } from '../../src/app/ports.tsx';
 
 // ---- test doubles ------------------------------------------------------------------------------
 const bootState: { current: Boot } = { current: undefined as unknown as Boot };
@@ -116,6 +117,7 @@ function bootWith(session: SessionView, over: Partial<Boot> = {}): Boot {
     problem: null,
     restart: vi.fn(),
     setSession: setSessionSpy,
+    joinMarkedSignOut: vi.fn(() => false),
     signOut: vi.fn(() => Promise.resolve()),
     forgetTerminal: vi.fn(() => Promise.resolve()),
     ...over,
@@ -334,6 +336,41 @@ describe('SignatureCeremonyPort', () => {
     expect(calls('/api/esig/sign')).toHaveLength(1);
   });
 
+  it('[INV-40][INV-03][DI-38] a tap by another person at the signing: after the switch nothing is signed and the signing ends, so the previous person\'s decision is never challenged or signed under the new person', async () => {
+    const RUN = '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a';
+    // Priya's decision on a hold point, with her comment: it is hers alone to sign.
+    const decision = { kind: 'ENGINE_COMMAND' as const, runId: RUN, expectedVersion: 7, intent: { type: 'DISPOSITION_HOLD_POINT' as const, stepKey: 'H-BLEND@', disposition: 'APPROVED', comment: 'Blend uniformity within limits' } };
+    const hold = { aggregateType: 'batch_step', aggregateId: `${RUN}:H-BLEND@`, meaning: 'HOLD_POINT_RELEASED', action: decision, title: 'Release hold point H-BLEND' };
+    const switchUser = { status: 409, body: { refusal: { code: 'SWITCH_USER', kind: 'SWITCH_USER', whatHappened: 'This badge belongs to TEST-Kavya Reddy.', why: '', controls: [], whatYouCanDo: [], whoCanHelp: [], details: { switchToLegalName: 'TEST-Kavya Reddy', switchToLoginName: 'test-verifier-1' } }, correlationId: 't', retryable: false } };
+    answers['GET /api/esig/content'] = CONTENT;
+    answers['POST /api/esig/challenges'] = () => (calls('/api/esig/challenges').length === 1 ? switchUser : challenge(['PIN'], VERIFIER.person));
+    answers['POST /api/esig/sign'] = { manifestation: manifestation(VERIFIER.person), result: null };
+    answers['POST /api/session/switch'] = VERIFIER;
+    const ports = renderPorts();
+    let settled: SignOutcome | null = null;
+    act(() => {
+      void ports.ceremony.sign(hold).then((o) => {
+        settled = o;
+      });
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+    // Kavya's badge is tapped at Priya's signing.
+    await tapBadge('04A10000000011');
+    expect(await screen.findByText(/Switch to TEST-Kavya Reddy\?/)).toBeTruthy();
+    await enterPin('Enter the PIN of TEST-Kavya Reddy', '691357');
+    expect(calls('/api/session/switch')[0]?.body).toMatchObject({ badgeUid: '04A10000000011', pin: '691357' });
+    expect(setSessionSpy).toHaveBeenCalledWith(VERIFIER);
+
+    // The signing ends: nothing is signed, and Kavya is not asked to sign Priya's decision.
+    await waitFor(() => {
+      expect(settled).toEqual({ status: 'CANCELLED' });
+    });
+    expect(calls('/api/esig/challenges')).toHaveLength(1);
+    expect(calls('/api/esig/sign')).toHaveLength(0);
+    expect(calls('/api/esig/content')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Sign' })).toBeNull();
+  });
+
   it('[DI-37] content whose text does not match its hash is never challenged; a changed record offers to review again', async () => {
     answers['GET /api/esig/content'] = { ...CONTENT, contentHash: 'ab'.repeat(32) };
     const ports = renderPorts();
@@ -380,6 +417,14 @@ describe('the proposal of an exception disposition in the content preview', () =
     expect(previewIntent('PERFORMED', { kind: 'ESIG_STUB', stubId: STUB })).toBe('PERFORMED');
     expect(previewIntent('VERIFIED', { kind: 'ENGINE_COMMAND', runId: RUN, expectedVersion: 7, intent: { type: 'VERIFY', stepKey: 'p-blend@', meaning: 'VERIFIED' } })).toBe('VERIFIED');
     expect(previewIntent('STAGE_SIGNED_OFF', { kind: 'ENGINE_COMMAND', runId: RUN, expectedVersion: 7, intent: { type: 'SIGN_OFF_STAGE', stageKey: 'ST-1@' } })).toBe('STAGE_SIGNED_OFF');
+  });
+
+  it('[DI-37][PR-45] P26/P38: a hold-point decision previews its disposition and comment (null when none) as the server reads them', () => {
+    const hold = (comment?: string) => ({ kind: 'ENGINE_COMMAND' as const, runId: RUN, expectedVersion: 7, intent: { type: 'DISPOSITION_HOLD_POINT' as const, stepKey: 'H-BLEND@', disposition: 'APPROVED_WITH_CONDITIONS', ...(comment !== undefined ? { comment } : {}) } });
+    const withComment = previewIntent('HOLD_POINT_RELEASED', hold('Release only after the hardness retest passes'));
+    expect(withComment).toMatch(/^HOLD_POINT_RELEASED\|[A-Za-z0-9_-]+$/);
+    expect(serverParse(withComment)).toEqual({ disposition: 'APPROVED_WITH_CONDITIONS', comment: 'Release only after the hardness retest passes' });
+    expect(serverParse(previewIntent('HOLD_POINT_RELEASED', hold()))).toEqual({ disposition: 'APPROVED_WITH_CONDITIONS', comment: null });
   });
 
   it('[DI-37] a disposition previews its proposal byte for byte as the server encodes it; non-ASCII text round-trips through the server parser', () => {

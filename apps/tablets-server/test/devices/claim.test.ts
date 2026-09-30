@@ -111,8 +111,9 @@ describe('DeviceReadingPort.claim', () => {
 
   it('[DI-32] two connections claiming the same reading at once: exactly one succeeds', async () => {
     const id = await ingest();
+    // Both at a DISP-1 kiosk: a claim is only for the room of the session's own terminal (DI-20, review P49).
     const a1 = await operatorActor(server, 'operator1');
-    const a2 = await operatorActor(server, 'operator2');
+    const a2 = await operatorActor(server, 'operator2', 'TEST-KIOSK-DISP-1');
     const port = server.built.ctx.deviceReadings;
     // Hold the first claim's transaction open until the second has started, so they really overlap.
     let release!: () => void;

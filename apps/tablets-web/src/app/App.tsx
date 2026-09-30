@@ -13,6 +13,7 @@ import { WEB_FEATURES } from './features.ts';
 import { createAppRouter } from './router.tsx';
 import { SessionScopedReads } from './session-reads.tsx';
 import { Frame } from './shell.tsx';
+import { SigningOut, SignOutUnconfirmed } from './sign-out.tsx';
 import { cls } from './classes.ts';
 
 /** Wraps the app in every feature's Provider (port implementations), in list order. */
@@ -20,7 +21,8 @@ function FeatureProviders({ children }: { children: ReactNode }) {
   return WEB_FEATURES.reduceRight<ReactNode>((acc, [name, f]) => (f.Provider ? <f.Provider key={name}>{acc}</f.Provider> : acc), children);
 }
 
-function Gate() {
+/** The gate from start-up to sign-in to the router (exported for tests). */
+export function Gate() {
   const boot = useBoot();
   const [router] = useState(createAppRouter);
   switch (boot.phase) {
@@ -46,6 +48,18 @@ function Gate() {
       return <Frame withBanner={false}>{boot.meta?.demo ? <><NotEnrolled problem={boot.problem} /><DemoPicker /></> : <NotEnrolled problem={boot.problem} />}</Frame>;
     case 'signed-out':
       return <Frame withBanner={false}>{boot.device?.density === 'FLOOR' ? <KioskLogin /> : <OfficeLogin />}</Frame>;
+    case 'signing-out':
+      return (
+        <Frame withBanner={false}>
+          <SigningOut />
+        </Frame>
+      );
+    case 'sign-out-unconfirmed':
+      return (
+        <Frame withBanner={false}>
+          <SignOutUnconfirmed />
+        </Frame>
+      );
     case 'ready':
       if (boot.session?.roleChoiceRequired) return <Frame withBanner>{<RoleChoice />}</Frame>;
       return <RouterProvider router={router} />;

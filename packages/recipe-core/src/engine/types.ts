@@ -16,7 +16,21 @@ import type { EvaluationRecord } from '@ebmr/expr';
 import type { Frame, Marking } from '../flow/tokens.ts';
 import type { BreachRequirement, LimitTier } from '../limits/model.ts';
 
-export const ENGINE_VERSION = '1.0.0';
+/**
+ * The version of the engine's output (ADR 0010): a batch pins it at issue and is run and replayed only by this
+ * version (EBMR-EXE-061), because replay compares every stored row's events and state with the engine's. Any change
+ * of what `issue`, `step`, `sweep` or `prepareForSignature` answer for the same input needs a new version, recorded
+ * with its output fingerprint in test/engine/engine-version.test.ts. Semantic changes:
+ *  - 1.1.0: a time fact (a breach, a warning, a void) and a clock regression noticed inside a person's command or
+ *    signing preparation are raised by SYSTEM, not by that person (P35, P28); the check a verifier signs is
+ *    exactly the one the step requires (RE_VERIFIED_AFTER_CORRECTION, the MBR's WITNESSED, the block's own check,
+ *    else VERIFIED; P37), and a PERFORMED signature carries the block's own perform meaning where it has one;
+ *    a reason, justification, description or reference with no visible character (only white space, controls
+ *    and invisible format characters such as the zero-width space) is refused (ENG-REASON; P29), exactly as the
+ *    database's blank test (kernel.is_blank) refuses it.
+ *  - 1.0.0: Phase 2 first release.
+ */
+export const ENGINE_VERSION = '1.1.0';
 export const STATE_SCHEMA = 'ebmr.batch-execution-state';
 
 /** Trusted server time of the command's transaction (kernel clock; `recorded_at`), UTC epoch microseconds. */

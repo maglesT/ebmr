@@ -101,6 +101,7 @@ describe('PinPad and BadgePrompt', () => {
     await userEvent.type(field, '04A10000000001{Enter}');
     expect(onTap).toHaveBeenCalledWith('04A10000000001');
     expect(field.value).toBe('');
+    expect(field.getAttribute('value')).toBeNull();
     const onTimeout = vi.fn();
     render(<BadgePrompt reason="Confirm" onTap={noop} onCancel={noop} onTimeout={onTimeout} timeoutSeconds={1} />);
     await waitFor(() => expect(onTimeout).toHaveBeenCalledTimes(1), { timeout: 3000 });
@@ -156,6 +157,8 @@ describe('what is signed', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Sign' }));
     expect(onPassword).toHaveBeenCalledWith('asha.rao', 'Secret-Password-1');
     expect(pw.value).toBe('');
+    // A native uncontrolled input: React never wrote the password into the value attribute (review P1).
+    expect(pw.getAttribute('value')).toBeNull();
   });
 
   it('[DI-36] after signing the stored manifestation is shown with date and time, offset and zone; an invalid one says so', () => {

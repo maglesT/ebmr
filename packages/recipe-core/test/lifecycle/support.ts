@@ -284,12 +284,15 @@ export class World {
     return { ...ref, state: 'APPROVED', content };
   }
 
-  /** Proposes, signs (QA + regulatory) and activates a market authorisation. */
+  /**
+   * Proposes, signs (QA + regulatory) and activates a market authorisation. The activation carries the QA person's own
+   * reason, both halves (EBMR-AUDIT-002; migration 0290).
+   */
   async authorise(def: lc.MarketAuthorisationDefinition, qa: SeededActor = this.cast.qa, regulatory: SeededActor = this.cast.regulatory): Promise<lc.ActivationResult> {
     const id = await this.run(qa, (c) => lc.proposeMarketAuthorisation(c, def));
     const qaSig = await this.sign(qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
     const regSig = await this.sign(regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
-    return this.run(qa, (c) => lc.activateMarketAuthorisation(c, id, qaSig, regSig));
+    return this.run(qa, (c) => lc.activateMarketAuthorisation(c, id, qaSig, regSig), reason(`${def.market}: market authorised for the test`));
   }
 
   async issue(familyId: string, markets: string[], scope: lc.IssueScope, versionId?: string): Promise<lc.IssueResult & { batchNumber: string }> {

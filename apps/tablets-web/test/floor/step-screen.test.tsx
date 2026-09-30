@@ -4,18 +4,22 @@
  * NOT SAVED and is resent with the same key after a fresh tap; a session change discards it; computed values
  * have no input; unavailable actions keep the server's reason.
  */
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { StepScreenView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { SESSION_CHANGE_EVENT } from '../../src/features/floor/session.tsx';
-import { ATTRIBUTION, envelope, fakeTap, renderFloor, RUN_ID, stepFixtures, stepPath, stepVariant, type Answer, type Recorded } from './support.tsx';
+import { ATTRIBUTION, envelope, fakeTap, OPERATOR, renderFloor, RUN_ID, stepFixtures, stepPath, stepVariant, type Answer, type Recorded } from './support.tsx';
 
 const G04 = example('step-g04-parameters');
 
-/** G-04 while the operator records: blend time empty, RECORD_DATA offered, signing not yet. */
+/**
+ * G-04 while the operator records: blend time empty, RECORD_DATA offered, signing not yet; computed by the server for
+ * the operator signed in (the harness's person), as every view of the entry path is.
+ */
 const g04Recording = stepVariant('step-g04-parameters', (v) => {
+  v.run.identity = { personId: OPERATOR.personId ?? '', legalName: OPERATOR.legalName ?? '', loginName: OPERATOR.loginName ?? '', role: OPERATOR.role ?? '' };
   v.step.status = 'IN_PROGRESS';
   v.step.statusText = 'In progress';
   v.fields[0]!.attempts = [];
@@ -23,9 +27,9 @@ const g04Recording = stepVariant('step-g04-parameters', (v) => {
   v.exceptions = [];
   v.signatures = [];
   v.actions = [
-    { action: 'RECORD_DATA', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null },
-    { action: 'SIGN_PERFORMED', available: false, primary: false, requires: 'SIGNATURE', meaning: 'PERFORMED', reason: 'Record blend time and speed first (ENG-DATA-MISSING)', target: null },
-    { action: 'RAISE_EXCEPTION', available: true, primary: false, requires: 'TAP', meaning: null, reason: null, target: null },
+    { action: 'RECORD_DATA', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] },
+    { action: 'SIGN_PERFORMED', available: false, primary: false, requires: 'SIGNATURE', meaning: 'PERFORMED', reason: 'Record blend time and speed first (ENG-DATA-MISSING)', target: null, whoCanHelp: [] },
+    { action: 'RAISE_EXCEPTION', available: true, primary: false, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] },
   ];
 });
 
@@ -72,6 +76,49 @@ describe('value entry (G-04) and the pendingEntry path', () => {
     expect(typeof (cmd?.body?.['intent'] as { value: { value: unknown } }).value.value).toBe('string');
     expect(cmd?.body?.['expectedVersion']).toBe(7);
     expect(cmd?.body?.['viewStepKey']).toBe('p-blend@');
+  });
+
+  it('[DI-28] a step read begun before the commit (the 30 s poll) and answered after the save never puts the pre-commit view back: the saved value and its verdict stay on the screen', async () => {
+    const server = { values: [] as string[] };
+    const viewNow = (): StepScreenView => (server.values.length > 0 ? committed(server.values[0] ?? '') : g04Recording);
+    const stepGet = `/api/test-runs/${RUN_ID}/steps/${encodeURIComponent('p-blend@')}`;
+    let hold = false;
+    let heldRead: (() => void) | null = null;
+    const intercept = (r: Recorded): Answer | undefined | Promise<Answer | undefined> => {
+      if (r.method === 'GET' && r.path === stepGet && hold) {
+        hold = false;
+        // The server reads the step now (before the commit); the answer travels back slowly.
+        const snapshot = viewNow();
+        return new Promise<Answer>((resolve) => {
+          heldRead = () => resolve({ status: 200, body: snapshot });
+        });
+      }
+      if (r.path === commandPath) {
+        server.values.push('21');
+        return { status: 200, body: { accepted: true, version: 8, step: viewNow() } };
+      }
+      return undefined;
+    };
+    const ui = renderFloor(stepPath('p-blend@'), { fixtures: { 'execution.step': () => viewNow() }, intercept });
+    const input = await screen.findByRole('textbox', { name: 'Blend time' });
+    await userEvent.type(input, '21');
+    // The step's 30 s poll starts now; its answer is slow.
+    hold = true;
+    act(() => {
+      void ui.qc.refetchQueries();
+    });
+    await waitFor(() => expect(heldRead).not.toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Save Blend time' }));
+    const field = screen.getByTestId('field-blendTime');
+    expect(await within(field).findByText(/Limit check: Outside the registered limit 10 to 20 min/)).toBeTruthy();
+
+    // The poll's answer, read before the commit, arrives after the save.
+    await act(async () => {
+      heldRead?.();
+      await new Promise<void>((r) => setTimeout(r, 50));
+    });
+    expect(within(field).queryByText(/Limit check: Outside the registered limit 10 to 20 min/), 'the saved value is still shown').not.toBeNull();
+    expect(screen.getByText('Saved: Blend time: 21 min')).toBeTruthy();
   });
 
   it('[INV-40] a kiosk entry waits for a badge tap bound to exactly the request it sends (method, path, body without attribution)', async () => {
@@ -160,13 +207,14 @@ describe('value entry (G-04) and the pendingEntry path', () => {
     await waitFor(() => expect(ui.router.state.location.pathname).toBe(`/runs/${RUN_ID}`));
   });
 
-  it('[INV-40] a session change discards a NOT SAVED entry: nothing more is sent, the dialog closes and the typed value is cleared', async () => {
+  it('[INV-40][DI-28] a session change discards a NOT SAVED entry: nothing more is sent, the dialog closes, the typed value is cleared, and the notice says it may already be in the record (never "will not be sent")', async () => {
     const ui = renderFloor(stepPath('p-blend@'), { fixtures: stepFixtures(g04Recording), intercept: (r) => (r.path === commandPath ? 'NETWORK_ERROR' : undefined) });
     await typeAndSave('21');
     await screen.findByRole('alertdialog');
     window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'SWITCH', personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61' } }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-    expect(screen.getByText(/The entry was discarded because the session on this terminal changed/)).toBeTruthy();
+    expect(screen.getByText(/The session on this terminal changed after this entry was sent\. It may already be in the record/)).toBeTruthy();
+    expect(screen.queryByText(/It will not be sent/)).toBeNull();
     expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe('');
     expect(ui.commands()).toHaveLength(1);
     expect(ui.tap.requestTap).toHaveBeenCalledTimes(1);
@@ -263,8 +311,8 @@ describe('what the step card shows', () => {
       v.step.status = 'PENDING';
       v.step.statusText = 'Not yet available';
       v.actions = [
-        { action: 'START_STEP', available: false, primary: true, requires: 'TAP', meaning: null, reason: 'The QA hold point 2.2.1 must be released first (ENG-HOLD-POINT; PR-45)', target: null },
-        { action: 'HOLD_BATCH', available: false, primary: false, requires: 'TAP', meaning: null, reason: 'Only a production supervisor or QA may hold the batch', target: null },
+        { action: 'START_STEP', available: false, primary: true, requires: 'TAP', meaning: null, reason: 'The QA hold point 2.2.1 must be released first (ENG-HOLD-POINT; PR-45)', target: null, whoCanHelp: [] },
+        { action: 'HOLD_BATCH', available: false, primary: false, requires: 'TAP', meaning: null, reason: 'Only a production supervisor or QA may hold the batch', target: null, whoCanHelp: [] },
       ];
     });
     renderFloor(stepPath('p-blend-out@'), { fixtures: stepFixtures(pending) });
@@ -303,8 +351,8 @@ describe('what the step card shows', () => {
       v.signatures = [];
       v.exceptions = [{ ...G04.exceptions[0]!, severity: 'ACTION', tier: 'INTERNAL_ACTION', title: 'Blend speed above the action limit', actual: '17 rpm', expected: '8 - 16 rpm', blocking: true }];
       v.actions = [
-        { action: 'SIGN_PERFORMED', available: false, primary: true, requires: 'SIGNATURE', meaning: 'PERFORMED', reason: 'An action-limit breach (X-3) blocks completion until a deviation is linked (PR-08)', target: null },
-        { action: 'ATTACH_DEVIATION', available: true, primary: false, requires: 'TAP', meaning: null, reason: null, target: 'X-3' },
+        { action: 'SIGN_PERFORMED', available: false, primary: true, requires: 'SIGNATURE', meaning: 'PERFORMED', reason: 'An action-limit breach (X-3) blocks completion until a deviation is linked (PR-08)', target: null, whoCanHelp: [] },
+        { action: 'ATTACH_DEVIATION', available: true, primary: false, requires: 'TAP', meaning: null, reason: null, target: 'X-3', whoCanHelp: [] },
       ];
     });
     const ui = renderFloor(stepPath('p-blend@'), {
@@ -326,10 +374,14 @@ describe('what the step card shows', () => {
   });
 });
 
+/** The verifier the G-04 example is computed for (its "You" line): the person who verifies in these tests. */
+const VERIFIER = { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61', legalName: 'TEST-Kavya Reddy', loginName: 'test-verifier-1', role: 'VERIFIER' };
+
 describe('signatures through the ceremony port', () => {
   it('Verify asks the ceremony for an ENGINE_COMMAND signature on the step\'s signable with the action\'s own meaning', async () => {
     const signed = { ...G04, signatures: [...G04.signatures] };
     const ui = renderFloor(stepPath('p-blend@'), {
+      session: VERIFIER,
       ceremony: {
         sign: (req) => {
           void req;
@@ -340,6 +392,56 @@ describe('signatures through the ceremony port', () => {
     void ui;
     await userEvent.click(await screen.findByRole('button', { name: 'Verify' }));
     expect(await screen.findByText(/Verified by TEST-Kavya Reddy \(test-verifier-1\), Verifier/)).toBeTruthy();
+  });
+
+  it('[DI-28] after a signature, a step read begun before it (the 30 s poll) and answered afterwards never puts the unsigned view back', async () => {
+    const verified = { ...G04.signatures[0]!, meaning: 'VERIFIED', meaningText: 'Verified by', signatureId: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a99', signer: { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61', legalName: 'TEST-Kavya Reddy', loginName: 'test-verifier-1', role: 'VERIFIER' } };
+    const unsigned = stepVariant('step-g04-parameters', (v) => {
+      v.signatures = v.signatures.filter((x) => x.meaning !== 'VERIFIED');
+    });
+    const signed = stepVariant('step-g04-parameters', (v) => {
+      v.run.version = unsigned.run.version + 1;
+      v.signatures = [...unsigned.signatures, verified];
+      v.actions = v.actions.map((a) => (a.action === 'VERIFY' ? { ...a, available: false, primary: false, reason: 'Step p-blend@ is completed: verify is not possible (ENG-STEP-STATUS; DI-34)' } : a));
+    });
+    const server = { signedYet: false };
+    const stepGet = `/api/test-runs/${RUN_ID}/steps/${encodeURIComponent('p-blend@')}`;
+    let hold = false;
+    let heldRead: (() => void) | null = null;
+    const ui = renderFloor(stepPath('p-blend@'), {
+      session: VERIFIER,
+      fixtures: { 'execution.step': () => (server.signedYet ? signed : unsigned) },
+      intercept: (r) => {
+        if (!(hold && r.method === 'GET' && r.path === stepGet)) return undefined;
+        hold = false;
+        // Read by the server now, before the signature; the answer travels back slowly.
+        const snapshot = server.signedYet ? signed : unsigned;
+        return new Promise<Answer>((resolve) => {
+          heldRead = () => resolve({ status: 200, body: snapshot });
+        });
+      },
+      ceremony: {
+        sign: () => {
+          server.signedYet = true;
+          return Promise.resolve({ status: 'SIGNED', manifestation: verified, result: signed });
+        },
+      },
+    });
+    await screen.findByRole('button', { name: 'Verify' });
+    expect(screen.queryByTestId('signature-VERIFIED')).toBeNull();
+    hold = true;
+    act(() => {
+      void ui.qc.refetchQueries();
+    });
+    await waitFor(() => expect(heldRead).not.toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
+    expect(await screen.findByTestId('signature-VERIFIED')).toBeTruthy();
+
+    await act(async () => {
+      heldRead?.();
+      await new Promise<void>((r) => setTimeout(r, 50));
+    });
+    expect(screen.queryByTestId('signature-VERIFIED'), 'the verification is still shown').not.toBeNull();
   });
 
   it('[INV-03] a refused verification (the performer verifying their own step) shows the server\'s reason and who can verify', async () => {
@@ -403,8 +505,8 @@ describe('signatures through the ceremony port', () => {
   it('[DI-34][PR-45] a hold-point decision the server does not offer now is listed with its reason; only the offered one can be chosen', async () => {
     const hold = stepVariant('step-g17-hold-point', (v) => {
       v.actions = [
-        { action: 'DISPOSITION_HOLD_POINT', available: false, primary: false, requires: 'SIGNATURE', meaning: 'HOLD_POINT_RELEASED', reason: 'Hold point H-BLEND@ cannot be approved while open exceptions have no QA decision: EX-1 (ENG-HOLD-OPEN-EXCEPTIONS; PR-45)', target: 'RELEASED' },
-        { action: 'DISPOSITION_HOLD_POINT', available: true, primary: true, requires: 'SIGNATURE', meaning: 'HOLD_POINT_NOT_RELEASED', reason: null, target: 'REJECTED' },
+        { action: 'DISPOSITION_HOLD_POINT', available: false, primary: false, requires: 'SIGNATURE', meaning: 'HOLD_POINT_RELEASED', reason: 'Hold point H-BLEND@ cannot be approved while open exceptions have no QA decision: EX-1 (ENG-HOLD-OPEN-EXCEPTIONS; PR-45)', target: 'RELEASED', whoCanHelp: [] },
+        { action: 'DISPOSITION_HOLD_POINT', available: true, primary: true, requires: 'SIGNATURE', meaning: 'HOLD_POINT_NOT_RELEASED', reason: null, target: 'REJECTED', whoCanHelp: [] },
       ];
     });
     renderFloor(stepPath('H-BLEND@'), { session: { role: 'QA_SHOP_FLOOR' }, fixtures: stepFixtures(hold) });
@@ -438,7 +540,7 @@ describe('signatures through the ceremony port', () => {
   it('stage sign-off shows the derived summary (not typed) and signs the stage aggregate', async () => {
     const recon = stepVariant('step-g20-yield', (v) => {
       v.step.status = 'COMPLETED';
-      v.actions = [{ action: 'SIGN_OFF_STAGE', available: true, primary: true, requires: 'SIGNATURE', meaning: 'STAGE_SIGNED_OFF', reason: null, target: 'S-DISP@' }];
+      v.actions = [{ action: 'SIGN_OFF_STAGE', available: true, primary: true, requires: 'SIGNATURE', meaning: 'STAGE_SIGNED_OFF', reason: null, target: 'S-DISP@', whoCanHelp: [] }];
     });
     const calls: { meaning: string; aggregateType: string; aggregateId: string; action: unknown }[] = [];
     renderFloor(stepPath('p-disp-recon@'), {
@@ -461,7 +563,7 @@ describe('signatures through the ceremony port', () => {
 
   it('QA disposition of an exception signs batch_exception <runId>:<exceptionId> with the outcome and justification', async () => {
     const qa = stepVariant('step-g04-parameters', (v) => {
-      v.actions = [{ action: 'DISPOSITION_EXCEPTION', available: true, primary: false, requires: 'SIGNATURE', meaning: 'EXCEPTION_DISPOSITIONED', reason: null, target: 'X-3' }];
+      v.actions = [{ action: 'DISPOSITION_EXCEPTION', available: true, primary: false, requires: 'SIGNATURE', meaning: 'EXCEPTION_DISPOSITIONED', reason: null, target: 'X-3', whoCanHelp: [] }];
     });
     const calls: { meaning: string; aggregateType: string; aggregateId: string; action: unknown }[] = [];
     renderFloor(stepPath('p-blend@'), {

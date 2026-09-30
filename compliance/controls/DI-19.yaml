@@ -39,7 +39,8 @@ implemented_by:
     - "packages/ui-kit/src/machines/kiosk-lock.ts"
     - "packages/ui-kit/src/identity/LockOverlay.tsx"
     - "packages/ui-kit/src/identity/BadgePrompt.tsx"
-    - "apps/tablets-server/src/features/esig/index.ts (content, challenge, sign: authenticate, dry-run, esig.sign and seal, apply in one command; failures logged after rollback)"
+    - "apps/tablets-server/src/features/esig/index.ts (content, challenge, sign: authenticate, dry-run, esig.sign and seal, apply in one command; a refusal before signing logged inside that command, which commits it; other failures, thrown refusals included, logged after the rollback)"
+    - "packages/kernel/sql/0950_signing_failure_own_command.sql (esig.signing_misuse sets aside only the attempt's own command use of its authentication event)"
     - "apps/tablets-server/src/features/esig/badges.ts"
     - "apps/tablets-server/src/features/esig/views.ts (manifestation from the stored copy)"
     - "apps/tablets-web/src/features/access/ceremony.tsx (SignatureCeremonyPort)"
@@ -81,6 +82,8 @@ tests:
   - "apps/tablets-server/test/access/session.test.ts > [DI-19][DI-14] a wrong PIN at the switch changes nothing and counts toward lockout"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-38][DI-19] a wrong PIN signs nothing and counts toward lockout; the right PIN then signs within the same challenge"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-19][DI-38] repeated wrong PINs at signing lock the account at the policy count and end its sessions"
+  - "apps/tablets-server/test/esig/refusal-one-command.test.ts > [DI-19][INV-10] a refusal the dry run throws is answered as it is, keeps nothing the dry run wrote, and is logged after the rollback with the signer's own authentication, which attributes nothing; nothing is signed and nobody is alerted"
+  - "apps/tablets-server/test/execution/signing.test.ts > [INV-10][DI-34][DI-19] P40: a refusal of the dry run at the signature signs nothing, is recorded as a refused COMMAND row without a signature, and is logged with the signer's own authentication without alerting anyone"
   - "packages/ui-kit/test/machines/ceremony.test.ts > [DI-19][DI-38] a wrong PIN returns to the secret entry and counts; the lockout ends the ceremony as refused"
   - "packages/ui-kit/test/machines/kiosk-lock.test.ts > [DI-19] a lockout at the unlock ends the session"
 expert_decision:

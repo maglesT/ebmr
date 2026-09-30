@@ -1,6 +1,7 @@
 /**
  * Read models of the designer (module C2): the family list, the VersionView (content, revision, hash, state,
- * evidence bound to the content hash, justifications in force, who saved it) and the reference documents. Reads
+ * evidence bound to the content hash, the justifications in force for the saved content, who saved it) and the
+ * reference documents. Reads
  * only, through the application role; every instant is formatted by the server ({us, text}).
  */
 import type pg from 'pg';
@@ -139,18 +140,57 @@ export interface StoredJustification {
   accountId: string;
   role: string;
   atUs: string;
+  /** The content revision and hash the justification was written against (tab.designer_justification). */
   revision: number;
+  contentHash: string;
 }
 
-/** The justification in force for each finding key of a version (the latest recorded). */
+/** The latest recorded justification for each finding key of a version, whatever content it was written for. */
 export async function justificationsOf(db: Db, versionId: string): Promise<StoredJustification[]> {
-  const { rows } = await db.query<{ finding_key: string; text: string; person_id: string; account_id: string; role_code: string; at_us: string; content_revision: number }>(
-    `select distinct on (j.finding_key) j.finding_key, j.text, j.person_id, j.account_id, j.role_code, ${US('j.recorded_at')} as at_us, j.content_revision
+  const { rows } = await db.query<{
+    finding_key: string;
+    text: string;
+    person_id: string;
+    account_id: string;
+    role_code: string;
+    at_us: string;
+    content_revision: number;
+    content_hash: string;
+  }>(
+    `select distinct on (j.finding_key) j.finding_key, j.text, j.person_id, j.account_id, j.role_code, ${US('j.recorded_at')} as at_us, j.content_revision, j.content_hash
        from tab.designer_justification j where j.version_id = $1
       order by j.finding_key, j.recorded_at desc, j.id desc`,
     [versionId],
   );
-  return rows.map((r) => ({ key: r.finding_key, text: r.text, personId: r.person_id, accountId: r.account_id, role: r.role_code, atUs: r.at_us, revision: r.content_revision }));
+  return rows.map((r) => ({
+    key: r.finding_key,
+    text: r.text,
+    personId: r.person_id,
+    accountId: r.account_id,
+    role: r.role_code,
+    atUs: r.at_us,
+    revision: r.content_revision,
+    contentHash: r.content_hash,
+  }));
+}
+
+/**
+ * The justifications in force for one content (IN-02, DI-04; review P15, P59): a justification answers the warning
+ * of the content it was written for, so only the latest one per finding key that was recorded against exactly this
+ * revision and content hash counts. Any saved change leaves every warning to be justified again for the new content:
+ * a justification recorded against an earlier revision never counts for a later one, even when the warning comes
+ * back under the same key. The revision a justification is recorded against is the one its justify request names
+ * (the saved revision and content hash the author was shown; 409 when it is no longer the saved one), and the
+ * database records it only while that hash is the saved content (EBMR-TAB-156). The database holds the same rule for
+ * VALIDATOR evidence (0280_designer_guards.sql, a2_tab_justifications).
+ */
+export function justificationsInForce(list: readonly StoredJustification[], content: { revision: number; contentHash: string }): StoredJustification[] {
+  return list.filter((j) => j.revision === content.revision && j.contentHash === content.contentHash);
+}
+
+/** The justifications in force (justificationsInForce) of a version for its latest saved content. */
+export async function justificationsInForceOf(db: Db, versionId: string, saved: { revision: number; contentHash: string }): Promise<StoredJustification[]> {
+  return justificationsInForce(await justificationsOf(db, versionId), saved);
 }
 
 /** The justifications as the validator's gate and the engine's definition take them. */
@@ -188,7 +228,7 @@ export async function evidenceViews(db: Db, app: AppContext, versionId: string, 
 export async function versionView(db: Db, app: AppContext, versionId: string): Promise<VersionView> {
   const head = await requireHead(db, versionId);
   const saved = await latestContent(db, versionId);
-  const justs = await justificationsOf(db, versionId);
+  const justs = await justificationsInForceOf(db, versionId, saved);
   const jviews = await justificationViews(db, app, justs);
   return {
     versionId: head.versionId,

@@ -9,11 +9,15 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { esig } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
-import { routes, StepScreenView } from '@ebmr/api-contract';
+import { routes, StepScreenView, type SignedIntent } from '@ebmr/api-contract';
+import { loggedFailures, personaIn, signingAlerts, tapFor } from '../esig/support.ts';
+import { signDecision } from './signed-content-support.ts';
 import {
   dcMini,
   importAndIssue,
   outcomeOf,
+  passwordOf,
+  pinOf,
   refusalOf,
   rowsOf,
   RunDriver,
@@ -69,6 +73,38 @@ async function signatureCount(d: RunDriver): Promise<number> {
   return Number(rows[0]?.n);
 }
 
+/**
+ * The ceremony with something happening between the challenge and the signature: content preview and challenge at
+ * the run's current version (so the challenge is accepted), then `between`, then POST /api/esig/sign.
+ */
+async function signAfter(d: RunDriver, persona: string, intent: SignedIntent, between: () => Promise<void>) {
+  const b = d.browser(persona);
+  const kiosk = b.terminal.includes('KIOSK');
+  const s = await d.signing(persona, intent);
+  const content = valueOf(await b.call(routes.esig.content, { query: { aggregateType: s.aggregateType, aggregateId: s.aggregateId, intent: s.meaning } }));
+  const action = { kind: 'ENGINE_COMMAND' as const, runId: d.runId, expectedVersion: await d.version(persona), intent };
+  const body = { aggregateType: s.aggregateType, aggregateId: s.aggregateId, contentVersion: content.contentVersion, meaning: s.meaning, clientContentHash: sha256Hex(content.canonicalText), action };
+  d.beforeTap();
+  const challenge = valueOf(await b.call(routes.esig.createChallenge, { body, ...(kiosk ? { attribution: await tapFor(b, personaIn(server, persona), 'POST', '/api/esig/challenges', body) } : {}) }));
+  await between();
+  const signBody = { challengeId: challenge.challengeId, credentials: kiosk ? pinOf(server, persona) : passwordOf(server, persona), action };
+  const proof = await b.proof('POST', '/api/esig/sign', signBody);
+  return { r: await b.call(routes.esig.sign, { body: { ...signBody, proof } }), challengeId: challenge.challengeId };
+}
+
+/** A clearance performed by operator1, then a VERIFY challenged by verifier1 while the run moves on (a run-level exception) before the signature. */
+async function staleVerify(d: RunDriver) {
+  await performClearance(d);
+  const before = await signatureCount(d);
+  const moved = { at: 0, to: 0 };
+  const { r, challengeId } = await signAfter(d, 'verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' }, async () => {
+    moved.at = await d.version('verifier1');
+    await d.ok('operator1', { type: 'RAISE_EXCEPTION', stepKey: undefined, description: 'Label printer jammed once; label reprinted', severity: 'ALERT' });
+    moved.to = await d.version('verifier1');
+  });
+  return { r, challengeId, before, moved };
+}
+
 describe('signing an engine command', () => {
   it('[DI-35][DI-37] PERFORMED binds the previewed content; the sign result is the step screen; the challenge names the block meaning', async () => {
     const d = await driver();
@@ -87,20 +123,66 @@ describe('signing an engine command', () => {
     expect(await violations(server)).toEqual([]);
   }, 180_000);
 
-  it('[INV-10][INV-03] a refusal of the dry run signs nothing and is recorded; the performer cannot verify their own step', async () => {
+  it('[INV-03] the performer cannot verify their own step; a stale screen is refused at the challenge; nothing is signed', async () => {
     const d = await driver();
     await performClearance(d);
     const before = await signatureCount(d);
-    // The kernel refuses the performer's VERIFIED at the challenge (INV-03); nothing is signed.
+    // The performer's VERIFIED is refused (INV-03); nothing is signed.
     const own = await d.sign('operator1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
     expect(own.result.ok).toBe(false);
-    // A stale version at signing time: the dry run refuses ENG-STALE after the challenge; the refusal is a row.
-    const version = await d.version('verifier1');
-    const r = await d.sign('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' }, { expectedVersion: version - 1 });
-    expect(outcomeOf(r.result)).toBe('409:ENG-STALE');
     expect(await signatureCount(d)).toBe(before);
-    expect(r.stage).toBe('challenge');
+    // A stale screen is refused at the challenge already (prepareForChallenge), before any dry run.
+    const version = await d.version('verifier1');
+    const early = await d.sign('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' }, { expectedVersion: version - 1 });
+    expect({ stage: early.stage, outcome: outcomeOf(early.result) }).toEqual({ stage: 'challenge', outcome: '409:ENG-STALE' });
     expect(await violations(server)).toEqual([]);
+  }, 180_000);
+
+  it('[INV-10][DI-34][DI-19] P40: a refusal of the dry run at the signature signs nothing, is recorded as a refused COMMAND row without a signature, and is logged with the signer\'s own authentication without alerting anyone', async () => {
+    const d = await driver();
+    const { r, challengeId, before, moved } = await staleVerify(d);
+    // The challenge was made at the current version; the run moved on before POST /api/esig/sign.
+    expect(moved.to).toBeGreaterThan(moved.at);
+    // The dry run (at the signature, not at the challenge) refuses ENG-STALE.
+    expect(outcomeOf(r)).toBe('409:ENG-STALE');
+    expect(refusalOf(r).whatHappened).toMatch(/Nothing was signed\.$/);
+    expect(await signatureCount(d)).toBe(before);
+    const { rows: sigs } = await server.db.admin.query('select 1 from esig.signature where aggregate_id = $1 and meaning_code = $2', [`${d.runId}:${CLEAR}`, 'LINE_CLEARANCE_VERIFIED']);
+    expect(sigs).toHaveLength(0);
+    // The refusal is part of the record: the last row is the refused VERIFY, attributed by the signing's
+    // authentication, with no signature (the placeholder never becomes one), and no PREPARE is left without it.
+    const rows = await rowsOf(server, d.runId);
+    expect(rows.at(-1)).toMatchObject({ kind: 'COMMAND', command_type: 'VERIFY', accepted: false, refusal: { code: 'ENG-STALE' }, signature_ids: [] });
+    expect(rows.at(-1)?.auth_event_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(rows.at(-2)).toMatchObject({ kind: 'COMMAND', command_type: 'RAISE_EXCEPTION', accepted: true });
+    expect((await stateOf(d)).steps[CLEAR]?.status).toBe('AWAITING_VERIFICATION');
+    // The refusal is logged once, in that same command, with the signer's own authentication for this challenge, the
+    // event that attributes the refused row (its one committed use). The kernel still checks the attempt for misuse
+    // and sets aside only this command's own use of the event (kernel 0950, K2), which needs the command's validated
+    // actor context to still hold when the handler's dry run returns: no misuse is found and nobody is alerted (DI-19).
+    // A context the dry run switched and left behind would flag the rightful signer's refusal as re-use (EBMR-IAM-091)
+    // and raise a HIGH alert against them.
+    expect(await loggedFailures(server, challengeId)).toEqual([
+      { code: 'UNKNOWN:ENG-STALE', event: rows.at(-1)?.auth_event_id, event_person: personaIn(server, 'verifier1').personId, for_challenge: true, misuse: null, uses: 'COMMAND' },
+    ]);
+    expect(await signingAlerts(server, challengeId)).toEqual([]);
+    expect(await violations(server)).toEqual([]);
+    // Signing again at the current version works.
+    const signed = valueOf((await d.sign('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' })).result);
+    expect(signed.manifestation.meaning).toBe('LINE_CLEARANCE_VERIFIED');
+  }, 180_000);
+
+  it('[DI-36][DI-34] P41: the timeline never labels a dry run refused before signing as signed; signed rows name their meaning', async () => {
+    const d = await driver();
+    await staleVerify(d);
+    const tl = valueOf(await d.browser('verifier1').call(routes.execution.timeline, { params: { runId: d.runId } })).entries;
+    const refused = tl.at(-1);
+    expect(refused).toMatchObject({ kind: 'COMMAND', accepted: false });
+    expect(refused?.summary).not.toMatch(/\(signed /);
+    expect(refused?.summary).toBe(`VERIFY ${CLEAR} (refused before signing: nothing was signed)`);
+    expect(refused?.refusal).toBeTruthy();
+    // An accepted signed row still names the meaning it was signed with.
+    expect(tl.find((e) => e.kind === 'COMMAND' && e.accepted && e.summary.startsWith('SIGN_PERFORMED'))?.summary).toBe(`SIGN_PERFORMED ${CLEAR} (signed LINE_CLEARANCE_PERFORMED)`);
   }, 180_000);
 
   it('[INV-10] a failure after the seal rolls back the signature, the seal and the run row together', async () => {
@@ -194,10 +276,11 @@ describe('hold-point decisions (PR-45)', () => {
     const handler = server.built.ctx.signables.forKind('ENGINE_COMMAND');
     const reject = { type: 'DISPOSITION_HOLD_POINT' as const, stepKey: 'H-TEST@', disposition: 'NOT_APPROVED' };
     expect(handler?.describe({ kind: 'ENGINE_COMMAND', runId: d.runId, expectedVersion: 0, intent: reject }).meaning).toBe('HOLD_POINT_NOT_RELEASED');
-    const wrong = await d.sign('qa1', reject, { meaning: 'HOLD_POINT_RELEASED' });
-    expect(wrong.result.ok).toBe(false);
+    // The decision is previewed as signed content (P26, P38); the challenge asks for the other class's meaning.
+    const wrong = await signDecision(d, 'qa1', reject, { meaning: 'HOLD_POINT_RELEASED' });
+    expect({ stage: wrong.stage, ok: wrong.result.ok }).toEqual({ stage: 'challenge', ok: false });
     expect(await signatureCount(d)).toBe(2);
-    const signed = valueOf((await d.sign('qa1', reject)).result);
+    const signed = valueOf((await signDecision(d, 'qa1', reject)).result);
     expect(signed.manifestation.meaning).toBe('HOLD_POINT_NOT_RELEASED');
     const state = await stateOf(d);
     expect(state.steps['H-TEST@']?.disposition).toMatchObject({ value: 'NOT_APPROVED', positive: false });

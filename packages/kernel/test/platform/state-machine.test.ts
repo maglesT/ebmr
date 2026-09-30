@@ -171,6 +171,62 @@ describe('transitions through the engine', () => {
     ).rejects.toThrow('EBMR-PLAT-074');
   });
 
+  it('[DI-22][DI-24] a transition that needs a reason (platform.reason_given) needs the person\'s own reason code and reason text, neither blank nor made only of characters that show nothing: otherwise it is refused and nothing is written; with both, the state row\'s audit entry and the history row record exactly them, and the engine writes no part of the reason', async () => {
+    const id = await newRecord();
+    await fire(id, 'SUBMIT', 1, author);
+    // Written as code points, so the source holds no invisible character: zero-width space, interlinear annotation
+    // anchor, Egyptian hieroglyph format control, no-break and ideographic space, Arabic number sign, Braille blank.
+    const ZWSP = String.fromCodePoint(0x200b);
+    const ANNOTATION = String.fromCodePoint(0xfff9);
+    const HIEROGLYPH_FORMAT = String.fromCodePoint(0x13430);
+    const OTHERS = String.fromCodePoint(0xa0, 0x3000, 0x600, 0x2800);
+    const incomplete: [string, string][] = [
+      ['INCOMPLETE', ''], // a code alone: the engine used to write the text 'RETURN: SUBMITTED -> DRAFT'
+      ['INCOMPLETE', ' \t '],
+      ['', 'section 4 missing'],
+      ['INCOMPLETE', ZWSP],
+      ['INCOMPLETE', `${ANNOTATION}${HIEROGLYPH_FORMAT}`],
+      ['INCOMPLETE', OTHERS],
+      [ZWSP, 'section 4 missing'],
+      [ANNOTATION, 'section 4 missing'],
+    ];
+    for (const [reasonCode, reasonText] of incomplete) {
+      const ctx = { ...checker, correlationId: randomUUID(), reasonCode, reasonText };
+      await expect(fire(id, 'RETURN', 2, ctx), JSON.stringify([reasonCode, reasonText])).rejects.toThrow(
+        /^EBMR-PLAT-068 RETURN refused in state SUBMITTED: platform\.reason_given: a reason is required for this transition: the reason code and the reason text of the person who makes it, neither blank; the system writes no part of it \(DI-22, DI-24; EBMR-AUDIT-002\)$/,
+      );
+      expect(await rows('select id from kernel.audit_event where correlation_id = $1', [ctx.correlationId])).toEqual([]);
+      expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'SUBMITTED', version: 2 });
+    }
+
+    // A visible character among invisible ones is a reason, kept exactly as given.
+    const ctx = { ...checker, correlationId: randomUUID(), reasonCode: 'INCOMPLETE', reasonText: `${ZWSP}section 4 missing` };
+    await fire(id, 'RETURN', 2, ctx);
+    expect(
+      await rows(
+        `select table_name, payload ->> 'reason_code' as reason_code, payload ->> 'reason_text' as reason_text
+           from kernel.audit_event where correlation_id = $1 and action = 'UPDATE' order by id`,
+        [ctx.correlationId],
+      ),
+    ).toEqual([{ table_name: 'platform.aggregate_state', reason_code: 'INCOMPLETE', reason_text: `${ZWSP}section 4 missing` }]);
+    expect(await rows("select reason_code, reason_text from platform.state_history where aggregate_id = $1 and event = 'RETURN'", [id])).toEqual([
+      { reason_code: 'INCOMPLETE', reason_text: `${ZWSP}section 4 missing` },
+    ]);
+    // A transition that needs no reason (SUBMIT) is a new event: the engine still records it with its own description.
+    const submit = { ...author, correlationId: randomUUID() };
+    await fire(id, 'SUBMIT', 3, submit);
+    expect(
+      await rows("select payload ->> 'reason_code' as reason_code, payload ->> 'reason_text' as reason_text from kernel.audit_event where correlation_id = $1 and action = 'UPDATE'", [
+        submit.correlationId,
+      ]),
+    ).toEqual([{ reason_code: 'STATE_TRANSITION', reason_text: 'SUBMIT: DRAFT -> SUBMITTED' }]);
+    // The guard is registered again with a description of both halves; the machine's sealed hash is unchanged.
+    expect(await rows("select description from platform.state_guard where code = 'platform.reason_given'")).toEqual([
+      { description: 'The command states the reason of the person who makes the transition: a reason code and a reason text, neither blank (DI-22, DI-24)' },
+    ]);
+    expect(await rows('select * from platform.machine_integrity_violations()')).toEqual([]);
+  });
+
   it('the permission comes from the authority provider; without one every guarded transition is refused', async () => {
     const id = await newRecord();
     await expect(fire(id, 'SUBMIT', 1, checker)).rejects.toThrow('EBMR-PLAT-006 permission sample_record.submit denied: role MBR_CHECKER does not hold sample_record.submit');
@@ -201,7 +257,7 @@ describe('transitions through the engine', () => {
     const checkSig = await sign('CHECKED', id);
     await expect(fire(id, 'CHECK', 2, checker, { signature_id: checkSig })).resolves.toMatchObject({ to: 'CHECKED' });
     // A signature authorises one transition: after RETURN and a new SUBMIT, the old CHECKED signature cannot be replayed.
-    await fire(id, 'RETURN', 3, { ...qa, reasonCode: 'REWORK' });
+    await fire(id, 'RETURN', 3, { ...qa, reasonCode: 'REWORK', reasonText: 'checked content needs rework' });
     await fire(id, 'SUBMIT', 4, author);
     await expect(fire(id, 'CHECK', 5, checker, { signature_id: checkSig })).rejects.toThrow('EBMR-PLAT-075');
   });
@@ -211,7 +267,7 @@ describe('transitions through the engine', () => {
     await fire(id, 'SUBMIT', 1, author);
     await fire(id, 'CHECK', 2, checker, { signature_id: await sign('CHECKED', id) });
     await fire(id, 'APPROVE', 3, qa, { signature_id: await sign('APPROVED', id) });
-    await fire(id, 'RETIRE', 4, { ...qa, reasonCode: 'OBSOLETE' });
+    await fire(id, 'RETIRE', 4, { ...qa, reasonCode: 'OBSOLETE', reasonText: 'superseded by the new SOP' });
     for (const event of ['SUBMIT', 'RETURN', 'SUPERSEDE', 'RETIRE']) {
       await expect(fire(id, event, 5, { ...qa, reasonCode: 'X' })).rejects.toThrow('not allowed in state RETIRED');
     }

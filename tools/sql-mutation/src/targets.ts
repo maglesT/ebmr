@@ -22,7 +22,7 @@ export const TARGETS: Target[] = [
                 'kernel.append_audit_event', 'kernel.audit_row_change', 'kernel.reject_mutation', 'kernel.audit_triggers_ok',
                 'kernel.verify_chain', 'kernel.verify_all_chains', 'kernel.is_blank'],
     tests: [k('audit/audit-trail.test.ts'), k('audit/actor-context.test.ts'), k('audit/verification.test.ts'), k('identity/attribution.test.ts'),
-            k('security/definer-hardening.test.ts'), k('records/true-copy.test.ts')],
+            k('security/definer-hardening.test.ts'), k('records/true-copy.test.ts'), k('audit/visible-reason.test.ts')],
     threshold: 90,
   },
   {

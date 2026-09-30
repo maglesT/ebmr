@@ -77,7 +77,7 @@ component (see "Open points").
 | `signature_id_register` | Every signature ID ever issued (INV-27) | protected log |
 | `content_change` | Who changed which signed record (INV-03 involvement) | protected log |
 | `seal_key`, `seal_key_retirement` | Key registry and public-key archive | insert-only, audited |
-| `signing_failure` | Refused signings, logged after rollback: the reported code, and the misuse the database itself proves from the challenge and the authentication event (only that raises a security alert) | protected log |
+| `signing_failure` | Refused signings, logged after the rollback, or, for a refusal before signing that commits its own command, inside that command (0950): the reported code, and the misuse the database itself proves from the challenge and the authentication event (only that raises a security alert) | protected log |
 | `stub_signable` | Stub signed entries (step, cleaning-log entry, master document) with provider `esig_stub` | audited; state only through `esig.stub_complete` |
 
 ## What other modules call
@@ -133,11 +133,27 @@ TypeScript (`@ebmr/kernel` once `./esig/index.ts` is exported): `contentForSigni
   afterwards (045). `esig.invariant_violations` reports these pairs whichever came first
   (INV-03, ESIG.INDEPENDENT, ESIG.INVOLVEMENT).
 - **DI-19**: a refused signing is logged by `esig.record_signing_failure(challenge, auth_event,
-  code, message)` after the rollback; the security alert is raised only on misuse the database
-  proves from committed rows (`esig.signing_misuse`), never on the reported code, and once per
-  authentication event. `esig.invariant_violations` reports (DI-19) an authentication event that
-  proves misuse (another person, account or terminal) and was never alerted, so an application
-  that skips the report is detected.
+  code, message)`: after the rollback, or inside the attempt's own command when a refusal before
+  signing commits that command on purpose (its refused record and stored answer). The security
+  alert is raised only on misuse the database proves from committed rows (`esig.signing_misuse`),
+  never on the reported code, and once per authentication event. `esig.signing_misuse` reads every
+  use of the event other than a signature as re-use by another command (EBMR-IAM-091), except one
+  (0950): the COMMAND use written in the current transaction by the validated command whose actor
+  context names this event, under that command's correlation id. That use is the attempt's own,
+  and the other attempted-misuse checks (another challenge, pre-signing, missing components) still
+  run on the event. The exception rests on the transaction and the validated context only: a
+  report after the commit, from another command, or from a second command of the same transaction
+  still finds the use and flags it. It also needs that context to still hold when the failure is
+  recorded, so code that switches the context inside the command restores it first (otherwise the
+  rightful signer is flagged and alerted). By design, any validated command that a SIGNATURE event
+  attributes may record a failure for that event inside itself without the IAM-091 flag, whatever
+  else the command does; only an application that chooses to report reaches this, and one that
+  does not report was never caught by the re-use check anyway (`esig.invariant_violations` runs
+  `esig.signing_misuse` without an attempt, so it checks only person, account and terminal). The
+  failure log keeps no transaction or correlation id, so that decision cannot be re-checked later.
+  `esig.invariant_violations` reports (DI-19) an authentication event that proves misuse (another
+  person, account or terminal) and was never alerted, so an application that skips the report is
+  detected.
 - **INV-27**: the signature ID is drawn by the insert guard from `gen_random_uuid()` (never a
   sequence, never caller-chosen) and entered in `signature_id_register`, which nobody can change or
   empty; the register outlives purged signature rows. After a restore to an earlier point the

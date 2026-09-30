@@ -1,6 +1,10 @@
 /**
  * The gateway's API for its server (Fastify, loopback by default, 127.0.0.1:3021 in the demo):
- *   GET  /v1/health                     identity, login, journal watermark and instrument states (no secret)
+ *   GET  /v1/health                     identity, login, journal watermark and instrument states (no secret); open
+ *                                       to anyone, but a request that presents a bearer token is answered only when
+ *                                       it is the server's API token (401 otherwise), so the server's probe of this
+ *                                       API (tablets 0320, review finding P51) also proves its captures would be
+ *                                       authorised
  *   POST /v1/devices/:code/capture      a stable reading (CaptureRequest -> CaptureResponse)
  *   GET  /v1/devices/:code/live         live display samples (SSE, display only, never recorded)
  * Capture and live need the API token this gateway handed to the server at its login (bearer), so only the
@@ -26,7 +30,10 @@ function deny(reply: FastifyReply): FastifyReply {
 export async function startGatewayApi(gateway: SiteGateway, listen: { host: string; port: number }): Promise<{ server: FastifyInstance; port: number }> {
   const server = Fastify({ logger: false, bodyLimit: 64 * 1024, trustProxy: false });
 
-  server.get('/v1/health', () => gateway.health());
+  server.get('/v1/health', (request, reply) => {
+    if (request.headers.authorization !== undefined && !authorised(gateway, request)) return deny(reply);
+    return gateway.health();
+  });
 
   server.post<{ Params: { code: string } }>('/v1/devices/:code/capture', async (request, reply) => {
     if (!authorised(gateway, request)) return deny(reply);

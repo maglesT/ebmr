@@ -239,9 +239,15 @@ export const designer = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'Record the justification of a validator warning',
+    summary: 'Record the justification of a validator warning of the saved revision the author was shown (IN-02, DI-04)',
     params: z.strictObject({ versionId: Uuid }),
-    body: z.strictObject({ findingKey: z.string().min(1), text: z.string().min(1).max(4000) }),
+    body: z.strictObject({
+      findingKey: z.string().min(1),
+      text: z.string().min(1).max(4000),
+      /** The saved revision, and its content hash, whose warning the author justifies: 409 when it is no longer the saved one. */
+      baseRevision: z.number().int().positive(),
+      contentHash: z.string().regex(/^[0-9a-f]{64}$/),
+    }),
     response: VersionView,
   }),
   startVerification: defineRoute({

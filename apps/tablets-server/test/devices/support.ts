@@ -1,9 +1,11 @@
 /**
  * Test support for the devices feature (module C5): enrols the test template's TEST-GW-01 key, starts the gateway
  * listener on an ephemeral loopback port, and drives it as the site gateway would (login with the key proof,
- * sealed readings in chain order, heartbeats), using only the integration SDK.
+ * sealed readings in chain order with their waits signed against a challenge from the database, heartbeats), using
+ * only the integration SDK.
  */
 import { randomBytes, randomUUID, sign } from 'node:crypto';
+import type pg from 'pg';
 import type { ActorContext } from '@ebmr/kernel';
 import {
   READING_FORMAT,
@@ -12,6 +14,7 @@ import {
   genesisHash,
   loginProofMessage,
   sealReading,
+  uploadWaitMessage,
   type LoginResponse,
   type ReadingBody,
   type ScaleReading,
@@ -20,6 +23,7 @@ import {
 import { freshTap, openPersonaSession, passwordActor, terminalOf } from '@ebmr/test-kit';
 import { DEMO_GATEWAY, DEMO_INSTRUMENTS, enrolGateway } from '../../src/features/devices/enrol.ts';
 import { startGatewayListener, type GatewayListener } from '../../src/features/devices/listener.ts';
+import { withActorCommand } from '../../src/platform/db/commands.ts';
 import type { TestServer } from '../support/harness.ts';
 
 export const GW = DEMO_GATEWAY.gatewayCode;
@@ -48,6 +52,37 @@ export async function enrol(server: TestServer): Promise<string> {
   return enrolGateway(server.db.app, await adminActor(server), { ...DEMO_GATEWAY, spki: gatewayKey(server).publicKeySpki, instruments: DEMO_INSTRUMENTS });
 }
 
+/** DI-28: the enrolled gateway key's signature over a reading's wait for an upload's challenge (SDK uploadWaitMessage). */
+export function signWait(server: TestServer, challengeId: string, readingId: string, delayUs: string): string {
+  return sign(null, uploadWaitMessage(challengeId, readingId, delayUs), ed25519PrivateKey(gatewayKey(server).privateKeyPkcs8)).toString('base64');
+}
+
+/** A challenge the database issues to the gateway session `actor` (as the listener's POST /gw/v1/challenge does). */
+export async function issueChallenge(server: TestServer, actor: ActorContext): Promise<{ challengeId: string; issuedUs: bigint }> {
+  const r = await withActorCommand(server.db.app, actor, async (c) => (await c.query<{ r: { challengeId: string; issuedUs: string } }>('select tab.issue_ingest_challenge() as r')).rows[0]?.r);
+  if (!r) throw new Error('tab.issue_ingest_challenge returned nothing');
+  return { challengeId: r.challengeId, issuedUs: BigInt(r.issuedUs) };
+}
+
+/** The statement the listener sends for one reading: tab.ingest_reading(reading, wait, challenge, wait signature). */
+export const INGEST_READING_SQL = 'select tab.ingest_reading($1::jsonb, $2::bigint, $3::uuid, $4) as r';
+
+/**
+ * The parameters of INGEST_READING_SQL for `reading` with the wait `delayUs` as the gateway proves it: signed with the
+ * enrolled key over a challenge the database has just issued to `actor` (the gateway session).
+ */
+export async function provenIngestParams(server: TestServer, actor: ActorContext, reading: ScaleReading, delayUs = '0'): Promise<[string, string, string, string]> {
+  const { challengeId } = await issueChallenge(server, actor);
+  return [JSON.stringify(reading), delayUs, challengeId, signWait(server, challengeId, reading.readingId, delayUs)];
+}
+
+/** tab.ingest_reading called directly in a command of the gateway session `actor`, with a proven wait (default 0). */
+export async function ingestProven(server: TestServer, actor: ActorContext, reading: ScaleReading, delayUs = '0', client?: pg.PoolClient): Promise<unknown> {
+  const params = await provenIngestParams(server, actor, reading, delayUs);
+  if (client) return (await client.query<{ r: unknown }>(INGEST_READING_SQL, params)).rows[0]?.r;
+  return withActorCommand(server.db.app, actor, async (c) => (await c.query<{ r: unknown }>(INGEST_READING_SQL, params)).rows[0]?.r);
+}
+
 export interface FakeGateway {
   listener: GatewayListener;
   base: string;
@@ -56,7 +91,17 @@ export interface FakeGateway {
   apiToken: string;
   /** Seals the next reading of the chain (seq and prevHash follow the last one made here). */
   next(overrides?: Partial<ReadingBody>): ScaleReading;
-  uplink(items: { reading: ScaleReading; delayUs?: string | null }[]): Promise<{ status: number; body: UplinkResponse & { error?: { code: string } } }>;
+  /** A challenge from the listener (POST /gw/v1/challenge); throws unless it answers 200. */
+  challenge(): Promise<string>;
+  /**
+   * One upload as the gateway sends it: a fresh challenge (or `opts.challengeId`), then each item's wait (default
+   * '1000') signed with the gateway key over the challenge and the reading id (`waitSig` given: sent as it is). When the
+   * challenge is refused, that answer is returned.
+   */
+  uplink(
+    items: { reading: ScaleReading; delayUs?: string | null; waitSig?: string | null }[],
+    opts?: { challengeId?: string },
+  ): Promise<{ status: number; body: UplinkResponse & { error?: { code: string } } }>;
   heartbeat(devices: { deviceCode: string; state: string; serial: string | null }[]): Promise<{ status: number; body: unknown }>;
   post(path: string, body: unknown, bearer?: string | null): Promise<{ status: number; body: unknown }>;
   close(): Promise<void>;
@@ -137,9 +182,29 @@ export async function fakeGateway(server: TestServer): Promise<FakeGateway> {
       prev = sealed.hash;
       return sealed;
     },
-    async uplink(items) {
-      const r = await post(base, '/gw/v1/readings', { items: items.map((i) => ({ reading: i.reading, delayUs: i.delayUs === undefined ? '1000' : i.delayUs })) }, login.token);
-      return r as { status: number; body: UplinkResponse & { error?: { code: string } } };
+    async challenge() {
+      const r = await post(base, '/gw/v1/challenge', {}, login.token);
+      if (r.status !== 200) throw new Error(`the challenge was refused: ${JSON.stringify(r.body)}`);
+      return (r.body as { challengeId: string }).challengeId;
+    },
+    async uplink(items, opts = {}) {
+      type Answer = { status: number; body: UplinkResponse & { error?: { code: string } } };
+      let challengeId = opts.challengeId;
+      if (challengeId === undefined) {
+        const c = await post(base, '/gw/v1/challenge', {}, login.token);
+        if (c.status !== 200) return c as Answer;
+        challengeId = (c.body as { challengeId: string }).challengeId;
+      }
+      const cid = challengeId;
+      const body = {
+        challengeId: cid,
+        items: items.map((i) => {
+          const delayUs = i.delayUs === undefined ? '1000' : i.delayUs;
+          const waitSig = i.waitSig !== undefined ? i.waitSig : delayUs === null ? null : sign(null, uploadWaitMessage(cid, i.reading.readingId, delayUs), privateKey).toString('base64');
+          return { reading: i.reading, delayUs, waitSig };
+        }),
+      };
+      return (await post(base, '/gw/v1/readings', body, login.token)) as Answer;
     },
     heartbeat(devices) {
       return post(base, '/gw/v1/heartbeat', { gatewayTimeUs: '1790584618000000', devices, journal: { lastSeq: seq.toString(), ackedSeq: seq.toString() } }, login.token);

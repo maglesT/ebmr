@@ -40,7 +40,7 @@ import type {
 import type { z } from 'zod';
 import type { AppContext } from '../../platform/context.ts';
 import { manifestationView } from '../esig/views.ts';
-import { wireOf } from './intents.ts';
+import { stepRoomReason, wireOf } from './intents.ts';
 import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
 
@@ -188,17 +188,38 @@ export function permissionRefusal(p: DisplayPermissions | undefined, action: Act
   return `The role ${p.role ?? '(none)'} of this session does not hold the permission this needs (${needs.join(' or ')}) (EBMR-EXE-ROLE; DI-17)`;
 }
 
+/** The actions of a step the database accepts only from a terminal of the step's room (recipe-core 0285, 0300; DI-20). */
+const ROOM_BOUND: ReadonlySet<ActionView['action']> = new Set(['START_STEP', 'RECORD_DATA', 'RECORD_ENTRY', 'SIGN_PERFORMED', 'VERIFY', 'WITNESS']);
+
+/** What a step card adds to the engine's answer for this viewer. */
+export interface ActionExtras {
+  /** Why the viewer's terminal may not act on the step (not in the step's room; EBMR-EXE-123, DI-20), or null. */
+  roomReason?: string | null;
+  /** Who may give the step's check (checkersOf), shown with a verification or witness refused to this viewer by role or by INV-03. */
+  checkers?: readonly string[];
+}
+
 /**
  * ActionViews with exactly one primary action: the step's signature when an open exception blocks its completion,
  * else the first available in the order of the work, else (nothing available) the first in that order, shown
- * greyed with its reason (DI-34). An action the engine accepts is
- * still unavailable when the viewer's role lacks the command's permission. The engine's reasons name persons
- * by id; the viewer's own id is shown as their name.
+ * greyed with its reason (DI-34). An action the engine accepts is still unavailable when the viewer's role lacks the
+ * command's permission, and a step action when the viewer's terminal is not in the step's room (`roomReason`). A
+ * verification or witness refused to the viewer by role, permission or segregation names who may give it
+ * (`checkers`; INV-03). The engine's reasons name persons by id; the viewer's own id is shown as their name.
  */
-export function actionViews(actions: readonly engine.AvailableAction[], shopFloor: boolean, who?: { id: string; name: string }, permissions?: DisplayPermissions): ActionView[] {
+export function actionViews(actions: readonly engine.AvailableAction[], shopFloor: boolean, who?: { id: string; name: string }, permissions?: DisplayPermissions, extras: ActionExtras = {}): ActionView[] {
   const checked = actions.map((a) => {
     const denied = a.available ? permissionRefusal(permissions, a.action, a.meaning) : null;
-    return { a, available: a.available && denied === null, reason: a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : denied };
+    const elsewhere = a.available && denied === null && ROOM_BOUND.has(a.action) ? (extras.roomReason ?? null) : null;
+    const available = a.available && denied === null && elsewhere === null;
+    const check = a.action === 'VERIFY' || a.action === 'WITNESS';
+    const byWho = check && !available && (denied !== null || a.refusal?.code === 'ENG-SEGREGATION' || a.refusal?.code === 'ENG-ROLE');
+    return {
+      a,
+      available,
+      reason: a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : (denied ?? elsewhere),
+      whoCanHelp: byWho ? [...(extras.checkers ?? [])] : [],
+    };
   });
   // A step whose completion an open exception blocks (ENG-BLOCKED; PR-08): its signature is the greyed primary,
   // so the card says why the work stops rather than inviting more recording.
@@ -213,7 +234,7 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
       if (primary >= 0) break;
     }
   }
-  return checked.map(({ a, available, reason }, i) => ({
+  return checked.map(({ a, available, reason, whoCanHelp }, i) => ({
     action: a.action,
     available,
     primary: i === primary,
@@ -221,7 +242,35 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
     meaning: a.meaning,
     reason: available ? null : reason,
     target: a.target,
+    whoCanHelp,
   }));
+}
+
+/**
+ * Who may give the check of step instance `inst` (INV-03, DI-17), in words: the roles of this installation that
+ * carry one of the check roles the step names (the MBR's check role, else the fallback verifier roles) and hold the
+ * permission the check needs (STEP.WITNESS for a witness, else STEP.VERIFY; recipe.require_command_permission), or
+ * that no role does; then the persons who may not, having performed, entered data in or corrected the step. Display
+ * only: the engine and the database decide at the signature.
+ */
+export async function checkersOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine.StepInstance): Promise<string[]> {
+  const def = ctx.run.def;
+  const engineRoles = stepDef.checkRole !== undefined ? [stepDef.checkRole] : [...def.policy.fallbackVerifierRoles];
+  const permission = engine.checkMeaning(def, inst, inst.step) === engine.MEANINGS.WITNESSED ? 'STEP.WITNESS' : 'STEP.VERIFY';
+  const { rows } = await ctx.db.query<{ code: string; name: string }>(
+    `select distinct r.code, r.name
+       from tab.engine_role_map m
+       join iam.role r on r.code = m.kernel_role
+      where m.engine_role = any($1::text[])
+        and m.via_permission = any(iam.role_permissions_at(m.kernel_role, clock_timestamp()))
+        and $2 = any(iam.role_permissions_at(m.kernel_role, clock_timestamp()))
+      order by r.name, r.code`,
+    [engineRoles, permission],
+  );
+  const out = rows.length > 0 ? rows.map((r) => `${r.name} (${r.code})`) : [`No role of this installation may give this check: none that carries ${engineRoles.join(' or ')} holds ${permission}. Ask QA or the MBR author.`];
+  const involved = [...new Set([...inst.performers, ...inst.dataEnterers, ...inst.correctors, ...inst.performedSigners])];
+  if (involved.length > 0) out.push(`Not ${involved.map((id) => personRef(ctx, id)?.legalName ?? id).join(', ')}: a person who performed, entered data in or corrected the step never checks it (INV-03)`);
+  return out;
 }
 
 /** The actions a step's screen offers for its status (the engine decides each one), plus the run-level ones of the step's card. */
@@ -685,11 +734,21 @@ function currentStage(ctx: ViewContext): string | undefined {
   return (frames.find((f) => f.signOff?.valid !== true) ?? frames[frames.length - 1])?.stage;
 }
 
+/**
+ * The run header. The room is the step's: the viewer's terminal room when it is one the stage names, else the stage's
+ * first (the batch's room when the stage names none). The scale, for a step that weighs, is one of that room (a stage
+ * that names no room: the terminal's own room, whose scales its readings are claimed from), never a scale of the
+ * viewer's room when the step is done elsewhere (DI-20).
+ */
 async function header(ctx: ViewContext, stageId: string | undefined, withScale: boolean): Promise<RunHeaderView> {
   const def = ctx.run.def;
   const stage = stageId ? def.stages.get(stageId) : undefined;
-  const room = stage?.binding.rooms[0] ?? ctx.run.batch.roomCode ?? null;
-  const scale = withScale ? await ctx.app.deviceReadings.scaleStatus(ctx.session?.roomCode ?? null) : null;
+  const rooms = stage?.binding.rooms ?? [];
+  const mine = ctx.session?.roomCode ?? null;
+  const room = rooms.length > 0 ? (mine !== null && rooms.includes(mine) ? mine : (rooms[0] ?? null)) : (ctx.run.batch.roomCode ?? null);
+  const scaleRoom = rooms.length > 0 ? room : mine;
+  const scale = withScale ? await ctx.app.deviceReadings.scaleStatus(scaleRoom) : null;
+  const scales = withScale && scaleRoom !== null ? await ctx.app.deviceReadings.scales(scaleRoom) : [];
   const s = ctx.session;
   const last = ctx.rows.last;
   return {
@@ -711,6 +770,7 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
     }),
     timers: timersOf(ctx),
     scale,
+    scales,
     identity: s && s.roleCode && s.loginName ? { personId: s.personId, legalName: s.legalName, loginName: s.loginName, role: s.roleCode } : null,
     lastSavedAt: last ? fmt(ctx, last.nowUs) : null,
   };
@@ -746,6 +806,10 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
   const shopFloor = ctx.session?.deviceClass === 'SHARED' || ctx.session?.deviceClass === 'GRADE_A_B';
   const exceptions = exceptionsOfStep(ctx, inst, stepKey, stepId);
   const aggregateId = `${ctx.run.batch.id}:${stepKey}`;
+  const extras: ActionExtras = {
+    roomReason: stepRoomReason(def, stepId, ctx.session?.roomCode ?? null),
+    checkers: inst && inst.kind !== 'HOLD' && inst.status === 'AWAITING_VERIFICATION' ? await checkersOf(ctx, stepDef, inst) : [],
+  };
   return {
     asOf: fmt(ctx, ctx.nowUs),
     run: await header(ctx, stepDef.stage, withScale),
@@ -769,7 +833,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     entryForms: entryFormsOf(def, stepDef),
     exceptions: exceptions.map((e) => exceptionView(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
-    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions),
+    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, extras),
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
   };
@@ -925,7 +989,7 @@ export function workQueueItems(ctx: ViewContext, room: string | null): WorkQueue
     const stage = stepDef.stage ? def.stages.get(stepDef.stage) : undefined;
     const rooms = stage?.binding.rooms ?? [];
     if (room !== null && rooms.length > 0 && !rooms.includes(room)) continue;
-    const views = actionViews(stepActions(ctx, inst, inst.key), shopFloor, whoOf(ctx), ctx.permissions);
+    const views = actionViews(stepActions(ctx, inst, inst.key), shopFloor, whoOf(ctx), ctx.permissions, { roomReason: stepRoomReason(def, inst.step, ctx.session?.roomCode ?? null) });
     const action = views.find((v) => v.primary) ?? views.find((v) => v.action !== 'RAISE_EXCEPTION' && v.action !== 'HOLD_BATCH') ?? views[0];
     if (!action) continue;
     const sn = stepDef.stage ? n.byId.get(stepDef.stage) : undefined;
@@ -968,7 +1032,12 @@ function rowSummary(r: RunRows['rows'][number]): string {
     default: {
       const what = at(c['step'] ?? c['stage'], c['context']) || (typeof c['exception'] === 'string' ? ` ${c['exception']}` : typeof c['hold'] === 'string' ? ` ${c['hold']}` : '');
       const sig = (c['signature'] ?? null) as Record<string, unknown> | null;
-      return `${r.commandType}${what}${sig && typeof sig['meaning'] === 'string' ? ` (signed ${sig['meaning']})` : ''}`;
+      if (!sig) return `${r.commandType}${what}`;
+      // Only an accepted row that names its e-signatures was signed (DI-36). A dry run refused before signing is
+      // stored with the placeholder signature, which is never an e-signature (review finding P41).
+      if (!r.accepted) return `${r.commandType}${what} (${sig['id'] === engine.PLACEHOLDER_SIGNATURE_ID ? 'refused before signing: nothing was signed' : 'refused: no signature was applied'})`;
+      if (r.signatureIds.length === 0 || sig['id'] === engine.PLACEHOLDER_SIGNATURE_ID || typeof sig['meaning'] !== 'string') return `${r.commandType}${what} (no e-signature recorded)`;
+      return `${r.commandType}${what} (signed ${sig['meaning']})`;
     }
   }
 }

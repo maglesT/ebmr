@@ -44,7 +44,9 @@ export function DesignerPage() {
   return <DesignerEditor key={`${version.data.versionId}`} initial={version.data} palette={palette.data.blocks} />;
 }
 
-type Dialogs = 'save' | 'start' | 'package' | { justify: FindingItem } | null;
+/** The justify dialog keeps the warning and the saved revision (with its content hash) it was opened on. */
+type JustifyDialog = { justify: FindingItem; revision: number; contentHash: string };
+type Dialogs = 'save' | 'start' | 'package' | JustifyDialog | null;
 
 export function DesignerEditor({ initial, palette }: { initial: VersionView; palette: readonly PaletteItem[] }) {
   const queryClient = useQueryClient();
@@ -147,7 +149,17 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
   };
 
   const gatePassed = validation.report?.gate.passed === true && !validation.pending && !dirty;
-  const justifyBlocked = readOnly ? 'Only a DRAFT takes justifications.' : dirty ? 'Save your changes first: a justification is recorded against the saved revision.' : null;
+  // A warning is justified only as the check of the saved revision reports it: not while that check is still
+  // running, nor from a report of other content (IN-02, DI-04; review P15, P59).
+  const reportIsSaved = !validation.pending && validation.report?.contentHash === saved.contentHash;
+  const justifyBlocked = readOnly
+    ? 'Only a DRAFT takes justifications.'
+    : dirty
+      ? 'Save your changes first: a justification is recorded against the saved revision.'
+      : !reportIsSaved
+        ? 'Wait until the saved revision has been checked: a justification answers the warning as the saved revision reports it.'
+        : null;
+  const justifying = typeof dialog === 'object' && dialog !== null ? dialog : null;
 
   return (
     <div className={dcls('page')}>
@@ -296,7 +308,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
                 onJump={jump}
                 onJustify={(f) => {
                   setJustification('');
-                  setDialog({ justify: f });
+                  setDialog({ justify: f, revision: saved.revision, contentHash: saved.contentHash });
                 }}
                 locationLabel={locationLabel}
               />
@@ -314,7 +326,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
               ) : null}
             </TabPanel>
             <TabPanel id="simulation">
-              <SimulationPanel versionId={saved.versionId} revision={saved.revision} dirty={dirty} />
+              <SimulationPanel versionId={saved.versionId} revision={saved.revision} contentHash={saved.contentHash} dirty={dirty} />
             </TabPanel>
           </Tabs>
         </aside>
@@ -344,14 +356,21 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
 
       <CommandDialog
         title="Justify a warning"
-        open={typeof dialog === 'object' && dialog !== null}
+        open={justifying !== null}
         onClose={() => setDialog(null)}
         confirmLabel="Record the justification"
-        canConfirm={justification.trim().length > 0}
+        canConfirm={justification.trim().length > 0 && justifying !== null}
         run={(idempotencyKey) =>
           api.call(routes.designer.justify, {
             params: { versionId: saved.versionId },
-            body: { findingKey: typeof dialog === 'object' && dialog !== null ? dialog.justify.key : '', text: justification.trim() },
+            body: {
+              findingKey: justifying?.justify.key ?? '',
+              text: justification.trim(),
+              // The saved revision whose warning was on screen when the dialog opened: the server refuses when it
+              // was saved again since.
+              baseRevision: justifying?.revision ?? saved.revision,
+              contentHash: justifying?.contentHash ?? saved.contentHash,
+            },
             idempotencyKey,
           })
         }
@@ -360,8 +379,10 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
           setDialog(null);
         }}
       >
-        {typeof dialog === 'object' && dialog !== null ? <p>{dialog.justify.message}</p> : null}
-        <p className={dcls('small')}>The justification is recorded with your name and the time, on the saved revision {saved.revision}; it travels with the version to verification and to the sandbox.</p>
+        {justifying ? <p>{justifying.justify.message}</p> : null}
+        <p className={dcls('small')}>
+          The justification is recorded with your name and the time, on the saved revision {justifying?.revision ?? saved.revision}; it travels with the version to verification and to the sandbox.
+        </p>
         <NoteField label="Why the warning is acceptable" value={justification} onChange={setJustification} max={4000} />
       </CommandDialog>
 

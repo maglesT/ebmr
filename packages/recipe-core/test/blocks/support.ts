@@ -5,6 +5,7 @@
 import { Dec } from '@ebmr/expr';
 import type { BlockVersion } from '../../src/blocks/contract.ts';
 import type { MbrContent, PhaseNode } from '../../src/flow/model.ts';
+import { checkMeaning, performMeaning } from '../../src/engine/actions.ts';
 import { decimalsOf } from '../../src/flow/decimal.ts';
 import { mbrWith, phase } from '../flow/support.ts';
 import { define, OP1, Run, sig, T0, VER1 } from '../engine/support.ts';
@@ -31,8 +32,8 @@ export interface FixtureOutcome {
   performRefusal?: string;
 }
 
-/** Runs a block's golden fixture: start (with start data), script, PERFORMED, and the check when due. */
-export function runFixture(b: BlockVersion): FixtureOutcome {
+/** A block's golden fixture run up to its PERFORMED signature: issued, started (with start data) and its script played. */
+export function startFixture(b: BlockVersion): Run {
   const f = b.goldenFixture;
   if (!f) throw new Error('no fixture');
   const def = define(fixtureMbr(b));
@@ -50,13 +51,18 @@ export function runFixture(b: BlockVersion): FixtureOutcome {
     } else if ('entry' in s) run.entry('p', s.entry);
     else if ('advanceUs' in s) run.advance(s.advanceUs);
   }
+  return run;
+}
+
+/** Runs a block's golden fixture: start (with start data), script, PERFORMED, and the check when due. */
+export function runFixture(b: BlockVersion): FixtureOutcome {
+  const run = startFixture(b);
+  const def = run.def;
   let performRefusal: string | undefined;
-  const r = run.exec({ type: 'SIGN_PERFORMED', actor: OP1, step: 'p', signature: sig('PERFORMED', OP1) });
+  // Signed with the meanings the step asks for (the block's own where it has one; engine 1.1.0 accepts no other).
+  const r = run.exec({ type: 'SIGN_PERFORMED', actor: OP1, step: 'p', signature: sig(performMeaning(def, 'p'), OP1) });
   if (!r.accepted) performRefusal = r.refusal?.code;
-  if (run.status('p') === 'AWAITING_VERIFICATION') {
-    const witnessed = def.steps.get('p')?.checkMeaning === 'WITNESSED';
-    run.verify('p', [], VER1, witnessed ? 'WITNESSED' : 'VERIFIED');
-  }
+  if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p', [], VER1, checkMeaning(def, run.inst('p'), 'p'));
   return { run, exceptions: run.exceptions().map((e) => e.type).sort(), status: run.status('p'), ...(performRefusal ? { performRefusal } : {}) };
 }
 

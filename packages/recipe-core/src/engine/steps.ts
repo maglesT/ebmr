@@ -2,8 +2,9 @@
  * Step life cycle (outline 5.2.3): PENDING -> ENABLED (token arrives) -> IN_PROGRESS (batch not on hold,
  * role held, not blocked, time limits respected) -> AWAITING_VERIFICATION (mandatory data present,
  * calculations done, minimum duration elapsed, no blocking exception; Sig(PERFORMED) by every person
- * who entered data) -> COMPLETED (Sig(VERIFIED) or Sig(WITNESSED) by a person who neither performed,
- * entered data in nor corrected the step: INV-03). SKIPPED only for skippable phases with a different
+ * who entered data; the block's own perform meaning where it has one) -> COMPLETED (the check the step requires:
+ * RE_VERIFIED_AFTER_CORRECTION, the MBR's WITNESSED, the block's own check or VERIFIED, by a person who neither
+ * performed, entered data in nor corrected the step: INV-03). SKIPPED only for skippable phases with a different
  * approver; NOT_APPLICABLE only by the system. Hold points and stage sign-off live here too.
  */
 import type { PhaseNode } from '../flow/model.ts';
@@ -12,9 +13,11 @@ import { computeCalculations, evaluateAcceptanceScheme, missingData, notify, rai
 import { engineDraft, replicateCompatible } from './exceptions.ts';
 import {
   addUnique,
+  checkMeanings,
   hasRole,
   involvedIn,
   MEANINGS,
+  performMeanings,
   requireBatchStatus,
   requireInstance,
   requireNotBlocked,
@@ -25,7 +28,6 @@ import {
   requireStep,
   requireStepStatus,
   useSignature,
-  VERIFICATION_MEANINGS,
 } from './guards.ts';
 import { checkMinimum, eventInstant, recordNodeEvent } from './timing.ts';
 import { ctxKey, refuse, type Tx } from './tx.ts';
@@ -276,7 +278,8 @@ export function signPerformed(tx: Tx, cmd: SignPerformedCommand): void {
     if (!step.systemPerforms) refuse('ENG-ACTOR', `${step.id} needs a person's PERFORMED signature (two persons on every batch unless the one-verifier mode S5a is on)`, ['PR-14', 'INV-31']);
   } else {
     requireRole(a, step.performRoles, `sign ${step.id} as performed`);
-    requireSignature(tx, cmd.signature, a.id, ['PERFORMED', ...(handler?.meanings?.perform ?? [])], `Step ${inst.key}`);
+    // Exactly the step's own PERFORMED meaning: the block's (a line clearance, a sample taken), else PERFORMED (DI-35).
+    requireSignature(tx, cmd.signature, a.id, performMeanings(step), `Step ${inst.key}`);
     signer = a.id;
   }
   // The step moves on only when every person who entered data has signed for their own entries (L-67).
@@ -320,9 +323,10 @@ export function verify(tx: Tx, cmd: VerifyCommand): void {
   const a = requirePerson(tx);
   const roles = step.checkRole !== undefined ? [step.checkRole] : [...tx.def.policy.fallbackVerifierRoles];
   requireRole(a, roles, `verify ${step.id}`);
-  const handler = step.block?.handler;
-  const verifying = [...VERIFICATION_MEANINGS, ...(handler?.meanings?.check ?? [])];
-  const meanings = inst.reverification ? [...verifying, MEANINGS.RE_VERIFIED] : step.checkMeaning === 'WITNESSED' ? [MEANINGS.WITNESSED] : [...verifying, MEANINGS.WITNESSED];
+  // Exactly the check the step requires (P37; DI-35, PR-14, PR-20): RE_VERIFIED_AFTER_CORRECTION while re-verification
+  // is due, else the MBR's WITNESSED, else the block's own check, else VERIFIED. Never a witness or a generic
+  // verification in place of the step's own check.
+  const meanings = checkMeanings(step, inst);
   // INV-03: the verifier or witness never performed, entered data in or corrected the step.
   if (involvedIn(inst).has(a.id)) {
     refuse('ENG-SEGREGATION', `${a.id} performed, entered data in or corrected step ${inst.key} and so cannot verify or witness it`, ['INV-03', 'PR-14', 'DI-30']);

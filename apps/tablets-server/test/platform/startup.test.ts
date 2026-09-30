@@ -15,7 +15,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { inject } from 'vitest';
 import { routes, type Result } from '@ebmr/api-contract';
-import { identity, withCommand } from '@ebmr/kernel';
+import { identity, toDbContext, withCommand } from '@ebmr/kernel';
 import {
   copyDatabase,
   dropDatabase,
@@ -147,6 +147,29 @@ async function setSiteZone(db: DatabaseHandle, seed: SiteSeed, zone: string): Pr
   }
 }
 
+/**
+ * A site.zone value recorded before kernel 0940 refused it (EBMR-IAM-119): arranged with the superuser, in a validated
+ * command, without the row guard 0940 put on iam.policy_value (it did not exist then; the audit trigger still fires).
+ */
+async function recordSiteZoneBefore0940(db: DatabaseHandle, seed: SiteSeed, zone: string): Promise<void> {
+  const admin = await passwordActor(db, seed.bootstrap.admin, seed.bootstrap.admin.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'DI-27 test: a site zone recorded before kernel 0940', correlationId: randomUUID() });
+  const c = await db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(admin))]);
+    await c.query('alter table iam.policy_value disable trigger aa_site_zone_iam_policy_value');
+    await c.query("insert into iam.policy_value (key, value, set_by_person, set_by_account, reason) values ('site.zone', $1, $2, $3, 'DI-27 test: recorded before kernel 0940')", [zone, admin.personId, admin.accountId]);
+    await c.query('alter table iam.policy_value enable trigger aa_site_zone_iam_policy_value');
+    await c.query('commit');
+  } catch (error) {
+    await c.query('rollback');
+    throw error;
+  } finally {
+    c.release();
+    await identity.endSession(db.app, admin.sessionId);
+  }
+}
+
 describe('site time zone (DI-27)', () => {
   it('[DI-27] the server refuses to start when EBMR_SITE_ZONE differs from the site policy site.zone, or the policy holds no IANA zone name', async () => {
     const t = inject('serverTemplates');
@@ -170,8 +193,11 @@ describe('site time zone (DI-27)', () => {
       expect(await tryStart('GMP', copy, 'GMP', { EBMR_SITE_ZONE: MOVED })).toBeNull();
       expect(await tryStart('GMP', copy, 'GMP')).toBeNull();
 
-      // The kernel's policy key takes any text: an abbreviation is no zone the server can declare or show.
-      await setSiteZone(db, t.gmp.seed, 'IST');
+      // The kernel refuses a site.zone that is no IANA zone name (EBMR-IAM-119, kernel 0940); the site keeps its zone ...
+      await expect(setSiteZone(db, t.gmp.seed, 'IST')).rejects.toThrow(/^EBMR-IAM-119 /);
+      expect(await siteZoneOf(db.app)).toBe(MOVED);
+      // ... and a value recorded before 0940 is no zone the server can declare or show either.
+      await recordSiteZoneBefore0940(db, t.gmp.seed, 'IST');
       const unusable = await tryStart('GMP', copy, 'GMP');
       expect(unusable).toBeInstanceOf(ConfigError);
       expect(String(unusable)).toContain('the site policy site.zone holds "IST", which is not an IANA time zone name');
@@ -282,6 +308,13 @@ describe('site time zone (DI-27)', () => {
       expectChanged(await server.browser().call(routes.meta.get), before, MOVED);
       expectChanged(await author.call(routes.session.get), before, MOVED);
       expectChanged(await author.call(routes.designer.createFamily, { body: { ...NEW_FAMILY, familyCode: 'PCM500-DI27-MOVED' } }), before, MOVED);
+      // Every request that names the API is refused, not only one whose raw path starts with `/api/`: the bare prefix and
+      // a query on it reach no route, yet they are API requests (review P8: the check follows isApiRequest).
+      for (const url of ['/api', '/api?probe=1', '/api/no-such-route']) {
+        const res = await server.app.inject({ method: 'GET', url });
+        const code = (JSON.parse(res.body) as { refusal?: { code?: string } }).refusal?.code;
+        expect({ url, status: res.statusCode, code, cacheControl: res.headers['cache-control'] }).toEqual({ url, status: 503, code: SITE_ZONE_CHANGED, cacheControl: 'no-store' });
+      }
       // Inside the server too: no instant is formatted and no request context is built in the old zone.
       expect(() => server.built.ctx.formatInstant(0n)).toThrow(SITE_ZONE_CHANGED);
       expect(() => server.built.ctx.siteZone.current()).toThrow(SITE_ZONE_CHANGED);

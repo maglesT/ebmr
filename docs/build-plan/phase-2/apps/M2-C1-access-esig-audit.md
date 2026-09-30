@@ -40,7 +40,7 @@ Depends on: C0-spine
      1. `authenticate(SIGNATURE, challengeId)`;
      2. `withIdempotentCommand` with ctx `authEventId` = the signature event;
      3. handler `dryRun` → `esig.sign` + seal → handler `apply`;
-     4. `logSigningFailure` after a rollback.
+     4. a refusal before signing is logged inside that command, which commits it (kernel 0950; plan section 6, step 4.3); any other failure is logged with `logSigningFailure` after the rollback.
    - `GET /api/esig/signatures`.
    - A test-only STUB signable handler on the kernel's `esig_stub` aggregate, so the ceremony is tested before C3 lands.
    - Plain-language guidance for EBMR-ESIG-010..070, EBMR-IAM-09x/12x/140 and CONTENT_CHANGED.

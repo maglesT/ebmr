@@ -7,7 +7,9 @@
  *  2. kiosk: the signer taps (and, on TAP_PIN classes, enters the PIN): the challenge request carries that
  *     attribution; office: no tap;
  *  3. challenge: POST /api/esig/challenges with the client's hash of the text it showed (EBMR-ESIG-013 when the
- *     record changed meanwhile); a badge of another person offers "Switch to <name>?";
+ *     record changed meanwhile); a badge of another person offers "Switch to <name>?". Once switched, the signing
+ *     ends with nothing signed (CANCELLED): the request and any decision in it were made by the previous person, so
+ *     the caller asks the new person for their own (INV-40, DI-38);
  *  4. secret: the PIN (kiosk) or user ID and password (office), within the 120 s countdown, sent once with a
  *     fresh device proof; a wrong one returns to the entry (the kernel counts it toward lockout);
  *  5. a lost answer never re-sends the credentials: the dialog reloads the record's signatures and reports

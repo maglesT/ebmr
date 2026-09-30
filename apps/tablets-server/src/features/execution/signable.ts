@@ -8,20 +8,34 @@
  *    requires the record in (esig.sign binds the signature to it).
  *  - previewContent(): a pure preview at the database time: the record as it will be after the sweep and,
  *    for PERFORMED, the finalisation, with the exact canonical text the kernel hashes, the next content version
- *    and a rendering (batch_step, batch_stage, batch_exception).
- *  - prepareForChallenge(): locks the run and appends a PREPARE row when the system facts changed the record.
- *  - dryRun(): locks the run, prepares again, and runs the command with a placeholder signature. A refusal
- *    by the engine is recorded as a refused COMMAND row and answered; nothing is signed. Accepted: the
- *    content hash and version the signature would bind (C1 compares them with the challenge).
+ *    and a rendering (batch_step, batch_stage, batch_exception). The rendering shows as the record to be signed
+ *    only what the canonical content holds; what is shown beside it for information (the status, deviation and
+ *    handling of exceptions, the exceptions raised by acts about a step, a stage's exceptions, targets, live
+ *    loop-endpoint verdicts, the times of system computations) is in `notSigned`, which the dialog shows apart
+ *    and labelled as not part of the signature (review finding CN1; DI-37, DI-36).
+ *  - prepareForChallenge(): refuses a step's PERFORMED or VERIFY signature from a terminal outside the step's room
+ *    before the challenge, so before the PIN (EBMR-EXE-123, DI-20; the database refuses the signed row too), locks
+ *    the run and appends a PREPARE row when the system facts changed the record,
+ *    and records what is being decided as part of the signed content: an exception's proposed disposition
+ *    (recipe.propose_disposition) or a hold point's proposed decision, its disposition and comment
+ *    (recipe.propose_hold_point_decision, recipe-core 0295; review findings P26, P38).
+ *  - dryRun(): locks the run, checks that the decision of the sign request is the one its challenge recorded
+ *    (EBMR-EXE-086, before anything is written), prepares again, and runs the command with a placeholder
+ *    signature. A refusal by the engine is recorded as a refused COMMAND row and answered; nothing is signed.
+ *    Accepted: the content hash and version the signature would bind (C1 compares them with the challenge).
  *  - apply(): runs the command with the real signature; any refusal or content change after the seal throws,
  *    so the whole command (signature, seal, row) rolls back (INV-10).
- * The meaning of the challenge must be the one the engine requires (EBMR-EXE-080), and a witness after the
- * run moved on is refused (EBMR-EXE-081; the kernel's act.next_step_started check says the same).
+ * The binding of a decision lives in the database, not in this process: the proposal is part of the content the
+ * challenge and the signature hash, and recipe.check_signatures refuses a decision other than the one the
+ * signature covers, made by the signer when this signature was requested (0295). The meaning of the challenge
+ * must be the one the engine requires (EBMR-EXE-080; a verifier signs the step's own check, P37, which the
+ * database checks too), and a witness after the run moved on is refused (EBMR-EXE-081; the kernel's
+ * act.next_step_started check says the same).
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { engine, execution } from '@ebmr/recipe-core';
-import type { Refusal, SignableAction, SignableContentView } from '@ebmr/api-contract';
+import type { ExceptionView, FieldView, Refusal, SignableAction, SignableContentView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs } from '../../platform/db/commands.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
@@ -29,10 +43,13 @@ import type { DryRunOutcome, SignableActionHandler, SignableContext } from '../.
 import type { EsigSignableContext } from '../esig/content.ts';
 import { meaningInfo } from '../esig/views.ts';
 import { engineRefusal } from './guidance.ts';
-import { signedCommand, signedMeaning, signedSubject, stepTarget, wireOf } from './intents.ts';
+import { signedCommand, signedMeaning, signedSubject, stepRoomRefusal, stepTarget, wireOf } from './intents.ts';
 import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
 import { loadRowFacts, notFound, runCache, runContext, type Db, type RunContext } from './runs.ts';
 import { entriesOf, exceptionsOfStep, exceptionView, fieldsOf, limitViews, specOf, stageRef, stepScreen, stepSummary, type ViewContext, type ViewerInfo } from './views.ts';
+
+type Json = Record<string, unknown>;
+type Limit = FieldView['limits'][number];
 
 type EngineAction = Extract<SignableAction, { kind: 'ENGINE_COMMAND' }>;
 
@@ -95,14 +112,35 @@ async function viewContext(app: AppContext, db: Db, run: RunContext, state: engi
   };
 }
 
+/** A hold-point decision being signed: the disposition and the reviewer's comment (null when none). */
+export interface HoldPointDecision {
+  disposition: string;
+  comment: string | null;
+}
+
+/** The decision of a DISPOSITION_HOLD_POINT intent, as the signed content holds it. */
+export const decisionOf = (intent: { disposition: string; comment?: string | undefined }): HoldPointDecision => ({ disposition: intent.disposition, comment: intent.comment ?? null });
+
+const sameDecision = (a: HoldPointDecision, b: HoldPointDecision): boolean => a.disposition === b.disposition && a.comment === b.comment;
+
+function badIntent(expected: string): Error {
+  return refusal(400, { code: 'SCHEMA', kind: 'INVALID_INPUT', whatHappened: 'The decision to sign in the request is not in the expected form.', why: `Expected ${expected}.`, controls: ['DI-37'], whatYouCanDo: ['Reload the screen and start the signing again.'] });
+}
+
 /**
- * The `intent` of a content preview: the meaning code, and for an exception disposition the proposal being
- * signed, `EXCEPTION_DISPOSITIONED|<base64url of the JSON {outcome, justification}>` (the proposal is part of the
- * signed content, so the signer's preview must show and hash it).
+ * The `intent` of a content preview: the meaning code, and for a decision the decision being signed, which is part
+ * of the signed content (so the signer's preview must show and hash it):
+ *  - an exception disposition: `EXCEPTION_DISPOSITIONED|<base64url of the JSON {outcome, justification}>`;
+ *  - a hold-point decision: `HOLD_POINT_RELEASED|<base64url of the JSON {disposition, comment}>` (or
+ *    HOLD_POINT_NOT_RELEASED), the comment a text or null (review findings P26, P38).
  */
-export function parseIntent(intent: string): { meaning: string; proposal: { outcome: 'NO_IMPACT' | 'DEVIATION_RAISED'; justification: string } | null } {
+export function parseIntent(intent: string): {
+  meaning: string;
+  proposal: { outcome: 'NO_IMPACT' | 'DEVIATION_RAISED'; justification: string } | null;
+  decision: HoldPointDecision | null;
+} {
   const bar = intent.indexOf('|');
-  if (bar < 0) return { meaning: intent, proposal: null };
+  if (bar < 0) return { meaning: intent, proposal: null, decision: null };
   const meaning = intent.slice(0, bar);
   let p: unknown;
   try {
@@ -110,11 +148,21 @@ export function parseIntent(intent: string): { meaning: string; proposal: { outc
   } catch {
     p = null;
   }
-  const r = (p ?? {}) as Record<string, unknown>;
+  const r = (p !== null && typeof p === 'object' && !Array.isArray(p) ? p : {}) as Record<string, unknown>;
+  if (meaning === engine.MEANINGS.HOLD_RELEASED || meaning === engine.MEANINGS.HOLD_NOT_RELEASED) {
+    const comment = r['comment'] ?? null;
+    const known = Object.keys(r).every((k) => k === 'disposition' || k === 'comment');
+    if (!known || typeof r['disposition'] !== 'string' || r['disposition'] === '' || (comment !== null && (typeof comment !== 'string' || comment.length > 2000))) {
+      throw badIntent('<meaning>|<base64url JSON {disposition, comment}>');
+    }
+    // The decision's class is the meaning: a release is never previewed as a refusal, nor the other way round.
+    if (engine.holdPointMeaning(r['disposition']) !== meaning) throw badIntent(`a decision signed ${meaning}`);
+    return { meaning, proposal: null, decision: { disposition: r['disposition'], comment } };
+  }
   if ((r['outcome'] !== 'NO_IMPACT' && r['outcome'] !== 'DEVIATION_RAISED') || typeof r['justification'] !== 'string' || r['justification'].trim() === '') {
     throw refusal(400, { code: 'SCHEMA', kind: 'INVALID_INPUT', whatHappened: 'The proposed disposition in the request is not in the expected form.', why: 'Expected <meaning>|<base64url JSON {outcome, justification}>.', controls: ['DI-37'], whatYouCanDo: ['Reload the screen and start the signing again.'] });
   }
-  return { meaning, proposal: { outcome: r['outcome'], justification: r['justification'] } };
+  return { meaning, proposal: { outcome: r['outcome'], justification: r['justification'] }, decision: null };
 }
 
 const sameProposal = (a: execution.DispositionProposal | null, b: execution.DispositionProposal | null): boolean =>
@@ -136,17 +184,44 @@ function proposalChanged(exceptionId: string): Refusal {
   };
 }
 
+/** A stored proposal of a hold-point decision: the latest one made on a content version of the hold point. */
+interface StoredDecision extends HoldPointDecision {
+  proposedBy: string;
+  correlationId: string;
+}
+
+/** The latest decision proposed on content version `version` of hold point `key` (recipe.execution_decision_proposal, 0295). */
+async function loadDecision(db: Db, runId: string, key: string, version: number): Promise<StoredDecision | null> {
+  const { rows } = await db.query<{ proposal: { disposition: string; comment: string | null }; proposed_by_person: string; correlation_id: string }>(
+    `select p.proposal, p.proposed_by_person::text as proposed_by_person, p.correlation_id::text as correlation_id
+       from recipe.execution_decision_proposal p where p.aggregate_id = $1 and p.content_version = $2 order by p.id desc limit 1`,
+    [`${runId}:${key}`, version],
+  );
+  const r = rows[0];
+  return r ? { disposition: r.proposal.disposition, comment: r.proposal.comment ?? null, proposedBy: r.proposed_by_person, correlationId: r.correlation_id } : null;
+}
+
+/** Whether `c` is the content of a hold point (whose signed content carries the decision). */
+const isHoldPoint = (c: engine.AggregateContent): boolean => c.type === 'batch_step' && (c.content['step'] as Record<string, unknown> | undefined)?.['kind'] === 'HOLD';
+
 /**
- * The canonical envelope hash and version a signature on `c` would bind, given the stored head. An exception's
- * signed content also carries its proposed disposition (`proposal`; when undefined, the one stored on the head).
+ * The canonical envelope hash and version a signature on `c` would bind, given the stored head. What is being
+ * decided is part of the signed content: an exception's proposed disposition (`proposal`) and a hold point's
+ * proposed decision (`decision`); when undefined, the one stored on the head (as the content provider adds it).
  */
-async function bindingOf(db: Db, runId: string, c: engine.AggregateContent, proposal?: execution.DispositionProposal | null): Promise<{ version: number; text: string; hash: string }> {
+async function bindingOf(db: Db, runId: string, c: engine.AggregateContent, proposal?: execution.DispositionProposal | null, decision?: HoldPointDecision | null): Promise<{ version: number; text: string; hash: string }> {
   const head = await execution.loadContentHead(db, c.type, runId, c.key);
   const version = head && head.hash === c.contentHash ? head.version : (head?.version ?? 0) + 1;
   let content = c.content;
   if (c.type === 'batch_exception') {
     const p = proposal !== undefined ? proposal : head && version === head.version ? await execution.loadProposal(db, runId, c.key, version) : null;
     content = { ...content, proposedDisposition: p ? { outcome: p.outcome, justification: p.justification, deviationRef: p.deviationRef } : null };
+  }
+  if (isHoldPoint(c)) {
+    const d = decision !== undefined ? decision : head && version === head.version ? await loadDecision(db, runId, c.key, version) : null;
+    // As the provider gives it (recipe-core 0302): the member only once a decision is proposed, so a hold point
+    // without one keeps the content signed before 0295.
+    if (d) content = { ...content, proposedDecision: { disposition: d.disposition, comment: d.comment } };
   }
   const env = engine.signingEnvelope(c.type, `${runId}:${c.key}`, version, content);
   return { version, text: env.text, hash: env.hash };
@@ -162,7 +237,147 @@ function previewTarget(def: engine.BatchDefinition, state: engine.BatchState, ty
   return meaning === engine.performMeaning(def, t.step) ? { type: 'SIGN_PERFORMED', step: t.step, context: t.context } : { type: 'VERIFY' };
 }
 
-function rendering(vc: ViewContext, type: engine.AggregateType, key: string, meaning: { code: string; text: string }, proposal: execution.DispositionProposal | null): { title: string; data: Record<string, unknown> & { kind: string } } {
+// ---------------------------------------------------------------------------------------------
+// What the dialog shows as signed, and what it shows beside it (review finding CN1; DI-37, DI-36)
+
+/** The note of the `notSigned` part of a rendering. */
+export const NOT_SIGNED_NOTE =
+  'Shown for information only. These facts are not part of the signed content: this signature does not cover them, and they may change after signing without affecting it.';
+
+/** The members of an exception view that a step's content signs (the exception as raised; not its time, which the preparation may set). */
+const STEP_EXCEPTION_SIGNED = ['exceptionId', 'type', 'title', 'category', 'severity', 'tier', 'expected', 'actual', 'raisedBy', 'controls'] as const;
+/** An exception's own content (batch_exception) also signs when it was raised and the deviation linked to it. */
+const EXCEPTION_SIGNED = [...STEP_EXCEPTION_SIGNED, 'raisedAt', 'deviationRef'] as const;
+
+function pick(v: Json, keys: readonly string[]): Json {
+  return Object.fromEntries(keys.filter((k) => k in v).map((k) => [k, v[k]]));
+}
+
+function omit(v: Json, keys: readonly string[]): Json {
+  return Object.fromEntries(Object.entries(v).filter(([k]) => !keys.includes(k)));
+}
+
+const idsOf = (list: unknown): Map<string, Json> =>
+  new Map(
+    (Array.isArray(list) ? (list as unknown[]) : [])
+      .filter((x): x is Json => x !== null && typeof x === 'object' && typeof (x as Json)['id'] === 'string')
+      .map((x) => [x['id'] as string, x]),
+  );
+
+/** A field of a step as displayed, with the tolerance band derived from its target (not signed) apart from its MBR limits. */
+export interface FieldForSigning extends FieldView {
+  band: Limit[];
+}
+
+/** Why an exception shown with a step is not part of the step's signed content (it is signed in its own exception record). */
+export const NOT_SIGNED_WHY = {
+  OTHER_INSTANCE: 'Raised about this step, not by the data of this step instance (it names the step but no instance of it): it is signed in its own exception record.',
+  OPERATOR_RAISED: 'Reported by a person about the step, not raised by its data: it is signed in its own exception record.',
+  WITNESS_LATE: 'Raised by a witness signature given after the witness window, an act about the step: it is signed in its own exception record.',
+  HOLD_POINT_NOT_APPROVED: 'Raised by the decision not to release the hold point, an act about the step: it is signed in its own exception record.',
+  STEP_SKIPPED: 'Raised by the approved skip of the step, an act about the step: it is signed in its own exception record.',
+  EXECUTED_TARGET_CHANGED: 'Raised when a target this step used was changed after it was executed, a later act: it is signed in its own exception record.',
+  CALCULATION_WITHDRAWN: 'Raised when a derived value of the step was withdrawn after the fact because its inputs were invalidated elsewhere, a later act: it is signed in its own exception record.',
+  LOOP_EXIT_VERDICT: 'The verdict on a loop endpoint, judged when the loop exits, after this step was signed (the step signs the value as "judged at the loop exit"): it is signed in its own exception record.',
+  OTHER: 'Not part of this step\'s signed content: it is signed in its own exception record.',
+} as const;
+
+/** The reason an exception shown with step instance `stepKey` is outside its signed content (the branches of engine.isStepDataException). */
+export function notSignedWhy(def: engine.BatchDefinition, state: engine.BatchState, e: engine.ExceptionRecord, stepKey: string): string {
+  if (e.source.stepKey !== stepKey) return NOT_SIGNED_WHY.OTHER_INSTANCE;
+  if (engine.ACT_EXCEPTION_TYPES.has(e.type)) return NOT_SIGNED_WHY[e.type as keyof typeof NOT_SIGNED_WHY] ?? NOT_SIGNED_WHY.OTHER;
+  if (e.type === 'CALCULATION_FAILED' && e.source.derived !== undefined) return NOT_SIGNED_WHY.CALCULATION_WITHDRAWN;
+  const p = e.source.point !== undefined ? state.points[e.source.point] : undefined;
+  if (e.type === 'LIMIT_BREACH' && p !== undefined && engine.judgedAtLoopExit(def, p)) return NOT_SIGNED_WHY.LOOP_EXIT_VERDICT;
+  return NOT_SIGNED_WHY.OTHER;
+}
+
+/**
+ * The parts of a step's rendering, split by what the canonical content `content` (ebmr.batch-step-content) holds:
+ *  - exceptions: those in content.exceptions, as raised (no status, deviation, handling or time);
+ *  - fields: without the target and the tolerance band derived from it; each attempt as recorded in
+ *    content.points or content.derived, with the verdict the content signs (a loop endpoint is judged at the loop
+ *    exit), without its status now (valid, superseded, invalidated: a point's status is never signed) and without
+ *    the time of a system computation (a block-computed value, a derived value);
+ *  - notSigned: everything else that is shown, with the note; each exception outside the content with the reason
+ *    (`why`, from `whyNotSigned` by exception id; a general reason when none is given).
+ * Pure: the same content and parts give the same rendering.
+ */
+export function stepForSigning(
+  content: Json,
+  parts: { fields: readonly FieldForSigning[]; exceptions: readonly ExceptionView[]; whyNotSigned?: ReadonlyMap<string, string> },
+): { fields: Json[]; exceptions: Json[]; notSigned: Json } {
+  const signedExceptions = idsOf(content['exceptions']);
+  const points = idsOf(content['points']);
+  const derived = idsOf(content['derived']);
+  const targets: Json[] = [];
+  const verdicts: Json[] = [];
+  const times: Json[] = [];
+  const statuses: Json[] = [];
+  const unrecorded: Json[] = [];
+  const fields = parts.fields.map((f) => {
+    if (f.target !== null || f.band.length > 0) targets.push({ item: f.item, name: f.name, target: f.target, limits: f.band });
+    const attempts: Json[] = [];
+    for (const a of f.attempts) {
+      const at = { item: f.item, pointId: a.pointId, attempt: a.attempt, version: a.version };
+      const p = points.get(a.pointId);
+      const d = derived.get(a.pointId);
+      if (p || d) statuses.push({ ...at, status: a.status });
+      if (p) {
+        const evaluation = (p['evaluation'] ?? null) as Json | null;
+        let shown: Json = omit(a, ['status']);
+        if (evaluation !== null && evaluation['requirement'] === 'ENDPOINT_IN_PROGRESS') {
+          // The content signs "judged at the loop exit"; the verdict given at the exit is a later fact.
+          shown = { ...shown, verdict: { tier: null, failed: false, text: 'Judged when the loop ends' } };
+          if (a.verdict !== null && a.verdict.text !== 'Judged when the loop ends') verdicts.push({ ...at, verdict: a.verdict });
+        }
+        if (p['recordedAt'] === null) {
+          shown = omit(shown, ['at']);
+          times.push({ ...at, at: a.at, what: 'the time the system computed this value when the step was prepared for signing' });
+        }
+        attempts.push(shown);
+      } else if (d) {
+        attempts.push(omit(a, ['at', 'by', 'status']));
+        times.push({ ...at, at: a.at, by: a.by, what: 'the time and the command of the computation' });
+      } else {
+        unrecorded.push({ ...at, attemptShown: a });
+      }
+    }
+    return { ...omit(f as unknown as Json, ['target', 'band', 'attempts']), attempts };
+  });
+  const exceptions = parts.exceptions.filter((e) => signedExceptions.has(e.exceptionId)).map((e) => pick(e as unknown as Json, STEP_EXCEPTION_SIGNED));
+  const context = parts.exceptions.map((e) =>
+    signedExceptions.has(e.exceptionId)
+      ? { exceptionId: e.exceptionId, title: e.title, inSignedContent: true, ...omit(e as unknown as Json, [...STEP_EXCEPTION_SIGNED, 'title']) }
+      : { ...(e as unknown as Json), inSignedContent: false, why: parts.whyNotSigned?.get(e.exceptionId) ?? NOT_SIGNED_WHY.OTHER },
+  );
+  return {
+    fields,
+    exceptions,
+    notSigned: {
+      note: NOT_SIGNED_NOTE,
+      exceptions: context,
+      ...(targets.length > 0 ? { targets } : {}),
+      ...(verdicts.length > 0 ? { verdicts } : {}),
+      ...(times.length > 0 ? { times } : {}),
+      ...(statuses.length > 0 ? { statuses } : {}),
+      ...(unrecorded.length > 0 ? { unrecorded } : {}),
+    },
+  };
+}
+
+/** The note of a hold point previewed without the decision being signed (it cannot be signed as shown). */
+export const NO_DECISION_NOTE = 'The decision is part of the signed content: preview it with the intent <meaning>|<base64url JSON {disposition, comment}>.';
+
+function rendering(
+  vc: ViewContext,
+  type: engine.AggregateType,
+  key: string,
+  meaning: { code: string; text: string },
+  decided: { proposal: execution.DispositionProposal | null; decision: HoldPointDecision | null },
+  c: engine.AggregateContent,
+): { title: string; data: Record<string, unknown> & { kind: string } } {
+  const proposal = decided.proposal;
   const run = vc.run;
   const common = {
     runId: run.batch.id,
@@ -178,6 +393,7 @@ function rendering(vc: ViewContext, type: engine.AggregateType, key: string, mea
     const stepDef = run.def.steps.get(inst.step);
     if (!stepDef) throw notFound('step');
     const summary = stepSummary(vc, inst, inst.step, key);
+    const shown = exceptionsOfStep(vc, inst, key, inst.step);
     const sopId = stepDef.node.kind === 'phase' && typeof stepDef.node.config['sop'] === 'string' ? stepDef.node.config['sop'] : undefined;
     const sop = sopId ? run.def.mbr.references.find((r) => r.id === sopId) : undefined;
     return {
@@ -187,9 +403,15 @@ function rendering(vc: ViewContext, type: engine.AggregateType, key: string, mea
         ...common,
         step: { stepKey: key, stepId: inst.step, number: summary.number, title: summary.title, kind: inst.kind, block: summary.block, blockTitle: stepDef.block?.title ?? null, stage: stageRef(vc, stepDef.stage) },
         instruction: { text: stepDef.node.kind === 'phase' && typeof stepDef.node.config['text'] === 'string' ? stepDef.node.config['text'] : null, sop: sop ? { code: sop.code, title: sop.title, version: sop.version, hash: sop.hash ?? null } : null },
-        fields: fieldsOf(vc, stepDef, inst, key),
+        // A hold point's decision (disposition and comment) is part of the signed content (proposedDecision), bound
+        // when the signing challenge is prepared; a preview without it cannot be signed as shown (P26, P38).
+        ...(inst.kind === 'HOLD' ? { decision: decided.decision ? { proposed: { disposition: decided.decision.disposition, comment: decided.decision.comment } } : { proposed: null, note: NO_DECISION_NOTE } } : {}),
         entries: entriesOf(vc, key),
-        exceptions: exceptionsOfStep(vc, inst, key, inst.step).map((e) => exceptionView(vc, e)),
+        ...stepForSigning(c.content, {
+          fields: fieldsForSigning(vc, stepDef, inst, key),
+          exceptions: shown.map((e) => exceptionView(vc, e)),
+          whyNotSigned: new Map(shown.map((e) => [e.id, notSignedWhy(run.def, vc.state, e, key)])),
+        }),
       },
     };
   }
@@ -199,17 +421,22 @@ function rendering(vc: ViewContext, type: engine.AggregateType, key: string, mea
     const ref = stageRef(vc, frame.stage);
     const steps = engine.stageSteps(run.def, vc.state, frame).map((i) => stepSummary(vc, i, i.step, i.key));
     const keys = new Set(steps.map((s) => s.stepKey));
+    // The stage's content signs its steps (number, status, content hash), never its exceptions or how many are open.
     return {
       title: `Stage ${ref?.number ?? ''} ${ref?.name ?? frame.stage}`.trim(),
       data: {
         kind: 'batch_stage',
         ...common,
         stage: { stageKey: key, stageId: frame.stage, number: ref?.number ?? '', name: ref?.name ?? frame.stage, startedAt: vc.app.formatInstant(frame.startedAt) },
-        steps,
-        exceptions: Object.values(vc.state.exceptions)
-          .filter((e) => e.source.stepKey !== undefined && keys.has(e.source.stepKey))
-          .sort((a, b) => a.raisedSeq - b.raisedSeq)
-          .map((e) => exceptionView(vc, e)),
+        steps: steps.map((x) => omit(x as unknown as Json, ['openExceptions'])),
+        notSigned: {
+          note: NOT_SIGNED_NOTE,
+          openExceptions: steps.filter((x) => x.openExceptions > 0).map((x) => ({ stepKey: x.stepKey, number: x.number, openExceptions: x.openExceptions })),
+          exceptions: Object.values(vc.state.exceptions)
+            .filter((e) => e.source.stepKey !== undefined && keys.has(e.source.stepKey))
+            .sort((a, b) => a.raisedSeq - b.raisedSeq)
+            .map((e) => exceptionView(vc, e)),
+        },
       },
     };
   }
@@ -230,7 +457,8 @@ function rendering(vc: ViewContext, type: engine.AggregateType, key: string, mea
       kind: 'batch_exception',
       ...common,
       step: summary ? { stepKey: summary.stepKey, number: summary.number, title: summary.title } : null,
-      exception: view,
+      // The exception's content signs it as raised and its deviation link, never its status or handling.
+      exception: pick(view, EXCEPTION_SIGNED),
       recorded: item
         ? {
             item,
@@ -244,8 +472,17 @@ function rendering(vc: ViewContext, type: engine.AggregateType, key: string, mea
       // The disposition being signed is part of the signed content (proposedDisposition), bound when the
       // signing challenge is prepared; a preview without it cannot be signed as shown.
       disposition: proposal ? { proposed: proposal } : { proposed: null, note: 'The proposed disposition is part of the signed content: preview it with the intent EXCEPTION_DISPOSITIONED|<base64url JSON {outcome, justification}>.' },
+      notSigned: { note: NOT_SIGNED_NOTE, exception: { exceptionId: view.exceptionId, ...omit(view, EXCEPTION_SIGNED) } },
     },
   };
+}
+
+/** The step's fields as the step screen shows them, with the tolerance band (derived from the target) apart from the MBR limits. */
+function fieldsForSigning(vc: ViewContext, stepDef: engine.StepDef, inst: engine.StepInstance, key: string): FieldForSigning[] {
+  return fieldsOf(vc, stepDef, inst, key).map((f) => {
+    const mbr = limitViews(vc.run.def, specOf(vc.run.def, f.item)).length;
+    return { ...f, limits: f.limits.slice(0, mbr), band: f.limits.slice(mbr) };
+  });
 }
 
 /** The proposal stored on the exception's current content version is the action's (outcome, justification, deviation). */
@@ -253,6 +490,71 @@ async function proposalHolds(db: Db, runId: string, state: engine.BatchState, in
   const head = await execution.loadContentHead(db, 'batch_exception', runId, intent.exception);
   if (!head) return false;
   return sameProposal(await execution.loadProposal(db, runId, intent.exception, head.version), proposalOf(state, intent.exception, intent));
+}
+
+// ---------------------------------------------------------------------------------------------
+// The hold-point decision a signature covers (review findings P26, P38; DI-37, PR-45)
+
+/**
+ * A challenge (esig.challenge) names the aggregate, the content version and hash and the meaning, and nothing else
+ * of the action; two decisions of the same class (APPROVED and APPROVED_WITH_CONDITIONS, both HOLD_POINT_RELEASED;
+ * two rejections with different reasons) share the meaning. So the decision is part of the signed content: the
+ * preparation of the challenge records it (recipe.propose_hold_point_decision) and the hold point's content carries
+ * the latest one as `proposedDecision`, which the challenge and the signature hash. The member appears once a
+ * decision is proposed, so a hold point without one keeps the content signed before 0295 (recipe-core 0302). A sign
+ * request whose decision is not the one recorded for its challenge is refused here (EBMR-EXE-086) and, whatever the
+ * server does, by the database (recipe.check_hold_point_decision, 0295): the binding does not depend on this
+ * process's memory.
+ */
+function decisionChanged(stepKey: string, asked: HoldPointDecision, prepared: StoredDecision | null): Refusal {
+  const what = prepared === null ? [] : [asked.disposition !== prepared.disposition ? 'disposition' : null, asked.comment !== prepared.comment ? 'comment' : null].filter((x) => x !== null);
+  return {
+    code: 'EBMR-EXE-086',
+    kind: 'CONTENT_CHANGED',
+    whatHappened: 'The hold-point decision to sign is not the one reviewed at the start of the signing. Nothing was signed.',
+    why:
+      prepared === null
+        ? `No decision on hold point ${stepKey} was prepared for this signature.`
+        : what.length > 0
+          ? `The ${what.join(' and ')} of the decision on hold point ${stepKey} differs from the decision the signing was prepared for (${prepared.disposition}, ${prepared.comment === null ? 'without a comment' : 'with a comment'}).`
+          : `The decision on hold point ${stepKey} was prepared by another person or for another signing than this one.`,
+    controls: ['DI-37', 'PR-45'],
+    whatYouCanDo: ['Review the decision again, then start the signing again.'],
+    whoCanHelp: [],
+  };
+}
+
+/** The correlation id of the challenge command the signing's authentication was made for, in this session and for this signer. */
+async function challengeCorrelation(db: Db, ctx: SignableContext): Promise<string | null> {
+  if (!ctx.actor.authEventId) return null;
+  const { rows } = await db.query<{ correlation_id: string | null }>(
+    `select c.correlation_id::text as correlation_id
+       from iam.auth_event e
+       join esig.challenge c on c.id = e.challenge_id
+      where e.id = $1 and e.purpose = 'SIGNATURE' and e.person_id = c.signer_person and c.session_id = $2 and c.signer_person = $3`,
+    [ctx.actor.authEventId, ctx.actor.sessionId, ctx.actor.personId],
+  );
+  return rows[0]?.correlation_id ?? null;
+}
+
+/**
+ * Null when the decision of `intent` is exactly the one recorded on the hold point's current content version, by
+ * this signer, for the challenge this signing authenticated (the rule recipe.check_hold_point_decision enforces).
+ */
+async function decisionProblem(db: Db, ctx: SignableContext, runId: string, intent: { stepKey: string; disposition: string; comment?: string | undefined }): Promise<Refusal | null> {
+  const head = await execution.loadContentHead(db, 'batch_step', runId, intent.stepKey);
+  const stored = head ? await loadDecision(db, runId, intent.stepKey, head.version) : null;
+  const asked = decisionOf(intent);
+  if (stored === null || !sameDecision(stored, asked)) return decisionChanged(intent.stepKey, asked, stored);
+  if (stored.proposedBy !== ctx.actor.personId || stored.correlationId !== (await challengeCorrelation(db, ctx))) return decisionChanged(intent.stepKey, asked, stored);
+  return null;
+}
+
+/** Null when what the sign request decides (an exception disposition, a hold-point decision) is what its challenge recorded. */
+async function decidedProblem(db: Db, ctx: SignableContext, a: EngineAction, state: engine.BatchState): Promise<Refusal | null> {
+  if (a.intent.type === 'DISPOSITION_EXCEPTION') return (await proposalHolds(db, a.runId, state, a.intent)) ? null : proposalChanged(a.intent.exception);
+  if (a.intent.type === 'DISPOSITION_HOLD_POINT') return decisionProblem(db, ctx, a.runId, a.intent);
+  return null;
 }
 
 export function engineCommandHandler(app: AppContext): SignableActionHandler<EngineAction> {
@@ -297,13 +599,15 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const actor: engine.Actor = { id: viewer.personId, kind: 'PERSON', roles: await displayRoles(app, db, viewer.roleCode) };
       const exists = type === 'batch_step' ? stored.state.steps[key] : type === 'batch_stage' ? stored.state.stages[key] : stored.state.exceptions[key];
       if (!exists) throw notFound('record to be signed');
+      if (parsed.decision !== null && (type !== 'batch_step' || stored.state.steps[key]?.kind !== 'HOLD')) throw badIntent('a hold-point decision only for a hold point');
       const prepared = engine.prepareForSignature(run.def, stored.state, previewTarget(run.def, stored.state, type, key, meaning.code), actor, { nowUs });
       const c = engine.aggregateContent(run.def, prepared.state, type, key);
       if (!c) throw notFound('record to be signed');
       const proposal = type === 'batch_exception' ? (parsed.proposal ? proposalOf(prepared.state, key, parsed.proposal) : null) : undefined;
-      const binding = await bindingOf(db, runId, c, proposal);
+      const decision = isHoldPoint(c) ? parsed.decision : undefined;
+      const binding = await bindingOf(db, runId, c, proposal, decision);
       const vc = await viewContext(app, db, run, prepared.state, nowUs, viewer);
-      const r = rendering(vc, type, key, meaning, proposal ?? null);
+      const r = rendering(vc, type, key, meaning, { proposal: proposal ?? null, decision: decision ?? null }, c);
       return {
         aggregateType: type,
         aggregateId: `${runId}:${key}`,
@@ -321,14 +625,19 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
     async prepareForChallenge(client, ctx, a) {
       const o = await open(client, ctx, a);
       if (o.problem) throw new HttpRefusal(422, o.problem);
+      // A step is signed as performed or verified only from a terminal of its room (DI-20; the database refuses the
+      // signed row from anywhere else, recipe-core 0285 and 0300): said here, before the challenge and the PIN.
+      const room = a.intent.type === 'SIGN_PERFORMED' || a.intent.type === 'VERIFY' ? stepRoomRefusal(o.run.def, stepTarget(o.tx.state, a.intent.stepKey).step, ctx.room) : null;
+      if (room) throw new HttpRefusal(422, room);
       if (o.tx.state.version !== a.expectedVersion) throw stale(o.tx.state, a.expectedVersion);
       const roles = await engineRoles(client);
       const changed = await o.tx.prepare(o.subject.target, engineActor(ctx.actor.personId, roles), roles, o.meaning);
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
       const c = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
       if (!c) throw notFound('record to be signed');
-      // The disposition being signed becomes part of the exception's signed content (never a change of its data).
+      // What is being decided becomes part of the signed content (never a change of the record's data).
       if (a.intent.type === 'DISPOSITION_EXCEPTION') await execution.proposeDisposition(client, a.runId, a.intent.exception, proposalOf(o.tx.state, a.intent.exception, a.intent));
+      if (a.intent.type === 'DISPOSITION_HOLD_POINT') await client.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [a.runId, a.intent.stepKey, JSON.stringify(decisionOf(a.intent))]);
       const binding = await bindingOf(client, a.runId, c);
       return { contentVersion: String(binding.version), contentHash: binding.hash, changed };
     },
@@ -336,13 +645,12 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
     async dryRun(client, ctx, a): Promise<DryRunOutcome> {
       const o = await open(client, ctx, a);
       if (o.problem) return { accepted: false, status: 422, refusal: o.problem };
+      // Not the decision its challenge recorded: refused before anything is written (it is logged as a signing failure).
+      const decided = await decidedProblem(client, ctx, a, o.tx.state);
+      if (decided) return { accepted: false, status: 409, refusal: decided };
       const roles = await engineRoles(client);
       const actor = engineActor(ctx.actor.personId, roles);
       await o.tx.prepare(o.subject.target, actor, roles, o.meaning);
-      if (a.intent.type === 'DISPOSITION_EXCEPTION' && !(await proposalHolds(client, a.runId, o.tx.state, a.intent))) {
-        cache.set(a.runId, { def: o.run.def, state: o.tx.state });
-        return { accepted: false, status: 409, refusal: proposalChanged(a.intent.exception) };
-      }
       const placeholder: engine.SignatureRef = { id: engine.PLACEHOLDER_SIGNATURE_ID, meaning: o.meaning, signer: actor.id };
       const command = signedCommand(o.tx.state, a.intent, actor, placeholder, `ESIG-DRY:${randomUUID()}`, a.expectedVersion);
       const dry = o.tx.dryRun(command);
@@ -364,7 +672,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const o = await open(client, ctx, a);
       if (o.problem) throw new Error(`${o.problem.code} ${o.problem.why}`);
       if (signature.meaning !== o.meaning || signature.signer !== ctx.actor.personId) throw new Error(`EBMR-EXE-080 the signature (${signature.meaning}, ${signature.signer}) is not the one this action needs`);
-      if (a.intent.type === 'DISPOSITION_EXCEPTION' && !(await proposalHolds(client, a.runId, o.tx.state, a.intent))) throw new Error(`EBMR-EXE-086 ${proposalChanged(a.intent.exception).why}`);
+      const decided = await decidedProblem(client, ctx, a, o.tx.state);
+      if (decided) throw new Error(`${decided.code} ${decided.why}`);
       const roles = await engineRoles(client);
       const actor = engineActor(ctx.actor.personId, roles);
       const before = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key)?.contentHash;

@@ -108,6 +108,19 @@ describe('client intents refuse browser-supplied facts (J1-3, J2-8)', () => {
     expect(ok(ClientEntry, { kind: 'CHARGE_LOT', bomLine: 'BOM-PCM', container: 'C', lot: { id: 'L' } })).toBe(false);
   });
 
+  it('[DI-20][DI-30][PR-20] weights keyed by hand may name the balance read, and nothing else about it (review P50)', () => {
+    // The server and the database check that the balance named is a scale of the step's room and that none of them is
+    // online; its status, the source or the balance as the record states it are never taken from the browser.
+    const manual = { tare: '1.250', gross: '13.753', unit: 'kg' };
+    const handKeyed = { kind: 'CONTAINER_WEIGHING', item: 'dispApi', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101' };
+    expect(ok(ClientEntry, { ...handKeyed, manual })).toBe(true);
+    expect(ok(ClientEntry, { ...handKeyed, manual: { ...manual, deviceCode: 'TEST-BAL-00' } })).toBe(true);
+    expect(ok(ClientEntry, { kind: 'OUTPUT_CONTAINER', intermediate: 'I-BLEND', manual: { ...manual, deviceCode: 'TEST-BAL-02' } })).toBe(true);
+    for (const extra of [{ deviceCode: '' }, { deviceCode: 'X'.repeat(65) }, { status: 'OFFLINE' }, { balance: 'MANUAL' }, { source: 'MANUAL' }]) {
+      expect(ok(ClientEntry, { ...handKeyed, manual: { ...manual, ...extra } }), JSON.stringify(extra)).toBe(false);
+    }
+  });
+
   it('the signable actions carry only the intent and the reviewed version', () => {
     const action = { kind: 'ENGINE_COMMAND', runId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', expectedVersion: 7, intent: { type: 'SIGN_PERFORMED', stepKey: 'p-blend@' } };
     expect(ok(SignableAction, action)).toBe(true);

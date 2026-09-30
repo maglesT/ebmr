@@ -8,11 +8,30 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
-import { routes, type SignatureCredentials } from '@ebmr/api-contract';
+import { routes } from '@ebmr/api-contract';
 import { esigStubHandler } from '../../src/features/esig/stub.ts';
 import { challengeBadges } from '../../src/features/esig/index.ts';
 import { startServer, type TestBrowser, type TestServer } from '../support/harness.ts';
-import { correctStub, createStub, outcome, personaIn, refusalOf, sessionOfBrowser, startSigningServer, tapFor, valueOf } from './support.ts';
+import {
+  CHALLENGE_PATH,
+  challengeEvents,
+  challengeFor,
+  correctStub,
+  createStub,
+  loggedFailures,
+  outcome,
+  passwordOf,
+  personaIn,
+  pinOf,
+  refusalOf,
+  sessionOfBrowser,
+  sign,
+  signatureRows,
+  signingAlerts,
+  startSigningServer,
+  tapFor,
+  valueOf,
+} from './support.ts';
 
 let sbx: TestServer;
 let gmp: TestServer;
@@ -34,36 +53,6 @@ afterAll(async () => {
   await Promise.all([sbx?.close(), gmp?.close()]);
 });
 
-const PATH = '/api/esig/challenges';
-
-async function challengeFor(server: TestServer, b: TestBrowser, personaKey: string, stubId: string, meaning: string, opts: { clientContentHash?: string } = {}) {
-  const content = valueOf(await b.call(routes.esig.content, { query: { aggregateType: 'esig_stub', aggregateId: stubId, intent: meaning } }));
-  const body = {
-    aggregateType: 'esig_stub',
-    aggregateId: stubId,
-    contentVersion: content.contentVersion,
-    meaning,
-    clientContentHash: opts.clientContentHash ?? sha256Hex(content.canonicalText),
-    action: { kind: 'ESIG_STUB' as const, stubId },
-  };
-  const kiosk = b.terminal.includes('KIOSK');
-  const r = await b.call(routes.esig.createChallenge, { body, ...(kiosk ? { attribution: await tapFor(b, personaIn(server, personaKey), 'POST', PATH, body) } : {}) });
-  return { content, r };
-}
-
-async function sign(b: TestBrowser, challengeId: string, stubId: string, credentials: SignatureCredentials, proofFrom?: TestBrowser, idempotencyKey?: string) {
-  const body = { challengeId, credentials, action: { kind: 'ESIG_STUB' as const, stubId } };
-  const proof = await (proofFrom ?? b).proof('POST', '/api/esig/sign', body);
-  return b.call(routes.esig.sign, { body: { ...body, proof }, ...(idempotencyKey ? { idempotencyKey } : {}) });
-}
-
-const pinOf = (server: TestServer, key: string): SignatureCredentials => ({ kind: 'PIN', pin: personaIn(server, key).pin ?? '' });
-const passwordOf = (server: TestServer, key: string): SignatureCredentials => ({ kind: 'PASSWORD', loginName: personaIn(server, key).loginName, password: personaIn(server, key).password });
-
-async function signatureRows(server: TestServer, stubId: string): Promise<{ meaning_code: string; signer_person: string }[]> {
-  return (await server.db.admin.query<{ meaning_code: string; signer_person: string }>("select meaning_code, signer_person from esig.signature where aggregate_ref = 'esig_stub:' || $1 order by recorded_at", [stubId])).rows;
-}
-
 async function stubState(server: TestServer, stubId: string) {
   return (await server.db.admin.query<{ state: string; content_version: string; value: string }>('select state, content_version::text, value from esig.stub_signable where id = $1', [stubId])).rows[0];
 }
@@ -72,63 +61,6 @@ async function stubState(server: TestServer, stubId: string) {
 async function failures(server: TestServer, challengeId: string): Promise<string[]> {
   const { rows } = await server.db.admin.query<{ code: string; message: string }>('select code, message from esig.signing_failure where challenge_id = $1 order by id', [challengeId]);
   return rows.map((r) => (r.code === 'UNKNOWN' ? `UNKNOWN:${r.message.split(' ')[0] ?? ''}` : r.code));
-}
-
-interface LoggedFailure {
-  code: string;
-  event: string | null;
-  event_person: string | null;
-  for_challenge: boolean | null;
-  misuse: string | null;
-  uses: string;
-}
-
-/**
- * The signing-failure log of a challenge with the authentication event each entry names (DI-19): whose it is,
- * whether it was made for this challenge, what the kernel's misuse check found and the event's committed uses.
- */
-async function loggedFailures(server: TestServer, challengeId: string): Promise<LoggedFailure[]> {
-  const { rows } = await server.db.admin.query<LoggedFailure & { message: string }>(
-    `select f.code, f.message, f.auth_event_id::text as event, e.person_id::text as event_person, (e.challenge_id = f.challenge_id) as for_challenge,
-            f.misuse_code as misuse,
-            coalesce((select string_agg(u.use_kind, ',' order by u.use_kind) from iam.auth_event_use u where u.auth_event_id = f.auth_event_id), '') as uses
-       from esig.signing_failure f left join iam.auth_event e on e.id = f.auth_event_id
-      where f.challenge_id = $1
-      order by f.id`,
-    [challengeId],
-  );
-  return rows.map(({ message, ...r }) => ({ ...r, code: r.code === 'UNKNOWN' ? `UNKNOWN:${message.split(' ')[0] ?? ''}` : r.code }));
-}
-
-/** The authentication events made for a challenge (the signing attempts' own), oldest first. */
-async function challengeEvents(server: TestServer, challengeId: string): Promise<string[]> {
-  const { rows } = await server.db.admin.query<{ id: string }>('select id::text as id from iam.auth_event where challenge_id = $1 order by recorded_at, id', [challengeId]);
-  return rows.map((r) => r.id);
-}
-
-interface SigningAlert {
-  severity: string;
-  person_id: string | null;
-  account_id: string | null;
-  code: string | null;
-  reported: string | null;
-  event_purpose: string | null;
-  event_person: string | null;
-  event_account: string | null;
-}
-
-/** The security alerts raised for misuse at a challenge (DI-19), with the authentication event each one names. */
-async function signingAlerts(server: TestServer, challengeId: string): Promise<SigningAlert[]> {
-  const { rows } = await server.db.admin.query<SigningAlert>(
-    `select a.severity, a.person_id::text, a.account_id::text, a.details ->> 'code' as code, a.details ->> 'reported_code' as reported,
-            e.purpose as event_purpose, e.person_id::text as event_person, e.account_id::text as event_account
-       from iam.security_alert a
-       left join iam.auth_event e on e.id::text = a.details ->> 'auth_event_id' and e.challenge_id::text = a.details ->> 'challenge_id'
-      where a.kind = 'SIGNING_FAILED' and a.details ->> 'challenge_id' = $1
-      order by a.raised_at`,
-    [challengeId],
-  );
-  return rows;
 }
 
 describe('kiosk ceremony', () => {
@@ -235,7 +167,7 @@ describe('kiosk ceremony', () => {
     const content = valueOf(await op.call(routes.esig.content, { query: { aggregateType: 'esig_stub', aggregateId: stub, intent: 'PERFORMED' } }));
     await correctStub(sbx, op, 'operator1', stub, '12.530');
     const body = { aggregateType: 'esig_stub', aggregateId: stub, contentVersion: content.contentVersion, meaning: 'PERFORMED', clientContentHash: sha256Hex(content.canonicalText), action: { kind: 'ESIG_STUB' as const, stubId: stub } };
-    const r = refusalOf(await op.call(routes.esig.createChallenge, { body, attribution: await tapFor(op, personaIn(sbx, 'operator1'), 'POST', PATH, body) }));
+    const r = refusalOf(await op.call(routes.esig.createChallenge, { body, attribution: await tapFor(op, personaIn(sbx, 'operator1'), 'POST', CHALLENGE_PATH, body) }));
     expect(r).toMatchObject({ status: 409, kind: 'CONTENT_CHANGED' });
     expect(['EBMR-ESIG-012', 'EBMR-ESIG-013']).toContain(r.code);
   });
@@ -276,8 +208,9 @@ describe('kiosk ceremony', () => {
     );
     expect(uses.rows.map((u) => u.use_kind)).toEqual(['COMMAND']);
     expect(await failures(sbx, ch.challengeId)).toEqual(['UNKNOWN:ESIG_STUB_ORDER']);
-    // DI-19: the refusal was logged with that same authentication, the signer's own for this challenge, so the kernel
-    // checked the attempt for misuse; it found none, because the log came before the refusal record committed.
+    // DI-19: the refusal was logged with that same authentication, the signer's own for this challenge, inside the
+    // refused command, so the kernel checked the attempt for misuse; it found none (kernel 0950, K2: the use by the
+    // command the event attributes, logged in that same command, is the attempt's own).
     expect(await loggedFailures(sbx, ch.challengeId)).toEqual([
       { code: 'UNKNOWN:ESIG_STUB_ORDER', event: uses.rows[0]?.id, event_person: personaIn(sbx, 'verifier2').personId, for_challenge: true, misuse: null, uses: 'COMMAND' },
     ]);
@@ -376,14 +309,14 @@ describe('office ceremony', () => {
     expect(first).toMatchObject({ status: 422, code: 'ESIG_STUB_ORDER' });
     expect(refusalOf(await sign(approver, ch.challengeId, stub, passwordOf(gmp, 'approver'), undefined, key))).toEqual(first);
     expect((await signatureRows(gmp, stub)).map((s) => s.meaning_code)).toEqual(['PREPARED']);
-    // Each attempt is logged with the approver's own authentication for this challenge, which the kernel checked and
-    // found no misuse in. The first one attributes the written refusal (one COMMAND use); the resend's replay rolled
-    // back, so its authentication is used by nothing.
+    // Each attempt is logged with the approver's own authentication for this challenge, inside the command it
+    // attributes (one COMMAND use each: the first attempt's command wrote the refusal, the resend's replayed it), and
+    // the kernel checked each and found no misuse (K2).
     const events = await challengeEvents(gmp, ch.challengeId);
     expect(events).toHaveLength(2);
     expect(await loggedFailures(gmp, ch.challengeId)).toEqual([
       { code: 'UNKNOWN:ESIG_STUB_ORDER', event: events[0], event_person: me.personId, for_challenge: true, misuse: null, uses: 'COMMAND' },
-      { code: 'UNKNOWN:ESIG_STUB_ORDER', event: events[1], event_person: me.personId, for_challenge: true, misuse: null, uses: '' },
+      { code: 'UNKNOWN:ESIG_STUB_ORDER', event: events[1], event_person: me.personId, for_challenge: true, misuse: null, uses: 'COMMAND' },
     ]);
     expect(await signingAlerts(gmp, ch.challengeId)).toEqual([]);
     const violations = await gmp.db.admin.query('select * from esig.invariant_violations()');

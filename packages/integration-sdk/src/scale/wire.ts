@@ -4,8 +4,8 @@
  * Two channels, each authenticated in its own direction:
  *  - uplink (gateway -> server's gateway listener, /gw/v1): the gateway logs in as its INTEGRATION identity with
  *    its SERVICE_KEY and a proof of possession of its Ed25519 key (the key whose SHA-256 SPKI fingerprint is the
- *    registered SERVER device), then sends readings (idempotent by readingId) and heartbeats with an opaque
- *    bearer token;
+ *    registered SERVER device), then sends readings (idempotent by readingId, each with its wait signed against a
+ *    challenge the database issued for the upload) and heartbeats with an opaque bearer token;
  *  - gateway API (server -> gateway, /v1): capture and live display, authorised by a random API token the
  *    gateway hands over in its login, so the server never holds the gateway's credential.
  */
@@ -69,7 +69,16 @@ export const GatewayHealth = z.strictObject({
   loggedIn: z.boolean(),
   chainId: z.uuid().nullable(),
   journal: z.strictObject({ lastSeq: IntegerText, ackedSeq: IntegerText }),
-  devices: z.array(z.strictObject({ deviceCode: DeviceCode, state: DeviceState, serial: z.string().nullable() })),
+  devices: z.array(
+    z.strictObject({
+      deviceCode: DeviceCode,
+      /** The state the heartbeat reports: a connected instrument the gateway cannot capture from and deliver is OFFLINE. */
+      state: DeviceState,
+      serial: z.string().nullable(),
+      /** Why a connected instrument is reported OFFLINE (the capture would answer NOT_READY); null otherwise. */
+      notReady: z.string().nullable(),
+    }),
+  ),
 });
 export type GatewayHealth = z.infer<typeof GatewayHealth>;
 
@@ -120,18 +129,45 @@ export const LoginResponse = z.strictObject({
 });
 export type LoginResponse = z.infer<typeof LoginResponse>;
 
+/**
+ * DI-28 (review finding P53): the challenge the server's database issues for one upload (POST /gw/v1/challenge, with
+ * the bearer token). The database keeps when it issued it; the gateway signs each reading's wait against it.
+ */
+export const ChallengeResponse = z.strictObject({ challengeId: z.uuid() });
+export type ChallengeResponse = z.infer<typeof ChallengeResponse>;
+
+export const UPLOAD_WAIT_FORMAT = 'ebmr.upload-wait.v1';
+
+/**
+ * The text the gateway signs with its Ed25519 key for each reading of an upload: the upload's challenge, the reading
+ * id and the reading's wait at the gateway, measured after the challenge arrived (ids as lower-case text, the wait in
+ * plain decimal microseconds). The database verifies it (tab.ingest_reading) and counts the wait as this signed
+ * value plus its own time from the challenge's issue to the insert, so no part of a reading's age is the server
+ * application's word.
+ */
+export function uploadWaitMessage(challengeId: string, readingId: string, delayUs: string): Buffer {
+  return Buffer.from(`${UPLOAD_WAIT_FORMAT}|${challengeId.toLowerCase()}|${readingId.toLowerCase()}|${delayUs}`, 'utf8');
+}
+
 export const UplinkItem = z.strictObject({
   reading: ScaleReading,
   /**
-   * How long the reading waited at the gateway before this send (monotonic clock, microseconds), or null when
-   * unknown (sent after a gateway restart). The server counts it into the reading's age: null means too old to
-   * claim, so a replayed reading is kept but never used for a new entry.
+   * How long the reading had waited at the gateway when this item was signed (monotonic clock, microseconds), or null
+   * when unknown (sent after a gateway restart). The database counts it, plus its own time since the upload's
+   * challenge, into the reading's age: null means too old to claim, so a replayed reading is kept but never used for
+   * a new entry.
    */
   delayUs: IntegerText.nullable(),
+  /** Ed25519 over uploadWaitMessage(challengeId, reading.readingId, delayUs), base64; null when delayUs is null. */
+  waitSig: Base64.nullable(),
 });
 export type UplinkItem = z.infer<typeof UplinkItem>;
 
-export const UplinkRequest = z.strictObject({ items: z.array(UplinkItem).min(1).max(100) });
+export const UplinkRequest = z.strictObject({
+  /** The challenge the waits of these items are signed against (ChallengeResponse). */
+  challengeId: z.uuid(),
+  items: z.array(UplinkItem).min(1).max(100),
+});
 export type UplinkRequest = z.infer<typeof UplinkRequest>;
 
 export const UplinkResult = z.strictObject({ readingId: z.uuid(), seq: IntegerText, outcome: z.enum(['INGESTED', 'DUPLICATE']) });
@@ -144,17 +180,36 @@ export const UplinkResponse = z.strictObject({
 });
 export type UplinkResponse = z.infer<typeof UplinkResponse>;
 
+/** The longest reason a heartbeat gives for an instrument that is not ready (the server stores it). */
+export const NOT_READY_MAX = 500;
+
 export const HeartbeatRequest = z.strictObject({
   gatewayTimeUs: EpochMicrosText,
   devices: z.array(
     z.strictObject({
       deviceCode: DeviceCode,
+      /** The state the server shows: a connected instrument the gateway cannot capture from and deliver is OFFLINE. */
       state: DeviceState,
       /** The serial read with I4 on the current connection (null while not connected). */
       serial: z.string().regex(SERIAL_PATTERN).nullable(),
+      /**
+       * Why a connected instrument is reported OFFLINE (a capture would answer NOT_READY), or null. The server stores
+       * it and alarms each episode, so it holds a record of why (review finding P51). Optional for older gateways.
+       */
+      notReady: z.string().min(1).max(NOT_READY_MAX).nullable().optional(),
     }),
   ),
-  journal: z.strictObject({ lastSeq: IntegerText, ackedSeq: IntegerText }),
+  journal: z.strictObject({
+    lastSeq: IntegerText,
+    /** The acknowledgement watermark written on the gateway's disk. */
+    ackedSeq: IntegerText,
+    /**
+     * The last reading the server acknowledged, as the gateway holds it in memory: above ackedSeq while the watermark
+     * cannot be written. The server's reconciliation by counts (DI-31) takes the higher of the two. Optional for older
+     * gateways.
+     */
+    deliveredSeq: IntegerText.optional(),
+  }),
 });
 export type HeartbeatRequest = z.infer<typeof HeartbeatRequest>;
 

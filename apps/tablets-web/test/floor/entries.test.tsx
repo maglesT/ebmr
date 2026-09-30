@@ -141,7 +141,7 @@ describe('checklists, scans and acknowledgements', () => {
 
     const inProgress = stepVariant('step-g09-equipment-status', (v) => {
       v.step.status = 'IN_PROGRESS';
-      v.actions = [{ action: 'RECORD_ENTRY', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null }];
+      v.actions = [{ action: 'RECORD_ENTRY', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] }];
     });
     const second = renderFloor(stepPath('p-disp-bal@'), { fixtures: stepFixtures(inProgress), intercept: (r) => ok(r, inProgress) });
     const form = await screen.findByTestId('form-EQUIPMENT_STATUS');
@@ -224,8 +224,8 @@ describe('renderer registry', () => {
       v.signatures = [];
       v.entryForms = [{ kind: 'LINE_CHECK', title: 'Line check', description: 'Not a contract entry', fields: [{ name: 'ok', label: 'Line clear', type: 'boolean', unit: null, options: null, required: true, description: '' }] }];
       v.actions = [
-        { action: 'RECORD_DATA', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null },
-        { action: 'RECORD_ENTRY', available: true, primary: false, requires: 'TAP', meaning: null, reason: null, target: null },
+        { action: 'RECORD_DATA', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] },
+        { action: 'RECORD_ENTRY', available: true, primary: false, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] },
       ];
     });
     const ui = renderFloor(stepPath('p-obs@'), { fixtures: stepFixtures(g05), intercept: (r) => ok(r, g05) });

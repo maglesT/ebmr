@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { identity, withCommand } from '@ebmr/kernel';
-import { routes, type DeviceProof } from '@ebmr/api-contract';
+import { routes, type DeviceProof, type Result } from '@ebmr/api-contract';
 import { generateDeviceKey, openServiceSession, passwordActor, signDeviceProof, terminalOf } from '@ebmr/test-kit';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { startServer, type TestServer } from '../support/harness.ts';
@@ -127,7 +127,7 @@ describe('device proofs', () => {
 });
 
 describe('first-login secret change and role choice', () => {
-  it('[DI-15] an initial password must be changed before a session opens; the new one then works', async () => {
+  it('[DI-15][DI-16] an initial password must be changed before a session opens; the new one then works, and role-bound work waits for the role choice', async () => {
     const admin = gmp.seed.bootstrap.admin;
     const owner = gmp.seed.bootstrap.owner;
     const adminCtx = await passwordActor(gmp.db, admin, admin.fingerprint, { reasonCode: 'TEST', reasonText: 'test set-up' });
@@ -168,11 +168,19 @@ describe('first-login secret change and role choice', () => {
     const next = { method: 'PASSWORD' as const, identifier: 'leela.pillai', secret: 'Leela-own-secret-2026' };
     const r2 = await b.call(routes.session.login, { body: { ...next, proof: await b.proof('POST', '/api/session/login', next) } });
     expect(r2.ok && r2.value).toMatchObject({ role: null, roleChoiceRequired: true, roles: ['MBR_AUTHOR', 'MBR_CHECKER'] });
-    // Until the role is chosen, work is refused.
-    const blocked = await b.call(routes.meta.get);
-    expect(blocked.ok).toBe(true);
+    // Until the role is chosen, role-bound work is refused: a read and a command of SESSION routes both answer 409
+    // ROLE_CHOICE_REQUIRED with the roles to choose from (decision C0-4). The session itself stays readable.
+    const roleGate = (r: Result<unknown>) => (!r.ok && r.error.kind === 'REFUSAL' ? { status: r.error.status, code: r.error.envelope.refusal.code, roles: r.error.envelope.refusal.details?.['roles'] } : 'not refused');
+    const refusedAsUndeclared = { status: 409, code: 'ROLE_CHOICE_REQUIRED', roles: 'MBR_AUTHOR,MBR_CHECKER' };
+    expect(roleGate(await b.call(routes.audit.chains, { query: {} }))).toEqual(refusedAsUndeclared);
+    const family = { templateId: 'dc-mini', familyCode: 'PCM500-NOROLE', product: { code: 'PCM500', name: 'Paracetamol tablets', strength: '500 mg' }, batchSizes: [{ quantity: '60.000', unit: 'kg' }], markets: ['IN'] };
+    expect(roleGate(await b.call(routes.designer.createFamily, { body: family }))).toEqual(refusedAsUndeclared);
+    const { rows: families } = await gmp.db.admin.query<{ n: number }>("select count(*)::int as n from recipe.mbr_family where code = 'PCM500-NOROLE'");
+    expect(families[0]?.n).toBe(0);
+    expect((await b.call(routes.session.get)).ok).toBe(true);
     const choose = await b.call(routes.session.chooseRole, { body: { roleCode: 'MBR_CHECKER' } });
     expect(choose.ok && choose.value).toMatchObject({ role: 'MBR_CHECKER', roleChoiceRequired: false, person: { role: 'MBR_CHECKER' } });
+    expect((await b.call(routes.audit.chains, { query: {} })).ok).toBe(true);
     const again = await b.call(routes.session.chooseRole, { body: { roleCode: 'MBR_AUTHOR' } });
     expect(!again.ok && again.error.kind === 'REFUSAL' && again.error.envelope.refusal.code).toBe('EBMR-TAB-015');
   });

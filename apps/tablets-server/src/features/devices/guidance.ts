@@ -82,6 +82,14 @@ export const DEVICES_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: ['The system administrator (scales and gateway)'],
     controls: ['DI-31'],
   },
+  'EBMR-DEV-110': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The stored scale reading failed its integrity check (its signature or raw scale line), so it cannot be used.',
+    whatYouCanDo: [takeNew, manualPath],
+    whoCanHelp: ['The system administrator (scales and gateway)', 'QA (data integrity)'],
+    controls: ['DI-31', 'DI-32'],
+  },
   SCALE_NOT_IN_ROOM: {
     status: 403,
     kind: 'NOT_ALLOWED',

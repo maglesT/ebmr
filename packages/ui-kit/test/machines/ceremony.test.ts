@@ -177,11 +177,17 @@ describe('ceremony machine paths', () => {
     expect(ceremonyOutcome(ok.value, ok.context)).toMatchObject({ status: 'SIGNED', manifestation: { signatureId: MANIFESTATION.signatureId } });
   });
 
-  it('[INV-40] a tap by another person offers the switch; after it the ceremony starts again for the new person', () => {
+  it('[INV-40][DI-38] a tap by another person offers the switch; after it the ceremony ends with nothing signed, so the new person starts their own signing', () => {
     const offered = pathsTo(true, 'switchOffered')[0];
     expect(eventTypes(offered ?? { steps: [] }).at(-1)).toBe('error.createChallenge');
-    const [restart] = transition(ceremonyMachine, offered?.state as never, { type: 'SWITCHED' } as never);
-    expect((restart as { value: unknown }).value).toBe('loadingContent');
+    const [after] = transition(ceremonyMachine, offered?.state as never, { type: 'SWITCHED' } as never);
+    const ended = after as unknown as { value: CeremonyState; context: Parameters<typeof ceremonyOutcome>[1] };
+    expect(ended.value).toBe('cancelled');
+    expect(ceremonyOutcome(ended.value, ended.context)).toEqual({ status: 'CANCELLED' });
+    // No path signs anything once a switch happened: the previous person's request never meets the new person's secret.
+    const signed = getSimplePaths(ceremonyMachine, { input: { kiosk: true }, events: EVENTS, serializeState: serialize, toState: (s) => s.value === 'done' });
+    expect(signed.length).toBeGreaterThan(0);
+    for (const p of signed) expect(eventTypes(p)).not.toContain('SWITCHED');
   });
 });
 

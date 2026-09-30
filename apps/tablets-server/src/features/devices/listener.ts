@@ -6,11 +6,27 @@
  *   POST /gw/v1/session    login: Ed25519 proof of possession of the enrolled key (its SHA-256 SPKI fingerprint is the
  *                          registered SERVER device), then kernel SERVICE_KEY authentication on that device and a
  *                          session bound to an opaque bearer token (tab.gateway_session, never a browser cookie)
- *   POST /gw/v1/readings   readings in chain order; each is checked here (schema, hash, Ed25519 signature against the
- *                          enrolled key, raw line equal to the value) and ingested by tab.ingest_reading in its own
- *                          INTEGRATION command (INTERFACE.WRITE; chain, sequence, serial, installation checked in SQL).
- *                          Idempotent by reading id. The first refusal stops the batch and raises an alarm (DI-31).
- *   POST /gw/v1/heartbeat  instrument states (every 5 s); a gap over 10 s shows the scale OFFLINE
+ *   POST /gw/v1/challenge  a challenge for one upload, issued by the database (tab.issue_ingest_challenge, in the
+ *                          gateway's INTEGRATION command), which keeps when it issued it (DI-28; tablets 0330)
+ *   POST /gw/v1/readings   readings in chain order, with the upload's challenge; each is checked here (schema, hash,
+ *                          Ed25519 signature against the enrolled key, raw line equal to the value, the gateway's
+ *                          signature over its wait) and ingested by tab.ingest_reading in its own INTEGRATION command
+ *                          (INTERFACE.WRITE; chain, sequence, serial, installation checked in SQL). The database
+ *                          proves every stored reading again on its own (0270: hash of the stored content, Ed25519
+ *                          signature under the enrolled key, raw line stating the value; DI-31, DI-32), so these
+ *                          checks here only refuse early. The wait passed with each reading is the gateway's, as it
+ *                          signed it over the challenge and the reading id; the database verifies that signature
+ *                          and adds its own time from the challenge's issue to the insert (tablets 0330), so the age
+ *                          of a reading never rests on this code's word (DI-28, review finding P53). It refuses a
+ *                          wait above 100 years (EBMR-DEV-052, also refused here first) and bounds the age of a
+ *                          DEVICE_SYNCED reading by its signed capture time as well (0320). The gateway acts only in
+ *                          SITE_GATEWAY (INTERFACE.WRITE only; DI-17), and the database takes its work in no other
+ *                          role (0290, EBMR-DEV-032). Idempotent by reading id. The first refusal stops the batch
+ *                          and raises an alarm (DI-31).
+ *   POST /gw/v1/heartbeat  instrument states (every 5 s at most), with the reason a connected instrument is not
+ *                          ready; a gap over 10 s shows the scale OFFLINE. While the database counts the gateway's API
+ *                          unreachable (a capture could not reach it), each heartbeat has the server probe that API
+ *                          (DevicesRuntime.probeApi; tablets 0320, DI-30)
  *   POST /gw/v1/logout
  * Integration identities never sign: the kernel refuses SERVICE_KEY authentication for anything but LOGIN, and
  * iam.can_sign refuses non-human accounts.
@@ -19,7 +35,7 @@
  * server runs, every request is refused with SITE_ZONE_CHANGED (503, no relogin) until the server restarts, so no
  * reading is taken or refused as bad in a context of the old zone; the gateway keeps its journal and sends again.
  */
-import { createHash, randomBytes, randomUUID, verify } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, verify, type KeyObject } from 'node:crypto';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { commands, identity, type ActorContext } from '@ebmr/kernel';
 import {
@@ -31,9 +47,12 @@ import {
   loginProofMessage,
   readingProblem,
   spkiFingerprint,
+  uploadWaitMessage,
+  type ChallengeResponse,
   type HeartbeatResponse,
   type LoginResponse,
   type ScaleReading,
+  type UplinkItem,
   type UplinkResponse,
 } from '@ebmr/integration-sdk/scale';
 import { consumeNonce, mintNonce } from '../../platform/auth/nonces.ts';
@@ -55,7 +74,7 @@ class GwError extends Error {
   }
 }
 
-interface GatewaySession {
+export interface GatewaySession {
   tokenHash: string;
   sessionId: string;
   personId: string;
@@ -66,17 +85,12 @@ interface GatewaySession {
   chainId: string;
   gatewayCode: string;
   publicKeySpki: string;
+  /** The roles the session's account holds now (approved, unrevoked, in validity), as the database reports them. */
   roles: string[];
 }
 
-async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<GatewaySession> {
-  const header = request.headers.authorization;
-  const token = typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-  if (!/^[A-Za-z0-9_-]{40,128}$/.test(token)) throw new GwError(401, 'NO_TOKEN', 'a bearer token is required', true);
-  const hash = tokenHash(token);
-  const { rows } = await app.pools.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [hash]);
-  const r = rows[0]?.r;
-  if (!r || r['state'] !== 'ACTIVE') throw new GwError(401, 'SESSION', 'the gateway session is unknown, ended or locked; log in again', true);
+/** A gateway session as tab.resolve_gateway_session reports it for the bearer token whose SHA-256 is `hash`. */
+export function gatewaySessionOf(hash: string, r: Record<string, unknown>): GatewaySession {
   return {
     tokenHash: hash,
     sessionId: String(r['session_id']),
@@ -92,16 +106,36 @@ async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<
   };
 }
 
+async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<GatewaySession> {
+  const header = request.headers.authorization;
+  const token = typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!/^[A-Za-z0-9_-]{40,128}$/.test(token)) throw new GwError(401, 'NO_TOKEN', 'a bearer token is required', true);
+  const hash = tokenHash(token);
+  const { rows } = await app.pools.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [hash]);
+  const r = rows[0]?.r;
+  if (!r || r['state'] !== 'ACTIVE') throw new GwError(401, 'SESSION', 'the gateway session is unknown, ended or locked; log in again', true);
+  return gatewaySessionOf(hash, r);
+}
+
 /**
- * The INTEGRATION actor of a gateway session (source INTEGRATION; the role holding INTERFACE.WRITE). `siteZone` is
- * the site policy's zone as the server holds it (AppContext.siteZone.current(), which refuses once the policy
- * changed): the kernel refuses any other (EBMR-IAM-118, DI-27).
+ * The only role a gateway acts in (DI-17 least privilege): SITE_GATEWAY, which holds INTERFACE.WRITE and nothing else
+ * (0290). The database takes the gateway's readings and heartbeats in no other role (tab.actor_gateway_key,
+ * EBMR-DEV-032), even when its account also holds a broader one such as the kernel's SERVICE_ACCOUNT; the kernel
+ * refuses the role to an account that does not hold it (EBMR-IAM-108).
+ */
+export const GATEWAY_ROLE = 'SITE_GATEWAY';
+
+/**
+ * The INTEGRATION actor of a gateway session (source INTEGRATION; role GATEWAY_ROLE, whatever else the account
+ * holds). `siteZone` is the site policy's zone as the server holds it
+ * (AppContext.siteZone.current(), which refuses once the policy changed): the kernel refuses any other
+ * (EBMR-IAM-118, DI-27). The kernel checks the role against the account's grants in every command (EBMR-IAM-108).
  */
 export function gatewayActor(gw: GatewaySession, siteZone: string, correlationId: string): ActorContext & { deviceId: string } {
   return {
     personId: gw.personId,
     accountId: gw.accountId,
-    roleCode: gw.roles.includes('SERVICE_ACCOUNT') ? 'SERVICE_ACCOUNT' : (gw.roles[0] ?? 'SERVICE_ACCOUNT'),
+    roleCode: GATEWAY_ROLE,
     sessionId: gw.sessionId,
     deviceId: gw.deviceId,
     source: 'INTEGRATION',
@@ -137,6 +171,34 @@ function rawProblem(r: ScaleReading): string | null {
     return `the raw line "${r.raw}" states ${seen.value ?? 'no value'} ${seen.unit ?? ''} (${seen.status}), not ${r.value ?? 'no value'} ${r.unit ?? ''} (${r.status})`;
   }
   return null;
+}
+
+/** DI-28: the longest wait tab.ingest_reading takes (100 years in microseconds); a longer one is no measured wait (EBMR-DEV-052). */
+export const MAX_WAIT_US = 3_155_760_000_000_000n;
+
+/**
+ * DI-28 (P53): why the wait of an upload item is not the gateway's own, signed over the upload's challenge and the
+ * reading id with the enrolled key (null when it is, or when the wait is unknown). tab.ingest_reading checks the same
+ * again (EBMR-DEV-053, EBMR-DEV-055) and also that the database issued the challenge to this enrolment (EBMR-DEV-054),
+ * so this check only refuses early.
+ */
+export function waitProofProblem(challengeId: string, item: UplinkItem, publicKey: KeyObject): { code: string; message: string } | null {
+  if (item.delayUs === null) return null;
+  const id = item.reading.readingId;
+  if (item.waitSig === null) {
+    return { code: 'EBMR-DEV-053', message: `EBMR-DEV-053 DI-28: the wait of reading ${id} comes without the gateway's signature over a challenge from the database, so it is not proven` };
+  }
+  let ok: boolean;
+  try {
+    ok = verify(null, uploadWaitMessage(challengeId, id, item.delayUs), publicKey, Buffer.from(item.waitSig, 'base64'));
+  } catch {
+    ok = false;
+  }
+  if (ok) return null;
+  return {
+    code: 'EBMR-DEV-055',
+    message: `EBMR-DEV-055 DI-28: the signature over the wait of reading ${id} (${item.delayUs} microseconds, challenge ${challengeId}) does not verify with the enrolled gateway key`,
+  };
 }
 
 export interface GatewayListener {
@@ -225,6 +287,28 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
     return response;
   });
 
+  // DI-28 (P53): the challenge one upload's waits are signed against; the database keeps when it issued it. A refused
+  // challenge refuses the upload, so it is alarmed like a refused reading (DI-31).
+  server.post('/gw/v1/challenge', async (request) => {
+    const gw = await resolveBearer(app, request);
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+    let out: { challengeId: string };
+    try {
+      out = await withActorCommand(app.pools.app, actor, async (client) => {
+        const { rows } = await client.query<{ r: { challengeId: string } }>('select tab.issue_ingest_challenge() as r');
+        if (!rows[0]) throw new Error('tab.issue_ingest_challenge returned nothing');
+        return rows[0].r;
+      });
+    } catch (error) {
+      const code = commands.errorCode(error) ?? 'INTERNAL';
+      const message = `DI-28: no challenge was issued for an upload, so no reading can be received: ${error instanceof Error ? error.message : String(error)}`;
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: null, message });
+      throw error;
+    }
+    const response: ChallengeResponse = { challengeId: out.challengeId };
+    return response;
+  });
+
   server.post('/gw/v1/readings', async (request) => {
     const gw = await resolveBearer(app, request);
     const parsed = UplinkRequest.safeParse(request.body);
@@ -232,6 +316,7 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code: 'SCHEMA', readingId: null, message: 'DI-31: a reading batch was not in the expected form' });
       throw new GwError(400, 'SCHEMA', 'DI-31: the readings are not in the expected form');
     }
+    const { challengeId } = parsed.data;
     const correlationId = randomUUID();
     const actor = gatewayActor(gw, app.siteZone.current(), correlationId);
     const publicKey = ed25519PublicKey(gw.publicKeySpki);
@@ -249,11 +334,26 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
         await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: r.readingId, message, details: { seq: r.seq, deviceCode: r.deviceCode } });
         break;
       }
+      const wait = item.delayUs;
+      if (wait !== null && BigInt(wait) > MAX_WAIT_US) {
+        // Refused here too, so an absurd wait never reaches the database as PostgreSQL's raw "out of range".
+        const code = 'EBMR-DEV-052';
+        const message = `${code} DI-28: a reported wait of ${wait} microseconds is longer than 100 years, so it is not a measured wait`;
+        refused = { readingId: r.readingId, code, message };
+        await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: r.readingId, message, details: { seq: r.seq, deviceCode: r.deviceCode } });
+        break;
+      }
+      const unproven = waitProofProblem(challengeId, item, publicKey);
+      if (unproven) {
+        refused = { readingId: r.readingId, ...unproven };
+        await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', ...unproven, readingId: r.readingId, details: { seq: r.seq, deviceCode: r.deviceCode, challengeId } });
+        break;
+      }
       try {
         const out = await withActorCommand(app.pools.app, actor, async (client) => {
           const { rows } = await client.query<{ r: { outcome: 'INGESTED' | 'DUPLICATE'; readingId: string; seq: string; head: { seq: string; hash: string } } }>(
-            'select tab.ingest_reading($1::jsonb, $2::bigint) as r',
-            [JSON.stringify(r), item.delayUs],
+            'select tab.ingest_reading($1::jsonb, $2::bigint, $3::uuid, $4) as r',
+            [JSON.stringify(r), wait, challengeId, item.waitSig],
           );
           if (!rows[0]) throw new Error('tab.ingest_reading returned nothing');
           return rows[0].r;
@@ -289,11 +389,15 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
     if (!parsed.success) throw new GwError(400, 'SCHEMA', 'the heartbeat is not in the expected form');
     const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
     const out = await withActorCommand(app.pools.app, actor, async (client) => {
-      const { rows } = await client.query<{ r: HeartbeatResponse }>('select tab.record_heartbeat($1::jsonb) as r', [JSON.stringify(parsed.data)]);
+      const { rows } = await client.query<{ r: HeartbeatResponse & { probeApi?: boolean } }>('select tab.record_heartbeat($1::jsonb) as r', [JSON.stringify(parsed.data)]);
       if (!rows[0]) throw new Error('tab.record_heartbeat returned nothing');
       return rows[0].r;
     });
-    return out;
+    // DI-30 (P51): while the database counts this gateway's API unreachable, probe it (not awaited: the heartbeat is
+    // answered at once); an answer marks it reachable, so its scales follow its heartbeats again.
+    if (out.probeApi === true) void runtime.probeApi(gw.gatewayCode);
+    const response: HeartbeatResponse = { serverTimeUs: out.serverTimeUs, head: out.head };
+    return response;
   });
 
   server.post('/gw/v1/logout', async (request) => {

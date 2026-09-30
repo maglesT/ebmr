@@ -3,7 +3,10 @@
  * `rendering` of each kind, matched to the shapes the execution store (C3) sends from GET /api/esig/content:
  *  - common: runId, batchNumber, product {code, name, strength}, mbr {familyCode, versionNumber, revision,
  *    contentHash}, meaning, meaningText;
- *  - batch_step: step, instruction, fields (FieldView), entries (EntryView), exceptions (ExceptionView);
+ *  - batch_step: step, instruction, fields (FieldView), entries (EntryView), exceptions (ExceptionView); for a QA
+ *    hold point also decision (the proposed disposition and comment when the signed content carries them: shown
+ *    first and prominently, from the content, never from client state; review findings P26, P38; no comment, an
+ *    empty one and one of white space only are each named, as each is another decision);
  *  - batch_stage: stage, steps (StepSummaryView), exceptions;
  *  - batch_exception: step, exception, recorded, deviation, disposition (the proposed outcome and justification
  *    when the signed content carries them: shown first and prominently, from the content, never from client state);
@@ -11,6 +14,11 @@
  * They are tolerant: the known members come first with plain labels, and EVERY other member (at the top level and
  * inside known objects) follows as labelled text, so nothing the signature binds to is ever hidden. The exact
  * canonical text (what is hashed) is also always available in a disclosure of the signature dialog.
+ * What C3 shows beside the record for information but the signature does not bind (the `notSigned` member: the
+ * status and handling of exceptions, exceptions raised by acts about a step, a stage's exceptions, targets, live
+ * verdicts, times of system computations, the status of each value now) is never shown inside the record to be
+ * signed: it follows in its own section, "For information: not part of this signature" (review finding CN1; DI-37,
+ * DI-36). A member the rendering leaves out is not shown as empty: only the members sent are listed.
  * GMP time is never formatted here: instants show the server's text; a bare epoch value shows exact UTC.
  */
 import type { ReactNode } from 'react';
@@ -211,27 +219,31 @@ function Header({ r }: { r: Obj }) {
   );
 }
 
-const EXCEPTION_KEYS = ['exceptionId', 'title', 'type', 'category', 'severity', 'tier', 'expected', 'actual', 'blocking', 'status', 'deviationRef', 'whatToDo', 'routedTo', 'raisedBy', 'raisedAt', 'controls'];
+const EXCEPTION_KEYS = ['exceptionId', 'title', 'type', 'category', 'severity', 'tier', 'expected', 'actual', 'blocking', 'status', 'deviationRef', 'whatToDo', 'routedTo', 'raisedBy', 'raisedAt', 'controls', 'inSignedContent', 'why'];
 
+/** An exception: only the members the rendering sends (the record to be signed sends the exception as raised; its status and handling come apart). */
 function ExceptionBlock({ e }: { e: unknown }) {
   if (!isObj(e)) return <Value value={e} depth={1} />;
   const tier = str(e['tier']);
+  const has = (k: string): boolean => k in e;
   return (
     <article aria-label={`Exception ${str(e['exceptionId']) ?? ''}`}>
-      <h5 className={icls('sectionTitle')}>{`${str(e['exceptionId']) ?? '?'}: ${str(e['title']) ?? ''}`}</h5>
+      <h5 className={icls('sectionTitle')}>{`${str(e['exceptionId']) ?? '?'}${str(e['title']) ? `: ${str(e['title']) ?? ''}` : ''}`}</h5>
       <dl className={icls('facts')}>
-        <Row label="Type">{`${str(e['type']) ?? '—'}${str(e['category']) ? ` (${str(e['category'])})` : ''}`}</Row>
-        <Row label="Severity">{`${str(e['severity']) ?? '—'}${tier ? `, ${TIERS[tier] ?? tier}` : ''}`}</Row>
-        <Row label="Expected">{str(e['expected']) ?? '—'}</Row>
-        <Row label="Actual">{str(e['actual']) ?? '—'}</Row>
-        <Row label="Blocking">{e['blocking'] === true ? 'Yes: it stops the work until it is resolved' : 'No'}</Row>
-        <Row label="Status">{str(e['status']) ?? '—'}</Row>
-        <Row label="Deviation">{str(e['deviationRef']) ?? 'none linked'}</Row>
-        <Row label="What to do">{str(e['whatToDo']) ?? '—'}</Row>
-        <Row label="Routed to">{arr(e['routedTo']).map((x) => str(x) ?? '?').join(', ') || '—'}</Row>
-        <Row label="Raised by">{e['raisedBy'] === null ? 'the system' : personText(e['raisedBy'])}</Row>
-        <Row label="Raised at">{instantText(e['raisedAt'])}</Row>
-        <Row label="Controls">{arr(e['controls']).map((x) => str(x) ?? '?').join(', ') || '—'}</Row>
+        {has('inSignedContent') ? <Row label="Part of this signature">{e['inSignedContent'] === true ? 'Yes, as raised (shown in the record above); its status and handling below are not' : 'No: this signature does not cover this exception'}</Row> : null}
+        {has('why') ? <Row label="Why">{str(e['why']) ?? '—'}</Row> : null}
+        {has('type') || has('category') ? <Row label="Type">{`${str(e['type']) ?? '—'}${str(e['category']) ? ` (${str(e['category'])})` : ''}`}</Row> : null}
+        {has('severity') || has('tier') ? <Row label="Severity">{`${str(e['severity']) ?? '—'}${tier ? `, ${TIERS[tier] ?? tier}` : ''}`}</Row> : null}
+        {has('expected') ? <Row label="Expected">{str(e['expected']) ?? '—'}</Row> : null}
+        {has('actual') ? <Row label="Actual">{str(e['actual']) ?? '—'}</Row> : null}
+        {has('blocking') ? <Row label="Blocking">{e['blocking'] === true ? 'Yes: it stops the work until it is resolved' : 'No'}</Row> : null}
+        {has('status') ? <Row label="Status">{str(e['status']) ?? '—'}</Row> : null}
+        {has('deviationRef') ? <Row label="Deviation">{str(e['deviationRef']) ?? 'none linked'}</Row> : null}
+        {has('whatToDo') ? <Row label="What to do">{str(e['whatToDo']) ?? '—'}</Row> : null}
+        {has('routedTo') ? <Row label="Routed to">{arr(e['routedTo']).map((x) => str(x) ?? '?').join(', ') || '—'}</Row> : null}
+        {has('raisedBy') ? <Row label="Raised by">{e['raisedBy'] === null ? 'the system' : personText(e['raisedBy'])}</Row> : null}
+        {has('raisedAt') ? <Row label="Raised at">{instantText(e['raisedAt'])}</Row> : null}
+        {has('controls') ? <Row label="Controls">{arr(e['controls']).map((x) => str(x) ?? '?').join(', ') || '—'}</Row> : null}
       </dl>
       <Extras data={e} known={EXCEPTION_KEYS} />
     </article>
@@ -262,9 +274,9 @@ function Attempt({ a, unit }: { a: unknown; unit: string | null }) {
           <span className={icls('valueCell')}>{valueText(a['value'])}</span>
           {str(a['echo']) ? ` (${str(a['echo'])})` : ''}
         </Row>
-        <Row label="Attempt">{`${str(a['attempt']) ?? '?'}, version ${str(a['version']) ?? '?'}, ${str(a['status']) ?? '?'}`}</Row>
-        <Row label="Entered by">{personText(a['by'])}</Row>
-        <Row label="At">{instantText(a['at'])}</Row>
+        <Row label="Attempt">{`${str(a['attempt']) ?? '?'}, version ${str(a['version']) ?? '?'}${'status' in a ? `, ${str(a['status']) ?? '?'}` : ''}`}</Row>
+        {'by' in a ? <Row label="Entered by">{personText(a['by'])}</Row> : null}
+        {'at' in a ? <Row label="At">{instantText(a['at'])}</Row> : null}
         <Row label="Source">
           {[str(source['mode']), str(source['deviceCode']) ? `device ${str(source['deviceCode'])}` : null, str(source['raw']) ? `raw ${str(source['raw'])}` : null, str(source['code']) ? `code ${str(source['code'])}` : null]
             .filter(Boolean)
@@ -295,7 +307,7 @@ function Field({ f }: { f: unknown }) {
         <Row label="Item">{`${str(f['item']) ?? '?'} · ${str(f['valueType']) ?? '?'}${precision ? ` · ${str(precision['digits']) ?? '?'} ${precision['kind'] === 'SIGNIFICANT_FIGURES' ? 'significant figures' : 'decimals'}` : ''}`}</Row>
         <Row label="Captured">{`${str(f['capture']) ?? '?'}${f['computed'] === true ? ', computed (never typed)' : ''}${f['required'] === true ? ', required' : ''}`}</Row>
         {Array.isArray(f['categories']) ? <Row label="Choices">{arr(f['categories']).map((x) => str(x) ?? '?').join(', ')}</Row> : null}
-        <Row label="Target">{target ? `${valueText(target['value'])}${str(target['source']) ? ` (${str(target['source'])})` : ''}` : '—'}</Row>
+        {'target' in f ? <Row label="Target">{target ? `${valueText(target['value'])}${str(target['source']) ? ` (${str(target['source'])})` : ''}` : '—'}</Row> : null}
         <Row label="Limits">
           {limits.length === 0 ? (
             'none'
@@ -344,7 +356,50 @@ function Entry({ e }: { e: unknown }) {
 // ---------------------------------------------------------------------------------------------
 // Kinds
 
-const STEP_TOP = [...COMMON, 'step', 'instruction', 'fields', 'entries', 'exceptions'];
+const STEP_TOP = [...COMMON, 'step', 'decision', 'instruction', 'fields', 'entries', 'exceptions', 'notSigned'];
+
+/** "Approved with conditions (APPROVED_WITH_CONDITIONS)". */
+function dispositionText(v: unknown): string {
+  const code = str(v);
+  if (code === null) return '—';
+  return `${humanize(code.toLowerCase())} (${code})`;
+}
+
+/**
+ * The comment of a hold-point decision as signed. No comment, an empty comment and a comment of white space only are
+ * different decisions to the database (each is signed and recorded as it is), so each is shown so; an empty cell
+ * would show none of them.
+ */
+function decisionCommentText(v: unknown): string {
+  if (v === null || v === undefined) return 'none';
+  const s = str(v);
+  if (s === null) return JSON.stringify(v);
+  if (s === '') return 'Empty: a comment with no text (not the same as no comment)';
+  if (s.trim() === '') return `Blank: only white space (${s.length} ${s.length === 1 ? 'character' : 'characters'})`;
+  return s;
+}
+
+/** The hold-point decision being signed, from the signed content only: first and prominent. */
+function Decision({ d }: { d: unknown }) {
+  const proposed = isObj(d) && isObj(d['proposed']) ? d['proposed'] : null;
+  return (
+    <section className={icls('disposition')} aria-label="Decision to be signed" data-present={proposed ? 'true' : 'false'}>
+      <h4 className={icls('sectionTitle')}>Decision to be signed</h4>
+      {proposed ? (
+        <>
+          <dl className={icls('facts')}>
+            <Row label="Decision">{dispositionText(proposed['disposition'])}</Row>
+            <Row label="Comment">{decisionCommentText(proposed['comment'])}</Row>
+          </dl>
+          <Extras data={proposed} known={['disposition', 'comment']} />
+        </>
+      ) : (
+        <p>No decision is part of the content shown. The signature binds only what is shown here.</p>
+      )}
+      <Extras data={d} known={['proposed']} />
+    </section>
+  );
+}
 
 function BatchStep({ r }: { r: Obj }) {
   const step = isObj(r['step']) ? r['step'] : {};
@@ -355,6 +410,7 @@ function BatchStep({ r }: { r: Obj }) {
   const entries = arr(r['entries']);
   return (
     <>
+      {'decision' in r ? <Decision d={r['decision']} /> : null}
       <Header r={r} />
       <Section title="Step">
         <dl className={icls('facts')}>
@@ -390,18 +446,20 @@ function BatchStep({ r }: { r: Obj }) {
           </ol>
         )}
       </Section>
-      <Exceptions list={r['exceptions']} />
+      {'exceptions' in r ? <Exceptions list={r['exceptions']} /> : null}
       <Extras data={r} known={STEP_TOP} title="Also in the record" />
     </>
   );
 }
 
-const STAGE_TOP = [...COMMON, 'stage', 'steps', 'exceptions'];
+const STAGE_TOP = [...COMMON, 'stage', 'steps', 'exceptions', 'notSigned'];
 const SUMMARY_KEYS = ['stepKey', 'stepId', 'number', 'title', 'block', 'status', 'statusText', 'openExceptions'];
 
 function BatchStage({ r }: { r: Obj }) {
   const stage = isObj(r['stage']) ? r['stage'] : {};
   const steps = arr(r['steps']);
+  // How many exceptions are open is not part of a stage's signed content; the column shows only when sent.
+  const open = steps.some((s) => isObj(s) && 'openExceptions' in s);
   return (
     <>
       <Header r={r} />
@@ -424,7 +482,7 @@ function BatchStage({ r }: { r: Obj }) {
                 <th scope="col">Title</th>
                 <th scope="col">Block</th>
                 <th scope="col">Status</th>
-                <th scope="col">Open exceptions</th>
+                {open ? <th scope="col">Open exceptions</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -438,11 +496,11 @@ function BatchStage({ r }: { r: Obj }) {
                     </td>
                     <td>{str(s['block']) ?? '—'}</td>
                     <td>{str(s['statusText']) ?? str(s['status']) ?? '—'}</td>
-                    <td>{str(s['openExceptions']) ?? '0'}</td>
+                    {open ? <td>{str(s['openExceptions']) ?? '0'}</td> : null}
                   </tr>
                 ) : (
                   <tr key={i}>
-                    <td colSpan={5}>
+                    <td colSpan={open ? 5 : 4}>
                       <Value value={s} depth={1} />
                     </td>
                   </tr>
@@ -452,13 +510,13 @@ function BatchStage({ r }: { r: Obj }) {
           </table>
         )}
       </Section>
-      <Exceptions list={r['exceptions']} />
+      {'exceptions' in r ? <Exceptions list={r['exceptions']} /> : null}
       <Extras data={r} known={STAGE_TOP} title="Also in the record" />
     </>
   );
 }
 
-const EXCEPTION_TOP = [...COMMON, 'step', 'exception', 'recorded', 'deviation', 'disposition'];
+const EXCEPTION_TOP = [...COMMON, 'step', 'exception', 'recorded', 'deviation', 'disposition', 'notSigned'];
 
 /** The proposed disposition, from the signed content only: first and prominent. */
 function Disposition({ d }: { d: unknown }) {
@@ -534,6 +592,55 @@ function BatchException({ r }: { r: Obj }) {
   );
 }
 
+// ---------------------------------------------------------------------------------------------
+// Beside the record: what the signature does not bind
+
+export const NOT_SIGNED_TITLE = 'For information: not part of this signature';
+
+const NOT_SIGNED_KEYS = ['note', 'exceptions', 'exception', 'openExceptions', 'targets', 'verdicts', 'times', 'statuses'];
+
+function List({ title, items }: { title: string; items: unknown[] }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <h5 className={icls('sectionTitle')}>{title}</h5>
+      <Value value={items} depth={1} />
+    </>
+  );
+}
+
+/** The `notSigned` member of a rendering, in a section of its own after the record to be signed. */
+function NotSigned({ data }: { data: unknown }) {
+  if (!isObj(data)) return null;
+  const exceptions = arr(data['exceptions']);
+  return (
+    <section aria-label={NOT_SIGNED_TITLE} data-signed="false">
+      <h4 className={icls('sectionTitle')}>{NOT_SIGNED_TITLE}</h4>
+      <p className={icls('muted')}>{str(data['note']) ?? 'The signature does not cover what is shown here.'}</p>
+      {exceptions.length > 0 ? (
+        <>
+          <h5 className={icls('sectionTitle')}>Exceptions: status and handling</h5>
+          {exceptions.map((e, i) => (
+            <ExceptionBlock key={isObj(e) ? (str(e['exceptionId']) ?? i) : i} e={e} />
+          ))}
+        </>
+      ) : null}
+      {isObj(data['exception']) ? (
+        <>
+          <h5 className={icls('sectionTitle')}>Status and handling of the exception</h5>
+          <ExceptionBlock e={data['exception']} />
+        </>
+      ) : null}
+      <List title="Open exceptions per step" items={arr(data['openExceptions'])} />
+      <List title="Targets and the tolerance derived from them" items={arr(data['targets'])} />
+      <List title="Verdicts given after the content was signed" items={arr(data['verdicts'])} />
+      <List title="Times of system computations" items={arr(data['times'])} />
+      <List title="Status of each value now (valid, superseded, invalidated)" items={arr(data['statuses'])} />
+      <Extras data={data} known={NOT_SIGNED_KEYS} />
+    </section>
+  );
+}
+
 /** Preferred order and labels of the generic renderer (master record versions and unknown kinds). */
 const KNOWN: Readonly<Record<string, readonly (readonly [string, string])[]>> = {
   mbr_version: [
@@ -557,20 +664,24 @@ export function SignableContent({ view }: { view: SignableContentView }) {
   else if (kind === 'batch_stage') body = <BatchStage r={rendering} />;
   else if (kind === 'batch_exception') body = <BatchException r={rendering} />;
   else {
+    // The rendering's own `notSigned` member is shown apart (below); the record's content is always shown whole.
     const data: Obj =
       kind === 'fallback' && isObj(rendering['content'])
         ? { ...rendering['content'], ...(rendering['state'] !== undefined && rendering['state'] !== null ? { state: rendering['state'] } : {}) }
-        : rendering;
-    const extra = kind === 'fallback' ? Object.fromEntries(Object.entries(rendering).filter(([k]) => !['kind', 'content', 'state'].includes(k))) : {};
+        : Object.fromEntries(Object.entries(rendering).filter(([k]) => k !== 'notSigned'));
+    const extra = kind === 'fallback' ? Object.fromEntries(Object.entries(rendering).filter(([k]) => !['kind', 'content', 'state', 'notSigned'].includes(k))) : {};
     body = <Facts data={{ ...data, ...extra }} order={KNOWN[kind] ?? []} depth={0} />;
   }
   return (
-    <section aria-label={`${KIND_TITLES[kind] ?? 'Record'} to be signed`}>
-      <h3 className={icls('sectionTitle')}>{view.title}</h3>
-      {body}
-      <p className={icls('muted')}>
-        {`${KIND_TITLES[kind] ?? 'Record'} ${view.aggregateId}, content version ${view.contentVersion}${view.preview ? ' (as it will be when signed)' : ''}`}
-      </p>
-    </section>
+    <>
+      <section aria-label={`${KIND_TITLES[kind] ?? 'Record'} to be signed`}>
+        <h3 className={icls('sectionTitle')}>{view.title}</h3>
+        {body}
+        <p className={icls('muted')}>
+          {`${KIND_TITLES[kind] ?? 'Record'} ${view.aggregateId}, content version ${view.contentVersion}${view.preview ? ' (as it will be when signed)' : ''}`}
+        </p>
+      </section>
+      <NotSigned data={rendering['notSigned']} />
+    </>
   );
 }

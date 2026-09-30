@@ -2,7 +2,7 @@
  * A dialog that sends one plain intent (module C4): raise an exception, link a deviation, hold the batch,
  * release a hold. The intent goes through the same pendingEntry path as every entry (badge tap on a kiosk,
  * fixed idempotency key, NOT SAVED with resend). The dialog cannot be closed while the entry is on its way or
- * not saved.
+ * not saved. The form lives inside the open dialog only (see CommandDialog).
  */
 import type { ReactNode } from 'react';
 import type { ClientIntent, StepScreenView } from '@ebmr/api-contract';
@@ -12,9 +12,7 @@ import { EntryStatus } from '../components/EntryStatus.tsx';
 import { st } from '../text.ts';
 import { useRunCommand } from '../usePendingCall.ts';
 
-export interface CommandDialogProps {
-  title: string;
-  isOpen: boolean;
+export interface CommandBodyProps {
   onClose: () => void;
   runId: string;
   /** The step whose view comes back (null for run-level intents). */
@@ -28,19 +26,20 @@ export interface CommandDialogProps {
   children: ReactNode;
 }
 
-export function CommandDialog({ title, isOpen, onClose, runId, viewStepKey, reason, intent, expectedVersion, view, children }: CommandDialogProps) {
+/**
+ * The dialog frame. What is inside (the form with the person's words and choice, and its pending entry) is mounted
+ * only while the dialog is open, so every opening starts empty: nothing one person typed or chose is kept for the
+ * next opening, by them or by the next person on a shared terminal (INV-40, DI-14).
+ */
+export function CommandDialog({ title, isOpen, children }: { title: string; isOpen: boolean; children: ReactNode }) {
   return (
     <Dialog title={title} isOpen={isOpen} isDismissable={false}>
-      {isOpen ? (
-        <CommandBody onClose={onClose} runId={runId} viewStepKey={viewStepKey} reason={reason} intent={intent} expectedVersion={expectedVersion} {...(view ? { view } : {})}>
-          {children}
-        </CommandBody>
-      ) : null}
+      {isOpen ? children : null}
     </Dialog>
   );
 }
 
-function CommandBody({ onClose, runId, viewStepKey, reason, intent, expectedVersion, view, children }: Omit<CommandDialogProps, 'title' | 'isOpen'>) {
+export function CommandBody({ onClose, runId, viewStepKey, reason, intent, expectedVersion, view, children }: CommandBodyProps) {
   const cmd = useRunCommand(runId, viewStepKey, reason);
   const unsettled = cmd.busy || cmd.state === 'notSaved';
   const done = cmd.state === 'saved';

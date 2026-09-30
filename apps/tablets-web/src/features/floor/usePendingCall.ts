@@ -7,14 +7,21 @@
  *   attribution), and a tap is single use, so every send (a resend too) asks for a fresh one.
  * - The attribution lives only in a local variable of the one send it belongs to: never in React state, the
  *   machine, a query cache, browser storage or a log.
- * - A lost answer leaves the entry NOT SAVED; the resend uses the same key and the same body.
+ * - A lost answer leaves the entry NOT SAVED; the resend uses the same key and the same body. The entry stays NOT
+ *   SAVED, under that key, until an answer speaks for the key itself (outcome.ts answersForEntry: a commit, or on
+ *   the run command the engine's own refusal): any other refusal (a PIN not accepted, a locked session, another
+ *   person's badge...) is shown inside the NOT SAVED notice and settles nothing.
  * - A session change discards what is pending; before any send the signed-in person is checked against the
- *   person who made the entry, so an entry is never sent under someone else.
- * - A late answer for an entry that was discarded meanwhile is ignored.
+ *   person who made the entry, so an entry is never sent under someone else. An entry discarded after it was
+ *   sent (on its way, or NOT SAVED) may be in the record: the notice says so, the screen reloads what the record
+ *   holds, and a late answer for it reloads again (the reload at the change may run before the commit), never
+ *   putting back a step view older than the one on show.
+ * - The step view in an answer was computed for the person who sent the entry: it is put in place only while they
+ *   are the one signed in (queries.ts applyStepView); otherwise the step is read again.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { useMachine } from '@xstate/react';
-import { useCallback, useEffect, useId, useRef } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   buildPath,
   routes,
@@ -31,10 +38,16 @@ import { floor } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
 import { useBadgeTap } from '../../app/ports.tsx';
 import { describeChanges, describeIntent } from './describe.ts';
-import { classifyOutcome } from './outcome.ts';
+import { answersForEntry, classifyOutcome, type CommandOutcome } from './outcome.ts';
 import { applyStepView, refreshRun, runQueryKey, stepQueryKey } from './queries.ts';
-import { useFloorSession, useSessionChange } from './session.tsx';
+import { useFloorSession, useSessionChange, useSignedInNow } from './session.tsx';
 import { markUnsettled } from './unsettled.ts';
+
+/**
+ * What is known of a discarded entry that had been sent (on its way, or NOT SAVED): UNKNOWN until an answer for its
+ * key arrives; RECORDED when that answer was a commit; NOT_RECORDED when the engine refused it.
+ */
+export type DiscardedSent = 'UNKNOWN' | 'RECORDED' | 'NOT_RECORDED';
 
 export interface PendingCall {
   state: floor.PendingEntryState;
@@ -42,6 +55,13 @@ export interface PendingCall {
   /** A tap is awaited or the request is on its way: other actions wait. */
   busy: boolean;
   tapRequired: boolean;
+  /**
+   * NOT SAVED only: the refusal of the last resend when the server gave it before it looked at the entry's key
+   * (for example a PIN not accepted). Whether the first send was recorded is still unknown.
+   */
+  resendRefusal: RefusalEnvelope | null;
+  /** discarded only: the entry had been sent before it was discarded, so it may be in the record. */
+  discardedSent: DiscardedSent | null;
   submit: (body: Record<string, unknown>, summary: string) => void;
   resend: () => void;
   discard: () => void;
@@ -54,8 +74,14 @@ export interface PendingCallOptions<R extends AnyRoute> {
   onSaved?: (value: RouteResponse<R>) => void | Promise<void>;
   /** Reloads what the stale entry was about and says what changed. */
   onStale?: () => Promise<string[]>;
-  /** After the person discards a NOT SAVED entry: reload what the record holds. */
+  /** After an entry that may have reached the server is discarded (by the person or a session change): reload what the record holds. */
   onDiscard?: () => void | Promise<void>;
+  /**
+   * An answer arrived for an entry discarded while it was on its way: reload what the record holds. `saved` is the
+   * server's answer when the entry was committed; `samePerson` says whether the person who made the entry is still
+   * the one signed in (only then is the server's post-commit view, computed for that person, theirs to see).
+   */
+  onLateAnswer?: (saved: RouteResponse<R> | null, samePerson: boolean) => void | Promise<void>;
   /**
    * A definite answer that nothing was applied (refused, stale, another person's badge). Scale readings named
    * by the entry are used up even by a refused command, so forms clear them: a retry needs a fresh capture.
@@ -63,15 +89,29 @@ export interface PendingCallOptions<R extends AnyRoute> {
   onNotApplied?: () => void;
   /** The entry was discarded because another person's badge was tapped: forms clear what was typed. */
   onDiscarded?: () => void;
+  /**
+   * The server runs the engine on this route only after it has claimed the idempotency key, so after a lost answer
+   * an engine refusal (ENG-...) speaks for the key (outcome.ts answersForEntry). Default false: then only SAVED
+   * settles an entry whose first answer was lost (issuing a test batch checks the request with the engine before
+   * the claim).
+   */
+  engineAfterClaim?: boolean;
 }
 
 const newKey = (): string => globalThis.crypto.randomUUID();
+
+/** A refusal envelope of an outcome, if it has one. */
+function envelopeOf(outcome: CommandOutcome<unknown>): RefusalEnvelope | null {
+  return outcome.kind === 'SAVED' || outcome.kind === 'LOST' ? null : outcome.envelope;
+}
 
 export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParamsInput<R>, options: PendingCallOptions<R>): PendingCall {
   const session = useFloorSession();
   const tap = useBadgeTap();
   const tapRequired = session.attribution !== 'NONE';
   const [snapshot, send, actorRef] = useMachine(floor.pendingEntryMachine, { input: { tapRequired, newKey } });
+  const [resendRefusal, setResendRefusal] = useState<RefusalEnvelope | null>(null);
+  const [discarded, setDiscarded] = useState<{ key: string; sent: DiscardedSent } | null>(null);
 
   const id = useId();
   const idRef = useRef(id);
@@ -79,13 +119,42 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
   useEffect(() => {
     live.current = { session, options, params, tap };
   });
+  /** The key whose answer was lost: its outcome stays unknown until an answer speaks for it (D1). */
+  const lostKey = useRef<string | null>(null);
+  /** Keys discarded while their request was on its way: their answer still comes, and reloads the record. */
+  const lateKeys = useRef(new Set<string>());
 
-  useSessionChange(() => {
-    const was = actorRef.getSnapshot().value;
-    send({ type: 'SESSION_CHANGED' });
-    // Something may have reached the server before the change: reload what the record holds.
-    if (was === 'sending' || was === 'notSaved') void live.current.options.onDiscard?.();
-  });
+  /**
+   * A session change (or the person no longer being the entry's owner) discards what is pending. An entry that was
+   * sent and not settled may be in the record: say so and reload what the record holds. `beforeSend` is set when
+   * the check runs just before this send goes out (so only an earlier, lost send can have reached the server).
+   */
+  const discardForSession = useCallback(
+    (beforeSend: boolean) => {
+      const { value: was, context } = actorRef.getSnapshot();
+      const key = context.key;
+      const onTheWire = was === 'sending' && !beforeSend;
+      const sent = key !== null && (onTheWire || was === 'notSaved' || lostKey.current === key);
+      if (onTheWire && key) lateKeys.current.add(key);
+      setResendRefusal(null);
+      if (sent) setDiscarded({ key, sent: 'UNKNOWN' });
+      send({ type: 'SESSION_CHANGED' });
+      if (sent) void live.current.options.onDiscard?.();
+    },
+    [actorRef, send],
+  );
+
+  useSessionChange(() => discardForSession(false));
+
+  /** The answer to a request whose entry was discarded while it was on its way. */
+  const settleLate = useCallback(async (key: string, owner: string | null, outcome: CommandOutcome<RouteResponse<R>>, afterLoss: boolean) => {
+    const samePerson = owner !== null && live.current.session.personId === owner;
+    // A first send's refusal is definite; after a lost answer only an answer for the key itself is (answersForEntry).
+    const definite = outcome.kind !== 'LOST' && (!afterLoss || answersForEntry(outcome, live.current.options.engineAfterClaim === true));
+    const known: DiscardedSent | null = outcome.kind === 'SAVED' ? 'RECORDED' : definite ? 'NOT_RECORDED' : null;
+    if (known) setDiscarded((cur) => (cur && cur.key === key ? { key, sent: known } : cur));
+    await live.current.options.onLateAnswer?.(outcome.kind === 'SAVED' ? outcome.value : null, samePerson);
+  }, []);
 
   const transmit = useCallback(async () => {
     const start = actorRef.getSnapshot();
@@ -105,29 +174,43 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
         return;
       }
       if (live.current.session.personId !== owner) {
-        send({ type: 'SESSION_CHANGED' });
+        discardForSession(true);
         return;
       }
       send({ type: 'TAPPED' });
     }
     if (actorRef.getSnapshot().value !== 'sending') return;
     if (live.current.session.personId !== owner) {
-      send({ type: 'SESSION_CHANGED' });
+      discardForSession(true);
       return;
     }
+    // A resend of an entry whose answer was lost: the first send may have committed.
+    const outcomeUnknown = lostKey.current === key;
     const input = { params: p, body, idempotencyKey: key, ...(attribution ? { attribution } : {}) } as unknown as CallInput<R>;
     const result = await api.call(route, input);
-    const now = actorRef.getSnapshot();
-    if (now.value !== 'sending' || now.context.key !== key) return;
     const outcome = classifyOutcome(result);
+    const now = actorRef.getSnapshot();
+    if (now.value !== 'sending' || now.context.key !== key) {
+      if (lateKeys.current.delete(key)) await settleLate(key, owner, outcome, outcomeUnknown);
+      return;
+    }
+    if (outcomeUnknown && !answersForEntry(outcome, live.current.options.engineAfterClaim === true)) {
+      // Refused before the server looked at the key (or lost again): nothing is known about the first send. The
+      // entry stays NOT SAVED with the same key and payload; the refusal is shown inside the notice (D1; DI-28).
+      setResendRefusal(envelopeOf(outcome));
+      send({ type: 'LOST' });
+      return;
+    }
     switch (outcome.kind) {
       case 'SAVED':
         // Settled first, so an onSaved that navigates (issue -> run overview) is not held back by the leave guard.
+        lostKey.current = null;
         send({ type: 'SAVED' });
         markUnsettled(idRef.current, false);
         await live.current.options.onSaved?.(outcome.value);
         return;
       case 'LOST':
+        lostKey.current = key;
         send({ type: 'LOST' });
         return;
       case 'SWITCH_USER':
@@ -139,17 +222,19 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
         await live.current.tap.offerSwitch(outcome.envelope);
         return;
       case 'REFUSED':
+        lostKey.current = null;
         live.current.options.onNotApplied?.();
         send({ type: 'REFUSED', refusal: outcome.envelope });
         return;
       case 'STALE': {
+        lostKey.current = null;
         live.current.options.onNotApplied?.();
         const changes = (await live.current.options.onStale?.()) ?? [];
         send({ type: 'STALE', refusal: outcome.envelope, changes });
         return;
       }
     }
-  }, [actorRef, route, send]);
+  }, [actorRef, route, send, discardForSession, settleLate]);
 
   const submit = useCallback(
     (body: Record<string, unknown>, summary: string) => {
@@ -158,19 +243,29 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
       const before = actorRef.getSnapshot().context.key;
       send({ type: 'SUBMIT', payload: body, summary, owner });
       // Only a SUBMIT the machine took (a new key) sends: a second press while one is under way does nothing.
-      if (actorRef.getSnapshot().context.key !== before) void transmit();
+      if (actorRef.getSnapshot().context.key !== before) {
+        setResendRefusal(null);
+        setDiscarded(null);
+        void transmit();
+      }
     },
     [actorRef, send, transmit],
   );
   const resend = useCallback(() => {
     if (actorRef.getSnapshot().value !== 'notSaved') return;
+    setResendRefusal(null);
     send({ type: 'RESEND' });
     void transmit();
   }, [actorRef, send, transmit]);
   const discard = useCallback(() => {
+    const { value, context } = actorRef.getSnapshot();
+    if (value !== 'notSaved' || !context.key) return;
+    // The entry was sent at least once and its answer lost: it may be in the record.
+    setResendRefusal(null);
+    setDiscarded({ key: context.key, sent: 'UNKNOWN' });
     send({ type: 'DISCARD' });
     void live.current.options.onDiscard?.();
-  }, [send]);
+  }, [actorRef, send]);
   const reset = useCallback(() => send({ type: 'RESET' }), [send]);
 
   const state: floor.PendingEntryState = snapshot.value;
@@ -179,7 +274,18 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
     markUnsettled(id, unsettled);
     return () => markUnsettled(id, false);
   }, [id, unsettled]);
-  return { state, context: snapshot.context, busy: state === 'awaitingTap' || state === 'sending', tapRequired, submit, resend, discard, reset };
+  return {
+    state,
+    context: snapshot.context,
+    busy: state === 'awaitingTap' || state === 'sending',
+    tapRequired,
+    resendRefusal: state === 'notSaved' ? resendRefusal : null,
+    discardedSent: state === 'discarded' && discarded ? discarded.sent : null,
+    submit,
+    resend,
+    discard,
+    reset,
+  };
 }
 
 export interface RunCommand extends PendingCall {
@@ -193,15 +299,20 @@ export interface RunCommand extends PendingCall {
  */
 export function useRunCommand(runId: string, viewStepKey: string | null, reason: string, extra: { onSaved?: () => void; onNotApplied?: () => void; onDiscarded?: () => void } = {}): RunCommand {
   const qc = useQueryClient();
+  const signedInNow = useSignedInNow();
   const extraRef = useRef(extra);
   useEffect(() => {
     extraRef.current = extra;
   });
   const call = usePendingCall(routes.execution.command, { runId }, {
     reason,
+    // POST /api/test-runs/:runId/commands: the engine runs inside the command, after the key is claimed.
+    engineAfterClaim: true,
     onSaved: async (value) => {
-      if (value.step) applyStepView(qc, value.step);
-      await refreshRun(qc, { steps: value.step === null });
+      // The server's post-commit view (a newer one already on show is kept, and so is the screen when the person signed
+      // in is no longer the sender; then the step is read again).
+      const put = value.step ? await applyStepView(qc, value.step, signedInNow) : false;
+      await refreshRun(qc, { steps: !put });
       extraRef.current.onSaved?.();
     },
     onNotApplied: () => extraRef.current.onNotApplied?.(),
@@ -222,6 +333,15 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
       extraRef.current.onNotApplied?.();
       extraRef.current.onDiscarded?.();
       return refreshRun(qc, { steps: true });
+    },
+    onLateAnswer: async (saved, samePerson) => {
+      // The server's post-commit view is computed for the person who sent the entry: put in place only for them, and
+      // only when it is not older than the view on show (a reload after the session change, or another terminal's
+      // entry, may already have brought a newer one). Then the step is read again in every case: a late answer can
+      // arrive long after it was computed, and any read begun before the commit is replaced by this one.
+      const view = samePerson ? (saved?.step ?? null) : null;
+      if (view) await applyStepView(qc, view, signedInNow);
+      await refreshRun(qc, { steps: true });
     },
   });
   const { submit } = call;

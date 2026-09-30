@@ -4,6 +4,7 @@
  */
 import { Dec } from '@ebmr/expr';
 import fc from 'fast-check';
+import { checkMeaning, performMeaning } from '../../src/engine/actions.ts';
 import type { Actor, BatchState, Command, DataValue } from '../../src/engine/types.ts';
 import { RELEASING_DISPOSITIONS, type BatchDefinition } from '../../src/engine/definition.ts';
 import { ctxKey } from '../../src/engine/tx.ts';
@@ -195,20 +196,20 @@ export function candidateCommands(def: BatchDefinition, run: Run, k: number, exi
       }
       const signer = inst.dataEnterers.find((x) => !inst.performedSigners.includes(x)) ?? inst.performers[0] ?? person(step.performRoles).id;
       const who = PEOPLE.find((p) => p.id === signer) ?? OP1;
-      (complete ? progress : other).push({ type: 'SIGN_PERFORMED', actor: who, step: inst.step, context: f, signature: sig('PERFORMED', who) });
+      (complete ? progress : other).push({ type: 'SIGN_PERFORMED', actor: who, step: inst.step, context: f, signature: sig(performMeaning(def, inst.step), who) });
       other.push({ type: 'RECORD_DATA', actor: who, step: inst.step, context: f, item: data.derived, value: { kind: 'DECIMAL', value: '2.00', unit: 'kg' }, source: { mode: 'MANUAL' } });
     }
     if (inst.status === 'AWAITING_VERIFICATION') {
       const involved = [...inst.performers, ...inst.dataEnterers, ...inst.correctors];
       const verifier = [VER1, VER2].find((v) => !involved.includes(v.id)) ?? VER1;
       const checker = PEOPLE.find((p) => !involved.includes(p.id) && p.roles.includes(step.checkRole ?? 'VERIFIER')) ?? verifier;
-      progress.push({ type: 'VERIFY', actor: checker, step: inst.step, context: f, signature: sig(inst.reverification ? 'RE_VERIFIED_AFTER_CORRECTION' : step.checkMeaning === 'WITNESSED' ? 'WITNESSED' : 'VERIFIED', checker) });
+      const meaning = checkMeaning(def, inst, inst.step);
+      progress.push({ type: 'VERIFY', actor: checker, step: inst.step, context: f, signature: sig(meaning, checker) });
       // Adversarial: an involved person verifies (with the checker role when one of them holds it: INV-03).
       const cheater = PEOPLE.find((p) => involved.includes(p.id) && p.roles.includes(step.checkRole ?? 'VERIFIER'));
       const self = PEOPLE.find((p) => p.id === inst.performers[0]) ?? OP1;
-      const meaning = step.checkMeaning === 'WITNESSED' ? 'WITNESSED' : 'VERIFIED';
-      other.push({ type: 'VERIFY', actor: cheater ?? self, step: inst.step, context: f, signature: sig(inst.reverification ? 'RE_VERIFIED_AFTER_CORRECTION' : meaning, cheater ?? self) });
-      if (cheater) progress.push({ type: 'VERIFY', actor: cheater, step: inst.step, context: f, signature: sig(inst.reverification ? 'RE_VERIFIED_AFTER_CORRECTION' : meaning, cheater) });
+      other.push({ type: 'VERIFY', actor: cheater ?? self, step: inst.step, context: f, signature: sig(meaning, cheater ?? self) });
+      if (cheater) progress.push({ type: 'VERIFY', actor: cheater, step: inst.step, context: f, signature: sig(meaning, cheater) });
     }
   }
   for (const e of def.game.enabled(s.marking)) {

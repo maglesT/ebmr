@@ -43,11 +43,111 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-EXE-064': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'Test runs execute only in the sandbox.', whatYouCanDo: ['Use the sandbox installation.'], whoCanHelp: [], controls: ['DI-05', 'INV-18'] },
   'EBMR-EXE-070': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The test lot is incomplete. Nothing was saved.', whatYouCanDo: ['Give the lot code, material, status and whether it is identity-tested.'], whoCanHelp: [], controls: ['PR-18'] },
   'EBMR-EXE-071': { status: 409, kind: 'STALE', whatHappened: 'This test lot is registered already; a lot is never changed.', whatYouCanDo: ['Register a new lot.'], whoCanHelp: [], controls: ['PR-18'] },
+  // Raised by the database too (tablets 0310): a hand-keyed weighing beside an online scale of the room, from a
+  // terminal of no room, while a scale of the room reports its status, or naming a balance that is not usable there.
+  'EBMR-EXE-074': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The weights cannot be keyed by hand here and now. Nothing was saved.',
+    whatYouCanDo: ['If a scale of the room is online, capture tare and gross from it.', 'Otherwise weigh at the terminal of the room, name the balance you read (or none), and try again.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['DI-20', 'DI-30', 'PR-20'],
+  },
+  // The exceptions and hold-point decisions of a run are kept as raised and as signed, and a value outside its limits
+  // raises the exception its limit tier requires (recipe-core 0270, 0295, 0298, 0305).
+  'EBMR-EXE-044': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened:
+      'The action would have changed an exception or a hold-point decision otherwise than as raised or signed, or recorded a limit exception otherwise than as the value and its limits require. Nothing was saved.',
+    whatYouCanDo: ['Reload the screen and try again.', 'If it happens again, stop and report it; exceptions and decisions change only through their own linked deviation or signed decision.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-26', 'DI-37', 'INV-41', 'PR-08', 'PR-13', 'PR-45', 'PR-49'],
+  },
   'EBMR-EXE-084': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The disposition could not be prepared for signing. Nothing was signed.', whatYouCanDo: ['Reload the exception and start the signing again.'], whoCanHelp: [QA], controls: ['DI-26', 'PR-49'] },
   'EBMR-EXE-085': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The batch cannot be issued with these values. Nothing was issued.', whatYouCanDo: ['Correct the values and issue again.'], whoCanHelp: [], controls: ['PR-10', 'DI-10'] },
-  'EBMR-EXE-086': { status: 409, kind: 'CONTENT_CHANGED', whatHappened: 'The disposition to sign is not the one reviewed at the start of the signing. Nothing was signed.', whatYouCanDo: ['Review the disposition again, then sign again.'], whoCanHelp: [], controls: ['DI-37', 'PR-49'] },
+  // A decision recorded otherwise than as reviewed and signed, or as the rules allow: an exception's disposition (0270;
+  // PR-49, with PR-08 and DI-26 for a disposition an open exception does not allow) or a hold point's decision (0295; PR-45).
+  'EBMR-EXE-086': {
+    status: 409,
+    kind: 'CONTENT_CHANGED',
+    whatHappened: 'The decision to sign (an exception\'s disposition or a hold point\'s decision) is not the one reviewed at the start of the signing, or not one this record allows. Nothing was signed.',
+    whatYouCanDo: ['Review the decision and the record again, then start the signing again.'],
+    whoCanHelp: [QA],
+    controls: ['DI-26', 'DI-37', 'PR-08', 'PR-45', 'PR-49'],
+  },
   'EBMR-EXE-080': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The signature meaning does not match this action. Nothing was signed.', whatYouCanDo: ['Reload the screen and start the signing again.'], whoCanHelp: [], controls: ['DI-35', 'DI-37'] },
   'EBMR-EXE-081': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The next step has started, so this act can no longer be witnessed. Nothing was signed.', whatYouCanDo: ['Raise an exception for the missed witness; a supervisor decides how to proceed.'], whoCanHelp: [SUPERVISOR, QA], controls: ['DI-35', 'PR-14'] },
+  // The source and the room of what a step records (review findings P34, P36, P58): the server refuses these first
+  // with the particulars of the request; the entries answer the database's own refusal of the same row
+  // (recipe-core 0285, 0300; tablets 0300, 0310).
+  'EBMR-EXE-121': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The value was sent as captured by a scan or a device, which the system cannot attest for it. Nothing was saved.',
+    whatYouCanDo: ['Enter the value as the screen asks: keyed by hand, it is marked as a hand entry, and a critical value is checked by a second person.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['DI-30', 'DI-32', 'PR-14'],
+  },
+  'EBMR-EXE-122': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'A photo or printout cannot be attached to a value on this installation yet: no stored attachment stands behind it. Nothing was saved.',
+    whatYouCanDo: ['Enter the value without an attachment; a critical value keyed by hand is checked by a second person.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['DI-30', 'DI-32'],
+  },
+  'EBMR-EXE-123': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'This terminal is not in the room where this step is done. Nothing was saved.',
+    whatYouCanDo: ['Go to a terminal of the room the step header names and do the step there.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['DI-20', 'PR-23'],
+  },
+  'EBMR-EXE-124': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The weighing does not stand on scale readings claimed for it from an active balance of this room. Nothing was saved.',
+    whatYouCanDo: ['Capture tare and gross again from an online balance of the step\'s room.', 'If no balance of the room is online, key the weights by hand; a second person then checks the step.'],
+    whoCanHelp: [SUPERVISOR, ADMIN],
+    controls: ['DI-20', 'DI-31', 'DI-32'],
+  },
+  // What the server was about to store does not follow from the action (recipe-core 0300), or would change what the
+  // record already holds (recipe-core 0303): only a defect or a writer that skips the server gets here, so the advice
+  // is to stop and report.
+  'EBMR-EXE-125': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The action names no step of this batch\'s master record. Nothing was saved.',
+    whatYouCanDo: ['Reload the screen and try again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN],
+    controls: ['DI-20', 'DI-34'],
+  },
+  'EBMR-EXE-126': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The value the system was about to store is not the one this action records, or it would have changed a value already recorded. Nothing was saved.',
+    whatYouCanDo: ['Stop and report it; do not enter the value again until it has been looked into.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-14', 'DI-24', 'DI-29', 'DI-30', 'DI-32', 'DI-33', 'DI-34', 'INV-25', 'INV-41', 'PR-14'],
+  },
+  'EBMR-EXE-127': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The record would have dropped the second person\'s check a hand entry needs. Nothing was saved.',
+    whatYouCanDo: ['Stop and report it; the step waits for its second person\'s check.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-30', 'INV-03', 'PR-14'],
+  },
+  'EBMR-EXE-128': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The change the system was about to store does not follow from this action. Nothing was saved.',
+    whatYouCanDo: ['Stop and report it; reload the screen before you continue.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-14', 'DI-20', 'DI-27', 'DI-30', 'DI-34', 'DI-35', 'INV-03', 'INV-10', 'INV-20', 'PR-14'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },

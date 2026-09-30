@@ -9,16 +9,29 @@
  * overload and underload as such. Then the journal is uploaded and the capture answers with the reading and whether
  * the server acknowledged it. A unit other than the configured one, or a value finer than the resolution, is refused
  * and alarmed (never converted or rounded). Every other failure is answered with its error class.
+ *
+ * Readiness (DI-30, PR-20; review finding P51): an instrument is reported ONLINE in the heartbeat and in GET
+ * /v1/health only while a capture on it could be journalled and delivered: connected with its verified serial, AND
+ * the gateway is logged in with a usable journal (not diverged, no failed write), the installation kind matches, the
+ * server's binding matches this configuration, and the uplink can deliver (Uplink.deliveryProblem: the server does
+ * not refuse the oldest reading it lacks, the watermark can be written, the last upload succeeded, and readings
+ * journalled before the login are delivered). Otherwise it is reported OFFLINE, with the reason in the health
+ * answer, so the server offers the manual two-person path instead of refusing it while every capture fails; a
+ * capture then answers NOT_READY with the same reason. The heartbeat carries that reason too, so the server holds a
+ * record of why. A change is sent in a heartbeat at once (at most one such heartbeat per 500 ms, Uplink). What the
+ * gateway cannot see (the server failing to reach this API) the server detects and records (tablets 0320).
  */
 import { randomUUID } from 'node:crypto';
 import { appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  NOT_READY_MAX,
   READING_FORMAT,
   isMultipleOf,
   sealReading,
   type CapturePurpose,
   type CaptureResponse,
+  type DeviceState,
   type GatewayHealth,
   type LiveSample,
   type LoginResponse,
@@ -83,12 +96,19 @@ export class SiteGateway {
       dir: config.journalDir,
       gatewayCode: config.gatewayCode,
       publicKey: config.publicKey,
-      onAlarm: (a) => g.alarm('journal', a.kind, null, a.message, a.details),
+      onAlarm: (a) => {
+        g.alarm('journal', a.kind, null, a.message, a.details);
+        // A failed append makes every instrument not ready: tell the server now (the uplink exists by then).
+        if (a.kind === 'WRITE_FAILED') g.readinessChanged();
+      },
     });
     for (const d of config.devices) {
       const driver = new MtSicsDriver({ code: d.code, host: d.host, port: d.port, expectedSerial: d.expectedSerial, clock: g.clock, ...(options.driver ?? {}) });
       driver.on('alarm', (a: { kind: string; deviceCode: string; message: string; details: Record<string, string> }) => g.alarm('driver', a.kind, a.deviceCode, a.message, a.details));
-      driver.on('state', (s: string) => g.log(`${d.code}: ${s}`));
+      driver.on('state', (s: string) => {
+        g.log(`${d.code}: ${s}`);
+        g.readinessChanged();
+      });
       g.instruments.set(d.code, { config: d, driver });
     }
     g.uplink = new Uplink({
@@ -104,7 +124,16 @@ export class SiteGateway {
       onLogin: (login) => g.checkEnrolment(login),
       log: g.log,
       heartbeatBody: () => ({
-        devices: [...g.instruments.values()].map((i) => ({ deviceCode: i.config.code, state: i.driver.state, serial: i.driver.state === 'ONLINE' ? i.driver.serial : i.driver.reportedSerial })),
+        devices: [...g.instruments.values()].map((i) => {
+          const notReady = g.notReady(i);
+          return {
+            deviceCode: i.config.code,
+            state: g.reportedState(i),
+            serial: i.driver.state === 'ONLINE' ? i.driver.serial : i.driver.reportedSerial,
+            // The server stores why (review finding P51), so it holds a record of it, not only the state.
+            notReady: notReady === null ? null : notReady.slice(0, NOT_READY_MAX),
+          };
+        }),
       }),
     });
     for (const i of g.instruments.values()) i.driver.start();
@@ -149,13 +178,43 @@ export class SiteGateway {
     return null;
   }
 
+  /** Something that may change what the heartbeat reports happened: with the loops running, report it now. */
+  private readinessChanged(): void {
+    (this.uplink as Uplink | undefined)?.readinessChanged();
+  }
+
+  /**
+   * Why a capture on `i` could not be journalled and delivered now, apart from the instrument's own connection
+   * (null when it could). The capture answers NOT_READY with it, and the heartbeat reports `i` OFFLINE.
+   */
+  private readinessProblem(i: Instrument): string | null {
+    if (this.journal.writeFailure !== null) return `the gateway's journal could not be written (${this.journal.writeFailure}); nothing more is recorded until the gateway restarts`;
+    if (!this.journal.chainId || !this.journal.usable || this.installationMismatch) {
+      return 'the gateway has no usable reading chain with its server (not logged in, installation mismatch, or re-enrolment needed)';
+    }
+    return this.enrolmentProblem(i) ?? this.uplink.deliveryProblem();
+  }
+
+  /** Why `i` is reported OFFLINE although it is connected (null when it is not connected, or ready). */
+  private notReady(i: Instrument): string | null {
+    return i.driver.state === 'ONLINE' ? this.readinessProblem(i) : null;
+  }
+
+  /** The state the heartbeat and the health answer report: the driver's, except that a connected instrument that cannot capture is OFFLINE. */
+  private reportedState(i: Instrument): DeviceState {
+    return this.notReady(i) !== null ? 'OFFLINE' : i.driver.state;
+  }
+
   health(): GatewayHealth {
     return {
       gatewayCode: this.config.gatewayCode,
       loggedIn: this.uplink.login !== null,
       chainId: this.journal.chainId,
       journal: { lastSeq: this.journal.lastSeq().toString(), ackedSeq: this.journal.ackedSeq.toString() },
-      devices: [...this.instruments.values()].map((i) => ({ deviceCode: i.config.code, state: i.driver.state, serial: i.driver.serial })),
+      devices: [...this.instruments.values()].map((i) => {
+        const notReady = this.notReady(i);
+        return { deviceCode: i.config.code, state: notReady !== null ? 'OFFLINE' : i.driver.state, serial: i.driver.serial, notReady };
+      }),
     };
   }
 
@@ -209,11 +268,19 @@ export class SiteGateway {
   async capture(deviceCode: string, purpose: CapturePurpose, timeoutMs = this.config.captureTimeoutMs): Promise<CaptureResponse> {
     const i = this.instruments.get(deviceCode);
     if (!i) return this.failed('UNKNOWN_DEVICE', `${deviceCode} is not an instrument of this gateway`);
-    if (!this.journal.chainId || !this.journal.usable || this.installationMismatch) {
-      return this.failed('NOT_READY', 'the gateway has no usable reading chain with its server (not logged in, installation mismatch, or re-enrolment needed)');
+    const problem = this.readinessProblem(i);
+    if (problem) return this.failed('NOT_READY', problem);
+    try {
+      return await this.captureOn(i, purpose, timeoutMs);
+    } catch (error) {
+      // A reading that could not be journalled was never answered or uploaded (the journal alarmed and stopped).
+      if (this.journal.writeFailure !== null) return this.failed('NOT_READY', `nothing was recorded: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
     }
-    const enrolment = this.enrolmentProblem(i);
-    if (enrolment) return this.failed('NOT_READY', enrolment);
+  }
+
+  private async captureOn(i: Instrument, purpose: CapturePurpose, timeoutMs: number): Promise<CaptureResponse> {
+    const deviceCode = i.config.code;
     if (i.driver.state === 'SERIAL_MISMATCH') return this.failed('SERIAL_MISMATCH', `DI-20: ${deviceCode} reports serial ${i.driver.reportedSerial ?? '?'}, not ${i.config.expectedSerial}; it is refused`);
     if (i.driver.state !== 'ONLINE') return this.failed('DEVICE_OFFLINE', `${deviceCode} is not connected`);
     const deadline = this.clock.monoUs() + BigInt(timeoutMs) * 1000n;

@@ -37,8 +37,38 @@ export const MEANINGS = {
   REPROCESSING_AUTHORISED: 'DEVIATION_AUTHORISED',
 } as const;
 
-/** Meaning codes that verify recorded evidence (VERIFIED and its specialisations in the kernel catalogue). */
+/**
+ * Meaning codes that verify recorded evidence (VERIFIED and its specialisations in the kernel catalogue): the
+ * catalogue of the VERIFY command type. A step accepts only the one its own check asks for (`checkMeanings`).
+ */
 export const VERIFICATION_MEANINGS: readonly string[] = ['VERIFIED', 'CONTAINER_CHECKED', 'CHARGE_IN_VERIFIED', 'YIELD_VERIFIED', 'IPC_VERIFIED', 'LINE_CLEARANCE_VERIFIED'];
+
+/**
+ * The meanings a PERFORMED signature on `step` may carry, exactly (DI-35; engine 1.1.0): the block's own perform
+ * meanings when it has any (LINE_CLEARANCE_PERFORMED, SAMPLE_TAKEN, IPC_PERFORMED), else the generic PERFORMED. The
+ * generic meaning never stands in for the block's own: the block's meaning is what the record attests (a line
+ * clearance, a sample taken), so a PERFORMED signature on such a step would drop that attestation. The screen offers
+ * the first (actions.ts performMeaning) and the database accepts the same set (recipe.step_signature_meanings).
+ */
+export function performMeanings(step: StepDef | undefined): readonly string[] {
+  const own = step?.block?.handler?.meanings?.perform ?? [];
+  return own.length > 0 ? own : [MEANINGS.PERFORMED];
+}
+
+/**
+ * The meanings the check of a step instance may carry, exactly (DI-35, PR-14, PR-20, DI-24; review finding P37;
+ * engine 1.1.0): RE_VERIFIED_AFTER_CORRECTION while it awaits re-verification; else WITNESSED where the MBR asks for
+ * a witness; else the block's own check meanings (CONTAINER_CHECKED on a dispensing step); else VERIFIED. A verifier
+ * never chooses: a witness, a generic VERIFIED or another block's check never replaces the check the step requires.
+ * The screen offers the first (actions.ts checkMeaning) and the database accepts the same set
+ * (recipe.step_check_meanings, recipe.step_signature_meanings).
+ */
+export function checkMeanings(step: StepDef | undefined, inst: Pick<StepInstance, 'reverification'> | undefined): readonly string[] {
+  if (inst?.reverification === true) return [MEANINGS.RE_VERIFIED];
+  if (step?.checkMeaning === 'WITNESSED') return [MEANINGS.WITNESSED];
+  const own = step?.block?.handler?.meanings?.check ?? [];
+  return own.length > 0 ? own : [MEANINGS.VERIFIED];
+}
 
 export function requireBatchStatus(tx: Tx, allowed: readonly BatchStatus[], action: string): void {
   if (allowed.includes(tx.s.status)) return;
@@ -60,8 +90,36 @@ export function requireRole(actor: Actor, roles: readonly string[], action: stri
   if (roles.length === 0 || !hasRole(actor, roles)) refuse('ENG-ROLE', `${actor.id} does not hold a role that may ${action} (needs one of ${roles.join(', ') || 'no role is configured'})`, ['DI-17', 'PR-15']);
 }
 
+/**
+ * The code points that show nothing on their own, as inclusive ranges: the C0 and C1 controls, Unicode White_Space,
+ * the format characters (general category Cf), the default-ignorable code points and the Braille blank (Unicode 17).
+ * Written out, never as Unicode property escapes, so the engine's answer does not change with the runtime's Unicode
+ * tables. The kernel's blank test holds exactly this class (kernel.is_blank, kernel 0960; recipe.reason_is_blank),
+ * and a test compares the two over every code point.
+ */
+export const BLANK_CODE_POINTS: readonly (readonly [number, number])[] = [
+  [0x0000, 0x0020], [0x007f, 0x00a0], [0x00ad, 0x00ad], [0x034f, 0x034f], [0x0600, 0x0605], [0x061c, 0x061c], [0x06dd, 0x06dd],
+  [0x070f, 0x070f], [0x0890, 0x0891], [0x08e2, 0x08e2], [0x115f, 0x1160], [0x1680, 0x1680], [0x17b4, 0x17b5], [0x180b, 0x180f],
+  [0x2000, 0x200f], [0x2028, 0x202f], [0x205f, 0x206f], [0x2800, 0x2800], [0x3000, 0x3000], [0x3164, 0x3164], [0xfe00, 0xfe0f],
+  [0xfeff, 0xfeff], [0xffa0, 0xffa0], [0xfff0, 0xfffb], [0x110bd, 0x110bd], [0x110cd, 0x110cd], [0x13430, 0x1343f],
+  [0x1bca0, 0x1bca3], [0x1d173, 0x1d17a], [0xe0000, 0xe0fff],
+];
+
+/** True when `text` holds no character a person can read: only white space, controls and invisible format characters. */
+export function isBlankText(text: string): boolean {
+  for (const ch of text) {
+    const c = ch.codePointAt(0) ?? 0;
+    if (!BLANK_CODE_POINTS.some(([from, to]) => c >= from && c <= to)) return false;
+  }
+  return true;
+}
+
+/**
+ * A reason, justification, description or reference the person gives: a text with at least one visible character
+ * (engine 1.1.0; DI-22, DI-24, P29), kept trimmed as JavaScript trims it.
+ */
 export function requireReason(reason: string | undefined, what: string): string {
-  if (typeof reason !== 'string' || reason.trim().length === 0) refuse('ENG-REASON', `${what} needs a reason`, ['DI-22', 'DI-24']);
+  if (typeof reason !== 'string' || isBlankText(reason)) refuse('ENG-REASON', `${what} needs a reason`, ['DI-22', 'DI-24']);
   return reason.trim();
 }
 

@@ -22,7 +22,8 @@
         "requires": "SIGNATURE",
         "meaning": "VERIFIED",
         "reason": null,
-        "target": null
+        "target": null,
+        "whoCanHelp": []
       }
     },
     {
@@ -47,7 +48,8 @@
         "requires": "TAP",
         "meaning": null,
         "reason": "The QA hold point 2.2.1 must be released first (ENG-HOLD-POINT; PR-45)",
-        "target": null
+        "target": null,
+        "whoCanHelp": []
       }
     }
   ]

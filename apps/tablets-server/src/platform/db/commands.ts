@@ -2,14 +2,44 @@
  * Commands (ADR 0006; kernel withCommand): every GMP write runs in one transaction that declares the actor
  * first. The platform wraps the kernel so that refusals on authority (EBMR-IAM-040) and segregation
  * (EBMR-IAM-041) are logged again outside the rolled-back command (identity.withGuardedCommand), for plain
- * commands and idempotent ones alike.
+ * commands and idempotent ones alike. A refusal that must leave a durable record of its own (a DI-20 alert of a
+ * refused scale reading claim) carries it as an action to run after the rollback (`afterRollback`); both wrappers
+ * run it once the command's transaction has rolled back and its connection is released, under the same actor.
  */
 import type pg from 'pg';
 import { commands, identity, type ActorContext } from '@ebmr/kernel';
+import { HttpRefusal } from '../http/refusal.ts';
 
-/** `withActorCommand` = identity.withGuardedCommand. */
-export function withActorCommand<T>(pool: pg.Pool, actor: ActorContext, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
-  return identity.withGuardedCommand(pool, actor, work);
+/** Work a refusal leaves to be done after its command rolled back: typically a guarded command of its own under `actor`. */
+export type AfterRollback = (pool: pg.Pool, actor: ActorContext) => Promise<void>;
+
+const AFTER_ROLLBACK = Symbol('ebmr.afterRollback');
+
+/**
+ * Attaches `action` to `error`, a refusal thrown inside a command: the command wrappers below run it after the
+ * command's transaction has rolled back (not before: the rolled-back transaction still holds its session and
+ * authentication-event locks until then). A failure of the action never hides the refusal.
+ */
+export function afterRollback<E extends object>(error: E, action: AfterRollback): E {
+  Object.defineProperty(error, AFTER_ROLLBACK, { value: action, enumerable: false, configurable: true });
+  return error;
+}
+
+async function runAfterRollback(pool: pg.Pool, actor: ActorContext, error: unknown): Promise<void> {
+  if (typeof error !== 'object' || error === null) return;
+  const action = (error as { [AFTER_ROLLBACK]?: unknown })[AFTER_ROLLBACK];
+  if (typeof action !== 'function') return;
+  await (action as AfterRollback)(pool, actor).catch(() => undefined);
+}
+
+/** `withActorCommand` = identity.withGuardedCommand, then the refusal's after-rollback action, if any. */
+export async function withActorCommand<T>(pool: pg.Pool, actor: ActorContext, work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+  try {
+    return await identity.withGuardedCommand(pool, actor, work);
+  } catch (error) {
+    await runAfterRollback(pool, actor, error);
+    throw error;
+  }
 }
 
 export interface IdempotentResult<T> {
@@ -20,11 +50,12 @@ export interface IdempotentResult<T> {
 
 export interface IdempotentOptions<T> {
   /**
-   * Runs inside the transaction before a stored result is replayed. When it throws, the replay rolls back and
-   * commits nothing, not even the use of the actor's authentication event (the e-signature ceremony uses this for a
-   * replayed refusal, which it logs with that event afterwards, see features/esig).
+   * Runs inside the replaying command, after begin_command consumed the actor's authentication event and before the
+   * stored result is returned (the e-signature ceremony logs a replayed refusal here, with the resend's own
+   * authentication event, so the kernel sees that event's use as this command's own: see features/esig). When it
+   * throws, the replay rolls back and commits nothing.
    */
-  beforeReplay?: (result: T) => void;
+  onReplay?: (client: pg.PoolClient, result: T) => Promise<void>;
 }
 
 /**
@@ -32,6 +63,10 @@ export interface IdempotentOptions<T> {
  * command's own transaction and the JSON result stored with it, so a resend with the same key and request hash
  * returns the stored result. `begin_command` runs first and consumes the actor's authentication event (INV-40),
  * so a resend needs a fresh tap by the same person (decision D1).
+ *
+ * A refusal the work throws as an HttpRefusal (a feature's own check, e.g. a step command from a terminal outside the
+ * step's room) is rethrown as it is, so the answer keeps the kind, controls and advice the feature declared; only
+ * database and kernel errors become KernelErrors, answered through the guidance catalogue.
  */
 export async function withIdempotentActorCommand<T extends commands.JsonValue>(
   pool: pg.Pool,
@@ -49,7 +84,7 @@ export async function withIdempotentActorCommand<T extends commands.JsonValue>(
       if (claim.status === 'REPLAY') {
         if (claim.result_json === undefined) throw new Error(`idempotency key ${key} has no stored result`);
         const stored = JSON.parse(claim.result_json) as T;
-        options.beforeReplay?.(stored);
+        if (options.onReplay) await options.onReplay(client, stored);
         return { result: stored, replayed: true };
       }
       const result = await work(client);
@@ -59,6 +94,8 @@ export async function withIdempotentActorCommand<T extends commands.JsonValue>(
       return { result: JSON.parse(json) as T, replayed: false };
     });
   } catch (error) {
+    await runAfterRollback(pool, actor, error);
+    if (error instanceof HttpRefusal) throw error;
     throw commands.asKernelError(error);
   }
 }

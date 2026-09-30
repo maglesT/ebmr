@@ -189,7 +189,7 @@ function localBlock(a: ActionView, view: StepScreenView): string | null {
 export function toBarAction(a: ActionView, view: StepScreenView): floor.BarAction {
   const block = localBlock(a, view);
   const exception = a.target ? view.exceptions.find((e) => e.exceptionId === a.target) : undefined;
-  return { id: actionId(a), label: exception ? `${actionLabel(a)}: ${exception.title}` : actionLabel(a), isDisabled: !a.available || block !== null, reason: a.available ? block : a.reason };
+  return { id: actionId(a), label: exception ? `${actionLabel(a)}: ${exception.title}` : actionLabel(a), isDisabled: !a.available || block !== null, reason: a.available ? block : a.reason, whoCanHelp: a.available ? [] : a.whoCanHelp };
 }
 
 export function StepActionBar({ view, perform, busy }: { view: StepScreenView; perform: (a: ActionView) => void; busy: boolean }) {

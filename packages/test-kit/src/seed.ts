@@ -15,7 +15,7 @@ import pg from 'pg';
 import { continuity, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { ADMIN_URL, urlFor, type DatabaseHandle, type InstallationKind } from './db.ts';
 import { fingerprintOfSpki, generateDeviceKey, generateServiceKey, type DeviceKey } from './keys.ts';
-import { BOOTSTRAP_NAMES, PERSONAS, SERVICES, SITE_CODE, TERMINALS, personaForSet, type PersonaSpec, type TerminalSpec } from './personas.ts';
+import { BOOTSTRAP_NAMES, PERSONAS, SERVICES, SITE_CODE, TERMINALS, personaForSet, type PersonaSpec, type ServiceKey, type TerminalSpec } from './personas.ts';
 
 export interface BootstrapAccount {
   personId: string;
@@ -62,7 +62,7 @@ export interface SeededPersona {
 }
 
 export interface SeededService {
-  key: 'sweeper' | 'gateway';
+  key: ServiceKey;
   legalName: string;
   loginName: string;
   personId: string;
@@ -179,12 +179,31 @@ export interface SeedOptions {
 }
 
 /**
+ * The sandbox's service identities act in roles the edition's migrations create, never in a broader kernel role
+ * (DI-17): EXECUTION_SWEEPER (recipe-core 0260), SITE_GATEWAY (the tablets edition's 0290) and GATEWAY_API_MONITOR
+ * (the tablets edition's 0340). A database built without them is refused before anything is seeded, naming what is
+ * missing, rather than seeded with a gateway in some other role.
+ */
+async function assertServiceRoles(db: Pick<DatabaseHandle, 'app'>): Promise<void> {
+  const wanted = SERVICES.map((s) => s.roleCode);
+  const { rows } = await db.app.query<{ code: string }>('select code from iam.role where code = any($1::text[])', [wanted]);
+  const missing = wanted.filter((code) => !rows.some((r) => r.code === code));
+  if (missing.length > 0) {
+    throw new Error(
+      `the sandbox's service identities need the role(s) ${missing.join(', ')}, which this database does not define; ` +
+        'build it with the edition migrations that create them (SITE_GATEWAY and GATEWAY_API_MONITOR: the tablets edition, apps/tablets-server/sql 0290 and 0340; EXECUTION_SWEEPER: recipe-core 0260)',
+    );
+  }
+}
+
+/**
  * `seedDemoSite(db, 'GMP'|'SANDBOX', options)`: terminals, personas (each persona set) and, in the sandbox,
  * the service identities. `bootstrap` is the result of bootstrapInstallation (for a sandbox, of the staged
  * provisioning).
  */
 export async function seedDemoSite(db: DatabaseHandle, kind: InstallationKind, bootstrap: BootstrapResult, opts: SeedOptions = {}): Promise<SiteSeed> {
   if (bootstrap.installation !== kind) throw new Error(`the bootstrap is of a ${bootstrap.installation} installation, not ${kind}`);
+  if (kind === 'SANDBOX') await assertServiceRoles(db);
   const authn = seedAuthn(db.admin);
   const adminCtx = await passwordActor(db, bootstrap.admin, bootstrap.admin.fingerprint);
   const ownerCtx = await passwordActor(db, bootstrap.owner, bootstrap.owner.fingerprint);
@@ -229,8 +248,9 @@ export async function seedDemoSite(db: DatabaseHandle, kind: InstallationKind, b
     }
   }
 
-  // Service identities (sandbox): the sweeper (source SYSTEM) and the gateway (INTEGRATION), each granted only its
-  // own role (DI-17): the sweeper EXECUTION_SWEEPER, the gateway SERVICE_ACCOUNT.
+  // Service identities (sandbox): the sweeper and the gateway API monitor (source SYSTEM) and the gateway
+  // (INTEGRATION), each granted only its own role (DI-17): the sweeper EXECUTION_SWEEPER, the gateway SITE_GATEWAY,
+  // the monitor GATEWAY_API_MONITOR (personas.ts SERVICES).
   const services: SeededService[] = [];
   if (kind === 'SANDBOX') {
     for (const s of SERVICES) {
@@ -352,10 +372,11 @@ export async function freshTap(db: Pick<DatabaseHandle, 'authn'>, seed: SiteSeed
 }
 
 /**
- * A session of a service identity (sweeper, gateway) on its SERVER terminal, source SYSTEM or INTEGRATION, declaring
- * the identity's own role (the sweeper EXECUTION_SWEEPER, the gateway SERVICE_ACCOUNT; DI-17).
+ * A session of a service identity (sweeper, gateway, monitor) on its SERVER terminal, source SYSTEM or INTEGRATION,
+ * declaring the identity's own role (the sweeper EXECUTION_SWEEPER, the gateway SITE_GATEWAY, the monitor
+ * GATEWAY_API_MONITOR; DI-17).
  */
-export async function openServiceSession(db: Pick<DatabaseHandle, 'app' | 'authn'>, seed: SiteSeed, key: 'sweeper' | 'gateway'): Promise<ActorContext & { deviceId: string }> {
+export async function openServiceSession(db: Pick<DatabaseHandle, 'app' | 'authn'>, seed: SiteSeed, key: ServiceKey): Promise<ActorContext & { deviceId: string }> {
   const s = seed.services.find((x) => x.key === key);
   if (!s) throw new Error(`service ${key} is not seeded in ${seed.installation}`);
   const t = terminalOf(seed, s.terminal);

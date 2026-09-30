@@ -10,6 +10,7 @@ import { Dec } from '@ebmr/expr';
 import type { BlockVersion } from '../../src/blocks/contract.ts';
 import { genericBlockRegistry } from '../../src/blocks/generic/index.ts';
 import type { BlockRegistry } from '../../src/blocks/registry.ts';
+import { checkMeaning, performMeaning } from '../../src/engine/actions.ts';
 import { defineBatch, type BatchDefinition, type DefineOptions } from '../../src/engine/definition.ts';
 import { issue, step } from '../../src/engine/engine.ts';
 import { checkInvariants } from '../../src/engine/invariants.ts';
@@ -208,11 +209,13 @@ export class Run {
     return this.ok({ type: 'RECORD_ENTRY', actor: who, step: stepId, context: frames, entry: substituteBatch(entry, this.state.header.batchNumber) });
   }
 
-  perform(stepId: string, frames: readonly Frame[] = [], who: Actor = OP1, meaning = 'PERFORMED'): StepResult {
+  /** PERFORMED by `who`, signed with the step's own meaning (the block's, else PERFORMED) unless `meaning` is given. */
+  perform(stepId: string, frames: readonly Frame[] = [], who: Actor = OP1, meaning = performMeaning(this.def, stepId)): StepResult {
     return this.ok({ type: 'SIGN_PERFORMED', actor: who, step: stepId, context: frames, ...(who.kind === 'PERSON' ? { signature: sig(meaning, who) } : {}) });
   }
 
-  verify(stepId: string, frames: readonly Frame[] = [], who: Actor = VER1, meaning = 'VERIFIED'): StepResult {
+  /** The check by `who`, signed with the meaning the step requires now (actions.ts checkMeaning) unless `meaning` is given. */
+  verify(stepId: string, frames: readonly Frame[] = [], who: Actor = VER1, meaning = checkMeaning(this.def, this.inst(stepId, frames), stepId)): StepResult {
     return this.ok({ type: 'VERIFY', actor: who, step: stepId, context: frames, signature: sig(meaning, who) });
   }
 
@@ -344,7 +347,7 @@ export function executePhase(run: Run, inst: StepInstance, scenario: Scenario = 
   const after = run.inst(inst.step, inst.frames) as StepInstance;
   const signers = after.dataEnterers.length > 0 ? after.dataEnterers.map((id) => PEOPLE.find((p) => p.id === id) as Actor) : [performer.kind === 'SYSTEM' && !step.systemPerforms ? actorWith(step.performRoles) : performer];
   for (const who of signers) {
-    const meaning = step.block?.handler?.meanings?.perform?.[0] ?? 'PERFORMED';
+    const meaning = performMeaning(def, inst.step);
     const r = run.exec({ type: 'SIGN_PERFORMED', actor: who, step: inst.step, context: inst.frames, ...(who.kind === 'PERSON' ? { signature: sig(meaning, who) } : {}) });
     if (!r.accepted) stuckOr(r.refusal);
   }
@@ -352,7 +355,7 @@ export function executePhase(run: Run, inst: StepInstance, scenario: Scenario = 
   if (done.status === 'AWAITING_VERIFICATION') {
     const exclude = new Set([...done.performers, ...done.dataEnterers, ...done.correctors, ...done.performedSigners]);
     const verifier = actorWith(step.checkRole !== undefined ? [step.checkRole] : def.policy.fallbackVerifierRoles, exclude);
-    const r = run.exec({ type: 'VERIFY', actor: verifier, step: inst.step, context: inst.frames, signature: sig(step.checkMeaning === 'WITNESSED' ? 'WITNESSED' : 'VERIFIED', verifier) });
+    const r = run.exec({ type: 'VERIFY', actor: verifier, step: inst.step, context: inst.frames, signature: sig(checkMeaning(def, done, inst.step), verifier) });
     if (!r.accepted) stuckOr(r.refusal);
   }
 }
@@ -409,7 +412,7 @@ export function autopilot(run: Run, scenario: Scenario = {}, maxActions = 5_000)
         const stepDef = def.steps.get(awaiting.step);
         const exclude = new Set([...awaiting.performers, ...awaiting.dataEnterers, ...awaiting.correctors, ...awaiting.performedSigners]);
         const who = actorWith(stepDef?.checkRole !== undefined ? [stepDef.checkRole] : def.policy.fallbackVerifierRoles, exclude);
-        run.verify(awaiting.step, awaiting.frames, who, awaiting.reverification ? 'RE_VERIFIED_AFTER_CORRECTION' : stepDef?.checkMeaning === 'WITNESSED' ? 'WITNESSED' : 'VERIFIED');
+        run.verify(awaiting.step, awaiting.frames, who, checkMeaning(def, awaiting, awaiting.step));
         continue;
       }
       return 'STUCK';

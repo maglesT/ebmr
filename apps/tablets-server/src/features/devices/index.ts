@@ -5,7 +5,10 @@
  *  - deviceReadingPort: claims of readings by id inside the committing entry's command (port.ts);
  *  - startGatewayListener: the gateway's uplink listener, started by main.ts when EBMR_GATEWAY_LISTEN is set;
  *  - seed: enrols the DEMO-ONLY gateway key and binds the simulated balance TEST-BAL-01 (demo and E2E only).
- * SQL: apps/tablets-server/sql/0250_devices_readings.sql. Controls DI-20, DI-28, DI-31, DI-32.
+ * SQL: apps/tablets-server/sql/0250_devices_readings.sql and 0270_devices_readings_guards.sql (the database proves each
+ * stored reading: hash, Ed25519 signature, raw line; claims take the room from the session); 0340 (whether the server
+ * reaches a gateway's API is recorded by the server's gateway API monitor identity, runtime.ts). Controls DI-20, DI-28,
+ * DI-30, DI-31, DI-32.
  */
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
@@ -15,11 +18,21 @@ import { DEVICES_GUIDANCE } from './guidance.ts';
 import { startGatewayListener as startListener, type GatewayListener } from './listener.ts';
 import { createDeviceReadingPort } from './port.ts';
 import { bindDeviceRoutes } from './routes.ts';
+import { MONITOR_TERMINAL, runtimeOf } from './runtime.ts';
 
 export const guidance = DEVICES_GUIDANCE;
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   bindDeviceRoutes(scope, app);
+  const runtime = runtimeOf(app);
+  // DI-30 (tablets 0340): whether the server reaches a gateway's API is recorded only by its gateway API monitor.
+  if (app.installation === 'SANDBOX' && !runtime.monitorConfigured()) {
+    scope.log.warn(
+      { terminal: MONITOR_TERMINAL },
+      'no gateway API monitor identity in the service-keys file: a gateway API the server cannot reach is not recorded, so its scales keep the status their heartbeats give',
+    );
+  }
+  scope.addHook('onClose', async () => runtime.close());
   return Promise.resolve();
 }
 

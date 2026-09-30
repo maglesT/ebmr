@@ -5,7 +5,8 @@
  * What the signer sees, in order: what is signed (the record, then a disclosure with the exact canonical text and
  * its SHA-256), the meaning statement, how the signature will show (name, user ID, role, meaning, zone), a
  * countdown of the 120 s challenge, then the PIN pad (kiosk) or user ID and password (office). Secrets are typed
- * into uncontrolled inputs or the PIN pad, handed over once and cleared; nothing is pre-filled or remembered.
+ * into a SecretInput (native, uncontrolled) or the PIN pad, handed over once and cleared; nothing is pre-filled or
+ * remembered, and no secret enters React state or the input's value attribute.
  */
 import { useRef, type FormEvent } from 'react';
 import type { RefusalEnvelope } from '@ebmr/api-contract';
@@ -13,6 +14,7 @@ import { Banner } from '../primitives/Banner.tsx';
 import { Button } from '../primitives/Button.tsx';
 import { Dialog } from '../primitives/Dialog.tsx';
 import { Field } from '../primitives/Field.tsx';
+import { SecretInput, takeSecret } from '../primitives/SecretInput.tsx';
 import type { CeremonyContext, CeremonyState } from '../machines/ceremony.ts';
 import { BadgePrompt, type DemoBadge } from './BadgePrompt.tsx';
 import { icls } from './classes.ts';
@@ -53,15 +55,15 @@ function PasswordForm({ onSubmit, disabled }: { onSubmit: (loginName: string, pa
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const loginName = idRef.current?.value.trim() ?? '';
-    const password = pwRef.current?.value ?? '';
-    if (pwRef.current) pwRef.current.value = '';
+    // Read and cleared in one step: the password is handed over once and never enters React state or the DOM value.
+    const password = takeSecret(pwRef);
     if (!loginName || !password) return;
     onSubmit(loginName, password);
   };
   return (
     <form onSubmit={submit} aria-label="Sign with your user ID and password">
       <Field label="User ID" name="signUserId" inputRef={idRef} autoComplete="off" isRequired autoFocus isDisabled={disabled} />
-      <Field label="Password" name="signPassword" type="password" inputRef={pwRef} autoComplete="off" isRequired isDisabled={disabled} />
+      <SecretInput label="Password" name="signPassword" inputRef={pwRef} isRequired isDisabled={disabled} />
       <Button type="submit" variant="primary" isDisabled={disabled}>
         Sign
       </Button>
@@ -165,7 +167,7 @@ export function SignatureDialog(p: SignatureDialogProps) {
           <>
             {c.refusal ? <RefusalNotice envelope={c.refusal} tone="warning" /> : null}
             {p.switchError ? <RefusalNotice envelope={p.switchError} /> : null}
-            <p>{`Switch to ${c.refusal?.refusal.details?.['switchToLegalName'] ?? 'this person'}? Their session opens on this terminal and the signing starts again for them.`}</p>
+            <p>{`Switch to ${c.refusal?.refusal.details?.['switchToLegalName'] ?? 'this person'}? Their own session opens on this terminal. Nothing is signed now: they start their own signing, with their own decision.`}</p>
             <PinPad label={`Enter the PIN of ${c.refusal?.refusal.details?.['switchToLegalName'] ?? 'the person who tapped'}`} onSubmit={p.onSwitchPin} />
             <Button onPress={p.onCancel}>Cancel</Button>
           </>

@@ -66,6 +66,7 @@ every loop's maximum duration.
 | Batch on hold: nothing starts, completes or advances; data can still be recorded; only QA lifts a QA hold | `guards.ts`, `batch.ts` | DI-34, PR-45 |
 | Mandatory data present, calculations done, minimum duration elapsed, no blocking exception before PERFORMED; every data enterer signs for their own entries | `steps.ts` | PR-16, INV-20, PR-08 |
 | Verifier or witness never performed, entered data in or corrected the step; WITNESSED meaning where required; late witness is an exception | `steps.ts` | INV-03, PR-14, DI-30 |
+| Exactly one meaning set per step signature (`guards.ts` performMeanings, checkMeanings; engine 1.1.0): PERFORMED carries the block's own perform meaning where it has one; the check is RE_VERIFIED_AFTER_CORRECTION while re-verification is due, else the MBR's WITNESSED, else the block's own check, else VERIFIED; the screen offers the same (`actions.ts`) and the database accepts the same (recipe-core sql 0295, 0296) | `steps.ts`, `guards.ts` | DI-35, PR-14, PR-20 |
 | Limit tiers: alert = register item; internal action = step (and after it) waits for a deviation; registered/validated = registration-relevant deviation, QA-only, stage sign-off blocked | `exceptions.ts`, `data.ts` | PR-08, PR-31, PR-39 |
 | Derived values computed with an evaluation record; typing one is refused; block-computed quantities (net = gross - tare, container totals) are never typed | `data.ts`, `steps.ts` | INV-25, DI-33 |
 | Time constraints per iteration and instance; to-events refused before the minimum; every maximum breach creates exactly one exception at every command and by `sweep`; void in untaken branches; a regressing clock never hides a breach | `timing.ts` | INV-20, PR-30, IN-13 |
@@ -73,6 +74,7 @@ every loop's maximum duration.
 | Dependents of a change: derived results recalculated (old record kept, signed steps re-verified, stage sign-off invalidated, batch reopened); decisions re-evaluated but never re-routed (QA-only exception); executed targets compared with tolerance | `corrections.ts` | DI-33, DI-34 |
 | Skip only for steps the MBR declares skippable, with a different approver, never for CPP/CQA inputs, reconciliation, clearance, dispensing, charge-in, sign-off, hold points or steps whose values others read | `steps.ts` | PR-13 |
 | Late entries: occurred-at between step start and now, reason required, flagged; person-claimed step starts refused | `steps.ts` | DI-28, PR-11 |
+| A reason, justification, exception description or deviation reference a person gives has a character a person can read: one made only of white space, controls or invisible format characters (zero-width space, word joiner, soft hyphen and the like) is refused (ENG-REASON; `guards.ts` requireReason and isBlankText, engine 1.1.0); the class is the kernel's `kernel.is_blank` (kernel 0960), and the database refuses the same justifications (recipe-core sql 0301) | `guards.ts` | DI-22, DI-24, PR-49 |
 | Stage frame (G-02): closes only with the responsible person's sign-off, derived summary "completed per MBR / with deviations" | `steps.ts` | IN-15, PR-16 |
 | QA hold point (G-17): downstream locked; approval refused while exceptions lack a QA decision; "not approved" rejects the intermediate and holds the batch | `steps.ts` | PR-45, IN-37 |
 | Execution complete only with no token left, every step terminal and verified, every stage signed off | `advance.ts` | DI-34, PR-16 |
@@ -119,6 +121,13 @@ exceptions never disappear (INV-41). The model-based tests run it after every co
 tests (`model.test.ts`) and the simulator/engine agreement (`agreement.test.ts`).
 
 ## Phase 2 apps additions (module C3)
+
+**Engine version.** `ENGINE_VERSION` (types.ts) names the engine's output: a batch pins it at issue and is run
+and replayed only by that version (EBMR-EXE-061), because replay compares each stored row's events and state with
+what the engine answers now. Every change of output needs a new version; `test/engine/engine-version.test.ts`
+holds the output fingerprint of each released version (`test/engine/fingerprint.ts`) and fails when the engine
+answers its fixed run differently under an unchanged version. The note on `ENGINE_VERSION` lists what each
+version changed (ADR 0010 semantic-change report).
 
 **Installation.** `defineBatch(mbr, {installation})` defaults to `'GMP'`, which fails closed: a
 SANDBOX_ONLY block version (G-09@1, G-10@1) is refused with ENG-DEF-SANDBOX-ONLY, whose message names

@@ -2,20 +2,29 @@
  * Test harness for the floor screens (module C4): the floor routes in a memory router, the contract examples
  * through the fixture fetch (extended locally), a recording transport, and fake ports (badge tap, ceremony,
  * scale slot). No server: every answer is a contract example or a test's own.
+ *
+ * As in the app, cached reads are dropped when the signed-in person changes (app/session-reads.tsx) and the floor
+ * reloads its reads after an unlock (the floor Provider). Both are mounted inside the router's root route, so the
+ * tree around the router is the plain provider stack (QueryClient, session, ceremony, badge tap, scale slot, router):
+ * a test that re-renders that stack itself for another person keeps the router and the screens mounted, as C1's
+ * switch does in the app. `ui.switchTo(person)` changes the signed-in person the way C1 does: it announces SWITCH,
+ * then the session's person changes.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRootRoute, createRouter, Outlet, RouterProvider } from '@tanstack/react-router';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import type { ComponentType } from 'react';
 import { vi } from 'vitest';
 import { IDEMPOTENCY_HEADER, type Attribution, type FetchLike, type ReadingView, type RefusalEnvelope, type StepScreenView } from '@ebmr/api-contract';
 import { EXAMPLES, example } from '@ebmr/api-contract/examples';
 import { setTransport } from '../../src/api/client.ts';
+import { ResetReadsOnPersonChange } from '../../src/app/session-reads.tsx';
 import { fixturesFromExamples } from '../../src/api/examples.ts';
 import { createFixtureFetch, type FixtureMap } from '../../src/api/fixture-fetch.ts';
 import { BadgeTapPortProvider, CeremonyPortProvider, ScaleSlotProvider, StubScaleCaptureSlot, type BadgeTapPort, type ScaleCaptureSlotProps, type SignatureCeremonyPort } from '../../src/app/ports.tsx';
 import * as floorFeature from '../../src/features/floor/index.tsx';
-import { FloorSessionContext, type FloorSession } from '../../src/features/floor/session.tsx';
+import { RefreshReadsAfterUnlock } from '../../src/features/floor/queries.ts';
+import { FloorSessionContext, SESSION_CHANGE_EVENT, useFloorSession, type FloorSession } from '../../src/features/floor/session.tsx';
 
 export const RUN_ID = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 
@@ -103,6 +112,11 @@ export interface RenderOptions {
   tap?: FakeTap;
   ceremony?: SignatureCeremonyPort;
   scaleSlot?: ComponentType<ScaleCaptureSlotProps>;
+  /**
+   * Drop cached reads when the person changes, as the app does (default true). False models a screen whose reads
+   * survive a switch, to check that a component does not rely on that reset.
+   */
+  resetReadsOnPersonChange?: boolean;
 }
 
 const headers = { get: (n: string) => (n.toLowerCase() === 'x-ebmr-installation' ? 'SANDBOX' : null) };
@@ -121,12 +135,29 @@ export function renderFloor(path: string, opts: RenderOptions = {}) {
   };
   setTransport(transport);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
-  const root = createRootRoute({ component: () => <Outlet /> });
+  const resetReads = opts.resetReadsOnPersonChange ?? true;
+  /** What the app mounts around every screen for the reads: the reset on a change of person, the reload after an unlock. */
+  function AppReads() {
+    const s = useFloorSession();
+    return (
+      <>
+        {resetReads ? <ResetReadsOnPersonChange who={`${s.personId ?? ''}|${s.role ?? ''}`} /> : null}
+        <RefreshReadsAfterUnlock />
+      </>
+    );
+  }
+  const root = createRootRoute({
+    component: () => (
+      <>
+        <AppReads />
+        <Outlet />
+      </>
+    ),
+  });
   const router = createRouter({ routeTree: root.addChildren(floorFeature.routes(root)), history: createMemoryHistory({ initialEntries: [path] }) });
-  const session: FloorSession = { ...OPERATOR, ...(opts.session ?? {}) };
   const tap = opts.tap ?? fakeTap();
   const ceremony = opts.ceremony ?? fakeCeremony();
-  const utils = render(
+  const tree = (session: FloorSession) => (
     <QueryClientProvider client={qc}>
       <FloorSessionContext.Provider value={session}>
         <CeremonyPortProvider value={ceremony}>
@@ -137,9 +168,17 @@ export function renderFloor(path: string, opts: RenderOptions = {}) {
           </BadgeTapPortProvider>
         </CeremonyPortProvider>
       </FloorSessionContext.Provider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
-  return { ...utils, requests, router, qc, tap, ceremony, commands: () => requests.filter((r) => r.method === 'POST' && r.path.endsWith('/commands')) };
+  const utils = render(tree({ ...OPERATOR, ...(opts.session ?? {}) }));
+  /** Another person takes over this terminal (C1: announce SWITCH, then the session's person changes). */
+  const switchTo = (person: FloorSession) => {
+    act(() => {
+      window.dispatchEvent(new CustomEvent(SESSION_CHANGE_EVENT, { detail: { reason: 'SWITCH', personId: person.personId } }));
+    });
+    utils.rerender(tree(person));
+  };
+  return { ...utils, requests, router, qc, tap, ceremony, switchTo, commands: () => requests.filter((r) => r.method === 'POST' && r.path.endsWith('/commands')) };
 }
 
 /** Step fixtures by step key, including test variants (the fixture fetch answers step views from this map). */

@@ -19,8 +19,10 @@ import {
   interpretWeightLine,
   loginProofMessage,
   readingProblem,
+  uploadWaitMessage,
   type LoginResponse,
   type ScaleReading,
+  type UplinkItem,
 } from '@ebmr/integration-sdk/scale';
 import { parseGatewayConfig, type GatewayConfig } from '../src/config.ts';
 
@@ -107,7 +109,9 @@ export function configFor(opts: { simPort: number; uplink: string; journalDir: s
 
 /**
  * The server side of the uplink, in memory: one chain per "enrolment", readings accepted only in sequence with a
- * valid link, hash, signature and raw line; duplicates by reading id are idempotent.
+ * valid link, hash, signature and raw line; duplicates by reading id are idempotent. Every upload names a challenge
+ * this server issued, and every known wait must carry the gateway's signature over challenge, reading id and wait
+ * (DI-28, as tab.ingest_reading checks it: EBMR-DEV-053, -054, -055).
  */
 export class FakeServer {
   readonly readings: ScaleReading[] = [];
@@ -119,6 +123,18 @@ export class FakeServer {
   instruments: LoginResponse['instruments'] = [{ deviceCode: 'TEST-BAL-01', serial: 'SIM-0001', unit: 'kg', resolution: '0.001', roomCode: 'DISP-1' }];
   /** Reject uploads (the listener is down) while true. */
   down = false;
+  /** Refuse a new reading with the code this returns (a refusal the real listener would give, e.g. EBMR-DEV-048). */
+  refuse: ((reading: ScaleReading) => string | null) | null = null;
+  /** Answer uploads 500 while login and heartbeats still work (e.g. the ingest path is broken) while true. */
+  uploadsDown = false;
+  /** Readings received in upload requests, duplicates included (how much the gateway sent). */
+  itemsReceived = 0;
+  /** Answer a challenge request only after this many milliseconds (a slow server). */
+  challengeDelayMs = 0;
+  /** The challenges issued (id to the time of issue, performance.now()). */
+  readonly challenges = new Map<string, number>();
+  /** Every upload item accepted by the schema, with the challenge of its upload and when the upload arrived. */
+  readonly items: (UplinkItem & { challengeId: string; arrivedAt: number })[] = [];
   private tokens = new Set<string>();
   private nonces = new Set<string>();
   private server: Server | null = null;
@@ -187,13 +203,39 @@ export class FakeServer {
         };
         return this.send(res, 200, login);
       }
+      case '/gw/v1/challenge': {
+        if (!this.tokens.has(hash)) return this.send(res, 401, { error: { code: 'SESSION', message: 'log in', relogin: true } });
+        if (this.challengeDelayMs > 0) await new Promise((r) => setTimeout(r, this.challengeDelayMs));
+        const challengeId = randomUUID();
+        this.challenges.set(challengeId, performance.now());
+        return this.send(res, 200, { challengeId });
+      }
       case '/gw/v1/readings': {
         if (!this.tokens.has(hash)) return this.send(res, 401, { error: { code: 'SESSION', message: 'log in', relogin: true } });
+        if (this.uploadsDown) return this.send(res, 500, { error: { code: 'INTERNAL', message: 'the readings could not be stored', relogin: false } });
         const p = UplinkRequest.safeParse(body);
         if (!p.success) return this.send(res, 400, { error: { code: 'SCHEMA', message: 'bad', relogin: false } });
+        this.itemsReceived += p.data.items.length;
+        const arrivedAt = performance.now();
+        for (const item of p.data.items) this.items.push({ ...item, challengeId: p.data.challengeId, arrivedAt });
         const results: { readingId: string; seq: string; outcome: 'INGESTED' | 'DUPLICATE' }[] = [];
         let refused: { readingId: string; code: string; message: string } | null = null;
-        for (const { reading } of p.data.items) {
+        for (const { reading, delayUs, waitSig } of p.data.items) {
+          const waitCode =
+            delayUs === null
+              ? null
+              : waitSig === null
+                ? 'EBMR-DEV-053'
+                : !this.challenges.has(p.data.challengeId)
+                  ? 'EBMR-DEV-054'
+                  : !verify(null, uploadWaitMessage(p.data.challengeId, reading.readingId, delayUs), ed25519PublicKey(this.spki), Buffer.from(waitSig, 'base64'))
+                    ? 'EBMR-DEV-055'
+                    : null;
+          if (waitCode) {
+            refused = { readingId: reading.readingId, code: waitCode, message: waitCode };
+            this.refused.push({ readingId: reading.readingId, code: waitCode });
+            break;
+          }
           const existing = this.readings.find((r) => r.readingId === reading.readingId);
           if (existing) {
             if (existing.hash !== reading.hash) {
@@ -206,15 +248,17 @@ export class FakeServer {
           const head = this.head();
           const problem = readingProblem(reading, ed25519PublicKey(this.spki));
           const raw = interpretWeightLine(reading.raw);
-          const code = problem
-            ? problem.problem
-            : reading.chainId !== this.chainId
-              ? 'CHAIN'
-              : BigInt(reading.seq) !== BigInt(head.seq) + 1n || reading.prevHash !== head.hash
-                ? 'SEQUENCE'
-                : raw.value !== reading.value || raw.status !== reading.status
-                  ? 'RAW'
-                  : null;
+          const code =
+            this.refuse?.(reading) ??
+            (problem
+              ? problem.problem
+              : reading.chainId !== this.chainId
+                ? 'CHAIN'
+                : BigInt(reading.seq) !== BigInt(head.seq) + 1n || reading.prevHash !== head.hash
+                  ? 'SEQUENCE'
+                  : raw.value !== reading.value || raw.status !== reading.status
+                    ? 'RAW'
+                    : null);
           if (code) {
             refused = { readingId: reading.readingId, code, message: code };
             this.refused.push({ readingId: reading.readingId, code });

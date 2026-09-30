@@ -3,14 +3,17 @@
  *
  * A locked session covers the whole screen. Kiosk: "Unlock" (the session's person: badge, then PIN) or "Switch
  * user" (another person: badge, then PIN; their own session opens). Office: user ID and password of the session's
- * person. A badge of another person at the unlock turns into "Switch to <name>?" and asks only for that person's PIN
- * (the badge just tapped is kept for at most 30 s, never in React state or storage).
+ * person. A badge of another person at the unlock turns into "Switch to <name>?" and asks only for that person's PIN:
+ * the badge just tapped waits in a KeptBadge held by a ref (never in React state or storage) for at most 30 s, and is
+ * wiped as soon as the overlay closes (the session was unlocked or switched) or unmounts. The office password is typed
+ * into a SecretInput (native, uncontrolled), read and cleared in one step, and never enters React state.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefusalEnvelope } from '@ebmr/api-contract';
 import { Button } from '../primitives/Button.tsx';
 import { Dialog } from '../primitives/Dialog.tsx';
 import { Field } from '../primitives/Field.tsx';
+import { SecretInput, takeSecret } from '../primitives/SecretInput.tsx';
 import type { SwitchOffer } from '../machines/kiosk-lock.ts';
 import { BadgePrompt, type DemoBadge } from './BadgePrompt.tsx';
 import { icls } from './classes.ts';
@@ -21,7 +24,8 @@ export const KEEP_BADGE_MS = 30_000;
 
 /**
  * A badge UID kept for a short time (a PIN step follows), then wiped. Only whether one is kept is visible to
- * React (through `onChange`); the UID itself stays inside this object.
+ * React (through `onChange`); the UID itself stays inside this object, which a component holds in a ref (see
+ * useKeptBadge), never in React state.
  */
 export class KeptBadge {
   private uid: string | null = null;
@@ -62,6 +66,15 @@ export class KeptBadge {
   }
 }
 
+/**
+ * A KeptBadge held by a ref, never in React state. The getter creates it on first use and is meant for event handlers
+ * and effects only (a ref is not read during render).
+ */
+export function useKeptBadge(onChange: (kept: boolean) => void, ms: number = KEEP_BADGE_MS): () => KeptBadge {
+  const ref = useRef<KeptBadge | null>(null);
+  return useCallback(() => (ref.current ??= new KeptBadge(onChange, ms)), [onChange, ms]);
+}
+
 export interface LockOverlayProps {
   isOpen: boolean;
   legalName: string;
@@ -83,21 +96,21 @@ export interface LockOverlayProps {
 type Step = 'choose' | 'unlockTap' | 'unlockPin' | 'switchTap' | 'switchPin' | 'offerPin';
 
 function OfficeUnlock(p: LockOverlayProps) {
+  const idRef = useRef<HTMLInputElement>(null);
+  const pwRef = useRef<HTMLInputElement>(null);
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        const idEl = e.currentTarget.elements.namedItem('unlockUserId');
-        const pwEl = e.currentTarget.elements.namedItem('unlockPassword');
-        const id = idEl instanceof HTMLInputElement ? idEl.value.trim() : '';
-        const pw = pwEl instanceof HTMLInputElement ? pwEl.value : '';
-        if (pwEl instanceof HTMLInputElement) pwEl.value = '';
+        const id = idRef.current?.value.trim() ?? '';
+        // Read and cleared in one step: the password never enters React state or the DOM value attribute.
+        const pw = takeSecret(pwRef);
         if (id && pw) p.onUnlockPassword(id, pw);
       }}
       aria-label="Unlock with your user ID and password"
     >
-      <Field label="User ID" name="unlockUserId" autoComplete="off" isRequired autoFocus isDisabled={p.busy} />
-      <Field label="Password" name="unlockPassword" type="password" autoComplete="off" isRequired isDisabled={p.busy} />
+      <Field label="User ID" name="unlockUserId" inputRef={idRef} autoComplete="off" isRequired autoFocus isDisabled={p.busy} />
+      <SecretInput label="Password" name="unlockPassword" inputRef={pwRef} isRequired isDisabled={p.busy} />
       <div className={icls('row')}>
         <Button type="submit" variant="primary" isDisabled={p.busy}>
           Unlock
@@ -109,14 +122,14 @@ function OfficeUnlock(p: LockOverlayProps) {
 }
 
 /** The kiosk steps; remounted (fresh step) whenever the overlay opens or a switch offer arrives. */
-function KioskUnlock({ p, kept, hasBadge }: { p: LockOverlayProps; kept: KeptBadge; hasBadge: boolean }) {
+function KioskUnlock({ p, kept, hasBadge }: { p: LockOverlayProps; kept: () => KeptBadge; hasBadge: boolean }) {
   const [step, setStep] = useState<Step>(p.offer ? 'offerPin' : p.switchFirst ? 'switchTap' : 'choose');
   const cancel = () => {
-    kept.clear();
+    kept().clear();
     setStep('choose');
   };
   const pinFor = (then: (uid: string, pin: string) => void, keepBadge = false) => (pin: string) => {
-    const uid = keepBadge ? kept.peek() : kept.take();
+    const uid = keepBadge ? kept().peek() : kept().take();
     setStep('choose');
     if (uid) then(uid, pin);
   };
@@ -142,7 +155,7 @@ function KioskUnlock({ p, kept, hasBadge }: { p: LockOverlayProps; kept: KeptBad
           reason={step === 'unlockTap' ? `Tap your badge to unlock (${p.legalName}).` : 'Tap your badge to sign in on this terminal.'}
           demoBadges={p.demoBadges ?? []}
           onTap={(uid) => {
-            kept.keep(uid);
+            kept().keep(uid);
             setStep(step === 'unlockTap' ? 'unlockPin' : 'switchPin');
           }}
           onCancel={cancel}
@@ -169,7 +182,7 @@ function KioskUnlock({ p, kept, hasBadge }: { p: LockOverlayProps; kept: KeptBad
           {hasBadge ? (
             <PinPad label={`Enter the PIN of ${p.offer?.legalName ?? 'the person who tapped'}`} onSubmit={pinFor((uid, pin) => p.onSwitch(uid, pin))} disabled={p.busy} />
           ) : (
-            <BadgePrompt reason="Tap your badge again to switch." demoBadges={p.demoBadges ?? []} onTap={(uid) => kept.keep(uid)} onCancel={cancel} />
+            <BadgePrompt reason="Tap your badge again to switch." demoBadges={p.demoBadges ?? []} onTap={(uid) => kept().keep(uid)} onCancel={cancel} />
           )}
           <Button onPress={cancel}>Cancel</Button>
         </>
@@ -179,8 +192,12 @@ function KioskUnlock({ p, kept, hasBadge }: { p: LockOverlayProps; kept: KeptBad
 
 export function LockOverlay(p: LockOverlayProps) {
   const [hasBadge, setHasBadge] = useState(false);
-  const [kept] = useState(() => new KeptBadge(setHasBadge));
-  useEffect(() => () => kept.clear(), [kept]);
+  const kept = useKeptBadge(setHasBadge);
+  // Kept only while the overlay is open: once it closes (unlocked or switched) the badge is not needed any more.
+  useEffect(() => {
+    if (!p.isOpen) kept().clear();
+  }, [p.isOpen, kept]);
+  useEffect(() => () => kept().clear(), [kept]);
   return (
     <Dialog title="This terminal is locked" isOpen={p.isOpen} isDismissable={false} role="alertdialog">
       <div className={icls('lock')}>

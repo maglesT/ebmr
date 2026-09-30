@@ -47,6 +47,11 @@ export const ActionView = z.strictObject({
   reason: z.string().nullable(),
   /** Target of the action when it is not the step itself (exception id, stage key, hold id). */
   target: z.string().nullable(),
+  /**
+   * Who can do it when this viewer cannot, in words: for a verification or witness refused to a person who worked on
+   * the step, or whose role may not check it, the roles that may, and who may not (INV-03). Empty otherwise.
+   */
+  whoCanHelp: z.array(z.string()),
 });
 export type ActionView = z.infer<typeof ActionView>;
 
@@ -173,8 +178,14 @@ export const RunHeaderView = z.strictObject({
   room: z.string().nullable(),
   equipment: z.array(z.strictObject({ ref: z.string(), code: z.string(), name: z.string() })),
   timers: z.array(TimerView),
-  /** The kiosk room's scale (C5 via the device port), when the step uses one. */
+  /**
+   * The scale of the step's room (C5 via the device port), when the step weighs: an ONLINE one whenever one is, else the
+   * room's only scale. The step's room is the viewer's terminal room when it is one the stage names (or the stage names
+   * none), else the stage's first room.
+   */
   scale: ScaleStatusView.nullable(),
+  /** Every scale of that room with its status, when the step weighs: each ONLINE one can be captured from; keying weights by hand is open only while none is online. */
+  scales: z.array(ScaleStatusView),
   /** The person signed in on this terminal. */
   identity: PersonRef.nullable(),
   lastSavedAt: Instant.nullable(),

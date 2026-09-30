@@ -2,8 +2,10 @@
  * Issue a test batch (module C4; plan section 12, screen 12): approved batch sizes only (PR-01), markets (those
  * set by the MBR are fixed), variants, and the header inputs with their sources (e.g. tabletsPerBatch, a whole
  * number sent as text). The server allocates the TEST- batch number and pins engine, registry and policy.
- * Nothing is pre-selected except the markets the MBR fixes.
+ * Nothing is pre-selected except the markets the MBR fixes, and a session change empties the form, so nothing
+ * one person chose or typed is offered to the next (INV-40).
  */
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { routes, type DataValueWire } from '@ebmr/api-contract';
@@ -14,6 +16,7 @@ import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
+import { useSessionChange } from '../session.tsx';
 import { st } from '../text.ts';
 import { useLeaveGuard } from '../unsettled.ts';
 import { usePendingCall } from '../usePendingCall.ts';
@@ -43,13 +46,25 @@ export function inputValue(input: Input, text: string): DataValueWire | null {
 
 function IssueFormBody({ packageId, form }: { packageId: string; form: IssueForm }) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const lockedMarkets = () => form.markets.filter((m) => m.locked).map((m) => m.code);
   const [size, setSize] = useState<string | null>(null);
-  const [markets, setMarkets] = useState<string[]>(() => form.markets.filter((m) => m.locked).map((m) => m.code));
+  const [markets, setMarkets] = useState<string[]>(lockedMarkets);
   const [variants, setVariants] = useState<Record<string, string>>({});
   const [inputs, setInputs] = useState<Record<string, string>>({});
+  useSessionChange(() => {
+    setSize(null);
+    setMarkets(lockedMarkets());
+    setVariants({});
+    setInputs({});
+  });
+  // An issue that may have reached the server (discarded or answered late): the runs list shows what exists.
+  const reloadRuns = () => qc.invalidateQueries({ queryKey: [routes.execution.runs.id] });
   const issue = usePendingCall(routes.execution.issue, {}, {
     reason: st('tap.reason.issue'),
     onSaved: (run) => navigate({ to: '/runs/$runId', params: { runId: run.header.runId } }),
+    onDiscard: reloadRuns,
+    onLateAnswer: reloadRuns,
   });
   const values: Record<string, DataValueWire> = {};
   let complete = size !== null && markets.length > 0 && form.variants.every((v) => variants[v.id]);

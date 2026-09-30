@@ -11,9 +11,22 @@ import { Worker } from 'node:worker_threads';
 import { sandbox } from '@ebmr/kernel';
 import type { Instant, SimulationReportView, Watermark } from '@ebmr/api-contract';
 import type { simulator } from '@ebmr/recipe-core/pure';
+import { slotPool, type AcquireSlot } from './limits.ts';
 import type { SimulationJob, SimulationResult } from './simulate-worker.ts';
 
 export const DEFAULT_SIMULATION_TIMEOUT_MS = 20_000;
+
+/**
+ * How many simulations one server process runs at once (review P18). Each is a worker thread with a heap of up to
+ * 512 MB and about one CPU while it runs; on the 4-CPU host two leave the GMP work (records, signatures, audit) room.
+ */
+export const DEFAULT_MAX_CONCURRENT_SIMULATIONS = 2;
+
+/**
+ * Takes one of the process's simulation slots: returns its release (idempotent), or null when `max` simulations are
+ * already running (the caller refuses; nothing waits in a queue).
+ */
+export const acquireSimulationSlot: AcquireSlot = slotPool();
 
 export type WorkerOutcome = SimulationResult | { ok: false; timeout: true; message: string };
 
@@ -47,7 +60,7 @@ export function tsxLoaderUrl(): string {
   return pathToFileURL(join(dirname(pkgPath), rel)).href;
 }
 
-/** Runs one simulation job in a fresh worker; terminates it after `timeoutMs`. */
+/** Runs one simulation job in a fresh worker; terminates it after `timeoutMs`. Settles once the worker has stopped. */
 export function simulateInWorker(job: SimulationJob, timeoutMs: number = DEFAULT_SIMULATION_TIMEOUT_MS): Promise<WorkerOutcome> {
   let loader: string;
   try {
@@ -65,8 +78,11 @@ export function simulateInWorker(job: SimulationJob, timeoutMs: number = DEFAULT
       if (done) return;
       done = true;
       clearTimeout(timer);
-      void worker.terminate();
-      resolve(outcome);
+      // The caller's slot is held until the worker (and its heap) is gone, so the bound on running simulations holds.
+      worker.terminate().then(
+        () => resolve(outcome),
+        () => resolve(outcome),
+      );
     };
     const timer = setTimeout(() => finish({ ok: false, timeout: true, message: `the simulation did not finish within ${timeoutMs / 1000} s` }), timeoutMs);
     worker.once('message', (m: SimulationResult) => finish(m));

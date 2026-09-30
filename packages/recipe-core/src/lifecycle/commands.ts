@@ -234,7 +234,10 @@ export function versionState(db: Db, versionId: string): Promise<state.Aggregate
   return state.getAggregateState(db, { aggregateType: MBR_VERSION_AGGREGATE, aggregateId: versionId });
 }
 
-/** Any event through the kernel engine (the guards hold every condition). */
+/**
+ * Any event through the kernel engine (the guards hold every condition). RETIRE needs the QA person's own reason, code
+ * and text, in the command context, as `retireVersion` does (guard mbr_version.no_open_authorisation, migration 0290).
+ */
 export function transitionVersion(c: pg.PoolClient, versionId: string, event: MbrVersionEvent, expectedVersion: number, signatureId?: string): Promise<state.TransitionResult> {
   return state.transition(c, {
     machine: MBR_VERSION_MACHINE,
@@ -266,7 +269,11 @@ export async function returnToDraft(c: pg.PoolClient, versionId: string, expecte
   return { to: r.to, newVersion: Number(r.new_version) };
 }
 
-/** APPROVED -> RETIRED by QA with a reason: ends every open market authorisation of the version (PR-05). */
+/**
+ * APPROVED -> RETIRED by QA: ends every open market authorisation of the version (PR-05). The command carries the QA
+ * person's own reason, code and text, whether or not a cell is open, or it is refused before anything changes
+ * (EBMR-AUDIT-002; migration 0290); each ended cell's audit entry records that reason exactly.
+ */
 export async function retireVersion(c: pg.PoolClient, versionId: string, expectedVersion: number): Promise<{ to: string; newVersion: number }> {
   const r = await one<{ to: string; new_version: number }>(c, 'select recipe.retire_version($1, $2) as r', [versionId, expectedVersion]);
   return { to: r.to, newVersion: Number(r.new_version) };
@@ -287,6 +294,12 @@ export function proposeMarketAuthorisation(c: pg.PoolClient, def: MarketAuthoris
   return one<string>(c, 'select recipe.propose_market_authorisation($1::jsonb) as r', [JSON.stringify(def)]);
 }
 
+/**
+ * Activates a proposed record with its QA and regulatory signatures; for CURRENT, supersedes the predecessor's cell
+ * per scope cell. The command carries the QA person's own reason, code and text, for a first activation as for a
+ * successor's, or it is refused before anything changes (EBMR-AUDIT-002; migration 0290). The superseded cell's
+ * audit entry records that reason exactly; the system writes no part of it.
+ */
 export async function activateMarketAuthorisation(c: pg.PoolClient, authorisationId: string, qaSignatureId: string, regulatorySignatureId: string): Promise<ActivationResult> {
   const r = await one<{ authorisation_id: string; version_id: string; market: string; kind: 'CURRENT' | 'BRIDGING'; effective_from: string; cells: ActivationResult['cells'] }>(
     c,
@@ -296,6 +309,11 @@ export async function activateMarketAuthorisation(c: pg.PoolClient, authorisatio
   return { authorisationId: r.authorisation_id, versionId: r.version_id, market: r.market, kind: r.kind, effectiveFrom: r.effective_from, cells: r.cells };
 }
 
+/**
+ * Withdraws a record: its open cells end (WITHDRAWN). `reason` is the withdrawal's stated reason, kept on the
+ * withdrawal record (EBMR-RCP-084). The command also carries the QA person's own reason, code and text, or it is
+ * refused before anything changes (EBMR-AUDIT-002; migration 0290); each ended cell's audit entry records it exactly.
+ */
 export async function withdrawMarketAuthorisation(c: pg.PoolClient, authorisationId: string, reason: string): Promise<{ cellsEnded: number }> {
   const r = await one<{ cells_ended: number }>(c, 'select recipe.withdraw_market_authorisation($1, $2) as r', [authorisationId, reason]);
   return { cellsEnded: r.cells_ended };

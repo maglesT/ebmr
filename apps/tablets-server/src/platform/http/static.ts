@@ -8,6 +8,7 @@ import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../context.ts';
 import { sendApiNotFound } from './errors.ts';
+import { isApiRequest } from './security.ts';
 
 export async function installSpa(scope: FastifyInstance, app: AppContext): Promise<boolean> {
   const dist = app.config.webDist ? resolve(app.config.webDist) : null;
@@ -23,8 +24,9 @@ export async function installSpa(scope: FastifyInstance, app: AppContext): Promi
     });
   }
   scope.setNotFoundHandler((request, reply) => {
-    const path = request.url.split('?')[0] ?? '';
-    if (path.startsWith('/api/') || path === '/api' || request.method !== 'GET' || !available) {
+    // What is an API path is decided as the security hook decides it (isApiRequest: the decoded path, never the raw
+    // spelling), so `/api#...` or any other spelling of the prefix never gets the SPA page (review P8).
+    if (isApiRequest(request) || request.method !== 'GET' || !available) {
       sendApiNotFound(app, request, reply);
       return;
     }

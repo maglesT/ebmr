@@ -14,6 +14,8 @@ export interface BarAction {
   isDisabled: boolean;
   /** Why it is not available (the server's reason), or a hint. */
   reason: string | null;
+  /** Who can do it when this person cannot (the server's words, e.g. who may verify; INV-03). */
+  whoCanHelp?: readonly string[];
 }
 
 export interface PrimaryActionBarProps {
@@ -42,6 +44,11 @@ export function PrimaryActionBar({ primary, onPrimary, hint, more, onMore, busy 
                 {ft('action.notAvailable')}: {primary.reason}
               </p>
             ) : null}
+            {primary.isDisabled && primary.whoCanHelp && primary.whoCanHelp.length > 0 ? (
+              <p className={fcls('barReason')} data-testid="primary-who">
+                {ft('action.whoCanHelp')}: {primary.whoCanHelp.join('; ')}
+              </p>
+            ) : null}
           </>
         ) : hint ? (
           <p className={fcls('barReason')}>{hint}</p>
@@ -67,6 +74,7 @@ export function PrimaryActionBar({ primary, onPrimary, hint, more, onMore, busy 
                   {a.reason ? (
                     <Text slot="description" className={fcls('menuReason')}>
                       {a.isDisabled ? `${ft('action.notAvailable')}: ${a.reason}` : a.reason}
+                      {a.isDisabled && a.whoCanHelp && a.whoCanHelp.length > 0 ? ` ${ft('action.whoCanHelp')}: ${a.whoCanHelp.join('; ')}` : ''}
                     </Text>
                   ) : null}
                 </MenuItem>

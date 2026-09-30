@@ -1,15 +1,16 @@
 /**
  * BadgePrompt and DemoBadgeReader (module C1; plan sections 5 and 9): a badge reader behind a kiosk types the badge
- * UID as a fast burst of keys followed by Enter (keyboard wedge). The prompt keeps focus on one masked input, reads
- * the UID once on Enter, clears the input and hands the UID to the caller; it never enters React state, props or
- * storage. After `timeoutSeconds` (default 30) without a tap the prompt gives up.
+ * UID as a fast burst of keys followed by Enter (keyboard wedge). The prompt keeps focus on one masked SecretInput
+ * (native, uncontrolled), reads the UID once on Enter, clears the input in the same step and hands the UID to the
+ * caller; it never enters React state, props, the input's value attribute or storage. After `timeoutSeconds`
+ * (default 30) without a tap the prompt gives up.
  *
  * DemoBadgeReader (DEMO-ONLY, demo installations only) offers one button per demo person of this terminal instead
  * of a physical reader.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../primitives/Button.tsx';
-import { Field } from '../primitives/Field.tsx';
+import { SecretInput, takeSecret } from '../primitives/SecretInput.tsx';
 import { icls } from './classes.ts';
 
 export interface DemoBadge {
@@ -69,8 +70,7 @@ export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const uid = input.current?.value.trim() ?? '';
-    if (input.current) input.current.value = '';
+    const uid = takeSecret(input).trim();
     if (uid) tap(uid);
   };
 
@@ -78,7 +78,7 @@ export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds
     <div className={icls('badgePrompt')}>
       <p>{reason}</p>
       <form onSubmit={submit} aria-label="Tap your badge">
-        <Field label="Badge" name="badge" type="password" inputRef={input} autoComplete="off" autoFocus description="Tap your badge on the reader" isDisabled={busy} />
+        <SecretInput label="Badge" name="badge" inputRef={input} autoFocus description="Tap your badge on the reader" isDisabled={busy} />
         <p className={icls('muted')} aria-live="off">
           {`Waiting for a badge: ${left} s`}
         </p>

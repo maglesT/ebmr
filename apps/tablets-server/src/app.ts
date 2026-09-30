@@ -22,7 +22,7 @@ import { createReadDb } from './platform/db/read.ts';
 import { installErrorHandling } from './platform/http/errors.ts';
 import { GuidanceCatalogue, PLATFORM_GUIDANCE } from './platform/http/guidance.ts';
 import { loggerOptions } from './platform/http/logging.ts';
-import { installSecurity } from './platform/http/security.ts';
+import { installSecurity, isApiRequest } from './platform/http/security.ts';
 import { installSpa } from './platform/http/static.ts';
 import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
@@ -104,8 +104,11 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     installErrorHandling(app, ctx);
     await installSecurity(app, ctx);
     // After the security hook (the refusal carries X-Ebmr-Installation): a changed site zone refuses the request (DI-27).
+    // An API request is what the router runs or the decoded path names (isApiRequest), never the raw spelling of the URL:
+    // the bare prefix, a query or a fragment on it is refused too, and the check does not rest on the security hook
+    // answering every other spelling first (review P8).
     app.addHook('onRequest', async (request) => {
-      if (request.url.startsWith('/api/')) await siteZone.check();
+      if (isApiRequest(request)) await siteZone.check();
     });
     for (const f of features) {
       await app.register(async (scope) => f.module.plugin(scope, ctx), { prefix: '' });

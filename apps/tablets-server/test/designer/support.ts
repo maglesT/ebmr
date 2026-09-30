@@ -57,6 +57,11 @@ export function templateMbr(mutate?: (json: Record<string, unknown>) => void): f
   return parsed.mbr;
 }
 
+/** The body of a justification of `findingKey` on the saved revision `v` (the revision the author was shown). */
+export function justifyBody(v: Pick<VersionView, 'revision' | 'contentHash'>, findingKey: string, text: string) {
+  return { findingKey, text, baseRevision: v.revision, contentHash: v.contentHash };
+}
+
 /** A refusal result: its status and code (fails the test when the call succeeded). */
 export function refusalOf<T>(r: Result<T>): { status: number; code: string; kind: string; why: string; controls: string[] } {
   if (r.ok) throw new Error(`expected a refusal, got ${r.status}`);

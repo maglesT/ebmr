@@ -18,6 +18,7 @@ import { PackagesPage } from './pages/Packages.tsx';
 import { RunOverviewPage } from './pages/RunOverview.tsx';
 import { RunsPage } from './pages/Runs.tsx';
 import { StepScreenPage } from './pages/StepScreen.tsx';
+import { RefreshReadsAfterUnlock } from './queries.ts';
 import { FloorSessionProvider } from './session.tsx';
 
 export function routes(root: AnyRootRoute): AnyRoute[] {
@@ -39,7 +40,15 @@ export const homeTiles: readonly HomeTile[] = [
   { id: 'cockpit', title: 'What you can do now', description: 'The work queue of the room of this terminal.', to: '/cockpit', installations: ['SANDBOX'], available: true },
 ];
 
-/** The floor's session view for every floor screen (inside BootProvider, so the boot state is there). */
+/**
+ * The floor's session view for every floor screen (inside BootProvider, so the boot state is there), and the
+ * reload of the floor's reads after an unlock.
+ */
 export function Provider({ children }: { children: ReactNode }) {
-  return <FloorSessionProvider>{children}</FloorSessionProvider>;
+  return (
+    <FloorSessionProvider>
+      <RefreshReadsAfterUnlock />
+      {children}
+    </FloorSessionProvider>
+  );
 }

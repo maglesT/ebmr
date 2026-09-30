@@ -46,6 +46,7 @@ export const SCREEN_EN = {
   'field.instantNotHere': 'A time cannot be typed on this screen.',
   'field.noUnit': 'The unit of this value is missing from the step; it cannot be entered here.',
   'field.cannotRecord': 'Values cannot be recorded now.',
+  'field.scanIsHandEntry': 'A scan on this terminal is recorded as a hand entry: the value is marked as keyed by hand, an exception is raised, and a second person checks the step.',
   'field.recorded': 'Recorded values',
   'form.problem': 'This entry cannot be sent from this screen: {problem}',
   'form.missingField': 'The step does not say which {name} this entry is for; ask the supervisor.',
@@ -167,6 +168,12 @@ export const SCREEN_EN = {
   'dialog.send': 'Send',
   'loading': 'Loading…',
   'leave.held': 'An entry is not settled yet: send it again or discard it before you leave this page.',
+  'notSaved.body': 'The answer from the server was lost, so it is not known whether this entry is in the record. Sending it again cannot record it twice, and the answer will say whether it is recorded. Or discard it and check the record before you enter it again.',
+  'notSaved.resendRefused': 'Sending again was refused, and that refusal does not say whether the first send was recorded: it is still not known. Send it again, or discard it and check the record.',
+  'discarded.unknown.SESSION_CHANGED': 'The session on this terminal changed after this entry was sent. It may already be in the record: check the recorded values before you enter it again.',
+  'discarded.unknown.DISCARDED': 'The entry was discarded on this screen, but it had been sent and may already be in the record: check the recorded values before you enter it again.',
+  'discarded.recorded': 'The answer for the discarded entry arrived afterwards: the entry is in the record. Do not enter it again.',
+  'discarded.notRecorded': 'The answer for the discarded entry arrived afterwards: the server refused it, so nothing was recorded.',
   'back.cockpit': 'Back to what you can do now',
 } as const;
 

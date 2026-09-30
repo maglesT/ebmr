@@ -13,13 +13,33 @@
  * - The start of an interval inside a repeated construct is its earliest START or its latest END.
  * - Pauses (equipment stops) arrive with the automated equipment phase (G-06) in Phase 3; until then
  *   no pause time is subtracted, which can only make a maximum stricter.
+ * - A time fact (a breach, a warning, a void) is the system's act (`asSystem`): it is raised by SYSTEM
+ *   whether the sweeper, a person's command or a person's signing preparation evaluated the time first.
  */
 import { durationToMicros, formatMicros } from '../flow/decimal.ts';
 import type { Frame } from '../flow/tokens.ts';
 import type { RuntimeConstraint } from './definition.ts';
 import { engineDraft } from './exceptions.ts';
-import { ctxKey, refuse, stepKey, type Tx } from './tx.ts';
+import { ctxKey, refuse, stepKey, Tx } from './tx.ts';
 import type { NodeEventRecord, OccurredAt, TimeInstanceState } from './types.ts';
+
+/**
+ * Runs `work` as the system on `tx`'s draft: the same state and times, and the events it emits are appended to
+ * `tx`'s in order (also when `work` refuses). What it raises is raised by SYSTEM. A time fact is the system's
+ * finding, never the act of the person whose command or signing preparation happened to evaluate the time
+ * first: recording it as theirs would name them as the raiser, list them as having entered the exception (its
+ * signing content) and so bar them from dispositioning it (DI-14, INV-03; review findings P35, P28). The same
+ * breach is the same record whoever noticed it.
+ */
+export function asSystem<T>(tx: Tx, work: (sys: Tx) => T): T {
+  if (tx.actor === undefined) return work(tx);
+  const sys = new Tx(tx.def, tx.s, tx.now, tx.clockUs, undefined);
+  try {
+    return work(sys);
+  } finally {
+    tx.events.push(...sys.events);
+  }
+}
 
 /** The instant an event is recorded at: occurred_at only when the source clock is synchronised. */
 export function eventInstant(tx: Tx, occurredAt: OccurredAt | undefined): bigint {
@@ -114,7 +134,7 @@ function raiseTimeException(tx: Tx, rc: RuntimeConstraint, st: TimeInstanceState
     qaOnly: block,
     releaseBlocking: true,
   });
-  const id = tx.raise(draft, { frames: st.frames, constraint: rc.tc.id, ...(toStep ? { step: toStep.id } : {}) }, { node: rc.anchor, frames: st.frames });
+  const id = asSystem(tx, (sys) => sys.raise(draft, { frames: st.frames, constraint: rc.tc.id, ...(toStep ? { step: toStep.id } : {}) }, { node: rc.anchor, frames: st.frames }));
   const rec = tx.s.exceptions[id];
   if (rec?.block) rec.block.steps = blockedSteps;
   if (kind === 'MAX') st.maxBreachException = id;
@@ -137,9 +157,14 @@ export function flagEarlyAutomaticEvent(tx: Tx, node: string, event: 'START' | '
 
 /**
  * Evaluates every started constraint instance at the transaction time (INV-20): raises each maximum
- * breach exactly once, warns once before the maximum, and voids instances whose end cannot happen.
+ * breach exactly once, warns once before the maximum, and voids instances whose end cannot happen. The
+ * sweep is the system's, inside a person's command or signing preparation too (`asSystem`).
  */
 export function sweepTime(tx: Tx): void {
+  asSystem(tx, sweepAsSystem);
+}
+
+function sweepAsSystem(tx: Tx): void {
   for (const rc of tx.def.constraints) {
     const max = micros(rc.tc.max);
     const warn = micros(rc.tc.warnBefore);

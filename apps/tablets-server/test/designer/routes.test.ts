@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type VersionView } from '@ebmr/api-contract';
 import { flow } from '@ebmr/recipe-core/pure';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
-import { createFamily, edited, findPhase, NEW_FAMILY, parameter, refusalOf, removeNode, saveContent, startDesignerServer, templateMbr, valueOf } from './support.ts';
+import { createFamily, edited, findPhase, justifyBody, NEW_FAMILY, parameter, refusalOf, removeNode, saveContent, startDesignerServer, templateMbr, valueOf } from './support.ts';
 
 let server: TestServer;
 let author: TestBrowser;
@@ -277,7 +277,7 @@ describe('justifications and start of verification (IN-02, DI-04, PR-06)', () =>
     expect(r.gate).toEqual(expect.objectContaining({ passed: false, errors: 0, unjustifiedWarnings: 1 }));
 
     const errorKey = 'GMP-STAGE-CLEARANCE@S-BLEND';
-    const notWarning = refusalOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: { findingKey: errorKey, text: 'no' } }));
+    const notWarning = refusalOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: justifyBody(v2, errorKey, 'no') }));
     expect(notWarning.code).toBe('DESIGNER_NOT_A_FINDING');
 
     const refusedFirst = refusalOf(await author.call(routes.designer.startVerification, { params: { versionId: v.versionId }, body: { baseRevision: v2.revision } }));
@@ -286,7 +286,7 @@ describe('justifications and start of verification (IN-02, DI-04, PR-06)', () =>
     const j = valueOf(
       await author.call(routes.designer.justify, {
         params: { versionId: v.versionId },
-        body: { findingKey: 'G07-TOLERANCE-MISSING@p-disp-exc', text: 'Excipients are checked against the formula at reconciliation (SOP-DISP-001).' },
+        body: justifyBody(v2, 'G07-TOLERANCE-MISSING@p-disp-exc', 'Excipients are checked against the formula at reconciliation (SOP-DISP-001).'),
       }),
     );
     expect(j.justifications.map((x) => [x.findingKey, x.by.legalName])).toEqual([['G07-TOLERANCE-MISSING@p-disp-exc', 'Asha Rao']]);
@@ -304,7 +304,7 @@ describe('justifications and start of verification (IN-02, DI-04, PR-06)', () =>
     const save = refusalOf(await saveContent(author, started, edited(started, (x) => (x.header.title = 'late edit'))));
     expect(save.code).toBe('EBMR-RCP-021');
     expect(save.controls).toContain('PR-06');
-    const late = refusalOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: { findingKey: 'G07-TOLERANCE-MISSING@p-disp-exc', text: 'late' } }));
+    const late = refusalOf(await author.call(routes.designer.justify, { params: { versionId: v.versionId }, body: justifyBody(v2, 'G07-TOLERANCE-MISSING@p-disp-exc', 'late') }));
     expect(late.code).toBe('EBMR-RCP-021');
   });
 

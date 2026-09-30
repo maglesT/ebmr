@@ -193,7 +193,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       return lotView(l, (us) => app.formatInstant(us));
     },
 
-    command: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
+    command: async ({ params, body, request, requireSession, actor, idempotencyKey, requestHash }) => {
       const s = requireSession();
       const a = actor();
       const run = await runContext(pool, params.runId);
@@ -211,9 +211,17 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       });
       const work = out.result as unknown as CommandWork;
       if ('refused' in work) throw new HttpRefusal(work.refused.status, work.refused.refusal, work.refused.status === 409);
-      const vc = await viewContextFor(app, pool, params.runId, s);
+      // Committed: the answer says so whatever happens next. A step view that cannot be built now is left to the
+      // screen, which reads the step again (step: null); it is never answered as a failure, which would say that
+      // nothing was saved of an entry that is in the record (DI-34).
       const key = body.viewStepKey ?? stepKeyOf(body.intent);
-      return { accepted: true as const, version: vc.state.version, step: key !== undefined && vc.state.steps[key] ? await stepScreen(vc, key) : null };
+      try {
+        const vc = await viewContextFor(app, pool, params.runId, s);
+        return { accepted: true as const, version: vc.state.version, step: key !== undefined && vc.state.steps[key] ? await stepScreen(vc, key) : null };
+      } catch (error) {
+        request.log.warn({ err: error, correlationId: String(request.id), runId: params.runId }, 'the command was committed; its step view could not be built and is left to the screen to read again');
+        return { accepted: true as const, version: work.accepted.version, step: null };
+      }
     },
   });
 }

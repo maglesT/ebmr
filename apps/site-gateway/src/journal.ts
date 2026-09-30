@@ -12,6 +12,12 @@
  * reading and its Ed25519 signature with the gateway's own key. Any break refuses the start (fail closed); only an
  * unterminated last line is set aside, because it was never fsync'd, answered or uploaded.
  * Nothing is ever deleted or rewritten; a new chain (a new enrolment on the server) starts a new file.
+ *
+ * An append writes the whole line (a short write, as on a nearly full disk, is continued) and syncs it before the
+ * reading exists for anyone. When a write or the sync fails, the bytes of that line are cut off again (the file
+ * ends at its last whole line), the failure is alarmed, and the journal takes nothing more until the gateway
+ * restarts and verifies the file from disk: the file system's state after a failed write or sync is not trusted
+ * (review finding P52).
  */
 import type { KeyObject } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -28,7 +34,7 @@ export class JournalIntegrityError extends Error {
 }
 
 export interface JournalAlarm {
-  kind: 'PARTIAL_LINE_QUARANTINED' | 'CHAIN_SWITCHED' | 'DIVERGED';
+  kind: 'PARTIAL_LINE_QUARANTINED' | 'CHAIN_SWITCHED' | 'DIVERGED' | 'WRITE_FAILED';
   message: string;
   details: Record<string, string>;
 }
@@ -71,11 +77,32 @@ export type AdoptOutcome = 'CONTINUE' | 'NEW_CHAIN' | 'DIVERGED';
 export class Journal {
   chainId: string | null = null;
   ackedSeq = 0n;
-  /** False after the server's head was found outside this journal: no capture, no upload (re-enrolment needed). */
-  usable = true;
+  /**
+   * Why the journal takes no more readings in this process: an append whose write or sync failed (null while
+   * none did). It is cleared only by a restart, which verifies the file from disk.
+   */
+  writeFailure: string | null = null;
+  /** True after the server's head was found outside this journal (re-enrolment needed). */
+  private diverged = false;
   private readings: ScaleReading[] = [];
   private fh: FileHandle | null = null;
+  /** Bytes of the current file that hold whole, synced lines (where a failed append is cut back to). */
+  private size = 0;
   private lock: Promise<unknown> = Promise.resolve();
+
+  /** False when nothing may be captured: the journal diverged from the server, or a write failed. */
+  get usable(): boolean {
+    return !this.diverged && this.writeFailure === null;
+  }
+
+  /**
+   * True when the readings already journalled may be uploaded: there is a chain and it has not diverged from the
+   * server. A failed append does not stop this: every reading in memory was written whole and synced before it,
+   * and the failed one never became a reading (review finding P52).
+   */
+  get uploadable(): boolean {
+    return this.chainId !== null && !this.diverged;
+  }
 
   private constructor(private readonly options: JournalOptions) {}
 
@@ -159,6 +186,7 @@ export class Journal {
     this.readings = readings;
     this.ackedSeq = acked;
     this.fh = await open(path, 'a', 0o600);
+    this.size = (await this.fh.stat()).size;
     await fsyncDir(this.options.dir);
   }
 
@@ -212,7 +240,7 @@ export class Journal {
       const s = BigInt(serverHead.seq);
       const ours = s === 0n ? genesisHash(chainId) : this.readings[Number(s) - 1]?.hash;
       if (s > this.lastSeq() || ours !== serverHead.hash) {
-        this.usable = false;
+        this.diverged = true;
         this.alarm({
           kind: 'DIVERGED',
           message: `the server holds reading ${serverHead.seq} of chain ${chainId}, which this journal does not have; captures and uploads stop until the gateway is re-enrolled`,
@@ -220,7 +248,7 @@ export class Journal {
         });
         return 'DIVERGED';
       }
-      this.usable = true;
+      this.diverged = false;
       await this.writeAck(s, serverHead.hash);
       return outcome;
     });
@@ -228,21 +256,54 @@ export class Journal {
 
   /**
    * Seals and appends the next reading of the chain under the journal lock: `build` gets the sequence number and
-   * the link, and returns the sealed reading. Resolves once the line is fsync'd.
+   * the link, and returns the sealed reading. Resolves once the whole line is written and fsync'd; rejects, with
+   * nothing of the line left in the file, when a write or the sync fails (the journal then stops, see above).
    */
   appendNext(build: (seq: bigint, prevHash: string) => ScaleReading): Promise<ScaleReading> {
     return this.exclusive(async () => {
-      if (!this.chainId || !this.fh) throw new Error('the journal has no chain yet');
-      if (!this.usable) throw new Error('the journal diverged from the server; re-enrolment is needed');
+      const fh = this.fh;
+      if (!this.chainId || !fh) throw new Error('the journal has no chain yet');
+      if (this.writeFailure !== null) throw new Error(`the journal stopped after a failed write (${this.writeFailure}); the gateway must restart`);
+      if (this.diverged) throw new Error('the journal diverged from the server; re-enrolment is needed');
       const head = this.head();
       const reading = build(head.seq + 1n, head.hash);
       if (reading.seq !== (head.seq + 1n).toString() || reading.prevHash !== head.hash || reading.chainId !== this.chainId) {
         throw new Error('the reading does not continue the chain');
       }
-      await this.fh.write(`${JSON.stringify(reading)}\n`, null, 'latin1');
-      await this.fh.datasync();
+      const line = Buffer.from(`${JSON.stringify(reading)}\n`, 'latin1');
+      try {
+        // One write call may write only part of the line (a nearly full disk): continue until all of it is written.
+        for (let done = 0; done < line.length; ) {
+          const { bytesWritten } = await fh.write(line, done, line.length - done, null);
+          if (bytesWritten <= 0) throw new Error(`the file system took no bytes after ${done} of ${line.length}`);
+          done += bytesWritten;
+        }
+        await fh.datasync();
+      } catch (error) {
+        await this.stopAfterFailedWrite(fh, reading.seq, error);
+        throw new Error(`reading ${reading.seq} was not journalled: ${this.writeFailure ?? 'write failed'}`, { cause: error });
+      }
+      this.size += line.length;
       this.readings.push(reading);
       return reading;
+    });
+  }
+
+  /** A failed append: cut the file back to its last whole line, stop the journal and alarm (review finding P52). */
+  private async stopAfterFailedWrite(fh: FileHandle, seq: string, error: unknown): Promise<void> {
+    const cause = error instanceof Error ? error.message : String(error);
+    this.writeFailure = `reading ${seq}: ${cause}`;
+    let cutBack = 'the file was cut back to its last whole line';
+    try {
+      await fh.truncate(this.size);
+      await fh.sync();
+    } catch (cut) {
+      cutBack = `the file could not be cut back to its last whole line (${cut instanceof Error ? cut.message : String(cut)}); the partial line is set aside at the next start`;
+    }
+    this.alarm({
+      kind: 'WRITE_FAILED',
+      message: `reading ${seq} could not be written to the journal (${cause}); nothing was answered or uploaded for it; ${cutBack}; captures stop until the gateway restarts`,
+      details: { seq, error: cause, keptBytes: String(this.size) },
     });
   }
 

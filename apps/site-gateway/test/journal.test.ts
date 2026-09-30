@@ -152,10 +152,12 @@ describe('gateway journal', () => {
     await up.logIn();
     const a = await j.appendNext(builder(s.chainId));
     await up.flush();
+    const headers = { 'content-type': 'application/json', authorization: `Bearer ${up.token ?? ''}` };
+    const { challengeId } = (await (await fetch(`${s.url}/gw/v1/challenge`, { method: 'POST', headers, body: '{}' })).json()) as { challengeId: string };
     const res = await fetch(`${s.url}/gw/v1/readings`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${up.token ?? ''}` },
-      body: JSON.stringify({ items: [{ reading: a, delayUs: null }] }),
+      headers,
+      body: JSON.stringify({ challengeId, items: [{ reading: a, delayUs: null, waitSig: null }] }),
     });
     expect(((await res.json()) as { results: { outcome: string }[] }).results[0]?.outcome).toBe('DUPLICATE');
     expect(s.readings).toHaveLength(1);

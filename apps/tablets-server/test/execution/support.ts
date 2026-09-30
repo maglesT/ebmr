@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { sha256Hex } from '@ebmr/expr';
-import { execution, flow } from '@ebmr/recipe-core';
+import { engine, execution, flow } from '@ebmr/recipe-core';
 import { routes, type ActionView, type ClientIntent, type Result, type SignedIntent, type SignatureCredentials } from '@ebmr/api-contract';
 import { openPersonaSession } from '@ebmr/test-kit';
 import { DEMO_LOTS, registerLots } from '../../src/features/execution/seed.ts';
@@ -23,10 +23,10 @@ export interface ExecServer extends TestServer {
 }
 
 /** A sandbox server for execution tests: seal key, exchange directory, demo lots. */
-export async function startExecServer(): Promise<ExecServer> {
+export async function startExecServer(env: Record<string, string> = {}): Promise<ExecServer> {
   const exchangeDir = mkdtempSync(join(tmpdir(), 'ebmr-c3-'));
   mkdirSync(join(exchangeDir, 'to-sandbox'), { recursive: true });
-  const server = await startSigningServer('SANDBOX', { stub: false, env: { EBMR_EXCHANGE_DIR: exchangeDir } });
+  const server = await startSigningServer('SANDBOX', { stub: false, env: { ...env, EBMR_EXCHANGE_DIR: exchangeDir } });
   const steward = await openPersonaSession(server.db, server.seed, 'steward');
   await registerLots(server.db.app, { ...steward, correlationId: randomUUID() }, DEMO_LOTS);
   return Object.assign(server, { exchangeDir });
@@ -192,8 +192,14 @@ export class RunDriver {
     const b = this.browser(persona);
     const s = await this.signing(persona, intent);
     const meaning = opts.meaning ?? s.meaning;
-    // An exception disposition previews the proposal it signs (the proposal is part of the signed content).
-    const previewIntent = intent.type === 'DISPOSITION_EXCEPTION' ? `${meaning}|${Buffer.from(JSON.stringify({ outcome: opts.proposal?.outcome ?? intent.outcome, justification: opts.proposal?.justification ?? intent.justification }), 'utf8').toString('base64url')}` : meaning;
+    // An exception disposition previews the proposal it signs, a hold point the decision it signs (disposition and
+    // comment, under the meaning of the decision's class): both are part of the signed content (recipe-core 0295).
+    const previewIntent =
+      intent.type === 'DISPOSITION_EXCEPTION'
+        ? `${meaning}|${Buffer.from(JSON.stringify({ outcome: opts.proposal?.outcome ?? intent.outcome, justification: opts.proposal?.justification ?? intent.justification }), 'utf8').toString('base64url')}`
+        : intent.type === 'DISPOSITION_HOLD_POINT'
+          ? `${engine.holdPointMeaning(intent.disposition)}|${Buffer.from(JSON.stringify({ disposition: intent.disposition, comment: intent.comment ?? null }), 'utf8').toString('base64url')}`
+          : meaning;
     const content = await b.call(routes.esig.content, { query: { aggregateType: s.aggregateType, aggregateId: s.aggregateId, intent: previewIntent } });
     if (!content.ok) return { stage: 'content' as const, content, challenge: undefined, result: content as Result<never> };
     const action = { kind: 'ENGINE_COMMAND' as const, runId: this.runId, expectedVersion: opts.expectedVersion ?? (await this.version(persona)), intent };

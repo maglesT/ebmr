@@ -393,7 +393,7 @@ A `SignableActionRegistry` is defined by C0 and owned by C1's endpoints.
       - `esig.sign` (seal).
       - `handler.apply`: `engine.step` with the real SignatureRef, then append. It asserts the content hash is unchanged.
       - Commit.
-   3. Any failure rolls back everything, and `esig.logSigningFailure` runs after the rollback.
+   3. A refusal before `esig.sign` (the dry run returns one, or CONTENT_CHANGED) does not roll back. The same command records it with the SIGNATURE event (`esig.record_signing_failure`, inside the command), stores the answer under the Idempotency-Key and commits it together with the refused COMMAND row; nothing is signed. The kernel sets aside only that command's own use of the event (kernel 0950), so the attempt is still checked for misuse without the rightful signer being flagged for re-use. A resend of a stored refusal is answered from it without a new dry run and logged the same way, in its own command, with its own fresh event. Any other failure, including a refusal a handler throws, rolls back everything, and `esig.logSigningFailure` runs after the rollback with the event.
 5. **Done.** The dialog shows the stored manifestation, with date and time, offset and zone (DI-36).
 
 **Lost signing response.** The dialog says "not confirmed" and reloads the step and its signatures from the server. It never re-sends credentials and never caches them. If no signature exists, the signer starts a new ceremony.

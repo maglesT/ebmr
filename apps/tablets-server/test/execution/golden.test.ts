@@ -118,10 +118,10 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
       'p-blend-charge@',
       containers.map((c) => ({ type: 'RECORD_ENTRY' as const, stepKey: 'p-blend-charge@', entry: { kind: 'CHARGE_CONTAINER' as const, containerCode: c } })),
     );
-    const evidence = { kind: 'PRINTOUT' as const, sha256: 'a'.repeat(64) };
+    // Keyed by hand, with no printout hash: such a hash would name no attachment the server stored (EBMR-EXE-122).
     await step('operator2', 'verifier2', 'p-blend@', [
-      { type: 'RECORD_DATA', stepKey: 'p-blend@', item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL', evidence } },
-      { type: 'RECORD_DATA', stepKey: 'p-blend@', item: 'blenderSpeed', value: { kind: 'DECIMAL', value: '10', unit: '/min' }, source: { mode: 'MANUAL', evidence } },
+      { type: 'RECORD_DATA', stepKey: 'p-blend@', item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } },
+      { type: 'RECORD_DATA', stepKey: 'p-blend@', item: 'blenderSpeed', value: { kind: 'DECIMAL', value: '10', unit: '/min' }, source: { mode: 'MANUAL' } },
     ]);
     await d.signed('qa1', { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-BLEND@', disposition: 'APPROVED' });
     await modelHolds(runId);

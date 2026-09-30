@@ -39,7 +39,7 @@ Depends on: C0-spine
 - An fsync'd JSONL journal with a hash chain, verified at start, and an ack watermark.
 - Ed25519 signatures with the DEMO-ONLY key.
 - A heartbeat every 5 s.
-- Uplink: a SERVICE_KEY login at the sandbox server's gateway listener (127.0.0.1:3012) with a key proof, then `POST /gw/v1/readings` (idempotent by readingId, back-off) and `/gw/v1/heartbeat`.
+- Uplink: a SERVICE_KEY login at the sandbox server's gateway listener (127.0.0.1:3012) with a key proof, then `POST /gw/v1/readings` (idempotent by readingId, back-off) and `/gw/v1/heartbeat`. Each upload first takes `POST /gw/v1/challenge`, a challenge the database issues; each reading's wait at the gateway is measured after it arrives and signed with the gateway key over the challenge and the reading id (review finding P53, tablets 0330).
 - API for the server (bearer service key): `/v1/health`, `POST /v1/devices/:code/capture`, `GET /v1/devices/:code/live` (SSE).
 - The only clock read is in `clock.ts`. Readings carry the installation kind; time trust is DEVICE_UNSYNCED unless sync is reported.
 
@@ -53,10 +53,12 @@ Depends on: C0-spine
 - Browser `POST /api/devices/scales/:code/capture {purpose}`: a trigger, not a user GMP write. The server calls the gateway, which journals and uplinks the reading; the server returns a ReadingView after the row exists.
 - `GET /api/devices/scales?room`; `GET /api/devices/scales/:code/live`, an SSE relay that is display-only.
 - Heartbeat gap over 10 s → OFFLINE status, shown in the StepScreenView header via the port.
+- Whether the server reaches each gateway's API (a capture that cannot reach it, and a probe of `/v1/health` on each heartbeat while it is marked unreachable) is recorded in a command of the server's own gateway API monitor identity: a SERVICE account in the role GATEWAY_API_MONITOR, which holds GATEWAY.API_CONTACT_RECORD and nothing else (sandbox: TEST-gw-monitor on TEST-SRV-MONITOR, from the service-keys file; tablets 0340). The database takes the report from nobody else and audits each change of state under that identity.
+- A weight keyed by hand beside a scale whose heartbeat says ONLINE is accepted only on a report that the scale cannot be used (API unreachable, a refused reading of the chain) written before the weighing's transaction and standing for 10 s; a heartbeat written in the weighing's own transaction refuses it. The database records with each hand-keyed weighing the status and reason of every scale of the room it counted (`tab.manual_weighing_basis`; tablets 0340, review P50/P51 round 3).
 - `deviceReadingPort.claim(client, {readingIds, room, maxAgeUs (policy, 120 s), purpose})`, called inside C3's command. It checks each reading:
   - exists and is stable;
   - comes from an ACTIVE INSTRUMENT registered to the kiosk's room (DI-20);
-  - is at most `maxAge` old at database time;
+  - is at most `maxAge` old at database time (its wait before the insert is the gateway's signed wait plus the database's own time since the upload's challenge);
   - has not been used; `tab.reading_use` is inserted.
 
   It returns `{value, unit, raw, deviceCode, sourceTimeUs, trust}`.

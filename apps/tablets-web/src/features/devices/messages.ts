@@ -20,6 +20,7 @@ export const DEVICES_EN = {
   'capture.busy': 'Waiting for a stable weight…',
   'capture.done': 'Captured {value} {unit} from {device}',
   'slot.checking': 'Checking the scale…',
+  'slot.choose': 'Scale you weigh on',
   'slot.offline': 'Scale offline: manual entry needs a second person',
   'slot.offlineWhy': '{device} has not reported to the site gateway in the last 10 seconds, or it is not the registered instrument. Enter the weights by hand; a second person must then verify the step.',
   'slot.noScale': 'No scale of this room is available for this step',

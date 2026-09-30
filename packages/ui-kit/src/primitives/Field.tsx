@@ -1,26 +1,64 @@
 import type { Ref } from 'react';
 import { FieldError, Input, Label, Text, TextField } from 'react-aria-components';
 import { cls } from './classes.ts';
+import { SecretInput } from './SecretInput.tsx';
 
-export interface FieldProps {
+interface FieldCommon {
   label: string;
   name: string;
-  type?: 'text' | 'password' | 'search';
-  /** Controlled value (never for secrets: those stay uncontrolled, read through inputRef and cleared after use). */
-  value?: string;
-  onChange?: (value: string) => void;
   inputRef?: Ref<HTMLInputElement>;
   description?: string;
   errorMessage?: string;
   isRequired?: boolean;
   isDisabled?: boolean;
-  autoComplete?: string;
   autoFocus?: boolean;
+}
+
+/** A text or search input (react-aria TextField): controlled through value/onChange, or read through inputRef. */
+export interface TextFieldProps extends FieldCommon {
+  type?: 'text' | 'search';
+  value?: string;
+  onChange?: (value: string) => void;
+  autoComplete?: string;
   inputMode?: 'text' | 'numeric' | 'decimal';
 }
 
-/** A labelled text input. Secrets: pass inputRef and no value, so the secret never enters React state. */
-export function Field({ label, name, type = 'text', value, onChange, inputRef, description, errorMessage, isRequired, isDisabled, autoComplete, autoFocus, inputMode }: FieldProps) {
+/**
+ * A secret (password, keyboard PIN, badge UID): rendered by SecretInput, never by a react-aria TextField, so the
+ * secret never enters React state or the value attribute. It has no value or onChange: the caller reads it through
+ * inputRef when it is sent and clears the field at once.
+ */
+export interface SecretFieldProps extends FieldCommon {
+  type: 'password';
+  value?: never;
+  onChange?: never;
+  inputRef: Ref<HTMLInputElement>;
+  autoComplete?: 'off' | 'new-password';
+  inputMode?: 'text' | 'numeric';
+}
+
+export type FieldProps = TextFieldProps | SecretFieldProps;
+
+/** A labelled input. Secrets (type 'password') go to SecretInput: uncontrolled, native, never in React state. */
+export function Field(props: FieldProps) {
+  if (props.type === 'password') {
+    const { label, name, inputRef, description, errorMessage, isRequired, isDisabled, autoComplete, autoFocus, inputMode } = props;
+    return (
+      <SecretInput
+        label={label}
+        name={name}
+        inputRef={inputRef}
+        {...(description !== undefined ? { description } : {})}
+        {...(errorMessage !== undefined ? { errorMessage } : {})}
+        {...(isRequired !== undefined ? { isRequired } : {})}
+        {...(isDisabled !== undefined ? { isDisabled } : {})}
+        {...(autoComplete !== undefined ? { autoComplete } : {})}
+        {...(autoFocus !== undefined ? { autoFocus } : {})}
+        {...(inputMode !== undefined ? { inputMode } : {})}
+      />
+    );
+  }
+  const { label, name, type = 'text', value, onChange, inputRef, description, errorMessage, isRequired, isDisabled, autoComplete, autoFocus, inputMode } = props;
   return (
     <TextField
       className={cls('field')}

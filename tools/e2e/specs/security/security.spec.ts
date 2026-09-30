@@ -56,5 +56,10 @@ test.describe('security', () => {
       expect(res.status, origin).toBe(403);
       expect(((await res.json()) as { refusal: { code: string } }).refusal.code).toBe('ORIGIN');
     }
+    // However the path is spelled: the router decodes /%61pi/ to /api/ (review P8).
+    const encoded = await fetch(`${e2e.url('GMP')}/%61pi/session/device-nonce`, { method: 'POST', headers: { origin: 'http://evil.example', 'sec-fetch-site': 'cross-site', 'content-type': 'application/json' }, body: '{}' });
+    expect(encoded.status).toBe(403);
+    expect(encoded.headers.get('cache-control')).toBe('no-store');
+    expect(((await encoded.json()) as { refusal: { code: string } }).refusal.code).toBe('ORIGIN');
   });
 });
