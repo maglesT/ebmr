@@ -18,6 +18,7 @@ interface Scaled {
 
 function scaled(value: string): Scaled {
   if (!isCanonicalDecimal(value)) throw new MarketRuleError('EBMR-MKT-020', `${JSON.stringify(value)} is not a canonical decimal string`);
+  // Stryker disable next-line MethodExpression: equivalent; a canonical decimal never ends with "-", so the mutant reads every value as unsigned, and BigInt then takes the sign from the whole part itself ("-12" + "5" is -125n), giving the same digits and scale.
   const negative = value.startsWith('-');
   const body = negative ? value.slice(1) : value;
   const [whole = '0', fraction = ''] = body.split('.');

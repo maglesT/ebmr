@@ -110,6 +110,7 @@ function components(contributions: readonly Contribution[], idOf: (element: Rule
   const sorted = [...byId.entries()].sort(([a], [b]) => byCode(a, b));
   return {
     value: sorted.map(([, e]) => e.value),
+    // Stryker disable next-line MethodExpression: equivalent; contributions follow the market set that checkedMarketSet sorted by code, so each element's markets are pushed in code order already and sorting them again changes nothing.
     components: sorted.map(([, e]) => ({ value: e.value, markets: [...e.markets].sort(byCode), floorType: e.floor })),
   };
 }
@@ -185,6 +186,7 @@ export function resolve(table: RuleTableSnapshot, request: ResolveRequest, optio
   }
 
   let value: RuleValue = null;
+  // Stryker disable next-line ArrayDeclaration: equivalent; the switch below has a case for each of the seven methods the database check and the validator allow, and each case assigns governing or throws, so this initial value is never read.
   let governing: Market[] = [];
   let comps: Component[] | null = null;
   let statedOut: Resolution['stated'] = null;

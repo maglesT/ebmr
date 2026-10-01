@@ -15,12 +15,14 @@ import { EsigError } from './errors.ts';
 
 /** Orders strings by Unicode code point, as PostgreSQL's COLLATE "C" orders UTF-8 text. */
 export function compareCodePoints(a: string, b: string): number {
+  // Stryker disable next-line StringLiteral: equivalent; Buffer.from reads a string with an empty encoding name in its default encoding, utf8, so '' yields the same bytes as 'utf8'
   return Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
 }
 
 export function canonicalJson(value: unknown): string {
   if (value === null) return 'null';
   switch (typeof value) {
+    // Stryker disable next-line ConditionalExpression: equivalent; without this case a boolean falls through to the string case, where JSON.stringify writes true and false exactly as this case does
     case 'boolean':
       return value ? 'true' : 'false';
     case 'string':

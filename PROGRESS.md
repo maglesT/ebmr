@@ -258,3 +258,18 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   ALL_APPLY criteria compared in order (reorder = TIGHTER); f55 reproducer can fail under heavy WAL load
   (pg_basebackup "requested WAL segment has already been removed"; passes alone). Remaining for the Phase 1 PR:
   equivalence verdicts, the TypeScript (Stryker) run, full `pnpm run ci`, PR, merge.
+- 2026-10-01: PHASE 1 TYPESCRIPT MUTATION TESTING (branch phase-1/ts-mutation-kill; workflow wf_a43da513-f00: one fixer
+  per file group, a skeptic re-running Stryker and checking every equivalence claim, then a full verify). Stryker on the
+  16 kernel targets: 98.40 % overall (3,848 killed + 23 timeout of 3,934 scored; 56 survived, 7 no coverage; 35
+  mutants disabled by a justified one-line comment each, all re-checked). Every file is at least 90 %; strict worst
+  case without doubtful kills: instant.ts 92.4 %, keys.ts 98.95 %. 13 new test files, two extended. `pnpm run ci`
+  passes (147 files, 1,254 tests). Defects found and fixed, each with a test that fails on 2da5ba1:
+  state/extract.ts accepted transition targets and initial states that are not own states of the machine (lookalike
+  objects, inherited names such as __proto__), actions on the initial transition and eventless root transitions;
+  time/instant.ts read the years 0000-0099 as 1900-1999 (Date.UTC quirk). Follow-ups noted, not changed here:
+  protected-numbers.test.ts '[DI-45] a completed restore event…' depends on earlier tests (false kills under Stryker);
+  security-baseline confValue matches postgresql.conf names case-sensitively (PostgreSQL does not: 'SSL = off' after
+  'ssl = on' passes the template check); validateRuleTableDocument throws EBMR-MKT-020 instead of returning a problem
+  for a method/type mismatch with a hard floor (still fails closed); verifyTrueCopyBundleText ignores a leading UTF-8
+  BOM; Instant.parse truncates 7-9 fractional digits where PostgreSQL rounds; canonicalJson writes Date/Map/Set as {};
+  generateSecret('PIN') loops for pinLength <= 1. Next: PR to main, merge, merge main into phase-2/recipe-core.

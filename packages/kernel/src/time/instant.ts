@@ -18,6 +18,7 @@ export class Instant {
   private constructor(readonly epochMicros: bigint) {}
 
   static fromEpochMicros(value: bigint | string): Instant {
+    // Stryker disable next-line StringLiteral: equivalent; typeof is never '', so every value goes through BigInt(value), and BigInt returns a bigint argument unchanged.
     const micros = typeof value === 'bigint' ? value : BigInt(value);
     return new Instant(micros);
   }
@@ -45,15 +46,21 @@ export class Instant {
     if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
       throw new RangeError(`timestamp out of range: ${text}`);
     }
-    const wholeMs = Date.UTC(year, month - 1, day, hour, minute, second);
-    const check = new Date(wholeMs);
+    // Date.UTC would read the years 0 to 99 as 1900 to 1999; setUTCFullYear takes the year as written.
+    const check = new Date(0);
+    check.setUTCFullYear(year, month - 1, day);
+    check.setUTCHours(hour, minute, second);
+    const wholeMs = check.getTime();
+    // Stryker disable next-line LogicalOperator: equivalent; every field is in range here, so only a day 29 to 31 in a shorter month can roll over, into the next month as day 1 to 3, which changes the day and the month together: && refuses exactly what || refuses.
     if (check.getUTCDate() !== day || check.getUTCMonth() !== month - 1) throw new RangeError(`no such calendar date: ${text}`);
     const fraction = BigInt(frac.padEnd(6, '0').slice(0, 6));
     let offsetMicros = 0n;
+    // Stryker disable next-line StringLiteral: equivalent; with '' the zone Z also takes the offset branch, where 'Z'.slice(1, 3) is '' and BigInt('') is 0n, so its offset stays 0.
     if (zone !== 'Z') {
       const digits = zone.replace(':', '');
       const sign = digits.startsWith('-') ? -1n : 1n;
       const oh = BigInt(digits.slice(1, 3));
+      // Stryker disable next-line StringLiteral: equivalent; BigInt('') is 0n, the same as BigInt('0').
       const om = BigInt(digits.length > 3 ? digits.slice(3, 5) : '0');
       offsetMicros = sign * (oh * 3600n + om * 60n) * MICROS_PER_SECOND;
     }

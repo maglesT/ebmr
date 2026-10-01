@@ -130,6 +130,7 @@ export function parseLossless(text: string): JsonValue {
 export function jsonEquals(a: JsonValue, b: JsonValue): boolean {
   if (a === b) return true;
   if (a instanceof JsonNumber || b instanceof JsonNumber) return a instanceof JsonNumber && b instanceof JsonNumber && a.raw === b.raw;
+  // Stryker disable next-line LogicalOperator: equivalent; with && an array compared with a non-array skips this branch and reaches the Map test, which also returns false (an array is never a Map), so no result changes.
   if (Array.isArray(a) || Array.isArray(b)) {
     return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => jsonEquals(x, b[i] as JsonValue));
   }
@@ -145,6 +146,7 @@ export function jsonEquals(a: JsonValue, b: JsonValue): boolean {
 
 /** The text PostgreSQL's ->> operator gives for a scalar (null for null, objects and arrays). */
 export function jsonText(v: JsonValue | undefined): string | null {
+  // Stryker disable next-line LogicalOperator: equivalent; undefined and null also pass every later test (neither is a string, a boolean or a JsonNumber) and reach the final return null, so a condition that is never true gives the same result.
   if (v === undefined || v === null) return null;
   if (typeof v === 'string') return v;
   if (typeof v === 'boolean') return v ? 'true' : 'false';

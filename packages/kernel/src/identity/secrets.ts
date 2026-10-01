@@ -38,6 +38,7 @@ let dummyVerifier: Promise<string> | undefined;
 /** Spend the same work as a real verification, so an unknown account cannot be told apart by timing. */
 export async function burnVerification(secret: string | undefined): Promise<void> {
   dummyVerifier ??= hash(randomBytes(32).toString('hex'), ARGON2ID);
+  // Stryker disable next-line StringLiteral: equivalent; the stand-in secret's text is never compared with anything (the result is discarded) and argon2id spends the work its verifier's parameters set, whatever the secret's content
   await verifySecret(await dummyVerifier, secret ?? '');
 }
 
