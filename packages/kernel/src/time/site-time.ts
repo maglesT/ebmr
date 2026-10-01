@@ -40,6 +40,7 @@ function formatterFor(zone: string): Intl.DateTimeFormat {
       second: '2-digit',
       timeZoneName: 'longOffset',
     });
+    // Stryker disable next-line CallExpression: equivalent; the map only caches formatters, and without it each call builds an identical formatter for the same zone, so every result is the same, only slower.
     formatters.set(zone, f);
   }
   return f;

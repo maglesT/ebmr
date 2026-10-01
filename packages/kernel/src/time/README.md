@@ -1,7 +1,7 @@
 # Trusted time (kernel module B5, part 1)
 
 Build outline 5.6; control **DI-27**; invariant **INV-16**. Schema `platform`, migrations
-`packages/kernel/sql/0500`, `0520`, `0530`. Tests: `packages/kernel/test/platform/{time-model,site-time,drift-monitor}.test.ts`.
+`packages/kernel/sql/0500`, `0520`, `0530`. Tests: `packages/kernel/test/platform/{time-model,entry-time,instant,site-time,site-time-offsets,drift-monitor}.test.ts`.
 
 This is the only place in `src` that may read the JavaScript clock. It does not need to: every GMP
 time comes from the database clock (`clock_timestamp()`).

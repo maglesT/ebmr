@@ -3,9 +3,19 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
-import { buildTrueCopyBundle, registerTrueCopy, serializeBundle, verifyTrueCopyBundle, verifyTrueCopyBundleText } from '../../src/records/true-copy.ts';
+import {
+  buildTrueCopyBundle,
+  registerTrueCopy,
+  serializeBundle,
+  verifyTrueCopyBundle,
+  verifyTrueCopyBundleText,
+  type AuditChainPart,
+  type Manifest,
+  type VerificationPart,
+} from '../../src/records/true-copy.ts';
 import { endPool, openPool } from '../harness/pools.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import { again, testActor, withReason } from './helpers.ts';
@@ -310,5 +320,107 @@ describe('true copies after the Phase 1 exit review (F34, critic: session settin
     const otherChain = bundle.manifest.replace(`"chainKey": "${key(batch)}"`, `"chainKey": "tc_batch:${randomUUID()}"`);
     await expect(register(otherChain, sha(otherChain))).rejects.toThrow('EBMR-REC-070');
     await expect(register(bundle.manifest, bundle.manifestSha256)).resolves.toBeDefined();
+  });
+});
+
+describe('true-copy builder: refusals, snapshot and what the bundle states about itself', () => {
+  const appPool = (max: number) => openPool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max });
+
+  it('[INV-08] a chain key that is not an aggregate type and id joined by a colon is refused before anything is read', async () => {
+    for (const chainKey of ['tc_batch', ':B1', 'tc_batch:', '']) {
+      await expect(buildTrueCopyBundle(db.app, { chainKey })).rejects.toThrow(`EBMR-REC-070 ${chainKey} is not an aggregate chain key`);
+    }
+  });
+
+  it('[INV-08] a bundle is one consistent snapshot: a command that commits while the bundle is being built is in neither its rows nor its chain', async () => {
+    const { batch } = await realBatch();
+    const single = appPool(1);
+    try {
+      // The builder's connection: just before it reads the chain (its rows are read by then), another
+      // connection commits a new entry of the same batch.
+      const client = await single.connect();
+      const query = client.query.bind(client) as (text: string, values?: unknown[]) => Promise<pg.QueryResult>;
+      let wrote = false;
+      Object.assign(client, {
+        query: async (text: string, values?: unknown[]) => {
+          if (!wrote && text.includes('from kernel.audit_event')) {
+            wrote = true;
+            await insertEntry(batch, '3.3', 'S3');
+          }
+          return query(text, values);
+        },
+      });
+      client.release();
+      const bundle = await buildTrueCopyBundle(single, { chainKey: key(batch) });
+      expect(wrote).toBe(true);
+      const report = verifyTrueCopyBundle(bundle);
+      expect(report.problems).toEqual([]);
+      expect(report.summary).toMatchObject({ events: 6, rows: 4, headSeq: '6' });
+    } finally {
+      await endPool(single);
+    }
+    // The entry did commit: the next bundle holds it.
+    const next = verifyTrueCopyBundle(await buildTrueCopyBundle(db.app, { chainKey: key(batch) }));
+    expect(next.problems).toEqual([]);
+    expect(next.summary).toMatchObject({ events: 7, rows: 5, headSeq: '7' });
+  });
+
+  it('[INV-08] a refused build leaves no transaction open on its connection: the next command on that connection writes normally', async () => {
+    const batch = randomUUID();
+    const single = appPool(1);
+    try {
+      await expect(buildTrueCopyBundle(single, { chainKey: key(batch), tables: ['stub_tc.missing'] })).rejects.toThrow(
+        'EBMR-REC-070 stub_tc.missing is not a registered table of aggregate type tc_batch',
+      );
+      await withCommand(single, again(operator), (c) => c.query('insert into stub_tc.reading (batch_id, value) values ($1, $2)', [batch, '1.5']));
+    } finally {
+      await endPool(single);
+    }
+    expect(verifyTrueCopyBundle(await buildTrueCopyBundle(db.app, { chainKey: key(batch) })).summary).toMatchObject({ events: 1, rows: 1, headSeq: '1' });
+  });
+
+  it('[INV-08] the bundle carries the chain checkpoints and states its hash rules, media types and rendering in the manifest', async () => {
+    const { batch } = await realBatch();
+    const bundle = await buildTrueCopyBundle(db.app, { chainKey: key(batch) });
+    const chain = JSON.parse(bundle.parts['audit-chain.json'] as string) as AuditChainPart;
+    expect(chain.checkpoints).toEqual([
+      { seq: '6', hash: chain.head?.hash, eventCount: '6', sealedAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z$/) as string, reason: 'stage closed' },
+    ]);
+    const manifest = JSON.parse(bundle.manifest) as Manifest;
+    expect(manifest.parts.map((p) => [p.name, p.mediaType])).toEqual([
+      ['records.json', 'application/json'],
+      ['audit-chain.json', 'application/json'],
+      ['verification.json', 'application/json'],
+    ]);
+    expect(manifest).toMatchObject({
+      format: 'ebmr.true-copy-bundle/1',
+      hashAlgorithm: 'SHA-256',
+      canonicalForm: 'PostgreSQL jsonb text output, UTF-8; event hash = SHA-256(previous hash bytes || payload bytes)',
+      rendering: 'JSON only; the PDF/A-3 rendering is added in Phase 4',
+    });
+  });
+
+  it('[INV-08] the builder records its own offline check in the bundle: passed for a clean record, failed with the problems for a row changed outside the audit trail', async () => {
+    const { batch, entry } = await realBatch();
+    const offline = (bundle: { parts: Record<string, string> }) => (JSON.parse(bundle.parts['verification.json'] as string) as VerificationPart).offline;
+    expect(offline(await buildTrueCopyBundle(db.app, { chainKey: key(batch) }))).toEqual({ ok: true, problems: [] });
+    await db.admin.query('alter table stub_tc.entry disable trigger zz_audit_stub_tc_entry');
+    try {
+      await db.admin.query('update stub_tc.entry set value = 12.5310 where id = $1', [entry]);
+    } finally {
+      await db.admin.query('alter table stub_tc.entry enable trigger zz_audit_stub_tc_entry');
+    }
+    const tampered = await buildTrueCopyBundle(db.app, { chainKey: key(batch) });
+    const differs = `stub_tc.entry row ${entry}: row differs from the state recorded in the audit trail`;
+    expect(offline(tampered)).toEqual({ ok: false, problems: [differs] });
+    expect(verifyTrueCopyBundle(tampered).problems).toEqual([differs, `builder reported at build time: ${differs}`]);
+  });
+
+  it('[INV-08] a bundle of a chain without events verifies but is refused as a registered true copy', async () => {
+    const empty = await buildTrueCopyBundle(db.app, { chainKey: key(randomUUID()) });
+    expect(verifyTrueCopyBundleText(serializeBundle(empty))).toMatchObject({ ok: true, problems: [], summary: { events: 0, rows: 0, headSeq: null } });
+    await expect(withCommand(db.app, again(qa), (c) => registerTrueCopy(c, empty, 'archive before disposal'))).rejects.toThrow(
+      'EBMR-REC-070 an empty chain cannot be registered as a true copy',
+    );
   });
 });

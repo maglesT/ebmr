@@ -74,6 +74,7 @@ export function compareDates(a: CalendarDate, b: CalendarDate): number {
 /** The site-local calendar date of an instant, e.g. siteDate(instant, 'Asia/Kolkata'). */
 export function siteDate(instant: Date, zone: string): CalendarDate {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(instant);
+  // Stryker disable next-line OptionalChaining,StringLiteral: equivalent; en-US formats in the Gregorian calendar, and with these options formatToParts returns a year, a month and a day part for every valid Date in every zone (an invalid Date or zone throws first), so find never returns undefined here and the '' fallback is never used.
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
   return `${get('year').padStart(4, '0')}-${get('month')}-${get('day')}`;
 }

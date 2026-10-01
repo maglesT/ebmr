@@ -204,6 +204,7 @@ export function checkPgHba(text: string, path = 'pg_hba.conf', options: { knownR
     const line = raw.replace(/#.*/, '').trim();
     if (line === '') return;
     const f = line.split(/\s+/);
+    // Stryker disable next-line StringLiteral: equivalent; line is trimmed and not empty here, so split returns a non-empty first field and the '' fallback (needed only for the indexed-access type) is never used.
     const type = f[0] ?? '';
     const at = `${path}:${i + 1}`;
     if (type === 'include' || type === 'include_if_exists' || type === 'include_dir') {
@@ -226,11 +227,15 @@ export function checkPgHba(text: string, path = 'pg_hba.conf', options: { knownR
     if (type === 'host' || type === 'hostnossl' || type === 'hostgssenc' || type === 'hostnogssenc') {
       findings.push(error('EBMR-SEC-041', at, `${type} allows network connections without TLS; use hostssl`));
     } else if (type === 'hostssl') {
+      // Stryker disable next-line AssignmentOperator: equivalent; the counter is only compared with 0 after the loop, and counting down from 0 leaves it at 0 exactly when no hostssl rule was counted, as counting up does.
       hostssl += 1;
       if (method !== 'scram-sha-256' && method !== 'cert') findings.push(error('EBMR-SEC-042', at, `hostssl must use scram-sha-256 or cert, not ${method ?? '(none)'}`));
     } else if (method !== 'peer' && method !== 'scram-sha-256') {
       findings.push(error('EBMR-SEC-042', at, `local connections must use peer or scram-sha-256, not ${method ?? '(none)'}`));
     }
+    // Mutation note: replacing `method !== undefined` with true is equivalent (a set of strings never holds
+    // undefined). It is left as a known survivor rather than disabled, because a ConditionalExpression
+    // disable on this line would also drop the two mutants that prove the weak-method rule is tested.
     if (method !== undefined && WEAK_METHODS.has(method)) findings.push(error('EBMR-SEC-043', at, `authentication method ${method} is not allowed`));
   });
   if (hostssl === 0) findings.push(error('EBMR-SEC-044', path, 'no hostssl rule: the application could not connect over TLS'));
