@@ -16,6 +16,7 @@ import {
   verifyTrueCopyBundleText,
   type AuditChainPart,
   type BundleEvent,
+  type ExpectedReference,
   type Manifest,
   type RecordRow,
   type RecordTable,
@@ -253,7 +254,7 @@ describe('true-copy manifest and parts (offline verifier)', () => {
     const other = sha('another record');
     const notRegistered = 'manifest SHA-256 differs from the expected reference (this is not the registered copy)';
     const notAnchored = 'chain head differs from the expected reference (this is not the anchored record)';
-    const cases: [Parameters<typeof verifyTrueCopyBundle>[1], string[], VerificationReport['summary']['reference']][] = [
+    const cases: [ExpectedReference, string[], VerificationReport['summary']['reference']][] = [
       [{}, [], 'NONE'],
       [{ manifestSha256: bundle.manifestSha256.toUpperCase() }, [], 'MATCHED'],
       [{ headHash: head.toUpperCase() }, [], 'MATCHED'],
@@ -407,6 +408,18 @@ describe('true-copy manifest and parts (offline verifier)', () => {
     expect(verifyTrueCopyBundle(bundle)).toEqual({ ok: false, problems: ['manifest head differs from the chain head'], summary: sampleSummary(bundle) });
   });
 
+  it('[INV-08] the report includes the offline chain and row checks of the parts', () => {
+    const { records, chain } = sample();
+    const update = eventAt(chain, 1);
+    update.payload = update.payload.replace('12.5300', '12.5310');
+    const bundle = bundleOf(records, chain);
+    expect(verifyTrueCopyBundle(bundle)).toEqual({
+      ok: false,
+      problems: ['event seq 2: hash does not match the payload (event altered)', 'stub.entry row r1: row differs from the state recorded in the audit trail'],
+      summary: sampleSummary(bundle),
+    });
+  });
+
   it('[INV-08] what the source database and the builder reported at build time is carried into the report; a passing builder verdict adds nothing', () => {
     const { records, chain } = sample();
     const failed = bundleOf(records, chain, {
@@ -467,6 +480,13 @@ describe('true-copy audit chain re-computed offline (verifyChainPart)', () => {
     expect(verifyChainPart(chain)).toEqual(['event seq 2: previous-hash link broken']);
   });
 
+  it('[INV-08] an event whose payload was changed after it was hashed is reported', () => {
+    const { chain } = sample();
+    const update = eventAt(chain, 1);
+    update.payload = update.payload.replace('12.5300', '12.5310');
+    expect(verifyChainPart(chain)).toEqual(['event seq 2: hash does not match the payload (event altered)']);
+  });
+
   it.each(['[1]', '"weighing recorded"', '{"seq": 1', ''])('[INV-08] a payload that is not a JSON object (%s) is reported', (payload) => {
     expect(verifyChainPart(chainOf([{ action: 'BUSINESS', payload }]))).toEqual(['event seq 1: payload is not a JSON object']);
   });
@@ -515,6 +535,21 @@ describe('true-copy rows checked against the audit chain offline (verifyRecordsP
     expect(verifyRecordsPart(records, chain)).toEqual([]);
   });
 
+  it('[INV-08] a row changed after the copy was made (content no longer matching its SHA-256) is reported', () => {
+    const changed = R1.replace('12.5300', '12.5310');
+    expect(entryCheck([{ ...row('r1', R1), content: changed }], SAMPLE_EVENTS)).toEqual([
+      'stub.entry row r1: content does not match its SHA-256 (row altered)',
+      'stub.entry row r1: row differs from the state recorded in the audit trail',
+    ]);
+  });
+
+  it('[INV-08] a row that differs from the audit trail is reported: an insert-only row against its inserted row hash, a mutable row against its rebuilt state', () => {
+    const reading = '{"id": "r2", "value": 7.1, "batch_id": "B1"}';
+    expect(readingCheck([row('r2', reading)], [insertedOnly('r2', R2)])).toEqual(['stub.reading row r2: row differs from the hash recorded when it was inserted']);
+    expect(entryCheck([row('r1', R1.replace('12.5300', '12.5310'))], SAMPLE_EVENTS)).toEqual(['stub.entry row r1: row differs from the state recorded in the audit trail']);
+    expect(entryCheck([row('r1', R1_INSERTED)], SAMPLE_EVENTS)).toEqual(['stub.entry row r1: row differs from the state recorded in the audit trail']);
+  });
+
   it('[INV-08] row content that is not JSON, or not a row object, is reported', () => {
     expect(entryCheck([row('r1', '{"id": "r1"')], SAMPLE_EVENTS)).toEqual(['stub.entry row r1: content is not valid JSON']);
     expect(entryCheck([row('r1', '["r1"]')], SAMPLE_EVENTS)).toEqual(['stub.entry row r1: content is not a row object']);
@@ -535,8 +570,8 @@ describe('true-copy rows checked against the audit chain offline (verifyRecordsP
 
   it('[INV-08] a row the chain has no INSERT for is reported as not captured, even when the chain has an UPDATE for it', () => {
     const missing = ['stub.entry row r3: no INSERT event in the chain (row not captured by the audit trail)'];
-    expect(entryCheck([row('r3', R3)], SAMPLE_EVENTS)).toEqual(missing);
-    expect(entryCheck([row('r3', R3)], [...SAMPLE_EVENTS, updated('r3', '{"value": 1.0}')])).toEqual(missing);
+    expect(entryCheck([row('r3', R3)], [])).toEqual(missing);
+    expect(entryCheck([row('r3', R3)], [updated('r3', '{"value": 1.0}')])).toEqual(missing);
   });
 
   it('[INV-08] a row the chain records as deleted is reported when it is still in the bundle', () => {
@@ -588,9 +623,8 @@ describe('true-copy rows checked against the audit chain offline (verifyRecordsP
 
 describe('[meta] tables named by the audit trail but left out of the bundle (omittedTables)', () => {
   it('[meta] lists each omitted table once, in UTF-16 code-unit order (upper case before lower case), and never a held table or a business event', () => {
-    const chain = chainOf(
-      ['stub.zeta', 'stub.beta', 'stub.Beta', 'stub.alpha', 'stub.zeta', ENTRY, 'stub.gamma'].map((table, i) => ({ action: 'INSERT', table, recordId: `r${i}` })).concat([{ action: 'BUSINESS' }]),
-    );
+    const named = ['stub.zeta', 'stub.beta', 'stub.Beta', 'stub.alpha', 'stub.zeta', ENTRY, 'stub.gamma'];
+    const chain = chainOf([...named.map((table, i): EventSpec => ({ action: 'INSERT', table, recordId: `r${i}` })), { action: 'BUSINESS' }]);
     expect(omittedTables(recordsOf([entryTable([])]), chain)).toEqual(['stub.Beta', 'stub.alpha', 'stub.beta', 'stub.gamma', 'stub.zeta']);
     expect(omittedTables(recordsOf([entryTable([])]), chainOf([inserted(ENTRY, 'r1', R1)]))).toEqual([]);
   });
