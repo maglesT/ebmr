@@ -59,6 +59,7 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
   if (root.type !== 'compound') fail('the root must be a compound state with child states');
   if (root.transitions.size > 0 || root.entry.length > 0 || root.exit.length > 0 || root.invoke.length > 0) fail('the root may not have transitions, actions or invocations');
   const initialTarget = root.initial.target;
+  // Stryker disable next-line OptionalChaining: the root is compound here; XState refuses a compound node without an initial and throws when the initial is not found, so initialTarget[0] is always set (it may lack a key, refused below).
   const initial = initialTarget[0]?.key;
   if (initialTarget.length !== 1 || initial === undefined) fail('exactly one initial state is required');
 
@@ -81,6 +82,7 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
       if (def.actions.length > 0) fail(`${key} ${event}: transitions may not have actions`);
       const target = def.target;
       if (!target || target.length !== 1 || !target[0] || target[0].parent !== root) fail(`${key} ${event}: exactly one sibling target state is required`);
+      // Stryker disable next-line OptionalChaining,StringLiteral: the line above refused a missing target, a list without exactly one entry, an empty entry and a non-sibling, so target[0] is a child state node of the root with a string key; neither ?. nor the '' fallback is ever reached.
       transitions.push({ from: key, event, to: target?.[0]?.key ?? '', ...readMeta(code, key, event, def.meta) });
     }
   }
@@ -93,6 +95,7 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
     aggregate_type: descriptor.aggregateType,
     description: descriptor.description,
     create_permission: descriptor.createPermission,
+    // Stryker disable next-line StringLiteral: an undefined initial was refused before the state loop, so the '' fallback is never evaluated.
     initial: initial ?? '',
     states,
     final_states: finals,
