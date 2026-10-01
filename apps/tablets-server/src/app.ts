@@ -9,7 +9,6 @@
  * Static SPA files carry no time and are served as before.
  */
 import { randomUUID } from 'node:crypto';
-import { createServer } from 'node:http';
 import type { Writable } from 'node:stream';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
@@ -39,8 +38,12 @@ export interface AppDeps {
   siteZoneCheckIntervalMs?: number;
 }
 
-/** Request line plus headers a request may carry (see serverFactory below). */
+/** Request line plus headers a request may carry (see the http options below). */
 export const MAX_HEADER_BYTES = 64 * 1024;
+/** A request must arrive whole within this time (node's default). */
+export const NODE_REQUEST_TIMEOUT_MS = 300_000;
+/** An idle kept-alive connection closes after this time (node's default). */
+export const NODE_KEEP_ALIVE_TIMEOUT_MS = 5_000;
 
 export interface BuiltApp {
   app: FastifyInstance;
@@ -64,7 +67,13 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
       trustProxy: false,
       // GET /api/esig/content carries a disposition proposal in its query (up to 4000 characters of justification,
       // 3 UTF-8 bytes each in Devanagari, then base64url): node's default 16 KiB header limit would refuse it (431).
-      serverFactory: (handler) => createServer({ maxHeaderSize: MAX_HEADER_BYTES }, handler),
+      // Fastify's own http options, not a serverFactory: with a serverFactory Fastify skips the extra bindings of
+      // 'localhost', so the server listened on the first address the name resolves to only (::1 on CI runners).
+      http: { maxHeaderSize: MAX_HEADER_BYTES },
+      // Node's own limits, as the server had them before: Fastify's defaults would drop the whole-request limit (0)
+      // and keep idle connections open for 72 s.
+      requestTimeout: NODE_REQUEST_TIMEOUT_MS,
+      keepAliveTimeout: NODE_KEEP_ALIVE_TIMEOUT_MS,
     });
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);

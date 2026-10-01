@@ -31,6 +31,10 @@ pnpm run ci           # everything CI runs (plain `pnpm ci` is a reserved pnpm c
 pnpm test             # tests only
 ```
 
+`pnpm lint` runs ESLint with a 4 GB heap: typed linting keeps the root, ui-kit, web and E2E TypeScript programs in memory
+together (about 2.2 GB live in Phase 2), more than node's default heap on a CI runner. Raise it there if lint runs out of
+memory again; to see what CI sees locally, run with `NODE_OPTIONS=--max-old-space-size=2048`.
+
 ## Rules that CI enforces
 
 - **Boundaries** (`.dependency-cruiser.cjs`): apps never import each other; packages never import apps; `kernel` and `expr` import nothing internal; `recipe-core` imports only `kernel` and `expr`; product code never imports `tools/`.
