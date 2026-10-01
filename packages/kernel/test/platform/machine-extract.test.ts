@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { createMachine, type AnyStateMachine } from 'xstate';
 import { gmp, type MachineDescriptor } from '../../src/state/definition.ts';
-import { canonicalText, definitionHash, extractDefinition, MachineDefinitionError, type MachineDefinition } from '../../src/state/extract.ts';
+import { canonicalText, definitionHash, extractDefinition, MachineDefinitionError, type MachineDefinition, type TransitionRow } from '../../src/state/extract.ts';
 
 const GO = { permission: 'demo.go' } as const;
 
@@ -105,10 +105,13 @@ describe('extractDefinition: the root and the initial state', () => {
     expect(refusal(describeMachine(looseMachine({ id: 'demo', type: 'parallel', states: { A: {}, B: {} } })))).toBe(message);
   });
 
-  it('[meta] the root may have no transitions, entry or exit actions or invocations, each on its own', () => {
+  it('[meta] the root may have no transitions (with or without an event), entry or exit actions or invocations, each on its own', () => {
     const message = 'machine demo: the root may not have transitions, actions or invocations';
     const roots: [string, object][] = [
       ['transition', { on: { RESET: '.A' } }],
+      // XState would take this one at once: the machine would start in B while the table says A.
+      ['eventless transition', { always: { target: '.B' } }],
+      ['eventless transition with only an action', { always: { actions: () => undefined } }],
       ['entry action', { entry: () => undefined }],
       ['exit action', { exit: () => undefined }],
       ['invocation', { invoke: { src: 'worker' } }],
@@ -121,6 +124,29 @@ describe('extractDefinition: the root and the initial state', () => {
   it('[meta] the initial state must name a child state (XState resolves "toString" to an inherited function)', () => {
     const machine = looseMachine({ id: 'demo', initial: 'toString', states: { A: { on: { GO: gmp('B', GO) } }, B: { type: 'final' } } });
     expect(refusal(describeMachine(machine))).toBe('machine demo: exactly one initial state is required');
+  });
+
+  it('[meta] the initial state must be one of the root\'s own states, not a node XState finds through an inherited name', () => {
+    // XState stores the child states with result[key] = node, so a state named __proto__ becomes the
+    // prototype of root.states instead of an own entry: the state loop never sees it. XState still
+    // resolves an initial name through that prototype: '__proto__' gives that state, 'parent' gives
+    // the root itself (whose key is the machine id) and 'config' gives the hidden state's own config
+    // object, here carrying the key of a real state.
+    const message = 'machine demo: exactly one initial state is required';
+    for (const initial of ['__proto__', 'parent', 'config']) {
+      const machine = looseMachine({
+        id: 'demo',
+        initial,
+        states: { ['__proto__']: { key: 'A', on: { GO: gmp('B', GO) } }, A: { on: { GO: gmp('B', GO) } }, B: { type: 'final' } },
+      });
+      expect([initial, refusal(describeMachine(machine))]).toEqual([initial, message]);
+    }
+  });
+
+  it('[meta] the initial transition may have no actions; an initial written as an object without actions is accepted', () => {
+    const go = { on: { GO: gmp('B', GO) } };
+    expect(refusal(describeMachine(machineWith(go, { initial: { target: 'A', actions: () => undefined } })))).toBe('machine demo: the initial transition may not have actions');
+    expect(extractDefinition(describeMachine(machineWith(go, { initial: { target: 'A' } }))).initial).toBe('A');
   });
 });
 
@@ -200,6 +226,29 @@ describe('extractDefinition: transitions', () => {
     }
     const intoNested = looseMachine({ id: 'demo', initial: 'A', states: { A: { on: { GO: gmp('B.X', GO) } }, B: { initial: 'X', states: { X: {} } } } });
     expect(refusal(describeMachine(intoNested))).toBe(message);
+  });
+
+  it('[meta] the target must be one of the root\'s own states, not any object whose parent is the root', () => {
+    const message = 'machine demo: A GO: exactly one sibling target state is required';
+    // XState passes an object target through unchanged. Each of these claims the root as its
+    // parent: without a key, with a key that is no state, and with the key of the real state B.
+    for (const [name, fields] of [
+      ['no key', {}],
+      ['an unknown key', { key: 'NOWHERE' }],
+      ['the key of a real state', { key: 'B' }],
+    ] as const) {
+      const lookalike: { key?: string; parent?: unknown } = { ...fields };
+      const machine = looseMachine({ id: 'demo', initial: 'A', states: { A: { on: { GO: { target: lookalike, meta: GO } } }, B: { type: 'final' } } });
+      lookalike.parent = machine.root;
+      expect(machine.root.states['A']?.transitions.get('GO')?.[0]?.target?.[0]).toBe(lookalike);
+      expect([name, refusal(describeMachine(machine))]).toEqual([name, message]);
+    }
+    // A state named __proto__ is the prototype of root.states, not an own entry, so it is no state of
+    // the definition; XState still resolves it as a target by key and by id.
+    for (const target of ['__proto__', '#demo.__proto__']) {
+      const machine = looseMachine({ id: 'demo', initial: 'A', states: { A: { on: { GO: { target, meta: GO } } }, ['__proto__']: { type: 'final' }, B: { type: 'final' } } });
+      expect([target, refusal(describeMachine(machine))]).toEqual([target, message]);
+    }
   });
 });
 
@@ -359,11 +408,35 @@ describe('canonicalText and definitionHash', () => {
     expect(shuffled).toEqual(copy);
   });
 
-  it('[meta] the definition hash is the SHA-256 (hex) of the UTF-8 canonical text and changes with any field', () => {
+  it('[meta] the definition hash is the SHA-256 (hex) of the UTF-8 canonical text', () => {
     // Expected values computed outside Node (sha256sum over the expected text above).
     expect(definitionHash(shuffled)).toBe('b672ce952164ee035c9b6567f488b955625896414bc98227f7f91707e7d58d75');
     expect(definitionHash({ ...shuffled, aggregate_type: 'démo_record' })).toBe('6f3973f7350954f255de481d47f537f3b02d5fe0f02ec859213f3d14121ec100');
-    expect(definitionHash({ ...shuffled, description: 'another description' })).toBe(definitionHash(shuffled));
-    expect(definitionHash({ ...shuffled, version: 4 })).not.toBe(definitionHash(shuffled));
+  });
+
+  it('[meta] the definition hash changes with every canonical field and not with the description', () => {
+    const base = definitionHash(shuffled);
+    const [first, ...rest] = shuffled.transitions;
+    const withFirst = (change: Partial<TransitionRow>): MachineDefinition => ({ ...shuffled, transitions: [{ ...(first as TransitionRow), ...change }, ...rest] });
+    const changed: [string, MachineDefinition][] = [
+      ['machine', { ...shuffled, machine: 'demo_two' }],
+      ['version', { ...shuffled, version: 4 }],
+      ['aggregate_type', { ...shuffled, aggregate_type: 'demo_other' }],
+      ['initial', { ...shuffled, initial: 'REVIEW' }],
+      ['states', { ...shuffled, states: [...shuffled.states, 'ARCHIVED'] }],
+      ['final_states', { ...shuffled, final_states: ['APPROVED'] }],
+      ['create_permission', { ...shuffled, create_permission: 'demo.open' }],
+      ['transition from', withFirst({ from: 'DRAFT' })],
+      ['transition event', withFirst({ event: 'SEND_BACK' })],
+      ['transition to', withFirst({ to: 'REOPEN' })],
+      ['transition guards', withFirst({ guards: ['demo.check'] })],
+      ['transition signature', withFirst({ signature: 'REVIEWED' })],
+      ['transition permission', withFirst({ permission: 'demo.return' })],
+      ['one transition fewer', { ...shuffled, transitions: rest }],
+    ];
+    for (const [field, definition] of changed) {
+      expect([field, definitionHash(definition) === base]).toEqual([field, false]);
+    }
+    expect(definitionHash({ ...shuffled, description: 'another description' })).toBe(base);
   });
 });
