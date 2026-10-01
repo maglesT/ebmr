@@ -98,10 +98,12 @@ export function createSealKeyRing(keys: readonly TrustedSealKey[]): SealKeyRing 
       const k = ring.get(keyId);
       if (!k || k.algorithm !== algorithm) return Promise.resolve('UNKNOWN_KEY');
       if (algorithm === 'HMAC-SHA256') {
+        // Stryker disable next-line ArrayDeclaration: equivalent; the fallback key is only reached if the caller deletes the secret after the ring checked it, and ["Stryker was here"] becomes the single byte 00, which HMAC pads to the same all-zero block as an empty key, so every seal gets the same answer
         const expected = createHmac('sha256', Buffer.from(k.secret ?? [])).update(message).digest();
         const given = Buffer.from(seal);
         return Promise.resolve(given.length === expected.length && timingSafeEqual(given, expected) ? 'VALID' : 'INVALID');
       }
+      // Stryker disable next-line StringLiteral: equivalent; the fallback is only reached if the caller deletes the public key after the ring checked it, and createPublicKey throws the same ERR_OSSL_UNSUPPORTED error for '' as for any other non-key text
       const ok = edVerify(null, message, createPublicKey(k.publicKeyPem ?? ''), seal);
       return Promise.resolve(ok ? 'VALID' : 'INVALID');
     },
