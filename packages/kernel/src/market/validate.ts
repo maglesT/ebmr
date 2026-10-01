@@ -301,7 +301,9 @@ export function validateRuleTableDocument(doc: unknown, options: ValidateOptions
   // Cross-row checks on the well-formed rows.
   for (let i = 0; i < good.length; i++) {
     for (let j = i + 1; j < good.length; j++) {
+      // Stryker disable next-line OptionalChaining: equivalent; the loop condition i < good.length keeps good[i] defined, so the chain never short-circuits.
       const a = good[i]?.w;
+      // Stryker disable next-line OptionalChaining: equivalent; the loop condition j < good.length keeps good[j] defined, so the chain never short-circuits.
       const b = good[j]?.w;
       if (!a || !b || a.key !== b.key || a.market !== b.market || !overlaps(a, b)) continue;
       if (canonicalJson(a.pred) === canonicalJson(b.pred)) {
@@ -322,6 +324,7 @@ export function validateRuleTableDocument(doc: unknown, options: ValidateOptions
       const lo = india.map((w) => w.from).sort(byCode)[0] as string;
       const hi = rowsOfKey.some((w) => w.to === null) ? null : (rowsOfKey.map((w) => w.to as string).sort(byCode).at(-1) as string);
       // Walk India's windows from lo; every date up to hi must be covered.
+      // Stryker disable next-line MethodExpression: equivalent; windows are only filtered below and the new reach comes from their sorted end dates, so their order cannot change the result.
       const windows = india.map((w) => ({ from: w.from, to: w.to })).sort((x, y) => byCode(x.from, y.from));
       let reach: string | null = lo;
       let covered = false;
@@ -333,6 +336,7 @@ export function validateRuleTableDocument(doc: unknown, options: ValidateOptions
         const current: string = reach;
         const next = windows.filter((w) => w.from <= current && (w.to === null || w.to > current));
         if (next.length === 0) break;
+        // Stryker disable next-line MethodExpression,ArrowFunction: equivalent; an open-ended window containing the reach still contains every later end date the walk moves to, so the walk ends covered whether it stops at once (some) or only once open windows remain (every, or some never true).
         reach = next.some((w) => w.to === null) ? null : (next.map((w) => w.to as string).sort(byCode).at(-1) as string);
       }
       if (!covered) add('EBMR-MKT-026', `key ${name} is governed by India but India (IN) rows leave a gap in the effective period`);
@@ -343,6 +347,7 @@ export function validateRuleTableDocument(doc: unknown, options: ValidateOptions
   const criteria = new Map<string, Set<string>>();
   for (const { row } of good) {
     const key = keys.get(String(row['key']));
+    // Stryker disable next-line OptionalChaining: equivalent; a row reaches good only after the same key lookup found its key (if (!key) continue above), so key is never undefined here.
     if (key?.['method'] !== 'ALL_APPLY') continue;
     const all = [...(row['value'] as Obj[]), ...(isAbsent(row['hardFloor']) ? [] : (row['hardFloor'] as Obj[]))];
     for (const c of all) {
