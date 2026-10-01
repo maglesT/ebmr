@@ -19,6 +19,8 @@ describe('parseLossless: values', () => {
     expect(parseLossless('-0')).toStrictEqual(num('-0'));
     expect(parseLossless('1E+2')).toStrictEqual(num('1E+2'));
     expect(parseLossless('2.50e-7')).toStrictEqual(num('2.50e-7'));
+    expect(parseLossless('6.02214076E+23')).toStrictEqual(num('6.02214076E+23'));
+    expect(parseLossless('-1e-10')).toStrictEqual(num('-1e-10'));
     expect(parseLossless('[0,-2.50,3e2]')).toStrictEqual([num('0'), num('-2.50'), num('3e2')]);
   });
 
