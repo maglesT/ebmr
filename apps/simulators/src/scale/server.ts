@@ -10,7 +10,7 @@ import { createServer as createHttpServer, type IncomingMessage, type Server as 
 import { createServer as createTcpServer, type Server as TcpServer, type Socket } from 'node:net';
 import { LINE_END, LineFramer, formatError, formatSerial, formatStatus, formatWeight, parseCommand, type MtSicsCommand } from '@ebmr/integration-sdk/scale';
 import { FAULTS, ScaleModel, type Fault, type ScaleModelOptions } from './model.ts';
-import { consoleHtml } from './console.ts';
+import { consoleHtml, loadFormHtml } from './console.ts';
 
 export interface ScaleSimulatorOptions extends ScaleModelOptions {
   tcp: { host: string; port: number };
@@ -184,10 +184,23 @@ export async function startScaleSimulator(opts: ScaleSimulatorOptions): Promise<
       act(api[1] ?? '', Object.fromEntries(Object.entries(input).map(([k, v]) => [k, String(v)])));
       return sendJson(res, 200, model.state());
     }
+    if (req.method === 'GET' && url.pathname === '/console/load') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      res.end(loadFormHtml(model.state().unit, url.searchParams.get('problem')));
+      return;
+    }
     const form = /^\/console\/([a-z-]+)$/.exec(url.pathname);
     if (req.method === 'POST' && form) {
       const params = new URLSearchParams(await readBody(req));
-      act(form[1] ?? '', Object.fromEntries(params.entries()));
+      const action = form[1] ?? '';
+      // A typed load that is not a mass goes back to the form with the reason; the pan is left as it was.
+      const mass = params.get('mass') ?? '';
+      if (action === 'set' && !/^\d{1,3}(\.\d{1,3})?$/.test(mass)) {
+        res.writeHead(303, { location: `/console/load?problem=${encodeURIComponent(`"${mass}" is not a mass: type up to three decimals, for example 51.250.`)}` });
+        res.end();
+        return;
+      }
+      act(action, Object.fromEntries(params.entries()));
       res.writeHead(303, { location: '/' });
       res.end();
       return;

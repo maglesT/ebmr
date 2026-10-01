@@ -161,8 +161,11 @@ justify a warning, and save a revision with a change note.
    **Capture tare**. Then fill it and press **Capture gross**. Each capture shows the value, the balance and the
    raw MT-SICS line. **Save** and tap. The net (50 kg) is computed by the server, inside the action limit
    49.75 to 50.25 kg. Sign as performed; TEST-Kavya Reddy switches in and verifies.
-   On the simulator console (http://localhost:4002), "Place container" puts 1.250 kg on the pan. For an exact
-   load, use the control API, for example:
+   To put a load on the pan, open the simulator console (http://localhost:4002) in a second tab: the buttons
+   under "Set the load on the pan" put exactly the demo's weights on it in one click (1.250 tare, 51.250 gross;
+   1.000 and 10.400, 0.200 and 0.800 for step 1.2.2; 0.000 empties the pan). "Set another load…" opens a page to
+   type any mass. Wait for the step's gauge to show the new weight as stable before you capture. The control API
+   does the same from a terminal:
 
    ```sh
    curl -s -X POST localhost:4002/api/set -H 'content-type: application/json' -d '{"mass":"1.250"}'    # tare

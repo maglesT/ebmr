@@ -2,6 +2,7 @@ import { connect, type Socket } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { LineFramer, MtSicsProtocolError, parseResponse } from '@ebmr/integration-sdk/scale';
 import { ManualClock, ScaleModel } from '../../src/scale/model.ts';
+import { DEMO_LOADS } from '../../src/scale/console.ts';
 import { startScaleSimulator, type RunningSimulator } from '../../src/scale/server.ts';
 
 const base = { serial: 'SIM-0001', resolution: '0.001', unit: 'kg', capacity: '60.000' } as const;
@@ -207,5 +208,34 @@ describe('MT-SICS over TCP and the control API', () => {
     expect(res.status).toBe(303);
     const state = (await (await fetch(`${control}/api/state`)).json()) as { load: string };
     expect(state.load).toBe('0.005');
+  });
+
+  it('the console sets an exact load in one click, or from a typed mass on a page that does not refresh', async () => {
+    const form = (path: string, body: string) =>
+      fetch(`${control}${path}`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, redirect: 'manual' });
+    const load = async () => ((await (await fetch(`${control}/api/state`)).json()) as { load: string }).load;
+
+    const html = await (await fetch(`${control}/`)).text();
+    for (const m of DEMO_LOADS) expect(html).toContain(`name="mass" value="${m}"`);
+    expect(html).toContain('href="/console/load"');
+
+    const page = await (await fetch(`${control}/console/load`)).text();
+    expect(page).toContain('action="/console/set"');
+    expect(page).not.toContain('http-equiv="refresh"');
+
+    const set = await form('/console/set', 'mass=51.250');
+    expect(set.status).toBe(303);
+    expect(set.headers.get('location')).toBe('/');
+    expect(await load()).toBe('51.250');
+
+    // A typed value that is not a mass goes back to the form with the reason; the pan keeps its load.
+    for (const bad of ['abc', '', '51.2505', '-1', '1e3']) {
+      const res = await form('/console/set', `mass=${encodeURIComponent(bad)}`);
+      expect(res.status, bad).toBe(303);
+      const to = res.headers.get('location') ?? '';
+      expect(to.startsWith('/console/load?problem='), bad).toBe(true);
+      expect(await (await fetch(`${control}${to}`)).text()).toContain('is not a mass');
+      expect(await load(), bad).toBe('51.250');
+    }
   });
 });
