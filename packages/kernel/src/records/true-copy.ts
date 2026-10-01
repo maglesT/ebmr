@@ -121,6 +121,7 @@ export interface VerificationReport {
 }
 
 const sha256Hex = (data: string | Uint8Array): string => createHash('sha256').update(data).digest('hex');
+// Stryker disable next-line StringLiteral: equivalent; Buffer.byteLength counts a string as UTF-8 when the encoding is empty (falsy), so '' gives the same size as 'utf8'.
 const utf8Bytes = (s: string): number => Buffer.byteLength(s, 'utf8');
 
 function splitChainKey(chainKey: string): { aggregateType: string; aggregateId: string } {
@@ -271,6 +272,7 @@ export async function registerTrueCopy(db: pg.Pool | pg.PoolClient, bundle: True
   const manifest = JSON.parse(bundle.manifest) as Manifest;
   if (!manifest.head) throw new Error('EBMR-REC-070 an empty chain cannot be registered as a true copy');
   const { rows } = await db.query<{ id: string }>('select records.register_true_copy($1, $2, $3) as id', [bundle.manifest, bundle.manifestSha256, purpose]);
+  // Stryker disable next-line OptionalChaining,StringLiteral: equivalent; a select without FROM returns exactly one row or raises, and records.register_true_copy returns the primary key of the row it inserted (never null), so rows[0].id always exists and the fallback is never used.
   return rows[0]?.id ?? '';
 }
 
@@ -343,6 +345,7 @@ export function verifyTrueCopyBundle(bundle: TrueCopyBundle, expected?: Expected
     let headMatches = true;
     if (expected.headHash !== undefined) {
       try {
+        // Stryker disable next-line OptionalChaining: equivalent; when the manifest has no head object, the original compares undefined with the expected hash (false) and the mutant throws inside this try, whose catch sets the same false.
         headMatches = (JSON.parse(bundle.manifest) as Manifest).head?.hash === expected.headHash.toLowerCase();
       } catch {
         headMatches = false;
@@ -407,7 +410,7 @@ function payloadOf(e: BundleEvent): JsonObject | undefined {
   try {
     const v = parseLossless(e.payload);
     return v instanceof Map ? v : undefined;
-  } catch {
+  } /* Stryker disable next-line BlockStatement: equivalent; with the catch body emptied the function still ends without a return value, i.e. returns undefined as the original does. */ catch {
     return undefined;
   }
 }
@@ -460,6 +463,7 @@ export function verifyRecordsPart(records: RecordsPart, chain: AuditChainPart): 
   for (const e of chain.events) {
     if (e.tableName === null || e.recordId === null) continue;
     const k = `${e.tableName}\u0000${e.recordId}`;
+    // Stryker disable next-line ArrayDeclaration: equivalent; a string placed in the list has no action, payload or body, so every find/some on action skips it and rebuildState reads nothing from it.
     const list = eventsByRecord.get(k) ?? [];
     list.push(e);
     eventsByRecord.set(k, list);
@@ -484,6 +488,7 @@ export function verifyRecordsPart(records: RecordsPart, chain: AuditChainPart): 
       const id = jsonText(content.get('id')) ?? jsonText(content.get(table.aggregateColumn));
       if (id !== row.recordId) problems.push(`${where}: record id differs from the row content`);
       if (jsonText(content.get(table.aggregateColumn)) !== records.aggregateId) problems.push(`${where}: row belongs to another aggregate`);
+      // Stryker disable next-line ArrayDeclaration: equivalent; for a row without events the list holds only a string without an action, so no INSERT is found and the row is reported exactly as with an empty list.
       const events = eventsByRecord.get(`${table.table}\u0000${row.recordId}`) ?? [];
       const insert = events.find((e) => e.action === 'INSERT');
       if (!insert) {

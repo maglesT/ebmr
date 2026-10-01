@@ -57,10 +57,19 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
   }
   const root = machine.root;
   if (root.type !== 'compound') fail('the root must be a compound state with child states');
-  if (root.transitions.size > 0 || root.entry.length > 0 || root.exit.length > 0 || root.invoke.length > 0) fail('the root may not have transitions, actions or invocations');
+  if (root.transitions.size > 0 || (root.always?.length ?? 0) > 0 || root.entry.length > 0 || root.exit.length > 0 || root.invoke.length > 0) {
+    fail('the root may not have transitions, actions or invocations');
+  }
+  // A state of this machine is one of the root's own child state nodes, so a target counts only by
+  // identity with one of them. XState also resolves a target name through properties root.states
+  // inherits (toString; a state named __proto__ becomes its prototype, and with it that state's
+  // parent and config), and it passes an object target through unchanged: neither the key nor the
+  // parent of a target proves that it is a state here.
+  const childKey = (node: unknown): string | undefined => Object.keys(root.states).find((k) => root.states[k] === node);
   const initialTarget = root.initial.target;
-  const initial = initialTarget[0]?.key;
+  const initial = childKey(initialTarget[0]);
   if (initialTarget.length !== 1 || initial === undefined) fail('exactly one initial state is required');
+  if (root.initial.actions.length > 0) fail('the initial transition may not have actions');
 
   const states: string[] = [];
   const finals: string[] = [];
@@ -80,8 +89,10 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
       if (def.guard !== undefined) fail(`${key} ${event}: put guard codes in meta.guards via gmp(), not in an XState guard`);
       if (def.actions.length > 0) fail(`${key} ${event}: transitions may not have actions`);
       const target = def.target;
-      if (!target || target.length !== 1 || !target[0] || target[0].parent !== root) fail(`${key} ${event}: exactly one sibling target state is required`);
-      transitions.push({ from: key, event, to: target?.[0]?.key ?? '', ...readMeta(code, key, event, def.meta) });
+      const to = target?.length === 1 ? childKey(target[0]) : undefined;
+      if (to === undefined) fail(`${key} ${event}: exactly one sibling target state is required`);
+      // Stryker disable next-line StringLiteral: an undefined target key was refused on the line above (fail always throws), so the '' fallback is never evaluated.
+      transitions.push({ from: key, event, to: to ?? '', ...readMeta(code, key, event, def.meta) });
     }
   }
   states.sort(byCodeUnit);
@@ -93,6 +104,7 @@ export function extractDefinition(descriptor: MachineDescriptor): MachineDefinit
     aggregate_type: descriptor.aggregateType,
     description: descriptor.description,
     create_permission: descriptor.createPermission,
+    // Stryker disable next-line StringLiteral: an undefined initial was refused before the state loop, so the '' fallback is never evaluated.
     initial: initial ?? '',
     states,
     final_states: finals,

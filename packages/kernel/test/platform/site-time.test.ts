@@ -153,4 +153,12 @@ describe('instants and durations', () => {
     expect(fromMicros.compare(at(rows[0]?.t ?? ''))).toBe(0);
     expect(fromMicros.toIsoString()).toBe('2026-10-25T01:30:00.654321Z');
   });
+
+  it('[DI-27] database text of a year below 100 parses to the instant the database holds', async () => {
+    const { rows } = await db.app.query<{ us: string; t: string }>(
+      "select platform.epoch_micros(t)::text as us, (t at time zone 'UTC')::text || '+00' as t from (select '0026-03-29 01:00:00.5+00'::timestamptz as t) x",
+    );
+    expect(rows[0]?.t).toBe('0026-03-29 01:00:00.5+00');
+    expect(Instant.parse(rows[0]?.t ?? '').epochMicros).toBe(BigInt(rows[0]?.us ?? ''));
+  });
 });
