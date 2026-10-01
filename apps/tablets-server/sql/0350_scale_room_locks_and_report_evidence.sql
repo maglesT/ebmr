@@ -85,32 +85,61 @@
 --    (tab.listener_attested_from) when the listener's latest closed tick is at most 2 seconds old and its ticks are
 --    clean without a break from at or before the window's start: the start is 10 seconds before the weighing's
 --    transaction began, or 10 seconds before that tick when that is earlier, so the vouched silence always spans a full
---    10 seconds. Another listener that ticked in the window makes it unknown which one the gateway reached: not
---    vouched for. Where the gate would count the gateway's silence, a scale never reported, a state that is not ONLINE
---    or an unanswered API report over a window nobody vouched for, it refuses instead (EBMR-EXE-074, why UNATTESTED):
---    a denial of the fallback, never a weight beside a working scale. The registry and a refused reading of the chain
+--    10 seconds. Another listener that ticked in the window, or ended in it, makes it unknown which one the gateway
+--    reached: not vouched for. (Final verification of the item, listener-credential-bound.) A listener that stops ends
+--    its run (tab.end_listener_run: its last row closed with whether everything up to the end was put on record; the
+--    run ticks no more, EBMR-DEV-076). A run that stopped ticking without being ended may be a listener still receiving
+--    whose ticks cannot land (a database loaded until its statements pass their limit, its connections taken) while a
+--    holder of the listener's credentials ticks a run of its own clean: so while another run's latest row is still open
+--    and less than an hour old (the hour the ticks are kept), nothing is vouched for (decision X40). (Verification of
+--    listener-credential-bound, x39-alter-role.) The listener's own login may set session defaults on itself (ALTER
+--    ROLE ... [IN DATABASE ...] SET), which reach every session the real listener opens next, after a restart of the
+--    database or a network fault; read-only transactions or an idle-session timeout kept its ticks from landing with
+--    nothing sustained, so an hour later a run of the credential's holder was vouched for. Now nothing is vouched for
+--    while a listener login that may connect to the database has such a default, for this database or for every
+--    database (pg_db_role_setting), and the listener's pools fix those settings in their startup options, which the
+--    role's defaults cannot override (decision X42). (Verification of listener-credential-bound, docs-no-listener.) A
+--    run that ended on record held the others only for a window that holds its end, and with no listener running
+--    nothing held them: after a planned restart or deploy, or on a server started without EBMR_GATEWAY_LISTEN, a holder
+--    of the listener's credentials who ticked a run of its own clean for 10 seconds made the database vouch, with
+--    nothing to wait out (the database cannot tell a listener started again from that holder). Now each run begins by
+--    recording the SHA-256 of a run key the server derives from secrets only its host holds (tab.begin_listener_run,
+--    before its first tick; the key is not kept), and while another run of a different key, or of none, closed a tick
+--    within the last hour, nothing is vouched for (decision X43): a server started again with the same secrets vouches
+--    as before; a holder of the listener's credentials alone only once no run with the server's key has ticked for an
+--    hour. Where the gate would count the gateway's silence, a scale never reported, a state that is not ONLINE or an
+--    unanswered API report over a window nobody vouched for, it refuses instead (EBMR-EXE-074, why UNATTESTED): a
+--    denial of the fallback, never a weight beside a working scale. The registry and a refused reading of the chain
 --    still count as before (each is something on record, not an absence).
 -- A scale counts as unusable when any one of its reasons counts (the registry, the gateway's silence or state, the
 -- API report, a refused reading of its chain held since before the window); tab.manual_weighing_basis records it as
 -- before. tab.scale_status (what the screen shows and the capture follows) is unchanged: every report counts there at
 -- once.
 --
--- Defaults and what stays open: docs/decisions/phase-2-open-questions.md X15-X21, X29-X32 and X36-X39. A receipt or an
--- answer written by someone other than the listener or the server could only keep the manual path shut, and now only the
--- listener's role may write either. A database too loaded to take the listener's evidence in time, or the listener's
--- connections taken, now keeps the manual path shut (no clean ticks) instead of opening it; the server logs a lost
--- answer and a lost idle connection at warn (X32). What remains is a denial of the fallback: whoever can load the
--- database or take its connections can keep a scale from being keyed by hand, and the listener's role, its credentials
--- and the cluster's connection settings are the operator's to keep (X36-X39). Administration acts on the registry and
--- the site's time zone are out of scope as in 0310.
+-- Defaults and what stays open: docs/decisions/phase-2-open-questions.md X15-X21, X29-X32 and X36-X43. A receipt or an
+-- answer written by someone other than the listener or the server could only keep the manual path shut, and now only
+-- the listener's role may write either. A database too loaded to take the listener's evidence in time, or the
+-- listener's connections taken, now keeps the manual path shut (no clean ticks) instead of opening it; the server logs
+-- a lost answer and a lost idle connection at warn (X32). What remains is a denial of the fallback: whoever can load
+-- the database or take its connections can keep a scale from being keyed by hand, and the listener's role, its
+-- credentials and the cluster's connection settings are the operator's to keep (X36-X39). One way to open it remains
+-- (X39 (6), X43): a holder of the listener's own credentials, without the server's secrets, who finds no run with the
+-- server's run key ticking for over an hour and then ticks a run of its own clean for 10 seconds. That hour passes with
+-- no listener running (none ever ran on this database, or the server runs without EBMR_GATEWAY_LISTEN, or stays down,
+-- for over an hour), or when the holder keeps the real listener from landing a single tick for it: by load, by holding
+-- the listener role's slots after its connections dropped, or by changing the role's password (which the role may do
+-- and nothing in the database can see), so that the real listener cannot log in again after its next reconnection or
+-- restart. A holder of the server's secrets as well needs no hour: the database cannot tell it from the server.
+-- Administration acts on the registry and the site's time zone are out of scope as in 0310.
 --
 -- Privileges: every function is SECURITY DEFINER, owned by ebmr_owner, pg_temp last (ADR 0016). CREATE OR REPLACE
 -- keeps the owner, search_path and grants of tab.lock_gateway_rooms (none), tab.record_gateway_api_contact (EXECUTE for
 -- ebmr_app), tab.record_heartbeat (EXECUTE for ebmr_app), tab.manual_weighing_scales (none) and
 -- tab.manual_weighing_check (none). The listener's role ebmr_listener (kernel 0980; mirrored to ebmr_sandbox_listener
 -- in a sandbox) gains USAGE on the schemas tab and iam and EXECUTE on tab.record_heartbeat_receipt,
--- tab.record_gateway_api_answer, tab.record_listener_tick, tab.resolve_gateway_session and iam.policy_text, and
--- nothing else; ebmr_app may not call the first three. The new tables and helpers are granted to nobody.
+-- tab.record_gateway_api_answer, tab.record_listener_tick, tab.end_listener_run, tab.begin_listener_run,
+-- tab.resolve_gateway_session and iam.policy_text, and nothing else; ebmr_app may not call the first five. The new
+-- tables and helpers are granted to nobody.
 
 set local role ebmr_owner;
 
@@ -177,18 +206,38 @@ revoke all on tab.gateway_api_answer from public;
 create index gateway_api_answer_key_time on tab.gateway_api_answer (gateway_key_id, answered_at);
 
 -- 6. The listener's ticks: per run of the listener (watch_id, a random uuid the process draws at start), one row every
--- 500 ms in order (seq from 1, no gap). Each row is opened at the database time ticked_at and closed by the next tick,
--- which sets clean: whether everything the listener received from the previous tick's answer to this one's answer was
--- put on record. Null while it is the run's latest row. Owner-only; written only by tab.record_listener_tick.
+-- 500 ms in order (seq from 1, no gap). Each row is opened at the database time ticked_at and closed at closed_at by
+-- the next tick, which sets clean: whether everything the listener received from the previous tick's answer to this
+-- one's answer was put on record. Null while it is the run's latest row. A run that stops is ended by its own listener
+-- (tab.end_listener_run), which closes its latest row with whether everything up to the end was put on record; a run
+-- whose latest row is still open after it stopped ticking stopped without being ended (lost). Owner-only; written only
+-- by tab.record_listener_tick and tab.end_listener_run.
 create table tab.listener_tick (
   watch_id   uuid not null,
   seq        integer not null check (seq > 0),
   ticked_at  timestamptz not null default clock_timestamp(),
   clean      boolean,
-  primary key (watch_id, seq)
+  closed_at  timestamptz,
+  primary key (watch_id, seq),
+  check ((clean is null) = (closed_at is null))
 );
 revoke all on tab.listener_tick from public;
 create index listener_tick_time on tab.listener_tick (ticked_at);
+create index listener_tick_closed on tab.listener_tick (closed_at);
+create index listener_tick_open on tab.listener_tick (ticked_at) where clean is null;
+
+-- 6. (Verification of listener-credential-bound, docs-no-listener; decision X43.) The start of each run of the
+-- listener: the SHA-256 of the run key it began with (tab.begin_listener_run), a key the server derives from the
+-- secrets only its host holds (EBMR_SECRETS_FILE), the same for every run of a server with the same secrets. The key
+-- itself is not kept. A run that ticks without having begun has no key. Owner-only; written only by
+-- tab.begin_listener_run, which also prunes runs that began over an hour ago and have no tick left.
+create table tab.listener_run (
+  watch_id   uuid primary key,
+  key_hash   bytea not null check (octet_length(key_hash) = 32),
+  began_at   timestamptz not null default clock_timestamp()
+);
+revoke all on tab.listener_run from public;
+create index listener_run_began on tab.listener_run (began_at);
 
 -- 4. The report that the API cannot be reached: when another transaction first saw it committed, and who wrote it.
 alter table tab.gateway_api_contact add column seen_at timestamptz;
@@ -270,20 +319,30 @@ $$;
 
 -- 6. The listener's tick (its role only): closes run p_watch's latest row with p_clean (whether everything the listener
 -- received since that row's tick was put on record; null counts as not) and opens the next one at the database's time.
--- Answers {seq, tickedAtUs}. Prunes rows older than an hour with SKIP LOCKED.
+-- Answers {seq, tickedAtUs}. A run that has ended (its latest row closed by tab.end_listener_run) ticks no more
+-- (EBMR-DEV-076): what arrived after its end is covered by no tick, so a listener that starts again ticks as a new run.
+-- Prunes rows older than an hour with SKIP LOCKED.
 create function tab.record_listener_tick(p_watch uuid, p_clean boolean) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, tab, pg_temp as $$
 declare
   v_last integer;
+  v_open boolean;
   v_seq  integer;
   v_at   timestamptz;
 begin
   if p_watch is null then
     raise exception using errcode = 'P0001', message = 'EBMR-DEV-075 a tick of the gateway listener names the run it belongs to';
   end if;
-  select max(t.seq) into v_last from tab.listener_tick t where t.watch_id = p_watch;
+  -- The run's latest row, locked: a tick and the run's end never pass each other.
+  select t.seq, t.clean is null into v_last, v_open
+    from tab.listener_tick t where t.watch_id = p_watch order by t.seq desc limit 1 for update;
+  if v_last is not null and not v_open then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-DEV-076 this run of the gateway listener has ended (or another tick of it ran at the same time); a listener that starts again ticks as a new run';
+  end if;
   if v_last is not null then
-    update tab.listener_tick set clean = coalesce(p_clean, false) where watch_id = p_watch and seq = v_last and clean is null;
+    update tab.listener_tick set clean = coalesce(p_clean, false), closed_at = clock_timestamp()
+     where watch_id = p_watch and seq = v_last and clean is null;
   end if;
   insert into tab.listener_tick (watch_id, seq) values (p_watch, coalesce(v_last, 0) + 1)
   returning seq, ticked_at into v_seq, v_at;
@@ -295,10 +354,83 @@ begin
 end
 $$;
 
+-- 6. The end of run p_watch (its listener's role only, when the listener stops): closes the run's open row with p_clean
+-- (whether everything the listener received since that row's tick, up to its end, was put on record; null counts as
+-- not) at the database's time. True when it closed one; false when the run has no open row (already ended, or unknown).
+create function tab.end_listener_run(p_watch uuid, p_clean boolean) returns boolean
+language plpgsql volatile security definer set search_path = pg_catalog, tab, pg_temp as $$
+begin
+  if p_watch is null then
+    raise exception using errcode = 'P0001', message = 'EBMR-DEV-075 the end of a run of the gateway listener names the run';
+  end if;
+  update tab.listener_tick set clean = coalesce(p_clean, false), closed_at = clock_timestamp()
+   where watch_id = p_watch and clean is null;
+  return found;
+end
+$$;
+
+-- 6. The start of run p_watch (its listener's role only, before the run's first tick; decision X43): records the
+-- SHA-256 of p_key, the run key the server derives from its secrets (32 bytes; the key itself is not kept). A run
+-- begins once and only before it ticks (EBMR-DEV-078). Answers {heldUntilUs}: while a run of another key, or of none,
+-- closed a tick within the last hour, this run vouches for nothing (tab.listener_attested_from) until an hour after
+-- the latest such tick, the database time given here (null when no such run did), so that the server can say why.
+-- Prunes runs that began over an hour ago and have no tick left, with SKIP LOCKED.
+create function tab.begin_listener_run(p_watch uuid, p_key bytea) returns jsonb
+language plpgsql volatile security definer set search_path = pg_catalog, tab, pg_temp as $$
+declare
+  v_hash  bytea;
+  v_until timestamptz;
+begin
+  if p_watch is null then
+    raise exception using errcode = 'P0001', message = 'EBMR-DEV-075 the start of a run of the gateway listener names the run';
+  end if;
+  if p_key is null or octet_length(p_key) <> 32 then
+    raise exception using errcode = 'P0001', message = 'EBMR-DEV-077 a run of the gateway listener begins with the server''s run key (32 bytes)';
+  end if;
+  v_hash := pg_catalog.sha256(p_key);
+  if exists (select 1 from tab.listener_tick t where t.watch_id = p_watch) then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-DEV-078 this run of the gateway listener has begun or ticked already; a listener that starts again begins a new run';
+  end if;
+  insert into tab.listener_run (watch_id, key_hash) values (p_watch, v_hash) on conflict (watch_id) do nothing;
+  if not found then
+    raise exception using errcode = 'P0001',
+      message = 'EBMR-DEV-078 this run of the gateway listener has begun or ticked already; a listener that starts again begins a new run';
+  end if;
+  delete from tab.listener_run x
+   where x.watch_id in (select y.watch_id from tab.listener_run y
+                         where y.began_at < clock_timestamp() - interval '1 hour'
+                           and not exists (select 1 from tab.listener_tick t where t.watch_id = y.watch_id)
+                         limit 1000 for update skip locked);
+  select max(t.closed_at) + interval '1 hour' into v_until
+    from tab.listener_tick t left join tab.listener_run r on r.watch_id = t.watch_id
+   where t.watch_id <> p_watch and t.closed_at >= clock_timestamp() - interval '1 hour'
+     and r.key_hash is distinct from v_hash;
+  return jsonb_build_object('heldUntilUs', case when v_until is null then null else platform.epoch_micros(v_until)::text end);
+end
+$$;
+
 -- 6. The start of the window the listener vouches for, for a gate whose own window starts at p_from (10 seconds before
 -- the weighing's transaction began), or null when it vouches for none: the latest run's latest closed tick (n) is at
 -- most 2 seconds old; the start is p_from, or 10 seconds before tick n when that is earlier; the run's ticks from the
--- last one at or before the start through n are all clean, with no gap; and no other run ticked since the start.
+-- last one at or before the start through n are all clean, with no gap; no other run ticked, or ended, since the start;
+-- and no other run stopped ticking without being ended (its latest row still open) within the last hour: such a run may
+-- be a listener that is still receiving but whose ticks cannot land (a database loaded, its connections taken), so
+-- whichever run ticks meanwhile vouches for nothing until an hour after that run's last tick (decision X40).
+-- (Verification of listener-credential-bound, x39-alter-role.) Nor does any run vouch while a listener login that may
+-- connect to this database has session defaults of its own (pg_db_role_setting: ALTER ROLE ... [IN DATABASE ...] SET,
+-- for every database or for this one), which that login may set on itself: such a default reaches every session the
+-- real listener opens next (after a restart of the database or a network fault), and one that keeps its statements from
+-- landing (read-only transactions, an idle-session timeout, a connection that cannot start) would let a run of the
+-- credential's holder vouch an hour later with nothing sustained. The listener's pools also fix, in their startup
+-- options, the settings that would keep its statements from landing, so it keeps recording while such a default stands
+-- (devices runtime, LISTENER_SESSION_PINS; decision X42). (Verification of listener-credential-bound, docs-no-listener.)
+-- Nor does a run vouch while another run whose key (tab.listener_run) is not this run's, or that has no key, or any
+-- other run when this one has none, closed a tick within the last hour: the database cannot tell a listener started
+-- again from a holder of the listener's credentials who ticks a run of its own once the real listener's run has ended
+-- on record (a planned restart or deploy, a server started again without EBMR_GATEWAY_LISTEN), so within the hour after
+-- a run's last tick only a run that holds the same run key, which the server derives from secrets only its host holds,
+-- vouches (decision X43).
 create function tab.listener_attested_from(p_from timestamptz) returns timestamptz
 language plpgsql volatile security definer set search_path = pg_catalog, tab, pg_temp as $$
 declare
@@ -307,7 +439,17 @@ declare
   v_to    timestamptz;
   v_from  timestamptz;
   v_first integer;
+  v_key   bytea;
 begin
+  if exists (select 1
+               from pg_catalog.pg_db_role_setting s
+               join pg_catalog.pg_roles r on r.oid = s.setrole
+              where r.rolname in ('ebmr_listener', 'ebmr_sandbox_listener')
+                and pg_catalog.has_database_privilege(r.oid, pg_catalog.current_database(), 'CONNECT')
+                and (s.setdatabase = 0
+                     or s.setdatabase = (select d.oid from pg_catalog.pg_database d where d.datname = pg_catalog.current_database()))) then
+    return null;
+  end if;
   select t.watch_id into v_watch from tab.listener_tick t order by t.ticked_at desc limit 1;
   if v_watch is null then
     return null;
@@ -325,7 +467,16 @@ begin
   if v_first is null
      or exists (select 1 from tab.listener_tick t where t.watch_id = v_watch and t.seq between v_first and v_last and t.clean is distinct from true)
      or (select count(*) from tab.listener_tick t where t.watch_id = v_watch and t.seq between v_first and v_last) <> v_last - v_first + 1
-     or exists (select 1 from tab.listener_tick t where t.watch_id <> v_watch and t.ticked_at >= v_from) then
+     or exists (select 1 from tab.listener_tick t where t.watch_id <> v_watch and t.ticked_at >= v_from)
+     or exists (select 1 from tab.listener_tick t where t.watch_id <> v_watch and t.closed_at >= v_from)
+     or exists (select 1 from tab.listener_tick t
+                 where t.watch_id <> v_watch and t.clean is null and t.ticked_at >= clock_timestamp() - interval '1 hour') then
+    return null;
+  end if;
+  select r.key_hash into v_key from tab.listener_run r where r.watch_id = v_watch;
+  if exists (select 1 from tab.listener_tick t left join tab.listener_run r on r.watch_id = t.watch_id
+              where t.watch_id <> v_watch and t.closed_at >= clock_timestamp() - interval '1 hour'
+                and (v_key is null or r.key_hash is null or r.key_hash <> v_key)) then
     return null;
   end if;
   return v_from;
@@ -763,10 +914,12 @@ $$;
 revoke all on function tab.lock_scale_rooms(text[]), tab.note_contact_seen(uuid),
   tab.manual_path_verdict(tab.gateway_key, tab.gateway_instrument, iam.device, tab.instrument_heartbeat, timestamptz, timestamptz),
   tab.record_heartbeat_receipt(text, jsonb), tab.record_gateway_api_answer(text, text),
-  tab.record_listener_tick(uuid, boolean), tab.listener_attested_from(timestamptz) from public;
+  tab.record_listener_tick(uuid, boolean), tab.end_listener_run(uuid, boolean), tab.begin_listener_run(uuid, bytea),
+  tab.listener_attested_from(timestamptz) from public;
 -- 6. The gateway listener's own role (kernel 0980): what it puts on record, and the two reads of its receipt statement.
 grant usage on schema tab, iam to ebmr_listener;
 grant execute on function tab.record_heartbeat_receipt(text, jsonb), tab.record_gateway_api_answer(text, text),
-  tab.record_listener_tick(uuid, boolean), tab.resolve_gateway_session(text), iam.policy_text(text) to ebmr_listener;
+  tab.record_listener_tick(uuid, boolean), tab.end_listener_run(uuid, boolean), tab.begin_listener_run(uuid, bytea),
+  tab.resolve_gateway_session(text), iam.policy_text(text) to ebmr_listener;
 
 reset role;

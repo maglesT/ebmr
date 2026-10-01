@@ -5,7 +5,16 @@
  * API that a database too loaded (or short of connections) cannot take in time is lost; since follow-up round 4 the
  * listener's ticks say so and the gate refuses instead of counting the scale silent (tablets 0350 item 6, kernel 0980;
  * decisions X36-X39; the describe "follow-up round 4" below, listener-watch.test.ts; the losses of answers and of idle
- * connections are also logged: report-pools-log.test.ts).
+ * connections are also logged: report-pools-log.test.ts). A holder of the listener's own credentials who keeps the
+ * real listener's ticks from landing and ticks a run of its own clean is refused too: the real run stopped without
+ * being ended, which keeps every other run from vouching for an hour (decision X40; final verification of the item);
+ * so is one who sets read-only transactions as the listener login's default before the real listener's connections
+ * drop and reopen: the listener's pools fix that setting (decision X42; verification of listener-credential-bound,
+ * x39-alter-role). In those two cases the holder also holds the server's secrets (its run begins with the server's run
+ * key), so each shows its own decision. A holder of the listener's credentials alone who ticks a run of its own clean
+ * once the listener's run has ended on record, with no listener running since, is refused within the hour after the
+ * ended run's last tick: its run lacks the server's run key (decision X43; verification of listener-credential-bound,
+ * docs-no-listener).
  *
  * The verifier's probes against tablets 0340, each ported here: one application-role connection held the room's
  * advisory lock ('tab.scale_room:DISP-1') and a second cancelled the gateway listener's heartbeats queued behind it, so
@@ -30,7 +39,9 @@ import { identity, toDbContext, type ActorContext } from '@ebmr/kernel';
 import type { LoginResponse } from '@ebmr/integration-sdk/scale';
 import { scaleStatusRows } from '../../src/features/devices/port.ts';
 import { HEARTBEAT_ANSWER_MS, REPORTS_POOL_MAX, runtimeOf, UNVERIFIED_RECEIPTS_AT_ONCE } from '../../src/features/devices/runtime.ts';
+import { listenerRunKey } from '../../src/features/devices/watch.ts';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
+import { endPool, openPool, SANDBOX_LISTENER_LOGIN, urlFor } from '@ebmr/test-kit';
 import { fakeGateway, loginAt } from './support.ts';
 import {
   devicesOf,
@@ -48,6 +59,7 @@ import {
   startRig,
   statuses,
   stopRig,
+  untilVouched,
   type Rig,
 } from './room-scales-support.ts';
 import { messageOf } from '../execution/db-guards-support.ts';
@@ -935,7 +947,7 @@ describe('review P50, follow-up round 2: the gateway\'s heartbeats are answered 
   }, 60_000);
 });
 
-describe('review P50, follow-up round 4: the gate fails closed when the gateway listener cannot put what it receives on record (tablets 0350 item 6, kernel 0980; decisions X36-X39)', () => {
+describe('review P50, follow-up round 4: the gate fails closed when the gateway listener cannot put what it receives on record (tablets 0350 item 6, kernel 0980; decisions X36-X43)', () => {
   /** The database's refusal where the listener vouches for no window (the server's `why` is the same without the code). */
   const UNATTESTED_WHY =
     /^Scale TEST-BAL-0[01] of room DISP-1 is shown offline \(no heartbeat from the site gateway in the last 10 seconds\), but the gateway listener has not put on record that everything it received in the 10 seconds before this weighing began is recorded/;
@@ -991,6 +1003,149 @@ describe('review P50, follow-up round 4: the gate fails closed when the gateway 
     expect(await statuses(rig)).toEqual([['TEST-BAL-00', 'OFFLINE'], ['TEST-BAL-01', 'ONLINE']]);
   }, 120_000);
 
+  it('[PR-20][DI-30][DI-17] a holder of the listener\'s own credentials who keeps the real listener\'s ticks and receipts from landing (a superuser\'s locks hold each past its 2 s limit) and ticks a run of its own clean throughout, begun with the server\'s run key (it holds the server\'s secrets too), cannot make the database vouch: the real run stopped without being ended, so a weight keyed by hand beside the working scale is refused', async () => {
+    const d = await pcmRun();
+    await report(rig, BESIDE);
+    const before = await counts(d.runId);
+    const admin = rig.server.db.admin;
+    const real = (await admin.query<{ w: string }>('select watch_id::text as w from tab.listener_tick order by ticked_at desc limit 1')).rows[0]?.w ?? '';
+    // What the credential's holder can open: a connection of the listener's own login, with no statement limit.
+    const stolen = openPool({ connectionString: urlFor(rig.server.database, SANDBOX_LISTENER_LOGIN), max: 1 });
+    const own = randomUUID();
+    let ticking = true;
+    let ownTicks: Promise<void> | undefined;
+    let beats: { stop(): Promise<number[]> } | undefined;
+    let answered: number[];
+    // Stands in for a database loaded until the real listener's statements pass their 2 s limit while the holder's own,
+    // which have none, still land: receipts wait for the table, the real run's ticks for its open row.
+    const holder = await admin.connect();
+    try {
+      await holder.query('begin');
+      await holder.query('lock table tab.heartbeat_receipt in exclusive mode');
+      for (let locked = 0; locked === 0; ) {
+        locked = (await holder.query('select seq from tab.listener_tick where watch_id = $1 and clean is null for update', [real])).rowCount ?? 0;
+      }
+      const frozen = await dbMs();
+      beats = gatewayBeats(devicesOf(BESIDE));
+      // The holder's run begins as the server's would, with the server's run key, so that decision X43 does not refuse
+      // it: what refuses it here is decision X40 alone.
+      await stolen.query('select tab.begin_listener_run($1, $2)', [own, listenerRunKey(rig.server.built.ctx.config.secrets)]);
+      ownTicks = (async () => {
+        while (ticking) {
+          await stolen.query('select tab.record_listener_tick($1, true)', [own]);
+          await sleep(400);
+        }
+      })();
+      await sleep(GATE_WINDOW_MS + 3000);
+      // The real run has not ticked since; the holder's run ticked clean throughout, its latest closed tick fresh: before
+      // decision X40 the database vouched for its window alone.
+      const runs = await admin.query<{ w: string; since: number; unclean: number; first_age: number; closed_age: number }>(
+        `select watch_id::text as w, count(*) filter (where ticked_at > to_timestamp($1::float8 / 1000))::int as since,
+                count(*) filter (where clean = false)::int as unclean,
+                extract(epoch from clock_timestamp() - min(ticked_at))::float8 as first_age,
+                extract(epoch from clock_timestamp() - max(ticked_at) filter (where clean is not null))::float8 as closed_age
+           from tab.listener_tick where watch_id in ($2, $3) group by watch_id`,
+        [frozen, real, own],
+      );
+      const of = new Map(runs.rows.map((r) => [r.w, r]));
+      expect(of.get(real)?.since).toBe(0);
+      expect(of.get(own)).toMatchObject({ unclean: 0 });
+      expect(of.get(own)?.first_age).toBeGreaterThan(12);
+      expect(of.get(own)?.closed_age).toBeLessThan(2);
+      expect(await statuses(rig)).toEqual([['TEST-BAL-00', 'OFFLINE'], ['TEST-BAL-01', 'OFFLINE']]);
+      const viaServer = await d.command('operator1', handKeyed);
+      expect(outcomeOf(viaServer)).toBe('422:EBMR-EXE-074');
+      expect(refusalOf(viaServer).why).toMatch(UNATTESTED_WHY);
+      expect(await messageOf(forgedWeighingRow(rig, d))).toMatch(UNATTESTED);
+      expect(await counts(d.runId)).toEqual(before);
+    } finally {
+      ticking = false;
+      await ownTicks?.catch(() => undefined);
+      answered = (await beats?.stop()) ?? [];
+      await holder.query('rollback').catch(() => undefined);
+      holder.release();
+      // Its run ended (its id is known here), the real listener vouches again once it has ticked clean for 10 s.
+      await stolen.query('select tab.end_listener_run($1, true)', [own]).catch(() => undefined);
+      await endPool(stolen);
+    }
+    expect(answered.filter((st) => st === 200)).toEqual([]);
+    expect(await untilVouched(rig.server)).toBe(true);
+    await report(rig, BESIDE);
+    expect(await statuses(rig)).toEqual([['TEST-BAL-00', 'OFFLINE'], ['TEST-BAL-01', 'ONLINE']]);
+  }, 120_000);
+
+  it('[PR-20][DI-30][DI-17] a holder of the listener\'s own credentials who sets read-only transactions as its login\'s default, lets the real listener\'s connections drop and reopen under it, and ticks a run of its own clean, begun with the server\'s run key (it holds the server\'s secrets too), while the real run\'s earlier ticks age an hour cannot make the database vouch: the listener\'s pools fix their session settings, so its receipts and ticks keep landing, and no run vouches while the default stands; a weight keyed by hand beside the working scale is refused (decision X42)', async () => {
+    const d = await pcmRun();
+    await report(rig, BESIDE);
+    const before = await counts(d.runId);
+    const admin = rig.server.db.admin;
+    const db = `"${rig.server.database.replace(/"/g, '""')}"`;
+    const real = (await admin.query<{ w: string }>('select watch_id::text as w from tab.listener_tick order by ticked_at desc limit 1')).rows[0]?.w ?? '';
+    // The holder's own connection, opened with what it needs whatever its login's defaults say.
+    const stolen = openPool({ connectionString: urlFor(rig.server.database, SANDBOX_LISTENER_LOGIN), max: 1, idleTimeoutMillis: 0, options: '-c default_transaction_read_only=off' });
+    const own = randomUUID();
+    let ticking = true;
+    let ownTicks: Promise<void> | undefined;
+    let beats: { stop(): Promise<number[]> } | undefined;
+    try {
+      const stolenPid = (await stolen.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]?.pid ?? 0;
+      const listenerPids = async () =>
+        (await admin.query<{ pid: number }>("select pid from pg_stat_activity where datname = current_database() and usename = 'ebmr_sandbox_listener' and pid <> $1", [stolenPid])).rows.map((r) => r.pid);
+      // One statement of the listener's own login, with no load and no slot held: read-only transactions for its next
+      // sessions in this database.
+      await stolen.query(`alter role ebmr_sandbox_listener in database ${db} set default_transaction_read_only = on`);
+      // The real listener's connections drop (as at a network fault or a restart of the database server), and it opens
+      // them again, now or when next needed, under that default. One at a time, a second apart: ended all at once, the
+      // listener's pools do not reopen all of them (PROGRESS, LISTENER SESSION DEFAULTS, found, not changed). Earlier
+      // cases may have left the pools short of connections, so whatever the listener holds now is ended.
+      const dropped = await listenerPids();
+      expect(dropped.length).toBeGreaterThan(0);
+      for (const pid of dropped) {
+        await admin.query('select pg_terminate_backend($1)', [pid]);
+        for (let waited = 0; (await listenerPids()).includes(pid) && waited < 10_000; waited += 100) await sleep(100);
+        await sleep(1000);
+      }
+      expect((await listenerPids()).filter((p) => dropped.includes(p))).toEqual([]);
+      const reconnected = await dbMs();
+      // The holder ticks a run of its own clean while the gateway keeps reporting its scale ONLINE, begun with the
+      // server's run key, so that decision X43 does not refuse it.
+      beats = gatewayBeats(devicesOf(BESIDE));
+      await stolen.query('select tab.begin_listener_run($1, $2)', [own, listenerRunKey(rig.server.built.ctx.config.secrets)]);
+      ownTicks = (async () => {
+        while (ticking) {
+          await stolen.query('select tab.record_listener_tick($1, true)', [own]);
+          await sleep(400);
+        }
+      })();
+      await sleep(GATE_WINDOW_MS + 3000);
+      // As the database would see it an hour later: the real run's ticks from before its connections reopened are an
+      // hour old (decision X40 holds the others for that hour; the hour itself is not waited for here).
+      await admin.query(
+        "update tab.listener_tick set ticked_at = ticked_at - interval '61 minutes', closed_at = closed_at - interval '61 minutes' where watch_id = $1 and ticked_at < to_timestamp($2::float8 / 1000)",
+        [real, reconnected],
+      );
+      // Before decision X42 the reopened connections ran read-only: no tick or receipt of the real listener landed, the
+      // scale read OFFLINE for want of recorded heartbeats, the holder's run alone was vouched for, and this weight was
+      // accepted ('ok'). Either half of X42 refuses it: the fixed settings (the scale reads ONLINE) and the default on
+      // record (nothing is vouched for); listener-watch.test.ts shows each on its own.
+      const viaServer = await d.command('operator1', handKeyed);
+      expect(outcomeOf(viaServer)).toBe('422:EBMR-EXE-074');
+      expect(await counts(d.runId)).toEqual(before);
+      // The real listener kept ticking, and kept the gateway's heartbeats on record, on the connections it reopened.
+      const since = await admin.query<{ n: number }>('select count(*)::int as n from tab.listener_tick where watch_id = $1 and ticked_at >= to_timestamp($2::float8 / 1000)', [real, reconnected]);
+      expect(since.rows[0]?.n).toBeGreaterThanOrEqual(20);
+      expect(await statuses(rig)).toEqual([['TEST-BAL-00', 'OFFLINE'], ['TEST-BAL-01', 'ONLINE']]);
+    } finally {
+      ticking = false;
+      await ownTicks?.catch(() => undefined);
+      await beats?.stop();
+      await stolen.query(`alter role ebmr_sandbox_listener in database ${db} reset all`).catch(() => undefined);
+      await stolen.query('select tab.end_listener_run($1, true)', [own]).catch(() => undefined);
+      await endPool(stolen);
+    }
+    expect(await untilVouched(rig.server)).toBe(true);
+  }, 120_000);
+
   it('[DI-17][DI-30] only the listener\'s own login writes what it receives: the application role is refused a receipt, an answer of the gateway\'s API and a tick, and the listener\'s receipts run on connections of that login', async () => {
     const tokenHash = createHash('sha256').update(rig.gw.token, 'utf8').digest('hex');
     const app = rig.server.db.app;
@@ -1004,6 +1159,76 @@ describe('review P50, follow-up round 4: the gate fails closed when the gateway 
     await expect(runtime.receipts().query(HEARTBEAT_SQL, [bal01Heartbeat('OFFLINE')])).rejects.toThrow(/permission denied for function record_heartbeat/);
     await expect(runtime.receipts().query('select count(*) from tab.listener_tick')).rejects.toThrow(/permission denied for table listener_tick/);
   });
+
+  // The last case of this file that needs the server's listener to tick: the listener's run ends here, and its watch is
+  // refused every tick afterwards (EBMR-DEV-076). Its receipts, which the clean-up after each case needs, still land.
+  it('[PR-20][DI-30][DI-17] once the listener\'s run has ended on record and no listener runs (a planned restart or deploy, a server started again without EBMR_GATEWAY_LISTEN), a holder of the listener\'s own credentials who ticks a run of its own clean, begun with a key of its own, cannot make the database vouch within the hour after the ended run\'s last tick: the scale reads OFFLINE for want of heartbeats and a weight keyed by hand is refused (decision X43; accepted before it)', async () => {
+    const d = await pcmRun();
+    await report(rig, BESIDE);
+    const before = await counts(d.runId);
+    const admin = rig.server.db.admin;
+    const real = (await admin.query<{ w: string }>('select watch_id::text as w from tab.listener_tick order by ticked_at desc limit 1')).rows[0]?.w ?? '';
+    // The real run ends on record as the server's close ends it (tab.end_listener_run, clean); a superuser holds its open
+    // row meanwhile so that no tick slips in between. Its listener ticks no more, and the gateway's heartbeats reach no
+    // listener from here on (none is sent).
+    const ender = await admin.connect();
+    try {
+      await ender.query('begin');
+      for (let locked = 0; locked === 0; ) {
+        locked = (await ender.query('select seq from tab.listener_tick where watch_id = $1 and clean is null for update', [real])).rowCount ?? 0;
+      }
+      expect((await ender.query<{ r: boolean }>('select tab.end_listener_run($1, true) as r', [real])).rows).toEqual([{ r: true }]);
+      await ender.query('commit');
+    } finally {
+      ender.release();
+    }
+    const ended = await dbMs();
+    const stolen = openPool({ connectionString: urlFor(rig.server.database, SANDBOX_LISTENER_LOGIN), max: 1 });
+    const own = randomUUID();
+    let ticking = true;
+    let ownTicks: Promise<void> | undefined;
+    try {
+      // The holder begins a run of its own with a key of its own (it does not hold the server's secrets): the database
+      // answers that it is held, and it ticks that run clean.
+      const begun = (await stolen.query<{ r: { heldUntilUs: string | null } }>('select tab.begin_listener_run($1, $2) as r', [own, randomBytes(32)])).rows[0]?.r;
+      expect(begun?.heldUntilUs).toMatch(/^[0-9]+$/);
+      ownTicks = (async () => {
+        while (ticking) {
+          await stolen.query('select tab.record_listener_tick($1, true)', [own]);
+          await sleep(400);
+        }
+      })();
+      await sleep(GATE_WINDOW_MS + 1000);
+      // The real run ended before the holder's first tick and ticked no more; the holder's ticked clean throughout, its
+      // latest closed tick fresh. Before decision X43 the database vouched for its window alone, with nothing to wait out.
+      const runs = await admin.query<{ w: string; open: number; after: number; unclean: number; first_age: number; closed_age: number }>(
+        `select watch_id::text as w, count(*) filter (where clean is null)::int as open,
+                count(*) filter (where ticked_at > to_timestamp($1::float8 / 1000))::int as after,
+                count(*) filter (where clean = false)::int as unclean,
+                extract(epoch from clock_timestamp() - min(ticked_at))::float8 as first_age,
+                extract(epoch from clock_timestamp() - max(ticked_at) filter (where clean is not null))::float8 as closed_age
+           from tab.listener_tick where watch_id in ($2, $3) group by watch_id`,
+        [ended, real, own],
+      );
+      const of = new Map(runs.rows.map((r) => [r.w, r]));
+      expect(of.get(real)).toMatchObject({ open: 0, after: 0 });
+      expect(of.get(own)).toMatchObject({ unclean: 0 });
+      expect(of.get(own)?.first_age).toBeGreaterThan(12);
+      expect(of.get(own)?.closed_age).toBeLessThan(2);
+      expect(await statuses(rig)).toEqual([['TEST-BAL-00', 'OFFLINE'], ['TEST-BAL-01', 'OFFLINE']]);
+      expect((await scaleStatusRows(rig.server.built.ctx, 'DISP-1')).find((x) => x.deviceCode === 'TEST-BAL-01')?.reason).toBe('no heartbeat from the site gateway in the last 10 seconds');
+      const viaServer = await d.command('operator1', handKeyed);
+      expect(outcomeOf(viaServer)).toBe('422:EBMR-EXE-074');
+      expect(refusalOf(viaServer).why).toMatch(UNATTESTED_WHY);
+      expect(await messageOf(forgedWeighingRow(rig, d))).toMatch(UNATTESTED);
+      expect(await counts(d.runId)).toEqual(before);
+    } finally {
+      ticking = false;
+      await ownTicks?.catch(() => undefined);
+      await stolen.query('select tab.end_listener_run($1, true)', [own]).catch(() => undefined);
+      await endPool(stolen);
+    }
+  }, 120_000);
 });
 
 describe('review P50, round 4: administrators are refused by every tablets writer of GMP data (DI-18)', () => {

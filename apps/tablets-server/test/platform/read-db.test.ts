@@ -13,7 +13,7 @@ import { databaseExists, dropDatabase } from '@ebmr/test-kit';
 import { startServer } from '../support/harness.ts';
 
 describe('read database', () => {
-  it('reads through the shared application pool and does not end it when the app closes', async () => {
+  it('[meta] reads through the shared application pool and does not end it when the app closes', async () => {
     const server = await startServer('GMP');
     let appClosed = false;
     try {

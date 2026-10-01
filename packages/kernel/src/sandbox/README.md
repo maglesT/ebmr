@@ -18,7 +18,7 @@ training data live in a separate database; GMP batches only from CURRENT or BRID
 | Watermark | `watermark.ts`, `sandbox.watermark()` | `TEST, NOT GMP` on every output of a sandbox and of every non-GMP function (simulation, training, analytics). |
 | Provisioning | `provision.ts` | Creates, migrates, marks, closes and checks a sandbox; upgrades re-level its privileges. |
 | Backend signals | `sql/0970`, `kernel.backend_signals_restricted()` | No role but a superuser may cancel or end another connection's work: `sandbox.apply_connect_policy()` takes `pg_cancel_backend` and `pg_terminate_backend` away from PUBLIC and every role that is not a superuser (function privileges live in the database, so a template copy keeps them; applying the policy again repairs a restore that lost them). `kernel.backend_signals_restricted()` reports whether the database holds the policy (also that no login role other than a superuser is in `pg_signal_backend`); the tablets manual-weighing gate refuses while it does not (tablets 0350, review P50 round 4). |
-| Listener login roles | `sql/0980`, `sandbox.role_mirror_differences(role, roles[])` | `ebmr_listener` (GMP) and `ebmr_sandbox_listener` (sandbox): an edition's evidence listener logs in with a role of its own (LOGIN, NOINHERIT, member of nothing, no members), CONNECT only on databases of its kind; inside a sandbox the sandbox one holds exactly the GMP one's object privileges (mirrored with the others). Migrations grant the GMP one only what the listener records (tablets 0350 item 6). The application roles `ebmr_app` and `ebmr_sandbox` get CONNECTION LIMIT = the cluster's slots for ordinary roles less 8, the listener's share, computed when a database is migrated (EBMR-SBX-036 when the cluster has no room for it; set it again after changing max_connections). Review P50 follow-up round 4, decisions X36, X38. |
+| Listener login roles | `sql/0980`, `sandbox.role_mirror_differences(role, roles[])` | `ebmr_listener` (GMP) and `ebmr_sandbox_listener` (sandbox): an edition's evidence listener logs in with a role of its own (LOGIN, NOINHERIT, member of nothing, no members), CONNECT only on databases of its kind; inside a sandbox the sandbox one holds exactly the GMP one's object privileges (mirrored with the others). Migrations grant the GMP one only what the listener records (tablets 0350 item 6). Each listener role gets CONNECTION LIMIT = the listener's share (8 for one listener; a cluster running more declares 8 per listener with `kernel.apply_listener_share(n)`, superuser only, which later migrations keep), and the application role of its kind (`ebmr_app`, `ebmr_sandbox`) the cluster's slots for ordinary roles less that share, set when a database is migrated (EBMR-SBX-036 when the cluster has no room for it, EBMR-SBX-037 for a share below 8; run `kernel.apply_listener_share()` again after changing max_connections). Review P50 follow-up round 4 and its final verification, decisions X36, X38, X41. |
 | Invariant query | `sandbox.segregation_problems()` | Must return no rows. GMP: any way in for the sandbox role or the sandbox listener (CONNECT, an object privilege, a default privilege, a membership, an elevated attribute). Sandbox: GMP roles (the GMP listener among them) or PUBLIC able to connect, privileges different from the mirror. Both: a listener role with an elevated attribute, a membership, or a member (kernel 0980). |
 
 ## Public API (`import { sandbox } from '@ebmr/kernel'` once exported)
@@ -84,7 +84,8 @@ allowed, `-013` non-GMP origin, `-014` watermark misuse, `-020` unknown kind, `-
 identifier in GMP, `-022` non-test identifier in the sandbox, `-023` misconfigured guard trigger, `-030`
 mirror outside a sandbox, `-031`..`-034` provisioning (exists, missing, not a sandbox, segregation check failed), `-035`
 backend signals still open to roles other than superusers after the policy was applied (kernel 0970), `-036` no room
-in the cluster's connections for the listener's share (kernel 0980).
+in the cluster's connections for the listener's share (kernel 0980), `-037` a listener share below one listener's 8
+connections (kernel 0980).
 Messages give the reason first, then the control, then the code.
 
 ## Tests (`packages/kernel/test/sandbox/`)
@@ -93,8 +94,11 @@ Messages give the reason first, then the control, then the code.
 look-alikes), `watermark.test.ts`, `installation.test.ts` (GMP marker, identifier guard, connect policy,
 copy under a sandbox name), `bypass.test.ts` (INV-18 bypass attempts through the sandbox role; DI-05 catalog
 test), `provision.test.ts` (provisioning, upgrade re-levelling, no half-built sandbox, kind/name mismatch);
-`test/security/listener-roles.test.ts` (the listener roles, their segregation and mirror, the application roles'
-connection limits).
+`test/security/listener-roles.test.ts` (the listener roles, their segregation and mirror, the listener roles' and the
+application roles' connection limits, `kernel.apply_listener_share`, and 0980 applying the share itself: run on a fresh
+cluster's roles in a transaction rolled back at the end it must give exactly 8 and the slots less 8, and a database
+migrated to 0980 keeps each declared share and levels the application roles with it; the server tests' set-up declares
+a share of its own, which the limits as the cluster stands would only echo).
 `helpers.ts#openSandbox` gives a test sandbox's pools; its `drop()` ends them with `endPool` (`test/harness/pools.ts`),
 which waits until the socket of every connection has closed, before the forced drop (checked in
 `test/harness/teardown.test.ts`).

@@ -40,7 +40,11 @@ export const EnvSchema = z.object({
   EBMR_DEMO_KEYS_FILE: z.string().optional(),
   /** DEMO-ONLY seal key for e-signatures ({keyId, algorithm, secret}); production uses a KMS or HSM. */
   EBMR_SEAL_KEY_FILE: z.string().optional(),
-  /** Cookie, CSRF and nonce keys ({csrfHmacKey, nonceKey}); generated per process when absent (not in production). */
+  /**
+   * Cookie, CSRF and nonce keys ({csrfHmacKey, nonceKey}); generated per process when absent (not in production). The
+   * gateway listener's run key is derived from nonceKey (devices watch.ts listenerRunKey; decision X43), so a server
+   * started again with another file, or without one, vouches for nothing until an hour after the last run's last tick.
+   */
   EBMR_SECRETS_FILE: z.string().optional(),
   /** Built SPA (vite build output), served from the same origin as the API. */
   EBMR_WEB_DIST: z.string().optional(),

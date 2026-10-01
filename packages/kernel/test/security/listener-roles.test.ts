@@ -9,20 +9,58 @@
  * ebmr_sandbox_listener (sandbox) are login roles of their own, members of nothing and with no members, each able to
  * connect only to databases of its kind, the sandbox one holding exactly the GMP one's privileges inside a sandbox; and
  * the application roles ebmr_app and ebmr_sandbox are limited to the cluster's slots less the listener's share.
+ *
+ * Final verification of that item (listener-credential-bound; decisions X36, X39, X41): a holder of the listener's own
+ * credentials had no connection limit at all, so it could take every slot of the cluster or load the database with as
+ * many connections as it liked. Each listener role is now limited to the listener's share (8 for one listener; a cluster
+ * running more declares more), the same share its application role leaves free (kernel.apply_listener_share).
+ *
+ * The limits as the cluster stands cannot show that migrating a database applies the share: the server tests' global
+ * setup declares a share of its own before any test file runs (apps/tablets-server/test/support/global-setup.ts), and a
+ * development cluster keeps what earlier runs set. So a database the previous kernel version left is migrated to 0980
+ * here twice. First kernel 0980 as written runs on a cluster none of whose four roles has a limit, as on a fresh one, in
+ * a transaction rolled back at the end: the exact values must come out, one listener's share (8) on each listener role
+ * and the cluster's slots less 8 on each application role, whatever share the cluster holds and whatever any set-up
+ * declared. Then the migration is applied with each listener role holding a share of its own and both application
+ * roles unlimited: each share is kept and each application role levelled with it.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type pg from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
+import { KERNEL_MIGRATIONS, migrate } from '../../src/db/migrate.ts';
 import { provisionSandboxDatabase, segregationProblems, upgradeSandboxDatabase } from '../../src/sandbox/provision.ts';
 import { endPool, openPool } from '../harness/pools.ts';
 import { ADMIN_URL, createTestDatabase, urlFor } from '../support/db.ts';
-import { asAdmin, attempt, dropDatabase, editionMigrationSources, onServer, sandboxTestName } from '../sandbox/helpers.ts';
+import { asAdmin, attempt, dropDatabase, editionMigrationSources, onServer, sandboxTestName, uniqueSuffix } from '../sandbox/helpers.ts';
 
 const LISTENER_LOGIN = { name: 'ebmr_listener', password: 'ebmr_listener' };
 const SANDBOX_LISTENER_LOGIN = { name: 'ebmr_sandbox_listener', password: 'ebmr_sandbox_listener' };
-/** The connections kernel 0980 keeps free of each application role for the listener. */
+/** One listener's share of the cluster's connections: what kernel 0980 sets where none was declared. */
 const LISTENER_SHARE = 8;
+/** Each application role and the listener role whose share it leaves free. */
+const PAIRS = [['ebmr_app', 'ebmr_listener'], ['ebmr_sandbox', 'ebmr_sandbox_listener']] as const;
+/** The kernel migrations before 0980 (every file is named NNNN_...): a database as the previous version left it. */
+const BEFORE_0980 = /^0(?:[0-8]\d\d|9[0-7]\d)_/;
+/** Kernel 0980 as the migration runner applies it (packages/kernel/src/db/migrate.ts runs a file's text as it is). */
+const MIGRATION_0980 = '0980_listener_login_roles.sql';
+
+/** The connection limits of the application and listener roles (by name, -1: none), and the cluster's slots for roles that are not superusers. */
+interface Limits {
+  slots: number;
+  of: Record<string, number>;
+}
+
+async function limits(c: Pick<pg.Client, 'query'>): Promise<Limits> {
+  const { rows } = await c.query<{ rolname: string; limit: number; slots: number }>(
+    `select r.rolname, r.rolconnlimit as limit,
+            current_setting('max_connections')::int - current_setting('superuser_reserved_connections')::int
+              - coalesce(current_setting('reserved_connections', true), '0')::int as slots
+       from pg_roles r where r.rolname in ('ebmr_app', 'ebmr_sandbox', 'ebmr_listener', 'ebmr_sandbox_listener') order by 1`,
+  );
+  return { slots: rows[0]?.slots ?? 0, of: Object.fromEntries(rows.map((r) => [r.rolname, r.limit])) };
+}
 
 const created: string[] = [];
 const dirs: string[] = [];
@@ -76,24 +114,143 @@ describe('the evidence listener\'s login roles (kernel 0980)', () => {
     }
   });
 
-  it('[DI-17][DI-30][PR-20] the application roles ebmr_app and ebmr_sandbox may hold every connection slot of the cluster but the listener\'s share; the listener roles are not limited', async () => {
-    const { rows } = await onServer((s) =>
-      s.query<{ rolname: string; limit: number; slots: number }>(
-        `select r.rolname, r.rolconnlimit as limit,
-                current_setting('max_connections')::int - current_setting('superuser_reserved_connections')::int
-                  - coalesce(current_setting('reserved_connections', true), '0')::int as slots
-           from pg_roles r where r.rolname in ('ebmr_app', 'ebmr_sandbox', 'ebmr_listener', 'ebmr_sandbox_listener') order by 1`,
-      ),
-    );
-    const slots = rows[0]?.slots ?? 0;
-    expect(slots).toBeGreaterThan(LISTENER_SHARE);
-    expect(rows.map((r) => [r.rolname, r.limit])).toEqual([
-      ['ebmr_app', slots - LISTENER_SHARE],
-      ['ebmr_listener', -1],
-      ['ebmr_sandbox', slots - LISTENER_SHARE],
-      ['ebmr_sandbox_listener', -1],
-    ]);
+  it('[DI-17][DI-30][PR-20] each listener role is limited to the listener\'s share and its application role (ebmr_app, ebmr_sandbox) to the cluster\'s slots less that share; where no share was declared it is one listener\'s (8), a declared one is kept, and a share below 8 or one that leaves the application role no slot is refused', async () => {
+    // As the cluster stands: each pair levelled. Not the exact values kernel 0980 gives, since a test cluster declares a
+    // larger share (apps/tablets-server/test/support/global-setup.ts) before any test file runs; those are required of
+    // the migration itself in the next test.
+    const now = await onServer((s) => limits(s));
+    for (const [app, listener] of PAIRS) {
+      const share = now.of[listener] ?? -1;
+      expect(share, listener).toBeGreaterThanOrEqual(LISTENER_SHARE);
+      expect(now.of[app], app).toBe(now.slots - share);
+    }
+
+    // What kernel 0980 does, in a transaction rolled back at the end (role attributes are cluster-wide).
+    const db = await createTestDatabase();
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      const slots = (await limits(c)).slots;
+      expect(slots).toBeGreaterThan(LISTENER_SHARE);
+      // A cluster migrated before this round: no limit on either listener role (one even below a listener's need).
+      await c.query('alter role ebmr_listener connection limit -1');
+      await c.query('alter role ebmr_sandbox_listener connection limit 3');
+      await c.query('select kernel.apply_listener_share()');
+      expect((await limits(c)).of).toEqual({
+        ebmr_app: slots - LISTENER_SHARE,
+        ebmr_listener: LISTENER_SHARE,
+        ebmr_sandbox: slots - LISTENER_SHARE,
+        ebmr_sandbox_listener: LISTENER_SHARE,
+      });
+      // A share declared for a cluster running three GMP listeners is kept by the next migration.
+      await c.query('select kernel.apply_listener_share(24)');
+      await c.query('alter role ebmr_sandbox_listener connection limit 8');
+      await c.query('select kernel.apply_listener_share()');
+      expect((await limits(c)).of).toEqual({ ebmr_app: slots - 24, ebmr_listener: 24, ebmr_sandbox: slots - 8, ebmr_sandbox_listener: 8 });
+      // Refused: fewer than one listener needs; more than leaves the application role a slot.
+      await c.query('savepoint s');
+      // The message says what the 8 are: the 5 connections the listener keeps and 3 spare (decision X41).
+      await expect(c.query('select kernel.apply_listener_share(7)')).rejects.toThrow(
+        /at least 8 \(the 5 connections it keeps open and 3 spare to replace lost ones\), so 7 is too few .*\[EBMR-SBX-037\]$/,
+      );
+      await c.query('rollback to savepoint s');
+      await expect(c.query('select kernel.apply_listener_share($1)', [slots])).rejects.toThrow(/too few to keep \d+ free for the evidence listener.*\[EBMR-SBX-036\]$/);
+      await c.query('rollback to savepoint s');
+      // Only a superuser alters roles: the application role may not even call it.
+      expect((await c.query<{ ok: boolean }>("select has_function_privilege('ebmr_app', 'kernel.apply_listener_share(integer)', 'EXECUTE') as ok")).rows).toEqual([{ ok: false }]);
+    } finally {
+      await c.query('rollback').catch(() => undefined);
+      c.release();
+      await db.drop();
+    }
+    expect(await onServer((s) => limits(s))).toEqual(now);
   });
+
+  it('[DI-17][DI-30][PR-20] migrating a database to kernel 0980 applies the listener\'s share itself: on a cluster none of whose four roles has a limit (a fresh one) it gives each listener role exactly one listener\'s share (8) and each application role exactly the cluster\'s slots less 8; with each listener role holding a share of its own and the application roles no limit, it keeps each share and limits each application role to the cluster\'s slots less its own listener role\'s share', async () => {
+    const name = `ebmr_t_${uniqueSuffix()}`;
+    await onServer((s) => s.query(`create database "${name}"`));
+    try {
+      // The database as the previous kernel version left it.
+      await asAdmin(name, (c) => migrate(c, [{ ...KERNEL_MIGRATIONS, include: BEFORE_0980 }]));
+      const before = await onServer((s) => limits(s));
+      for (const [app, listener] of PAIRS) {
+        expect(before.of[listener], listener).toBeGreaterThanOrEqual(LISTENER_SHARE);
+        expect(before.of[app], app).toBe(before.slots - (before.of[listener] ?? 0));
+      }
+
+      // Kernel 0980 as written, on a cluster none of whose four roles has a limit, gives exact values: one listener's
+      // share on each listener role and the cluster's slots less it on each application role, whatever share this
+      // cluster holds now or a set-up declared. Twice, each from a savepoint: on a fresh cluster, where the listener roles
+      // do not exist yet (the migration creates them; here they are renamed aside, since other databases of the cluster
+      // hold privileges for them and they cannot be dropped), and on one whose four roles exist with no limit. In a
+      // transaction rolled back at the end: role attributes are cluster-wide, and an uncommitted change reaches no other
+      // session.
+      const sql0980 = readFileSync(join(KERNEL_MIGRATIONS.directory, MIGRATION_0980), 'utf8');
+      const aside = (role: string): string => `t_aside_${uniqueSuffix()}_${role === 'ebmr_listener' ? 'gmp' : 'sbx'}`;
+      const runs = await asAdmin(name, async (c) => {
+        const run0980 = async (setUp: string): Promise<{ unmigrated: Limits; migrated: Limits }> => {
+          await c.query('savepoint before_0980');
+          await c.query(setUp);
+          const unmigrated = await limits(c);
+          await c.query(sql0980);
+          const migrated = await limits(c);
+          await c.query('rollback to savepoint before_0980');
+          return { unmigrated, migrated };
+        };
+        await c.query('begin');
+        try {
+          // pg_authid's lock first, as kernel 0980 takes it, so a test changing roles beside this one waits, not deadlocks.
+          await c.query('lock table pg_catalog.pg_authid in share row exclusive mode');
+          const pending = (await c.query('select 1 from public.schema_migration where namespace = $1 and name = $2', ['kernel', MIGRATION_0980])).rows.length;
+          const fresh = await run0980(
+            PAIRS.map(([app, listener]) => `alter role ${app} connection limit -1; alter role ${listener} rename to ${aside(listener)};`).join(' '),
+          );
+          const unlimited = await run0980(PAIRS.flat().map((role) => `alter role ${role} connection limit -1;`).join(' '));
+          return { pending, fresh, unlimited };
+        } finally {
+          await c.query('rollback');
+        }
+      });
+      const exact = { slots: before.slots, of: { ebmr_app: before.slots - LISTENER_SHARE, ebmr_listener: LISTENER_SHARE, ebmr_sandbox: before.slots - LISTENER_SHARE, ebmr_sandbox_listener: LISTENER_SHARE } };
+      expect(runs.pending, 'kernel 0980 not yet applied to the database').toBe(0);
+      expect(runs.fresh.unmigrated.of).toEqual({ ebmr_app: -1, ebmr_sandbox: -1 });
+      expect(runs.fresh.migrated, 'a fresh cluster').toEqual(exact);
+      expect(runs.unlimited.unmigrated.of).toEqual({ ebmr_app: -1, ebmr_listener: -1, ebmr_sandbox: -1, ebmr_sandbox_listener: -1 });
+      expect(runs.unlimited.migrated, 'a cluster whose four roles have no limit').toEqual(exact);
+      expect(await onServer((s) => limits(s)), 'the cluster after the rolled-back runs').toEqual(before);
+
+      // Shares above what the cluster holds (the set-ups' own migrations may already have applied a share), different
+      // for each kind, and both application roles unlimited, as on a cluster none of whose databases was migrated to 0980
+      // yet. Only until the limits are put back, and harmless to the tests running beside this one: the listener roles
+      // may open more connections than before, the application roles at most two fewer, and a migration of theirs in
+      // the meantime keeps these shares and levels the application roles with them.
+      const share = { ebmr_listener: (before.of['ebmr_listener'] ?? 0) + 1, ebmr_sandbox_listener: (before.of['ebmr_sandbox_listener'] ?? 0) + 2 };
+      try {
+        await onServer((s) =>
+          s.query(
+            `begin; alter role ebmr_listener connection limit ${String(share.ebmr_listener)};
+                    alter role ebmr_sandbox_listener connection limit ${String(share.ebmr_sandbox_listener)};
+                    alter role ebmr_app connection limit -1; alter role ebmr_sandbox connection limit -1; commit`,
+          ),
+        );
+        const applied = await asAdmin(name, (c) => migrate(c, [KERNEL_MIGRATIONS]));
+        expect(applied.map((m) => m.name)).toContain('0980_listener_login_roles.sql');
+        expect((await onServer((s) => limits(s))).of).toEqual({
+          ebmr_app: before.slots - share.ebmr_listener,
+          ebmr_listener: share.ebmr_listener,
+          ebmr_sandbox: before.slots - share.ebmr_sandbox_listener,
+          ebmr_sandbox_listener: share.ebmr_sandbox_listener,
+        });
+      } finally {
+        // The cluster is shared with every other test: its limits as they were, in one transaction.
+        await onServer((s) =>
+          s.query(`begin; ${Object.entries(before.of).map(([role, limit]) => `alter role ${role} connection limit ${String(limit)};`).join(' ')} commit`),
+        );
+      }
+    } finally {
+      await dropDatabase(name);
+    }
+  }, 120_000);
 
   it('[DI-05][INV-18][DI-17] in a sandbox the GMP listener cannot connect, and an upgrade gives ebmr_sandbox_listener exactly the privileges a migration grants ebmr_listener, and takes back any extra one', async () => {
     const name = sandboxTestName();

@@ -15,7 +15,7 @@ import { defineBatch, type BatchDefinition, type DefineOptions } from '../../src
 import { issue, step } from '../../src/engine/engine.ts';
 import { checkInvariants } from '../../src/engine/invariants.ts';
 import { ctxKey, stepKey } from '../../src/engine/tx.ts';
-import type { Actor, BatchState, Command, DataSource, DataValue, EngineEvent, EnginePolicy, IssueRequest, Refusal, SignatureRef, StepInstance, StepResult } from '../../src/engine/types.ts';
+import type { Actor, BatchState, Command, DataSource, DataValue, EngineEvent, EnginePolicy, ExceptionRecord, IssueRequest, Refusal, SignatureRef, StepInstance, StepResult } from '../../src/engine/types.ts';
 import { effectivePoint } from '../../src/engine/values.ts';
 import { RELEASING_DISPOSITIONS } from '../../src/engine/definition.ts';
 import { compareDecimal, midpointDecimal } from '../../src/flow/decimal.ts';
@@ -254,6 +254,11 @@ export interface Scenario {
   disposition?: (stepId: string, frames: readonly Frame[]) => string | undefined;
   /** Called before each step instance is executed (to inject extra commands). */
   before?: (inst: StepInstance, run: Run) => void;
+  /**
+   * Open exceptions QA decides so the run goes on (true): a deviation is linked where one is required,
+   * then QA dispositions it. By default none: a blocking exception stops the run (STUCK).
+   */
+  qaDecides?: (e: ExceptionRecord) => boolean;
 }
 
 export function actorWith(roles: readonly string[], exclude: ReadonlySet<string> = new Set()): Actor {
@@ -365,6 +370,14 @@ export function autopilot(run: Run, scenario: Scenario = {}, maxActions = 5_000)
   const def = run.def;
   for (let n = 0; n < maxActions; n++) {
     if (run.state.status === 'EXECUTION_COMPLETE') return 'COMPLETE';
+    // Exceptions the scenario has QA decide, as soon as they are raised.
+    const decided = scenario.qaDecides ? Object.values(run.state.exceptions).find((e) => e.status === 'OPEN' && scenario.qaDecides?.(e)) : undefined;
+    if (decided) {
+      const qa = actorWith(def.policy.qaRoles);
+      if (decided.deviationRequired && !decided.deviation) run.ok({ type: 'ATTACH_DEVIATION', actor: qa, exception: decided.id, deviationRef: `DEV-${decided.id}` });
+      run.ok({ type: 'DISPOSITION_EXCEPTION', actor: qa, exception: decided.id, outcome: decided.deviationRequired ? 'DEVIATION_RAISED' : 'NO_IMPACT', justification: 'scenario decision', signature: sig('EXCEPTION_DISPOSITIONED', qa) });
+      continue;
+    }
     // Stage sign-offs.
     const frame = Object.values(run.state.stages).find((f) => f.awaitingSignOff);
     if (frame) {

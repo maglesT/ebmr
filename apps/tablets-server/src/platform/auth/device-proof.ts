@@ -13,6 +13,7 @@ import type pg from 'pg';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { identity } from '@ebmr/kernel';
 import type { DeviceProof } from '@ebmr/api-contract';
+import { elapsedMs, moment, type Moment } from '../clock.ts';
 import { refusal } from '../http/refusal.ts';
 import { consumeNonce, nonceHmac } from './nonces.ts';
 
@@ -65,19 +66,22 @@ const MAX_TICKET_KEYS = 10_000;
 /**
  * Proof tickets in the server's memory, per key fingerprint: the HMAC of the nonce each successful proof used, until
  * PROOF_TICKET_TTL_MS after it. A ticket answers `take` once. A restart forgets them all, and a terminal's next nonce
- * request then counts as unproven once (the stricter side).
+ * request then counts as unproven once (the stricter side). Time is read from platform/clock.ts (the only reader of the
+ * process clock), as for change tickets: a ticket lapses when either the monotonic or the wall clock says its ten
+ * minutes are up (X44). A test may pass a clock of its own.
  */
 export class ProofTickets {
-  private readonly byKey = new Map<string, Map<string, number>>();
+  /** Per key fingerprint, each ticket's nonce HMAC and the moment of its proof. */
+  private readonly byKey = new Map<string, Map<string, Moment>>();
 
-  constructor(private readonly now: () => number = Date.now) {}
+  constructor(private readonly now: () => Moment = moment) {}
 
   record(fingerprint: string, hmac: string): void {
     const now = this.now();
-    const tickets = this.byKey.get(fingerprint) ?? new Map<string, number>();
+    const tickets = this.byKey.get(fingerprint) ?? new Map<string, Moment>();
     this.byKey.delete(fingerprint);
-    for (const [h, until] of tickets) if (until <= now) tickets.delete(h);
-    tickets.set(hmac, now + PROOF_TICKET_TTL_MS);
+    for (const [h, provenAt] of tickets) if (elapsedMs(provenAt, now) >= PROOF_TICKET_TTL_MS) tickets.delete(h);
+    tickets.set(hmac, now);
     for (const h of tickets.keys()) {
       if (tickets.size <= TICKETS_PER_KEY) break;
       tickets.delete(h);
@@ -91,11 +95,11 @@ export class ProofTickets {
 
   take(fingerprint: string, hmac: string): boolean {
     const tickets = this.byKey.get(fingerprint);
-    const until = tickets?.get(hmac);
-    if (tickets === undefined || until === undefined) return false;
+    const provenAt = tickets?.get(hmac);
+    if (tickets === undefined || provenAt === undefined) return false;
     tickets.delete(hmac);
     if (tickets.size === 0) this.byKey.delete(fingerprint);
-    return until > this.now();
+    return elapsedMs(provenAt, this.now()) < PROOF_TICKET_TTL_MS;
   }
 }
 

@@ -866,3 +866,388 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   listener's login, X36/X38); (3) X36 overstates what a stolen listener credential can do under database load: bound it
   (CONNECTION LIMIT on the listener roles, lost-tick handling) and record the residual in X39; (4) ProofTickets defaults
   its clock to Date.now (outside platform/clock.ts): use uptimeMs; (5) read-db.test.ts name lacks its [meta] tag.
+- 2026-10-01: AGREEMENT PROPERTY BUDGET (item (1) above, agreement-property-budget). Root cause: the out-of-memory fix
+  in b3b2315 made both generated-shape properties of agreement.test.ts skip every flow above 2,000 simulator paths
+  (fc.pre), although only collecting hundreds of thousands of paths exhausts the heap; flows of 2,000 to tens of
+  thousands of paths, which the base enumerated, went unchecked. Now no generated flow is skipped. Simulator paths are
+  streamed (each checked and dropped, none kept); the first 12 are followed through the engine as before; and for every
+  flow the random engine completion is shown to be a simulator path by replaying the engine's own decisions
+  (run.state.decisions) through the simulator's runOnce: the replayed path must have the engine's steps, and a decision
+  the engine did not take, an outcome the simulator does not offer there, or an engine decision the simulator never
+  meets fails the test. Every path of a flow is still run (each to its end, as many as the closed form, the completion
+  among them) up to FULL_RUN_BUDGET = 100,000 paths, a bound on time only (measured: 0.16-0.46 ms a path on 4 CPUs, so
+  at most about 46 s; resident memory flat at about 150 MB through 200,000 paths of a 6.5-million-path shape); 23
+  shapes in 100,000 (fc.sample seed 42) have more, and 190 more than 2,000. The second property streams its first 4
+  exhausting paths, searching at most the same budget (each of the 28 shapes above 2,000 paths in a sample of 20,000
+  had its 4th among its first 16 paths); above the budget, if fewer than 4 were found, it adds the runs that drive each
+  loop to exhaustion (targetedRun). Tests (agreement.test.ts, 7, was 5): the first property runs the 3,263,696-path
+  HEAVY_SHAPE (12 paths followed, completion replayed, no run of every path) and a 21,904-path shape (every path run,
+  completion found among them) as pinned examples before its 60 random shapes, and asserts all 62 were checked; the
+  second runs HEAVY_SHAPE (4 exhausting paths within its first 10) before its 40; new: the replay's three refusals,
+  and the targeted runs beyond the budget (a 12-path flow searched with a budget of 8). The file passes with a 192 MB
+  worker heap (NODE_OPTIONS=--max-old-space-size=192; 47 MB used after the first property). Mutations (each reverted,
+  compared byte for byte), all killed: fc.pre(<= 2,000) back in either property; the budget back at 2,000; paths
+  collected instead of streamed (V8 out of memory, worker SIGABRT, under the same 192 MB heap); no early return above
+  the budget; no replay; the replay taking the first option always, or silently for a missing decision or an outcome
+  not offered, or not checking that every engine decision was met; no search for the completion in the full run; no
+  targeted runs; no cap on the exhausting-path search; one path followed instead of 12. Engine README figure updated;
+  DI-34 lists the two new tests. Runs: agreement.test.ts (7 passed, also under the 192 MB heap); a stress copy in the
+  scratchpad (outside the repo) with 3,000 shapes per property: the first property green (the replay never refused);
+  typecheck; eslint of the changed file; register:validate.
+  Found, not changed (it predates this item and needs its own fix): the second property fails on about 1 generated
+  shape in 1,500-10,000 (1 in the 3,000-shape stress run, 1 in 10,000 with seed 42), for example
+  par[loop(hold, max 2), loop(phase, max 1)] (6 paths, so every version checks it; the committed version fails on it
+  too). The engine raises the max-1 loop's exhaustion first, and that open exception rightly blocks QA's release of
+  the hold point in the other loop's second iteration (ENG-HOLD-OPEN-EXCEPTIONS), so the engine never reaches the
+  simulator's first exception (loop3@loop3=2); the check assumes it does. With 40 shapes a run, about 0.4-2.7 % of CI
+  runs can fail on it. Possible fixes: check the engine's exceptions against all of the path's exceptions, or have QA
+  disposition exceptions so the engine continues. (Fixed both ways: AGREEMENT EXHAUSTION CHECK below.)
+- 2026-10-01: LISTENER CREDENTIAL BOUND (items (2) and (3) above, listener-credential-bound). Docs: X30 rewritten (the
+  receipts pool (4) and the watch's connection (1) log in with the listener's own role, X36/X38, are opened before the
+  listener listens and reopened at once; only the reports pool, for heartbeat commands and token unbinding, uses the
+  application role; the timeouts and the lane for tokens this process did not hand out kept). X36 corrected: a holder of
+  the listener's credentials only keeps the path shut while the real listener's ticks land; by keeping them from landing
+  (load past the real listener's 2 s limits, or holding the role's slots once its connections dropped) and ticking a run
+  of its own clean, it made the database vouch for that run alone over a window whose receipts were lost. Reproduced
+  (manual-weighing-interference.test.ts, new case): a superuser's locks hold the real run's open tick and the receipts,
+  a listener-login pool ticks its own run clean for 15 s, and without the fix the weight keyed by hand beside the
+  working scale is accepted ('ok'); with it, 422 EBMR-EXE-074 UNATTESTED. Bound, two new defaults (decision 0004):
+  X41, kernel 0980 (unreleased, edited): kernel.apply_listener_share(p_share) gives each listener role CONNECTION LIMIT =
+  the listener's share (8 for one listener) and its application role the cluster's slots less the share; null keeps a
+  declared share (>= 8), below 8 is refused (EBMR-SBX-037), no room is refused (EBMR-SBX-036); superuser only; the
+  migration runs it. The server tests' global setup declares a share of 40 (their files run listeners side by side; with
+  8 only one could open its connections), which stays on a development cluster (app roles then 57 of 97). X40, tablets
+  0350 (unreleased, edited) item 6: tab.listener_tick.closed_at; tab.end_listener_run (listener role only) closes a run's
+  open tick with whether everything up to the end was on record, and a tick of an ended run is refused (EBMR-DEV-076);
+  tab.listener_attested_from also vouches for nothing while another run ended inside the window (closed_at) or another
+  run's latest tick is still open and less than an hour old (stopped without being ended: possibly a listener still
+  receiving whose ticks cannot land). The devices runtime's close ends its run (watch.ts end(), one settle limit for what
+  is out; RUN_NOT_ENDED_LOG at warn when it cannot). Cost: after a killed or crashed server nothing is keyed by hand
+  beside gateway scales for up to an hour, unless the scale is taken out of service in the registry. What remains is
+  X39 (6): a holder of the listener's credentials who keeps the real listener from landing any tick for over an hour
+  (holding the role's slots after its connections dropped, or sustained load with the 3 connections beside it) still
+  makes the database vouch; the database cannot tell the listener from that holder; routes for the owner listed there.
+  X37, X38 and X39 (1), (2) updated; 0980 and 0350 headers, runtime.ts and watch.ts comments, kernel sandbox README
+  (SBX-037), ADR 0012, docs/design/sandbox.md and M6-C5 updated.
+  Tests: listener-roles.test.ts (3; the limits test rewritten: it asserted the listener roles unlimited (-1), now each
+  must hold a share of at least 8 with its application role at slots less that share, and, in a rolled-back
+  transaction, an unlimited role gets 8, a declared share is kept, 7 and the whole slot count are refused, ebmr_app
+  cannot call the function. Not stricter in a full run, as first written here: the server tests' set-up declares its
+  share before any test file runs, so the check of the cluster as it stands then reads only that declaration, where at
+  base only the migration could have set what it read; corrected by LISTENER SHARE CHECK below); listener-watch.test.ts (9, was 4: lost runs hold for an hour and no longer, also for a gate
+  whose window reaches back over an hour; a run that ended inside the window holds, one that ended before does not; the
+  end function, its refusal of later ticks and who may call it; the server's close ends its run; a failed end is logged
+  and leaves the run open, holding a clean run beside it; what the watch's end says after a loss, with an arrival still
+  out, and called twice); manual-weighing-interference.test.ts (20, was 19: the case above). Mutations (each reverted,
+  compared byte for byte), all killed: no hour hold (2 listener-watch tests, and the interference case: weight
+  accepted); no ended-in-window rule; no ticked-since rule (only the over-an-hour gate window catches it now); the hold
+  at 10 minutes, or at 2 hours; ticks allowed after the end; an end without a flag counted clean; the end function
+  granted to ebmr_app; the runtime's close only stopping the watch; a failed end not logged; the end's flag always true,
+  or ignoring the epoch since the last tick, or not waiting for arrivals still out; end not idempotent; kernel: no limit
+  set on the listener roles; a declared share ignored; a share below 8 accepted; a declared share not kept by the next
+  migration. Killed only with listener-roles.test.ts run alone, not in a full run (claimed killed here at first;
+  corrected by LISTENER SHARE CHECK below): the migration not applying the share (cluster limits reset by hand first,
+  restored after); with the server project in the same run its set-up's declaration masked it (the verifier's mutant
+  passed 4 CI-style runs out of 4).
+  Runs: the whole server project (64 files, 496 tests) and the whole db project (229 files, 1845 tests), both green;
+  E2E 20/20 (2.8 min); typecheck; eslint of the changed TypeScript files. Afterwards the cluster still had 88 databases
+  and no test process was left running. The development cluster now holds the test share (listener roles 40,
+  application roles 57).
+- 2026-10-01: CLOCK AND TAG (items (4) and (5) above, clock-and-tag). (4) ProofTickets
+  (apps/tablets-server/src/platform/auth/device-proof.ts) now defaults its clock to uptimeMs from platform/clock.ts, as
+  change-tickets.ts does, instead of Date.now passed by reference (a read of the process clock outside clock.ts); the
+  clock stays injectable for the [DI-19] TTL test. The ESLint clock ban (eslint.config.js) now matches Date.now as a
+  member access (`Date.now`, `Date['now']`), so a reference (`= Date.now`, `.map(Date.now)`, `Date.now.bind(...)`) is
+  caught as well as a call, each once; `eslint .` passes with it. X26 says which clock the ten minutes run on;
+  REPO-GUIDE's clock rule and the tools/boundaries package description updated. (5) read-db.test.ts's test is tagged
+  [meta]. Tests: apps/tablets-server/test/session/proof-ticket-clock.test.ts (1, [DI-19]: with platform/clock.ts
+  replaced, a ticket made without a clock lapses on the uptime's ten minutes); tools/boundaries/test/clock-ban.test.ts
+  (9, [meta]: the rule as the repository computes it for a server file reports each of seven Date.now forms exactly once
+  and an argument-less new Date(), not new Date(0), Date.parse, Date.UTC, performance.now, another object's now or a
+  type query; it is on for five app and package files and off for the three app clock modules, the kernel's time
+  module, a test, a tool and the simulators). Mutations (each reverted, compared byte for byte), killed: the Date.now
+  default back fails proof-ticket-clock (the ticket outlived the uptime's ten minutes) and `eslint` of device-proof.ts;
+  the call-only selector back fails 5 clock-ban cases (default clock, assigned, callback, bound copy, computed member),
+  and with it `eslint` reports nothing on the Date.now default (the verifier's hole). Runs: clock-ban and boundaries
+  (12), proof-ticket-clock, read-db and device-nonce-limit (16), all green; typecheck (tsconfig.json); `eslint .`;
+  deps:check.
+  Found, not changed: uptimeMs is Date.now() less the start time, so a step of the host's wall clock still moves both
+  ticket TTLs (a monotonic source such as performance.now() would not); the ban does not see `Date()` called without
+  new, `globalThis.Date.now` or `const { now } = Date` (none is used today). Both fixed by CLOCK AND TAG, ROUND 2 below.
+- 2026-10-01: LISTENER SHARE CHECK (final verification, listener-credential-bound: item not closed). Root cause: the
+  server tests' global setup declares a listener share of 40 (kernel.apply_listener_share) before any test file runs,
+  and the [DI-17][DI-30][PR-20] limits test read the cluster as it stands, so in a full run it checked only what the
+  set-up wrote: kernel 0980 without its `select kernel.apply_listener_share();` passed every CI-style run and failed
+  only alone (the verifier's mutant). Now two checks a run can fail, neither a new default (X41 updated):
+  (1) packages/kernel/test/security/listener-roles.test.ts (4, was 3), new [DI-17][DI-30][PR-20] test: a fresh database
+  is migrated with every kernel migration before 0980; then each listener role is given a share above the one it holds
+  (+1 GMP, +2 sandbox) and both application roles no limit, the rest of the kernel migrations run, and each listener
+  role must keep its share and each application role come back at the cluster's slots less its own listener role's
+  share; the limits as they were are put back in one transaction (also when the test fails) and the database dropped.
+  Harmless to tests running beside it (the listener roles may open more, the application roles at most two fewer, and
+  any migration meanwhile keeps the shares and levels the application roles). It shows the migration applying the
+  share on any cluster, also one that already holds a declared share. (2) apps/tablets-server/test/support/global-setup.ts
+  reads the four roles' limits after migrating its templates and before declaring its share (readRoleLimits), and
+  fails the run, dropping both templates, when a listener role holds less than 8 or an application role anything but
+  the slots less its listener role's share (listenerShareProblems); on a fresh cluster (CI) only the migration can have
+  set them, as at base. New apps/tablets-server/test/devices/listener-share-setup.test.ts (2, [meta]): the check on
+  limits given to it (a fresh cluster's -1s, a listener role at 7, application roles unlimited or one slot off, a
+  missing role, and levelled shares of 8, 40 and 48 passing) without changing any role, and the read seeing all four
+  roles, at least the declared share on each listener role (the kernel test raises it for a moment) and the cluster's
+  slots. Mutations (each reverted, compared byte for byte), all killed: 0980 without
+  the call, roles reset to -1, the set-up's check off: the old limits test alone still passed in a CI-style run (the
+  masking reproduced), the new kernel test failed (application roles left at -1); the same with the check on: the run
+  failed in the set-up before any test file started, also as a full `pnpm vitest run` (all projects), with no database
+  left behind; 0980 without the call on a cluster that holds the test share (40/57): the new kernel test failed CI-style
+  and alone; 0980 declaring 8 instead of keeping the held share: the new kernel test failed alone (listener roles 8, not
+  9 and 10); the check returning nothing, without its application-role rule, without its floor of 8, or the read
+  missing the listener roles: listener-share-setup.test.ts failed (the last in the set-up). Runs: listener-roles.test.ts
+  and listener-share-setup.test.ts; packages/kernel/test/security and /sandbox, apps/tablets-server/test/devices and
+  read-db.test.ts together (CI-style, both projects); typecheck; eslint of the changed files. Afterwards the cluster had
+  88 databases, the test share (40/57) and no test process left.
+- 2026-10-01: LISTENER SESSION DEFAULTS (round-1 verification of listener-credential-bound, problem
+  listener-credential-bound-x39-alter-role). Root cause: the listener's own login may set its session defaults (ALTER
+  ROLE ebmr_listener [IN DATABASE x] SET ..., e.g. default_transaction_read_only = on or an idle_session_timeout) and
+  its password (it is refused CONNECTION LIMIT and VALID UNTIL); the listener's pools fixed only statement_timeout in
+  their connection options, so one such statement, with no load and no slot held, reached the real listener's sessions
+  at its next reconnection: it landed no tick, and once its last tick was an hour old a run of the holder's own was
+  vouched for. X39 (6), X40 and the 0350 header left this out, and X40's reason for the hour (a shorter hold only
+  shortens what a holder must sustain) does not hold where nothing is sustained. Now, new default X42 (decision 0004):
+  (a) tablets 0350 (unreleased, edited) tab.listener_attested_from vouches for nothing while pg_db_role_setting holds a
+  default of a listener login that may connect to the database (has_database_privilege CONNECT), set for this database
+  or for every database (a default for another database, or of the other kind's login, reaches no session here and does
+  not count); (b) runtime.ts LISTENER_SESSION_PINS: the receipts and watch pools fix default_transaction_read_only=off,
+  idle_session_timeout=0 and idle_in_transaction_session_timeout=0 in their startup options beside statement_timeout
+  (startup options take precedence over role and database defaults), so the listener keeps recording receipts and ticks
+  while such a default stands. The password route is not bounded in the database: recorded in X39 (6) with the owner's
+  routes (an alarm on TICK_FAILED_LOG and REWARM_FAILED_LOG; a credential bound to the server's host, by pg_hba address
+  and client certificate). X36, X39 (6) and X40's reason corrected; 0350 header and function comment, runtime.ts and
+  watch.ts comments, M6-C5 updated.
+  Tests: listener-watch.test.ts (11, was 9): the rule on ticks written by hand (the listener's own login sets a default
+  for its database: none, removed: vouched; a default for every database counts, one for another database or of the GMP
+  login does not, unless that login is given CONNECT here; the cluster-wide forms in rolled-back transactions, since
+  other test files run listeners beside it); a server whose listener login has read-only and idle-timeout defaults (set
+  by that login itself) starts its listener, its receipts sessions run with the fixed settings, it ticks clean for 12 s
+  on the same connections (none lost to the 1 s idle timeout), vouches for nothing while the defaults stand and at once
+  when they are removed. manual-weighing-interference.test.ts (21, was 20), the verifier's case: the holder sets
+  read-only transactions for its login in the database (and leaves it standing), the real listener's connections are
+  ended one at a time, a second apart, and reopened under it, the holder ticks its own run clean on a connection that
+  fixes its own setting for 13 s and the real run's earlier ticks are aged an hour; the weight keyed by hand beside the
+  working scale is refused (422 EBMR-EXE-074), the real run ticked 20+ times since reopening and the scale reads ONLINE.
+  Mutations (each reverted, compared byte for byte), all killed: no catalog rule (both listener-watch tests; the
+  interference case still refused by the fixed settings, as designed); no fixed settings (the listener-watch start test:
+  first tick refused read-only; the interference case: no real tick since reopening); neither (the interference case:
+  weight accepted, 'ok'); each of the three settings left out (read-only: start refused; idle: settings check, and with
+  that check removed the kept connections are ended by the timeout and not all reopened; idle in transaction: settings
+  check); settings fixed on one pool only (either); the rule for every database only, for this database only, for any
+  database, without the CONNECT filter, or for the sandbox login only.
+  Runs: apps/tablets-server/test/devices (14 files, 145 tests; the new interference case failed there once, as first
+  written: it expected the listener to hold all 5 connections, which earlier cases leave short, see (1) below; fixed and
+  the whole interference file rerun, 21 passed); listener-watch.test.ts, device-nonce-limit.test.ts and
+  apps/tablets-server/test/execution together (23 files, 169 tests); typecheck; eslint of the changed TypeScript files.
+  Afterwards the cluster had 88 databases, no entry in pg_db_role_setting and no test process.
+  Found, not changed (they predate this item): (1) the listener's pools do not always hold the 5 connections X38 says: a
+  statement that fails drops its connection (pg-pool) and nothing opens another until one is needed, and when several
+  fail while idle at once DevicesRuntime.rewarm runs one attempt at a time and starts none for a failure that arrives
+  while one runs (seen with the idle-timeout mutant, 3 of 6 listener-login connections left, and in the interference
+  file, 2 listener connections left after its earlier cases); (2) once, ending all five of the listener's connections in
+  one statement raised an uncaught 'terminating connection due to administrator command' error in the test process (not
+  reproduced in a second run); a likely cause is openAll, which holds the connections it checks out with no 'error'
+  listener, so one that dies in that window is unhandled. The interference case therefore ends them one at a time.
+- 2026-10-01: LISTENER RUN KEY (round-1 verification of listener-credential-bound, problem
+  listener-credential-bound-docs-no-listener). Root cause: a run of the listener that ended on record held the others
+  only for the window that holds its end, and with no listener running nothing held them; the database cannot tell a
+  listener started again from a holder of its credentials. So after a planned restart or deploy, or on a server started
+  without EBMR_GATEWAY_LISTEN, a holder of the listener's credentials who ticked a run of its own clean for 10 s made
+  the database vouch with nothing to wait out (listener-watch.test.ts asserted it: 'a run started later vouches once it
+  has ticked clean for 10 s'), while X37 said nothing is keyed by hand with no listener running and the 0350 header,
+  X39 (6) and M6-C5 named only the hour-long route. Bounded, not only documented; new default X43 (decision 0004).
+  Tablets 0350 (unreleased, edited): tab.listener_run (owner-only: the run, the SHA-256 of its run key, began_at);
+  tab.begin_listener_run(uuid, bytea) (the listener role only; once and only before the run's first tick, EBMR-DEV-078;
+  a 32-byte key, EBMR-DEV-077; answers heldUntilUs; prunes runs that began over an hour ago with no tick left);
+  tab.listener_attested_from also vouches for nothing while another run whose key differs, or that has none, or any
+  other run when this one has none, closed a tick within the last hour. Server: watch.ts listenerRunKey (HMAC-SHA-256
+  of a fixed label under the secrets file's nonceKey), start() begins the run before its first tick and returns the
+  answer; runtime.ts startWatch passes the key and logs RUN_HELD_BY_OTHER_KEY_LOG at warn when the run is held; the
+  config.ts comment on EBMR_SECRETS_FILE says so. Consequences (X43): after a change of the nonce key, or a development
+  server without EBMR_SECRETS_FILE started again, the manual path beside the gateway's scales stays shut until an hour
+  after the old key's last tick; a holder's run that ticked holds the server's run for an hour (a denial, as before).
+  What remains (X39 (6)): once no run of the server's key has ticked for over an hour (none ever ran on the database, a
+  server runs without EBMR_GATEWAY_LISTEN or stays down that long, or the real listener is kept out that long), a run of
+  someone holding the listener's credentials vouches after 10 s; someone holding the server's secrets as well needs no
+  hour. Docs: 0350 header (item 6, what stays open, privileges) and function comments, X36, X37 (the vouching rule; the
+  floor consequence with no listener running corrected), X39 (6) (the route left out and its bound; among the owner's
+  routes the run key registered by the operator replaces "a run that proves it succeeds a lost one"), X40, the new X43
+  section, M6-C5 (gate, still open, tests), watch.ts and runtime.ts comments.
+  Tests: listener-watch.test.ts (14, was 11). Runs written by hand begin with one test key unless a case says otherwise,
+  so the earlier rules are shown on runs of one server. New [DI-30][PR-20][DI-17] key rule: an ended run of the same key
+  before the window does not hold; one of another key or none holds, still at 59 minutes, not at 61; after the server's
+  run ended 20 s ago, holder runs of their own key or none ticking clean 12 s are not vouched for, even after a run of
+  the holder's own key ended before; after the hour they are; a run with no key is held by another with none. New
+  [DI-17][DI-30] start function: the key's SHA-256 kept, not the key; once; not after a tick; 32 bytes; a run named
+  (075); heldUntilUs an hour after another key's last closed tick, not counting the same key; pruning; ebmr_app refused.
+  The server-close test rewritten (it asserted the verifier's route): after the server's close, a holder's run begun
+  with a key of its own (told it is held) and one never begun, each ticking clean 12 s, are not vouched for; a
+  DevicesRuntime on the same app (the server started again with the same secrets) vouches within 15 s with no warning;
+  with another nonce key its start is logged at warn with the time an hour after the old key's last tick, its run ticks
+  clean 12 s and is not vouched for until the old key's runs are aged 61 minutes. The X40 test's run now begins with the
+  server's key, so only the open run holds it. New [DI-30][PR-20][DI-17] watch test: start() begins with [id, key]
+  before the first tick, once, and returns the answer; listenerRunKey is 32 bytes, the same for the same nonce key
+  whatever the CSRF key, another for another nonce key, neither the nonce key nor its plain SHA-256.
+  manual-weighing-interference.test.ts (22, was 21): new [PR-20][DI-30][DI-17] case, the verifier's route end to end:
+  the real run is ended on record (a superuser holds its open row while it ends it, as the server's close would), no
+  heartbeat is sent, and a holder's run begun with a key of its own ticks clean for 13 s; TEST-BAL-01 reads OFFLINE (no
+  heartbeat in 10 s) and the weight keyed by hand is refused (422 EBMR-EXE-074, UNATTESTED, through the server and as a
+  forged row). It is the file's last case that needs the listener (its watch is refused every tick afterwards; its
+  receipts still land). The X40 and X42 holder cases now begin the holder's run with the server's run key (a holder of
+  the server's secrets too), so each still shows its own decision and its clean-up is unchanged.
+  Mutations (each reverted, compared byte for byte; the tree's checksum matched afterwards), all killed: no key rule
+  (2 listener-watch tests; the new interference case: weight accepted, 'ok'); the key rule's hour at 10 minutes; a run
+  with no key taken as matching another with none; runs with no key exempt from the rule; the raw key kept instead of
+  its hash; a second start re-keying the run; a start after a tick; a key of any length; heldUntilUs always null, or
+  counting runs of the same key; pruning runs that still have ticks, or no pruning; the start granted to ebmr_app; the
+  watch not beginning its run; beginning after the first tick; a random key per run; a constant key; the key as the
+  nonce key's plain SHA-256; the warning not logged. Also, with the holders on the server's key: without X40's hour hold
+  the X40 interference case accepts the weight ('ok'), and without both halves of X42 the X42 case does.
+  Runs: listener-watch.test.ts (14) and manual-weighing-interference.test.ts (22), each green; the whole server project
+  (66 files, 506 tests) green; E2E 20/20 (3.0 min); typecheck; eslint of the changed TypeScript files. Afterwards the
+  cluster had 88 databases, no entry in pg_db_role_setting and no test process left.
+- 2026-10-01: LISTENER SHARE WORDING (round-1 verification of listener-credential-bound, problem
+  listener-credential-bound-share-wording; no new default). Root cause: X38 and X41 called one listener's share of 8
+  "its 5 and room to replace them" and the kernel 0980 header said the listener "may need about as many again"; it is
+  the 5 connections the listener keeps plus 3 spare. With the hard limit the listener cannot open its 5 when backends a
+  network fault left half-open still count, or when the old and new servers of a rolling deploy overlap (5 + 5 > 8); it
+  then fails closed (REWARM_FAILED at warn, or the server refuses to start), which no row said, and no test ran a
+  listener under the share of 8 (the server tests' cluster declares 40). Docs: X41 (the 8 as 5 kept and 3 spare; the
+  two cases and their fail-closed consequences: past the 3 spare a lost connection is not opened again, a receipt
+  needing one is lost, ticks fail once the watch's connection is lost, nothing is vouched for and nothing keyed by hand
+  beside the gateway's scales until the half-open backends end (TCP keepalive: over two hours on Linux's defaults unless
+  the database's tcp_keepalives_* are set; no idle timeout, X42; or a superuser ends them); a server started meanwhile,
+  or the new server of an overlapping deploy, refuses to start; a cluster that deploys with overlap declares 16 with
+  `select kernel.apply_listener_share(16);` or stops the old server first; 8k counts both servers of an overlapping
+  deploy; a correction note), X38 (the share's wording, pointer to X41), the kernel 0980 header (unreleased, edited:
+  the same, and the 8k rule), M6-C5 (still open; tests), the global set-up's header. Kernel 0980's EBMR-SBX-037 message
+  said "room to replace them": now "the 5 connections it keeps open and 3 spare to replace lost ones".
+  Tests: packages/kernel/test/security/listener-roles.test.ts (4) asserts the SBX-037 message's wording. New
+  apps/tablets-server/test/devices/listener-one-share.test.ts (3, [DI-30][PR-20]): the listener runs on a login of its
+  own (t_listener_share_<hex>, outside the ebmr_ names; dropped after the file) holding in its database exactly
+  ebmr_sandbox_listener's privileges (sandbox.role_mirror_differences, empty afterwards) and limited to the share kernel
+  0980 gives where none was declared (read from kernel.apply_listener_share in a transaction that is rolled back, taking
+  pg_authid's lock first as the function does, so a test changing roles beside it waits rather than deadlocks), since
+  the real listener roles hold the test cluster's 40. (1) The share is RECEIPTS_POOL_MAX + WATCH_POOL_MAX + 3; beside
+  4 other connections of the login the server's listener does not start (too many connections for role) and keeps
+  nothing open; beside 3 it starts and fills the share. (2) Through a TCP relay that cuts the listener's side of a
+  connection and keeps the database's open (a half-open backend): after 10 s clean the database vouches; 3 receipts
+  connections cut one at a time are each replaced at once, the share is full and it still vouches; a 4th is not
+  (REWARM_FAILED_LOG at warn, SQLSTATE 53300); with the watch's connection cut too, TICK_FAILED_LOG at warn, no tick
+  lands and nothing is vouched for; once the half-open backends end, ticks land and it vouches again. (3) Beside an old
+  server's running listener the new server's listener does not start and the old one goes on ticking; with the login's
+  limit at 16 (what kernel.apply_listener_share(16) sets on the listener roles) it starts beside it. Mutations (each
+  reverted, compared byte for byte), all killed: the SBX-037 message back to "room to replace them" (the kernel test);
+  kernel 0980's least share 9 instead of 8 (all three cases); a refused start that leaves its pools open (case 1); a
+  failed rewarm not logged (case 2 alone); and, of the test itself, a relay that closes the database's side too (no
+  half-open backend: case 2 alone). Runs: listener-one-share.test.ts and listener-share-setup.test.ts;
+  listener-roles.test.ts; apps/tablets-server/test/devices and packages/kernel/test/security together (both projects,
+  18 files, 161 tests); typecheck; eslint of the changed TypeScript files. Afterwards the cluster had 88 databases, the
+  test share (40/57), no t_listener_share_ login and no test process left.
+- 2026-10-01: AGREEMENT EXHAUSTION CHECK (round-1 verification of agreement-property-budget, problem
+  agreement-property-budget; no new default). Root cause: the second generated-shape property of agreement.test.ts
+  followed an exhausting simulator path through the engine with no one deciding its LOOP_EXHAUSTED exceptions, and
+  checked only that the engine raised the path's first exception. On a path that exhausts two loops side by side the
+  engine may raise the other loop's exhaustion first; while that one is open QA rightly may not release a hold point in
+  the first loop (ENG-HOLD-OPEN-EXCEPTIONS), so the engine stopped before the path's first exception and the property
+  failed on about 1 generated shape in 1,500-10,000 (par[loop(hold, max 2), loop(phase, max 1)], recorded above as
+  found, not changed). Fixed without loosening: the autopilot (test/engine/support.ts) takes an opt-in
+  Scenario.qaDecides; each open exception it accepts is decided by QA as soon as it is raised (a deviation linked where
+  one is required, then QA's signed disposition); without it the autopilot is unchanged (a blocking exception stops the
+  run). The second property has QA decide each LOOP_EXHAUSTED and now requires (1) the engine's LOOP_EXHAUSTED
+  exceptions to equal all of the path's exceptions, one at each place (loop and context, so the iteration), whatever
+  the order of raising: stricter than containing the first; (2) the run to complete; (3) its steps to be the path's
+  (the first property skips exhausting paths, so their steps were never compared). The two-loop shape is pinned
+  (TWO_LOOPS_SHAPE) after HEAVY_SHAPE, so every run checks it: 6 paths, all searched, 4 exhausting paths checked, one
+  with both loops exhausted (the property asserts the per-path exception counts [1, 1, 1, 2]; HEAVY_SHAPE [1, 1, 1, 1]).
+  Test renamed ('... is an engine run with exactly its LOOP_EXHAUSTED exceptions, one at each place, and with QA
+  deciding each it completes with the path's steps'), DI-34 updated; the file header and the engine README describe the
+  check, and the README now says that above 100,000 paths the search for exhausting paths is capped there and runs
+  driven to exhaustion at each loop are added when it finds fewer than 4.
+  Mutations (each reverted, compared byte for byte), all killed: the check as it was (first exception only, no QA
+  decision), with the pinned shape: "expected [ 'loop8@loop8=1' ] to include 'loop3@loop3=2'", the CI failure; no QA
+  decision (HEAVY_SHAPE stops, STUCK), or that with only the equality checked (pinned shape: [loop8] against [loop3,
+  loop8]); the autopilot ignoring qaDecides (STUCK); the simulator keeping only a path's first exception (pinned shape:
+  [loop3, loop8] against [loop3]); with the check comparing only the first exception, that simulator mutant passes the
+  property and is caught only by the pinned shape's counts.
+  Runs: agreement.test.ts (7 passed, 18-20 s, was 15 s: exhausting paths now run to completion);
+  packages/recipe-core/test/engine (18 files, 118 tests); a stress copy of the second property in the scratchpad
+  (outside the repo), the pinned shape first: 4,000 shapes with each of seeds 42, 1952514567 (the earlier failing stress
+  run's) and 7, and 10,000 with each of seeds 42, 1952514567 and 99, all green (each 10,000-shape run checked 5,773-6,093
+  exhausting paths, in 269-302 shapes a path exhausting 2 loops); typecheck; eslint of the changed TypeScript files;
+  register:validate (241 controls); the DI-34 entry matches the test's full name in a JSON report.
+- 2026-10-01: CLOCK AND TAG, ROUND 2 (round-1 verification of clock-and-tag; new default X44). Root cause:
+  platform/clock.ts's uptimeMs was Date.now() less the start time, so both lifetimes of the tickets the server keeps in
+  memory (proof tickets, ten minutes, X26; first-login change tickets, two minutes, C0-2) followed the host's wall
+  clock: a clock set back let a ticket outlive its lifetime, and X26's "counted on the server's uptime" read as a
+  monotonic clock. Now clock.ts reads each moment from the monotonic clock (performance.now()) and the wall clock
+  (Date.now()), and elapsedMs is the larger of what the two say (X44): a clock set back does not lengthen a ticket, nor
+  does a suspended host (the wall clock counts that time); a clock set forward shortens the tickets made before the step
+  (the stricter side; tickets made after it live their full time). ProofTickets keeps each ticket's moment of proof and
+  still takes a clock of its own (device-nonce-limit.test.ts now passes a moment with both clocks equal; its assertions
+  are unchanged); ChangeTicketStore keeps each ticket's moment of issue (CHANGE_TICKET_TTL_MS exported). uptimeMs had no
+  other user and is gone. The ESLint clock ban (eslint.config.js) now allows Date only where it cannot read the clock
+  (new Date(value), Date.parse, Date.UTC, Date.prototype, instanceof, types, member and key names), so Date() without
+  new (with or without arguments, optional call too), Date.call, a copy of Date, Date passed as a value, a subclass of
+  Date and `const { now } = Date` (renamed, in an assignment or a parameter default) are caught; Date as a member of
+  any object (globalThis.Date, globalThis['Date'], a copy of globalThis) is caught; new Date() with spread arguments is
+  caught. Each form is reported once. No file of the repository uses any of these forms (`eslint .` passes). X26 and
+  C0-2 point to X44; REPO-GUIDE's clock rule updated.
+  Tests: apps/tablets-server/test/session/proof-ticket-clock.test.ts (3, was 1, [DI-19]; clock.ts is no longer mocked:
+  performance and Date are faked, and vi.setSystemTime steps the wall clock alone): ten minutes with both clocks
+  running; with the wall clock set back an hour the ticket still lapses after ten minutes of the monotonic clock; with
+  it set forward ten minutes (less the second that passed) it lapses at once, and a ticket proven after the step lives
+  its ten minutes. New change-ticket-clock.test.ts (3, [DI-15]): the same for the two minutes.
+  tools/boundaries/test/clock-ban.test.ts (30, was 9, [meta]): the seven Date.now forms (bind(Date) now also reports
+  Date passed as a value), 21 other forms each caught once by the selector named, 14 allowed forms not caught, and the
+  files the ban is on and off for (unchanged). Mutations (each reverted, compared byte for byte), all killed: elapsedMs on
+  the wall clock alone (the behaviour before): both set-back tests; on the monotonic clock alone (the verifier's
+  proposal): both set-forward tests; ProofTickets' default clock reading the wall clock for both: the proof set-back
+  test; the ban as the round before left it (the Date.now member and argument-less new Date only): 20 clock-ban tests;
+  without the value selector: 14; without the member selector: 5; without the spread case: 1; the value selector
+  without its Date.now exclusion (each Date.now form reported twice): 7.
+  Runs: the whole server project (68 files, 514 tests) and tools/boundaries/test (2 files, 33 tests), both green;
+  typecheck (tsconfig.json); `eslint .` (clean with the extended ban).
+  Found, not changed: a syntactic rule sees names, not values: a name built at run time (Reflect.get(globalThis,
+  'Da' + 'te')) is not seen. The member selector also flags a member named Date of any object (none in the
+  repository). Clock reads other than through Date are outside the ban: performance.timeOrigin (a wall-clock time),
+  Intl's format() without a date, and the monotonic performance.now() and process.hrtime, which domain code may use for
+  intervals (the tap rate limit, the kiosk signing's badge); a grep finds none of the first two in the apps or packages.
+- 2026-10-01: LISTENER SHARE EXACT (round-1 verification, problem weakening-1: the [DI-17][DI-30][PR-20] limits test
+  could no longer fail in CI on a kernel 0980 that applies no share; no new default). Root cause: the server tests'
+  global set-up declares a share of 40 before any test file runs, so the limits of the cluster as it stands are the
+  declaration's, and the rewritten test checked them only for being levelled (listener role 8 or more, application
+  role at the slots less that share), where at base it required exact values (ebmr_app at the slots less 8); its
+  rolled-back part calls kernel.apply_listener_share directly, which shows the function, not that the migration calls
+  it. LISTENER SHARE CHECK (above) added a check in the set-up that fails a fresh cluster's run, and a committed
+  migration of a database to 0980 with larger declared shares; neither requires the exact values, and neither runs the
+  path a fresh cluster takes (the migration creating the listener roles), so a 0980 that gave a fresh cluster another
+  share, or applied it only where one was already declared, still passed every run. Now the [DI-17][DI-30][PR-20]
+  migration test of packages/kernel/test/security/listener-roles.test.ts (still 4 tests) first runs kernel 0980 as
+  written (the file's text, as the runner applies it) on the database the previous kernel version left, in a
+  transaction rolled back at the end, with pg_authid's lock taken first as 0980 takes it, twice from a savepoint: on a
+  fresh cluster's roles (both listener roles renamed aside for the transaction, since other databases hold privileges
+  for them and they cannot be dropped, so the migration creates them; both application roles unlimited) and on the four
+  roles existing with no limit. Both must come out exactly: ebmr_listener and ebmr_sandbox_listener 8, ebmr_app and
+  ebmr_sandbox the slots less 8 (the base test's exact value for the application roles; the listener roles' -1 of the
+  base is the hole X41 closed); 0980 not yet applied to the database, and the cluster's limits unchanged afterwards.
+  The committed migration with declared shares follows as before. The check of the cluster as it stands stays a
+  levelling check and now says so (the exact values are required of the migration). No production file changed.
+  Mutations of kernel 0980 (each reverted, compared byte for byte by checksum), each in a CI-style run
+  (listener-roles.test.ts and read-db.test.ts, `--project db --project server`) on the development cluster holding the
+  test share (40/57), with the new part and with it removed: without the `select kernel.apply_listener_share();`
+  (the verifier's mutant): failed with it ('a fresh cluster': all four -1) and without it (the committed migration
+  leaves the application roles at -1); the call made only where a listener role already holds 8 or more: failed with
+  it (all four -1), passed 5/5 without it; the listener roles created with CONNECTION LIMIT 16: failed with it (16 and
+  81 for 8 and 89), passed 5/5 without it (on a fresh cluster the set-up's check passes it too: 16 is at least 8 and
+  levelled). Unmutated baseline CI-style 5/5. Runs: listener-roles.test.ts alone (4); packages/kernel/test/security
+  and /sandbox with apps/tablets-server/test/devices/listener-watch, listener-one-share, listener-share-setup and
+  read-db (CI-style, both projects, 12 files, 66 tests), green; typecheck (tsconfig.json); eslint of the changed file.
+  Docs: X41 (what listener-roles.test.ts requires), M6-C5, the kernel sandbox README, the server set-up's header.
+  Afterwards the cluster had 88 databases, the test share (40/57), no t_aside_ role and no test process left.

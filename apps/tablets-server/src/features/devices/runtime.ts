@@ -17,7 +17,8 @@
  *    token and the site's time zone, and each answer of the gateway's API), which waits at most
  *    RECEIPT_ACQUIRE_TIMEOUT_MS for a connection and ends each statement within RECEIPT_STATEMENT_TIMEOUT_MS; the watch's
  *    pool (one connection, the same limits) for the listener's ticks; both log in with the listener's own role
- *    (EBMR_DB_LISTENER_URL; kernel 0980), which alone may write receipts, answers and ticks, and both open all their
+ *    (EBMR_DB_LISTENER_URL; kernel 0980), which alone may write receipts, answers and ticks, both fix the session
+ *    settings that login could otherwise set on itself (LISTENER_SESSION_PINS; decision X42), and both open all their
  *    connections when the listener starts (startWatch), so no receipt waits for a connection to be opened. And the
  *    reports pool (reports(), the application role) for the heartbeats' commands and the unbinding of a token, which
  *    ends each wait for a connection and each statement within REPORT_STATEMENT_TIMEOUT_MS (each one, not a command as
@@ -32,7 +33,13 @@
  *    of the current epoch, and a tick every LISTENER_TICK_MS tells the database whether everything that arrived was
  *    put on record; the gate counts a scale silent, or a report unanswered, only over a window of clean ticks (tablets
  *    0350 item 6). A tick that fails, or one that reports something lost, is logged at warn once until the ticks are
- *    clean again;
+ *    clean again. When the server closes, the watch ends its run on record (watch.ts end()); a run that is not ended
+ *    keeps every other run from vouching for an hour after its last tick (decision X40), so a failure to end it is
+ *    logged at warn (RUN_NOT_ENDED_LOG). Each run begins on record with the run key derived from this server's secrets
+ *    (watch.ts listenerRunKey); a run of another key, or of none, that ticked within the last hour keeps it from
+ *    vouching until an hour after that tick (decision X43), which is logged at warn when the run begins
+ *    (RUN_HELD_BY_OTHER_KEY_LOG: after a change of EBMR_SECRETS_FILE, a development server started again without one,
+ *    or a run of someone holding the listener's credentials);
  *  - the heartbeats' commands, one per gateway at a time (inTurn): the listener answers every heartbeat within
  *    HEARTBEAT_ANSWER_MS, below the gateway's longest interval, and a command held up goes on in the background, so
  *    however its waits add up the gateway's next heartbeat leaves on time; it is received when its receipt is written
@@ -55,7 +62,7 @@ import { identity, type ActorContext } from '@ebmr/kernel';
 import { CaptureResponse, GatewayHealth, LiveSample, type CaptureRequest } from '@ebmr/integration-sdk/scale';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
-import { ListenerWatch, type Arrival, type TickOutcome } from './watch.ts';
+import { ListenerWatch, listenerRunKey, type Arrival, type TickOutcome } from './watch.ts';
 
 export interface GatewayLink {
   gatewayCode: string;
@@ -94,6 +101,22 @@ export const RECEIPTS_POOL_MAX = 4;
 export const REPORTS_POOL_MAX = 4;
 /** Connections of the watch's pool (the listener's ticks). */
 export const WATCH_POOL_MAX = 1;
+
+/**
+ * Session settings the listener's pools (receipts and watch) fix in their connections' startup options, beside their
+ * statement limit (decision X42; verification of listener-credential-bound, x39-alter-role). The listener's own login
+ * may set session defaults on itself (ALTER ROLE ... [IN DATABASE ...] SET), and the server's next connections of that
+ * login would take them: read-only transactions would keep every tick and receipt from landing, and an idle-session or
+ * idle-in-transaction timeout would end the kept connections. Startup options take precedence over the role's and the
+ * database's defaults, so these hold however the defaults are set. While any such default stands the database vouches
+ * for no window anyway (tablets 0350, tab.listener_attested_from); with these fixed the listener still records receipts
+ * and ticks meanwhile, so the scales show what the gateway reports and only the manual path is shut.
+ */
+export const LISTENER_SESSION_PINS: Readonly<Record<string, string>> = {
+  default_transaction_read_only: 'off',
+  idle_session_timeout: '0',
+  idle_in_transaction_session_timeout: '0',
+};
 
 /**
  * How many heartbeats with a bearer token this process did not hand out (a gateway's token from before a restart, or
@@ -233,16 +256,17 @@ export async function openMonitorActor(app: AppContext, c: MonitorCredentials): 
 
 /**
  * A pool at `url` (the application role's or the listener's login) that keeps its connections (at most `max`), waits at
- * most `acquireMs` for one and ends every statement within `statementMs`. A connection that fails while idle is dropped
+ * most `acquireMs` for one and ends every statement within `statementMs`; `pins` are further session settings fixed in
+ * the startup options (LISTENER_SESSION_PINS for the listener's pools). A connection that fails while idle is dropped
  * from the pool and handed to `idleFailed`, which logs it (and has the listener's pools open another).
  */
-function keptPool(url: string, max: number, acquireMs: number, statementMs: number, idleFailed: (error: Error) => void): pg.Pool {
+function keptPool(url: string, max: number, acquireMs: number, statementMs: number, idleFailed: (error: Error) => void, pins: Readonly<Record<string, string>> = {}): pg.Pool {
   const pool = new pg.Pool({
     connectionString: url,
     max,
     idleTimeoutMillis: 0,
     connectionTimeoutMillis: acquireMs,
-    options: `-c statement_timeout=${statementMs}`,
+    options: [`-c statement_timeout=${statementMs}`, ...Object.entries(pins).map(([name, value]) => `-c ${name}=${value}`)].join(' '),
   });
   pool.on('error', idleFailed);
   return pool;
@@ -273,6 +297,15 @@ export const REWARM_FAILED_LOG = "a pool of the gateway listener's login could n
 
 /** The warning logged when the listener's tick failed (watch.ts): the database vouches for no window until ticks are clean again. */
 export const TICK_FAILED_LOG = "the gateway listener's tick was not recorded: the database vouches for no window, so no weight is keyed by hand beside the gateway's scales until its ticks have been clean for 10 seconds";
+
+/** The warning logged when the listener's run could not be ended on record as the server closed (watch.ts end()). */
+export const RUN_NOT_ENDED_LOG = "the gateway listener's run could not be ended on record as the server closed: the database takes it as a listener that stopped without being ended, so no later run of the listener vouches for a window, and no weight is keyed by hand beside the gateway's scales, until an hour after its last tick";
+
+/**
+ * The warning logged when the listener's run begins while runs of another run key, or of none, ticked within the last
+ * hour (watch.ts start(), tab.begin_listener_run; decision X43), with the database time until which they hold it.
+ */
+export const RUN_HELD_BY_OTHER_KEY_LOG = "the gateway listener's run began while a run with another run key (other secrets, none, or someone else's) had ticked within the last hour: the database vouches for no window of this run, so no weight is keyed by hand beside the gateway's scales, until an hour after that run's last tick";
 
 /** The warning logged when a tick reports that something the listener received was not put on record (watch.ts). */
 export const EVIDENCE_LOST_LOG = "the gateway listener received something it could not put on record (a heartbeat's receipt or an answer of the gateway's API): no weight is keyed by hand beside the gateway's scales until its ticks have been clean for 10 seconds";
@@ -343,30 +376,32 @@ export class DevicesRuntime {
    */
   receipts(): pg.Pool {
     if (this.closed) throw new Error('the devices runtime is closed');
-    this.receiptsPool ??= keptPool(this.app.config.listenerUrl, RECEIPTS_POOL_MAX, RECEIPT_ACQUIRE_TIMEOUT_MS, RECEIPT_STATEMENT_TIMEOUT_MS, (e) => this.idleFailed('receipts', e));
+    this.receiptsPool ??= keptPool(this.app.config.listenerUrl, RECEIPTS_POOL_MAX, RECEIPT_ACQUIRE_TIMEOUT_MS, RECEIPT_STATEMENT_TIMEOUT_MS, (e) => this.idleFailed('receipts', e), LISTENER_SESSION_PINS);
     return this.receiptsPool;
   }
 
   /** The watch's pool: one connection of the listener's own login for its ticks, with the receipts pool's limits. */
   private ticks(): pg.Pool {
     if (this.closed) throw new Error('the devices runtime is closed');
-    this.watchPool ??= keptPool(this.app.config.listenerUrl, WATCH_POOL_MAX, RECEIPT_ACQUIRE_TIMEOUT_MS, RECEIPT_STATEMENT_TIMEOUT_MS, (e) => this.idleFailed('watch', e));
+    this.watchPool ??= keptPool(this.app.config.listenerUrl, WATCH_POOL_MAX, RECEIPT_ACQUIRE_TIMEOUT_MS, RECEIPT_STATEMENT_TIMEOUT_MS, (e) => this.idleFailed('watch', e), LISTENER_SESSION_PINS);
     return this.watchPool;
   }
 
   /**
    * Starts the listener's watch once (tablets 0350 item 6; decision X37): opens every connection of the receipts pool
-   * and of the watch's pool, then writes the first tick and ticks every LISTENER_TICK_MS until close(). Rejects when a
-   * connection or the first tick cannot be had (and ends those pools), so the listener does not start without them; a
-   * later call starts again. The gateway listener calls it before it listens.
+   * and of the watch's pool, then begins its run with this server's run key (decision X43; a hold by runs of another key
+   * is logged at warn), writes the first tick and ticks every LISTENER_TICK_MS until close(). Rejects when a connection,
+   * the run's start or the first tick cannot be had (and ends those pools), so the listener does not start without them;
+   * a later call starts again. The gateway listener calls it before it listens.
    */
   startWatch(): Promise<ListenerWatch> {
     this.watching ??= (async () => {
       if (this.closed) throw new Error('the devices runtime is closed');
       await openAll(this.receipts(), RECEIPTS_POOL_MAX);
       await openAll(this.ticks(), WATCH_POOL_MAX);
-      const watch = new ListenerWatch(this.ticks(), (outcome) => this.tickDone(outcome));
-      await watch.start();
+      const watch = new ListenerWatch(this.ticks(), listenerRunKey(this.app.config.secrets), (outcome) => this.tickDone(outcome));
+      const begun = await watch.start();
+      if (begun.heldUntilUs !== null) this.app.log.warn({ gatewayCodes: [...this.links.keys()], heldUntilUs: begun.heldUntilUs }, RUN_HELD_BY_OTHER_KEY_LOG);
       this.watch = watch;
       return watch;
     })().catch(async (error: unknown) => {
@@ -662,7 +697,7 @@ export class DevicesRuntime {
     }
   }
 
-  /** Ends the monitor's session (server shutdown); nothing is recorded afterwards. */
+  /** Ends the monitor's session and the listener's run (server shutdown); nothing is recorded afterwards. */
   async close(): Promise<void> {
     this.closed = true;
     const actor = await (this.monitor ?? Promise.resolve(null));
@@ -672,9 +707,18 @@ export class DevicesRuntime {
       slot.next?.drop(new Error('the devices runtime is closed'));
       slot.next = null;
     }
-    // The watch stops ticking first: the database vouches for no window after its last tick.
+    // The watch stops ticking first and ends its run on record (the listener receives nothing more by now): the
+    // database vouches for no window after its last tick. A run not ended keeps any other run from vouching for an
+    // hour (decision X40), so a failure is logged.
     const watch = await (this.watching ?? Promise.resolve(null)).catch(() => null);
-    await watch?.stop();
+    this.watching = null;
+    if (watch) {
+      try {
+        await watch.end();
+      } catch (error) {
+        this.app.log.warn({ gatewayCodes: [...this.links.keys()], ...errorFields(error) }, RUN_NOT_ENDED_LOG);
+      }
+    }
     await this.rewarming;
     // Ending a pool waits for the commands still running on it (each statement ends within its pool's limit).
     const pools = [this.reportsPool, this.receiptsPool, this.watchPool].filter((p): p is pg.Pool => p !== null);

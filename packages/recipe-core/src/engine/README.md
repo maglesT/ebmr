@@ -119,9 +119,16 @@ exceptions never disappear (INV-41). The model-based tests run it after every co
 (`segregation.test.ts`), exceptions and skip (`exceptions.test.ts`), corrections and derived values
 (`corrections.test.ts`), issue, stage frames and hold points (`stage.test.ts`), model-based property
 tests (`model.test.ts`) and the simulator/engine agreement (`agreement.test.ts`). The agreement test
-collects every simulator path of a flow, so its generated-shape properties take only shapes with at most
-2,000 paths by the closed-form count (about 1 generated shape in 550 has more and is skipped, as in the
-validator's path-count property); a few have millions, more than a test worker's heap holds.
+streams simulator paths (each is checked and dropped, so memory stays flat although a generated shape
+can have millions) and its generated-shape properties skip no shape: each has its first 12 paths
+followed through the engine, its random engine completion replayed through the simulator by the
+engine's own decisions, and its first 4 exhausting paths checked (above 100,000 paths the search for
+them is capped there, and runs driven to exhaustion at each loop are added when it finds fewer). Each
+exhausting path is followed with QA deciding every loop exhaustion as it is raised: the run must have
+exactly the path's LOOP_EXHAUSTED exceptions, one at each place, and complete with the path's steps.
+Every path of a shape is also run (each to its end, as many as the closed-form count, the completion
+among them) up to 100,000 paths, a bound on time (about 46 s at the slowest measured rate); about 1
+generated shape in 4,350 has more and gets only the checks before.
 
 ## Phase 2 apps additions (module C3)
 

@@ -349,7 +349,7 @@ describe('device nonces are counted per proven terminal, under a shared count fo
 
   it('[DI-19] a proof ticket is good once and for ten minutes, and a key keeps its sixteen latest', () => {
     let now = 1_000;
-    const tickets = new ProofTickets(() => now);
+    const tickets = new ProofTickets(() => ({ monoMs: now, wallMs: now }));
     tickets.record('key-a', 'h1');
     expect(tickets.take('key-b', 'h1')).toBe(false);
     expect(tickets.take('key-a', 'h1')).toBe(true);
