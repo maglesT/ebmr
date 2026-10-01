@@ -443,6 +443,16 @@ describe('at least as strict: refusals and boundaries (isAtLeastAsStrict)', () =
     expect(isAtLeastAsStrict('ORDERED', ordered, 'PERIODIC', 'BEFORE_BATCH_RELEASE')).toBe(false);
   });
 
+  it('[IN-52] ORDERED ranks only text: a value that is not text is refused even when a malformed ordered list holds it', () => {
+    // The validator compares a row with its hard floor using orderedValues exactly as the document
+    // wrote them, so the list is not always the identifiers its type promises.
+    const malformed = ['PERIODIC', true, null] as unknown as string[];
+    expect(categoryRank(malformed, 'PERIODIC')).toBe(1);
+    expect(categoryRank(malformed, true)).toBeUndefined();
+    expect(categoryRank(malformed, null)).toBeUndefined();
+    expect(refusal(() => isAtLeastAsStrict('ORDERED', malformed, true, 'PERIODIC'))).toEqual(refused('EBMR-MKT-020', 'value true is not in the ordered list'));
+  });
+
   it('[IN-52] set methods refuse a value that is not an array, each with its own message', () => {
     expect(refusal(() => isAtLeastAsStrict('SET_UNION', null, 'A', ['A']))).toEqual(refused('EBMR-MKT-020', 'a set value must be an array'));
     expect(refusal(() => isAtLeastAsStrict('SET_UNION', null, ['A'], 'A'))).toEqual(refused('EBMR-MKT-020', 'a set value must be an array'));
