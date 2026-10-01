@@ -51,6 +51,11 @@ export async function migrate(client: pg.Client, sources: MigrationSource[]): Pr
       }
       await client.query('begin');
       try {
+        // Roles are shared by every database of the cluster: two databases migrated at once (the test projects' set-ups
+        // on a fresh cluster, a GMP and a sandbox installation upgraded together) would both find a role missing, both
+        // create it, and one would fail. This self-conflicting lock on the role catalogue, taken before anything else,
+        // makes migration transactions across the cluster run one at a time; logins only read it and never wait.
+        await client.query('lock table pg_catalog.pg_authid in share row exclusive mode');
         await client.query(sql);
         await client.query('insert into public.schema_migration (namespace, name, checksum) values ($1, $2, $3)', [source.namespace, file, sum]);
         await client.query('commit');
