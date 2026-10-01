@@ -49,7 +49,11 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     status: 422,
     kind: 'INVALID_INPUT',
     whatHappened: 'The weights cannot be keyed by hand here and now. Nothing was saved.',
-    whatYouCanDo: ['If a scale of the room is online, capture tare and gross from it.', 'Otherwise weigh at the terminal of the room, name the balance you read (or none), and try again.'],
+    whatYouCanDo: [
+      'If a scale of the room is online, capture tare and gross from it.',
+      'Otherwise weigh at the terminal of the room, name the balance you read (or none), and try again.',
+      'A scale that was reported online, or a report that it cannot be used, counts only after 10 seconds: wait, then try again.',
+    ],
     whoCanHelp: [SUPERVISOR],
     controls: ['DI-20', 'DI-30', 'PR-20'],
   },

@@ -18,6 +18,12 @@
  * ends at its last whole line), the failure is alarmed, and the journal takes nothing more until the gateway
  * restarts and verifies the file from disk: the file system's state after a failed write or sync is not trusted
  * (review finding P52).
+ *
+ * Appends and watermark changes take one lock, in the order asked for. A login's adoption of the server's chain and
+ * head is the only change that may switch the chain. Every other watermark change (an acknowledgement, a
+ * reconciliation) names the basis it was asked on and is dropped as STALE, under the lock, when the chain is another
+ * one or a login's adoption was asked for since: what the server said before a login never overtakes the login's
+ * head, even when it waited behind a hung write (decision X33).
  */
 import type { KeyObject } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -74,9 +80,22 @@ async function writeAtomic(dir: string, name: string, text: string): Promise<voi
 
 export type AdoptOutcome = 'CONTINUE' | 'NEW_CHAIN' | 'DIVERGED';
 
+/**
+ * What a watermark change the uplink asks for rests on (Journal.basis, taken when the server was asked): the chain,
+ * and how many adoptions of the server's head a login had asked for by then. The change is stale, and nothing is
+ * done, when the journal's basis has moved on when the change's turn comes under the journal lock: a login's adoption
+ * was asked for since (its head is newer than what the change records) or the chain is another one.
+ */
+export interface WatermarkBasis {
+  readonly chainId: string;
+  readonly adoptions: number;
+}
+
 export class Journal {
   chainId: string | null = null;
   ackedSeq = 0n;
+  /** Adoptions of the server's chain and head asked for (adoptServerChain), counted when asked for (WatermarkBasis). */
+  private adoptions = 0;
   /**
    * Why the journal takes no more readings in this process: an append whose write or sync failed (null while
    * none did). It is cleared only by a restart, which verifies the file from disk.
@@ -216,13 +235,30 @@ export class Journal {
     return run;
   }
 
+  /** The basis of a watermark change asked for on what the server says from now on (null while there is no chain). */
+  basis(): WatermarkBasis | null {
+    return this.chainId === null ? null : { chainId: this.chainId, adoptions: this.adoptions };
+  }
+
+  /**
+   * Whether `basis` is still the journal's: the same chain, and no login's adoption asked for since. Once false it stays
+   * false (the count only grows, and only an adoption switches the chain). The uplink uses it to drop an answer that
+   * arrives after a login's adoption was asked for; acknowledge and reconcile check it again under the journal lock.
+   */
+  isCurrent(basis: WatermarkBasis): boolean {
+    return basis.chainId === this.chainId && basis.adoptions === this.adoptions;
+  }
+
   /**
    * At login: the server names the chain (its enrolment) and its head. The same chain continues when the server's
    * head is a reading of this journal (the watermark moves to it; later readings are re-sent). A new chain id starts
    * a new journal file (the old one stays on disk). A server head that is not in this journal means the two
-   * diverged: nothing is captured or uploaded until the gateway is re-enrolled.
+   * diverged: nothing is captured or uploaded until the gateway is re-enrolled. Counted when asked for: a watermark
+   * change asked for on what the server said before this is stale from now on (WatermarkBasis), also when it waits
+   * behind this adoption for the journal lock.
    */
   adoptServerChain(chainId: string, serverHead: { seq: string; hash: string }): Promise<AdoptOutcome> {
+    this.adoptions += 1;
     return this.exclusive(async () => {
       let outcome: AdoptOutcome = 'CONTINUE';
       if (this.chainId !== chainId) {
@@ -237,21 +273,41 @@ export class Journal {
         await this.load(chainId);
         outcome = 'NEW_CHAIN';
       }
-      const s = BigInt(serverHead.seq);
-      const ours = s === 0n ? genesisHash(chainId) : this.readings[Number(s) - 1]?.hash;
-      if (s > this.lastSeq() || ours !== serverHead.hash) {
-        this.diverged = true;
-        this.alarm({
-          kind: 'DIVERGED',
-          message: `the server holds reading ${serverHead.seq} of chain ${chainId}, which this journal does not have; captures and uploads stop until the gateway is re-enrolled`,
-          details: { serverSeq: serverHead.seq, journalSeq: this.lastSeq().toString() },
-        });
-        return 'DIVERGED';
-      }
-      this.diverged = false;
-      await this.writeAck(s, serverHead.hash);
-      return outcome;
+      return (await this.moveToServerHead(serverHead)) ?? outcome;
     });
+  }
+
+  /**
+   * The server holds fewer readings of the chain than it acknowledged (the uplink's reconciliation by counts, DI-31):
+   * the watermark moves back to the server's head when that is a reading of this journal; otherwise the two diverged,
+   * as at adoptServerChain. Never changes the chain. 'STALE', with nothing done, when `basis` is no longer the
+   * journal's by the time the journal lock is taken (a login adopted the server's head since, or another chain).
+   */
+  reconcile(basis: WatermarkBasis, serverHead: { seq: string; hash: string }): Promise<'CONTINUE' | 'DIVERGED' | 'STALE'> {
+    return this.exclusive(async () => {
+      if (!this.isCurrent(basis)) return 'STALE';
+      return (await this.moveToServerHead(serverHead)) ?? 'CONTINUE';
+    });
+  }
+
+  /** Under the lock: the watermark moves to the server's head of the current chain; 'DIVERGED' when it is not ours. */
+  private async moveToServerHead(serverHead: { seq: string; hash: string }): Promise<'DIVERGED' | null> {
+    const chainId = this.chainId;
+    if (chainId === null) throw new Error('the journal has no chain yet');
+    const s = BigInt(serverHead.seq);
+    const ours = s === 0n ? genesisHash(chainId) : this.readings[Number(s) - 1]?.hash;
+    if (s > this.lastSeq() || ours !== serverHead.hash) {
+      this.diverged = true;
+      this.alarm({
+        kind: 'DIVERGED',
+        message: `the server holds reading ${serverHead.seq} of chain ${chainId}, which this journal does not have; captures and uploads stop until the gateway is re-enrolled`,
+        details: { serverSeq: serverHead.seq, journalSeq: this.lastSeq().toString() },
+      });
+      return 'DIVERGED';
+    }
+    this.diverged = false;
+    await this.writeAck(s, serverHead.hash);
+    return null;
   }
 
   /**
@@ -307,13 +363,19 @@ export class Journal {
     });
   }
 
-  /** The server acknowledged every reading up to `seq` (its hash must be ours). */
-  acknowledge(seq: bigint, hash: string): Promise<void> {
+  /**
+   * The server acknowledged every reading up to `seq` (its hash must be ours). 'STALE', with nothing written, when
+   * `basis` is no longer the journal's by the time the journal lock is taken (a login adopted the server's head since,
+   * or another chain): the adoption's head stands.
+   */
+  acknowledge(basis: WatermarkBasis, seq: bigint, hash: string): Promise<'ACKNOWLEDGED' | 'STALE'> {
     return this.exclusive(async () => {
-      if (seq <= this.ackedSeq) return;
+      if (!this.isCurrent(basis)) return 'STALE';
+      if (seq <= this.ackedSeq) return 'ACKNOWLEDGED';
       const ours = this.readings[Number(seq) - 1]?.hash;
       if (ours !== hash) throw new JournalIntegrityError(`the server acknowledged reading ${seq} with a hash this journal does not hold`);
       await this.writeAck(seq, hash);
+      return 'ACKNOWLEDGED';
     });
   }
 

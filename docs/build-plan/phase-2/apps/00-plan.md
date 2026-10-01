@@ -110,7 +110,7 @@
 | Process | Address | Database / role | Notes |
 |---|---|---|---|
 | tablets-server, `EBMR_INSTALLATION=GMP` | http://localhost:3001 | `ebmr_tablets_demo`; pools `ebmr_app` and `ebmr_authn` | Serves the built SPA from the same origin. Runs designer, audit, sessions and e-signatures. |
-| tablets-server, `EBMR_INSTALLATION=SANDBOX` | http://localhost:3011 | `ebmr_sandbox_tablets_demo`; both pools `ebmr_sandbox` | Same binary and the same SPA. Runs test runs, the shop floor, audit and the sweeper. Its gateway listener is on 127.0.0.1:3012. |
+| tablets-server, `EBMR_INSTALLATION=SANDBOX` | http://localhost:3011 | `ebmr_sandbox_tablets_demo`; both pools `ebmr_sandbox`; the gateway listener's receipts and ticks `ebmr_sandbox_listener` (`EBMR_DB_LISTENER_URL`; kernel 0980, decision X36) | Same binary and the same SPA. Runs test runs, the shop floor, audit and the sweeper. Its gateway listener is on 127.0.0.1:3012. |
 | site-gateway (sandbox installation) | 127.0.0.1:3021 | none | MT-SICS TCP client, journal, Ed25519 readings. Logs in to 3012 as an INTEGRATION identity. |
 | scale simulator | TCP 127.0.0.1:4001; control and console on http://127.0.0.1:4002 | none | Plain HTML console for the owner. |
 | Vite dev (optional) | :5173 → proxy to 3001; :5174 → proxy to 3011 | none | HMR only. The demo and E2E serve the built SPA. |
@@ -316,6 +316,8 @@ The existing rules stay: apps never import each other; packages never import app
 **Device identity (DI-20).**
 - Each browser origin holds a non-extractable WebCrypto ECDSA P-256 key in IndexedDB. The fingerprint is `deviceFingerprint(SPKI DER)`.
 - Authentication calls (login, unlock, tap, signature authentication, switch, keep-alive) carry `proof = {spki, nonce, sig over nonce|method|path|sha256(body)}`. Nonces are HMAC-minted, single use and expire after 60 s (`tab.device_nonce`).
+- The nonce request names the terminal's public key (`{spki}`, required) and the nonce is bound to it: the stored HMAC covers the key's fingerprint, so only a proof signed with that key can use it (decision 0004 X25). The gateway listener's login nonce is bound to no key and serves no browser proof. A page loaded before the server was upgraded to this rule sends no key and gets no nonce, so every terminal's page is reloaded after that upgrade (X35).
+- The nonce request also shows the nonce of the terminal's last proof (`lastNonce`). When that proof succeeded within 10 minutes as an active browser terminal, it is a proof ticket, good once, and the request counts toward the terminal's own rate limit (X23, X26; see "Rate limits" below).
 - The server verifies the proof and calls `identity.resolveDevice`; it never trusts what the browser reports.
 - `DeviceIdentityProvider` is an interface, so mTLS can replace this.
 - Per-request proofs on every mutation come in A2.
@@ -364,6 +366,7 @@ The existing rules stay: apps never import each other; packages never import app
   - Fonts are self-hosted.
 - Also: COOP same-origin, CORP same-origin, `no-store` on `/api`, nosniff, Referrer-Policy no-referrer.
 - Rate limits: auth, tap and unlock 10/min per IP and identifier; sign 20/min per session.
+  - Device nonce (decision 0004 X22-X27): 120/min per terminal key and address; 120/min shared by every request of an address that shows no proof ticket, whatever key it names; 480/min per address in all. A terminal past its own count does not use up the address's allowance, and every nonce bound to one key counts toward that key's count. The price: a caller at a terminal's address that names its public key without a ticket can fill that terminal's count, and 120 unproven requests a minute keep every terminal without a ticket from getting a nonce (X34). Answers carry the x-ratelimit-* headers (Retry-After on a 429); refusals are logged at warn.
 - pino redacts secret, pin, password, `credentials.*`, `attribution.*`, cookie and CSRF headers (a test proves it).
 
 ## 6. E-signature ceremony (fix for signed content changing during PERFORMED)

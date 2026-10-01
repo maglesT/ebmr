@@ -20,13 +20,14 @@
  * Round-1 verification: a terminal of no room opened the manual path on a stage that names no room, and nothing
  * recorded which balance was read or the statuses that justified the fallback. The database side of the gate (race,
  * bypass, serialisation with the heartbeats, a terminal of no room; tablets 0310) is proved in
- * manual-weighing-gate.test.ts.
+ * manual-weighing-gate.test.ts. Since tablets 0350 (round 4) the database opens the manual path only once a scale that
+ * was reported ONLINE has been reported offline for the 10 s heartbeat window, so the cases below let that window pass.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { scaleStatuses } from '../../src/features/devices/port.ts';
 import type { FakeGateway } from './support.ts';
-import { handKeyed, lastEvidence, newRun, PCM, reachPcm, report, roomFreeDispensing, startRig, stopRig, forgedWeighing, type Rig } from './room-scales-support.ts';
+import { forgedWeighing, GATE_WINDOW_MS, handKeyed, lastEvidence, newRun, PCM, reachPcm, report, roomFreeDispensing, standFor, startRig, stopRig, type Rig } from './room-scales-support.ts';
 import { outcomeOf, refusalOf, rowsOf, RunDriver, valueOf, violations, type ExecServer } from '../execution/support.ts';
 
 let rig: Rig;
@@ -79,6 +80,8 @@ describe('review P50: with two scales in a room, the header and the manual-entry
       ['TEST-BAL-01', 'OFFLINE'],
     ]);
     expect.soft((await d.stepView('operator1', PCM)).run.scale).toBeNull();
+    // The database opens the manual path once TEST-BAL-01 has been reported offline for the heartbeat window (0350).
+    await standFor(rig, GATE_WINDOW_MS, { 'TEST-BAL-01': 'OFFLINE' });
     const keyed = valueOf(await d.command('operator1', handKeyed));
     expect(keyed.step?.entries.at(-1)?.data).toMatchObject({ source: 'MANUAL', balance: 'MANUAL', tare: '1.250', gross: '51.250' });
     expect(keyed.step?.exceptions.map((e) => e.type)).toContain('MANUAL_ENTRY_FALLBACK');
@@ -143,7 +146,7 @@ describe('review P50, round-1 verification: the manual path names the room, the 
   it('[DI-20][PR-20][DI-30] a terminal registered to no room never keys weights by hand, even on a stage that names no room: refused by the server and by the database', async () => {
     const d = await newRun(rig, { content: roomFreeDispensing() });
     await reachPcm(d);
-    await report(rig, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
+    await standFor(rig, GATE_WINDOW_MS, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
     // operator1 goes to the office PC (registered to no room), where the steps of this stage are otherwise accepted.
     const office = new RunDriver(server, d.runId, { operator1: await server.asPersona('operator1', 'TEST-PC-01') });
     expect(office.browser('operator1').terminal).toBe('TEST-PC-01');
@@ -167,7 +170,7 @@ describe('review P50, round-1 verification: the manual path names the room, the 
   it('[DI-20][DI-30][PR-20] the operator may name the balance read: a scale of the room is recorded as the balance while none of them is online, any other device is refused, and the statuses are stored with the row', async () => {
     const d = await newRun(rig);
     await reachPcm(d);
-    await report(rig, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
+    await standFor(rig, GATE_WINDOW_MS, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
     const naming = (deviceCode: string) => ({ ...handKeyed, entry: { ...handKeyed.entry, manual: { ...handKeyed.entry.manual, deviceCode } } });
     const rowsBefore = (await rowsOf(server, d.runId)).length;
     const otherRoom = await d.command('operator1', naming('TEST-BAL-02'));

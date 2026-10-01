@@ -3,7 +3,9 @@
  * copies per test file (CREATE DATABASE ... TEMPLATE), and pools for the three login roles.
  *
  * Database-level privileges are not copied from a template, so every copy re-applies what kernel migration
- * 0001 sets (no TEMPORARY for PUBLIC) and the sandbox connect policy (kernel 0800, INV-18).
+ * 0001 sets (no TEMPORARY for PUBLIC) and the sandbox connect policy (kernel 0800, INV-18), which since kernel 0970
+ * also takes pg_cancel_backend and pg_terminate_backend away from every role but superusers (function privileges are
+ * copied with the template; applying the policy again changes nothing there).
  */
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -20,10 +22,13 @@ export interface LoginRole {
   name: string;
   password: string;
 }
-/** Development credentials of the login roles (kernel migrations 0001, 0100, 0800); production uses a vault. */
+/** Development credentials of the login roles (kernel migrations 0001, 0100, 0800, 0980); production uses a vault. */
 export const APP_LOGIN: LoginRole = { name: 'ebmr_app', password: 'ebmr_app' };
 export const AUTHN_LOGIN: LoginRole = { name: 'ebmr_authn', password: 'ebmr_authn' };
 export const SANDBOX_LOGIN: LoginRole = { name: 'ebmr_sandbox', password: 'ebmr_sandbox' };
+/** The evidence listener's own logins (kernel 0980): GMP, and the sandbox's. */
+export const LISTENER_LOGIN: LoginRole = { name: 'ebmr_listener', password: 'ebmr_listener' };
+export const SANDBOX_LISTENER_LOGIN: LoginRole = { name: 'ebmr_sandbox_listener', password: 'ebmr_sandbox_listener' };
 
 export type InstallationKind = 'GMP' | 'SANDBOX';
 
@@ -120,6 +125,69 @@ export async function copyDatabase(template: string, name: string, adminUrl = AD
   await asAdmin(name, (c) => c.query('select sandbox.apply_connect_policy()'), adminUrl);
 }
 
+/** A pool that endPool() ends; it follows every connection it opens until that connection's socket has closed. */
+class FollowedPool extends pg.Pool {
+  /** One promise per connection still open, settled once its socket has closed. */
+  readonly #open = new Set<Promise<void>>();
+
+  constructor(config: pg.PoolConfig) {
+    super(config);
+    this.on('connect', (client) => {
+      const closed = new Promise<void>((resolve) => {
+        client.once('end', () => {
+          this.#open.delete(closed);
+          resolve();
+        });
+      });
+      this.#open.add(closed);
+    });
+  }
+
+  /** Refused: pg-pool's own end() resolves before the backends have exited; endPool() ends this pool. */
+  override end(): never {
+    throw new Error('a pool made by openPool() is ended with endPool(): pg-pool\'s end() resolves before its backends have exited, so a forced drop after it can end them under the pool (FATAL 57P01)');
+  }
+
+  /** pg-pool's end(), then the close of the socket of every connection still open. */
+  static async endAndWait(pool: FollowedPool): Promise<void> {
+    await pool.#endPool();
+    await Promise.all([...pool.#open]);
+  }
+
+  #endPool(): Promise<void> {
+    return super.end();
+  }
+}
+
+/**
+ * A pool whose connections endPool() waits for; every pool the test-kit makes is one. Its own end() refuses, so it
+ * cannot be ended the racy way. (The kernel's tests have their own copy, packages/kernel/test/harness/pools.ts: the
+ * kernel imports nothing else in the repository.)
+ */
+export function openPool(config: pg.PoolConfig): pg.Pool {
+  return new FollowedPool(config);
+}
+
+/**
+ * Ends a pool made by openPool and resolves once the socket of every connection the pool opened has closed, including
+ * a client pg-pool has already let go and that is still ending (its idle timeout, 10 s by default, or an error while
+ * idle, took it off the pool's lists, so pg-pool's own end() no longer sees it).
+ *
+ * pg-pool's end() resolves as soon as it has asked its idle clients to end: each has sent its Terminate message, but its
+ * backend may not have read it yet. A DROP DATABASE ... WITH (FORCE) run at that moment terminates the backend (FATAL
+ * 57P01); the client, still ending, receives that while idle, the pool re-emits it as an 'error' event, and a test run
+ * reports an unhandled error. A connection pg ends cleanly (the usual case: an idle client sends its Terminate) is
+ * closed by PostgreSQL only when its backend process exits, so once its socket has closed that backend is gone and a
+ * drop that follows cannot reach it. pg closes the socket itself instead when the connection is already broken or still
+ * has a query running; that backend may outlive the wait (a running query ends when the forced drop terminates it), but
+ * a closed socket receives nothing, so the drop cannot raise an error in the client. Nothing is swallowed: an error a
+ * connection reports while it closes still reaches the pool (which has no listener here).
+ */
+export async function endPool(pool: pg.Pool): Promise<void> {
+  if (!(pool instanceof FollowedPool)) throw new Error('endPool() waits only for pools made by openPool(); the connections of any other pool cannot be followed');
+  await FollowedPool.endAndWait(pool);
+}
+
 /** Pools of one database for the roles a server uses. */
 export interface DatabaseHandle {
   name: string;
@@ -130,15 +198,20 @@ export interface DatabaseHandle {
   app: pg.Pool;
   /** The authentication service: ebmr_authn in GMP, ebmr_sandbox in a sandbox (mirrored privileges). */
   authn: identity.AuthnDb;
+  /**
+   * Ends the three pools and resolves once the socket of every connection they opened has closed (endPool): a backend
+   * whose client ended cleanly has exited by then, and a connection pg cut itself receives nothing, so a forced drop that
+   * follows can raise no error in their clients.
+   */
   close(): Promise<void>;
 }
 
 export function openDatabase(name: string, kind: InstallationKind, opts: { adminUrl?: string; max?: number } = {}): DatabaseHandle {
   const adminUrl = opts.adminUrl ?? ADMIN_URL;
   const max = opts.max ?? 4;
-  const admin = new pg.Pool({ connectionString: urlFor(name, undefined, adminUrl), max: 2 });
-  const app = new pg.Pool({ connectionString: urlFor(name, kind === 'GMP' ? APP_LOGIN : SANDBOX_LOGIN, adminUrl), max });
-  const authnPool = new pg.Pool({ connectionString: urlFor(name, kind === 'GMP' ? AUTHN_LOGIN : SANDBOX_LOGIN, adminUrl), max: 2 });
+  const admin = openPool({ connectionString: urlFor(name, undefined, adminUrl), max: 2 });
+  const app = openPool({ connectionString: urlFor(name, kind === 'GMP' ? APP_LOGIN : SANDBOX_LOGIN, adminUrl), max });
+  const authnPool = openPool({ connectionString: urlFor(name, kind === 'GMP' ? AUTHN_LOGIN : SANDBOX_LOGIN, adminUrl), max: 2 });
   return {
     name,
     kind,
@@ -146,7 +219,7 @@ export function openDatabase(name: string, kind: InstallationKind, opts: { admin
     app,
     authn: { pool: authnPool },
     async close() {
-      await Promise.all([admin.end(), app.end(), authnPool.end()]);
+      await Promise.all([endPool(admin), endPool(app), endPool(authnPool)]);
     },
   };
 }

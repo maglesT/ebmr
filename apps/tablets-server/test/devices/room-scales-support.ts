@@ -65,7 +65,28 @@ export async function startRig(env: Record<string, string> = {}, opts: { monitor
     await c.query("select iam.register_device('TEST-BAL-00', 'INSTRUMENT', $1, 'DISP-1', null, $2, 'Floor scale 300 kg in DISP-1')", [site.rows[0]?.site_code, randomBytes(32).toString('hex')]);
     await c.query("select tab.bind_instrument($1, 'TEST-BAL-00', 'SIM-0000', 'kg', '0.01')", [chain]);
   });
-  return { server, gw: await fakeGateway(server), ...(keys ? { keysDir: keys.dir } : {}) };
+  const gw = await fakeGateway(server);
+  // As a server that has just started: the manual path stays shut until the listener has vouched for a full window
+  // (tablets 0350 item 6), so the cases start once it has.
+  if (!(await untilVouched(server))) throw new Error('SETUP: the gateway listener did not vouch for a window within 20 s of its start');
+  return { server, gw, ...(keys ? { keysDir: keys.dir } : {}) };
+}
+
+/**
+ * How long a case waits for a report to have stood for the gate's window: the heartbeat window (10 s), and up to 2 s
+ * more, since the window the gateway listener vouches for ends at its last closed tick, at most 2 s before the weighing,
+ * and spans a full 10 s (tablets 0350 item 6).
+ */
+export const GATE_WINDOW_MS = 12_000;
+
+/** Polls every 100 ms, for at most `ms`, until the database vouches for the window before now (tab.listener_attested_from). */
+export async function untilVouched(server: { db: { admin: pg.Pool } }, ms = 20_000): Promise<boolean> {
+  for (let waited = 0; waited < ms; waited += 100) {
+    const { rows } = await server.db.admin.query<{ ok: boolean }>("select tab.listener_attested_from(clock_timestamp() - interval '10 seconds') is not null as ok");
+    if (rows[0]?.ok) return true;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return false;
 }
 
 export async function stopRig(rig: Rig | undefined): Promise<void> {
@@ -140,9 +161,14 @@ export async function reachPcm(d: RunDriver, operator = 'operator1'): Promise<vo
   await d.ok(operator, { type: 'START_STEP', stepKey: PCM });
 }
 
-/** A gateway heartbeat: each scale named, in the state given (ONLINE with its registered serial). */
+/** The devices of a gateway heartbeat: each scale named, in the state given (ONLINE with its registered serial). */
+export function devicesOf(states: Readonly<Record<string, 'ONLINE' | 'OFFLINE'>>): { deviceCode: string; state: string; serial: string | null }[] {
+  return Object.entries(states).map(([deviceCode, state]) => ({ deviceCode, state, serial: state === 'ONLINE' ? (SERIALS[deviceCode] ?? null) : null }));
+}
+
+/** A gateway heartbeat of `states` (devicesOf), which the server answers 200. */
 export async function report(rig: Rig, states: Readonly<Record<string, 'ONLINE' | 'OFFLINE'>>): Promise<void> {
-  const r = await rig.gw.heartbeat(Object.entries(states).map(([deviceCode, state]) => ({ deviceCode, state, serial: state === 'ONLINE' ? (SERIALS[deviceCode] ?? null) : null })));
+  const r = await rig.gw.heartbeat(devicesOf(states));
   expect(r.status, JSON.stringify(r.body)).toBe(200);
 }
 
@@ -167,6 +193,26 @@ export interface ForgedWeighingOptions {
    */
   before?: { actor?: ActorContext; work: (c: pg.PoolClient) => Promise<void> };
   browser?: string;
+  /** The transaction's isolation level (default: the database's, READ COMMITTED); its snapshot is taken by begin_command. */
+  isolation?: 'repeatable read' | 'serializable';
+}
+
+/** withCommand, in a transaction of `isolation` when one is given. */
+async function withCommandAt<T>(pool: pg.Pool, actor: ActorContext, isolation: ForgedWeighingOptions['isolation'], work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+  if (!isolation) return withCommand(pool, actor, work);
+  const client = await pool.connect();
+  try {
+    await client.query(`begin isolation level ${isolation}`);
+    await client.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(actor))]);
+    const result = await work(client);
+    await client.query('commit');
+    return result;
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 /**
@@ -185,7 +231,7 @@ export async function forgedWeighingRow(rig: Rig, d: RunDriver, opts: ForgedWeig
   const lot = await resolveLot(server.db.admin, 'TEST-L26-0101');
   if (!lot) throw new Error('SETUP: demo lot missing');
   const operator = await actorOf(server, d.browser(opts.browser ?? 'operator1'), 'operator1');
-  return withCommand(server.db.app, opts.before?.actor ?? operator, async (c) => {
+  return withCommandAt(server.db.app, opts.before?.actor ?? operator, opts.isolation, async (c) => {
     if (opts.before) {
       await opts.before.work(c);
       if (opts.before.actor) await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(operator))]);

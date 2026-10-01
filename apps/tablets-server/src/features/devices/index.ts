@@ -7,8 +7,9 @@
  *  - seed: enrols the DEMO-ONLY gateway key and binds the simulated balance TEST-BAL-01 (demo and E2E only).
  * SQL: apps/tablets-server/sql/0250_devices_readings.sql and 0270_devices_readings_guards.sql (the database proves each
  * stored reading: hash, Ed25519 signature, raw line; claims take the room from the session); 0340 (whether the server
- * reaches a gateway's API is recorded by the server's gateway API monitor identity, runtime.ts). Controls DI-20, DI-28,
- * DI-30, DI-31, DI-32.
+ * reaches a gateway's API is recorded by the server's gateway API monitor identity, runtime.ts); 0350 (the manual path
+ * against the application role's credentials; the listener's own login and its ticks, watch.ts, without which the
+ * database counts no scale silent). Controls DI-20, DI-28, DI-30, DI-31, DI-32.
  */
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';

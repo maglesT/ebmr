@@ -103,6 +103,7 @@ tests:
   - "packages/recipe-core/test/blocks/process.test.ts > G-03 instruction and acknowledgement > [DI-34][DI-10] an instruction cannot be signed before it is acknowledged; the SOP version in force is written into the record"
   - "packages/recipe-core/test/engine/agreement.test.ts > simulator and engine agree > [DI-34][INV-19] on generated flows every simulator path completes in the engine with the same steps, and every engine completion is a simulator path"
   - "packages/recipe-core/test/engine/agreement.test.ts > simulator and engine agree > [DI-34][INV-19] a simulator path that exhausts a loop is an engine run with exactly one LOOP_EXHAUSTED exception at the same place"
+  - "packages/recipe-core/test/engine/agreement.test.ts > simulator and engine agree > [DI-34][INV-19] the path enumeration is bounded: a shape with 3,263,696 paths is refused at once, not collected until the heap runs out"
   - "packages/recipe-core/test/engine/agreement.test.ts > simulator and engine agree > [DI-34][INV-19] granulation fixture: every data-feasible simulator path with one sub-lot is an engine completion with the same steps"
   - "packages/recipe-core/test/engine/agreement.test.ts > simulator and engine agree > [DI-34] packaging fixture: all four simulator paths (return branch by data, destination by issue variant) are engine completions"
   - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-34][INV-41] a correction that would change a decision already taken never re-routes the path; QA must disposition it"

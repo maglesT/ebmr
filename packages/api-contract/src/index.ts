@@ -15,7 +15,7 @@ export * from './signable.ts';
 export * from './routes.ts';
 export * from './vocab/roles.ts';
 export { MetaView } from './ns/meta.ts';
-export { ChangeSecretRequest, DemoDeviceView, DeviceClass, DeviceView, LoginMethod, LoginRequest, SessionView } from './ns/session.ts';
+export { ChangeSecretRequest, DemoDeviceView, DeviceClass, DeviceNonceRequest, DeviceView, LoginMethod, LoginRequest, SessionView } from './ns/session.ts';
 export { ChallengeView, ManifestationView, SignableContentView, SignatureComponent, SignatureCredentials, SignOutcomeView } from './ns/esig.ts';
 export { AuditChainView, AuditEventView, ChainVerificationView } from './ns/audit.ts';
 export {

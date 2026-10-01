@@ -10,11 +10,11 @@ import { routes, type DeviceView } from '@ebmr/api-contract';
 import { identity } from '@ebmr/kernel';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { ChangeTicketStore } from '../../platform/auth/change-tickets.ts';
-import { without } from '../../platform/auth/device-proof.ts';
+import { spkiFingerprint, without } from '../../platform/auth/device-proof.ts';
 import { mintNonce } from '../../platform/auth/nonces.ts';
 import { clearSessionCookie, isShopFloor, newSessionToken, resolveSession, sessionView, setSessionCookie, tokenHash, type ResolvedSession } from '../../platform/auth/session.ts';
 import type { AppContext } from '../../platform/context.ts';
-import { bindRoutes, pathOf } from '../../platform/http/bind.ts';
+import { bindRoutes, pathOf, type DeviceRateLimitSpec } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { SESSION_GUIDANCE } from './guidance.ts';
 
@@ -61,6 +61,15 @@ function loginMethodRefused(device: identity.DeviceInfo, method: string) {
 
 const AUTH_RATE_LIMIT = { max: 10, timeWindow: '1 minute', by: 'IP_AND_IDENTIFIER' as const };
 
+/**
+ * Device nonces (DI-19, DI-20; decision 0004 X22-X27), counted as DeviceRateLimitSpec describes: 120 a minute per
+ * browser terminal key and address (what the whole address had before), 120 a minute shared by every request of the
+ * address that shows no proof ticket (so a caller who has not proven with an enrolled key gets no more than before,
+ * whatever keys it names), and at most 480 a minute from one address in all (four busy terminals behind one address).
+ * What such a caller can still block (a terminal whose public key it names, every terminal without a ticket): X34.
+ */
+export const DEVICE_NONCE_RATE_LIMIT = { by: 'DEVICE', timeWindow: '1 minute', max: 120, unprovenMax: 120, addressMax: 480 } as const satisfies DeviceRateLimitSpec;
+
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const tickets = new ChangeTicketStore();
   bindRoutes(
@@ -68,7 +77,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     app,
     routes.session,
     {
-      deviceNonce: async () => mintNonce(app.pools.app, app.config.secrets.nonceKey),
+      // Bound to the key it is asked for: only a proof signed with that key can use it (DI-20).
+      deviceNonce: async ({ body }) => mintNonce(app.pools.app, app.config.secrets.nonceKey, spkiFingerprint(body.spki)),
 
       identify: async ({ body, request }) => {
         const { device } = await app.devices.identify(body.proof, { method: request.method, path: pathOf(request), body: without(body, 'proof') });
@@ -193,7 +203,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return { loggedOut: true as const };
       },
     },
-    { rateLimits: { login: AUTH_RATE_LIMIT, changeSecret: AUTH_RATE_LIMIT, identify: { max: 60, timeWindow: '1 minute' }, deviceNonce: { max: 120, timeWindow: '1 minute' } } },
+    { rateLimits: { login: AUTH_RATE_LIMIT, changeSecret: AUTH_RATE_LIMIT, identify: { max: 60, timeWindow: '1 minute' }, deviceNonce: DEVICE_NONCE_RATE_LIMIT } },
   );
   return Promise.resolve();
 }

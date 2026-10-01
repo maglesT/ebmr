@@ -6,7 +6,8 @@
 # standby and backup subnets. Rules are read top to bottom; the first match wins.
 #
 # Every role named below either is created by the kernel migrations (ebmr_app: application;
-# ebmr_authn: authentication service) or is provisioned by the installation (IQ), not by a migration:
+# ebmr_authn: authentication service; ebmr_listener and ebmr_sandbox_listener: the gateway listener) or is
+# provisioned by the installation (IQ), not by a migration:
 # provisioned-roles: postgres ebmr_sandbox ebmr_migrate ebmr_backup ebmr_replicator
 # The template test checks that no other role name appears (a misspelt role never matches a rule and
 # falls through to the final reject).
@@ -25,6 +26,11 @@ hostssl     ebmr_tablets,ebmr_injectables,ebmr_site   ebmr_app,ebmr_authn  10.10
 
 # Sandbox and training database: sandbox role only, never a GMP database (DI-05).
 hostssl     ebmr_sandbox_tablets,ebmr_sandbox_injectables   ebmr_sandbox   10.10.20.0/24   scram-sha-256
+
+# The gateway listener's own login, on the application servers (kernel 0980): the GMP one to GMP databases, the
+# sandbox one to sandbox databases only (DI-05, DI-30).
+hostssl     ebmr_tablets,ebmr_injectables,ebmr_site   ebmr_listener        10.10.20.0/24   scram-sha-256
+hostssl     ebmr_sandbox_tablets,ebmr_sandbox_injectables   ebmr_sandbox_listener   10.10.20.0/24   scram-sha-256
 
 # Migration pipeline (change-controlled deployments only).
 hostssl     ebmr_tablets,ebmr_injectables,ebmr_site   ebmr_migrate         10.10.30.10/32  cert           clientcert=verify-full

@@ -259,7 +259,9 @@ interface ManualWeights {
  * (the server cannot know which of several the operator read); the statuses of the room's scales that opened the
  * fallback are stored with the row. The database checks the room, the statuses and the balance again inside the
  * command's transaction, serialised with the room's heartbeats (tablets 0310), so a scale that comes online after this
- * read, or a writer that skips it, is refused there.
+ * read, or a writer that skips it, is refused there. It is stricter than this read: a scale counts as unusable there
+ * only once that has stood for the 10 s heartbeat window, with no report since that it is ONLINE, no heartbeat of its
+ * gateway received and not recorded, and no answer of its gateway's API (tablets 0340, 0350).
  */
 async function manualWeights(ctx: IntentContext, room: string | null, manual: ManualWeights): Promise<Weights> {
   if (room === null) {

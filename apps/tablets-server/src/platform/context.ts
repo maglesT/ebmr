@@ -1,7 +1,8 @@
 /**
- * What every feature module receives: configuration, pools, the read database, the guidance catalogue, the
- * signable-action registry and the ports (plan sections 3-6). Built once by buildApp.
+ * What every feature module receives: configuration, the server's log, pools, the read database, the guidance
+ * catalogue, the signable-action registry and the ports (plan sections 3-6). Built once by buildApp.
  */
+import type { FastifyBaseLogger } from 'fastify';
 import type { Kysely } from 'kysely';
 import type { esig } from '@ebmr/kernel';
 import type { DemoDeviceView, Instant } from '@ebmr/api-contract';
@@ -22,6 +23,11 @@ export interface DemoState {
 export interface AppContext {
   config: ServerConfig;
   installation: 'GMP' | 'SANDBOX';
+  /**
+   * The server's own log (the Fastify instance's), for work outside any request: a report of the gateway's that the
+   * devices runtime could not record, a connection of its pools lost while idle (features/devices/runtime.ts).
+   */
+  log: FastifyBaseLogger;
   pools: Pools;
   readDb: Kysely<ReadDatabase>;
   guidance: GuidanceCatalogue;

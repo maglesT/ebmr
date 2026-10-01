@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs';
 import pg from 'pg';
 import { KERNEL_MIGRATIONS, type MigrationSource } from '../../src/db/migrate.ts';
 import { provisionSandboxDatabase } from '../../src/sandbox/provision.ts';
+import { endPool, openPool, urlOn } from '../harness/pools.ts';
 import { ADMIN_URL, urlFor } from '../support/db.ts';
 
 export const SANDBOX_LOGIN = { name: 'ebmr_sandbox', password: 'ebmr_sandbox' };
@@ -75,6 +76,7 @@ export interface TestSandbox {
   admin: pg.Pool;
   /** The sandbox application's pool (ebmr_sandbox). */
   sandbox: pg.Pool;
+  /** Ends both pools, and once every backend they opened has exited (endPool), drops the database. */
   drop(): Promise<void>;
 }
 
@@ -84,16 +86,16 @@ export async function provisionTestSandbox(name = sandboxTestName()): Promise<Te
   return openSandbox(name);
 }
 
-export function openSandbox(name: string): TestSandbox {
-  const admin = new pg.Pool({ connectionString: urlFor(name), max: 2 });
-  const sandbox = new pg.Pool({ connectionString: urlFor(name, SANDBOX_LOGIN), max: 2 });
+/** The pools of a sandbox; `adminUrl` (default ADMIN_URL) names the server they connect to. */
+export function openSandbox(name: string, adminUrl = ADMIN_URL): TestSandbox {
+  const admin = openPool({ connectionString: urlOn(adminUrl, name), max: 2 });
+  const sandbox = openPool({ connectionString: urlOn(adminUrl, name, SANDBOX_LOGIN), max: 2 });
   return {
     name,
     admin,
     sandbox,
     async drop() {
-      await admin.end();
-      await sandbox.end();
+      await Promise.all([endPool(admin), endPool(sandbox)]);
       await dropDatabase(name);
     },
   };

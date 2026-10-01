@@ -46,9 +46,19 @@ export const api: ApiClient = createApiClient({
   },
 });
 
-/** A device proof for an authentication call: a fresh nonce from the server, signed with the terminal key. */
+/** The nonce of each terminal key's latest device proof in this page (the proof ticket of its next nonce request). */
+const lastNonces = new Map<string, string>();
+
+/**
+ * A device proof for an authentication call: a fresh nonce from the server, signed with the terminal key. The nonce
+ * request names the terminal's public key (the nonce is bound to it) and the nonce of this terminal's last proof, which
+ * the server takes as a proof ticket when that proof succeeded: the request then counts toward this terminal's own
+ * rate limit, not the allowance its address shares with requests that show none.
+ */
 export async function deviceProof(key: StoredDeviceKey, method: string, path: string, body: Record<string, unknown>): Promise<DeviceProof> {
-  const nonce = await api.call(routes.session.deviceNonce, { body: {} });
+  const lastNonce = lastNonces.get(key.publicKeySpki);
+  const nonce = await api.call(routes.session.deviceNonce, { body: { spki: key.publicKeySpki, ...(lastNonce !== undefined ? { lastNonce } : {}) } });
   if (!nonce.ok) throw new Error('The server did not issue a device nonce.');
+  lastNonces.set(key.publicKeySpki, nonce.value.nonce);
   return signProof(key, nonce.value.nonce, method, path, body);
 }

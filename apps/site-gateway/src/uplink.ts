@@ -8,14 +8,30 @@
  *    watermark moves only on the server's acknowledgement; a refusal stops the flush and is alarmed; failures back
  *    off. A flush never rejects. When the watermark cannot be written, what the server acknowledged is kept in
  *    memory: later readings are still delivered, each once, nothing is sent again, and the watermark is written as
- *    soon as it can be (review finding P52). Each batch first takes a challenge the server's database issues; each
- *    reading's wait is measured after it arrives and signed with the gateway key together with the challenge and the
- *    reading id, so the database counts everything after the signing itself (DI-28, review finding P53);
+ *    soon as it can be (review finding P52). The watermark is written beside the uploads, one write at a time (the
+ *    last one writes what the server holds by then): the next batch is sent without waiting for the write, so a
+ *    reading queued behind another one never waits for the gateway's disk. A flush settles once its uploads have
+ *    ended and the watermark writes they started have finished (written, or failed and alarmed). What the server
+ *    holds is recorded on the journal's basis when the request went out (its chain, and the logins' adoptions of the
+ *    server's head asked for by then): an answer that arrives once a login has asked for its adoption is dropped, and
+ *    the journal drops, under its lock, a write whose basis a login has since replaced, so a write that waited behind a
+ *    hung one never overtakes the login, and is not a failure (decision X33). Each batch first takes a challenge the
+ *    server's database issues; each reading's wait is measured after it arrives and signed with the gateway key
+ *    together with the challenge and the reading id, so the database counts everything after the signing itself
+ *    (DI-28, review finding P53);
+ *  - waitForAck, a capture waiting for its reading: true once the server has acknowledged the reading (an upload's
+ *    answer, or a login whose head covers it), false when it has not within the capture's wait. The answer comes
+ *    once the watermark write that records the acknowledgement has finished, but never after the wait ends: a disk
+ *    slower than that neither turns an acknowledged reading into false nor holds the answer longer (decision X28);
  *  - heartbeat every few seconds with the instruments' states and the reason a connected one is not ready (a gap
  *    over 10 s shows the scale OFFLINE), and at once when the gateway's ability to deliver changes, at most one such
  *    heartbeat per READINESS_HEARTBEAT_GAP_MS (a flapping state is reported, not flooded). The heartbeat's journal
  *    counts carry what the server acknowledged (deliveredSeq) beside the written watermark (ackedSeq), which stays
- *    behind while it cannot be written, so the server's reconciliation by counts (DI-31) is not blind then.
+ *    behind while it cannot be written, so the server's reconciliation by counts (DI-31) is not blind then. A login
+ *    under way never holds a heartbeat up once the gateway has had a session: while a new login gets no answer (the
+ *    server can hold it up in its database), heartbeats go on with the last login's token, which the server still
+ *    receives though it no longer records them, so it does not take the gateway for silent; a login the server refuses,
+ *    or that fails here, ends that (review P50, decision X31). One login at a time.
  * deliveryProblem() says why a reading captured now would not reach the server: the server refuses the oldest
  * reading it does not hold (every later one queues behind it), the watermark cannot be written, the last upload
  * failed, or readings journalled before this login are not delivered yet (after a restart the gateway does not know
@@ -38,10 +54,12 @@ import {
 } from '@ebmr/integration-sdk/scale';
 import type { GatewayClock } from './clock.ts';
 import type { GatewayConfig } from './config.ts';
-import type { Journal } from './journal.ts';
+import type { Journal, WatermarkBasis } from './journal.ts';
 
 /** The shortest time between two heartbeats sent because readiness changed (review finding P51). */
 export const READINESS_HEARTBEAT_GAP_MS = 500;
+
+const noop = (): void => undefined;
 
 export interface UplinkAlarm {
   kind: 'LOGIN_FAILED' | 'READING_REFUSED' | 'INSTALLATION_MISMATCH' | 'UPLINK_FAILED' | 'ACK_WRITE_FAILED';
@@ -76,16 +94,36 @@ export interface UplinkOptions {
   heartbeatBody: () => Omit<HeartbeatRequest, 'gatewayTimeUs' | 'journal'>;
 }
 
+/** A capture waiting to learn whether the server holds its reading (Uplink.waitForAck). */
+interface AckWaiter {
+  chainId: string | null;
+  seq: bigint;
+  /** The server holds the reading: answer true once `written` has settled, or when the wait ends. */
+  acknowledged: (written: Promise<void>) => void;
+  /** Answer now: true if the server acknowledged the reading, false if not. */
+  finish: () => void;
+}
+
 export class Uplink {
   token: string | null = null;
+  /**
+   * The token of the last login, kept after the server asks for a new login until a login succeeds, is refused or
+   * fails here: heartbeats go out with it meanwhile (heartbeat; review P50, decision X31).
+   */
+  private lastToken: string | null = null;
+  /** The login under way (ensureLogin), if any. */
+  private loggingIn: Promise<boolean> | null = null;
   login: LoginResponse | null = null;
   private flushing: Promise<void> | null = null;
   private flushAgain = false;
+  /** The watermark write in progress (one at a time), and whether another one is to follow it. */
+  private watermarkWriting: Promise<void> | null = null;
+  private watermarkAgain = false;
   private stopped = false;
   private loginBackoff = 500;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private retryTimer: NodeJS.Timeout | null = null;
-  private readonly ackWaiters = new Set<{ seq: bigint; resolve: (ok: boolean) => void }>();
+  private readonly ackWaiters = new Set<AckWaiter>();
   private started = false;
   private heartbeating: Promise<void> | null = null;
   private heartbeatAgain = false;
@@ -97,9 +135,10 @@ export class Uplink {
   private refusedAtUs: bigint | null = null;
   /**
    * The last reading of the chain the server holds, as it last said, while the watermark on disk says otherwise (the
-   * watermark could not be written); null while the watermark is the truth.
+   * watermark could not be written, or its write is under way), with the journal's basis when the server was asked
+   * (its chain; a login's adoption since makes it stale); null while the watermark is the truth.
    */
-  private serverHolds: { chainId: string; seq: bigint } | null = null;
+  private serverHolds: { basis: WatermarkBasis; seq: bigint } | null = null;
   /** Why the watermark on disk is not what the server holds (null while it is). */
   watermarkFailure: string | null = null;
   /** Why the last upload failed (null once one succeeds, and at login). */
@@ -146,8 +185,23 @@ export class Uplink {
     return parsed.data;
   }
 
-  /** Logs in and adopts the server's chain. Throws on refusal. */
+  /**
+   * Logs in and adopts the server's chain. Throws on refusal. A login the server refused, or that failed here (e.g. the
+   * watermark could not be written), ends the heartbeats with the previous session's token (lastToken); one that got
+   * no answer from the server does not (heartbeat).
+   */
   async logIn(): Promise<LoginResponse> {
+    try {
+      const login = await this.logInOnce();
+      this.lastToken = login.token;
+      return login;
+    } catch (error) {
+      if (!(error instanceof UplinkError && error.status === 0)) this.lastToken = null;
+      throw error;
+    }
+  }
+
+  private async logInOnce(): Promise<LoginResponse> {
     const { config, journal } = this.options;
     const { nonce } = await this.post('/gw/v1/nonce', {}, NonceResponse, null);
     const sig = sign(null, loginProofMessage(nonce, config.gatewayCode, config.loginName, config.publicKeySpki), config.privateKey).toString('base64');
@@ -161,8 +215,14 @@ export class Uplink {
       this.alarm({ kind: 'INSTALLATION_MISMATCH', message: `the server is a ${login.installation} installation; this gateway is configured for ${config.installation}`, details: {} });
       throw new UplinkError(403, 'INSTALLATION_MISMATCH', 'installation kinds differ', false);
     }
+    // A head that is a reading of this journal's chain says the server holds it and every one before it (an upload's
+    // answer may have been lost): the captures waiting for those readings are told at once, not after the write below.
+    const head = BigInt(login.head.seq);
+    const covers = journal.chainId === login.chainId && head > 0n && journal.all()[Number(head) - 1]?.hash === login.head.hash;
     // The server's head is written as the watermark here; if that write fails the login fails (no heartbeat).
-    const outcome = await journal.adoptServerChain(login.chainId, login.head);
+    const adopting = journal.adoptServerChain(login.chainId, login.head);
+    if (covers) this.notifyAcks(login.chainId, head, adopting.then(noop, noop));
+    const outcome = await adopting;
     this.serverHolds = null;
     this.watermarkFailure = null;
     this.uploadFailure = null;
@@ -192,10 +252,12 @@ export class Uplink {
     if (this.retryTimer) clearTimeout(this.retryTimer);
     if (this.readinessTimer) clearTimeout(this.readinessTimer);
     this.readinessTimer = null;
-    for (const w of this.ackWaiters) w.resolve(false);
-    this.ackWaiters.clear();
+    for (const w of [...this.ackWaiters]) w.finish();
     await this.flushing?.catch(() => undefined);
+    await this.watermarkWriting?.catch(() => undefined);
     await this.heartbeating?.catch(() => undefined);
+    // A heartbeat no longer waits for a login under way (heartbeat), so the login is waited for here, as it was.
+    await this.loggingIn;
   }
 
   /**
@@ -239,8 +301,16 @@ export class Uplink {
     return this.heartbeating;
   }
 
-  private async ensureLogin(): Promise<boolean> {
-    if (this.token) return true;
+  /** Logs in unless logged in, one login at a time (a call during one gets its outcome). Never rejects. */
+  private ensureLogin(): Promise<boolean> {
+    if (this.token) return Promise.resolve(true);
+    this.loggingIn ??= this.tryLogin().finally(() => {
+      this.loggingIn = null;
+    });
+    return this.loggingIn;
+  }
+
+  private async tryLogin(): Promise<boolean> {
     try {
       await this.logIn();
       this.loginBackoff = 500;
@@ -266,33 +336,52 @@ export class Uplink {
     this.login = null;
   }
 
-  /** Resolves true once the server has acknowledged reading `seq`, false after `ms`. */
-  waitForAck(seq: bigint, ms: number): Promise<boolean> {
-    if (this.deliveredSeq() >= seq) return Promise.resolve(true);
+  /**
+   * Whether the server holds reading `seq` of chain `chainId` (the current chain unless named), answered at most `ms`
+   * after the call. True once the server has acknowledged it (an upload's answer, or a login whose head covers it);
+   * the answer then waits for the watermark write that records the acknowledgement to finish (written, or failed and
+   * alarmed), but only until `ms` has passed: a slower disk makes it answer true before the watermark is on disk. False
+   * when the server has not acknowledged it within `ms` (or the uplink stops first). The uploads never wait for a
+   * watermark write (deliver), so the disk is not inside the wait for the server's answer; a new login during the wait
+   * is, since the login writes the watermark before anything is uploaded (P51).
+   */
+  waitForAck(seq: bigint, ms: number, chainId: string | null = this.options.journal.chainId): Promise<boolean> {
+    if (chainId !== null && chainId === this.options.journal.chainId && this.deliveredSeq() >= seq) return Promise.resolve(true);
     return new Promise((resolve) => {
-      const waiter = {
-        seq,
-        resolve: (ok: boolean) => {
-          clearTimeout(timer);
-          this.ackWaiters.delete(waiter);
-          resolve(ok);
-        },
+      let acked = false;
+      const finish = () => {
+        clearTimeout(timer);
+        this.ackWaiters.delete(waiter);
+        resolve(acked);
       };
-      const timer = setTimeout(() => waiter.resolve(false), ms);
+      const waiter: AckWaiter = {
+        chainId,
+        seq,
+        acknowledged: (written) => {
+          if (acked) return;
+          acked = true;
+          void written.then(finish, finish);
+        },
+        finish,
+      };
+      const timer = setTimeout(finish, ms);
       this.ackWaiters.add(waiter);
     });
   }
 
-  private notifyAcks(): void {
-    const delivered = this.deliveredSeq();
-    for (const w of [...this.ackWaiters]) if (delivered >= w.seq) w.resolve(true);
+  /**
+   * The server holds reading `seq` of chain `chainId` and every one before it: the captures waiting for those readings
+   * answer true once `written` (the watermark write that records it) has settled, or when their wait ends.
+   */
+  private notifyAcks(chainId: string, seq: bigint, written: Promise<void>): void {
+    for (const w of [...this.ackWaiters]) if (w.chainId === chainId && w.seq <= seq) w.acknowledged(written);
   }
 
   /** The last reading of the current chain the server holds, as it last said (the watermark unless that is behind). */
   deliveredSeq(): bigint {
     const held = this.serverHolds;
     const journal = this.options.journal;
-    return held !== null && held.chainId === journal.chainId ? held.seq : journal.ackedSeq;
+    return held !== null && held.basis.chainId === journal.chainId ? held.seq : journal.ackedSeq;
   }
 
   /** The readings of the current chain the server does not hold yet, in sequence. */
@@ -347,46 +436,89 @@ export class Uplink {
     if ((reason === null) !== (was === null)) this.readinessChanged();
   }
 
-  /** The server holds the chain up to `seq` (its acknowledgement, or its head): remember it and write the watermark. */
-  private async serverHoldsUpTo(seq: bigint): Promise<void> {
-    const chainId = this.options.journal.chainId;
-    if (!chainId) return;
-    this.serverHolds = { chainId, seq };
-    await this.writeWatermark();
+  /**
+   * The server holds the chain up to `seq` (its acknowledgement, or its head), as it said when asked on `basis` (the
+   * journal's basis when the request went out, so the chain of the readings it was about): remember it
+   * (deliveredSeq), start the watermark write and tell the captures waiting for these readings (they answer once the
+   * write has settled, or when their wait ends). Resolves when the write has settled; never rejects. An answer that
+   * arrives after a login's adoption of the server's head was asked for, to a request sent before it, is dropped here:
+   * nothing is remembered, written or answered for it, so the next batch starts after the login's head, not after what
+   * the server said before the login (decision X33).
+   */
+  private serverHoldsUpTo(basis: WatermarkBasis | null, seq: bigint): Promise<void> {
+    if (basis === null || !this.options.journal.isCurrent(basis)) return Promise.resolve();
+    this.serverHolds = { basis, seq };
+    const written = this.recordWatermark();
+    this.notifyAcks(basis.chainId, seq, written);
+    return written;
+  }
+
+  /**
+   * Writes the watermark to what the server holds, one write at a time: a request during a write runs one more after
+   * it, which writes what the server holds by then. Resolves once a write that began after this call has settled
+   * (written, or failed and alarmed); never rejects.
+   */
+  private recordWatermark(): Promise<void> {
+    if (this.watermarkWriting) {
+      this.watermarkAgain = true;
+      return this.watermarkWriting;
+    }
+    this.watermarkWriting = (async () => {
+      try {
+        do {
+          this.watermarkAgain = false;
+          await this.writeWatermark();
+        } while (this.watermarkAgain);
+      } finally {
+        this.watermarkWriting = null;
+      }
+    })();
+    return this.watermarkWriting;
   }
 
   /**
    * Writes the watermark to what the server holds. A failure keeps it in memory (deliveredSeq), is alarmed once and
-   * makes the gateway not ready; the next flush tries again.
+   * makes the gateway not ready; the next flush tries again. What the server said before a login's adoption was asked
+   * for (a write that waited behind a hung one, say) is stale by the time the journal takes it: it is dropped, not
+   * written and not a failure, and a failure recorded before it stands; the login writes the server's head and resets
+   * what is known once that write succeeds (decision X33). Never rejects.
    */
   private async writeWatermark(): Promise<void> {
     const journal = this.options.journal;
     const held = this.serverHolds;
     if (held === null) return;
-    if (held.chainId !== journal.chainId || held.seq === journal.ackedSeq) {
+    if (held.basis.chainId !== journal.chainId || held.seq === journal.ackedSeq) {
       this.serverHolds = null;
       this.setWatermarkFailure(null, journal.ackedSeq);
       return;
     }
-    const hash = held.seq === 0n ? genesisHash(held.chainId) : journal.all()[Number(held.seq) - 1]?.hash;
+    const hash = held.seq === 0n ? genesisHash(held.basis.chainId) : journal.all()[Number(held.seq) - 1]?.hash;
+    let outcome: 'ACKNOWLEDGED' | 'CONTINUE' | 'DIVERGED' | 'STALE';
     try {
       if (hash === undefined) throw new Error(`the journal holds no reading ${held.seq.toString()}`);
-      if (held.seq > journal.ackedSeq) await journal.acknowledge(held.seq, hash);
-      else await journal.adoptServerChain(held.chainId, { seq: held.seq.toString(), hash });
+      // The journal checks the basis under its lock, where the write is made: the check above is only a shortcut.
+      if (held.seq > journal.ackedSeq) outcome = await journal.acknowledge(held.basis, held.seq, hash);
+      else outcome = await journal.reconcile(held.basis, { seq: held.seq.toString(), hash });
     } catch (error) {
       this.setWatermarkFailure(error instanceof Error ? error.message : String(error), held.seq);
       return;
     }
     if (this.serverHolds === held) this.serverHolds = null;
-    this.setWatermarkFailure(null, held.seq);
+    if (outcome !== 'STALE') this.setWatermarkFailure(null, held.seq);
   }
 
   /**
    * Sends the readings the server does not hold, in order (single flight; a call during a flight runs one more pass),
-   * and writes the watermark if it is behind. Never rejects: a failure is alarmed, and what is not delivered or not
-   * recorded is tried again in the next pass.
+   * and writes the watermark if it is behind. Settles once the uploads have ended and the watermark writes they started
+   * have settled; the next pass does not wait for those writes. Never rejects: a failure is alarmed, and what is not
+   * delivered or not recorded is tried again in the next pass.
    */
   flush(): Promise<void> {
+    return this.send().then(() => this.watermarkWriting ?? undefined);
+  }
+
+  /** The uploads of flush(), single flight. Never rejects. */
+  private send(): Promise<void> {
     if (this.flushing) {
       this.flushAgain = true;
       return this.flushing;
@@ -438,8 +570,11 @@ export class Uplink {
     // Readings already journalled are delivered even after a failed append (they were written whole and synced).
     if (!journal.uploadable) return;
     if (!(await this.ensureLogin())) return;
-    await this.writeWatermark();
+    // A watermark left behind (its write failed) is written again, beside the uploads (P52).
+    if (this.serverHolds !== null) void this.recordWatermark();
     for (;;) {
+      // The basis of what the server's answer will say: taken with the batch, so it names the batch's chain.
+      const basis = journal.basis();
       const batch = this.undelivered().slice(0, 50);
       if (batch.length === 0) return;
       // A refused reading is offered again only after 30 s (the alarm is already raised; no alarm storm).
@@ -462,9 +597,9 @@ export class Uplink {
         const reading = batch.find((r) => r.readingId === last.readingId);
         if (reading && reading.seq === last.seq) {
           for (const r of res.results) this.options.capturedAt.delete(r.readingId);
-          // Kept in memory even when the watermark cannot be written, so the next batch starts after it.
-          await this.serverHoldsUpTo(BigInt(last.seq));
-          this.notifyAcks();
+          // Kept in memory even when the watermark cannot be written, so the next batch starts after it. The next batch
+          // does not wait for the watermark write: a reading queued behind these is not held up by the disk.
+          void this.serverHoldsUpTo(basis, BigInt(last.seq));
         }
       }
       if (res.refused) {
@@ -478,8 +613,20 @@ export class Uplink {
   }
 
   async heartbeat(): Promise<void> {
-    if (!(await this.ensureLogin())) return;
+    // DI-30, PR-20 (review P50, decision X31): a login under way never holds up a heartbeat once this gateway has had a
+    // session. The server can hold a login up in its database (the gateway account's row, which any command of that
+    // account keeps), while the gateway must log in again after a server restart or when its session ends. Until the
+    // login succeeds, the heartbeat goes out with the last login's token: the server still receives it (a receipt
+    // counts whatever the session's state, tablets 0350), so the gateway is not taken for silent meanwhile. A login the
+    // server refused, or that failed here, ends that (lastToken), so a gateway that cannot deliver still falls silent
+    // (P51). Before its first login the heartbeat waits for it.
+    const loggingIn = this.ensureLogin();
+    if (this.token === null && this.lastToken === null && !(await loggingIn)) return;
+    const token = this.token ?? this.lastToken;
+    if (token === null) return;
     const journal = this.options.journal;
+    // The basis of what the server's answer will say (its head), taken before the request goes out.
+    const basis = journal.basis();
     const body: HeartbeatRequest = {
       ...this.options.heartbeatBody(),
       gatewayTimeUs: this.options.clock.wallUs().toString(),
@@ -487,9 +634,10 @@ export class Uplink {
     };
     let res: HeartbeatResponse;
     try {
-      res = await this.post('/gw/v1/heartbeat', body, HeartbeatResponse, this.token);
+      res = await this.post('/gw/v1/heartbeat', body, HeartbeatResponse, token);
     } catch (error) {
-      if (error instanceof UplinkError && error.relogin) {
+      // Only the current session's token is dropped; an answer to a heartbeat sent with an older one changes nothing.
+      if (error instanceof UplinkError && error.relogin && this.token === token) {
         this.dropToken();
         void this.ensureLogin();
       }
@@ -497,14 +645,16 @@ export class Uplink {
     }
     // Reconciliation by counts (DI-31): the server holds fewer readings than acknowledged (e.g. restored from a
     // backup): the watermark moves back to its head (a head that is not a reading of this journal diverges it) and
-    // the journal sends the rest again. When the watermark cannot be moved, the server's head is kept in memory.
+    // the journal sends the rest again. When the watermark cannot be moved, the server's head is kept in memory. Both
+    // rest on the basis taken before the request: a login whose adoption of the server's head was asked for meanwhile
+    // (or another chain) makes them stale, and they are dropped (serverHoldsUpTo, or the journal under its lock; X33).
     const delivered = this.deliveredSeq();
-    if (this.login && journal.chainId === this.login.chainId && BigInt(res.head.seq) < delivered) {
+    if (basis !== null && this.login && journal.chainId === this.login.chainId && BigInt(res.head.seq) < delivered) {
       this.alarm({ kind: 'UPLINK_FAILED', message: `the server holds readings up to ${res.head.seq}, fewer than the ${delivered.toString()} it acknowledged; sending them again`, details: { serverSeq: res.head.seq } });
       const s = BigInt(res.head.seq);
       const ours = s === 0n ? genesisHash(journal.chainId) : journal.all()[Number(s) - 1]?.hash;
-      if (ours === res.head.hash) await this.serverHoldsUpTo(s);
-      else await journal.adoptServerChain(this.login.chainId, res.head);
+      if (ours === res.head.hash) await this.serverHoldsUpTo(basis, s);
+      else await journal.reconcile(basis, res.head);
     }
     if (this.undelivered().length > 0 || this.serverHolds !== null) void this.flush();
   }

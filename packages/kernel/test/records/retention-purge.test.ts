@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from 'node:crypto';
-import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { verifyChain } from '../../src/audit/verify.ts';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
@@ -21,6 +20,7 @@ import {
   verifyAnchorPurgeAware,
   verifyChainPurgeAware,
 } from '../../src/records/retention-store.ts';
+import { endPool, openPool } from '../harness/pools.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import type { SeededActor } from '../identity/seed.ts';
 import {
@@ -553,7 +553,7 @@ describe('Phase 1 exit: retention and purge hardening', () => {
       reset role;`);
     await allowRetention(db, 'tz_batch', ['BATCH_RECORD']);
     // A session with settings the application might use: every rendering of the row differs from the default.
-    const odd = new pg.Pool({
+    const odd = openPool({
       connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }),
       max: 1,
       options: '-c TimeZone=Pacific/Kiritimati -c DateStyle=SQL,DMY -c IntervalStyle=sql_standard -c extra_float_digits=-3 -c bytea_output=escape',
@@ -582,7 +582,7 @@ describe('Phase 1 exit: retention and purge hardening', () => {
       );
       expect(rows[0]?.purged_tables).toEqual([{ table: 'stub_b4.timed_reading', rowCount: 2, rowsDigestSha256: expected }]);
     } finally {
-      await odd.end();
+      await endPool(odd);
     }
   });
 

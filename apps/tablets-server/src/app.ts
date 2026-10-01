@@ -78,6 +78,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     const ctx: AppContext = {
       config,
       installation: config.installation,
+      log: app.log,
       pools,
       readDb: createReadDb(pools.app),
       guidance,

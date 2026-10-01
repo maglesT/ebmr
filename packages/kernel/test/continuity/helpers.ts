@@ -7,10 +7,10 @@ import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import pg from 'pg';
 import { dumpDatabase, dropDatabase, restoreDatabase, type BackupArtefact } from '../../src/continuity/backup-drill.ts';
 import { FileLedger } from '../../src/continuity/ledger.ts';
 import type { ActorContext } from '../../src/db/command.ts';
+import { endPool, openPool, urlOn } from '../harness/pools.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 import { ADMIN_URL, urlFor, type TestDatabase } from '../support/db.ts';
 
@@ -97,15 +97,22 @@ export async function restoreCopy(source: TestDatabase, artefact: BackupArtefact
     workDir: dir,
     ...(encryptionKey ? { encryptionKey } : {}),
   });
-  const admin = new pg.Pool({ connectionString: urlFor(name), max: 4 });
-  const app = new pg.Pool({ connectionString: urlFor(name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 4 });
+  return openRestoredCopy(name);
+}
+
+/**
+ * The superuser and application pools of a restored copy; `adminUrl` (default ADMIN_URL) names the server they connect
+ * to. drop() ends both pools, and once every backend they opened has exited (endPool), drops the copy.
+ */
+export function openRestoredCopy(name: string, adminUrl = ADMIN_URL): TestDatabase {
+  const admin = openPool({ connectionString: urlOn(adminUrl, name), max: 4 });
+  const app = openPool({ connectionString: urlOn(adminUrl, name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 4 });
   return {
     name,
     admin,
     app,
     async drop() {
-      await admin.end();
-      await app.end();
+      await Promise.all([endPool(admin), endPool(app)]);
       await dropDatabase(ADMIN_URL, name);
     },
   };

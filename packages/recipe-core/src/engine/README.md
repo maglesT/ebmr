@@ -118,7 +118,10 @@ exceptions never disappear (INV-41). The model-based tests run it after every co
 (`flow.test.ts`), loops and sub-lots (`loops.test.ts`), time (`time.test.ts`), segregation
 (`segregation.test.ts`), exceptions and skip (`exceptions.test.ts`), corrections and derived values
 (`corrections.test.ts`), issue, stage frames and hold points (`stage.test.ts`), model-based property
-tests (`model.test.ts`) and the simulator/engine agreement (`agreement.test.ts`).
+tests (`model.test.ts`) and the simulator/engine agreement (`agreement.test.ts`). The agreement test
+collects every simulator path of a flow, so its generated-shape properties take only shapes with at most
+2,000 paths by the closed-form count (about 1 generated shape in 550 has more and is skipped, as in the
+validator's path-count property); a few have millions, more than a test worker's heap holds.
 
 ## Phase 2 apps additions (module C3)
 

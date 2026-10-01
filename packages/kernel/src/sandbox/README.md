@@ -17,7 +17,9 @@ training data live in a separate database; GMP batches only from CURRENT or BRID
 | Batch source rule | `sql/0810`, `batchIssueProblem` | GMP: every market state of the pinned version is CURRENT or BRIDGING (`EBMR-SBX-012`). Sandbox: any version may be test-run. |
 | Watermark | `watermark.ts`, `sandbox.watermark()` | `TEST, NOT GMP` on every output of a sandbox and of every non-GMP function (simulation, training, analytics). |
 | Provisioning | `provision.ts` | Creates, migrates, marks, closes and checks a sandbox; upgrades re-level its privileges. |
-| Invariant query | `sandbox.segregation_problems()` | Must return no rows. GMP: any way in for the sandbox role (CONNECT, an object privilege, a default privilege, a membership, an elevated attribute). Sandbox: GMP roles or PUBLIC able to connect, privileges different from the mirror. |
+| Backend signals | `sql/0970`, `kernel.backend_signals_restricted()` | No role but a superuser may cancel or end another connection's work: `sandbox.apply_connect_policy()` takes `pg_cancel_backend` and `pg_terminate_backend` away from PUBLIC and every role that is not a superuser (function privileges live in the database, so a template copy keeps them; applying the policy again repairs a restore that lost them). `kernel.backend_signals_restricted()` reports whether the database holds the policy (also that no login role other than a superuser is in `pg_signal_backend`); the tablets manual-weighing gate refuses while it does not (tablets 0350, review P50 round 4). |
+| Listener login roles | `sql/0980`, `sandbox.role_mirror_differences(role, roles[])` | `ebmr_listener` (GMP) and `ebmr_sandbox_listener` (sandbox): an edition's evidence listener logs in with a role of its own (LOGIN, NOINHERIT, member of nothing, no members), CONNECT only on databases of its kind; inside a sandbox the sandbox one holds exactly the GMP one's object privileges (mirrored with the others). Migrations grant the GMP one only what the listener records (tablets 0350 item 6). The application roles `ebmr_app` and `ebmr_sandbox` get CONNECTION LIMIT = the cluster's slots for ordinary roles less 8, the listener's share, computed when a database is migrated (EBMR-SBX-036 when the cluster has no room for it; set it again after changing max_connections). Review P50 follow-up round 4, decisions X36, X38. |
+| Invariant query | `sandbox.segregation_problems()` | Must return no rows. GMP: any way in for the sandbox role or the sandbox listener (CONNECT, an object privilege, a default privilege, a membership, an elevated attribute). Sandbox: GMP roles (the GMP listener among them) or PUBLIC able to connect, privileges different from the mirror. Both: a listener role with an elevated attribute, a membership, or a member (kernel 0980). |
 
 ## Public API (`import { sandbox } from '@ebmr/kernel'` once exported)
 
@@ -41,8 +43,11 @@ SQL (granted to `ebmr_app`; mirrored to `ebmr_sandbox` in a sandbox):
 - `sandbox.identifier_problem(kind, value)`, `sandbox.identifier_problem_for(installation, kind, value)`,
   `sandbox.assert_identifier_allowed(kind, value)`; trigger function `sandbox.guard_identifier(kind, column [, column ...])`.
 - `sandbox.batch_issue_problem_for(installation, market_states)`, `sandbox.assert_batch_issue_allowed(market_states)`.
-- `sandbox.segregation_problems()`, `sandbox.direct_privileges(role)`, `sandbox.mirror_differences()`.
-- Superuser only: `sandbox.apply_connect_policy()`, `sandbox.mirror_application_privileges()`.
+- `sandbox.segregation_problems()`, `sandbox.direct_privileges(role)`, `sandbox.mirror_differences()`, `sandbox.role_mirror_differences(role, roles[])` (0980).
+- Superuser only: `sandbox.apply_connect_policy()` (connect policy, since kernel 0980 with the listener role of the
+  database's kind, and, since kernel 0970, backend signals), `sandbox.mirror_application_privileges()` (since kernel
+  0980 also `ebmr_sandbox_listener`).
+- Owner only (called by database code): `kernel.backend_signals_restricted()`.
 
 ## How other modules use it
 
@@ -64,9 +69,11 @@ SQL (granted to `ebmr_app`; mirrored to `ebmr_sandbox` in a sandbox):
   snapshot transaction); an importer into GMP calls `assertGmpOrigin(manifest.installation, 'True-copy bundle')`.
 - **Operations:** provision with `provisionSandboxDatabase`, upgrade only with `upgradeSandboxDatabase`
   (never plain `migrate`, which would not re-level the sandbox role). After a restore or a
-  `CREATE DATABASE ... TEMPLATE`, run `select sandbox.apply_connect_policy()` as the database owner: database
-  privileges are not copied. Other login roles that must reach a GMP database (backup, monitoring) need an
-  explicit `grant connect`. Run `sandbox.segregation_problems()` with the other invariant queries.
+  `CREATE DATABASE ... TEMPLATE`, run `select sandbox.apply_connect_policy()` as a superuser: database
+  privileges are not copied, and only a superuser can take the backend signals away (run by the database owner,
+  PostgreSQL only warns, and `kernel.backend_signals_restricted()` then answers false). Other login roles that must
+  reach a GMP database (backup, monitoring) need an explicit `grant connect`; none may be a member of
+  `pg_signal_backend`. Run `sandbox.segregation_problems()` with the other invariant queries.
 
 ## Error codes
 
@@ -75,7 +82,9 @@ name disagree, `-005` bad provisioning setting, `-006` bad sandbox name, `-007` 
 wrong kind, `-010` GMP-only action in a sandbox, `-011` sandbox-only action in GMP, `-012` batch source not
 allowed, `-013` non-GMP origin, `-014` watermark misuse, `-020` unknown kind, `-021` reserved test
 identifier in GMP, `-022` non-test identifier in the sandbox, `-023` misconfigured guard trigger, `-030`
-mirror outside a sandbox, `-031`..`-034` provisioning (exists, missing, not a sandbox, segregation check failed).
+mirror outside a sandbox, `-031`..`-034` provisioning (exists, missing, not a sandbox, segregation check failed), `-035`
+backend signals still open to roles other than superusers after the policy was applied (kernel 0970), `-036` no room
+in the cluster's connections for the listener's share (kernel 0980).
 Messages give the reason first, then the control, then the code.
 
 ## Tests (`packages/kernel/test/sandbox/`)
@@ -83,4 +92,9 @@ Messages give the reason first, then the control, then the code.
 `identifiers.test.ts` (rules, disjointness property, TypeScript and SQL agree on random input incl. NFKC
 look-alikes), `watermark.test.ts`, `installation.test.ts` (GMP marker, identifier guard, connect policy,
 copy under a sandbox name), `bypass.test.ts` (INV-18 bypass attempts through the sandbox role; DI-05 catalog
-test), `provision.test.ts` (provisioning, upgrade re-levelling, no half-built sandbox, kind/name mismatch).
+test), `provision.test.ts` (provisioning, upgrade re-levelling, no half-built sandbox, kind/name mismatch);
+`test/security/listener-roles.test.ts` (the listener roles, their segregation and mirror, the application roles'
+connection limits).
+`helpers.ts#openSandbox` gives a test sandbox's pools; its `drop()` ends them with `endPool` (`test/harness/pools.ts`),
+which waits until the socket of every connection has closed, before the forced drop (checked in
+`test/harness/teardown.test.ts`).

@@ -6,12 +6,14 @@
  *
  * Every route passes the same gates, in this order:
  *  1. (global hooks) correlation id, X-Ebmr-Installation, no-store, exact Origin and Sec-Fetch-Site on non-GET;
+ *     a route counted `by: 'DEVICE'` then passes its rate limit, before the session lookup and the handler;
  *  2. session: 401 without a live session, 423 when locked, 409 until the role is chosen (SESSION routes);
  *  3. CSRF token bound to the session token (non-GET SESSION routes);
  *  4. Idempotency-Key (REQUIRED routes): 428 when missing;
  *  5. attribution (FRESH_ON_SHARED routes on SHARED and GRADE_A_B terminals): the C1 hook, 428 without a tap;
  *  6. the handler, with a typed context.
  */
+import { normalizeIP } from '@fastify/rate-limit';
 import type { FastifyInstance, FastifyReply, FastifyRequest, preHandlerAsyncHookHandler, preHandlerHookHandler } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
@@ -19,6 +21,7 @@ import type { ActorContext } from '@ebmr/kernel';
 import { RefusalEnvelope, type AnyRoute, type Attribution, type RouteBody, type RouteNamespace, type RouteParams, type RouteQuery, type RouteResponse } from '@ebmr/api-contract';
 import { actorFrom } from '../auth/actor.ts';
 import { resolveAttribution } from '../auth/attribution.ts';
+import { spkiFingerprint } from '../auth/device-proof.ts';
 import { isShopFloor, requestTokenHash, resolveSession, type ResolvedSession } from '../auth/session.ts';
 import type { AppContext } from '../context.ts';
 import { refusal } from './refusal.ts';
@@ -63,9 +66,46 @@ export interface RateLimitSpec {
   by?: 'IP_AND_IDENTIFIER' | 'SESSION';
 }
 
+/**
+ * The device nonce (decision 0004 X22-X27, X34), counted per terminal key and client address, under a count shared by
+ * the unproven requests of the address and a ceiling per address. The request names the key the nonce is for (`spki`;
+ * the nonce is bound to it, nonces.ts) and may show a proof ticket (`lastNonce`): the nonce of this key's last
+ * successful device proof as an active browser terminal, which counts once (DeviceIdentityProvider.takeProofTicket).
+ * With a ticket, in order:
+ *  1. `max` per key and address (TERMINAL): a terminal past its own count is refused without costing the address's
+ *     allowance or a query, so one noisy terminal's own requests cannot starve the others behind the same address;
+ *  2. `addressMax` per address (ADDRESS), for every request that got past its first count;
+ *  3. the key must still be enrolled to an ACTIVE browser terminal (a plain read, no alert); if it is not, the request
+ *     is unproven after all and counts toward `unprovenMax` too (UNPROVEN).
+ * Without one (none, used, unknown, expired, or another key's), the request is unproven, whatever key it names:
+ *  1. refused (TERMINAL) at once, counting nothing, when the key's own count is already full;
+ *  2. `unprovenMax` per address (UNPROVEN), shared by every unproven request of the address: together they get no more
+ *     room than the whole address had before, and take at most `unprovenMax` of its `addressMax`;
+ *  3. `addressMax` per address (ADDRESS);
+ *  4. `max` per key and address (TERMINAL): every nonce bound to a key counts here, with a ticket or without, so
+ *     whoever holds one terminal's private key gets no more than `max` usable nonces a minute from one address.
+ *     The price (X34): unproven requests that name a terminal's public key fill that terminal's count, and a full
+ *     `unprovenMax` refuses every request of the address without a ticket, so a caller at the address that holds no
+ *     private key can keep terminals from getting a nonce while it keeps asking (it gets none they can use).
+ * A key enters the per-key count only with a ticket (a successful proof, so an enrolled private key) or past steps 2
+ * and 3, so invented keys cannot push another terminal's count out of memory. An IPv6 address is counted by its /64
+ * network (the rate-limit plugin's default grouping). The answer carries the x-ratelimit-* headers of the fullest count
+ * it passed, or of the count that refused it with Retry-After; a refusal is logged at warn.
+ */
+export interface DeviceRateLimitSpec {
+  by: 'DEVICE';
+  timeWindow: string;
+  max: number;
+  unprovenMax: number;
+  addressMax: number;
+}
+
 export interface BindOptions {
-  /** Per route name. Auth, tap and unlock 10/min per IP and identifier; sign 20/min per session (plan section 5). */
-  rateLimits?: Readonly<Record<string, RateLimitSpec>>;
+  /**
+   * Per route name. Auth, tap and unlock 10/min per IP and identifier; sign 20/min per session (plan section 5); the
+   * device nonce per terminal and address under a ceiling per address (DeviceRateLimitSpec).
+   */
+  rateLimits?: Readonly<Record<string, RateLimitSpec | DeviceRateLimitSpec>>;
 }
 
 /** Routes that work while the session is locked (to show the lock, unlock, switch or leave). */
@@ -102,6 +142,94 @@ export async function sessionOf(app: AppContext, request: FastifyRequest): Promi
   return request.ebmrSession;
 }
 
+/** The counts of a device nonce: the terminal key's own, the address's ceiling, the one the unproven requests share. */
+type DeviceLimit = 'TERMINAL' | 'ADDRESS' | 'UNPROVEN';
+
+/** `limit` names the count that was full. */
+function tooManyNonceRequests(limit: DeviceLimit, why: string): Error {
+  return refusal(
+    429,
+    {
+      code: 'RATE_LIMITED',
+      kind: 'LOCKED',
+      whatHappened: 'Too many requests in a short time.',
+      why,
+      controls: ['DI-19', 'DI-20'],
+      whatYouCanDo: ['Wait a minute and try again.'],
+      whoCanHelp: ['The system administrator, if it happens again'],
+      details: { limit },
+    },
+    true,
+  );
+}
+
+interface CountResult {
+  max: number;
+  remaining: number;
+  ttlInSeconds: number;
+}
+
+/** The headers the rate-limit plugin sends (x-ratelimit-*; Retry-After on a refusal). */
+function rateHeaders(reply: FastifyReply, result: CountResult, refused: boolean): void {
+  void reply.header('x-ratelimit-limit', result.max);
+  void reply.header('x-ratelimit-remaining', refused ? 0 : result.remaining);
+  void reply.header('x-ratelimit-reset', result.ttlInSeconds);
+  if (refused) void reply.header('retry-after', result.ttlInSeconds);
+}
+
+/** The rate-limit gate of a route counted `by: 'DEVICE'` (see DeviceRateLimitSpec for the order of the checks). */
+function deviceRateGate(scope: FastifyInstance, app: AppContext, routeId: string, rl: DeviceRateLimitSpec): preHandlerAsyncHookHandler {
+  // The body is validated before the preHandler hooks run: `spki` is there.
+  const claims = new WeakMap<FastifyRequest, { address: string; fingerprint: string }>();
+  const claimOf = (request: FastifyRequest): { address: string; fingerprint: string } => {
+    let claim = claims.get(request);
+    if (!claim) {
+      claim = { address: normalizeIP(request.ip), fingerprint: spkiFingerprint((request.body as { spki: string }).spki) };
+      claims.set(request, claim);
+    }
+    return claim;
+  };
+  const counts: Record<DeviceLimit, ReturnType<FastifyInstance['createRateLimit']>> = {
+    TERMINAL: scope.createRateLimit({ max: rl.max, timeWindow: rl.timeWindow, keyGenerator: (r) => `${routeId}|${claimOf(r).address}|key|${claimOf(r).fingerprint}` }),
+    ADDRESS: scope.createRateLimit({ max: rl.addressMax, timeWindow: rl.timeWindow, keyGenerator: (r) => `${routeId}|${claimOf(r).address}` }),
+    UNPROVEN: scope.createRateLimit({ max: rl.unprovenMax, timeWindow: rl.timeWindow, keyGenerator: (r) => `${routeId}|${claimOf(r).address}|unproven` }),
+  };
+  const why: Record<DeviceLimit, string> = {
+    TERMINAL: `More than ${rl.max} device nonces were asked for with this terminal's key from this network address within ${rl.timeWindow}.`,
+    ADDRESS: `More than ${rl.addressMax} device nonces were asked for from this network address within ${rl.timeWindow}.`,
+    UNPROVEN: `Requests that did not show the nonce of their terminal's last device proof asked for more than ${rl.unprovenMax} device nonces from this network address within ${rl.timeWindow}.`,
+  };
+  return async (request, reply) => {
+    const body = request.body as { spki: string; lastNonce?: string };
+    const refuse = (limit: DeviceLimit, result: CountResult): never => {
+      rateHeaders(reply, result, true);
+      const { address, fingerprint } = claimOf(request);
+      request.log.warn({ limit, address, keyFingerprint: fingerprint, correlationId: String(request.id) }, 'device nonce refused: rate limit');
+      throw tooManyNonceRequests(limit, why[limit]);
+    };
+    const passed: CountResult[] = [];
+    const count = async (limit: DeviceLimit): Promise<void> => {
+      const result = await counts[limit](request);
+      if (result.isAllowed) return;
+      if (result.isExceeded) refuse(limit, result);
+      passed.push(result);
+    };
+    if (body.lastNonce !== undefined && app.devices.takeProofTicket(body.spki, body.lastNonce)) {
+      await count('TERMINAL');
+      await count('ADDRESS');
+      if ((await app.devices.enrolledTerminal(body.spki)) === null) await count('UNPROVEN');
+    } else {
+      const own = await counts.TERMINAL(request, { increment: false });
+      if (!own.isAllowed && own.remaining === 0) refuse('TERMINAL', own);
+      await count('UNPROVEN');
+      await count('ADDRESS');
+      await count('TERMINAL');
+    }
+    const fullest = passed.reduce<CountResult | undefined>((a, b) => (a === undefined || b.remaining < a.remaining ? b : a), undefined);
+    if (fullest) rateHeaders(reply, fullest, false);
+  };
+}
+
 function noSession(): Error {
   return refusal(401, {
     code: 'NO_SESSION',
@@ -120,6 +248,8 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     if (!handler) throw new Error(`no handler for route ${route.id}`);
     const nonGet = route.method !== 'GET';
     const preHandlers: (preHandlerHookHandler | preHandlerAsyncHookHandler)[] = [];
+    const rl = opts.rateLimits?.[name];
+    if (rl?.by === 'DEVICE') preHandlers.push(deviceRateGate(scope, app, route.id, rl));
 
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       const session = await sessionOf(app, request);
@@ -175,7 +305,6 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     };
     preHandlers.push(commandGate);
 
-    const rl = opts.rateLimits?.[name];
     typed.route({
       method: route.method,
       url: route.path,
@@ -185,7 +314,7 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
         ...(route.body && nonGet ? { body: route.body } : {}),
         ...(route.stream ? {} : { response: { 200: route.response, '4xx': RefusalEnvelope, '5xx': RefusalEnvelope } }),
       },
-      ...(rl
+      ...(rl && rl.by !== 'DEVICE'
         ? {
             config: {
               rateLimit: {

@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { terminalOf } from '@ebmr/test-kit';
 import { ORIGINS, startServer, type TestServer } from '../support/harness.ts';
 
 let gmp: TestServer;
@@ -96,7 +97,7 @@ describe('P8: the DI-13 request checks do not depend on how the path is spelled'
     }
     expect(await nonces()).toBe(before);
     // The literal spelling works as ever.
-    const same = await gmp.app.inject({ method: 'POST', url: '/api/session/device-nonce', payload: {}, headers: SAME_ORIGIN });
+    const same = await gmp.app.inject({ method: 'POST', url: '/api/session/device-nonce', payload: { spki: terminalOf(gmp.seed, 'PC-DESIGN-01').key?.publicKeySpki }, headers: SAME_ORIGIN });
     expect(same.statusCode).toBe(200);
     expect(await nonces()).toBe((before ?? 0) + 1);
   });

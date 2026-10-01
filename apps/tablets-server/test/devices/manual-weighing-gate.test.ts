@@ -19,6 +19,11 @@
  * and standing for the heartbeat window (10 s), refuses a heartbeat of the room written in the weighing's own
  * transaction, takes the API report only from the server's gateway API monitor identity, and records with the weighing
  * (tab.manual_weighing_basis) the status and reason of every scale of the room it counted.
+ *
+ * Round-4 verification (tablets 0350; manual-weighing-interference.test.ts proves the levers): the room lock is a row
+ * the application role cannot lock, taken by the gate in share mode without waiting; a scale's not-online state counts
+ * only when it was not reported ONLINE in the 10 s before the weighing's transaction began (or since), so the manual
+ * path opens 10 s after a scale goes offline; and the API report counts from when another transaction first saw it.
  */
 import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -28,6 +33,7 @@ import { adminActor, fakeGateway } from './support.ts';
 import {
   forgedWeighing,
   forgedWeighingRow,
+  GATE_WINDOW_MS,
   handKeyed,
   monitorActor,
   newRun,
@@ -65,10 +71,10 @@ async function until(check: () => Promise<boolean>, stop: () => boolean, ms = 15
   return false;
 }
 
-/** Whether a gateway heartbeat of this database waits on a room's lock (tab.record_heartbeat, tablets 0310). */
+/** Whether a gateway heartbeat of this database waits on a lock (tab.record_heartbeat: its room's row, tablets 0350). */
 async function heartbeatWaitsOnLock(): Promise<boolean> {
   const { rows } = await rig.server.db.admin.query<{ n: number }>(
-    "select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock' and wait_event = 'advisory' and query like 'select tab.record_heartbeat%'",
+    "select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock' and query like 'select tab.record_heartbeat%'",
   );
   return (rows[0]?.n ?? 0) > 0;
 }
@@ -122,7 +128,9 @@ describe('review P50, round-1 verification: the database refuses hand-keyed weig
         e['balance'] = 'TEST-BAL-00';
       }),
     };
-    await report(rig, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
+    // No scale of the room online: the manual path opens once TEST-BAL-01 has been reported offline for the heartbeat
+    // window (tablets 0350), so the refusals below are for the balance and the source only.
+    await standFor(rig, GATE_WINDOW_MS, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
     const noneOnline = {
       otherRoomBalance: await weighing((e) => {
         e['balance'] = 'TEST-BAL-02';
@@ -173,7 +181,7 @@ describe('review P50, round-1 verification: the database refuses hand-keyed weig
     // the office PC through); the gate of tablets 0310 alone refuses the hand-keyed weights there.
     const d = await newRun(rig, { content: roomFreeDispensing() });
     await reachPcm(d);
-    await report(rig, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
+    await standFor(rig, GATE_WINDOW_MS, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
     const { server } = rig;
     const rowsBefore = (await rowsOf(server, d.runId)).length;
     // operator1 signs in on the office PC (TEST-PC-01, registered to no room).
@@ -189,13 +197,13 @@ describe('review P50, round-1 verification: the database refuses hand-keyed weig
     expect(await violations(server)).toEqual([]);
   }, 300_000);
 
-  it('[PR-20][DI-30][DI-31] heartbeats and hand-keyed weighings of a room are serialised: a heartbeat waits for the weighing being recorded, and a weighing checked while a heartbeat of its room is being written is refused without waiting', async () => {
+  it('[PR-20][DI-30][DI-31] heartbeats and hand-keyed weighings of a room are serialised: a heartbeat waits for the weighing being recorded, and a weighing checked meanwhile is refused without waiting, as the heartbeat waiting was received saying the scale is ONLINE', async () => {
     const d = await newRun(rig);
     await reachPcm(d);
     // A second run in the same room, by operator2 on the DISP-1 kiosk (another person, another session).
     const other = await newRun(rig, { browsers: { issuer: d.browser('issuer'), operator2: await rig.server.asPersona('operator2', 'TEST-KIOSK-DISP-1'), verifier1: d.browser('verifier1') } });
     await reachPcm(other, 'operator2');
-    await report(rig, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
+    await standFor(rig, GATE_WINDOW_MS, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
 
     let heartbeat: Promise<{ status: number; body: unknown }> | undefined;
     let heartbeatDone = false;
@@ -210,8 +218,9 @@ describe('review P50, round-1 verification: the database refuses hand-keyed weig
         );
         seen.heartbeatWaited = await until(heartbeatWaitsOnLock, () => heartbeatDone);
         seen.heartbeatDoneBeforeCommit = heartbeatDone;
-        // Meanwhile operator2 keys a weighing of the other run in the room by hand: whether a scale is online is not
-        // known until the heartbeat is written, so it is refused at once (it never waits for the heartbeat).
+        // Meanwhile operator2 keys a weighing of the other run in the room by hand: the heartbeat that waits was received
+        // saying TEST-BAL-01 is ONLINE (tab.heartbeat_receipt, tablets 0350), so it is refused at once (it never waits
+        // for the heartbeat).
         const r = await Promise.race([other.command('operator2', handKeyed), new Promise<'WAITED'>((res) => setTimeout(() => res('WAITED'), 20_000))]);
         seen.otherWeighing = r === 'WAITED' ? r : `${outcomeOf(r)} ${r.ok ? '' : refusalOf(r).why}`;
       },
@@ -224,7 +233,7 @@ describe('review P50, round-1 verification: the database refuses hand-keyed weig
       heartbeatDoneBeforeCommit: false,
       otherWeighing: '422:EBMR-EXE-074',
     });
-    expect(seen.otherWeighing).toMatch(/A scale of room DISP-1 is reporting its status at this moment/);
+    expect(seen.otherWeighing).toMatch(/Scale TEST-BAL-01 of room DISP-1 is shown offline \(the site gateway reports it OFFLINE\), but it has been reported offline for less than the 10 seconds before this weighing began, or reported ONLINE since/);
     // The heartbeat was written once the weighing had committed: the scale is online now, and hand-keyed weights are
     // refused again.
     expect(await statuses(rig)).toEqual([
@@ -283,9 +292,9 @@ async function switchTo(c: { query(sql: string, params: unknown[]): Promise<unkn
 }
 
 /** The database's refusal of a weight keyed by hand while the report that the scale cannot be used is too young (group 1: that report). */
-const YOUNG_REPORT = /Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \((.+)\) was made in this transaction or less than 10 seconds before it began, so it does not open the manual path yet.*\[EBMR-EXE-074\]$/;
+const YOUNG_REPORT = /Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \((.+)\) was made in this transaction, or had been seen by other transactions for less than 10 seconds when it began, so it does not open the manual path yet.*\[EBMR-EXE-074\]$/;
 /** The same refusal as the server answers it (the code is the refusal's, not part of `why`). */
-const YOUNG_REPORT_WHY = /^Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \(the server cannot reach the site gateway's API \(test: the API does not answer\)\) was made in this transaction or less than 10 seconds before it began/;
+const YOUNG_REPORT_WHY = /^Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \(the server cannot reach the site gateway's API \(test: the API does not answer\)\) was made in this transaction, or had been seen by other transactions for less than 10 seconds when it began/;
 const BESIDE: Readonly<Record<string, 'ONLINE' | 'OFFLINE'>> = { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'ONLINE' };
 
 describe('review P50/P51, round-3 verification: the gate opens only on reports committed before the weighing and standing for the heartbeat window (tablets 0340)', () => {
@@ -416,14 +425,17 @@ describe('review P50/P51, round-3 verification: the gate opens only on reports c
     const rows = await rowsOf(rig.server, d.runId);
     expect(rows.length).toBe(rowsBefore + 1);
     const heartbeatUs = expect.stringMatching(/^[0-9]+$/) as unknown;
+    // Tablets 0350 item 6: with the start of the window the gateway listener vouched for (it put everything it received
+    // on record), without which the report would not have counted.
+    const attestedUs = expect.stringMatching(/^[0-9]+$/) as unknown;
     expect((await basisOf(d.runId)).slice(basisBefore)).toEqual([
       {
         seq: rows.at(-1)?.seq,
         source: 'MANUAL',
         room: 'DISP-1',
         scales: [
-          { deviceCode: 'TEST-BAL-00', gatewayCode: 'TEST-GW-01', status: 'OFFLINE', reason: 'the site gateway reports it OFFLINE', lastHeartbeatUs: heartbeatUs },
-          { deviceCode: 'TEST-BAL-01', gatewayCode: 'TEST-GW-01', status: 'OFFLINE', reason: "the server cannot reach the site gateway's API (test: the API has not answered for a while)", lastHeartbeatUs: heartbeatUs },
+          { deviceCode: 'TEST-BAL-00', gatewayCode: 'TEST-GW-01', status: 'OFFLINE', reason: 'the site gateway reports it OFFLINE', lastHeartbeatUs: heartbeatUs, attestedFromUs: attestedUs },
+          { deviceCode: 'TEST-BAL-01', gatewayCode: 'TEST-GW-01', status: 'OFFLINE', reason: "the server cannot reach the site gateway's API (test: the API has not answered for a while)", lastHeartbeatUs: heartbeatUs, attestedFromUs: attestedUs },
         ],
       },
     ]);
@@ -492,7 +504,7 @@ describe('review P50/P51, round-3 verification: the gate opens only on reports c
     expect(await violations(rig.server)).toEqual([]);
   }, 300_000);
 
-  it('[PR-20][DI-30][DI-32] a heartbeat written in the weighing\'s own transaction under the live gateway session\'s actor (built with the application role alone), also inside a savepoint, never opens the manual path; the same heartbeat committed before the weighing is the gateway\'s report', async () => {
+  it('[PR-20][DI-30][DI-32] a heartbeat written in the weighing\'s own transaction under the live gateway session\'s actor (built with the application role alone), also inside a savepoint, never opens the manual path; the gateway\'s own heartbeats saying OFFLINE for the heartbeat window do', async () => {
     const d = await pcmRun();
     await report(rig, BESIDE);
     const gw = await stolenGatewayActor();
@@ -524,8 +536,9 @@ describe('review P50/P51, round-3 verification: the gate opens only on reports c
     expect(await rowCount(d.runId)).toBe(rowsBefore);
     expect(await statuses(rig)).toEqual([['TEST-BAL-00', 'OFFLINE'], ['TEST-BAL-01', 'ONLINE']]);
 
-    // Control: the gateway reports TEST-BAL-01 OFFLINE in its own heartbeat, committed before the weighing.
-    await report(rig, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
+    // Control: the gateway reports TEST-BAL-01 OFFLINE in its own heartbeats, committed before the weighing, for the
+    // heartbeat window (tablets 0350: a not-online state counts once no report said ONLINE in the window).
+    await standFor(rig, GATE_WINDOW_MS, { 'TEST-BAL-00': 'OFFLINE', 'TEST-BAL-01': 'OFFLINE' });
     expect(await forgedWeighing(rig, d)).toBe('ok');
     expect(await rowCount(d.runId)).toBe(rowsBefore + 1);
     await report(rig, BESIDE);

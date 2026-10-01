@@ -6,11 +6,11 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import pg from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
 import { KERNEL_MIGRATIONS, migrate } from '../../src/db/migrate.ts';
 import { sandboxDatabaseName } from '../../src/sandbox/installation.ts';
 import { provisionSandboxDatabase, segregationProblems, upgradeSandboxDatabase } from '../../src/sandbox/provision.ts';
+import { endPool, openPool } from '../harness/pools.ts';
 import { ADMIN_URL, createTestDatabase, urlFor } from '../support/db.ts';
 import { SANDBOX_LOGIN, asAdmin, databaseExists, dropDatabase, editionMigrationSources, onServer, sandboxTestName, uniqueSuffix } from './helpers.ts';
 
@@ -129,7 +129,7 @@ describe('provisioning the sandbox database', () => {
           reset role;`,
       });
       const sources = [...editionMigrationSources(), { namespace: 'a4-probe', directory: probe }];
-      const sandbox = new pg.Pool({ connectionString: urlFor(name, SANDBOX_LOGIN), max: 1 });
+      const sandbox = openPool({ connectionString: urlFor(name, SANDBOX_LOGIN), max: 1 });
       try {
         const report = await upgradeSandboxDatabase({ adminUrl: ADMIN_URL, database: name, sources });
         expect(report.created).toBe(false);
@@ -147,7 +147,7 @@ describe('provisioning the sandbox database', () => {
         await expect(sandbox.query('delete from a4_upgrade.t')).rejects.toThrow(/permission denied/);
         expect(await segregationProblems(sandbox)).toEqual([]);
       } finally {
-        await sandbox.end();
+        await endPool(sandbox);
       }
     },
     LONG,

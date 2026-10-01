@@ -24,6 +24,12 @@ export const EnvSchema = z.object({
   EBMR_DB_APP_URL: z.string().optional(),
   /** Authentication service connection (ebmr_authn on GMP, ebmr_sandbox on the sandbox). Required in production. */
   EBMR_DB_AUTHN_URL: z.string().optional(),
+  /**
+   * The gateway listener's own connection (kernel 0980: ebmr_listener on GMP, ebmr_sandbox_listener on the sandbox): what
+   * it puts on record (heartbeat receipts, answers of the gateway's API, its ticks; tablets 0350). Required in production
+   * when EBMR_GATEWAY_LISTEN is set.
+   */
+  EBMR_DB_LISTENER_URL: z.string().optional(),
   /** Exact origin the browser uses, port included, e.g. http://localhost:3001. */
   EBMR_PUBLIC_ORIGIN: z.url(),
   EBMR_HOST: z.string().default('127.0.0.1'),
@@ -60,6 +66,8 @@ export interface EnvConfig {
   database: string;
   appUrl: string;
   authnUrl: string;
+  /** The gateway listener's own login (EBMR_DB_LISTENER_URL). */
+  listenerUrl: string;
   publicOrigin: string;
   https: boolean;
   host: string;
@@ -119,7 +127,13 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   if (production && (!e.EBMR_DB_APP_URL || !e.EBMR_DB_AUTHN_URL || !e.EBMR_SECRETS_FILE)) {
     throw new ConfigError('EBMR_ENV=production needs EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL and EBMR_SECRETS_FILE (no development credentials)');
   }
-  const role = e.EBMR_INSTALLATION === 'GMP' ? { app: 'ebmr_app', authn: 'ebmr_authn' } : { app: 'ebmr_sandbox', authn: 'ebmr_sandbox' };
+  if (production && e.EBMR_GATEWAY_LISTEN && !e.EBMR_DB_LISTENER_URL) {
+    throw new ConfigError('EBMR_ENV=production with EBMR_GATEWAY_LISTEN needs EBMR_DB_LISTENER_URL, the gateway listener\'s own login (no development credentials)');
+  }
+  const role =
+    e.EBMR_INSTALLATION === 'GMP'
+      ? { app: 'ebmr_app', authn: 'ebmr_authn', listener: 'ebmr_listener' }
+      : { app: 'ebmr_sandbox', authn: 'ebmr_sandbox', listener: 'ebmr_sandbox_listener' };
   let secrets = { csrfHmacKey: randomKey(), nonceKey: randomKey() };
   if (e.EBMR_SECRETS_FILE) {
     if (!existsSync(e.EBMR_SECRETS_FILE)) throw new ConfigError(`EBMR_SECRETS_FILE ${e.EBMR_SECRETS_FILE} does not exist`);
@@ -138,6 +152,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     database: e.EBMR_DATABASE,
     appUrl: e.EBMR_DB_APP_URL ?? devUrl(e.EBMR_PG_HOST, e.EBMR_PG_PORT, e.EBMR_DATABASE, role.app),
     authnUrl: e.EBMR_DB_AUTHN_URL ?? devUrl(e.EBMR_PG_HOST, e.EBMR_PG_PORT, e.EBMR_DATABASE, role.authn),
+    listenerUrl: e.EBMR_DB_LISTENER_URL ?? devUrl(e.EBMR_PG_HOST, e.EBMR_PG_PORT, e.EBMR_DATABASE, role.listener),
     publicOrigin: origin.origin,
     https,
     host: e.EBMR_HOST,

@@ -1,12 +1,12 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import pg from 'pg';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { buildTrueCopyBundle, registerTrueCopy, serializeBundle, verifyTrueCopyBundle, verifyTrueCopyBundleText } from '../../src/records/true-copy.ts';
+import { endPool, openPool } from '../harness/pools.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import { again, testActor, withReason } from './helpers.ts';
 
@@ -218,7 +218,7 @@ describe('true copies after the Phase 1 exit review (F34, critic: session settin
   const oddSession = '-c TimeZone=Pacific/Kiritimati -c DateStyle=SQL,DMY -c IntervalStyle=sql_standard -c extra_float_digits=-3 -c bytea_output=escape';
 
   it('[INV-08][DI-47] a bundle of rows with time stamps, dates, intervals, floats and bytes verifies and is identical whatever the session settings of the writer and the builder', async () => {
-    const odd = new pg.Pool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 1, options: oddSession });
+    const odd = openPool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 1, options: oddSession });
     try {
       const batch = randomUUID();
       const values = "($1, '2026-01-02T03:04:05.123456Z', '2026-01-02', interval '5 hours 30 minutes', 0.1::float8 + 0.2::float8, '\\x00ff'::bytea)";
@@ -241,7 +241,7 @@ describe('true copies after the Phase 1 exit review (F34, critic: session settin
       expect(fromOdd.parts['audit-chain.json']).toBe(fromDefault.parts['audit-chain.json']);
       expect(fromOdd.parts['records.json']).toContain('2026-01-02T04:04:05+00:00');
     } finally {
-      await odd.end();
+      await endPool(odd);
     }
   });
 

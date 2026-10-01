@@ -104,20 +104,26 @@ describe('installation marker in a GMP database', () => {
     const onTemplate = await onServer(async (s) =>
       (
         await s.query<{ r: string; c: boolean }>(
-          "select r, has_database_privilege(r, $1, 'CONNECT') as c from unnest(array['ebmr_sandbox', 'ebmr_app', 'ebmr_authn']) r order by r",
+          "select r, has_database_privilege(r, $1, 'CONNECT') as c from unnest(array['ebmr_sandbox', 'ebmr_app', 'ebmr_authn', 'ebmr_listener', 'ebmr_sandbox_listener']) r order by r",
           [template],
         )
       ).rows,
     );
+    // Kernel 0980: the listener role of the database's kind may connect, the sandbox's may not.
     expect(onTemplate).toEqual([
       { r: 'ebmr_app', c: true },
       { r: 'ebmr_authn', c: true },
+      { r: 'ebmr_listener', c: true },
       { r: 'ebmr_sandbox', c: false },
+      { r: 'ebmr_sandbox_listener', c: false },
     ]);
     // CREATE DATABASE ... TEMPLATE does not copy database privileges, so a copy starts open to PUBLIC (the test
     // harness re-applies the policy for every test database; undo that here to show the invariant query reports it).
     await db.admin.query(`grant connect on database ${db.name} to public`);
-    expect(await segregationProblems(db.app)).toEqual([`ebmr_sandbox can connect to the GMP database ${db.name}`]);
+    expect(await segregationProblems(db.app)).toEqual([
+      `ebmr_sandbox can connect to the GMP database ${db.name}`,
+      `ebmr_sandbox_listener can connect to the GMP database ${db.name}`,
+    ]);
     await applyConnectPolicy(db.admin);
     expect(await segregationProblems(db.app)).toEqual([]);
     expect(await attempt(db.name, SANDBOX_LOGIN)).toMatch(/permission denied for database/);

@@ -10,7 +10,7 @@
 | @fastify/cookie | 11.1.2 | apps/tablets-server | Opaque session-token cookie per installation (HttpOnly, SameSite=Strict, Secure on https) and the CSRF cookie |
 | @fastify/csrf-protection | 8.0.1 | apps/tablets-server | Session-bound CSRF tokens on every mutating route (outline 4.7), alongside exact Origin and Sec-Fetch-Site checks |
 | @fastify/helmet | 13.1.1 | apps/tablets-server | Strict CSP (worker-src 'self', no Trusted Types), COOP/CORP, nosniff and referrer policy on the served SPA and API |
-| @fastify/rate-limit | 11.2.0 | apps/tablets-server | Throttles login, tap, unlock and sign (outline 4.7); kernel lockout stays the authoritative control |
+| @fastify/rate-limit | 11.2.0 | apps/tablets-server | Throttles login, tap, unlock and sign (outline 4.7), and device nonces per terminal under a ceiling per address (its `createRateLimit` counts); kernel lockout stays the authoritative control |
 | @fastify/static | 10.1.5 | apps/tablets-server | Serves the built SPA from the same origin as the API in demo and E2E, so cookies and CSP stay simple |
 | zod | 4.6.5 | packages/api-contract, packages/integration-sdk (scale subpath), apps/tablets-server, apps/site-gateway | One schema language for the API contract, gateway messages and env config (ADR 0003) |
 | pg | 8.23.0 | apps/tablets-server, packages/test-kit, tools/demo (same pin as kernel and recipe-core) | Database pools; kernel and recipe-core wrappers take pg clients; test-kit and demo create and seed databases |

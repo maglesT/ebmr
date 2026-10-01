@@ -130,7 +130,7 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
     const code = terminalCode ?? (kind === 'GMP' ? 'PC-DESIGN-01' : 'TEST-PC-01');
     const key: DeviceKey | null = terminalOf(seed, code).key;
     const jar = new Map<string, string>();
-    const state = { csrf: undefined as string | undefined };
+    const state = { csrf: undefined as string | undefined, lastNonce: undefined as string | undefined };
     const fetchLike: FetchLike = async (url, init) => {
       const res = await app.inject({
         method: init.method as 'GET',
@@ -169,9 +169,12 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
       },
       async proof(method, path, body) {
         if (!key) throw new Error(`terminal ${code} has no browser key`);
-        const r = await client.call(routes.session.deviceNonce, { body: {} });
-        if (!r.ok) throw new Error(`no nonce: ${JSON.stringify(r.error)}`);
         const spki = key.publicKeySpki;
+        // As the browser does: the nonce request names the terminal's key (the nonce is bound to it) and shows the nonce
+        // of this browser's last proof (its proof ticket, counted toward the terminal's own rate limit).
+        const r = await client.call(routes.session.deviceNonce, { body: { spki, ...(state.lastNonce !== undefined ? { lastNonce: state.lastNonce } : {}) } });
+        if (!r.ok) throw new Error(`no nonce: ${JSON.stringify(r.error)}`);
+        state.lastNonce = r.value.nonce;
         const message = `${r.value.nonce}|${method.toUpperCase()}|${path}|${sha256Hex(canonicalJson(body))}`;
         return { spki, nonce: r.value.nonce, sig: signDeviceProof(key, message) };
       },

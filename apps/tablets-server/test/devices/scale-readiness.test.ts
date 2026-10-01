@@ -17,15 +17,20 @@
  * Round 3 (tablets 0340): the server records what it observes of the API as its gateway API monitor identity (this
  * server holds it: its service-keys file has the monitor's entry), and a hand-keyed weighing beside a scale whose
  * heartbeat says ONLINE is accepted only once the API report (or the refusal) has stood for the heartbeat window.
+ * Round 4 (tablets 0350): the window of the API report runs from when another transaction first saw it, the report
+ * counts only while the API has not answered the server since it was made (the server records each answer on its
+ * own, before the monitor's command), and the room locks are rows that only the database's own functions take.
  * Room DISP-1 holds TEST-BAL-01 (the enrolled gateway's scale) and TEST-BAL-00 (never reported).
  */
+import { randomUUID } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { identity, toDbContext, type ActorContext } from '@ebmr/kernel';
 import { CaptureRequest, type CaptureResponse, type GatewayHealth } from '@ebmr/integration-sdk/scale';
 import { scaleStatusRows } from '../../src/features/devices/port.ts';
 import { fakeGateway } from './support.ts';
-import { forgedWeighing, handKeyed, monitorActor, newRun, reachPcm, recordContact, report, standFor, startRig, stopRig, type Rig } from './room-scales-support.ts';
+import { forgedWeighing, GATE_WINDOW_MS, handKeyed, monitorActor, newRun, reachPcm, recordContact, report, standFor, startRig, stopRig, type Rig } from './room-scales-support.ts';
 import { outcomeOf, refusalOf, violations } from '../execution/support.ts';
 
 let rig: Rig;
@@ -102,11 +107,11 @@ async function eventually(check: () => Promise<boolean>, tries = 160): Promise<b
   return false;
 }
 
-/** Whether a statement starting with `statement` waits on a room lock of tablets 0310 (an advisory lock), until `stop`. */
+/** Whether a statement starting with `statement` waits on a lock (a room's row of tab.scale_room_lock, tablets 0350), until `stop`. */
 async function waitsOnRoomLock(statement: string, stop: () => boolean): Promise<boolean> {
   for (let i = 0; i < 300 && !stop(); i += 1) {
     const { rows } = await rig.server.db.admin.query<{ n: number }>(
-      "select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock' and wait_event = 'advisory' and query like $1",
+      "select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock' and query like $1",
       [`${statement}%`],
     );
     if ((rows[0]?.n ?? 0) > 0) return true;
@@ -166,7 +171,7 @@ describe('review P51, server side: a scale is ONLINE only while a capture on it 
     // A weight keyed by hand at once is refused: the report has not yet stood for the heartbeat window (tablets 0340).
     const early = await d.command('operator1', handKeyed);
     expect(outcomeOf(early)).toBe('422:EBMR-EXE-074');
-    expect(refusalOf(early).why).toMatch(/less than 10 seconds before it began/);
+    expect(refusalOf(early).why).toMatch(/had been seen by other transactions for less than 10 seconds when it began/);
     // Once it has (the heartbeats still arrive and say ONLINE, and each probe still finds the API down), the manual
     // two-person path is open: the hand-keyed weighing is recorded (before 0320: EBMR-EXE-074, the scale was shown
     // online, and the capture was refused too).
@@ -314,4 +319,182 @@ describe('review P51, server side: a scale is ONLINE only while a capture on it 
     expect((await bal01()).status).toBe('ONLINE');
     expect(await violations(rig.server)).toEqual([]);
   }, 120_000);
+
+  it('[PR-20][DI-30][DI-31] review P50, round 4: once the API answers the server\'s probes again, the report that it could not be reached no longer opens the manual path, even while a holder of the application role\'s credentials holds up the monitor\'s report that it is reachable; a probe never waits for the monitor, so the next heartbeat probes again (tablets 0350)', async () => {
+    const d = await newRun(rig);
+    await reachPcm(d);
+    apiMode = 'up';
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await bal01()).toEqual({ status: 'ONLINE', reason: null });
+    // A capture cannot reach the API: the server's monitor records it, in its own live session. The next heartbeat sees
+    // the report committed, and its probe finds the API still down.
+    apiMode = 'down';
+    expect(outcomeOf(await capture(d))).toBe('503:SCALE_OFFLINE');
+    expect((await bal01()).reason).toMatch(/cannot reach the site gateway's API/);
+    const probes = () => apiRequests.filter((x) => x.endsWith('GET /v1/health')).length;
+    const probesBefore = probes();
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await eventually(() => Promise.resolve(probes() > probesBefore))).toBe(true);
+    await new Promise((r) => setTimeout(r, 500));
+    const seen = await rig.server.db.admin.query<{ seen: boolean }>('select seen_at is not null as seen from tab.gateway_api_contact');
+    expect(seen.rows).toEqual([{ seen: true }]);
+    // The API answers again. In a command of the monitor's own live session (read from tab.device_alarm and
+    // iam.session), the application role holds the report's row, so the monitor cannot record the API reachable.
+    apiMode = 'up';
+    const holder = await rig.server.db.app.connect();
+    try {
+      await holder.query('begin');
+      await holder.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(await liveMonitorActor()))]);
+      await holder.query("select tab.record_gateway_api_contact('TEST-GW-01', false, 'test: held by the application role')");
+      const answersBefore = await answers();
+      // The gateway reports ONLINE; each heartbeat has the server probe the API, which answers.
+      await standFor(rig, 19_500, { 'TEST-BAL-01': 'ONLINE' });
+      expect(await answers()).toBeGreaterThanOrEqual(answersBefore + 2);
+      // The server's monitor commands wait one at a time (the latest observation queued), never one per probe.
+      const waiting = await rig.server.db.admin.query<{ n: number }>(
+        "select count(*)::int as n from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock' and (query like 'select kernel.begin_command%' or query like 'select tab.record_gateway_api_contact%')",
+      );
+      expect(waiting.rows[0]?.n).toBe(1);
+      expect((await bal01()).status).toBe('OFFLINE');
+      const keyed = await d.command('operator1', handKeyed);
+      expect(outcomeOf(keyed)).toBe('422:EBMR-EXE-074');
+      expect(refusalOf(keyed).why).toMatch(/^Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \(.+\) is answered: the gateway's API answered the server after that report was made/);
+    } finally {
+      await holder.query('rollback').catch(() => undefined);
+      holder.release();
+    }
+    // Released, the monitor records the answer: ONLINE again.
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await eventually(async () => (await bal01()).status === 'ONLINE')).toBe(true);
+    expect(await violations(rig.server)).toEqual([]);
+  }, 120_000);
+
+  it('[PR-20][DI-30][DI-31] review P50, follow-up round 4: while the answers of the gateway\'s API to the server\'s probes cannot be recorded (a superuser\'s lock on tab.gateway_api_answer holds each past the receipts pool\'s 2 s limit) and the monitor\'s report that the API is reachable is held up, the report that it could not be reached never opens the manual path beside the scale whose heartbeats say ONLINE: each answer lost leaves its tick unclean, and the database vouches for no window (tablets 0350 item 6)', async () => {
+    const d = await newRun(rig);
+    await reachPcm(d);
+    apiMode = 'up';
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await bal01()).toEqual({ status: 'ONLINE', reason: null });
+    // A capture cannot reach the API: the monitor reports it; the next heartbeat sees the report, and its probe finds
+    // the API still down.
+    apiMode = 'down';
+    expect(outcomeOf(await capture(d))).toBe('503:SCALE_OFFLINE');
+    const probes = () => apiRequests.filter((x) => x === 'up GET /v1/health').length;
+    const downProbes = () => apiRequests.filter((x) => x === 'down GET /v1/health').length;
+    const downBefore = downProbes();
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await eventually(() => Promise.resolve(downProbes() > downBefore))).toBe(true);
+    await new Promise((r) => setTimeout(r, 500));
+    expect((await rig.server.db.admin.query<{ seen: boolean }>('select seen_at is not null as seen from tab.gateway_api_contact')).rows).toEqual([{ seen: true }]);
+    // The API answers again, but no answer can be recorded (inserts wait past the statement's limit; reads do not), and
+    // the application role holds the report's row in a command of the monitor's live session.
+    apiMode = 'up';
+    const lock = await rig.server.db.admin.connect();
+    const holder = await rig.server.db.app.connect();
+    const samples: { status: string; why: string | null }[] = [];
+    let sampling = true;
+    const sampler = (async () => {
+      while (sampling) {
+        const { rows } = await rig.server.db.admin.query<{ status: string; why: string | null }>(
+          "select x ->> 'status' as status, x ->> 'why' as why from jsonb_array_elements(tab.manual_weighing_scales('DISP-1')) x where x ->> 'deviceCode' = 'TEST-BAL-01'",
+        );
+        samples.push(rows[0] ?? { status: 'MISSING', why: null });
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    })();
+    try {
+      await lock.query('begin');
+      await lock.query('lock table tab.gateway_api_answer in exclusive mode');
+      await holder.query('begin');
+      await holder.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(await liveMonitorActor()))]);
+      await holder.query("select tab.record_gateway_api_contact('TEST-GW-01', false, 'test: held by the application role')");
+      const answersBefore = await answers();
+      const probesBefore = probes();
+      // Longer than the heartbeat window and the listener's vouching lag together: before tablets 0350 item 6 the report,
+      // seen and unanswered on record, counted here.
+      await standFor(rig, GATE_WINDOW_MS + 2000, { 'TEST-BAL-01': 'ONLINE' });
+      expect(probes()).toBeGreaterThanOrEqual(probesBefore + 3);
+      expect(await answers()).toBe(answersBefore);
+      expect((await bal01()).reason).toMatch(/cannot reach the site gateway's API/);
+      const keyed = await d.command('operator1', handKeyed);
+      expect(outcomeOf(keyed)).toBe('422:EBMR-EXE-074');
+      expect(refusalOf(keyed).why).toMatch(/^Scale TEST-BAL-0[01] of room DISP-1 is shown offline \(.+\), but the gateway listener has not put on record that everything it received in the 10 seconds before this weighing began is recorded/);
+    } finally {
+      sampling = false;
+      await sampler;
+      await lock.query('rollback').catch(() => undefined);
+      lock.release();
+      await holder.query('rollback').catch(() => undefined);
+      holder.release();
+    }
+    expect(samples.length).toBeGreaterThan(40);
+    expect(samples.filter((x) => x.status !== 'ONLINE')).toEqual([]);
+    expect(samples.at(-1)).toEqual({ status: 'ONLINE', why: 'UNATTESTED' });
+    // Released, the next probe's answer is recorded and the monitor records the API reachable: ONLINE again.
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await eventually(async () => (await bal01()).status === 'ONLINE')).toBe(true);
+  }, 120_000);
+
+  it('[DI-30][PR-20][DI-31] review P50, round 4: a heartbeat held up in its command still has the server probe the gateway\'s API (the heartbeat as received asks for it), so an API that answers again is recorded reachable', async () => {
+    apiMode = 'up';
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await bal01()).toEqual({ status: 'ONLINE', reason: null });
+    const monitor = await monitorActor(rig);
+    expect(await recordContact(rig, false, 'test: the API did not answer', monitor)).toBe(true);
+    expect((await bal01()).status).toBe('OFFLINE');
+    const holder = await rig.server.db.app.connect();
+    try {
+      // The live gateway session is held in a command of the application role: the heartbeat's own command waits (it
+      // ends after 4 s, in the background), the heartbeat is answered 503 when its 3 s are up (decision X29), but it
+      // was received first and the server probes the API.
+      await holder.query('begin');
+      await holder.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(await stolenGatewayActor()))]);
+      const answersBefore = await answers();
+      const hb = await rig.gw.heartbeat([{ deviceCode: 'TEST-BAL-01', state: 'ONLINE', serial: 'SIM-0001' }]);
+      expect(hb).toMatchObject({ status: 503, body: { error: { code: 'HEARTBEAT_PENDING', relogin: false } } });
+      expect(await eventually(async () => (await answers()) > answersBefore)).toBe(true);
+      expect(
+        await eventually(async () => (await rig.server.db.admin.query<{ reachable: boolean }>('select reachable from tab.gateway_api_contact')).rows[0]?.reachable === true),
+      ).toBe(true);
+    } finally {
+      await holder.query('rollback').catch(() => undefined);
+      holder.release();
+    }
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    expect(await bal01()).toEqual({ status: 'ONLINE', reason: null });
+    await identity.endSession(rig.server.db.app, monitor.sessionId);
+  }, 120_000);
 });
+
+/** The answers of the gateway's API the server recorded (tab.gateway_api_answer, tablets 0350). */
+async function answers(): Promise<number> {
+  return (await rig.server.db.admin.query<{ n: number }>('select count(*)::int as n from tab.gateway_api_answer')).rows[0]?.n ?? 0;
+}
+
+/** The actor of the live gateway session, as a holder of the application role's credentials reads it (iam.session). */
+async function stolenGatewayActor(): Promise<ActorContext> {
+  const { rows } = await rig.server.db.app.query<{ id: string; person_id: string; account_id: string; device_id: string; legal_name: string }>(
+    `select s.id, s.person_id, s.account_id, s.device_id, p.legal_name
+       from iam.session s join iam.device d on d.id = s.device_id join iam.person p on p.id = s.person_id
+      where d.code = 'TEST-GW-01' and s.ended_at is null order by s.opened_at desc limit 1`,
+  );
+  const s = rows[0];
+  if (!s) throw new Error('SETUP: no live gateway session');
+  return { personId: s.person_id, accountId: s.account_id, roleCode: 'SITE_GATEWAY', sessionId: s.id, deviceId: s.device_id, source: 'INTEGRATION', siteZone: rig.server.config.siteZone, legalName: s.legal_name, correlationId: randomUUID() };
+}
+
+/**
+ * The actor of the session the server's own gateway API monitor records in (the session of its latest EBMR-DEV-071
+ * alarm), as the application role can read it (tab.device_alarm, iam.session).
+ */
+async function liveMonitorActor(): Promise<ActorContext> {
+  const { rows } = await rig.server.db.app.query<{ id: string; person_id: string; account_id: string; device_id: string; legal_name: string }>(
+    `select s.id, s.person_id, s.account_id, s.device_id, p.legal_name
+       from iam.session s join iam.person p on p.id = s.person_id
+      where s.ended_at is null
+        and s.id = (select a.session_id from tab.device_alarm a where a.code = 'EBMR-DEV-071' order by a.id desc limit 1)`,
+  );
+  const s = rows[0];
+  if (!s) throw new Error('SETUP: the server has no live monitor session');
+  return { personId: s.person_id, accountId: s.account_id, roleCode: 'GATEWAY_API_MONITOR', sessionId: s.id, deviceId: s.device_id, source: 'SYSTEM', siteZone: rig.server.config.siteZone, legalName: s.legal_name, correlationId: randomUUID() };
+}

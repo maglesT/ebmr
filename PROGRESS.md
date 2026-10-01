@@ -481,3 +481,388 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   workflows are strictly sequential; agents' `until ! pgrep -f "<pattern>"` wait loops match their own shell and never
   end (killed by hand). Backups of the unverified work were kept on branches wip/phase-2-merge-adaptation and
   wip/phase-2-review-fixes (not for merging; kept on the owner's instruction not to delete things).
+- 2026-09-30: P50 RESIDUAL NARROWED, NOT CLOSED (follow-up item p50-gate-vs-app-role, round 1; STILL OPEN item (1)
+  above; this entry first said CLOSED, which its verifier refuted: see rounds 2 and 3 below for what stayed open, and
+  round 4 (2026-10-01), which makes the gate fail closed when the listener cannot put its evidence on record).
+  Tablets 0350 and kernel 0970: the room locks are rows of the owner-only tab.scale_room_lock (no advisory lock); no
+  role but a superuser may cancel or end another connection (sandbox.apply_connect_policy revokes
+  pg_cancel_backend/pg_terminate_backend; kernel.backend_signals_restricted(), and the gate refuses while it is false);
+  the listener records every heartbeat as received (tab.heartbeat_receipt) before its command, on a pool of its own
+  with a 4 s limit on each statement (each one, not a heartbeat as a whole: round 2), and a missing heartbeat counts
+  only when none was received; a not-online state counts once recorded for 10 s with no ONLINE heartbeat
+  received since (X12 route (a), stricter); the API report counts from when it was first seen and only while the API
+  has not answered (tab.gateway_api_answer; the server's probes record each answer first and never wait for the
+  monitor's command, which runs one at a time); the gate refuses outside READ COMMITTED; p50_noadmin killed by a DI-18
+  structural test. Defaults X15-X21 in docs/decisions/phase-2-open-questions.md (X11/X12 replaced by X19/X18). Tests:
+  apps/tablets-server/test/devices/manual-weighing-interference.test.ts, packages/kernel/test/security/backend-signals.test.ts.
+  No dedicated listener login role (X16). Items (2) and (3) above are not part of this follow-up.
+- 2026-09-30: E2E DEVICE-NONCE LIMIT CLOSED (follow-up item e2e-device-nonce-limit, second attempt after an adversarial
+  review of the first; STILL OPEN item (2) above). The first attempt let a claimed, unproven public key choose the count,
+  so a caller holding no private key got 480 nonces a minute from one address, nonces were not bound to a key, and a
+  flood of invented keys from a second address reset a terminal's count. Now: every nonce is bound to the key it is asked
+  for (`spki`, required; the HMAC covers the key's fingerprint, nonces.ts), so only that key's proof can use it, and the
+  gateway listener's login nonce (unbound, no rate limit) no longer serves a browser proof. A request counts as a
+  terminal of its own only with a proof ticket (`lastNonce`: the nonce of that key's last successful proof as an ACTIVE
+  browser terminal, 10 minutes, once; `ProofTickets` in device-proof.ts; the key still enrolled when shown). bind.ts
+  `by: 'DEVICE'`: with a ticket 120/min per key and address first (a noisy terminal costs nothing else), then 480/min per
+  address; without one the request is unproven whatever key it names: refused at once when its key's count is full, else
+  120/min shared by the address's unproven requests, then 480/min, then its key's count, so every nonce bound to one key
+  counts toward that key's 120. IPv6 by /64; x-ratelimit-* headers and Retry-After as the plugin sent them; refusals
+  logged at warn. Web client and test harness send `lastNonce`. Defaults X22-X27 in
+  docs/decisions/phase-2-open-questions.md. Tests: apps/tablets-server/test/session/device-nonce-limit.test.ts (13,
+  including the reviewer's three attacks), apps/tablets-web/test/api.test.ts; 21 mutations of the new code all killed.
+  E2E twice (EBMR_E2E_ECHO=1, server logs at warn): 20/20 both (3.0 min each), no device-nonce, 429 or RATE_LIMITED
+  line (a pretty warn line does reach the echoed log: checked with the server's own logger options). Snapshots of the
+  E2E databases taken every 3 s: the sandbox server minted up to 122 nonces in any 60 s over all terminals (240 in the
+  run); the GMP server minted up to 19. This entry first gave the busiest terminal's authentication events (73 in 60 s
+  for TEST-KIOSK-DISP-1) as its nonce count, which undercounts (a page identifying its terminal at start-up asks for a
+  nonce and makes no authentication event); the direct counts per key are in ROUND 2 below (TEST-KIOSK-DISP-1 up to 85
+  in the rate limit's own windows and 95 in the worst 60 s, against 120). Item (3) above is not part of this follow-up.
+- 2026-09-30: TEST-KIT TEARDOWN RACE CLOSED (follow-up item test-kit-teardown-race, second attempt after an adversarial
+  review of the first; STILL OPEN item (3) above, the teardown part). Root cause: pg-pool 3.14's end() takes its idle
+  clients off its list, asks each to end and resolves at once, before their sockets close; `DatabaseHandle.close()`
+  therefore returned while a backend could still be waiting to read its client's Terminate message, the forced drop that
+  followed terminated it (FATAL 57P01), the client, still ending, got the error while idle, and the pool re-emitted it as
+  an 'error' event with no listener, which Vitest counts as an unhandled error. Now every pool the test-kit makes comes
+  from `openPool` and is ended by `endPool` (packages/test-kit/src/db.ts), which resolves once the socket of every
+  connection the pool opened has closed: for a connection ended cleanly PostgreSQL closes it only when the backend has
+  exited; a connection pg cuts itself (broken, or a query still running) is not waited for, but its closed socket can
+  receive nothing from the drop (the first attempt's docs claimed every backend had exited; corrected in db.ts, the
+  tests and M1-C0-spine.md). A pool made by `openPool` refuses its own `end()` (no caller used it), and `endPool` refuses
+  a pool it cannot follow. `openDatabase().close()` and `bootstrapInstallation` use it. The review found the same race,
+  with no error listener, in kernel test helpers of the db project: `openSandbox().drop()` and the restored copy of
+  `restoreCopy()` (and a pool ended in the last test of mutation/signature-invalidation.test.ts before the file's drop).
+  The kernel may import nothing outside itself, so its tests have their own copy (packages/kernel/test/harness/pools.ts),
+  used there and by the kernel tests that end a pool of their own (signing, signature-invalidation, true-copy,
+  retention-purge, sandbox provision). No error listener was added and nothing is caught. Tests (`[meta]`):
+  packages/test-kit/test/teardown.test.ts (12) and packages/kernel/test/harness/teardown.test.ts (10), through
+  packages/kernel/test/harness/relay.ts, a TCP relay that keeps back each client's Terminate message and lets the
+  connections go one at a time. The shared check gives every pool two idle connections, holds their Terminates, requires
+  the teardown to stay pending for 500 ms and after each connection let go (once its pool has removed the client), with
+  500 ms more while only the last is held, and runs once per pool let go last; each handle is checked to have exactly the
+  pools the cases name. A teardown that ends pools and nothing else (`close()`, the kernel's `endPool`) must also have
+  resolved by the next macrotask once the last client is removed, so a fixed wait of any length fails, not only one under
+  about a second; a drop() that drops too early ends a backend still held, which its pool reports as an unhandled 57P01.
+  `bootstrapInstallation` stays pending until its last connection has closed. Structural checks: outside the listed files
+  (with reasons) no test code makes a pg.Pool without `openPool`. Mutations, each run 3 times, all killed on every run
+  (93 of 93): endPool waiting for one connection per pool, a fixed 150 ms or 3000 ms wait, no wait (test-kit and kernel
+  copies); close() ending any one of its three pools, or all, with pg-pool's own end(), leaving out a pool, not awaiting;
+  the refusal of end() removed, endPool taking any pool, openPool making a plain pool; bootstrap with pg-pool's end(), not
+  awaited, the original code; both kernel drop()s ending either pool with pg-pool's end(), not awaiting, the original
+  code. The original close() and drop() with the tests' refusal checks removed are killed by the relay check alone (6 of
+  6). Without the new resolves-at-once check the 3000 ms wait survives (the reviewer's 150 ms one does not). Reverting
+  any of the nine files moved to `openPool` fails a structural check. Left open: the kernel's test/support/db.ts (not
+  touched, per the Phase 2 plan) still silences its two pools' errors before its drop; kernel/test/identity/helpers.ts
+  `authnLoginPool` has its own no-op error listener; review/f55.test.ts ends the pools of its restored cluster with
+  pg-pool's end() before stopping that cluster (no forced drop); the tablets devices runtime ends its reports pool with
+  pg-pool's end() under its own listener for idle errors; the bootstrap check cannot see the pool inside
+  `bootstrapInstallation`, so only `endPool` itself is checked to resolve at once; the load-sensitive
+  apps/site-gateway/test/delivery-readiness.test.ts is not part of this follow-up. No owner-facing default was taken.
+  Round 2 (the verifier's minor points; the item stays CLOSED). (a) No case covered a client that pg-pool's idle timeout
+  had already removed (10 s by default in the pools of `openDatabase`) and that was still ending when `endPool` started:
+  pg-pool's own end() no longer sees it, and an `endPool` that waited only for the clients pg-pool still listed passed
+  all the cases. New shared check `expectEndPoolWaitsForIdleRemovedClient` (relay.ts), run on both copies of `endPool`,
+  each with the removed client alone and with another still idle in the pool (let go first): idle timeout 100 ms, every
+  Terminate held from before the release; `endPool` must stay pending until the removed client is let go and resolve
+  by the next macrotask once its pool reports it removed. Mutation: that weaker `endPool` in both copies passes the 18
+  earlier cases and fails the 4 new ones (at the first 500 ms check alone, after the idle client is let go with it);
+  `FollowedPool` itself is unchanged (it already followed every connection it opened), only its docs name the case.
+  (b) apps/tablets-server/test/platform/read-db.test.ts ended the pools of its server itself and never dropped its copy
+  of the GMP template, so every run left one `ebmr_t_*` database behind: it now ends them and drops the copy in its
+  `finally`, and checks that the copy is gone (killed with the drop removed). It had also stopped proving what it is
+  for: a pool made by `openPool` refuses its own end() and the app's close() lets an error of the read database's
+  destroy() go, so Kysely handed the application pool (or a view whose end() ends it) left the pool usable and the test
+  passed. It now watches the pool's end() and fails with either mutation of `createReadDb`. Copies leaked by earlier
+  runs are still on the development server (58 `ebmr_t_*` databases when this round started); they were left alone, as
+  another run may be using a copy of that name pattern. No owner-facing default was taken.
+- 2026-09-30: GATEWAY DELIVERY-READINESS TIMING, ROUND 1: NOT CLOSED (follow-up item gateway-delivery-readiness-timing;
+  the load-sensitive test named in STILL OPEN item (3) above; second attempt, after a skeptic's review of the first fix;
+  this entry first said CLOSED, which its verifier refuted: the pipelined watermark writer below let a write made on
+  what the server said before a login land after it; see ROUND 2 below).
+  Symptom: in a full parallel run the restart case of apps/site-gateway/test/delivery-readiness.test.ts once got
+  uplinked:false from its last capture (18.4 s); alone it passes. Root cause, a race in the gateway rather than the
+  test: a capture waits at most 5 s for the server's acknowledgement (Uplink.waitForAck), but at base the waiters were
+  told only after the acknowledgement watermark had been written (writeAtomic: open, fsync, rename, directory fsync),
+  and the upload pass waited for that write before it sent the next batch, so the 5 s raced the gateway's own disk.
+  Evidence: inside that wait the base code does two HTTP exchanges with the in-process fake server (a few ms under
+  load) and one watermark write (0.4-3.4 s in probes of that very write under three disk-heavy profiles, load average
+  15-22). The restart flow timed phase by phase under 4 CPU hogs and 20 writers of 256 MB with fsync (load average
+  about 25): the whole case takes 22-30 s on base and fixed code alike (the first login alone 3-11 s: five fsyncs). On
+  base code 28 such rounds never answered uplinked:false (the original failure was not reproduced unaided here, nor by
+  the fixer or the skeptic; I/O throttling with cgroups is not permitted in this sandbox), but the flush just before
+  the last capture, the same work its wait covers at base (an upload and one watermark write), took up to 4.7 s of the
+  5 s, and the last capture up to 5.8 s with its journal write. With the fix the last capture answered uplinked:true
+  in all 16 rounds, one of them after 6.4 s. The named-pipe tests below make the base code give the failing answer
+  deterministically. First fix (reviewed): a waiter stopped its clock at the acknowledgement and answered after the
+  write however long it took. The skeptic showed: (a) a capture queued behind another reading's upload still waited
+  for that reading's watermark write before it was even sent (uplinked:false at 5.26 s, deterministic); (b) the answer
+  had no bound, so a disk stalled for some seconds could push it past the 20 s of the server's capture request
+  (apps/tablets-server/src/features/devices/runtime.ts) and have the server record a working gateway's API as
+  unreachable (SCALE_OFFLINE, the manual path may open), where the base code answered uplinked:false at 5 s and the
+  server found its row; (c) the docs overclaimed "only the server's answer is timed"; (d) a login whose head covers a
+  waiting capture's reading did not tell it. Fix (apps/site-gateway/src/uplink.ts, gateway.ts): no upload waits for a
+  watermark write (serverHoldsUpTo starts it on a single-flight writer, one write at a time, the last writing what the
+  server holds by then; the loop sends the next batch from the in-memory deliveredSeq); flush() releases its single
+  flight when its uploads end, so a pass started meanwhile sends at once, and still settles only after the writes they
+  started (`await flush()` still means recorded, or failed and alarmed); a login whose head is a reading of the
+  journal's chain tells the waiters it covers before its own write; waiters are keyed by chain (a re-enrolment's new
+  chain never answers a waiter of the old one true; at base an acknowledgement of the same sequence number did); an
+  acknowledged waiter answers once the write has settled but never after its 5 s from the journalling
+  (CAPTURE_ACK_WAIT_MS), so the answer is bounded as at base and a slow disk never turns an acknowledged reading into
+  uplinked:false; stop() answers an acknowledged waiter true at once. The one disk write left inside the wait is that
+  of a login during it (the server ended the session), which writes the server's head before any upload and fails when
+  it cannot (P51). Tests in delivery-readiness.test.ts (the watermark's temporary file made a named pipe, so its write
+  hangs): an acknowledged reading answered uplinked when its 5 s end while the write hangs (not later, not false); a
+  capture queued behind another reading in the same pass sent and acknowledged while that reading's write hangs (the
+  fake server holds the challenge until the capture is journalled: the skeptic's case without timing); a pass started
+  while an earlier pass's write hangs sends at once; a lost upload answer, then a new login, answers uplinked; a
+  waiter of a replaced chain stays false; stop answers an acknowledged capture at once. The first fix's test is
+  replaced by the first of these (it required no answer during the stall, i.e. the unbounded wait). Test support:
+  FakeServer.challengeGate and loseUploadAnswers. Mutations (each reverted, the file compared byte for byte): base
+  uplink.ts fails all 6 new tests, the first fix all 6; a pass that keeps its single flight until its writes settle
+  fails the pass test; awaiting the write in the loop fails 2; no bound after the acknowledgement fails the first;
+  answering at the acknowledgement without waiting for the write fails gateway.test.ts (watermark written at the
+  answer); no login notice, waiters not keyed by chain (notice or early answer), stop not answering, no retry of a
+  failed write at the start of a pass, and flush not awaiting the writes each fail at least one test. Load runs of
+  delivery-readiness.test.ts with gateway.test.ts: 10 times alongside 8 CPU hogs on 4 CPUs (load average about 9):
+  10/10, all 24 tests. 10 times alongside 4 CPU hogs and 20 writers of 256 MB with fsync (load average about 25; the
+  load paused while the db project builds its template): the six new tests and gateway.test.ts 10/10; the restart case
+  8/10 (22.7-28.9 s), twice it reached the 30 s test timeout, never a wrong answer; the 51-append test timed out
+  10/10. Default X28 rewritten in docs/decisions/phase-2-open-questions.md; M6-C5-gateway-scale.md updated. Left open:
+  (1) Under that disk profile each fsync takes about 1-2 s: the restart case (about 14 fsyncs and the 5 s its refused
+  capture must wait) runs 22-30 s on base and fixed code alike, and the first test of the file (51 appends, one fsync
+  each) runs past 30 s; disk throughput, not a race; no timeout raised, no test changed for it. (2) A disk slower than
+  the rest of the 5 s makes the capture answer true before the watermark is on disk, so gateway.test.ts's check of the
+  watermark at the answer would fail then (at base its uplinked:true check failed under the same condition). (3) Not
+  changed, found on the way: the server names no stability timeout in its capture request and allows 20 s, while a
+  gateway may be configured with a stability timeout of up to 30 s, so an unstable balance on such a gateway can
+  outlast the server's request.
+- 2026-09-30: P50 RESIDUAL, FOLLOW-UP ROUND 2 (item p50-gate-vs-app-role, reopened by its round-1 verifier: "not by
+  starving reports" was still open). The 4 s statement limit bounded each statement of a heartbeat, not the heartbeat:
+  its waits (a connection of the 4-connection reports pool, kernel.begin_command on the session's row,
+  tab.record_heartbeat on the room's row, the commit) added up, and the gateway sends its next heartbeat only after the
+  answer, so the gap between receipts followed their sum; the RELOGIN branch after a restart ran on the application
+  pool with no limit; and every listener request, authenticated or not, used the reports pool first (the time-zone
+  check, then the receipt before the session lookup). Now (apps/tablets-server/src/features/devices/listener.ts,
+  runtime.ts): every heartbeat is answered within 3 s (HEARTBEAT_ANSWER_MS; 503 HEARTBEAT_PENDING while its command goes
+  on in the background), one command per gateway at a time with only the latest heartbeat waiting its turn; the receipt
+  is one statement on a receipts pool of its own (1 s to get a connection, 2 s per statement) that also reads the
+  session and site.zone (SiteZoneGuard.observe), so a heartbeat asks nothing else first; tokens this process did not
+  hand out take their turn there one at a time; other listener requests check the zone on the application pool; the
+  reports pool also limits the wait for a connection to 4 s; the RELOGIN branch (unbind, then end the session, once per
+  session) runs under the same deadline. The test written to the verifier's brief, with the gateway's own timing, then
+  showed a second lever: every command locks its account FOR SHARE and the kernel's authentication takes it FOR UPDATE,
+  so a command of the application role built on the old session holds the gateway's new login up, and the gateway sent
+  nothing while it logged in (after a restart, and whenever its session ends or expires, every 12 h). The site
+  gateway's uplink (apps/site-gateway/src/uplink.ts) now keeps sending heartbeats with the last login's token while a
+  new login gets no answer, which the server receives (not records); a refused or locally failed login ends that (P51
+  unchanged); one login at a time. Defaults X29-X31 in docs/decisions/phase-2-open-questions.md (X17 points to them);
+  0350's header comment and M6-C5-gateway-scale.md updated. Tests: manual-weighing-interference.test.ts, describe
+  "follow-up round 2" (3; the uplink's timing and login handling reproduced in the test: an interval of 5 s, one at a
+  time, 15 s per request): the command's wait points held in turn, 10.5 s in all (receipt gaps about 5 s, every answer
+  within 3 s, the gate's verdict never OFFLINE though nothing was recorded for over 10 s, at most one connection of the
+  reports pool in use); after a restart the old session's row held for 15 s (the same); a flood of 60 heartbeats with
+  made-up tokens, 30 challenges and 30 unknown paths (at most one receipts connection taken, none waited for, no
+  receipt written, the gateway's own heartbeat recorded). delivery-readiness.test.ts: while a new login is held or its
+  connection cut, heartbeats go on without a pause; a refused login stops them. Mutations (each reverted, compared byte
+  for byte): no deadline fails the first two (receipt gaps 10.2 s and 12.0 s); no lane for unverified tokens, and the
+  time-zone check back on the receipts pool, fail the third; commands not one at a time fail the first; the uplink
+  waiting for its login, dropping the last token on any failed login, or keeping it after a refusal each fail the
+  gateway test. Before the uplink change the restart case failed with a receipt gap of 7.1 s (its login held until the
+  row was let go). scale-readiness.test.ts: a heartbeat held up in its command is now answered 503 HEARTBEAT_PENDING
+  after 3 s (it was 500 when its 4 s statement limit ended it). Runs: every tablets-server devices test with
+  startup.test.ts and security-encoded-path.test.ts (13 files, 142 tests; the one failure, that expectation, fixed and
+  its file rerun, 7/7); every site-gateway test (7 files, 46); E2E 20/20 (3.0 min); typecheck, lint, deps:check,
+  register:validate. Left
+  open (X31): a flood of made-up tokens can hold up the first heartbeat after a restart until
+  its answer is due (no rate limit on the listener); a gateway that never logged in since it started sends nothing
+  until its first login.
+- 2026-09-30: P50 RESIDUAL, FOLLOW-UP ROUND 3 (item p50-gate-vs-app-role, docs and hidden errors, from its round-1
+  verifier). The docs claimed more than the code delivers: the round-1 entry above said CLOSED; M6-C5-gateway-scale.md
+  said nothing a holder of the application role's credentials can do makes a working scale count as unusable; the
+  listener's header promised receipts inside the window, although only single statements are bounded (a receipt or an
+  API answer by the receipts pool's 1 s and 2 s, each wait and statement of a command by 4 s, never a command as a
+  whole). And the devices runtime swallowed two failures with no log: a kept connection of its report pools failing
+  while idle, and an answer of the gateway's API it could not record (a lost answer lets a report that the API cannot
+  be reached count as unanswered until a later answer is recorded). Now: the round-1 entry reads NARROWED, NOT CLOSED;
+  M6-C5, the headers of listener.ts, runtime.ts and tablets 0350 (comments only; unreleased), the interference test's
+  header and titles, and X21/X29 state the per-statement bounds and the levers still open: a database under enough load
+  that a receipt's or an answer's statement runs past 2 s, or with no free connection when a report pool must open
+  one, loses it, so the manual path can still open beside a working scale; anyone who can load the database or take
+  its connections can bring that about, a holder of the application role's credentials among them. Default X32 in
+  docs/decisions/phase-2-open-questions.md. The runtime logs at warn through the server's own log (AppContext.log, new:
+  the Fastify instance's logger): each answer not recorded (gatewayCode, the error and its SQLSTATE; also when the
+  gateway has no ACTIVE key), and each kept connection of either report pool that fails while idle (pool, the
+  gatewayCodes it carries, the error and its SQLSTATE). Tests: apps/tablets-server/test/devices/report-pools-log.test.ts
+  (2): a superuser's lock on tab.gateway_api_answer holds the probe's answer past the 2 s limit, and the loss is logged
+  at warn with TEST-GW-01 and 57014, no answer row is written, and the next heartbeat's probe records its answer with
+  nothing more logged; an answer for a gateway without an ACTIVE key is logged; the idle connection of each pool ended
+  by pg_terminate_backend is logged at warn with the pool, [TEST-GW-01] and 57P01, and the pool opens another.
+  Mutations (each reverted, the file compared byte for byte): the original silent catch fails the first test; no log
+  for a key not ACTIVE fails it; the original no-op pool listener fails the second; info instead of warn, and no
+  gateway code, fail both. Runs: every tablets-server devices and platform test (18 files, 160 tests); typecheck,
+  eslint of the changed files, deps:check, register:validate; E2E 20/20 (3.0 min). Left open (X32): the load and
+  connection levers above (per-role connection limits are an operations matter); the server logs no failed receipt
+  and no failed heartbeat command (the gateway listener keeps no log; the gateway gets the error, or nothing after the
+  answer's deadline); a 503 HEARTBEAT_PENDING says the heartbeat was received also when its receipt was still waiting
+  (the lane of unverified tokens, or a receipt ending after the deadline); the monitor's command that fails twice is
+  not logged either (the next probe observes again).
+- 2026-09-30: GATEWAY DELIVERY-READINESS TIMING, ROUND 2 (item gateway-delivery-readiness-timing, reopened by its
+  round-1 verifier, who reproduced a regression of round 1 deterministically; a first repair attempt was killed by a
+  machine reboot, and its partial edits were reviewed, corrected and finished here). Round 1 writes the watermark one
+  write at a time beside the uploads, and a write asked for during a running one follows it; writeWatermark compared the
+  chain outside the journal lock and journal.acknowledge did not compare it again inside, while a login's
+  adoptServerChain changes the chain only inside the lock. So a re-enrolment login whose adoption waited behind a hung
+  watermark write was overtaken by the old chain's follow-up acknowledgement: it failed on the new chain after logIn had
+  cleared watermarkFailure and serverHolds, a false ACK_WRITE_FAILED stayed ('the server acknowledged reading N with a
+  hash this journal does not hold'), nothing retried it, and captures answered NOT_READY until the next login. The same
+  missing check let a reconciliation waiting behind the hung write, or a heartbeat's answer showing divergence, adopt
+  the old chain after the login (chain.json switched back), and on the same chain let a waiting acknowledgement move the
+  watermark past a login's lower head (a server restored from a backup: the readings after it were not sent again).
+  Found on the way, the same class: an upload's answer was recorded against the chain current when it arrived (at base
+  too), so after a re-enrolment the old chain's answer marked the new chain's reading of the same number as delivered
+  (never sent, its capture answered uplinked:true); and in the interrupted attempt's partial fix an answer that arrived
+  after the login was still kept in memory until its write came back STALE, so the same upload pass sent the next
+  reading after what that answer named, out of sequence for a restored server (a false READING_REFUSED).
+  Fix (apps/site-gateway/src/journal.ts, uplink.ts): the journal counts each adoption a login asks for, when it is asked
+  (WatermarkBasis: the chain and that count); every other watermark change names the basis taken when its request went
+  out (an upload's with its batch, a heartbeat's before it is sent). Uplink.serverHoldsUpTo drops, on arrival, an answer
+  whose basis is no longer the journal's (Journal.isCurrent): nothing kept in memory, written or told to a waiting
+  capture. A write asked for earlier and still waiting is checked again under the journal lock: acknowledge and the new
+  reconcile (which never switches the chain; the reconciliation and the writer's move back used adoptServerChain) return
+  STALE and write nothing; the uplink drops a STALE write without a failure (the login writes the server's head and
+  resets the rest). Default X33 in docs/decisions/phase-2-open-questions.md; M6-C5-gateway-scale.md updated.
+  Tests (delivery-readiness.test.ts, describe "round 2", deterministic: the watermark's temporary file a named pipe,
+  FakeServer.reenrol/restoreTo, and the login's adoption observed with a spy before the pipe is let go): a re-enrolment
+  login with the old chain's write waiting behind the hung one (the verifier's R4: no watermark failure, the only
+  ACK_WRITE_FAILED the hung write's own, ONLINE, a capture delivered); a login whose own adoption cannot be written (the
+  pipe replaced by a directory, as with no free inodes) with a write waiting (that write STALE, the failure stands,
+  captures NOT_READY until a later login writes the head); a reconciliation waiting, then a re-enrolment (R6: journal
+  and chain.json on the new chain); a heartbeat answer showing divergence during a re-enrolment login (not switched
+  back, no DIVERGED); a login continuing the chain from a lower head with a write waiting (the watermark stays at the
+  head, readings 2-5 sent again); an upload's answer held up until after such a login (the same pass sends 2-6, nothing
+  refused); a heartbeat answered before a login and handled after it (nothing sent again); an old chain's upload answer
+  after a re-enrolment (the new chain's reading delivered before its capture answers uplinked). From the verifier's
+  list: a capture whose write settles within its 5 s is answered only after the write (the pipe let go about 1 s after
+  the acknowledgement; now the test that kills an answer at the acknowledgement); gateway.test.ts waits for the
+  watermark instead of asserting it at the answer (X28 allows the answer first on a disk slower than the 5 s). Test
+  support: FakeServer.uploadTakes, uploadAnswerGate, heartbeatGate, restoreTo; stallWatermark's thenBlocked.
+  Mutations (a scratchpad driver; each reverted, both source files compared byte for byte by SHA-256), run against
+  delivery-readiness.test.ts and gateway.test.ts (33 tests before the adoption-failure test was added): the round-1
+  uplink.ts with the base journal.ts fails all 7 round-2 tests it then had; acknowledge without the check fails 2 (R4,
+  the lower head); reconcile without it 2 (R6, the divergence); a check by chain only (the verifier's first option
+  alone) 3 (the lower head, the held upload answer, the late heartbeat); serverHoldsUpTo without its drop 1 (the held
+  upload answer); an upload's basis taken at its answer 2 (the held upload answer, the old chain's answer); the
+  heartbeat's divergence back on adoptServerChain 1; the heartbeat's basis taken at its answer 1 (the late heartbeat);
+  the writer's move back with adoptServerChain 1 (R6); answering at the acknowledgement 1 (the wait test;
+  gateway.test.ts no longer catches it, by design); a STALE write that clears the failure survived all 33, so the
+  adoption-failure test was added and kills it (1 of 24 in delivery-readiness.test.ts); the adoption counted when it
+  runs instead of when it is asked for survives (see left open).
+  Runs: every site-gateway test (7 files, 55 tests); delivery-readiness.test.ts with gateway.test.ts 5 times in a row
+  (34 of 34 each time); the verifier's probe (51 readings, a re-enrolment login during the hung write) now ends with no
+  watermark failure and the journal and chain.json on the new chain; the E2E suite (20 of 20, its devices and journey
+  specs with the real gateway); typecheck (root tsconfig) and eslint of the changed files. Owner-facing default: X33
+  (the killed attempt's row, corrected: an answer dropped on arrival, and a dropped write that leaves an earlier failure
+  standing).
+  Left open: when the adoption is counted (when it is asked for, not when it runs) is not told apart by any test: it
+  differs only for an answer to a request sent after a login's answer arrived and before its adoption ran, and a login
+  runs only while the uplink has no session token (ensureLogin), so an upload meanwhile carries none and a heartbeat
+  carries the ended session's, which the server refuses (a test reaches it only by calling logIn with a live session);
+  while such an adoption waits behind a hung write, deliveredSeq still reads what the server said before the login
+  (nothing is uploaded meanwhile, as just said); the heartbeat still raises its UPLINK_FAILED alarm ('sending them
+  again') for an answer it then drops (X33). Round 1's item (2) is closed by the gateway.test.ts change; its items (1)
+  and (3) stand.
+- 2026-09-30: E2E DEVICE-NONCE LIMIT, ROUND 2 (item e2e-device-nonce-limit, docs and one test, from its round-1
+  verifier, who found the flake and the controls closed: both E2E runs without a 429, the limit re-keyed, nonces bound
+  to their key, the skeptic's mutants killed, no weakening). The docs claimed more than the design gives: X22 said a
+  terminal past its count cannot starve the others behind its address, which holds only for requests with its own key.
+  A caller at the address who holds no private key but knows a terminal's public key fills that key's 120 with
+  ticketless requests (they count toward the key's count so that a private-key holder gets no more than 120 usable
+  nonces), and the terminal then gets 429 TERMINAL; 120 ticketless requests a minute with any keys fill the unproven
+  count and so block every terminal's first request after a reload, a lapsed ticket or a restart. Behind a proxy any
+  browser at the site can do both. Now stated: X22-X24 and X26 corrected; X34 (both ways, why the default keeps them,
+  the owner's routes: mTLS, a proxy passing each terminal's address, a per-key count for ticketless requests with its
+  own cost, an alarm) and X35 (deployment: `spki` is required, so a page loaded before the upgrade gets 400 SCHEMA and
+  cannot log in, tap, sign, unlock or switch until reloaded; upgrade when no step is in progress and reload every
+  terminal; no transition period, as that would mint unbound nonces) in docs/decisions/phase-2-open-questions.md; the
+  same in the comments of bind.ts (DeviceRateLimitSpec) and session/index.ts (comments only), 00-plan.md section 5 and
+  M1-C0-spine.md. The two ways are already pinned by existing tests ("whoever holds one terminal key" fills a key's
+  count with ticketless requests that need no private key; "a proof ticket counts once" is refused at UNPROVEN once
+  invented keys fill that count); the test file's header now says so.
+  Headroom, corrected: the first entry gave authentication events (73 in 60 s). Measured directly this round with an
+  out-of-tree probe (a NODE_OPTIONS --import module in the scratchpad, nothing in the repo) that logged every key-bound
+  nonce HMAC the two E2E servers computed (mint, consume, ticket record and take) with the key's fingerprint; the rate
+  limit's own fixed windows (a window opens at its first hit) emulated from them, and tickets reconstructed from the
+  recorded and taken HMACs. Two runs, 20/20 each (2.9 min), no 429 and no refusal line: TEST-KIOSK-DISP-1 85 and 85 in
+  the limiter's windows (95 and 95 in the worst 60 s) of 120; TEST-KIOSK-BLEND-1 44 and 81; the sandbox address's
+  unproven requests 53 and 53 of 120; the sandbox address 121 and 120 (125 sliding) of 480; GMP at most 18 per key and
+  21 in all. The verifier's own count (84 fixed, 95 sliding) agrees. X22 carries these figures.
+  Test: `[DI-19][DI-20] a good proof by a key enrolled to a device that signs in through no browser (SERVER,
+  INSTRUMENT) leaves no ticket ...` (device-nonce-limit.test.ts, now 14; a SERVER and an INSTRUMENT device enrolled
+  with P-256 keys; each proves successfully, its ticket request is refused at UNPROVEN, the provider holds no ticket for
+  a second good proof while a PERSONAL terminal's good proof leaves one, and the address still has exactly 360 for
+  three proven terminals). Mutations (each reverted, device-proof.ts compared byte for byte): a ticket recorded for any
+  class (the verifier's survivor) fails it, and still fails it with the provider check neutralised (358 of 360, the
+  ceiling arithmetic); SERVER added to the browser classes fails it; INSTRUMENT added fails it.
+  Runs: tablets-server session, platform, access and contract tests (12 files, 97 tests); tablets-web api.test.ts (4);
+  typecheck (root tsconfig); eslint of the changed code files; register:validate; E2E twice with the probe as above
+  and once without it (20/20, 2.9 min, no refusal line). Owner-facing
+  defaults: X34, X35. Left open (X34): the two ways themselves (the owner's routes above); nothing is alarmed.
+- 2026-10-01: P50 RESIDUAL, FOLLOW-UP ROUND 4: THE GATE FAILS CLOSED (item p50-gate-vs-app-role, from its round-2
+  verifier: the item as defined was still reachable by the repo's own account, X32 saying the manual path "can still
+  open beside a working scale" when the database is too loaded for a receipt's 2 s statement or has no free
+  connection). Root cause: the database gate took the absence of receipts (and of API answers) as proof that a scale
+  cannot be used, so it failed open when evidence could not be written; receipts were best-effort writes on an
+  application-role pool that opened connections only when needed, the listener shared the ebmr_app login, and no role
+  had a connection limit. Now: (1) kernel 0980 (new): the listener's own login roles ebmr_listener (GMP) and
+  ebmr_sandbox_listener (sandbox; mirrored, segregated, CONNECT only on databases of its kind, members of nothing and
+  with no members), and CONNECTION LIMIT on ebmr_app and ebmr_sandbox = the cluster's ordinary slots less 8 (the
+  listener's share; computed at migration, serialised on pg_authid; EBMR-SBX-036 when there is no room);
+  apply_connect_policy, mirror_application_privileges and segregation_problems cover the listener roles. Tablets 0350
+  (unreleased, edited): only ebmr_listener may call tab.record_heartbeat_receipt, tab.record_gateway_api_answer and the
+  new tab.record_listener_tick (ebmr_app no longer may); (2) the receipts pool and the watch's connection log in with
+  the listener's login (EBMR_DB_LISTENER_URL, required in production with EBMR_GATEWAY_LISTEN), are all opened before
+  the listener listens (no start without them) and a lost one is opened again at once; (3) every heartbeat request and
+  every API answer is an arrival of the listener's epoch (apps/tablets-server/src/features/devices/watch.ts); every
+  500 ms a tick (owner-only tab.listener_tick) closes the previous one with whether everything that arrived was put on
+  record (a failed, timed-out or never-run receipt or answer, a heartbeat refused for a changed time zone, a failed
+  tick: unclean); tab.listener_attested_from vouches for a window only from one run's clean ticks without a gap, the
+  latest closed at most 2 s old, spanning a full 10 s, with no second run ticking; tab.manual_path_verdict counts
+  silence, a scale never reported, a state not ONLINE, and an unanswered API report only over a vouched window, and the
+  gate otherwise refuses (EBMR-EXE-074, why UNATTESTED); the basis records attestedFromUs per scale. Defaults X36-X39
+  (decision 0004) in docs/decisions/phase-2-open-questions.md; X16, X21, X32 updated; M6-C5, ADR 0012, the kernel
+  sandbox README, docs/design/sandbox.md, the apps plan topology and ops/postgres/pg_hba.conf.template (listener rules)
+  updated. Tests: manual-weighing-interference.test.ts describe "follow-up round 4" (a superuser's EXCLUSIVE lock on
+  tab.heartbeat_receipt for 14 s while the gateway keeps sending ONLINE: every receipt fails, the scale reads OFFLINE,
+  the gate never counts it unusable in about 50 samples and refuses through the server and past it, the listener's
+  ticks unclean; the application role refused receipts, answers and ticks, the listener's login everything else);
+  scale-readiness.test.ts (every API answer lost under a lock on tab.gateway_api_answer, the monitor's reachable report
+  held up: the API report never counts); listener-watch.test.ts (4: the vouched window's rules on ticks written by
+  hand, the tick function, the listener's connections and start, which requests count as lost);
+  packages/kernel/test/security/listener-roles.test.ts (3: roles, segregation and mirror, connection limits); kernel
+  segregation tests now also expect the sandbox listener reported where PUBLIC may connect. Adapted (stricter rule,
+  no weakening): the rig waits until the listener vouches before its cases (a just-started listener vouches for nothing
+  for 10 s); waits that open the manual path after a state change are GATE_WINDOW_MS (12 s, was 10.5 s); tests that
+  wrote receipts or answers as the application role now use the listener's pool; the X11 case that put a receipt in
+  the report's own transaction runs it on a superuser's connection, after showing the application role is refused.
+  Mutations (each reverted, compared byte for byte): the gate taking every window as vouched fails both lock tests (the
+  weight keyed by hand through the server was accepted beside the working scale); failed receipts, or lost answers,
+  not counted lost each fail their test the same way; a zone refusal not counted lost, or a missing token counted lost,
+  fail listener-watch; no warm-up, or no reopening, fail it; dropping the freshness, second-run, gap or clean check of
+  tab.listener_attested_from, or vouching from the gate's own window start only, each fail it; the listener functions
+  granted to ebmr_app again fail two tests; kernel 0980 without the connection limits (the cluster's limits reset by
+  hand first), the listener mirror, the listener's CONNECT, or the membership check each fail listener-roles.
+  Runs: the whole server project (64 files, 490 tests) and the whole db project (229 files, 1843 tests), both green;
+  E2E 20/20 (2.9 min); typecheck, eslint of the changed files, deps:check, register:validate. Left open (X39): a
+  denial of the fallback by whoever can load the database or take the listener's connections; two listeners on one
+  database vouch for nothing; the connection limits are set from the cluster's settings at migration time; the
+  listener's credential is a new secret for operations; no alarm is raised from the warnings yet (X32).
+- 2026-10-01: FINAL RESIDUALS (workflow wf_ef851f19-eed, base 6154f46) verified: `pnpm run ci` green twice (333 files,
+  2580 tests, no unhandled error, trace ok) and E2E 20/20 twice (0 flaky, 0 retries); P50, the device-nonce E2E load
+  failure, the test-kit teardown race (57P01) and the gateway delivery-readiness race all closed with tests. The final
+  verifier left five items for the next commit: (1) agreement.test.ts skips generated flows above 2,000 paths, which is
+  narrower than the out-of-memory fix needed (flows of 2,000-50,000 paths used to be checked): restore them (memory-bound
+  budget or streamed membership check); (2) X30 still says the receipts pool uses the application role (it uses the
+  listener's login, X36/X38); (3) X36 overstates what a stolen listener credential can do under database load: bound it
+  (CONNECTION LIMIT on the listener roles, lost-tick handling) and record the residual in X39; (4) ProofTickets defaults
+  its clock to Date.now (outside platform/clock.ts): use uptimeMs; (5) read-db.test.ts name lacks its [meta] tag.

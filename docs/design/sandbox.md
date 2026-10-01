@@ -26,6 +26,10 @@ choice, and keeping it apart from GMP data is what the rules require.
   carry their grants into every GMP database on the same server. One sandbox role serves both the application
   and the authentication service: the sandbox holds no real person and no real secret (default taken; a second
   role can be split off if sandbox evidence ever needs it).
+- **Listener login role.** The edition's gateway listener has a login of its own in each kind (kernel 0980):
+  `ebmr_sandbox_listener` connects only to sandbox databases and holds there exactly the object privileges of the GMP
+  `ebmr_listener` (mirrored the same way), which connects only to GMP databases. Neither is a member of any role nor
+  has members, so no other login can write the listener's evidence (decision X36).
 - **Recommended deployment:** the sandbox on its own PostgreSQL server; when it shares a server with GMP
   databases, no cross-database extension (dblink, postgres_fdw) may be installed, and other login roles that
   must reach a GMP database (backup, monitoring) get an explicit CONNECT grant.

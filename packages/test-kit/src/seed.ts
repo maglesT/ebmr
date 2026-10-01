@@ -11,9 +11,9 @@
  * Every credential produced here is DEMO-ONLY.
  */
 import { randomBytes } from 'node:crypto';
-import pg from 'pg';
+import type pg from 'pg';
 import { continuity, identity, withCommand, type ActorContext } from '@ebmr/kernel';
-import { ADMIN_URL, urlFor, type DatabaseHandle, type InstallationKind } from './db.ts';
+import { ADMIN_URL, endPool, openPool, urlFor, type DatabaseHandle, type InstallationKind } from './db.ts';
 import { fingerprintOfSpki, generateDeviceKey, generateServiceKey, type DeviceKey } from './keys.ts';
 import { BOOTSTRAP_NAMES, PERSONAS, SERVICES, SITE_CODE, TERMINALS, personaForSet, type PersonaSpec, type ServiceKey, type TerminalSpec } from './personas.ts';
 
@@ -123,7 +123,7 @@ export async function bootstrapInstallation(database: string, kind: Installation
   const ownerInitial = newPassword();
   const adminFp = randomFingerprint();
   const ownerFp = randomFingerprint();
-  const admin = new pg.Pool({ connectionString: urlFor(database, undefined, adminUrl), max: 2 });
+  const admin = openPool({ connectionString: urlFor(database, undefined, adminUrl), max: 2 });
   try {
     const zone = await siteZoneOf(admin);
     const { rows } = await admin.query<{ r: Record<string, string> }>('select iam.bootstrap_installation($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) as r', [
@@ -143,7 +143,7 @@ export async function bootstrapInstallation(database: string, kind: Installation
       owner: { personId: r['owner_person_id'] ?? '', accountId: r['owner_account_id'] ?? '', legalName: names.owner[0], loginName: names.owner[1], roleCode: 'PROCESS_OWNER', password: ownerPassword, fingerprint: ownerFp },
     };
   } finally {
-    await admin.end();
+    await endPool(admin);
   }
 }
 

@@ -2,7 +2,8 @@
  * The gateway listener (sandbox; EBMR_GATEWAY_LISTEN, default 127.0.0.1:3012): the site gateway's uplink, on its
  * own Fastify instance so no browser route is reachable through it and no gateway route through the browser port.
  *
- *   POST /gw/v1/nonce      a single-use nonce for the login proof (60 s)
+ *   POST /gw/v1/nonce      a single-use nonce for the login proof (60 s), bound to no key: it is not a browser
+ *                          terminal's device-proof nonce, nor is one of those a login nonce here (nonces.ts)
  *   POST /gw/v1/session    login: Ed25519 proof of possession of the enrolled key (its SHA-256 SPKI fingerprint is the
  *                          registered SERVER device), then kernel SERVICE_KEY authentication on that device and a
  *                          session bound to an opaque bearer token (tab.gateway_session, never a browser cookie)
@@ -24,16 +25,47 @@
  *                          role (0290, EBMR-DEV-032). Idempotent by reading id. The first refusal stops the batch
  *                          and raises an alarm (DI-31).
  *   POST /gw/v1/heartbeat  instrument states (every 5 s at most), with the reason a connected instrument is not
- *                          ready; a gap over 10 s shows the scale OFFLINE. While the database counts the gateway's API
- *                          unreachable (a capture could not reach it), each heartbeat has the server probe that API
+ *                          ready; a gap over 10 s shows the scale OFFLINE. First of all, before any statement that can
+ *                          wait on a lock, the heartbeat as received goes on record against the bearer token
+ *                          (tab.record_heartbeat_receipt, outside any command; tablets 0350): a heartbeat that is then
+ *                          held up, cut off or refused in its command keeps the manual path shut (DI-30, PR-20; review
+ *                          finding P50, round 4). The receipt is one statement on the receipts pool
+ *                          (DevicesRuntime.receiveHeartbeat), which also reads the session behind the token and the
+ *                          site's time zone, so a heartbeat makes no other query before its token is known; a token
+ *                          this process did not hand out takes its turn there, one at a time. That statement is bounded
+ *                          by the receipts pool's own limits (1 s for a connection, 2 s for the statement): a receipt
+ *                          not written within them fails the request, and the heartbeat counts as not received
+ *                          (decision X31). Every heartbeat is answered within HEARTBEAT_ANSWER_MS (3 s) of its
+ *                          arrival, below the gateway's interval: recorded (200), refused, or 503 HEARTBEAT_PENDING
+ *                          while its command (on the reports pool, one per gateway at a time: DevicesRuntime.inTurn),
+ *                          or the unbinding and end of a session that must log in again, goes on in the background.
+ *                          The reports pool bounds each wait for a connection and each statement of that work to 4 s
+ *                          (REPORT_STATEMENT_TIMEOUT_MS), one at a time, not the command as a whole; the answer's
+ *                          deadline, not those limits, is what keeps the heartbeats coming. So however the waits of a
+ *                          command add up (a connection, the session's row, the room's row, the commit), the gateway,
+ *                          which sends the next heartbeat only after this one's answer, sends it on its interval, and
+ *                          two receipts are at most about 8 s apart as long as each is written within its limits
+ *                          (decisions X29, X30; follow-up round 2 of P50). A receipt not written within them (a
+ *                          database loaded so far that its statement cannot end within 2 s, a connection lost and not
+ *                          yet opened again) is lost, and so is a heartbeat refused before its receipt (a changed time
+ *                          zone): every heartbeat is an arrival of the listener's watch (watch.ts), whose next tick
+ *                          tells the database that something was not put on record, so the database vouches for no
+ *                          window that holds it and refuses a weight keyed by hand instead of counting the scale
+ *                          silent (tablets 0350 item 6; decision X37). The receipts and the ticks log in with the
+ *                          listener's own role (kernel 0980), on connections opened before the listener listens
+ *                          (DevicesRuntime.startWatch). While the database counts the gateway's API unreachable (a
+ *                          capture could not reach it), each heartbeat received has the server probe that API
  *                          (DevicesRuntime.probeApi; tablets 0320, DI-30)
  *   POST /gw/v1/logout
  * Integration identities never sign: the kernel refuses SERVICE_KEY authentication for anything but LOGIN, and
  * iam.can_sign refuses non-human accounts.
  *
- * Every request re-reads the site policy site.zone first (AppContext.siteZone, DI-27): after a change while the
- * server runs, every request is refused with SITE_ZONE_CHANGED (503, no relogin) until the server restarts, so no
- * reading is taken or refused as bad in a context of the old zone; the gateway keeps its journal and sends again.
+ * Every request re-reads the site policy site.zone first (AppContext.siteZone, DI-27): a heartbeat in its receipt
+ * statement, on the receipts pool, so it never waits for a connection of the browser routes' pool; any other request
+ * on the application pool, which its work uses anyway, so no request nobody authenticated takes a connection of the
+ * receipts pool. After a change while the server runs, every request is refused with SITE_ZONE_CHANGED (503, no
+ * relogin) until the server restarts, so no reading is taken or refused as bad in a context of the old zone; the
+ * gateway keeps its journal and sends again. A heartbeat's receipt carries no zone and only keeps the manual path shut.
  */
 import { createHash, randomBytes, randomUUID, verify, type KeyObject } from 'node:crypto';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
@@ -59,9 +91,12 @@ import { consumeNonce, mintNonce } from '../../platform/auth/nonces.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
 import { HttpRefusal } from '../../platform/http/refusal.ts';
-import { runtimeOf } from './runtime.ts';
+import { HEARTBEAT_ANSWER_MS, runtimeOf, TurnTaken } from './runtime.ts';
+import type { Arrival } from './watch.ts';
 
 const tokenHash = (token: string): string => createHash('sha256').update(token, 'utf8').digest('hex');
+
+const HEARTBEAT_PATH = '/gw/v1/heartbeat';
 
 class GwError extends Error {
   constructor(
@@ -106,15 +141,70 @@ export function gatewaySessionOf(hash: string, r: Record<string, unknown>): Gate
   };
 }
 
-async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<GatewaySession> {
+/** The SHA-256 of the request's bearer token; 401 NO_TOKEN when it carries none in the expected form. */
+function bearerHash(request: FastifyRequest): string {
   const header = request.headers.authorization;
   const token = typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7).trim() : '';
   if (!/^[A-Za-z0-9_-]{40,128}$/.test(token)) throw new GwError(401, 'NO_TOKEN', 'a bearer token is required', true);
-  const hash = tokenHash(token);
-  const { rows } = await app.pools.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [hash]);
-  const r = rows[0]?.r;
+  return tokenHash(token);
+}
+
+/** The gateway session `r` (tab.resolve_gateway_session) behind the bearer token whose SHA-256 is `hash`; 401 SESSION unless live. */
+function liveSession(hash: string, r: Record<string, unknown> | null | undefined): GatewaySession {
   if (!r || r['state'] !== 'ACTIVE') throw new GwError(401, 'SESSION', 'the gateway session is unknown, ended or locked; log in again', true);
   return gatewaySessionOf(hash, r);
+}
+
+async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<GatewaySession> {
+  const hash = bearerHash(request);
+  const { rows } = await app.pools.app.query<{ r: Record<string, unknown> | null }>('select tab.resolve_gateway_session($1) as r', [hash]);
+  return liveSession(hash, rows[0]?.r);
+}
+
+/**
+ * Whether `error`, ending a heartbeat request before its receipt was started, shows the request was no gateway's
+ * heartbeat at all (no bearer token in the expected form, a body that is not a heartbeat or cannot be read): then
+ * nothing was lost. Anything else (a changed time zone, an unexpected failure) loses a heartbeat that may be the
+ * gateway's.
+ */
+function notAHeartbeat(error: unknown): boolean {
+  if (error instanceof GwError) return error.code === 'NO_TOKEN' || error.code === 'SCHEMA';
+  const status = typeof error === 'object' && error !== null ? (error as { statusCode?: unknown }).statusCode : undefined;
+  return typeof status === 'number' && status >= 400 && status < 500 && !(error instanceof HttpRefusal);
+}
+
+/** Why a heartbeat is answered before it is recorded: its answer is due, or a newer heartbeat took its turn. */
+function heartbeatPending(why: string): GwError {
+  return new GwError(
+    503,
+    'HEARTBEAT_PENDING',
+    `DI-30: the heartbeat was received (it keeps the manual path shut) but not recorded: ${why}; the next heartbeat is taken as usual`,
+  );
+}
+
+/**
+ * The answer's deadline, HEARTBEAT_ANSWER_MS after a heartbeat arrived (decision X29): `signal` aborts then, with a 503
+ * HEARTBEAT_PENDING as its reason, and `race` answers with that reason while the work goes on in the background.
+ */
+function answerDeadline(): { signal: AbortSignal; race<T>(work: Promise<T>): Promise<T>; clear(): void } {
+  const reason = heartbeatPending(`its answer was due ${HEARTBEAT_ANSWER_MS} ms after it arrived, and what is left of it goes on in the background`);
+  const controller = new AbortController();
+  const due = new Promise<never>((_resolve, reject) => {
+    controller.signal.addEventListener('abort', () => reject(reason), { once: true });
+  });
+  due.catch(() => undefined);
+  const timer = setTimeout(() => controller.abort(reason), HEARTBEAT_ANSWER_MS);
+  return {
+    signal: controller.signal,
+    race<T>(work: Promise<T>): Promise<T> {
+      // Whatever the work ends with after the answer is not left unhandled.
+      work.catch(() => undefined);
+      return Promise.race([work, due]);
+    },
+    clear() {
+      clearTimeout(timer);
+    },
+  };
 }
 
 /**
@@ -211,7 +301,13 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
   const runtime = runtimeOf(app);
   const server = Fastify({ logger: false, bodyLimit: 1024 * 1024, trustProxy: false });
 
-  server.setErrorHandler((error: unknown, _request: FastifyRequest, reply: FastifyReply) => {
+  // DI-30, PR-20 (tablets 0350 item 6): every heartbeat request is an arrival of the listener's watch from its first
+  // hook on; one that ends before its receipt was started is settled here.
+  const arrivals = new WeakMap<FastifyRequest, Arrival>();
+
+  server.setErrorHandler((error: unknown, request: FastifyRequest, reply: FastifyReply) => {
+    const arrival = arrivals.get(request);
+    if (arrival && !arrival.started) arrival.settle(notAHeartbeat(error));
     if (error instanceof GwError) {
       void reply.code(error.status).send({ error: { code: error.code, message: error.message, relogin: error.relogin } });
       return;
@@ -226,13 +322,22 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
     void reply.code(status).send({ error: { code, message: error instanceof Error ? error.message : String(error), relogin: false } });
   });
 
-  // DI-27: a change of the site policy site.zone while the server runs refuses every gateway request.
-  server.addHook('onRequest', async () => {
+  // DI-27: a change of the site policy site.zone while the server runs refuses every gateway request. Read here on the
+  // application pool, which the work of these requests uses anyway, so a request nobody authenticated takes no
+  // connection of the receipts pool; a heartbeat reads it in its receipt statement instead (it never waits for a
+  // connection of the browser routes' pool) and is refused here only once the change is known.
+  server.addHook('onRequest', async (request) => {
+    if (request.routeOptions.url === HEARTBEAT_PATH) {
+      const arrival = runtime.arrived();
+      if (arrival) arrivals.set(request, arrival);
+      app.siteZone.current();
+      return;
+    }
     await app.siteZone.check();
   });
 
   server.post('/gw/v1/nonce', async () => {
-    const { nonce } = await mintNonce(app.pools.app, app.config.secrets.nonceKey);
+    const { nonce } = await mintNonce(app.pools.app, app.config.secrets.nonceKey, null);
     return { nonce };
   });
 
@@ -244,7 +349,7 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       await recordRefusal(app, { tokenHash: null, gatewayCode: body.gatewayCode, kind: 'GATEWAY_LOGIN_REFUSED', code, readingId: null, message, details: { loginName: body.loginName } });
       throw new GwError(401, code, message);
     };
-    if (!(await consumeNonce(app.pools.app, app.config.secrets.nonceKey, body.nonce))) await refuse('NONCE', 'the nonce is unknown, used or expired');
+    if (!(await consumeNonce(app.pools.app, app.config.secrets.nonceKey, body.nonce, null))) await refuse('NONCE', 'the nonce is unknown, used or expired');
     let proofOk: boolean;
     try {
       proofOk = verify(null, loginProofMessage(body.nonce, body.gatewayCode, body.loginName, body.spki), ed25519PublicKey(body.spki), Buffer.from(body.sig, 'base64'));
@@ -276,6 +381,7 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       return refuse('GATEWAY_CODE', `the key is enrolled for ${bound.gateway_code}, not ${body.gatewayCode}`);
     }
     runtime.links.set(bound.gateway_code, { gatewayCode: bound.gateway_code, apiToken: body.apiToken });
+    runtime.tokenIssued(tokenHash(token));
     const response: LoginResponse = {
       token,
       chainId: bound.chain_id,
@@ -377,38 +483,69 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
     return response;
   });
 
-  server.post('/gw/v1/heartbeat', async (request) => {
-    const gw = await resolveBearer(app, request);
-    if (!runtime.link(gw.gatewayCode)) {
-      // This server process has no API token for the gateway (it restarted): the gateway must log in again.
-      await app.pools.app.query('select tab.unbind_gateway_session($1)', [gw.tokenHash]);
-      await identity.endSession(app.pools.app, gw.sessionId).catch(() => undefined);
-      throw new GwError(401, 'RELOGIN', 'log in again to hand over the API token', true);
+  server.post(HEARTBEAT_PATH, async (request) => {
+    // DI-30, PR-20 (decision X29): answered within HEARTBEAT_ANSWER_MS of its arrival, whatever holds it up.
+    const deadline = answerDeadline();
+    try {
+      const hash = bearerHash(request);
+      const parsed = HeartbeatRequest.safeParse(request.body);
+      if (!parsed.success) throw new GwError(400, 'SCHEMA', 'the heartbeat is not in the expected form');
+      // DI-30, PR-20 (tablets 0350): the heartbeat as received is on record before anything that can wait, whatever
+      // happens to it afterwards; the receipt takes no lock another transaction can hold, and its statement also reads
+      // the session behind the token and the site's time zone (DI-27), so nothing else is asked of the database first.
+      // Its arrival is settled by the receipt's own outcome (lost when it fails or never runs).
+      const receipt = await deadline.race(runtime.receiveHeartbeat(hash, parsed.data, deadline.signal, arrivals.get(request) ?? null));
+      app.siteZone.observe(receipt.policyZone);
+      const gw = liveSession(hash, receipt.session);
+      if (!runtime.link(gw.gatewayCode)) {
+        // This server process has no API token for the gateway (it restarted): the gateway must log in again, once
+        // its token is unbound and its session ended. Held up, that goes on in the background (503 meanwhile): the
+        // gateway's next heartbeat is received as usual, and is told to log in once the token is unbound.
+        await deadline.race(runtime.endGatewaySession(hash, gw.sessionId));
+        throw new GwError(401, 'RELOGIN', 'log in again to hand over the API token', true);
+      }
+      // DI-30 (P51): while the database counts this gateway's API unreachable, probe it (not awaited: the heartbeat is
+      // answered at once); an answer marks it reachable, so its scales follow its heartbeats again. Asked by the
+      // receipt, so a heartbeat held up in its command does not hold up the probe.
+      if (receipt.probeApi) void runtime.probeApi(gw.gatewayCode);
+      const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+      const out = await deadline.race(
+        runtime.inTurn(gw.gatewayCode, deadline.signal, () =>
+          withActorCommand(runtime.reports(), actor, async (client) => {
+            const { rows } = await client.query<{ r: HeartbeatResponse }>('select tab.record_heartbeat($1::jsonb) as r', [JSON.stringify(parsed.data)]);
+            if (!rows[0]) throw new Error('tab.record_heartbeat returned nothing');
+            return rows[0].r;
+          }),
+        ),
+      );
+      const response: HeartbeatResponse = { serverTimeUs: out.serverTimeUs, head: out.head };
+      return response;
+    } catch (error) {
+      if (error instanceof TurnTaken) throw heartbeatPending('a newer heartbeat of this gateway took its turn');
+      throw error;
+    } finally {
+      deadline.clear();
     }
-    const parsed = HeartbeatRequest.safeParse(request.body);
-    if (!parsed.success) throw new GwError(400, 'SCHEMA', 'the heartbeat is not in the expected form');
-    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
-    const out = await withActorCommand(app.pools.app, actor, async (client) => {
-      const { rows } = await client.query<{ r: HeartbeatResponse & { probeApi?: boolean } }>('select tab.record_heartbeat($1::jsonb) as r', [JSON.stringify(parsed.data)]);
-      if (!rows[0]) throw new Error('tab.record_heartbeat returned nothing');
-      return rows[0].r;
-    });
-    // DI-30 (P51): while the database counts this gateway's API unreachable, probe it (not awaited: the heartbeat is
-    // answered at once); an answer marks it reachable, so its scales follow its heartbeats again.
-    if (out.probeApi === true) void runtime.probeApi(gw.gatewayCode);
-    const response: HeartbeatResponse = { serverTimeUs: out.serverTimeUs, head: out.head };
-    return response;
   });
 
   server.post('/gw/v1/logout', async (request) => {
     const gw = await resolveBearer(app, request);
     await app.pools.app.query('select tab.unbind_gateway_session($1)', [gw.tokenHash]);
+    runtime.issued.delete(gw.tokenHash);
     await identity.endSession(app.pools.app, gw.sessionId).catch(() => undefined);
     runtime.links.delete(gw.gatewayCode);
     return { ok: true };
   });
 
-  await server.listen({ host: listen.host, port: listen.port });
+  // DI-30, PR-20 (tablets 0350 item 6; decision X37): the receipts' and the watch's connections are open and the first
+  // tick is on record before anything is received; without them the listener does not start.
+  try {
+    await runtime.startWatch();
+    await server.listen({ host: listen.host, port: listen.port });
+  } catch (error) {
+    await server.close().catch(() => undefined);
+    throw error;
+  }
   const address = server.server.address();
   const port = typeof address === 'object' && address ? address.port : listen.port;
   return {

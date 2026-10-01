@@ -3,7 +3,8 @@
  * the same typed client, and device proofs verify with the same message the server checks.
  */
 import { describe, expect, it } from 'vitest';
-import { createApiClient, routes } from '@ebmr/api-contract';
+import { createApiClient, DeviceNonceRequest, routes, type FetchLike } from '@ebmr/api-contract';
+import { browserFetch, deviceProof, setTransport } from '../src/api/client.ts';
 import { createFixtureFetch } from '../src/api/fixture-fetch.ts';
 import { fixturesFromExamples } from '../src/api/examples.ts';
 import { proofMessage, signProof } from '../src/device/proof.ts';
@@ -39,5 +40,31 @@ describe('device proofs', () => {
     expect(message.startsWith('nonce-123456789012|POST|/api/session/login|')).toBe(true);
     const ok = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pair.publicKey, base64ToBytes(proof.sig), new TextEncoder().encode(message));
     expect(ok).toBe(true);
+  });
+
+  it('[DI-19][DI-20] the nonce request names the terminal key and, from the second on, the nonce of its last proof (its proof ticket), and the proof signs the nonce served', async () => {
+    const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
+    const spki = bytesToBase64(await crypto.subtle.exportKey('spki', pair.publicKey));
+    const key = { privateKey: pair.privateKey, publicKeySpki: spki, label: 'T' };
+    const sent: { path: string; body: unknown }[] = [];
+    let served = 0;
+    const transport: FetchLike = (url, init) => {
+      sent.push({ path: new URL(url, 'http://test.local').pathname, body: init.body === undefined ? undefined : (JSON.parse(init.body) as unknown) });
+      served += 1;
+      return Promise.resolve({ status: 200, headers: { get: () => null }, text: () => Promise.resolve(JSON.stringify({ nonce: `nonce-served-00000000${served}`, expiresInSeconds: 60 })) });
+    };
+    setTransport(transport);
+    try {
+      const first = await deviceProof(key, 'POST', '/api/session/login', { a: 1 });
+      const second = await deviceProof(key, 'POST', '/api/session/unlock', { b: 2 });
+      expect(sent).toEqual([
+        { path: routes.session.deviceNonce.path, body: { spki } },
+        { path: routes.session.deviceNonce.path, body: { spki, lastNonce: 'nonce-served-000000001' } },
+      ]);
+      for (const s of sent) expect(DeviceNonceRequest.safeParse(s.body).success).toBe(true);
+      expect([first.nonce, first.spki, second.nonce]).toEqual(['nonce-served-000000001', spki, 'nonce-served-000000002']);
+    } finally {
+      setTransport(browserFetch);
+    }
   });
 });

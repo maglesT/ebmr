@@ -91,6 +91,18 @@ export const ChangeSecretRequest = z
   })
   .refine((r) => (r.currentSecret === undefined) !== (r.changeTicket === undefined), { message: 'give either the current secret or the change ticket' });
 
+/**
+ * Asking for a device nonce (DI-19, DI-20). `spki` is the public key (SPKI DER, base64) of the terminal that will sign
+ * with the nonce: the nonce is bound to it, and a proof signed with any other key is refused. `lastNonce` is the nonce
+ * of this terminal's last device proof, if it has made one: when that proof succeeded (an enrolled, active browser
+ * terminal) within the last ten minutes, it is the request's proof ticket, good once, and the request counts toward the
+ * terminal's own rate limit. Without a ticket it counts toward the allowance its address shares with every such request.
+ */
+export const DeviceNonceRequest = z.strictObject({
+  spki: Base64Text.max(512),
+  lastNonce: z.string().min(16).max(128).optional(),
+});
+
 export const session = {
   deviceNonce: defineRoute({
     id: 'session.deviceNonce',
@@ -100,7 +112,7 @@ export const session = {
     auth: 'NONE',
     mutating: true,
     summary: 'A single-use nonce (60 s) for the next device proof',
-    body: Empty,
+    body: DeviceNonceRequest,
     response: z.strictObject({ nonce: z.string().min(16), expiresInSeconds: z.number().int().positive() }),
   }),
   identify: defineRoute({

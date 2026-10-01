@@ -8,7 +8,8 @@
  * current(), and every entry point re-reads the policy (check()) before it works:
  *  - the browser port: buildApp checks before every /api/ request (static SPA files carry no time and are
  *    served as before); request actor contexts (bind.ts) and formatted instants (AppContext.formatInstant);
- *  - the gateway listener (features/devices/listener.ts): before every /gw/ request, and its INTEGRATION
+ *  - the gateway listener (features/devices/listener.ts): before every /gw/ request (a heartbeat reads the policy in
+ *    its receipt statement and hands it to observe() before anything else is done with it), and its INTEGRATION
  *    contexts;
  *  - the sweeper (features/execution/sweeper.ts): before every sweep, and its SYSTEM context;
  *  - an interval (watch()), so a change is noticed even while nothing else runs.
@@ -96,22 +97,29 @@ export class SiteZoneGuard {
 
   /** Re-reads the site policy; on a change latches, raises the operations alert once and refuses. */
   async check(): Promise<void> {
-    if (!this.#changedTo) {
-      const policyZone = await readPolicySiteZone(this.pool);
-      if (policyZone !== this.zone && !this.#changedTo) {
-        this.#changedTo = { policyZone };
-        this.log.error(
-          { alert: SITE_ZONE_CHANGED, controls: ['DI-27'], serverZone: this.zone, policyZone },
-          `OPERATIONS ALERT: the site policy site.zone changed from ${this.zone} to ${policyZone ?? 'no value'} while the server was running; every API and gateway request is refused, open live displays end and the sweeper stops until the server restarts (DI-27)`,
-        );
-        const listeners = [...this.#onChange];
-        this.#onChange.clear();
-        for (const listener of listeners) {
-          try {
-            listener();
-          } catch (error) {
-            this.log.warn({ err: error instanceof Error ? error.message : String(error) }, 'a site time zone change listener failed');
-          }
+    if (!this.#changedTo) this.observe(await readPolicySiteZone(this.pool));
+    this.current();
+  }
+
+  /**
+   * As check(), for the site policy site.zone `policyZone` just read by the caller in a statement of its own (the
+   * gateway listener reads it in each heartbeat's receipt statement, so a heartbeat makes no other query before its
+   * token is known; tablets 0350): on a change latches, raises the operations alert once and refuses.
+   */
+  observe(policyZone: string | null): void {
+    if (!this.#changedTo && policyZone !== this.zone) {
+      this.#changedTo = { policyZone };
+      this.log.error(
+        { alert: SITE_ZONE_CHANGED, controls: ['DI-27'], serverZone: this.zone, policyZone },
+        `OPERATIONS ALERT: the site policy site.zone changed from ${this.zone} to ${policyZone ?? 'no value'} while the server was running; every API and gateway request is refused, open live displays end and the sweeper stops until the server restarts (DI-27)`,
+      );
+      const listeners = [...this.#onChange];
+      this.#onChange.clear();
+      for (const listener of listeners) {
+        try {
+          listener();
+        } catch (error) {
+          this.log.warn({ err: error instanceof Error ? error.message : String(error) }, 'a site time zone change listener failed');
         }
       }
     }

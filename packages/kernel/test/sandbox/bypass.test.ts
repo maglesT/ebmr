@@ -103,7 +103,10 @@ describe('INV-18: the sandbox cannot reach GMP data (prevented)', () => {
       expect(error, statement).toMatch(/permission denied/);
     }
     // The invariant query sees only the open CONNECT, which the connect policy closes.
-    expect(await segregationProblems(open.app)).toEqual([`ebmr_sandbox can connect to the GMP database ${open.name}`]);
+    expect(await segregationProblems(open.app)).toEqual([
+      `ebmr_sandbox can connect to the GMP database ${open.name}`,
+      `ebmr_sandbox_listener can connect to the GMP database ${open.name}`,
+    ]);
   });
 
   it('[INV-18] the sandbox role is a member of no role and has no elevated attribute, so it cannot borrow GMP privileges', async () => {

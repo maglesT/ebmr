@@ -94,9 +94,9 @@ describe('device proofs', () => {
 
   it('[DI-20] login is refused with an unknown device key', async () => {
     const b = gmp.browser('PC-QA-01');
-    const nonce = await b.call(routes.session.deviceNonce, { body: {} });
-    if (!nonce.ok) throw new Error('nonce');
     const stranger = generateDeviceKey();
+    const nonce = await b.call(routes.session.deviceNonce, { body: { spki: stranger.publicKeySpki } });
+    if (!nonce.ok) throw new Error('nonce');
     const message = `${nonce.value.nonce}|POST|/api/session/login|${sha256Hex(canonicalJson(body(gmp)))}`;
     expect(await refusalOf(gmp, { spki: stranger.publicKeySpki, nonce: nonce.value.nonce, sig: signDeviceProof(stranger, message) })).toBe('403:UNREGISTERED');
   });

@@ -46,7 +46,10 @@ describe('site gateway with the MT-SICS simulator', () => {
     expect(interpretWeightLine(r.reading.raw).value).toBe(r.reading.value);
     expect(readingProblem(r.reading, gateway.config.publicKey)).toBeNull();
     expect(server.readings.at(-1)?.readingId).toBe(r.reading.readingId);
-    expect(gateway.journal.ackedSeq).toBe(BigInt(r.reading.seq));
+    // The acknowledgement watermark follows: the answer waits for its write only up to the capture's 5 s (decision
+    // X28), so on a slow disk it can come first (delivery-readiness.test.ts proves the wait with a stalled write).
+    const seq = BigInt(r.reading.seq);
+    await until(() => gateway.journal.ackedSeq === seq, 10_000, 'the acknowledgement watermark written');
   });
 
   it('[DI-32] an unstable weight is never captured as stable: the timeout answers NOT_STABLE and records it as UNSTABLE', async () => {

@@ -131,6 +131,24 @@ export class FakeServer {
   itemsReceived = 0;
   /** Answer a challenge request only after this many milliseconds (a slow server). */
   challengeDelayMs = 0;
+  /** While set, a challenge request is answered only once this has settled (the test decides when). */
+  challengeGate: Promise<void> | null = null;
+  /** While true, the readings of an upload are stored but its answer is lost (the connection is cut instead). */
+  loseUploadAnswers = false;
+  /** While set, an upload takes at most this many of its readings (answered for those, nothing refused); the rest wait. */
+  uploadTakes: number | null = null;
+  /** While set, the readings of an upload are stored at once but the answer is sent only once this has settled. */
+  uploadAnswerGate: Promise<void> | null = null;
+  /** While set, a heartbeat is recorded and its answer (the head as it was then) sent only once this has settled. */
+  heartbeatGate: Promise<void> | null = null;
+  /** While set, a login (POST /gw/v1/session) is answered only once this has settled (held up in the server's database). */
+  loginGate: Promise<void> | null = null;
+  /** While true, a login's connection is cut before any answer (the gateway gets no answer). */
+  cutLogins = false;
+  /** While true, every login is refused (401 AUTH). */
+  refuseLogins = false;
+  /** Every heartbeat that reached the server, accepted or not: the SHA-256 of its token and when (performance.now()). */
+  readonly heartbeatsReceived: { tokenHash: string; at: number }[] = [];
   /** The challenges issued (id to the time of issue, performance.now()). */
   readonly challenges = new Map<string, number>();
   /** Every upload item accepted by the schema, with the challenge of its upload and when the upload arrived. */
@@ -145,6 +163,16 @@ export class FakeServer {
   head(): { seq: string; hash: string } {
     const last = this.readings.at(-1);
     return last ? { seq: last.seq, hash: last.hash } : { seq: '0', hash: genesisHash(this.chainId) };
+  }
+
+  /** The server ends every gateway session (e.g. it restarted): each token is then answered 401 SESSION, log in again. */
+  endSessions(): void {
+    this.tokens.clear();
+  }
+
+  /** The server is restored from a backup that holds the readings of its chain up to `seq` only. */
+  restoreTo(seq: number): void {
+    this.readings.length = Math.min(seq, this.readings.length);
   }
 
   /** A new enrolment: a new chain id, empty. */
@@ -185,6 +213,12 @@ export class FakeServer {
         return this.send(res, 200, { nonce });
       }
       case '/gw/v1/session': {
+        if (this.refuseLogins) return this.send(res, 401, { error: { code: 'AUTH', message: 'refused', relogin: false } });
+        if (this.cutLogins) {
+          req.socket.destroy();
+          return;
+        }
+        if (this.loginGate) await this.loginGate;
         const p = LoginRequest.safeParse(body);
         if (!p.success || !this.nonces.delete(p.data.nonce) || p.data.spki !== this.spki) return this.send(res, 401, { error: { code: 'AUTH', message: 'refused', relogin: false } });
         if (!verify(null, loginProofMessage(p.data.nonce, p.data.gatewayCode, p.data.loginName, p.data.spki), ed25519PublicKey(this.spki), Buffer.from(p.data.sig, 'base64'))) {
@@ -206,6 +240,7 @@ export class FakeServer {
       case '/gw/v1/challenge': {
         if (!this.tokens.has(hash)) return this.send(res, 401, { error: { code: 'SESSION', message: 'log in', relogin: true } });
         if (this.challengeDelayMs > 0) await new Promise((r) => setTimeout(r, this.challengeDelayMs));
+        if (this.challengeGate) await this.challengeGate;
         const challengeId = randomUUID();
         this.challenges.set(challengeId, performance.now());
         return this.send(res, 200, { challengeId });
@@ -221,6 +256,7 @@ export class FakeServer {
         const results: { readingId: string; seq: string; outcome: 'INGESTED' | 'DUPLICATE' }[] = [];
         let refused: { readingId: string; code: string; message: string } | null = null;
         for (const { reading, delayUs, waitSig } of p.data.items) {
+          if (this.uploadTakes !== null && results.length >= this.uploadTakes) break;
           const waitCode =
             delayUs === null
               ? null
@@ -267,12 +303,21 @@ export class FakeServer {
           this.readings.push(reading);
           results.push({ readingId: reading.readingId, seq: reading.seq, outcome: 'INGESTED' });
         }
-        return this.send(res, 200, { results, head: this.head(), refused });
+        if (this.loseUploadAnswers) {
+          req.socket.destroy();
+          return;
+        }
+        const uploadHead = this.head();
+        if (this.uploadAnswerGate) await this.uploadAnswerGate;
+        return this.send(res, 200, { results, head: uploadHead, refused });
       }
       case '/gw/v1/heartbeat': {
+        this.heartbeatsReceived.push({ tokenHash: hash, at: performance.now() });
         if (!this.tokens.has(hash)) return this.send(res, 401, { error: { code: 'SESSION', message: 'log in', relogin: true } });
         this.heartbeats.push(HeartbeatRequest.parse(body));
-        return this.send(res, 200, { serverTimeUs: '1790584618000000', head: this.head() });
+        const heartbeatHead = this.head();
+        if (this.heartbeatGate) await this.heartbeatGate;
+        return this.send(res, 200, { serverTimeUs: '1790584618000000', head: heartbeatHead });
       }
       default:
         return this.send(res, 404, { error: { code: 'NOT_FOUND', message: 'not found', relogin: false } });

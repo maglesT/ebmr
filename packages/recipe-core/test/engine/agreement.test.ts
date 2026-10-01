@@ -14,8 +14,8 @@ import { describe, expect, it } from 'vitest';
 import type { BatchDefinition } from '../../src/engine/definition.ts';
 import type { DataValue } from '../../src/engine/types.ts';
 import { contextKey, type Frame } from '../../src/flow/tokens.ts';
-import { enumeratePaths, pathSteps, type PathResult } from '../../src/simulator/index.ts';
-import { buildFlow, shapes } from './model-support.ts';
+import { enumeratePaths, exactPathCount, pathSteps, type PathResult } from '../../src/simulator/index.ts';
+import { buildFlow, shapes, type Shape } from './model-support.ts';
 import { autopilot, define, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, PACKAGING_SCENARIO, Run, type Scenario } from './support.ts';
 
 interface Decision {
@@ -67,8 +67,53 @@ function engineSteps(run: Run): string[] {
     .sort();
 }
 
+/**
+ * The step budget of ONE simulator run (`runOnce`'s maxFires): a run that fires more steps is a
+ * runaway flow. It does not limit how many paths are enumerated.
+ */
+const MAX_FIRES_PER_RUN = 100_000;
+
+/**
+ * The most paths a test here collects (the same budget as the validator's path-count property).
+ * `enumeratePaths` yields every path, and nested replicates, loops and alternatives multiply them:
+ * a generated shape can have millions (HEAVY_SHAPE has 3,263,696). Collecting them inside a
+ * synchronous fc.assert fills the worker's heap until V8 aborts, and the test timeout cannot
+ * interrupt it. The generated-shape properties skip a shape above the budget (fc.pre), so each
+ * still makes its full number of runs; `simulatorPaths` refuses one before enumerating anything.
+ */
+const PATH_BUDGET = 2000n;
+
+/**
+ * A concurrent replicate of 2-3 instances of a loop of at most 3 iterations over a 4-way alternative
+ * (three steps and "no action"): 4 + 16 + 64 + 64 = 148 paths per instance, 148^2 + 148^3 in all.
+ * The shapes generator draws such shapes: in a sample of 100,000, about 1 in 550 had more than
+ * PATH_BUDGET paths and 1 in 3,500 more than 100,000.
+ */
+const HEAVY_SHAPE: Extract<Shape, { t: 'rep' }> = {
+  t: 'rep',
+  min: 2,
+  extra: 1,
+  concurrent: true,
+  b: { t: 'loop', max: 3, maxMinutes: 0, b: { t: 'alt', c: [{ t: 'phase', timer: 0 }, { t: 'phase', timer: 0 }, { t: 'phase', timer: 0 }], empty: true } },
+};
+
+/** The closed-form number of simulator paths of a definition (no enumeration). */
+function pathCount(def: BatchDefinition): bigint {
+  return exactPathCount(def.analysis.expanded.root);
+}
+
+/** Every simulator path of a definition with at most PATH_BUDGET of them; a larger one is refused before any is enumerated. */
 function simulatorPaths(def: BatchDefinition): PathResult[] {
-  return [...enumeratePaths(def.game, 100_000)];
+  const exact = pathCount(def);
+  if (exact > PATH_BUDGET) throw new Error(`the flow has ${exact.toString()} simulator paths, more than the ${PATH_BUDGET.toString()} this test enumerates`);
+  const paths: PathResult[] = [];
+  for (const p of enumeratePaths(def.game, MAX_FIRES_PER_RUN)) {
+    paths.push(p);
+    // Never more than the closed form allows, even if the enumeration disagreed with it.
+    if (BigInt(paths.length) > exact) break;
+  }
+  expect(BigInt(paths.length)).toBe(exact);
+  return paths;
 }
 
 /** The golden granulation data scaled to one sub-lot: the blend and the cores are one sub-lot's worth. */
@@ -85,6 +130,7 @@ describe('simulator and engine agree', { timeout: 180_000 }, () => {
     fc.assert(
       fc.property(shapes.node, fc.nat({ max: 1_000 }), (shape, seed) => {
         const def = define(buildFlow(shape));
+        fc.pre(pathCount(def) <= PATH_BUDGET);
         const paths = simulatorPaths(def);
         const known = new Set(paths.map((p) => JSON.stringify(pathSteps(p).sort())));
         for (const p of paths.slice(0, 12)) {
@@ -117,7 +163,8 @@ describe('simulator and engine agree', { timeout: 180_000 }, () => {
         });
         if (outcome === 'COMPLETE') expect(known.has(JSON.stringify(engineSteps(run)))).toBe(true);
       }),
-      { numRuns: 60 },
+      // HEAVY_SHAPE first on every run: the budget skips it (without the fc.pre the property fails on it at once), and the 60 random shapes still run.
+      { numRuns: 60, examples: [[HEAVY_SHAPE, 0]] },
     );
   });
 
@@ -125,6 +172,7 @@ describe('simulator and engine agree', { timeout: 180_000 }, () => {
     fc.assert(
       fc.property(shapes.node, (shape) => {
         const def = define(buildFlow(shape));
+        fc.pre(pathCount(def) <= PATH_BUDGET);
         const exhausted = simulatorPaths(def).filter((p) => p.exceptions.length > 0).slice(0, 4);
         for (const p of exhausted) {
           const run = Run.issue(def);
@@ -134,8 +182,19 @@ describe('simulator and engine agree', { timeout: 180_000 }, () => {
           expect(engine.map((e) => `${e.source.construct ?? ''}@${contextKey(e.source.frames)}`)).toContain(`${first?.loop ?? ''}@${contextKey(first?.frames ?? [])}`);
         }
       }),
-      { numRuns: 40 },
+      { numRuns: 40, examples: [[HEAVY_SHAPE]] },
     );
+  });
+
+  it('[DI-34][INV-19] the path enumeration is bounded: a shape with 3,263,696 paths is refused at once, not collected until the heap runs out', () => {
+    const def = define(buildFlow(HEAVY_SHAPE));
+    expect(pathCount(def)).toBe(148n ** 2n + 148n ** 3n);
+    expect(() => simulatorPaths(def)).toThrow('the flow has 3263696 simulator paths, more than the 2000 this test enumerates');
+    // A flow within the budget is enumerated in full: every path, each once.
+    const small = define(buildFlow({ ...HEAVY_SHAPE, min: 1, extra: 0 }));
+    const paths = simulatorPaths(small);
+    expect(paths).toHaveLength(148);
+    expect(new Set(paths.map((p) => p.decisions.join(' '))).size).toBe(148);
   });
 
   it('[DI-34][INV-19] granulation fixture: every data-feasible simulator path with one sub-lot is an engine completion with the same steps', () => {

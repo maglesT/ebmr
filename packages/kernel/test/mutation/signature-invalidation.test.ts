@@ -18,10 +18,11 @@
  * the free-text reading note. Readings can be deleted and moved between steps.
  */
 import { randomUUID } from 'node:crypto';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext, withCommand } from '../../src/db/command.ts';
 import { contentForSigning, createChallenge, sign, signatureState } from '../../src/esig/signing.ts';
+import { endPool, openPool } from '../harness/pools.ts';
 import type { SeededActor } from '../identity/seed.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import {
@@ -258,7 +259,7 @@ describe('esig.signature_guard: the signing marker (INV-10)', () => {
     const op = await testActor(db);
     const id = await createStub(db, op);
     // One pooled connection, used before by someone else who left a session-level value behind.
-    const pool = new pg.Pool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 1 });
+    const pool = openPool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 1 });
     try {
       const pid = async () => (await pool.query<{ p: number }>('select pg_backend_pid() as p')).rows[0]?.p;
       const marker = async (c: pg.Pool | pg.PoolClient) =>
@@ -284,7 +285,7 @@ describe('esig.signature_guard: the signing marker (INV-10)', () => {
       expect(await pid()).toBe(connection);
       expect(await marker(pool)).toBe(foreign);
     } finally {
-      await pool.end();
+      await endPool(pool);
     }
   });
 });

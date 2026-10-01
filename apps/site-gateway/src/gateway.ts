@@ -45,6 +45,14 @@ import { MtSicsDriver, type CommandResult } from './drivers/mt-sics.ts';
 import { Journal } from './journal.ts';
 import { Uplink, newApiToken } from './uplink.ts';
 
+/**
+ * How long a capture waits, once its reading is journalled, to learn whether the server holds it (Uplink.waitForAck):
+ * `uplinked: false` when the server has not acknowledged it by then (the reading stays journalled and is delivered
+ * later). The answer never comes later than this, whatever the gateway's disk does, so it stays within the time the
+ * server's request allows after the balance has settled (decision X28).
+ */
+export const CAPTURE_ACK_WAIT_MS = 5000;
+
 export interface GatewayAlarmRecord {
   atUs: string;
   source: 'driver' | 'journal' | 'uplink' | 'capture';
@@ -228,7 +236,11 @@ export class SiteGateway {
     return this.failed('DEVICE_OFFLINE', `${i.config.code} did not answer: ${r.message}`);
   }
 
-  /** Seals and journals what the instrument answered (fsync), then uploads it. */
+  /**
+   * Seals and journals what the instrument answered (fsync), then uploads it. `uplinked`: the server acknowledged it
+   * within CAPTURE_ACK_WAIT_MS; the answer waits for the watermark write that records it, but not past that time
+   * (Uplink.waitForAck).
+   */
   private async record(
     i: Instrument,
     r: Extract<CommandResult, { ok: true }>,
@@ -261,7 +273,7 @@ export class SiteGateway {
     );
     this.capturedAt.set(reading.readingId, r.receivedMonoUs);
     void this.uplink.flush();
-    const uplinked = await this.uplink.waitForAck(BigInt(reading.seq), 5000);
+    const uplinked = await this.uplink.waitForAck(BigInt(reading.seq), CAPTURE_ACK_WAIT_MS, reading.chainId);
     return { reading, uplinked };
   }
 
