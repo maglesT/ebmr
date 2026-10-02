@@ -9,6 +9,10 @@
  * included (both golden fixtures with their stages, operations, sub-lots, parallel section, alternatives, drying loop
  * and hold points; a loop that exits and one that is exhausted; a step reopened for a re-test and signed performed
  * again; a hold point released), and each row with one of those events taken out is refused, with its reason.
+ *
+ * Round 3 (sql 0316): the END of a construct was required only when a later step arrived, and not for one inside an
+ * alternative's branch, a loop iteration or a sub-lot, nor for the last construct of the batch. Now a row that finishes
+ * what an operation, parallel, alternative or replicate section holds records its END, wherever it lies.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
@@ -237,5 +241,59 @@ describe('F67 round 2: an act records the start or end it makes, and the token\'
     const reach = heldRows.find((x) => (steps(x.after)['H@'] ?? {})['status'] === 'ENABLED' && !('H@' in (x.before['steps'] as Record<string, unknown> | undefined ?? {})));
     if (!reach) throw new Error('SETUP: no row brings in the hold point');
     expect(await problem(held.def.mbr, without(reach, 'H|START|'))).toBe('brings in hold point H@, which the token reaches, but records no START event of it (H|START|)');
+  }, 300_000);
+  it('[INV-20][PR-30][DI-27][DI-34] round 3: a row that finishes what a construct holds without its END is refused wherever the construct lies: an operation in an alternative\'s branch, the last operation of a loop iteration and of a sub-lot, the last operation of the final stage', async () => {
+    const added = (rows: readonly Row[], key: string): Row => {
+      const r = rows.find((x) => x.accepted && key in (x.after['nodeEvents'] as Json) && !(key in ((x.before['nodeEvents'] as Json | undefined) ?? {})));
+      if (!r) throw new Error(`SETUP: no row records ${key}`);
+      return r;
+    };
+    const message = (kind: string, node: string, key: string): string => `finishes what ${kind} ${node} holds, so the token leaves it, but records no END event of it (${key})`;
+    // An operation in the branch an alternative took (the verifier's probe), a step after the alternative.
+    const altMbr = mbrWith(
+      seq('ops', phase('w', { records: ['m'] }), {
+        kind: 'alternative', id: 'alt', decision: { mode: 'DATA' },
+        branches: [{ id: 'big', name: 'Big', guard: 'm > 5 [kg]', body: { kind: 'operation', id: 'O-BIG', name: 'Big charge', body: seq('big-seq', phase('pb')) } }, { id: 'small', name: 'Small', otherwise: true, body: phase('ps') }],
+      }, phase('end')),
+      { parameters: [param('m')] },
+    );
+    const alt = Run.issue(define(altMbr));
+    const altStart = alt.state;
+    done(alt, 'w', { m: '7.00' });
+    done(alt, 'pb');
+    expect(alt.status('end')).toBe('ENABLED');
+    const altRows = rowsOf(alt, altStart);
+    expect(await objections(alt.def.mbr, altRows)).toEqual({});
+    const leaveBranch = added(altRows, 'O-BIG|END|');
+    expect(Object.keys(leaveBranch.after['nodeEvents'] as Json), 'SETUP: the same row ends the alternative').toContain('alt|END|');
+    expect(await problem(alt.def.mbr, without(leaveBranch, 'O-BIG|END|'))).toBe(message('operation', 'O-BIG', 'O-BIG|END|'));
+    // The last operation of a loop iteration: the token waits at the loop's test, no step comes after it in the row.
+    const tailMbr = mbrWith(
+      seq('ops', { kind: 'loop', id: 'L', name: 'Dry', maxIterations: 5, exit: { condition: 'ep <= 1 [%]', endpoint: 'ep' }, body: seq('body', phase('test', { records: ['ep'] }), { kind: 'operation', id: 'O-TAIL', name: 'Unload', body: seq('tail-seq', phase('unload')) }) }, phase('after')),
+      { parameters: [endpoint('ep')] },
+    );
+    const tail = Run.issue(define(tailMbr));
+    const tailStart = tail.state;
+    const f = [{ construct: 'L', index: 1 }];
+    tail.start('test', f);
+    tail.record('test', 'ep', { kind: 'DECIMAL', value: '0.8', unit: '%' }, { frames: f });
+    tail.perform('test', f);
+    tail.verify('test', f);
+    done(tail, 'unload', {}, f);
+    tail.ok({ type: 'COMPLETE_LOOP_ITERATION', actor: OP1, construct: 'L', context: f });
+    expect(tail.status('after')).toBe('ENABLED');
+    const tailRows = rowsOf(tail, tailStart);
+    expect(await objections(tail.def.mbr, tailRows)).toEqual({});
+    expect(await problem(tail.def.mbr, without(added(tailRows, 'O-TAIL|END|L=1'), 'O-TAIL|END|L=1'))).toBe(message('operation', 'O-TAIL', 'O-TAIL|END|L=1'));
+    // The golden run: the last operation of a sub-lot's stage, and the last operation of the final stage (before its sign-off).
+    const { run, rows } = goldenRun('tablet-granulation-compression');
+    const mbr = run.def.mbr;
+    expect(await problem(mbr, without(added(rows, 'O-GRAN-OUT|END|R-SUBLOT=1'), 'O-GRAN-OUT|END|R-SUBLOT=1'))).toBe(message('operation', 'O-GRAN-OUT', 'O-GRAN-OUT|END|R-SUBLOT=1'));
+    const last = added(rows, 'O-COMP-YIELD|END|');
+    expect(typeOf(last), 'SETUP: no step comes after it').not.toBe('SIGN_OFF_STAGE');
+    expect(await problem(mbr, without(last, 'O-COMP-YIELD|END|'))).toBe(message('operation', 'O-COMP-YIELD', 'O-COMP-YIELD|END|'));
+    // The replicate section itself, finished by the sign-off of the last sub-lot's stage (the step after it also needs it, 0314).
+    const repEnd = added(rows, 'R-SUBLOT|END|');
+    expect(typeOf(repEnd)).toBe('SIGN_OFF_STAGE');
   }, 300_000);
 });
