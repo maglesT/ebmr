@@ -28,6 +28,7 @@ import { ScaleCaptureSlot } from '../../../app/ports.tsx';
 import { wcls } from '../classes.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
 import { useSessionChange } from '../session.tsx';
+import { useDraftGuard } from '../unsettled.ts';
 import { st } from '../text.ts';
 import { useRunCommand } from '../usePendingCall.ts';
 
@@ -125,6 +126,7 @@ function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenV
   };
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: field.name }), { onSaved: clear, onDiscarded: clear });
   useSessionChange(clear);
+  useDraftGuard(text !== '' || choice !== null || scan !== null);
   const locked = cmd.busy || cmd.state === 'notSaved';
   const value = valueOf(field, { text, choice, scan });
   const save = () => {
@@ -399,6 +401,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const dropReadings = () => setState((s) => ({ ...s, readings: {} }));
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings, onDiscarded: clear });
   useSessionChange(clear);
+  useDraftGuard([state.texts, state.choices, state.scans, state.readings, state.checks].some((part) => Object.keys(part).length > 0));
   const locked = cmd.busy || cmd.state === 'notSaved';
 
   const readingFields = form.fields.filter((f) => f.type === 'reading');
