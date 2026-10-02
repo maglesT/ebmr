@@ -155,7 +155,12 @@ that another command holds is skipped.
     RECORD_DATA, RECORD_ENTRY, SIGN_PERFORMED, DISPOSITION_HOLD_POINT and VOID_ATTEMPT naming the step instance,
     CORRECT_ENTRY of a data point of it). The `batch_exception` content provider names the same persons, from the
     lists and from the rows, as having entered the record, so the kernel already refuses their
-    EXCEPTION_DISPOSITIONED signature (EBMR-ESIG-044);
+    EXCEPTION_DISPOSITIONED signature (EBMR-ESIG-044). Since sql 0315 the step the exception was raised at is not
+    only the one its stored source names, which the writer controls for an exception a block or the engine raises,
+    but also the step the command of the row that raised it acts on (`exception_raising_steps`: the row whose
+    EXCEPTION_RAISED event names the exception; the step and context of the command, or the step of the data point a
+    CORRECT_ENTRY or INVALIDATE_RESULT names). A time finding of the system keeps only its stored source, which
+    0299 binds;
 - every row leaves the exceptions of the stored state as they were raised (DI-26, INV-41; sql 0270,
   `check_exception_changes`, EBMR-EXE-044): none is removed or changed, except the status and disposition of the
   exception an accepted DISPOSITION_EXCEPTION names and the deviation link an accepted ATTACH_DEVIATION adds to an
@@ -401,7 +406,8 @@ one plain-language business entry on the chain `batch:<id>`.
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
   `batch_point_content` read the latest content version, the state and the persons involved. For an exception
   these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
-  raised at, as the step's lists and (sql 0310) the accepted commands recorded on that step name it. For a witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
+  raised at, as the step's lists and (sql 0310) the accepted commands recorded on that step name it; since sql 0315
+  for every step it was raised at, the step the command of its raising row acts on included. For a witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
 - `execution_violations()` must return no rows. It checks:
   - sequence gaps and the hash chain;
   - the projection against the last row;
@@ -412,7 +418,8 @@ one plain-language business entry on the chain `batch:<id>`.
   - the engine's rules over the stored rows (`execution_rule_violations`, sql 0306): an accepted
     DISPOSITION_EXCEPTION by a person whose involvement in the step that raised the exception (an INVOLVEMENT
     event of an accepted row before it, or, sql 0310, an accepted command before it that acted in that step) put
-    them in its performers, data enterers, correctors or PERFORMED signers (INV-03, PR-13, PR-49);
+    them in its performers, data enterers, correctors or PERFORMED signers (INV-03, PR-13, PR-49); since sql 0315
+    for every step the exception was raised at (`exception_raising_steps`);
   - (sql 0307) a step instance of a stored state that the steps before it did not precede: one of them first
     finished after the instance was enabled (its `firstCompletedSeq` later than the instance's `enabledSeq`) or
     never, or the conditions of `step_order_problem` do not hold for it (DI-34, PR-13; as the engine's own invariant
@@ -432,7 +439,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it (044; sql 0270, 0295, 0298, 0305); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
 | 050-059 | signatures (050-052) and signable content (055-057) |
 | 060-064 | definition fit (TypeScript) |
-| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310) |
+| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records (133; sql 0312, 0314) |
 
@@ -678,7 +685,7 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   another tier, left out, or not marked failed (EBMR-EXE-044), while the honest one is recorded and QA cannot
   disposition it NO_IMPACT; an ISSUE row whose state already records a decision, a closed, linked or operator's
   exception, a data point, a performer or a signature (EBMR-EXE-030, 044).
-- `db-guards-disposition-involvement.test.ts` (Phase 2 exit review F11; sql 0306, 0310): the signed content of an
+- `db-guards-disposition-involvement.test.ts` (Phase 2 exit review F11; sql 0306, 0310, 0315): the signed content of an
   exception raised at a step names the step's performers, data enterers, correctors and PERFORMED signers; a
   person who entered data in that step, also holding a QA role, cannot disposition it through the store with the
   application role (the kernel refuses the signature, EBMR-ESIG-044); the invariant query reports a disposition by
@@ -686,7 +693,11 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   when the person's own START_STEP and entry were stored without them in the step's lists and without their
   INVOLVEMENT events (the accepted rows name them: EBMR-ESIG-044); a disposition signed before the signer started the
   step and stored after that start, in the same transaction, is refused (EBMR-EXE-087); and one landed with the
-  triggers off is reported by the invariant query from the rows.
+  triggers off is reported by the invariant query from the rows. Round 3 (sql 0315): a CLEARANCE_FAILED stored
+  without the step it was raised at (operator2's checklist row, the engine's result with the source's step deleted)
+  is still the clearance's: operator1, who started it, cannot sign its disposition (EBMR-ESIG-044), one signed before
+  operator1 entered data in the step is refused in the same transaction (EBMR-EXE-087), and one landed with the
+  triggers off is reported by the invariant query.
 - `db-guards-step-order.test.ts` (Phase 2 exit review F66; sql 0307, 0311): the critic's row, which enabled the
   dispensing beside an entry on the line clearance in progress, is refused (EBMR-EXE-129) and the dispensing still
   cannot start; a row that marks the clearance finished while in progress, or signs off its stage, is refused; the

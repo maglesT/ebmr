@@ -16,6 +16,13 @@
  * START_STEP and entry stored without operator1 in the lists or events left operator1 free to disposition. Now the
  * involvement is also read from the accepted command rows on the step (append-only, hash-chained, attributed from the
  * session): the provider names them, a trigger refuses the row, and the invariant query reports it.
+ *
+ * Round 3 (recipe-core 0315): the step an exception was raised at was read from the stored exception's source, which
+ * the writer controls for an exception a block or the engine raises. operator2's CLEARANCE_CHECK with an item not
+ * confirmed, stored with the engine's real result except that its CLEARANCE_FAILED kept no step, left operator1, who
+ * started the clearance, free to disposition it. Now the raising step is also the step the command of the row that
+ * raised the exception acts on (that row's EXCEPTION_RAISED event names it, 0299): the provider, the trigger and the
+ * invariant query all read it.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -144,6 +151,45 @@ async function qaDisposition(d: RunDriver, exception: string): Promise<{ qa: Act
     qa: await asQa({ authEventId: ev.authEventId }),
     sign: async (c) => (await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: content.state ?? null }, sealKey)).signatureId,
   };
+}
+
+const NOT_CONFIRMED_CHECK = {
+  kind: 'CLEARANCE_CHECK',
+  answers: [{ id: 'NO_PREVIOUS_MATERIAL', answer: 'NOT_CONFIRMED' }, { id: 'NO_PREVIOUS_DOCUMENTS', answer: 'CONFIRMED' }, { id: 'EQUIPMENT_CLEAN_LABEL', answer: 'CONFIRMED' }],
+};
+
+/**
+ * `persona`'s CLEARANCE_CHECK on the line clearance with one item not confirmed, recorded through the application role
+ * on client `c` (in the command context the caller installed) with the engine's real result, except that the
+ * CLEARANCE_FAILED it raises is stored without the step it was raised at (source.stepKey and source.step deleted): the
+ * round-3 verification's bypass of F11. Returns the exception's id.
+ */
+async function unsourcedClearanceFailure(c: pg.PoolClient, runId: string, persona: string): Promise<string> {
+  const run = await runContext(sbx.db.admin, runId);
+  const tx = await execution.ExecutionTx.open(c, run.def, runId);
+  const roles = await engineRoles(c);
+  const cmd: engine.Command = { type: 'RECORD_ENTRY', commandId: randomUUID(), actor: engineActor(personaIn(sbx, persona).personId, roles), step: 'p-disp-clear', context: [], entry: NOT_CONFIRMED_CHECK };
+  const r = engine.step(tx.def, tx.state, cmd, { nowUs: tx.nowUs });
+  if (!r.accepted) throw new Error(`SETUP: the engine refused the clearance check: ${JSON.stringify(r.refusal)}`);
+  const state = structuredClone(r.state);
+  const raised = Object.values(state.exceptions).filter((x) => tx.state.exceptions[x.id] === undefined);
+  const failure = raised[0];
+  if (raised.length !== 1 || failure?.type !== 'CLEARANCE_FAILED' || failure.source.stepKey !== CLEAR) throw new Error(`SETUP: ${JSON.stringify(raised)}`);
+  delete failure.source.stepKey;
+  delete failure.source.step;
+  await appendAs(tx, cmd, { state, events: r.events }, roles);
+  return failure.id;
+}
+
+/** A dc-mini run driven by operator1 and operator2 (both on the DISP-1 kiosk), supervisor1 and qa1. */
+async function twoOperatorRun(): Promise<RunDriver> {
+  const issuer = await sbx.asPersona('issuer');
+  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+  const d = new RunDriver(sbx, runId, {
+    issuer, operator1: await sbx.asPersona('operator1'), operator2: await sbx.asPersona('operator2', 'TEST-KIOSK-DISP-1'), supervisor1: await sbx.asPersona('supervisor1'), qa1: await sbx.asPersona('qa1'),
+  });
+  d.beforeTap = () => vi.advanceTimersByTime(7_000);
+  return d;
 }
 
 describe('F11: a person involved in the step that raised an exception never dispositions it (INV-03, PR-13, PR-49)', () => {
@@ -369,6 +415,80 @@ describe('F11: a person involved in the step that raised an exception never disp
     const stored = await execution.loadState(sbx.db.admin, runId);
     expect(stored?.state.exceptions[exception]?.disposition?.by, 'SETUP: stored').toBe(who);
     const problems = (await violations(sbx)).filter((v) => v.batchId === runId).map((v) => v.problem);
+    expect(problems.filter((p) => p.includes('INV-03'))).toEqual([expect.stringMatching(new RegExp(`exception ${exception} was dispositioned by ${who}, who was involved in step p-disp-clear@`))]);
+  }, 300_000);
+  it('[INV-03][PR-13][PR-49][DI-17] round 3: an exception a block raised, stored without the step it was raised at, is still that step\'s: the row that raised it names the step, so the person who started it cannot sign the disposition and nothing is recorded', async () => {
+    const d = await twoOperatorRun();
+    const operator1 = personaIn(sbx, 'operator1').personId;
+    const operator2 = personaIn(sbx, 'operator2').personId;
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const exception = await withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator2'), 'operator2'), (c) => unsourcedClearanceFailure(c, d.runId, 'operator2'));
+    const stored = await execution.loadState(sbx.db.admin, d.runId);
+    expect(stored?.state.exceptions[exception]?.source, 'SETUP: stored without its step').toEqual({ frames: [] });
+    expect(stored?.state.exceptions[exception]?.raisedBy).toBe(operator2);
+    // The signed content names operator1, who started the step the CLEARANCE_CHECK row acted on.
+    const agg = `${d.runId}:${exception}`;
+    const { rows } = await sbx.db.admin.query<{ c: { entered_by: string[] } }>('select recipe.batch_exception_content($1) as c', [agg]);
+    expect([...(rows[0]?.c.entered_by ?? [])].sort()).toEqual([operator1, operator2].sort());
+    // operator1, also holding QA_SHOP_FLOOR, signs and stores the disposition with the engine's own, unmodified result
+    // (the engine, reading the stored source, sees no raising step).
+    const signing = await qaDisposition(d, exception);
+    const outcome = await messageOf(withCommand(sbx.db.app, signing.qa, async (c) => dispositionAs(c, d.runId, exception, await signing.sign(c))));
+    expect(outcome).toMatch(/EBMR-ESIG-044/);
+    const after = await execution.loadState(sbx.db.admin, d.runId);
+    expect(after?.state.exceptions[exception]?.status).toBe('OPEN');
+    const { rows: sigs } = await sbx.db.admin.query<{ n: string }>("select count(*)::text as n from esig.signature where aggregate_id = $1 and meaning_code = 'EXCEPTION_DISPOSITIONED'", [agg]);
+    expect(sigs[0]?.n).toBe('0');
+  }, 300_000);
+
+  it('[INV-03][PR-13][PR-49][DI-17] round 3: a disposition signed before its signer acted in the step whose row raised the exception (stored without its step), then stored after that act in the same transaction, is refused by the store (EBMR-EXE-087)', async () => {
+    const d = await twoOperatorRun();
+    await d.ok('operator2', { type: 'START_STEP', stepKey: CLEAR });
+    const exception = await withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator2'), 'operator2'), (c) => unsourcedClearanceFailure(c, d.runId, 'operator2'));
+    // operator1 is not involved yet: the kernel lets the signature through.
+    const { qa, sign } = await qaDisposition(d, exception);
+    const operator = await actorOf(sbx, d.browser('operator1'), 'operator1');
+    const install = (c: pg.PoolClient, ctx: ActorContext) => c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+    const outcome = await messageOf(
+      withCommand(sbx.db.app, qa, async (c) => {
+        const signatureId = await sign(c);
+        // operator1 then enters data in the step as an operator, stored without operator1 in the lists or events.
+        await install(c, operator);
+        await scrubbedAct(c, d.runId, scrubbedEntry);
+        await install(c, qa);
+        return dispositionAs(c, d.runId, exception, signatureId);
+      }),
+    );
+    expect(outcome).toMatch(/started, entered data in, corrected or signed performed step p-disp-clear@.*\(INV-03, PR-13, PR-49\)\. \[EBMR-EXE-087\]/);
+    const after = await execution.loadState(sbx.db.admin, d.runId);
+    expect(after?.state.exceptions[exception]?.status).toBe('OPEN');
+    expect(after?.state.steps[CLEAR]?.dataEnterers ?? [], 'the whole transaction was rolled back').toEqual([personaIn(sbx, 'operator2').personId]);
+  }, 300_000);
+
+  it('[INV-03][PR-13][PR-49] round 3: the same disposition landed with the triggers off is reported by the invariant query, although the exception names no step and the lists and events leave the person out', async () => {
+    const d = await twoOperatorRun();
+    await d.ok('operator2', { type: 'START_STEP', stepKey: CLEAR });
+    const exception = await withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator2'), 'operator2'), (c) => unsourcedClearanceFailure(c, d.runId, 'operator2'));
+    const { qa, sign } = await qaDisposition(d, exception);
+    const operator = await actorOf(sbx, d.browser('operator1'), 'operator1');
+    const install = (c: pg.PoolClient, ctx: ActorContext) => c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+    expect(
+      await messageOf(
+        withCommand(sbx.db.admin, qa, async (c) => {
+          const signatureId = await sign(c);
+          await c.query('set local session_replication_role = replica');
+          await install(c, operator);
+          await scrubbedAct(c, d.runId, scrubbedEntry);
+          await install(c, qa);
+          return dispositionAs(c, d.runId, exception, signatureId);
+        }),
+      ),
+    ).toBe('ok');
+    const who = personaIn(sbx, 'operator1').personId;
+    const stored = await execution.loadState(sbx.db.admin, d.runId);
+    expect(stored?.state.exceptions[exception]?.disposition?.by, 'SETUP: stored').toBe(who);
+    expect(stored?.state.exceptions[exception]?.source, 'SETUP: no step').toEqual({ frames: [] });
+    const problems = (await violations(sbx)).filter((v) => v.batchId === d.runId).map((v) => v.problem);
     expect(problems.filter((p) => p.includes('INV-03'))).toEqual([expect.stringMatching(new RegExp(`exception ${exception} was dispositioned by ${who}, who was involved in step p-disp-clear@`))]);
   }, 300_000);
 });
