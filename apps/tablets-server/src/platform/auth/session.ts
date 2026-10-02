@@ -10,8 +10,10 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import type { SessionView } from '@ebmr/api-contract';
 import type { ServerConfig } from '../../config.ts';
+import { refusal } from '../http/refusal.ts';
 
-export type SessionState = 'ACTIVE' | 'LOCKED' | 'IDLE_LOCKED' | 'ENDED' | 'EXPIRED' | 'UNKNOWN';
+/** ROLE_WITHDRAWN (tablets 0400, review F36): the role the session works in is no longer granted to its account. */
+export type SessionState = 'ACTIVE' | 'LOCKED' | 'IDLE_LOCKED' | 'ENDED' | 'EXPIRED' | 'UNKNOWN' | 'ROLE_WITHDRAWN';
 
 export interface ResolvedSession {
   tokenHash: string;
@@ -24,8 +26,10 @@ export interface ResolvedSession {
   siteCode: string;
   roomCode: string | null;
   lineCode: string | null;
-  /** The declared role; null until chosen when the account holds several. */
+  /** The declared role; null until chosen when the account holds several, and once it is withdrawn. */
   roleCode: string | null;
+  /** The role the session declared, also when it is withdrawn (to say why the session ends). */
+  declaredRole: string | null;
   roles: string[];
   state: SessionState;
   legalName: string;
@@ -106,6 +110,7 @@ export async function resolveSession(pool: pg.Pool, hash: string): Promise<Resol
     roomCode: opt('room_code'),
     lineCode: opt('line_code'),
     roleCode: opt('role_code'),
+    declaredRole: opt('declared_role'),
     roles: Array.isArray(r['roles']) ? (r['roles'] as unknown[]).map(String) : [],
     state: str('state') as SessionState,
     legalName: str('legal_name'),
@@ -143,4 +148,20 @@ export function sessionView(session: ResolvedSession, config: ServerConfig, csrf
     csrfToken,
     attribution: shopFloor ? (session.attributionMethod === 'NONE' ? 'TAP' : session.attributionMethod) : 'NONE',
   };
+}
+
+/**
+ * An account that holds no live role grant opens no session (review F36): the database would end it at its first
+ * request anyway (tablets 0400, a session whose account holds no role is withdrawn), and it could read nothing.
+ */
+export function noRoleHeld(): Error {
+  return refusal(403, {
+    code: 'NO_ROLE',
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'You hold no role on this installation now, so you cannot sign in.',
+    why: 'The account has no approved role grant that is valid now (revoked, expired or not yet valid).',
+    controls: ['DI-16'],
+    whatYouCanDo: ['Ask for a role to be granted to you.'],
+    whoCanHelp: ['The system administrator (role grants)'],
+  });
 }

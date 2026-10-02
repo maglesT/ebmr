@@ -19,7 +19,7 @@ import { identity } from '@ebmr/kernel';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { authenticateTap, otherTerminal, personNames, switchUserRefusal, tapRequired } from '../../platform/auth/attribution.ts';
 import { without } from '../../platform/auth/device-proof.ts';
-import { isShopFloor, newSessionToken, resolveSession, sessionView, setSessionCookie, tokenHash, type ResolvedSession } from '../../platform/auth/session.ts';
+import { isShopFloor, newSessionToken, noRoleHeld, resolveSession, sessionView, setSessionCookie, tokenHash, type ResolvedSession } from '../../platform/auth/session.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { bindRoutes, pathOf } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
@@ -99,7 +99,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             whatYouCanDo: ['Sign out, then sign in as yourself.'],
           });
         }
-        await identity.unlockSession(app.pools.app, s.sessionId, ev.authEventId);
+        // tablets 0400 (F36): through the binding, so a session whose role is withdrawn is never unlocked.
+        await app.pools.app.query('select tab.unlock_session($1, $2)', [s.tokenHash, ev.authEventId]);
         return accessSessionView(app, reply, await reload(app, s));
       },
 
@@ -118,7 +119,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           );
           authEventId = ev.authEventId;
         }
-        await identity.keepSessionAlive(app.pools.app, s.sessionId, authEventId);
+        // tablets 0400 (F36): through the binding, so a session whose role is withdrawn is never extended.
+        await app.pools.app.query('select tab.keep_session_alive($1, $2)', [s.tokenHash, authEventId ?? null]);
         return accessSessionView(app, reply, await reload(app, s));
       },
 
@@ -155,6 +157,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         }
         const opened = await identity.openSession(app.pools.app, ev.authEventId, fingerprint);
         const roles = await liveRoles(app, opened.accountId);
+        if (roles.length === 0) {
+          await identity.endSession(app.pools.app, opened.sessionId);
+          throw noRoleHeld();
+        }
         let role: string | null = roles.length === 1 ? (roles[0] ?? null) : null;
         if (body.roleCode !== undefined) {
           if (!roles.includes(body.roleCode)) {

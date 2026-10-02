@@ -12,7 +12,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { ChangeTicketStore } from '../../platform/auth/change-tickets.ts';
 import { spkiFingerprint, without } from '../../platform/auth/device-proof.ts';
 import { mintNonce } from '../../platform/auth/nonces.ts';
-import { clearSessionCookie, isShopFloor, newSessionToken, resolveSession, sessionView, setSessionCookie, tokenHash, type ResolvedSession } from '../../platform/auth/session.ts';
+import { clearSessionCookie, isShopFloor, newSessionToken, noRoleHeld, resolveSession, sessionView, setSessionCookie, tokenHash, type ResolvedSession } from '../../platform/auth/session.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { bindRoutes, pathOf, type DeviceRateLimitSpec } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
@@ -124,6 +124,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         }
         const opened = await identity.openSession(app.pools.app, ev.authEventId, fingerprint);
         const roles = await liveRoles(app, opened.accountId);
+        if (roles.length === 0) {
+          await identity.endSession(app.pools.app, opened.sessionId);
+          throw noRoleHeld();
+        }
         let role: string | null = roles.length === 1 ? (roles[0] ?? null) : null;
         if (body.roleCode !== undefined) {
           if (!roles.includes(body.roleCode)) {

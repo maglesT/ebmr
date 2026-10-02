@@ -239,6 +239,22 @@ function noSession(): Error {
   });
 }
 
+/** NO_SESSION, saying why: the session's role was withdrawn, and the session has ended (F36). */
+function roleWithdrawn(session: ResolvedSession): Error {
+  return refusal(401, {
+    code: 'NO_SESSION',
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'You are not signed in on this installation: the session ended because its role is no longer granted to you.',
+    why:
+      session.declaredRole === null
+        ? 'The account holds no role now.'
+        : `The role ${session.declaredRole} this session worked in was revoked or has expired.`,
+    controls: ['DI-16', 'DI-38'],
+    whatYouCanDo: ['Sign in again, in a role you hold.'],
+    whoCanHelp: ['The system administrator (role grants)'],
+  });
+}
+
 export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, app: AppContext, ns: NS, handlers: Handlers<NS>, opts: BindOptions = {}): string[] {
   const typed = scope.withTypeProvider<ZodTypeProvider>();
   const registered: string[] = [];
@@ -254,6 +270,13 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       const session = await sessionOf(app, request);
       if (route.auth !== 'SESSION') return;
+      // DI-16 (tablets 0400, review F36): the role the session works in was revoked or has expired. The session ends here,
+      // on every route (reads, keep-alive, unlock and session.get included); the person signs in again in a role they hold.
+      if (session?.state === 'ROLE_WITHDRAWN') {
+        await app.pools.app.query('select tab.end_withdrawn_session($1)', [session.tokenHash]);
+        request.ebmrSession = null;
+        throw roleWithdrawn(session);
+      }
       if (!session || session.state === 'ENDED' || session.state === 'EXPIRED' || session.state === 'UNKNOWN') throw noSession();
       if ((session.state === 'LOCKED' || session.state === 'IDLE_LOCKED') && !ALLOWED_WHEN_LOCKED.has(route.id)) {
         throw refusal(423, {
