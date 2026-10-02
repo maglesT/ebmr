@@ -91,17 +91,27 @@ export function assertAcceptableSecret(kind: SecretKind, secret: string, policy:
   if (problems.length > 0) throw new IdentityError('EBMR-IAM-055', `the new ${kind.toLowerCase().replace('_', ' ')} is not acceptable: ${problems.join('; ')}`);
 }
 
+/** A length the policy sets for a generated secret: a whole number of at least `min`, or the policy cannot be met. */
+function policyLength(name: string, value: number, min: number): number {
+  if (!Number.isSafeInteger(value) || value < min) throw new IdentityError('EBMR-IAM-110', `${name} is ${value}; a generated secret needs a whole number of at least ${min}`);
+  return value;
+}
+
 const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
 
 /** A random initial secret the service delivers to the user out of band (never to the administrator). */
 export function generateSecret(kind: SecretKind, policy: SecretPolicy): string {
   if (kind === 'PIN') {
+    // A one-digit PIN is always a single repeated digit, and a length that is not a whole number is never met: the
+    // loop would never end.
+    const length = policyLength('credential.pin_length', policy.pinLength, 2);
     for (;;) {
-      const pin = Array.from({ length: policy.pinLength }, () => String(randomInt(10))).join('');
+      const pin = Array.from({ length }, () => String(randomInt(10))).join('');
       if (pinProblems(pin, policy).length === 0) return pin;
     }
   }
   if (kind === 'SERVICE_KEY') return randomBytes(32).toString('base64url');
-  const length = Math.max(policy.passwordMinLength, 16);
+  // NaN (a policy value that is not a number) would give an empty password.
+  const length = Math.max(policyLength('credential.password_min_length', policy.passwordMinLength, 1), 16);
   return Array.from({ length }, () => PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)]).join('');
 }

@@ -236,6 +236,23 @@ describe('initial secrets (DI-15: delivered to the user, never chosen by the adm
     expect(generateSecret('PIN', withPolicy({ pinLength: 8 }))).toMatch(/^\d{8}$/);
   });
 
+  it('[DI-15] a policy length no generated secret can meet is refused (EBMR-IAM-110) instead of looping or giving an empty secret', () => {
+    for (const pinLength of [1, 0, -4, 4.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => generateSecret('PIN', withPolicy({ pinLength })), String(pinLength)).toThrow(
+        new IdentityError('EBMR-IAM-110', `credential.pin_length is ${pinLength}; a generated secret needs a whole number of at least 2`),
+      );
+    }
+    for (let i = 0; i < 200; i += 1) expect(generateSecret('PIN', withPolicy({ pinLength: 2 }))).toMatch(/^(?!(\d)\1)\d{2}$/);
+    for (const passwordMinLength of [0, Number.NaN, 12.5]) {
+      expect(() => generateSecret('PASSWORD', withPolicy({ passwordMinLength })), String(passwordMinLength)).toThrow(
+        new IdentityError('EBMR-IAM-110', `credential.password_min_length is ${passwordMinLength}; a generated secret needs a whole number of at least 1`),
+      );
+    }
+    expect(generateSecret('PASSWORD', withPolicy({ passwordMinLength: 1 }))).toHaveLength(16);
+    // A service key does not depend on the lengths.
+    expect(generateSecret('SERVICE_KEY', withPolicy({ pinLength: 1, passwordMinLength: Number.NaN }))).toHaveLength(43);
+  });
+
   it('[DI-15] an initial password has at least 16 characters, more when the policy asks, from an alphabet without look-alike characters', () => {
     const passwords = Array.from({ length: 200 }, () => generateSecret('PASSWORD', policy));
     for (const p of passwords) {
