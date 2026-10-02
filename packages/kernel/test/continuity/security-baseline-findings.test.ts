@@ -14,6 +14,7 @@ import {
   checkPostgresqlConf,
   checkProductionConfig,
   checkServerConfig,
+  readPostgresqlConf,
   SecurityBaselineError,
   type Finding,
   type ProductionConfig,
@@ -425,5 +426,103 @@ describe('postgresql.conf', () => {
     expect(checkPostgresqlConf(GOOD.replace('ssl = on', '#ssl = on'))).toEqual([E('EBMR-SEC-050', 'postgresql.conf:ssl', 'must be on')]);
     expect(checkPostgresqlConf(`${GOOD}\nssl = off`)).toEqual([E('EBMR-SEC-050', 'postgresql.conf:ssl', 'must be on')]);
     expect(checkPostgresqlConf(`ssl = off\n${GOOD}`)).toEqual([]);
+  });
+
+  // Every expectation below was compared with PostgreSQL 16's own reading of the same file (postgres -C).
+  const SSL_OFF = [E('EBMR-SEC-050', 'postgresql.conf:ssl', 'must be on')];
+  const UNREADABLE = (line: number) =>
+    E('EBMR-SEC-054', `postgresql.conf:${line}`, 'PostgreSQL cannot read this line (expected a setting name, an optional =, one value and nothing else) and would refuse the file');
+
+  it('[DI-13] a later setting turns TLS off whatever the case of its name, with or without "=", quoted or escaped', () => {
+    for (const later of ['SSL = off', 'Ssl off', 'ssl\toff', "ssl='off'", "ssl = 'o\\146f'", "ssl = '\\o\\f\\f'", 'ssl = of', 'ssl = 0', 'ssl = n', "ssl = 'f'"]) {
+      expect(checkPostgresqlConf(`${GOOD}\n${later}`), later).toEqual(SSL_OFF);
+    }
+  });
+
+  it('[DI-13] values are read as PostgreSQL reads them: case-insensitive, every spelling of a Boolean, escapes, a NUL ending the value', () => {
+    const rest = "\nssl_min_protocol_version = 'TLSv1.2'\npassword_encryption = scram-sha-256";
+    expect(checkPostgresqlConf("ssl = TRUE\nssl_min_protocol_version = tlsv1.3\npassword_encryption = 'SCRAM-SHA-256'")).toEqual([]);
+    for (const on of ['t', 'tr', 'TRUE', 'y', 'yes', '1', 'On', "'o\\156'", "'on\\000junk'"]) expect(checkPostgresqlConf(`ssl = ${on}${rest}`), on).toEqual([]);
+    // Values the server refuses (it would not start): never accepted as on.
+    for (const bad of ['o', 'onn', "' on'", "'on#x'", "'truex'", "''", '\u00a0off', 'e', 'rue', 's', 'es', "'o\\n'"]) expect(checkPostgresqlConf(`ssl = ${bad}${rest}`), bad).toEqual(SSL_OFF);
+    expect(checkPostgresqlConf(`${GOOD}\nssl_min_protocol_version = ''`)).toEqual([E('EBMR-SEC-051', 'postgresql.conf:ssl_min_protocol_version', 'must be TLSv1.2 or TLSv1.3')]);
+    expect(checkPostgresqlConf(`${GOOD}\npassword_encryption = on`)).toEqual([E('EBMR-SEC-052', 'postgresql.conf:password_encryption', 'must be scram-sha-256')]);
+  });
+
+  it('[DI-13] comments, line endings and the values of other settings are read as PostgreSQL reads them', () => {
+    for (const line of [
+      'ssl = on#x',
+      "ssl = 'on' # it's fine",
+      'ssl = on\r',
+      'archive_timeout = 1min',
+      'shared_buffers = 0x1000',
+      'random_page_cost = .5',
+      'random_page_cost = 1.5e1',
+      'x.y = .',
+      "x.y = 'a''b'",
+      "x.y = 'a\\'b'",
+      "x.y = 'a\\\rb'",
+      "x.y = 'a'''",
+      "pgaudit.log = 'ddl, role, write'",
+      '',
+      '   # only a comment',
+    ]) {
+      expect(checkPostgresqlConf(`${GOOD}\n${line}`), JSON.stringify(line)).toEqual([]);
+    }
+    expect(checkPostgresqlConf(GOOD.replace(/\n/g, '\r\n'))).toEqual([]);
+  });
+
+  it('[DI-13] the reader decodes values as PostgreSQL does', () => {
+    const read = (value: string) => readPostgresqlConf(`ebmr.x = ${value}`).settings.get('ebmr.x');
+    expect(read("'a''b'")).toBe("a'b");
+    expect(read("'a\\'b'")).toBe("a'b");
+    expect(read("'it''s \\'ok\\''")).toBe("it's 'ok'");
+    expect(read("''''")).toBe("'");
+    expect(read("'\\''''")).toBe("''");
+    // One to three octal digits are one byte (a fourth digit is a character of its own); 8 is not an octal digit.
+    expect(read("'\\101\\1012\\0101'")).toBe('AA2\b1');
+    expect(read("'\\18'")).toBe('\u00018');
+    expect(read("'x\\8y'")).toBe('x8y');
+    expect(read("'\\777'")).toBe('\u00ff');
+    expect(read("'on\\000junk'")).toBe('on');
+    expect(read("'\\b\\f\\n\\r\\t|'")).toBe('\b\f\n\r\t|');
+    expect(read("'\\q\\\\'")).toBe('q\\');
+    expect(read("'a\\\rb'")).toBe('a\rb');
+    expect(read("'#x'")).toBe('#x');
+    for (const plain of ['60', '.5', '1.5e1', '0x1F', '-1', '+.5e-3', 'abc-d.e:f/g', 'TLSv1.2', 'on']) expect(read(plain), plain).toBe(plain);
+  });
+
+  it('[DI-13] the reader keys settings by lower-case name, the last one winning, and reports findings under the file', () => {
+    const { settings, findings } = readPostgresqlConf("SSL = on\nPgAudit.Log 'ddl'\nssl off\n# x\n\nEBMR.X = 1");
+    expect(findings).toEqual([]);
+    expect([...settings]).toEqual([
+      ['ssl', 'off'],
+      ['pgaudit.log', 'ddl'],
+      ['ebmr.x', '1'],
+    ]);
+    expect(readPostgresqlConf('ssl').findings.map((f) => f.path)).toEqual(['postgresql.conf:1']);
+    expect(readPostgresqlConf('\nssl', 'conf.d/tls.conf').findings.map((f) => f.path)).toEqual(['conf.d/tls.conf:2']);
+  });
+
+  it('[DI-13] an include directive is refused whatever its case: it brings in settings this check never sees', () => {
+    for (const line of ["include_if_exists = 'tls.conf'", "INCLUDE_IF_EXISTS 'tls.conf'", "include 'tls.conf'", "Include_Dir 'conf.d'"]) {
+      expect(checkPostgresqlConf(`${GOOD}\n${line}`), line).toEqual([
+        E('EBMR-SEC-053', 'postgresql.conf:4', 'include directives bring in settings this check never sees; keep every setting in this file'),
+      ]);
+    }
+  });
+
+  it('[DI-13] a line PostgreSQL cannot read is refused, because the server would refuse the whole file', () => {
+    for (const line of ['ssl = on off', 'ssl = = off', 'ssl =', 'ssl', '= off', 'ssl = on.x', 'x.y.z = 1', "'ssl' = off", '1 = 2', '.5 = 1', 'ssl = off =']) {
+      expect(checkPostgresqlConf(`${GOOD}\n${line}`), line).toEqual([UNREADABLE(4)]);
+    }
+    // A quote that never closes starts no token, as a form feed or a vertical tab does not.
+    for (const line of ['\fssl = off', 'ssl = off\v', "x.y = 'unterminated", "x.y = 'a'''x'"]) {
+      expect(checkPostgresqlConf(`${GOOD}\n${line}`), JSON.stringify(line)).toEqual([
+        E('EBMR-SEC-054', 'postgresql.conf:4', 'PostgreSQL cannot read this line (a character no setting, value or comment starts with) and would refuse the file'),
+      ]);
+    }
+    // The setting on an unreadable line is not taken as read.
+    expect(checkPostgresqlConf(`${GOOD.replace('ssl = on', 'ssl = on on')}`)).toEqual([UNREADABLE(1), ...SSL_OFF]);
   });
 });

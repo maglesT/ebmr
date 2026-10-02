@@ -1,6 +1,7 @@
 # postgresql.conf fragment for eBMR database servers (control DI-13; docs/security/security-baseline.md).
-# Include it from postgresql.conf (include_if_exists = 'ebmr-tls.conf'). Checked by
-# packages/kernel/test/continuity/security-baseline.test.ts.
+# Install it as ebmr-tls.conf and make "include 'ebmr-tls.conf'" the last line of postgresql.conf: a later line
+# would override these settings, and include_if_exists would start the server without TLS when the file is missing.
+# No include directive inside this file. Checked by packages/kernel/test/continuity/security-baseline.test.ts.
 
 ssl = on
 ssl_cert_file = '/etc/ebmr/tls/server.crt'
