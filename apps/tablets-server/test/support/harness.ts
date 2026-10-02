@@ -26,6 +26,7 @@ import {
   type RouteResponse,
 } from '@ebmr/api-contract';
 import {
+  ADMIN_URL,
   asAdmin,
   copyDatabase,
   dropDatabase,
@@ -43,6 +44,10 @@ import { parseConfig, type ServerConfig } from '../../src/config.ts';
 import { newSessionToken, tokenHash } from '../../src/platform/auth/session.ts';
 
 export const ORIGINS = { GMP: 'http://localhost:3001', SANDBOX: 'http://localhost:3011' } as const;
+
+/** Host and port of the cluster the tests use (EBMR_PG_ADMIN_URL), as the server's configuration names them. */
+const admin = new URL(ADMIN_URL);
+export const PG_SERVER = { EBMR_PG_HOST: admin.hostname, EBMR_PG_PORT: admin.port === '' ? '5432' : admin.port };
 
 export interface ServerOptions {
   /** Name the copy as a demo database (…_demo) and write the demo marker. */
@@ -109,7 +114,17 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
   if (opts.demoMarker) await asAdmin(database, (c) => c.query("select tab.mark_demo_installation('server test')"));
   const db = openDatabase(database, kind);
   const env = parseConfig(
-    { EBMR_INSTALLATION: kind, EBMR_DATABASE: database, EBMR_PUBLIC_ORIGIN: ORIGINS[kind], EBMR_ENV: 'test', EBMR_LOG_LEVEL: opts.logStream ? 'debug' : 'silent', ...opts.env },
+    {
+      EBMR_INSTALLATION: kind,
+      EBMR_DATABASE: database,
+      // The server's own connections (the device listener's login) go to the cluster the tests use, not to the
+      // configuration's default localhost:5432.
+      ...PG_SERVER,
+      EBMR_PUBLIC_ORIGIN: ORIGINS[kind],
+      EBMR_ENV: 'test',
+      EBMR_LOG_LEVEL: opts.logStream ? 'debug' : 'silent',
+      ...opts.env,
+    },
     randomKey,
   );
   let built: BuiltApp;

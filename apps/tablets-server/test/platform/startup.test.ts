@@ -38,7 +38,7 @@ import { withActorCommand } from '../../src/platform/db/commands.ts';
 import { SITE_ZONE_CHANGED } from '../../src/platform/site-zone.ts';
 import { createFamily, NEW_FAMILY } from '../designer/support.ts';
 import { enrol, fakeGateway, post } from '../devices/support.ts';
-import { logCollector, ORIGINS, startServer } from '../support/harness.ts';
+import { logCollector, ORIGINS, PG_SERVER, startServer } from '../support/harness.ts';
 
 const randomKey = (): string => randomBytes(32).toString('hex');
 const dropLater: string[] = [];
@@ -49,7 +49,7 @@ afterAll(async () => {
 async function tryStart(kind: 'GMP' | 'SANDBOX', database: string, dbKind: 'GMP' | 'SANDBOX', env: Record<string, string> = {}): Promise<unknown> {
   const db = openDatabase(database, dbKind);
   try {
-    const config = parseConfig({ EBMR_INSTALLATION: kind, EBMR_DATABASE: database, EBMR_PUBLIC_ORIGIN: ORIGINS[kind], EBMR_LOG_LEVEL: 'silent', ...env }, randomKey);
+    const config = parseConfig({ EBMR_INSTALLATION: kind, EBMR_DATABASE: database, ...PG_SERVER, EBMR_PUBLIC_ORIGIN: ORIGINS[kind], EBMR_LOG_LEVEL: 'silent', ...env }, randomKey);
     const built = await buildApp(config, { pools: { app: db.admin, authn: db.authn, close: () => Promise.resolve() } });
     await built.close();
     return null;
@@ -341,7 +341,7 @@ describe('site time zone (DI-27)', () => {
     const db = openDatabase(copy, 'GMP');
     const log = logCollector();
     try {
-      const config = parseConfig({ EBMR_INSTALLATION: 'GMP', EBMR_DATABASE: copy, EBMR_PUBLIC_ORIGIN: ORIGINS.GMP, EBMR_LOG_LEVEL: 'warn' }, randomKey);
+      const config = parseConfig({ EBMR_INSTALLATION: 'GMP', EBMR_DATABASE: copy, ...PG_SERVER, EBMR_PUBLIC_ORIGIN: ORIGINS.GMP, EBMR_LOG_LEVEL: 'warn' }, randomKey);
       const built = await buildApp(config, { pools: { app: db.app, authn: db.authn, close: () => Promise.resolve() }, logStream: log.stream, siteZoneCheckIntervalMs: 50 });
       try {
         const before = built.ctx.config.siteZone;

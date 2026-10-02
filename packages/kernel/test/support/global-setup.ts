@@ -29,7 +29,8 @@ export default async function setup(project: TestProject): Promise<() => Promise
   const template = `ebmr_tpl_${randomBytes(5).toString('hex')}`;
   const server = new pg.Client({ connectionString: ADMIN_URL });
   await server.connect();
-  await server.query(`create database ${template}`);
+  // Explicit, as every other test database: a cluster whose template1 is SQL_ASCII would refuse the migrations.
+  await server.query(`create database ${template} template template0 encoding 'UTF8'`);
   await server.end();
 
   const filter = process.env['EBMR_MIGRATIONS'] ? new RegExp(process.env['EBMR_MIGRATIONS']) : undefined;
