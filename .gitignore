@@ -11,3 +11,6 @@ tools/regulatory/pdf/package-lock.json
 *.tsbuildinfo
 .turbo/
 .stryker-tmp/
+
+# graphify code map (built per session by the SessionStart hook in .claude/settings.json)
+graphify-out/
