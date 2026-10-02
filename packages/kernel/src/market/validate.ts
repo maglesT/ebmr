@@ -88,6 +88,21 @@ export interface ValidateOptions {
   tables?: Readonly<Record<string, string>>;
 }
 
+/** Why a known comparison method cannot compare values of a known value type (EBMR-MKT-015), or null when it can. */
+function methodTypeProblem(method: string, type: string): string | null {
+  if (SCALAR_METHODS.includes(method) && ['SET', 'CRITERIA', 'ANY'].includes(type)) return `scalar method ${method} on a multi-component key (value type ${type})`;
+  if (
+    (['SMALLER_STRICTER', 'LARGER_STRICTER'].includes(method) && type !== 'DECIMAL') ||
+    (method === 'ORDERED' && type !== 'CATEGORY') ||
+    (method === 'REQUIRED_IF_ANY' && type !== 'BOOLEAN') ||
+    (method === 'SET_UNION' && type !== 'SET') ||
+    (method === 'ALL_APPLY' && type !== 'CRITERIA')
+  ) {
+    return `method ${method} does not fit value type ${type}`;
+  }
+  return null;
+}
+
 export function validateRuleTableDocument(doc: unknown, options: ValidateOptions = {}): RuleTableProblem[] {
   const markets = options.knownMarkets ?? DEFAULT_MARKETS;
   const out: RuleTableProblem[] = [];
@@ -152,17 +167,8 @@ export function validateRuleTableDocument(doc: unknown, options: ValidateOptions
     if (typeof type !== 'string' || !(VALUE_TYPES as readonly string[]).includes(type)) {
       add('EBMR-MKT-015', `key ${name}: unknown value type ${typeof type === 'string' ? type : '(missing)'}`);
     } else if (methodOk) {
-      if (SCALAR_METHODS.includes(method) && ['SET', 'CRITERIA', 'ANY'].includes(type)) {
-        add('EBMR-MKT-015', `key ${name}: scalar method ${method} on a multi-component key (value type ${type})`);
-      } else if (
-        (['SMALLER_STRICTER', 'LARGER_STRICTER'].includes(method) && type !== 'DECIMAL') ||
-        (method === 'ORDERED' && type !== 'CATEGORY') ||
-        (method === 'REQUIRED_IF_ANY' && type !== 'BOOLEAN') ||
-        (method === 'SET_UNION' && type !== 'SET') ||
-        (method === 'ALL_APPLY' && type !== 'CRITERIA')
-      ) {
-        add('EBMR-MKT-015', `key ${name}: method ${method} does not fit value type ${type}`);
-      }
+      const misfit = methodTypeProblem(method, type);
+      if (misfit !== null) add('EBMR-MKT-015', `key ${name}: ${misfit}`);
     }
     const ordered = k['orderedValues'];
     if (method === 'ORDERED' || type === 'CATEGORY') {
@@ -287,6 +293,8 @@ export function validateRuleTableDocument(doc: unknown, options: ValidateOptions
         prob === null &&
         (COMPARISON_METHODS as readonly unknown[]).includes(key['method']) &&
         (VALUE_TYPES as readonly unknown[]).includes(key['valueType']) &&
+        // A method that does not fit the value type (EBMR-MKT-015 on the key) cannot compare the two values.
+        methodTypeProblem(key['method'] as string, key['valueType'] as string) === null &&
         !isAtLeastAsStrict(key['method'] as ComparisonMethod, key['orderedValues'] as string[] | null, r['value'] as RuleValue, hard as RuleValue)
       ) {
         add('EBMR-MKT-023', `row ${name}: the value is looser than its own hard floor`);
