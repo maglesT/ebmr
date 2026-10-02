@@ -9,6 +9,10 @@
  * invariant query reported nothing. Now the row is refused (EBMR-EXE-129), as are the marks that order reads written
  * by the wrong row (a step marked finished while in progress, a stage signed off by an entry), and the invariant query
  * reports an instance that came before the steps before it.
+ *
+ * Round 2 (recipe-core 0311): 0307 looked only at instances new in the state. An untaken branch's instance, NOT_APPLICABLE
+ * since the issue, was started by a row stored with the engine result computed as if it were ENABLED. Now an act is
+ * taken only in the status the engine takes it in, and a status changes only by the act that moves it (EBMR-EXE-132).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -17,7 +21,7 @@ import { engine, execution } from '@ebmr/recipe-core';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { actorOf, appendAs, messageOf } from './db-guards-support.ts';
-import { dcMini, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
+import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -134,5 +138,50 @@ describe('F66: the order of the steps holds in the database (DI-34, PR-13)', () 
     }
     const problems = (await violations(sbx)).filter((v) => v.batchId === d.runId).map((v) => v.problem);
     expect(problems).toContain('step instance p-disp-pcm@: O-DISP-PREP comes before it and has not been left: step p-disp-clear@ is in progress (DI-34, PR-13)');
+  }, 300_000);
+
+  it('[DI-34][PR-13][INV-18] a START of an untaken branch (not applicable), stored with the engine result computed as if the step were enabled, is refused, and the unmodified server still refuses the step (round 2)', async () => {
+    // dc-mini with an alternative, decided by the issue variant `booth`, before the clearance: branch a holds p-alt-sop.
+    const content = dcMiniVariant((prep, c) => {
+      (c['header'] as Record<string, unknown>)['variants'] = [{ id: 'booth', values: ['A', 'B'] }];
+      const sop = prep.find((x) => x['id'] === 'p-disp-sop');
+      if (!sop) throw new Error('SETUP: no SOP step');
+      const alt = {
+        kind: 'alternative', id: 'alt-booth', decision: { mode: 'ISSUE_VARIANT', variant: 'booth' },
+        branches: [{ id: 'a', name: 'Booth A', variantValues: ['A'], body: { ...sop, id: 'p-alt-sop', name: 'Read the booth A SOP' } }, { id: 'b', name: 'Booth B', variantValues: ['B'] }],
+      };
+      return [alt, ...prep];
+    });
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, content), undefined, { booth: 'B' });
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    const ALT = 'p-alt-sop@';
+    const before = (await execution.loadState(sbx.db.admin, runId))?.state;
+    expect(before?.steps[ALT]?.status, 'SETUP: the untaken branch').toBe('NOT_APPLICABLE');
+    expect(outcomeOf(await d.command('operator1', { type: 'START_STEP', stepKey: ALT }))).toMatch(/ENG-STEP-STATUS/);
+    // The round-2 verification's row: operator1's START_STEP of the untaken branch, the engine result computed as if
+    // the instance were ENABLED.
+    const run = await runContext(sbx.db.admin, runId);
+    const who = personaIn(sbx, 'operator1');
+    const forged = await messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = { type: 'START_STEP', commandId: randomUUID(), actor: engineActor(who.personId, roles), step: 'p-alt-sop', context: [] };
+        const doctored = structuredClone(tx.state);
+        const inst = doctored.steps[ALT];
+        if (!inst) throw new Error('SETUP: no instance');
+        inst.status = 'ENABLED';
+        const r = engine.step(tx.def, doctored, command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the doctored START: ${JSON.stringify(r.refusal)}`);
+        return appendAs(tx, command, r, roles);
+      }),
+    );
+    expect(forged).toMatch(/This accepted START_STEP row acts on step p-alt-sop@, which is not applicable before it; the engine takes a START_STEP only on a step that is enabled \(DI-34, PR-13\)\. \[EBMR-EXE-132\]/);
+    const after = (await execution.loadState(sbx.db.admin, runId))?.state;
+    expect(after?.steps[ALT]?.status).toBe('NOT_APPLICABLE');
+    expect(outcomeOf(await d.command('operator1', { type: 'START_STEP', stepKey: ALT }))).toMatch(/ENG-STEP-STATUS/);
+    expect((await violations(sbx)).filter((v) => v.batchId === runId)).toEqual([]);
   }, 300_000);
 });

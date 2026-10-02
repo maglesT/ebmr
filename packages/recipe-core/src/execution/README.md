@@ -224,6 +224,21 @@ that another command holds is skipped.
   Left to the replay: the decisions themselves (which branch the data choose, a loop's exit, a count) are taken as
   recorded; inside a loop or replicate section of a node before the instance only the iteration or sub-lot the
   instance names is looked at; a sequential replicate's sub-lot is not held to the end of the one before it;
+- every row moves a step instance already in the state only along the engine's life cycle, by the act that moves it,
+  and an act is taken only in the status the engine takes it in (DI-34, PR-13; sql 0311, trigger
+  `zf_execution_step_status`, `step_status_problem`, EBMR-EXE-132; Phase 2 exit review F66, round 2):
+  - an accepted step command finds its own instance (the step and context it names) in the state before it as the
+    engine needs it (`act_status_before`): ENABLED for START_STEP, REQUEST_SKIP and DISPOSITION_HOLD_POINT,
+    IN_PROGRESS for RECORD_DATA, RECORD_ENTRY, VOID_ATTEMPT and SIGN_PERFORMED, AWAITING_VERIFICATION for VERIFY. So
+    an untaken branch (NOT_APPLICABLE) is never started, whatever engine result the writer stores;
+  - a status changes only as follows: ENABLED to IN_PROGRESS by its own START_STEP, to SKIPPED by its own
+    REQUEST_SKIP, to COMPLETED by its own releasing DISPOSITION_HOLD_POINT; IN_PROGRESS to AWAITING_VERIFICATION or
+    COMPLETED by its own SIGN_PERFORMED; AWAITING_VERIFICATION to COMPLETED by its own VERIFY; COMPLETED to
+    AWAITING_VERIFICATION by an accepted CORRECT_ENTRY or INVALIDATE_RESULT (re-verification of the changed step and
+    of the steps whose computed values it recomputes); COMPLETED or AWAITING_VERIFICATION to IN_PROGRESS by an
+    accepted INVALIDATE_RESULT of a value of that step (the re-test). A NOT_APPLICABLE or SKIPPED instance never
+    changes, and none goes back to ENABLED. This also binds the step statuses an accepted CORRECT_ENTRY stores, which
+    0300 leaves out of its check of the other steps;
 - every row keeps the minimum durations and the blocks of open exceptions (sql 0308, trigger `ze_execution_step_acts`):
   - a node event the row adds comes no earlier than the minimum of every time constraint of the MBR's own list ending
     in it, measured from the constraint's start in the state before the row within the same constraint instance
@@ -402,7 +417,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
-| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308) |
+| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311) |
 
 ## TypeScript
 
@@ -561,6 +576,13 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   never gives, an untaken branch, an iteration that did not continue, a sub-lot beyond the count, a stage not signed
   off, a loop not ended, an alternative or replicate section not decided, a not-applicable step outside an untaken
   branch) and a forged mark are refused, each with its reason.
+- `test/execution/step-status-sql.test.ts` (Phase 2 exit review F66, round 2; sql 0311): every row of the engine's
+  own runs (both golden fixtures; a correction that sends a finished step back; an invalidation that reopens a step
+  for a re-test; a step completed by its PERFORMED signature; a skip; a hold point released and one not released)
+  passes `step_status_problem`, and the runs make every change it allows; an act on a step in a status the engine does
+  not take it in (the untaken branch started, an entry on a finished step, a verification of a step in progress) and
+  a status change the engine never makes, or made by another row than the act that makes it (a correction that
+  starts or finishes steps, an invalidation that reopens another step), are refused, each with its reason.
 - `test/execution/step-acts-sql.test.ts` (Phase 2 exit review F67; sql 0308): every accepted act of both golden
   runs and of runs with an operator's action exception, its deviation and QA decision, a hold point released after
   it, and minimum durations kept passes the minimum, block and hold-release checks; each act the engine refuses as
@@ -637,10 +659,12 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   INVOLVEMENT events (the accepted rows name them: EBMR-ESIG-044); a disposition signed before the signer started the
   step and stored after that start, in the same transaction, is refused (EBMR-EXE-087); and one landed with the
   triggers off is reported by the invariant query from the rows.
-- `db-guards-step-order.test.ts` (Phase 2 exit review F66; sql 0307): the critic's row, which enabled the
+- `db-guards-step-order.test.ts` (Phase 2 exit review F66; sql 0307, 0311): the critic's row, which enabled the
   dispensing beside an entry on the line clearance in progress, is refused (EBMR-EXE-129) and the dispensing still
   cannot start; a row that marks the clearance finished while in progress, or signs off its stage, is refused; the
-  invariant query reports an instance that came before the steps before it.
+  invariant query reports an instance that came before the steps before it. Round 2 (sql 0311): operator1's START of
+  an untaken branch (not applicable at issue), stored with the engine result computed as if it were enabled, is
+  refused (EBMR-EXE-132), and the step stays not applicable.
 - `db-guards-step-acts.test.ts` (Phase 2 exit review F67; sql 0308): the critic's two rows, a SIGN_PERFORMED before
   the 1 h minimum (EBMR-EXE-130) and one of a step its open action-limit breach blocks (EBMR-EXE-131), are refused
   and the step stays in progress; the invariant query reports an end before its minimum planted in the state.

@@ -103,12 +103,18 @@ export function writePackage(server: ExecServer, content: flow.MbrContent, overr
   return pkg;
 }
 
-/** Imports a package and issues a test batch of it as the issuer (office PC); returns the run id. */
-export async function importAndIssue(server: ExecServer, issuer: TestBrowser, pkg: execution.TestPackageV1, inputs: Record<string, { kind: 'COUNT'; value: string }> = { tabletsPerBatch: { kind: 'COUNT', value: '100000' } }): Promise<string> {
+/** Imports a package and issues a test batch of it as the issuer (office PC), with the issue variants given; returns the run id. */
+export async function importAndIssue(
+  server: ExecServer,
+  issuer: TestBrowser,
+  pkg: execution.TestPackageV1,
+  inputs: Record<string, { kind: 'COUNT'; value: string }> = { tabletsPerBatch: { kind: 'COUNT', value: '100000' } },
+  variants: Record<string, string> = {},
+): Promise<string> {
   const listed = valueOf(await issuer.call(routes.execution.testPackages));
   if (!listed.packages.some((p) => p.packageHash === pkg.packageHash && p.imported)) valueOf(await issuer.call(routes.execution.importPackage, { params: { packageId: pkg.packageHash }, body: {} }));
   const size = pkg.content.header.batchSizes[0]?.id ?? '';
-  const run = valueOf(await issuer.call(routes.execution.issue, { body: { packageId: pkg.packageHash, batchSize: size, markets: ['IN'], variants: {}, inputs } }));
+  const run = valueOf(await issuer.call(routes.execution.issue, { body: { packageId: pkg.packageHash, batchSize: size, markets: ['IN'], variants, inputs } }));
   return run.header.runId;
 }
 

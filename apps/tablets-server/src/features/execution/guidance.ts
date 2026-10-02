@@ -200,6 +200,16 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [SUPERVISOR, QA],
     controls: ['IN-37', 'INV-20', 'PR-08', 'PR-13', 'PR-45'],
   },
+  // A step changes its status only by the act that moves it, from the status the engine takes that act in (recipe-core
+  // 0311): the engine refuses such an act first (ENG-STEP-STATUS); the database refuses the row too.
+  'EBMR-EXE-132': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The change the system was about to store would move a step in a way its life cycle does not allow (for example, start a step that does not apply to this batch). Nothing was saved.',
+    whatYouCanDo: ['Stop and report it; reload the screen before you continue.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-34', 'PR-13'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },
