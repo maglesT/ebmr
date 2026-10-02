@@ -71,6 +71,10 @@ tests:
   - "packages/kernel/test/platform/time-model.test.ts > [DI-27][INV-16] change a terminal clock, then record a step: the stored time is unaffected"
   - "packages/kernel/test/platform/time-model.test.ts > [DI-27] entries store the UTC instant with the site time zone and the offset in force"
   - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][DI-27] a clock that goes backwards is flagged and cannot hide a maximum breach"
+  - "apps/tablets-server/test/execution/db-guards-step-acts.test.ts > F67: minimum durations and blocks hold in the database (INV-20, PR-08) > [INV-20][PR-30][DI-27] a PERFORMED signature whose state leaves out the END it makes is refused, so the minimum is measured (round 2, V2)"
+  - "apps/tablets-server/test/execution/db-guards-step-acts.test.ts > F67: minimum durations and blocks hold in the database (INV-20, PR-08) > [INV-20][PR-30][DI-27] a START whose state leaves out the START it makes is refused, so the honest PERFORMED signature still waits for the minimum (round 2, V1)"
+  - "packages/recipe-core/test/execution/own-node-events-sql.test.ts > F67 round 2: an act records the start or end it makes, and the token's arrival the starts of the constructs it enters (INV-20, DI-27) > [INV-20][PR-30][DI-27] an act whose state leaves out the start or end it makes is refused: a START without its START (the verifier's V1), a PERFORMED signature that ends the step without its END (V2), a hold point released, a stage signed off or a loop ended without its END"
+  - "packages/recipe-core/test/execution/own-node-events-sql.test.ts > F67 round 2: an act records the start or end it makes, and the token's arrival the starts of the constructs it enters (INV-20, DI-27) > [INV-20][PR-30][DI-27][DI-34] a row that brings a step in, enabled, without the starts the token's arrival records is refused: a hold point without its START, a step without the START of its stage, operation, sub-lot section, loop or parallel section"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

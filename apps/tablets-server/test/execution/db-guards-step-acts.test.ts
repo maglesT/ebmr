@@ -7,6 +7,11 @@
  * were not there, a SIGN_PERFORMED 0.6 s after the start of a step with a 1 h minimum, and one of a step its open
  * action-limit breach blocks; the invariant query reported nothing. Now both rows are refused (EBMR-EXE-130,
  * EBMR-EXE-131), and the invariant query reports an end before its minimum that landed behind the triggers' back.
+ *
+ * Round 2 (recipe-core 0312): 0308 measures from the node events the row's state holds, and nothing required the act to
+ * record its own. A START_STEP whose state left out the START (V1), and a SIGN_PERFORMED whose state left out the END
+ * (V2), were stored and the minimum was never measured. Now each act records the start or end it makes, and the token's
+ * arrival the starts of the constructs it enters (EBMR-EXE-133).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -14,7 +19,7 @@ import { withCommand } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { appendAs, messageOf, prepareSignature } from './db-guards-support.ts';
+import { actorOf, appendAs, messageOf, prepareSignature } from './db-guards-support.ts';
 import { dcMiniVariant, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, violations, withEarlyParameter, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
@@ -157,5 +162,56 @@ describe('F67: minimum durations and blocks hold in the database (INV-20, PR-08)
     }
     const problems = (await violations(sbx)).filter((v) => v.batchId === d.runId).map((v) => v.problem);
     expect(problems).toContain('the end of p-disp-clear@ comes 1 s after the start of p-disp-clear, before the minimum of 1 h of Booth clearance settling time (INV-20, PR-30)');
+  }, 300_000);
+
+  it('[INV-20][PR-30][DI-27] a PERFORMED signature whose state leaves out the END it makes is refused, so the minimum is measured (round 2, V2)', async () => {
+    const d = await clearanceReady();
+    // The engine result of a definition without the minimum, with the clearance's END taken out of the stored state.
+    const forged = await forgedPerformed(d, 'p-disp-clear', 'LINE_CLEARANCE_PERFORMED', (def, state) => ({
+      def: {
+        ...def,
+        constraints: def.constraints.map((rc) => {
+          if (rc.tc.id !== TC) return rc;
+          const tc = { ...rc.tc };
+          delete tc.min;
+          return { ...rc, tc };
+        }),
+      },
+      state,
+      restore: (s) => void delete s.nodeEvents['p-disp-clear|END|'],
+    }));
+    expect(forged.engine).toBe('ENG-MIN-DURATION');
+    expect(forged.database).toMatch(/^This accepted SIGN_PERFORMED row ends phase p-disp-clear@ but records no END event of it \(p-disp-clear\|END\|\): .*\(DI-27, INV-20, DI-34\)\. \[EBMR-EXE-133\]$/);
+    const after = (await execution.loadState(sbx.db.admin, d.runId))?.state;
+    expect(after?.steps[CLEAR]?.status).toBe('IN_PROGRESS');
+    expect((await violations(sbx)).filter((v) => v.batchId === d.runId)).toEqual([]);
+  }, 300_000);
+
+  it('[INV-20][PR-30][DI-27] a START whose state leaves out the START it makes is refused, so the honest PERFORMED signature still waits for the minimum (round 2, V1)', async () => {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, withClearanceMinimum()));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    const run = await runContext(sbx.db.admin, runId);
+    const who = personaIn(sbx, 'operator1');
+    const forged = await messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = { type: 'START_STEP', commandId: randomUUID(), actor: engineActor(who.personId, roles), step: 'p-disp-clear', context: [] };
+        const r = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the START: ${JSON.stringify(r.refusal)}`);
+        delete r.state.nodeEvents['p-disp-clear|START|'];
+        return appendAs(tx, command, r, roles);
+      }),
+    );
+    expect(forged).toMatch(/^This accepted START_STEP row starts phase p-disp-clear@ but records no START event of it \(p-disp-clear\|START\|\): .*\(DI-27, INV-20, DI-34\)\. \[EBMR-EXE-133\]$/);
+    expect((await execution.loadState(sbx.db.admin, runId))?.state.steps[CLEAR]?.status).toBe('ENABLED');
+    // The honest run: started, its entries recorded, and its PERFORMED signature waits for the minimum.
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } });
+    expect(outcomeOf((await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR })).result)).toMatch(/ENG-MIN-DURATION/);
+    expect((await violations(sbx)).filter((v) => v.batchId === runId)).toEqual([]);
   }, 300_000);
 });

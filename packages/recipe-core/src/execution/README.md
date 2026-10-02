@@ -239,6 +239,15 @@ that another command holds is skipped.
     accepted INVALIDATE_RESULT of a value of that step (the re-test). A NOT_APPLICABLE or SKIPPED instance never
     changes, and none goes back to ENABLED. This also binds the step statuses an accepted CORRECT_ENTRY stores, which
     0300 leaves out of its check of the other steps;
+- every row, the issue included, records the starts and ends its act and the token's arrival make (INV-20, PR-30, DI-27,
+  DI-34; sql 0312, trigger `zg_execution_own_node_events`, `own_node_event_problem`, EBMR-EXE-133; Phase 2 exit review
+  F67, round 2), so the minimum durations of 0308 are measured from events the writer cannot leave out: an accepted
+  START_STEP stores the START of its phase; an accepted SIGN_PERFORMED that moves its step out of IN_PROGRESS stores
+  its END; a releasing DISPOSITION_HOLD_POINT the END of the hold point; an accepted SIGN_OFF_STAGE the END of the
+  stage frame; a COMPLETE_LOOP_ITERATION whose decision ends the loop (EXIT or EXHAUSTED) the END of the loop, in the
+  frames outside its iterations; and every step instance the row brings in ENABLED comes with the START of a hold
+  point and of every stage, operation, loop, parallel, alternative and replicate section around it, in the frames of
+  the sections around that construct. When the token arrives is taken as recorded (left to the replay);
 - every row keeps the minimum durations and the blocks of open exceptions (sql 0308, trigger `ze_execution_step_acts`):
   - a node event the row adds comes no earlier than the minimum of every time constraint of the MBR's own list ending
     in it, measured from the constraint's start in the state before the row within the same constraint instance
@@ -417,7 +426,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
-| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311) |
+| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records (133; sql 0312) |
 
 ## TypeScript
 
@@ -583,6 +592,12 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   not take it in (the untaken branch started, an entry on a finished step, a verification of a step in progress) and
   a status change the engine never makes, or made by another row than the act that makes it (a correction that
   starts or finishes steps, an invalidation that reopens another step), are refused, each with its reason.
+- `test/execution/own-node-events-sql.test.ts` (Phase 2 exit review F67, round 2; sql 0312): every row of the engine's
+  own runs, the issue included (both golden fixtures, loops that exit or are exhausted, a step reopened for a re-test
+  and signed performed again, a hold point released) passes `own_node_event_problem`; the same rows with a START or END
+  their act makes taken out (a phase started or ended, a hold point released, a stage signed off, a loop ended), or a
+  START the token's arrival records (a hold point, a stage, a sub-lot section, a loop), are refused, each with its
+  reason.
 - `test/execution/step-acts-sql.test.ts` (Phase 2 exit review F67; sql 0308): every accepted act of both golden
   runs and of runs with an operator's action exception, its deviation and QA decision, a hold point released after
   it, and minimum durations kept passes the minimum, block and hold-release checks; each act the engine refuses as
@@ -665,9 +680,11 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   invariant query reports an instance that came before the steps before it. Round 2 (sql 0311): operator1's START of
   an untaken branch (not applicable at issue), stored with the engine result computed as if it were enabled, is
   refused (EBMR-EXE-132), and the step stays not applicable.
-- `db-guards-step-acts.test.ts` (Phase 2 exit review F67; sql 0308): the critic's two rows, a SIGN_PERFORMED before
+- `db-guards-step-acts.test.ts` (Phase 2 exit review F67; sql 0308, 0312): the critic's two rows, a SIGN_PERFORMED before
   the 1 h minimum (EBMR-EXE-130) and one of a step its open action-limit breach blocks (EBMR-EXE-131), are refused
-  and the step stays in progress; the invariant query reports an end before its minimum planted in the state.
+  and the step stays in progress; the invariant query reports an end before its minimum planted in the state. Round 2
+  (sql 0312): a SIGN_PERFORMED whose state leaves out its END (V2) and a START_STEP whose state leaves out its START
+  (V1) are refused (EBMR-EXE-133), and the honest PERFORMED signature then still waits for the minimum.
 - `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309): a second QA user's disposition, and a
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content

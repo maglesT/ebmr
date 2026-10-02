@@ -210,6 +210,16 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [ADMIN, QA],
     controls: ['DI-34', 'PR-13'],
   },
+  // An act records the start or end it makes, and the token's arrival the starts of the constructs it enters (recipe-core
+  // 0312): the engine always records them; the database refuses a row whose state leaves one out.
+  'EBMR-EXE-133': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The change the system was about to store leaves out the start or end time of a step, so its time limits could not be checked. Nothing was saved.',
+    whatYouCanDo: ['Stop and report it; reload the screen before you continue.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'DI-34', 'INV-20'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },
