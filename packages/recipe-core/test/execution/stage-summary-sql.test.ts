@@ -11,13 +11,19 @@
  * fact the summary reads (an exception reopened, a deviation linked, a disposition as a deviation, a skipped step, a
  * time-limit breach naming a step by step and frames, inside the frame or not, a yield withdrawn), each of which
  * changes the summary.
+ *
+ * Round 2 (recipe-core sql/0320, recipe.stage_sign_off_shape_problem): the canonical form keeps only the members the
+ * signed text holds, so the database also checks that a recorded sign-off is exactly what the engine records. Every
+ * sign-off of the golden runs passes that check at the engine's transaction time, and each member, time or signer of
+ * its own fails it.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { canonicalJson } from '@ebmr/expr';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
-import { encodeState } from '../../src/engine/codec.ts';
+import { encode, encodeState, type JsonValue } from '../../src/engine/codec.ts';
 import type { BatchDefinition } from '../../src/engine/definition.ts';
 import { compareCodePoints, deriveStageSummary, stageSummaryContent, stageSummaryMember } from '../../src/engine/stage-summary.ts';
+import { ctxKey } from '../../src/engine/tx.ts';
 import type { BatchState, ExceptionRecord } from '../../src/engine/types.ts';
 import { autopilot, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, PACKAGING_SCENARIO, Run } from '../engine/support.ts';
 
@@ -160,6 +166,79 @@ describe('the database derives a stage summary as the engine does (F01; DI-37, I
       }
     }
     expect(changed, 'SETUP: the changes change summaries').toBeGreaterThan(10);
+  }, 600_000);
+
+  it('[DI-37][IN-15][PR-16] every sign-off of the golden runs of both fixtures has exactly the engine\'s shape; each member, time or signer of its own is a problem (F01 round 2)', async () => {
+    type Obj = { [key: string]: JsonValue };
+    const obj = (v: JsonValue | undefined): Obj => {
+      if (typeof v !== 'object' || v === null || Array.isArray(v)) throw new Error('SETUP: not an object');
+      return v;
+    };
+    const problemOf = async (signOff: JsonValue | null, nowUs: bigint, by: string, signature: string): Promise<string | null> =>
+      (await db.admin.query<{ p: string | null }>('select recipe.stage_sign_off_shape_problem($1::jsonb, $2::bigint, $3, $4) as p', [JSON.stringify(signOff), nowUs.toString(), by, signature])).rows[0]?.p ?? null;
+    const forgeries: Record<string, (o: Obj, s: Obj, nowUs: bigint) => JsonValue | null> = {
+      'no sign-off': () => null,
+      'a sign-off member of its own': (o) => ({ ...o, comment: 'reviewed' }),
+      'a sign-off member missing': (o) => ({ ...o, valid: undefined as unknown as JsonValue, }),
+      'another signer': (o) => ({ ...o, by: 'QA1' }),
+      'another signature': (o) => ({ ...o, signature: 'sig-other' }),
+      'not valid': (o) => ({ ...o, valid: false }),
+      'another time': (o, _s, nowUs) => ({ ...o, at: { $u: (nowUs - 1n).toString() } }),
+      'a time not in the codec form': (o, _s, nowUs) => ({ ...o, at: nowUs.toString() }),
+      'no summary': (o) => ({ ...o, summary: 'COMPLETED_PER_MBR' }),
+      'a summary member of its own': (o, s) => ({ ...o, summary: { ...s, approvedBy: 'QA1' } }),
+      'a summary member missing': (o, s) => ({ ...o, summary: { ...s, endedAt: undefined as unknown as JsonValue } }),
+      'another end time': (o, s, nowUs) => ({ ...o, summary: { ...s, endedAt: { $u: (nowUs + 1n).toString() } } }),
+      'a step count of its own': (o, s) => ({ ...o, summary: { ...s, steps: { ...obj(s['steps']), rejected: 3 } } }),
+      'a step count missing': (o, s) => ({ ...o, summary: { ...s, steps: { completed: 1, notApplicable: 0 } } }),
+      'step counts not an object': (o, s) => ({ ...o, summary: { ...s, steps: [1, 0, 0] } }),
+      'a yield member of its own': (o, s) => ({ ...o, summary: { ...s, yields: [{ calculation: 'y', value: '99.0', unit: '%', verdict: 'within limits' }] } }),
+      'a yield member missing': (o, s) => ({ ...o, summary: { ...s, yields: [{ calculation: 'y', value: '99.0' }] } }),
+      'a yield not an object': (o, s) => ({ ...o, summary: { ...s, yields: ['99.0 %'] } }),
+      'a deviation listed twice': (o, s) => ({ ...o, summary: { ...s, deviations: ['DEV-1', 'DEV-1'] } }),
+    };
+    // A list of another type is left to the canonical form, which has none for it (so the row is refused as another summary).
+    const toCanonical: Record<string, (o: Obj, s: Obj) => JsonValue> = {
+      'yields not a list': (o, s) => ({ ...o, summary: { ...s, yields: 'none' } }),
+      'deviations not a list': (o, s) => ({ ...o, summary: { ...s, deviations: {} } }),
+    };
+    const seen = { signOffs: 0, withYields: 0, forged: 0 };
+    const problems: Record<string, unknown> = {};
+    for (const [name, scenario, variants] of RUNS) {
+      const run = goldenRun(name, scenario, variants);
+      let before: BatchState | undefined = Run.issue(fixtureDefinition(name), { inputs: FIXTURE_INPUTS[name], variants }).state;
+      for (const [i, e] of run.log.entries()) {
+        const prior = before;
+        before = e.result.state;
+        if (e.command.type !== 'SIGN_OFF_STAGE' || !e.result.accepted || !prior) continue;
+        const key = `${e.command.stage}@${ctxKey(e.command.context ?? [])}`;
+        const recorded = e.result.state.stages[key]?.signOff;
+        if (!recorded) throw new Error(`SETUP: ${name} #${i} recorded no sign-off of ${key}`);
+        // The engine's transaction time: the later of the clock and the last time seen before the command (engine.ts openTx).
+        const nowUs = e.nowUs > prior.lastRecordedUs ? e.nowUs : prior.lastRecordedUs;
+        const o = obj(encode(recorded));
+        const by = e.command.actor.id;
+        const signature = e.command.signature.id;
+        seen.signOffs += 1;
+        if (recorded.summary.yields.length > 0) seen.withYields += 1;
+        const honest = await problemOf(o, nowUs, by, signature);
+        if (honest !== null) problems[`${name} #${i} ${key}: the engine's own sign-off`] = honest;
+        for (const [what, forge] of Object.entries(forgeries)) {
+          const forged = JSON.parse(JSON.stringify(forge(o, obj(o['summary']), nowUs))) as JsonValue | null;
+          seen.forged += 1;
+          if ((await problemOf(forged, nowUs, by, signature)) === null) problems[`${name} #${i} ${key}: ${what}`] = 'no problem found';
+        }
+        for (const [what, forge] of Object.entries(toCanonical)) {
+          const left = await problemOf(forge(o, obj(o['summary'])), nowUs, by, signature);
+          if (left !== null) problems[`${name} #${i} ${key}: ${what}`] = left;
+          const r = await db.admin.query<{ c: unknown }>('select recipe.canonical_stage_summary($1::jsonb) as c', [JSON.stringify(obj(forge(o, obj(o['summary'])))['summary'])]);
+          if (r.rows[0]?.c !== null) problems[`${name} #${i} ${key}: ${what} (canonical)`] = r.rows[0]?.c;
+        }
+      }
+    }
+    expect(problems).toEqual({});
+    expect(seen.signOffs, JSON.stringify(seen)).toBeGreaterThan(1);
+    expect(seen.withYields, JSON.stringify(seen)).toBeGreaterThan(0);
   }, 600_000);
 
   it('[DI-37] the canonical order: exception ids by length then code point, deviations and yields by code point, in TypeScript as in SQL', async () => {

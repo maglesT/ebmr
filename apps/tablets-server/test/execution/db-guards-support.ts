@@ -13,7 +13,9 @@ import { engine, execution } from '@ebmr/recipe-core';
 import { terminalOf } from '@ebmr/test-kit';
 import { actorOfBrowser } from '../esig/support.ts';
 import type { TestBrowser } from '../support/harness.ts';
-import { personaIn, type ExecServer } from './support.ts';
+import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
+import { runContext } from '../../src/features/execution/runs.ts';
+import { personaIn, type ExecServer, type RunDriver } from './support.ts';
 
 /** The error code a promise is rejected with (EBMR-XXX-NNN), or 'ok'. */
 export async function codeOf(p: Promise<unknown>): Promise<string> {
@@ -124,6 +126,34 @@ export function appendAs(
     contents,
     ...(evidence !== undefined ? { evidence } : {}),
   });
+}
+
+/** A stage frame's sign-off as the engine records it (by, signature, at, valid, summary). */
+export type StageSignOff = NonNullable<engine.StageFrameState['signOff']>;
+
+/**
+ * supervisor1 signs stage `stage` (no frames) of run `d` off through the store (Phase 2 exit review F01; recipe-core
+ * 0319, 0320): the kernel's signature on the provider's content, then the SIGN_OFF_STAGE row with the engine's result,
+ * its sign-off and summary changed by `forge` (none: the engine's own). 'ok', or the refusal's message.
+ */
+export async function signOffStageThroughStore(sbx: ExecServer, d: RunDriver, stage: string, forge?: (summary: engine.StageSummary, signOff: StageSignOff) => void): Promise<string> {
+  const key = `${stage}@`;
+  const run = await runContext(sbx.db.admin, d.runId);
+  const who = personaIn(sbx, 'supervisor1');
+  const p = await prepareSignature(sbx, d.browser('supervisor1'), 'supervisor1', 'batch_stage', `${d.runId}:${key}`, 'STAGE_SIGNED_OFF');
+  return messageOf(
+    withCommand(sbx.db.app, await p.actor(), async (c) => {
+      const id = await p.sign(c);
+      const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+      const roles = await engineRoles(c);
+      const command: engine.Command = { type: 'SIGN_OFF_STAGE', commandId: randomUUID(), actor: engineActor(who.personId, roles), stage, context: [], signature: { id, meaning: 'STAGE_SIGNED_OFF', signer: who.personId } };
+      const r = engineResult(tx, command);
+      const signOff = r.state.stages[key]?.signOff;
+      if (!signOff) throw new Error('SETUP: the engine recorded no sign-off');
+      forge?.(signOff.summary, signOff);
+      return appendAs(tx, command, r, roles);
+    }),
+  );
 }
 
 /** The prior state with its version moved on (a forged next state: the database guard under test decides first). */

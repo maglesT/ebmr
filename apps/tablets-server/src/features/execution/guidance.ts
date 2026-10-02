@@ -231,11 +231,12 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     controls: ['DI-04', 'DI-37'],
   },
   // A stage sign-off records the summary its signature covers (recipe-core 0319, F01): the engine derives it with the
-  // same function the signed text uses; the database refuses a row that records another.
+  // same function the signed text uses; the database refuses a row that records another, or a sign-off with a member,
+  // time, signer or signature the engine does not record (0320, F01 round 2).
   'EBMR-EXE-135': {
     status: 422,
     kind: 'CONTENT_CHANGED',
-    whatHappened: 'The stage summary the system was about to record is not the one you signed. Nothing was signed off.',
+    whatHappened: 'The stage sign-off the system was about to record (its summary, time or signer) is not the one you signed. Nothing was signed off.',
     whatYouCanDo: ['Review the stage summary again, then sign the stage off again.'],
     whoCanHelp: [ADMIN, QA],
     controls: ['DI-37', 'IN-15', 'PR-16'],

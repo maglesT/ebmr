@@ -1,19 +1,18 @@
 /**
  * The database holds a stage's summary in the content a STAGE_SIGNED_OFF signature binds, and a sign-off records the
- * summary its signature covers (Phase 2 exit review F01; DI-37, IN-15, PR-16; recipe-core 0319). The application role
+ * summary its signature covers (Phase 2 exit review F01; DI-37, IN-15, PR-16; recipe-core 0319); the sign-offs made before
+ * 0319 are listed in an audited, insert-only record of their batch (round 2; recipe-core 0320). The application role
  * (ebmr_sandbox; ADR 0012) is the writer here: the kernel's own provider gives the content, the kernel signs it, and the
  * row is appended through the store, bypassing the server's ceremony.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { esig, withCommand } from '@ebmr/kernel';
-import type { engine} from '@ebmr/recipe-core';
+import type { engine } from '@ebmr/recipe-core';
 import { execution } from '@ebmr/recipe-core';
 import { routes } from '@ebmr/api-contract';
-import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
-import { runContext } from '../../src/features/execution/runs.ts';
-import { appendAs, engineResult, messageOf, prepareSignature, unmatched } from './db-guards-support.ts';
-import { dispensingAwaitingSignOff, personaIn, startExecServer, valueOf, type ExecServer, type RunDriver } from './support.ts';
+import { messageOf, prepareSignature, signOffStageThroughStore, unmatched, type StageSignOff } from './db-guards-support.ts';
+import { dispensingAwaitingSignOff, startExecServer, valueOf, type ExecServer, type RunDriver } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -37,28 +36,8 @@ async function provided(d: RunDriver): Promise<Json> {
   return (JSON.parse(c.canonical ?? '{}') as { content: Json }).content;
 }
 
-/**
- * supervisor1 signs the stage off through the store: the kernel's signature on the provider's content, then the
- * SIGN_OFF_STAGE row with the engine's result, its sign-off summary changed by `forge` (none: the engine's own).
- */
-async function signOffThroughStore(d: RunDriver, forge?: (summary: engine.StageSummary) => void): Promise<string> {
-  const run = await runContext(sbx.db.admin, d.runId);
-  const who = personaIn(sbx, 'supervisor1');
-  const p = await prepareSignature(sbx, d.browser('supervisor1'), 'supervisor1', 'batch_stage', `${d.runId}:${STAGE}`, 'STAGE_SIGNED_OFF');
-  return messageOf(
-    withCommand(sbx.db.app, await p.actor(), async (c) => {
-      const id = await p.sign(c);
-      const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
-      const roles = await engineRoles(c);
-      const command: engine.Command = { type: 'SIGN_OFF_STAGE', commandId: randomUUID(), actor: engineActor(who.personId, roles), stage: 'S-DISP', context: [], signature: { id, meaning: 'STAGE_SIGNED_OFF', signer: who.personId } };
-      const r = engineResult(tx, command);
-      const summary = r.state.stages[STAGE]?.signOff?.summary;
-      if (!summary) throw new Error('SETUP: the engine recorded no sign-off');
-      forge?.(summary);
-      return appendAs(tx, command, r, roles);
-    }),
-  );
-}
+/** supervisor1 signs S-DISP@ off through the store, its sign-off and summary changed by `forge` (none: the engine's own). */
+const signOffThroughStore = (d: RunDriver, forge?: (summary: engine.StageSummary, signOff: StageSignOff) => void): Promise<string> => signOffStageThroughStore(sbx, d, 'S-DISP', forge);
 
 describe('F01: the database binds a stage sign-off to its summary (DI-37, IN-15, PR-16)', () => {
   it('[DI-37][IN-15] the provider gives the summary the server previews; a signature on it is refused once an alert changed it (EBMR-ESIG-012)', async () => {
@@ -99,20 +78,49 @@ describe('F01: the database binds a stage sign-off to its summary (DI-37, IN-15,
     expect((await esig.signatureState(sbx.db.admin, signOff?.signature ?? '')).status).toBe('VALID');
   }, 600_000);
 
-  it('[DI-37][INV-09] a sign-off made before 0319 is read on the text it was signed on, without the summary; any other on the text with it', async () => {
+  it('[DI-37][INV-09][DI-23] a sign-off made before 0319 is read on the text it was signed on, without the summary; any other on the text with it; the list is a record of its batch, written by a release only', async () => {
     const d = await ready();
     expect(await signOffThroughStore(d)).toBe('ok');
     const aggregateId = `${d.runId}:${STAGE}`;
     const signature = (await execution.loadState(sbx.db.admin, d.runId))?.state.stages[STAGE]?.signOff?.signature ?? '';
     const stored = await sbx.db.admin.query<{ content: Json }>('select content from recipe.execution_stage_content where aggregate_id = $1 order by content_version desc limit 1', [aggregateId]);
-    expect(await provided(d)).toEqual({ ...stored.rows[0]?.content, summary: expect.objectContaining({ statement: 'COMPLETED_PER_MBR' }) as unknown });
-    // Listed as made before 0319 (the migration lists the sign-offs it finds): the provider gives the stored content alone.
-    await sbx.db.admin.query('insert into recipe.execution_stage_summary_legacy (aggregate_id, signature_id) values ($1, $2)', [aggregateId, signature]);
+    const withSummary = { ...stored.rows[0]?.content, summary: expect.objectContaining({ statement: 'COMPLETED_PER_MBR' }) as unknown };
+    expect(await provided(d)).toEqual(withSummary);
+    // The application role cannot list a sign-off: only a migration does, under the software-release identity (0320).
+    expect(await messageOf(sbx.db.app.query('insert into recipe.execution_stage_summary_legacy (batch_id, aggregate_id, signature_id) values ($1, $2, $3)', [d.runId, aggregateId, signature]))).toMatch(/permission denied/);
+    // Listed as made before 0319 (as the migration lists the sign-offs it finds; rolled back here): the provider gives the stored content alone.
+    const c = await sbx.db.admin.connect();
     try {
-      expect(await provided(d)).toEqual(stored.rows[0]?.content);
+      await c.query('begin');
+      await c.query('set local role ebmr_owner');
+      await c.query(
+        `select kernel.set_actor_context(jsonb_build_object(
+           'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+           'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+           'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test: a sign-off made before 0319)'))`,
+      );
+      const list = (batch: string) => c.query('insert into recipe.execution_stage_summary_legacy (batch_id, aggregate_id, signature_id) values ($1, $2, $3)', [batch, aggregateId, signature]);
+      // A row names the batch whose record holds it.
+      await c.query('savepoint other_batch');
+      expect(await messageOf(list(randomUUID()))).toMatch(/violates (check|foreign key) constraint/);
+      await c.query('rollback to savepoint other_batch');
+      await list(d.runId);
+      const audit = await c.query<{ chain_key: string; role: string }>(
+        "select chain_key, payload -> 'actor' ->> 'role_code' as role from kernel.audit_event where table_name = 'recipe.execution_stage_summary_legacy' and record_id like $1",
+        [`%${d.runId}%`],
+      );
+      expect(audit.rows).toEqual([{ chain_key: `batch:${d.runId}`, role: 'SOFTWARE_RELEASE' }]);
+      const listed = await esig.contentForSigning(c, 'batch_stage', aggregateId);
+      expect((JSON.parse(listed.canonical ?? '{}') as { content: Json }).content).toEqual(stored.rows[0]?.content);
+      // Insert-only: a listed sign-off is never removed.
+      await c.query('savepoint removal');
+      expect(await messageOf(c.query('delete from recipe.execution_stage_summary_legacy where aggregate_id = $1', [aggregateId]))).toMatch(/EBMR-AUDIT/);
+      await c.query('rollback to savepoint removal');
     } finally {
-      await sbx.db.admin.query('delete from recipe.execution_stage_summary_legacy where aggregate_id = $1', [aggregateId]);
+      await c.query('rollback');
+      c.release();
     }
+    expect(await provided(d)).toEqual(withSummary);
     expect((await esig.signatureState(sbx.db.admin, signature)).status).toBe('VALID');
   }, 600_000);
 });
