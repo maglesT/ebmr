@@ -356,7 +356,12 @@ one plain-language business entry on the chain `batch:<id>`.
   `recipe.reason_is_blank`, so a tab, a no-break or an ideographic space, a zero-width space, a word joiner or a
   soft hyphen says nothing, as in the engine's `requireReason`); the deviation is the linked one. As in the
   engine, DEVIATION_RAISED needs a linked deviation, and an exception that needs a deviation is never proposed
-  NO_IMPACT. An absent or null member is refused (sql 0270).
+  NO_IMPACT. An absent or null member is refused (sql 0270). It and `propose_hold_point_decision` take the batch's
+  row lock (the one `lock_execution` takes and a signing holds to its commit) before they read anything, so a
+  proposal made while a decision is being signed waits for it and then finds the record decided (EBMR-EXE-084); and
+  neither proposes on a content version that already carries a signature of the deciding meaning
+  (EXCEPTION_DISPOSITIONED; HOLD_POINT_RELEASED or HOLD_POINT_NOT_RELEASED), so what a signature covers never
+  changes (INV-09; sql 0309, Phase 2 exit review F37).
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
   `batch_point_content` read the latest content version, the state and the persons involved. For an exception
   these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
@@ -631,6 +636,10 @@ as 3 (review findings P26, P38; PR-45, DI-37).
 - `db-guards-step-acts.test.ts` (Phase 2 exit review F67; sql 0308): the critic's two rows, a SIGN_PERFORMED before
   the 1 h minimum (EBMR-EXE-130) and one of a step its open action-limit breach blocks (EBMR-EXE-131), are refused
   and the step stays in progress; the invariant query reports an end before its minimum planted in the state.
+- `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309): a second QA user's disposition, and a
+  hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
+  are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content
+  version a disposition was already signed on is refused, with the exception still open.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and

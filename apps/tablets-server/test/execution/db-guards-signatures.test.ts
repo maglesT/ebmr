@@ -369,7 +369,9 @@ describe('P25: an accepted DISPOSITION_EXCEPTION is bound to the proposal its si
 
   it('[PR-49][DI-37][INV-10] a proposal replaced after the signature was applied is not what the signature covers: refused', async () => {
     // A companion guard of P25 (it held before 0270): the proposal is part of the signed content, so a new
-    // proposal after signing makes the signature's content hash stale, and the kernel refuses the signature.
+    // proposal after signing would make the signature's content hash stale. The kernel refused the signature
+    // (EBMR-ESIG-070); since recipe-core 0309 (Phase 2 exit review F37) the database refuses the new proposal itself,
+    // on the content version the disposition was signed on.
     const { d, exception } = await withException();
     // Inside the sign command, after esig.sign: a new proposal (so the command matches the "current" proposal).
     const r = await interceptSigned(
@@ -385,7 +387,7 @@ describe('P25: an accepted DISPOSITION_EXCEPTION is bound to the proposal its si
       sign(d, exception),
     );
     expect(r.calls).toBe(1);
-    expect(String(r.error)).toMatch(/EBMR-ESIG-070 signature \S+ is CONTENT_MISMATCH/);
+    expect(String(r.error)).toMatch(/A disposition of exception EX-\d+ is already signed on content version 1; no other is proposed on it \(INV-09, DI-37\)\. \[EBMR-EXE-084\]/);
     expect({ signOk: r.out.result.ok, ...(await recorded(d, exception)) }).toEqual({ signOk: false, status: 'OPEN', justification: null, signatures: 0 });
     expect(await violations(sbx)).toEqual([]);
   }, 240_000);

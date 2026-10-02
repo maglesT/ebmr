@@ -316,7 +316,7 @@ async function signatureStatus(signatureId: string): Promise<{ status: string; c
 }
 
 describe('hold-point signatures made before 0295 keep the content they signed (recipe-core 0302)', () => {
-  it('[INV-09][DI-37][PR-45] a hold-point signature made before any decision was proposed stays VALID after 0295; a decision proposed later is part of the content, which that signature does not cover', async () => {
+  it('[INV-09][DI-37][PR-45] a hold-point signature made before any decision was proposed stays VALID after 0295, and no decision is proposed on the content version it covers (0309)', async () => {
     const d = await atHoldPoint(withEarlyHoldPoint());
     const id = `${d.runId}:${HOLD}`;
     // The installation as it was before 0295: the content provider as 0210 released it. QA's signature is made
@@ -339,18 +339,15 @@ describe('hold-point signatures made before 0295 keep the content they signed (r
     // The server previews a hold point without a decision as that same content.
     expect(valueOf(await previewDecision(d, 'qa1', hold('APPROVED'), 'HOLD_POINT_RELEASED')).contentHash).toBe(legacy.contentHash);
 
-    // The binding is unchanged: a decision proposed now is part of the content, so the earlier signature does not
-    // cover it, and the decision is signed and recorded as reviewed.
-    const decision = hold('NOT_APPROVED', 'Residue found behind the booth grille');
-    const c = await challengeDecision(d, 'qa1', decision);
-    if (!c.challenge?.ok || !c.action) throw new Error(`SETUP: the challenge was refused: ${outcomeOf(c.challenge ?? c.content)}`);
-    expect(await proposals(d)).toEqual([{ disposition: 'NOT_APPROVED', comment: 'Residue found behind the booth grille' }]);
-    expect((await signatureStatus(legacy.signatureId)).status).not.toBe('VALID');
-    const now = await esig.contentForSigning(server.db.admin, 'batch_step', id);
-    expect((JSON.parse(now.canonical ?? '{}') as { content: Json }).content['proposedDecision']).toEqual({ disposition: 'NOT_APPROVED', comment: 'Residue found behind the booth grille' });
-    const signed = valueOf(await signChallenge(d, 'qa1', valueOf(c.challenge).challengeId, c.action));
-    expect(signed.manifestation).toMatchObject({ meaning: 'HOLD_POINT_NOT_RELEASED', valid: true, contentHash: now.contentHash });
-    expect(await recorded(d)).toEqual({ value: 'NOT_APPROVED', comment: 'Residue found behind the booth grille' });
+    // A decision proposed now would be part of that content version's signed content and change what the earlier
+    // signature covers. Since recipe-core 0309 (Phase 2 exit review F37; INV-09) no decision is proposed on a content
+    // version a hold-point decision was already signed on: the challenge is refused, nothing is proposed, and the
+    // signature keeps covering the content it signed.
+    const c = await challengeDecision(d, 'qa1', hold('NOT_APPROVED', 'Residue found behind the booth grille'));
+    expect(outcomeOf(c.challenge ?? c.content)).toMatch(/EBMR-EXE-084/);
+    expect(await proposals(d)).toEqual([]);
+    expect(await signatureStatus(legacy.signatureId)).toEqual({ status: 'VALID', contentHash: legacy.contentHash });
+    expect(await recorded(d)).toBeNull();
     expect(await violations(server)).toEqual([]);
   }, 240_000);
 
