@@ -854,7 +854,9 @@ export function stepSummary(ctx: ViewContext, inst: engine.StepInstance | undefi
     block: node?.kind === 'phase' ? `${node.block.type}@${node.block.version}` : null,
     status: inst?.status ?? 'PENDING',
     statusText: stepStatusText(inst, def, stepId),
-    openExceptions: Object.values(ctx.state.exceptions).filter((e) => e.status === 'OPEN' && e.source.stepKey === key).length,
+    // The step's exceptions as exceptionsOfStep attributes them: also those whose source names the step and frames
+    // without an instance key (a time-limit breach the system raises; Phase 2 exit review F02).
+    openExceptions: exceptionsOfStep(ctx, inst, key, stepId).filter((e) => e.status === 'OPEN').length,
   };
 }
 

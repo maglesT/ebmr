@@ -8,8 +8,10 @@
  *    first and prominently, from the content, never from client state; review findings P26, P38; no comment, an
  *    empty one and one of white space only are each named, as each is another decision);
  *  - batch_stage: stage, steps (StepSummaryView), exceptions;
- *  - batch_exception: step, exception, recorded, deviation, disposition (the proposed outcome and justification
- *    when the signed content carries them: shown first and prominently, from the content, never from client state);
+ *  - batch_exception: step (the step its signed source names, also by step and frames for a time-limit breach),
+ *    source (the time constraint and construct it names), exception, recorded, deviation, disposition (the proposed
+ *    outcome and justification when the signed content carries them: shown first and prominently, from the content,
+ *    never from client state);
  *  - mbr_version and anything else: the generic list.
  * They are tolerant: the known members come first with plain labels, and EVERY other member (at the top level and
  * inside known objects) follows as labelled text, so nothing the signature binds to is ever hidden. The exact
@@ -516,7 +518,15 @@ function BatchStage({ r }: { r: Obj }) {
   );
 }
 
-const EXCEPTION_TOP = [...COMMON, 'step', 'exception', 'recorded', 'deviation', 'disposition', 'notSigned'];
+const EXCEPTION_TOP = [...COMMON, 'step', 'source', 'exception', 'recorded', 'deviation', 'disposition', 'notSigned'];
+
+/** "Booth clearance window (TC-CLEAR-WINDOW)" for a {id, name} reference; the id alone when the name is the id. */
+function refText(v: unknown): string {
+  if (!isObj(v)) return str(v) ?? '—';
+  const id = str(v['id']);
+  const name = str(v['name']);
+  return name && name !== id ? `${name} (${id ?? '?'})` : (id ?? name ?? '?');
+}
 
 /** The proposed disposition, from the signed content only: first and prominent. */
 function Disposition({ d }: { d: unknown }) {
@@ -543,6 +553,9 @@ function Disposition({ d }: { d: unknown }) {
 
 function BatchException({ r }: { r: Obj }) {
   const step = isObj(r['step']) ? r['step'] : null;
+  const source = isObj(r['source']) ? r['source'] : null;
+  const constraint = source && isObj(source['constraint']) ? source['constraint'] : null;
+  const construct = source && isObj(source['construct']) ? source['construct'] : null;
   const recorded = isObj(r['recorded']) ? r['recorded'] : null;
   const deviation = isObj(r['deviation']) ? r['deviation'] : null;
   const limits = recorded ? arr(recorded['limits']) : [];
@@ -556,8 +569,20 @@ function BatchException({ r }: { r: Obj }) {
       <Section title="Exception">
         <ExceptionBlock e={r['exception']} />
       </Section>
+      {/* The step the signed source names; "not raised at a step" only when it names none (F02). */}
       <Section title="Step">{step ? <p>{`${str(step['number']) ?? '?'} ${str(step['title']) ?? ''} (${str(step['stepKey']) ?? '?'})`}</p> : <p>Not raised at a step.</p>}</Section>
       <Extras data={step} known={['stepKey', 'number', 'title']} />
+      {constraint || construct ? (
+        <Section title="Raised about">
+          <dl className={icls('facts')}>
+            {constraint ? <Row label="Time constraint">{refText(constraint)}</Row> : null}
+            {construct ? <Row label="Construct">{refText(construct)}</Row> : null}
+          </dl>
+        </Section>
+      ) : null}
+      <Extras data={source} known={['constraint', 'construct']} />
+      <Extras data={constraint} known={['id', 'name']} />
+      <Extras data={construct} known={['id', 'name']} />
       <Section title="Recorded value">
         {recorded ? (
           <dl className={icls('facts')}>

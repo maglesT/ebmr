@@ -34,7 +34,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
-import { engine, execution } from '@ebmr/recipe-core';
+import { engine, execution, flow } from '@ebmr/recipe-core';
 import type { ExceptionView, FieldView, Refusal, SignableAction, SignableContentView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs } from '../../platform/db/commands.ts';
@@ -442,8 +442,7 @@ function rendering(
   }
   const e = vc.state.exceptions[key];
   if (!e) throw notFound('exception');
-  const inst = e.source.stepKey !== undefined ? vc.state.steps[e.source.stepKey] : undefined;
-  const summary = inst ? stepSummary(vc, inst, inst.step, inst.key) : undefined;
+  const raisedAt = exceptionStep(vc, e);
   const point = e.source.point !== undefined ? vc.state.points[e.source.point] : undefined;
   const derived = e.source.derived !== undefined ? vc.state.derived[e.source.derived] : undefined;
   const item = point?.item ?? derived?.calculation;
@@ -456,9 +455,13 @@ function rendering(
     data: {
       kind: 'batch_exception',
       ...common,
-      step: summary ? { stepKey: summary.stepKey, number: summary.number, title: summary.title } : null,
+      // The step the signed source names (source.stepKey, or source.step in source.frames, as a time-limit breach the
+      // system raises names it), null only when the signed source names no step (Phase 2 exit review F02).
+      step: raisedAt,
       // The exception's content signs it as raised and its deviation link, never its status or handling.
       exception: pick(view, EXCEPTION_SIGNED),
+      // What else the signed source names: the time constraint and the construct (loop, replicate, alternative).
+      source: { constraint: constraintRef(run.def, e.source.constraint), construct: constructRef(run.def, e.source.construct) },
       recorded: item
         ? {
             item,
@@ -475,6 +478,41 @@ function rendering(
       notSigned: { note: NOT_SIGNED_NOTE, exception: { exceptionId: view.exceptionId, ...omit(view, EXCEPTION_SIGNED) } },
     },
   };
+}
+
+/**
+ * The step an exception's signed source names (signing-content.ts exceptionFacts: source.stepKey, source.step and
+ * source.frames): the instance under source.stepKey, else the instance of source.step in source.frames (a time-limit
+ * breach the system raises names the step its constraint ends at, never an instance key: engine timing.ts), else that
+ * step from the definition with the number of those frames, when no instance of it exists (yet). Null only when the
+ * source names no step (F02; DI-37).
+ */
+export function exceptionStep(vc: ViewContext, e: engine.ExceptionRecord): { stepKey: string; number: string; title: string } | null {
+  const def = vc.run.def;
+  const key = e.source.stepKey ?? (e.source.step !== undefined ? engine.stepKey(e.source.step, e.source.frames) : undefined);
+  if (key === undefined) return null;
+  const inst = vc.state.steps[key];
+  if (inst) {
+    const sum = stepSummary(vc, inst, inst.step, inst.key);
+    return { stepKey: sum.stepKey, number: sum.number, title: sum.title };
+  }
+  const stepId = e.source.step ?? key.slice(0, key.indexOf('@'));
+  const node = def.steps.get(stepId)?.node;
+  const numbered = def.steps.has(stepId) ? flow.instanceNumber(engine.numberingOf(def), stepId, e.source.frames).text : '';
+  return { stepKey: key, number: numbered, title: node?.name ?? stepId };
+}
+
+/** A time constraint a signed source names, with its name in the MBR (null when the source names none). */
+function constraintRef(def: engine.BatchDefinition, id: string | undefined): { id: string; name: string } | null {
+  if (id === undefined) return null;
+  return { id, name: def.constraints.find((c) => c.tc.id === id)?.tc.name ?? id };
+}
+
+/** A loop, replicate section or alternative a signed source names, with its name in the MBR (null when none). */
+function constructRef(def: engine.BatchDefinition, id: string | undefined): { id: string; name: string } | null {
+  if (id === undefined) return null;
+  // An alternative has no name of its own in the MBR: its id is shown.
+  return { id, name: def.loops.get(id)?.name ?? def.replicates.get(id)?.name ?? id };
 }
 
 /** The step's fields as the step screen shows them, with the tolerance band (derived from the target) apart from the MBR limits. */
@@ -683,7 +721,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const after = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key)?.contentHash;
       if (after !== before) throw new Error('EBMR-EXE-083 the signed content changed while the signature was applied; nothing is kept (DI-37)');
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
-      const stepKey = o.subject.aggregateType === 'batch_step' ? o.subject.key : o.subject.aggregateType === 'batch_exception' ? o.tx.state.exceptions[o.subject.key]?.source.stepKey : undefined;
+      const raised = o.subject.aggregateType === 'batch_exception' ? o.tx.state.exceptions[o.subject.key] : undefined;
+      const stepKey = o.subject.aggregateType === 'batch_step' ? o.subject.key : raised ? (raised.source.stepKey ?? (raised.source.step !== undefined ? engine.stepKey(raised.source.step, raised.source.frames) : undefined)) : undefined;
       if (stepKey === undefined || !o.tx.state.steps[stepKey]) return null;
       const vc = await viewContext(app, client, o.run, o.tx.state, o.tx.nowUs, viewerOf(ctx));
       return await stepScreen(vc, stepKey);

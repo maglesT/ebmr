@@ -253,6 +253,28 @@ describe('what is signed: the C3 rendering shapes', () => {
     for (const text of ['Not raised at a step.', 'No recorded value belongs to this exception.', 'none linked', 'TEST-Priya Nair (test-operator-1), OPERATOR']) expect(screen.getByText(text)).toBeTruthy();
     expect(within(screen.getByRole('region', { name: 'Deviation linked' })).getByText('None.')).toBeTruthy();
   });
+
+  it('[DI-37] F02: a time-limit breach shows the step and the time constraint its signed source names, never "not raised at a step"', () => {
+    const v = view('Exception EX-1: Booth clearance window exceeded its maximum of 1 s', 'EXCEPTION_DISPOSITIONED', {
+      kind: 'batch_exception',
+      ...COMMON,
+      meaning: 'EXCEPTION_DISPOSITIONED',
+      meaningText: 'I dispositioned this exception.',
+      step: { stepKey: 'p-disp-clear@', number: '1.1.1', title: 'Line clearance of the dispensing booth' },
+      source: { constraint: { id: 'TC-CLEAR-WINDOW', name: 'Booth clearance window' }, construct: null },
+      exception: { ...EXCEPTION, exceptionId: 'EX-1', type: 'TIME_MAX_BREACH', title: 'Booth clearance window exceeded its maximum of 1 s', raisedBy: null, deviationRef: null },
+      recorded: null,
+      deviation: null,
+      disposition: { proposed: { outcome: 'DEVIATION_RAISED', justification: 'Reviewed with QA', deviationRef: null } },
+    });
+    render(<SignableContent view={v} />);
+    const region = screen.getByRole('region', { name: 'Exception to be signed' });
+    expect(within(within(region).getByRole('region', { name: 'Step' })).getByText('1.1.1 Line clearance of the dispensing booth (p-disp-clear@)')).toBeTruthy();
+    expect(within(region).queryByText('Not raised at a step.')).toBeNull();
+    const about = within(region).getByRole('region', { name: 'Raised about' });
+    expect(within(about).getByText('Time constraint')).toBeTruthy();
+    expect(within(about).getByText('Booth clearance window (TC-CLEAR-WINDOW)')).toBeTruthy();
+  });
 });
 
 describe('value and limit text', () => {

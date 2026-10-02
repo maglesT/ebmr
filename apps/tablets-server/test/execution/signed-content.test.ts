@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { engine } from '@ebmr/recipe-core';
 import { routes, type SignableContentView } from '@ebmr/api-contract';
 import { NOT_SIGNED_NOTE, NOT_SIGNED_WHY, notSignedWhy, stepForSigning, type FieldForSigning } from '../../src/features/execution/signable.ts';
-import { dcMini, importAndIssue, RunDriver, startExecServer, valueOf, violations, withEarlyParameter, writePackage, type ExecServer } from './support.ts';
+import { dcMini, importAndIssue, RunDriver, startExecServer, valueOf, violations, withEarlyParameter, withShortWindow, writePackage, type ExecServer } from './support.ts';
 
 let server: ExecServer;
 beforeAll(async () => {
@@ -168,6 +168,28 @@ describe('the record to be signed is the signed content (CN1)', () => {
     for (const k of ['status', 'blocking', 'whatToDo', 'routedTo']) expect(e).not.toHaveProperty(k);
     expect(e['deviationRef']).toBeNull();
     expect((rendering['notSigned'] as Json)['exception']).toMatchObject({ exceptionId: act, status: 'OPEN', blocking: false });
+  }, 240_000);
+
+  it('[DI-37][DI-36] F02: a time-limit breach the system raises shows the step and the time constraint its signed source names', async () => {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, withShortWindow()));
+    const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1'), supervisor1: await server.asPersona('supervisor1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await new Promise((r) => setTimeout(r, 1_300));
+    // Any command sweeps first: the 1 s window of the clearance is breached (source {step, constraint, frames}, no stepKey).
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-7' } });
+    const breach = (await d.runView('supervisor1')).exceptions.find((e) => e.type === 'TIME_MAX_BREACH')?.exceptionId ?? '';
+    expect(breach).not.toBe('');
+    const dispose = `EXCEPTION_DISPOSITIONED|${Buffer.from(JSON.stringify({ outcome: 'DEVIATION_RAISED', justification: 'Reviewed with QA' }), 'utf8').toString('base64url')}`;
+    const { content, rendering } = await preview(d, 'supervisor1', 'batch_exception', breach, dispose);
+    expect((content['exception'] as Json)['source']).toMatchObject({ step: 'p-disp-clear', stepKey: null, constraint: 'TC-CLEAR-WINDOW', construct: null });
+    // Shown as signed: the step the source names (never "not raised at a step") and the constraint, by id and name.
+    expect(rendering['step']).toEqual({ stepKey: CLEAR, number: '1.1.1', title: expect.any(String) as unknown });
+    expect(rendering['source']).toEqual({ constraint: { id: 'TC-CLEAR-WINDOW', name: 'Booth clearance window' }, construct: null });
+    // The run view counts the breach as an open exception of that step (stepSummary, as exceptionsOfStep attributes it).
+    const step = (await d.runView('supervisor1')).stages.flatMap((s) => s.steps).find((x) => x.stepKey === CLEAR);
+    expect(step?.openExceptions).toBe(1);
   }, 240_000);
 });
 
