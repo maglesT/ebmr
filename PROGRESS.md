@@ -1297,3 +1297,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   they have their effect. `pnpm run ci` (357 files, 3,027 tests) passed apart from that test, fixed and re-run under
   load; end-to-end 20/20. The Phase 2 exit review read the code before these commits: each of its findings is
   re-checked against this branch before it is fixed.
+- 2026-10-02: OWNER DECISION (docs/decisions/0006, by default): a company formulation library with "Choose a product"
+  in Phase 3 (quantities computed with the potency, assay and LOD adjustment, TB-01); an example generics pack from
+  public sources in Phase 6, labelled as examples and never issuable for a GMP batch until a site approves one as its
+  own formula. No real company's formula ships.
