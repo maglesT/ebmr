@@ -1324,3 +1324,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   db-guards-disposition-involvement, db-guards-step-order, db-guards-step-acts, db-guards-proposal-race,
   db-guards-entry-identifiers, devices/reading-age-policy and devices/stale-weighing-readings; web entries.test.tsx.
   Defaults taken are in docs/decisions/phase-2-open-questions.md (F66.1, F66.2, F67.1, F37.1, F38.1, F12.1, F58.1).
+  Round 2 (after the adversarial verification): the database now reads involvement from the accepted command rows
+  (F11, 0310), binds a step's status changes to the act that makes them (F66, 0311), the start and end events to the
+  acts and token arrivals that make them (F67, 0312, 0314) and a stored entry to its command and test identifiers
+  (F12, 0313, tablets 0380); each with a test that fails without its migration.
