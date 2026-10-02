@@ -10,17 +10,19 @@
  *  - cookies (@fastify/cookie) and session-bound CSRF tokens (@fastify/csrf-protection, userInfo = the session
  *    token hash), one cookie name per installation;
  *  - helmet: the strict CSP (no Trusted Types, which would block `new Worker`), COOP and CORP same-origin,
- *    nosniff, Referrer-Policy no-referrer; HSTS only on https;
+ *    nosniff, Referrer-Policy no-referrer; HSTS only on https; on every answer, the gate's own refusals included
+ *    (its hooks run before the gate's);
  *  - the rate-limit plugin with global: false (routes opt in; the kernel lockout stays authoritative).
  */
 import cookie from '@fastify/cookie';
 import csrf from '@fastify/csrf-protection';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { requestTokenHash } from '../auth/session.ts';
 import type { AppContext } from '../context.ts';
-import { sendApiNotFound } from './errors.ts';
+import { fromGuidance, sendApiNotFound } from './errors.ts';
+import type { GuidanceCatalogue } from './guidance.ts';
 import { refusal } from './refusal.ts';
 
 /** The exact Content-Security-Policy of the SPA and the API (plan section 5). */
@@ -48,6 +50,28 @@ export const CSP_HEADER = Object.entries(CSP_DIRECTIVES)
 
 export const INSTALLATION_HEADER = 'x-ebmr-installation';
 
+/**
+ * The headers helmet writes with the options below, for the few answers Fastify sends before any hook can run (a URL
+ * it cannot decode: FST_ERR_BAD_URL, and its other framework errors). test/platform/security.test.ts compares this set
+ * with what helmet writes on an ordinary answer, so the two cannot drift apart (review F43).
+ */
+export function frameworkSecurityHeaders(https: boolean): Record<string, string> {
+  return {
+    'content-security-policy': CSP_HEADER,
+    'cross-origin-opener-policy': 'same-origin',
+    'cross-origin-resource-policy': 'same-origin',
+    'origin-agent-cluster': '?1',
+    'referrer-policy': 'no-referrer',
+    ...(https ? { 'strict-transport-security': 'max-age=31536000; includeSubDomains' } : {}),
+    'x-content-type-options': 'nosniff',
+    'x-dns-prefetch-control': 'off',
+    'x-download-options': 'noopen',
+    'x-frame-options': 'DENY',
+    'x-permitted-cross-domain-policies': 'none',
+    'x-xss-protection': '0',
+  };
+}
+
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const isApiPath = (path: string): boolean => path === '/api' || path.startsWith('/api/');
@@ -74,6 +98,19 @@ export function isApiRequest(request: Pick<FastifyRequest, 'url' | 'routeOptions
 const CANONICAL_API = /^\/api(?:[/?#]|$)/;
 
 export async function installSecurity(scope: FastifyInstance, app: AppContext): Promise<void> {
+  // Helmet first: Fastify runs onRequest hooks in the order they are added, and the gate below answers some requests
+  // itself (403 ORIGIN, the 404 for another spelling of /api), as does the site-zone hook after it. Registered after
+  // them, helmet never ran for those answers, which then carried no CSP, frame or CORP header (review F43).
+  await scope.register(helmet, {
+    global: true,
+    contentSecurityPolicy: { useDefaults: false, directives: { ...CSP_DIRECTIVES } },
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'no-referrer' },
+    strictTransportSecurity: app.config.https ? { maxAge: 31536000, includeSubDomains: true } : false,
+    xFrameOptions: { action: 'deny' },
+  });
   scope.addHook('onRequest', async (request, reply) => {
     void reply.header(INSTALLATION_HEADER, app.installation);
     void reply.header('x-correlation-id', String(request.id));
@@ -121,16 +158,30 @@ export async function installSecurity(scope: FastifyInstance, app: AppContext): 
       return typeof t === 'string' ? t : '';
     },
   });
-  await scope.register(helmet, {
-    global: true,
-    contentSecurityPolicy: { useDefaults: false, directives: { ...CSP_DIRECTIVES } },
-    crossOriginOpenerPolicy: { policy: 'same-origin' },
-    crossOriginResourcePolicy: { policy: 'same-origin' },
-    crossOriginEmbedderPolicy: false,
-    referrerPolicy: { policy: 'no-referrer' },
-    strictTransportSecurity: app.config.https ? { maxAge: 31536000, includeSubDomains: true } : false,
-    xFrameOptions: { action: 'deny' },
-  });
   // preHandler: the key needs the parsed body (identifier or badge).
   await scope.register(rateLimit, { global: false, hook: 'preHandler' });
+}
+
+/**
+ * The answer to an error Fastify raises before any hook runs (FST_ERR_BAD_URL for a URL it cannot decode, the
+ * parameter-length and async-constraint errors): the refusal envelope, with the installation and correlation headers,
+ * no-store and helmet's header set. Without it Fastify wrote its own body with none of these (review F43).
+ */
+export function answerFrameworkError(
+  installation: string,
+  https: boolean,
+  guidance: GuidanceCatalogue,
+  error: FastifyError,
+  request: FastifyRequest,
+  reply: FastifyReply,
+): void {
+  const correlationId = String(request.id);
+  const status = typeof error.statusCode === 'number' && error.statusCode >= 400 ? error.statusCode : 400;
+  const base = status >= 500 ? guidance.lookup('INTERNAL')! : guidance.lookup('SCHEMA')!;
+  const mapped = fromGuidance(status >= 500 ? 'INTERNAL' : 'SCHEMA', { ...base, status }, status >= 500 ? 'An unexpected error occurred; it has been logged.' : 'The address of the request is not valid.', correlationId);
+  request.log.info({ code: error.code, status, correlationId }, 'request refused before routing');
+  void reply
+    .code(status)
+    .headers({ ...frameworkSecurityHeaders(https), [INSTALLATION_HEADER]: installation, 'x-correlation-id': correlationId, 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' })
+    .send(JSON.stringify(mapped.envelope));
 }

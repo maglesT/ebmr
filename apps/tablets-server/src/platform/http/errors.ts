@@ -16,7 +16,7 @@ export interface MappedError {
   envelope: RefusalEnvelope;
 }
 
-function fromGuidance(code: string, entry: GuidanceEntry, why: string, correlationId: string, details?: Record<string, string>): MappedError {
+export function fromGuidance(code: string, entry: GuidanceEntry, why: string, correlationId: string, details?: Record<string, string>): MappedError {
   return {
     status: entry.status,
     envelope: {
@@ -83,3 +83,4 @@ export function sendApiNotFound(app: AppContext, request: FastifyRequest, reply:
   const entry = app.guidance.lookup('NOT_FOUND')!;
   void reply.code(404).send(fromGuidance('NOT_FOUND', entry, `${request.method} ${request.url.split('?')[0] ?? ''} is not a route of the ${app.installation} installation.`, correlationId).envelope);
 }
+

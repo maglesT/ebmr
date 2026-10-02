@@ -21,7 +21,7 @@ import { createReadDb } from './platform/db/read.ts';
 import { installErrorHandling } from './platform/http/errors.ts';
 import { GuidanceCatalogue, PLATFORM_GUIDANCE } from './platform/http/guidance.ts';
 import { loggerOptions } from './platform/http/logging.ts';
-import { installSecurity, isApiRequest } from './platform/http/security.ts';
+import { answerFrameworkError, installSecurity, isApiRequest } from './platform/http/security.ts';
 import { installSpa } from './platform/http/static.ts';
 import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
@@ -60,6 +60,8 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     // Every actor context this server builds declares this zone (EBMR-IAM-118): never a configured constant.
     const config: ServerConfig = { ...env, siteZone: await siteZoneFromPolicy(pools.app, env) };
     const demo = await demoState(pools.app, config);
+    const guidance = new GuidanceCatalogue();
+    guidance.register('platform', PLATFORM_GUIDANCE);
     const app = Fastify({
       logger: loggerOptions(config.logLevel, config.logPretty, deps.logStream),
       genReqId: () => randomUUID(),
@@ -74,14 +76,14 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
       // and keep idle connections open for 72 s.
       requestTimeout: NODE_REQUEST_TIMEOUT_MS,
       keepAliveTimeout: NODE_KEEP_ALIVE_TIMEOUT_MS,
+      // A URL Fastify cannot decode is answered before any hook runs: with the envelope and every security header.
+      frameworkErrors: (error, request, reply) => answerFrameworkError(config.installation, config.https, guidance, error, request, reply),
     });
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
     if (demo.warning) app.log.warn(demo.warning);
 
     const features = (deps.features ?? FEATURES).filter((f) => f.installations.includes(config.installation));
-    const guidance = new GuidanceCatalogue();
-    guidance.register('platform', PLATFORM_GUIDANCE);
     const signables = new SignableActionRegistry();
     const siteZone = new SiteZoneGuard(pools.app, config.siteZone, app.log);
     const ctx: AppContext = {

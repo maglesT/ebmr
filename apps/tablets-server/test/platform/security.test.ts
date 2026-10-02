@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { CSP_DIRECTIVES, CSP_HEADER } from '../../src/platform/http/security.ts';
+import { CSP_DIRECTIVES, CSP_HEADER, frameworkSecurityHeaders } from '../../src/platform/http/security.ts';
 
 /** The one inline style the CSP admits: react-aria's mobile-WebKit overscroll rule, as the installed react-aria writes it. */
 function reactAriaStyleHash(): string {
@@ -130,6 +130,59 @@ describe('request checks', () => {
     expect(unknown.statusCode).toBe(404);
     expect(unknown.headers['x-ebmr-installation']).toBe('SANDBOX');
     expect((JSON.parse(unknown.body) as { refusal: { code: string } }).refusal.code).toBe('NOT_FOUND');
+  });
+
+  // Review F43: the answers the security hook sends itself (the 403 ORIGIN a page on the other installation's origin
+  // gets, the 404 for another spelling of /api, a SITE_ZONE refusal) were sent before helmet's own hooks had run.
+  it('[DI-13] the answers the security gate sends itself carry every security header, in both installations', async () => {
+    const expected = {
+      csp: CSP_HEADER, xfo: 'DENY', corp: 'same-origin', coop: 'same-origin', nosniff: 'nosniff', referrer: 'no-referrer',
+    };
+    const security = (h: Record<string, unknown>) => ({
+      csp: h['content-security-policy'] ?? null,
+      xfo: h['x-frame-options'] ?? null,
+      corp: h['cross-origin-resource-policy'] ?? null,
+      coop: h['cross-origin-opener-policy'] ?? null,
+      nosniff: h['x-content-type-options'] ?? null,
+      referrer: h['referrer-policy'] ?? null,
+    });
+    for (const [server, sibling] of [[gmp, ORIGINS.SANDBOX], [sbx, ORIGINS.GMP]] as const) {
+      // A top-level form POST from the sibling installation's page, as a browser sends it.
+      const origin = await server.app.inject({
+        method: 'POST',
+        url: '/api/session/logout',
+        payload: 'a=1',
+        headers: { 'content-type': 'application/x-www-form-urlencoded', origin: sibling, 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document' },
+      });
+      expect(origin.statusCode).toBe(403);
+      expect((JSON.parse(origin.body) as { refusal: { code: string } }).refusal.code).toBe('ORIGIN');
+      expect(security(origin.headers), `${server.config.installation} ORIGIN`).toEqual(expected);
+      expect(origin.headers['x-ebmr-installation']).toBe(server.config.installation);
+      for (const url of ['/%61pi/session', '/API/session', '//api/session']) {
+        const spelling = await server.app.inject({ method: 'GET', url });
+        expect(spelling.statusCode, url).toBe(404);
+        expect(security(spelling.headers), `${server.config.installation} ${url}`).toEqual(expected);
+      }
+      // Control: the router's own 404 of an unknown API route.
+      const unknown = await server.app.inject({ method: 'GET', url: '/api/no-such-route' });
+      expect(unknown.statusCode).toBe(404);
+      expect(security(unknown.headers)).toEqual(expected);
+      // A URL Fastify cannot decode is answered before any hook: the envelope, with helmet's whole header set (the
+      // same set helmet writes on the router's answer), the installation, the correlation id and no-store.
+      for (const url of ['/api/%E0%A4%A', '/%E0%A4%A']) {
+        const bad = await server.app.inject({ method: 'GET', url });
+        expect(bad.statusCode, url).toBe(400);
+        expect((JSON.parse(bad.body) as { refusal: { code: string } }).refusal.code).toBe('SCHEMA');
+        expect(bad.body).not.toContain('%E0');
+        expect(security(bad.headers), url).toEqual(expected);
+        expect(bad.headers['x-ebmr-installation']).toBe(server.config.installation);
+        expect(bad.headers['x-correlation-id']).toMatch(/^[0-9a-f-]{36}$/);
+        expect(bad.headers['cache-control']).toBe('no-store');
+        const helmetOwned = (h: Record<string, unknown>) => Object.fromEntries(Object.keys(frameworkSecurityHeaders(false)).map((k) => [k, h[k] ?? null]));
+        expect(helmetOwned(bad.headers)).toEqual(helmetOwned(unknown.headers));
+        expect(frameworkSecurityHeaders(false)).toEqual(helmetOwned(unknown.headers));
+      }
+    }
   });
 
   it('[DI-13] a mutating command route without an idempotency key is refused with 428', async () => {
