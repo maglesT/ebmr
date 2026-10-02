@@ -108,6 +108,20 @@ function renderPage(): { boot: () => Boot; access: () => Access } {
   };
 }
 
+/**
+ * Asks the page to check its session once the session control is there. The control registers itself in an effect,
+ * which a loaded runner can run after the signed-in text is on screen; until then a check does nothing. `done` says
+ * whether the check had its effect (a poll went out, or the page joined a marked sign-out).
+ */
+async function checkWhenControlled(page: ReturnType<typeof renderPage>, done: () => boolean): Promise<void> {
+  await waitFor(() => {
+    act(() => {
+      page.access().checkSession();
+    });
+    expect(done()).toBe(true);
+  });
+}
+
 /** Lets the answers already on their way arrive, and React settle. */
 async function settle(): Promise<void> {
   await act(async () => {
@@ -139,9 +153,7 @@ describe('P5: the session poll and a sign-out marked by another tab', () => {
     // Another tab of this browser started a sign-out; its mark is in the cookie alone (no storage event reaches here).
     document.cookie = `${MARK_COOKIE}=0f1e2d3c4b5a69788796a5b4c3d2e1f0; Path=/`;
     const polls = server.state.polls;
-    act(() => {
-      page.access().checkSession();
-    });
+    await checkWhenControlled(page, () => page.boot().session === null);
     expect(screen.queryByText('Signed in as Asha Rao')).toBeNull();
     expect(page.boot().session).toBeNull();
     expect(server.state.polls, 'the poll went out past the mark').toBe(polls);
@@ -166,9 +178,8 @@ describe('late answers of the session poll', () => {
       release = resolve;
     });
     server.state.who = VIKRAM;
-    act(() => {
-      page.access().checkSession();
-    });
+    const asked = server.state.polls;
+    await checkWhenControlled(page, () => server.state.polls > asked);
     // Meanwhile the person at this page signs out, and the server confirms it.
     await act(async () => {
       await page.access().signOut();
@@ -195,9 +206,8 @@ describe('late answers of the session poll', () => {
       release = resolve;
     });
     // The poll is answered while the session is still unlocked ...
-    act(() => {
-      page.access().checkSession();
-    });
+    const asked = server.state.polls;
+    await checkWhenControlled(page, () => server.state.polls > asked);
     // ... and Asha locks the screen before that answer arrives.
     act(() => {
       page.access().lock();
@@ -229,9 +239,8 @@ describe('late answers of the session poll', () => {
     try {
       // Asha unlocked the session in another tab of this browser.
       server.state.locked = false;
-      act(() => {
-        page.access().checkSession();
-      });
+      const asked = server.state.polls;
+      await checkWhenControlled(page, () => server.state.polls > asked);
       await waitFor(() => {
         expect(screen.queryByRole('alertdialog', { name: 'This terminal is locked' })).toBeNull();
       });
