@@ -453,9 +453,10 @@ describe('P28, round-2 verification: a hold point\'s first version is the system
     expect(outcomes).toEqual(Object.fromEntries(Object.keys(edits).map((name) => [name, { outcome: 'ok', changedBy: ['issuer'] }])));
     // H-FIRST lies in no loop or replicate section, so every instance of it has no frame. Filed under a section that
     // does not enclose it, its stored content (frames and number suffix included) is what the engine derives from that
-    // state, but the engine never creates such an instance: the issuer's change.
+    // state, but the engine never creates such an instance: since recipe-core 0307 (Phase 2 exit review F66, DI-34) the
+    // database refuses the issue itself, so nothing is stored or logged.
     const refiled = await issue(undefined, [{ construct: 'R-NOT-ITS-SECTION', index: 1 }]);
-    expect(refiled).toEqual({ outcome: 'ok', changedBy: ['issuer'] });
+    expect(refiled).toEqual({ outcome: 'EBMR-EXE-129', changedBy: [] });
     // The control, through the same path: the engine's own content.
     expect(await issue()).toEqual({ outcome: 'ok', changedBy: ['SYSTEM'] });
   }, 300_000);

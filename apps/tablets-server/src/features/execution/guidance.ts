@@ -162,6 +162,16 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [ADMIN, QA],
     controls: ['DI-14', 'DI-20', 'DI-27', 'DI-30', 'DI-34', 'DI-35', 'INV-03', 'INV-10', 'INV-20', 'PR-14'],
   },
+  // The order of the steps (recipe-core 0307; DI-34, PR-13, IN-15): the engine refuses an act out of sequence first
+  // (ENG-NOT-ENABLED); the database refuses a row whose state brings in a step the token cannot have reached.
+  'EBMR-EXE-129': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The change the system was about to store would let a step come before the steps that must be finished first. Nothing was saved.',
+    whatYouCanDo: ['Stop and report it; reload the screen before you continue.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-34', 'IN-15', 'PR-13'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },

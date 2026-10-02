@@ -139,6 +139,10 @@ tests:
   - "apps/tablets-server/test/execution/golden.test.ts > golden run of dc-mini (TEST- batch, sandbox) > [DI-34][DI-35][DI-37][INV-09][INV-10][INV-26][INV-40] runs every step to EXECUTION_COMPLETE; the model holds after every command; the signature count is recorded"
   - "packages/recipe-core/test/engine/replay.test.ts > replay of stored execution rows > [DI-34] a tampered value, clock or state hash is reported at the row where it was changed"
   - "packages/recipe-core/test/engine/actions.test.ts > availableActions agrees with step() > [DI-34] on random states of generated flows, every offered action is accepted by step and every withheld one refused with the same reason"
+  - "apps/tablets-server/test/execution/db-guards-step-order.test.ts > F66: the order of the steps holds in the database (DI-34, PR-13) > [DI-34][PR-13][INV-18] a row that brings in a step the token has not reached is refused, so the dispensing cannot start before the line clearance is done"
+  - "apps/tablets-server/test/execution/db-guards-step-order.test.ts > F66: the order of the steps holds in the database (DI-34, PR-13) > [DI-34][PR-13][IN-15] the marks the order reads are the engine's: a row that marks the clearance finished while it is in progress, or signs off its stage, is refused"
+  - "apps/tablets-server/test/execution/db-guards-step-order.test.ts > F66: the order of the steps holds in the database (DI-34, PR-13) > [DI-34][PR-13] a step instance that came before the steps before it, landed in the store behind the triggers' back, is reported by the invariant query"
+  - "packages/recipe-core/test/execution/step-order-sql.test.ts > F66: the database brings in a step instance only where the token can be (DI-34, PR-13) > [DI-34][PR-13][INV-19] a step instance the token cannot have reached is refused, with the reason: a step before it unfinished, frames the engine never gives, an untaken branch, an iteration that did not continue, a sub-lot beyond the count, a stage not signed off, a loop not ended, an alternative or replicate section not decided"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

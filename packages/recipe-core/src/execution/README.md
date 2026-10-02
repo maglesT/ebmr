@@ -201,6 +201,25 @@ that another command holds is skipped.
   - constraint instances keep their key, constraint, frames, breach marks, warning and void; a breach mark a row
     sets names the breach that row raises (EBMR-EXE-026);
   - a step instance a row adds is told by its STEP_STATUS_CHANGED event from PENDING (EBMR-EXE-048);
+- every row, the issue included, brings in a step instance only where the token can have reached it (DI-34, PR-13;
+  sql 0307, trigger `zd_execution_step_order`, EBMR-EXE-129). The database reads the batch's own MBR as the engine
+  expands it (`flow_tree`) and does not re-run the token game; it checks conditions every instance the engine
+  creates fulfils (`step_order_problem`):
+  - an ENABLED instance has one frame per enclosing loop and replicate section, outermost first, each a whole number
+    from 1; every node before it in a sequence it lies in, at every level, has been left in the instance's frames
+    (`flow_left_problem`): its phases and hold points finished at least once (COMPLETED or SKIPPED, or the mark of
+    their first completion kept when a correction sends them back; inside an alternative also NOT_APPLICABLE), its
+    stages signed off, its loops ended, its alternatives and replicate sections decided; every alternative it lies in
+    decided on its branch, iteration k > 1 of a loop follows a decision to continue, sub-lot k lies within the
+    decided count;
+  - a NOT_APPLICABLE instance lies in an alternative, at that alternative's frames, which decided on another branch;
+  - the marks this reads are the engine's (`completion_mark_problem`, `stage_sign_off_problem`): `firstCompletedSeq`
+    is set only with a finished status and never changed; a hold point is completed only by a releasing decision; a
+    stage frame's sign-off appears or is replaced only by its own accepted SIGN_OFF_STAGE, and is otherwise kept,
+    apart from being made invalid by a correction.
+  Left to the replay: the decisions themselves (which branch the data choose, a loop's exit, a count) are taken as
+  recorded; inside a loop or replicate section of a node before the instance only the iteration or sub-lot the
+  instance names is looked at; a sequential replicate's sub-lot is not held to the end of the one before it;
 - every exception a row adds (DI-14, INV-03, INV-20; sql 0280, 0299) is told by exactly one EXCEPTION_RAISED event of
   its type (EBMR-EXE-047). A time fact (a maximum or minimum breach, a clock regression) is raised by SYSTEM in
   every kind of row, a SWEEP adds time facts only, any other exception is raised by the row's person
@@ -326,8 +345,7 @@ one plain-language business entry on the chain `batch:<id>`.
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
   `batch_point_content` read the latest content version, the state and the persons involved. For an exception
   these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
-  raised at. For a
-  witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
+  raised at. For a witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
 - `execution_violations()` must return no rows. It checks:
   - sequence gaps and the hash chain;
   - the projection against the last row;
@@ -338,7 +356,11 @@ one plain-language business entry on the chain `batch:<id>`.
   - the engine's rules over the stored rows (`execution_rule_violations`, sql 0306): an accepted
     DISPOSITION_EXCEPTION by a person whose involvement in the step that raised the exception (an INVOLVEMENT
     event of an accepted row before it) put them in its performers, data enterers, correctors or PERFORMED signers
-    (INV-03, PR-13, PR-49).
+    (INV-03, PR-13, PR-49);
+  - (sql 0307) a step instance of a stored state that the steps before it did not precede: one of them first
+    finished after the instance was enabled (its `firstCompletedSeq` later than the instance's `enabledSeq`) or
+    never, or the conditions of `step_order_problem` do not hold for it (DI-34, PR-13; as the engine's own invariant
+    `checkSequence`).
 
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 
@@ -353,6 +375,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
+| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307) |
 
 ## TypeScript
 
@@ -503,6 +526,14 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   create (enabled or not applicable, at the top level and in a sub-lot) member for member as the engine stores it;
   it derives none for a hold point filed under frames the engine never gives it (its section left out, a section
   that does not enclose it, one twice, an index 0, negative, fractional or written 2.0 for 2).
+- `test/execution/step-order-sql.test.ts` (Phase 2 exit review F66; sql 0307): every row of the engine's own runs
+  (both golden fixtures with their stages, sub-lots, parallel section, decisions, loop iterations, library call and
+  hold points; a loop that exits and one that is exhausted; a correction that sends a finished step back while the
+  steps after it go on) passes `step_order_problem`, `completion_mark_problem` and `stage_sign_off_problem`, and every
+  final state passes the invariant query's form; a forged instance (a step before it unfinished, frames the engine
+  never gives, an untaken branch, an iteration that did not continue, a sub-lot beyond the count, a stage not signed
+  off, a loop not ended, an alternative or replicate section not decided, a not-applicable step outside an untaken
+  branch) and a forged mark are refused, each with its reason.
 - `test/execution/kept-records-sql.test.ts` (sql 0303): every row the store writes for the engine's own runs (both
   golden fixtures, corrections and their dependents, invalidations, a void, loops that exit or are exhausted,
   block values recomputed at the PERFORMED signature) passes `kept_records_problem`, and every sweep of those states
@@ -569,6 +600,10 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   person who entered data in that step, also holding a QA role, cannot disposition it through the store with the
   application role (the kernel refuses the signature, EBMR-ESIG-044); the invariant query reports a disposition by
   a person involved in the step before it; an uninvolved QA reviewer records it.
+- `db-guards-step-order.test.ts` (Phase 2 exit review F66; sql 0307): the critic's row, which enabled the
+  dispensing beside an entry on the line clearance in progress, is refused (EBMR-EXE-129) and the dispensing still
+  cannot start; a row that marks the clearance finished while in progress, or signs off its stage, is refused; the
+  invariant query reports an instance that came before the steps before it.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and
