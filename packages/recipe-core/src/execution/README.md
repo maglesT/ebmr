@@ -564,6 +564,11 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   another tier, left out, or not marked failed (EBMR-EXE-044), while the honest one is recorded and QA cannot
   disposition it NO_IMPACT; an ISSUE row whose state already records a decision, a closed, linked or operator's
   exception, a data point, a performer or a signature (EBMR-EXE-030, 044).
+- `db-guards-disposition-involvement.test.ts` (Phase 2 exit review F11; sql 0306): the signed content of an
+  exception raised at a step names the step's performers, data enterers, correctors and PERFORMED signers; a
+  person who entered data in that step, also holding a QA role, cannot disposition it through the store with the
+  application role (the kernel refuses the signature, EBMR-ESIG-044); the invariant query reports a disposition by
+  a person involved in the step before it; an uninvolved QA reviewer records it.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and
