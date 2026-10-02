@@ -75,6 +75,7 @@ tests:
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-38] an expired challenge signs nothing"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-38][DI-20] a kiosk signs with the PIN only after its own tap; a password, another terminal's proof or another session's challenge is refused"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-38][DI-36] an office signature needs user ID and password of the signer; a PIN, a wrong password or another person's credentials sign nothing"
+  - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-38][INV-10] a kiosk sign request resent after the signing succeeded is told the request was used, never that nothing was signed (F40)"
   - "apps/tablets-web/test/access/ports.test.tsx > [DI-36][DI-38][INV-40] a kiosk signature: content, tap for the challenge, PIN once, manifestation; no secret stays in the page"
   - "apps/tablets-web/test/access/ports.test.tsx > [DI-38] an office signature asks user ID and password and sends them once"
   - "apps/tablets-web/test/access/ports.test.tsx > [INV-10][DI-38] a lost sign answer is never re-sent: the dialog reloads the signatures (found: signed; none: not confirmed)"

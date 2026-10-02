@@ -36,7 +36,11 @@
  *
  * Credentials: badge and PIN on kiosks (the badge of the challenge's tap is kept by the server, see badges.ts),
  * user ID and password on office PCs; never logged, cached or re-sent. A lost sign response is reconciled by the
- * browser reloading the signatures, never by sending the credentials again.
+ * browser reloading the signatures, never by sending the credentials again. A kiosk sign request whose challenge
+ * already holds its signature (a resend after a lost answer, a double submit) finds no badge kept and is answered
+ * ESIG_ALREADY_SIGNED, never "nothing was signed" (Phase 2 exit review F40); one whose PIN another request already
+ * confirmed, without a signature yet (still running, or refused), ESIG_REQUEST_USED; ESIG_TAP_AGAIN only when
+ * nothing confirmed the challenge.
  */
 import { routes, type ChallengeView, type ManifestationView, type Refusal, type SignableAction, type SignableContentView } from '@ebmr/api-contract';
 import { esig, identity, type commands } from '@ebmr/kernel';
@@ -127,6 +131,45 @@ const contentChanged = (why: string): Refusal => ({
   whatYouCanDo: ['Review the current content, then sign again.'],
   whoCanHelp: [],
 });
+
+/**
+ * How a challenge was used: the signature made for it (a challenge signs once), and whether a signature
+ * authentication for it succeeded (iam.auth_event, purpose SIGNATURE: the kiosk badge is forgotten right after it).
+ */
+async function challengeUse(db: pg.Pool | pg.PoolClient, challengeId: string): Promise<{ signatureId: string | null; authenticated: boolean }> {
+  const { rows } = await db.query<{ signature_id: string | null; authenticated: boolean }>(
+    `select (select g.id::text from esig.signature g where g.challenge_id = $1 limit 1) as signature_id,
+            exists (select 1 from iam.auth_event e where e.challenge_id = $1 and e.purpose = 'SIGNATURE') as authenticated`,
+    [challengeId],
+  );
+  return { signatureId: rows[0]?.signature_id ?? null, authenticated: rows[0]?.authenticated === true };
+}
+
+/** A sign request for a challenge that already holds its signature: used, never "nothing was signed" (F40; DI-38, INV-10). */
+const alreadySigned = (signatureId: string): Error =>
+  refusal(409, {
+    code: 'ESIG_ALREADY_SIGNED',
+    kind: 'STALE',
+    whatHappened: 'This signing request was already used: the record holds its signature. Nothing more was signed.',
+    why: `Signature ${signatureId} was made for this signing request; a signing request is used once.`,
+    controls: ['DI-38', 'INV-10'],
+    whatYouCanDo: ["Reload the record's signatures; do not sign again."],
+  });
+
+/**
+ * A sign request for a challenge whose PIN was already accepted by another request that has not signed (it is still
+ * running, or it was refused): this request signed nothing more, and whether the signing went through is told by the
+ * record's signatures, not by this answer (F40).
+ */
+const requestUsed = (): Error =>
+  refusal(409, {
+    code: 'ESIG_REQUEST_USED',
+    kind: 'STALE',
+    whatHappened: 'This signing request was already confirmed by another request with your PIN. This request signed nothing more.',
+    why: 'A signing request is confirmed once; the badge tapped for it is not kept after its confirmation.',
+    controls: ['DI-38', 'INV-10'],
+    whatYouCanDo: ["Reload the record's signatures to see whether the signing went through; start a new signing only if it did not."],
+  });
 
 function signableContext(session: ResolvedSession, actor: EsigSignableContext['actor'], meaning: string): EsigSignableContext {
   return { actor, room: session.roomCode, deviceClass: session.deviceClass, meaning };
@@ -301,6 +344,13 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         if (c.kind === 'PIN') {
           const badge = badges.peek(ch.challengeId, s.tokenHash, s.personId);
           if (!badge) {
+            // The badge is forgotten once the signing authenticated, so a resend of a signing that succeeded (an
+            // answer lost, a double submit) arrives here: it is told that the request was used, never that nothing
+            // was signed (Phase 2 exit review F40). The challenge is this session's own (checked above); nothing is
+            // replayed without credentials.
+            const used = await challengeUse(app.pools.app, ch.challengeId);
+            if (used.signatureId !== null) throw alreadySigned(used.signatureId);
+            if (used.authenticated) throw requestUsed();
             throw refusal(409, { code: 'ESIG_TAP_AGAIN', kind: 'STALE', whatHappened: 'The badge tap of this signing is no longer known. Nothing was signed.', why: 'A signing on a kiosk uses the badge tapped for it within its time limit.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again and tap your badge.'] });
           }
           identifier = badge;

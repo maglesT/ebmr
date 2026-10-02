@@ -264,6 +264,43 @@ describe('kiosk ceremony', () => {
     expect(outcome(await sign(ver, ch.challengeId, stub, pinOf(sbx, 'verifier1')))).toBe('409:EBMR-ESIG-031');
     expect(await signatureRows(sbx, stub)).toEqual([]);
   });
+
+  it('[DI-38][INV-10] a kiosk sign request resent after the signing succeeded is told the request was used, never that nothing was signed (F40)', async () => {
+    const me = personaIn(sbx, 'operator1');
+    // A challenge whose badge was forgotten without a signature (here: dropped as after a restart) is still told to tap again.
+    const unsigned = await createStub(sbx, op, 'operator1');
+    const lost = valueOf((await challengeFor(sbx, op, 'operator1', unsigned, 'PERFORMED')).r);
+    challengeBadges(sbx.built.ctx).forget(lost.challengeId);
+    const tapAgain = refusalOf(await sign(op, lost.challengeId, unsigned, pinOf(sbx, 'operator1')));
+    expect(tapAgain).toMatchObject({ status: 409, code: 'ESIG_TAP_AGAIN' });
+    expect(tapAgain.whatHappened).toMatch(/Nothing was signed/);
+    expect(await signatureRows(sbx, unsigned)).toEqual([]);
+
+    // A signing whose PIN was accepted but which was refused (INV-03: the verifier entered the data): its resend signed
+    // nothing more and is told so, without claiming what the record holds.
+    const entered = await createStub(sbx, ver, 'verifier1');
+    valueOf(await sign(op, valueOf((await challengeFor(sbx, op, 'operator1', entered, 'PERFORMED')).r).challengeId, entered, pinOf(sbx, 'operator1')));
+    const refused = valueOf((await challengeFor(sbx, ver, 'verifier1', entered, 'VERIFIED')).r);
+    expect(outcome(await sign(ver, refused.challengeId, entered, pinOf(sbx, 'verifier1')))).toBe('422:EBMR-ESIG-044');
+    const resent = refusalOf(await sign(ver, refused.challengeId, entered, pinOf(sbx, 'verifier1')));
+    expect(resent).toMatchObject({ status: 409, code: 'ESIG_REQUEST_USED' });
+    expect(resent.whatHappened).toMatch(/This request signed nothing more/);
+    expect((await signatureRows(sbx, entered)).map((s) => s.meaning_code)).toEqual(['PERFORMED']);
+
+    const stub = await createStub(sbx, op, 'operator1');
+    const ch = valueOf((await challengeFor(sbx, op, 'operator1', stub, 'PERFORMED')).r);
+    const key = randomUUID();
+    const first = valueOf(await sign(op, ch.challengeId, stub, pinOf(sbx, 'operator1'), undefined, key));
+    // The same request again (a lost answer: same key) and a double submit (another key): each is told the request
+    // was used and names the signature the record holds; nothing more is signed.
+    for (const again of [key, randomUUID()]) {
+      const r = refusalOf(await sign(op, ch.challengeId, stub, pinOf(sbx, 'operator1'), undefined, again));
+      expect(r).toMatchObject({ status: 409, code: 'ESIG_ALREADY_SIGNED', kind: 'STALE' });
+      expect(r.whatHappened).not.toMatch(/Nothing was signed/);
+      expect(r.why).toContain(first.manifestation.signatureId);
+    }
+    expect(await signatureRows(sbx, stub)).toEqual([{ meaning_code: 'PERFORMED', signer_person: me.personId }]);
+  });
 });
 
 describe('office ceremony', () => {
