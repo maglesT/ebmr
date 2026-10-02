@@ -184,6 +184,30 @@ describe('the database derives a stage summary as the engine does (F01; DI-37, I
     expect(ts.yields.map((y) => `${y.calculation}:${y.value}`)).toEqual(['yA:100.0', 'yA:99.1', 'yB:98.5']);
     expect(rows[0]?.c).toEqual(ts);
     expect(rows[0]?.bad).toBeNull();
+    // A recorded summary with any member missing or of another type has no canonical form (so it matches nothing).
+    const malformed: Record<string, unknown> = {
+      'not an object': [summary],
+      'statement not text': { ...summary, statement: 1 },
+      'steps not an object': { ...summary, steps: [3, 1, 0] },
+      'completed not a number': { ...summary, steps: { ...summary.steps, completed: '3' } },
+      'notApplicable missing': { ...summary, steps: { completed: 3, skipped: 0 } },
+      'skipped not a number': { ...summary, steps: { ...summary.steps, skipped: null } },
+      'exceptions not a list': { ...summary, exceptions: 'EX-1' },
+      'an exception not text': { ...summary, exceptions: ['EX-1', 2] },
+      'deviations not a list': { ...summary, deviations: {} },
+      'a deviation not text': { ...summary, deviations: [null] },
+      'yields not a list': { ...summary, yields: 'none' },
+      'a yield not an object': { ...summary, yields: ['98.5'] },
+      'a yield without its calculation': { ...summary, yields: [{ value: '98.5', unit: '%' }] },
+      'a yield value not text': { ...summary, yields: [{ calculation: 'yA', value: 98.5, unit: '%' }] },
+      'a yield unit missing': { ...summary, yields: [{ calculation: 'yA', value: '98.5' }] },
+    };
+    const canonical: Record<string, unknown> = {};
+    for (const [what, v] of Object.entries(malformed)) {
+      const r = await db.admin.query<{ c: unknown }>('select recipe.canonical_stage_summary($1::jsonb) as c', [JSON.stringify(v)]);
+      canonical[what] = r.rows[0]?.c ?? null;
+    }
+    expect(canonical).toEqual(Object.fromEntries(Object.keys(malformed).map((k) => [k, null])));
     expect(compareCodePoints('\u{1F600}', '�')).toBeGreaterThan(0);
   });
 });
