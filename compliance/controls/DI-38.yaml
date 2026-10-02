@@ -93,6 +93,9 @@ tests:
   - "packages/ui-kit/test/machines/kiosk-lock.test.ts > [DI-38] session changes are announced to the page (C4 discards unsent entries on SWITCH, LOCK and ENDED)"
   - "tools/e2e/specs/access/access.spec.ts > [DI-38][DI-14][INV-40] the kiosk locks; its own person unlocks with badge and PIN; the next person switches in with badge and PIN"
   - "tools/e2e/specs/esig/esig.spec.ts > [DI-36][DI-38][INV-40] a kiosk signature: tap for the challenge, a wrong PIN signs nothing, the right PIN shows the manifestation"
+  - "apps/tablets-web/test/access/ceremony-person-change.test.tsx > F39: a signing ends when another person is signed in, whatever the path (INV-40, DI-38, DI-14) > [INV-40][DI-38][DI-14] the lock button, then \"Switch user\" on the lock screen: Priya's signing ends with nothing signed; her decision is never challenged or signed under Kavya"
+  - "apps/tablets-web/test/access/ceremony-person-change.test.tsx > F39: a signing ends when another person is signed in, whatever the path (INV-40, DI-38, DI-14) > [INV-40][DI-38][DI-14] an idle lock the session poll sees, then \"Switch user\" on the lock screen: the same"
+  - "apps/tablets-web/test/access/ceremony-person-change.test.tsx > F39: a signing ends when another person is signed in, whatever the path (INV-40, DI-38, DI-14) > [INV-40][DI-38] a switch the session poll finds (another tab switched) ends the signing; a poll that finds the same person keeps it open"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

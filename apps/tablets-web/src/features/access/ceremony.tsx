@@ -9,7 +9,9 @@
  *  3. challenge: POST /api/esig/challenges with the client's hash of the text it showed (EBMR-ESIG-013 when the
  *     record changed meanwhile); a badge of another person offers "Switch to <name>?". Once switched, the signing
  *     ends with nothing signed (CANCELLED): the request and any decision in it were made by the previous person, so
- *     the caller asks the new person for their own (INV-40, DI-38);
+ *     the caller asks the new person for their own (INV-40, DI-38). The same holds whatever path signs another person
+ *     in ("Switch user" on the lock screen, a switch the session poll finds) and when the session ends: the ceremony
+ *     service ends the signing (index.tsx; Phase 2 exit review F39);
  *  4. secret: the PIN (kiosk) or user ID and password (office), within the 120 s countdown, sent once with a
  *     fresh device proof; a wrong one returns to the entry (the kernel counts it toward lockout);
  *  5. a lost answer never re-sends the credentials: the dialog reloads the record's signatures and reports
@@ -37,6 +39,8 @@ export interface SignJob {
   request: SignRequest;
   kiosk: boolean;
   tapPin: boolean;
+  /** The person who started the signing: the ceremony ends when another person is signed in (index.tsx; F39). */
+  personId: string;
 }
 
 const localError = (message: string): Error => machines.ceremonyError({ kind: 'ERROR', message });
@@ -144,6 +148,16 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
   useEffect(() => {
     if (state === 'cancelled' || state === 'closed') finish();
   }, [state, finish]);
+  // Ended from outside (another person signed in, the session ended: index.tsx, F39): nothing of the previous person's
+  // badge, PIN or secret outlives the dialog.
+  useEffect(
+    () => () => {
+      tapUid.clear();
+      tapPin.clear();
+      secret.clear();
+    },
+    [tapUid, tapPin, secret],
+  );
 
   const s = boot.session;
   return (
