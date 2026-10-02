@@ -8,7 +8,8 @@
  *    answered 404 before any handler runs, so a check elsewhere that looks at the raw path (the site-zone re-read
  *    before each API request, DI-27) sees every API request that can run;
  *  - cookies (@fastify/cookie) and session-bound CSRF tokens (@fastify/csrf-protection, userInfo = the session
- *    token hash), one cookie name per installation;
+ *    token hash), one cookie name per installation; an API request that carries either of them more than once is
+ *    refused (401 COOKIE_DUPLICATED) and the copies other pages set are removed (review F41);
  *  - helmet: the strict CSP (no Trusted Types, which would block `new Worker`), COOP and CORP same-origin,
  *    nosniff, Referrer-Policy no-referrer; HSTS only on https; on every answer, the gate's own refusals included
  *    (its hooks run before the gate's);
@@ -19,7 +20,7 @@ import csrf from '@fastify/csrf-protection';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { requestTokenHash } from '../auth/session.ts';
+import { cookieCount, requestTokenHash } from '../auth/session.ts';
 import type { AppContext } from '../context.ts';
 import { fromGuidance, sendApiNotFound } from './errors.ts';
 import type { GuidanceCatalogue } from './guidance.ts';
@@ -94,6 +95,30 @@ export function isApiRequest(request: Pick<FastifyRequest, 'url' | 'routeOptions
   return isApiPath(decoded.replace(/\/{2,}/g, '/').toLowerCase());
 }
 
+/**
+ * The Set-Cookie values that remove every copy of these cookies a page could have set for this request's path: each
+ * path the browser matches against it except `/` (where this server's own HttpOnly cookies live, which another page
+ * can neither overwrite nor shadow there), under the name and as a nameless cookie whose value starts with the name
+ * (the browser sends that as `name=value`), and on https the partitioned copy at `/`.
+ */
+export function duplicateCookieExpiries(url: string, names: readonly string[], https: boolean): string[] {
+  const path = /^[^?#]*/.exec(url)?.[0] ?? '/';
+  const paths = new Set<string>();
+  for (let i = path.indexOf('/', 1); ; i = path.indexOf('/', i + 1)) {
+    const prefix = i < 0 ? path : path.slice(0, i);
+    if (prefix.length > 1) paths.add(prefix);
+    if (i < 0) break;
+    paths.add(path.slice(0, i + 1));
+  }
+  const secure = https ? '; Secure' : '';
+  const out: string[] = [];
+  for (const name of names) {
+    for (const p of paths) out.push(`${name}=; Path=${p}; Max-Age=0${secure}`, `=${name}=; Path=${p}; Max-Age=0${secure}`);
+    if (https) out.push(`${name}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict; Partitioned`);
+  }
+  return out;
+}
+
 /** The API's own spelling: the literal prefix `/api`, then a slash, the query, or nothing. */
 const CANONICAL_API = /^\/api(?:[/?#]|$)/;
 
@@ -147,6 +172,30 @@ export async function installSecurity(scope: FastifyInstance, app: AppContext): 
   });
 
   await scope.register(cookie);
+  // This installation's session or CSRF cookie more than once (review F41): cookies ignore ports, so a page on another
+  // port of the host (the other installation's, or any) can set a copy with a longer path, or a partitioned one, that
+  // the browser sends first. Such a request is served as nobody (never one of the values); the copies other pages set
+  // are removed, so the retry carries this server's own cookie only.
+  scope.addHook('onRequest', async (request, reply) => {
+    if (!isApiRequest(request)) return;
+    const names = [app.config.cookies.session, app.config.cookies.csrf].filter((n) => cookieCount(request.headers, n) > 1);
+    if (names.length === 0) return;
+    request.log.warn({ cookies: names, correlationId: String(request.id) }, 'security: a request carried a cookie of this installation more than once; served as nobody');
+    void reply.header('set-cookie', duplicateCookieExpiries(request.url, names, app.config.https));
+    throw refusal(
+      401,
+      {
+        code: 'COOKIE_DUPLICATED',
+        kind: 'NOT_ALLOWED',
+        whatHappened: 'Another page on this computer set a second sign-in cookie for this installation, so the request was not served.',
+        why: `The request carried ${names.join(' and ')} more than once. The copies other pages set have been removed.`,
+        controls: ['DI-13', 'DI-38'],
+        whatYouCanDo: ['Try again.', 'If it happens again, close the pages of other addresses of this computer, then clear the cookies of this site.'],
+        whoCanHelp: ['The system administrator'],
+      },
+      true,
+    );
+  });
   await scope.register(csrf, {
     sessionPlugin: '@fastify/cookie',
     cookieKey: app.config.cookies.csrf,

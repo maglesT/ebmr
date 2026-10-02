@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { CSP_DIRECTIVES, CSP_HEADER, frameworkSecurityHeaders } from '../../src/platform/http/security.ts';
+import { CSP_DIRECTIVES, CSP_HEADER, duplicateCookieExpiries, frameworkSecurityHeaders } from '../../src/platform/http/security.ts';
 
 /** The one inline style the CSP admits: react-aria's mobile-WebKit overscroll rule, as the installed react-aria writes it. */
 function reactAriaStyleHash(): string {
@@ -76,6 +76,97 @@ describe('cookies (fix for the cookie collision)', () => {
       expect(res.headers['x-ebmr-installation']).toBe('GMP');
     }
     expect((await s.call(routes.session.get)).ok).toBe(true);
+  });
+});
+
+// Review F41: cookies ignore ports, and a page on another port of the host can set a copy of this installation's
+// cookie with a longer path (or a partitioned one on https) that the browser sends first. The server took the first.
+describe('a cookie of this installation sent more than once', () => {
+  const same = (extra: Record<string, string>) => ({ origin: ORIGINS.GMP, 'sec-fetch-site': 'same-origin', ...extra });
+  const codeOf = (body: string): string => (JSON.parse(body) as { refusal: { code: string } }).refusal.code;
+  const setCookies = (h: Record<string, unknown>): string[] => ([] as string[]).concat((h['set-cookie'] as string | string[] | undefined) ?? []);
+
+  it('[DI-13][DI-38] is served as nobody, whichever value comes first: no session swap and no session from a planted value', async () => {
+    const author = await gmp.asPersona('author');
+    const approver = await gmp.asPersona('approver');
+    const persona = (key: string) => gmp.seed.personas.find((p) => p.key === key) ?? (() => { throw new Error(key); })();
+    const own = author.cookies.get('ebmr_gmp_sid') ?? '';
+    const other = approver.cookies.get('ebmr_gmp_sid') ?? '';
+    const planted = 'A'.repeat(43);
+    // Control: the person's own cookie alone is their session.
+    const alone = await gmp.app.inject({ method: 'GET', url: '/api/session', headers: same({ cookie: `ebmr_gmp_sid=${own}` }) });
+    expect(alone.statusCode).toBe(200);
+    expect((JSON.parse(alone.body) as { person: { loginName: string } }).person.loginName).toBe(persona('author').loginName);
+    for (const cookie of [`ebmr_gmp_sid=${other}; ebmr_gmp_sid=${own}`, `ebmr_gmp_sid=${own}; ebmr_gmp_sid=${other}`, `ebmr_gmp_sid=${planted}; ebmr_gmp_sid=${own}`, ` ebmr_gmp_sid=${own};ebmr_gmp_sid=${own}`]) {
+      const res = await gmp.app.inject({ method: 'GET', url: '/api/session', headers: same({ cookie }) });
+      expect(res.statusCode, cookie).toBe(401);
+      expect(codeOf(res.body), cookie).toBe('COOKIE_DUPLICATED');
+      expect(res.body).not.toContain(persona('approver').legalName);
+      expect(res.body).not.toContain(persona('author').legalName);
+      expect(res.headers['x-ebmr-installation']).toBe('GMP');
+    }
+    // A mutating request runs nothing: the logout under a doubled cookie leaves the session live.
+    const logout = await gmp.app.inject({
+      method: 'POST',
+      url: '/api/session/logout',
+      payload: {},
+      headers: same({ 'content-type': 'application/json', 'x-csrf-token': author.csrf ?? '', cookie: `ebmr_gmp_sid=${own}; ebmr_gmp_sid=${own}; ebmr_gmp_csrf=${author.cookies.get('ebmr_gmp_csrf') ?? ''}` }),
+    });
+    expect(logout.statusCode).toBe(401);
+    expect(codeOf(logout.body)).toBe('COOKIE_DUPLICATED');
+    expect((await author.call(routes.session.get)).ok).toBe(true);
+  });
+
+  it('[DI-13] a doubled CSRF cookie is refused too, and the sandbox refuses its own doubled cookie', async () => {
+    const author = await gmp.asPersona('author');
+    const res = await gmp.app.inject({
+      method: 'POST',
+      url: '/api/session/keep-alive',
+      payload: {},
+      headers: same({ 'content-type': 'application/json', 'x-csrf-token': author.csrf ?? '', cookie: `ebmr_gmp_sid=${author.cookies.get('ebmr_gmp_sid') ?? ''}; ebmr_gmp_csrf=forged; ebmr_gmp_csrf=${author.cookies.get('ebmr_gmp_csrf') ?? ''}` }),
+    });
+    expect(res.statusCode).toBe(401);
+    expect(codeOf(res.body)).toBe('COOKIE_DUPLICATED');
+    const issuer = await sbx.asPersona('issuer');
+    const token = issuer.cookies.get('ebmr_sbx_sid') ?? '';
+    const s = await sbx.app.inject({ method: 'GET', url: '/api/session', headers: { cookie: `ebmr_sbx_sid=${'B'.repeat(43)}; ebmr_sbx_sid=${token}` } });
+    expect(s.statusCode).toBe(401);
+    expect(codeOf(s.body)).toBe('COOKIE_DUPLICATED');
+    // The other installation's cookie name, once each, is no duplicate of this one's.
+    const both = await sbx.app.inject({ method: 'GET', url: '/api/session', headers: { cookie: `ebmr_gmp_sid=${'C'.repeat(43)}; ebmr_sbx_sid=${token}` } });
+    expect(both.statusCode).toBe(200);
+  });
+
+  it('[DI-13][DI-38] the answer removes the copies other pages set at every path of the request, never the server\'s own cookie at /', async () => {
+    const res = await gmp.app.inject({ method: 'GET', url: '/api/session?x=1', headers: { cookie: `ebmr_gmp_sid=${'A'.repeat(43)}; ebmr_gmp_sid=${'D'.repeat(43)}` } });
+    expect(res.statusCode).toBe(401);
+    const cleared = setCookies(res.headers);
+    expect(cleared.sort()).toEqual(
+      [
+        'ebmr_gmp_sid=; Path=/api; Max-Age=0',
+        'ebmr_gmp_sid=; Path=/api/; Max-Age=0',
+        'ebmr_gmp_sid=; Path=/api/session; Max-Age=0',
+        '=ebmr_gmp_sid=; Path=/api; Max-Age=0',
+        '=ebmr_gmp_sid=; Path=/api/; Max-Age=0',
+        '=ebmr_gmp_sid=; Path=/api/session; Max-Age=0',
+      ].sort(),
+    );
+    expect(duplicateCookieExpiries('/api/esig/content?x=/y', ['__Host-ebmr-gmp'], true)).toEqual([
+      '__Host-ebmr-gmp=; Path=/api; Max-Age=0; Secure',
+      '=__Host-ebmr-gmp=; Path=/api; Max-Age=0; Secure',
+      '__Host-ebmr-gmp=; Path=/api/; Max-Age=0; Secure',
+      '=__Host-ebmr-gmp=; Path=/api/; Max-Age=0; Secure',
+      '__Host-ebmr-gmp=; Path=/api/esig; Max-Age=0; Secure',
+      '=__Host-ebmr-gmp=; Path=/api/esig; Max-Age=0; Secure',
+      '__Host-ebmr-gmp=; Path=/api/esig/; Max-Age=0; Secure',
+      '=__Host-ebmr-gmp=; Path=/api/esig/; Max-Age=0; Secure',
+      '__Host-ebmr-gmp=; Path=/api/esig/content; Max-Age=0; Secure',
+      '=__Host-ebmr-gmp=; Path=/api/esig/content; Max-Age=0; Secure',
+      '__Host-ebmr-gmp=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict; Partitioned',
+    ]);
+    // Non-API pages carry no session: a doubled cookie there is not refused (the SPA's own page loads).
+    const page = await gmp.app.inject({ method: 'GET', url: '/', headers: { cookie: `ebmr_gmp_sid=${'A'.repeat(43)}; ebmr_gmp_sid=${'D'.repeat(43)}` } });
+    expect(page.statusCode).not.toBe(401);
   });
 });
 

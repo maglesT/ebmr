@@ -38,7 +38,12 @@ separate cookies by port.
    kernel registry. The session cookie holds a random token whose hash is bound once to the kernel session
    (`tab.bind_session`), never the kernel session id; cookie and CSRF-cookie names differ per installation;
    HttpOnly, SameSite=Strict, Secure and `__Host-` on https. Mutations need the exact Origin, Sec-Fetch-Site
-   same-origin and a CSRF token bound to the session token.
+   same-origin and a CSRF token bound to the session token. Cookies ignore ports, so a page on another port of
+   the host can add a copy of either cookie (a longer path on http, a partitioned copy on https) that the
+   browser sends first: an API request that carries this installation's session or CSRF cookie more than once
+   is served as nobody (401 COOKIE_DUPLICATED, never one of the values), the answer removes the copies at every
+   path of the request (never the server's own at `/`), and the SPA sends that request once more (review F41).
+   Every answer carries helmet's headers, the gate's own refusals and Fastify's framework errors included (F43).
 5. **Attribution and signing seams.** Routes marked FRESH_ON_SHARED carry a badge tap on shared terminals,
    consumed by the command (INV-40; decision D8). E-signatures go through a `SignableActionRegistry`
    (engine commands, MBR transitions) whose handlers preview, prepare, dry-run and apply, so the signed content

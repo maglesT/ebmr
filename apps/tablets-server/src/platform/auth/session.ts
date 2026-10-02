@@ -50,8 +50,29 @@ export function clearSessionCookie(reply: FastifyReply, config: ServerConfig): v
   void reply.clearCookie(config.cookies.session, sessionCookieOptions(config));
 }
 
-/** The session token hash of a request, from this installation's cookie only. */
+/**
+ * How many cookies of this name the request carries, counted on the raw Cookie header(s) as the browser sent them (the
+ * cookie parser keeps only the first). A name before the first `=` of each pair, as the parser reads it.
+ */
+export function cookieCount(headers: FastifyRequest['headers'], name: string): number {
+  const raw: unknown = headers.cookie;
+  const all: string[] = Array.isArray(raw) ? raw.map(String) : typeof raw === 'string' ? [raw] : [];
+  let count = 0;
+  for (const header of all) {
+    for (const pair of header.split(';')) {
+      const eq = pair.indexOf('=');
+      if (eq >= 0 && pair.slice(0, eq).trim() === name) count += 1;
+    }
+  }
+  return count;
+}
+
+/**
+ * The session token hash of a request, from this installation's cookie only. A request that carries the cookie more
+ * than once (a copy another page of the host set, review F41) has no session: never the first value, nor any other.
+ */
 export function requestTokenHash(request: FastifyRequest, config: ServerConfig): string | null {
+  if (cookieCount(request.headers, config.cookies.session) !== 1) return null;
   const token = request.cookies[config.cookies.session];
   return token && /^[A-Za-z0-9_-]{20,128}$/.test(token) ? tokenHash(token) : null;
 }

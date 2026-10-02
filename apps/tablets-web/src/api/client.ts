@@ -16,17 +16,38 @@ export interface ApiState {
 
 export const apiState: ApiState = { installation: undefined, csrfToken: undefined, mismatch: null, onMismatch: new Set() };
 
-/** window.fetch as the contract client's FetchLike. */
+/** The refusal of a request that carried this installation's cookie twice (review F41). */
+const isCookieDuplicated = (status: number, text: string): boolean => {
+  if (status !== 401) return false;
+  try {
+    return (JSON.parse(text) as { refusal?: { code?: unknown } }).refusal?.code === 'COOKIE_DUPLICATED';
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * window.fetch as the contract client's FetchLike. A request refused as COOKIE_DUPLICATED (another page of this
+ * computer set a copy of this installation's cookie; the server ran nothing and removed the copy) is sent once more.
+ */
 export const browserFetch: FetchLike = async (url, init) => {
-  const res = await fetch(url, {
-    method: init.method,
-    headers: init.headers,
-    ...(init.body !== undefined ? { body: init.body } : {}),
-    ...(init.signal ? { signal: init.signal } : {}),
-    credentials: 'same-origin',
-    cache: 'no-store',
-  });
-  return { status: res.status, headers: { get: (n: string) => res.headers.get(n) }, text: () => res.text() };
+  const send = () =>
+    fetch(url, {
+      method: init.method,
+      headers: init.headers,
+      ...(init.body !== undefined ? { body: init.body } : {}),
+      ...(init.signal ? { signal: init.signal } : {}),
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+  let res = await send();
+  let text = await res.text();
+  if (isCookieDuplicated(res.status, text)) {
+    res = await send();
+    text = await res.text();
+  }
+  const answer = res;
+  return { status: answer.status, headers: { get: (n: string) => answer.headers.get(n) }, text: () => Promise.resolve(text) };
 };
 
 let fetchImpl: FetchLike = browserFetch;
