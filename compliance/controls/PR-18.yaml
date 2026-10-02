@@ -34,6 +34,8 @@ implemented_by:
 tests:
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-18][IN-23] a quarantined lot, an expired lot, a lot past retest and the wrong material are hard-blocked with no override"
   - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][PR-18] each identifier an entry carries is a test identifier, and its lot a registered test lot stated as the register holds it"
+  - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][INV-18][PR-18] an identifier the stored entry holds and its command did not send is checked too (round 2): a sample's source container that is no test lot is refused (EBMR-EXE-078)"
+  - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][PR-18] what a stored entry holds is read as an entry of its kind: an output container the system names after the test batch passes, any other container it did not get from its command does not"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

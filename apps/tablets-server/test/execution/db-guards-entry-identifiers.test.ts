@@ -8,6 +8,11 @@
  * checked only by the server's lookup. Now the server refuses such an entry before anything is written (EBMR-SBX-022),
  * and the database refuses the row whatever the application sends (EBMR-EXE-078): a batch number or container that is
  * not a test identifier, and a lot that is not a registered test lot or is stated with other facts than the register.
+ *
+ * Round 2 (recipe-core 0313, tablets 0380): 0370 checked the command's entry only, and the stored state's entry was
+ * bound to it only for the weighing facts. A row whose command named a test batch stored the real batch and product in
+ * the state. Now every member a block takes over from the command holds the command's value (EBMR-EXE-126), and what a
+ * stored entry holds is itself read as an entry of its kind (EBMR-EXE-078).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -16,7 +21,7 @@ import { engine, execution } from '@ebmr/recipe-core';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { actorOf, appendAs, messageOf } from './db-guards-support.ts';
-import { dcMini, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from './support.ts';
+import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -41,6 +46,11 @@ async function startedRun(): Promise<RunDriver> {
 
 async function rowsHolding(runId: string, text: string): Promise<number> {
   const { rows } = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from recipe.execution_command where batch_id = $1 and command::text like $2', [runId, `%${text}%`]);
+  return Number(rows[0]?.n ?? '0');
+}
+
+async function stateHolding(runId: string, text: string): Promise<number> {
+  const { rows } = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from recipe.execution_state where batch_id = $1 and state::text like $2', [runId, `%${text}%`]);
   return Number(rows[0]?.n ?? '0');
 }
 
@@ -113,5 +123,89 @@ describe('F12: a test run records only test identifiers and registered test lots
     expect(await entryProblem({ ...weighing, lot: { ...lot, material: 'MAT-OTHER' } })).toMatch(/^lot TEST-L26-0101 states other facts than the lot register holds \(/);
     expect(await entryProblem({ ...weighing, lot: { ...lot, identityTested: !lot.identityTested } })).toMatch(/^lot TEST-L26-0101 states other facts than the lot register holds \(/);
     expect(await entryProblem({ ...weighing, lot: { ...lot, expiresAtUs: '1' } })).toMatch(/^lot TEST-L26-0101 states other facts than the lot register holds \(/);
+  }, 300_000);
+
+  it('[DI-05][INV-18][DI-30] an entry whose command names a test batch but whose stored state holds the real batch and product is refused (round 2): the record holds what was entered', async () => {
+    const d = await startedRun();
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    // The round-2 verification's row: the command's entry passes 0370, the state's entry holds the real identifier.
+    const outcome = await messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = {
+          type: 'RECORD_ENTRY', commandId: randomUUID(), actor: engineActor(who.personId, roles), step: 'p-disp-clear', context: [],
+          entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-0007' },
+        };
+        const res = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });
+        if (!res.accepted) throw new Error(`SETUP: the engine refused the entry: ${JSON.stringify(res.refusal)}`);
+        const entry = Object.values(res.state.entries).find((e) => !(e.id in tx.state.entries));
+        if (!entry) throw new Error('SETUP: no new entry');
+        entry.data = { ...entry.data, product: 'Paracetamol 500 mg tablets', batchNumber: 'B24-0001' };
+        return appendAs(tx, command, res, roles);
+      }),
+    );
+    expect(outcome).toMatch(/^This accepted RECORD_ENTRY row stores another batchNumber in entry EN-\d+ \(PREVIOUS_BATCH\) than its command sent: an entry records what was entered \(DI-30, DI-05\)\. \[EBMR-EXE-126\]$/);
+    expect(await stateHolding(d.runId, 'B24-0001')).toBe(0);
+    expect(await rowsHolding(d.runId, 'TEST-B26-0007')).toBe(0);
+  }, 300_000);
+
+  it('[DI-05][INV-18][PR-18] an identifier the stored entry holds and its command did not send is checked too (round 2): a sample\'s source container that is no test lot is refused (EBMR-EXE-078)', async () => {
+    // dc-mini with a sampling step (G-12, no plan) first in the dispensing preparation.
+    const content = dcMiniVariant((prep) => {
+      const sop = prep.find((x) => x['id'] === 'p-disp-sop');
+      if (!sop) throw new Error('SETUP: no SOP step');
+      return [{ ...sop, id: 'p-early-sample', name: 'Take an early sample', block: { type: 'G-12', version: '1' }, config: {} }, ...prep];
+    });
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, content));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-sample@' });
+    const run = await runContext(sbx.db.admin, runId);
+    const who = personaIn(sbx, 'operator1');
+    const sample = async (container: string | undefined) =>
+      messageOf(
+        withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+          const tx = await execution.ExecutionTx.open(c, run.def, runId);
+          const roles = await engineRoles(c);
+          const command: engine.Command = {
+            type: 'RECORD_ENTRY', commandId: randomUUID(), actor: engineActor(who.personId, roles), step: 'p-early-sample', context: [],
+            entry: { kind: 'SAMPLE', point: 'TOP', purpose: 'ASSAY', units: 1 },
+          };
+          const res = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });
+          if (!res.accepted) throw new Error(`SETUP: the engine refused the sample: ${JSON.stringify(res.refusal)}`);
+          const entry = Object.values(res.state.entries).find((e) => !(e.id in tx.state.entries));
+          if (!entry) throw new Error('SETUP: no new entry');
+          if (container !== undefined) entry.data = { ...entry.data, container };
+          return appendAs(tx, command, res, roles);
+        }),
+      );
+    expect(await sample('DRUM-3')).toMatch(/^Entry EN-\d+ \(SAMPLE\) that this RECORD_ENTRY row stores is refused: container "DRUM-3" is not a test lot number: .*\(DI-05, PR-18\)\. \[EBMR-EXE-078\]$/);
+    expect(await stateHolding(runId, 'DRUM-3')).toBe(0);
+    // The honest sample is recorded.
+    expect(await sample(undefined)).toBe('ok');
+  }, 300_000);
+
+  it('[DI-05][PR-18] what a stored entry holds is read as an entry of its kind: an output container the system names after the test batch passes, any other container it did not get from its command does not', async () => {
+    const problem = async (entry: unknown, command: unknown, batch: string | null): Promise<string | null> => {
+      const { rows } = await sbx.db.admin.query<{ p: string | null }>('select tab.state_entry_identifier_problem($1::jsonb, $2::jsonb, $3) as p', [JSON.stringify(entry), JSON.stringify(command), batch]);
+      return rows[0]?.p ?? null;
+    };
+    const out = (container: string) => ({ id: 'EN-1', kind: 'OUTPUT_CONTAINER', data: { intermediate: 'INT-BLEND', container, gross: '2', tare: '1', unit: 'kg' } });
+    const unnamed = { type: 'RECORD_ENTRY', entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'INT-BLEND', gross: '2', tare: '1', unit: 'kg' } };
+    // The id the block builds from the batch number (with a sub-lot context it is not a lot-number pattern, and passes).
+    expect(await problem(out('TEST-B26-0001/INT-BLEND/R-SUBLOT=1/1'), unnamed, 'TEST-B26-0001')).toBeNull();
+    expect(await problem(out('OUT-7'), unnamed, 'TEST-B26-0001')).toBe('container OUT-7 is neither one the command named nor the id the system builds from the batch number TEST-B26-0001');
+    expect(await problem(out('TEST-B26-0002/INT-BLEND/0/1'), unnamed, 'TEST-B26-0001')).toMatch(/^container TEST-B26-0002\/INT-BLEND\/0\/1 is neither one/);
+    expect(await problem(out('TEST-B26-0001/INT-BLEND/0/1'), unnamed, null)).toMatch(/is neither one the command named nor the id the system builds from the batch number \(none\)$/);
+    // A container the command named is the command's (0370 checked it), read as an entry.
+    const named = { type: 'RECORD_ENTRY', entry: { ...unnamed.entry, container: 'OUT-7' } };
+    expect(await problem(out('OUT-7'), named, 'TEST-B26-0001')).toMatch(/^container "OUT-7" is not a test lot number/);
+    expect(await problem(out('TEST-B26-0001/C2'), named, 'TEST-B26-0001')).toBeNull();
+    // Other kinds: every identifier read from the data.
+    expect(await problem({ id: 'EN-2', kind: 'PREVIOUS_BATCH', data: { product: 'P', batchNumber: 'B24-0001' } }, { type: 'RECORD_ENTRY', entry: { kind: 'PREVIOUS_BATCH' } }, 'TEST-B26-0001')).toMatch(/^batchNumber "B24-0001" is not a test batch number/);
+    expect(await problem({ id: 'EN-3', kind: 'START_DATA', data: { investigationRef: 'INV-7' } }, { type: 'START_STEP' }, 'TEST-B26-0001')).toBeNull();
   }, 300_000);
 });
