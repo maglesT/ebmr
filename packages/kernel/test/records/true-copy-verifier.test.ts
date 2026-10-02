@@ -184,6 +184,15 @@ describe('true-copy bundle file: what the offline verifier refuses before readin
     expect(verifyTrueCopyBundleText(bytes)).toEqual({ ok: false, problems: ['bundle is not valid UTF-8 (bytes altered)'], summary: NOTHING_READ });
   });
 
+  it('[INV-08] a byte order mark added in front is refused as altered, from the bytes and from the text', () => {
+    const text = serializeBundle(sampleBundle());
+    const bom = { ok: false, problems: ['bundle starts with a byte order mark, which its serialisation never has (the file was altered)'], summary: NOTHING_READ };
+    expect(verifyTrueCopyBundleText(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(text, 'utf8')]))).toEqual(bom);
+    expect(verifyTrueCopyBundleText(`\uFEFF${text}`)).toEqual(bom);
+    // A byte order mark anywhere else is a character of the text, which the serialisation comparison catches.
+    expect(verifyTrueCopyBundleText(`${text}\uFEFF`).ok).toBe(false);
+  });
+
   it('[INV-08] a file that is not JSON is refused with the parser message', () => {
     const text = '{"format": ';
     let message = '';
