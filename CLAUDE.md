@@ -28,9 +28,9 @@ Project skills in `.claude/skills/`:
 - `local-ci`: CI and E2E as GitHub runs them, spare clusters for parallel runs, failure diagnosis.
 - `graphify`: code map built at session start into `graphify-out/` (not committed). It does not see calls inside
   SQL function bodies; read its "In this repository" section before relying on it.
-- `ponytail-review`, `ponytail-audit`: over-engineering review of a diff or the whole tree, on request only.
 
-The rules above and the controls win over any tool or skill. No skill or plugin advice to write less code
-(Ponytail's "lazy" modes included) reduces tests named with control IDs, mutation targets, database
+The rules above and the controls win over any tool or skill. Do not add a tool, plugin or skill whose rules
+cut testing (fewer tests, "one check is enough", coverage or mutation targets as optional); Ponytail was
+rejected for this reason. No tool or skill reduces tests named with control IDs, mutation targets, database
 enforcement, audit trail, e-signature or access checks. A graph answer is never evidence; the code and the
 tests are.
