@@ -397,7 +397,8 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const record = availability(view, 'RECORD_ENTRY');
   const [state, setState] = useState<FormState>(EMPTY_FORM);
   const clear = () => setState(EMPTY_FORM);
-  // A reading is used up even by a refused command (DEV-105): after a definite "not applied" the person captures again.
+  // A reading is used up even by a refused command (DEV-105): after a refusal the person captures again. A stale answer
+  // used none (the server checks the version first, F58), so the captures stay for the resend.
   const dropReadings = () => setState((s) => ({ ...s, readings: {} }));
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings, onDiscarded: clear });
   useSessionChange(clear);

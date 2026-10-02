@@ -83,8 +83,10 @@ export interface PendingCallOptions<R extends AnyRoute> {
    */
   onLateAnswer?: (saved: RouteResponse<R> | null, samePerson: boolean) => void | Promise<void>;
   /**
-   * A definite answer that nothing was applied (refused, stale, another person's badge). Scale readings named
-   * by the entry are used up even by a refused command, so forms clear them: a retry needs a fresh capture.
+   * A definite answer that nothing was applied and the readings are gone (refused, another person's badge). Scale
+   * readings named by the entry are used up even by a refused command, so forms clear them: a retry needs a fresh
+   * capture. Not called for a stale answer: the server checks the run version before it claims any reading, so the
+   * readings stay usable for the resend from the reloaded screen (Phase 2 exit review F58).
    */
   onNotApplied?: () => void;
   /** The entry was discarded because another person's badge was tapped: forms clear what was typed. */
@@ -227,8 +229,9 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
         send({ type: 'REFUSED', refusal: outcome.envelope });
         return;
       case 'STALE': {
+        // Nothing was saved and no reading was used (the server refuses a stale request before it claims any): the
+        // form keeps what was captured for the resend (F58).
         lostKey.current = null;
-        live.current.options.onNotApplied?.();
         const changes = (await live.current.options.onStale?.()) ?? [];
         send({ type: 'STALE', refusal: outcome.envelope, changes });
         return;

@@ -108,10 +108,14 @@ describe('commands', () => {
     expect(await violations(server)).toEqual([]);
   }, 180_000);
 
-  it('[DI-34] a stale screen is answered 409 (ENG-STALE) and recorded; an idempotent resend returns the stored result without a second row', async () => {
+  it('[DI-34] a stale screen is answered 409 (ENG-STALE) before anything is written; an idempotent resend returns the stored result without a second row', async () => {
     const d = await driver();
     const v = await d.version('operator1');
+    const rows0 = (await rowsOf(server, d.runId)).length;
     expect(outcomeOf(await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { expectedVersion: v + 5 }))).toBe('409:ENG-STALE');
+    // Since the Phase 2 exit review (F58) the server checks the version before it resolves the intent: nothing is
+    // claimed or recorded for a stale screen.
+    expect((await rowsOf(server, d.runId)).length).toBe(rows0);
     const key = randomUUID();
     const first = valueOf(await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { idempotencyKey: key, expectedVersion: v }));
     const count = (await rowsOf(server, d.runId)).length;

@@ -24,7 +24,8 @@
  * session's room from the validated actor and the balance's room from the registry (review finding P49).
  *
  * The use row commits with the caller's transaction: a reading referenced by a committed command, accepted or
- * refused, stays used (a reading id appears in at most one command row); a retry needs a new capture.
+ * refused, stays used (a reading id appears in at most one command row); a retry needs a new capture. A request from a
+ * screen that shows an older run version is refused (ENG-STALE) before any reading is claimed, so it uses none (F58).
  *
  * scaleStatus(room): the room's scale for the step-screen header and the scale the step captures from. ONLINE only
  * when the gateway's last heartbeat, at database time, is at most 10 s old and reported the instrument connected (and

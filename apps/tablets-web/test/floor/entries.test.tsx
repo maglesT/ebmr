@@ -102,6 +102,32 @@ describe('G-07 weighing and dispensing', () => {
     expect(within(form).queryByTestId('reading-TARE')).toBeNull();
     expect(within(form).getByText('Scanned: TEST-L26-0101')).toBeTruthy();
   });
+
+  it('[DI-32][DI-34] after a stale answer (409) the readings stay: the server used none, and the resend names the same readings (F58)', async () => {
+    const slot = fakeScaleSlot({ TARE: reading('TARE', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e01', '1.250'), GROSS: reading('GROSS', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e02', '13.753') });
+    let calls = 0;
+    const ui = renderFloor(stepPath('p-disp-api@'), {
+      scaleSlot: slot,
+      fixtures: stepFixtures(g07WithBom),
+      intercept: (r) => {
+        if (r.path !== commandPath) return undefined;
+        calls += 1;
+        return calls === 1 ? { status: 409, body: envelope('STALE', 'ENG-STALE', { whatHappened: 'The test run changed since this screen was loaded. Nothing was saved, and no scale reading was used.' }) } : ok(r);
+      },
+    });
+    const form = await screen.findByTestId('form-CONTAINER_WEIGHING');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Lot' }), 'TEST-L26-0101{Enter}');
+    await userEvent.click(within(form).getByRole('radio', { name: 'Paracetamol (BOM-API)' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Capture tare on TEST-BAL-01' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Capture gross on TEST-BAL-01' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Save: Weigh one container' }));
+    await screen.findByTestId('stale-changes');
+    expect(within(form).getByTestId('reading-TARE').textContent).toContain('1.250 kg on TEST-BAL-01');
+    expect(within(form).getByTestId('reading-GROSS').textContent).toContain('13.753 kg on TEST-BAL-01');
+    await userEvent.click(within(form).getByRole('button', { name: 'Save: Weigh one container' }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(2));
+    expect(entryOf(ui.commands()[1])).toMatchObject({ tareReadingId: 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e01', grossReadingId: 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e02' });
+  });
 });
 
 describe('G-22 output containers with the scale offline', () => {

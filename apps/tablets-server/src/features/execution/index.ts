@@ -20,7 +20,7 @@ import type { ResolvedSession } from '../../platform/auth/session.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { HttpRefusal } from '../../platform/http/refusal.ts';
+import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent } from './intents.ts';
@@ -31,6 +31,23 @@ import { loadPackage, loadRowFacts, notFound, preloadRuns, runCache, runContext,
 import { engineCommandHandler } from './signable.ts';
 import { startSweeper } from './sweeper.ts';
 import { runSummary, runView, stepScreen, timeline, workQueueItems, type ViewContext, type ViewerInfo } from './views.ts';
+
+
+/** ENG-STALE before anything is resolved or written (F58): nothing was saved, and no scale reading was used. */
+function staleCommand(version: number, expected: number): HttpRefusal {
+  return refusal(
+    409,
+    {
+      code: 'ENG-STALE',
+      kind: 'STALE',
+      whatHappened: 'The test run changed since this screen was loaded. Nothing was saved, and no scale reading was used.',
+      why: `The run is at version ${version}; the screen showed version ${expected}.`,
+      controls: ['DI-34'],
+      whatYouCanDo: ['Reload the screen and save again; the readings captured are still usable while they are fresh.'],
+    },
+    true,
+  );
+}
 
 export const guidance = EXECUTION_GUIDANCE;
 export { seed } from './seed.ts';
@@ -199,6 +216,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       const run = await runContext(pool, params.runId);
       const out = await withIdempotentActorCommand(pool, a, idempotencyKey ?? '', requestHash, async (client) => {
         const tx = await execution.ExecutionTx.open(client, run.def, params.runId);
+        // The engine's first check (ENG-STALE), made before the intent is resolved: a request from a screen that
+        // shows an older version claims no scale reading and writes nothing, so its readings stay usable for the
+        // resend from the reloaded screen (Phase 2 exit review F58; DI-32, DI-34). The run's lock is held from here
+        // on, so the version cannot move before the engine runs.
+        if (body.expectedVersion !== undefined && body.expectedVersion !== tx.state.version) throw staleCommand(tx.state.version, body.expectedVersion);
         const roles = await engineRoles(client);
         const resolved = await resolveClientIntent(
           { client, app, def: run.def, state: tx.state, room: s.roomCode, actor: engineActor(a.personId, roles), commandId: randomUUID(), expectedVersion: body.expectedVersion },
