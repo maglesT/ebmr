@@ -1,7 +1,7 @@
 /**
  * The database's check that an act records the start or end it makes, and that the token's arrival at a step records
- * the starts of the constructs it enters (recipe-core sql/0312: recipe.own_node_event_problem; Phase 2 exit review F67,
- * round 2; INV-20, PR-30, DI-27, DI-34).
+ * the starts of the constructs it enters and the ends of those it has left (recipe-core sql/0312 and 0314:
+ * recipe.own_node_event_problem; Phase 2 exit review F67, round 2; INV-20, PR-30, DI-27, DI-34).
  *
  * 0308 measures the minimum durations from the node events the row's state holds; a writer could leave the START or the
  * END out and the minimum was never measured. Were the check stricter than the engine, the database would refuse an
@@ -194,7 +194,7 @@ describe('F67 round 2: an act records the start or end it makes, and the token\'
     expect(await problem(mbr, { ...without(start, 'p-disp-clear|START|'), accepted: false })).toBeNull();
   }, 300_000);
 
-  it('[INV-20][PR-30][DI-27][DI-34] a row that brings a step in, enabled, without the starts the token\'s arrival records is refused: a hold point without its START, a step without the START of its stage, operation, sub-lot section, loop or parallel section', async () => {
+  it('[INV-20][PR-30][DI-27][DI-34] a row that brings a step in, enabled, without the starts and ends the token\'s arrival records is refused: a hold point without its START, a step without the START of its stage, sub-lot section or loop, or without the END of a replicate section or operation it comes after', async () => {
     const { run, rows } = goldenRun('tablet-granulation-compression');
     const mbr = run.def.mbr;
     const steps = (s: Json): Record<string, Json> => s['steps'] as Record<string, Json>;
@@ -220,6 +220,15 @@ describe('F67 round 2: an act records the start or end it makes, and the token\'
     expect(await problem(mbr, without(dry, 'L-DRY|START|R-SUBLOT=1'))).toMatch(/lies in loop L-DRY, but records no START event of that loop \(L-DRY\|START\|R-SUBLOT=1\)$/);
     // A later iteration finds the loop's START recorded; every arrival row of the run passes as stored.
     for (const r of rows) expect(await problem(mbr, r), r.label).toBeNull();
+    // The step after the sub-lots: the replicate section's END (recorded when the token left it), and that of an
+    // operation the token went through inside a stage before it (0314).
+    const after = arrival('p-blend-clear');
+    expect(Object.keys(after.after['nodeEvents'] as Json)).toContain('R-SUBLOT|END|');
+    expect(await problem(mbr, without(after, 'R-SUBLOT|END|'))).toBe('brings in step p-blend-clear@, which comes after replicate R-SUBLOT, but records no END event of that replicate (R-SUBLOT|END|)');
+    const disp = Object.keys(after.after['nodeEvents'] as Json).filter((e) => /^O-DISP[^|]*\|END\|$/.test(e));
+    expect(disp.length, 'SETUP: an operation of the dispensing stage ended').toBeGreaterThan(0);
+    const op = disp[0] as string;
+    expect(await problem(mbr, without(after, op))).toBe(`brings in step p-blend-clear@, which comes after operation ${op.split('|')[0] ?? ''}, but records no END event of that operation (${op})`);
     // A hold point brought in without its START.
     const held = Run.issue(define(mbrWith(seq('o', phase('a'), { kind: 'holdPoint', id: 'H', name: 'Cores approved', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] }, phase('b')))));
     const hs = held.state;

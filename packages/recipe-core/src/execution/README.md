@@ -247,7 +247,9 @@ that another command holds is skipped.
   stage frame; a COMPLETE_LOOP_ITERATION whose decision ends the loop (EXIT or EXHAUSTED) the END of the loop, in the
   frames outside its iterations; and every step instance the row brings in ENABLED comes with the START of a hold
   point and of every stage, operation, loop, parallel, alternative and replicate section around it, in the frames of
-  the sections around that construct. When the token arrives is taken as recorded (left to the replay);
+  the sections around that construct, and (sql 0314) with the END of every such construct before it in a sequence it
+  lies in, and of those inside it the token went through (not inside a loop, replicate section or alternative of it).
+  When the token arrives is taken as recorded (left to the replay);
 - every row keeps the minimum durations and the blocks of open exceptions (sql 0308, trigger `ze_execution_step_acts`):
   - a node event the row adds comes no earlier than the minimum of every time constraint of the MBR's own list ending
     in it, measured from the constraint's start in the state before the row within the same constraint instance
@@ -432,7 +434,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
-| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records (133; sql 0312) |
+| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records (133; sql 0312, 0314) |
 
 ## TypeScript
 
@@ -598,12 +600,12 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   not take it in (the untaken branch started, an entry on a finished step, a verification of a step in progress) and
   a status change the engine never makes, or made by another row than the act that makes it (a correction that
   starts or finishes steps, an invalidation that reopens another step), are refused, each with its reason.
-- `test/execution/own-node-events-sql.test.ts` (Phase 2 exit review F67, round 2; sql 0312): every row of the engine's
-  own runs, the issue included (both golden fixtures, loops that exit or are exhausted, a step reopened for a re-test
-  and signed performed again, a hold point released) passes `own_node_event_problem`; the same rows with a START or END
-  their act makes taken out (a phase started or ended, a hold point released, a stage signed off, a loop ended), or a
-  START the token's arrival records (a hold point, a stage, a sub-lot section, a loop), are refused, each with its
-  reason.
+- `test/execution/own-node-events-sql.test.ts` (Phase 2 exit review F67, round 2; sql 0312, 0314): every row of the
+  engine's own runs, the issue included (both golden fixtures, loops that exit or are exhausted, a step reopened for a
+  re-test and signed performed again, a hold point released) passes `own_node_event_problem`; the same rows with a
+  START or END their act makes taken out (a phase started or ended, a hold point released, a stage signed off, a loop
+  ended), or a START or END the token's arrival records (a hold point, a stage, a sub-lot section, a loop; the END of
+  a replicate section or operation the step comes after), are refused, each with its reason.
 - `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, round 2; sql 0313): every entry of the engine's
   own runs (both golden fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an
   acknowledgement of the MBR's own SOP version) passes `entry_data_problem`; an entry that holds another value than
