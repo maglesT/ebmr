@@ -78,6 +78,28 @@ describe('canonical JSON: containers', () => {
     expect(canonicalJson({ a: '1', b: undefined })).toBe(canonicalJson({ a: '1' }));
   });
 
+  it('[DI-37] only plain data has a canonical form: a Date, Map, Set, typed array, boxed value or class instance is refused, not written as {}', () => {
+    expect(refusal(() => canonicalJson(new Date(0))).message).toBe('EBMR-ESIG-004 a Date has no canonical JSON form');
+    expect(refusal(() => canonicalJson({ at: new Map([['a', '1']]) })).message).toBe('EBMR-ESIG-004 a Map has no canonical JSON form');
+    expect(refusal(() => canonicalJson([new Set(['a'])])).message).toBe('EBMR-ESIG-004 a Set has no canonical JSON form');
+    expect(refusal(() => canonicalJson(new Uint8Array([1]))).message).toBe('EBMR-ESIG-004 a Uint8Array has no canonical JSON form');
+    expect(refusal(() => canonicalJson(Object('x'))).message).toBe('EBMR-ESIG-004 a String has no canonical JSON form');
+    class Quantity {
+      constructor(readonly value: string) {}
+    }
+    expect(refusal(() => canonicalJson(new Quantity('1.0'))).message).toBe('EBMR-ESIG-004 a Quantity has no canonical JSON form');
+    expect(refusal(() => canonicalJson(Object.create(Object.create(null) as object))).message).toBe('EBMR-ESIG-004 a object has no canonical JSON form');
+    // An object without a prototype (a parsed query string, a dictionary) is plain data.
+    expect(canonicalJson(Object.assign(Object.create(null) as object, { b: '2', a: '1' }))).toBe('{"a":"1","b":"2"}');
+  });
+
+  it('[DI-37] an array hole is refused as an undefined element is, never written as an empty position', () => {
+    const holey = ['a'];
+    holey[2] = 'c';
+    expect(refusal(() => canonicalJson(holey)).message).toBe('EBMR-ESIG-004 a undefined has no canonical JSON form');
+    expect(refusal(() => canonicalJson({ list: new Array<string>(1) })).message).toBe('EBMR-ESIG-004 a undefined has no canonical JSON form');
+  });
+
   it('[DI-37] keys are ordered by Unicode code point (UTF-8 byte order, as COLLATE "C"), not by UTF-16 code unit', () => {
     // U+1F600 is above U+FFFD as a code point, but its first UTF-16 code unit (0xD83D) is below 0xFFFD.
     expect(compareCodePoints('😀', '�')).toBeGreaterThan(0);

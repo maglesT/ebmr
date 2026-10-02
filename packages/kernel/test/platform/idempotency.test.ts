@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withIdempotentCommand } from '../../src/commands/idempotency.ts';
-import { canonicalJson, requestHash } from '../../src/commands/json.ts';
+import { canonicalJson, requestHash, type JsonValue } from '../../src/commands/json.ts';
 import { KernelError } from '../../src/commands/errors.ts';
 import { withCommand } from '../../src/db/command.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
@@ -145,5 +145,26 @@ describe('idempotency keys', () => {
     expect(requestHash({ a: '1.5' })).not.toBe(requestHash({ a: '1.50' }));
     expect(requestHash({ a: '1' })).toMatch(/^[0-9a-f]{64}$/);
     expect(() => canonicalJson({ a: Number.NaN })).toThrow(RangeError);
+  });
+
+  it('only JSON data has a request hash: what a cast lets through is refused, never hashed as "undefined" or {}', () => {
+    const cast = (v: unknown) => v as JsonValue;
+    const holey = ['a'];
+    holey[2] = 'c';
+    for (const [value, what] of [
+      [new Date(0), 'a Date'],
+      [{ m: new Map() }, 'a Map'],
+      [[new Set()], 'a Set'],
+      [Object.create(Object.create(null) as object), 'a object'],
+      [{ f: () => 1 }, 'a function'],
+      [['x', undefined], 'a undefined'],
+      [holey, 'a undefined'],
+      [10n, 'a bigint'],
+    ] as const) {
+      expect(() => canonicalJson(cast(value)), what).toThrow(new TypeError(`canonical JSON cannot hold ${what}`));
+    }
+    // An undefined member is absent (as JSON.stringify writes it); an object without a prototype is plain data.
+    expect(canonicalJson(cast({ a: '1', b: undefined }))).toBe('{"a":"1"}');
+    expect(canonicalJson(cast(Object.assign(Object.create(null) as object, { b: '2', a: '1' })))).toBe('{"a":"1","b":"2"}');
   });
 });

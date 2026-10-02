@@ -11,16 +11,26 @@ export function byCode(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** JSON text with object keys sorted, for structural equality and hashing. */
+/**
+ * JSON text with object keys sorted, for structural equality and hashing. Only JSON data has a text: JSON.stringify
+ * would write NaN and the infinities as null, give no text for undefined, a function or a symbol, and write a Date,
+ * Map or Set as {} (or as some of its fields), so different values would compare equal.
+ */
 export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  // Array.from reads a hole as undefined, which is refused below.
+  if (Array.isArray(value)) return `[${Array.from(value, (v) => canonicalJson(v)).join(',')}]`;
   if (value !== null && typeof value === 'object') {
+    const proto: unknown = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) {
+      throw new MarketRuleError('EBMR-MKT-020', `a ${(proto as { constructor?: { name?: string } }).constructor?.name ?? 'object'} is not a JSON value`);
+    }
     const entries = Object.entries(value as Record<string, unknown>)
       .filter(([, v]) => v !== undefined)
       .sort(([a], [b]) => byCode(a, b));
     return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
   }
-  return JSON.stringify(value);
+  if (value === null || typeof value === 'string' || typeof value === 'boolean' || Number.isFinite(value)) return JSON.stringify(value);
+  throw new MarketRuleError('EBMR-MKT-020', `${typeof value === 'number' ? String(value) : `a ${typeof value}`} is not a JSON value`);
 }
 
 export function jsonEqual(a: unknown, b: unknown): boolean {

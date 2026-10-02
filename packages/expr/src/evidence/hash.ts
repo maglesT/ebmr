@@ -37,7 +37,14 @@ export function canonicalJson(value: unknown): string {
       if (!Number.isSafeInteger(value)) throw new CanonicalJsonError(`${String(value)} is not canonical: decimals and large numbers travel as strings`);
       return String(value);
     case 'object': {
-      if (Array.isArray(value)) return `[${value.map((v) => canonicalJson(v)).join(',')}]`;
+      // Array.from reads a hole as undefined, which has no canonical form: [,1] is refused, never written "[,1]".
+      if (Array.isArray(value)) return `[${Array.from(value, (v) => canonicalJson(v)).join(',')}]`;
+      // Plain data only: a Date, Map, Set, typed array or class instance would be written as {} or as some of its
+      // fields, so two different values would have one text and one hash.
+      const proto: unknown = Object.getPrototypeOf(value);
+      if (proto !== Object.prototype && proto !== null) {
+        throw new CanonicalJsonError(`a ${(proto as { constructor?: { name?: string } }).constructor?.name ?? 'object'} has no canonical JSON form`);
+      }
       const entries = Object.entries(value as Record<string, unknown>).filter(([, v]) => v !== undefined);
       entries.sort(([a], [b]) => compareCodePoints(a, b));
       return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;

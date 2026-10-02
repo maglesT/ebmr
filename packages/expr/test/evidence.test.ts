@@ -10,7 +10,7 @@
 import { createHash } from 'node:crypto';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { canonicalJson, compareCodePoints, contentHashOf, sha256Hex } from '../src/evidence/hash.ts';
+import { CanonicalJsonError, canonicalJson, compareCodePoints, contentHashOf, sha256Hex } from '../src/evidence/hash.ts';
 import { evaluate, inputsFromRecord, recalculate, verifyEvaluationRecord } from '../src/evidence/record.ts';
 import type { EvaluationRecord } from '../src/evidence/record-types.ts';
 import { compile } from '../src/lang/compile.ts';
@@ -188,5 +188,26 @@ describe('canonical JSON and SHA-256 (identical in Node and the browser)', () =>
     expect(canonicalJson(12345678901234567890n)).toBe('12345678901234567890');
     expect(() => canonicalJson({ x: 0.1 })).toThrow(/decimals and large numbers travel as strings/);
     expect(() => canonicalJson({ f: () => 1 })).toThrow();
+  });
+
+  it('refuses what is not plain data (a Date, Map, Set, typed array, class instance, array hole) instead of writing {} or an empty position', () => {
+    const refused = (value: unknown, message: string) => {
+      expect(() => canonicalJson(value)).toThrow(CanonicalJsonError);
+      expect(() => canonicalJson(value)).toThrow(message);
+    };
+    refused(new Date(0), 'a Date has no canonical JSON form');
+    refused({ m: new Map([['a', '1']]) }, 'a Map has no canonical JSON form');
+    refused([new Set(['a'])], 'a Set has no canonical JSON form');
+    refused(new Uint8Array([1]), 'a Uint8Array has no canonical JSON form');
+    class Quantity {
+      constructor(readonly value: string) {}
+    }
+    refused(new Quantity('1.0'), 'a Quantity has no canonical JSON form');
+    refused(Object.create(Object.create(null) as object), 'a object has no canonical JSON form');
+    const holey = ['a'];
+    holey[2] = 'c';
+    refused(holey, 'a undefined has no canonical JSON form');
+    // An object without a prototype (a parsed query string, a dictionary) is plain data.
+    expect(canonicalJson(Object.assign(Object.create(null) as object, { b: '2', a: '1' }))).toBe('{"a":"1","b":"2"}');
   });
 });

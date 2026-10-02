@@ -392,6 +392,30 @@ describe('[meta] strictness helpers', () => {
     expect(jsonEqual(['x', 'y'], ['y', 'x'])).toBe(false);
   });
 
+  it('[meta] canonicalJson refuses what is not JSON data (EBMR-MKT-020) instead of letting different values compare equal', () => {
+    const holey = ['a'];
+    holey[2] = 'c';
+    for (const [value, message] of [
+      [new Date(0), 'a Date is not a JSON value'],
+      [{ m: new Map() }, 'a Map is not a JSON value'],
+      [[new Set()], 'a Set is not a JSON value'],
+      [Object.create(Object.create(null) as object), 'a object is not a JSON value'],
+      [Number.NaN, 'NaN is not a JSON value'],
+      [[Number.POSITIVE_INFINITY], 'Infinity is not a JSON value'],
+      [undefined, 'a undefined is not a JSON value'],
+      [holey, 'a undefined is not a JSON value'],
+      [{ f: () => 1 }, 'a function is not a JSON value'],
+      [Symbol('s'), 'a symbol is not a JSON value'],
+      [1n, 'a bigint is not a JSON value'],
+    ] as const) {
+      expect(() => canonicalJson(value), message).toThrow(new MarketRuleError('EBMR-MKT-020', message));
+    }
+    expect(canonicalJson([true, false, 0, -1.5])).toBe('[true,false,0,-1.5]');
+    expect(canonicalJson(Object.assign(Object.create(null) as object, { b: '2', a: '1' }))).toBe('{"a":"1","b":"2"}');
+    // NaN and null were both written as null.
+    expect(() => jsonEqual(Number.NaN, null)).toThrow('EBMR-MKT-020');
+  });
+
   it('[meta] floorRank ranks HARD > GUIDANCE > EXAMPLE > DESIGN > anything else (market.floor_rank)', () => {
     expect(['HARD', 'GUIDANCE', 'EXAMPLE', 'DESIGN', 'OTHER', null, undefined].map(floorRank)).toEqual([4, 3, 2, 1, 0, 0, 0]);
   });
