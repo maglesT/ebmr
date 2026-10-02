@@ -1328,3 +1328,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (F11, 0310), binds a step's status changes to the act that makes them (F66, 0311), the start and end events to the
   acts and token arrivals that make them (F67, 0312, 0314) and a stored entry to its command and test identifiers
   (F12, 0313, tablets 0380); each with a test that fails without its migration.
+  Round 3: the step an exception was raised at is also read from the row that raised it, not only from the source the
+  writer stores (F11, 0315; a person involved in either step is excluded, default F11.1); the row that finishes what an
+  operation, parallel, alternative or replicate section holds records its END wherever it lies, the last one of the
+  batch included (F67, 0316); a container a row registers is the one its entry names and a test identifier (F12, 0317,
+  tablets 0390); each with a test that fails without its migration.
