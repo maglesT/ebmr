@@ -1354,3 +1354,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   db-guards-stage-summary, db-guards-package-header, signed-content (F02, F03), esig ceremony (F40); recipe-core
   stage-summary-sql; ui-kit signable-content; web ceremony-person-change and step-screen; Playwright journey and access
   specs re-run. Defaults taken are in docs/decisions/phase-2-open-questions.md (F01.1, F03.1).
+  Round 2 (F01): the list of sign-offs made before 0319 was owner-only and not audited, so the recipe privilege test
+  failed, and the sign-off check compared only the summary's canonical form, so a row could add a member of its own (a
+  step count, a yield verdict), list a deviation twice or forge the end time, signer or time under a valid signature;
+  recipe-core 0320 refuses any sign-off that is not exactly what the engine records (EBMR-EXE-135) and makes the list
+  an audited, insert-only record of its batch the application reads. Tests: server db-guards-stage-sign-off and
+  db-guards-stage-summary, recipe-core stage-summary-sql and lifecycle authorization.
