@@ -147,6 +147,11 @@ that another command holds is skipped.
     characters such as the zero-width space say nothing; sql 0301), DEVIATION_RAISED only with a linked deviation
     and never NO_IMPACT on an exception that needs a deviation (`check_disposition_state`);
   - leaves a state that records that disposition (outcome, trimmed justification, signature and person);
+  - is not by a person in the involvement set of the step the exception was raised at: its performers, data
+    enterers, correctors and PERFORMED signers in the stored state before the row (INV-03, PR-13, PR-49; sql 0306,
+    EBMR-EXE-087), as the engine's ENG-SEGREGATION. The `batch_exception` content provider names the same persons
+    as having entered the record, so the kernel already refuses their EXCEPTION_DISPOSITIONED signature
+    (EBMR-ESIG-044);
 - every row leaves the exceptions of the stored state as they were raised (DI-26, INV-41; sql 0270,
   `check_exception_changes`, EBMR-EXE-044): none is removed or changed, except the status and disposition of the
   exception an accepted DISPOSITION_EXCEPTION names and the deviation link an accepted ATTACH_DEVIATION adds to an
@@ -319,7 +324,9 @@ one plain-language business entry on the chain `batch:<id>`.
   engine, DEVIATION_RAISED needs a linked deviation, and an exception that needs a deviation is never proposed
   NO_IMPACT. An absent or null member is refused (sql 0270).
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
-  `batch_point_content` read the latest content version, the state and the persons involved. For a
+  `batch_point_content` read the latest content version, the state and the persons involved. For an exception
+  these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
+  raised at. For a
   witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
 - `execution_violations()` must return no rows. It checks:
   - sequence gaps and the hash chain;
@@ -327,7 +334,11 @@ one plain-language business entry on the chain `batch:<id>`.
   - events against their hash;
   - shared rows without a tap;
   - content versions against their hashes;
-  - in a GMP database: any test batch, package or SANDBOX_ONLY block.
+  - in a GMP database: any test batch, package or SANDBOX_ONLY block;
+  - the engine's rules over the stored rows (`execution_rule_violations`, sql 0306): an accepted
+    DISPOSITION_EXCEPTION by a person whose involvement in the step that raised the exception (an INVOLVEMENT
+    event of an accepted row before it) put them in its performers, data enterers, correctors or PERFORMED signers
+    (INV-03, PR-13, PR-49).
 
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 
@@ -340,7 +351,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it (044; sql 0270, 0295, 0298, 0305); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
 | 050-059 | signatures (050-052) and signable content (055-057) |
 | 060-064 | definition fit (TypeScript) |
-| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 084 (a proposal it cannot record) and 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) |
+| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 
 ## TypeScript

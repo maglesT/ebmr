@@ -351,7 +351,10 @@ export function exceptionSigningContent(def: BatchDefinition, s: BatchState, id:
     recorded: point ? { point: point.id, item: point.item, value: valueContent(point.value), evaluation: judgedAtLoopExit(def, point) ? AT_LOOP_EXIT : evaluationContent(point.evaluation) } : derived ? { derived: derived.id, item: derived.calculation, value: valueContent(derived.value), evaluation: evaluationContent(derived.evaluation) } : null,
     deviation: e.deviation ? { ref: e.deviation.ref, linkedBy: e.deviation.linkedBy, at: e.deviation.at.toString() } : null,
   };
-  const enteredBy = [e.raisedBy, ...(e.deviation ? [e.deviation.linkedBy] : [])].filter((p) => p !== 'SYSTEM');
+  // The raiser, the person who linked the deviation and everyone involved in the step the exception was raised at:
+  // none of them dispositions it (batch.ts dispositionException; recipe-core sql 0306, Phase 2 exit review F11).
+  const source = e.source.stepKey !== undefined ? s.steps[e.source.stepKey] : undefined;
+  const enteredBy = [e.raisedBy, ...(e.deviation ? [e.deviation.linkedBy] : []), ...(source ? stepEnteredBy(source) : [])].filter((p) => p !== 'SYSTEM');
   return { type: 'batch_exception', key: id, content, contentHash: hashContent(content), enteredBy: [...new Set(enteredBy)].sort(), state: e.status };
 }
 

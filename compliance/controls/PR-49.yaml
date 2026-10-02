@@ -37,6 +37,9 @@ implemented_by:
     - "A registered-limit breach raises a registration-relevant deviation requirement that only QA dispositions; the operator cannot clear it"
 tests:
   - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"
+  - "apps/tablets-server/test/execution/db-guards-disposition-involvement.test.ts > F11: a person involved in the step that raised an exception never dispositions it (INV-03, PR-13, PR-49) > [INV-03][PR-13][PR-49][DI-17] a person who entered data in the raising step, also holding QA_SHOP_FLOOR, cannot disposition the exception through the store directly: the kernel refuses the signature, nothing is recorded"
+  - "packages/recipe-core/test/execution/sql-guards.test.ts > dispositions (P25) > [INV-03][PR-13][PR-49] a disposition by a person who started, entered data in, corrected or signed performed the step that raised the exception is refused (EBMR-EXE-087, recipe-core 0306), as the engine refuses it; anyone else, and an exception raised at no step, is accepted"
+  - "apps/tablets-server/test/execution/db-guards-disposition-involvement.test.ts > F11: a person involved in the step that raised an exception never dispositions it (INV-03, PR-13, PR-49) > [INV-03][PR-13][PR-49] a disposition by a person who was involved in the raising step before it, landed in the store behind the writers' back, is reported by the invariant query"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

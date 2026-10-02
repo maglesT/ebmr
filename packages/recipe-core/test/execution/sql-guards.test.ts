@@ -217,6 +217,38 @@ describe('dispositions (P25)', () => {
     expect(await dispositionState(raised(linked), dispositioned(raised(linked), 'DEVIATION_RAISED', 'Investigated.'), { outcome: 'DEVIATION_RAISED', justification: 'Investigated.' })).toBe('ok');
   });
 
+  it('[INV-03][PR-13][PR-49] a disposition by a person who started, entered data in, corrected or signed performed the step that raised the exception is refused (EBMR-EXE-087, recipe-core 0306), as the engine refuses it; anyone else, and an exception raised at no step, is accepted', async () => {
+    const OTHER = '33333333-3333-4333-8333-333333333333';
+    const step = (lists: Partial<Record<'performers' | 'dataEnterers' | 'correctors' | 'performedSigners', string[]>>): Json => ({
+      key: 'p-1@', step: 'p-1', status: 'IN_PROGRESS', performers: [], dataEnterers: [], correctors: [], performedSigners: [], ...lists,
+    });
+    const atStep = raised({ source: { stepKey: 'p-1@', step: 'p-1', frames: [] } });
+    async function decide(x0: Json, steps: Record<string, Json>): Promise<string> {
+      try {
+        await db.admin.query('select recipe.check_disposition_state($1::jsonb, $2::jsonb, $3::jsonb, $4::uuid, array[$5::uuid])', [
+          JSON.stringify({ exceptions: { 'EX-1': x0 }, steps }),
+          JSON.stringify({ exceptions: { 'EX-1': dispositioned(x0, 'NO_IMPACT', 'Investigated.') }, steps }),
+          JSON.stringify({ type: 'DISPOSITION_EXCEPTION', exception: 'EX-1', outcome: 'NO_IMPACT', justification: 'Investigated.' }),
+          PERSON,
+          SIG,
+        ]);
+        return 'ok';
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    }
+    for (const list of ['performers', 'dataEnterers', 'correctors', 'performedSigners'] as const) {
+      expect(await decide(atStep, { 'p-1@': step({ [list]: [OTHER, PERSON] }) }), list).toMatch(/started, entered data in, corrected or signed performed step p-1@, which raised exception EX-1.*\(INV-03, PR-13, PR-49\)\. \[EBMR-EXE-087\]$/);
+    }
+    // Another person's involvement, an involvement in another step, and an exception raised at no step.
+    expect(await decide(atStep, { 'p-1@': step({ performers: [OTHER], dataEnterers: [OTHER] }), 'p-2@': step({ performers: [PERSON] }) })).toBe('ok');
+    expect(await decide(raised(), { 'p-1@': step({ performers: [PERSON] }) })).toBe('ok');
+    // A step key the state does not hold involves nobody (the engine's rule reads the stored instance).
+    expect(await decide(atStep, {})).toBe('ok');
+    // Lists that are not arrays involve nobody, and refuse nothing else.
+    expect(await decide(atStep, { 'p-1@': { key: 'p-1@', performers: PERSON, dataEnterers: { a: PERSON } } })).toBe('ok');
+  });
+
   /** The code of recipe.check_exception_changes for the exceptions before and after a row. */
   async function exceptionChanges(e0: Record<string, Json>, e1: Record<string, Json>, kind: string, cmd: Json, accepted = true): Promise<string> {
     try {

@@ -14,7 +14,7 @@ import type { BatchDefinition } from '../../src/engine/definition.ts';
 import type { IssueRequest } from '../../src/engine/types.ts';
 import { buildFlow, candidateCommands, shapes, type ModelData, GENERATED_DATA } from './model-support.ts';
 import { Recorder } from './recorder.ts';
-import { autopilot, define, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, MIN, OP1, PACKAGING_SCENARIO, QA1, Run, sig, SUP1, T0, VER1 } from './support.ts';
+import { autopilot, define, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, MIN, OP1, OP2, PACKAGING_SCENARIO, QA1, Run, sig, SUP1, T0, VER1 } from './support.ts';
 import { fixtureMbr } from '../blocks/support.ts';
 import { G07 } from '../../src/blocks/generic/material.ts';
 
@@ -141,6 +141,24 @@ describe('signing content: what it includes and excludes', () => {
       expect(c.state).toBe('SIGNED_OFF');
       expect((c.content['steps'] as unknown[]).length).toBeGreaterThan(0);
     }
+  });
+
+  it('[INV-03][PR-13][PR-49] an exception raised at a step names everyone involved in that step as having entered it, as the database provider does (recipe-core sql 0306): they are the persons the engine never lets disposition it', () => {
+    const def = fixtureDefinition('tablet-granulation-compression');
+    const run = Run.issue(def, { inputs: FIXTURE_INPUTS['tablet-granulation-compression'] });
+    run.start('p-disp-clear');
+    run.entry('p-disp-clear', { kind: 'PREVIOUS_BATCH', product: 'Other product', batchNumber: 'TEST-B-9' }, [], OP2);
+    run.ok({ type: 'RAISE_EXCEPTION', actor: SUP1, step: 'p-disp-clear', context: [], description: 'booth door ajar', severity: 'ALERT' });
+    run.ok({ type: 'RAISE_EXCEPTION', actor: SUP1, description: 'observation', severity: 'ALERT' });
+    const [atStep, elsewhere] = Object.values(run.state.exceptions);
+    // OP1 started the step, OP2 entered data in it, SUP1 raised both exceptions.
+    expect(exceptionSigningContent(def, run.state, atStep?.id ?? '').enteredBy).toEqual([OP1.id, OP2.id, SUP1.id].sort());
+    expect(exceptionSigningContent(def, run.state, elsewhere?.id ?? '').enteredBy).toEqual([SUP1.id]);
+    // The engine refuses each of them, and accepts a QA reviewer outside the step.
+    for (const who of [OP1, OP2]) {
+      expect(run.refused({ type: 'DISPOSITION_EXCEPTION', actor: { ...who, roles: QA1.roles }, exception: atStep?.id ?? '', outcome: 'NO_IMPACT', justification: 'no impact', signature: sig('EXCEPTION_DISPOSITIONED', { ...who, roles: QA1.roles }) }).code).toBe('ENG-SEGREGATION');
+    }
+    run.ok({ type: 'DISPOSITION_EXCEPTION', actor: QA1, exception: atStep?.id ?? '', outcome: 'NO_IMPACT', justification: 'no impact', signature: sig('EXCEPTION_DISPOSITIONED', QA1) });
   });
 
   it('[DI-37] the envelope is the kernel envelope: aggregate type and id, content version and content, canonical', () => {

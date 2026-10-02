@@ -80,6 +80,16 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [QA],
     controls: ['DI-26', 'DI-37', 'PR-08', 'PR-45', 'PR-49'],
   },
+  // A disposition by a person who worked in the step that raised the exception (recipe-core 0306; INV-03, PR-13, PR-49).
+  // The engine refuses it first (ENG-SEGREGATION); the database refuses the row whatever the application computed.
+  'EBMR-EXE-087': {
+    status: 403,
+    kind: 'INDEPENDENCE',
+    whatHappened: 'You started, entered data in, corrected or signed performed the step that raised this exception, so you cannot disposition it. Nothing was signed.',
+    whatYouCanDo: ['Ask a QA reviewer who did not work in that step to disposition the exception.'],
+    whoCanHelp: [QA],
+    controls: ['INV-03', 'PR-13', 'PR-49'],
+  },
   'EBMR-EXE-080': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The signature meaning does not match this action. Nothing was signed.', whatYouCanDo: ['Reload the screen and start the signing again.'], whoCanHelp: [], controls: ['DI-35', 'DI-37'] },
   'EBMR-EXE-081': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The next step has started, so this act can no longer be witnessed. Nothing was signed.', whatYouCanDo: ['Raise an exception for the missed witness; a supervisor decides how to proceed.'], whoCanHelp: [SUPERVISOR, QA], controls: ['DI-35', 'PR-14'] },
   // The source and the room of what a step records (review findings P34, P36, P58): the server refuses these first
