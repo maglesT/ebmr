@@ -26,7 +26,7 @@ vi.mock('../../src/device/keystore.ts', () => ({
 const { setTransport } = await import('../../src/api/client.ts');
 const { createFixtureFetch } = await import('../../src/api/fixture-fetch.ts');
 const { BootProvider, useBoot } = await import('../../src/app/boot.tsx');
-const { signOutMarkCookie } = await import('../../src/app/sign-out-mark.ts');
+const { SIGN_OUT_MARK_KEY } = await import('../../src/app/sign-out-mark.ts');
 const { Provider } = await import('../../src/features/access/index.tsx');
 const { useAccess } = await import('../../src/features/access/controller.tsx');
 type Boot = ReturnType<typeof useBoot>;
@@ -39,7 +39,6 @@ const VIKRAM: SessionView = {
   role: 'MBR_CHECKER',
   roles: ['MBR_CHECKER'],
 };
-const MARK_COOKIE = signOutMarkCookie('GMP') ?? '';
 const envelope = (code: string, whatHappened: string) => ({ refusal: { code, kind: 'NOT_ALLOWED', whatHappened, why: '', controls: [], whatYouCanDo: [], whoCanHelp: [] }, correlationId: 'fixture', retryable: false });
 
 /**
@@ -139,7 +138,6 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   window.localStorage.clear();
-  document.cookie = `${MARK_COOKIE}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/`;
 });
 
 describe('P5: the session poll and a sign-out marked by another tab', () => {
@@ -150,8 +148,8 @@ describe('P5: the session poll and a sign-out marked by another tab', () => {
     const page = renderPage();
     expect(await screen.findByText('Signed in as Asha Rao')).toBeTruthy();
 
-    // Another tab of this browser started a sign-out; its mark is in the cookie alone (no storage event reaches here).
-    document.cookie = `${MARK_COOKIE}=0f1e2d3c4b5a69788796a5b4c3d2e1f0; Path=/`;
+    // Another tab of this browser started a sign-out; its mark is in site storage (no storage event reaches here).
+    window.localStorage.setItem(SIGN_OUT_MARK_KEY, '0f1e2d3c4b5a69788796a5b4c3d2e1f0');
     const polls = server.state.polls;
     await checkWhenControlled(page, () => page.boot().session === null);
     expect(screen.queryByText('Signed in as Asha Rao')).toBeNull();
@@ -160,7 +158,7 @@ describe('P5: the session poll and a sign-out marked by another tab', () => {
     expect(await screen.findByText('Page: signed-out')).toBeTruthy();
     expect(server.state).toMatchObject({ alive: false, logouts: 1 });
     // The mark it joined is cleared once the server confirmed.
-    expect(document.cookie).not.toContain(`${MARK_COOKIE}=0f1e`);
+    expect(window.localStorage.getItem(SIGN_OUT_MARK_KEY)).toBeNull();
   });
 });
 

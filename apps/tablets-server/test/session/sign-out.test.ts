@@ -11,10 +11,10 @@
  * credentials again), and the next person's reload at the same PC does not come back signed in as Asha.
  *
  * A reload here is a real one: the SPA's modules are evaluated afresh (vi.resetModules), so nothing the previous page
- * kept in memory survives; only what the browser keeps does (its cookies, site storage and the page-readable cookies of
- * document.cookie). A second tab is a second, separate evaluation of the modules in the same browser. The tabs share
- * one happy-dom window, which raises no storage events between them: another tab learns of a sign-out only by reading
- * the stores itself (as it must when only the cookie keeps the mark).
+ * kept in memory survives; only what the browser keeps does (its cookies and site storage). A second tab is a second,
+ * separate evaluation of the modules in the same browser. The tabs share one happy-dom window, which raises no storage
+ * events between them: another tab learns of a sign-out by reading site storage itself, or over the origin's broadcast
+ * channel (the only way where site storage throws; review F42 took the mark out of page-readable cookies).
  */
 import { createElement, type ComponentType, type ReactNode } from 'react';
 import type { webcrypto } from 'node:crypto';
@@ -39,6 +39,7 @@ interface Boot {
   session: SessionView | null;
   problem: string | null;
   signOut(): Promise<void>;
+  restart(): void;
 }
 /** One evaluation of the SPA's modules: one page load. */
 interface Web {
@@ -363,14 +364,14 @@ describe('P5: the mark of an unconfirmed sign-out across a real reload', () => {
     expect((await asha.call(routes.session.get)).ok).toBe(false);
   });
 
-  it('[DI-38][DI-14] the mark survives a real reload in a page-readable cookie when site storage throws (e.g. site data blocked)', async () => {
+  it('[DI-38][DI-14] when site storage throws (e.g. site data blocked), a real reload fails closed and never shows the previous user; no page-readable cookie keeps a mark', async () => {
     const { shown, afterReload, asha } = await signOutOfflineThenReload(() => storage.breakSiteStorage());
     expect(shown).toBe('sign-out-unconfirmed');
     expect(afterReload, 'a real reload came back signed in as the previous user').toEqual({ phase: 'signed-out', who: null });
     expect(await kernelSession()).toMatchObject({ ended: true });
     expect((await asha.call(routes.session.get)).ok).toBe(false);
-    // The mark is gone once the sign-out is confirmed: the next page load is an ordinary signed-out start.
-    expect(dom.document.cookie).not.toMatch(/ebmr_gmp_signout=\w/);
+    // Review F42: a cookie is shared by every port of the host, so the mark is never kept in one.
+    expect(dom.document.cookie).not.toMatch(/signout/);
   });
 
   it('[DI-38][DI-14] a browser that can keep no mark at all fails closed: a page load ends any session it finds instead of showing it', async () => {
@@ -429,11 +430,15 @@ describe('P5: while the sign-out is in progress, and in other tabs', () => {
     });
     expect(tab1.current().phase).toBe('sign-out-unconfirmed');
 
-    // The server recovers. The next person opens the page in another tab: it finishes the sign-out.
+    // The server recovers. The next person opens the page in another tab: it finishes the sign-out, and tells the
+    // first tab so over the channel; the first tab starts again at once (ending nothing).
     network.logoutAnswers503 = false;
     const tab2 = await openPage();
     expect(tab2.current().phase).toBe('signed-out');
     expect(await kernelSession()).toMatchObject({ ended: true });
+    await waitFor(() => {
+      expect(tab1.current().phase).toBe('signed-out');
+    });
 
     // Vikram Shah signs in in this browser (his session cookie replaces the ended one).
     const vikram = await server.asPersona('checker', 'PC-DESIGN-01');
@@ -441,10 +446,11 @@ describe('P5: while the sign-out is in progress, and in other tabs', () => {
     for (const [k, v] of vikram.cookies) jar.set(k, v);
     tab2.close();
 
-    // The first tab's next retry: the sign-out it waited on is finished, so it ends nothing and starts again.
+    // The first tab goes on looking for marks (every second): the sign-out it waited on is finished, so it ends nothing.
     network.sent = [];
-    await act(async () => {
-      await tab1.current().signOut();
+    await new Promise((r) => setTimeout(r, 2_500));
+    act(() => {
+      tab1.current().restart();
     });
     await waitFor(() => {
       expect(tab1.current().phase).toBe('ready');
@@ -492,8 +498,8 @@ describe('P5: the other tabs of the browser join a sign-out the server did not c
   });
 
   for (const [kept, breakStores] of [
-    ['site storage and the cookie', () => undefined],
-    ['the cookie alone (site storage throws)', () => storage.breakSiteStorage()],
+    ['site storage, and told over the channel', () => undefined],
+    ['the channel alone (site storage throws)', () => storage.breakSiteStorage()],
   ] as const) {
     it(`[DI-38][DI-14] a sign-out that never reached the server leaves no tab usable as the person once its tab is closed: another tab that shows the session ends it (mark kept in ${kept})`, async () => {
       const asha = await ashaAtHerPc();

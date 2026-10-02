@@ -123,4 +123,33 @@ test.describe('security', () => {
       await other.close();
     }
   });
+
+  // Review F42: the sign-out mark was also kept in a page-readable cookie, which a page on another port of the host can
+  // write: the GMP page then joined that "sign-out" and ended the person's session (logged as their own logout).
+  test('[DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the GMP session', { tag: '@office' }, async ({ browser, e2e, persona }) => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    try {
+      const { pickTerminal } = await import('../../fixtures/index.ts');
+      const page = await context.newPage();
+      await pickTerminal(page, e2e.url('GMP'), 'PC-DESIGN-01');
+      const author = persona('GMP', 'author');
+      await signIn.office(page, author);
+      const sibling = await context.newPage();
+      await sibling.goto(`${e2e.url('SANDBOX')}/`);
+      await sibling.evaluate(() => {
+        document.cookie = 'ebmr_gmp_signout=0123456789abcdef0123456789abcdef; Path=/; Max-Age=3600; SameSite=Strict';
+      });
+      // The GMP page looks for sign-out marks every second and when it gets the focus.
+      await page.bringToFront();
+      await page.waitForTimeout(4_000);
+      await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+      const seen = await page.evaluate(async () => {
+        const r = await fetch('/api/session', { credentials: 'same-origin' });
+        return { status: r.status, person: ((await r.json()) as { person?: { legalName?: string } }).person?.legalName ?? null };
+      });
+      expect(seen).toEqual({ status: 200, person: author.legalName });
+    } finally {
+      await context.close();
+    }
+  });
 });

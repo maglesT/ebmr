@@ -25,7 +25,7 @@ vi.mock('../../src/device/keystore.ts', () => ({
 const { setTransport } = await import('../../src/api/client.ts');
 const { createFixtureFetch } = await import('../../src/api/fixture-fetch.ts');
 const { BootProvider, useBoot, SIGN_OUT_REQUEST_TIMEOUT_MS } = await import('../../src/app/boot.tsx');
-const { SIGN_OUT_MARK_KEY, signOutMarkCookie } = await import('../../src/app/sign-out-mark.ts');
+const { SIGN_OUT_CHANNEL, SIGN_OUT_MARK_KEY } = await import('../../src/app/sign-out-mark.ts');
 const { Gate } = await import('../../src/app/App.tsx');
 const { SIGN_OUT_RETRY_MS } = await import('../../src/app/sign-out.tsx');
 type Boot = ReturnType<typeof useBoot>;
@@ -89,9 +89,21 @@ beforeAll(async () => {
 afterEach(() => {
   vi.useRealTimers();
   cleanup();
+  if (localStorageDescriptor) Object.defineProperty(window, 'localStorage', localStorageDescriptor);
   window.localStorage.clear();
-  document.cookie = `${signOutMarkCookie('GMP') ?? ''}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/`;
+  document.cookie = `ebmr_gmp_signout=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/`;
 });
+
+const localStorageDescriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+/** Site storage switched off (e.g. blocked site data): every access throws. */
+function breakSiteStorage(): void {
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    get() {
+      throw new DOMException('The operation is insecure.', 'SecurityError');
+    },
+  });
+}
 
 describe('P5: the sign-out screen', () => {
   it('[DI-38][DI-14] a failed sign-out shows "Sign-out not confirmed" (never the sign-in form); the retry button reaches the sign-in form once the server confirms', async () => {
@@ -203,7 +215,6 @@ describe('P5: the sign-out screen', () => {
     server.state.who = { ...office, person: { ...office.person, personId: '5b0c1d2e-3f40-4a51-8b62-7c83d94ea5f6', legalName: 'Vikram Shah', loginName: 'vikram.shah' } };
     server.state.locked = false;
     window.localStorage.removeItem(SIGN_OUT_MARK_KEY);
-    document.cookie = `${signOutMarkCookie('GMP') ?? ''}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/`;
     // The browser tells this tab that the mark changed.
     act(() => {
       window.dispatchEvent(new StorageEvent('storage', { key: SIGN_OUT_MARK_KEY, oldValue: 'mark', newValue: null }));
@@ -274,8 +285,8 @@ describe('P5: a sign-out another tab of this browser started', () => {
     const boot = renderPage();
     expect(await screen.findByText('Signed in as Asha Rao')).toBeTruthy();
 
-    // The mark is in the cookie alone (no event); then a session arrives, e.g. the answer to a sign-in or a switch.
-    document.cookie = `${signOutMarkCookie('GMP') ?? ''}=8c7b6a5948372615f4e3d2c1b0a99887; Path=/`;
+    // The mark is in site storage (no event); then a session arrives, e.g. the answer to a sign-in or a switch.
+    window.localStorage.setItem(SIGN_OUT_MARK_KEY, '8c7b6a5948372615f4e3d2c1b0a99887');
     act(() => {
       boot().setSession({ ...office, locked: false });
     });
@@ -283,5 +294,68 @@ describe('P5: a sign-out another tab of this browser started', () => {
     expect(boot().session).toBeNull();
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
     expect(server.state).toMatchObject({ alive: false, logouts: 1 });
+  });
+});
+
+// Review F42: cookies are shared by every port of the host. The mark was also kept in a page-readable cookie, so a page
+// of another installation (or any page on the host) could write it, and this page ended the person's session, or
+// delete it, and a pending sign-out looked finished. Only this origin's own site storage and channel keep it now.
+describe('F42: what another port of the host can write is no sign-out mark', () => {
+  it('[DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the session', async () => {
+    const server = fixtureServer();
+    server.state.logoutFails = false;
+    setTransport(server.fetch);
+    renderPage();
+    expect(await screen.findByText('Signed in as Asha Rao')).toBeTruthy();
+    // What the other page runs: the GMP mark's cookie name, a well-formed token, Path=/.
+    document.cookie = 'ebmr_gmp_signout=0123456789abcdef0123456789abcdef; Path=/; Max-Age=3600; SameSite=Strict';
+    // The page looks for marks every SIGN_OUT_MARK_CHECK_MS (1 s) and when it gets the focus.
+    await new Promise((r) => setTimeout(r, 2_500));
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(screen.getByText('Signed in as Asha Rao')).toBeTruthy();
+    expect(server.state).toMatchObject({ alive: true, logouts: 0 });
+  });
+
+  it('[DI-38][DI-14] control: a sign-out another tab of this origin announces on its channel is joined at once, without site storage', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const server = fixtureServer();
+    server.state.logoutFails = false;
+    setTransport(server.fetch);
+    renderPage();
+    expect(await screen.findByText('Signed in as Asha Rao')).toBeTruthy();
+    // Site storage stops working (a start-up without it ends any session it finds, so it breaks after the start-up).
+    breakSiteStorage();
+    const otherTab = new BroadcastChannel(SIGN_OUT_CHANNEL);
+    try {
+      otherTab.postMessage({ kind: 'started', token: '8c7b6a5948372615f4e3d2c1b0a99887' });
+      expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
+      expect(server.state).toMatchObject({ alive: false, logouts: 1 });
+    } finally {
+      otherTab.close();
+    }
+  });
+
+  it('[DI-38][DI-14] where site storage throws, deleting a page-readable cookie does not make a pending sign-out look finished: the retry still ends the session', async () => {
+    const server = fixtureServer();
+    setTransport(server.fetch);
+    const boot = renderPage();
+    expect(await screen.findByText('Signed in as Asha Rao')).toBeTruthy();
+    breakSiteStorage();
+    await act(async () => {
+      await boot().signOut();
+    });
+    expect(await screen.findByText('Sign-out not confirmed')).toBeTruthy();
+    // A page on another port deletes the mark cookie, then the server works again and the screen retries.
+    document.cookie = 'ebmr_gmp_signout=; Path=/; Max-Age=0';
+    server.state.logoutFails = false;
+    server.state.locked = false;
+    await act(async () => {
+      await boot().signOut();
+    });
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
+    expect(screen.queryByText('Signed in as Asha Rao')).toBeNull();
+    expect(server.state.alive).toBe(false);
   });
 });

@@ -8,11 +8,12 @@
  * or 401 NO_SESSION). A sign-out the server did not confirm (a lost or refused answer, or none within
  * SIGN_OUT_REQUEST_TIMEOUT_MS) keeps the page on a blocking "sign-out not confirmed" screen that retries (phase
  * 'sign-out-unconfirmed'), falls back to locking the session so it needs credentials again, and is marked in this
- * browser (sign-out-mark.ts: site storage and a same-site cookie): a reload finishes the sign-out before anything
- * else and never shows the previous person's session; a browser that can keep no mark ends any session it finds at
- * start-up. A retry never ends a session opened after another tab or a reload finished the sign-out.
+ * browser (sign-out-mark.ts: site storage, and told to the other tabs over this origin's broadcast channel; never a
+ * cookie, which other ports of the host could write or delete, review F42): a reload finishes the sign-out before
+ * anything else and never shows the previous person's session; a browser whose site storage cannot keep the mark ends
+ * any session it finds at start-up. A retry never ends a session opened after another tab or a reload finished the sign-out.
  * Every other tab of this browser that shows a session or the sign-in form joins a sign-out marked there as soon as
- * it sees the mark (a storage event, becoming visible, or its next look at the stores every SIGN_OUT_MARK_CHECK_MS):
+ * it sees the mark (a storage event, a channel message, becoming visible, or its next look every SIGN_OUT_MARK_CHECK_MS):
  * it blocks at once and ends (else locks) the session itself, so closing the tab that started the sign-out leaves no
  * tab usable as the person who signed out.
  */
@@ -26,6 +27,7 @@ import {
   confirmSignedOut,
   forgetSignOut,
   joinSignOut,
+  listenForSignOuts,
   SIGN_OUT_MARK_CHECK_MS,
   SIGN_OUT_MARK_KEY,
   signOutMarkedElsewhere,
@@ -163,12 +165,12 @@ async function runBoot(): Promise<BootState> {
   document.documentElement.dataset['density'] = device.value.density.toLowerCase();
   const session = await api.call(routes.session.get);
   const known = { ...withMeta, deviceKey, device: device.value };
-  if (signOutPendingAtStartUp(installation)) {
+  if (signOutPendingAtStartUp()) {
     // A sign-out the server never confirmed (or a browser that could not have kept its mark): finish it first; the
     // session it concerned is never shown again.
     apiState.csrfToken = session.ok ? session.value.csrfToken : undefined;
     const outcome: SignOutOutcome = session.ok
-      ? await endServerSession(() => signOutStillPending(installation))
+      ? await endServerSession(() => signOutStillPending())
       : isNoSession(session.error)
         ? ENDED
         : { kind: 'UNCONFIRMED', problem: describe(session.error) };
@@ -179,7 +181,7 @@ async function runBoot(): Promise<BootState> {
       return runBoot();
     }
     if (outcome.kind === 'UNCONFIRMED') return { ...known, phase: 'sign-out-unconfirmed', problem: outcome.problem };
-    confirmSignedOut(installation);
+    confirmSignedOut();
     return { ...known, phase: 'signed-out' };
   }
   if (!session.ok) {
@@ -226,13 +228,12 @@ export function BootProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const finish = useCallback(async () => {
-    const installation = apiState.installation;
-    const outcome = await endServerSession(() => signOutStillPending(installation)).catch(
+    const outcome = await endServerSession(() => signOutStillPending()).catch(
       (e: unknown): SignOutOutcome => ({ kind: 'UNCONFIRMED', problem: e instanceof Error ? e.message : String(e) }),
     );
     apiState.csrfToken = undefined;
     if (outcome.kind === 'ENDED') {
-      confirmSignedOut(installation);
+      confirmSignedOut();
       setState((s) => ({ ...s, session: null, phase: 'signed-out', problem: null }));
     } else if (outcome.kind === 'ELSEWHERE') {
       forgetSignOut();
@@ -247,14 +248,14 @@ export function BootProvider({ children }: { children: ReactNode }) {
       serialized(async () => {
         if (signOutPendingHere()) {
           // A retry of this page's unconfirmed sign-out.
-          if (!signOutStillPending(apiState.installation)) {
+          if (!signOutStillPending()) {
             // Finished elsewhere (another tab, a reload): the session this browser holds now may be another person's.
             forgetSignOut();
             restart();
             return;
           }
         } else {
-          startSignOut(apiState.installation);
+          startSignOut();
           // Blocking at once: the page is not usable as the person signing out while the server is asked.
           setState((s) => ({ ...s, session: null, phase: 'signing-out', problem: null }));
         }
@@ -265,11 +266,11 @@ export function BootProvider({ children }: { children: ReactNode }) {
 
   const joinMarkedSignOut = useCallback((): boolean => {
     if (signingOut.current !== null || signOutPendingHere()) return true;
-    if (!signOutMarkedElsewhere(apiState.installation)) return false;
+    if (!signOutMarkedElsewhere()) return false;
     // The step's first part runs at once (before its first await): the page is blocked when this returns.
     void serialized(async () => {
       // Checked again: the mark may have gone meanwhile (another tab finished that sign-out).
-      if (!joinSignOut(apiState.installation)) return;
+      if (!joinSignOut()) return;
       machines.announceSessionChange({ reason: 'ENDED', personId: null });
       setState((s) => ({ ...s, session: null, phase: 'signing-out', problem: null }));
       await finish();
@@ -289,15 +290,20 @@ export function BootProvider({ children }: { children: ReactNode }) {
     [joinMarkedSignOut],
   );
 
+  // The other tabs of this origin tell this page of a sign-out they start or finish over the broadcast channel, while
+  // the page runs (what it hears is kept even while it shows neither a session nor the sign-in form).
+  const onSignOutNews = useRef<() => void>(() => undefined);
+  useEffect(() => listenForSignOuts(() => onSignOutNews.current()), []);
+
   // A page that shows a session or the sign-in form joins a sign-out marked by another tab of this browser: at once
-  // when site storage tells it (a storage event) or the page becomes visible again, and otherwise at its next look at
-  // the stores (a mark kept only in the cookie raises no event).
+  // when site storage or the channel tells it, or the page becomes visible again, and otherwise at its next look.
   const watching = state.phase === 'ready' || state.phase === 'signed-out';
   useEffect(() => {
     if (!watching) return;
     const look = () => {
       joinMarkedSignOut();
     };
+    onSignOutNews.current = look;
     const onStorage = (e: StorageEvent) => {
       if (e.key === null || e.key === SIGN_OUT_MARK_KEY) look();
     };
@@ -310,6 +316,7 @@ export function BootProvider({ children }: { children: ReactNode }) {
     window.addEventListener('focus', look);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
+      onSignOutNews.current = () => undefined;
       clearInterval(timer);
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('focus', look);
@@ -317,20 +324,27 @@ export function BootProvider({ children }: { children: ReactNode }) {
     };
   }, [watching, joinMarkedSignOut]);
 
-  // Another tab that finishes the sign-out clears the mark in site storage: this page then starts again at once
-  // instead of waiting for its next retry (which would find the same).
+  // Another tab that finishes the sign-out clears the mark in site storage and confirms it over the channel: this page
+  // then starts again at once instead of waiting for its next retry (which would find the same).
   const unconfirmed = state.phase === 'sign-out-unconfirmed';
   useEffect(() => {
     if (!unconfirmed) return;
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== null && e.key !== SIGN_OUT_MARK_KEY) return;
-      if (signingOut.current === null && !signOutStillPending(apiState.installation)) {
+    const check = () => {
+      if (signingOut.current === null && !signOutStillPending()) {
         forgetSignOut();
         restart();
       }
     };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== null && e.key !== SIGN_OUT_MARK_KEY) return;
+      check();
+    };
+    onSignOutNews.current = check;
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => {
+      onSignOutNews.current = () => undefined;
+      window.removeEventListener('storage', onStorage);
+    };
   }, [unconfirmed, restart]);
 
   const forgetTerminal = useCallback(async () => {
