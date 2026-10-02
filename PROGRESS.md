@@ -1266,3 +1266,34 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   for a method/type mismatch with a hard floor (still fails closed); verifyTrueCopyBundleText ignores a leading UTF-8
   BOM; Instant.parse truncates 7-9 fractional digits where PostgreSQL rounds; canonicalJson writes Date/Map/Set as {};
   generateSecret('PIN') loops for pinLength <= 1. Next: PR to main, merge, merge main into phase-2/recipe-core.
+- 2026-10-02: PHASE 1 FOLLOW-UPS, TEST SET-UP AND DEMO FINDINGS (branch phase-2/recipe-core, done by hand while the
+  workflow agents waited for their usage limit; each change with a test that fails on the code before it, Stryker on
+  every changed kernel function at 100 %). Security baseline: the postgresql.conf template check now reads the file as
+  PostgreSQL does (names in any ASCII case, "=" optional, quoted values and their escapes, Boolean and enum values as
+  the server reads them, the last setting winning); include directives (EBMR-SEC-053) and lines the server cannot read
+  (EBMR-SEC-054) are findings. Compared with postgres -C on 464 files: no file passes that the server would run
+  without TLS, TLS 1.2+ and SCRAM. The TLS template's header recommended include_if_exists, which starts the server
+  without TLS when the file is missing; it now says include, as the last line. Canonical JSON (e-signature content,
+  expression evidence and request hashes, continuity ledger, command hashes, market rules): a Date, Map, Set, typed
+  array, class instance, array hole or undefined element is refused instead of written as {} or an empty position;
+  the market writer also refuses NaN and the infinities; a ledger entry that cannot be written rejects append() and
+  leaves the file untouched. generateSecret refuses a PIN length below 2 or not whole, and a password minimum that is
+  not a number (EBMR-IAM-110), instead of looping or giving an empty password. Instant.parse rounds 7-9 fractional
+  digits as PostgreSQL does (double times a million, ties to even, carry into the next second; compared with
+  '...'::timestamptz on 13,493 fractions, no difference). True copy: a byte order mark added in front of a bundle is
+  an alteration. Market rule validation: a key whose method misfits its value type is reported (EBMR-MKT-015), never
+  thrown out of validateRuleTableDocument as EBMR-MKT-020. protected-numbers.test.ts: a test whose earlier step of
+  the restore history did not run is skipped (Stryker runs only the covering tests); a full run is unchanged. Test
+  set-up (task 19): the kernel test template is created from template0 as UTF8; the server harness passes the test
+  cluster's host and port to the configuration (the listener's own login went to 5432); checked on a cluster on 5433
+  with a SQL_ASCII template0. Owner's demo findings: the live gauge reopens a failed stream (1 s doubling to 15 s), lets
+  it go while the page is hidden (six connections per server for all tabs) and never shows a weight whose stream has
+  gone; a Save that cannot be pressed says what is still needed; a gross not above the tare is said before anything is
+  sent (a refused entry uses its readings up); a reload asks first while a form holds unsaved values; the "Saved" note
+  goes once the step has moved past the save; an address that does not exist gets a plain page offering it without a
+  stray full stop. Still open from the demo: the first signing tap refused (EBMR-IAM-140): needs the owner's
+  iam.authn_attempt rows. Also fixed: session-control.test.tsx checked the session before the session control had
+  registered itself (an effect a loaded runner can run after the text the test waits for); the checks now repeat until
+  they have their effect. `pnpm run ci` (357 files, 3,027 tests) passed apart from that test, fixed and re-run under
+  load; end-to-end 20/20. The Phase 2 exit review read the code before these commits: each of its findings is
+  re-checked against this branch before it is fixed.
