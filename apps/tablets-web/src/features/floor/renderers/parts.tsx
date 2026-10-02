@@ -227,6 +227,22 @@ export interface FormOptions {
   required?: readonly string[];
 }
 
+/**
+ * Whether decimal text `gross` is above `tare`, exactly (bigint counts; weights are never JavaScript numbers); null when
+ * either is not plain decimal text.
+ */
+export function grossAboveTare(gross: string, tare: string): boolean | null {
+  const plain = /^-?[0-9]+(\.[0-9]+)?$/;
+  if (!plain.test(gross) || !plain.test(tare)) return null;
+  const scale = Math.max(gross.split('.')[1]?.length ?? 0, tare.split('.')[1]?.length ?? 0);
+  const counts = (text: string): bigint => {
+    const [int = '0', frac = ''] = text.replace('-', '').split('.');
+    const c = BigInt(int + frac.padEnd(scale, '0'));
+    return text.startsWith('-') ? -c : c;
+  };
+  return counts(gross) > counts(tare);
+}
+
 function purposeOf(name: string): 'TARE' | 'GROSS' | 'CHECK' {
   return /tare/i.test(name) ? 'TARE' : /gross/i.test(name) ? 'GROSS' : 'CHECK';
 }
@@ -392,7 +408,27 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const { candidate, complete, pending } = buildEntry(form, state, { ...options, manual });
   const missing = (options.required ?? []).filter((m) => !(m in candidate) && !form.fields.some((f) => f.name === m));
   const parsed = complete && missing.length === 0 ? ClientEntry.safeParse(candidate) : null;
-  const problem = missing.length > 0 ? st('form.missingField', { name: missing.join(', ') }) : parsed && !parsed.success ? st('form.problem', { problem: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') }) : null;
+  // The server refuses a net (gross - tare) that is not positive, and a refused entry uses its readings up (DEV-105):
+  // a gross weighed without the material on the scale is said here, before the readings are sent.
+  const weighed = (purpose: 'TARE' | 'GROSS'): { value: string; unit: string } | null => {
+    if (manual) {
+      const text = state.texts[purpose === 'TARE' ? '__manual.tare' : '__manual.gross'] ?? '';
+      return text === '' ? null : { value: text, unit: manual.unit };
+    }
+    const field = readingFields.find((f) => purposeOf(f.name) === purpose);
+    const reading = field ? state.readings[field.name] : undefined;
+    return reading ? { value: reading.value, unit: reading.unit } : null;
+  };
+  const tareWeight = weighed('TARE');
+  const grossWeight = weighed('GROSS');
+  const netProblem =
+    tareWeight && grossWeight && tareWeight.unit === grossWeight.unit && grossAboveTare(grossWeight.value, tareWeight.value) === false
+      ? st('form.netNotPositive', { gross: `${grossWeight.value} ${grossWeight.unit}`, tare: `${tareWeight.value} ${tareWeight.unit}` })
+      : null;
+  const problem =
+    missing.length > 0
+      ? st('form.missingField', { name: missing.join(', ') })
+      : netProblem ?? (parsed && !parsed.success ? st('form.problem', { problem: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') }) : null);
 
   const set = <K extends keyof FormState>(part: K, name: string, value: FormState[K][string] | null) =>
     setState((s) => {
@@ -403,7 +439,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
     });
 
   const save = () => {
-    if (!parsed?.success) return;
+    if (!parsed?.success || netProblem !== null) return;
     cmd.send({ type: 'RECORD_ENTRY', stepKey: view.step.stepKey, entry: parsed.data }, view.run.version, view);
   };
 
@@ -489,7 +525,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
               {st('form.stillNeeded', { names: pending.join(', ') })}
             </p>
           ) : null}
-          <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!parsed?.success || locked}>
+          <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!parsed?.success || netProblem !== null || locked}>
             {st('save.form', { title: form.title })}
           </Button>
         </>

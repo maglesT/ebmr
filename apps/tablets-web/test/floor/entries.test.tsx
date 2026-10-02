@@ -11,6 +11,7 @@ import { example } from '@ebmr/api-contract/examples';
 import { blocks } from '@ebmr/recipe-core/pure';
 import type { ScaleCaptureSlotProps } from '../../src/app/ports.tsx';
 import { RENDERERS, rendererFor } from '../../src/features/floor/renderers/registry.ts';
+import { grossAboveTare } from '../../src/features/floor/renderers/parts.tsx';
 import { envelope, fakeScaleSlot, reading, renderFloor, RUN_ID, stepFixtures, stepPath, stepVariant, type Answer, type Recorded } from './support.tsx';
 
 const commandPath = `/api/test-runs/${RUN_ID}/commands`;
@@ -59,6 +60,21 @@ describe('G-07 weighing and dispensing', () => {
     // The live gauge gets the display band of the weighed item (decimal text; display only).
     expect(seen.find((p) => p.purpose === 'GROSS')?.band).toEqual({ unit: 'kg', low: '24.875', high: '25.125', target: '25.000' });
     expect(seen.find((p) => p.purpose === 'TARE')?.band).toBeUndefined();
+  });
+
+  it('a gross that is not above the tare (the material not put on the scale) is said before anything is sent; the readings stay for a new gross', async () => {
+    const slot = fakeScaleSlot({ TARE: reading('TARE', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e01', '0.200'), GROSS: reading('GROSS', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e02', '0.2') });
+    const ui = renderFloor(stepPath('p-disp-api@'), { scaleSlot: slot, fixtures: stepFixtures(g07WithBom), intercept: (r) => ok(r) });
+    const form = await screen.findByTestId('form-CONTAINER_WEIGHING');
+    const save = within(form).getByRole('button', { name: 'Save: Weigh one container' });
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Lot' }), 'TEST-L26-0101{Enter}');
+    await userEvent.click(within(form).getByRole('radio', { name: 'Paracetamol (BOM-API)' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Capture tare on TEST-BAL-01' }));
+    await userEvent.click(within(form).getByRole('button', { name: 'Capture gross on TEST-BAL-01' }));
+    expect(within(form).getByRole('alert').textContent).toBe('The gross (0.2 kg) is not above the tare (0.200 kg): put the material on the scale and capture the gross again.');
+    expect(save.hasAttribute('disabled')).toBe(true);
+    expect(ui.commands()).toHaveLength(0);
+    expect(within(form).getByTestId('reading-TARE').textContent).toContain('0.200 kg on TEST-BAL-01');
   });
 
   it('names what the step does not say (the BOM line) instead of sending an entry the contract refuses', async () => {
@@ -119,6 +135,33 @@ describe('G-22 output containers with the scale offline', () => {
     await userEvent.type(within(form).getByRole('textbox', { name: 'Tare (typed by hand)' }), '1.05');
     expect(pending()).toBeNull();
     expect(save.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('a typed gross that is not above the typed tare is said and cannot be saved', async () => {
+    renderFloor(stepPath('p-blend-out@'), { scaleSlot: fakeScaleSlot({}, []), intercept: (r) => ok(r, example('step-g22-output')) });
+    const form = await screen.findByTestId('form-OUTPUT_CONTAINER');
+    const save = within(form).getByRole('button', { name: 'Save: Weigh one output container' });
+    await userEvent.click(within(form).getByRole('radio', { name: 'Final blend' }));
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Tare (typed by hand)' }), '1.05');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Gross (typed by hand)' }), '1.050');
+    expect(within(form).getByRole('alert').textContent).toBe('The gross (1.050 kg) is not above the tare (1.05 kg): put the material on the scale and capture the gross again.');
+    expect(save.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Gross (typed by hand)' }), '1');
+    expect(within(form).queryByRole('alert')).toBeNull();
+    expect(save.hasAttribute('disabled')).toBe(false);
+  });
+});
+
+describe('grossAboveTare', () => {
+  it('compares decimal text exactly, at any scale and sign; anything else is not judged', () => {
+    expect(grossAboveTare('1.0501', '1.05')).toBe(true);
+    expect(grossAboveTare('1.050', '1.05')).toBe(false);
+    expect(grossAboveTare('1.04', '1.05')).toBe(false);
+    expect(grossAboveTare('10', '9.999')).toBe(true);
+    expect(grossAboveTare('0', '-0.5')).toBe(true);
+    expect(grossAboveTare('-1', '-0.5')).toBe(false);
+    expect(grossAboveTare('1.', '0')).toBeNull();
+    expect(grossAboveTare('1', 'x')).toBeNull();
   });
 });
 
