@@ -149,9 +149,13 @@ that another command holds is skipped.
   - leaves a state that records that disposition (outcome, trimmed justification, signature and person);
   - is not by a person in the involvement set of the step the exception was raised at: its performers, data
     enterers, correctors and PERFORMED signers in the stored state before the row (INV-03, PR-13, PR-49; sql 0306,
-    EBMR-EXE-087), as the engine's ENG-SEGREGATION. The `batch_exception` content provider names the same persons
-    as having entered the record, so the kernel already refuses their EXCEPTION_DISPOSITIONED signature
-    (EBMR-ESIG-044);
+    EBMR-EXE-087), as the engine's ENG-SEGREGATION; nor (sql 0310, trigger `ae_execution_disposition_involvement`,
+    EBMR-EXE-087) by the person of an accepted command before it that acted in that step, which the writer cannot
+    leave out as it can leave out the lists and the INVOLVEMENT events (`recorded_involvement`: START_STEP,
+    RECORD_DATA, RECORD_ENTRY, SIGN_PERFORMED, DISPOSITION_HOLD_POINT and VOID_ATTEMPT naming the step instance,
+    CORRECT_ENTRY of a data point of it). The `batch_exception` content provider names the same persons, from the
+    lists and from the rows, as having entered the record, so the kernel already refuses their
+    EXCEPTION_DISPOSITIONED signature (EBMR-ESIG-044);
 - every row leaves the exceptions of the stored state as they were raised (DI-26, INV-41; sql 0270,
   `check_exception_changes`, EBMR-EXE-044): none is removed or changed, except the status and disposition of the
   exception an accepted DISPOSITION_EXCEPTION names and the deviation link an accepted ATTACH_DEVIATION adds to an
@@ -365,7 +369,7 @@ one plain-language business entry on the chain `batch:<id>`.
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
   `batch_point_content` read the latest content version, the state and the persons involved. For an exception
   these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
-  raised at. For a witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
+  raised at, as the step's lists and (sql 0310) the accepted commands recorded on that step name it. For a witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
 - `execution_violations()` must return no rows. It checks:
   - sequence gaps and the hash chain;
   - the projection against the last row;
@@ -375,8 +379,8 @@ one plain-language business entry on the chain `batch:<id>`.
   - in a GMP database: any test batch, package or SANDBOX_ONLY block;
   - the engine's rules over the stored rows (`execution_rule_violations`, sql 0306): an accepted
     DISPOSITION_EXCEPTION by a person whose involvement in the step that raised the exception (an INVOLVEMENT
-    event of an accepted row before it) put them in its performers, data enterers, correctors or PERFORMED signers
-    (INV-03, PR-13, PR-49);
+    event of an accepted row before it, or, sql 0310, an accepted command before it that acted in that step) put
+    them in its performers, data enterers, correctors or PERFORMED signers (INV-03, PR-13, PR-49);
   - (sql 0307) a step instance of a stored state that the steps before it did not precede: one of them first
     finished after the instance was enabled (its `firstCompletedSeq` later than the instance's `enabledSeq`) or
     never, or the conditions of `step_order_problem` do not hold for it (DI-34, PR-13; as the engine's own invariant
@@ -396,7 +400,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it (044; sql 0270, 0295, 0298, 0305); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
 | 050-059 | signatures (050-052) and signable content (055-057) |
 | 060-064 | definition fit (TypeScript) |
-| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306) |
+| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308) |
 
@@ -624,11 +628,15 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   another tier, left out, or not marked failed (EBMR-EXE-044), while the honest one is recorded and QA cannot
   disposition it NO_IMPACT; an ISSUE row whose state already records a decision, a closed, linked or operator's
   exception, a data point, a performer or a signature (EBMR-EXE-030, 044).
-- `db-guards-disposition-involvement.test.ts` (Phase 2 exit review F11; sql 0306): the signed content of an
+- `db-guards-disposition-involvement.test.ts` (Phase 2 exit review F11; sql 0306, 0310): the signed content of an
   exception raised at a step names the step's performers, data enterers, correctors and PERFORMED signers; a
   person who entered data in that step, also holding a QA role, cannot disposition it through the store with the
   application role (the kernel refuses the signature, EBMR-ESIG-044); the invariant query reports a disposition by
-  a person involved in the step before it; an uninvolved QA reviewer records it.
+  a person involved in the step before it; an uninvolved QA reviewer records it. Round 2 (sql 0310): the same holds
+  when the person's own START_STEP and entry were stored without them in the step's lists and without their
+  INVOLVEMENT events (the accepted rows name them: EBMR-ESIG-044); a disposition signed before the signer started the
+  step and stored after that start, in the same transaction, is refused (EBMR-EXE-087); and one landed with the
+  triggers off is reported by the invariant query from the rows.
 - `db-guards-step-order.test.ts` (Phase 2 exit review F66; sql 0307): the critic's row, which enabled the
   dispensing beside an entry on the line clearance in progress, is refused (EBMR-EXE-129) and the dispensing still
   cannot start; a row that marks the clearance finished while in progress, or signs off its stage, is refused; the
