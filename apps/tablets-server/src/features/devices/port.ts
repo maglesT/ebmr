@@ -8,7 +8,9 @@
  * EBMR-DEV-110); is a stable weight (status OK); comes from an ACTIVE INSTRUMENT registered to the room of the actor
  * session's terminal as the database knows it, never the caller's word (`room` must name that same room; a terminal
  * with no room, or another room, is EBMR-DEV-103; DI-20), bound to an active gateway key; belongs to this
- * installation kind; is at most `maxAgeUs` old at database time, counting the time it waited at the gateway and at
+ * installation kind; is at most `maxAgeUs` old at database time, or the platform setting device.reading_max_age_s if
+ * that is less (default 120 s, allowed 5-120 s; the caller can only ask for fresher readings: tablets 0360, F38),
+ * counting the time it waited at the gateway and at
  * the server before and during ingestion (the gateway's wait as it signed it over a challenge the database issued for
  * the upload, plus the database's own time from that challenge to the insert: tablets 0330; a reading replayed after
  * a gateway restart has no known wait and is never claimable), and, when its trust is DEVICE_SYNCED, by the capture

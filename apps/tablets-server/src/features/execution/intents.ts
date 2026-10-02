@@ -34,7 +34,11 @@ import type { AppContext } from '../../platform/context.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import { lotForEngine, resolveLot } from './lots.ts';
 
-/** Maximum age of a scale reading at database time (plan section 10, default 120 s). */
+/**
+ * Maximum age of a scale reading at database time the server asks for (plan section 10, default 120 s). The database
+ * applies the lesser of this and its platform setting device.reading_max_age_s (tablets 0360), so a site that tightens
+ * the setting gets the tighter maximum, and no caller can ask for older readings.
+ */
 export const READING_MAX_AGE_US = 120_000_000n;
 
 export type JsonRecord = Record<string, unknown>;

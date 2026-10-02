@@ -48,6 +48,8 @@ implemented_by:
 tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible"
   - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][DI-28] a person-claimed start time is refused; a device-synchronised event time drives the timer"
+  - "apps/tablets-server/test/devices/reading-age-policy.test.ts > F38: the maximum age of a scale reading is the database's policy (DI-28) > [DI-28][DI-32] a 10-minute-old reading pair is refused at 120 s, and still refused when the application role asks for 3600 s; nothing is recorded"
+  - "apps/tablets-server/test/devices/reading-age-policy.test.ts > F38: the maximum age of a scale reading is the database's policy (DI-28) > [DI-28][DI-32] a site that tightens the policy gets the tighter maximum, whatever the server asks"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
