@@ -341,7 +341,13 @@ that another command holds is skipped.
     command sent: the blocks take members over under the same name and add others under names of their own
     (EBMR-EXE-126). The tablets edition reads what a new state entry names as identifiers too (tablets sql 0380,
     trigger `zi_tab_state_entry_identifiers`, EBMR-EXE-078): only test identifiers and registered test lots, the
-    output container id the block builds from the batch's own number excepted;
+    output container id the block builds from the batch's own number excepted. A container a row registers (sql 0317,
+    trigger `zj_execution_container_entry`, `new_container_problem`; Phase 2 exit review F12, round 3) is exactly the
+    one the one entry the row adds registers: a dispensing weighing's (G-07, CONTAINER_WEIGHING, holding its BOM
+    line) or an output weighing's (G-22, OUTPUT_CONTAINER, holding its intermediate), under the id the entry names or,
+    for an output weighing that names none, the id the block builds, with the entry's net quantity, produced by the
+    row's step instance in its frames, in quarantine (EBMR-EXE-126); and the tablets edition reads its id as a test
+    lot number, the built output id excepted (tablets sql 0390, EBMR-EXE-078);
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -444,7 +450,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it (044; sql 0270, 0295, 0298, 0305); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
 | 050-059 | signatures (050-052) and signable content (055-057) |
 | 060-064 | definition fit (TypeScript) |
-| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
+| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, or a container the state registers, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380, 0390), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316) |
 
@@ -620,11 +626,14 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   a replicate section or operation the step comes after), are refused, each with its reason. Round 3 (sql 0316): the
   row that finishes an operation in an alternative's branch, the last operation of a loop iteration or of a sub-lot,
   or the last operation of the final stage, without its END, is refused.
-- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, round 2; sql 0313): every entry of the engine's
+- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 and 3; sql 0313, 0317): every entry of the engine's
   own runs (both golden fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an
   acknowledgement of the MBR's own SOP version) passes `entry_data_problem`; an entry that holds another value than
   its command sent (the real previous batch or product, a weighed container or lot, a sample point, a checklist's
-  answers), or no data its command sent, is refused, each with the member it names.
+  answers), or no data its command sent, is refused, each with the member it names. Round 3 (sql 0317): every
+  container of both golden runs (named by the entry or built by the block) passes `new_container_problem`; a
+  container beside a previous batch entry, under another id than its entry names or the block builds, a second one,
+  one with other facts, or one in a refused row is refused, each with its reason.
 - `test/execution/step-acts-sql.test.ts` (Phase 2 exit review F67; sql 0308): every accepted act of both golden
   runs and of runs with an operator's action exception, its deviation and QA decision, a hold point released after
   it, and minimum durations kept passes the minimum, block and hold-release checks; each act the engine refuses as
@@ -731,7 +740,10 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   names a test batch while the state's entry holds the real batch and product is refused (EBMR-EXE-126); a sample
   whose stored entry holds a source container its command did not send, and that is no test lot, is refused
   (EBMR-EXE-078); an output container id the block builds from the test batch's number passes, any other one the
-  command did not name does not.
+  command did not name does not. Round 3 (sql 0317, tablets sql 0390): the verifier's row, a real-format container
+  L2409-0017 registered beside a previous batch entry, is refused (EBMR-EXE-078) and nothing holds it; the same with a
+  test-format container is refused too (EBMR-EXE-126); a container's key and id are read as test lot numbers, the
+  output id built from the test batch's own number excepted.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and

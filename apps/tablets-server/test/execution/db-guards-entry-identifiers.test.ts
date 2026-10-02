@@ -13,6 +13,11 @@
  * bound to it only for the weighing facts. A row whose command named a test batch stored the real batch and product in
  * the state. Now every member a block takes over from the command holds the command's value (EBMR-EXE-126), and what a
  * stored entry holds is itself read as an entry of its kind (EBMR-EXE-078).
+ *
+ * Round 3 (recipe-core 0317, tablets 0390): a container the state registers was read by neither check. A PREVIOUS_BATCH
+ * row stored a real-format container L2409-0017 registered beside its entry. Now every container a row registers is the
+ * one its entry names, in a block that registers containers (EBMR-EXE-126), and its id is a test lot number or the id
+ * the output weighing builds from the test batch's own number (EBMR-EXE-078).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -207,5 +212,73 @@ describe('F12: a test run records only test identifiers and registered test lots
     // Other kinds: every identifier read from the data.
     expect(await problem({ id: 'EN-2', kind: 'PREVIOUS_BATCH', data: { product: 'P', batchNumber: 'B24-0001' } }, { type: 'RECORD_ENTRY', entry: { kind: 'PREVIOUS_BATCH' } }, 'TEST-B26-0001')).toMatch(/^batchNumber "B24-0001" is not a test batch number/);
     expect(await problem({ id: 'EN-3', kind: 'START_DATA', data: { investigationRef: 'INV-7' } }, { type: 'START_STEP' }, 'TEST-B26-0001')).toBeNull();
+  }, 300_000);
+  /**
+   * operator1's PREVIOUS_BATCH entry on the started clearance (a test batch number), recorded through the application role
+   * with the engine's real result plus container `id` registered beside it, holding the API, with its CONTAINER_REGISTERED
+   * event (the round-3 verification's row).
+   */
+  async function containerBesidePreviousBatch(d: RunDriver, id: string): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = {
+          type: 'RECORD_ENTRY', commandId: randomUUID(), actor: engineActor(who.personId, roles), step: 'p-disp-clear', context: [],
+          entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-0003' },
+        };
+        const res = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });
+        if (!res.accepted) throw new Error(`SETUP: the engine refused the entry: ${JSON.stringify(res.refusal)}`);
+        const state = structuredClone(res.state);
+        state.containers[id] = { id, holds: 'BOM-PCM', holdsKind: 'BOM_LINE', producedBy: CLEAR, producedIn: [], status: 'QUARANTINE' };
+        const last = res.events[res.events.length - 1];
+        if (!last) throw new Error('SETUP: no events');
+        state.seq += 1;
+        const events = [...res.events, { type: 'CONTAINER_REGISTERED', container: id, holds: 'BOM-PCM', stepKey: CLEAR, seq: last.seq + 1, at: last.at } as engine.EngineEvent];
+        return appendAs(tx, command, { state, events }, roles);
+      }),
+    );
+  }
+
+  it('[DI-05][INV-18][PR-18] round 3: a real-format container registered beside a previous batch entry is refused (EBMR-EXE-078), and nothing holds it', async () => {
+    const d = await startedRun();
+    expect(await containerBesidePreviousBatch(d, 'L2409-0017')).toMatch(/^Container L2409-0017 that this RECORD_ENTRY row registers is refused: container "L2409-0017" is not a test lot number: .*\(DI-05, PR-18\)\. \[EBMR-EXE-078\]$/);
+    expect(await stateHolding(d.runId, 'L2409-0017')).toBe(0);
+    expect(await rowsHolding(d.runId, 'TEST-B26-0003')).toBe(0);
+  }, 300_000);
+
+  it('[DI-30][DI-05][PR-18] round 3: a container registered beside an entry that registers none is refused even under a test identifier (EBMR-EXE-126): a container is the one its entry names', async () => {
+    const d = await startedRun();
+    expect(await containerBesidePreviousBatch(d, 'TEST-L26-0101/C9')).toMatch(/^This accepted RECORD_ENTRY row adds container TEST-L26-0101\/C9 beside entry EN-\d+ \(PREVIOUS_BATCH\) of step p-disp-clear@, whose block \(G-10\) registers no container with such an entry: .*\[EBMR-EXE-126\]$/);
+    expect(await stateHolding(d.runId, 'TEST-L26-0101/C9')).toBe(0);
+    // The honest entry is recorded, with no container.
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-0003' } });
+    expect(Object.keys((await execution.loadState(sbx.db.admin, d.runId))?.state.containers ?? {})).toEqual([]);
+  }, 300_000);
+
+  it('[DI-05][PR-18] round 3: a container a row registers is read as a test lot number, apart from the id the output weighing builds from the test batch\'s own number', async () => {
+    const problem = async (key: string, container: unknown, command: unknown, batch: string | null): Promise<string | null> => {
+      const { rows } = await sbx.db.admin.query<{ p: string | null }>('select tab.state_container_identifier_problem($1, $2::jsonb, $3::jsonb, $4) as p', [key, JSON.stringify(container), JSON.stringify(command), batch]);
+      return rows[0]?.p ?? null;
+    };
+    const record = (id: string) => ({ id, holds: 'INT-BLEND', holdsKind: 'INTERMEDIATE', producedBy: 'p-blend-out@', producedIn: [], status: 'QUARANTINE' });
+    const unnamed = { type: 'RECORD_ENTRY', entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'INT-BLEND', gross: '2', tare: '1', unit: 'kg' } };
+    const named = { type: 'RECORD_ENTRY', entry: { ...unnamed.entry, container: 'TEST-B26-0001/C2' } };
+    const weighing = { type: 'RECORD_ENTRY', entry: { kind: 'CONTAINER_WEIGHING', container: 'TEST-B26-0001/C1' } };
+    const real = (value: string) => `container "${value}" is not a test lot number: in the sandbox every lot number starts with TEST- (for example TEST-L24-0001), so a real GMP identifier is never reused (DI-05).`;
+    // Test identifiers pass, and the id the block builds from the batch's own number when the command names none.
+    expect(await problem('TEST-B26-0001/C1', record('TEST-B26-0001/C1'), weighing, 'TEST-B26-0001')).toBeNull();
+    expect(await problem('TEST-B26-0001/C2', record('TEST-B26-0001/C2'), named, 'TEST-B26-0001')).toBeNull();
+    expect(await problem('TEST-B26-0001/INT-BLEND/0/1', record('TEST-B26-0001/INT-BLEND/0/1'), unnamed, 'TEST-B26-0001')).toBeNull();
+    // Real identifiers are refused, under the key or the id.
+    expect(await problem('L2409-0017', record('L2409-0017'), { type: 'RECORD_ENTRY', entry: { kind: 'PREVIOUS_BATCH' } }, 'TEST-B26-0001')).toBe(real('L2409-0017'));
+    expect(await problem('TEST-B26-0001/C1', record('L2409-0017'), weighing, 'TEST-B26-0001')).toBe(real('L2409-0017'));
+    // The built id counts only for an output weighing whose command names no container, built from this batch's number.
+    expect(await problem('B24-0001/INT-BLEND/0/1', record('B24-0001/INT-BLEND/0/1'), unnamed, 'TEST-B26-0001')).toBe(real('B24-0001/INT-BLEND/0/1'));
+    expect(await problem('B24-0001/INT-BLEND/0/1', record('B24-0001/INT-BLEND/0/1'), unnamed, null)).toBe(real('B24-0001/INT-BLEND/0/1'));
+    expect(await problem('B24-0001/X', record('B24-0001/X'), { type: 'RECORD_ENTRY', entry: { ...unnamed.entry, container: 'B24-0001/X' } }, 'B24-0001')).toBe(real('B24-0001/X'));
+    expect(await problem('B24-0001/X', record('B24-0001/X'), weighing, 'B24-0001')).toBe(real('B24-0001/X'));
   }, 300_000);
 });

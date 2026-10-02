@@ -9,6 +9,11 @@
  * fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an acknowledgement of the
  * MBR's own SOP version), and an entry that holds another value than its command sent is refused, with the member it
  * names.
+ *
+ * Round 3 (sql 0317: recipe.new_container_problem): a container a row registers was bound to its row only by its step
+ * and status; a PREVIOUS_BATCH entry was stored with a real-format container registered beside it. Now a new container
+ * is exactly the one the row's entry registers: a dispensing weighing's (G-07) or an output weighing's (G-22), under the
+ * id the entry names or the block builds, with the entry's facts; every container of the engine's own runs passes.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
@@ -140,5 +145,92 @@ describe('F12 round 2: a new entry holds what its command sent (DI-30, DI-05)', 
     expect(await problem({ ...previous, accepted: false })).toBe(`stores entry ${pk} (PREVIOUS_BATCH), and no data its command sent stands behind it`);
     // The honest rows pass.
     for (const r of [previous, weighing, sample, clearance]) expect(await problem(r), r.label).toBeNull();
+  }, 300_000);
+});
+
+describe('F12 round 3: a container a row registers is the one its entry names (DI-30, DI-05)', () => {
+  const containers = (st: Json): Record<string, Json> => (st['containers'] as Record<string, Json> | undefined) ?? {};
+  const newContainers = (r: Row): string[] => Object.keys(containers(r.after)).filter((k) => !(k in containers(r.before)));
+  const granulation = (): { mbr: unknown; rows: Row[] } => {
+    const run = Run.issue(fixtureDefinition('tablet-granulation-compression'), { inputs: FIXTURE_INPUTS['tablet-granulation-compression'] });
+    const start = run.state;
+    expect(autopilot(run, GRANULATION_SCENARIO)).toBe('COMPLETE');
+    return { mbr: run.def.mbr, rows: rowsOf(run, start) };
+  };
+  async function containerProblem(mbr: unknown, r: Pick<Row, 'accepted' | 'command' | 'before' | 'after'>, kind = 'COMMAND'): Promise<string | null> {
+    const { rows } = await db.admin.query<{ p: string | null }>('select recipe.new_container_problem($1::jsonb, $2::jsonb, $3::jsonb, $4, $5, $6::jsonb) as p', [
+      JSON.stringify(mbr),
+      JSON.stringify(r.before),
+      JSON.stringify(r.after),
+      kind,
+      r.accepted,
+      JSON.stringify(r.command),
+    ]);
+    return rows[0]?.p ?? null;
+  }
+
+  it('[DI-30][DI-05] every container the engine\'s own runs register passes: dispensed containers and output containers, named by the entry or built by the block', async () => {
+    let named = 0;
+    let built = 0;
+    for (const name of ['tablet-granulation-compression', 'tablet-blister-packaging'] as const) {
+      const run = Run.issue(fixtureDefinition(name), { inputs: FIXTURE_INPUTS[name], variants: name === 'tablet-blister-packaging' ? { packDestination: 'US-EXPORT' } : {} });
+      const start = run.state;
+      expect(autopilot(run, name === 'tablet-granulation-compression' ? GRANULATION_SCENARIO : PACKAGING_SCENARIO)).toBe('COMPLETE');
+      const out: Record<string, string> = {};
+      for (const r of rowsOf(run, start)) {
+        const p = await containerProblem(run.def.mbr, r);
+        if (p !== null) out[r.label] = p;
+        if (newContainers(r).length > 0) {
+          if ('container' in (((r.command as Json)['entry'] as Json | undefined) ?? {})) named += 1;
+          else built += 1;
+        }
+      }
+      expect(out, name).toEqual({});
+    }
+    expect(named, 'containers named by their entry').toBeGreaterThan(0);
+    expect(built, 'output containers whose id the block builds').toBeGreaterThan(0);
+  }, 300_000);
+
+  it('[DI-30][DI-05] a container that is not the one its entry registers is refused: the verifier\'s container beside a previous batch, another id, a second container, other facts, a row that records no entry', async () => {
+    const { mbr, rows } = granulation();
+    const firstAdding = (pred: (r: Row) => boolean): Row => {
+      const r = rows.find((x) => x.accepted && pred(x));
+      if (!r) throw new Error('SETUP: no such row');
+      return r;
+    };
+    const previous = firstAdding((x) => Object.entries(entries(x.after)).some(([k, e]) => !(k in entries(x.before)) && e['kind'] === 'PREVIOUS_BATCH'));
+    const [pk, pe] = added(previous);
+    const stepKey = String(pe['stepKey']);
+    // The round-3 verification's row: a real-format container registered beside the previous batch.
+    const forged = structuredClone(previous);
+    forged.after['containers'] = { ...containers(forged.after), 'L2409-0017': { id: 'L2409-0017', holds: 'BOM-API', holdsKind: 'BOM_LINE', producedBy: stepKey, producedIn: [], status: 'QUARANTINE' } };
+    expect(await containerProblem(mbr, forged)).toBe(`adds container L2409-0017 beside entry ${pk} (PREVIOUS_BATCH) of step ${stepKey}, whose block (G-10) registers no container with such an entry`);
+    // A dispensing weighing's container under another id than its entry names, or with a second container beside it.
+    const weighing = firstAdding((x) => newContainers(x).length === 1 && Object.values(entries(x.after)).some((e) => e['kind'] === 'CONTAINER_WEIGHING'));
+    const [wk] = added(weighing);
+    const [ck] = newContainers(weighing) as [string];
+    const own = containers(weighing.after)[ck] as Json;
+    const renamed = structuredClone(weighing);
+    delete containers(renamed.after)[ck];
+    containers(renamed.after)['L2409-0017'] = { ...own, id: 'L2409-0017' };
+    expect(await containerProblem(mbr, renamed)).toBe(`registers container L2409-0017, which is not the container its entry ${wk} names or the block builds (${ck})`);
+    const second = structuredClone(weighing);
+    containers(second.after)['L2409-0017'] = { ...own, id: 'L2409-0017' };
+    expect(await containerProblem(mbr, second)).toBe(`adds 2 containers (${[ck, 'L2409-0017'].sort().join(', ')}); an entry registers one container`);
+    const otherFacts = structuredClone(weighing);
+    (containers(otherFacts.after)[ck] as Json)['holds'] = 'BOM-OTHER';
+    expect(await containerProblem(mbr, otherFacts)).toContain(`registers container ${ck} with other facts than its entry ${wk} gives (`);
+    // An output container whose id is not the one the block builds.
+    const output = firstAdding((x) => newContainers(x).length === 1 && !('container' in (((x.command as Json)['entry'] as Json | undefined) ?? {})));
+    const [ok] = newContainers(output) as [string];
+    const shifted = structuredClone(output);
+    const moved = `${ok.slice(0, ok.lastIndexOf('/'))}/99`;
+    delete containers(shifted.after)[ok];
+    containers(shifted.after)[moved] = { ...(containers(output.after)[ok] as Json), id: moved };
+    expect(await containerProblem(mbr, shifted)).toBe(`registers container ${moved}, which is not the container its entry ${added(output)[0]} names or the block builds (${ok})`);
+    // Only an accepted RECORD_ENTRY registers one.
+    expect(await containerProblem(mbr, { ...weighing, accepted: false })).toBe(`adds container ${ck}; only the accepted RECORD_ENTRY of an entry that registers it adds one`);
+    // The honest rows pass.
+    for (const r of [previous, weighing, output]) expect(await containerProblem(mbr, r), r.label).toBeNull();
   }, 300_000);
 });
