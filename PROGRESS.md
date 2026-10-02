@@ -1333,3 +1333,24 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   operation, parallel, alternative or replicate section holds records its END wherever it lies, the last one of the
   batch included (F67, 0316); a container a row registers is the one its entry names and a test identifier (F12, 0317,
   tablets 0390); each with a test that fails without its migration.
+- 2026-10-02: PHASE 2 EXIT FIX, What is signed and what the signer sees (branch phase-2/recipe-core; findings F01, F02,
+  F03, F40, F39 of the exit review; each fix with a test that fails on the code before it). F01: a stage sign-off's
+  meaning confirms the stage record and its summary, but the summary was in neither the signed content nor the
+  signature dialog, so an alert raised or a QA disposition made after the supervisor's preview changed what the sign-off
+  recorded without refusing the signature; now the summary (statement, step counts, exceptions, deviations, yields) is
+  part of the signed text, derived by one function for the sign-off and the content and by the database's provider
+  from the stored state (recipe-core 0319), shown as signed in the dialog; a change after the preview refuses the
+  challenge or the signature as changed content, and the database refuses a sign-off row recording another summary
+  (EBMR-EXE-135); sign-offs made before 0319 keep the text they were signed on. F02: a time-limit breach's disposition
+  dialog said "Not raised at a step" while the signed content names the step and the constraint; now it names both, and
+  step counts of open exceptions include such breaches. F03: the header shown as signed took the family, product name
+  and version from the test package's own metadata; now it names the MBR content's family and product, shows the
+  version label apart as not signed, and the server and the database (recipe-core 0318, EBMR-EXE-134) refuse a package
+  whose metadata differs from its content. F40: a kiosk sign request resent after its signing succeeded was told
+  "Nothing was signed"; now it is told the request was used (ESIG_ALREADY_SIGNED, or ESIG_REQUEST_USED while another
+  request's signing runs or was refused). F39: a switch from the lock screen (or one the session poll finds) left the
+  previous person's signing dialog open, and the new person signed the previous person's decision; now any change of
+  person or the end of the session ends the signing with nothing signed. Tests: server signed-content-stage-summary,
+  db-guards-stage-summary, db-guards-package-header, signed-content (F02, F03), esig ceremony (F40); recipe-core
+  stage-summary-sql; ui-kit signable-content; web ceremony-person-change and step-screen; Playwright journey and access
+  specs re-run. Defaults taken are in docs/decisions/phase-2-open-questions.md (F01.1, F03.1).
