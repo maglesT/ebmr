@@ -396,7 +396,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it (044; sql 0270, 0295, 0298, 0305); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
 | 050-059 | signatures (050-052) and signable content (055-057) |
 | 060-064 | definition fit (TypeScript) |
-| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306) |
+| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308) |
 
@@ -640,6 +640,11 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content
   version a disposition was already signed on is refused, with the exception still open.
+- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370): a real previous batch number
+  typed into a line clearance is refused by the server before anything is written (EBMR-SBX-022), and by the database
+  when written through the store (EBMR-EXE-078); every identifier an entry carries (previous, scanned and source
+  batches, containers, lots) is a test identifier, and a weighed or charged lot a registered test lot stated as the
+  register holds it; NONE and TEST- values are recorded.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and

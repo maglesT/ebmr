@@ -360,6 +360,22 @@ export function containerId(state: engine.BatchState, requested: string | undefi
   return `${batch}/C${n}`;
 }
 
+/** The word a line clearance records as its previous batch when nothing was processed in the area before (G-10). */
+export const NO_PREVIOUS_BATCH = 'NONE';
+
+/**
+ * DI-05: an identifier an entry records in a test run is a test identifier (TEST-...), never a real GMP one; refused
+ * before anything is written (the database refuses the row too: tablets 0370, EBMR-EXE-078).
+ */
+function requireTestIdentifier(kind: 'BATCH_NUMBER' | 'LOT_NUMBER', value: string, what: string): void {
+  const problem = sandbox.identifierProblem('SANDBOX', kind, value);
+  if (problem !== null) {
+    throw refuse(problem.code, `This ${what} cannot be recorded in a test run. Nothing was saved.`, problem.message, ['DI-05'], [
+      `Enter the test ${kind === 'BATCH_NUMBER' ? 'batch number' : 'lot or container'} shown on the test record (it starts with TEST-).`,
+    ]);
+  }
+}
+
 /** The batch printed on a container label: the part of the code before its first '/'. */
 export function labelBatch(code: string): string {
   const i = code.indexOf('/');
@@ -391,10 +407,13 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       };
     }
     case 'CHARGE_CONTAINER':
+      requireTestIdentifier('LOT_NUMBER', e.containerCode, 'container label');
+      requireTestIdentifier('BATCH_NUMBER', labelBatch(e.containerCode), 'container label');
       return { entry: { kind: 'CHARGE_CONTAINER', container: e.containerCode, scannedBatch: labelBatch(e.containerCode) }, evidence: { scanned: e.containerCode } };
     case 'CLEARANCE_CHECK':
       return { entry: { kind: 'CLEARANCE_CHECK', answers: e.answers.map((a) => ({ id: a.id, answer: a.answer })) }, evidence: {} };
     case 'PREVIOUS_BATCH':
+      if (e.batchNumber !== NO_PREVIOUS_BATCH) requireTestIdentifier('BATCH_NUMBER', e.batchNumber, 'previous batch number');
       return { entry: { kind: 'PREVIOUS_BATCH', product: e.product, batchNumber: e.batchNumber }, evidence: {} };
     case 'EQUIPMENT_STATUS':
       return { entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: e.equipmentRef, labelId: e.labelId, answers: e.answers.map((a) => ({ id: a.id, answer: a.answer })) }, evidence: {} };

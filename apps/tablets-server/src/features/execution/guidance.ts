@@ -90,6 +90,16 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [QA],
     controls: ['INV-03', 'PR-13', 'PR-49'],
   },
+  // An entry naming an identifier that is not a test identifier, or a lot that is not a registered test lot stated as the
+  // register holds it (tablets 0370; DI-05, PR-18). The server refuses such an entry first (EBMR-SBX-022, EBMR-EXE-072).
+  'EBMR-EXE-078': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The entry names a batch, container or lot that a test run cannot record. Nothing was saved.',
+    whatYouCanDo: ['Enter or scan the test identifier (it starts with TEST-), or ask for the test lot to be registered.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['DI-05', 'PR-18'],
+  },
   'EBMR-EXE-080': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The signature meaning does not match this action. Nothing was signed.', whatYouCanDo: ['Reload the screen and start the signing again.'], whoCanHelp: [], controls: ['DI-35', 'DI-37'] },
   'EBMR-EXE-081': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The next step has started, so this act can no longer be witnessed. Nothing was signed.', whatYouCanDo: ['Raise an exception for the missed witness; a supervisor decides how to proceed.'], whoCanHelp: [SUPERVISOR, QA], controls: ['DI-35', 'PR-14'] },
   // The source and the room of what a step records (review findings P34, P36, P58): the server refuses these first

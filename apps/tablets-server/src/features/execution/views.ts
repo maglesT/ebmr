@@ -597,7 +597,7 @@ function entryFormsOf(def: engine.BatchDefinition, stepDef: engine.StepDef): Ent
           kind,
           title: 'Previous batch',
           description: 'Product and batch number last processed in this area.',
-          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', 'As shown on the previous batch record')],
+          fields: [field('product', 'Previous product', 'string', 'As shown on the previous batch record'), field('batchNumber', 'Previous batch number', 'string', 'The test batch (TEST-...) last processed here, or NONE')],
         });
         break;
       case 'EQUIPMENT_STATUS': {

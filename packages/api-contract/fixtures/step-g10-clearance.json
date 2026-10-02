@@ -157,7 +157,7 @@
           "unit": null,
           "options": null,
           "required": true,
-          "description": "As shown on the previous batch record"
+          "description": "The test batch (TEST-...) last processed here, or NONE"
         }
       ]
     }

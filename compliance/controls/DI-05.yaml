@@ -101,6 +101,9 @@ tests:
   - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [DI-05][INV-18] only packages exported from GMP are imported; a changed package or a wrong file name is refused; the listing shows why"
   - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [DI-05][PR-10][PR-01] issue: every header input is required (a count is positive); the TEST- number, the engine version, the block registry and the policy are pinned"
   - "packages/recipe-core/test/blocks/status.test.ts > G-09@1 and G-10@1 are sandbox only (decision D3) > [DI-05][INV-18] defineBatch refuses G-09@1 and G-10@1 for a GMP installation, by default and explicitly, and names Phase 3"
+  - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][INV-18] a real (non TEST-) previous batch number typed into a sandbox line clearance is refused before anything is written; a TEST- number and NONE are recorded"
+  - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][INV-18] the same entry written through the store with the application role is refused by the database (EBMR-EXE-078)"
+  - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][PR-18] each identifier an entry carries is a test identifier, and its lot a registered test lot stated as the register holds it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

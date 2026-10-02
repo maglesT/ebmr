@@ -33,6 +33,7 @@ implemented_by:
     - "G-07: a quarantined, expired or past-retest lot and the wrong material are refused with no override (G07-LOT-STATUS, G07-LOT-EXPIRED, G07-LOT-RETEST, G07-WRONG-MATERIAL)"
 tests:
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-18][IN-23] a quarantined lot, an expired lot, a lot past retest and the wrong material are hard-blocked with no override"
+  - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][PR-18] each identifier an entry carries is a test identifier, and its lot a registered test lot stated as the register holds it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
