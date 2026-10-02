@@ -304,11 +304,14 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
   useEffect(() => {
     extraRef.current = extra;
   });
+  /** The run version the last saved command produced. */
+  const savedVersion = useRef<number | null>(null);
   const call = usePendingCall(routes.execution.command, { runId }, {
     reason,
     // POST /api/test-runs/:runId/commands: the engine runs inside the command, after the key is claimed.
     engineAfterClaim: true,
     onSaved: async (value) => {
+      savedVersion.current = value.version;
       // The server's post-commit view (a newer one already on show is kept, and so is the screen when the person signed
       // in is no longer the sender; then the step is read again).
       const put = value.step ? await applyStepView(qc, value.step, signedInNow) : false;
@@ -344,7 +347,14 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
       await refreshRun(qc, { steps: true });
     },
   });
-  const { submit } = call;
+  // A "Saved" note speaks for the moment of the save. Once the step on show is past the version the save produced (a
+  // signature, another entry, another person's action), the note goes: found in the owner's demo run, where "Saved:
+  // Start step" stayed under the step after it had been signed.
+  const shownVersion = viewStepKey ? qc.getQueryData<StepScreenView>(stepQueryKey(runId, viewStepKey))?.run.version : undefined;
+  const { state, reset, submit } = call;
+  useEffect(() => {
+    if (state === 'saved' && savedVersion.current !== null && shownVersion !== undefined && shownVersion > savedVersion.current) reset();
+  }, [state, shownVersion, reset]);
   const sendIntent = useCallback(
     (intent: ClientIntent, expectedVersion: number, view?: StepScreenView) => {
       submit({ expectedVersion, intent, ...(viewStepKey ? { viewStepKey } : {}) }, describeIntent(intent, view));
