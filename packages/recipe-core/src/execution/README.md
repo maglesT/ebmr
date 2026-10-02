@@ -220,6 +220,21 @@ that another command holds is skipped.
   Left to the replay: the decisions themselves (which branch the data choose, a loop's exit, a count) are taken as
   recorded; inside a loop or replicate section of a node before the instance only the iteration or sub-lot the
   instance names is looked at; a sequential replicate's sub-lot is not held to the end of the one before it;
+- every row keeps the minimum durations and the blocks of open exceptions (sql 0308, trigger `ze_execution_step_acts`):
+  - a node event the row adds comes no earlier than the minimum of every time constraint of the MBR's own list ending
+    in it, measured from the constraint's start in the state before the row within the same constraint instance
+    (`minimum_duration_problem`; INV-20, PR-30, EBMR-EXE-130). A person's act (a phase's start or end; the end of a
+    hold point, a stage or a loop) before its minimum is refused, as the engine refuses it; an automatic construct
+    end before its minimum is accepted only with the TIME_MIN_BREACH the engine raises for it in the same row;
+  - an accepted START_STEP, a SIGN_PERFORMED that completes its step, and a VERIFY act on a step no exception of the
+    state before the row blocks (`blocking_exceptions_problem`; PR-08, PR-13, EBMR-EXE-131): an open exception with
+    an active block (until its disposition, or until a deviation while none is linked) stops the completion of the
+    steps its block names, and the start and completion of the steps its downstream anchor reaches (`flow_reaches`:
+    after it in a sequence, inside the construct it opens, anywhere in a loop around both), except its own source
+    step, in the same sub-lot;
+  - an accepted DISPOSITION_HOLD_POINT that releases the hold point finds no open exception that is not an alert in
+    the same sub-lot (`hold_release_problem`; PR-45, IN-37, EBMR-EXE-131).
+  Not seen: the exceptions the engine's own sweep raises at the start of a command, before it checks a block;
 - every exception a row adds (DI-14, INV-03, INV-20; sql 0280, 0299) is told by exactly one EXCEPTION_RAISED event of
   its type (EBMR-EXE-047). A time fact (a maximum or minimum breach, a clock regression) is raised by SYSTEM in
   every kind of row, a SWEEP adds time facts only, any other exception is raised by the row's person
@@ -360,7 +375,10 @@ one plain-language business entry on the chain `batch:<id>`.
   - (sql 0307) a step instance of a stored state that the steps before it did not precede: one of them first
     finished after the instance was enabled (its `firstCompletedSeq` later than the instance's `enabledSeq`) or
     never, or the conditions of `step_order_problem` do not hold for it (DI-34, PR-13; as the engine's own invariant
-    `checkSequence`).
+    `checkSequence`);
+  - (sql 0308) a phase or hold-point event of a stored state that came before the minimum of a constraint ending in
+    it, measured from the events of its constraint instance recorded before it (INV-20, PR-30). A block cannot be
+    re-judged from the stored rows (only the last state is kept); the write-time refusal is its enforcement.
 
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 
@@ -375,7 +393,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
-| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307) |
+| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308) |
 
 ## TypeScript
 
@@ -534,6 +552,12 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   never gives, an untaken branch, an iteration that did not continue, a sub-lot beyond the count, a stage not signed
   off, a loop not ended, an alternative or replicate section not decided, a not-applicable step outside an untaken
   branch) and a forged mark are refused, each with its reason.
+- `test/execution/step-acts-sql.test.ts` (Phase 2 exit review F67; sql 0308): every accepted act of both golden
+  runs and of runs with an operator's action exception, its deviation and QA decision, a hold point released after
+  it, and minimum durations kept passes the minimum, block and hold-release checks; each act the engine refuses as
+  blocked is reported on the same state; an end or start before its minimum, stored with the result of a definition
+  without it, is refused with its reason, and an automatic construct end only without its breach; the reach of a
+  block (later in a sequence, inside the construct it opens, in a loop around both, never another branch or sub-lot).
 - `test/execution/kept-records-sql.test.ts` (sql 0303): every row the store writes for the engine's own runs (both
   golden fixtures, corrections and their dependents, invalidations, a void, loops that exit or are exhausted,
   block values recomputed at the PERFORMED signature) passes `kept_records_problem`, and every sweep of those states
@@ -604,6 +628,9 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   dispensing beside an entry on the line clearance in progress, is refused (EBMR-EXE-129) and the dispensing still
   cannot start; a row that marks the clearance finished while in progress, or signs off its stage, is refused; the
   invariant query reports an instance that came before the steps before it.
+- `db-guards-step-acts.test.ts` (Phase 2 exit review F67; sql 0308): the critic's two rows, a SIGN_PERFORMED before
+  the 1 h minimum (EBMR-EXE-130) and one of a step its open action-limit breach blocks (EBMR-EXE-131), are refused
+  and the step stays in progress; the invariant query reports an end before its minimum planted in the state.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and

@@ -172,6 +172,24 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [ADMIN, QA],
     controls: ['DI-34', 'IN-15', 'PR-13'],
   },
+  // The acts on a step keep the minimum durations and the blocks of open exceptions (recipe-core 0308): the engine
+  // refuses them first (ENG-MIN-DURATION, ENG-BLOCKED, ENG-HOLD-OPEN-EXCEPTIONS); the database refuses the row too.
+  'EBMR-EXE-130': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The step cannot start or end yet: its minimum time has not passed. Nothing was saved.',
+    whatYouCanDo: ['Wait until the minimum time shown on the step has passed, then do it again.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['INV-20', 'PR-30'],
+  },
+  'EBMR-EXE-131': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'An open exception stops this step, or this hold point cannot be released while an exception has no QA decision. Nothing was saved.',
+    whatYouCanDo: ['Ask the supervisor to link the deviation, or QA to decide the exception, then do it again.'],
+    whoCanHelp: [SUPERVISOR, QA],
+    controls: ['IN-37', 'INV-20', 'PR-08', 'PR-13', 'PR-45'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },

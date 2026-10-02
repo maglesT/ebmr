@@ -76,6 +76,9 @@ tests:
   - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [PR-08] a limit-tier nesting error is named with its rule and control"
   - "apps/tablets-web/test/designer/editor.test.tsx > designer screen > [PR-08] a limit is edited as decimal text; letters are not accepted and nothing but a decimal string enters the content"
   - "apps/tablets-server/test/execution/commands.test.ts > commands > [PR-08] an internal-action breach blocks until the supervisor links a deviation"
+  - "apps/tablets-server/test/execution/db-guards-step-acts.test.ts > F67: minimum durations and blocks hold in the database (INV-20, PR-08) > [PR-08][PR-13][INV-20] a step that an open internal-action breach blocks cannot be signed performed through the store"
+  - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [PR-08][PR-13][PR-45][IN-37] a step the engine refuses as blocked is reported by the database on the same state, and accepted once the block is lifted; a hold point is not released while an exception that is not an alert is open"
+  - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [PR-08][PR-13] a block reaches what the execution graph reaches from its anchor: later in a sequence, inside the construct it opens, anywhere in a loop around both; never another branch or another sub-lot; the step it names only when completing"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

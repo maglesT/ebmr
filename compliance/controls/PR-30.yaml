@@ -32,6 +32,9 @@ tests:
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-30] G-15 Timer, hold time, transfer: A hold step with a 10-30 min timer: signing performed after 12 min is on time"
   - "packages/recipe-core/test/blocks/process.test.ts > G-15 transfer > [IN-15][PR-30] a transfer records issued-by and received-by, two different persons"
   - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][PR-30] a step cannot be signed performed before its minimum duration; at the minimum it can"
+  - "apps/tablets-server/test/execution/db-guards-step-acts.test.ts > F67: minimum durations and blocks hold in the database (INV-20, PR-08) > [INV-20][PR-30] a step signed performed before its minimum duration is refused by the database, not only by the engine"
+  - "apps/tablets-server/test/execution/db-guards-step-acts.test.ts > F67: minimum durations and blocks hold in the database (INV-20, PR-08) > [INV-20][PR-30] an end before its minimum that landed in the store behind the triggers' back is reported by the invariant query"
+  - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [INV-20][PR-30] a step ended or started before its minimum is refused, measured within the constraint instance; once the minimum has passed it is accepted"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
