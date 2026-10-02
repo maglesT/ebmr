@@ -14,6 +14,18 @@ const MICROS_PER_SECOND = 1_000_000n;
 // 2026-03-29 01:00:00.123456+00, 2026-03-29T01:00:00Z, 2026-03-29T06:30:00.5+05:30 ...
 const TIMESTAMP = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?\s*(Z|[+-]\d{2}(?::?\d{2})?)$/;
 
+/**
+ * The microseconds of a fractional second as PostgreSQL reads them (ParseFractionalSecond): the decimal fraction as a
+ * double, times one million, rounded to the nearest whole number with ties to even (rint). Six digits or fewer give
+ * themselves; a seventh digit and beyond round, and from .9999995 on the fraction carries into the next second.
+ */
+function microsOfFraction(digits: string): bigint {
+  const scaled = Number(`0.${digits}`) * 1e6;
+  const whole = Math.floor(scaled);
+  const rest = scaled - whole;
+  return BigInt(rest > 0.5 || (rest === 0.5 && whole % 2 === 1) ? whole + 1 : whole);
+}
+
 export class Instant {
   private constructor(readonly epochMicros: bigint) {}
 
@@ -53,7 +65,7 @@ export class Instant {
     const wholeMs = check.getTime();
     // Stryker disable next-line LogicalOperator: equivalent; every field is in range here, so only a day 29 to 31 in a shorter month can roll over, into the next month as day 1 to 3, which changes the day and the month together: && refuses exactly what || refuses.
     if (check.getUTCDate() !== day || check.getUTCMonth() !== month - 1) throw new RangeError(`no such calendar date: ${text}`);
-    const fraction = BigInt(frac.padEnd(6, '0').slice(0, 6));
+    const fraction = microsOfFraction(frac);
     let offsetMicros = 0n;
     // Stryker disable next-line StringLiteral: equivalent; with '' the zone Z also takes the offset branch, where 'Z'.slice(1, 3) is '' and BigInt('') is 0n, so its offset stays 0.
     if (zone !== 'Z') {

@@ -70,11 +70,31 @@ describe('parsing timestamp text', () => {
     expect(iso('9999-12-31T23:59:59.999999Z')).toBe('9999-12-31T23:59:59.999999Z');
   });
 
-  it('[DI-27] fractional seconds are scaled to microseconds, and digits below a microsecond never reach the microseconds', () => {
+  it('[DI-27] fractional seconds are scaled to microseconds, and digits below a microsecond round as PostgreSQL rounds them', () => {
     expect(iso('2026-03-29T01:00:00.5Z')).toBe('2026-03-29T01:00:00.500000Z');
     expect(iso('2026-03-29T01:00:00.000001Z')).toBe('2026-03-29T01:00:00.000001Z');
     expect(iso('2026-03-29T01:00:00.123456000Z')).toBe('2026-03-29T01:00:00.123456Z');
     expect(iso('2026-03-29T01:00:00.000000001Z')).toBe('2026-03-29T01:00:00.000000Z');
+    // As '…'::timestamptz gives them (PostgreSQL 16): the fraction as a double times a million, rounded to the
+    // nearest whole number with ties to even. A decimal tie such as .1234565 is not a tie as a double.
+    for (const [fraction, micros] of [
+      ['1234566', '123457'],
+      ['123456499', '123456'],
+      ['1234565', '123456'],
+      ['1234575', '123458'],
+      ['12345650', '123456'],
+      ['0000005', '000000'],
+      ['0000015', '000002'],
+      ['0000025', '000002'],
+      ['5000005', '500000'],
+      ['2500005', '250000'],
+    ]) {
+      expect(iso(`2026-03-29T01:00:00.${fraction}Z`), fraction).toBe(`2026-03-29T01:00:00.${micros}Z`);
+    }
+    // From .9999995 on the fraction carries into the next second, here into the next year.
+    expect(iso('2026-12-31 23:59:59.9999995+00')).toBe('2027-01-01T00:00:00.000000Z');
+    expect(iso('2026-12-31 23:59:59.999999999+00')).toBe('2027-01-01T00:00:00.000000Z');
+    expect(iso('2026-12-31 23:59:59.9999994+00')).toBe('2026-12-31T23:59:59.999999Z');
   });
 
   it('[DI-27] an offset west of Greenwich is applied with its sign, in every written form', () => {
