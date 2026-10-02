@@ -227,6 +227,48 @@ export class RunDriver {
   }
 }
 
+/**
+ * dc-mini's dispensing stage S-DISP@ completed by operator1 and verifier1, and the manual-weighing alerts dispositioned
+ * NO_IMPACT by qa1: the stage awaits its sign-off by supervisor1 (browsers: issuer, operator1, verifier1, supervisor1, qa1).
+ */
+export async function dispensingAwaitingSignOff(server: ExecServer, beforeTap: () => void): Promise<RunDriver> {
+  const issuer = await server.asPersona('issuer');
+  const runId = await importAndIssue(server, issuer, writePackage(server, dcMini()));
+  const d = new RunDriver(server, runId, {
+    issuer,
+    operator1: await server.asPersona('operator1'),
+    verifier1: await server.asPersona('verifier1'),
+    supervisor1: await server.asPersona('supervisor1'),
+    qa1: await server.asPersona('qa1'),
+  });
+  d.beforeTap = beforeTap;
+  const step = async (op: string, ver: string | null, key: string, entries: Parameters<RunDriver['ok']>[1][] = []) => {
+    await d.ok(op, { type: 'START_STEP', stepKey: key });
+    for (const e of entries) await d.ok(op, e);
+    await d.signed(op, { type: 'SIGN_PERFORMED', stepKey: key });
+    if (ver) await d.signed(ver, { type: 'VERIFY', stepKey: key, meaning: 'VERIFIED' });
+  };
+  const weigh = (key: string, item: string, bomLine: string, lotCode: string, gross: string, tare: string) => ({
+    type: 'RECORD_ENTRY' as const,
+    stepKey: key,
+    entry: { kind: 'CONTAINER_WEIGHING' as const, item, bomLine, lotCode, manual: { gross, tare, unit: 'kg' } },
+  });
+  await step('operator1', 'verifier1', 'p-disp-clear@', [
+    { type: 'RECORD_ENTRY', stepKey: 'p-disp-clear@', entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } },
+    { type: 'RECORD_ENTRY', stepKey: 'p-disp-clear@', entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } },
+  ]);
+  await step('operator1', null, 'p-disp-bal@', [{ type: 'RECORD_ENTRY', stepKey: 'p-disp-bal@', entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) } }]);
+  await step('operator1', null, 'p-disp-sop@', [{ type: 'RECORD_ENTRY', stepKey: 'p-disp-sop@', entry: { kind: 'ACKNOWLEDGE', mode: 'READ' } }]);
+  await step('operator1', null, 'p-disp-calc@');
+  await step('operator1', 'verifier1', 'p-disp-pcm@', [weigh('p-disp-pcm@', 'pcmDispensed', 'BOM-PCM', 'TEST-L26-0101', '51.250', '1.250')]);
+  await step('operator1', 'verifier1', 'p-disp-exc@', [weigh('p-disp-exc@', 'excDispensed', 'BOM-MCC', 'TEST-L26-0102', '10.400', '1.000'), weigh('p-disp-exc@', 'excDispensed', 'BOM-MGS', 'TEST-L26-0103', '0.800', '0.200')]);
+  await step('operator1', 'verifier1', 'p-disp-recon@');
+  for (const e of (await d.runView('supervisor1')).exceptions.filter((x) => x.status === 'OPEN')) {
+    await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: 'Second person verified each weighing.' });
+  }
+  return d;
+}
+
 /** `status:code` of a refused call, or 'ok'. */
 export function outcomeOf(r: Result<unknown>): string {
   if (r.ok) return 'ok';

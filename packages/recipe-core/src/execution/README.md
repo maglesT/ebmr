@@ -539,14 +539,35 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   member gets the database's own value in it (null when none).
 - The preview's `intent` is `<meaning>|<base64url of the JSON {disposition, comment}>`. No comment, an empty
   comment and one of white space only are different decisions; the signature dialog names each.
-- `execution_content_of` (last defined in sql 0302), `check_signatures` (0297) and `append_execution` (0295) are
+- `execution_content_of` (last defined in sql 0319), `check_signatures` (0297) and `append_execution` (0295) are
   replaced whole by CREATE OR REPLACE: a later migration that replaces one of them carries its last body forward.
+
+**5. A stage's summary is part of the text its sign-off signs (sql 0319; Phase 2 exit review F01; DI-37, IN-15,
+PR-16).** The STAGE_SIGNED_OFF meaning confirms the stage record and its summary, and the summary changes with acts no
+step's content holds (an operator's exception, a QA disposition, a deviation link, a time-limit breach).
+- The member `summary` (`engine/stage-summary.ts`, `stageSummaryMember`): the statement, the step counts, the exception
+  ids, the deviations and the yields, in canonical order; before the sign-off the summary the sign-off would record
+  now, after it the one it recorded (which never changes, sql 0307), so signing does not change the signed text. The
+  sign-off derives its summary with the same function (`deriveStageSummary`).
+- It is added to the stored content when the content is signed, like a proposal: by the server (`bindingOf`) and by the
+  `batch_stage` provider, which derives it from the stored state and the batch's MBR (`stage_summary_of`,
+  `canonical_stage_summary`, `stage_summary_content`). A summary changed after the signer's preview changes the hash:
+  the challenge is refused (EBMR-ESIG-013), the signature too (CONTENT_CHANGED, EBMR-ESIG-012), and
+  `check_signatures` refuses a SIGN_OFF_STAGE whose signature no longer matches. No content version is stored when the
+  summary changes, so the person who raises, links or dispositions an exception is not counted as having changed the
+  stage record (INV-03), and the stored versions keep matching the replay.
+- An accepted SIGN_OFF_STAGE row records exactly the summary its signature covers, derived from the state before the
+  row (trigger `zk_execution_stage_summary`, EBMR-EXE-135).
+- Sign-offs recorded before 0319 were signed on the text without the member: `execution_stage_summary_legacy` lists
+  them and the provider leaves the member out for exactly those while they are valid, so their signatures stay VALID.
 
 ## Defaults taken (owner decision 0004)
 
 **Signed aggregates**
 - DISPOSITION_EXCEPTION signs the `batch_exception` aggregate; CORRECT_ENTRY (A2) signs `batch_point`.
-- The stage's signing content excludes its derived summary statement, which is computed at the sign-off.
+- A stage's signed text includes its derived summary (statement, step counts, exceptions, deviations, yields), the
+  summary the STAGE_SIGNED_OFF meaning confirms; only the sign-off's end time is left out. Until the Phase 2 exit review
+  (F01) the summary was excluded by default; see "Signing content" item 5.
 - The verdict on a loop endpoint is a later system fact. Inside a loop the content shows it as "judged at
   the loop exit".
 
@@ -598,6 +619,9 @@ as 3 (review findings P26, P38; PR-45, DI-37).
   severity, without its deviation or block, with another tier, type, title, source or raiser, left out, twice, not
   marked on its value, or added where nothing is judged is refused, as are an endpoint judged before its loop's
   exit and an exit that judges nothing; a value in another unit than its limits is refused (stricter).
+- `test/execution/stage-summary-sql.test.ts` (sql 0319, Phase 2 exit review F01): for every state of both golden runs
+  and every stage frame, and for states changed in every fact the summary reads, the database's summary member is the
+  engine's, before and after the sign-off.
 - `test/execution/system-facts-sql.test.ts` (sql 0280, 0299, 0304): the database derives every time constraint
   (with its name, breach behaviour and anchor node), every duration and breach title, and every breach record of
   the fixtures as the engine does, and refuses a breach with another title, fact, time or block. It numbers every
@@ -780,6 +804,10 @@ as 3 (review findings P26, P38; PR-45, DI-37).
 - `signed-content.test.ts` (review CN1): the preview shows as signed only what the canonical content holds, and
   status, handling and system times apart. Phase 2 exit review: a time-limit breach names the step and constraint
   its source names (F02); the header names the content's family and product, the package's version label apart (F03).
+- `signed-content-stage-summary.test.ts` and `db-guards-stage-summary.test.ts` (Phase 2 exit review F01; sql 0319): the
+  stage's summary is signed and shown; an alert or a disposition after the preview refuses the challenge or the
+  signature; the provider gives the engine's member, the kernel refuses a signature on a changed one, and a sign-off
+  row recording another summary is refused (EBMR-EXE-135); a sign-off listed as made before 0319 keeps its text.
 - `db-guards-package-header.test.ts` (Phase 2 exit review F03; sql 0318): a package whose family code or product
   differs from its content is refused by the server (EBMR-EXE-017) and, called directly, by the database
   (EBMR-EXE-134).

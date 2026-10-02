@@ -230,6 +230,16 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: ['The MBR author', QA],
     controls: ['DI-04', 'DI-37'],
   },
+  // A stage sign-off records the summary its signature covers (recipe-core 0319, F01): the engine derives it with the
+  // same function the signed text uses; the database refuses a row that records another.
+  'EBMR-EXE-135': {
+    status: 422,
+    kind: 'CONTENT_CHANGED',
+    whatHappened: 'The stage summary the system was about to record is not the one you signed. Nothing was signed off.',
+    whatYouCanDo: ['Review the stage summary again, then sign the stage off again.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-37', 'IN-15', 'PR-16'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },

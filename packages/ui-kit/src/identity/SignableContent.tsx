@@ -8,7 +8,8 @@
  *    hold point also decision (the proposed disposition and comment when the signed content carries them: shown
  *    first and prominently, from the content, never from client state; review findings P26, P38; no comment, an
  *    empty one and one of white space only are each named, as each is another decision);
- *  - batch_stage: stage, steps (StepSummaryView), exceptions;
+ *  - batch_stage: stage, summary (the statement, step counts, exceptions, deviations and yields the sign-off records,
+ *    which the STAGE_SIGNED_OFF meaning confirms: shown as part of the record; F01), steps (StepSummaryView), exceptions;
  *  - batch_exception: step (the step its signed source names, also by step and frames for a time-limit breach),
  *    source (the time constraint and construct it names), exception, recorded, deviation, disposition (the proposed
  *    outcome and justification when the signed content carries them: shown first and prominently, from the content,
@@ -456,7 +457,49 @@ function BatchStep({ r }: { r: Obj }) {
   );
 }
 
-const STAGE_TOP = [...COMMON, 'stage', 'steps', 'exceptions', 'notSigned'];
+const STAGE_TOP = [...COMMON, 'stage', 'steps', 'summary', 'exceptions', 'notSigned'];
+const STAGE_SUMMARY_KEYS = ['statement', 'statementText', 'steps', 'exceptions', 'deviations', 'yields'];
+
+/**
+ * The stage's summary as signed (F01): the statement first and prominent, then the step counts, the exceptions it
+ * counts, the deviations and the yields. The STAGE_SIGNED_OFF meaning confirms it, so it is part of the record shown.
+ */
+function StageSummary({ s }: { s: unknown }) {
+  if (!isObj(s)) {
+    return (
+      <Section title="Summary">
+        <p>No summary is part of the content shown. The signature binds only what is shown here.</p>
+      </Section>
+    );
+  }
+  const steps = isObj(s['steps']) ? s['steps'] : {};
+  const list = (v: unknown): string => arr(v).map((x) => str(x) ?? '?').join(', ') || 'none';
+  const yields = arr(s['yields']);
+  return (
+    <section className={icls('disposition')} aria-label="Stage summary to be signed" data-statement={str(s['statement']) ?? ''}>
+      <h4 className={icls('sectionTitle')}>Summary</h4>
+      <dl className={icls('facts')}>
+        <Row label="Statement">{`${str(s['statementText']) ?? str(s['statement']) ?? '—'}${str(s['statementText']) ? ` (${str(s['statement']) ?? '?'})` : ''}`}</Row>
+        <Row label="Steps">{`${str(steps['completed']) ?? '0'} completed, ${str(steps['notApplicable']) ?? '0'} not applicable, ${str(steps['skipped']) ?? '0'} skipped`}</Row>
+        <Row label="Exceptions">{list(s['exceptions'])}</Row>
+        <Row label="Deviations">{list(s['deviations'])}</Row>
+        <Row label="Yields">
+          {yields.length === 0 ? (
+            'none'
+          ) : (
+            <ul>
+              {yields.map((y, i) => (
+                <li key={i}>{isObj(y) ? `${str(y['name']) ?? str(y['calculation']) ?? '?'}: ${str(y['value']) ?? '?'} ${str(y['unit']) ?? ''}`.trim() : JSON.stringify(y)}</li>
+              ))}
+            </ul>
+          )}
+        </Row>
+      </dl>
+      <Extras data={s} known={STAGE_SUMMARY_KEYS} />
+      <Extras data={steps} known={['completed', 'notApplicable', 'skipped']} />
+    </section>
+  );
+}
 const SUMMARY_KEYS = ['stepKey', 'stepId', 'number', 'title', 'block', 'status', 'statusText', 'openExceptions'];
 
 function BatchStage({ r }: { r: Obj }) {
@@ -475,6 +518,7 @@ function BatchStage({ r }: { r: Obj }) {
         </dl>
         <Extras data={stage} known={['stageKey', 'stageId', 'number', 'name', 'startedAt']} />
       </Section>
+      {'summary' in r ? <StageSummary s={r['summary']} /> : null}
       <Section title="Steps">
         {steps.length === 0 ? (
           <p>None.</p>

@@ -131,7 +131,9 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
               aggregateId: stage.signable.aggregateId,
               meaning: a.meaning,
               intent: { type: 'SIGN_OFF_STAGE', stageKey: stage.stageKey },
-              expectedVersion: version,
+              // The version of the run view whose summary the dialog showed: a run that moved on since is refused as
+              // stale before the ceremony (the ceremony itself shows and signs the summary as it is; F01).
+              expectedVersion: runView?.header.version ?? version,
               title: st('sign.title.SIGN_OFF_STAGE', { number: stage.number, name: stage.name }),
             });
           }}

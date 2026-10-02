@@ -12,7 +12,9 @@
  *    only what the canonical content holds; what is shown beside it for information (the status, deviation and
  *    handling of exceptions, the exceptions raised by acts about a step, a stage's exceptions, targets, live
  *    loop-endpoint verdicts, the times of system computations) is in `notSigned`, which the dialog shows apart
- *    and labelled as not part of the signature (review finding CN1; DI-37, DI-36).
+ *    and labelled as not part of the signature (review finding CN1; DI-37, DI-36). A stage's signed text holds its
+ *    summary (statement, step counts, exception ids, deviations, yields), which the STAGE_SIGNED_OFF meaning confirms
+ *    and the dialog shows as signed (Phase 2 exit review F01).
  *  - prepareForChallenge(): refuses a step's PERFORMED or VERIFY signature from a terminal outside the step's room
  *    before the challenge, so before the PIN (EBMR-EXE-123, DI-20; the database refuses the signed row too), locks
  *    the run and appends a PREPARE row when the system facts changed the record,
@@ -34,6 +36,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
+import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { engine, execution, flow } from '@ebmr/recipe-core';
 import type { ExceptionView, FieldView, Refusal, SignableAction, SignableContentView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
@@ -207,15 +210,28 @@ const isHoldPoint = (c: engine.AggregateContent): boolean => c.type === 'batch_s
 /**
  * The canonical envelope hash and version a signature on `c` would bind, given the stored head. What is being
  * decided is part of the signed content: an exception's proposed disposition (`proposal`) and a hold point's
- * proposed decision (`decision`); when undefined, the one stored on the head (as the content provider adds it).
+ * proposed decision (`decision`); when undefined, the one stored on the head (as the content provider adds it). A
+ * stage's content also holds its summary (`summary`: engine.stageSummaryMember of the same state; F01).
  */
-async function bindingOf(db: Db, runId: string, c: engine.AggregateContent, proposal?: execution.DispositionProposal | null, decision?: HoldPointDecision | null): Promise<{ version: number; text: string; hash: string }> {
+async function bindingOf(
+  db: Db,
+  runId: string,
+  c: engine.AggregateContent,
+  summary: engine.StageSummaryContent | undefined,
+  proposal?: execution.DispositionProposal | null,
+  decision?: HoldPointDecision | null,
+): Promise<{ version: number; text: string; hash: string }> {
   const head = await execution.loadContentHead(db, c.type, runId, c.key);
   const version = head && head.hash === c.contentHash ? head.version : (head?.version ?? 0) + 1;
   let content = c.content;
   if (c.type === 'batch_exception') {
     const p = proposal !== undefined ? proposal : head && version === head.version ? await execution.loadProposal(db, runId, c.key, version) : null;
     content = { ...content, proposedDisposition: p ? { outcome: p.outcome, justification: p.justification, deviationRef: p.deviationRef } : null };
+  }
+  if (c.type === 'batch_stage' && summary !== undefined) {
+    // The stage's derived summary, which the STAGE_SIGNED_OFF meaning confirms, is part of the signed text (F01), as
+    // the database's provider adds it (recipe-core 0319).
+    content = { ...content, summary };
   }
   if (isHoldPoint(c)) {
     const d = decision !== undefined ? decision : head && version === head.version ? await loadDecision(db, runId, c.key, version) : null;
@@ -431,8 +447,12 @@ function rendering(
     if (!frame) throw notFound('stage');
     const ref = stageRef(vc, frame.stage);
     const steps = engine.stageSteps(run.def, vc.state, frame).map((i) => stepSummary(vc, i, i.step, i.key));
-    const keys = new Set(steps.map((s) => s.stepKey));
-    // The stage's content signs its steps (number, status, content hash), never its exceptions or how many are open.
+    // The stage's content signs its steps (number, status, content hash) and its summary (F01): the statement, the
+    // step counts, the ids of its exceptions, the deviations and the yields, as the sign-off records them. The
+    // exceptions themselves (each signed in its own record), their status and how many are open are shown apart.
+    // The same member bindingOf adds to the signed text (the same state).
+    const summary = engine.stageSummaryMember(run.def, vc.state, key);
+    const exceptions = engine.deriveStageSummary(run.def, vc.state, frame).exceptions;
     return {
       title: `Stage ${ref?.number ?? ''} ${ref?.name ?? frame.stage}`.trim(),
       data: {
@@ -440,14 +460,14 @@ function rendering(
         ...common,
         stage: { stageKey: key, stageId: frame.stage, number: ref?.number ?? '', name: ref?.name ?? frame.stage, startedAt: vc.app.formatInstant(frame.startedAt) },
         steps: steps.map((x) => omit(x as unknown as Json, ['openExceptions'])),
+        summary: summary ? summaryForSigning(run.def, summary) : null,
         notSigned: {
           note: NOT_SIGNED_NOTE,
           ...pkgFacts,
           openExceptions: steps.filter((x) => x.openExceptions > 0).map((x) => ({ stepKey: x.stepKey, number: x.number, openExceptions: x.openExceptions })),
-          exceptions: Object.values(vc.state.exceptions)
-            .filter((e) => e.source.stepKey !== undefined && keys.has(e.source.stepKey))
-            .sort((a, b) => a.raisedSeq - b.raisedSeq)
-            .map((e) => exceptionView(vc, e)),
+          // The exceptions the summary counts (as the sign-off derives them: also a time-limit breach that names a step
+          // of the stage by step and frames), with their status and handling.
+          exceptions: [...exceptions].sort((a, b) => a.raisedSeq - b.raisedSeq).map((e) => exceptionView(vc, e)),
         },
       },
     };
@@ -525,6 +545,24 @@ function constructRef(def: engine.BatchDefinition, id: string | undefined): { id
   if (id === undefined) return null;
   // An alternative has no name of its own in the MBR: its id is shown.
   return { id, name: def.loops.get(id)?.name ?? def.replicates.get(id)?.name ?? id };
+}
+
+/** The texts of a stage's statement (G-02). */
+export const STAGE_STATEMENT_TEXT: Readonly<Record<engine.StageSummary['statement'], string>> = {
+  COMPLETED_PER_MBR: 'Completed per MBR: no exception was dispositioned as a deviation or is still open, and no step was skipped',
+  COMPLETED_WITH_DEVIATIONS: 'Completed with deviations: an exception is still open, linked to a deviation or dispositioned as a deviation, or a step was skipped',
+};
+
+/** A stage's summary as signed (its `summary` member), with the statement in words and each yield's MBR name. */
+export function summaryForSigning(def: engine.BatchDefinition, sum: engine.StageSummaryContent): Json {
+  return {
+    statement: sum.statement,
+    statementText: STAGE_STATEMENT_TEXT[sum.statement],
+    steps: { ...sum.steps },
+    exceptions: [...sum.exceptions],
+    deviations: [...sum.deviations],
+    yields: sum.yields.map((y) => ({ ...y, name: def.mbr.calculations.find((c) => c.id === y.calculation)?.name ?? y.calculation })),
+  };
 }
 
 /** The step's fields as the step screen shows them, with the tolerance band (derived from the target) apart from the MBR limits. */
@@ -607,6 +645,17 @@ async function decidedProblem(db: Db, ctx: SignableContext, a: EngineAction, sta
   return null;
 }
 
+/**
+ * The hash of what the signature binds of an aggregate, apart from a decision's proposal: the content and, for a stage,
+ * its summary member (F01). A signed command never changes it (EBMR-EXE-083).
+ */
+function signedHash(def: engine.BatchDefinition, state: engine.BatchState, type: engine.AggregateType, key: string): string | undefined {
+  const c = engine.aggregateContent(def, state, type, key);
+  if (!c) return undefined;
+  if (type !== 'batch_stage') return c.contentHash;
+  return sha256Hex(canonicalJson({ content: c.content, summary: engine.stageSummaryMember(def, state, key) ?? null }));
+}
+
 export function engineCommandHandler(app: AppContext): SignableActionHandler<EngineAction> {
   const cache = runCache(app);
 
@@ -655,7 +704,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       if (!c) throw notFound('record to be signed');
       const proposal = type === 'batch_exception' ? (parsed.proposal ? proposalOf(prepared.state, key, parsed.proposal) : null) : undefined;
       const decision = isHoldPoint(c) ? parsed.decision : undefined;
-      const binding = await bindingOf(db, runId, c, proposal, decision);
+      const binding = await bindingOf(db, runId, c, engine.stageSummaryMember(run.def, prepared.state, key), proposal, decision);
       const vc = await viewContext(app, db, run, prepared.state, nowUs, viewer);
       const r = rendering(vc, type, key, meaning, { proposal: proposal ?? null, decision: decision ?? null }, c);
       return {
@@ -688,7 +737,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       // What is being decided becomes part of the signed content (never a change of the record's data).
       if (a.intent.type === 'DISPOSITION_EXCEPTION') await execution.proposeDisposition(client, a.runId, a.intent.exception, proposalOf(o.tx.state, a.intent.exception, a.intent));
       if (a.intent.type === 'DISPOSITION_HOLD_POINT') await client.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [a.runId, a.intent.stepKey, JSON.stringify(decisionOf(a.intent))]);
-      const binding = await bindingOf(client, a.runId, c);
+      const binding = await bindingOf(client, a.runId, c, engine.stageSummaryMember(o.run.def, o.tx.state, o.subject.key));
       return { contentVersion: String(binding.version), contentHash: binding.hash, changed };
     },
 
@@ -714,7 +763,9 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
       const c = engine.aggregateContent(o.run.def, dry.state, o.subject.aggregateType, o.subject.key);
       if (!c) return { accepted: false, status: 404, refusal: { code: 'EXE_NOT_FOUND', kind: 'STALE', whatHappened: 'The record to be signed was not found. Nothing was signed.', why: '', controls: ['DI-37'], whatYouCanDo: ['Reload the screen.'], whoCanHelp: [] } };
-      const binding = await bindingOf(client, a.runId, c);
+      // After the dry run the stage is signed off: its summary member is the one the sign-off recorded, which must be
+      // the one the challenge previewed (the hash comparison of the sign route).
+      const binding = await bindingOf(client, a.runId, c, engine.stageSummaryMember(o.run.def, dry.state, o.subject.key));
       return { accepted: true, contentHash: binding.hash, contentVersion: String(binding.version) };
     },
 
@@ -726,11 +777,11 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       if (decided) throw new Error(`${decided.code} ${decided.why}`);
       const roles = await engineRoles(client);
       const actor = engineActor(ctx.actor.personId, roles);
-      const before = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key)?.contentHash;
+      const before = signedHash(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
       const command = signedCommand(o.tx.state, a.intent, actor, { id: signature.signatureId, meaning: signature.meaning, signer: signature.signer }, `ESIG:${signature.signatureId}`, a.expectedVersion);
       const r = await o.tx.command(command, roles, { signatureId: signature.signatureId });
       if (!r.accepted) throw new Error(`EBMR-EXE-082 the signed command was refused after its dry run was accepted (${r.refusal?.code ?? '?'}: ${r.refusal?.message ?? ''}); nothing is kept`);
-      const after = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key)?.contentHash;
+      const after = signedHash(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
       if (after !== before) throw new Error('EBMR-EXE-083 the signed content changed while the signature was applied; nothing is kept (DI-37)');
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
       const raised = o.subject.aggregateType === 'batch_exception' ? o.tx.state.exceptions[o.subject.key] : undefined;

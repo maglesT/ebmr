@@ -75,7 +75,7 @@ every loop's maximum duration.
 | Skip only for steps the MBR declares skippable, with a different approver, never for CPP/CQA inputs, reconciliation, clearance, dispensing, charge-in, sign-off, hold points or steps whose values others read | `steps.ts` | PR-13 |
 | Late entries: occurred-at between step start and now, reason required, flagged; person-claimed step starts refused | `steps.ts` | DI-28, PR-11 |
 | A reason, justification, exception description or deviation reference a person gives has a character a person can read: one made only of white space, controls or invisible format characters (zero-width space, word joiner, soft hyphen and the like) is refused (ENG-REASON; `guards.ts` requireReason and isBlankText, engine 1.1.0); the class is the kernel's `kernel.is_blank` (kernel 0960), and the database refuses the same justifications (recipe-core sql 0301) | `guards.ts` | DI-22, DI-24, PR-49 |
-| Stage frame (G-02): closes only with the responsible person's sign-off, derived summary "completed per MBR / with deviations" | `steps.ts` | IN-15, PR-16 |
+| Stage frame (G-02): closes only with the responsible person's sign-off, derived summary "completed per MBR / with deviations", which the sign-off signs (Phase 2 exit review F01) | `steps.ts`, `stage-summary.ts` | IN-15, PR-16 |
 | QA hold point (G-17): downstream locked; approval refused while exceptions lack a QA decision; "not approved" rejects the intermediate and holds the batch | `steps.ts` | PR-45, IN-37 |
 | Execution complete only with no token left, every step terminal and verified, every stage signed off | `advance.ts` | DI-34, PR-16 |
 

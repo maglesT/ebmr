@@ -23,7 +23,12 @@
  *    their times stay in the record (events, rows, state hash). Otherwise the signer's preview, computed a
  *    moment earlier, could never equal the content the challenge prepares (DI-37).
  *  - `batch_stage` (a stage frame): the stage and, for each of its step instances, the number, status and
- *    the hash of the step's content. The sign-off, its derived summary and end time are excluded.
+ *    the hash of the step's content. The text a STAGE_SIGNED_OFF signature binds also holds the stage's derived
+ *    summary (`summary`, stage-summary.ts stageSummaryMember: the summary the sign-off would record now and, once
+ *    signed, the one it recorded), which the meaning confirms (Phase 2 exit review F01). It is added to the stored
+ *    content when the content is signed, as a decision's proposal is (the server's bindingOf; the database's provider,
+ *    recipe-core sql 0319): an exception raised, dispositioned or linked to a deviation changes the summary, and so
+ *    the signed text, without a new content version. The sign-off itself and its end time are excluded.
  *  - `batch_exception`: the exception as raised (type, class, severity, tier, what was recorded and
  *    against which limit, who raised it and when) and the linked deviation; never its status or
  *    disposition, so a disposition signature stays valid.

@@ -561,6 +561,30 @@ describe('signatures through the ceremony port', () => {
     expect(calls[0]).toMatchObject({ meaning: 'STAGE_SIGNED_OFF', aggregateType: 'batch_stage', aggregateId: `${RUN_ID}:S-DISP@`, action: { intent: { type: 'SIGN_OFF_STAGE', stageKey: 'S-DISP@' } } });
   });
 
+  it('[DI-37][IN-15] F01: the stage sign-off is asked at the run version of the run view whose summary the dialog showed', async () => {
+    const recon = stepVariant('step-g20-yield', (v) => {
+      v.step.status = 'COMPLETED';
+      v.actions = [{ action: 'SIGN_OFF_STAGE', available: true, primary: true, requires: 'SIGNATURE', meaning: 'STAGE_SIGNED_OFF', reason: null, target: 'S-DISP@', whoCanHelp: [] }];
+    });
+    const runView = structuredClone(example('run'));
+    runView.header.version = recon.run.version - 1;
+    const calls: { action: { expectedVersion?: number } }[] = [];
+    renderFloor(stepPath('p-disp-recon@'), {
+      fixtures: { ...stepFixtures(recon), 'execution.run': runView },
+      ceremony: {
+        sign: (req) => {
+          calls.push(req as { action: { expectedVersion?: number } });
+          return Promise.resolve({ status: 'CANCELLED' });
+        },
+      },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign off the stage' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Sign off stage 1 Dispensing' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Continue to signature' }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]?.action.expectedVersion).toBe(runView.header.version);
+  });
+
   it('QA disposition of an exception signs batch_exception <runId>:<exceptionId> with the outcome and justification', async () => {
     const qa = stepVariant('step-g04-parameters', (v) => {
       v.actions = [{ action: 'DISPOSITION_EXCEPTION', available: true, primary: false, requires: 'SIGNATURE', meaning: 'EXCEPTION_DISPOSITIONED', reason: null, target: 'X-3', whoCanHelp: [] }];

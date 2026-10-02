@@ -28,6 +28,10 @@ implemented_by:
 tests:
   - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] a stage closes only with the sign-off of the person responsible; the next stage waits for it"
   - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] the summary statement is derived: an exception in the stage makes it \"completed with deviations\""
+  - "apps/tablets-server/test/execution/signed-content-stage-summary.test.ts > F01: the stage summary is signed and shown (DI-37, DI-36, IN-15, PR-16) > [DI-37][IN-15][PR-16] reviewed with deviations, a QA disposition before the signature refuses it as changed content; nothing is recorded under it"
+  - "apps/tablets-server/test/execution/db-guards-stage-summary.test.ts > F01: the database binds a stage sign-off to its summary (DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a SIGN_OFF_STAGE row recording another summary than its signature covers is refused (EBMR-EXE-135); the honest row is accepted"
+  - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] every state of the golden runs of both fixtures: the database's summary member of every stage frame is the engine's, before and after its sign-off"
+  - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] states changed in every fact the summary reads: the database follows each change as the engine does"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

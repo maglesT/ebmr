@@ -11,6 +11,7 @@ import type { PhaseNode } from '../flow/model.ts';
 import { RELEASING_DISPOSITIONS, type StepDef } from './definition.ts';
 import { computeCalculations, evaluateAcceptanceScheme, missingData, notify, raiseDrafts, snapshotTargets, storePoint, validateValue } from './data.ts';
 import { engineDraft, replicateCompatible } from './exceptions.ts';
+import { deriveStageSummary } from './stage-summary.ts';
 import {
   addUnique,
   checkMeanings,
@@ -446,30 +447,25 @@ export function signOffStage(tx: Tx, cmd: SignOffStageCommand): void {
   const a = requirePerson(tx);
   requireRole(a, [stage.responsibleRole], `sign off stage ${stage.id}`);
   const sig = requireSignature(tx, cmd.signature, a.id, [MEANINGS.STAGE_SIGNED_OFF], `Stage ${key}`);
-  const within = (f: readonly { construct: string; index: number }[]): boolean => frames.every((x) => f.some((y) => y.construct === x.construct && y.index === x.index));
-  const steps = Object.values(tx.s.steps).filter((i) => tx.def.steps.get(i.step)?.stage === stage.id && within(i.frames));
+  // The steps, exceptions and summary of the frame: the one derivation the stage's signed content also uses
+  // (stage-summary.ts; the summary is part of what the STAGE_SIGNED_OFF signature binds, Phase 2 exit review F01).
+  const { steps, exceptions, summary: derived } = deriveStageSummary(tx.def, tx.s, frame);
   const open = steps.filter((i) => (i.status !== 'COMPLETED' && i.status !== 'NOT_APPLICABLE' && i.status !== 'SKIPPED') || i.reverification);
   if (open.length > 0) refuse('ENG-STAGE-STEPS', `Stage ${key} has steps that are not finished or await re-verification: ${open.map((i) => i.key).join(', ')}`, ['PR-16', 'IN-15']);
-  const keys = new Set(steps.map((i) => i.key));
-  const exceptions = Object.values(tx.s.exceptions).filter((e) => (e.source.stepKey !== undefined && keys.has(e.source.stepKey)) || (e.source.step !== undefined && tx.def.steps.get(e.source.step)?.stage === stage.id && within(e.source.frames)));
   const unclassified = exceptions.filter((e) => e.status === 'OPEN' && (e.stageSignOffBlocked || (e.block !== undefined && (e.block.until === 'DISPOSITION' || e.deviation === undefined))));
   if (unclassified.length > 0) {
     refuse('ENG-STAGE-EXCEPTIONS', `Stage ${key} cannot be signed off: ${unclassified.map((e) => `${e.id} ${e.title}`).join('; ')} ${unclassified.some((e) => e.stageSignOffBlocked) ? '(registration-relevant exceptions need QA classification first)' : ''}`.trim(), ['PR-08', 'IN-15', 'PR-16']);
   }
   checkMinimum(tx, stage.id, 'END', frames, tx.clockUs);
-  const yields = Object.values(tx.s.derived)
-    .filter((d) => d.status === 'CURRENT' && keys.has(d.stepKey) && tx.def.mbr.yieldCheckpoints.some((y) => y.result === d.calculation) && d.value.kind === 'DECIMAL')
-    .map((d) => ({ calculation: d.calculation, value: d.value.kind === 'DECIMAL' ? d.value.value : '', unit: d.value.kind === 'DECIMAL' ? d.value.unit : '' }));
-  const withDeviation = exceptions.some((e) => e.status === 'OPEN' || e.deviation !== undefined || e.disposition?.outcome === 'DEVIATION_RAISED') || steps.some((i) => i.status === 'SKIPPED');
   const summary: StageSummary = {
-    stage: stage.id,
-    startedAt: frame.startedAt,
+    stage: derived.stage,
+    startedAt: derived.startedAt,
     endedAt: tx.now,
-    steps: { completed: steps.filter((i) => i.status === 'COMPLETED').length, notApplicable: steps.filter((i) => i.status === 'NOT_APPLICABLE').length, skipped: steps.filter((i) => i.status === 'SKIPPED').length },
-    exceptions: exceptions.map((e) => e.id),
-    deviations: [...new Set(exceptions.flatMap((e) => (e.deviation ? [e.deviation.ref] : [])))],
-    statement: withDeviation ? 'COMPLETED_WITH_DEVIATIONS' : 'COMPLETED_PER_MBR',
-    yields,
+    steps: derived.steps,
+    exceptions: derived.exceptions,
+    deviations: derived.deviations,
+    statement: derived.statement,
+    yields: derived.yields,
   };
   useSignature(tx, sig, `stage ${key} signed off`);
   frame.signOff = { by: a.id, signature: sig.id, at: tx.now, valid: true, summary };

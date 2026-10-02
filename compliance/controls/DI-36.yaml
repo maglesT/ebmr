@@ -57,6 +57,7 @@ tests:
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-36] after signing the stored manifestation is shown with date and time, offset and zone; an invalid one says so"
   - "packages/ui-kit/test/machines/ceremony.test.ts > [DI-38][DI-36] every state is reachable; a kiosk signature always passes review, the tap, the challenge and the secret"
   - "tools/e2e/specs/esig/esig.spec.ts > [DI-36][DI-38][INV-40] a kiosk signature: tap for the challenge, a wrong PIN signs nothing, the right PIN shows the manifestation"
+  - "apps/tablets-server/test/execution/signed-content-stage-summary.test.ts > F01: the stage summary is signed and shown (DI-37, DI-36, IN-15, PR-16) > [DI-37][DI-36][IN-15] the summary is in the signed text and shown as signed; an alert raised after the preview refuses the challenge as changed content"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

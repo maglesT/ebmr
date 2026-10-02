@@ -13,5 +13,6 @@ export { checkInvariants, type InvariantViolation } from './invariants.ts';
 // Module C3 (Phase 2 apps): persistence codec, signing content, available actions and replay (all pure).
 export * from './codec.ts';
 export * from './signing-content.ts';
+export * from './stage-summary.ts';
 export * from './actions.ts';
 export * from './replay.ts';

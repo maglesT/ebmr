@@ -197,6 +197,34 @@ describe('what is signed: the C3 rendering shapes', () => {
     expect(within(region).getByRole('article', { name: 'Exception EX-1' })).toBeTruthy();
   });
 
+  it('[DI-37][IN-15] F01: a stage shows its summary (statement, step counts, exceptions, deviations, yields) as part of the record to be signed', () => {
+    const v = view('Stage 1 Dispensing', 'STAGE_SIGNED_OFF', {
+      kind: 'batch_stage',
+      ...COMMON,
+      meaning: 'STAGE_SIGNED_OFF',
+      meaningText: 'I confirm the stage record and its summary are complete and correct.',
+      stage: { stageKey: 'S-DISP@', stageId: 'S-DISP', number: '1', name: 'Dispensing', startedAt: AT_1 },
+      steps: [],
+      summary: {
+        statement: 'COMPLETED_WITH_DEVIATIONS',
+        statementText: 'Completed with deviations: an exception is still open',
+        steps: { completed: 7, notApplicable: 0, skipped: 0 },
+        exceptions: ['EX-1', 'EX-2', 'EX-4'],
+        deviations: ['DEV-2026-014'],
+        yields: [{ calculation: 'dispYield', name: 'Dispensing yield', value: '99.2', unit: '%' }],
+      },
+      notSigned: { note: 'Shown for information only.' },
+    });
+    render(<SignableContent view={v} />);
+    const signed = screen.getByRole('region', { name: 'Stage to be signed' });
+    const summary = within(signed).getByRole('region', { name: 'Stage summary to be signed' });
+    expect(summary.getAttribute('data-statement')).toBe('COMPLETED_WITH_DEVIATIONS');
+    for (const text of ['Completed with deviations: an exception is still open (COMPLETED_WITH_DEVIATIONS)', '7 completed, 0 not applicable, 0 skipped', 'EX-1, EX-2, EX-4', 'DEV-2026-014', 'Dispensing yield: 99.2 %']) {
+      expect(within(summary).getByText(text)).toBeTruthy();
+    }
+    expect(screen.getByRole('region', { name: 'For information: not part of this signature' }).textContent).not.toMatch(/COMPLETED_WITH_DEVIATIONS/);
+  });
+
   it('[DI-37] an exception shows its proposed disposition first and prominently, then the exception, the recorded value, its limits and the linked deviation', () => {
     render(<SignableContent view={exceptionView({ proposed: { outcome: 'DEVIATION_RAISED', justification: 'Speed restored; blend uniformity to be tested under DEV-2026-014.', deviationRef: 'DEV-2026-014', reviewedWith: 'Line QA' } })} />);
     const region = screen.getByRole('region', { name: 'Exception to be signed' });
