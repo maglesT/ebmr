@@ -104,6 +104,22 @@ describe('G-22 output containers with the scale offline', () => {
     expect(entry).toEqual({ kind: 'OUTPUT_CONTAINER', intermediate: 'I-BLEND', manual: { tare: '1.05', gross: '26.10', unit: 'kg' } });
     expect(ClientEntry.safeParse(entry).success).toBe(true);
   });
+
+  it('a Save that cannot be pressed says what is still needed, in screen order, until nothing is', async () => {
+    renderFloor(stepPath('p-blend-out@'), { scaleSlot: fakeScaleSlot({}, []), intercept: (r) => ok(r, example('step-g22-output')) });
+    const form = await screen.findByTestId('form-OUTPUT_CONTAINER');
+    const save = within(form).getByRole('button', { name: 'Save: Weigh one output container' });
+    const pending = () => within(form).queryByTestId('form-pending')?.textContent ?? null;
+    expect(pending()).toBe('To save, still needed: Intermediate, Tare (typed by hand), Gross (typed by hand).');
+    await userEvent.click(within(form).getByRole('radio', { name: 'Final blend' }));
+    expect(pending()).toBe('To save, still needed: Tare (typed by hand), Gross (typed by hand).');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Gross (typed by hand)' }), '26.10');
+    expect(pending()).toBe('To save, still needed: Tare (typed by hand).');
+    expect(save.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Tare (typed by hand)' }), '1.05');
+    expect(pending()).toBeNull();
+    expect(save.hasAttribute('disabled')).toBe(false);
+  });
 });
 
 describe('checklists, scans and acknowledgements', () => {

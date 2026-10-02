@@ -50,6 +50,7 @@ export const SCREEN_EN = {
   'field.recorded': 'Recorded values',
   'form.problem': 'This entry cannot be sent from this screen: {problem}',
   'form.missingField': 'The step does not say which {name} this entry is for; ask the supervisor.',
+  'form.stillNeeded': 'To save, still needed: {names}.',
   'entries.title': 'Entries so far',
   'entries.by': '{name}, {at}',
   'reading.captured': '{purpose}: {value} {unit} on {device} ({status}), raw "{raw}", {at}',

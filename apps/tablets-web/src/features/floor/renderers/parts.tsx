@@ -312,10 +312,18 @@ interface FormState {
 
 const EMPTY_FORM: FormState = { texts: {}, choices: {}, scans: {}, readings: {}, checks: {} };
 
-/** Builds the entry from what the person gave; null members stay absent. */
-export function buildEntry(form: EntryFormView, state: FormState, opts: FormOptions & { manual: { unit: string } | null }): { candidate: Record<string, unknown>; complete: boolean } {
+/**
+ * Builds the entry from what the person gave; null members stay absent. `pending` names, in screen order, the
+ * required values not given yet (or not readable, such as a number with a typing error), so a Save that cannot be
+ * pressed says why.
+ */
+export function buildEntry(
+  form: EntryFormView,
+  state: FormState,
+  opts: FormOptions & { manual: { unit: string } | null },
+): { candidate: Record<string, unknown>; complete: boolean; pending: string[] } {
   const candidate: Record<string, unknown> = { kind: form.kind, ...(opts.fixed ?? {}) };
-  let complete = true;
+  const pending: string[] = [];
   for (const f of form.fields) {
     let v: unknown;
     switch (f.type) {
@@ -349,7 +357,7 @@ export function buildEntry(form: EntryFormView, state: FormState, opts: FormOpti
       }
     }
     if (v === undefined || v === '') {
-      if (f.required) complete = false;
+      if (f.required) pending.push(f.label);
       continue;
     }
     candidate[f.name] = v;
@@ -357,10 +365,13 @@ export function buildEntry(form: EntryFormView, state: FormState, opts: FormOpti
   if (opts.manual) {
     const tare = state.texts['__manual.tare'] ?? '';
     const gross = state.texts['__manual.gross'] ?? '';
-    if (tare && gross && decimalProblem(tare) === null && decimalProblem(gross) === null) candidate['manual'] = { tare, gross, unit: opts.manual.unit };
-    else complete = false;
+    const tareOk = tare !== '' && decimalProblem(tare) === null;
+    const grossOk = gross !== '' && decimalProblem(gross) === null;
+    if (!tareOk) pending.push(st('manual.tare'));
+    if (!grossOk) pending.push(st('manual.gross'));
+    if (tareOk && grossOk) candidate['manual'] = { tare, gross, unit: opts.manual.unit };
   }
-  return { candidate, complete };
+  return { candidate, complete: pending.length === 0, pending };
 }
 
 /** One entry form of the step, generated from the server's EntryFormView. */
@@ -378,7 +389,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const manualUnit = readingFields[0]?.unit ?? view.run.scale?.unit ?? null;
   // Keying by hand is the fallback only while no scale of the step's room is online (PR-20; the server refuses it otherwise, EBMR-EXE-074).
   const manual = options.weighing && readingFields.length > 0 && onlineScales(view).length === 0 && manualUnit ? { unit: manualUnit } : null;
-  const { candidate, complete } = buildEntry(form, state, { ...options, manual });
+  const { candidate, complete, pending } = buildEntry(form, state, { ...options, manual });
   const missing = (options.required ?? []).filter((m) => !(m in candidate) && !form.fields.some((f) => f.name === m));
   const parsed = complete && missing.length === 0 ? ClientEntry.safeParse(candidate) : null;
   const problem = missing.length > 0 ? st('form.missingField', { name: missing.join(', ') }) : parsed && !parsed.success ? st('form.problem', { problem: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') }) : null;
@@ -473,6 +484,11 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
             </>
           ) : null}
           {problem ? <p role="alert">{problem}</p> : null}
+          {!problem && pending.length > 0 ? (
+            <p className={wcls('muted')} data-testid="form-pending">
+              {st('form.stillNeeded', { names: pending.join(', ') })}
+            </p>
+          ) : null}
           <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!parsed?.success || locked}>
             {st('save.form', { title: form.title })}
           </Button>
