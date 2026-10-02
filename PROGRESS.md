@@ -1301,3 +1301,26 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   in Phase 3 (quantities computed with the potency, assay and LOD adjustment, TB-01); an example generics pack from
   public sources in Phase 6, labelled as examples and never issuable for a GMP batch until a site approves one as its
   own formula. No real company's formula ships.
+- 2026-10-02: PHASE 2 EXIT FIX, Rules the database must enforce (branch phase-2/recipe-core; findings F11, F66, F67,
+  F37, F38, F12, F58 of the exit review; each fix with a test that fails on the code before it). F11: a person who
+  worked in the step that raised an exception could disposition it through the store (the content provider named
+  only the raiser); now the provider names the step's performers, data enterers, correctors and PERFORMED signers
+  (the kernel refuses the signature), check_disposition_state refuses the row (EBMR-EXE-087) and the invariant query
+  reports it (recipe-core 0306). F66 (critic, reproduced): the database let a row enable a step the token could not
+  have reached, and the server then started the dispensing during the line clearance; now every new step instance is
+  checked against the MBR's flow (steps before it finished, stages signed off, loops ended, decisions taken, frames
+  right) and the completion marks and stage sign-offs it reads are bound to their rows (recipe-core 0307,
+  EBMR-EXE-129). F67 (critic, reproduced): a PERFORMED signature before a 1 h minimum, and one of a step blocked by its
+  open action-limit breach, were stored through the store; now minimum durations, exception blocks and hold-point
+  release with open exceptions are refused in the database (recipe-core 0308, EBMR-EXE-130/131). F37: a second QA
+  user's proposal made during a signing landed on the signed content version (the signature read CONTENT_MISMATCH);
+  the proposal functions now take the batch's lock first and never propose on a signed version (recipe-core 0309).
+  F38: the reading age was the caller's word (up to 1 h); now the platform setting device.reading_max_age_s (120 s,
+  only tightened) caps it (tablets 0360). F12: a real previous batch number was recorded in a test run; the server
+  and the database (tablets 0370, EBMR-EXE-078) now accept only TEST- identifiers in entries (NONE for no previous
+  batch) and only registered test lots as the register holds them. F58: a weighing refused as stale spent its
+  readings; the server now checks the version before it claims anything, and the floor form keeps its captures after a
+  stale answer. Tests: recipe-core step-order-sql, step-acts-sql, sql-guards and signing-content; server
+  db-guards-disposition-involvement, db-guards-step-order, db-guards-step-acts, db-guards-proposal-race,
+  db-guards-entry-identifiers, devices/reading-age-policy and devices/stale-weighing-readings; web entries.test.tsx.
+  Defaults taken are in docs/decisions/phase-2-open-questions.md (F66.1, F66.2, F67.1, F37.1, F38.1, F12.1, F58.1).
