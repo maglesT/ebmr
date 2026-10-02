@@ -6,10 +6,11 @@
  * witness, a skip, a moved target), a stage's exceptions and open counts, targets, live loop-endpoint verdicts and
  * the times of system computations. Every item of the signed part traces to a member of the canonical text.
  */
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { engine } from '@ebmr/recipe-core';
 import { routes, type SignableContentView } from '@ebmr/api-contract';
-import { NOT_SIGNED_NOTE, NOT_SIGNED_WHY, notSignedWhy, stepForSigning, type FieldForSigning } from '../../src/features/execution/signable.ts';
+import { MBR_VERSION_NOTE, NOT_SIGNED_NOTE, NOT_SIGNED_WHY, notSignedWhy, stepForSigning, type FieldForSigning } from '../../src/features/execution/signable.ts';
 import { dcMini, importAndIssue, RunDriver, startExecServer, valueOf, violations, withEarlyParameter, withShortWindow, writePackage, type ExecServer } from './support.ts';
 
 let server: ExecServer;
@@ -168,6 +169,26 @@ describe('the record to be signed is the signed content (CN1)', () => {
     for (const k of ['status', 'blocking', 'whatToDo', 'routedTo']) expect(e).not.toHaveProperty(k);
     expect(e['deviationRef']).toBeNull();
     expect((rendering['notSigned'] as Json)['exception']).toMatchObject({ exceptionId: act, status: 'OPEN', blocking: false });
+  }, 240_000);
+
+  it('[DI-37][DI-04] F03: the record to be signed names the family and product of the MBR content; the package\'s version label is shown apart as not signed', async () => {
+    const issuer = await server.asPersona('issuer');
+    const content = dcMini();
+    const pkg = writePackage(server, content, { version: { versionId: randomUUID(), number: '7', revision: 3, state: 'APPROVED' } });
+    const runId = await importAndIssue(server, issuer, pkg);
+    const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1'), supervisor1: await server.asPersona('supervisor1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    for (const [type, key, intent] of [['batch_step', CLEAR, 'LINE_CLEARANCE_PERFORMED'], ['batch_stage', STAGE, 'STAGE_SIGNED_OFF']] as const) {
+      const { content: signed, rendering } = await preview(d, type === 'batch_step' ? 'operator1' : 'supervisor1', type, key, intent);
+      const batch = signed['batch'] as Json;
+      // Signed: the content's family, product code and MBR hash; shown as signed: the same, with the content's own name and strength.
+      expect(batch).toMatchObject({ family: content.header.family, product: content.header.product.code });
+      expect(rendering['mbr']).toEqual({ familyCode: batch['family'], contentHash: batch['mbrHash'] });
+      expect(rendering['product']).toEqual({ code: batch['product'], name: content.header.product.name, strength: content.header.product.strength });
+      // The package's version label is not bound: shown apart, labelled.
+      expect((rendering['notSigned'] as Json)['mbrVersion']).toEqual({ number: '7', revision: 3, note: MBR_VERSION_NOTE });
+    }
   }, 240_000);
 
   it('[DI-37][DI-36] F02: a time-limit breach the system raises shows the step and the time constraint its signed source names', async () => {

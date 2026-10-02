@@ -1,8 +1,9 @@
 /**
  * What is being signed (module C1; plan section 6, step 1; DI-37): renderers for the SignableContentView
  * `rendering` of each kind, matched to the shapes the execution store (C3) sends from GET /api/esig/content:
- *  - common: runId, batchNumber, product {code, name, strength}, mbr {familyCode, versionNumber, revision,
- *    contentHash}, meaning, meaningText;
+ *  - common: runId, batchNumber, product {code, name, strength} and mbr {familyCode, contentHash} as the MBR content
+ *    the signature binds names them, meaning, meaningText; the test package's version label comes apart in notSigned
+ *    (mbrVersion {number, revision, note}: the signature binds the content by its hash, not the label; F03);
  *  - batch_step: step, instruction, fields (FieldView), entries (EntryView), exceptions (ExceptionView); for a QA
  *    hold point also decision (the proposed disposition and comment when the signed content carries them: shown
  *    first and prominently, from the content, never from client state; review findings P26, P38; no comment, an
@@ -210,7 +211,8 @@ function Header({ r }: { r: Obj }) {
       ) : null}
       {mbr ? (
         <Row label="Master record">
-          {`${str(mbr['familyCode']) ?? '?'} version ${str(mbr['versionNumber']) ?? '?'}, revision ${str(mbr['revision']) ?? '?'}`}
+          {/* The version label shows here only when the rendering sends it as signed; C3 sends it apart (notSigned, F03). */}
+          {`${str(mbr['familyCode']) ?? '?'}${'versionNumber' in mbr || 'revision' in mbr ? ` version ${str(mbr['versionNumber']) ?? '?'}, revision ${str(mbr['revision']) ?? '?'}` : ''}`}
           <span className={icls('hash')}>{` · SHA-256 ${str(mbr['contentHash']) ?? '?'}`}</span>
           <Extras data={mbr} known={['familyCode', 'versionNumber', 'revision', 'contentHash']} />
         </Row>
@@ -622,7 +624,7 @@ function BatchException({ r }: { r: Obj }) {
 
 export const NOT_SIGNED_TITLE = 'For information: not part of this signature';
 
-const NOT_SIGNED_KEYS = ['note', 'exceptions', 'exception', 'openExceptions', 'targets', 'verdicts', 'times', 'statuses'];
+const NOT_SIGNED_KEYS = ['note', 'mbrVersion', 'exceptions', 'exception', 'openExceptions', 'targets', 'verdicts', 'times', 'statuses'];
 
 function List({ title, items }: { title: string; items: unknown[] }) {
   if (items.length === 0) return null;
@@ -642,6 +644,15 @@ function NotSigned({ data }: { data: unknown }) {
     <section aria-label={NOT_SIGNED_TITLE} data-signed="false">
       <h4 className={icls('sectionTitle')}>{NOT_SIGNED_TITLE}</h4>
       <p className={icls('muted')}>{str(data['note']) ?? 'The signature does not cover what is shown here.'}</p>
+      {isObj(data['mbrVersion']) ? (
+        <dl className={icls('facts')}>
+          <Row label="Master record version">
+            {`version ${str(data['mbrVersion']['number']) ?? '?'}, revision ${str(data['mbrVersion']['revision']) ?? '?'}`}
+            {str(data['mbrVersion']['note']) ? <span className={icls('muted')}>{` (${str(data['mbrVersion']['note']) ?? ''})`}</span> : null}
+            <Extras data={data['mbrVersion']} known={['number', 'revision', 'note']} />
+          </Row>
+        </dl>
+      ) : null}
       {exceptions.length > 0 ? (
         <>
           <h5 className={icls('sectionTitle')}>Exceptions: status and handling</h5>

@@ -392,6 +392,10 @@ one plain-language business entry on the chain `batch:<id>`.
 - `begin_issue`, `issue_execution` and `import_test_package` are sandbox only and require BATCH.ISSUE.
   - The TEST- number comes from a sequence and must be the one allocated in the issuing transaction.
   - The package hash, the content hash and the GMP origin are recomputed in SQL.
+  - The package's family code and product (code, name, strength), in its `family` member and in the columns stored
+    from it, are its content's header (sql 0318, trigger `a2_test_package_header`, `package_header_problem`,
+    EBMR-EXE-134; Phase 2 exit review F03): every screen of a run names the family and product the signatures bind.
+    The server's parser refuses the same first (`packageHeaderProblems`).
   - The request's issuer is the person of the command (a PERSON). Every engine role the request gives the
     issuer must be backed by an evaluation stored in the issuing command, under the same rules as
     `append_execution`. The ISSUE row stores that evidence (sql 0270).
@@ -774,7 +778,11 @@ as 3 (review findings P26, P38; PR-45, DI-37).
 - `signed-content-meanings.test.ts` (review P37; sql 0295, 0296): the verifier signs the check the step requires;
   on every phase the database accepts exactly the step signature meanings the engine accepts.
 - `signed-content.test.ts` (review CN1): the preview shows as signed only what the canonical content holds, and
-  status, handling and system times apart.
+  status, handling and system times apart. Phase 2 exit review: a time-limit breach names the step and constraint
+  its source names (F02); the header names the content's family and product, the package's version label apart (F03).
+- `db-guards-package-header.test.ts` (Phase 2 exit review F03; sql 0318): a package whose family code or product
+  differs from its content is refused by the server (EBMR-EXE-017) and, called directly, by the database
+  (EBMR-EXE-134).
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and

@@ -366,6 +366,10 @@ export function stepForSigning(
   };
 }
 
+/** Why the master record's version label is shown apart from the record to be signed (F03). */
+export const MBR_VERSION_NOTE =
+  "The version number and revision come from the test package's own metadata; the signature binds the master record content by its hash, not this label.";
+
 /** The note of a hold point previewed without the decision being signed (it cannot be signed as shown). */
 export const NO_DECISION_NOTE = 'The decision is part of the signed content: preview it with the intent <meaning>|<base64url JSON {disposition, comment}>.';
 
@@ -379,14 +383,19 @@ function rendering(
 ): { title: string; data: Record<string, unknown> & { kind: string } } {
   const proposal = decided.proposal;
   const run = vc.run;
+  // The header shown as part of the record to be signed comes from the MBR content the signature binds (content.batch:
+  // family, product code and the MBR hash, which binds the content's header product name and strength), never from the
+  // test package's own metadata. The package's version label is shown apart, as not signed (Phase 2 exit review F03).
+  const h = run.def.mbr.header;
   const common = {
     runId: run.batch.id,
     batchNumber: vc.state.header.batchNumber,
-    product: { code: run.def.mbr.header.product.code, name: run.pkg.product.name || run.def.mbr.header.product.name, strength: run.def.mbr.header.product.strength },
-    mbr: { familyCode: run.pkg.familyCode, versionNumber: run.pkg.versionNumber, revision: run.pkg.revision, contentHash: run.def.contentHash },
+    product: { code: h.product.code, name: h.product.name, strength: h.product.strength },
+    mbr: { familyCode: h.family, contentHash: run.def.contentHash },
     meaning: meaning.code,
     meaningText: meaning.text,
   };
+  const pkgFacts = { mbrVersion: { number: run.pkg.versionNumber, revision: run.pkg.revision, note: MBR_VERSION_NOTE } };
   if (type === 'batch_step') {
     const inst = vc.state.steps[key];
     if (!inst) throw notFound('step');
@@ -396,6 +405,11 @@ function rendering(
     const shown = exceptionsOfStep(vc, inst, key, inst.step);
     const sopId = stepDef.node.kind === 'phase' && typeof stepDef.node.config['sop'] === 'string' ? stepDef.node.config['sop'] : undefined;
     const sop = sopId ? run.def.mbr.references.find((r) => r.id === sopId) : undefined;
+    const signedParts = stepForSigning(c.content, {
+      fields: fieldsForSigning(vc, stepDef, inst, key),
+      exceptions: shown.map((e) => exceptionView(vc, e)),
+      whyNotSigned: new Map(shown.map((e) => [e.id, notSignedWhy(run.def, vc.state, e, key)])),
+    });
     return {
       title: `${summary.number} ${summary.title}`,
       data: {
@@ -407,11 +421,8 @@ function rendering(
         // when the signing challenge is prepared; a preview without it cannot be signed as shown (P26, P38).
         ...(inst.kind === 'HOLD' ? { decision: decided.decision ? { proposed: { disposition: decided.decision.disposition, comment: decided.decision.comment } } : { proposed: null, note: NO_DECISION_NOTE } } : {}),
         entries: entriesOf(vc, key),
-        ...stepForSigning(c.content, {
-          fields: fieldsForSigning(vc, stepDef, inst, key),
-          exceptions: shown.map((e) => exceptionView(vc, e)),
-          whyNotSigned: new Map(shown.map((e) => [e.id, notSignedWhy(run.def, vc.state, e, key)])),
-        }),
+        ...signedParts,
+        notSigned: { ...signedParts.notSigned, ...pkgFacts },
       },
     };
   }
@@ -431,6 +442,7 @@ function rendering(
         steps: steps.map((x) => omit(x as unknown as Json, ['openExceptions'])),
         notSigned: {
           note: NOT_SIGNED_NOTE,
+          ...pkgFacts,
           openExceptions: steps.filter((x) => x.openExceptions > 0).map((x) => ({ stepKey: x.stepKey, number: x.number, openExceptions: x.openExceptions })),
           exceptions: Object.values(vc.state.exceptions)
             .filter((e) => e.source.stepKey !== undefined && keys.has(e.source.stepKey))
@@ -475,7 +487,7 @@ function rendering(
       // The disposition being signed is part of the signed content (proposedDisposition), bound when the
       // signing challenge is prepared; a preview without it cannot be signed as shown.
       disposition: proposal ? { proposed: proposal } : { proposed: null, note: 'The proposed disposition is part of the signed content: preview it with the intent EXCEPTION_DISPOSITIONED|<base64url JSON {outcome, justification}>.' },
-      notSigned: { note: NOT_SIGNED_NOTE, exception: { exceptionId: view.exceptionId, ...omit(view, EXCEPTION_SIGNED) } },
+      notSigned: { note: NOT_SIGNED_NOTE, ...pkgFacts, exception: { exceptionId: view.exceptionId, ...omit(view, EXCEPTION_SIGNED) } },
     },
   };
 }

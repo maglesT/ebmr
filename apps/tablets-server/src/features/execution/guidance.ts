@@ -220,6 +220,16 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [ADMIN, QA],
     controls: ['DI-27', 'DI-34', 'INV-20'],
   },
+  // A test package names the family and product of its own MBR content (recipe-core 0318, F03): the server's parser
+  // refuses it first (EBMR-EXE-017, with the reason); the database refuses the row too.
+  'EBMR-EXE-134': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The test package names another family or product than its MBR content. Nothing was imported.',
+    whatYouCanDo: ['Export the MBR version again from the GMP designer; never edit a package file.'],
+    whoCanHelp: ['The MBR author', QA],
+    controls: ['DI-04', 'DI-37'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },

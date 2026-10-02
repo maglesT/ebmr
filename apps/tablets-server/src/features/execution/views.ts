@@ -135,9 +135,10 @@ function numbering(def: engine.BatchDefinition): flow.MbrNumbering {
   return engine.numberingOf(def);
 }
 
-function productOf(ctx: ViewContext): { code: string; name: string; strength: string } {
+/** The product as the MBR content names it (the record; the package's metadata must agree with it, F03). */
+function productOf(ctx: Pick<ViewContext, 'run'>): { code: string; name: string; strength: string } {
   const p = ctx.run.def.mbr.header.product;
-  return { code: p.code, name: ctx.run.pkg.product.name || p.name, strength: p.strength };
+  return { code: p.code, name: p.name, strength: p.strength };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -760,7 +761,7 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
     statusText: BATCH_STATUS_TEXT[ctx.state.status],
     watermark: watermark(),
     version: ctx.state.version,
-    mbr: { familyCode: ctx.run.pkg.familyCode, versionNumber: ctx.run.pkg.versionNumber, revision: ctx.run.pkg.revision, contentHash: ctx.run.def.contentHash },
+    mbr: { familyCode: ctx.run.def.mbr.header.family, versionNumber: ctx.run.pkg.versionNumber, revision: ctx.run.pkg.revision, contentHash: ctx.run.def.contentHash },
     stage: stageRef(ctx, stageId),
     room,
     equipment: (stage?.binding.equipment ?? []).map((e) => {
@@ -962,11 +963,10 @@ export async function runView(ctx: ViewContext): Promise<RunView> {
 }
 
 export function runSummary(ctx: Pick<ViewContext, 'app' | 'run' | 'state'>): z.infer<typeof RunSummaryView> {
-  const p = ctx.run.def.mbr.header.product;
   return {
     runId: ctx.run.batch.id,
     batchNumber: ctx.state.header.batchNumber,
-    product: { code: p.code, name: ctx.run.pkg.product.name || p.name, strength: p.strength },
+    product: productOf(ctx),
     markets: [...ctx.state.header.marketSet],
     status: ctx.state.status,
     statusText: BATCH_STATUS_TEXT[ctx.state.status],

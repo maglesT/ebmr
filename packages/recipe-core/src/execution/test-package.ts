@@ -7,7 +7,7 @@
  * Members (strict: any other member refuses the package):
  *   format "ebmr.mbr-test-package", formatVersion 1;
  *   source {installationKind, watermark} as kernel sandbox.readInstallationStamp returns it (GMP, null);
- *   family {familyId, familyCode, product {code, name, strength}};
+ *   family {familyId, familyCode, product {code, name, strength}}: the family code and product of the content's header;
  *   version {versionId, number, revision, state};
  *   content (the MBR content JSON) and contentHash (SHA-256 of its canonical JSON, flow.mbrContentHash);
  *   justifications [{key, text, by}] (validator and engine definition warnings);
@@ -82,8 +82,26 @@ function exactMembers(v: unknown, members: readonly string[], path: string, out:
 const text = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
 
 /**
+ * Why the package's family metadata is not the MBR content's own header (empty when it is): the family code and the
+ * product code, name and strength must be the content's. Every screen of a test run, the signature dialog included,
+ * names the family and product of the content the signatures bind (content.batch, the MBR hash), so a package whose
+ * metadata says otherwise is refused (Phase 2 exit review F03; DI-04, DI-37). The database checks the same
+ * (recipe.import_test_package, recipe-core 0318).
+ */
+export function packageHeaderProblems(family: TestPackageV1['family'], content: MbrContent): string[] {
+  const h = content.header;
+  const out: string[] = [];
+  if (family.familyCode !== h.family) out.push(`$.family.familyCode ${family.familyCode} is not the family of the MBR content (${h.family})`);
+  for (const k of ['code', 'name', 'strength'] as const) {
+    if (family.product[k] !== h.product[k]) out.push(`$.family.product.${k} ${family.product[k]} is not the product ${k} of the MBR content (${h.product[k]})`);
+  }
+  return out;
+}
+
+/**
  * Parses a package strictly (fail closed): exact member sets, hashes recomputed, the file name checked
- * when given, and the MBR content parsed by the flow model. The GMP origin is checked by the importer.
+ * when given, the MBR content parsed by the flow model, and the family metadata equal to the content's header
+ * (packageHeaderProblems). The GMP origin is checked by the importer.
  */
 export function parseTestPackage(json: unknown, fileName?: string): ParsedPackage {
   const out: string[] = [];
@@ -138,6 +156,7 @@ export function parseTestPackage(json: unknown, fileName?: string): ParsedPackag
   const mbr = parseMbr(p['content']);
   if (!mbr.ok) out.push(...mbr.problems.map((x) => `content ${x.path}: ${x.message}`));
   else if (sha256Hex(canonicalJson(mbr.mbr)) !== contentHash) out.push('the MBR content is not in the canonical form of the content model');
+  else out.push(...packageHeaderProblems(p['family'] as TestPackageV1['family'], mbr.mbr));
   if (out.length > 0 || !mbr.ok) return { ok: false, problems: out };
   return { ok: true, pkg: { ...(p as unknown as TestPackageV1), content: mbr.mbr } };
 }

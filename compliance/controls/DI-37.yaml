@@ -96,6 +96,9 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-proposal-race.test.ts > F37: a proposed decision never lands on a signed content version (INV-09, DI-37) > [INV-09][DI-37][PR-49] a disposition is never proposed on a content version a disposition was already signed on, even with the exception still open"
   - "apps/tablets-server/test/execution/signed-content.test.ts > the record to be signed is the signed content (CN1) > [DI-37][DI-36] F02: a time-limit breach the system raises shows the step and the time constraint its signed source names"
   - "packages/ui-kit/test/identity/signable-content.test.tsx > what is signed: the C3 rendering shapes > [DI-37] F02: a time-limit breach shows the step and the time constraint its signed source names, never \"not raised at a step\""
+  - "apps/tablets-server/test/execution/db-guards-package-header.test.ts > F03: a test package names the family and product of its MBR content (DI-04, DI-37) > [DI-04][DI-37] a package whose family code or product differs from its MBR content is refused by the server and, called directly, by the database"
+  - "apps/tablets-server/test/execution/signed-content.test.ts > the record to be signed is the signed content (CN1) > [DI-37][DI-04] F03: the record to be signed names the family and product of the MBR content; the package's version label is shown apart as not signed"
+  - "packages/ui-kit/test/identity/signable-content.test.tsx > what is signed: the C3 rendering shapes > [DI-37][DI-04] F03: the master record shows as signed by family and content hash; the package version label is shown apart as not signed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

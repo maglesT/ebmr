@@ -254,6 +254,28 @@ describe('what is signed: the C3 rendering shapes', () => {
     expect(within(screen.getByRole('region', { name: 'Deviation linked' })).getByText('None.')).toBeTruthy();
   });
 
+  it('[DI-37][DI-04] F03: the master record shows as signed by family and content hash; the package version label is shown apart as not signed', () => {
+    const { mbr: _mbr, ...rest } = COMMON;
+    void _mbr;
+    const v = view('Stage 1 Dispensing', 'STAGE_SIGNED_OFF', {
+      kind: 'batch_stage',
+      ...rest,
+      mbr: { familyCode: 'PCM500-DC', contentHash: 'ab'.repeat(32) },
+      meaning: 'STAGE_SIGNED_OFF',
+      meaningText: 'I confirm the stage record and its summary are complete and correct.',
+      stage: { stageKey: 'S-DISP@', stageId: 'S-DISP', number: '1', name: 'Dispensing', startedAt: AT_1 },
+      steps: [],
+      notSigned: { note: 'Shown for information only.', mbrVersion: { number: '7', revision: 3, note: 'From the test package; not bound.' } },
+    });
+    render(<SignableContent view={v} />);
+    const signed = screen.getByRole('region', { name: 'Stage to be signed' });
+    expect(within(signed).getByText('PCM500-DC')).toBeTruthy();
+    expect(within(signed).queryByText(/version \?|revision/)).toBeNull();
+    const apart = screen.getByRole('region', { name: 'For information: not part of this signature' });
+    expect(within(apart).getByText('Master record version')).toBeTruthy();
+    expect(within(apart).getByText('version 7, revision 3')).toBeTruthy();
+  });
+
   it('[DI-37] F02: a time-limit breach shows the step and the time constraint its signed source names, never "not raised at a step"', () => {
     const v = view('Exception EX-1: Booth clearance window exceeded its maximum of 1 s', 'EXCEPTION_DISPOSITIONED', {
       kind: 'batch_exception',

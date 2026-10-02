@@ -102,6 +102,8 @@ tests:
   - "apps/tablets-server/test/designer/references.test.ts > reference documents (DMS stand-in) > [DI-04] the register refuses a body that does not hash to the pinned value, and an author cannot record documents"
   - "apps/tablets-web/test/designer/editor.test.tsx > designer screen > [DI-04] a read-only version (not a DRAFT) cannot be edited"
   - "tools/e2e/specs/designer/designer.spec.ts > designer > [PR-03][DI-04][DI-05][PR-06] author a master from the template, find and fix, justify, save, simulate and send to the sandbox"
+  - "apps/tablets-server/test/execution/db-guards-package-header.test.ts > F03: a test package names the family and product of its MBR content (DI-04, DI-37) > [DI-04][DI-37] a package whose family code or product differs from its MBR content is refused by the server and, called directly, by the database"
+  - "apps/tablets-server/test/execution/signed-content.test.ts > the record to be signed is the signed content (CN1) > [DI-37][DI-04] F03: the record to be signed names the family and product of the MBR content; the package's version label is shown apart as not signed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

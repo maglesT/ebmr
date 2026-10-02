@@ -176,7 +176,8 @@ export function issueForm(pkg: PackageRecord, def: engine.BatchDefinition): z.in
   const h = def.mbr.header;
   return {
     packageId: pkg.packageHash,
-    product: pkg.product,
+    // As the MBR content names it (the import refuses a package whose metadata differs, F03).
+    product: { code: h.product.code, name: h.product.name, strength: h.product.strength },
     batchSizes: h.batchSizes.map((b) => ({ id: b.id, quantity: b.quantity.value, unit: b.quantity.unit, label: `${b.id}: ${b.quantity.value} ${b.quantity.unit}` })),
     markets: [...new Set(['IN', ...h.marketSet])].map((code) => ({ code, locked: code === 'IN' })),
     variants: h.variants.map((v) => ({ id: v.id, name: v.id, options: [...v.values] })),

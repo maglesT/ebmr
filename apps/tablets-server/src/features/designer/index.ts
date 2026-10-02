@@ -609,7 +609,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
           const pkg = buildTestPackage(
             {
               source: stamp,
-              family: { familyId: head.familyId, familyCode: head.familyCode, product: head.product },
+              // The product as the content names it: the sandbox refuses a package whose family metadata is not the
+              // content's header (F03); the family's own product name may differ from the content's.
+              family: { familyId: head.familyId, familyCode: head.familyCode, product: { code: mbr.header.product.code, name: mbr.header.product.name, strength: mbr.header.product.strength } },
               version: { versionId: id, number: versionLabel(head.versionNumber), revision: saved.revision, state: head.state },
               content: mbr,
               justifications: justs,
