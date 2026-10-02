@@ -524,7 +524,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
           ) : null}
           {problem ? <p role="alert">{problem}</p> : null}
           {!problem && pending.length > 0 ? (
-            <p className={wcls('muted')} data-testid="form-pending">
+            <p className={wcls('muted')} data-testid="still-needed">
               {st('form.stillNeeded', { names: pending.join(', ') })}
             </p>
           ) : null}

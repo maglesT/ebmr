@@ -125,7 +125,7 @@ describe('G-22 output containers with the scale offline', () => {
     renderFloor(stepPath('p-blend-out@'), { scaleSlot: fakeScaleSlot({}, []), intercept: (r) => ok(r, example('step-g22-output')) });
     const form = await screen.findByTestId('form-OUTPUT_CONTAINER');
     const save = within(form).getByRole('button', { name: 'Save: Weigh one output container' });
-    const pending = () => within(form).queryByTestId('form-pending')?.textContent ?? null;
+    const pending = () => within(form).queryByTestId('still-needed')?.textContent ?? null;
     expect(pending()).toBe('To save, still needed: Intermediate, Tare (typed by hand), Gross (typed by hand).');
     await userEvent.click(within(form).getByRole('radio', { name: 'Final blend' }));
     expect(pending()).toBe('To save, still needed: Tare (typed by hand), Gross (typed by hand).');
