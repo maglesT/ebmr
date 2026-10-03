@@ -1559,3 +1559,27 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   F50.1, F52.1, F55.1 and T7.1 are in docs/decisions/phase-2-open-questions.md. Open for the owner: the VALIDATOR
   evidence of start of verification counts only the static validator's warnings (F55.1); showFormula and
   showResidueYield have no reader yet (F52.1).
+- 2026-10-02: PHASE 2 EXIT FIX, Tests that claim more than they check (server, engine, store) (branch
+  phase-2/recipe-core; findings F13, F16, F17, F18, F19, F20, F21, F22, F23, F24, F25 and F29 of the exit review; each
+  strengthened test fails when the guard it claims is removed, shown with a temporary mutant). The tests were green
+  for the wrong reason: a refusal checked only as "some failure" or "some ENG- code", a guard reached only through a
+  TypeScript pre-check, a rule shown only through another rule that fires first, made-up ids that never reach the
+  branch named in the title, a substring two messages share, a model check once per step group, a sweep that may have
+  skipped the batch, events compared by count, tags for a release screen and a dashboard that do not exist. What
+  changed: F18 the computed value is typed into the step that computes it (ENG-DERIVED-TYPED, nothing else changes);
+  F20 a stale screen writes nothing (rows, state, version); F21 the operator's deviation link is the database's
+  EBMR-IAM-040 with nothing recorded; F25 the views test reads the timeline and the TEST, NOT GMP watermark; F16 the
+  import writer's own refusals are tested without the server's pre-check, and the import passes the database the
+  inbox file's real name (the file-name rule was the server's alone); F17 each list of the verifier rule (started,
+  entered data, corrected, signed performed) is shown on its own, with a real data-enterer and corrector forgery;
+  F19 real stored evaluations that were denied, made for another person, of another permission or in another command
+  are refused with their own reason; F22 a test batch held by GMP is reported under its own message; F23 the golden
+  run checks the model after every command, challenge and signature, and every signature is valid; F24 the sweeper
+  reports what it found per batch (SweepResult.outcomes) and the tests show the batch was evaluated; F29 the engine's
+  replay compares the events in full; F13 the raiser of an exception is refused its disposition by the kernel
+  (EBMR-ESIG-044) and an involved person by the server (ENG-SEGREGATION), the PR-08 and PR-05 titles say what they
+  test, and two unread literals left the limit evaluation. Tests: server execution store, db-guards-roles,
+  db-guards-disposition-involvement, golden, sweeper, commands, import-db-guard; esig disposition; recipe-core engine
+  golden, limits tiers, lifecycle review-inventory. Defaults F13.1-F13.3 are in docs/decisions/phase-2-open-questions.md
+  (PR-08 release screen open until Phase 4, PR-05 dashboard open until Phase 6, the engine itself does not refuse a
+  run-level exception's raiser).
