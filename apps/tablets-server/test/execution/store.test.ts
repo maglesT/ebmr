@@ -142,7 +142,14 @@ describe('installation (DI-05, INV-18)', () => {
     });
     expect(await codeOf(withCommand(gmp.db.app, author, (c) => execution.importTestPackage(c, pkg, `${pkg.packageHash}.json`)))).toBe('EBMR-SBX-011');
     expect(await codeOf(withCommand(gmp.db.app, { ...author, correlationId: randomUUID() }, (c) => execution.beginIssue(c, randomUUID())))).toBe('EBMR-SBX-011');
-    // A package holding SANDBOX_ONLY blocks copied into GMP behind the writers' back (a restore, a hand edit): reported.
+    const held = async () => (await gmp.db.admin.query<{ b: string; p: string }>('select (select count(*) from recipe.batch_execution)::text as b, (select count(*) from recipe.test_package)::text as p')).rows[0];
+    expect(await held()).toEqual({ b: '0', p: '0' });
+    expect(await execution.executionViolations(gmp.db.admin)).toEqual([]);
+    // A package holding SANDBOX_ONLY blocks, and a test batch, copied into GMP behind the writers' back (a restore, a
+    // hand edit): each is reported, under its own message (review F22: the two messages share their ending, so the
+    // test batch's report was never shown).
+    const batchId = randomUUID();
+    const H = 'a'.repeat(64);
     const admin = await gmp.db.admin.connect();
     try {
       await admin.query('begin');
@@ -154,14 +161,26 @@ describe('installation (DI-05, INV-18)', () => {
                  gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
         [pkg.packageHash, JSON.stringify(pkg), JSON.stringify(pkg.content), pkg.contentHash],
       );
+      await admin.query(
+        `insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint, policy,
+                                             policy_hash, issue_request, market_set, batch_size, site_code, room_code, site_zone, issued_at_us,
+                                             issued_by_person, issued_by_account, correlation_id)
+         values ($1, 'B26-0001', $2, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', 'x', $3, '{}', $3, '{}', '{IN}', 'BS-100K', 'S1', null, 'Z', 0,
+                 gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+        [batchId, pkg.packageHash, H],
+      );
       await admin.query('commit');
     } finally {
       admin.release();
     }
-    const problems = (await execution.executionViolations(gmp.db.admin)).map((v) => v.problem);
-    expect(problems.some((p) => p.includes('exists in a GMP database'))).toBe(true);
-    expect(problems.some((p) => p.includes('SANDBOX_ONLY block G-09@1'))).toBe(true);
-    expect(problems.some((p) => p.includes('SANDBOX_ONLY block G-10@1'))).toBe(true);
+    expect(await held()).toEqual({ b: '1', p: '1' });
+    const reported = await execution.executionViolations(gmp.db.admin);
+    expect(reported).toContainEqual({ batchId, problem: 'a test batch exists in a GMP database (DI-05, INV-18)' });
+    expect(reported).toContainEqual({ batchId: null, problem: `test package ${pkg.packageHash} exists in a GMP database (DI-05, INV-18)` });
+    for (const block of ['G-09@1', 'G-10@1']) {
+      expect(reported).toContainEqual({ batchId: null, problem: `SANDBOX_ONLY block ${block} in package ${pkg.packageHash} held by a GMP database (DI-05, INV-18)` });
+    }
+    expect(reported.filter((v) => v.problem.includes('exists in a GMP database'))).toHaveLength(2);
   }, 180_000);
 
   it('[INV-18][DI-05][DI-37] the import writer itself refuses a package not exported from GMP, changed after export, of another format, under another file name or imported already, and stores nothing', async () => {
