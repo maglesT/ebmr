@@ -1498,3 +1498,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   weighings at their resolution, or a step signed performed without it (EBMR-EXE-138). T5 stays open for the owner,
   now recorded as default T5.1 with its plan. Tests: recipe-core blocks material and engine version; server execution
   db-guards-weighing-record; Playwright journey re-run: passed. Defaults T2.2, T2.3 and T5.1.
+  Round 3 (T2): the database still took the quantity a weighing counts into from the entry's own item, so a second
+  dispensed container stored without item (and an output container with item null) was left out of the signed total;
+  now recipe-core 0323 decides it from the MBR (a dispensed container only at a G-07 step and into a mass quantity its
+  phase records, an output container only at a G-22 step and into the first one; a compound unit fails closed) and
+  refuses any other (EBMR-EXE-139). Tests: server execution db-guards-weighing-record (round 3), recipe-core execution
+  weighing-item-sql; both fail without 0323. Default T2.3 corrected, T2.4 added.
