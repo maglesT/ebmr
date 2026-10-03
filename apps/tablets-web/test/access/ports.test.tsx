@@ -124,7 +124,7 @@ function bootWith(session: SessionView, over: Partial<Boot> = {}): Boot {
     setSession: setSessionSpy,
     joinMarkedSignOut: vi.fn(() => false),
     signOut: vi.fn(() => Promise.resolve()),
-    forgetTerminal: vi.fn(() => Promise.resolve()),
+    forgetTerminal: vi.fn(() => Promise.resolve()), showBrowserSignIn: vi.fn(),
     ...over,
   };
 }

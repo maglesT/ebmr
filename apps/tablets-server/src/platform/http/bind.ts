@@ -256,6 +256,55 @@ function roleWithdrawn(session: ResolvedSession): Error {
 }
 
 /**
+ * The page's own terminal key (the SHA-256 hex of the SPKI of the key it signs device proofs with) and the person the
+ * page's session started with, sent by the SPA on every request (review F41, round 4; ADR 0017 item 4).
+ */
+export const TERMINAL_KEY_HEADER = 'x-ebmr-terminal-key';
+export const PAGE_PERSON_HEADER = 'x-ebmr-page-person';
+
+const headerValue = (request: FastifyRequest, name: string): string | undefined => {
+  const v = request.headers[name];
+  return v === undefined ? undefined : Array.isArray(v) ? v.join(',') : v;
+};
+
+/**
+ * F41 round 4 (DI-13, DI-14, DI-38): cookies ignore ports, so a page on another port of the host can set this
+ * installation's session cookie when the browser holds none (another person's live session), and another tab's sign-in
+ * replaces it while a page works. A request whose page names its terminal key or the person its session started with
+ * is served as nobody when the cookie's session was opened on another terminal (SESSION_OTHER_TERMINAL) or is another
+ * person's (SESSION_CHANGED); the refusal, or null when the session is the page's (or the request names neither, as a
+ * tool's does). The facts come from the database (tab.resolve_session, tablets 0550); the page is the server's to check,
+ * as the Origin, the CSRF token and a doubled cookie are.
+ */
+export function pageBindingRefusal(request: FastifyRequest, session: ResolvedSession | null): Error | null {
+  if (!session) return null;
+  const key = headerValue(request, TERMINAL_KEY_HEADER);
+  if (key !== undefined && key !== session.deviceFingerprint) {
+    return refusal(401, {
+      code: 'SESSION_OTHER_TERMINAL',
+      kind: 'NOT_ALLOWED',
+      whatHappened: 'The sign-in this browser sent was opened on another terminal, so the request was not served.',
+      why: 'The session cookie belongs to a session of another terminal; another page of this computer may have set it.',
+      controls: ['DI-13', 'DI-14', 'DI-38'],
+      whatYouCanDo: ['Sign in again on this terminal.', 'If it happens again, close the pages of other addresses of this computer, then clear the cookies of this site.'],
+      whoCanHelp: ['The system administrator'],
+    });
+  }
+  const person = headerValue(request, PAGE_PERSON_HEADER);
+  if (person !== undefined && person !== session.personId) {
+    return refusal(401, {
+      code: 'SESSION_CHANGED',
+      kind: 'NOT_ALLOWED',
+      whatHappened: 'The sign-in this browser sent is another person\'s than the one this page was signed in as, so the request was not served.',
+      why: 'Another tab signed in as someone else, or another page of this computer set the sign-in cookie.',
+      controls: ['DI-13', 'DI-14', 'DI-38'],
+      whatYouCanDo: ['Start the page again: it then shows who is signed in on this browser now.'],
+    });
+  }
+  return null;
+}
+
+/**
  * The session gate of a route of `auth: 'SESSION'` (DI-16, DI-38): throws the refusal a request of route `routeId` gets
  * with `session` (no session, a session ended, expired, locked or without a role), or returns the session it may serve.
  * DI-16 (tablets 0400, review F36): a session whose role was revoked or has expired ends here, on every route (reads,
@@ -305,6 +354,12 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       const session = await sessionOf(app, request);
       if (route.auth !== 'SESSION') return;
+      // F41 round 4: a session the page did not start with is served as nobody, and nothing of it is touched.
+      const foreign = pageBindingRefusal(request, session);
+      if (foreign) {
+        request.ebmrSession = null;
+        throw foreign;
+      }
       if (session?.state === 'ROLE_WITHDRAWN') request.ebmrSession = null;
       await admitSession(app, route.id, session);
     };

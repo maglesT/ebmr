@@ -43,6 +43,17 @@ separate cookies by port.
    browser sends first: an API request that carries this installation's session or CSRF cookie more than once
    is served as nobody (401 COOKIE_DUPLICATED, never one of the values), the answer removes the copies at every
    path of the request (never the server's own at `/`), and the SPA sends that request once more (review F41).
+   The page also names, on every request, the key of its own terminal (the kernel's device fingerprint of the key it
+   signs device proofs with) and the person its session started with (kept per tab, in this origin's sessionStorage):
+   a session opened on another terminal, or of another person, is served as nobody (401 SESSION_OTHER_TERMINAL,
+   SESSION_CHANGED; the terminal key is the database's, `tab.resolve_session`, tablets 0550). So another person's
+   sign-in that a page on another port sets while the browser holds none, or that another tab's sign-in leaves in
+   the cookie, is never worked in: the page shows the sign-in form, or stops and says that its sign-in changed, and
+   shows whose sign-in the browser holds only when the person asks (review F41, round 4). Residuals, accepted
+   (decision F41.1): a page that keeps planting a copy faster than the requests remove it keeps the person locked
+   out while it runs (no request is served under a planted value; distinct host names per installation in
+   production end it); a sign-in of this same terminal planted before a tab starts is adopted and shown by name;
+   the live display stream (EventSource) cannot carry the page's headers and is bound to its session only (SSE-SESSION).
    Every answer carries helmet's headers, the gate's own refusals and Fastify's framework errors included (F43).
 5. **Attribution and signing seams.** Routes marked FRESH_ON_SHARED carry a badge tap on shared terminals,
    consumed by the command (INV-40; decision D8). E-signatures go through a `SignableActionRegistry`

@@ -23,6 +23,8 @@ export interface ResolvedSession {
   deviceId: string;
   deviceCode: string;
   deviceClass: 'PERSONAL' | 'SHARED' | 'GRADE_A_B' | 'SERVER' | 'INSTRUMENT';
+  /** The key fingerprint of the terminal the session was opened on (SHA-256 hex of its SPKI; tablets 0550, F41). */
+  deviceFingerprint: string;
   siteCode: string;
   roomCode: string | null;
   lineCode: string | null;
@@ -106,6 +108,7 @@ export async function resolveSession(pool: pg.Pool, hash: string): Promise<Resol
     deviceId: str('device_id'),
     deviceCode: str('device_code'),
     deviceClass: str('device_class') as ResolvedSession['deviceClass'],
+    deviceFingerprint: str('device_fingerprint'),
     siteCode: str('site_code'),
     roomCode: opt('room_code'),
     lineCode: opt('line_code'),

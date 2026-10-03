@@ -6,35 +6,57 @@
 import { createApiClient, describeCallError, routes, unstorableTextIssues, type ApiClient, type CallError, type DeviceProof, type FetchLike, type InstallationKind } from '@ebmr/api-contract';
 import { signProof } from '../device/proof.ts';
 import type { StoredDeviceKey } from '../device/keystore.ts';
+import { pagePerson } from './page-binding.ts';
+
+/** A session the server served as nobody because it is not this page's (review F41, round 4; page-binding.ts). */
+export type ForeignSessionCode = 'SESSION_CHANGED' | 'SESSION_OTHER_TERMINAL';
 
 export interface ApiState {
   installation: InstallationKind | undefined;
   csrfToken: string | undefined;
   mismatch: { expected: InstallationKind; actual: string | null } | null;
   onMismatch: Set<() => void>;
+  /** This terminal's key (the SHA-256 hex of its device key's SPKI), named on every request once known (F41). */
+  terminalKey: string | undefined;
+  /** Told when a request of the session this page works in was served as nobody: the browser's sign-in is not its own. */
+  onForeignSession: Set<(code: ForeignSessionCode) => void>;
 }
 
-export const apiState: ApiState = { installation: undefined, csrfToken: undefined, mismatch: null, onMismatch: new Set() };
+export const apiState: ApiState = { installation: undefined, csrfToken: undefined, mismatch: null, onMismatch: new Set(), terminalKey: undefined, onForeignSession: new Set() };
 
-/** The refusal of a request that carried this installation's cookie twice (review F41). */
-const isCookieDuplicated = (status: number, text: string): boolean => {
-  if (status !== 401) return false;
+/** The refusal code of an answer, when it is a refusal of status 401. */
+const refusalCode401 = (status: number, text: string): string | null => {
+  if (status !== 401) return null;
   try {
-    return (JSON.parse(text) as { refusal?: { code?: unknown } }).refusal?.code === 'COOKIE_DUPLICATED';
+    const code = (JSON.parse(text) as { refusal?: { code?: unknown } }).refusal?.code;
+    return typeof code === 'string' ? code : null;
   } catch {
-    return false;
+    return null;
   }
 };
 
+/** Whether a call error is the server's refusal of a session that is not this page's (F41, round 4). */
+export const isForeignSession = (e: CallError): boolean =>
+  e.kind === 'REFUSAL' && e.status === 401 && (e.envelope.refusal.code === 'SESSION_CHANGED' || e.envelope.refusal.code === 'SESSION_OTHER_TERMINAL');
+
 /**
- * window.fetch as the contract client's FetchLike. A request refused as COOKIE_DUPLICATED (another page of this
- * computer set a copy of this installation's cookie; the server ran nothing and removed the copy) is sent once more.
+ * window.fetch as the contract client's FetchLike. Every request names this terminal's key and the person this page's
+ * session started with, when known (page-binding.ts): the server serves a session that is not the page's as nobody, and
+ * the page is told (apiState.onForeignSession), unless the page has meanwhile started another session itself (a switch
+ * of person whose answer came first). A request refused as COOKIE_DUPLICATED (another page of this computer set a copy
+ * of this installation's cookie; the server ran nothing and removed the copy) is sent once more.
  */
 export const browserFetch: FetchLike = async (url, init) => {
+  const person = pagePerson();
+  const headers = {
+    ...init.headers,
+    ...(apiState.terminalKey !== undefined ? { 'x-ebmr-terminal-key': apiState.terminalKey } : {}),
+    ...(person !== undefined ? { 'x-ebmr-page-person': person } : {}),
+  };
   const send = () =>
     fetch(url, {
       method: init.method,
-      headers: init.headers,
+      headers,
       ...(init.body !== undefined ? { body: init.body } : {}),
       ...(init.signal ? { signal: init.signal } : {}),
       credentials: 'same-origin',
@@ -42,11 +64,15 @@ export const browserFetch: FetchLike = async (url, init) => {
     });
   let res = await send();
   let text = await res.text();
-  if (isCookieDuplicated(res.status, text)) {
+  if (refusalCode401(res.status, text) === 'COOKIE_DUPLICATED') {
     res = await send();
     text = await res.text();
   }
   const answer = res;
+  const code = refusalCode401(answer.status, text);
+  if ((code === 'SESSION_CHANGED' && pagePerson() === person) || code === 'SESSION_OTHER_TERMINAL') {
+    for (const tell of apiState.onForeignSession) tell(code);
+  }
   return { status: answer.status, headers: { get: (n: string) => answer.headers.get(n) }, text: () => Promise.resolve(text) };
 };
 

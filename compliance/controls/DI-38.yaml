@@ -40,6 +40,8 @@ implemented_by:
     - "packages/ui-kit/src/identity/BadgePrompt.tsx"
     - "apps/tablets-server/src/platform/http/bind.ts (admitSession: the session gate of every request, asked again by open streams)"
     - "apps/tablets-server/src/features/devices/routes.ts (live display stream: ends when its session no longer serves it)"
+    - "apps/tablets-server/sql/0550_session_terminal_key.sql"
+    - "apps/tablets-web/src/api/page-binding.ts"
   invariants:
     - "INV-10"
   guards:
@@ -49,6 +51,7 @@ implemented_by:
     - "iam.consume_auth_event (called by esig.sign): the event is the signer's own, bound to this challenge, fresh and unused; the performer's authentication never supplies another person's signature (EBMR-IAM-093)"
     - "esig.set_policy: policy values changed only by the quality unit with a reason and a change-control reference, within their allowed ranges"
     - "devices.live (SSE-SESSION): an open live display asks the session gate again every 2 s (tab.resolve_session through admitSession) and ends, naming the refusal, once the session is locked (by the person or the idle time), signed out, switched, expired or works in a role no longer granted (which ends the session too); the database decides the session's state"
+    - "pageBindingRefusal (bind.ts) on tab.resolve_session's terminal key (tablets 0550): a request whose page names its terminal key or the person its session started with is served as nobody when the cookie's session was opened on another terminal (401 SESSION_OTHER_TERMINAL) or is another person's (401 SESSION_CHANGED); the SPA names both on every request (page-binding.ts, the person kept per tab) and then shows the sign-in form or says that its sign-in changed, never working in that session (review F41, round 4; residuals in decision F41.1)"
   db_constraints:
     - "esig.meaning_type checks: master-record and release types are ALL_COMPONENTS"
     - "esig.policy_value: insert-only and audited"
@@ -112,7 +115,7 @@ tests:
   - "apps/tablets-web/test/app/sign-out-screen.test.tsx > F42: what another port of the host can write is no sign-out mark > [DI-38][DI-14] control: a sign-out another tab of this origin announces on its channel is joined at once, without site storage"
   - "apps/tablets-web/test/app/sign-out-screen.test.tsx > F42: what another port of the host can write is no sign-out mark > [DI-38][DI-14] where site storage throws, deleting a page-readable cookie does not make a pending sign-out look finished: the retry still ends the session"
   - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the GMP session"
-  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted by a page on another port neither locks the person out nor swaps their session"
+  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted once by a page on another port is removed by the next request: the person signs in and works in their own session, never in the planted one"
   - "apps/tablets-server/test/session/sign-out.test.ts > P5: the mark of an unconfirmed sign-out across a real reload > [DI-38][DI-14] when site storage throws (e.g. site data blocked), a real reload fails closed and never shows the previous user; no page-readable cookie keeps a mark"
   - "apps/tablets-web/test/access/keyed-badge.test.tsx > F56: the signing badge prompt > [DI-14][DI-38][DI-19] a PIN keyed into the focused Badge field is not sent as a badge UID: the prompt says so and waits for the badge"
   - "apps/tablets-web/test/access/keyed-badge.test.tsx > F56: the signing badge prompt > [DI-14][DI-38][DI-19] a badge the server does not accept returns to the tap with the refusal in the prompt, never to Close only; the next tap signs"
@@ -195,6 +198,14 @@ tests:
   - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-38] the kiosk is idle longer than the lock time: the stream ends (SESSION_LOCKED)"
   - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-38] the person signs out: the stream ends (NO_SESSION), and opening it again is refused (401)"
   - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-16][DI-38] the role the session works in is withdrawn: the stream ends (NO_SESSION, the role revoked) and the session with it"
+  - "apps/tablets-server/test/platform/security.test.ts > a sign-in the page did not start with > [DI-13][DI-14][DI-38] a session opened on another terminal than the page's own is served as nobody (SESSION_OTHER_TERMINAL), mutations included; on its own terminal, or without the page's key, it is served"
+  - "apps/tablets-server/test/platform/security.test.ts > a sign-in the page did not start with > [DI-13][DI-14][DI-38] a session of another person than the one the page started with is served as nobody (SESSION_CHANGED); the page's own person's is served, and so is a sandbox kiosk's"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] every request names the page's terminal key and the person its session started with; neither while unknown"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] a browser that holds a sign-in opened on another terminal (set by another page of this computer) shows the sign-in form, never that person"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] when the browser's sign-in becomes another person's while the page works, the page stops showing the session at once and says so; it shows who is signed in only when asked"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] a reload keeps the person the tab's session started with: another person's sign-in found at start-up is not shown"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-38] a refusal that names the person this page held before it started another session itself (a switch whose answer came first) is not reported"
+  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-14][DI-38] another terminal's live sign-in planted at Path=/ by a page on another port, while the browser holds no GMP sign-in, is never worked in: the GMP page shows the sign-in form"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

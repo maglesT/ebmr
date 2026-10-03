@@ -128,6 +128,7 @@ tests:
   - "tools/e2e/specs/devices/devices.spec.ts > devices > [DI-20] a kiosk in another room lists no scale of DISP-1, and the server refuses it a capture from and the live view of TEST-BAL-01"
   - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
   - "tools/e2e/specs/smoke/smoke.spec.ts > smoke > [DI-05][DI-20] sandbox kiosk: TEST, NOT GMP before and after sign-in with badge tap and PIN keypad"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-20] the terminal key the page names is the kernel's device fingerprint of its key: the SHA-256 of the SPKI"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

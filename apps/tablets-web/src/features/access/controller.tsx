@@ -336,7 +336,10 @@ function SessionControl(props: {
           send({ type: 'SERVER_ACTIVE' });
         }
       } else if (r.failure.kind === 'REFUSAL' && r.failure.status === 401) {
-        send({ type: 'ENDED' });
+        // A sign-in of the browser that is not this page's (F41, round 4) is no end of this page's session: the page
+        // already says so ('session-changed') and ends nothing.
+        const code = r.failure.envelope.refusal.code;
+        if (code !== 'SESSION_CHANGED' && code !== 'SESSION_OTHER_TERMINAL') send({ type: 'ENDED' });
       }
     });
   }, [send, latestState, latestBoot]);

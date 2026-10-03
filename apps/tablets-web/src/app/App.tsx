@@ -5,7 +5,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
-import { Banner, t } from '@ebmr/ui-kit';
+import { Banner, Button, t } from '@ebmr/ui-kit';
 import { KioskLogin, NotEnrolled, OfficeLogin, RoleChoice, DemoPicker } from '../features/session/index.tsx';
 import { BootProvider, useBoot } from './boot.tsx';
 import { FeaturesContext } from './feature-context.ts';
@@ -58,6 +58,18 @@ export function Gate() {
       return (
         <Frame withBanner={false}>
           <SignOutUnconfirmed />
+        </Frame>
+      );
+    case 'session-changed':
+      // F41, round 4: the browser's sign-in is not the one this page started with; nothing was done with it.
+      return (
+        <Frame withBanner={false}>
+          <div className={cls('center')}>
+            <Banner tone="error" title="This page's sign-in has changed">
+              <p>{boot.problem}</p>
+              <Button onPress={() => boot.showBrowserSignIn()}>Show who is signed in now</Button>
+            </Banner>
+          </div>
         </Frame>
       );
     case 'ready':
