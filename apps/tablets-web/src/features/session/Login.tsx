@@ -320,9 +320,16 @@ export function KioskLogin() {
   );
 }
 
+/**
+ * The role choice of a session that holds several roles (C0-4). A session whose account holds no role that is valid
+ * now (a grant still waiting for approval, expired or revoked) is told so and who handles role grants, and is offered
+ * only to sign out (F10: it used to see the heading and nothing else). The server refuses such a sign-in (NO_ROLE) and
+ * ends such a session at its next request (F36); this screen covers a session whose last grant ended meanwhile.
+ */
 export function RoleChoice() {
   const boot = useBoot();
   const [error, setError] = useState<CallError | null>(null);
+  const roles = boot.session?.roles ?? [];
   const choose = async (roleCode: string) => {
     const r = await api.call(routes.session.chooseRole, { body: { roleCode } });
     if (r.ok) boot.setSession(r.value);
@@ -332,13 +339,29 @@ export function RoleChoice() {
     <div className={cls('center')}>
       <h1>{t('session.chooseRole')}</h1>
       {error ? <RefusalMessage error={error} /> : null}
-      <div className={cls('row')}>
-        {(boot.session?.roles ?? []).map((role) => (
-          <Button key={role} variant="primary" onPress={() => void choose(role)}>
-            {role}
+      {roles.length === 0 ? (
+        <>
+          <Banner tone="warning" title={t('session.noRole')}>
+            <p>
+              <strong>{t('refusal.why')}:</strong> {t('session.noRoleWhy')}
+            </p>
+            <p>
+              <strong>{t('refusal.whoCanHelp')}:</strong> {t('session.noRoleWho')}
+            </p>
+          </Banner>
+          <Button variant="primary" onPress={() => void boot.signOut()}>
+            {t('session.signOut')}
           </Button>
-        ))}
-      </div>
+        </>
+      ) : (
+        <div className={cls('row')}>
+          {roles.map((role) => (
+            <Button key={role} variant="primary" onPress={() => void choose(role)}>
+              {role}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

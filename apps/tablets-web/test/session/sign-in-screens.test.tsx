@@ -207,3 +207,57 @@ describe('F08: a sign-in or secret change that cannot get a device nonce says so
     expect(unhandled.map(String), 'failures nobody handled').toEqual([]);
   });
 });
+
+describe('F10: an account that holds no role now is told so, not offered an empty role choice', () => {
+  it('[DI-16] the role choice says there is no role to choose, why, and who handles role grants, and offers sign-out', async () => {
+    const noRole: SessionView = { ...office, roles: [], role: null, roleChoiceRequired: true, person: { ...office.person, role: '' } };
+    const logouts: unknown[] = [];
+    setTransport(
+      createFixtureFetch(
+        {
+          'meta.get': EXAMPLES['meta-gmp'].data,
+          'session.deviceNonce': { nonce: 'fixture-nonce-0123456789', expiresInSeconds: 60 },
+          'session.identify': office.device,
+          'session.demoDevices': { devices: [] },
+          'session.get': () => (logouts.length ? noSession : noRole),
+          'session.logout': ({ body }: { body: unknown }) => {
+            logouts.push(body);
+            return { loggedOut: true };
+          },
+        },
+        { installation: 'GMP' },
+      ),
+    );
+    renderGate();
+    expect(await screen.findByRole('heading', { name: 'Choose the role you are working in' })).toBeTruthy();
+    expect(screen.getByText('You hold no role on this installation now, so there is nothing to choose.')).toBeTruthy();
+    expect(screen.getByText(/No role grant of your account is valid now: it may still wait for approval, have expired or have been revoked\./)).toBeTruthy();
+    expect(screen.getByText(/The system administrator \(role grants\)/)).toBeTruthy();
+    const signOut = screen.getAllByRole('button', { name: 'Sign out' });
+    expect(signOut.length).toBeGreaterThan(0);
+    await userEvent.click(signOut[signOut.length - 1] as HTMLElement);
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
+    expect(logouts).toHaveLength(1);
+  });
+
+  it('[DI-16] control: an account with several roles is offered each of them', async () => {
+    const several: SessionView = { ...office, roles: ['MBR_AUTHOR', 'MBR_CHECKER'], role: null, roleChoiceRequired: true };
+    setTransport(
+      createFixtureFetch(
+        {
+          'meta.get': EXAMPLES['meta-gmp'].data,
+          'session.deviceNonce': { nonce: 'fixture-nonce-0123456789', expiresInSeconds: 60 },
+          'session.identify': office.device,
+          'session.demoDevices': { devices: [] },
+          'session.get': several,
+        },
+        { installation: 'GMP' },
+      ),
+    );
+    renderGate();
+    expect(await screen.findByRole('heading', { name: 'Choose the role you are working in' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'MBR_AUTHOR' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'MBR_CHECKER' })).toBeTruthy();
+    expect(screen.queryByText(/You hold no role/)).toBeNull();
+  });
+});
