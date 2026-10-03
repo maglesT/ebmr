@@ -1583,3 +1583,6 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   golden, limits tiers, lifecycle review-inventory. Defaults F13.1-F13.3 are in docs/decisions/phase-2-open-questions.md
   (PR-08 release screen open until Phase 4, PR-05 dashboard open until Phase 6, the engine itself does not refuse a
   run-level exception's raiser).
+  Round 2 (regressions): the limit module's README still documented operatorMayClear, which F13 removed; it now
+  says the operator cannot clear a breach because the engine (ENG-ROLE) and the database's QA permission refuse it,
+  and recipe-core limits/readme.test.ts fails on any name in the README that the module's code does not have.
