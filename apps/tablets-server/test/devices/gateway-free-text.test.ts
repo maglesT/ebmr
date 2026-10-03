@@ -1,32 +1,32 @@
 /**
- * The gateway login's free text (review F30-F33, the same defect at the gateway listener; DI-20, DI-31): a login
- * name, service key or nonce holding U+0000 or a UTF-16 surrogate without its other half. U+0000 reached a text
- * parameter (22021) and the refusal's record (jsonb), so the login was answered 500 INTERNAL with nothing recorded; a
- * lone surrogate was written as U+FFFD by the driver, so the server looked up a name the gateway never sent. Now the
- * login schema refuses such text: 400 SCHEMA, as any login not in the expected form, and the database never sees it.
- * The heartbeat and the readings are not changed: a reading's text fields are patterns (printable ASCII raw lines), and
- * a heartbeat goes to the database as JSON, whose refusal of such text loses the heartbeat's receipt, which keeps the
- * manual path shut (decision X37).
+ * The gateway listener's free text (review F30-F33, the same defect at the gateway; DI-20, DI-30, DI-31): U+0000 or a
+ * UTF-16 surrogate without its other half.
+ *  - The login's login name, service key and nonce: U+0000 reached a text parameter and the refusal's record, and a lone
+ *    surrogate was written as U+FFFD by the driver, so the server looked up a name the gateway never sent. Now the login
+ *    schema refuses such text: 400 SCHEMA, as any login not in the expected form, and the database never sees it.
+ *  - A heartbeat's not-ready reason goes to the database as JSON, which refuses such text; the listener answered that
+ *    500 INTERNAL. The database's refusal stays (it loses the heartbeat's receipt, so the watch's next tick is unclean
+ *    and the manual path stays shut: decision X37); the answer is now 400 SCHEMA.
+ * A reading's text members are patterns (its raw line is printable ASCII), so a reading needs no change.
  */
 import { randomBytes, sign } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ed25519PrivateKey, LoginRequest, loginProofMessage } from '@ebmr/integration-sdk/scale';
-import { startGatewayListener, type GatewayListener } from '../../src/features/devices/listener.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
-import { enrol, gatewayKey, gatewayService, GW, post } from './support.ts';
+import { enrol, fakeGateway, gatewayKey, gatewayService, GW, post, type FakeGateway } from './support.ts';
 
 let server: TestServer;
-let listener: GatewayListener;
+let gw: FakeGateway;
 let base: string;
 
 beforeAll(async () => {
   server = await startServer('SANDBOX');
   await enrol(server);
-  listener = await startGatewayListener(server.built.ctx, { host: '127.0.0.1', port: 0 });
-  base = `http://127.0.0.1:${listener.port}`;
+  gw = await fakeGateway(server);
+  base = gw.base;
 }, 180_000);
 afterAll(async () => {
-  await listener?.close();
+  await gw?.close();
   await server?.close();
 });
 
@@ -43,7 +43,7 @@ async function login(change: (body: Record<string, string>) => void): Promise<{ 
 
 const refusals = async (): Promise<number> => Number((await server.db.admin.query<{ n: string }>("select count(*)::text as n from tab.device_alarm where kind = 'GATEWAY_LOGIN_REFUSED'")).rows[0]?.n);
 
-describe('the gateway login refuses text no record can hold (review F30-F33)', () => {
+describe('the gateway listener refuses text no record can hold (review F30-F33)', () => {
   it('[DI-20][DI-31] a login name, service key or nonce holding U+0000 or a lone surrogate is refused 400 SCHEMA, never 500, and never looked up as U+FFFD', async () => {
     const before = await refusals();
     const cases: [string, (b: Record<string, string>) => void][] = [
@@ -61,6 +61,28 @@ describe('the gateway login refuses text no record can hold (review F30-F33)', (
     expect(await refusals()).toBe(before);
     // The same login with its own text is taken.
     expect((await login(() => undefined)).status).toBe(200);
+  });
+
+  it('[DI-30][DI-31][PR-20] a heartbeat whose not-ready reason holds U+0000 or a lone surrogate is refused by the database: answered 400 SCHEMA, its receipt lost (the next tick is unclean, so the manual path stays shut), the stored reason unchanged', async () => {
+    const heartbeat = (notReady: string) =>
+      gw.post('/gw/v1/heartbeat', { gatewayTimeUs: '1790584618000000', devices: [{ deviceCode: 'TEST-BAL-01', state: 'OFFLINE', serial: 'SIM-0001', notReady }], journal: { lastSeq: gw.login.head.seq, ackedSeq: '0' } });
+    expect((await heartbeat('journal full')).status).toBe(200);
+    const stored = async () => (await server.db.admin.query<{ r: string | null }>("select h.not_ready as r from tab.instrument_heartbeat h join iam.device d on d.id = h.instrument_device_id where d.code = 'TEST-BAL-01'")).rows;
+    const unclean = async () => Number((await server.db.admin.query<{ n: string }>('select count(*)::text as n from tab.listener_tick where clean = false')).rows[0]?.n);
+    const before = await unclean();
+    for (const reason of ['journal\u0000 full', 'journal \udbff full']) {
+      const r = await heartbeat(reason);
+      expect({ reason, status: r.status, body: r.body }).toEqual({
+        reason,
+        status: 400,
+        body: { error: { code: 'SCHEMA', message: 'the request holds text no record can hold (U+0000, or half of a surrogate pair); nothing of it was stored', relogin: false } },
+      });
+    }
+    // The lost receipts are on record: a tick that is not clean follows (the listener ticks every 500 ms).
+    const deadline = performance.now() + 5_000;
+    while ((await unclean()) === before && performance.now() < deadline) await new Promise((r) => setTimeout(r, 100));
+    expect(await unclean()).toBeGreaterThan(before);
+    expect(await stored()).toEqual([{ r: 'journal full' }]);
   });
 
   it('[DI-20] the login schema itself refuses such text in its free text members; text a record can hold passes', () => {

@@ -45,7 +45,7 @@ const stripCode = (message: string): string => message.replace(/^\s*EBMR-[A-Z]+-
  * The SQLSTATE of a PostgreSQL refusal of text no record can hold, looking through `cause`: 22P05 (jsonb: the escape of
  * U+0000), 22021 (text: the byte 0x00), 22P02 with a surrogate in its detail (jsonb: the escape of a lone surrogate).
  */
-function unstorableTextSqlState(error: unknown): string | null {
+export function unstorableTextSqlState(error: unknown): string | null {
   for (let e: unknown = error, depth = 0; e !== null && typeof e === 'object' && depth < 4; e = (e as { cause?: unknown }).cause, depth += 1) {
     const { code, detail } = e as { code?: unknown; detail?: unknown };
     if (code === '22P05' || code === '22021') return code;

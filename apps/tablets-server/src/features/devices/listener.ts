@@ -69,6 +69,7 @@
  */
 import { createHash, randomBytes, randomUUID, verify, type KeyObject } from 'node:crypto';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
+import { UnstorableTextError } from '@ebmr/expr';
 import { commands, identity, type ActorContext } from '@ebmr/kernel';
 import {
   HeartbeatRequest,
@@ -90,6 +91,7 @@ import {
 import { consumeNonce, mintNonce } from '../../platform/auth/nonces.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
+import { unstorableTextSqlState } from '../../platform/http/errors.ts';
 import { HttpRefusal } from '../../platform/http/refusal.ts';
 import { HEARTBEAT_ANSWER_MS, runtimeOf, TurnTaken } from './runtime.ts';
 import type { Arrival } from './watch.ts';
@@ -315,6 +317,13 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
     if (error instanceof HttpRefusal) {
       // SITE_ZONE_CHANGED (DI-27): the gateway's session and token stay valid; it retries after the restart.
       void reply.code(error.status).send({ error: { code: error.refusal.code, message: `${error.refusal.whatHappened} ${error.refusal.why}`.trim(), relogin: false } });
+      return;
+    }
+    if (error instanceof UnstorableTextError || unstorableTextSqlState(error) !== null) {
+      // Review F30-F33: text no record can hold (U+0000, a lone surrogate), refused by the database or by the server's
+      // guard, is a request not in the expected form, never INTERNAL. A heartbeat refused so was settled above as lost
+      // (its receipt was not written), so the watch's next tick is unclean and the manual path stays shut (X37).
+      void reply.code(400).send({ error: { code: 'SCHEMA', message: 'the request holds text no record can hold (U+0000, or half of a surrogate pair); nothing of it was stored', relogin: false } });
       return;
     }
     const code = commands.errorCode(error) ?? 'INTERNAL';
