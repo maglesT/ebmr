@@ -329,7 +329,16 @@ that another command holds is skipped.
     empty). A refused row changes nothing and is recorded from any terminal, so the engine's refusal (a signing dry
     run, for one) stays part of the record;
   - a device entry (source DEVICE) names an ACTIVE instrument of the terminal's room (EBMR-EXE-124); the tablets
-    edition also requires the readings claimed for it in the same command (tablets sql 0300);
+    edition also requires the readings claimed for it in the same command (tablets sql 0300), except in a refusal
+    ENG-STALE, which names its readings without using them: stored readings with the weights the entry states,
+    named once, that a claim by the person would accept at that moment, with no reading claimed in its command
+    (tablets sql 0500, EBMR-EXE-124);
+- the engine's version check (sql 0326; triggers `ab_execution_stale_command`, `zn_execution_stale_refusal`,
+  `stale_command_problem`, DI-34; Phase 2 exit review F58.1): a command whose screen showed another version than
+  the run's (its expectedVersion, a whole number) is recorded only as the refusal ENG-STALE, and that refusal only
+  for such a command; a stale refusal stores the state before it, changed only as the time sweep changes it
+  (`sweep_state_problem`). EBMR-EXE-140. The server records a stale command like any refusal, with what was entered
+  and the version the screen showed;
 - the state a person's row (COMMAND or PREPARE) stores follows from its command (sql 0300; trigger
   `zb_execution_state_binding`, DI-20, DI-30, DI-32, PR-14, INV-03). The database does not re-run the engine; it
   compares the state before and after the row:
@@ -459,6 +468,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, or a container the state registers, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380, 0390), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316); a stage sign-off other than the engine's (135; sql 0319, 0320); a weighing entry whose net is not gross minus tare at the resolution of the weighings (136; sql 0321); a container label other than the one its weighing and the batch give (137; sql 0322); a quantity counted from weighings that is not the sum of all their nets at the resolution they were weighed at (138; sql 0322); a weighing entry that does not count into the quantity its phase records in the MBR (139; sql 0323) |
+| 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
 
 ## TypeScript
 
@@ -709,8 +719,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   of the import replaced by one that passes the inbox file on as it is, the import route is still refused by the
   database for a package from a sandbox, one changed after export, and an honest package stored under another
   package's file name (the route passes the name of the file it read); nothing is stored.
-- `commands.test.ts`: packages, issue, DI-34 refusals, ENG-STALE, idempotency, serialisation, INV-25,
-  lots, PR-08, views.
+- `commands.test.ts`: packages, issue, DI-34 refusals, ENG-STALE (recorded as a refused row with the version the
+  screen showed, nothing else changed; Phase 2 exit review F58.1), idempotency, serialisation, INV-25, lots, PR-08,
+  views.
 - `contract-examples.test.ts` (lead TODO T7 of the Phase 2 exit; DI-05, INV-18, PR-01): the issue form, a command's
   answer, a lot, the timeline with a refused command and the replay of a TEST- run equal the shared contract
   examples, once the values that differ from one database to the next are made stable.
@@ -864,6 +875,14 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   reading of metric mass units, labels and totals. Round 3 (sql 0323): a second dispensed container stored without
   item, or into another phase's or a non-mass quantity, and an output container stored into null, no quantity or
   another one, are refused (EBMR-EXE-139); the honest signature's total counts every container stored.
+- `db-guards-stale-row.test.ts` (Phase 2 exit review F58.1; DI-34, DI-32, PR-19; sql 0326, tablets sql 0500): written
+  through the store, an ENG-STALE refusal at the run's own version, without a version or with one that is no whole
+  number, an accepted command and another refusal from an older screen are refused (EBMR-EXE-140), and so is a stale
+  refusal that moves the version on or counts its command as applied; the engine's own stale refusal is recorded. A
+  stale weighing names its scale readings without using them: refused when its weights are not the readings', a
+  reading is not named once, already used (EBMR-DEV-105) or too old (EBMR-DEV-104), or its command claimed or lists
+  readings as used (EBMR-EXE-124), and a refusal that is not stale still stands on readings claimed for it; the honest
+  one is recorded and the next accepted weighing uses the same readings.
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and

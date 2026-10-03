@@ -7,8 +7,9 @@
  * INV-40): the batch is locked and the trusted time taken (INV-16), engine roles come from stored authority
  * evaluations (INV-26), the client intent is resolved into an engine command by the server (lots, readings,
  * containers), the pure engine decides, and recipe.append_execution re-checks and records the result, refusals
- * included (DI-34). A refused command answers 422 (409 when stale) after its refusal is committed; any other
- * failure rolls the whole command back, so nothing partial is ever kept.
+ * included (DI-34). A refused command answers 422 (409 when stale) after its refusal is committed; a stale command
+ * uses none of the scale readings it names (F58.1). Any other failure rolls the whole command back, so nothing partial
+ * is ever kept.
  */
 import { randomUUID } from 'node:crypto';
 import { routes, type ClientIntent, type Refusal, type ReplayReportView } from '@ebmr/api-contract';
@@ -20,7 +21,7 @@ import type { ResolvedSession } from '../../platform/auth/session.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
+import { HttpRefusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent } from './intents.ts';
@@ -33,22 +34,6 @@ import { engineCommandHandler } from './signable.ts';
 import { startSweeper } from './sweeper.ts';
 import { runSummary, runView, stepScreen, timeline, workQueueItems, type ViewContext, type ViewerInfo } from './views.ts';
 
-
-/** ENG-STALE before anything is resolved or written (F58): nothing was saved, and no scale reading was used. */
-function staleCommand(version: number, expected: number): HttpRefusal {
-  return refusal(
-    409,
-    {
-      code: 'ENG-STALE',
-      kind: 'STALE',
-      whatHappened: 'The test run changed since this screen was loaded. Nothing was saved, and no scale reading was used.',
-      why: `The run is at version ${version}; the screen showed version ${expected}.`,
-      controls: ['DI-34'],
-      whatYouCanDo: ['Reload the screen and save again; the readings captured are still usable while they are fresh.'],
-    },
-    true,
-  );
-}
 
 export const guidance = EXECUTION_GUIDANCE;
 export { seed } from './seed.ts';
@@ -96,8 +81,9 @@ function stepKeyOf(intent: ClientIntent): string | undefined {
 type CommandWork = { refused: { status: number; refusal: Refusal } } | { accepted: { version: number } };
 
 /**
- * The scale readings a resolved command claimed (its evidence). They stay used once the command commits, accepted or
- * refused by the engine (tab.reading_use is written in the command's transaction; DI-32).
+ * The scale readings a resolved command claimed (its evidence.readings). They stay used once the command commits,
+ * accepted or refused by the engine (tab.reading_use is written in the command's transaction; DI-32). A command from a
+ * stale screen claims none: it lists the readings it names as evidence.namedReadings (F58.1).
  */
 function readingsClaimed(evidence: Record<string, unknown>): string[] {
   const readings = evidence['readings'];
@@ -241,14 +227,15 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       const run = await runContext(pool, params.runId);
       const out = await withIdempotentActorCommand(pool, a, idempotencyKey ?? '', requestHash, async (client) => {
         const tx = await execution.ExecutionTx.open(client, run.def, params.runId);
-        // The engine's first check (ENG-STALE), made before the intent is resolved: a request from a screen that
-        // shows an older version claims no scale reading and writes nothing, so its readings stay usable for the
-        // resend from the reloaded screen (Phase 2 exit review F58; DI-32, DI-34). The run's lock is held from here
-        // on, so the version cannot move before the engine runs.
-        if (body.expectedVersion !== undefined && body.expectedVersion !== tx.state.version) throw staleCommand(tx.state.version, body.expectedVersion);
+        // A request from a screen that shows another version of the run is refused by the engine's first check
+        // (ENG-STALE) and recorded like any refusal (DI-34): what was entered, the version the screen showed, the
+        // refusal. It uses none of the scale readings it names (they are named, with every check of a claim, and stay
+        // usable for the resend from the reloaded screen: Phase 2 exit review F58, F58.1; DI-32). The run's lock is
+        // held from here on, so the version the engine compares is this one.
+        const useReadings = body.expectedVersion === tx.state.version;
         const roles = await engineRoles(client);
         const resolved = await resolveClientIntent(
-          { client, app, def: run.def, state: tx.state, room: s.roomCode, actor: engineActor(a.personId, roles), commandId: randomUUID(), expectedVersion: body.expectedVersion },
+          { client, app, def: run.def, state: tx.state, room: s.roomCode, actor: engineActor(a.personId, roles), commandId: randomUUID(), expectedVersion: body.expectedVersion, useReadings },
           body.intent,
         );
         const r = await tx.command(resolved.command, roles, { ...resolved.evidence, ...(idempotencyKey ? { idempotencyKey } : {}) });

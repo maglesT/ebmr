@@ -62,7 +62,7 @@ async function weighingWithNet(d: RunDriver, net: string | null): Promise<string
       const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
       const roles = await engineRoles(c);
       const resolved = await resolveClientIntent(
-        { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version },
+        { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
         { type: 'RECORD_ENTRY', stepKey: PCM, entry: { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } } },
       );
       const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });

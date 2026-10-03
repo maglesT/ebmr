@@ -108,6 +108,11 @@ export interface ClaimedReading {
 export interface DeviceReadingPort {
   /** Claims readings once, inside the caller's command transaction (inserts tab.reading_use). */
   claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]>;
+  /**
+   * The facts `claim` would give, with every check of the claim, without using the readings (nothing is inserted): for
+   * a command refused as stale, which names its readings and uses none (Phase 2 exit review F58.1; tablets 0500).
+   */
+  peek(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]>;
   /** The scale status of a room, for the step screen header; null when the room has no scale. */
   scaleStatus(room: string | null): Promise<ScaleStatusView | null>;
   /**
@@ -118,20 +123,23 @@ export interface DeviceReadingPort {
   scales(room: string): Promise<ScaleStatusView[]>;
 }
 
-/** Until C5 lands: every claim is refused (the manual two-person path still works), and no scale is shown. */
+/** Until C5 lands: every claim (and peek) is refused (the manual two-person path still works), and no scale is shown. */
+const readingsNotEnabled = (): Promise<never> =>
+  Promise.reject(
+    refusal(422, {
+      code: 'DEVICE_READINGS_NOT_ENABLED',
+      kind: 'NOT_ENABLED',
+      whatHappened: 'Scale readings cannot be used on this installation yet.',
+      why: 'The scale connection (site gateway) is not installed.',
+      controls: ['DI-32'],
+      whatYouCanDo: ['Use manual entry; a second person must then verify the step.'],
+      whoCanHelp: ['The system administrator'],
+    }),
+  );
+
 export const REFUSING_DEVICE_READING_PORT: DeviceReadingPort = {
-  claim: () =>
-    Promise.reject(
-      refusal(422, {
-        code: 'DEVICE_READINGS_NOT_ENABLED',
-        kind: 'NOT_ENABLED',
-        whatHappened: 'Scale readings cannot be used on this installation yet.',
-        why: 'The scale connection (site gateway) is not installed.',
-        controls: ['DI-32'],
-        whatYouCanDo: ['Use manual entry; a second person must then verify the step.'],
-        whoCanHelp: ['The system administrator'],
-      }),
-    ),
+  claim: readingsNotEnabled,
+  peek: readingsNotEnabled,
   scaleStatus: () => Promise.resolve(null),
   scales: () => Promise.resolve([]),
 };

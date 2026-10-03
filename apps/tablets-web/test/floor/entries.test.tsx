@@ -114,7 +114,7 @@ describe('G-07 weighing and dispensing', () => {
       intercept: (r) => {
         if (r.path !== commandPath) return undefined;
         calls += 1;
-        return calls === 1 ? { status: 409, body: envelope('STALE', 'ENG-STALE', { whatHappened: 'The test run changed since this screen was loaded. Nothing was saved, and no scale reading was used.' }) } : ok(r);
+        return calls === 1 ? { status: 409, body: envelope('STALE', 'ENG-STALE', { whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; no scale reading was used, and nothing else changed.' }) } : ok(r);
       },
     });
     const form = await screen.findByTestId('form-CONTAINER_WEIGHING');

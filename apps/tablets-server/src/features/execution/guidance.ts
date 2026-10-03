@@ -241,8 +241,30 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [ADMIN, QA],
     controls: ['DI-37', 'IN-15', 'PR-16'],
   },
+  // The engine's version check, held by the database (recipe-core 0326, F58.1): a command from a screen that showed
+  // another version is recorded only as the refusal ENG-STALE, that refusal only for such a command, and it changes
+  // nothing. The server records the engine's own verdict, so only a defect or a writer that skips the server gets here.
+  'EBMR-EXE-140': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The system was about to record this action against another version of the test run than the one the screen showed, or with a refusal that does not fit it. Nothing was saved.',
+    whatYouCanDo: ['Reload the screen and try again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN],
+    controls: ['DI-34'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
-  'ENG-STALE': { status: 409, kind: 'STALE', whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; nothing else changed.', whatYouCanDo: ['Reload the screen and try again.'], whoCanHelp: [], controls: ['DI-34'], retryable: true },
+  // A command from a screen that shows another version of the run: recorded as a refused row, with no scale reading
+  // used (the readings it names stay usable; Phase 2 exit review F58, F58.1). The signing dry run adds that nothing was
+  // signed.
+  'ENG-STALE': {
+    status: 409,
+    kind: 'STALE',
+    whatHappened: 'The test run changed since this screen was loaded. The refusal is recorded; no scale reading was used, and nothing else changed.',
+    whatYouCanDo: ['Reload the screen and try again; scale readings already captured can still be used while they are fresh.'],
+    whoCanHelp: [],
+    controls: ['DI-34'],
+    retryable: true,
+  },
   'ENG-SEGREGATION': { status: 422, kind: 'INDEPENDENCE', whatHappened: 'A person involved in the work cannot check or decide it. The refusal is recorded.', whatYouCanDo: ['Ask another trained person.'], whoCanHelp: [SUPERVISOR], controls: ['INV-03'] },
   'ENG-BLOCKED': { status: 422, kind: 'BLOCKED_BY_EXCEPTION', whatHappened: 'An open exception stops this step. The refusal is recorded.', whatYouCanDo: ['Ask the supervisor to link a deviation, or QA to decide the exception.'], whoCanHelp: [SUPERVISOR, QA], controls: ['PR-08'] },
   'ENG-BATCH-ON-HOLD': { status: 422, kind: 'BLOCKED_BY_EXCEPTION', whatHappened: 'The batch is on hold. The refusal is recorded.', whatYouCanDo: ['Wait until the hold is released.'], whoCanHelp: [SUPERVISOR, QA], controls: ['PR-08'] },

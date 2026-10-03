@@ -124,7 +124,7 @@ describe('commands', () => {
     expect(await violations(server)).toEqual([]);
   }, 180_000);
 
-  it('[DI-34] a stale screen is answered 409 (ENG-STALE) before anything is written; an idempotent resend returns the stored result without a second row', async () => {
+  it('[DI-34] a stale screen is answered 409 (ENG-STALE) and recorded as a refused row with the version it showed; nothing else changes; an idempotent resend returns the stored result without a second row', async () => {
     const d = await driver();
     const v = await d.version('operator1');
     const rows0 = await rowsOf(server, d.runId);
@@ -132,12 +132,20 @@ describe('commands', () => {
     const stale = await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { expectedVersion: v + 5 });
     expect(outcomeOf(stale)).toBe('409:ENG-STALE');
     expect(refusalOf(stale)).toMatchObject({ kind: 'STALE', controls: ['DI-34'] });
-    expect(refusalOf(stale).whatHappened).toMatch(/Nothing was saved, and no scale reading was used\./);
-    // Since the Phase 2 exit review (F58) the server checks the version before it resolves the intent: nothing is
-    // claimed or recorded for a stale screen (review F20: the rows, the state and its version are all unchanged).
-    expect(await rowsOf(server, d.runId)).toEqual(rows0);
+    expect(refusalOf(stale).whatHappened).toMatch(/The refusal is recorded; no scale reading was used, and nothing else changed\./);
+    // The refusal is one row (DI-34; Phase 2 exit review F58.1): the command as entered, the version the screen showed
+    // and the engine's code. Nothing else changed (review F20): the steps, the version, and the state but its event
+    // counter and the time last seen.
+    const rows1 = await rowsOf(server, d.runId);
+    expect(rows1.slice(0, rows0.length)).toEqual(rows0);
+    expect(rows1.slice(rows0.length)).toMatchObject([{ kind: 'COMMAND', command_type: 'START_STEP', accepted: false, refusal: { code: 'ENG-STALE' } }]);
+    const { rows: recorded } = await server.db.admin.query<{ seen: number; step: string }>(
+      "select (command ->> 'expectedVersion')::int as seen, command ->> 'step' as step from recipe.execution_command where batch_id = $1 and seq = $2",
+      [d.runId, rows1.length],
+    );
+    expect(recorded).toEqual([{ seen: v + 5, step: 'p-disp-clear' }]);
     const state1 = await execution.loadState(server.db.admin, d.runId);
-    expect({ version: state1?.version, lastSeq: state1?.lastSeq, stateHash: state1?.stateHash }).toEqual({ version: state0?.version, lastSeq: state0?.lastSeq, stateHash: state0?.stateHash });
+    expect({ version: state1?.version, steps: state1?.state.steps, applied: state1?.state.appliedCommands }).toEqual({ version: state0?.version, steps: state0?.state.steps, applied: state0?.state.appliedCommands });
     expect(await d.version('operator1')).toBe(v);
     const key = randomUUID();
     const first = valueOf(await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { idempotencyKey: key, expectedVersion: v }));
@@ -161,8 +169,11 @@ describe('commands', () => {
     expect([outcomeOf(a), outcomeOf(b)].sort()).toEqual(['409:ENG-STALE', 'ok']);
     const rows = await rowsOf(server, d.runId);
     expect(rows.map((r) => Number(r.seq))).toEqual(rows.map((_, i) => i + 1));
-    // The one that applied is the only new row; the stale one wrote nothing (F58, review F20).
-    expect(rows.slice(rows0)).toMatchObject([{ kind: 'COMMAND', command_type: 'RECORD_ENTRY', accepted: true, refusal: null }]);
+    // The one that applied first, then the other, recorded as refused stale (F58.1, review F20).
+    expect(rows.slice(rows0)).toMatchObject([
+      { kind: 'COMMAND', command_type: 'RECORD_ENTRY', accepted: true, refusal: null },
+      { kind: 'COMMAND', command_type: 'RECORD_ENTRY', accepted: false, refusal: { code: 'ENG-STALE' } },
+    ]);
     expect(await d.version('operator1')).toBe(v + 1);
     expect(await violations(server)).toEqual([]);
   }, 180_000);

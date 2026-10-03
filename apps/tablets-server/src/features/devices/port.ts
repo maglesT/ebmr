@@ -23,9 +23,15 @@
  * (platform/db/commands.ts afterRollback), in which tab.alert_refused_claim takes the session, the person and the
  * session's room from the validated actor and the balance's room from the registry (review finding P49).
  *
- * The use row commits with the caller's transaction: a reading referenced by a committed command, accepted or
- * refused, stays used (a reading id appears in at most one command row); a retry needs a new capture. A request from a
- * screen that shows an older run version is refused (ENG-STALE) before any reading is claimed, so it uses none (F58).
+ * The use row commits with the caller's transaction: a reading used by a committed command, accepted or refused, stays
+ * used (a reading is used by at most one command row); a retry needs a new capture. A command from a screen that shows
+ * an older run version is refused (ENG-STALE) and recorded, but uses none of its readings: the server names them with
+ * peek (Phase 2 exit review F58, F58.1).
+ *
+ * peek(client, {readingIds, room, maxAgeUs, purpose}): the facts claim would return, after every check claim makes, with
+ * nothing used: tab.peek_readings makes the claim inside a subtransaction and rolls it back (tablets 0500). Refusals and
+ * the durable alert of a DI-20 refusal are those of claim. The row of a stale command lists these readings as named
+ * (evidence.namedReadings), never as used, and the database checks them again for that row (tablets 0500).
  *
  * scaleStatus(room): the room's scale for the step-screen header and the scale the step captures from. ONLINE only
  * when the gateway's last heartbeat, at database time, is at most 10 s old and reported the instrument connected (and
@@ -84,40 +90,51 @@ export async function scaleStatuses(app: AppContext, room: string | null): Promi
   }));
 }
 
+/**
+ * tab.claim_readings (`use`) or tab.peek_readings (its checks, nothing used) on `claim`, inside the caller's command
+ * transaction: the facts in the order of the ids, or the claim's refusal (with the durable alert of a DI-20 refusal).
+ */
+async function readingsOf(client: pg.PoolClient, claim: ReadingClaim, use: boolean): Promise<ClaimedReading[]> {
+  const ids = [...claim.readingIds];
+  const malformed = ids.find((id) => !isUuid(id));
+  if (malformed !== undefined) throw new commands.KernelError('EBMR-DEV-101', `EBMR-DEV-101 DI-32: ${malformed} is not a reading id`);
+  try {
+    const { rows } = await client.query<{ r: { readingId: string; value: string; unit: string; raw: string; deviceCode: string; sourceTimeUs: string | null; trust: ClaimedReading['trust'] }[] }>(
+      use ? 'select tab.claim_readings($1::uuid[], $2, $3::bigint, $4) as r' : 'select tab.peek_readings($1::uuid[], $2, $3::bigint, $4) as r',
+      [ids, claim.room, claim.maxAgeUs.toString(), claim.purpose],
+    );
+    return (rows[0]?.r ?? []).map((r) => ({
+      readingId: r.readingId,
+      value: r.value,
+      unit: r.unit,
+      raw: r.raw,
+      deviceCode: r.deviceCode,
+      sourceTimeUs: r.sourceTimeUs === null ? null : BigInt(r.sourceTimeUs),
+      trust: r.trust,
+    }));
+  } catch (error) {
+    const refusal = commands.asKernelError(error);
+    const code = commands.errorCode(error);
+    if (code && ALERTED_CODES.has(code)) {
+      // DI-20: the caller's transaction is lost. Once it has rolled back, the command wrapper records the alert in a
+      // guarded command of its own under the same actor; the database takes the session and its room from that
+      // validated actor, never from here (tablets 0320).
+      const named = ids.filter(isUuid);
+      afterRollback(refusal, async (pool, actor) => {
+        await withActorCommand(pool, actor, (c) => c.query('select tab.alert_refused_claim($1::uuid[], $2)', [named, claim.room]));
+      });
+    }
+    throw refusal;
+  }
+}
+
 export function createDeviceReadingPort(app: AppContext): DeviceReadingPort {
   return {
-    async claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]> {
-      const ids = [...claim.readingIds];
-      const malformed = ids.find((id) => !isUuid(id));
-      if (malformed !== undefined) throw new commands.KernelError('EBMR-DEV-101', `EBMR-DEV-101 DI-32: ${malformed} is not a reading id`);
-      try {
-        const { rows } = await client.query<{ r: { readingId: string; value: string; unit: string; raw: string; deviceCode: string; sourceTimeUs: string | null; trust: ClaimedReading['trust'] }[] }>(
-          'select tab.claim_readings($1::uuid[], $2, $3::bigint, $4) as r',
-          [ids, claim.room, claim.maxAgeUs.toString(), claim.purpose],
-        );
-        return (rows[0]?.r ?? []).map((r) => ({
-          readingId: r.readingId,
-          value: r.value,
-          unit: r.unit,
-          raw: r.raw,
-          deviceCode: r.deviceCode,
-          sourceTimeUs: r.sourceTimeUs === null ? null : BigInt(r.sourceTimeUs),
-          trust: r.trust,
-        }));
-      } catch (error) {
-        const refusal = commands.asKernelError(error);
-        const code = commands.errorCode(error);
-        if (code && ALERTED_CODES.has(code)) {
-          // DI-20: the caller's transaction is lost. Once it has rolled back, the command wrapper records the alert in a
-          // guarded command of its own under the same actor; the database takes the session and its room from that
-          // validated actor, never from here (tablets 0320).
-          const named = ids.filter(isUuid);
-          afterRollback(refusal, async (pool, actor) => {
-            await withActorCommand(pool, actor, (c) => c.query('select tab.alert_refused_claim($1::uuid[], $2)', [named, claim.room]));
-          });
-        }
-        throw refusal;
-      }
+    claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]> {
+      return readingsOf(client, claim, true);
+    },
+    peek(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]> {
+      return readingsOf(client, claim, false);
     },
     async scaleStatus(room: string | null): Promise<ScaleStatusView | null> {
       if (room === null) return null;
