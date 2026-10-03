@@ -46,7 +46,7 @@ interface Seed {
   s: string;
   flag: boolean;
 }
-const seed: fc.Arbitrary<Seed> = fc.record({ k: fc.nat(11), a: fc.nat(), b: fc.nat(), s: anyText, flag: fc.boolean() });
+const seed: fc.Arbitrary<Seed> = fc.record({ k: fc.nat(12), a: fc.nat(), b: fc.nat(), s: anyText, flag: fc.boolean() });
 
 const pick = <T>(list: readonly T[], i: number): T | undefined => (list.length === 0 ? undefined : list[i % list.length]);
 
@@ -99,6 +99,11 @@ function opFor(c: Content, x: Seed): Op | undefined {
     case 10: {
       const t = pick(c.timeConstraints, x.a);
       return t ? { kind: 'SET_TIME_BOUND', constraintId: t.id, side: x.flag ? 'max' : 'min', value: x.b % 4 === 0 ? null : x.s } : undefined;
+    }
+    case 11: {
+      const p = pick(c.parameters.filter((q) => q.limits && q.limits.ranges.length > 0), x.a);
+      const r = p?.limits?.ranges[x.b % (p.limits?.ranges.length ?? 1)];
+      return p && r ? { kind: 'SET_LIMIT_INCLUSIVE', owner: 'parameter', id: p.id, tier: r.tier, side: x.flag ? 'low' : 'high', inclusive: x.a % 2 === 0 } : undefined;
     }
     default: {
       const i = pick(c.intermediates.filter((m) => m.holdTime), x.a);

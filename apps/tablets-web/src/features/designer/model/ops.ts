@@ -8,7 +8,8 @@
  *
  * A1 scope: title and markets (India locked), insert, move (within its sequence) and delete of a step, a step's
  * name, configuration, signatures, significance, risk class, data and equipment lists, hold points, parameter
- * targets, limit bounds of parameters, calculations and yields, time-constraint bounds and hold times.
+ * targets, limit bounds of parameters, calculations and yields (with whether each bound value itself passes),
+ * time-constraint bounds and hold times.
  * Construct editing (wrap and unwrap) comes in A2.
  *
  * Text no record can hold (U+0000, a UTF-16 surrogate without its other half) never enters the content: the operation
@@ -42,7 +43,14 @@ export type Op =
   | { kind: 'DELETE_STEP'; nodeId: string }
   | { kind: 'UPDATE_PHASE'; nodeId: string; patch: PhasePatch }
   | { kind: 'UPDATE_HOLD'; nodeId: string; patch: Partial<Pick<flow.HoldPointNode, 'name' | 'role'>> }
-  | { kind: 'SET_LIMIT_BOUND'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: Tier; side: 'low' | 'high'; value: string | null }
+  /**
+   * Sets or removes (value null) one bound of a limit range. A bound that exists keeps whether its value itself passes
+   * unless `inclusive` says otherwise; a bound that does not exist yet is created only with `inclusive` stated, so a
+   * cleared exclusive bound typed again never comes back inclusive (a wider limit) by default (review F47).
+   */
+  | { kind: 'SET_LIMIT_BOUND'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: Tier; side: 'low' | 'high'; value: string | null; inclusive?: boolean }
+  /** Whether the value of an existing bound itself passes (at least / at most) or fails (more than / less than). */
+  | { kind: 'SET_LIMIT_INCLUSIVE'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: Tier; side: 'low' | 'high'; inclusive: boolean }
   | { kind: 'SET_TARGET'; parameterId: string; value: string | null }
   | { kind: 'SET_TIME_BOUND'; constraintId: string; side: 'min' | 'max'; value: string | null }
   | { kind: 'SET_HOLD_TIME'; intermediateId: string; value: string };
@@ -220,8 +228,23 @@ function applyInPlace(c: Content, op: Op): void {
       const { holder, name } = limitSpecOf(c, op.owner, op.id);
       const range = holder.limits?.ranges.find((r) => r.tier === op.tier);
       if (!range) throw new OpError(`${name} has no ${op.tier.toLowerCase().replace('_', ' ')} range.`);
-      if (op.value === null) delete range[op.side];
-      else range[op.side] = { value: checkDecimal(op.value, `The ${op.side === 'low' ? 'lower' : 'upper'} limit`), inclusive: range[op.side]?.inclusive ?? true };
+      if (op.value === null) {
+        delete range[op.side];
+        return;
+      }
+      const value = checkDecimal(op.value, `The ${op.side === 'low' ? 'lower' : 'upper'} limit`);
+      const inclusive = op.inclusive ?? range[op.side]?.inclusive;
+      if (inclusive === undefined) {
+        throw new OpError(`Say whether the ${op.side === 'low' ? 'lower' : 'upper'} limit value itself passes (${op.side === 'low' ? 'at least' : 'at most'}) or fails (${op.side === 'low' ? 'more than' : 'less than'}).`);
+      }
+      range[op.side] = { value, inclusive };
+      return;
+    }
+    case 'SET_LIMIT_INCLUSIVE': {
+      const { holder, name } = limitSpecOf(c, op.owner, op.id);
+      const bound = holder.limits?.ranges.find((r) => r.tier === op.tier)?.[op.side];
+      if (!bound) throw new OpError(`${name} has no ${op.side === 'low' ? 'lower' : 'upper'} ${op.tier.toLowerCase().replace('_', ' ')} limit to change.`);
+      bound.inclusive = op.inclusive;
       return;
     }
     case 'SET_TARGET': {

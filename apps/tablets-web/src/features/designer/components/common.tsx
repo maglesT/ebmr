@@ -28,6 +28,18 @@ export function SeverityChip({ severity }: { severity: 'ERROR' | 'WARNING' | 'IN
 
 export const roleTitle = (role: string | undefined): string => (role ? (ROLE_TITLES[role] ?? role.replace(/_/g, ' ').toLowerCase()) : '—');
 
+/** The comparison of a limit bound in words: whether the bound value itself passes (at least / at most) or fails. */
+export function comparisonWords(side: 'low' | 'high', inclusive: boolean): string {
+  if (side === 'low') return inclusive ? 'at least' : 'more than';
+  return inclusive ? 'at most' : 'less than';
+}
+
+/** One limit bound in words with its exact value as written, e.g. "less than 3.5 %"; never rounded (review F47). */
+export function boundWords(side: 'low' | 'high', bound: { value: string; inclusive: boolean } | undefined, unit: string): string {
+  if (!bound) return side === 'low' ? 'no lower limit' : 'no upper limit';
+  return `${comparisonWords(side, bound.inclusive)} ${bound.value}${unit ? ` ${unit}` : ''}`;
+}
+
 /** A decimal that commits a complete value on blur or Enter; empty commits null (removes the value). */
 export function CommitDecimal({
   label,

@@ -4,14 +4,14 @@
  * time bounds and hold times are edited in place with DecimalField (text, never a number); the procedure is edited
  * through its rows (ProcedureTable) and the step properties panel.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { flow } from '@ebmr/recipe-core/pure';
 import type { VersionView } from '@ebmr/api-contract';
 import { dcls } from '../classes.ts';
 import { KNOWN_MARKETS, type Content, type Op } from '../model/ops.ts';
 import { DOCUMENT_SECTIONS, sectionId } from '../model/sections.ts';
 import type { FindingItem, PaletteItem } from '../model/types.ts';
-import { Check, CommitDecimal, CommitText, roleTitle, shortHash } from './common.tsx';
+import { boundWords, Check, CommitDecimal, CommitText, comparisonWords, roleTitle, Select, shortHash } from './common.tsx';
 import { ProcedureTable } from './ProcedureTable.tsx';
 
 export interface DocumentProps {
@@ -40,7 +40,45 @@ function Section({ id, children }: { id: string; children: ReactNode }) {
 
 const tierLabel = (t: string): string => t.toLowerCase().replace('_', ' ');
 
-function LimitsTable({ owner, id, name, spec, dispatch, readOnly }: { owner: 'parameter' | 'calculation' | 'yield'; id: string; name: string; spec: flow.LimitSpec; dispatch: (op: Op) => boolean; readOnly: boolean }) {
+type LimitOwner = 'parameter' | 'calculation' | 'yield';
+
+/**
+ * One bound of a limit range: in words with its comparison in every mode ("less than 3.5 %"), and while editing a
+ * choice of the comparison next to the value. The choice is remembered while the value is cleared, so a cleared
+ * exclusive bound typed again stays exclusive; a new bound is created with the comparison shown (review F47).
+ */
+function BoundCell({ owner, id, name, tier, side, bound, unit, dispatch, readOnly }: { owner: LimitOwner; id: string; name: string; tier: flow.LimitSpec['ranges'][number]['tier']; side: 'low' | 'high'; bound: { value: string; inclusive: boolean } | undefined; unit: string; dispatch: (op: Op) => boolean; readOnly: boolean }) {
+  const [inclusive, setInclusive] = useState(bound?.inclusive ?? true);
+  // The content changed (undo, a server answer): follow the bound when there is one (derived state, set during render).
+  const [base, setBase] = useState(bound?.inclusive);
+  if (base !== bound?.inclusive) {
+    setBase(bound?.inclusive);
+    if (bound) setInclusive(bound.inclusive);
+  }
+  const what = `${name}, ${tierLabel(tier)}, ${side === 'low' ? 'lower' : 'upper'} limit`;
+  if (readOnly) return <span data-bound={side}>{boundWords(side, bound, unit)}</span>;
+  return (
+    <div className={dcls('stack')} data-bound={side}>
+      <Select
+        label={`${what}: the value itself`}
+        value={inclusive ? 'INCLUSIVE' : 'EXCLUSIVE'}
+        options={[
+          { value: 'INCLUSIVE', label: `${comparisonWords(side, true)} (the value itself passes)` },
+          { value: 'EXCLUSIVE', label: `${comparisonWords(side, false)} (the value itself fails)` },
+        ]}
+        onChange={(v) => {
+          const next = v === 'INCLUSIVE';
+          setInclusive(next);
+          if (bound && bound.inclusive !== next) dispatch({ kind: 'SET_LIMIT_INCLUSIVE', owner, id, tier, side, inclusive: next });
+        }}
+      />
+      <CommitDecimal label={what} unit={unit} value={bound?.value} readOnly={false} onCommit={(value) => dispatch({ kind: 'SET_LIMIT_BOUND', owner, id, tier, side, value, inclusive: bound?.inclusive ?? inclusive })} />
+      <span className={dcls('small')}>{boundWords(side, bound, unit)}</span>
+    </div>
+  );
+}
+
+function LimitsTable({ owner, id, name, spec, dispatch, readOnly }: { owner: LimitOwner; id: string; name: string; spec: flow.LimitSpec; dispatch: (op: Op) => boolean; readOnly: boolean }) {
   return (
     <table className={dcls('grid')} aria-label={`Limits of ${name}`}>
       <thead>
@@ -58,13 +96,7 @@ function LimitsTable({ owner, id, name, spec, dispatch, readOnly }: { owner: 'pa
             <th scope="row">{tierLabel(r.tier)}</th>
             {(['low', 'high'] as const).map((side) => (
               <td key={side}>
-                <CommitDecimal
-                  label={`${name}, ${tierLabel(r.tier)}, ${side === 'low' ? 'lower' : 'upper'} limit${r[side] && !r[side].inclusive ? ' (exclusive)' : ''}`}
-                  unit={spec.unit}
-                  value={r[side]?.value}
-                  readOnly={readOnly}
-                  onCommit={(value) => dispatch({ kind: 'SET_LIMIT_BOUND', owner, id, tier: r.tier, side, value })}
-                />
+                <BoundCell owner={owner} id={id} name={name} tier={r.tier} side={side} bound={r[side]} unit={spec.unit} dispatch={dispatch} readOnly={readOnly} />
               </td>
             ))}
             <td>
