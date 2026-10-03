@@ -21,6 +21,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { routes, type CallError, type DeviceView, type MetaView, type Result, type SessionView } from '@ebmr/api-contract';
 import { machines } from '@ebmr/ui-kit';
 import { api, apiState, deviceProof } from '../api/client.ts';
+import { callWithDeadline } from '../api/deadline.ts';
 import { forgetDeviceKey, loadDeviceKey, type StoredDeviceKey } from '../device/keystore.ts';
 import { anchorServerTime } from './clock.ts';
 import {
@@ -100,20 +101,8 @@ const describe = (e: CallError): string =>
 const isNoSession = (e: CallError): boolean => e.kind === 'REFUSAL' && e.status === 401 && e.envelope.refusal.code === 'NO_SESSION';
 
 /** One sign-out request, given up (and aborted) when the server has not answered within SIGN_OUT_REQUEST_TIMEOUT_MS. */
-async function withDeadline<T>(run: (signal: AbortSignal) => Promise<Result<T>>): Promise<Result<T>> {
-  const ctl = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<Result<T>>((resolve) => {
-    timer = setTimeout(() => {
-      resolve({ ok: false, error: { kind: 'NETWORK', message: TIMED_OUT } });
-      ctl.abort();
-    }, SIGN_OUT_REQUEST_TIMEOUT_MS);
-  });
-  try {
-    return await Promise.race([run(ctl.signal), late]);
-  } finally {
-    clearTimeout(timer);
-  }
+function withDeadline<T>(run: (signal: AbortSignal) => Promise<Result<T>>): Promise<Result<T>> {
+  return callWithDeadline(SIGN_OUT_REQUEST_TIMEOUT_MS, run, TIMED_OUT);
 }
 
 type SignOutOutcome = { kind: 'ENDED' } | { kind: 'UNCONFIRMED'; problem: string } | { kind: 'ELSEWHERE' };

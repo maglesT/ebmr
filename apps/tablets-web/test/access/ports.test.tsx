@@ -23,6 +23,7 @@ const { Provider } = await import('../../src/features/access/index.tsx');
 const { EsigDemoPage } = await import('../../src/features/access/EsigDemo.tsx');
 const { useBadgeTap, useSignatureCeremony } = await import('../../src/app/ports.tsx');
 const { base64UrlOfUtf8, previewIntent } = await import('../../src/features/access/calls.ts');
+const { SEND_DEADLINE_MS } = await import('../../src/api/deadline.ts');
 type Ports = { tap: ReturnType<typeof useBadgeTap>; ceremony: ReturnType<typeof useSignatureCeremony> };
 
 const KIOSK = EXAMPLES['session-kiosk'].data as SessionView;
@@ -83,6 +84,9 @@ let nonceCount = 0;
 let key: CryptoKeyPair;
 let spki = '';
 
+/** An answer that never comes (a stalled connection, a handler waiting on a lock). */
+const NEVER = Symbol('never');
+
 const isAnswer = (v: unknown): v is { status: number; body: unknown } => typeof v === 'object' && v !== null && 'status' in v && 'body' in v;
 
 const transport: FetchLike = (url, init) => {
@@ -100,6 +104,7 @@ const transport: FetchLike = (url, init) => {
     if (entry === undefined) a = { status: 404, body: { refusal: { code: 'NOT_FOUND', kind: 'NOT_ENABLED', whatHappened: k, why: '', controls: [], whatYouCanDo: [], whoCanHelp: [] }, correlationId: 't', retryable: false } };
     else a = typeof entry === 'function' ? (entry as (x: Recorded) => Answer)(r) : entry;
   }
+  if (a === NEVER) return new Promise(() => undefined);
   if (a instanceof Error) return Promise.reject(a);
   const { status, body } = isAnswer(a) ? a : { status: 200, body: a };
   return Promise.resolve({ status, headers, text: () => Promise.resolve(JSON.stringify(body)) });
@@ -334,6 +339,40 @@ describe('SignatureCeremonyPort', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect((await outcome).status).toBe('SIGNED');
     expect(calls('/api/esig/sign')).toHaveLength(1);
+  });
+
+  it('[INV-10][DI-38] a sign the server never answers is given up after the deadline: the signatures are read again, the credentials never sent again (F60)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      answers['GET /api/esig/content'] = CONTENT;
+      answers['POST /api/esig/challenges'] = challenge(['PIN']);
+      answers['POST /api/esig/sign'] = NEVER;
+      answers['GET /api/esig/signatures'] = { signatures: [manifestation()] };
+      const ports = renderPorts();
+      let outcome: ReturnType<Ports['ceremony']['sign']> = Promise.resolve({ status: 'CANCELLED' });
+      act(() => {
+        outcome = ports.ceremony.sign(request);
+      });
+      await userEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+      await tapBadge('04A10000000001');
+      await enterPin('Enter your PIN to sign', '482913');
+      await waitFor(() => expect(calls('/api/esig/sign')).toHaveLength(1));
+      await act(async () => {
+        vi.advanceTimersByTime(SEND_DEADLINE_MS - 1_000);
+        await Promise.resolve();
+      });
+      expect(calls('/api/esig/signatures')).toHaveLength(0);
+      await act(async () => {
+        vi.advanceTimersByTime(1_000);
+        await Promise.resolve();
+      });
+      expect(await screen.findByText('Signed.')).toBeTruthy();
+      await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+      expect((await outcome).status).toBe('SIGNED');
+      expect({ signs: calls('/api/esig/sign').length, reads: calls('/api/esig/signatures').length }).toEqual({ signs: 1, reads: 1 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('[INV-40][INV-03][DI-38] a tap by another person at the signing: after the switch nothing is signed and the signing ends, so the previous person\'s decision is never challenged or signed under the new person', async () => {

@@ -79,6 +79,7 @@ tests:
   - "apps/tablets-web/test/access/ports.test.tsx > [DI-36][DI-38][INV-40] a kiosk signature: content, tap for the challenge, PIN once, manifestation; no secret stays in the page"
   - "apps/tablets-web/test/access/ports.test.tsx > [DI-38] an office signature asks user ID and password and sends them once"
   - "apps/tablets-web/test/access/ports.test.tsx > [INV-10][DI-38] a lost sign answer is never re-sent: the dialog reloads the signatures (found: signed; none: not confirmed)"
+  - "apps/tablets-web/test/access/ports.test.tsx > [INV-10][DI-38] a sign the server never answers is given up after the deadline: the signatures are read again, the credentials never sent again (F60)"
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-38] the PIN pad shows only the number of digits, hands the PIN over once on OK and forgets it"
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-36][DI-38] before the PIN the signer sees the record, the meaning and how the signature will show; nothing is pre-filled"
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-38] an office signature asks for user ID and password, both empty, and hands them over once"

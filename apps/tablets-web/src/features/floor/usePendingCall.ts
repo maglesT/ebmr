@@ -7,7 +7,8 @@
  *   attribution), and a tap is single use, so every send (a resend too) asks for a fresh one.
  * - The attribution lives only in a local variable of the one send it belongs to: never in React state, the
  *   machine, a query cache, browser storage or a log.
- * - A lost answer leaves the entry NOT SAVED; the resend uses the same key and the same body. The entry stays NOT
+ * - A lost answer leaves the entry NOT SAVED; the resend uses the same key and the same body. A send with no answer
+ *   within SEND_DEADLINE_MS is aborted and counts as lost (review F60). The entry stays NOT
  *   SAVED, under that key, until an answer speaks for the key itself (outcome.ts answersForEntry: a commit, or on
  *   the run command the engine's own refusal): any other refusal (a PIN not accepted, a locked session, another
  *   person's badge...) is shown inside the NOT SAVED notice and settles nothing.
@@ -36,6 +37,7 @@ import {
 } from '@ebmr/api-contract';
 import { floor } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
+import { callWithDeadline, SEND_DEADLINE_MS } from '../../api/deadline.ts';
 import { useBadgeTap } from '../../app/ports.tsx';
 import { describeChanges, describeIntent } from './describe.ts';
 import { answersForEntry, classifyOutcome, type CommandOutcome } from './outcome.ts';
@@ -196,8 +198,11 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
     }
     // A resend of an entry whose answer was lost: the first send may have committed.
     const outcomeUnknown = lostKey.current === key;
-    const input = { params: p, body, idempotencyKey: key, ...(attribution ? { attribution } : {}) } as unknown as CallInput<R>;
-    const result = await api.call(route, input);
+    // A send the server has not answered within the deadline is given up and aborted: a lost answer, so the entry is
+    // NOT SAVED with Resend under the same key and Discard, never "Saving..." without end (review F60; D1, DI-28).
+    const result = await callWithDeadline(SEND_DEADLINE_MS, (signal) =>
+      api.call(route, { params: p, body, idempotencyKey: key, signal, ...(attribution ? { attribution } : {}) } as unknown as CallInput<R>),
+    );
     const outcome = classifyOutcome(result);
     const now = actorRef.getSnapshot();
     if (now.value !== 'sending' || now.context.key !== key) {

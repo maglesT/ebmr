@@ -55,6 +55,9 @@ tests:
   - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-28][DI-32] a tare too old to use (422 EBMR-DEV-104 naming it, rolled back): only the tare goes; the unused gross stays"
   - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > the age of a captured reading (F59) > [DI-28][DI-32] a fresh capture says how long it can still be used"
   - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > the age of a captured reading (F59) > [DI-28][DI-32] a capture near the maximum age warns before the save; past it, it says to capture again"
+  - "apps/tablets-web/test/floor/send-deadline.test.tsx > a floor entry the server never answers (F60) > [DI-28] becomes NOT SAVED once the deadline passes; Send again resends the same entry under the same key"
+  - "apps/tablets-web/test/floor/send-deadline.test.tsx > callWithDeadline (F60) > [DI-28] gives up a call the server has not answered within the deadline: a NETWORK error, and the request is aborted"
+  - "apps/tablets-web/test/floor/send-deadline.test.tsx > callWithDeadline (F60) > [DI-28] an answer within the deadline is the answer, and nothing is aborted"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

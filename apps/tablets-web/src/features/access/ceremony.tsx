@@ -26,6 +26,7 @@ import { sha256Hex } from '@ebmr/expr';
 import { routes, type RefusalEnvelope, type SignatureCredentials } from '@ebmr/api-contract';
 import { identity, machines } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
+import { callWithDeadline, SEND_DEADLINE_MS } from '../../api/deadline.ts';
 import { useBoot } from '../../app/boot.tsx';
 import { secondsUntil } from '../../app/clock.ts';
 import type { SignOutcome, SignRequest } from '../../app/ports.tsx';
@@ -110,12 +111,14 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
             const proof = await deviceProof(key, 'POST', '/api/esig/sign', body);
             // No proof: nothing was sent, so the answer is a refusal, never a lost answer to reconcile (F08).
             if (!proof.ok) throw callError(proof.error);
-            const r = await api.call(routes.esig.sign, { body: { ...body, proof: proof.proof } });
+            // No answer within the deadline: aborted and lost, so the signatures are read again (reconcile), never the
+            // credentials sent again; nor "Signing..." without end, where EXPIRE and CANCEL wait for the answer (F60).
+            const r = await callWithDeadline(SEND_DEADLINE_MS, (signal) => api.call(routes.esig.sign, { body: { ...body, proof: proof.proof }, signal }));
             if (!r.ok) throw callError(r.error);
             return r.value;
           }),
           reconcile: fromPromise(async ({ input }) => {
-            const r = await api.call(routes.esig.signatures, { query: { aggregateType: req.aggregateType, aggregateId: req.aggregateId } });
+            const r = await callWithDeadline(SEND_DEADLINE_MS, (signal) => api.call(routes.esig.signatures, { query: { aggregateType: req.aggregateType, aggregateId: req.aggregateId }, signal }));
             if (!r.ok) throw callError(r.error);
             const me = latestBoot.get().session?.person.personId;
             return r.value.signatures.find((m) => m.valid && m.meaning === input.challenge.meaning && m.contentHash === input.challenge.contentHash && m.signer.personId === me) ?? null;
