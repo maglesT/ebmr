@@ -23,15 +23,19 @@ export function failureOf(error: CallError): machines.CeremonyFailure {
   }
 }
 
-/** A badge-tap attribution of the request, with a fresh single-use device proof over method, path and body. */
-export async function buildAttribution(key: StoredDeviceKey, badgeUid: string, pin: string | undefined, request: TapRequest): Promise<Attribution> {
-  const proof = await deviceProof(key, request.method, request.path, request.body);
-  return { method: 'BADGE_TAP', badgeUid, ...(pin ? { pin } : {}), proof };
-}
-
 export type CallOutcome<T> = { ok: true; value: T } | { ok: false; failure: machines.CeremonyFailure };
 
 const wrap = <T,>(r: { ok: true; value: T } | { ok: false; error: CallError }): CallOutcome<T> => (r.ok ? { ok: true, value: r.value } : { ok: false, failure: failureOf(r.error) });
+
+/**
+ * A badge-tap attribution of the request, with a fresh single-use device proof over method, path and body. When no
+ * proof can be had, the failure is the NO_DEVICE_PROOF refusal (nothing was sent; never LOST: review F08).
+ */
+export async function buildAttribution(key: StoredDeviceKey, badgeUid: string, pin: string | undefined, request: TapRequest): Promise<CallOutcome<Attribution>> {
+  const proof = await deviceProof(key, request.method, request.path, request.body);
+  if (!proof.ok) return { ok: false, failure: failureOf(proof.error) };
+  return { ok: true, value: { method: 'BADGE_TAP', badgeUid, ...(pin ? { pin } : {}), proof: proof.proof } };
+}
 
 export async function lockCall(): Promise<CallOutcome<SessionView>> {
   return wrap(await api.call(routes.access.lock, { body: {} }));
@@ -40,19 +44,22 @@ export async function lockCall(): Promise<CallOutcome<SessionView>> {
 export async function unlockWithBadge(key: StoredDeviceKey, badgeUid: string, pin: string): Promise<CallOutcome<SessionView>> {
   const body = { method: 'BADGE_PIN' as const, identifier: badgeUid, secret: pin };
   const proof = await deviceProof(key, 'POST', '/api/session/unlock', body);
-  return wrap(await api.call(routes.access.unlock, { body: { ...body, proof } }));
+  if (!proof.ok) return wrap(proof);
+  return wrap(await api.call(routes.access.unlock, { body: { ...body, proof: proof.proof } }));
 }
 
 export async function unlockWithPassword(key: StoredDeviceKey, loginName: string, password: string): Promise<CallOutcome<SessionView>> {
   const body = { method: 'PASSWORD' as const, identifier: loginName, secret: password };
   const proof = await deviceProof(key, 'POST', '/api/session/unlock', body);
-  return wrap(await api.call(routes.access.unlock, { body: { ...body, proof } }));
+  if (!proof.ok) return wrap(proof);
+  return wrap(await api.call(routes.access.unlock, { body: { ...body, proof: proof.proof } }));
 }
 
 export async function switchCall(key: StoredDeviceKey, badgeUid: string, pin: string): Promise<CallOutcome<SessionView>> {
   const body = { badgeUid, pin };
   const proof = await deviceProof(key, 'POST', '/api/session/switch', body);
-  return wrap(await api.call(routes.access.switchUser, { body: { ...body, proof } }));
+  if (!proof.ok) return wrap(proof);
+  return wrap(await api.call(routes.access.switchUser, { body: { ...body, proof: proof.proof } }));
 }
 
 export async function sessionCall(): Promise<CallOutcome<SessionView>> {

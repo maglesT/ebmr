@@ -9,5 +9,6 @@ export { KEEP_BADGE_MS, KeptBadge, LockOverlay, SwitchUserDialog, useKeptBadge, 
 export { ManifestationCard, ManifestationPreview, manifestationLine } from './Manifestation.tsx';
 export { PinPad, type PinPadProps } from './PinPad.tsx';
 export { humanize, scalarText, SignableContent } from './SignableContent.tsx';
-export { RefusalNotice, SignatureDialog, type SignatureDialogProps } from './SignatureDialog.tsx';
+export { RefusalNotice } from './RefusalNotice.tsx';
+export { SignatureDialog, type SignatureDialogProps } from './SignatureDialog.tsx';
 export { announceSessionChange, onSessionChange, SESSION_CHANGE_EVENT, type SessionChangeDetail, type SessionChangeReason } from '../machines/kiosk-lock.ts';

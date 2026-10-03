@@ -62,7 +62,8 @@ describe('device proofs', () => {
         { path: routes.session.deviceNonce.path, body: { spki, lastNonce: 'nonce-served-000000001' } },
       ]);
       for (const s of sent) expect(DeviceNonceRequest.safeParse(s.body).success).toBe(true);
-      expect([first.nonce, first.spki, second.nonce]).toEqual(['nonce-served-000000001', spki, 'nonce-served-000000002']);
+      if (!first.ok || !second.ok) throw new Error('no device proof');
+      expect([first.proof.nonce, first.proof.spki, second.proof.nonce]).toEqual(['nonce-served-000000001', spki, 'nonce-served-000000002']);
     } finally {
       setTransport(browserFetch);
     }

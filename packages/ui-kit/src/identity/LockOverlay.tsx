@@ -18,7 +18,7 @@ import type { SwitchOffer } from '../machines/kiosk-lock.ts';
 import { BadgePrompt, type DemoBadge } from './BadgePrompt.tsx';
 import { icls } from './classes.ts';
 import { PinPad } from './PinPad.tsx';
-import { RefusalNotice } from './SignatureDialog.tsx';
+import { RefusalNotice } from './RefusalNotice.tsx';
 
 export const KEEP_BADGE_MS = 30_000;
 

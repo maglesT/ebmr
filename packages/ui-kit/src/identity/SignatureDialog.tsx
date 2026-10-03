@@ -20,18 +20,8 @@ import { BadgePrompt, type DemoBadge } from './BadgePrompt.tsx';
 import { icls } from './classes.ts';
 import { ManifestationCard, ManifestationPreview } from './Manifestation.tsx';
 import { PinPad } from './PinPad.tsx';
+import { RefusalNotice } from './RefusalNotice.tsx';
 import { SignableContent } from './SignableContent.tsx';
-
-export function RefusalNotice({ envelope, tone = 'error' }: { envelope: RefusalEnvelope; tone?: 'error' | 'warning' }) {
-  const r = envelope.refusal;
-  return (
-    <Banner tone={tone} title={r.whatHappened}>
-      {r.why ? <p>{`Why: ${r.why}`}</p> : null}
-      {r.whatYouCanDo.length ? <p>{`What you can do: ${r.whatYouCanDo.join(' ')}`}</p> : null}
-      {r.whoCanHelp.length ? <p>{`Who can help: ${r.whoCanHelp.join(', ')}`}</p> : null}
-    </Banner>
-  );
-}
 
 /** A spoken countdown only at a few thresholds, so screen readers are not flooded every second. */
 function Countdown({ seconds }: { seconds: number | null }) {

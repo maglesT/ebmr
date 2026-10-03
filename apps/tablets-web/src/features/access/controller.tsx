@@ -86,7 +86,8 @@ export function AccessRoot({ children, render }: { children: ReactNode; render: 
   const demoBadges = useDemoBadges(boot);
 
   // ---- The badge-tap service --------------------------------------------------------------
-  const [tapPrompt, setTapPrompt] = useState<{ reason: string; stage: 'badge' | 'pin' } | null>(null);
+  // `attempt` keys the badge prompt (one tap each); `refusal` says what happened to the previous one (F08).
+  const [tapPrompt, setTapPrompt] = useState<{ reason: string; stage: 'badge' | 'pin'; attempt: number; refusal: RefusalEnvelope | null } | null>(null);
   const [tapJob] = useState(() => new Vault<TapJob>());
   const [tapUid] = useState(() => new Vault<string>());
   const [hasRemembered, setHasRemembered] = useState(false);
@@ -111,13 +112,16 @@ export function AccessRoot({ children, render }: { children: ReactNode; render: 
         finishTap(null);
         return;
       }
-      try {
-        const attribution = await buildAttribution(key, uid, pin, job.request);
+      const built = await buildAttribution(key, uid, pin, job.request).catch((e: unknown) => ({ ok: false as const, failure: { kind: 'ERROR' as const, message: e instanceof Error ? e.message : String(e) } }));
+      if (built.ok) {
         remembered.keep(uid);
-        finishTap(attribution);
-      } catch {
-        finishTap(null);
+        finishTap(built.value);
+        return;
       }
+      // No attribution could be made (no device proof, or the terminal key failed): nothing was sent. The prompt
+      // stays, says so and takes another tap; Cancel ends it (F08: it used to close without a word).
+      if (tapJob.peek() !== job) return;
+      setTapPrompt((p) => (p ? { reason: p.reason, stage: 'badge', attempt: p.attempt + 1, refusal: machines.refusalOfFailure(built.failure) } : p));
     },
     [finishTap, latestBoot, remembered, tapJob],
   );
@@ -131,7 +135,7 @@ export function AccessRoot({ children, render }: { children: ReactNode; render: 
       return new Promise((resolve) => {
         tapJob.put({ request, resolve });
         tapUid.clear();
-        setTapPrompt({ reason, stage: 'badge' });
+        setTapPrompt({ reason, stage: 'badge', attempt: 0, refusal: null });
       });
     },
     [latestBoot, tapJob, tapUid],
@@ -185,12 +189,14 @@ export function AccessRoot({ children, render }: { children: ReactNode; render: 
         <Dialog title="Confirm it is you" isOpen isDismissable={false}>
           {tapPrompt.stage === 'badge' ? (
             <identity.BadgePrompt
+              key={tapPrompt.attempt}
               reason={tapPrompt.reason}
+              refusal={tapPrompt.refusal}
               demoBadges={demoBadges}
               onTap={(uid) => {
                 if (session?.attribution === 'TAP_PIN') {
                   tapUid.put(uid);
-                  setTapPrompt({ reason: tapPrompt.reason, stage: 'pin' });
+                  setTapPrompt({ ...tapPrompt, stage: 'pin' });
                 } else {
                   void completeTap(uid, undefined);
                 }

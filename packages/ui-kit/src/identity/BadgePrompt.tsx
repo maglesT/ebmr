@@ -9,9 +9,11 @@
  * of a physical reader.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import type { RefusalEnvelope } from '@ebmr/api-contract';
 import { Button } from '../primitives/Button.tsx';
 import { SecretInput, takeSecret } from '../primitives/SecretInput.tsx';
 import { icls } from './classes.ts';
+import { RefusalNotice } from './RefusalNotice.tsx';
 
 export interface DemoBadge {
   legalName: string;
@@ -28,6 +30,11 @@ export interface BadgePromptProps {
   /** DEMO-ONLY badges of this terminal (demo installations only). */
   demoBadges?: readonly DemoBadge[];
   busy?: boolean;
+  /**
+   * What happened to the previous tap of this request (refused, or never sent), shown above the field. A prompt takes
+   * one tap: the caller mounts a new prompt (a new key) for the next attempt.
+   */
+  refusal?: RefusalEnvelope | null;
 }
 
 export function DemoBadgeReader({ badges, onTap }: { badges: readonly DemoBadge[]; onTap: (badgeUid: string) => void }) {
@@ -46,7 +53,7 @@ export function DemoBadgeReader({ badges, onTap }: { badges: readonly DemoBadge[
   );
 }
 
-export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds = 30, demoBadges = [], busy = false }: BadgePromptProps) {
+export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds = 30, demoBadges = [], busy = false, refusal = null }: BadgePromptProps) {
   const input = useRef<HTMLInputElement>(null);
   const [left, setLeft] = useState(timeoutSeconds);
   const done = useRef(false);
@@ -76,6 +83,7 @@ export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds
 
   return (
     <div className={icls('badgePrompt')}>
+      {refusal ? <RefusalNotice envelope={refusal} tone="warning" /> : null}
       <p>{reason}</p>
       <form onSubmit={submit} aria-label="Tap your badge">
         <SecretInput label="Badge" name="badge" inputRef={input} autoFocus description="Tap your badge on the reader" isDisabled={busy} />

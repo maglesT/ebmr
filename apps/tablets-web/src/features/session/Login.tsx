@@ -60,7 +60,12 @@ function useLogin() {
     try {
       const body = { method, identifier, secret };
       const proof = await deviceProof(boot.deviceKey, 'POST', '/api/session/login', body);
-      const r = await api.call(routes.session.login, { body: { ...body, proof } });
+      // No device proof: nothing was sent, and the screen says so (F08: it used to say nothing at all).
+      if (!proof.ok) {
+        setError(proof.error);
+        return;
+      }
+      const r = await api.call(routes.session.login, { body: { ...body, proof: proof.proof } });
       if (r.ok) {
         boot.setSession(r.value);
         return;
@@ -101,8 +106,13 @@ function ChangeSecretForm({ change, credentials, onDone }: { change: ChangeState
     const held = credentials.current;
     if (!boot.deviceKey || !held || !a) return;
     const body = { method: change.method, identifier: held.identifier, changeTicket: held.ticket, newSecret: a, kind: change.kind };
+    setError(null);
     const proof = await deviceProof(boot.deviceKey, 'POST', '/api/session/change-secret', body);
-    const r = await api.call(routes.session.changeSecret, { body: { ...body, proof } });
+    if (!proof.ok) {
+      setError(proof.error);
+      return;
+    }
+    const r = await api.call(routes.session.changeSecret, { body: { ...body, proof: proof.proof } });
     if (r.ok) onDone(`Your new ${kindWord} is set. Sign in with it now.`);
     else setError(r.error);
   };

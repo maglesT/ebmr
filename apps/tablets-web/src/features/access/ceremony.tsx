@@ -85,7 +85,12 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
               const pin = tapPin.take();
               const key = latestBoot.get().deviceKey;
               if (!uid || !key) throw localError('no badge was tapped');
-              attribution = await buildAttribution(key, uid, pin ?? undefined, { method: 'POST', path: '/api/esig/challenges', body });
+              const built = await buildAttribution(key, uid, pin ?? undefined, { method: 'POST', path: '/api/esig/challenges', body });
+              if (!built.ok) {
+                tapUid.clear();
+                throw machines.ceremonyError(built.failure);
+              }
+              attribution = built.value;
             }
             const r = await api.call(routes.esig.createChallenge, { body, ...(attribution ? { attribution } : {}) });
             if (!r.ok) {
@@ -103,7 +108,9 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
             if (!credentials || !key) throw localError('no credentials were entered');
             const body = { challengeId: input.challenge.challengeId, credentials, action: req.action };
             const proof = await deviceProof(key, 'POST', '/api/esig/sign', body);
-            const r = await api.call(routes.esig.sign, { body: { ...body, proof } });
+            // No proof: nothing was sent, so the answer is a refusal, never a lost answer to reconcile (F08).
+            if (!proof.ok) throw callError(proof.error);
+            const r = await api.call(routes.esig.sign, { body: { ...body, proof: proof.proof } });
             if (!r.ok) throw callError(r.error);
             return r.value;
           }),

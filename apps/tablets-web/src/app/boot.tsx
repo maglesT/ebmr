@@ -160,7 +160,8 @@ async function runBoot(): Promise<BootState> {
   const deviceKey = await loadDeviceKey();
   if (!deviceKey) return { ...withMeta, phase: 'no-device' };
   const proof = await deviceProof(deviceKey, 'POST', '/api/session/identify', {});
-  const device = await api.call(routes.session.identify, { body: { proof } });
+  if (!proof.ok) return { ...withMeta, deviceKey, phase: 'failed', problem: describe(proof.error) };
+  const device = await api.call(routes.session.identify, { body: { proof: proof.proof } });
   if (!device.ok) return { ...withMeta, deviceKey, phase: 'device-refused', problem: describe(device.error) };
   document.documentElement.dataset['density'] = device.value.density.toLowerCase();
   const session = await api.call(routes.session.get);
