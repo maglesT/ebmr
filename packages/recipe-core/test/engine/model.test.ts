@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { sweep } from '../../src/engine/engine.ts';
 import { checkInvariants } from '../../src/engine/invariants.ts';
 import type { EngineEvent } from '../../src/engine/types.ts';
-import { buildFlow, candidateCommands, shapes, type CommandInput, type ModelData } from './model-support.ts';
+import { buildFlow, candidateCommands, shapes, type CommandInput, type ModelData, type Shape } from './model-support.ts';
 import { autopilot, define, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, MIN, OP1, PACKAGING_SCENARIO, Run, sig, VER1 } from './support.ts';
 
 const MOVE = fc.record({ pick: fc.nat({ max: 10_000 }), minutes: fc.constantFrom(0, 0, 1, 1, 2, 3, 5, 8, 13), k: fc.nat({ max: 1_000 }), mode: fc.nat({ max: 9 }) });
@@ -44,6 +44,51 @@ function involvedMap(run: Run): Map<string, Set<string>> {
   return new Map(Object.values(run.state.steps).map((i) => [i.key, new Set([...i.performers, ...i.dataEnterers, ...i.correctors, ...i.performedSigners])]));
 }
 
+/** The most phases and hold points a run of the shape can pass through: every iteration, every replicate, the longest branch. */
+function leafRuns(s: Shape): number {
+  switch (s.t) {
+    case 'phase':
+    case 'hold':
+      return 1;
+    case 'seq':
+    case 'par':
+      return s.c.reduce((n, c) => n + leafRuns(c), 0);
+    case 'alt':
+      return Math.max(0, ...s.c.map(leafRuns));
+    case 'loop':
+      return s.max * leafRuns(s.b);
+    case 'rep':
+      return (s.min + s.extra) * leafRuns(s.b);
+  }
+}
+
+/**
+ * The shape with every loop maximum a well-behaved run can keep: 90 minutes for each phase or hold point the loop
+ * can pass through (the autopilot takes 3 minutes an action, a handful of actions each). The generator's maxima
+ * (0 or 90 minutes, whatever the body) can be impossible to keep: three nested loops of 2 x 3 x 2 phases in a
+ * 90-minute loop end only after the maximum, and the engine rightly raises LOOP-MAX-DURATION. Liveness claims
+ * that a run keeping every limit raises no time exception, so it is checked on flows whose limits can be kept;
+ * breaches of generated maxima stay covered by the invariant property above.
+ */
+function keepableDurations(s: Shape): Shape {
+  switch (s.t) {
+    case 'phase':
+    case 'hold':
+      return s;
+    case 'seq':
+    case 'par':
+    case 'alt':
+      return { ...s, c: s.c.map(keepableDurations) };
+    case 'loop':
+      return { ...s, b: keepableDurations(s.b), maxMinutes: s.maxMinutes > 0 ? 90 * Math.max(1, leafRuns(s)) : 0 };
+    case 'rep':
+      return { ...s, b: keepableDurations(s.b) };
+  }
+}
+
+/** The counterexample CI found (seed -783116808): nested loops whose 90-minute maximum no run could keep. */
+const NESTED_LOOPS: Shape = { t: 'loop', b: { t: 'loop', b: { t: 'loop', b: { t: 'phase', timer: 0 }, max: 2, maxMinutes: 0 }, max: 3, maxMinutes: 0 }, max: 2, maxMinutes: 90 };
+
 // Property runs are slow on a busy machine: a longer budget than the suite's default.
 describe('model-based: generated block-structured flows', { timeout: 180_000 }, () => {
   it('[DI-34][INV-19][INV-20][INV-25][INV-03] every invariant holds after every command of random command sequences', () => {
@@ -69,7 +114,8 @@ describe('model-based: generated block-structured flows', { timeout: 180_000 }, 
 
   it('[DI-34][INV-19][INV-20] liveness: a well-behaved run of any generated flow completes, whatever the choices, counts and loop outcomes', () => {
     fc.assert(
-      fc.property(shapes.node, fc.nat({ max: 1_000 }), fc.boolean(), (shape, seed, exitEarly) => {
+      fc.property(shapes.node, fc.nat({ max: 1_000 }), fc.boolean(), (generated, seed, exitEarly) => {
+        const shape = keepableDurations(generated);
         const def = define(buildFlow(shape));
         const run = Run.issue(def);
         let n = seed;
@@ -96,8 +142,26 @@ describe('model-based: generated block-structured flows', { timeout: 180_000 }, 
         // Loop durations and timers were respected, so no time exception exists.
         expect(Object.values(run.state.exceptions).filter((e) => e.type.startsWith('TIME_'))).toEqual([]);
       }),
-      { numRuns: 60 },
+      { numRuns: 60, examples: [[NESTED_LOOPS, 0, false]] },
     );
+  });
+
+  it('[INV-20] a loop maximum no run can keep is breached once, and the run still completes', () => {
+    const def = define(buildFlow(NESTED_LOOPS));
+    const run = Run.issue(def);
+    const outcome = autopilot(run, {
+      minutes: () => 3,
+      value: (item, _step, frames) => {
+        if (!item.startsWith('ep_')) return undefined;
+        const loop = [...def.loops.values()].find((l) => l.exit.endpoint === item);
+        const it = frames.find((f) => f.construct === loop?.id)?.index ?? 1;
+        return { kind: 'DECIMAL', value: it >= (loop?.maxIterations ?? 1) ? '0.5' : '3.0', unit: '%' };
+      },
+      qaDecides: (e) => e.type.startsWith('TIME_'),
+    });
+    expect(outcome).toBe('COMPLETE');
+    const time = Object.values(run.state.exceptions).filter((e) => e.type.startsWith('TIME_'));
+    expect(time.map((e) => e.source.constraint)).toEqual(['LOOP-MAX-DURATION:loop1']);
   });
 });
 
