@@ -300,3 +300,59 @@ describe('F34: the application role\'s other doors to investigations and GOVERNA
     }
   });
 });
+
+/**
+ * Round 3 of F34: with no session token the application role still asked the kernel what blocks a record. On the
+ * account of the person investigated, records.open_blockers answered the investigation's id, reference and concern
+ * and the hold it placed; records.has_disposition_blockers answered yes; records.disposal_refusals and
+ * records.retention_of name the blocking investigation of a record with a retention schedule; the blocker counters
+ * (records.blocker_epoch, records.lock_blocker_epoch) showed which records' blockers changed, the account among them;
+ * records.retention_current said whether a record is on hold. Listing the accounts (iam.account) and asking each named
+ * every person under investigation. Tablets 0460 takes all of them away from the application role, on both
+ * installations; the owner's tools still run them.
+ */
+describe('F34: what blocks a record\'s release or disposal (tablets 0460)', () => {
+  const CONCERN_HELD = 'Suspected PIN sharing on the QA terminal (report WB-31)';
+  let held: GrantedPerson;
+  let heldInvestigation = '';
+
+  /** A CSV/DI lead opens an investigation of a QA reviewer whose window covers now: its scope holds the reviewer's account. */
+  beforeAll(async () => {
+    const fp = terminalOf(gmp.seed, 'PC-QA-01').fingerprint;
+    held = await grantedPerson(gmp, 'QA_REVIEWER', 'Anil Kumar (QA reviewer)');
+    const opener = await passwordActor(gmp.db, await grantedPerson(gmp, 'CSV_DI_LEAD', 'Meera Iyer (CSV/DI lead)'), fp);
+    heldInvestigation = await withCommand(gmp.db.app, reason(opener), (c) =>
+      records.openDiInvestigation(c, { subjectPersonId: held.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: CONCERN_HELD }),
+    );
+  });
+
+  it('[DI-17][DI-50] without a session the application role learns nothing of an investigation from what blocks a record: no blockers, no disposition flag, no disposal refusals, no retention status, no blocker counter, on either installation', async () => {
+    // What the kernel holds about the reviewer's account: the investigation (with its concern) and the hold it placed.
+    const blockers = (await gmp.db.admin.query<{ blocker_kind: string; blocker_id: string; detail: string }>(
+      "select blocker_kind, blocker_id::text, detail from records.open_blockers('account', $1) order by 1", [held.accountId],
+    )).rows;
+    expect(blockers.map((b) => b.blocker_kind)).toEqual(['DI_INVESTIGATION', 'HOLD']);
+    expect(blockers[0]).toMatchObject({ blocker_id: heldInvestigation, detail: CONCERN_HELD });
+    expect((await gmp.db.admin.query("select records.has_disposition_blockers('account', $1) as v", [held.accountId])).rows[0]).toEqual({ v: true });
+    expect((await gmp.db.admin.query('select version > 0 as moved from records.blocker_epoch where record_key = $1', [`account:${held.accountId}`])).rows[0]).toEqual({ moved: true });
+    expect((await gmp.db.admin.query('select count(*)::int as n from records.retention_current')).rows).toHaveLength(1);
+    // The owner's functions run (and refuse a record without a retention schedule for that reason, not for privileges).
+    await expect(gmp.db.admin.query('select * from records.disposal_refusals($1)', [randomUUID()])).rejects.toThrow(/EBMR-REC-021/);
+    await expect(gmp.db.admin.query("select records.retention_of('batch', $1)", [randomUUID()])).rejects.toThrow(/EBMR-REC-021/);
+    // The application role, without a session: none of it, on GMP or in the sandbox (sandbox.mirror_application_privileges).
+    for (const server of [gmp, sbx]) {
+      const account = server === gmp ? held.accountId : personaOf(sbx.seed, 'operator1').accountId;
+      for (const [sqlText, args] of [
+        ["select * from records.open_blockers('account', $1)", [account]],
+        ["select records.has_disposition_blockers('account', $1)", [account]],
+        ['select * from records.disposal_refusals($1)', [randomUUID()]],
+        ["select records.retention_of('batch', $1)", [randomUUID()]],
+        ["select records.lock_blocker_epoch('account', $1)", [account]],
+        ['select record_key, version from records.blocker_epoch', []],
+        ['select record_key, on_hold from records.retention_current', []],
+      ] as const) {
+        await expect(server.db.app.query(sqlText, [...args]), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+      }
+    }
+  });
+});

@@ -45,10 +45,13 @@
    integrity jobs, so it finds no id of a GOVERNANCE-class signature to ask `esig.signature_state` about. Tablets 0440:
    the person an investigation is about, whatever their role, is also refused the hold chains it creates, the hold
    entries it writes on the held records' chains, and the account and person chains and the activity of the persons who
-   opened and lead it. Not closed in Phase 2: the application role still selects the identity, incident, retention and
-   continuity tables directly (owner residual F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's
-   own code and the server read several of them as that role; moving those reads behind session-checked functions is a
-   kernel change for both editions.
+   opened and lead it. Review round 3, tablets 0460: the application role no longer asks the kernel what blocks a
+   record (`records.open_blockers` and the disposition flag, disposal refusals, retention status and blocker counter
+   built on it), which named the investigation and its concern for the account of the person investigated. Not closed
+   in Phase 2: the application role still selects the identity, incident, retention and continuity tables directly
+   (owner residual F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read
+   several of them as that role; moving those reads behind session-checked functions is a kernel change for both
+   editions.
 
 ## Consequences
 
