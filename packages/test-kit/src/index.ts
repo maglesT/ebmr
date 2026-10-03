@@ -1,5 +1,5 @@
 /**
- * Test harness: template databases and copies, sandbox provisioning (staged bootstrap), the demo and E2E
+ * Test harness: template databases and copies, sandbox provisioning (one stage, then the bootstrap), the demo and E2E
  * persona catalogue, seeding through the kernel's identity administration, persona sessions and device keys.
  * Later: golden batches, the invariant SQL library, bypass helpers.
  *

@@ -114,8 +114,8 @@ async function changeInitialPassword(authn: identity.AuthnDb, loginName: string,
 
 /**
  * Bootstraps the installation (first administrator and process owner, kernel iam.bootstrap_installation) and
- * replaces their initial passwords. In a sandbox the names carry TEST- and the call must happen before kernel
- * migration 0920 (see sandbox.ts).
+ * replaces their initial passwords. In a sandbox the names carry TEST- (the sandbox refuses any other label,
+ * kernel 0920) and the bootstrap's own labels are TEST- labels too (kernel 1000; see sandbox.ts).
  */
 export async function bootstrapInstallation(database: string, kind: InstallationKind, adminUrl = ADMIN_URL): Promise<BootstrapResult> {
   const names = BOOTSTRAP_NAMES[kind];
@@ -198,8 +198,8 @@ async function assertServiceRoles(db: Pick<DatabaseHandle, 'app'>): Promise<void
 
 /**
  * `seedDemoSite(db, 'GMP'|'SANDBOX', options)`: terminals, personas (each persona set) and, in the sandbox,
- * the service identities. `bootstrap` is the result of bootstrapInstallation (for a sandbox, of the staged
- * provisioning).
+ * the service identities. `bootstrap` is the result of bootstrapInstallation (for a sandbox, of
+ * provisionBootstrappedSandbox).
  */
 export async function seedDemoSite(db: DatabaseHandle, kind: InstallationKind, bootstrap: BootstrapResult, opts: SeedOptions = {}): Promise<SiteSeed> {
   if (bootstrap.installation !== kind) throw new Error(`the bootstrap is of a ${bootstrap.installation} installation, not ${kind}`);

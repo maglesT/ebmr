@@ -1,19 +1,16 @@
 /**
  * Sandbox databases for tests, demos and E2E runs (DI-05, INV-18), provisioned through the kernel's own
- * provisioning (kernel sandbox.provisionSandboxDatabase / upgradeSandboxDatabase).
+ * provisioning (kernel sandbox.provisionSandboxDatabase).
  *
- * Staged provisioning (kernel gap, reported to the lead): iam.bootstrap_installation inserts the
- * "Installation qualification" person and the BOOTSTRAP-CONSOLE-n devices, which the sandbox identifier guard
- * (kernel 0920, TEST- labels only) refuses. Until the kernel bootstraps a sandbox with TEST- labels, a sandbox
- * is provisioned with the kernel migrations before 0920, bootstrapped with TEST- administrator and owner
- * names, and then upgraded with every migration, so the guard applies to everything created afterwards.
+ * One stage: every migration is applied first, the reserved-identifier guard (kernel 0920) included, and the
+ * installation is bootstrapped afterwards. Since kernel 1000 iam.bootstrap_installation writes TEST- labels of its
+ * own in a sandbox (the installation-qualification person, its console devices), so every label in a sandbox is a
+ * TEST- label (decision C0-1, closed by lead TODO T8 of the Phase 2 exit). Before kernel 1000 the kit applied the
+ * kernel migrations before 0920, bootstrapped, and then applied the rest.
  */
 import { KERNEL_MIGRATIONS, sandbox, type MigrationSource } from '@ebmr/kernel';
 import { ADMIN_URL, copyDatabase, uniqueSuffix } from './db.ts';
 import { bootstrapInstallation, type BootstrapResult } from './seed.ts';
-
-/** Kernel migrations applied before the bootstrap in a sandbox: everything before 0920 (the identifier guard on iam). */
-export const PRE_GUARD_KERNEL = /^0([0-8]\d\d|9[01]\d)_/;
 
 export interface ProvisionedSandbox {
   database: string;
@@ -26,9 +23,8 @@ export interface ProvisionedSandbox {
  */
 export async function provisionBootstrappedSandbox(database: string, sources: MigrationSource[], adminUrl = ADMIN_URL): Promise<ProvisionedSandbox> {
   if (sources[0]?.namespace !== KERNEL_MIGRATIONS.namespace) throw new Error('the kernel migrations must come first');
-  await sandbox.provisionSandboxDatabase({ adminUrl, database, sources: [{ ...KERNEL_MIGRATIONS, include: PRE_GUARD_KERNEL }] });
+  await sandbox.provisionSandboxDatabase({ adminUrl, database, sources });
   const bootstrap = await bootstrapInstallation(database, 'SANDBOX', adminUrl);
-  await sandbox.upgradeSandboxDatabase({ adminUrl, database, sources });
   return { database, bootstrap };
 }
 

@@ -86,6 +86,25 @@ describe('test-kit installations', () => {
     for (const p of gmpSeed.personas) expect(p.legalName).not.toMatch(/^TEST-/i);
   });
 
+  it('[DI-05][INV-18] every person label, login name and device code in the sandbox, the bootstrap\'s own included, is one the sandbox\'s identifier rule accepts (one-stage provisioning, kernel 1000; lead TODO T8)', async () => {
+    const { rows } = await sbx.admin.query<{ kind: string; label: string; problem: string | null }>(
+      `select 'PERSON_LABEL' as kind, legal_name as label, sandbox.identifier_problem('PERSON_LABEL', legal_name) as problem from iam.person
+       union all select 'PERSON_LABEL', identifier, sandbox.identifier_problem('PERSON_LABEL', identifier) from iam.issued_identifier
+       union all select 'DEVICE_LABEL', code, sandbox.identifier_problem('DEVICE_LABEL', code) from iam.device`,
+    );
+    expect(rows.filter((r) => r.problem !== null).map((r) => `${r.kind} ${r.label}`)).toEqual([]);
+    // The bootstrap's own labels are there, as TEST- labels.
+    const labels = rows.map((r) => r.label);
+    expect(labels).toEqual(expect.arrayContaining(['TEST-Installation qualification', 'TEST-BOOTSTRAP-CONSOLE-1', 'TEST-BOOTSTRAP-CONSOLE-2']));
+    // One stage: every migration (kernel 1000 and the tablets SQL included) was applied before the bootstrap ran.
+    const { rows: order } = await sbx.admin.query<{ kernel_1000: boolean; all_before_bootstrap: boolean }>(
+      `select exists (select 1 from public.schema_migration where namespace = 'kernel' and name = '1000_sandbox_bootstrap_labels.sql') as kernel_1000,
+              (select max(applied_at) from public.schema_migration)
+                < (select min(recorded_at) from kernel.audit_event where payload ->> 'reason_code' = 'INSTALLATION_BOOTSTRAP') as all_before_bootstrap`,
+    );
+    expect(order).toEqual([{ kernel_1000: true, all_before_bootstrap: true }]);
+  });
+
   it('[DI-14] seeds the persona catalogue, one set per E2E worker plus the demo set', () => {
     expect(gmpSeed.personas.map((p) => `${p.legalName}:${p.roleCode}`)).toEqual([
       'Asha Rao:MBR_AUTHOR', 'Vikram Shah:MBR_CHECKER', 'Meera Iyer:QA_MBR_APPROVER', 'Rahul Menon:REGULATORY_SIGNER', 'Neha Joshi:MASTER_DATA_STEWARD',

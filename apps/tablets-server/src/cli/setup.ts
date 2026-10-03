@@ -6,7 +6,7 @@
  *   node --import tsx apps/tablets-server/src/cli/setup.ts --installation SANDBOX --database ebmr_sandbox_tablets_demo --keys-dir var/demo/keys
  *
  * GMP: creates the database, migrates kernel, site services, recipe-core and tablets SQL, bootstraps and seeds.
- * SANDBOX: provisions the sandbox through the kernel (staged bootstrap, see test-kit sandbox.ts), then seeds.
+ * SANDBOX: provisions the sandbox through the kernel with every migration, bootstraps it (TEST- labels, kernel 1000; see test-kit sandbox.ts), then seeds.
  * Both: marks demo and E2E databases (names *_demo, *_e2e_*) with tab.demo_installation, registers the DEMO-ONLY
  * seal key, runs each feature's seed, and writes into the keys directory:
  *   <kind>-seed.json          personas, terminals, service identities with DEMO-ONLY credentials

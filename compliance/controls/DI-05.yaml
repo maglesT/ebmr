@@ -182,6 +182,10 @@ tests:
   - "tools/e2e/specs/smoke/smoke.spec.ts > smoke > [DI-05] GMP: the demo picker, office sign-in with user ID and password, home tiles, no watermark"
   - "tools/e2e/specs/smoke/smoke.spec.ts > smoke > [DI-05] sandbox office: the batch issuer signs in on the sandbox PC under the watermark"
   - "tools/e2e/specs/smoke/smoke.spec.ts > smoke > [DI-05][DI-20] sandbox kiosk: TEST, NOT GMP before and after sign-in with badge tap and PIN keypad"
+  - "packages/kernel/test/sandbox/bootstrap.test.ts > kernel 1000: a sandbox is bootstrapped with every migration applied, and every label the bootstrap writes is a TEST- label (DI-05, INV-18) > [DI-05][INV-18] an administrator or owner without the TEST- prefix is refused by the guard (EBMR-SBX-022) and nothing is written"
+  - "packages/kernel/test/sandbox/bootstrap.test.ts > kernel 1000: a sandbox is bootstrapped with every migration applied, and every label the bootstrap writes is a TEST- label (DI-05, INV-18) > [DI-05][INV-18] the bootstrap succeeds in a fully migrated sandbox: the installation-qualification person, its console devices and the pipeline carry TEST- labels, and the database finds no label it would refuse"
+  - "packages/kernel/test/sandbox/bootstrap.test.ts > kernel 1000: a GMP installation keeps the bootstrap labels of 0180, and the bootstrap context declares the site zone only (DI-05, DI-27) > [DI-05][DI-27] a GMP bootstrap with the site zone writes the 0180 labels, which the GMP guard accepts"
+  - "packages/test-kit/test/seed.test.ts > test-kit installations > [DI-05][INV-18] every person label, login name and device code in the sandbox, the bootstrap's own included, is one the sandbox's identifier rule accepts (one-stage provisioning, kernel 1000; lead TODO T8)"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:

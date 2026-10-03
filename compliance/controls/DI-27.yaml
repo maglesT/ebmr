@@ -159,6 +159,8 @@ tests:
   - "packages/recipe-core/test/execution/system-facts-sql.test.ts > the time constraints the database derives (P35) > [INV-20][DI-27] a duration is written in a breach title as the engine writes it (P28 round 2)"
   - "packages/recipe-core/test/execution/system-facts-sql.test.ts > the time constraints the database derives (P35) > [INV-20][DI-27] the node a breach stops downstream of is derived by the database as the engine derives it, for every node of the fixtures (P28 round 2)"
   - "packages/test-kit/test/seed.test.ts > test-kit installations > [DI-27] seeds and sessions declare the site policy site.zone, also on a site outside the default zone"
+  - "packages/kernel/test/sandbox/bootstrap.test.ts > kernel 1000: a GMP installation keeps the bootstrap labels of 0180, and the bootstrap context declares the site zone only (DI-05, DI-27) > [DI-27] a zone other than the site policy site.zone (IST, another IANA zone, a blank) is refused (EBMR-IAM-118) and nothing is written"
+  - "packages/kernel/test/sandbox/bootstrap.test.ts > kernel 1000: a GMP installation keeps the bootstrap labels of 0180, and the bootstrap context declares the site zone only (DI-05, DI-27) > [DI-05][DI-27] a GMP bootstrap with the site zone writes the 0180 labels, which the GMP guard accepts"
 clauses:
   - clause: "Change a terminal clock, then record a step. The stored time is unaffected."
     tests:
