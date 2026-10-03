@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { identity, machines, t } from '@ebmr/ui-kit';
 import type { HomeTile } from '../../app/feature.ts';
 import { useBoot } from '../../app/boot.tsx';
+import { installationLabel } from '../../app/installation.ts';
 import {
   BadgeTapPortProvider,
   CeremonyPortProvider,
@@ -49,7 +50,7 @@ export function SessionBanner() {
     <identity.IdentityBanner
       productName={t('app.name')}
       installation={boot.meta?.installation ?? s.installation}
-      installationLabel={(boot.meta?.installation ?? s.installation) === 'SANDBOX' ? t('installation.sandbox') : t('installation.gmp')}
+      installationLabel={installationLabel(boot.meta?.installation ?? s.installation)}
       legalName={s.person.legalName}
       loginName={s.person.loginName}
       role={s.role ?? ''}

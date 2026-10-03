@@ -7,6 +7,7 @@ import { Outlet } from '@tanstack/react-router';
 import { Button, Layout, StatusChip, t, WatermarkBand, WatermarkOverlay } from '@ebmr/ui-kit';
 import { cls } from './classes.ts';
 import { useBoot } from './boot.tsx';
+import { installationLabel, isSandbox } from './installation.ts';
 import { useSessionBanner } from './ports.tsx';
 
 export function IdentityBanner() {
@@ -16,7 +17,7 @@ export function IdentityBanner() {
     <div className={cls('banner')}>
       <div className={cls('identity')}>
         <span className={cls('product')}>{t('app.name')}</span>
-        <StatusChip tone={boot.meta?.installation === 'SANDBOX' ? 'test' : 'info'} label={boot.meta?.installation === 'SANDBOX' ? t('installation.sandbox') : t('installation.gmp')} />
+        <StatusChip tone={isSandbox(boot.meta?.installation) ? 'test' : 'info'} label={installationLabel(boot.meta?.installation)} />
         {s ? (
           <span className={cls('who')} data-testid="identity">
             {t('session.signedInAs', { name: s.person.legalName, login: s.person.loginName, role: s.role ?? '' })}

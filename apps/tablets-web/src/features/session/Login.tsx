@@ -17,6 +17,7 @@ import { Banner, Button, Field, identity, t } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
+import { installationLabel } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 
 /** What the screen shows during a first-login change (no secret). */
@@ -142,7 +143,7 @@ export function OfficeLogin() {
     <div className={cls('center')}>
       <h1>{t('session.signIn')}</h1>
       <p className={cls('muted')}>
-        {boot.meta?.installation === 'SANDBOX' ? t('installation.sandbox') : t('installation.gmp')} · {boot.device?.deviceCode}
+        {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode}
       </p>
       {notice ? <Banner tone="ok" title={notice} /> : null}
       {change ? (
@@ -257,7 +258,7 @@ export function KioskLogin() {
     <div className={cls('center')}>
       <h1>{t('session.signIn')}</h1>
       <p className={cls('muted')}>
-        {t('installation.sandbox')} · {boot.device?.deviceCode} · room {boot.device?.roomCode ?? '?'}
+        {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode} · room {boot.device?.roomCode ?? '?'}
       </p>
       {notice ? <Banner tone="ok" title={notice} /> : null}
       {error ? <RefusalMessage error={error} /> : null}
