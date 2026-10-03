@@ -1725,3 +1725,21 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   references were stored; recipe-core 0332 holds every entry, start data and refused row to the schema of its step's
   block version and refuses a kind the block does not record (EBMR-EXE-126; decision F12.4, F12.3 and T2.3/T2.4
   corrected). Tests: server db-guards-entry-identifiers (round 6); recipe-core entry-data-sql (round 6).
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, Read authorisation and sessions, round 4 (branch phase-2/recipe-core; F34, F35,
+  HIGH-WATER, SSE-SESSION, F41.R). F34/F35: without a session the application role still learned who is under
+  investigation: kernel.verify_chain from a position past the end of record_hold:account:<id> named the chain's length
+  for a held account only, and continuity.compare_external_anchors called a forged one-head anchor UNEXPLAINED for a
+  held account and DISCARDABLE for another; and the subject of an investigation in a governance role was told about it
+  by the session-checked reads ("not shown to the person of this session", 403) where a colleague in the same role got
+  an empty list or 404. Tablets 0530 takes the verification and the anchor comparison from the application role on
+  both installations (the viewer verifies through the session-checked tab.audit_verify_chain) and answers everything
+  withheld from the subject as what is not there, on the audit and signing routes and functions (decision F35.3; F34.1,
+  F34.2, F35.1, F35.2, the DI-17/DI-50 guards, ADR 0012 and the 0470 test title corrected). HIGH-WATER: tablets 0540
+  takes continuity.sequence_high_water and continuity.sequence_bump from the application role (they showed when and how
+  many investigations and holds were opened). SSE-SESSION: the live display stream asks the request gate again every
+  2 s and ends at a lock, an idle lock, a sign-out or a withdrawn role (decision SSE-SESSION.1). F41.R: the page names
+  its terminal key and the person its session started with on every request, and the server serves another terminal's
+  or person's session as nobody (tablets 0550); the page shows the sign-in form or says its sign-in changed; the
+  re-planting lock-out and the other residuals are recorded (ADR 0017, decision F41.1), and the E2E title says what it
+  proves. Tests: server audit/read-authorisation and esig/read-authorisation (0530, 0540, on GMP and the sandbox),
+  devices/live-session (new), platform/security (page binding); web app/page-binding (new); E2E security (new test).
