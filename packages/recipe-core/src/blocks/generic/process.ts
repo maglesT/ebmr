@@ -123,7 +123,7 @@ export const G15: BlockVersion = {
   configSchema: {
     type: 'object',
     description: 'Timers are the MBR time constraints (engine); this step records a material transfer when configured',
-    fields: { transfer: { type: 'boolean', optional: true, description: 'Record issued-by and received-by for a transfer (two different persons)' }, skippable: SKIPPABLE },
+    fields: { transfer: { type: 'boolean', optional: true, default: false, description: 'Record issued-by and received-by for a transfer (two different persons)' }, skippable: SKIPPABLE },
   },
   dataSchema: {
     entries: {

@@ -10,10 +10,26 @@ export type FieldSchema =
   | { readonly type: 'string'; readonly description: string; readonly enum?: readonly string[]; readonly pattern?: RegExp; readonly optional?: boolean }
   | { readonly type: 'decimal'; readonly description: string; readonly min?: string; readonly minExclusive?: boolean; readonly optional?: boolean }
   | { readonly type: 'integer'; readonly description: string; readonly min?: number; readonly max?: number; readonly optional?: boolean }
-  | { readonly type: 'boolean'; readonly description: string; readonly optional?: boolean }
+  | BooleanSchema
   | ObjectSchema
   | { readonly type: 'array'; readonly description: string; readonly items: FieldSchema; readonly minItems?: number; readonly maxItems?: number; readonly optional?: boolean }
   | { readonly type: 'record'; readonly description: string; readonly values: FieldSchema; readonly optional?: boolean };
+
+/**
+ * A yes/no member. An optional one says what an absent member means (review F52; PR-02, PR-03): `default` when it is
+ * one value wherever the step stands, else `defaultText` in plain words (e.g. it depends on a sub-lot section). The
+ * engine reads an absent member that way (a test drives each block's handler to prove it), and the designer shows and
+ * records it that way: absent ("block default"), yes or no. The declaration describes the block version's behaviour
+ * and does not change it, so it is not part of the plain-text rendering (describeSchema) that the registry
+ * fingerprint covers: batches issued before it still run (ADR 0010).
+ */
+export interface BooleanSchema {
+  readonly type: 'boolean';
+  readonly description: string;
+  readonly optional?: boolean;
+  readonly default?: boolean;
+  readonly defaultText?: string;
+}
 
 export interface ObjectSchema {
   readonly type: 'object';

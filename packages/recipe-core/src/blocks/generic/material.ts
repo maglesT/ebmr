@@ -284,7 +284,7 @@ export const G08: BlockVersion = {
     type: 'object',
     description: 'Charge the dispensed containers or issued lots this step uses, once each, verified by scan',
     fields: {
-      chargeAll: { type: 'boolean', optional: true, description: 'Every container of the used intermediates must be charged here (default: true outside sub-lot sections)' },
+      chargeAll: { type: 'boolean', optional: true, defaultText: 'yes outside a sub-lot section, no inside one', description: 'Every container of the used intermediates must be charged here (default: true outside sub-lot sections)' },
     },
   },
   dataSchema: {
@@ -469,7 +469,7 @@ export const G23: BlockVersion = {
   configSchema: {
     type: 'object',
     description: 'Returns to stores, reject containers, waste and witnessed destruction',
-    fields: { witness: { type: 'boolean', optional: true, description: 'Destruction is witnessed (default true)' } },
+    fields: { witness: { type: 'boolean', optional: true, default: true, description: 'Destruction is witnessed (default true)' } },
   },
   dataSchema: {
     entries: {

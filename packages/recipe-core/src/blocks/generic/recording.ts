@@ -151,7 +151,7 @@ export const G05: BlockVersion = {
     description: 'Expected answers of categorical checks, and whether an unexpected answer stops the steps after it',
     fields: {
       expected: { type: 'record', optional: true, description: 'Expected answer per item (default PASS/CONFIRMED/YES when offered)', values: { type: 'string', description: 'Expected category (or true/false)' } },
-      blockOnUnexpected: { type: 'boolean', optional: true, description: 'An unexpected answer stops the steps after it until a deviation is linked (default true)' },
+      blockOnUnexpected: { type: 'boolean', optional: true, default: true, description: 'An unexpected answer stops the steps after it until a deviation is linked (default true)' },
       skippable: SKIPPABLE,
     },
   },
@@ -351,7 +351,7 @@ export const G14: BlockVersion = {
   aliases: { tablets: 'K-14', injectables: 'KB-04' },
   level: 'PHASE',
   controls: ['PR-31', 'DI-33', 'INV-25'],
-  configSchema: { type: 'object', description: 'Calculations come from the MBR; the formula is shown to the operator', fields: { showFormula: { type: 'boolean', optional: true, description: 'Show the formula (default true)' } } },
+  configSchema: { type: 'object', description: 'Calculations come from the MBR; the formula is shown to the operator', fields: { showFormula: { type: 'boolean', optional: true, default: true, description: 'Show the formula (default true)' } } },
   dataSchema: NO_ENTRIES,
   checkConfig: (phase) => (phase.computes.length === 0 ? [{ code: 'G14-NO-CALCULATION', severity: 'ERROR', message: `Calculation step ${phase.id} computes nothing`, controls: ['DI-33'] }] : []),
   handler: {},
@@ -436,7 +436,7 @@ export const G20: BlockVersion = {
   configSchema: {
     type: 'object',
     description: 'Yield or reconciliation computed from quantities recorded elsewhere; limits come from the yield checkpoint',
-    fields: { showResidueYield: { type: 'boolean', optional: true, description: 'Also show the yield including reusable residue (design choice)' } },
+    fields: { showResidueYield: { type: 'boolean', optional: true, default: false, description: 'Also show the yield including reusable residue (design choice)' } },
   },
   dataSchema: NO_ENTRIES,
   checkConfig: (phase) => {

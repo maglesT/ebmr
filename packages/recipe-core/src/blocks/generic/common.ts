@@ -9,7 +9,7 @@ import type { DataValue } from '../../engine/types.ts';
 import type { ExceptionRule, HandlerProblem, HandlerView } from '../contract.ts';
 import type { FieldSchema, ObjectSchema } from '../schema.ts';
 
-export const SKIPPABLE: FieldSchema = { type: 'boolean', optional: true, description: 'The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)' };
+export const SKIPPABLE: FieldSchema = { type: 'boolean', optional: true, default: false, description: 'The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)' };
 
 export const EPOCH_MICROS: FieldSchema = { type: 'string', pattern: /^[0-9]{1,20}$/, description: 'Instant as UTC epoch microseconds (digits)' };
 

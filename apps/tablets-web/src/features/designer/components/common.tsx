@@ -116,6 +116,102 @@ export function CommitDecimal({
   );
 }
 
+/**
+ * Why a typed whole number is not taken, or null (review F53; PR-03, PR-29): digits only (no spaces, signs, separators,
+ * decimals or leading zeros), a safe integer, within the schema's range.
+ */
+export function integerProblem(text: string, min?: number, max?: number): string | null {
+  const range = min !== undefined && max !== undefined ? ` from ${min} to ${max}` : min !== undefined ? ` of at least ${min}` : max !== undefined ? ` of at most ${max}` : '';
+  const ask = `Enter a whole number${range}, in digits only.`;
+  if (!/^(0|[1-9][0-9]*)$/.test(text)) return ask;
+  const n = Number(text);
+  if (!Number.isSafeInteger(n) || (min !== undefined && n < min) || (max !== undefined && n > max)) return ask;
+  return null;
+}
+
+/**
+ * A whole number that commits on blur or Enter (review F53). Text that is not a whole number within the range is
+ * refused in words under the field and nothing is committed, so the field never shows a value the configuration does
+ * not hold without saying so; empty commits null (removes the value) only where the value may be absent.
+ */
+export function CommitInteger({
+  label,
+  value,
+  onCommit,
+  readOnly,
+  allowEmpty,
+  min,
+  max,
+}: {
+  label: string;
+  value: number | undefined;
+  onCommit: (value: number | null) => void;
+  readOnly?: boolean;
+  allowEmpty: boolean;
+  min?: number;
+  max?: number;
+}) {
+  const id = useId();
+  const errorId = useId();
+  const shown = value === undefined ? '' : String(value);
+  const [text, setText] = useState(shown);
+  const [problem, setProblem] = useState<string | undefined>(undefined);
+  // The committed value changed (undo, a server answer): start again from it (derived state, set during render).
+  const [base, setBase] = useState(shown);
+  if (base !== shown) {
+    setBase(shown);
+    setText(shown);
+    setProblem(undefined);
+  }
+  const commit = (): void => {
+    if (text === shown) {
+      setProblem(undefined);
+      return;
+    }
+    if (text === '') {
+      if (!allowEmpty) {
+        setProblem('A value is required.');
+        return;
+      }
+      setProblem(undefined);
+      onCommit(null);
+      return;
+    }
+    const p = integerProblem(text, min, max);
+    if (p) {
+      setProblem(p);
+      return;
+    }
+    setProblem(undefined);
+    onCommit(Number(text));
+  };
+  return (
+    <div className={dcls('stack')}>
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        className={dcls('select')}
+        inputMode="numeric"
+        autoComplete="off"
+        value={text}
+        readOnly={readOnly ?? false}
+        aria-invalid={problem !== undefined}
+        {...(problem !== undefined ? { 'aria-describedby': errorId } : {})}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+        }}
+      />
+      {problem !== undefined ? (
+        <p id={errorId} role="alert" className={dcls('fieldError')}>
+          {problem} The configuration keeps {shown === '' ? 'no value' : shown}.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /** A text input that commits on blur or Enter. */
 export function CommitText({ label, value, onCommit, readOnly, multiline }: { label: string; value: string; onCommit: (value: string) => void; readOnly?: boolean; multiline?: boolean }) {
   const id = useId();

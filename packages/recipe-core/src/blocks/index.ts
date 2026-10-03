@@ -3,6 +3,6 @@
  * README.md in this folder.
  */
 export * from './contract.ts';
-export { validateSchema, describeSchema, type SchemaProblem } from './schema.ts';
+export { validateSchema, describeSchema, type BooleanSchema, type SchemaProblem } from './schema.ts';
 export { BlockRegistry, BlockRegistryError, blockKey, missingParts, type BlockVersionReport } from './registry.ts';
 export * from './generic/index.ts';
