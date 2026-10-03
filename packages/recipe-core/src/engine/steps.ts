@@ -15,6 +15,7 @@ import { deriveStageSummary } from './stage-summary.ts';
 import {
   addUnique,
   checkMeanings,
+  handEntriesWithoutDeclaredEvidence,
   hasRole,
   involvedIn,
   MEANINGS,
@@ -325,9 +326,10 @@ export function verify(tx: Tx, cmd: VerifyCommand): void {
   const roles = step.checkRole !== undefined ? [step.checkRole] : [...tx.def.policy.fallbackVerifierRoles];
   requireRole(a, roles, `verify ${step.id}`);
   // Exactly the check the step requires (P37; DI-35, PR-14, PR-20): RE_VERIFIED_AFTER_CORRECTION while re-verification
-  // is due, else the MBR's WITNESSED, else the block's own check, else VERIFIED. Never a witness or a generic
-  // verification in place of the step's own check.
-  const meanings = checkMeanings(step, inst);
+  // is due, else the MBR's WITNESSED or a witness for a critical hand entry without the photo or printout its MBR names
+  // (T12; DI-30), else the block's own check, else VERIFIED. Never a witness or a generic verification in place of the
+  // step's own check, nor a later review in place of a witness.
+  const meanings = checkMeanings(step, inst, handEntriesWithoutDeclaredEvidence(tx.def, tx.s, inst));
   // INV-03: the verifier or witness never performed, entered data in or corrected the step.
   if (involvedIn(inst).has(a.id)) {
     refuse('ENG-SEGREGATION', `${a.id} performed, entered data in or corrected step ${inst.key} and so cannot verify or witness it`, ['INV-03', 'PR-14', 'DI-30']);

@@ -41,8 +41,9 @@ const INV03_REASON = 'A different person must verify: you signed this step as pe
 function stepFor(s: SessionView): StepScreenView {
   const v = structuredClone(EXAMPLES['step-g04-parameters'].data) as StepScreenView;
   v.run.identity = { personId: s.person.personId, legalName: s.person.legalName, loginName: s.person.loginName, role: s.role ?? '' };
-  const verify = v.actions.find((a) => a.action === 'VERIFY');
-  if (!verify) throw new Error('fixture has no VERIFY action');
+  // The blend step's check is a witness: its printout values are typed by hand (engine 1.4.0, lead TODO T12).
+  const verify = v.actions.find((a) => a.action === 'WITNESS');
+  if (!verify) throw new Error('fixture has no WITNESS action');
   verify.available = s.person.personId !== kiosk.person.personId;
   verify.reason = verify.available ? null : INV03_REASON;
   return v;

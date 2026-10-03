@@ -342,11 +342,11 @@
   ],
   "actions": [
     {
-      "action": "VERIFY",
+      "action": "WITNESS",
       "available": true,
       "primary": true,
       "requires": "SIGNATURE",
-      "meaning": "VERIFIED",
+      "meaning": "WITNESSED",
       "reason": null,
       "target": null,
       "whoCanHelp": []

@@ -213,7 +213,7 @@ tests:
   - "packages/recipe-core/test/engine/codec.test.ts > execution codec > [DI-34] the state hash of both fixtures run to completion is stable through encode, JSON text and decode"
   - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34][INV-19] the engine answers the fixed run exactly as recorded for ENGINE_VERSION: a change of output needs a new version"
   - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34] released versions answer differently from each other, and the engine answers the run as it now reads"
-  - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0 or 1.2.0 is never run or replayed by this engine (EBMR-EXE-061)"
+  - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0, 1.2.0 or 1.3.0 is never run or replayed by this engine (EBMR-EXE-061)"
   - "packages/recipe-core/test/engine/replay.test.ts > replay of stored execution rows > [DI-34][INV-19][INV-20][INV-25] tablet-granulation-compression run to completion replays identically, row for row, with every invariant holding"
   - "packages/recipe-core/test/engine/replay.test.ts > replay of stored execution rows > [DI-34][INV-19][INV-20][INV-25] tablet-blister-packaging run to completion replays identically, row for row, with every invariant holding"
   - "packages/recipe-core/test/engine/replay.test.ts > replay of stored execution rows > [DI-34][INV-20] random command sequences on generated flows replay identically"

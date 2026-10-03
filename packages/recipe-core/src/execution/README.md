@@ -116,8 +116,10 @@ that another command holds is skipped.
     which follows library calls as the engine expands them); a step the database cannot find accepts no meaning:
     - SIGN_PERFORMED: the step block's own perform meaning (LINE_CLEARANCE_PERFORMED, SAMPLE_TAKEN,
       IPC_PERFORMED) where the block has one, else PERFORMED; the generic PERFORMED never replaces the block's own;
-    - VERIFY (`step_check_meanings`, sql 0295): RE_VERIFIED_AFTER_CORRECTION alone while the step awaits
-      re-verification; else WITNESSED alone where the MBR asks for a witness; else the block's own check meaning
+    - VERIFY (`step_check_meanings`, sql 0295, 0325): RE_VERIFIED_AFTER_CORRECTION alone while the step awaits
+      re-verification; else WITNESSED alone where the MBR asks for a witness, or where the step holds a critical value
+      typed by hand without the photo or printout its MBR names (`hand_entries_without_declared_evidence`, sql 0325,
+      engine 1.4.0 `handEntriesWithoutDeclaredEvidence`; lead TODO T12); else the block's own check meaning
       (CONTAINER_CHECKED, LINE_CLEARANCE_VERIFIED, ...) where it has one; else VERIFIED. A witness, a generic
       VERIFIED or another block's check never replaces the check the step requires (P37);
     - DISPOSITION_HOLD_POINT: a decision the hold point offers, signed with the meaning of its class
@@ -848,6 +850,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `db-guards-content-roles.test.ts` (Phase 2 exit review F48, F49; sql 0324): a package whose hold point a production
   operator or the kernel role QA_SHOP_FLOOR releases, or whose step a role no session carries performs, is refused
   by the server and, called directly, by the database (`content_role_problem`, EBMR-RCP-123).
+- `witness-without-printout.test.ts` (lead TODO T12 of the Phase 2 exit; DI-30, PR-14, DI-35; sql 0325, engine 1.4.0):
+  a critical value typed by hand without the printout its MBR names makes the step's check a witness: the screen
+  offers WITNESS, the server asks for WITNESSED also when the intent names VERIFIED, and a verification recorded as
+  VERIFIED on that step is refused by the database (EBMR-EXE-051) with nothing signed.
 - `db-guards-weighing-net.test.ts` (lead TODO T2 of the Phase 2 exit; INV-25, PR-19; sql 0321): a weighing row whose
   net is not gross minus tare at the resolution of the weighings ("50" for 51.250 - 1.250, or another value) is refused
   (EBMR-EXE-136); the engine's own net ("50.000") is recorded; the database's reading of both weighing kinds.

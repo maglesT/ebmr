@@ -506,7 +506,7 @@ export function signedMeaning(def: engine.BatchDefinition | undefined, state: en
     case 'VERIFY': {
       if (!def || !state) return undefined;
       const inst = state.steps[intent.stepKey];
-      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step);
+      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step, state);
     }
     case 'DISPOSITION_HOLD_POINT':
       return engine.holdPointMeaning(intent.disposition);

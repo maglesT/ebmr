@@ -378,31 +378,31 @@ describe('what the step card shows', () => {
 const VERIFIER = { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61', legalName: 'TEST-Kavya Reddy', loginName: 'test-verifier-1', role: 'VERIFIER' };
 
 describe('signatures through the ceremony port', () => {
-  it('Verify asks the ceremony for an ENGINE_COMMAND signature on the step\'s signable with the action\'s own meaning', async () => {
+  it('the step\'s check (on the blend step a witness: its printout values are typed by hand, engine 1.4.0) asks the ceremony for an ENGINE_COMMAND signature on the step\'s signable with the action\'s own meaning', async () => {
     const signed = { ...G04, signatures: [...G04.signatures] };
     const ui = renderFloor(stepPath('p-blend@'), {
       session: VERIFIER,
       ceremony: {
         sign: (req) => {
           void req;
-          return Promise.resolve({ status: 'SIGNED', manifestation: { ...G04.signatures[0]!, meaning: 'VERIFIED', meaningText: 'Verified by', signatureId: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a99', signer: { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61', legalName: 'TEST-Kavya Reddy', loginName: 'test-verifier-1', role: 'VERIFIER' } }, result: signed });
+          return Promise.resolve({ status: 'SIGNED', manifestation: { ...G04.signatures[0]!, meaning: 'WITNESSED', meaningText: 'Witnessed by', signatureId: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a99', signer: { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61', legalName: 'TEST-Kavya Reddy', loginName: 'test-verifier-1', role: 'VERIFIER' } }, result: signed });
         },
       },
     });
     void ui;
-    await userEvent.click(await screen.findByRole('button', { name: 'Verify' }));
-    expect(await screen.findByText(/Verified by TEST-Kavya Reddy \(test-verifier-1\), Verifier/)).toBeTruthy();
+    await userEvent.click(await screen.findByRole('button', { name: 'Witness' }));
+    expect(await screen.findByText(/Witnessed by TEST-Kavya Reddy \(test-verifier-1\), Verifier/)).toBeTruthy();
   });
 
   it('[DI-28] after a signature, a step read begun before it (the 30 s poll) and answered afterwards never puts the unsigned view back', async () => {
-    const verified = { ...G04.signatures[0]!, meaning: 'VERIFIED', meaningText: 'Verified by', signatureId: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a99', signer: { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61', legalName: 'TEST-Kavya Reddy', loginName: 'test-verifier-1', role: 'VERIFIER' } };
+    const verified = { ...G04.signatures[0]!, meaning: 'WITNESSED', meaningText: 'Witnessed by', signatureId: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a99', signer: { personId: '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61', legalName: 'TEST-Kavya Reddy', loginName: 'test-verifier-1', role: 'VERIFIER' } };
     const unsigned = stepVariant('step-g04-parameters', (v) => {
-      v.signatures = v.signatures.filter((x) => x.meaning !== 'VERIFIED');
+      v.signatures = v.signatures.filter((x) => x.meaning !== 'WITNESSED');
     });
     const signed = stepVariant('step-g04-parameters', (v) => {
       v.run.version = unsigned.run.version + 1;
       v.signatures = [...unsigned.signatures, verified];
-      v.actions = v.actions.map((a) => (a.action === 'VERIFY' ? { ...a, available: false, primary: false, reason: 'Step p-blend@ is completed: verify is not possible (ENG-STEP-STATUS; DI-34)' } : a));
+      v.actions = v.actions.map((a) => (a.action === 'WITNESS' ? { ...a, available: false, primary: false, reason: 'Step p-blend@ is completed: verify is not possible (ENG-STEP-STATUS; DI-34)' } : a));
     });
     const server = { signedYet: false };
     const stepGet = `/api/test-runs/${RUN_ID}/steps/${encodeURIComponent('p-blend@')}`;
@@ -427,21 +427,21 @@ describe('signatures through the ceremony port', () => {
         },
       },
     });
-    await screen.findByRole('button', { name: 'Verify' });
-    expect(screen.queryByTestId('signature-VERIFIED')).toBeNull();
+    await screen.findByRole('button', { name: 'Witness' });
+    expect(screen.queryByTestId('signature-WITNESSED')).toBeNull();
     hold = true;
     act(() => {
       void ui.qc.refetchQueries();
     });
     await waitFor(() => expect(heldRead).not.toBeNull());
-    await userEvent.click(screen.getByRole('button', { name: 'Verify' }));
-    expect(await screen.findByTestId('signature-VERIFIED')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Witness' }));
+    expect(await screen.findByTestId('signature-WITNESSED')).toBeTruthy();
 
     await act(async () => {
       heldRead?.();
       await new Promise<void>((r) => setTimeout(r, 50));
     });
-    expect(screen.queryByTestId('signature-VERIFIED'), 'the verification is still shown').not.toBeNull();
+    expect(screen.queryByTestId('signature-WITNESSED'), 'the verification is still shown').not.toBeNull();
   });
 
   it('[INV-03] a refused verification (the performer verifying their own step) shows the server\'s reason and who can verify', async () => {
@@ -461,22 +461,22 @@ describe('signatures through the ceremony port', () => {
         },
       },
     });
-    await userEvent.click(await screen.findByRole('button', { name: 'Verify' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Witness' }));
     const panel = await screen.findByTestId('refusal');
     expect(panel.textContent).toContain('a different person must verify it');
     expect(within(screen.getByTestId('who-can-help')).getByText('Production verifier')).toBeTruthy();
     expect(calls[0]).toEqual({
       aggregateType: 'batch_step',
       aggregateId: `${RUN_ID}:p-blend@`,
-      meaning: 'VERIFIED',
-      title: 'Verify step 2.1.4 Blend',
-      action: { kind: 'ENGINE_COMMAND', runId: RUN_ID, expectedVersion: 7, intent: { type: 'VERIFY', stepKey: 'p-blend@', meaning: 'VERIFIED' } },
+      meaning: 'WITNESSED',
+      title: 'Witness step 2.1.4 Blend',
+      action: { kind: 'ENGINE_COMMAND', runId: RUN_ID, expectedVersion: 7, intent: { type: 'VERIFY', stepKey: 'p-blend@', meaning: 'WITNESSED' } },
     });
   });
 
   it('a signature whose answer was lost is reported as not confirmed and the step is reloaded (credentials are never re-sent here)', async () => {
     const ui = renderFloor(stepPath('p-blend@'), { ceremony: { sign: () => Promise.resolve({ status: 'NOT_CONFIRMED' }) } });
-    await userEvent.click(await screen.findByRole('button', { name: 'Verify' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Witness' }));
     expect(await screen.findByText(/The signature was not confirmed/)).toBeTruthy();
     await waitFor(() => expect(ui.requests.filter((r) => r.path.endsWith('/steps/p-blend%40') || r.path.endsWith('/steps/p-blend@')).length).toBeGreaterThan(1));
   });

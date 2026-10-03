@@ -157,13 +157,13 @@ describe('the database requires the check the step requires (P37; ADR 0012)', ()
       expect(phases.length).toBeGreaterThan(3);
       for (const s of phases) {
         const inst = stored?.steps[engine.stepKey(s.id, [])];
-        expect(await inDb(state, s.id), s.id).toEqual([engine.checkMeaning(run.def, inst, s.id)]);
+        expect(await inDb(state, s.id), s.id).toEqual([engine.checkMeaning(run.def, inst, s.id, stored)]);
       }
       // The clearance awaiting re-verification (after a correction) is re-verified, in both.
       const steps = state['steps'] as Record<string, Record<string, unknown>>;
       const reverifying = { ...state, steps: { ...steps, [CLEAR]: { ...steps[CLEAR], reverification: true } } };
       const inst = stored?.steps[CLEAR];
-      expect(await inDb(reverifying, 'p-disp-clear')).toEqual([engine.checkMeaning(run.def, inst ? { ...inst, reverification: true } : undefined, 'p-disp-clear')]);
+      expect(await inDb(reverifying, 'p-disp-clear')).toEqual([engine.checkMeaning(run.def, inst ? { ...inst, reverification: true } : undefined, 'p-disp-clear', stored)]);
       expect(await inDb(reverifying, 'p-disp-clear')).toEqual(['RE_VERIFIED_AFTER_CORRECTION']);
       // A step the MBR does not hold requires no meaning the database would accept.
       expect(await inDb(state, 'p-not-in-this-mbr')).toEqual([]);
@@ -187,7 +187,7 @@ describe('the database requires the check the step requires (P37; ADR 0012)', ()
       for (const s of phases) {
         const inst = stored?.steps[engine.stepKey(s.id, [])];
         expect(await inDb(state, 'SIGN_PERFORMED', s.id), `${s.id} SIGN_PERFORMED`).toEqual(sorted(engine.performMeanings(s)));
-        expect(await inDb(state, 'VERIFY', s.id), `${s.id} VERIFY`).toEqual(sorted(engine.checkMeanings(s, inst)));
+        expect(await inDb(state, 'VERIFY', s.id), `${s.id} VERIFY`).toEqual(sorted(engine.checkMeanings(s, inst, engine.handEntriesWithoutDeclaredEvidence(run.def, stored, inst))));
       }
       // The generic PERFORMED only where the block has no perform meaning of its own.
       expect(await inDb(state, 'SIGN_PERFORMED', 'p-disp-clear')).toEqual(['LINE_CLEARANCE_PERFORMED']);
@@ -196,7 +196,7 @@ describe('the database requires the check the step requires (P37; ADR 0012)', ()
       const reverifying = { ...state, steps: { ...steps, [CLEAR]: { ...steps[CLEAR], reverification: true } } };
       const inst = stored?.steps[CLEAR];
       const clear = run.def.steps.get('p-disp-clear');
-      expect(await inDb(reverifying, 'VERIFY', 'p-disp-clear')).toEqual([...engine.checkMeanings(clear, inst ? { ...inst, reverification: true } : undefined)]);
+      expect(await inDb(reverifying, 'VERIFY', 'p-disp-clear')).toEqual([...engine.checkMeanings(clear, inst ? { ...inst, reverification: true } : undefined, engine.handEntriesWithoutDeclaredEvidence(run.def, stored, inst))]);
       expect(await inDb(reverifying, 'VERIFY', 'p-disp-clear')).toEqual(['RE_VERIFIED_AFTER_CORRECTION']);
       // A step the MBR does not hold accepts no meaning.
       expect(await inDb(state, 'SIGN_PERFORMED', 'p-not-in-this-mbr')).toEqual([]);

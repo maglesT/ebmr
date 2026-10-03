@@ -374,7 +374,7 @@ test.describe('first clickable version (journey)', () => {
       }, blend);
       await shots.shot(blend, 'kiosk-limit-breaches');
 
-      await evidence.step('The action-limit breach blocks the step until the supervisor links a deviation (PR-08)', 'The supervisor switches in, links DEV-TEST-0001 with a badge tap; the step can then be performed and verified', async () => {
+      await evidence.step('The action-limit breach blocks the step until the supervisor links a deviation (PR-08)', 'The supervisor switches in, links DEV-TEST-0001 with a badge tap; the step can then be performed and witnessed (its blend time and speed are typed by hand with no printout attached, so the second person witnesses them: engine 1.4.0, lead TODO T12)', async () => {
         await switchUser(blend, supervisor);
         const action = card(blend).locator('[data-testid^="exception-"]').filter({ hasText: 'Blocks the next steps until it is resolved' });
         await action.getByRole('button', { name: 'Link a deviation' }).click();
@@ -388,7 +388,7 @@ test.describe('first clickable version (journey)', () => {
         await switchUser(blend, operator2);
         await signPrimary(blend, 'Sign as performed', operator2);
         await switchUser(blend, verifier2);
-        await signPrimary(blend, 'Verify', verifier2);
+        await signPrimary(blend, 'Witness', verifier2);
       }, blend);
       await shots.shot(blend, 'kiosk-deviation-linked');
 

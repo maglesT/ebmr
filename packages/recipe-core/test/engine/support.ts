@@ -215,7 +215,7 @@ export class Run {
   }
 
   /** The check by `who`, signed with the meaning the step requires now (actions.ts checkMeaning) unless `meaning` is given. */
-  verify(stepId: string, frames: readonly Frame[] = [], who: Actor = VER1, meaning = checkMeaning(this.def, this.inst(stepId, frames), stepId)): StepResult {
+  verify(stepId: string, frames: readonly Frame[] = [], who: Actor = VER1, meaning = checkMeaning(this.def, this.inst(stepId, frames), stepId, this.state)): StepResult {
     return this.ok({ type: 'VERIFY', actor: who, step: stepId, context: frames, signature: sig(meaning, who) });
   }
 
@@ -360,7 +360,7 @@ export function executePhase(run: Run, inst: StepInstance, scenario: Scenario = 
   if (done.status === 'AWAITING_VERIFICATION') {
     const exclude = new Set([...done.performers, ...done.dataEnterers, ...done.correctors, ...done.performedSigners]);
     const verifier = actorWith(step.checkRole !== undefined ? [step.checkRole] : def.policy.fallbackVerifierRoles, exclude);
-    const r = run.exec({ type: 'VERIFY', actor: verifier, step: inst.step, context: inst.frames, signature: sig(checkMeaning(def, done, inst.step), verifier) });
+    const r = run.exec({ type: 'VERIFY', actor: verifier, step: inst.step, context: inst.frames, signature: sig(checkMeaning(def, done, inst.step, run.state), verifier) });
     if (!r.accepted) stuckOr(r.refusal);
   }
 }
@@ -425,7 +425,7 @@ export function autopilot(run: Run, scenario: Scenario = {}, maxActions = 5_000)
         const stepDef = def.steps.get(awaiting.step);
         const exclude = new Set([...awaiting.performers, ...awaiting.dataEnterers, ...awaiting.correctors, ...awaiting.performedSigners]);
         const who = actorWith(stepDef?.checkRole !== undefined ? [stepDef.checkRole] : def.policy.fallbackVerifierRoles, exclude);
-        run.verify(awaiting.step, awaiting.frames, who, checkMeaning(def, awaiting, awaiting.step));
+        run.verify(awaiting.step, awaiting.frames, who, checkMeaning(def, awaiting, awaiting.step, run.state));
         continue;
       }
       return 'STUCK';
