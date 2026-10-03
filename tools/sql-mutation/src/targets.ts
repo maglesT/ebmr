@@ -71,7 +71,7 @@ export const TARGETS: Target[] = [
     group: 'site-values-and-policies',
     functions: ['market.assess_site_value', 'market.set_site_value', 'market.policy_pin_guard', 'market.policy_version_guard',
                 'market.pin_policies_for_batch', 'market.apply_policy_tightening', 'market.at_least_as_strict', 'market.criteria_cover',
-                'market.loosening_basis'],
+                'market.loosening_basis', 'market.same_value'],
     tests: [k('market/site-values.test.ts'), k('market/policy.test.ts'), k('market/engine.test.ts'), k('market/rule-tables.test.ts')],
     threshold: 90,
   },

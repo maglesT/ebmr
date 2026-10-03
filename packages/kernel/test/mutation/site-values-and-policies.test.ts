@@ -270,6 +270,83 @@ describe('site values for criteria that must all pass (ALL_APPLY)', () => {
     expect((await storedOn(from)).map((r) => [r.outcome, r.value.length])).toEqual([['TIGHTER', 4], ['EQUAL', 3]]);
   });
 
+  /** The outcome an evaluation on that date reports for the site value in force (market.apply_site_value). */
+  async function appliedOutcome(effectiveFrom: string): Promise<string | undefined> {
+    const { rows } = await db.app.query<{ o: string }>(
+      "select market.apply_site_value(market.site_value_preview($1, $2, '[]'::jsonb, $3::date) -> 'resolution', $1, $3::date) ->> 'outcome' as o",
+      [world.siteId, KEY, effectiveFrom],
+    );
+    return rows[0]?.o;
+  }
+
+  it('[IN-52][INV-28] the required criteria in another order, each with its members in another order, are EQUAL, not TIGHTER, where recorded and where applied; in another order with one added they are TIGHTER (lead TODO T9)', async () => {
+    const from = '2026-04-15';
+    const req = await required(from);
+    expect(req.length).toBe(3);
+    // The same criteria, last first, each written with its members in reverse order: the same set of full definitions.
+    const reordered = [...req].reverse().map((c) => Object.fromEntries(Object.entries(c).reverse()) as Criterion);
+    expect(JSON.stringify(reordered)).not.toBe(JSON.stringify(req));
+    const same = await set({ key: KEY, value: reordered, effectiveFrom: from });
+    expect(same.outcome).toBe('EQUAL');
+    expect(await appliedOutcome(from)).toBe('SITE_EQUAL');
+    // A site criterion added in the middle of the reordered list: TIGHTER, as before.
+    const usp = req.find((c) => c.id === 'USP_905_UNIFORMITY_OF_DOSAGE_UNITS') as Criterion;
+    const extra: Criterion = { ...usp, id: 'SITE_CONTENT_UNIFORMITY_EVERY_LOT' };
+    const tighter = await set({ key: KEY, value: [reordered[0] as Criterion, extra, ...reordered.slice(1)], effectiveFrom: from });
+    expect(tighter.outcome).toBe('TIGHTER');
+    expect(await appliedOutcome(from)).toBe('SITE_TIGHTER');
+    expect((await storedOn(from)).map((r) => [r.outcome, r.value.length])).toEqual([['EQUAL', 3], ['TIGHTER', 4]]);
+  });
+
+  it('[IN-52][INV-28] a site value of a SET_UNION key with the required elements in another order is EQUAL; with one more it is TIGHTER; with one fewer it is refused (EBMR-MKT-064) (lead TODO T9)', async () => {
+    const table = `svs${randomUUID().slice(0, 6)}`;
+    await createTestTable(db, table);
+    const key = `${table}.required`;
+    await publishDocument(db, {
+      table,
+      version: 1,
+      change: { kind: 'INITIAL', description: 'T9 set-valued test table' },
+      keys: [{ key, title: 'Checks every batch must have', method: 'SET_UNION', valueType: 'SET', unit: '1', indiaGoverns: true }],
+      rows: [
+        { ref: 'R-IN', key, market: 'IN', value: ['IN_CHECK_A', 'IN_CHECK_B'], unit: '1', floor: 'HARD', source: 'test source', verification: 'CHK', effectiveFrom: '2024-01-01' },
+        { ref: 'R-US', key, market: 'US', value: ['US_CHECK_C'], unit: '1', floor: 'HARD', source: 'test source', verification: 'CHK', effectiveFrom: '2024-01-01' },
+      ],
+    });
+    const from = '2026-02-01';
+    const preview = async (value: unknown) =>
+      (await db.app.query<{ p: { outcome: string; resolution: { value: string[] } } }>('select market.site_value_preview($1, $2, $3::jsonb, $4::date) as p', [world.siteId, key, JSON.stringify(value), from])).rows[0]?.p;
+    expect((await preview([]))?.resolution.value).toEqual(['IN_CHECK_A', 'IN_CHECK_B', 'US_CHECK_C']);
+    expect((await preview(['US_CHECK_C', 'IN_CHECK_B', 'IN_CHECK_A']))?.outcome).toBe('EQUAL');
+    const same = await set({ key, value: ['US_CHECK_C', 'IN_CHECK_B', 'IN_CHECK_A'], effectiveFrom: from });
+    expect(same.outcome).toBe('EQUAL');
+    const more = await set({ key, value: ['SITE_CHECK_D', 'US_CHECK_C', 'IN_CHECK_A', 'IN_CHECK_B'], effectiveFrom: from });
+    expect(more.outcome).toBe('TIGHTER');
+    await expect(set({ key, value: ['US_CHECK_C', 'IN_CHECK_B'], effectiveFrom: from })).rejects.toThrow(/^EBMR-MKT-064 /);
+    const { rows } = await db.app.query<{ outcome: string }>('select outcome from market.site_value where site_id = $1 and key = $2 order by recorded_at', [world.siteId, key]);
+    expect(rows.map((r) => r.outcome)).toEqual(['EQUAL', 'TIGHTER']);
+  });
+
+  it('[IN-52][INV-28] market.same_value, rule by rule: a set is the same in any order and not with an element more or less; a criterion is compared whole; any other value as JSON; a NOT_COMPARABLE key has no answer (lead TODO T9)', async () => {
+    const cases: [string, unknown, unknown, boolean | null][] = [
+      ['SET_UNION', ['A', 'B'], ['B', 'A'], true],
+      ['SET_UNION', ['A', 'B'], ['A'], false],
+      ['SET_UNION', ['A'], ['A', 'B'], false],
+      ['ALL_APPLY', [{ id: 'X', plan: 'N10' }, { id: 'Y', plan: 'N30' }], [{ plan: 'N30', id: 'Y' }, { id: 'X', plan: 'N10' }], true],
+      ['ALL_APPLY', [{ id: 'X', plan: 'N10' }], [{ id: 'X', plan: 'N30' }], false],
+      ['ALL_APPLY', [{ id: 'X', plan: 'N10' }], [{ id: 'X', plan: 'N10' }, { id: 'Y', plan: 'N30' }], false],
+      ['LARGER_STRICTER', '5', '5', true],
+      ['LARGER_STRICTER', '5', '6', false],
+      ['ORDERED', 'HIGH', 'HIGH', true],
+      ['REQUIRED_IF_ANY', true, false, false],
+      ['NOT_COMPARABLE', 'A', 'A', null],
+    ];
+    const { rows } = await db.admin.query<{ i: number; r: boolean | null }>(
+      'select c.i, market.same_value(c.m, $2::jsonb, c.a, c.b) as r from jsonb_to_recordset($1::jsonb) as c(i int, m text, a jsonb, b jsonb) order by c.i',
+      [JSON.stringify(cases.map(([m, a, b], i) => ({ i, m, a, b }))), JSON.stringify(['LOW', 'HIGH'])],
+    );
+    expect(rows.map((r) => r.r)).toEqual(cases.map((c) => c[3]));
+  });
+
   it('[IN-52][INV-28] a site value that drops a required criterion, or changes one under its own id, is refused (EBMR-MKT-064) and nothing is stored', async () => {
     const from = '2026-05-01';
     const req = await required(from);

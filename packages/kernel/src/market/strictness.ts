@@ -1,6 +1,6 @@
 /**
- * "At least as strict" for every comparison method (build outline 3.3.1), mirroring
- * market.at_least_as_strict, market.set_merge and market.binding_value in SQL.
+ * "At least as strict" and "the same value" for every comparison method (build outline 3.3.1), mirroring
+ * market.at_least_as_strict, market.same_value, market.set_merge and market.binding_value in SQL.
  */
 import { compareDecimal } from './decimal.ts';
 import { MarketRuleError } from './errors.ts';
@@ -116,6 +116,19 @@ export function isAtLeastAsStrict(method: ComparisonMethod, ordered: readonly st
     case 'NOT_COMPARABLE':
       throw new MarketRuleError('EBMR-MKT-046', 'NOT_COMPARABLE values cannot be ranked');
   }
+}
+
+/**
+ * Are values a and b the same value under the key's method (market.same_value in SQL, kernel 1010; lead TODO T9)?
+ * A set (SET_UNION, ALL_APPLY) is the same when each side is at least as strict as the other: the same identifiers,
+ * or the same criteria each by its full definition, in any order (a value never repeats an element or a criterion
+ * id). Any other value is the same when it is the same JSON. A site value that is the same is EQUAL, not TIGHTER.
+ * Throws for NOT_COMPARABLE keys.
+ */
+export function isSameValue(method: ComparisonMethod, ordered: readonly string[] | null | undefined, a: RuleValue, b: RuleValue): boolean {
+  if (method === 'SET_UNION' || method === 'ALL_APPLY') return isAtLeastAsStrict(method, ordered, a, b) && isAtLeastAsStrict(method, ordered, b, a);
+  if (method === 'NOT_COMPARABLE') throw new MarketRuleError('EBMR-MKT-046', 'NOT_COMPARABLE values cannot be ranked');
+  return jsonEqual(a, b);
 }
 
 /** Union of two set-valued values, sorted (SET_UNION: strings; ALL_APPLY: criteria by id). */
