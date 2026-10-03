@@ -155,7 +155,7 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whatHappened: 'The value the system was about to store is not the one this action records, or it would have changed a value already recorded. Nothing was saved.',
     whatYouCanDo: ['Stop and report it; do not enter the value again until it has been looked into.'],
     whoCanHelp: [ADMIN, QA],
-    controls: ['DI-05', 'DI-14', 'DI-24', 'DI-29', 'DI-30', 'DI-32', 'DI-33', 'DI-34', 'INV-25', 'INV-41', 'PR-14'],
+    controls: ['DI-05', 'DI-14', 'DI-24', 'DI-29', 'DI-30', 'DI-32', 'DI-33', 'DI-34', 'INV-25', 'INV-41', 'PR-14', 'PR-18', 'PR-21', 'PR-23'],
   },
   'EBMR-EXE-127': {
     status: 422,

@@ -18,14 +18,22 @@
  * row stored a real-format container L2409-0017 registered beside its entry. Now every container a row registers is the
  * one its entry names, in a block that registers containers (EBMR-EXE-126), and its id is a test lot number or the id
  * the output weighing builds from the test batch's own number (EBMR-EXE-078).
+ *
+ * Round 4 (recipe-core 0328): what a container holds was copied from its entry (an output's intermediate, a weighing's
+ * BOM line) and never compared with the MBR. An output container holding L2409-0017, which the step does not produce,
+ * was stored. Now an entry names only what its step's MBR node names: a weighing or a lot charge a BOM line the step
+ * dispenses or charges, an output an intermediate the step produces, a container charge a container of the batch the
+ * step charges (holding what the container holds, of its sub-lot, scanned with the batch's own label, and the one the
+ * row consumes), an equipment status a piece of equipment the step checks (EBMR-EXE-126).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
+import { resolveClientIntent } from '../../src/features/execution/intents.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { actorOf, appendAs, messageOf } from './db-guards-support.ts';
+import { actorOf, appendAs, messageOf, unmatched } from './db-guards-support.ts';
 import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
@@ -280,5 +288,116 @@ describe('F12: a test run records only test identifiers and registered test lots
     expect(await problem('B24-0001/INT-BLEND/0/1', record('B24-0001/INT-BLEND/0/1'), unnamed, null)).toBe(real('B24-0001/INT-BLEND/0/1'));
     expect(await problem('B24-0001/X', record('B24-0001/X'), { type: 'RECORD_ENTRY', entry: { ...unnamed.entry, container: 'B24-0001/X' } }, 'B24-0001')).toBe(real('B24-0001/X'));
     expect(await problem('B24-0001/X', record('B24-0001/X'), weighing, 'B24-0001')).toBe(real('B24-0001/X'));
+  }, 300_000);
+
+  type Json = Record<string, unknown>;
+
+  /**
+   * operator1's entry `entry` at step `stepKey`, resolved and run through the engine as the server does, then stored
+   * through the application role after every occurrence of `from` in the new entry's data, the containers the row
+   * registers, the events and the recorded command was replaced by `to` (and `forge` made any other change): what a
+   * writer that relabels a container's contents stores. 'ok' or the refusal.
+   */
+  async function relabelledEntry(d: RunDriver, stepKey: string, entry: Json, from: string, to: string, forge: (data: Json) => void = () => undefined): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    // Every string equal to `from` (and the built container id that contains it), at any depth; numbers and bigints kept.
+    const swap = <T,>(v: T): T => {
+      if (typeof v === 'string') return (v === from ? to : v.split(`/${from}/`).join(`/${to}/`)) as T;
+      if (Array.isArray(v)) return v.map((x: unknown) => swap(x)) as T;
+      if (v !== null && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [swap(k), swap(x)])) as T;
+      return v;
+    };
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          { type: 'RECORD_ENTRY', stepKey, entry } as Parameters<typeof resolveClientIntent>[1],
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the entry: ${JSON.stringify(r.refusal)}`);
+        const state = structuredClone(r.state);
+        const added = Object.values(state.entries).find((e) => !(e.id in tx.state.entries));
+        if (!added) throw new Error('SETUP: no new entry');
+        added.data = swap(added.data);
+        forge(added.data);
+        for (const k of Object.keys(state.containers)) if (!(k in tx.state.containers)) state.containers[k] = swap(state.containers[k] as engine.ContainerRecord);
+        const recorded = swap(engine.encodeCommand(resolved.command));
+        return appendAs(tx, resolved.command, { state, events: swap(r.events) }, roles, recorded, engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
+      }),
+    );
+  }
+
+  /** dc-mini with an output step first in the dispensing booth (records earlyNet in kg, produces I-EARLY), started. */
+  async function earlyOutputRun(): Promise<RunDriver> {
+    const content = dcMiniVariant((prep, c) => {
+      (c['intermediates'] as Json[]).push({ id: 'I-EARLY', name: 'Early output', holdTime: { max: { value: '30', unit: 'd' }, source: { kind: 'HOLD_STUDY', ref: 'HS-PCM-01' }, storage: 'Closed, labelled containers' } });
+      (c['parameters'] as Json[]).push({ id: 'earlyNet', name: 'Early output (net)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' });
+      const out = { kind: 'phase', id: 'p-early-out', name: 'Discharge the early output', block: { type: 'G-22', version: '1' }, config: {}, records: ['earlyNet'], computes: [], reads: [], consumes: [], produces: ['I-EARLY'], uses: [], equipment: [], signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } }, significant: true, riskClass: 'HIGH' };
+      return [out, ...prep];
+    });
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, content));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-out@' });
+    return d;
+  }
+
+  /** dc-mini run to the start of the paracetamol dispensing. */
+  async function atDispensing(): Promise<RunDriver> {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), verifier1: await sbx.asPersona('verifier1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+    for (const [key, entries] of [
+      ['p-disp-bal@', [{ kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) }]],
+      ['p-disp-sop@', [{ kind: 'ACKNOWLEDGE', mode: 'READ' }]],
+      ['p-disp-calc@', []],
+    ] as const) {
+      await d.ok('operator1', { type: 'START_STEP', stepKey: key });
+      for (const entry of entries) await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: key, entry });
+      await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: key });
+    }
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-pcm@' });
+    return d;
+  }
+
+  it('[DI-05][DI-30][PR-18] round 4: an output container holding L2409-0017, an intermediate its step does not produce, and a weighing of a BOM line L2409-0017 the step does not dispense are refused (EBMR-EXE-126), and nothing holds them', async () => {
+    const output = { kind: 'OUTPUT_CONTAINER', intermediate: 'I-EARLY', manual: { gross: '26.100', tare: '1.050', unit: 'kg' } };
+    const weighing = { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } };
+    // The verifier's probe: the output's intermediate, the container it registers (and the id built from it) relabelled.
+    const out = await earlyOutputRun();
+    const outputIntermediate = await relabelledEntry(out, 'p-early-out@', output, 'I-EARLY', 'L2409-0017');
+    const outputHeld = await stateHolding(out.runId, 'L2409-0017');
+    // The honest entry is recorded; its container holds the intermediate the step produces.
+    const outputHonest = await relabelledEntry(out, 'p-early-out@', output, 'I-EARLY', 'I-EARLY');
+    const outputHolds = Object.values((await execution.loadState(sbx.db.admin, out.runId))?.state.containers ?? {}).map((c) => c.holds);
+    const disp = await atDispensing();
+    const outcomes = {
+      outputIntermediate,
+      // The weighed line, the container it registers and the label's component (the line itself, for a line the BOM does not hold).
+      weighingUnknownLine: await relabelledEntry(disp, 'p-disp-pcm@', weighing, 'BOM-PCM', 'L2409-0017', (data) => void ((data['label'] as Json)['component'] = 'L2409-0017')),
+      // A line of the BOM that another step dispenses.
+      weighingOtherLine: await relabelledEntry(disp, 'p-disp-pcm@', weighing, 'BOM-PCM', 'BOM-MCC', (data) => void ((data['label'] as Json)['component'] = 'MAT-MCC')),
+    };
+    expect(unmatched(outcomes, {
+      outputIntermediate: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(OUTPUT_CONTAINER\) of step p-early-out@ holding intermediate L2409-0017, which step p-early-out does not produce: .*\(DI-05, DI-30, PR-18, PR-21, PR-23\)\. \[EBMR-EXE-126\]$/,
+      weighingUnknownLine: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(CONTAINER_WEIGHING\) of step p-disp-pcm@ with BOM line L2409-0017, which is not a line of the MBR's bill of materials that step p-disp-pcm dispenses: .*\[EBMR-EXE-126\]$/,
+      weighingOtherLine: /stores entry EN-\d+ \(CONTAINER_WEIGHING\) of step p-disp-pcm@ with BOM line BOM-MCC, which is not a line of the MBR's bill of materials that step p-disp-pcm dispenses: .*\[EBMR-EXE-126\]$/,
+    })).toEqual({});
+    expect(outputHeld).toBe(0);
+    expect(await stateHolding(disp.runId, 'L2409-0017')).toBe(0);
+    expect(Object.keys((await execution.loadState(sbx.db.admin, disp.runId))?.state.containers ?? {})).toEqual([]);
+    expect({ outputHonest, outputHolds }).toEqual({ outputHonest: 'ok', outputHolds: ['I-EARLY'] });
+    expect(await relabelledEntry(disp, 'p-disp-pcm@', weighing, 'BOM-PCM', 'BOM-PCM')).toBe('ok');
+    expect(Object.values((await execution.loadState(sbx.db.admin, disp.runId))?.state.containers ?? {}).map((c) => c.holds)).toEqual(['BOM-PCM']);
   }, 300_000);
 });

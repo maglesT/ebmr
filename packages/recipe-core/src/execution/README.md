@@ -377,7 +377,15 @@ that another command holds is skipped.
     line) or an output weighing's (G-22, OUTPUT_CONTAINER, holding its intermediate), under the id the entry names or,
     for an output weighing that names none, the id the block builds, with the entry's net quantity, produced by the
     row's step instance in its frames, in quarantine (EBMR-EXE-126); and the tablets edition reads its id as a test
-    lot number, the built output id excepted (tablets sql 0390, EBMR-EXE-078);
+    lot number, the built output id excepted (tablets sql 0390, EBMR-EXE-078). An entry names only what its step's node
+    in the batch's MBR names (sql 0328, trigger `zzc_execution_entry_references`, `entry_reference_problem`; Phase 2
+    exit review F12, round 4; EBMR-EXE-126): a weighing's or lot charge's BOM line is a line of the MBR's bill of
+    materials the step consumes, an output's intermediate one the step produces, a container charge names a container
+    the batch held in quarantine, states what it holds, is of content the step charges (an intermediate it uses, a BOM
+    line it consumes), of the step's own sub-lot, scanned with this batch's label, and the row consumes exactly the
+    containers its charges name; an equipment check names equipment the step lists for a status check, when it lists
+    any. So a container never holds what the MBR does not give it. Lot usability, a sample against its plan and a
+    checklist's answers stay with the replay;
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -699,14 +707,18 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   a replicate section or operation the step comes after), are refused, each with its reason. Round 3 (sql 0316): the
   row that finishes an operation in an alternative's branch, the last operation of a loop iteration or of a sub-lot,
   or the last operation of the final stage, without its END, is refused.
-- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 and 3; sql 0313, 0317): every entry of the engine's
+- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 to 4; sql 0313, 0317, 0328): every entry of the engine's
   own runs (both golden fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an
   acknowledgement of the MBR's own SOP version) passes `entry_data_problem`; an entry that holds another value than
   its command sent (the real previous batch or product, a weighed container or lot, a sample point, a checklist's
   answers), or no data its command sent, is refused, each with the member it names. Round 3 (sql 0317): every
   container of both golden runs (named by the entry or built by the block) passes `new_container_problem`; a
   container beside a previous batch entry, under another id than its entry names or the block builds, a second one,
-  one with other facts, or one in a refused row is refused, each with its reason.
+  one with other facts, or one in a refused row is refused, each with its reason. Round 4 (sql 0328): every entry and
+  charge of both golden runs passes `entry_reference_problem`; a weighing or lot charge of a BOM line not in the BOM or
+  not the step's, an output of an intermediate the step does not produce, a container charge of an unknown, consumed,
+  unplanned or other sub-lot's container, with other contents or another batch's label, a consumption no charge
+  names, and an equipment check of equipment the step does not check are refused, each with its reason.
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -842,7 +854,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content
   version a disposition was already signed on is refused, with the exception still open.
-- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370): a real previous batch number
+- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328): a real previous batch number
   typed into a line clearance is refused by the server before anything is written (EBMR-SBX-022), and by the database
   when written through the store (EBMR-EXE-078); every identifier an entry carries (previous, scanned and source
   batches, containers, lots) is a test identifier, and a weighed or charged lot a registered test lot stated as the
@@ -853,7 +865,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   command did not name does not. Round 3 (sql 0317, tablets sql 0390): the verifier's row, a real-format container
   L2409-0017 registered beside a previous batch entry, is refused (EBMR-EXE-078) and nothing holds it; the same with a
   test-format container is refused too (EBMR-EXE-126); a container's key and id are read as test lot numbers, the
-  output id built from the test batch's own number excepted.
+  output id built from the test batch's own number excepted. Round 4 (sql 0328): an output container holding
+  L2409-0017, an intermediate its step does not produce, and a weighing of a BOM line L2409-0017 or of another step's
+  line, each relabelled in the entry, the container, the events and the command, are refused (EBMR-EXE-126) and
+  nothing holds them; the honest entries are recorded.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and
