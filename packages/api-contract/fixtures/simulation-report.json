@@ -5,17 +5,17 @@
     "notice": "Simulation output; not a GMP record.",
     "control": "DI-05"
   },
-  "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f",
+  "contentHash": "d377b497a24e2c35bb986b927a04088299417e04cab7936e6d871f9d04bd1c46",
   "passed": true,
-  "paths": 4,
+  "paths": 1,
   "coverage": {
     "nodes": {
-      "covered": 31,
-      "total": 31
+      "covered": 14,
+      "total": 14
     },
     "decisions": {
-      "covered": 2,
-      "total": 2
+      "covered": 0,
+      "total": 0
     },
     "percent": "100.0"
   },
@@ -23,19 +23,12 @@
   "runs": [
     {
       "pathId": "P1",
-      "outcome": "EXECUTION_COMPLETE",
+      "outcome": "COMPLETED",
       "exceptions": []
-    },
-    {
-      "pathId": "P2",
-      "outcome": "EXECUTION_COMPLETE",
-      "exceptions": [
-        "LIMIT_BREACH"
-      ]
     }
   ],
   "simulatedAt": {
-    "us": "1790580963000000",
-    "text": "28-SEP-2026 13:06:03 +05:30 (Asia/Kolkata)"
+    "us": "1790580843000000",
+    "text": "28-SEP-2026 13:04:03 +05:30 (Asia/Kolkata)"
   }
 }

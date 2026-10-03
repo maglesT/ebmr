@@ -97,7 +97,7 @@ describe('describeIntent and describeChanges', () => {
     const changes = describeChanges(before, after);
     expect(changes).toContain('The run moved on (version 7 to 9).');
     expect(changes).toContain('Step status: Performed, waiting for verification → Completed.');
-    expect(changes.some((c) => c.startsWith('Blender speed: 15 /min recorded by TEST-Arjun Das'))).toBe(true);
+    expect(changes.some((c) => c.startsWith('Blender speed: 12 /min recorded by TEST-Arjun Das'))).toBe(true);
     expect(changes.some((c) => c.startsWith('New signature: Verified by TEST-Arjun Das'))).toBe(true);
     expect(describeChanges(g04, g04)).toEqual(['Nothing changed on this step; the run changed elsewhere (for example a timer or another step).']);
   });

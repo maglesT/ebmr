@@ -62,7 +62,9 @@ describe('NumericEntry and Keypad', () => {
     await userEvent.type(screen.getByRole('textbox', { name: 'Blend time' }), '21');
     expect(screen.getByText('Registered limit')).toBeTruthy();
     expect(screen.getByText('10 to 20 min')).toBeTruthy();
-    expect(screen.getAllByText(/VR-BLEND-01/).length).toBeGreaterThan(0);
+    // Each tier names its source document as the server does (dc-mini: the registration and the blending SOP).
+    expect(screen.getAllByText(/REG-PCM500 v1/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/SOP-BLEND-002 v1/).length).toBeGreaterThan(0);
     expect(screen.getByText('The limit check appears after the value is saved.')).toBeTruthy();
     expect(screen.queryByText(/Limit check:/)).toBeNull();
     expect(screen.queryByText(/outside|above|below/i)).toBeNull();
@@ -194,11 +196,11 @@ describe('PrimaryActionBar, RefusalPanel, ExceptionBanner, StatusOutline', () =>
 
   it('[PR-08] an exception shows expected against actual, whether it blocks and who it is routed to', () => {
     render(<floor.ExceptionBanner exception={G04.exceptions[0]!} />);
-    expect(screen.getByText('Blend speed above the alert limit')).toBeTruthy();
-    expect(screen.getByText('10 - 14 rpm')).toBeTruthy();
-    expect(screen.getByText('15 rpm')).toBeTruthy();
+    expect(screen.getByText('Blender speed (blenderSpeed) 12 /min is outside its alert limit (alert high limit): registered for review')).toBeTruthy();
+    expect(screen.getByText('9 - 11 /min')).toBeTruthy();
+    expect(screen.getByText('12 /min')).toBeTruthy();
     expect(screen.getByText('Does not block; it is reviewed later')).toBeTruthy();
-    expect(screen.getByText('Production supervisor')).toBeTruthy();
+    expect(screen.getByText(/^Production supervisor, /)).toBeTruthy();
   });
 
   it('marks the current step and shows every status as a word', async () => {

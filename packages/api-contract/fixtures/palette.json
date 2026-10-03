@@ -1,0 +1,757 @@
+{
+  "blocks": [
+    {
+      "key": "G-03@1",
+      "type": "G-03",
+      "version": "1",
+      "title": "Instruction and acknowledgement",
+      "plainName": "Instruction to read or confirm",
+      "level": "PHASE",
+      "roles": [
+        "INSTRUCTION"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Instruction shown from the approved MBR text; acknowledgement type; the SOP it follows",
+        "fields": {
+          "text": {
+            "type": "string",
+            "optional": true,
+            "description": "Instruction text (from the approved master only)"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "enum": [
+              "READ",
+              "CONFIRM_PERFORMED"
+            ],
+            "optional": true,
+            "description": "Read, or confirm performed (default READ)"
+          },
+          "sop": {
+            "type": "string",
+            "optional": true,
+            "description": "Reference id (kind SOP) of the procedure; its version in force is written into the record"
+          },
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-03",
+        "DI-10",
+        "IN-27"
+      ]
+    },
+    {
+      "key": "G-04@1",
+      "type": "G-04",
+      "version": "1",
+      "title": "Process parameter record",
+      "plainName": "Record process parameters",
+      "level": "PHASE",
+      "roles": [
+        "PARAMETER_RECORD"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Parameters, units and limit tiers come from the MBR parameter list",
+        "fields": {
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-08",
+        "IN-13",
+        "DI-07",
+        "DI-30"
+      ]
+    },
+    {
+      "key": "G-05@1",
+      "type": "G-05",
+      "version": "1",
+      "title": "Observation capture",
+      "plainName": "Record an observation",
+      "level": "PHASE",
+      "roles": [
+        "OBSERVATION"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Expected answers of categorical checks, and whether an unexpected answer stops the steps after it",
+        "fields": {
+          "expected": {
+            "type": "record",
+            "optional": true,
+            "description": "Expected answer per item (default PASS/CONFIRMED/YES when offered)",
+            "values": {
+              "type": "string",
+              "description": "Expected category (or true/false)"
+            }
+          },
+          "blockOnUnexpected": {
+            "type": "boolean",
+            "optional": true,
+            "default": true,
+            "description": "An unexpected answer stops the steps after it until a deviation is linked (default true)"
+          },
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-11",
+        "DI-28",
+        "DI-41"
+      ]
+    },
+    {
+      "key": "G-07@1",
+      "type": "G-07",
+      "version": "1",
+      "title": "Weighing and dispensing",
+      "plainName": "Weigh and dispense",
+      "level": "PHASE",
+      "roles": [
+        "DISPENSING"
+      ],
+      "significant": true,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Dispensing into containers labelled for this batch, within tolerance of the target",
+        "fields": {
+          "tolerance": {
+            "type": "object",
+            "optional": true,
+            "description": "Tolerance of the dispensed total around the target the phase reads (mandatory when it reads one)",
+            "fields": {
+              "percent": {
+                "type": "decimal",
+                "optional": true,
+                "min": "0",
+                "description": "Relative tolerance in percent of the target"
+              },
+              "absolute": {
+                "type": "object",
+                "description": "Absolute tolerance",
+                "fields": {
+                  "value": {
+                    "type": "decimal",
+                    "description": "Decimal written as text"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "description": "UCUM unit"
+                  }
+                },
+                "optional": true
+              }
+            }
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "NET",
+              "BY_DIFFERENCE",
+              "WHOLE_CONTAINER"
+            ],
+            "optional": true,
+            "description": "Weighing method (default NET)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-18",
+        "PR-19",
+        "PR-20",
+        "IN-23",
+        "IN-24",
+        "DI-30",
+        "INV-25"
+      ]
+    },
+    {
+      "key": "G-08@1",
+      "type": "G-08",
+      "version": "1",
+      "title": "Identification and charge-in",
+      "plainName": "Charge materials into equipment",
+      "level": "PHASE",
+      "roles": [
+        "CHARGE_IN"
+      ],
+      "significant": true,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Charge the dispensed containers or issued lots this step uses, once each, verified by scan",
+        "fields": {
+          "chargeAll": {
+            "type": "boolean",
+            "optional": true,
+            "defaultText": "yes outside a sub-lot section, no inside one",
+            "description": "Every container of the used intermediates must be charged here (default: true outside sub-lot sections)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-21",
+        "DI-30",
+        "IN-26"
+      ]
+    },
+    {
+      "key": "G-09@1",
+      "type": "G-09",
+      "version": "1",
+      "title": "Equipment status (manual attestation)",
+      "plainName": "Check equipment status",
+      "level": "PHASE",
+      "roles": [
+        "EQUIPMENT_STATUS_CHECK"
+      ],
+      "significant": false,
+      "availability": "SANDBOX_ONLY",
+      "badge": "sandbox only until Phase 3",
+      "configSchema": {
+        "type": "object",
+        "description": "Checks a person attests for each piece of equipment before use (sandbox only until Phase 3, when equipment, room and cleaning status come from site services)",
+        "fields": {
+          "checks": {
+            "type": "array",
+            "optional": true,
+            "minItems": 1,
+            "maxItems": 20,
+            "description": "Checks answered YES or NO per equipment (default: calibration valid, daily check passed today, clean and ready)",
+            "items": {
+              "type": "object",
+              "description": "One check",
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9_]{0,39}$",
+                  "description": "Check id (upper case, digits and underscores)"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Question shown to the person"
+                }
+              }
+            }
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-23",
+        "IN-25",
+        "DI-05"
+      ]
+    },
+    {
+      "key": "G-10@1",
+      "type": "G-10",
+      "version": "1",
+      "title": "Clearance checklist",
+      "plainName": "Clear the room or line",
+      "level": "PHASE",
+      "roles": [
+        "CLEARANCE"
+      ],
+      "significant": true,
+      "availability": "SANDBOX_ONLY",
+      "badge": "sandbox only until Phase 3",
+      "configSchema": {
+        "type": "object",
+        "description": "Room or line clearance against a checklist, with the previous product and batch (sandbox only until Phase 3, when equipment, room and cleaning status come from site services)",
+        "fields": {
+          "checklist": {
+            "type": "array",
+            "optional": true,
+            "minItems": 1,
+            "maxItems": 40,
+            "description": "Checklist items (default: no previous material, no previous documents or labels, equipment labelled CLEAN)",
+            "items": {
+              "type": "object",
+              "description": "One checklist item",
+              "fields": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9_]{0,39}$",
+                  "description": "Check id (upper case, digits and underscores)"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Item shown to the person"
+                },
+                "expected": {
+                  "type": "string",
+                  "enum": [
+                    "CONFIRMED",
+                    "CONFIRMED_OR_NOT_APPLICABLE"
+                  ],
+                  "description": "Answer expected (NOT_APPLICABLE allowed only where stated)"
+                }
+              }
+            }
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-26",
+        "PR-34",
+        "IN-21",
+        "DI-05"
+      ]
+    },
+    {
+      "key": "G-11@1",
+      "type": "G-11",
+      "version": "1",
+      "title": "Environmental condition check",
+      "plainName": "Check room conditions",
+      "level": "PHASE",
+      "roles": [
+        "ENVIRONMENT_CHECK"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Room conditions (temperature, humidity, pressure difference) against room and product limits",
+        "fields": {
+          "onExcursion": {
+            "type": "string",
+            "enum": [
+              "BLOCK",
+              "EXCEPTION"
+            ],
+            "optional": true,
+            "description": "An excursion stops the step and the steps after it (default), or is an exception only"
+          },
+          "notify": {
+            "type": "array",
+            "optional": true,
+            "items": {
+              "type": "string",
+              "description": "Role"
+            },
+            "description": "Roles notified at once of an excursion (default production supervisor and QA)"
+          },
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-25",
+        "IN-39",
+        "DI-49"
+      ]
+    },
+    {
+      "key": "G-12@1",
+      "type": "G-12",
+      "version": "1",
+      "title": "Sampling",
+      "plainName": "Take samples",
+      "level": "PHASE",
+      "roles": [
+        "SAMPLING"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Samples from a plan (the phase sampling plan, or locations x replicates), with system-generated ids and labels",
+        "fields": {
+          "locations": {
+            "type": "integer",
+            "min": 1,
+            "max": 500,
+            "optional": true,
+            "description": "Sampling locations (e.g. blend uniformity thief positions)"
+          },
+          "replicates": {
+            "type": "integer",
+            "min": 1,
+            "max": 100,
+            "optional": true,
+            "description": "Samples per location"
+          },
+          "purpose": {
+            "type": "string",
+            "optional": true,
+            "description": "What the samples are for (test id)"
+          },
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-29",
+        "PR-44",
+        "IN-20",
+        "IN-32"
+      ]
+    },
+    {
+      "key": "G-13@1",
+      "type": "G-13",
+      "version": "1",
+      "title": "IPC with readings and statistics",
+      "plainName": "In-process checks",
+      "level": "PHASE",
+      "roles": [
+        "IPC"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "IPC test: readings per sample come from the parameter; statistics are calculations; acceptance may be an ALL_APPLY scheme",
+        "fields": {
+          "method": {
+            "type": "string",
+            "optional": true,
+            "description": "Method and version reference"
+          },
+          "sampleMassGrams": {
+            "type": "decimal",
+            "optional": true,
+            "description": "Sample mass for the test (g)"
+          },
+          "expected": {
+            "type": "record",
+            "optional": true,
+            "description": "Expected result per categorical item (default PASS)",
+            "values": {
+              "type": "string",
+              "description": "Expected category"
+            }
+          },
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-29",
+        "IN-35",
+        "DI-29",
+        "DI-10"
+      ]
+    },
+    {
+      "key": "G-14@1",
+      "type": "G-14",
+      "version": "1",
+      "title": "Calculation",
+      "plainName": "Calculate",
+      "level": "PHASE",
+      "roles": [
+        "CALCULATION"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Calculations come from the MBR; the formula is shown to the operator",
+        "fields": {
+          "showFormula": {
+            "type": "boolean",
+            "optional": true,
+            "default": true,
+            "description": "Show the formula (default true)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-31",
+        "DI-33",
+        "INV-25"
+      ]
+    },
+    {
+      "key": "G-15@1",
+      "type": "G-15",
+      "version": "1",
+      "title": "Timer, hold time, transfer",
+      "plainName": "Timer, hold time or transfer",
+      "level": "PHASE",
+      "roles": [
+        "TIMER"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Timers are the MBR time constraints (engine); this step records a material transfer when configured",
+        "fields": {
+          "transfer": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "Record issued-by and received-by for a transfer (two different persons)"
+          },
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-30",
+        "IN-13",
+        "IN-15",
+        "INV-20"
+      ]
+    },
+    {
+      "key": "G-16@1",
+      "type": "G-16",
+      "version": "1",
+      "title": "Verification / witness",
+      "plainName": "Second-person check",
+      "level": "PHASE",
+      "roles": [
+        "VERIFICATION"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "A standalone independent check with its expected answers",
+        "fields": {
+          "expected": {
+            "type": "record",
+            "optional": true,
+            "description": "Expected answer per item (default CONFIRMED/PASS)",
+            "values": {
+              "type": "string",
+              "description": "Expected category"
+            }
+          },
+          "skippable": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "The MBR allows this step to be skipped with an approver (never for CPP/CQA inputs, reconciliation, clearance or sign-off)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-14",
+        "PR-20",
+        "PR-21",
+        "DI-30",
+        "INV-03"
+      ]
+    },
+    {
+      "key": "G-17@1",
+      "type": "G-17",
+      "version": "1",
+      "title": "QA hold point",
+      "plainName": "QA hold point",
+      "level": "HOLD_POINT",
+      "roles": [],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Role and dispositions come from the MBR hold point",
+        "fields": {}
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-45",
+        "IN-37"
+      ]
+    },
+    {
+      "key": "G-20@1",
+      "type": "G-20",
+      "version": "1",
+      "title": "Yield and reconciliation",
+      "plainName": "Yield or reconciliation",
+      "level": "PHASE",
+      "roles": [
+        "YIELD_RECONCILIATION"
+      ],
+      "significant": true,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Yield or reconciliation computed from quantities recorded elsewhere; limits come from the yield checkpoint",
+        "fields": {
+          "showResidueYield": {
+            "type": "boolean",
+            "optional": true,
+            "default": false,
+            "description": "Also show the yield including reusable residue (design choice)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-31",
+        "PR-39",
+        "IN-17",
+        "DI-33"
+      ]
+    },
+    {
+      "key": "G-22@1",
+      "type": "G-22",
+      "version": "1",
+      "title": "Output containers, holds, split/merge",
+      "plainName": "Output containers",
+      "level": "PHASE",
+      "roles": [
+        "OUTPUT_CONTAINER"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Uniquely identified output containers in quarantine with computed net weights",
+        "fields": {
+          "tare": {
+            "type": "string",
+            "enum": [
+              "WEIGHED",
+              "NOMINAL"
+            ],
+            "optional": true,
+            "description": "Weighed tare (default) or nominal for validated container types"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-38",
+        "PR-45",
+        "PR-57",
+        "INV-25"
+      ]
+    },
+    {
+      "key": "G-23@1",
+      "type": "G-23",
+      "version": "1",
+      "title": "Returns, rejects, destruction",
+      "plainName": "Returns, rejects or destruction",
+      "level": "PHASE",
+      "roles": [
+        "RETURNS_DESTRUCTION"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Returns to stores, reject containers, waste and witnessed destruction",
+        "fields": {
+          "witness": {
+            "type": "boolean",
+            "optional": true,
+            "default": true,
+            "description": "Destruction is witnessed (default true)"
+          }
+        }
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-40",
+        "PR-46",
+        "PR-48",
+        "IN-35"
+      ]
+    },
+    {
+      "key": "G-24@1",
+      "type": "G-24",
+      "version": "1",
+      "title": "Reprocessing / rework gate",
+      "plainName": "Reprocessing or rework gate",
+      "level": "PHASE",
+      "roles": [
+        "REPROCESSING"
+      ],
+      "significant": true,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Case and limits come from the phase reprocessing declaration (outline 5.2.9)",
+        "fields": {}
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-47",
+        "IN-18",
+        "IN-19"
+      ]
+    }
+  ]
+}

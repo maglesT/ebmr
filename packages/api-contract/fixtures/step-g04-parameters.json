@@ -1,7 +1,7 @@
 {
   "asOf": {
-    "us": "1790584743000000",
-    "text": "28-SEP-2026 14:09:03 +05:30 (Asia/Kolkata)"
+    "us": "1790586483000000",
+    "text": "28-SEP-2026 14:38:03 +05:30 (Asia/Kolkata)"
   },
   "run": {
     "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
@@ -25,9 +25,9 @@
     "version": 7,
     "mbr": {
       "familyCode": "PCM500-DC",
-      "versionNumber": "1.0",
-      "revision": 3,
-      "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f"
+      "versionNumber": "1",
+      "revision": 2,
+      "contentHash": "d377b497a24e2c35bb986b927a04088299417e04cab7936e6d871f9d04bd1c46"
     },
     "stage": {
       "stageKey": "S-BLEND@",
@@ -52,8 +52,8 @@
       "role": "VERIFIER"
     },
     "lastSavedAt": {
-      "us": "1790584683000000",
-      "text": "28-SEP-2026 14:08:03 +05:30 (Asia/Kolkata)"
+      "us": "1790586423000000",
+      "text": "28-SEP-2026 14:37:03 +05:30 (Asia/Kolkata)"
     }
   },
   "step": {
@@ -98,7 +98,7 @@
           "value": "15",
           "unit": "min"
         },
-        "source": "MBR parameter blendTime"
+        "source": "MBR parameter Blend time (blendTime)"
       },
       "limits": [
         {
@@ -114,24 +114,24 @@
           "source": {
             "kind": "REGISTRATION",
             "ref": "REG-PCM500",
-            "text": "Marketing authorisation, registered blend time"
+            "text": "REG-PCM500 v1: Paracetamol 500 mg tablets: registered process and specification"
           },
           "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
         },
         {
           "tier": "INTERNAL_ACTION",
           "low": {
-            "value": "13",
+            "value": "12",
             "inclusive": true
           },
           "high": {
-            "value": "17",
+            "value": "18",
             "inclusive": true
           },
           "source": {
-            "kind": "VALIDATION_REPORT",
-            "ref": "VR-BLEND-01",
-            "text": "Blending process validation report VR-BLEND-01"
+            "kind": "COMPANY_STANDARD",
+            "ref": "SOP-BLEND-002",
+            "text": "SOP-BLEND-002 v1: Blending in the octagonal blender"
           },
           "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
         },
@@ -146,9 +146,9 @@
             "inclusive": true
           },
           "source": {
-            "kind": "VALIDATION_REPORT",
-            "ref": "VR-BLEND-01",
-            "text": "Blending process validation report VR-BLEND-01"
+            "kind": "COMPANY_STANDARD",
+            "ref": "SOP-BLEND-002",
+            "text": "SOP-BLEND-002 v1: Blending in the octagonal blender"
           },
           "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
         }
@@ -183,7 +183,7 @@
           "verdict": {
             "tier": null,
             "failed": false,
-            "text": "Within all limits"
+            "text": "Within limits (REGISTERED: pass low 15 high 15; INTERNAL_ACTION: pass low 15 high 15; ALERT: pass low 15 high 15)"
           },
           "flags": [],
           "status": "VALID"
@@ -193,7 +193,7 @@
       "required": true
     },
     {
-      "item": "blendSpeed",
+      "item": "blenderSpeed",
       "name": "Blender speed",
       "valueType": "DECIMAL",
       "unit": "/min",
@@ -206,43 +206,43 @@
       "target": {
         "value": {
           "kind": "DECIMAL",
-          "value": "12",
+          "value": "10",
           "unit": "/min"
         },
-        "source": "MBR parameter blendSpeed"
+        "source": "MBR parameter Blender speed (blenderSpeed)"
       },
       "limits": [
         {
-          "tier": "INTERNAL_ACTION",
+          "tier": "VALIDATED",
           "low": {
             "value": "8",
             "inclusive": true
           },
           "high": {
-            "value": "16",
+            "value": "12",
             "inclusive": true
           },
           "source": {
             "kind": "VALIDATION_REPORT",
             "ref": "VR-BLEND-01",
-            "text": "Blending process validation report VR-BLEND-01"
+            "text": "VR-BLEND-01 v1: Process validation report: blending"
           },
           "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
         },
         {
           "tier": "ALERT",
           "low": {
-            "value": "10",
+            "value": "9",
             "inclusive": true
           },
           "high": {
-            "value": "14",
+            "value": "11",
             "inclusive": true
           },
           "source": {
-            "kind": "VALIDATION_REPORT",
-            "ref": "VR-BLEND-01",
-            "text": "Blending process validation report VR-BLEND-01"
+            "kind": "COMPANY_STANDARD",
+            "ref": "SOP-BLEND-002",
+            "text": "SOP-BLEND-002 v1: Blending in the octagonal blender"
           },
           "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
         }
@@ -254,10 +254,10 @@
           "version": 1,
           "value": {
             "kind": "DECIMAL",
-            "value": "15",
+            "value": "12",
             "unit": "/min"
           },
-          "echo": "You entered 15 /min",
+          "echo": "You entered 12 /min",
           "by": {
             "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52",
             "legalName": "TEST-Arjun Das",
@@ -277,7 +277,7 @@
           "verdict": {
             "tier": "ALERT",
             "failed": false,
-            "text": "Above the alert limit 14 /min (VR-BLEND-01); within the action limit 16 /min"
+            "text": "Outside the alert limit: VALIDATED: pass low 12 high 12; ALERT: FAIL low 12 high 12 (outside)"
           },
           "flags": [],
           "status": "VALID"
@@ -293,16 +293,17 @@
     {
       "exceptionId": "X-3",
       "type": "LIMIT_BREACH",
-      "title": "Blend speed above the alert limit",
+      "title": "Blender speed (blenderSpeed) 12 /min is outside its alert limit (alert high limit): registered for review",
       "category": "OUT_OF_LIMIT",
       "severity": "ALERT",
       "tier": "ALERT",
-      "expected": "10 - 14 rpm",
-      "actual": "15 rpm",
+      "expected": "9 - 11 /min",
+      "actual": "12 /min",
       "blocking": false,
       "whatToDo": "Continue; the supervisor reviews the alert. If the value is wrong, raise it with the supervisor.",
       "routedTo": [
-        "PRODUCTION_SUPERVISOR"
+        "PRODUCTION_SUPERVISOR",
+        "HEAD_OF_PRODUCTION"
       ],
       "status": "OPEN",
       "deviationRef": null,

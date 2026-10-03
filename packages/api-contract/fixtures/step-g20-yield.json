@@ -25,9 +25,9 @@
     "version": 7,
     "mbr": {
       "familyCode": "PCM500-DC",
-      "versionNumber": "1.0",
-      "revision": 3,
-      "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f"
+      "versionNumber": "1",
+      "revision": 2,
+      "contentHash": "d377b497a24e2c35bb986b927a04088299417e04cab7936e6d871f9d04bd1c46"
     },
     "stage": {
       "stageKey": "S-DISP@",
@@ -129,9 +129,9 @@
             "inclusive": true
           },
           "source": {
-            "kind": "SOP",
+            "kind": "COMPANY_STANDARD",
             "ref": "SOP-DISP-001",
-            "text": "Dispensing reconciliation limits"
+            "text": "SOP-DISP-001 v1: Dispensing of raw materials"
           },
           "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
         }
@@ -166,7 +166,7 @@
           "verdict": {
             "tier": null,
             "failed": false,
-            "text": "Within limits (99.0 - 101.0 %)"
+            "text": "Within limits (INTERNAL_ACTION: pass low 100.0 high 100.0)"
           },
           "flags": [],
           "status": "VALID"

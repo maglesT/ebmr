@@ -10,10 +10,10 @@
         "name": "Paracetamol 500 mg tablets",
         "strength": "500 mg"
       },
-      "versionNumber": "1.0",
-      "revision": 3,
+      "versionNumber": "1",
+      "revision": 2,
       "state": "DRAFT",
-      "contentHash": "5e2b1f0c9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f",
+      "contentHash": "d377b497a24e2c35bb986b927a04088299417e04cab7936e6d871f9d04bd1c46",
       "exportedAt": {
         "us": "1790581503000000",
         "text": "28-SEP-2026 13:15:03 +05:30 (Asia/Kolkata)"

@@ -337,9 +337,9 @@ describe('what the step card shows', () => {
   it('[PR-08] an alert exception shows expected against actual and who it is routed to; linking a deviation stays greyed with the server\'s reason for an operator', async () => {
     renderFloor(stepPath('p-blend@'));
     const exception = await screen.findByTestId('exception-X-3');
-    expect(within(exception).getByText('10 - 14 rpm')).toBeTruthy();
-    expect(within(exception).getByText('15 rpm')).toBeTruthy();
-    expect(within(exception).getByText('Production supervisor')).toBeTruthy();
+    expect(within(exception).getByText('9 - 11 /min')).toBeTruthy();
+    expect(within(exception).getByText('12 /min')).toBeTruthy();
+    expect(within(exception).getByText(/^Production supervisor, /)).toBeTruthy();
     expect(within(exception).getByRole('button', { name: 'Link a deviation' }).hasAttribute('disabled')).toBe(true);
     expect(within(exception).getByTestId('reason-ATTACH_DEVIATION').textContent).toContain('Only a production supervisor may link a deviation');
   });

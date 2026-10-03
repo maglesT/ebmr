@@ -46,6 +46,8 @@ export function DesignerPage() {
   // The unsaved draft (D7) is the signed-in person's own: it is stored under their id and offered to nobody else.
   const personId = useBoot().session?.person.personId ?? '';
   if (version.error) return version.error.error ? <RefusalMessage error={version.error.error} /> : <p>The version could not be loaded.</p>;
+  // Without the palette the steps cannot be shown with their blocks: say so, never wait for it for good (review F55).
+  if (palette.error) return palette.error.error ? <RefusalMessage error={palette.error.error} /> : <p>The step palette could not be loaded.</p>;
   if (!version.data || !palette.data) return <p>Loading the master record…</p>;
   return <DesignerEditor key={`${version.data.versionId}|${personId}`} initial={version.data} palette={palette.data.blocks} personId={personId} />;
 }

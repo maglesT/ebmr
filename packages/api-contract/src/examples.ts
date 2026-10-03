@@ -3,7 +3,9 @@
  * (through the web app's createFixtureFetch) before the sandbox server exists. Subpath
  * `@ebmr/api-contract/examples`, so the production bundle never carries them unless a fixture mode imports it.
  *
- * The JSON files live in ../fixtures; one StepScreenView per block of the dc-mini template.
+ * The JSON files live in ../fixtures; one StepScreenView per block of the dc-mini template. The designer examples are
+ * the server's answers (review F55); the step and run examples are written for the screens and checked against the
+ * template's limits and their own moment (asOf) by apps/tablets-web/test/api/contract-examples.test.ts.
  */
 import type { z } from 'zod';
 import audit from '../fixtures/audit-events.json' with { type: 'json' };
@@ -27,7 +29,12 @@ import g17 from '../fixtures/step-g17-hold-point.json' with { type: 'json' };
 import g20 from '../fixtures/step-g20-yield.json' with { type: 'json' };
 import g22 from '../fixtures/step-g22-output.json' with { type: 'json' };
 import testPackages from '../fixtures/test-packages.json' with { type: 'json' };
+import families from '../fixtures/families.json' with { type: 'json' };
+import palette from '../fixtures/palette.json' with { type: 'json' };
+import templates from '../fixtures/templates.json' with { type: 'json' };
+import validationFindings from '../fixtures/validation-report-findings.json' with { type: 'json' };
 import validation from '../fixtures/validation-report.json' with { type: 'json' };
+import versionInVerification from '../fixtures/version-in-verification.json' with { type: 'json' };
 import version from '../fixtures/version.json' with { type: 'json' };
 import workQueue from '../fixtures/work-queue.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
@@ -65,8 +72,15 @@ export const EXAMPLES = {
   challenge: { schema: ChallengeView, data: challenge, routeId: r.esig.createChallenge.id },
   manifestation: { schema: ManifestationView, data: manifestation },
   reading: { schema: ReadingView, data: reading, routeId: r.devices.capture.id },
+  // The designer examples are the server's own answers for the dc-mini template, made stable (ids, instants) and
+  // compared with the server by apps/tablets-server/test/designer/contract-examples.test.ts (review F55).
+  templates: { schema: r.designer.templates.response, data: templates, routeId: r.designer.templates.id },
+  families: { schema: r.designer.families.response, data: families, routeId: r.designer.families.id },
+  palette: { schema: r.designer.palette.response, data: palette, routeId: r.designer.palette.id },
   version: { schema: r.designer.version.response, data: version, routeId: r.designer.version.id },
+  'version-in-verification': { schema: r.designer.version.response, data: versionInVerification, routeId: r.designer.version.id },
   'validation-report': { schema: r.designer.validate.response, data: validation, routeId: r.designer.validate.id },
+  'validation-report-findings': { schema: r.designer.validate.response, data: validationFindings, routeId: r.designer.validate.id },
   'simulation-report': { schema: r.designer.simulate.response, data: simulation, routeId: r.designer.simulate.id },
   'audit-events': { schema: r.audit.events.response, data: audit, routeId: r.audit.events.id },
 } as const satisfies Record<string, Example>;
