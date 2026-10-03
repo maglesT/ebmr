@@ -16,7 +16,7 @@
  * re-applying every unmutated definition leaves its pg_proc row unchanged). A target whose tests span both projects runs
  * each project with its own files; a failure in either kills the mutant.
  *
- * Usage: tsx tools/sql-mutation/src/run.ts [--count] [--verify] [--baseline] [--group <name>] [--only <ids>]
+ * Usage: tsx tools/sql-mutation/src/run.ts [--count] [--verify] [--baseline] [--group <name>[,<name>...]] [--only <ids>]
  *                                          [--workers <n>] [--out <dir>] [--own-cluster]
  *   --count        mutant counts per group (no database);
  *   --verify       build the templates and run the checks above, nothing else;
@@ -596,9 +596,11 @@ const seconds = (ms: number | undefined): string => (ms === undefined ? '-' : (m
 
 async function main(): Promise<void> {
   const defs = loadDefinitions();
-  const only = arg('group');
-  const targets = TARGETS.filter((t) => !only || t.group === only);
-  if (only && targets.length === 0) throw new Error(`no group ${only}`);
+  // --group takes one group or several, comma-separated.
+  const only = arg('group') ? new Set((arg('group') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) : undefined;
+  const unknown = only ? [...only].filter((g) => !TARGETS.some((t) => t.group === g)) : [];
+  if (unknown.length > 0) throw new Error(`unknown group(s): ${unknown.join(', ')}`);
+  const targets = TARGETS.filter((t) => !only || only.has(t.group));
   const onlyIds = arg('only') ? new Set((arg('only') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) : undefined;
   const equivalents = loadEquivalents();
   const plan = targets
