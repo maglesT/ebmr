@@ -56,6 +56,8 @@ tests:
   - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"1e2\" is refused with the schema's range, nothing is committed"
   - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"99999999999999999999\" is refused with the schema's range, nothing is committed"
   - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] a whole number within the range is recorded and the message goes; an optional field emptied removes the member"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 5: an entry holds exactly what its block builds and accepts (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47) > [DI-05][DI-10][DI-30][PR-14][PR-18][PR-23][PR-29][PR-34][PR-40][PR-47] every entry of the engine's own runs passes: every block's golden fixture, both golden runs and runs of the kinds they leave out; every entry kind of this release's blocks is among them, and the database's default checklists are the blocks'"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 5: an entry holds exactly what its block builds and accepts (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47) > [DI-05][DI-30][PR-29] a sample whose id or label is not the one the block builds from the batch, the MBR's product, the step, its sub-lot, the person and the time, or that is not of the sampling plan, is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

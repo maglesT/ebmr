@@ -25,6 +25,12 @@
  * dispenses or charges, an output an intermediate the step produces, a container charge a container of the batch the
  * step charges (holding what the container holds, of its sub-lot, scanned with the batch's own label, and the one the
  * row consumes), an equipment status a piece of equipment the step checks (EBMR-EXE-126).
+ *
+ * Round 5 (recipe-core 0330; the round-4 verification): the members a block builds rather than takes from the command
+ * were compared by nothing. The G-03 acknowledgement of p-disp-sop@, its data naming sop B24-0001 and sopVersion
+ * L2409-0017 where the MBR pins SOP-DISP-001 version 1, was stored. Now an entry holds exactly what its block builds
+ * (the SOP reference, the person, the passed flags, ...), answers exactly its step's checklist, and leaves its step
+ * needing the check the block asks for (EBMR-EXE-126).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -399,5 +405,111 @@ describe('F12: a test run records only test identifiers and registered test lots
     expect({ outputHonest, outputHolds }).toEqual({ outputHonest: 'ok', outputHolds: ['I-EARLY'] });
     expect(await relabelledEntry(disp, 'p-disp-pcm@', weighing, 'BOM-PCM', 'BOM-PCM')).toBe('ok');
     expect(Object.values((await execution.loadState(sbx.db.admin, disp.runId))?.state.containers ?? {}).map((c) => c.holds)).toEqual(['BOM-PCM']);
+  }, 300_000);
+
+  /**
+   * operator1's entry `entry` at step `stepKey`, resolved and run through the engine as the server does, then stored
+   * through the application role after `forge` changed the new entry's data, the state or the recorded command: what a
+   * writer that stores another entry than the block builds stores. 'ok' or the refusal.
+   */
+  async function forgedEntry(d: RunDriver, stepKey: string, entry: Json, forge: (x: { data: Json; state: engine.BatchState; command: Json }) => void = () => undefined): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          { type: 'RECORD_ENTRY', stepKey, entry } as Parameters<typeof resolveClientIntent>[1],
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the entry: ${JSON.stringify(r.refusal)}`);
+        const state = structuredClone(r.state);
+        const added = Object.values(state.entries).find((e) => !(e.id in tx.state.entries));
+        if (!added) throw new Error('SETUP: no new entry');
+        const recorded = engine.encodeCommand(resolved.command) as Json;
+        forge({ data: added.data, state, command: recorded });
+        return appendAs(tx, resolved.command, { state, events: r.events }, roles, recorded as engine.JsonValue, engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
+      }),
+    );
+  }
+
+  /** dc-mini run to the start of `until` (p-disp-bal@ or p-disp-sop@), the booth cleared and verified before it. */
+  async function atPreparation(until: 'p-disp-bal@' | 'p-disp-sop@'): Promise<RunDriver> {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), verifier1: await sbx.asPersona('verifier1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-bal@' });
+    if (until === 'p-disp-sop@') {
+      await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-bal@', entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) } });
+      await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-disp-bal@' });
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-sop@' });
+    }
+    return d;
+  }
+
+  async function entriesOf(runId: string, kind: string): Promise<Json[]> {
+    return Object.values((await execution.loadState(sbx.db.admin, runId))?.state.entries ?? {}).filter((e) => e.kind === kind).map((e) => e.data);
+  }
+
+  it('[DI-05][DI-30][DI-10] round 5: the round-4 verification\'s acknowledgement naming sop B24-0001 and sopVersion L2409-0017, and one naming another SOP of the MBR, are refused (EBMR-EXE-126) and nothing holds them; the acknowledgement of the SOP the MBR pins is recorded', async () => {
+    const d = await atPreparation('p-disp-sop@');
+    const ack = { kind: 'ACKNOWLEDGE', mode: 'READ' };
+    const outcomes = {
+      // The round-4 verification's probe: the engine's own result, its data naming the real-format batch and lot numbers.
+      verifierProbe: await forgedEntry(d, 'p-disp-sop@', ack, ({ data }) => Object.assign(data, { sop: 'B24-0001', sopVersion: 'L2409-0017' })),
+      // Another SOP of the same MBR, in a version the MBR does not pin.
+      otherSop: await forgedEntry(d, 'p-disp-sop@', ack, ({ data }) => Object.assign(data, { sop: 'SOP-CLEAN-003', sopVersion: '7' })),
+    };
+    expect(unmatched(outcomes, {
+      verifierProbe: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(ACKNOWLEDGE\) of step p-disp-sop@ with sop "B24-0001", where its block writes "SOP-DISP-001": an entry holds exactly what its block builds .*\(DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47\)\. \[EBMR-EXE-126\]$/,
+      otherSop: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(ACKNOWLEDGE\) of step p-disp-sop@ with sop "SOP-CLEAN-003", where its block writes "SOP-DISP-001": .*\[EBMR-EXE-126\]$/,
+    })).toEqual({});
+    expect(await stateHolding(d.runId, 'B24-0001')).toBe(0);
+    expect(await stateHolding(d.runId, 'L2409-0017')).toBe(0);
+    expect(await rowsHolding(d.runId, 'B24-0001')).toBe(0);
+    expect(await entriesOf(d.runId, 'ACKNOWLEDGE')).toEqual([]);
+    // The honest acknowledgement is recorded, with the SOP the MBR pins.
+    expect(await forgedEntry(d, 'p-disp-sop@', ack)).toBe('ok');
+    expect(await entriesOf(d.runId, 'ACKNOWLEDGE')).toEqual([
+      { mode: 'READ', acknowledgedBy: personaIn(sbx, 'operator1').personId, sop: 'SOP-DISP-001', sopVersion: '1', sopHash: 'a10392006925d1f24c34701fcb7c0b1c5ce2793bd979c2fcececb826d4b41f8a' },
+    ]);
+  }, 300_000);
+
+  it('[DI-30][PR-23][PR-14] round 5: an equipment status attested in another person\'s name or leaving out a check, and a weighing keyed by hand whose step is not left needing its second person, are refused (EBMR-EXE-126); the honest entries are recorded', async () => {
+    const bal = await atPreparation('p-disp-bal@');
+    const status = { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' })) };
+    const withoutClean = (answers: unknown): unknown => (answers as Json[]).filter((a) => a['id'] !== 'CLEAN');
+    const weighing = { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } };
+    const outcomes: Record<string, string> = {
+      otherPerson: await forgedEntry(bal, 'p-disp-bal@', status, ({ data }) => void (data['attestedBy'] = personaIn(sbx, 'operator2').personId)),
+      checkLeftOut: await forgedEntry(bal, 'p-disp-bal@', status, ({ data, command }) => {
+        data['answers'] = withoutClean(data['answers']);
+        (command['entry'] as Json)['answers'] = withoutClean((command['entry'] as Json)['answers']);
+      }),
+    };
+    expect(await entriesOf(bal.runId, 'EQUIPMENT_STATUS')).toEqual([]);
+    expect(await forgedEntry(bal, 'p-disp-bal@', status)).toBe('ok');
+    // operator1's next run (a new session of theirs ends the one above).
+    const disp = await atDispensing();
+    outcomes['manualUnchecked'] = await forgedEntry(disp, 'p-disp-pcm@', weighing, ({ state }) => {
+      const inst = state.steps['p-disp-pcm@'];
+      if (inst) inst.verificationRequired = false;
+    });
+    expect(unmatched(outcomes, {
+      otherPerson: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(EQUIPMENT_STATUS\) of step p-disp-bal@ with attestedBy "[0-9a-f-]{36}", where its block writes "[0-9a-f-]{36}": .*\[EBMR-EXE-126\]$/,
+      checkLeftOut: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(EQUIPMENT_STATUS\) of step p-disp-bal@ that does not answer CLEAN; every item of its step's list is answered \(G09-ANSWERS\): .*\[EBMR-EXE-126\]$/,
+      manualUnchecked: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(CONTAINER_WEIGHING\) of step p-disp-pcm@, which needs a second person's check of its step, and the step does not require it \(PR-14\): .*\[EBMR-EXE-126\]$/,
+    })).toEqual({});
+    expect(await entriesOf(disp.runId, 'CONTAINER_WEIGHING')).toEqual([]);
+    expect(await forgedEntry(disp, 'p-disp-pcm@', weighing)).toBe('ok');
+    expect((await execution.loadState(sbx.db.admin, disp.runId))?.state.steps['p-disp-pcm@']?.verificationRequired).toBe(true);
   }, 300_000);
 });

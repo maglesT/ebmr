@@ -384,8 +384,25 @@ that another command holds is skipped.
     the batch held in quarantine, states what it holds, is of content the step charges (an intermediate it uses, a BOM
     line it consumes), of the step's own sub-lot, scanned with this batch's label, and the row consumes exactly the
     containers its charges name; an equipment check names equipment the step lists for a status check, when it lists
-    any. So a container never holds what the MBR does not give it. Lot usability, a sample against its plan and a
-    checklist's answers stay with the replay;
+    any. So a container never holds what the MBR does not give it. An entry holds exactly the data its block builds
+    (sql 0330, trigger `zzd_execution_entry_block`, `entry_block_problem`; Phase 2 exit review F12, the round-4
+    verification; EBMR-EXE-126), which corrects 0328's claim to have listed every member that names the MBR: an
+    acknowledgement's SOP code, version and hash are those of the reference its step's configuration names (none when
+    it names none) and its mode the configuration's; a sample's id and label are built from the batch number, the MBR's
+    product, the step, its sub-lot, the person and the time; a source addition carries its step's reprocessing case;
+    the person each block writes, the passed flag of an equipment status or a clearance, an output's status and an
+    attachment's paper-original flag are the block's; a block that keeps the whole command (a disposal, a transfer, a
+    source addition, start data) keeps all of it, and no block's data holds a member of its own beside what it builds.
+    The entry record carries its own id, the row's trusted time and an event of the row; an entry the block asks a
+    second person to check (a weighing keyed by hand, a scanned paper original, a line clearance) leaves its step
+    needing that check. The accept rules that read only the MBR, the batch and the entry hold too: a checklist answers
+    exactly its step's list, NOT_APPLICABLE only where allowed; a sample is of its step's sampling plan; a weighed or
+    charged lot is released, of the line's material, before expiry and retest, and identity-tested for a batch for a
+    market other than India; a disposal follows G-23's rules; a source addition is made only at a recovery or
+    reprocessing-addition step, of the batch's product, never chained, within the MBR's number of sources and age; a
+    reprocessing step other than a validated re-treatment starts only with the quality unit's authorisation, never
+    given by the person who starts it. Whether a block raises the exception an entry calls for, a source addition's
+    share of the batch size, a transfer's two persons and which block an entry kind belongs to stay with the replay;
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -711,7 +728,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   a replicate section or operation the step comes after), are refused, each with its reason. Round 3 (sql 0316): the
   row that finishes an operation in an alternative's branch, the last operation of a loop iteration or of a sub-lot,
   or the last operation of the final stage, without its END, is refused.
-- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 to 4; sql 0313, 0317, 0328): every entry of the engine's
+- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 to 5; sql 0313, 0317, 0328, 0330): every entry of the engine's
   own runs (both golden fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an
   acknowledgement of the MBR's own SOP version) passes `entry_data_problem`; an entry that holds another value than
   its command sent (the real previous batch or product, a weighed container or lot, a sample point, a checklist's
@@ -722,7 +739,16 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   charge of both golden runs passes `entry_reference_problem`; a weighing or lot charge of a BOM line not in the BOM or
   not the step's, an output of an intermediate the step does not produce, a container charge of an unknown, consumed,
   unplanned or other sub-lot's container, with other contents or another batch's label, a consumption no charge
-  names, and an equipment check of equipment the step does not check are refused, each with its reason.
+  names, and an equipment check of equipment the step does not check are refused, each with its reason. Round 5 (sql
+  0330): every entry of every block's golden fixture, of both golden runs and of runs made for the kinds they leave
+  out passes `entry_block_problem`, every entry kind of this release's blocks among them, and the default checklists
+  the database applies are the blocks' own; the round-4 verification's acknowledgement naming sop B24-0001 and
+  sopVersion L2409-0017, another SOP, version, hash or mode, a sample with another id or label, outside its plan, a
+  source addition of another product, case or step, chained, too old or of too many sources, a reprocessing started
+  without its authorisation or authorised by its performer, another person, passed flag, status or paper-original
+  flag, a member dropped from or added to the data, another id, time or event of the entry record, a step left
+  without the check its entry asks for, a checklist that leaves out, repeats or adds an item, an unusable lot and a
+  disposal against G-23's rules are refused, each with its reason.
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -861,7 +887,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   connections with a signer outside the server's path (no batch lock): a disposition or hold-point decision proposed
   while that signer's transaction is open waits for it and is refused, the signature committed after stays VALID; a
   signing asked for while another QA user's proposal is open waits for it and is refused (EBMR-ESIG-012).
-- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328): a real previous batch number
+- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328, 0330): a real previous batch number
   typed into a line clearance is refused by the server before anything is written (EBMR-SBX-022), and by the database
   when written through the store (EBMR-EXE-078); every identifier an entry carries (previous, scanned and source
   batches, containers, lots) is a test identifier, and a weighed or charged lot a registered test lot stated as the
@@ -875,7 +901,11 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   output id built from the test batch's own number excepted. Round 4 (sql 0328): an output container holding
   L2409-0017, an intermediate its step does not produce, and a weighing of a BOM line L2409-0017 or of another step's
   line, each relabelled in the entry, the container, the events and the command, are refused (EBMR-EXE-126) and
-  nothing holds them; the honest entries are recorded.
+  nothing holds them; the honest entries are recorded. Round 5 (sql 0330): the round-4 verification's
+  acknowledgement of p-disp-sop@ naming sop B24-0001 and sopVersion L2409-0017, and one naming another SOP of the MBR,
+  are refused (EBMR-EXE-126) and nothing holds them; an equipment status attested in another person's name or leaving
+  out a check, and a weighing keyed by hand whose step is not left needing its second person, are refused; the honest
+  entries are recorded, the acknowledgement with the SOP the MBR pins.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and
