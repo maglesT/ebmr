@@ -159,10 +159,11 @@ describe('golden run: granulation, drying loop, sub-lots, blending, compression 
       state = r.state;
       events.push(...r.events);
     }
-    expect(JSON.stringify(state, (_k, v: unknown) => (typeof v === 'bigint' ? v.toString() : v instanceof Map ? [...v] : v))).toBe(
-      JSON.stringify(run.state, (_k, v: unknown) => (typeof v === 'bigint' ? v.toString() : v instanceof Map ? [...v] : v)),
-    );
-    expect(events.length).toBe(run.events.length);
+    // State and events compared whole, bigints and maps included (review F29: the events were compared by count only).
+    const ser = (x: unknown): string => JSON.stringify(x, (_k, v: unknown) => (typeof v === 'bigint' ? v.toString() : v instanceof Map ? [...v] : v));
+    expect(ser(state)).toBe(ser(run.state));
+    expect(events.length).toBeGreaterThan(0);
+    expect(ser(events)).toBe(ser(run.events));
   });
 });
 
