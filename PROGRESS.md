@@ -1449,3 +1449,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   canonical-json and flow model, api-contract contract; server execution/free-text, designer/free-text,
   platform/unstorable-text and devices/gateway-free-text; web api. Playwright smoke re-run: passed. Defaults F30.1,
   F30.2, F30.3, F31.1 and F33.1 are in docs/decisions/phase-2-open-questions.md.
+  Round 2 (after the adversarial verification): the execution store README did not list the new free-text test, so its
+  README test failed; it is listed now. The web designer hashed the content it shows while it rendered, so a title
+  holding U+0000 brought the whole editor down; its edit operations now refuse such text before it enters the content,
+  naming the field (web designer free-text and ops tests). The gateway listener, a Fastify server of its own, still
+  read JSON bodies with U+FFFD in place of bytes that are not UTF-8 (a heartbeat reason recorded, a login name looked
+  up and its alarm stored holding it) and answered unreadable requests 500; it now reads them as strict UTF-8 and
+  answers 400 SCHEMA, a heartbeat with a token whose bytes are not UTF-8 counting as lost (gateway free-text tests; the
+  designer test now sends F0 9F 98, a sequence the old reader did read). Defaults F31.2 and F33.2 added.
