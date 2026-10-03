@@ -46,7 +46,7 @@ tests:
   - "packages/recipe-core/test/blocks/status.test.ts > G-09@1 and G-10@1 are sandbox only (decision D3) > [DI-10] both versions accept an empty configuration (the fixtures pin config {}) and refuse unknown fields"
   - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34][INV-19] the engine answers the fixed run exactly as recorded for ENGINE_VERSION: a change of output needs a new version"
   - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34] released versions answer differently from each other, and the engine answers the run as it now reads"
-  - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0 or 1.2.0 is never run or replayed by this engine (EBMR-EXE-061)"
+  - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0, 1.2.0 or 1.3.0 is never run or replayed by this engine (EBMR-EXE-061)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

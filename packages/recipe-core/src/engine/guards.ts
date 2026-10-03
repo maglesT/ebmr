@@ -3,10 +3,10 @@
  * Every refusal is plain language first, then the rule code and the controls (outline 6.3).
  */
 import type { Frame } from '../flow/tokens.ts';
-import type { StepDef } from './definition.ts';
+import type { BatchDefinition, StepDef } from './definition.ts';
 import { blockingExceptions, describeBlocking } from './exceptions.ts';
 import { refuse, stepKey, type Tx } from './tx.ts';
-import type { Actor, BatchStatus, SignatureRef, StepInstance } from './types.ts';
+import type { Actor, BatchState, BatchStatus, SignatureRef, StepInstance } from './types.ts';
 
 /**
  * Signature meanings the engine accepts (kernel e-signature catalogue codes). Codes marked NEW are
@@ -56,16 +56,42 @@ export function performMeanings(step: StepDef | undefined): readonly string[] {
 }
 
 /**
- * The meanings the check of a step instance may carry, exactly (DI-35, PR-14, PR-20, DI-24; review finding P37;
- * engine 1.1.0): RE_VERIFIED_AFTER_CORRECTION while it awaits re-verification; else WITNESSED where the MBR asks for
- * a witness; else the block's own check meanings (CONTAINER_CHECKED on a dispensing step); else VERIFIED. A verifier
- * never chooses: a witness, a generic VERIFIED or another block's check never replaces the check the step requires.
- * The screen offers the first (actions.ts checkMeaning) and the database accepts the same set
- * (recipe.step_check_meanings, recipe.step_signature_meanings).
+ * The items of step instance `inst` that hold a critical value typed by hand whose MBR parameter names a photo or a
+ * printout as its evidence, without an attachment of that kind (lead TODO T12 of the Phase 2 exit; DI-30, PR-14;
+ * engine 1.4.0): its current (VALID) values only, sorted. The validator lets the second person of such a step review
+ * the value later (VERIFIED) only because the photo or printout will be there to review it against (GMP-WITNESS); a
+ * value without it has nothing behind it, as any other critical hand entry, so its check is a witness. In this release
+ * no hand entry carries an attachment: the server and the database refuse an attachment hash until an attachment store
+ * exists (EBMR-EXE-122).
  */
-export function checkMeanings(step: StepDef | undefined, inst: Pick<StepInstance, 'reverification'> | undefined): readonly string[] {
+export function handEntriesWithoutDeclaredEvidence(
+  def: Pick<BatchDefinition, 'analysis'>,
+  state: Pick<BatchState, 'points'> | undefined,
+  inst: Pick<StepInstance, 'key'> | undefined,
+): string[] {
+  if (!state || !inst) return [];
+  const items = new Set<string>();
+  for (const p of Object.values(state.points)) {
+    if (p.stepKey !== inst.key || p.kind !== 'VALUE' || p.status !== 'VALID' || p.source.mode !== 'MANUAL') continue;
+    const param = def.analysis.parameters.get(p.item);
+    if (param?.criticality !== 'CRITICAL' || (param.evidence !== 'PHOTO' && param.evidence !== 'PRINTOUT')) continue;
+    if (p.source.evidence?.kind !== param.evidence) items.add(p.item);
+  }
+  return [...items].sort();
+}
+
+/**
+ * The meanings the check of a step instance may carry, exactly (DI-35, PR-14, PR-20, DI-24; review finding P37;
+ * engine 1.1.0, 1.4.0): RE_VERIFIED_AFTER_CORRECTION while it awaits re-verification; else WITNESSED where the MBR asks
+ * for a witness, or where the step holds a critical hand entry without the photo or printout its MBR names
+ * (`unevidenced`, from handEntriesWithoutDeclaredEvidence; T12); else the block's own check meanings
+ * (CONTAINER_CHECKED on a dispensing step); else VERIFIED. A verifier never chooses: a witness, a generic VERIFIED or
+ * another block's check never replaces the check the step requires. The screen offers the first (actions.ts
+ * checkMeaning) and the database accepts the same set (recipe.step_check_meanings, recipe.step_signature_meanings).
+ */
+export function checkMeanings(step: StepDef | undefined, inst: Pick<StepInstance, 'reverification'> | undefined, unevidenced: readonly string[]): readonly string[] {
   if (inst?.reverification === true) return [MEANINGS.RE_VERIFIED];
-  if (step?.checkMeaning === 'WITNESSED') return [MEANINGS.WITNESSED];
+  if (step?.checkMeaning === 'WITNESSED' || unevidenced.length > 0) return [MEANINGS.WITNESSED];
   const own = step?.block?.handler?.meanings?.check ?? [];
   return own.length > 0 ? own : [MEANINGS.VERIFIED];
 }

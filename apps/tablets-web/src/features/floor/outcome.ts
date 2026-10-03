@@ -6,7 +6,10 @@
  *   envelope, the wrong installation) or a server-side failure marked retryable (5xx). The outcome is unknown,
  *   so the entry is NOT SAVED and may only be resent with the same idempotency key (the server replays a
  *   committed first attempt).
- * - STALE: 409 because the run moved on (optimistic locking); nothing was saved.
+ * - STALE: 409 because the run moved on (optimistic locking): the entry was not saved. On the run command the
+ *   engine's refusal ENG-STALE is recorded as a refused row that uses none of the entry's scale readings (F58, F58.1);
+ *   any other stale answer (a badge tap too old or used, the run moved on while the entry was written) came before
+ *   anything was written.
  * - SWITCH_USER: the badge belongs to another person; the entry is discarded, never sent as that person.
  * - REFUSED: any other refusal envelope: a definite answer, nothing was saved.
  * That reading holds for a first send. For a resend after a lost answer, see `answersForEntry`.

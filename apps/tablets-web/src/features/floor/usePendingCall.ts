@@ -95,8 +95,9 @@ export interface PendingCallOptions<R extends AnyRoute> {
    * was discarded after it may have reached the server. A form decides from the refusal what it keeps for the retry: a
    * scale reading is spent only when a command naming it commits, which an engine refusal does (the server names the
    * readings it used, details.readingsUsed), and a refusal given before the command, or thrown while it was resolved,
-   * spends none (Phase 2 exit review F59). Not called for a stale answer: the server checks the run version before it
-   * claims any reading, so the readings stay usable for the resend from the reloaded screen (F58).
+   * spends none (Phase 2 exit review F59). Not called for a stale answer, which uses no reading: the engine's stale
+   * refusal is recorded but names its readings without claiming them, and any other stale answer came before anything
+   * was written, so they stay usable for the resend from the reloaded screen (F58, F58.1).
    */
   onNotApplied?: (refusal: RefusalEnvelope | null) => void;
   /** The entry was discarded because another person's badge was tapped: forms clear what was typed. */
@@ -242,8 +243,9 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
         send({ type: 'REFUSED', refusal: outcome.envelope });
         return;
       case 'STALE': {
-        // Nothing was saved and no reading was used (the server refuses a stale request before it claims any): the
-        // form keeps what was captured for the resend (F58).
+        // No reading was used: the engine's stale refusal (ENG-STALE) is recorded but names its readings without
+        // claiming them, and any other stale answer came before anything was written. The form keeps what was
+        // captured for the resend (F58, F58.1); EntryStatus says which of the two it was.
         lostKey.current = null;
         const changes = (await live.current.options.onStale?.()) ?? [];
         send({ type: 'STALE', refusal: outcome.envelope, changes });

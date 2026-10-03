@@ -8,7 +8,10 @@
  *    raw line and time trust set here, DI-32), or, when no scale of the step's room is online, the values keyed
  *    by hand at a terminal of that room (source MANUAL: the block flags the entry and forces a second person,
  *    PR-20), with the balance read (the one the operator names, else the room's only scale, else MANUAL) and
- *    the statuses of the room's scales that opened the fallback (review finding P50);
+ *    the statuses of the room's scales that opened the fallback (review finding P50). For a command from a screen
+ *    that shows another version of the run, which the engine refuses (ENG-STALE), the readings are named with every
+ *    check of the command's claims, made together, but not used, so the refusal is recorded and they stay usable for
+ *    the resend (F58, F58.1);
  *  - container ids (TEST- lot-number pattern, prefixed by the batch number) and the batch read from a
  *    scanned container label;
  *  - the source of a recorded value: the server cannot attest a scan made on the terminal, so a value is a
@@ -21,16 +24,17 @@
  *  - the command id, and the signature of a signed intent (from the ceremony only).
  * A refusal here (unknown lot, a reading that cannot be claimed, both readings and manual values, a scan or an
  * attachment the server cannot attest, a terminal outside the step's room) is thrown, so the command
- * transaction rolls back with nothing written; a refusal by the engine is persisted. The database refuses the
- * same sources and rooms again (recipe-core 0285_evidence_source, 0300), and a hand-keyed weighing beside an
- * online scale of the room, from a terminal of no room or naming a balance that is not an active instrument of
- * the room, checked inside the command's transaction (tablets 0310, EBMR-EXE-074).
+ * transaction rolls back with nothing written; a refusal by the engine is persisted (a stale screen's too). The
+ * database refuses the same sources and rooms again (recipe-core 0285_evidence_source, 0300), and a hand-keyed
+ * weighing beside an online scale of the room, from a terminal of no room or naming a balance that is not an active
+ * instrument of the room, checked inside the command's transaction (tablets 0310, EBMR-EXE-074).
  */
 import type pg from 'pg';
 import { sandbox } from '@ebmr/kernel';
 import { engine, type flow } from '@ebmr/recipe-core';
 import type { ClientDataSource, ClientEntry, ClientIntent, DataValueWire, Refusal, SignedIntent } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
+import type { ClaimedReading } from '../../platform/ports.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import { lotForEngine, resolveLot } from './lots.ts';
 
@@ -124,6 +128,12 @@ function refuse(code: string, whatHappened: string, why: string, controls: strin
 
 export interface IntentContext {
   client: pg.PoolClient;
+  /**
+   * Whether the command uses the scale readings it names (claims them). False for a command from a screen that shows
+   * another version of the run than the run's: the engine refuses it (ENG-STALE) before it looks at anything, and its
+   * refused row names the readings without using them (evidence.namedReadings; tablets 0500).
+   */
+  useReadings: boolean;
   app: AppContext;
   def: engine.BatchDefinition;
   state: engine.BatchState;
@@ -311,7 +321,12 @@ async function manualWeights(ctx: IntentContext, room: string | null, manual: Ma
   };
 }
 
-/** Tare and gross: claimed readings of a scale in `room` (the step's room, DI-20), or values keyed by hand. */
+/**
+ * Tare and gross: claimed readings of a scale in `room` (the step's room, DI-20), or values keyed by hand. A command
+ * that uses no reading (ctx.useReadings false: a stale screen) gets the same facts after the same checks, made together
+ * as the claims make them, nothing is used, and the readings are listed as named (evidence.namedReadings), not as used
+ * (evidence.readings).
+ */
 async function weights(ctx: IntentContext, room: string | null, e: { tareReadingId?: string | undefined; grossReadingId?: string | undefined; manual?: ManualWeights | undefined }): Promise<Weights> {
   const readings = e.tareReadingId !== undefined || e.grossReadingId !== undefined;
   if (e.manual && readings) {
@@ -321,8 +336,17 @@ async function weights(ctx: IntentContext, room: string | null, e: { tareReading
   if (e.tareReadingId === undefined || e.grossReadingId === undefined) {
     throw refuse('EBMR-EXE-075', 'Capture both the tare and the gross weight. Nothing was saved.', 'A container weighing needs a tare and a gross reading from the scale (or both keyed by hand when the scale is offline).', ['DI-30', 'PR-19'], ['Capture the missing weight, then save.']);
   }
-  const [tare] = await ctx.app.deviceReadings.claim(ctx.client, { readingIds: [e.tareReadingId], room, maxAgeUs: READING_MAX_AGE_US, purpose: 'TARE' });
-  const [gross] = await ctx.app.deviceReadings.claim(ctx.client, { readingIds: [e.grossReadingId], room, maxAgeUs: READING_MAX_AGE_US, purpose: 'GROSS' });
+  const port = ctx.app.deviceReadings;
+  let tare: ClaimedReading | undefined;
+  let gross: ClaimedReading | undefined;
+  if (ctx.useReadings) {
+    [tare] = await port.claim(ctx.client, { readingIds: [e.tareReadingId], room, maxAgeUs: READING_MAX_AGE_US, purpose: 'TARE' });
+    [gross] = await port.claim(ctx.client, { readingIds: [e.grossReadingId], room, maxAgeUs: READING_MAX_AGE_US, purpose: 'GROSS' });
+  } else {
+    // The same claims, made together and undone: a pair the claims above refuse (one reading named as both, EBMR-DEV-105)
+    // is refused the same way, before anything is written (F58.1; tablets 0510).
+    [tare, gross] = await port.peekWeighing(ctx.client, { tareReadingId: e.tareReadingId, grossReadingId: e.grossReadingId, room, maxAgeUs: READING_MAX_AGE_US });
+  }
   if (!tare || !gross) throw refuse('EBMR-EXE-075', 'A scale reading could not be used. Nothing was saved.', 'The scale reading was not returned by the claim.', ['DI-32'], ['Capture the weights again.']);
   if (tare.unit !== gross.unit || tare.deviceCode !== gross.deviceCode) {
     throw refuse('EBMR-EXE-076', 'Tare and gross must come from the same scale, in the same unit. Nothing was saved.', `Tare ${tare.value} ${tare.unit} on ${tare.deviceCode}; gross ${gross.value} ${gross.unit} on ${gross.deviceCode}.`, ['DI-30', 'PR-19'], ['Capture both weights on the same scale.']);
@@ -335,7 +359,7 @@ async function weights(ctx: IntentContext, room: string | null, e: { tareReading
     balance: gross.deviceCode,
     source: 'DEVICE',
     ...(gross.sourceTimeUs !== null ? { occurredAt: { us: gross.sourceTimeUs, trust: gross.trust } } : {}),
-    evidence: { readings: [reading('TARE', tare), reading('GROSS', gross)] },
+    evidence: { [ctx.useReadings ? 'readings' : 'namedReadings']: [reading('TARE', tare), reading('GROSS', gross)] },
   };
 }
 
@@ -506,7 +530,7 @@ export function signedMeaning(def: engine.BatchDefinition | undefined, state: en
     case 'VERIFY': {
       if (!def || !state) return undefined;
       const inst = state.steps[intent.stepKey];
-      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step);
+      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step, state);
     }
     case 'DISPOSITION_HOLD_POINT':
       return engine.holdPointMeaning(intent.disposition);

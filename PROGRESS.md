@@ -1621,6 +1621,63 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Now the register reads from the source whether a test runs always, conditionally or never; the trace accepts a
   listed test skipped only when its source may skip it at run time, counts it as no proof and names it in its
   output. Default F15.3. Tests: register listed-tests-and-clauses ("a listed test that skips itself at run time").
+- 2026-10-02: PHASE 2 EXIT FIX, Lead leftovers (branch phase-2/recipe-core; lead TODOs T8-T13; each fix with a test that
+  fails on the code before it). T8 (decision C0-1): the installation bootstrap wrote three labels of its own ("Installation
+  qualification", BOOTSTRAP-CONSOLE-1/-2) that a sandbox's identifier guard refuses, so the test kit applied the kernel in
+  two stages and every sandbox kept three real-looking labels. Kernel 1000 gives the bootstrap TEST- labels in a sandbox
+  (GMP keeps its labels) and its actor context the site policy's zone only (EBMR-IAM-118, nothing written); the test kit
+  provisions a sandbox in one stage (every migration, then the bootstrap). T9: a site value of a set-valued key (ALL_APPLY
+  criteria, SET_UNION) listed in another order than the resolved value was recorded and evaluated as TIGHTER instead of
+  EQUAL; kernel 1010 adds market.same_value (sets by their elements, criteria by their full definition) used by
+  market.assess_site_value, with the TypeScript twin isSameValue (Stryker on the changed lines 19/19, SQL mutation group
+  site-values-and-policies 115/115 detected). T10: the site.zone policy check itself was already in kernel 0940 (K1);
+  the same defect elsewhere: besides the bootstrap context, batch-number rules and registered numbers took any zone the
+  database knows (Etc/GMT+5, another site's) to date {YY}/{MM} and the register; site-services 0700 refuses any but the
+  site policy's (EBMR-SITE-002). T11 ("tsx at bundling"): the server's simulation worker and every app process load their
+  TypeScript through tsx, which only the repository root declared as a development dependency, so an install of an app's
+  runtime dependencies alone could not start it or simulate; tsx is now a runtime dependency of the tablets server, the
+  site gateway and the simulators at the root's pin. T12 (decided by default T12.1): a critical value typed by hand whose
+  MBR names a printout or photo as its evidence carried none (no attachment store yet), yet its step was completed by a
+  later review (VERIFIED) that the validator allows only because the printout would be there; now such a step's check is a
+  witness (WITNESSED) in engine 1.4.0 and in the database (recipe-core 0325, EBMR-EXE-051), the screen offers Witness and
+  the FCV journey witnesses the blend step. T13: the pg_basebackup reproducer already reserved its WAL with a replication
+  slot (692d013; re-checked under a WAL load generator: the version before failed 2 of 2 runs, the current one passed 3 of
+  3); it now also drops the slots of earlier runs that ended without their clean-up. Tests: kernel sandbox/bootstrap,
+  mutation/site-values-and-policies, market/inv28.property, market/engine, review/f55; test-kit seed; site-services
+  batch-number-register; recipe-core engine meanings and engine-version; server execution witness-without-printout and
+  designer simulation-loader; tools/boundaries runtime-loader; web step-screen, switch-reads, app-person-change.
+  Playwright smoke (3/3, after T8), FCV journey and floor (6/6, after T12): passed. Defaults T8.1, T10.1, T11.1 and
+  T12.1 are in docs/decisions/phase-2-open-questions.md.
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, A stale-screen refusal is recorded (branch phase-2/recipe-core; follow-up F58.1
+  of F58; the fix with tests that fail on the code before it). What was wrong: since the F58 fix a run command from a
+  screen that showed an older version of the run (409 ENG-STALE) was answered before anything was written, so its scale
+  readings were not spent, but the attempt was no longer a row of the run, against DI-34's rule that a refused engine
+  call is a row with its refusal; and the database never held the engine's version check at all (an accepted command
+  from an older screen, or an ENG-STALE refusal at the run's own version, was recorded). Recording it with the readings
+  claimed would spend them again, and a savepoint that rolls the claims back leaves a row tablets 0300 refuses. What
+  changed: the server resolves a stale request as any other and records the engine's refusal with what was entered and
+  the version the screen showed; the readings of a stale weighing are named, not used (tab.peek_readings makes the claim
+  with every check in a subtransaction and rolls it back; the row lists them as namedReadings), so the resend from the
+  reloaded screen uses them. Recipe-core 0326 (EBMR-EXE-140) records a command from an older screen only as the refusal
+  ENG-STALE, that refusal only for such a command, and a stale refusal only with the state before it (the time sweep's
+  findings apart); tablets 0500 (EBMR-EXE-124) keeps 0300's rule for every other row and holds a stale refusal to using
+  no reading and to naming genuine readings a claim would accept now. The ENG-STALE guidance, the comments of the route,
+  the intents, the reading port and the floor form, the execution README and DI-34 now say the refusal is recorded and
+  no reading is used. Defaults F58.2 and F58.3 (the signing challenge still answers a stale screen before the PIN without
+  a row) replace F58.1 in docs/decisions/phase-2-open-questions.md. Tests: server devices/stale-weighing-readings and
+  execution/db-guards-stale-row (new: every forgery of the version check, of a stale refusal's state and of a stale
+  weighing's readings refused at the database), execution/commands (stale and concurrent commands recorded). Floor
+  Playwright spec 5/5 passed.
+  Round 2 (3 Oct): two gaps closed. (1) Tablets 0500 checked each reading of a stale weighing alone, so one reading
+  taken for no stated purpose, named as both tare and gross, was recorded as a stale row although the command's own
+  claims refuse it (EBMR-DEV-105); tablets 0510 checks the pair as the claims of the command would, tare then gross in
+  one rolled-back subtransaction (tab.peek_weighing_readings, also used by the server, which now gives that request the
+  answer the current screen gets before anything is written), and drops the per-purpose tab.peek_readings. (2) The
+  floor's stale notice still said "Nothing was saved"; it now says the entry was not saved, the refusal is recorded and
+  no scale reading was used, and other stale answers (a badge tap too old, for one) say nothing of the entry is in the
+  record (round 1 had changed only code comments there, not the notice). Tests: server db-guards-stale-row and
+  devices/stale-weighing-readings (one reading as both, at the database and through the server), web step-screen (both
+  notices) and entries (the weighing's notice); each fails on bbb83d0.
 - 2026-10-03: SQL MUTATION HARNESS FOR THE PHASE 2 GUARDS (branch phase-2/sql-mutation from 979e747; the full run and
   the kill tests are the next step). tools/sql-mutation knew only the Phase 1 kernel. Definitions now come from every
   SQL directory in migration order (kernel, site services, recipe-core, tablets), a function identified as PostgreSQL

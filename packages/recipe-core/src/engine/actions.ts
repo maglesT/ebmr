@@ -12,7 +12,7 @@
 import { RELEASING_DISPOSITIONS, type BatchDefinition } from './definition.ts';
 import { step as engineStep } from './engine.ts';
 import { blockActive } from './exceptions.ts';
-import { checkMeanings, MEANINGS, performMeanings } from './guards.ts';
+import { checkMeanings, handEntriesWithoutDeclaredEvidence, MEANINGS, performMeanings } from './guards.ts';
 import { stepKey as keyOf } from './tx.ts';
 import type { Actor, BatchState, Clock, Command, Refusal, SignatureRef, StepInstance } from './types.ts';
 
@@ -76,13 +76,15 @@ export function performMeaning(def: BatchDefinition, stepId: string): string {
 }
 
 /**
- * The check meaning of a step instance: re-verification, the MBR's WITNESSED, the block's own, else VERIFIED: the
- * first of the exact set the engine accepts (guards.ts checkMeanings). It depends on the step only: a person never
- * chooses the meaning of the check they sign, so a verifier cannot replace the check a step requires (for example
- * CONTAINER_CHECKED on a dispensing step) with a witness (review finding P37; DI-35, PR-14, PR-20).
+ * The check meaning of a step instance: re-verification, the MBR's WITNESSED or a witness for a critical hand entry
+ * without the photo or printout its MBR names (T12, engine 1.4.0), the block's own, else VERIFIED: the first of the
+ * exact set the engine accepts (guards.ts checkMeanings). It depends on the step and what the batch `state` holds
+ * of it, never on the person: a person never chooses the meaning of the check they sign, so a verifier cannot replace
+ * the check a step requires (for example CONTAINER_CHECKED on a dispensing step) with a witness, nor a witness with a
+ * later review (review finding P37; DI-35, PR-14, PR-20, DI-30).
  */
-export function checkMeaning(def: BatchDefinition, inst: StepInstance | undefined, stepId: string): string {
-  return checkMeanings(def.steps.get(stepId), inst)[0] ?? MEANINGS.VERIFIED;
+export function checkMeaning(def: BatchDefinition, inst: StepInstance | undefined, stepId: string, state: Pick<BatchState, 'points'> | undefined): string {
+  return checkMeanings(def.steps.get(stepId), inst, handEntriesWithoutDeclaredEvidence(def, state, inst))[0] ?? MEANINGS.VERIFIED;
 }
 
 /** HOLD_POINT_RELEASED for a releasing disposition, else HOLD_POINT_NOT_RELEASED. */
@@ -124,7 +126,7 @@ export function availableActions(def: BatchDefinition, state: BatchState, actor:
       if (stepDef?.block?.dataSchema && Object.keys(stepDef.block.dataSchema.entries).length > 0) out.push(result('RECORD_ENTRY', entryRefusal));
       const pm = performMeaning(def, inst.step);
       out.push(result('SIGN_PERFORMED', run({ type: 'SIGN_PERFORMED', step: inst.step, context: frames, signature: placeholder(pm, actor) }), { signed: true, meaning: pm }));
-      const cm = checkMeaning(def, inst, inst.step);
+      const cm = checkMeaning(def, inst, inst.step, state);
       out.push(result(cm === MEANINGS.WITNESSED ? 'WITNESS' : 'VERIFY', run({ type: 'VERIFY', step: inst.step, context: frames, signature: placeholder(cm, actor) }), { signed: true, meaning: cm }));
     }
     out.push(result('RAISE_EXCEPTION', run({ type: 'RAISE_EXCEPTION', step: inst.step, context: frames, description: 'dry run', severity: 'ALERT' })));

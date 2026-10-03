@@ -23,9 +23,17 @@
  * (platform/db/commands.ts afterRollback), in which tab.alert_refused_claim takes the session, the person and the
  * session's room from the validated actor and the balance's room from the registry (review finding P49).
  *
- * The use row commits with the caller's transaction: a reading referenced by a committed command, accepted or
- * refused, stays used (a reading id appears in at most one command row); a retry needs a new capture. A request from a
- * screen that shows an older run version is refused (ENG-STALE) before any reading is claimed, so it uses none (F58).
+ * The use row commits with the caller's transaction: a reading used by a committed command, accepted or refused, stays
+ * used (a reading is used by at most one command row); a retry needs a new capture. A command from a screen that shows
+ * an older run version is refused (ENG-STALE) and recorded, but uses none of its readings: the server names them with
+ * peekWeighing (Phase 2 exit review F58, F58.1).
+ *
+ * peekWeighing(client, {tareReadingId, grossReadingId, room, maxAgeUs}): the facts the claims of a weighing would
+ * return, the tare as TARE then the gross as GROSS, after every check those claims make, made as the command makes them
+ * (in one transaction, so a reading named as both is refused as the gross claim refuses it, EBMR-DEV-105), with nothing
+ * used: tab.peek_weighing_readings makes both claims inside one subtransaction and rolls it back (tablets 0510).
+ * Refusals and the durable alert of a DI-20 refusal are those of claim. The row of a stale command lists these readings
+ * as named (evidence.namedReadings), never as used, and the database checks the pair again for that row (tablets 0510).
  *
  * scaleStatus(room): the room's scale for the step-screen header and the scale the step captures from. ONLINE only
  * when the gateway's last heartbeat, at database time, is at most 10 s old and reported the instrument connected (and
@@ -49,7 +57,7 @@ import { commands } from '@ebmr/kernel';
 import type { ScaleStatusView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { afterRollback, withActorCommand } from '../../platform/db/commands.ts';
-import type { ClaimedReading, DeviceReadingPort, ReadingClaim } from '../../platform/ports.ts';
+import type { ClaimedReading, DeviceReadingPort, ReadingClaim, WeighingReadings } from '../../platform/ports.ts';
 
 export interface ScaleStatusRow {
   deviceCode: string;
@@ -84,40 +92,55 @@ export async function scaleStatuses(app: AppContext, room: string | null): Promi
   }));
 }
 
+/**
+ * `sql` (tab.claim_readings, or tab.peek_weighing_readings: the checks of the claims, nothing used) on the readings
+ * `ids` for `room`, inside the caller's command transaction: the facts in the order of the ids, or the claim's refusal
+ * (with the durable alert of a DI-20 refusal, for the readings named; tab.alert_refused_claim alerts those whose balance
+ * or room the claim refuses).
+ */
+async function readingsOf(client: pg.PoolClient, ids: readonly string[], room: string | null, sql: string, params: unknown[]): Promise<ClaimedReading[]> {
+  const malformed = ids.find((id) => !isUuid(id));
+  if (malformed !== undefined) throw new commands.KernelError('EBMR-DEV-101', `EBMR-DEV-101 DI-32: ${malformed} is not a reading id`);
+  try {
+    const { rows } = await client.query<{ r: { readingId: string; value: string; unit: string; raw: string; deviceCode: string; sourceTimeUs: string | null; trust: ClaimedReading['trust'] }[] }>(sql, params);
+    return (rows[0]?.r ?? []).map((r) => ({
+      readingId: r.readingId,
+      value: r.value,
+      unit: r.unit,
+      raw: r.raw,
+      deviceCode: r.deviceCode,
+      sourceTimeUs: r.sourceTimeUs === null ? null : BigInt(r.sourceTimeUs),
+      trust: r.trust,
+    }));
+  } catch (error) {
+    const refusal = commands.asKernelError(error);
+    const code = commands.errorCode(error);
+    if (code && ALERTED_CODES.has(code)) {
+      // DI-20: the caller's transaction is lost. Once it has rolled back, the command wrapper records the alert in a
+      // guarded command of its own under the same actor; the database takes the session and its room from that
+      // validated actor, never from here (tablets 0320).
+      const named = [...new Set(ids)];
+      afterRollback(refusal, async (pool, actor) => {
+        await withActorCommand(pool, actor, (c) => c.query('select tab.alert_refused_claim($1::uuid[], $2)', [named, room]));
+      });
+    }
+    throw refusal;
+  }
+}
+
 export function createDeviceReadingPort(app: AppContext): DeviceReadingPort {
   return {
-    async claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]> {
+    claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]> {
       const ids = [...claim.readingIds];
-      const malformed = ids.find((id) => !isUuid(id));
-      if (malformed !== undefined) throw new commands.KernelError('EBMR-DEV-101', `EBMR-DEV-101 DI-32: ${malformed} is not a reading id`);
-      try {
-        const { rows } = await client.query<{ r: { readingId: string; value: string; unit: string; raw: string; deviceCode: string; sourceTimeUs: string | null; trust: ClaimedReading['trust'] }[] }>(
-          'select tab.claim_readings($1::uuid[], $2, $3::bigint, $4) as r',
-          [ids, claim.room, claim.maxAgeUs.toString(), claim.purpose],
-        );
-        return (rows[0]?.r ?? []).map((r) => ({
-          readingId: r.readingId,
-          value: r.value,
-          unit: r.unit,
-          raw: r.raw,
-          deviceCode: r.deviceCode,
-          sourceTimeUs: r.sourceTimeUs === null ? null : BigInt(r.sourceTimeUs),
-          trust: r.trust,
-        }));
-      } catch (error) {
-        const refusal = commands.asKernelError(error);
-        const code = commands.errorCode(error);
-        if (code && ALERTED_CODES.has(code)) {
-          // DI-20: the caller's transaction is lost. Once it has rolled back, the command wrapper records the alert in a
-          // guarded command of its own under the same actor; the database takes the session and its room from that
-          // validated actor, never from here (tablets 0320).
-          const named = ids.filter(isUuid);
-          afterRollback(refusal, async (pool, actor) => {
-            await withActorCommand(pool, actor, (c) => c.query('select tab.alert_refused_claim($1::uuid[], $2)', [named, claim.room]));
-          });
-        }
-        throw refusal;
-      }
+      return readingsOf(client, ids, claim.room, 'select tab.claim_readings($1::uuid[], $2, $3::bigint, $4) as r', [ids, claim.room, claim.maxAgeUs.toString(), claim.purpose]);
+    },
+    peekWeighing(client: pg.PoolClient, w: WeighingReadings): Promise<ClaimedReading[]> {
+      return readingsOf(client, [w.tareReadingId, w.grossReadingId], w.room, 'select tab.peek_weighing_readings($1::uuid, $2::uuid, $3, $4::bigint) as r', [
+        w.tareReadingId,
+        w.grossReadingId,
+        w.room,
+        w.maxAgeUs.toString(),
+      ]);
     },
     async scaleStatus(room: string | null): Promise<ScaleStatusView | null> {
       if (room === null) return null;

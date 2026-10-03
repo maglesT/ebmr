@@ -9,8 +9,10 @@
  * The run touches what changed between released versions: time facts noticed inside a person's command and signing
  * preparation, a clock regression, the meaning of a verification (a witness or a generic VERIFIED where the step
  * requires its own check) and of a PERFORMED signature on a block with its own perform meaning, (since 1.2.0) the
- * resolution of a computed net weight (an output container weighed at 0.001 kg whose net ends in zeros) and (since
- * 1.3.0) the total of containers weighed in another unit (one in g, one in a unit the total cannot be counted in).
+ * resolution of a computed net weight (an output container weighed at 0.001 kg whose net ends in zeros), (since
+ * 1.3.0) the total of containers weighed in another unit (one in g, one in a unit the total cannot be counted in) and
+ * (since 1.4.0) the check of a step holding a critical value typed by hand without the printout its MBR names (a later
+ * review, then a witness).
  *
  * This module depends on `src` only (no test helper), with the MBR written out in full, so the fingerprint moves only
  * when the engine, its blocks or the expression language answer differently. It is also run against earlier commits
@@ -79,7 +81,23 @@ export function fingerprintMbr(): MbrContent {
     inputs: [],
     bom: [],
     intermediates: [{ id: 'I-OUT', name: 'Output', finalOutput: true }],
-    parameters: [{ id: 'outNet', name: 'Output (net)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' }],
+    parameters: [
+      { id: 'outNet', name: 'Output (net)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' },
+      // Typed by hand from a printout the MBR names as its evidence (1.4.0).
+      {
+        id: 'endTime',
+        name: 'End time on the printout',
+        valueType: 'DECIMAL',
+        unit: 'min',
+        precision: { kind: 'DECIMALS', digits: 0 },
+        role: 'OBSERVATION',
+        criticality: 'CRITICAL',
+        riskClass: 'HIGH',
+        capture: 'MANUAL',
+        evidence: 'PRINTOUT',
+        accuracyCheck: 'SECOND_PERSON',
+      },
+    ],
     calculations: [],
     yieldCheckpoints: [],
     acceptanceSchemes: [],
@@ -124,7 +142,7 @@ export function fingerprintMbr(): MbrContent {
                   phaseNode('mix'),
                   phaseNode('clear', { block: { type: 'G-10', version: '1' }, significant: true }),
                   phaseNode('out', { block: { type: 'G-22', version: '1' }, records: ['outNet'], produces: ['I-OUT'] }),
-                  phaseNode('end'),
+                  phaseNode('end', { records: ['endTime'] }),
                 ],
               },
             },
@@ -184,6 +202,13 @@ function rows(): Row[] {
     c(31, { type: 'RECORD_ENTRY', actor: OP1, step: 'out', context: [], entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-OUT', gross: '9250.0', tare: '1250.0', unit: 'g', balance: 'BAL-2', source: 'DEVICE' } }, 16),
     c(32, { type: 'RECORD_ENTRY', actor: OP1, step: 'out', context: [], entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-OUT', gross: '2.000', tare: '1.000', unit: 'kg{wet}', balance: 'BAL-2', source: 'DEVICE' } }, 17),
     c(33, { type: 'SIGN_PERFORMED', actor: OP1, step: 'out', context: [], signature: signed('FP-S8', 'PERFORMED', OP1) }, 18),
+    c(34, { type: 'VERIFY', actor: VER2, step: 'out', context: [], signature: signed('FP-S9', 'VERIFIED', VER2) }, 19),
+    // A critical value typed by hand without the printout its MBR names: its check is a witness, not a later review (1.4.0).
+    c(35, { type: 'START_STEP', actor: OP2, step: 'end', context: [] }, 20),
+    c(36, { type: 'RECORD_DATA', actor: OP2, step: 'end', context: [], item: 'endTime', value: { kind: 'DECIMAL', value: '36', unit: 'min' }, source: { mode: 'MANUAL' } }, 21),
+    c(37, { type: 'SIGN_PERFORMED', actor: OP2, step: 'end', context: [], signature: signed('FP-S10', 'PERFORMED', OP2) }, 22),
+    c(38, { type: 'VERIFY', actor: VER1, step: 'end', context: [], signature: signed('FP-S11', 'VERIFIED', VER1) }, 23),
+    c(39, { type: 'VERIFY', actor: VER1, step: 'end', context: [], signature: signed('FP-S12', 'WITNESSED', VER1) }, 24),
     { kind: 'SWEEP', at: at(40) },
   ];
 }

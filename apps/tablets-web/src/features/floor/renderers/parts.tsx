@@ -466,7 +466,8 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const clear = () => setState(EMPTY_FORM);
   // A reading is spent only by a command that commits (an engine refusal does, and names the readings it used); a
   // refusal before the command, or one that rolled it back, spent none, so the captures stay for the resend (F59). A
-  // stale answer used none either (the server checks the version first, F58) and does not come here.
+  // stale answer used none either (its recorded refusal names the readings without claiming them, F58, F58.1) and
+  // does not come here.
   const dropReadings = (refusal: RefusalEnvelope | null) => setState((s) => ({ ...s, readings: readingsAfterRefusal(s.readings, refusal) }));
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings, onDiscarded: clear });
   useSessionChange(clear);

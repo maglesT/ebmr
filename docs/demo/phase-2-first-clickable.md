@@ -200,7 +200,9 @@ stage 2.
    because only a supervisor or QA may link one.
 5. **Deviation link.** TEST-Sanjay Kulkarni switches in, clicks **Link a deviation** on the exception, enters
    `DEV-TEST-0001`, clicks **Send** and taps. The block is lifted. The operator switches back and signs as
-   performed, and the verifier verifies.
+   performed, and the verifier signs as witness (**Witness**): the blend time and speed were typed by hand and the
+   printout the MBR names cannot be attached in this release, so the second person witnesses them instead of
+   reviewing them later (engine 1.4.0, default T12.1).
 6. **QA hold point.** TEST-Fatima Sheikh (PIN `935172`) switches in and opens 2.2.1. **Decide the hold point**
    lists "Approved (released)" as not available, with the reason: open exceptions have no QA decision yet (PR-45).
    Cancel. Open the run overview: the steps with open exceptions are marked "n open". On step 2.1.4, click

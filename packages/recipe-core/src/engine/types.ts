@@ -21,6 +21,11 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  * version (EBMR-EXE-061), because replay compares every stored row's events and state with the engine's. Any change
  * of what `issue`, `step`, `sweep` or `prepareForSignature` answer for the same input needs a new version, recorded
  * with its output fingerprint in test/engine/engine-version.test.ts. Semantic changes:
+ *  - 1.4.0: a step holding a critical value typed by hand without the photo or printout its MBR names as the value's
+ *    evidence is checked by a witness (WITNESSED), not reviewed later (VERIFIED) (lead TODO T12 of the Phase 2 exit;
+ *    DI-30): the validator lets the check be a later review only because that evidence will be there (GMP-WITNESS),
+ *    and in this release no hand entry carries an attachment (EBMR-EXE-122). The database requires the same check
+ *    (recipe-core 0325).
  *  - 1.3.0: a weight weighed in another unit than the quantity it counts into keeps its resolution in the total (lead
  *    TODO T2, round 2): 8000.0 g counts into a quantity in kg as 8.0000 kg, not 8; a weighing is counted only in the
  *    quantity's own unit or when both are metric mass units (kg, g, mg), and is refused otherwise (G07-UNIT,
@@ -38,7 +43,7 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  *    database's blank test (kernel.is_blank) refuses it.
  *  - 1.0.0: Phase 2 first release.
  */
-export const ENGINE_VERSION = '1.3.0';
+export const ENGINE_VERSION = '1.4.0';
 export const STATE_SCHEMA = 'ebmr.batch-execution-state';
 
 /** Trusted server time of the command's transaction (kernel clock; `recorded_at`), UTC epoch microseconds. */

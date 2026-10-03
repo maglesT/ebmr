@@ -98,7 +98,8 @@ export const FLOOR_EN = {
   'pending.discarded.SESSION_CHANGED': 'The entry was discarded because the session on this terminal changed (switch, lock or sign-out). It will not be sent; the step shows what the record holds.',
   'pending.discarded.SWITCH_USER': 'The unsent entry was discarded: the badge belongs to another person.',
   'pending.discarded.DISCARDED': 'The unsent entry was discarded. The step below shows what the record holds.',
-  'pending.stale': 'The step changed before your entry arrived. Nothing was saved. Check the changes, then save again.',
+  'pending.stale': 'The test run changed before your entry arrived. Your entry was not saved: the refusal is recorded in the test run, and no scale reading was used. Check the changes, then save again.',
+  'pending.staleNotRecorded': 'Your entry was not saved, and nothing of it is in the record. Check the step as it is now, then save again.',
   'twoPerson.title': 'Manual weighing: two-person rule',
   'twoPerson.body': 'The scale is not available. Values typed by hand need a second person to verify this step.',
 } as const;
