@@ -83,6 +83,10 @@ export function documentLeaves(c: flow.MbrContent): Leaf[] {
       return;
     }
     if (typeof v === 'boolean') {
+      if (area === 'config') {
+        push(area, path, scope, [v ? 'yes' : 'no']);
+        return;
+      }
       const words = BOOLEAN_WORDS[key];
       if (words) push(area, path, scope, [v ? words.true : words.false]);
       else if (parentKey === 'predicates' || key === 'bool') push(area, path, scope, [v ? 'yes' : 'no']);

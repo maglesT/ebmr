@@ -2,12 +2,14 @@
  * A block configuration form generated from the block version's configuration schema (module C2; outline 6.6: the
  * schema is data, so the designer, engine and renderers read one definition). Strings with a list of values become
  * selects, a field named `sop` selects one of the MBR's SOP references, decimals go through DecimalField (text),
- * booleans are checkboxes, nested objects are fieldsets. Lists and maps are shown read-only in A1 (their editors
- * come with construct editing in A2). An optional field left empty is removed from the configuration.
+ * booleans are checkboxes, nested objects are fieldsets. Lists and maps are shown read-only and in full in A1 (their
+ * editors come with construct editing in A2; review F51). An optional field left empty is removed from the
+ * configuration.
  */
 import type { flow } from '@ebmr/recipe-core/pure';
 import { dcls } from '../classes.ts';
 import { Check, CommitDecimal, CommitText, Select, type Option } from './common.tsx';
+import { ConfigValue } from './ConfigView.tsx';
 
 type Json = flow.JsonValue;
 type Schema = Record<string, unknown>;
@@ -82,12 +84,16 @@ function FieldEditor({ name, schema, value, onChange, readOnly, sopOptions, path
       );
     }
     default:
+      // Lists and maps: shown in full, read-only (never cut; review F51); their editors come with A2.
       return (
         <div>
           <p>
-            <strong>{label}</strong>: {value === undefined ? 'the block default' : `${JSON.stringify(value).slice(0, 120)}`}
+            <strong>{label}</strong>: {value === undefined ? 'the block default' : null}
           </p>
-          <p className={dcls('small')}>{help} Edited in a later release.</p>
+          {value !== undefined ? <ConfigValue value={value} label={label} /> : null}
+          <p className={dcls('small')}>
+            {help} Shown in full; edited in a later release.
+          </p>
         </div>
       );
   }

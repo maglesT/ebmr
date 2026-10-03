@@ -12,6 +12,7 @@ import type { Content, Op } from '../model/ops.ts';
 import type { PaletteItem } from '../model/types.ts';
 import { Check, CheckList, CommitText, roleTitle, Select, type Option } from './common.tsx';
 import { ConfigForm } from './ConfigForm.tsx';
+import { ConfigList } from './ConfigView.tsx';
 
 const roleOptions: Option[] = ENGINE_ROLES.map((r) => ({ value: r, label: roleTitle(r) }));
 
@@ -86,7 +87,10 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
       {block ? (
         <ConfigForm schema={block.configSchema} value={p.config} readOnly={readOnly} sopOptions={sopOptions} onChange={(config) => update({ config })} />
       ) : (
-        <p className={dcls('small')}>The block {key} is not in the palette of this installation; its configuration is shown as saved.</p>
+        <>
+          <p className={dcls('small')}>The block {key} is not in the palette of this installation; its configuration is shown as saved.</p>
+          <ConfigList config={p.config} label={`Configuration of step ${number}`} />
+        </>
       )}
       <h4>Who performs and who checks</h4>
       <Select
@@ -148,6 +152,8 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
       {p.system ? (
         <p className={dcls('small')}>
           Computerised system: {p.system.kind.toLowerCase()} {p.system.ref}
+          {p.system.recipe !== undefined ? `, recipe ${p.system.recipe}` : ''}
+          {p.system.recipeVersion !== undefined ? ` version ${p.system.recipeVersion}` : ''}
         </p>
       ) : null}
     </div>

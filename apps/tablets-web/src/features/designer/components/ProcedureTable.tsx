@@ -20,6 +20,7 @@ import { dcls } from '../classes.ts';
 import { insertionPoint, newStep, type Content, type Op } from '../model/ops.ts';
 import type { FindingItem, PaletteItem } from '../model/types.ts';
 import { roleTitle } from './common.tsx';
+import { ConfigList } from './ConfigView.tsx';
 import { humanize, itemLabel, referenceLabel, samplingWords } from './words.ts';
 
 export const rowId = (nodeId: string): string => `mbr-node-${nodeId}`;
@@ -253,6 +254,16 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
           {sop ? (
             <div className={dcls('small')}>
               Follow {sop.code} v{sop.version}
+            </div>
+          ) : null}
+          {n.kind === 'phase' ? (
+            <div className={dcls('small')}>
+              Configuration:{' '}
+              <ConfigList
+                config={n.config}
+                label={`Configuration of step ${num}`}
+                describe={(k, v) => (k === 'text' && typeof v === 'string' ? 'the instruction above' : k === 'sop' && typeof v === 'string' ? referenceLabel(content, v) : undefined)}
+              />
             </div>
           ) : null}
           {n.kind === 'phase' ? (
