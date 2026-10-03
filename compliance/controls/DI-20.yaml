@@ -54,6 +54,15 @@ tests:
   - "apps/tablets-server/test/access/session.test.ts > [DI-20] switching user is a kiosk function; an office PC refuses it"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-38][DI-20] a kiosk signs with the PIN only after its own tap; a password, another terminal's proof or another session's challenge is refused"
   - "apps/tablets-web/test/access/ports.test.tsx > [INV-40][DI-14][DI-20] a tap returns an attribution whose device proof covers exactly the request it confirms"
+  - "apps/tablets-web/test/access/no-device-proof.test.tsx > F08: no device nonce on the kiosk > [INV-40][DI-38][DI-20] a badge tap for an entry: the prompt says nothing was sent and takes another tap"
+  - "apps/tablets-web/test/access/no-device-proof.test.tsx > F08: no device nonce on the kiosk > [INV-10][DI-38][DI-20] a signature whose PIN cannot be sent with a proof is refused as nothing sent, never reconciled as a lost answer"
+  - "apps/tablets-web/test/access/no-device-proof.test.tsx > F08: no device nonce on the kiosk > [INV-40][DI-38][DI-20] \"Switch to <name>?\" whose PIN cannot be sent with a proof is refused and can be tried again"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F09: the kiosk sign-in names the installation the page belongs to > [DI-05][DI-20] a SHARED kiosk on the GMP installation says \"GMP installation\", never \"Sandbox (test runs)\""
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F09: the kiosk sign-in names the installation the page belongs to > [DI-05][DI-20] a GRADE_A_B kiosk on the GMP installation says \"GMP installation\", never \"Sandbox (test runs)\""
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F09: the kiosk sign-in names the installation the page belongs to > [DI-05][DI-20] the same kiosk on the sandbox installation says \"Sandbox (test runs)\""
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F08: a sign-in or secret change that cannot get a device nonce says so > [DI-38][DI-20] office sign-in, nonce refused 429: nothing is sent, the screen says why, no failure escapes"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F08: a sign-in or secret change that cannot get a device nonce says so > [DI-38][DI-20] office sign-in, nonce unreachable: nothing is sent, the screen says why, no failure escapes"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F08: a sign-in or secret change that cannot get a device nonce says so > [DI-38][DI-20] kiosk badge and PIN, nonce refused 429: the screen says nothing was sent and asks for the badge again"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

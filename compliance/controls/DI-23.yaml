@@ -30,6 +30,7 @@ implemented_by:
     - "apps/tablets-web/src/features/audit/AuditPage.tsx"
     - "packages/ui-kit/src/audit/AuditEventList.tsx"
     - "packages/ui-kit/src/audit/ChainVerifyBadge.tsx"
+    - "apps/tablets-server/sql/0490_audit_headless_chains.sql"
   invariants:
     - INV-06
     - INV-08
@@ -38,6 +39,7 @@ implemented_by:
     - "kernel.audit_triggers_ok: GMP writes refused while any audit trigger is missing or disabled (EBMR-AUDIT-005)"
     - "per-aggregate SHA-256 hash chains, checkpoints and external anchors; kernel.verify_chain names the altered entry"
     - "definer functions pin search_path with pg_temp last; the application cannot create temporary objects (ADR-0016)"
+    - "tab.audit_headless_chains and tab.audit_chain_length (tablets 0490): a chain whose head row is missing is listed (no count or time) and verified, so kernel.verify_chain names the deleted head instead of the viewer answering that the chain does not exist"
 tests:
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-23] nothing the application can call disables the audit trail or removes audit events"
   - "packages/kernel/test/audit/audit-trail.test.ts > [INV-06][DI-23] the application role cannot write, change or delete audit events"
@@ -53,6 +55,13 @@ tests:
   - "packages/ui-kit/test/audit/audit.test.tsx > [DI-22][DI-23] an entry shows who, what (old and new), when (site time and UTC), why and the terminal"
   - "packages/ui-kit/test/audit/audit.test.tsx > [DI-23] chain verification shows intact or broken with the problems named"
   - "tools/e2e/specs/audit/audit.spec.ts > [DI-22][DI-23] GMP: who, when, why and what changed, and the chain verifies"
+  - "apps/tablets-web/test/audit/audit-page.test.tsx > audit trail viewer > [DI-23][DI-22] a chain whose head row is missing is listed with no count or time, and the list says to verify it (F06)"
+  - "apps/tablets-web/test/audit/chain-verify-verdict.test.tsx > F07: Verify chain shows only the answer of the latest verification > [DI-23] a re-verification the server refuses (404) leaves no \"Chain intact\" beside the refusal"
+  - "apps/tablets-web/test/audit/chain-verify-verdict.test.tsx > F07: Verify chain shows only the answer of the latest verification > [DI-23] a re-verification that cannot reach the server leaves no \"Chain intact\" beside the error"
+  - "apps/tablets-web/test/audit/chain-verify-verdict.test.tsx > F07: Verify chain shows only the answer of the latest verification > [DI-23] control: a re-verification answering \"broken\" replaces the verdict"
+  - "packages/ui-kit/test/audit/audit.test.tsx > audit entries > [DI-23] while a verification runs, no earlier verdict is shown as its answer (F07)"
+  - "apps/tablets-server/test/audit/view-integrity.test.ts > P7 audit viewer vs chain verification > [DI-23][DI-22][INV-08] a chain whose head row was deleted is still listed, with no count or time, and \"Verify chain\" names the tamper instead of answering that the chain does not exist (F06, tablets 0490)"
+  - "apps/tablets-server/test/audit/view-integrity.test.ts > P7 audit viewer vs chain verification > [DI-23][DI-17] at the database: a head-less chain counts its entries, and is listed only to a session that may read it (F06, tablets 0490)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

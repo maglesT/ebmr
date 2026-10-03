@@ -54,6 +54,7 @@ implemented_by:
     - "badges: secure technologies only; activation after a passing test at issue; periodic tests (iam.badges_due_for_test); lost or revoked badges de-authorised at once; replacement only after identity re-verification"
     - "secrets: argon2id verifiers in iam.credential_secret, unreadable by ebmr_app and never in the audit trail; plaintext only in the authentication service (role ebmr_authn)"
     - "password aging or compromised-password screening must be active (EBMR-IAM-111); policy and history checks when a secret changes"
+    - "identity pinProblems: a new PIN longer than MAX_PIN_LENGTH (12) is refused before hashing (EBMR-IAM-055); generateSecret refuses a policy asking for a longer one (EBMR-IAM-110)"
   policies:
     - "authn.lockout_threshold"
     - "alert.ack_deadline_seconds"
@@ -86,6 +87,18 @@ tests:
   - "apps/tablets-server/test/execution/signing.test.ts > [INV-10][DI-34][DI-19] P40: a refusal of the dry run at the signature signs nothing, is recorded as a refused COMMAND row without a signature, and is logged with the signer's own authentication without alerting anyone"
   - "packages/ui-kit/test/machines/ceremony.test.ts > [DI-19][DI-38] a wrong PIN returns to the secret entry and counts; the lockout ends the ceremony as refused"
   - "packages/ui-kit/test/machines/kiosk-lock.test.ts > [DI-19] a lockout at the unlock ends the session"
+  - "apps/tablets-web/test/access/keyed-badge.test.tsx > F56: the signing badge prompt > [DI-14][DI-38][DI-19] a PIN keyed into the focused Badge field is not sent as a badge UID: the prompt says so and waits for the badge"
+  - "apps/tablets-web/test/access/keyed-badge.test.tsx > F56: the signing badge prompt > [DI-14][DI-38][DI-19] a badge the server does not accept returns to the tap with the refusal in the prompt, never to Close only; the next tap signs"
+  - "apps/tablets-web/test/session/secret-inputs.test.tsx > CN2: sign-in secrets stay cleared > [DI-15][DI-38][DI-19] kiosk first-login change: the next person cannot complete it; the new PIN is sent only with the badge tapped to confirm it, never with the badge of the sign-in (F04)"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F05: a new kiosk PIN is never longer than the PIN pad takes > [DI-19][DI-15] the change fields take 12 digits at most, a longer or non-digit PIN is not sent, and the PIN set is typed in full on the pad"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F56 and T1: the kiosk sign-in takes its badge through the ui-kit BadgePrompt and its PIN on the ui-kit PinPad > [DI-14][DI-19][DI-38] a PIN keyed into the sign-in badge field is not taken as a badge, and a stray key before the reader's burst is not sent with it"
+  - "packages/ui-kit/test/identity/identity.test.tsx > BadgePrompt takes only a badge (review F56: the owner's refused first signing tap) > [DI-14][DI-38][DI-19] a PIN keyed into the badge field is not sent: the prompt says it is not a badge and waits for one"
+  - "packages/ui-kit/test/machines/ceremony.test.ts > a kiosk tap refused for the challenge (review F56) > [DI-14][DI-38][DI-19] returns to the tap with the refusal shown, as a wrong PIN returns to the pad; the next tap goes on; a lockout still ends it"
+  - "apps/tablets-server/test/session/kiosk-secret-change.test.ts > F04: a first-login PIN change on a shared kiosk > [DI-15][DI-38][DI-19] another person's badge cannot complete it (CHANGE_TICKET); the person's own badge does"
+  - "apps/tablets-server/test/session/pin-length.test.ts > F05: a new PIN is never longer than the kiosk PIN pads take > [DI-19][DI-15] the pads, the contract and the kernel use one maximum: 12 digits"
+  - "apps/tablets-server/test/session/pin-length.test.ts > F05: a new PIN is never longer than the kiosk PIN pads take > [DI-19][DI-15] a 13- or 14-digit new PIN is refused at the change (EBMR-IAM-055) and the current PIN still signs in; 12 digits are accepted"
+  - "packages/kernel/test/identity/credentials.test.ts > secrets (DI-19, DI-15) > [DI-15][DI-38][DI-19] on a shared terminal a secret change counts only within the terminal class's attribution window; elsewhere within the event window (F04, kernel 0990)"
+  - "packages/kernel/test/identity/secrets.test.ts > PIN rules > [DI-19][DI-15] a PIN longer than the 12 digits every kiosk PIN pad takes is refused, 12 itself accepted (F05)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

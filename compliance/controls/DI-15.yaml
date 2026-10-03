@@ -29,6 +29,7 @@ implemented_by:
     - "packages/kernel/sql/0150_iam_credentials_badges.sql"
     - "packages/kernel/sql/0160_iam_authentication_sessions.sql"
     - "packages/kernel/sql/0170_iam_signing_readiness.sql"
+    - "packages/kernel/sql/0990_shared_terminal_secret_change_window.sql"
   invariants:
     - "INV-27"
   guards:
@@ -38,6 +39,8 @@ implemented_by:
     - "iam.can_sign / iam.assert_can_sign: no signature while a secret must be changed"
     - "iam.consume_auth_event: the authentication event must belong to the signer (no proxy signing, EBMR-IAM-093)"
     - "iam.assert_us_esig_certification: 21 CFR 11.100(c) letter per legal entity; BLOCK (outline, default) or FLAG (catalog) by policy"
+    - "iam.change_event_check (kernel 0990): on a SHARED or GRADE_A_B terminal a secret change counts only within that class's attribution window (attribution.freshness_seconds.<class>, EBMR-IAM-092); elsewhere within authn.event_max_age_seconds"
+    - "identity pinProblems: a new PIN longer than MAX_PIN_LENGTH (12, what every kiosk PIN pad takes) is refused before hashing (EBMR-IAM-055)"
   db_constraints:
     - "iam.issued_identifier: permanent register of login names, insert-only and audited"
     - "iam.account and iam.person rows are never deleted (EBMR-IAM-005 triggers)"
@@ -55,6 +58,18 @@ tests:
   - "packages/kernel/test/identity/accounts.test.ts > [DI-15] the verification records who verified, the method, document type, evidence and when"
   - "packages/kernel/test/identity/accounts.test.ts > [DI-15] verifiers are argon2id with at least baseline parameters; plaintext or weak hashes are refused"
   - "packages/kernel/test/identity/accounts.test.ts > [DI-15][INV-27] creating an account with a deactivated user's ID is refused, whatever the letter case"
+  - "apps/tablets-web/test/session/secret-inputs.test.tsx > CN2: sign-in secrets stay cleared > [DI-15][DI-38] kiosk first-login change: a person who walks away leaves nothing for the next one; after KEEP_BADGE_MS without input it is wiped and the screen asks for a badge again (F04)"
+  - "apps/tablets-web/test/session/secret-inputs.test.tsx > CN2: sign-in secrets stay cleared > [DI-15][DI-38][DI-19] kiosk first-login change: the next person cannot complete it; the new PIN is sent only with the badge tapped to confirm it, never with the badge of the sign-in (F04)"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F08: a sign-in or secret change that cannot get a device nonce says so > [DI-38][DI-15] first-login change, nonce unreachable: the form stays, says nothing was sent, and no failure escapes"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F05: a new kiosk PIN is never longer than the PIN pad takes > [DI-19][DI-15] the change fields take 12 digits at most, a longer or non-digit PIN is not sent, and the PIN set is typed in full on the pad"
+  - "apps/tablets-server/test/session/change-ticket-clock.test.ts > change tickets > [DI-15][DI-38] a change ticket issued on a shared shop-floor terminal lives one minute (F04); no ticket lives longer than two"
+  - "apps/tablets-server/test/session/kiosk-secret-change.test.ts > F04: a first-login PIN change on a shared kiosk > [DI-15][DI-38] the request for a new PIN names whose PIN it is and says the badge confirms it"
+  - "apps/tablets-server/test/session/kiosk-secret-change.test.ts > F04: a first-login PIN change on a shared kiosk > [DI-15][DI-38][DI-19] another person's badge cannot complete it (CHANGE_TICKET); the person's own badge does"
+  - "apps/tablets-server/test/session/kiosk-secret-change.test.ts > F04: a first-login PIN change on a shared kiosk > [DI-15][DI-38] the database refuses it once the authentication is older than the kiosk's attribution window (kernel 0990); the server says the change took too long"
+  - "apps/tablets-server/test/session/pin-length.test.ts > F05: a new PIN is never longer than the kiosk PIN pads take > [DI-19][DI-15] the pads, the contract and the kernel use one maximum: 12 digits"
+  - "apps/tablets-server/test/session/pin-length.test.ts > F05: a new PIN is never longer than the kiosk PIN pads take > [DI-19][DI-15] a 13- or 14-digit new PIN is refused at the change (EBMR-IAM-055) and the current PIN still signs in; 12 digits are accepted"
+  - "packages/kernel/test/identity/credentials.test.ts > secrets (DI-19, DI-15) > [DI-15][DI-38][DI-19] on a shared terminal a secret change counts only within the terminal class's attribution window; elsewhere within the event window (F04, kernel 0990)"
+  - "packages/kernel/test/identity/secrets.test.ts > PIN rules > [DI-19][DI-15] a PIN longer than the 12 digits every kiosk PIN pad takes is refused, 12 itself accepted (F05)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

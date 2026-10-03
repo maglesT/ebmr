@@ -29,6 +29,7 @@ implemented_by:
     - "packages/kernel/sql/0120_iam_roles_grants.sql"
     - "packages/kernel/sql/0180_iam_lifecycle.sql"
     - "apps/tablets-server/sql/0400_session_role_withdrawn.sql"
+    - "apps/tablets-server/sql/0480_bind_session_needs_live_role.sql"
   guards:
     - "iam.role_grant_guard: requester, approver and grantee are three different persons; reason recorded; request, approval and revocation times from the database clock"
     - "iam.access_list(at): point-in-time list of persons, accounts, roles, permissions and scopes with the access-request record behind each row"
@@ -37,6 +38,7 @@ implemented_by:
     - "iam.deactivate_account and iam.process_leaver: disable, revoke grants, end sessions, revoke credentials and badges in one transaction"
     - "tab.resolve_session (tablets 0400): a session whose declared role is no longer granted now (revoked or past valid_to), or whose account holds no live role, resolves no role (state ROLE_WITHDRAWN); the server ends it at its next request (tab.end_withdrawn_session, ADMIN_TERMINATED)"
     - "tab.keep_session_alive and tab.unlock_session (tablets 0400) refuse such a session (EBMR-TAB-017); the application role has no EXECUTE on iam.keep_session_alive and iam.unlock_session"
+    - "tab.bind_session (tablets 0480): with no role named, a session whose account holds no role that is valid now is never bound to a cookie (EBMR-TAB-021); the server refuses such a login first (403 NO_ROLE)"
   db_constraints:
     - "iam.role_grant check constraints and guard trigger; grants audited on the account chain"
     - "iam.access_recertification insert-only and audited"
@@ -57,6 +59,10 @@ tests:
   - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-38] a session locked before the revocation is not unlocked with the person's own password, and keep-alive does not extend another"
   - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-38] a time-limited grant (AUDITOR_READONLY) that passes its valid_to ends the session at its next request"
   - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-38] on a kiosk, a revoked operator's session ends at its next request, the keep-alive tap included"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F10: an account that holds no role now is told so, not offered an empty role choice > [DI-16] the role choice says there is no role to choose, why, and who handles role grants, and offers sign-out"
+  - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F10: an account that holds no role now is told so, not offered an empty role choice > [DI-16] control: an account with several roles is offered each of them"
+  - "apps/tablets-server/test/session/no-role-binding.test.ts > F10: no browser session for an account that holds no role now (tablets 0480) > [DI-16][DI-38] GMP: the database refuses to bind such a session with no role named (EBMR-TAB-021) or with its former role (EBMR-TAB-013)"
+  - "apps/tablets-server/test/session/no-role-binding.test.ts > F10: no browser session for an account that holds no role now (tablets 0480) > [DI-16][DI-38] SANDBOX: the database refuses to bind such a session with no role named (EBMR-TAB-021) or with its former role (EBMR-TAB-013)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
