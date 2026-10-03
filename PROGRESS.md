@@ -1621,3 +1621,30 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Now the register reads from the source whether a test runs always, conditionally or never; the trace accepts a
   listed test skipped only when its source may skip it at run time, counts it as no proof and names it in its
   output. Default F15.3. Tests: register listed-tests-and-clauses ("a listed test that skips itself at run time").
+- 2026-10-02: PHASE 2 EXIT FIX, Lead leftovers (branch phase-2/recipe-core; lead TODOs T8-T13; each fix with a test that
+  fails on the code before it). T8 (decision C0-1): the installation bootstrap wrote three labels of its own ("Installation
+  qualification", BOOTSTRAP-CONSOLE-1/-2) that a sandbox's identifier guard refuses, so the test kit applied the kernel in
+  two stages and every sandbox kept three real-looking labels. Kernel 1000 gives the bootstrap TEST- labels in a sandbox
+  (GMP keeps its labels) and its actor context the site policy's zone only (EBMR-IAM-118, nothing written); the test kit
+  provisions a sandbox in one stage (every migration, then the bootstrap). T9: a site value of a set-valued key (ALL_APPLY
+  criteria, SET_UNION) listed in another order than the resolved value was recorded and evaluated as TIGHTER instead of
+  EQUAL; kernel 1010 adds market.same_value (sets by their elements, criteria by their full definition) used by
+  market.assess_site_value, with the TypeScript twin isSameValue (Stryker on the changed lines 19/19, SQL mutation group
+  site-values-and-policies 115/115 detected). T10: the site.zone policy check itself was already in kernel 0940 (K1);
+  the same defect elsewhere: besides the bootstrap context, batch-number rules and registered numbers took any zone the
+  database knows (Etc/GMT+5, another site's) to date {YY}/{MM} and the register; site-services 0700 refuses any but the
+  site policy's (EBMR-SITE-002). T11 ("tsx at bundling"): the server's simulation worker and every app process load their
+  TypeScript through tsx, which only the repository root declared as a development dependency, so an install of an app's
+  runtime dependencies alone could not start it or simulate; tsx is now a runtime dependency of the tablets server, the
+  site gateway and the simulators at the root's pin. T12 (decided by default T12.1): a critical value typed by hand whose
+  MBR names a printout or photo as its evidence carried none (no attachment store yet), yet its step was completed by a
+  later review (VERIFIED) that the validator allows only because the printout would be there; now such a step's check is a
+  witness (WITNESSED) in engine 1.4.0 and in the database (recipe-core 0325, EBMR-EXE-051), the screen offers Witness and
+  the FCV journey witnesses the blend step. T13: the pg_basebackup reproducer already reserved its WAL with a replication
+  slot (692d013; re-checked under a WAL load generator: the version before failed 2 of 2 runs, the current one passed 3 of
+  3); it now also drops the slots of earlier runs that ended without their clean-up. Tests: kernel sandbox/bootstrap,
+  mutation/site-values-and-policies, market/inv28.property, market/engine, review/f55; test-kit seed; site-services
+  batch-number-register; recipe-core engine meanings and engine-version; server execution witness-without-printout and
+  designer simulation-loader; tools/boundaries runtime-loader; web step-screen, switch-reads, app-person-change.
+  Playwright smoke (3/3, after T8), FCV journey and floor (6/6, after T12): passed. Defaults T8.1, T10.1, T11.1 and
+  T12.1 are in docs/decisions/phase-2-open-questions.md.
