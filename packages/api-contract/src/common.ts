@@ -88,13 +88,19 @@ export const DeviceProof = z.strictObject({
 export type DeviceProof = z.infer<typeof DeviceProof>;
 
 /**
+ * The longest PIN: every kiosk PIN pad stops at this many digits (sign-in, unlock, switch, signing), so the kernel
+ * refuses a longer new PIN (identity MAX_PIN_LENGTH, the same number; review F05).
+ */
+export const PIN_MAX_LENGTH = 12;
+
+/**
  * Per-entry attribution on SHARED and GRADE_A_B devices (INV-40): a badge tap by the session's own person,
  * with the device proof. TAP_PIN device classes add the PIN (decision D8).
  */
 export const Attribution = z.strictObject({
   method: z.literal('BADGE_TAP'),
   badgeUid: z.string().min(1).max(64),
-  pin: z.string().min(4).max(12).optional(),
+  pin: z.string().min(4).max(PIN_MAX_LENGTH).optional(),
   proof: DeviceProof,
 });
 export type Attribution = z.infer<typeof Attribution>;

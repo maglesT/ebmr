@@ -30,6 +30,7 @@ export const EN = {
   'session.newSecret': 'New {kind}',
   'session.repeatSecret': 'Repeat the new {kind}',
   'session.secretsDiffer': 'The two entries differ.',
+  'session.pinDigits': 'A PIN has digits only, at most {max} of them (the most a PIN pad takes).',
   'session.signedInAs': 'Signed in as {name} ({login}), {role}',
   'device.notEnrolled': 'This browser is not an enrolled terminal.',
   'device.notEnrolledHelp': 'Ask the system administrator to enrol this terminal.',

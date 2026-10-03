@@ -3,7 +3,7 @@
  * "Lock, unlock, keep-alive and switch"). Paths stay under /api/session.
  */
 import { z } from 'zod';
-import { DeviceProof, Empty } from '../common.ts';
+import { DeviceProof, Empty, PIN_MAX_LENGTH } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { SessionView } from './session.ts';
 
@@ -60,7 +60,7 @@ export const access = {
     summary: 'Switch user on a kiosk by badge and PIN: the old session locks, a new one opens with a new cookie',
     body: z.strictObject({
       badgeUid: z.string().min(1).max(64),
-      pin: z.string().min(4).max(12),
+      pin: z.string().min(4).max(PIN_MAX_LENGTH),
       roleCode: z.string().optional(),
       proof: DeviceProof,
     }),

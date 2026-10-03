@@ -12,7 +12,7 @@
  * nothing behind, and the screen asks for a badge again.
  */
 import { useCallback, useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
-import { routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
+import { PIN_MAX_LENGTH, routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
 import { Banner, Button, Field, identity, t } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
@@ -90,7 +90,9 @@ function ChangeSecretForm({ change, credentials, onDone }: { change: ChangeState
   const second = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<CallError | null>(null);
   const [mismatch, setMismatch] = useState(false);
+  const [notAPin, setNotAPin] = useState(false);
   const kindWord = change.kind === 'PIN' ? 'PIN' : 'password';
+  const pin = change.kind === 'PIN';
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -100,9 +102,17 @@ function ChangeSecretForm({ change, credentials, onDone }: { change: ChangeState
     if (second.current) second.current.value = '';
     if (a !== b) {
       setMismatch(true);
+      setNotAPin(false);
       return;
     }
     setMismatch(false);
+    // A PIN is typed on pads that stop at PIN_MAX_LENGTH digits: a longer one, or one with other characters, could never
+    // be entered there and is not sent (the kernel refuses it too: F05).
+    if (pin && !new RegExp(`^[0-9]{1,${PIN_MAX_LENGTH}}$`).test(a)) {
+      setNotAPin(true);
+      return;
+    }
+    setNotAPin(false);
     const held = credentials.current;
     if (!boot.deviceKey || !held || !a) return;
     const body = { method: change.method, identifier: held.identifier, changeTicket: held.ticket, newSecret: a, kind: change.kind };
@@ -122,8 +132,27 @@ function ChangeSecretForm({ change, credentials, onDone }: { change: ChangeState
       <h2>{t('session.changeSecret', { kind: kindWord })}</h2>
       {error ? <RefusalMessage error={error} /> : null}
       {mismatch ? <Banner tone="warning" title={t('session.secretsDiffer')} /> : null}
-      <Field label={t('session.newSecret', { kind: kindWord })} name="newSecret" type="password" inputRef={first} autoComplete="new-password" isRequired inputMode={change.kind === 'PIN' ? 'numeric' : 'text'} />
-      <Field label={t('session.repeatSecret', { kind: kindWord })} name="repeatSecret" type="password" inputRef={second} autoComplete="new-password" isRequired inputMode={change.kind === 'PIN' ? 'numeric' : 'text'} />
+      {notAPin ? <Banner tone="warning" title={t('session.pinDigits', { max: String(PIN_MAX_LENGTH) })} /> : null}
+      <Field
+        label={t('session.newSecret', { kind: kindWord })}
+        name="newSecret"
+        type="password"
+        inputRef={first}
+        autoComplete="new-password"
+        isRequired
+        inputMode={pin ? 'numeric' : 'text'}
+        {...(pin ? { maxLength: PIN_MAX_LENGTH, description: t('session.pinDigits', { max: String(PIN_MAX_LENGTH) }) } : {})}
+      />
+      <Field
+        label={t('session.repeatSecret', { kind: kindWord })}
+        name="repeatSecret"
+        type="password"
+        inputRef={second}
+        autoComplete="new-password"
+        isRequired
+        inputMode={pin ? 'numeric' : 'text'}
+        {...(pin ? { maxLength: PIN_MAX_LENGTH } : {})}
+      />
       <div className={cls('row')}>
         <Button type="submit" variant="primary">
           {t('common.continue')}
@@ -183,7 +212,7 @@ function PinPad({ onSubmit, disabled }: { onSubmit: (pin: string) => void; disab
   const pin = useRef('');
   const [length, setLength] = useState(0);
   const press = (d: string) => {
-    if (pin.current.length >= 12) return;
+    if (pin.current.length >= PIN_MAX_LENGTH) return;
     pin.current += d;
     setLength(pin.current.length);
   };

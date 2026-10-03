@@ -8,7 +8,7 @@
  * Secrets are never cached, logged or re-sent; a lost response reloads the signatures instead.
  */
 import { z } from 'zod';
-import { DeviceProof, Instant, IntegerString, PersonRef, Uuid, withAttribution } from '../common.ts';
+import { DeviceProof, Instant, IntegerString, PersonRef, PIN_MAX_LENGTH, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { SignableAction } from '../signable.ts';
 
@@ -74,7 +74,7 @@ export const ChallengeView = z.strictObject({
 export type ChallengeView = z.infer<typeof ChallengeView>;
 
 export const SignatureCredentials = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('PIN'), pin: z.string().min(4).max(12) }),
+  z.strictObject({ kind: z.literal('PIN'), pin: z.string().min(4).max(PIN_MAX_LENGTH) }),
   z.strictObject({ kind: z.literal('PASSWORD'), loginName: z.string().min(1).max(128), password: z.string().min(1).max(256) }),
 ]);
 export type SignatureCredentials = z.infer<typeof SignatureCredentials>;

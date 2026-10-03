@@ -3,7 +3,7 @@
  * account with no role that is valid now (F10), and a terminal that cannot get a device nonce (F08). Each test runs the
  * real Gate against a fixture server.
  */
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
@@ -259,5 +259,77 @@ describe('F10: an account that holds no role now is told so, not offered an empt
     expect(screen.getByRole('button', { name: 'MBR_AUTHOR' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'MBR_CHECKER' })).toBeTruthy();
     expect(screen.queryByText(/You hold no role/)).toBeNull();
+  });
+});
+
+describe('F05: a new kiosk PIN is never longer than the PIN pad takes', () => {
+  it('[DI-19][DI-15] the change fields take 12 digits at most, a longer or non-digit PIN is not sent, and the PIN set is typed in full on the pad', async () => {
+    const UID = '04A1000000F05A';
+    const LONG_PIN = '73914628503917';
+    const TWELVE = LONG_PIN.slice(0, 12);
+    const logins: Record<string, unknown>[] = [];
+    const changes: Record<string, unknown>[] = [];
+    setTransport(
+      createFixtureFetch(
+        {
+          'meta.get': EXAMPLES['meta-sandbox'].data,
+          'session.deviceNonce': { nonce: 'fixture-nonce-0123456789', expiresInSeconds: 60 },
+          'session.identify': kiosk.device,
+          'session.demoDevices': { devices: [] },
+          'session.get': noSession,
+          'session.login': ({ body }: { body: unknown }) => {
+            logins.push(body as Record<string, unknown>);
+            return changes.length
+              ? { status: 401, body: envelope('EBMR-IAM-140', 'AUTH_FAILED', 'Sign-in failed.') }
+              : { status: 409, body: envelope('MUST_CHANGE_SECRET', 'NOT_ALLOWED', 'You must choose a new password or PIN before you continue.', { kind: 'PIN', changeTicket: 'ticket-f05-0123456789' }) };
+          },
+          'session.changeSecret': ({ body }: { body: unknown }) => {
+            changes.push(body as Record<string, unknown>);
+            return { changed: true };
+          },
+        },
+        { installation: 'SANDBOX' },
+      ),
+    );
+    renderGate();
+    await userEvent.type(await screen.findByLabelText<HTMLInputElement>('Badge'), `${UID}{Enter}`);
+    await screen.findByRole('group', { name: 'Enter your PIN' });
+    for (const d of '482913') await userEvent.click(screen.getByRole('button', { name: d }));
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByRole('heading', { name: 'Choose a new PIN' })).toBeTruthy();
+    const first = () => screen.getByLabelText<HTMLInputElement>('New PIN');
+    const second = () => screen.getByLabelText<HTMLInputElement>('Repeat the new PIN');
+    expect(first().maxLength).toBe(12);
+    expect(second().maxLength).toBe(12);
+    expect(screen.getByText('A PIN has digits only, at most 12 of them (the most a PIN pad takes).')).toBeTruthy();
+
+    // A value the field's limit did not stop (pasted or filled in by a script): not sent, and the screen says why.
+    // (Submitted as a script would, past the browser's own length check.)
+    first().value = LONG_PIN;
+    second().value = LONG_PIN;
+    fireEvent.submit(screen.getByRole('form', { name: 'Choose a new PIN' }));
+    await waitFor(() => expect(screen.getAllByText('A PIN has digits only, at most 12 of them (the most a PIN pad takes).')).toHaveLength(2));
+    expect(changes).toHaveLength(0);
+    expect(first().value).toBe('');
+    first().value = '48291a';
+    second().value = '48291a';
+    fireEvent.submit(screen.getByRole('form', { name: 'Choose a new PIN' }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(changes).toHaveLength(0);
+    expect(first().value).toBe('');
+
+    // Twelve digits are sent, and the pad then takes all twelve.
+    await userEvent.type(first(), TWELVE);
+    await userEvent.type(second(), TWELVE);
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText('Your new PIN is set. Sign in with it now.')).toBeTruthy();
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ newSecret: TWELVE, kind: 'PIN' });
+    await userEvent.type(await screen.findByLabelText<HTMLInputElement>('Badge'), `${UID}{Enter}`);
+    await screen.findByRole('group', { name: 'Enter your PIN' });
+    for (const d of LONG_PIN) await userEvent.click(screen.getByRole('button', { name: d }));
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+    await waitFor(() => expect(logins).toHaveLength(2));
+    expect(logins[1]?.['secret']).toBe(TWELVE);
   });
 });

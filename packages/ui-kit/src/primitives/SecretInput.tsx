@@ -24,6 +24,8 @@ export interface SecretInputProps {
   autoComplete?: 'off' | 'new-password';
   autoFocus?: boolean;
   inputMode?: 'text' | 'numeric';
+  /** The most characters the field takes (a new PIN: PIN_MAX_LENGTH). */
+  maxLength?: number;
 }
 
 /** Reads the secret typed into a SecretInput and clears the field in the same step (a secret is handed over once). */
@@ -35,7 +37,7 @@ export function takeSecret(ref: RefObject<HTMLInputElement | null>): string {
   return secret;
 }
 
-export function SecretInput({ label, name, inputRef, description, errorMessage, isRequired = false, isDisabled = false, autoComplete = 'off', autoFocus = false, inputMode }: SecretInputProps) {
+export function SecretInput({ label, name, inputRef, description, errorMessage, isRequired = false, isDisabled = false, autoComplete = 'off', autoFocus = false, inputMode, maxLength }: SecretInputProps) {
   const id = useId();
   const own = useRef<HTMLInputElement>(null);
   useImperativeHandle(inputRef, () => own.current as HTMLInputElement, []);
@@ -65,6 +67,7 @@ export function SecretInput({ label, name, inputRef, description, errorMessage, 
         disabled={isDisabled}
         autoFocus={autoFocus}
         {...(inputMode ? { inputMode } : {})}
+        {...(maxLength !== undefined ? { maxLength } : {})}
         {...(describedBy ? { 'aria-describedby': describedBy } : {})}
         {...(errorMessage !== undefined ? { 'aria-invalid': true, 'data-invalid': 'true' } : {})}
       />

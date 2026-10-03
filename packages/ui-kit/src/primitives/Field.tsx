@@ -35,6 +35,7 @@ export interface SecretFieldProps extends FieldCommon {
   inputRef: Ref<HTMLInputElement>;
   autoComplete?: 'off' | 'new-password';
   inputMode?: 'text' | 'numeric';
+  maxLength?: number;
 }
 
 export type FieldProps = TextFieldProps | SecretFieldProps;
@@ -42,7 +43,7 @@ export type FieldProps = TextFieldProps | SecretFieldProps;
 /** A labelled input. Secrets (type 'password') go to SecretInput: uncontrolled, native, never in React state. */
 export function Field(props: FieldProps) {
   if (props.type === 'password') {
-    const { label, name, inputRef, description, errorMessage, isRequired, isDisabled, autoComplete, autoFocus, inputMode } = props;
+    const { label, name, inputRef, description, errorMessage, isRequired, isDisabled, autoComplete, autoFocus, inputMode, maxLength } = props;
     return (
       <SecretInput
         label={label}
@@ -55,6 +56,7 @@ export function Field(props: FieldProps) {
         {...(autoComplete !== undefined ? { autoComplete } : {})}
         {...(autoFocus !== undefined ? { autoFocus } : {})}
         {...(inputMode !== undefined ? { inputMode } : {})}
+        {...(maxLength !== undefined ? { maxLength } : {})}
       />
     );
   }

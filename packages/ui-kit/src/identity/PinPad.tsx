@@ -4,6 +4,7 @@
  * Digits, Backspace and Enter also work from a keyboard while the pad has focus.
  */
 import { useRef, useState, type KeyboardEvent } from 'react';
+import { PIN_MAX_LENGTH } from '@ebmr/api-contract';
 import { Button } from '../primitives/Button.tsx';
 import { icls } from './classes.ts';
 
@@ -12,11 +13,12 @@ export interface PinPadProps {
   label?: string;
   onSubmit: (pin: string) => void;
   disabled?: boolean;
+  /** The most digits the pad takes (PIN_MAX_LENGTH: the kernel refuses a longer PIN at the change, review F05). */
   maxLength?: number;
   minLength?: number;
 }
 
-export function PinPad({ label = 'Enter your PIN', onSubmit, disabled = false, maxLength = 12, minLength = 4 }: PinPadProps) {
+export function PinPad({ label = 'Enter your PIN', onSubmit, disabled = false, maxLength = PIN_MAX_LENGTH, minLength = 4 }: PinPadProps) {
   const pin = useRef('');
   const [length, setLength] = useState(0);
   const press = (d: string) => {

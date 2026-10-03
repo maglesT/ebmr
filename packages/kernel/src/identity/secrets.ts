@@ -71,11 +71,19 @@ export function passwordProblems(password: string, policy: SecretPolicy, loginNa
   return problems;
 }
 
+/**
+ * The longest PIN: what every kiosk PIN pad takes (the sign-in pad and the ui-kit PinPad of unlock, switch and signing
+ * stop at 12 digits; the API contract's PIN_MAX_LENGTH is the same number). A longer PIN could be set but never typed,
+ * and each try would count toward the lockout (review F05). It matches the upper bound of credential.pin_length.
+ */
+export const MAX_PIN_LENGTH = 12;
+
 /** Problems with a proposed PIN; empty when acceptable. */
 export function pinProblems(pin: string, policy: SecretPolicy): string[] {
   const problems: string[] = [];
   if (!/^\d+$/.test(pin)) problems.push('digits only');
   if (pin.length < policy.pinLength) problems.push(`shorter than ${policy.pinLength} digits`);
+  if (pin.length > MAX_PIN_LENGTH) problems.push(`longer than ${MAX_PIN_LENGTH} digits`);
   if (/^(\d)\1*$/.test(pin)) problems.push('a single repeated digit');
   const digits = [...pin].map(Number);
   const step = digits.length > 1 ? (digits[1] ?? 0) - (digits[0] ?? 0) : 0;
@@ -105,6 +113,8 @@ export function generateSecret(kind: SecretKind, policy: SecretPolicy): string {
     // A one-digit PIN is always a single repeated digit, and a length that is not a whole number is never met: the
     // loop would never end.
     const length = policyLength('credential.pin_length', policy.pinLength, 2);
+    // A PIN longer than the pads take is never acceptable: the loop would never end.
+    if (length > MAX_PIN_LENGTH) throw new IdentityError('EBMR-IAM-110', `credential.pin_length is ${length}; a PIN has at most ${MAX_PIN_LENGTH} digits`);
     for (;;) {
       const pin = Array.from({ length }, () => String(randomInt(10))).join('');
       if (pinProblems(pin, policy).length === 0) return pin;
