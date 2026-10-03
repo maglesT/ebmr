@@ -1609,3 +1609,10 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (Phase 6). Tests: e2e evidence-record and spec-claims; register listed-tests-and-clauses and register. Playwright
   access, devices (also failing with the room gate removed, where the old test passed) and designer: passed.
   Defaults F14.1-F14.5, F15.1, F15.2 and F28.1 are in docs/decisions/phase-2-open-questions.md.
+  Round 2 (F15): a control's tests list need not have named every test tagged with it (default F15.1, the weaker
+  option), so 2,134 tagged tests were missing from 65 lists and nothing kept a list complete; CI never traced the
+  E2E report. Now the trace refuses a passing tagged test its control does not list (from the run's names, so
+  data-built titles count), `pnpm register:sync-tests` adds them from the reports, the lists are completed (2,134
+  entries), and a CI traceability job runs the trace on both reports with the Playwright report required
+  (`pnpm trace:e2e`). F15.1 and F15.2 rewritten. Tests: register listed-tests-and-clauses ("every passing tagged
+  test is listed").
