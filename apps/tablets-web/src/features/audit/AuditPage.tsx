@@ -128,14 +128,16 @@ function ChainView({ chainKey }: { chainKey: string }) {
   const [result, setResult] = useState<ChainVerificationView | null>(null);
   const [error, setError] = useState<CallError | null>(null);
   const [busy, setBusy] = useState(false);
+  // A verdict is shown only as the answer of the latest verification: it goes when a new one starts, and a
+  // verification that fails leaves none (never an earlier "Chain intact" next to the failure; F07).
   const verify = async () => {
+    setResult(null);
+    setError(null);
     setBusy(true);
     const r = await api.call(routes.audit.verifyChain, { params: { chainKey } });
     setBusy(false);
-    if (r.ok) {
-      setResult(r.value);
-      setError(null);
-    } else setError(r.error);
+    if (r.ok) setResult(r.value);
+    else setError(r.error);
   };
   return (
     <>

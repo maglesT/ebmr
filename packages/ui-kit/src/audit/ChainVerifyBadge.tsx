@@ -1,6 +1,7 @@
 /**
  * ChainVerifyBadge (module C1; DI-23, INV-08): the result of the server recomputing every hash of one audit chain,
- * as colour + icon + word, with the problems named when the chain is broken.
+ * as colour + icon + word, with the problems named when the chain is broken. No verdict is shown while a verification
+ * runs (Phase 2 exit review F07): the caller passes the answer of the latest verification only, or null.
  */
 import type { ChainVerificationView } from '@ebmr/api-contract';
 import { Button } from '../primitives/Button.tsx';
@@ -13,7 +14,9 @@ export interface ChainVerifyBadgeProps {
   onVerify: () => void;
 }
 
-export function ChainVerifyBadge({ result, busy, onVerify }: ChainVerifyBadgeProps) {
+export function ChainVerifyBadge({ result: given, busy, onVerify }: ChainVerifyBadgeProps) {
+  // While a verification runs, no verdict is shown: an earlier one would read as the answer of this one.
+  const result = busy ? null : given;
   return (
     <div className={icls('stack')} role="group" aria-label="Chain verification">
       <div className={icls('row')}>

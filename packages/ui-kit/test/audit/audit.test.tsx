@@ -79,4 +79,15 @@ describe('audit entries', () => {
     expect(screen.getByText('Chain broken: 1 problem(s)')).toBeTruthy();
     expect(screen.getByText('entry 1: hash does not match the payload (event altered)')).toBeTruthy();
   });
+
+  it('[DI-23] while a verification runs, no earlier verdict is shown as its answer (F07)', () => {
+    const verifiedAt = { us: '1790586663000000', text: '28-SEP-2026 14:41:03 +05:30 (Asia/Kolkata)' };
+    const intact = { chainKey: 'x', ok: true, events: 3, problems: [], verifiedAt };
+    const { rerender } = render(<ChainVerifyBadge result={intact} busy={false} onVerify={vi.fn()} />);
+    expect(screen.getByText('Chain intact: 3 entries verified')).toBeTruthy();
+    rerender(<ChainVerifyBadge result={intact} busy onVerify={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Verifying…' })).toBeTruthy();
+    expect(screen.queryByText('Chain intact: 3 entries verified')).toBeNull();
+    expect(screen.queryByText(`Verified at ${verifiedAt.text}`)).toBeNull();
+  });
 });
