@@ -45,13 +45,20 @@
    integrity jobs, so it finds no id of a GOVERNANCE-class signature to ask `esig.signature_state` about. Tablets 0440:
    the person an investigation is about, whatever their role, is also refused the hold chains it creates, the hold
    entries it writes on the held records' chains, and the account and person chains and the activity of the persons who
-   opened and lead it. Review round 3, tablets 0460: the application role no longer asks the kernel what blocks a
+   opened and lead it (since 0530 answered as what is not there, see below). Review round 3, tablets 0460: the application role no longer asks the kernel what blocks a
    record (`records.open_blockers` and the disposition flag, disposal refusals, retention status and blocker counter
    built on it), which named the investigation and its concern for the account of the person investigated. Tablets
-   0470: nor who acted on a chain or a row (`iam.chain_persons`, `iam.record_entry_persons`), whether a chain exists
-   (`kernel.checkpoint_chain`), the entries written during a time fault, or the persons excluded from a signing
-   (`iam.segregation_evaluation`); and the verification of a chain no longer names to the person investigated the
-   accounts and terminals of the entries withheld from them. Not closed in Phase 2: the application role still selects
+   0470: nor who acted on a chain or a row (`iam.chain_persons`, `iam.record_entry_persons`), the checkpoint of a chain
+   (`kernel.checkpoint_chain`, which refused only a chain with no entries), the entries written during a time fault, or
+   the persons excluded from a signing (`iam.segregation_evaluation`); and the verification of a chain no longer names to
+   the person investigated the accounts and terminals of the entries withheld from them. Review round 4, tablets 0530:
+   the application role learned whether a chain exists and its length from `kernel.verify_chain` started at a position
+   it chose, and from `continuity.compare_external_anchors` given a forged anchor (asked about every account's hold
+   chain, both named the persons under investigation); it now runs neither, nor `records.verify_chain` and the other two
+   entry points of the anchor comparison, and the viewer verifies through the session-checked `tab.audit_verify_chain`.
+   The same migration answers the person an investigation is about, about what is withheld from them, as a colleague in
+   the same role is answered about what is not there (no entries, no length, nothing to verify, no signatures), instead
+   of a refusal that told them. Not closed in Phase 2: the application role still selects
    the identity, incident, retention and continuity tables directly (owner residual F34.2 in
    docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read several of them as that
    role; moving those reads behind session-checked functions is a kernel change for both editions.

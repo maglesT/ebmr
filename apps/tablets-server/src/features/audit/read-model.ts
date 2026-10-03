@@ -17,8 +17,8 @@
  * find the rows; kernel.verify_chain names an entry whose columns differ from its payload). The user ID and the
  * terminal code are not in the entry's payload, only the account and terminal ids: they come from the hashed INSERT
  * entry of that account or terminal in its own chain (account:<id>, device:<id>; both values never change, kernel
- * EBMR-IAM-007 and the account guard), never from the live registry rows. registryChainsOf names those chains so a
- * verification of the viewed chain verifies them too.
+ * EBMR-IAM-007 and the account guard), never from the live registry rows. verifyChainFor verifies those chains with
+ * the viewed chain.
  */
 import { sql, type Kysely } from 'kysely';
 import type { AuditEventView } from '@ebmr/api-contract';
@@ -234,12 +234,17 @@ export async function readHeadlessChains(db: AuditDb, tokenHash: string, prefix:
 }
 
 /**
- * The registry chains the view of a chain draws on: the account and terminal of every actor on it (their hashed INSERT
- * entries give the user IDs and terminal codes shown), in byte order. The installation pipeline's nil ids have none.
+ * The verification of a chain the session may read (tablets 0530, review F34/F35): the kernel recomputes every hash of
+ * the chain from its first entry, then of the registry chains its view draws on (the account and terminal of every actor
+ * on it, whose hashed INSERT entries give the user IDs and terminal codes shown; tab.audit_registry_chains), each problem
+ * naming its chain. The database decides for the session (EBMR-TAB-020 for a chain its role may not read; nothing for a
+ * chain withheld from its person); the application role has no verification of its own (kernel.verify_chain is the
+ * owner's).
  */
-export async function registryChainsOf(db: AuditDb, tokenHash: string, chainKey: string): Promise<string[]> {
-  const { rows } = await sql<{ chain_key: string }>`select c as chain_key from tab.audit_registry_chains(${tokenHash}, ${chainKey}) c`.execute(db);
-  return rows.map((r) => r.chain_key);
+export async function verifyChainFor(db: AuditDb, tokenHash: string, chainKey: string): Promise<{ chainKey: string; registry: boolean; seq: string; problem: string }[]> {
+  const { rows } = await sql<{ chain_key: string; registry: boolean; seq: string; problem: string }>`
+    select chain_key, registry, seq::text as seq, problem from tab.audit_verify_chain(${tokenHash}, ${chainKey})`.execute(db);
+  return rows.map((r) => ({ chainKey: r.chain_key, registry: r.registry, seq: r.seq, problem: r.problem }));
 }
 
 /**
