@@ -1688,3 +1688,24 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   is written, not 422 EBMR-EXE-140). Residual in F58.2: a command that claims readings and writes no row is still not
   refused. Tests: server execution/db-guards-stale-row-commit (new), devices/stale-weighing-readings,
   execution/commands, api-contract contract; each new one fails on 8c3496a.
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 4 (branch phase-2/recipe-core; F11, F12,
+  F37.R and the REPLAY-GATE design item; each fix with tests that fail on the code before it). F11: the database read
+  the step an exception was raised at from the stored source and the command's own step, so a correction of the blend
+  time that made a later step's calculation fail could store its CALCULATION_FAILED without that step and let the person
+  who worked only in the later step disposition it; exceptions raised in a preparation row or a refused PERFORMED, and
+  step exceptions added by a row that acts on no step, had the same hole. Recipe-core 0327 binds the source of every
+  exception a row adds to the step the engine raises it at (the row's own step, or for a correction or invalidation a
+  step its change reaches as the engine's propagation does; EBMR-EXE-044), reads preparation and refused rows as raising
+  rows, and the invariant query reports an exception naming no step instance (decisions F11.1 corrected, F11.2). F12: a
+  container held what its entry named, never compared with the MBR, so an output holding L2409-0017 was stored;
+  recipe-core 0328 binds a weighing's or lot charge's BOM line, an output's intermediate, a container charge (container,
+  contents, plan, sub-lot, this batch's label, the containers consumed) and an equipment check to the step's MBR node
+  (EBMR-EXE-126; decision F12.2). F37.R: 0309 serialised proposals only on the batch's lock, which a signer outside the
+  server's path does not take; recipe-core 0329 also takes the record's own signing lock, so a proposal waits for any
+  open signing of the record and is refused, and a signing waits for an open proposal and is refused (EBMR-ESIG-012);
+  0309's claim and decision F37.1 corrected. REPLAY-GATE: decided by default (REPLAY-GATE.1) that the release gate G-REL,
+  built in Phase 4, replays the stored rows with the engine pinned to the batch and stays NOT_READY on any difference;
+  a Phase 2 test shows a computed value forged through the application role is stored and the replay finds it. Tests:
+  server execution/db-guards-disposition-involvement (round 4), db-guards-entry-identifiers (round 4),
+  db-guards-proposal-race (F37.R, two connections), golden (REPLAY-GATE); recipe-core execution/exception-source-sql
+  (new) and entry-data-sql (round 4).
