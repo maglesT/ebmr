@@ -257,7 +257,7 @@ describe('value entry (G-04) and the pendingEntry path', () => {
     });
   }
 
-  it('a stale entry (409) reloads the step and says what changed; nothing was saved', async () => {
+  it('[DI-34] a stale entry (409 ENG-STALE) reloads the step and says what changed: the entry was not saved, its refusal is recorded in the test run, and no scale reading was used (F58.1)', async () => {
     let fresh = g04Recording;
     const moved = stepVariant('step-g04-parameters', (v) => {
       Object.assign(v, structuredClone(g04Recording));
@@ -276,6 +276,21 @@ describe('value entry (G-04) and the pendingEntry path', () => {
     const changes = await screen.findByTestId('stale-changes');
     expect(changes.textContent).toContain('The run moved on (version 7 to 9).');
     expect(changes.textContent).toContain('Blend time: 15 min recorded by TEST-Priya Nair');
+    expect(screen.getByText('The test run changed before your entry arrived. Your entry was not saved: the refusal is recorded in the test run, and no scale reading was used. Check the changes, then save again.')).toBeTruthy();
+    expect(screen.queryByText(/Nothing was saved/)).toBeNull();
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe('16');
+  });
+
+  it('[DI-34] a stale answer that is not the engine\'s refusal (409 EBMR-IAM-125, given before anything is written) says the entry was not saved and nothing of it is in the record, with the server\'s reason; it never says a refusal is recorded (F58.1)', async () => {
+    renderFloor(stepPath('p-blend@'), {
+      fixtures: { 'execution.step': () => g04Recording },
+      intercept: (r) => (r.path === commandPath ? { status: 409, body: envelope('STALE', 'EBMR-IAM-125', { whatHappened: 'The badge tap is too old for this entry.' }) } : undefined),
+    });
+    await typeAndSave('16');
+    await screen.findByTestId('stale-changes');
+    expect(screen.getByText('Your entry was not saved, and nothing of it is in the record. Check the step as it is now, then save again.')).toBeTruthy();
+    expect(screen.getByText('The badge tap is too old for this entry.')).toBeTruthy();
+    expect(screen.queryByText(/refusal is recorded/)).toBeNull();
     expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Blend time' }).value).toBe('16');
   });
 });

@@ -124,6 +124,8 @@ describe('G-07 weighing and dispensing', () => {
     await userEvent.click(within(form).getByRole('button', { name: 'Capture gross on TEST-BAL-01' }));
     await userEvent.click(within(form).getByRole('button', { name: 'Save: Weigh one container' }));
     await screen.findByTestId('stale-changes');
+    // The floor says what happened: not saved, the refusal recorded, no scale reading used (F58.1).
+    expect(within(form).getByText(/Your entry was not saved: the refusal is recorded in the test run, and no scale reading was used\./)).toBeTruthy();
     expect(within(form).getByTestId('reading-TARE').textContent).toContain('1.250 kg on TEST-BAL-01');
     expect(within(form).getByTestId('reading-GROSS').textContent).toContain('13.753 kg on TEST-BAL-01');
     await userEvent.click(within(form).getByRole('button', { name: 'Save: Weigh one container' }));
