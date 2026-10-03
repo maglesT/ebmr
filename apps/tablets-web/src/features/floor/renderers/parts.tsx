@@ -165,6 +165,11 @@ function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenV
     else if (field.valueType === 'TEXT') input = <Field label={field.name} name={field.item} value={text} onChange={setText} isDisabled={locked} autoComplete="off" />;
     else input = <p>{st('field.instantNotHere')}</p>;
   }
+  // A Save that cannot be pressed says why, as the entry forms do (F64): the value is not given, or not readable yet
+  // ("12." on the keypad: the field shows no problem for a number still being typed).
+  const offered = record.available && field.valueType !== 'INSTANT' && !(field.capture !== 'SCAN' && field.valueType === 'DECIMAL' && !field.unit);
+  const unfinished = field.capture !== 'SCAN' && (field.valueType === 'DECIMAL' || field.valueType === 'COUNT') && /^-?[0-9]*\.$/.test(text);
+  const stillNeeded = offered && value === null ? (unfinished ? st('form.stillNeededUnfinished', { name: field.name }) : st('form.stillNeeded', { names: field.name })) : null;
 
   return (
     <section className={wcls('formCard')} aria-label={field.name} data-testid={`field-${field.item}`}>
@@ -175,6 +180,11 @@ function ManualFieldEntry({ field, view }: { field: FieldView; view: StepScreenV
         </p>
       ) : null}
       {input}
+      {stillNeeded ? (
+        <p className={wcls('muted')} data-testid="still-needed">
+          {stillNeeded}
+        </p>
+      ) : null}
       {record.available && field.valueType !== 'INSTANT' ? (
         <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!value || locked}>
           {st('save.field', { name: field.name })}

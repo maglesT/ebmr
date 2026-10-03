@@ -327,3 +327,49 @@ describe('renderer registry', () => {
     expect(within(form).getByRole('button', { name: 'Save: Line check' }).hasAttribute('disabled')).toBe(true);
   });
 });
+
+describe('a value card (RECORD_DATA) says why its Save cannot be pressed (F64)', () => {
+  // A value card with one decimal place, so the floor keypad offers the decimal point.
+  const valueCard = stepVariant('step-g04-parameters', (v) => {
+    v.step = { ...v.step, stepKey: 'p-vc@', stepId: 'p-vc', status: 'IN_PROGRESS', statusText: 'In progress' };
+    v.fields = [{ ...v.fields[0]!, item: 'lod', name: 'Loss on drying', unit: '%', precision: { kind: 'DECIMALS', digits: 1 }, target: null, limits: [], attempts: [] }];
+    v.exceptions = [];
+    v.signatures = [];
+    v.entryForms = [];
+    v.actions = [{ action: 'RECORD_DATA', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] }];
+  });
+
+  it('nothing given yet, then "12." on the keypad: the card says what is still needed; once the number is complete the line goes and Save can be pressed', async () => {
+    renderFloor(stepPath('p-vc@'), { fixtures: stepFixtures(valueCard) });
+    const card = await screen.findByTestId('field-lod');
+    const save = within(card).getByRole('button', { name: 'Save Loss on drying' });
+    expect(within(card).getByTestId('still-needed').textContent).toBe('To save, still needed: Loss on drying.');
+    const keypad = within(card).getByRole('group', { name: /keypad/i });
+    await userEvent.click(within(keypad).getByRole('button', { name: '1' }));
+    await userEvent.click(within(keypad).getByRole('button', { name: '2' }));
+    await userEvent.click(within(keypad).getByRole('button', { name: /point|\./i }));
+    expect(within(card).getByRole<HTMLInputElement>('textbox', { name: 'Loss on drying' }).value).toBe('12.');
+    expect(save.hasAttribute('disabled')).toBe(true);
+    expect(within(card).getByTestId('still-needed').textContent).toBe('To save, still needed: Loss on drying, as a whole number or with its decimals (it ends with the decimal point).');
+    await userEvent.click(within(keypad).getByRole('button', { name: '5' }));
+    expect(within(card).queryByTestId('still-needed')).toBeNull();
+    expect(save.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('a choice not made yet is named; made, the line goes', async () => {
+    const yesNo = stepVariant('step-g04-parameters', (v) => {
+      v.step = { ...v.step, stepKey: 'p-vc@', stepId: 'p-vc', status: 'IN_PROGRESS', statusText: 'In progress' };
+      v.fields = [{ ...v.fields[0]!, item: 'clean', name: 'Blender clean', valueType: 'BOOLEAN', unit: null, precision: null, target: null, limits: [], attempts: [] }];
+      v.exceptions = [];
+      v.signatures = [];
+      v.entryForms = [];
+      v.actions = [{ action: 'RECORD_DATA', available: true, primary: true, requires: 'TAP', meaning: null, reason: null, target: null, whoCanHelp: [] }];
+    });
+    renderFloor(stepPath('p-vc@'), { fixtures: stepFixtures(yesNo) });
+    const card = await screen.findByTestId('field-clean');
+    expect(within(card).getByTestId('still-needed').textContent).toBe('To save, still needed: Blender clean.');
+    await userEvent.click(within(card).getByRole('radio', { name: 'Yes' }));
+    expect(within(card).queryByTestId('still-needed')).toBeNull();
+    expect(within(card).getByRole('button', { name: 'Save Blender clean' }).hasAttribute('disabled')).toBe(false);
+  });
+});
