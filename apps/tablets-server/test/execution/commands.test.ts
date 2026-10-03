@@ -144,14 +144,39 @@ describe('commands', () => {
 
   it('[INV-25] a computed value cannot be typed: the refusal is recorded and nothing else changes', async () => {
     const d = await driver();
+    // The value is typed into the step that computes it (the G-14 calculation step, started), so the only rule that
+    // can refuse it is INV-25 (review F18: typed into another step, "not recorded here" refused it as well).
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
-    const r = await d.command('operator1', { type: 'RECORD_DATA', stepKey: CLEAR, item: 'pcmTarget', value: { kind: 'DECIMAL', value: '50', unit: 'kg' }, source: { mode: 'MANUAL' } });
-    expect(refusalOf(r).status).toBe(422);
-    expect(refusalOf(r).code).toMatch(/^ENG-/);
-    const st = await execution.loadState(server.db.admin, d.runId);
-    expect(Object.values(st?.state.points ?? {})).toHaveLength(0);
-    expect((await rowsOf(server, d.runId)).at(-1)).toMatchObject({ accepted: false });
-  }, 180_000);
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'X', batchNumber: 'TEST-B26-9' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-bal@' });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-bal@', entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-1', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-disp-bal@' });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-sop@' });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-sop@', entry: { kind: 'ACKNOWLEDGE', mode: 'READ' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-disp-sop@' });
+    const calc = 'p-disp-calc@';
+    await d.ok('operator1', { type: 'START_STEP', stepKey: calc });
+    const before = await execution.loadState(server.db.admin, d.runId);
+    const rowsBefore = (await rowsOf(server, d.runId)).length;
+    const r = await d.command('operator1', { type: 'RECORD_DATA', stepKey: calc, item: 'pcmTarget', value: { kind: 'DECIMAL', value: '50', unit: 'kg' }, source: { mode: 'MANUAL' } });
+    expect(refusalOf(r)).toMatchObject({ status: 422, code: 'ENG-DERIVED-TYPED', kind: 'NOT_ALLOWED' });
+    expect(refusalOf(r).controls).toContain('INV-25');
+    expect(refusalOf(r).why).toMatch(/computed by the system from its inputs and can never be typed/);
+    // The refusal is one row, refused, with the code; nothing else of the run changed.
+    const rows = await rowsOf(server, d.runId);
+    expect(rows).toHaveLength(rowsBefore + 1);
+    expect(rows.at(-1)).toMatchObject({ kind: 'COMMAND', command_type: 'RECORD_DATA', accepted: false, refusal: { code: 'ENG-DERIVED-TYPED' } });
+    const after = await execution.loadState(server.db.admin, d.runId);
+    expect(Object.values(after?.state.points ?? {})).toHaveLength(0);
+    expect(after?.state.points).toEqual(before?.state.points);
+    expect(after?.state.entries).toEqual(before?.state.entries);
+    expect(after?.state.steps).toEqual(before?.state.steps);
+    expect(after?.version).toBe(before?.version);
+    expect(await violations(server)).toEqual([]);
+  }, 240_000);
 
   it('[PR-18][DI-05] lots are resolved by the server: an unknown lot writes nothing; a quarantined lot is refused by the block and recorded', async () => {
     const d = await driver();
