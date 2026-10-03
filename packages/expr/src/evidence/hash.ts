@@ -4,12 +4,44 @@
  * canonicalJson follows the kernel's rules (packages/kernel/src/esig/canonical.ts; expr may not
  * import the kernel): object keys sorted by Unicode code point, no insignificant white space,
  * strings escaped as JSON requires, only safe integers as numbers (decimals travel as strings),
- * bigints as integers, undefined object members omitted. SHA-256 is implemented here in plain
- * TypeScript (FIPS 180-4) so hashing is synchronous and needs neither node:crypto nor WebCrypto;
- * the tests compare it with node:crypto.
+ * bigints as integers, undefined object members omitted. Text no record can hold (U+0000, or a
+ * UTF-16 surrogate without its other half) has no canonical form and is refused, in a string or a
+ * member name: esig.canonical_json can never receive it (jsonb refuses both), so no client hashes
+ * content the server cannot store (review F31). SHA-256 is implemented here in plain TypeScript
+ * (FIPS 180-4) so hashing is synchronous and needs neither node:crypto nor WebCrypto; the tests
+ * compare it with node:crypto.
  */
 
 export class CanonicalJsonError extends Error {}
+
+/** Refused text (U+0000, an unpaired surrogate): the value came from outside, so this is bad input, never a programming error. */
+export class UnstorableTextError extends CanonicalJsonError {}
+
+/**
+ * U+0000, or a UTF-16 surrogate without its other half: PostgreSQL text and jsonb refuse U+0000, jsonb refuses the
+ * escape of a lone surrogate, and UTF-8 encoding (node-postgres, TextEncoder, a browser's fetch) silently writes U+FFFD
+ * in its place, so a record would hold a character nobody sent.
+ */
+// eslint-disable-next-line no-control-regex -- U+0000 is looked for on purpose.
+const UNSTORABLE = /\u0000|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+/**
+ * Null when a record can hold `text`; otherwise the first character no record can hold, named for a person:
+ * "U+0000" or "an unpaired surrogate U+D83D".
+ */
+export function unstorableText(text: string): string | null {
+  const m = UNSTORABLE.exec(text);
+  if (m === null) return null;
+  const unit = m[0].charCodeAt(m[0].length - 1);
+  return unit === 0 ? 'U+0000' : `an unpaired surrogate U+${unit.toString(16).toUpperCase()}`;
+}
+
+/** A string or member name as canonical JSON, or UnstorableTextError for text no record can hold. */
+function jsonString(text: string): string {
+  const problem = unstorableText(text);
+  if (problem !== null) throw new UnstorableTextError(`text holding ${problem} has no canonical JSON form: no record can hold it`);
+  return JSON.stringify(text);
+}
 
 /** Orders strings by Unicode code point (= UTF-8 byte order = PostgreSQL COLLATE "C"). */
 export function compareCodePoints(a: string, b: string): number {
@@ -30,7 +62,7 @@ export function canonicalJson(value: unknown): string {
     case 'boolean':
       return value ? 'true' : 'false';
     case 'string':
-      return JSON.stringify(value);
+      return jsonString(value);
     case 'bigint':
       return value.toString();
     case 'number':
@@ -47,7 +79,7 @@ export function canonicalJson(value: unknown): string {
       }
       const entries = Object.entries(value as Record<string, unknown>).filter(([, v]) => v !== undefined);
       entries.sort(([a], [b]) => compareCodePoints(a, b));
-      return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
+      return `{${entries.map(([k, v]) => `${jsonString(k)}:${canonicalJson(v)}`).join(',')}}`;
     }
     default:
       throw new CanonicalJsonError(`a ${typeof value} has no canonical JSON form`);

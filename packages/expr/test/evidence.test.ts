@@ -10,7 +10,7 @@
 import { createHash } from 'node:crypto';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { CanonicalJsonError, canonicalJson, compareCodePoints, contentHashOf, sha256Hex } from '../src/evidence/hash.ts';
+import { CanonicalJsonError, canonicalJson, compareCodePoints, contentHashOf, sha256Hex, unstorableText, UnstorableTextError } from '../src/evidence/hash.ts';
 import { evaluate, inputsFromRecord, recalculate, verifyEvaluationRecord } from '../src/evidence/record.ts';
 import type { EvaluationRecord } from '../src/evidence/record-types.ts';
 import { compile } from '../src/lang/compile.ts';
@@ -209,5 +209,40 @@ describe('canonical JSON and SHA-256 (identical in Node and the browser)', () =>
     refused(holey, 'a undefined has no canonical JSON form');
     // An object without a prototype (a parsed query string, a dictionary) is plain data.
     expect(canonicalJson(Object.assign(Object.create(null) as object, { b: '2', a: '1' }))).toBe('{"a":"1","b":"2"}');
+  });
+
+  it('[DI-37] names the first character no record can hold (U+0000, a surrogate without its other half); well-formed text has none', () => {
+    expect(unstorableText('Booth door\u0000 found open')).toBe('U+0000');
+    expect(unstorableText('\u0000')).toBe('U+0000');
+    expect(unstorableText('a\uD800b')).toBe('an unpaired surrogate U+D800');
+    expect(unstorableText('Line stop \uDBFF')).toBe('an unpaired surrogate U+DBFF');
+    expect(unstorableText('\uDC00 first')).toBe('an unpaired surrogate U+DC00');
+    expect(unstorableText('x\uDFFF')).toBe('an unpaired surrogate U+DFFF');
+    expect(unstorableText('\uD83D\uD83D\uDE00')).toBe('an unpaired surrogate U+D83D');
+    expect(unstorableText('\uD83D\uDE00\uDE00')).toBe('an unpaired surrogate U+DE00');
+    expect(unstorableText('\uDE00\uD83D')).toBe('an unpaired surrogate U+DE00');
+    expect(unstorableText('a\uDC00\u0000')).toBe('an unpaired surrogate U+DC00');
+    expect(unstorableText('a\u0000\uDC00')).toBe('U+0000');
+    for (const ok of ['', 'plain', '\u0001\u001f\u007f', '\uD7FF\uE000\uFFFD\uFFFF', '\u{1F600}\u{10000}\u{10FFFF}', 'मिश्रण 👩🏽‍🔬 é', '%00 \\u0000']) {
+      expect(unstorableText(ok), JSON.stringify(ok)).toBeNull();
+    }
+  });
+
+  it('[DI-37] text no record can hold has no canonical form: refused in a string or a member name, at any depth (review F31)', () => {
+    const refused = (value: unknown, what: string) => {
+      expect(() => canonicalJson(value)).toThrow(UnstorableTextError);
+      expect(() => canonicalJson(value)).toThrow(CanonicalJsonError);
+      expect(() => canonicalJson(value)).toThrow(`text holding ${what} has no canonical JSON form: no record can hold it`);
+      expect(() => contentHashOf(value)).toThrow(UnstorableTextError);
+    };
+    refused('Reprinted\u0000 label checked', 'U+0000');
+    refused({ ['k\u0000']: '1' }, 'U+0000');
+    refused({ step: { frames: [{ name: 'Booth clearance \uD800' }] } }, 'an unpaired surrogate U+D800');
+    refused(['ok', 'Room humidity is in the room log \uDBFF.'], 'an unpaired surrogate U+DBFF');
+    // The key order the kernel and expr used to disagree on: no such key has a canonical form now.
+    refused({ ['\uE000']: 1, ['\uD800']: 2 }, 'an unpaired surrogate U+D800');
+    // Not bad input: the refusals of non-plain data stay plain CanonicalJsonErrors.
+    expect(() => canonicalJson(new Date(0))).not.toThrow(UnstorableTextError);
+    expect(canonicalJson({ ['\u{1F600}']: '\uD800\uDC00', a: '\uFFFD' })).toBe('{"a":"\uFFFD","\u{1F600}":"\u{10000}"}');
   });
 });

@@ -86,7 +86,7 @@ export { checkCalculationSet, evaluateCalculationSet, type CalculationSetCheck, 
 // Evidence
 export { evaluate, tryEvaluate, verifyEvaluationRecord, recalculate, inputsFromRecord, type EvaluateOptions, type EvaluationResult, type RecordVerification } from './evidence/record.ts';
 export type { EvaluationRecord, RecordedInput, RecordedOutput, RecordedConversion, RecordedTableLookup, RecordedCorrection, Supersedes } from './evidence/record-types.ts';
-export { canonicalJson, sha256Hex, contentHashOf, compareCodePoints } from './evidence/hash.ts';
+export { canonicalJson, sha256Hex, contentHashOf, compareCodePoints, unstorableText, CanonicalJsonError, UnstorableTextError } from './evidence/hash.ts';
 export {
   boundaryValuesForBound,
   limitBoundaryValues,

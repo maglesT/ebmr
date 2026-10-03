@@ -5,6 +5,7 @@
  * and functions with raw SQL as the application role and as the table owner.
  */
 import { randomUUID } from 'node:crypto';
+import fc from 'fast-check';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../src/db/command.ts';
 import { canonicalEnvelope, canonicalJson, contentHash } from '../../src/esig/canonical.ts';
@@ -68,6 +69,47 @@ describe('challenge (outline 5.5 step 1)', () => {
     const { rows } = await db.app.query<{ t: string }>('select esig.canonical_json($1::jsonb) as t', [JSON.stringify(value)]);
     expect(canonicalJson(value)).toBe(rows[0]?.t);
     expect(() => canonicalJson({ q: 1.5 })).toThrow(/EBMR-ESIG-004/);
+  });
+
+  it('[DI-37] text no record can hold has no canonical form in SQL nor in TypeScript; any other text gets the same canonical text in both (review F31)', async () => {
+    const refused = [
+      { v: { title: 'a\u0000b' }, sql: '22P05', ts: 'U+0000' },
+      { v: { title: 'a\ud800b' }, sql: '22P02', ts: 'an unpaired surrogate U+D800' },
+      { v: { title: 'a\udfffb' }, sql: '22P02', ts: 'an unpaired surrogate U+DFFF' },
+      { v: { ['k\u0000']: '1' }, sql: '22P05', ts: 'U+0000' },
+      { v: { ['\uE000']: 1, ['\uD800']: 2 }, sql: '22P02', ts: 'an unpaired surrogate U+D800' },
+    ];
+    for (const { v, sql, ts } of refused) {
+      const got = await db.app.query('select esig.canonical_json($1::jsonb) as t', [JSON.stringify(v)]).then(
+        () => 'text',
+        (e: unknown) => `refused ${(e as { code?: string }).code ?? '?'}`,
+      );
+      expect(got, JSON.stringify(v)).toBe(`refused ${sql}`);
+      expect(() => canonicalJson(v), JSON.stringify(v)).toThrow(`EBMR-ESIG-004 text holding ${ts} has no canonical JSON form: no record can hold it`);
+    }
+    // Text a record can hold, as adversarial as it gets: every plane, controls, quotes, backslashes, U+2028, BOM,
+    // noncharacters, U+FFFD, combining marks, keys that differ only in case or order.
+    const units = ['a', 'A', 'b', 'B', '\u00E9', 'e\u0301', '\u00C9', '_', '-', '"', '\\', '\u0001', '\u001f', '\u007f', '\u0085', '\u2028', '\uFEFF', '\uFFFD', '\uFFFF', '\uD7FF', '\uE000', 'क', '\u{1F600}', '\u{10000}', '\u{10FFFF}', ' '];
+    const str = fc.oneof(fc.string({ unit: 'grapheme', maxLength: 10 }), fc.string({ unit: fc.constantFrom(...units), maxLength: 6 }));
+    const value = fc.letrec((tie) => ({
+      v: fc.oneof(
+        { depthSize: 'small' },
+        str,
+        fc.boolean(),
+        fc.constant(null),
+        fc.integer({ min: Number.MIN_SAFE_INTEGER, max: Number.MAX_SAFE_INTEGER }),
+        fc.array(tie('v'), { maxLength: 4 }),
+        fc.dictionary(str, tie('v'), { maxKeys: 6 }),
+      ),
+    })).v;
+    const samples: unknown[] = fc.sample(value, { numRuns: 1500, seed: 20261002 });
+    samples.push({ b: 1, a: 2, B: 3, A: 4, aa: 5, 'a ': 6, 'a\u0001': 7, '': 8 }, { '\uFFFF': 1, '\u{10000}': 2, '\uFFFD': 3, '\uD7FF': 4, '\u00E9': 5, 'e\u0301': 6, '\u00C9': 7 });
+    const { rows } = await db.app.query<{ t: string }>(
+      'select esig.canonical_json(u.j::jsonb) as t from unnest($1::text[]) with ordinality as u (j, i) order by u.i',
+      [samples.map((x) => JSON.stringify(x))],
+    );
+    const differ = samples.map((x, i) => ({ x, ts: canonicalJson(x), sql: rows[i]?.t })).filter((d) => d.ts !== d.sql);
+    expect(differ.slice(0, 3)).toEqual([]);
   });
 
   it('[DI-35] only catalogue meanings can be challenged; a stale content version is refused', async () => {

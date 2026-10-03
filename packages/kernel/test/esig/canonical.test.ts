@@ -112,6 +112,41 @@ describe('canonical JSON: containers', () => {
   });
 });
 
+describe('canonical JSON: text no record can hold (review F31)', () => {
+  const holding = (what: string): string => `EBMR-ESIG-004 text holding ${what} has no canonical JSON form: no record can hold it`;
+
+  it('[DI-37] U+0000 has no canonical form: refused in a string and in a member name, at any depth, never written as \\u0000', () => {
+    expect(refusal(() => canonicalJson('a\u0000b')).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalJson('\u0000')).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalJson({ ['k\u0000']: '1' })).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalJson({ a: [{ b: 'Booth door\u0000 found open' }] })).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalEnvelope('t', 'i', '1', { justification: 'Reprinted\u0000 label checked' })).message).toBe(holding('U+0000'));
+    // Other control characters are text a record holds: written escaped, as before.
+    expect(canonicalJson('\u0001\u001f\u007f')).toBe('"\\u0001\\u001f\u007f"');
+  });
+
+  it('[DI-37] a surrogate without its other half has no canonical form and is named; a surrogate pair is one character and is kept', () => {
+    expect(refusal(() => canonicalJson('a\uD800b')).message).toBe(holding('an unpaired surrogate U+D800'));
+    expect(refusal(() => canonicalJson('Line stop \uDBFF')).message).toBe(holding('an unpaired surrogate U+DBFF'));
+    expect(refusal(() => canonicalJson('\uDC00 at the start')).message).toBe(holding('an unpaired surrogate U+DC00'));
+    expect(refusal(() => canonicalJson('a\uDFFFb')).message).toBe(holding('an unpaired surrogate U+DFFF'));
+    // A high surrogate followed by another high one, and a low one after a complete pair.
+    expect(refusal(() => canonicalJson('\uD83D\uD83D\uDE00')).message).toBe(holding('an unpaired surrogate U+D83D'));
+    expect(refusal(() => canonicalJson('\uD83D\uDE00\uDE00')).message).toBe(holding('an unpaired surrogate U+DE00'));
+    // Reversed halves are two lone surrogates; the first is named.
+    expect(refusal(() => canonicalJson('\uDE00\uD83D')).message).toBe(holding('an unpaired surrogate U+DE00'));
+    expect(refusal(() => canonicalJson({ ['\uD800']: 2, ['\uE000']: 1 })).message).toBe(holding('an unpaired surrogate U+D800'));
+    expect(refusal(() => canonicalJson(['ok', { k: ['x\uDBFF'] }])).message).toBe(holding('an unpaired surrogate U+DBFF'));
+    // The first character no record can hold is the one named.
+    expect(refusal(() => canonicalJson('a\uDC00\u0000')).message).toBe(holding('an unpaired surrogate U+DC00'));
+    expect(refusal(() => canonicalJson('a\u0000\uDC00')).message).toBe(holding('U+0000'));
+    // Well-formed text around the surrogate range, pairs, U+FFFD and the last code point are kept.
+    expect(canonicalJson('\uD7FF\uE000\uFFFD\uFFFF')).toBe('"\uD7FF\uE000\uFFFD\uFFFF"');
+    expect(canonicalJson({ ['\u{1F600}']: '\u{10FFFF}\u{10000}' })).toBe('{"\u{1F600}":"\u{10FFFF}\u{10000}"}');
+    expect(canonicalJson('\uD800\uDC00\uDBFF\uDFFF')).toBe('"\u{10000}\u{10FFFF}"');
+  });
+});
+
 describe('content envelope and hash', () => {
   it('[DI-37] the envelope is the canonical text of aggregate type, id, content version (a number) and content', () => {
     expect(canonicalEnvelope('esig_stub', 'id-1', '1', { value: '12.503', unit: 'kg' })).toBe(
