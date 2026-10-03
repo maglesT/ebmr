@@ -35,6 +35,7 @@ implemented_by:
     - "records.open_blockers: linked records, and records the person touched in the window, block disposition until closure"
     - "records.close_di_investigation: conclusion, remediation and an approver who is neither investigator nor subject; releases the holds"
     - "records.close_di_investigation accepts only the approver's own valid DI_INVESTIGATION_CLOSED signature of the investigation (di_investigation:<id>; EBMR-REC-065)"
+    - "tablets 0410 and 0420: a data-integrity investigation's content, signatures and audit chains are never served to the person it is about; the application role has no SELECT on the investigation tables"
   db_constraints:
     - "records.di_investigation, di_investigation_link, di_investigation_closure insert-only and audited; ebmr_app has SELECT only"
     - "check investigator_person <> subject_person_id and opened_by_person <> subject_person_id"
@@ -45,6 +46,14 @@ tests:
   - "packages/kernel/test/records/investigations.test.ts > [DI-50] the scoping report works for any person and period, across batches"
   - "packages/kernel/test/records/investigations.test.ts > [DI-50] investigation holds cannot be lifted except by closing the investigation, and its records cannot be written directly"
   - "packages/kernel/test/records/investigations.test.ts > [DI-50][DI-37] closing a DI investigation needs the approver's own DI_INVESTIGATION_CLOSED signature of that investigation"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-22][DI-50] the governance and audit roles (CSV/DI lead, auditor) read the governance chains and a colleague's activity"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-50] a colleague's activity across the trail (person filter) is refused to an operator; the session's own is served, from the chains it may read"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-50] the person a DI investigation is about neither lists its chain nor reads the investigator's activity or account chain"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-50] a QA reviewer may read the investigation's signatures, but its content is served by no signing flow of this installation"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-50] the person a DI investigation investigates gets nothing of it, neither its content nor its signatures"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] the application role no longer reads content, signatures or investigations around the session rule"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] the application role sees no signing request or signature of a GOVERNANCE-class record (row-level security); the owner sees them"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] with a session token it decides by the session's role and person (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

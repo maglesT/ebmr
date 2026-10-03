@@ -53,6 +53,8 @@ implemented_by:
     - "packages/kernel/sql/0620_continuity_device_hardening.sql"
     - "packages/site-services/sql/0600_batch_number_register.sql"
     - "packages/kernel/sql/0720_authorization_signatures.sql"
+    - "apps/tablets-server/sql/0410_signing_content_read.sql"
+    - "apps/tablets-server/sql/0420_audit_read.sql"
   invariants:
     - "INV-26"
   guards:
@@ -65,6 +67,8 @@ implemented_by:
     - "iam.platform_authority: the platform AUTHORITY hook over iam.evaluate_authority, for the validated actor in its declared role at its location; platform names map to catalogue codes (iam.platform_permission_code)"
     - "permission-to-role map in 0700_authorization_catalogue.sql (least privilege; catalogue rows attributed to the SOFTWARE_RELEASE identity in the audit trail)"
     - "approval signature types name the approving permissions (RECORD_TYPE_APPROVED, RECORD_DISPOSAL_APPROVED, DI_INVESTIGATION_CLOSED, RESTORE_APPROVED), so esig evaluates the same permission at signing"
+    - "tab.record_read_problem and tab.signing_preview_problem (tablets 0410): a session reads a RECORD-class record with RECORD.READ, a GOVERNANCE-class one (investigations, disposals, restores, any type not named) only in a governance or audit role, never an investigation about itself, and previews content only with a meaning its role signs (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)"
+    - "tab.audit_chains, tab.audit_events, tab.audit_chain_length and tab.audit_registry_chains (tablets 0420): the audit viewer serves only the chains the session's role may read, a person filter only on the session's own person unless the role is a governance one; the application role has no SELECT on the audit tables"
   db_constraints:
     - "grant scopes (site, area, product): a grant covers only its own scope, so data stay isolated between sites"
 tests:
@@ -96,6 +100,20 @@ tests:
   - "packages/site-services/test/authorization.test.ts > [DI-17] an operator cannot define a numbering rule, or allocate, register, void or recover a batch number; a service account registers but cannot allocate"
   - "packages/site-services/test/authorization.test.ts > [DI-17] batch numbers are authorised in their site and product scope: a site-limited issuer acts at its own site only, a product-limited issuer on its own product only"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-35][DI-17] the approval signature types name the approving permissions; RESTORE_APPROVED is a vendor minimum type"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-16] an operator on a kiosk reads no colleague's access chain (the grant revocation and its reason), and lists no account, person, badge or terminal chain"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-22][DI-50] the governance and audit roles (CSV/DI lead, auditor) read the governance chains and a colleague's activity"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-50] a colleague's activity across the trail (person filter) is refused to an operator; the session's own is served, from the chains it may read"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-50] the person a DI investigation is about neither lists its chain nor reads the investigator's activity or account chain"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the database (tablets 0420) > [DI-17][DI-22] the application role reads the audit trail only through the session-checked functions"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17] no role reads an investigation \"to be signed\" with a meaning it may not sign (MBR checker, master-data steward, operator)"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-37] on a shop-floor terminal the person who taps signs: the session previews a RECORD-class record for a meaning another person present signs"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-37] on an office terminal the content of a record is previewed only with a meaning the session's role signs; any record type the kernel provider does not sign here is refused"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-50] a QA reviewer may read the investigation's signatures, but its content is served by no signing flow of this installation"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-50] the person a DI investigation investigates gets nothing of it, neither its content nor its signatures"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] the application role no longer reads content, signatures or investigations around the session rule"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] the application role sees no signing request or signature of a GOVERNANCE-class record (row-level security); the owner sees them"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] with a session token it decides by the session's role and person (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)"
+  - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-17] a revoked office session reads nothing more: the next request ends it, and a new login of the account is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

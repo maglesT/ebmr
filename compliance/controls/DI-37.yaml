@@ -111,6 +111,8 @@ tests:
   - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37] the canonical order: exception ids by length then code point, deviations and yields by code point, in TypeScript as in SQL"
   - "packages/ui-kit/test/identity/signable-content.test.tsx > what is signed: the C3 rendering shapes > [DI-37][IN-15] F01: a stage shows its summary (statement, step counts, exceptions, deviations, yields) as part of the record to be signed"
   - "apps/tablets-web/test/floor/step-screen.test.tsx > signatures through the ceremony port > [DI-37][IN-15] F01: the stage sign-off is asked at the run version of the run view whose summary the dialog showed"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-37] on a shop-floor terminal the person who taps signs: the session previews a RECORD-class record for a meaning another person present signs"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: GET /api/esig/content and /api/esig/signatures read only what the session may read > [DI-17][DI-37] on an office terminal the content of a record is previewed only with a meaning the session's role signs; any record type the kernel provider does not sign here is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

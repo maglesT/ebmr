@@ -28,12 +28,15 @@ implemented_by:
     - "packages/kernel/src/identity/admin.ts"
     - "packages/kernel/sql/0120_iam_roles_grants.sql"
     - "packages/kernel/sql/0180_iam_lifecycle.sql"
+    - "apps/tablets-server/sql/0400_session_role_withdrawn.sql"
   guards:
     - "iam.role_grant_guard: requester, approver and grantee are three different persons; reason recorded; request, approval and revocation times from the database clock"
     - "iam.access_list(at): point-in-time list of persons, accounts, roles, permissions and scopes with the access-request record behind each row"
     - "iam.revoke_role_grant: effective at the revocation instant for commands and authority evaluations"
     - "iam.recertify_account and iam.recertification_due: reviewer, outcome, last activity and next due date; a REVOKED outcome revokes at once"
     - "iam.deactivate_account and iam.process_leaver: disable, revoke grants, end sessions, revoke credentials and badges in one transaction"
+    - "tab.resolve_session (tablets 0400): a session whose declared role is no longer granted now (revoked or past valid_to), or whose account holds no live role, resolves no role (state ROLE_WITHDRAWN); the server ends it at its next request (tab.end_withdrawn_session, ADMIN_TERMINATED)"
+    - "tab.keep_session_alive and tab.unlock_session (tablets 0400) refuse such a session (EBMR-TAB-017); the application role has no EXECUTE on iam.keep_session_alive and iam.unlock_session"
   db_constraints:
     - "iam.role_grant check constraints and guard trigger; grants audited on the account chain"
     - "iam.access_recertification insert-only and audited"
@@ -48,6 +51,12 @@ tests:
   - "packages/kernel/test/identity/access.test.ts > [DI-16] the role list as of a past date reconciles with the access-request records"
   - "packages/kernel/test/identity/access.test.ts > [DI-16][DI-18] the requester never approves, nobody approves their own grant, nobody requests a role for themselves"
   - "packages/kernel/test/identity/accounts.test.ts > [INV-27][DI-16] a rehired person keeps the same person record, needs a new identity check and gets a new login name"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-16] an operator on a kiosk reads no colleague's access chain (the grant revocation and its reason), and lists no account, person, badge or terminal chain"
+  - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the database, for a session whose role is withdrawn (tablets 0400) > [DI-16][DI-38] resolves no role (state ROLE_WITHDRAWN), refuses to extend or unlock it (EBMR-TAB-017), and ends it"
+  - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-17] a revoked office session reads nothing more: the next request ends it, and a new login of the account is refused"
+  - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-38] a session locked before the revocation is not unlocked with the person's own password, and keep-alive does not extend another"
+  - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-38] a time-limited grant (AUDITOR_READONLY) that passes its valid_to ends the session at its next request"
+  - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-38] on a kiosk, a revoked operator's session ends at its next request, the keep-alive tap included"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

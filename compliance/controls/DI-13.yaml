@@ -47,6 +47,8 @@ implemented_by:
     - "assertProductionConfig refuses non-TLS database URLs, non-HTTPS servers, plain-HTTP serving, weak cookies and plain-text integration endpoints"
     - "assertEncryptedDatabaseSession refuses a database session that pg_stat_ssl reports as not encrypted"
     - "esig.evidence_package: signature row, stored manifestation, authentication event (components, method, terminal, time; no secret, verifier or badge UID), identity-verification record, signer as at signing, authority and segregation evaluations, delegation, invalidation, seal with payload check, integrity problems and the audit chains of the record and its signatures with their verification"
+    - "installSecurity: an API request that carries this installation's session or CSRF cookie more than once is served as nobody (401 COOKIE_DUPLICATED) and the copies other pages set are removed; helmet's headers are set before the gate, and Fastify's framework errors carry them too (review F41, F43)"
+    - "sign-out-mark.ts: the mark of an unconfirmed sign-out is kept only in site storage and this origin's broadcast channel, never in a cookie other ports of the host can write (review F42)"
   db_constraints:
     - "continuity.device_hardening_attestation: PASS only if USB mass storage blocked, malware protection active, OS patched and (SHARED, GRADE_A_B) kiosk mode enforced; insert-only and audited"
     - "continuity.record_hardening_attestation: re-attestation interval 30-365 days"
@@ -67,6 +69,15 @@ tests:
   - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] the postgresql.conf template turns TLS on with TLS 1.2 or later and SCRAM hashing"
   - "packages/kernel/test/esig/integrity.test.ts > [DI-13] for a sampled signature the evidence package can be produced: identity verification, authentication event, manifestation, audit trail and seal"
   - "packages/kernel/test/esig/integrity.test.ts > [DI-13] the package of a superseded signature shows the invalidation and the change that caused it"
+  - "apps/tablets-server/test/platform/security.test.ts > a cookie of this installation sent more than once > [DI-13] a doubled CSRF cookie is refused too, and the sandbox refuses its own doubled cookie"
+  - "apps/tablets-server/test/platform/security.test.ts > a cookie of this installation sent more than once > [DI-13][DI-38] is served as nobody, whichever value comes first: no session swap and no session from a planted value"
+  - "apps/tablets-server/test/platform/security.test.ts > a cookie of this installation sent more than once > [DI-13][DI-38] the answer removes the copies other pages set at every path of the request, never the server's own cookie at /"
+  - "apps/tablets-server/test/platform/security.test.ts > request checks > [DI-13] the answers the security gate sends itself carry every security header, in both installations"
+  - "apps/tablets-web/test/api.test.ts > a request refused as COOKIE_DUPLICATED > [DI-13] is retried only once, and no other refusal is retried"
+  - "apps/tablets-web/test/api.test.ts > a request refused as COOKIE_DUPLICATED > [DI-13][DI-38] is sent once more, with the same method, headers and body, and the second answer is the answer"
+  - "apps/tablets-web/test/app/sign-out-screen.test.tsx > F42: what another port of the host can write is no sign-out mark > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the session"
+  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the GMP session"
+  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted by a page on another port neither locks the person out nor swaps their session"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

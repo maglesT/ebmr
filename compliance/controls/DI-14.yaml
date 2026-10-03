@@ -99,6 +99,10 @@ tests:
   - "tools/e2e/specs/access/access.spec.ts > [DI-38][DI-14][INV-40] the kiosk locks; its own person unlocks with badge and PIN; the next person switches in with badge and PIN"
   - "apps/tablets-web/test/access/ceremony-person-change.test.tsx > F39: a signing ends when another person is signed in, whatever the path (INV-40, DI-38, DI-14) > [INV-40][DI-38][DI-14] the lock button, then \"Switch user\" on the lock screen: Priya's signing ends with nothing signed; her decision is never challenged or signed under Kavya"
   - "apps/tablets-web/test/access/ceremony-person-change.test.tsx > F39: a signing ends when another person is signed in, whatever the path (INV-40, DI-38, DI-14) > [INV-40][DI-38][DI-14] an idle lock the session poll sees, then \"Switch user\" on the lock screen: the same"
+  - "apps/tablets-web/test/app/sign-out-screen.test.tsx > F42: what another port of the host can write is no sign-out mark > [DI-38][DI-14] control: a sign-out another tab of this origin announces on its channel is joined at once, without site storage"
+  - "apps/tablets-web/test/app/sign-out-screen.test.tsx > F42: what another port of the host can write is no sign-out mark > [DI-38][DI-14] where site storage throws, deleting a page-readable cookie does not make a pending sign-out look finished: the retry still ends the session"
+  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted by a page on another port neither locks the person out nor swaps their session"
+  - "apps/tablets-server/test/session/sign-out.test.ts > P5: the mark of an unconfirmed sign-out across a real reload > [DI-38][DI-14] when site storage throws (e.g. site data blocked), a real reload fails closed and never shows the previous user; no page-readable cookie keeps a mark"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
