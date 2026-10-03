@@ -9,7 +9,9 @@
  *  - `badge.tap(page, persona)`, `pin.enter(page, pin)`;
  *  - `api(installation)`: the typed contract client against the running server (same-origin headers);
  *  - `axe.check(page)`: WCAG 2.2 AA, zero serious or critical findings;
- *  - `evidence.step(title, expected, fn)`: a test step with a screenshot for the evidence reporter;
+ *  - `evidence.step(title, expected, fn, page?)`: a test step with a screenshot for the evidence reporter. The record
+ *    never states the expected text as observed: `fn` may return the facts it measured (`observed`: a status, a
+ *    code, a row count), and the reporter lists the assertions the step made (reporters/evidence-reporter.ts);
  *  - `dcMiniPackage.get()`: a dc-mini test package exported from GMP by this worker's MBR author through the real
  *    designer API, in the sandbox exchange inbox (worker-scoped; see test-package.ts);
  *  - `withSimulator(state, work)`: the shared scale simulator, one spec at a time across workers;
@@ -144,8 +146,11 @@ interface Fixtures {
   officePage: (installation: Installation, terminal?: string) => Promise<Page>;
   kioskPage: (terminal: string) => Promise<Page>;
   api: (installation: Installation) => ApiClient;
-  evidence: { step: (title: string, expected: string, fn: () => Promise<void>, page?: Page) => Promise<void> };
+  evidence: { step: (title: string, expected: string, fn: () => Promise<Observed | void>, page?: Page) => Promise<void> };
 }
+
+/** Facts a step measured itself (a status, a refusal code, a row count before and after), recorded as observed. */
+export type Observed = Readonly<Record<string, string | number | boolean | null>>;
 
 interface WorkerFixtures {
   e2e: E2eWorld;
@@ -219,11 +224,13 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
     await use({
       step: async (title, expected, fn, page) => {
         const started = new Date().toISOString();
-        await base.step(title, fn);
+        // What the step measured, if it says; the reporter adds the assertions it made and the actual result from
+        // them. Nothing here may state the expected text as observed (review F28).
+        const observed = (await base.step(title, fn)) ?? null;
         const shotPath = page ? testInfo.outputPath(`evidence-${testInfo.attachments.length + 1}.png`) : undefined;
         if (page && shotPath) await page.screenshot({ path: shotPath, fullPage: false });
         await testInfo.attach(`evidence: ${title}`, {
-          body: JSON.stringify({ title, expected, actual: 'as expected', started, finished: new Date().toISOString(), screenshot: shotPath ?? null }),
+          body: JSON.stringify({ title, expected, observed, started, finished: new Date().toISOString(), screenshot: shotPath ?? null }),
           contentType: 'application/json',
         });
         if (shotPath) await testInfo.attach(`screenshot: ${title}`, { path: shotPath, contentType: 'image/png' });
