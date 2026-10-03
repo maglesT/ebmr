@@ -255,6 +255,41 @@ function roleWithdrawn(session: ResolvedSession): Error {
   });
 }
 
+/**
+ * The session gate of a route of `auth: 'SESSION'` (DI-16, DI-38): throws the refusal a request of route `routeId` gets
+ * with `session` (no session, a session ended, expired, locked or without a role), or returns the session it may serve.
+ * DI-16 (tablets 0400, review F36): a session whose role was revoked or has expired ends here, on every route (reads,
+ * keep-alive, unlock and session.get included); the person signs in again in a role they hold. Also asked again by an
+ * open stream (devices.live), so a stream follows its session as each new request does (SSE-SESSION).
+ */
+export async function admitSession(app: AppContext, routeId: string, session: ResolvedSession | null): Promise<ResolvedSession> {
+  if (session?.state === 'ROLE_WITHDRAWN') {
+    await app.pools.app.query('select tab.end_withdrawn_session($1)', [session.tokenHash]);
+    throw roleWithdrawn(session);
+  }
+  if (!session || session.state === 'ENDED' || session.state === 'EXPIRED' || session.state === 'UNKNOWN') throw noSession();
+  if ((session.state === 'LOCKED' || session.state === 'IDLE_LOCKED') && !ALLOWED_WHEN_LOCKED.has(routeId)) {
+    throw refusal(423, {
+      code: 'SESSION_LOCKED',
+      kind: 'LOCKED',
+      whatHappened: 'This session is locked.',
+      why: session.state === 'IDLE_LOCKED' ? 'The terminal was idle longer than the lock time.' : 'The session was locked.',
+      controls: ['DI-38'],
+      whatYouCanDo: ['Unlock it with your own credentials, or sign in as another person.'],
+    });
+  }
+  if (session.roleCode === null && !ALLOWED_WITHOUT_ROLE.has(routeId)) {
+    throw refusal(409, {
+      code: 'ROLE_CHOICE_REQUIRED',
+      kind: 'NOT_ALLOWED',
+      whatHappened: 'Choose the role you are working in before you continue.',
+      whatYouCanDo: ['Pick one of your roles.'],
+      details: { roles: session.roles.join(',') },
+    });
+  }
+  return session;
+}
+
 export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, app: AppContext, ns: NS, handlers: Handlers<NS>, opts: BindOptions = {}): string[] {
   const typed = scope.withTypeProvider<ZodTypeProvider>();
   const registered: string[] = [];
@@ -270,33 +305,8 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
     const sessionGate: preHandlerAsyncHookHandler = async (request) => {
       const session = await sessionOf(app, request);
       if (route.auth !== 'SESSION') return;
-      // DI-16 (tablets 0400, review F36): the role the session works in was revoked or has expired. The session ends here,
-      // on every route (reads, keep-alive, unlock and session.get included); the person signs in again in a role they hold.
-      if (session?.state === 'ROLE_WITHDRAWN') {
-        await app.pools.app.query('select tab.end_withdrawn_session($1)', [session.tokenHash]);
-        request.ebmrSession = null;
-        throw roleWithdrawn(session);
-      }
-      if (!session || session.state === 'ENDED' || session.state === 'EXPIRED' || session.state === 'UNKNOWN') throw noSession();
-      if ((session.state === 'LOCKED' || session.state === 'IDLE_LOCKED') && !ALLOWED_WHEN_LOCKED.has(route.id)) {
-        throw refusal(423, {
-          code: 'SESSION_LOCKED',
-          kind: 'LOCKED',
-          whatHappened: 'This session is locked.',
-          why: session.state === 'IDLE_LOCKED' ? 'The terminal was idle longer than the lock time.' : 'The session was locked.',
-          controls: ['DI-38'],
-          whatYouCanDo: ['Unlock it with your own credentials, or sign in as another person.'],
-        });
-      }
-      if (session.roleCode === null && !ALLOWED_WITHOUT_ROLE.has(route.id)) {
-        throw refusal(409, {
-          code: 'ROLE_CHOICE_REQUIRED',
-          kind: 'NOT_ALLOWED',
-          whatHappened: 'Choose the role you are working in before you continue.',
-          whatYouCanDo: ['Pick one of your roles.'],
-          details: { roles: session.roles.join(',') },
-        });
-      }
+      if (session?.state === 'ROLE_WITHDRAWN') request.ebmrSession = null;
+      await admitSession(app, route.id, session);
     };
     preHandlers.push(sessionGate);
     if (nonGet && route.auth === 'SESSION') preHandlers.push((request, reply, done) => scope.csrfProtection(request, reply, done));

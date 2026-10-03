@@ -85,6 +85,7 @@ tests:
   - "packages/kernel/test/mutation/segregation-and-grants.test.ts > a permission reaches a role only through an approved request or a software release (DI-16, DI-18) > [DI-16][DI-18] a decision names a real request, and only an explicit approval adds the permission: an undecided (NULL) decision rejects it"
   - "packages/kernel/test/mutation/segregation-and-grants.test.ts > a permission reaches a role only through an approved request or a software release (DI-16, DI-18) > [DI-18][DI-16] bypass: an approval given once, for this role or another, never lets the table owner add the permission again without a new approved request"
   - "packages/kernel/test/mutation/segregation-and-grants.test.ts > a permission reaches a role only through an approved request or a software release (DI-16, DI-18) > [DI-18][DI-16] outside a command only the software-release identity adds a permission to a role: without an actor, or as anyone else, the owner is refused"
+  - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-16][DI-38] the role the session works in is withdrawn: the stream ends (NO_SESSION, the role revoked) and the session with it"
 clauses:
   - clause: "Produce the role list as of a past date and reconcile it with the access-request records."
     tests:

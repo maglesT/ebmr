@@ -38,6 +38,8 @@ implemented_by:
     - "packages/ui-kit/src/machines/kiosk-lock.ts"
     - "packages/ui-kit/src/identity/LockOverlay.tsx"
     - "packages/ui-kit/src/identity/BadgePrompt.tsx"
+    - "apps/tablets-server/src/platform/http/bind.ts (admitSession: the session gate of every request, asked again by open streams)"
+    - "apps/tablets-server/src/features/devices/routes.ts (live display stream: ends when its session no longer serves it)"
   invariants:
     - "INV-10"
   guards:
@@ -46,6 +48,7 @@ implemented_by:
     - "esig.continuous_session_start: the continuous session restarts at every lock or unlock (an inactivity timeout ends in an unlock); a terminal change is a new session"
     - "iam.consume_auth_event (called by esig.sign): the event is the signer's own, bound to this challenge, fresh and unused; the performer's authentication never supplies another person's signature (EBMR-IAM-093)"
     - "esig.set_policy: policy values changed only by the quality unit with a reason and a change-control reference, within their allowed ranges"
+    - "devices.live (SSE-SESSION): an open live display asks the session gate again every 2 s (tab.resolve_session through admitSession) and ends, naming the refusal, once the session is locked (by the person or the idle time), signed out, switched, expired or works in a role no longer granted (which ends the session too); the database decides the session's state"
   db_constraints:
     - "esig.meaning_type checks: master-record and release types are ALL_COMPONENTS"
     - "esig.policy_value: insert-only and audited"
@@ -187,6 +190,11 @@ tests:
   - "packages/ui-kit/test/identity/secret-inputs.test.tsx > review P1: handed-over secrets stay cleared > [INV-40][DI-38] badge prompt: a badge UID typed and then cancelled is cleared and never handed over"
   - "packages/ui-kit/test/machines/ceremony.test.ts > ceremony machine paths > [INV-40][DI-38] a tap by another person offers the switch; after it the ceremony ends with nothing signed, so the new person starts their own signing"
   - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
+  - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-38] a stream whose session still serves it keeps running past several re-checks"
+  - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-38] the person locks the kiosk: the stream ends (SESSION_LOCKED), and opening it again is refused (423)"
+  - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-38] the kiosk is idle longer than the lock time: the stream ends (SESSION_LOCKED)"
+  - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-38] the person signs out: the stream ends (NO_SESSION), and opening it again is refused (401)"
+  - "apps/tablets-server/test/devices/live-session.test.ts > SSE-SESSION: an open live display follows its session as each new request does > [DI-16][DI-38] the role the session works in is withdrawn: the stream ends (NO_SESSION, the role revoked) and the session with it"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

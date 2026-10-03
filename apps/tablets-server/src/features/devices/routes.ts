@@ -9,7 +9,10 @@
  *    review finding P51); any answer of the gateway records it reachable;
  *  - GET  /api/devices/scales/:code/live      SSE relay of the gateway's live display ("live, not recorded"); an
  *    open stream ends when the site policy site.zone changes while the server runs, and the browser's reconnect is
- *    refused like every API request (SITE_ZONE_CHANGED, DI-27).
+ *    refused like every API request (SITE_ZONE_CHANGED, DI-27). It also follows its session as each new request does
+ *    (SSE-SESSION; DI-38, DI-16): every LIVE_SESSION_RECHECK_MS the session gate is asked again, and the stream ends,
+ *    with an `end` event naming the refusal, once the session is locked (by the person or by the idle time), signed
+ *    out, switched to another person, expired, or works in a role no longer granted (which ends the session too).
  * The browser never supplies a value, a device or a time: everything in a ReadingView comes from the reading row.
  * Capture and live display are for the scale of the terminal's own room only (DI-20).
  */
@@ -17,9 +20,10 @@ import type { FastifyInstance } from 'fastify';
 import { routes, type ReadingView } from '@ebmr/api-contract';
 import type { LiveSample } from '@ebmr/integration-sdk/scale';
 import type { AppContext } from '../../platform/context.ts';
-import { bindRoutes, type HandlerContext } from '../../platform/http/bind.ts';
-import { refusal } from '../../platform/http/refusal.ts';
-import type { ResolvedSession } from '../../platform/auth/session.ts';
+import { admitSession, bindRoutes, type HandlerContext } from '../../platform/http/bind.ts';
+import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
+import { resolveSession, type ResolvedSession } from '../../platform/auth/session.ts';
+import { SITE_ZONE_CHANGED } from '../../platform/site-zone.ts';
 import { DEVICES_GUIDANCE } from './guidance.ts';
 import { scaleStatusRows, scaleStatuses, type ScaleStatusRow } from './port.ts';
 import { runtimeOf } from './runtime.ts';
@@ -122,6 +126,34 @@ async function capture(ctx: HandlerContext<typeof routes.devices.capture>): Prom
   return view;
 }
 
+/**
+ * How often an open live display asks the session gate again (SSE-SESSION): the most a stream outlives a lock, a
+ * sign-out or a withdrawn role. One indexed read of the session binding per open stream; a terminal shows at most a few.
+ */
+export const LIVE_SESSION_RECHECK_MS = 2_000;
+
+/** Why the server ends an open live display (the `end` event's data): a refusal's code and texts. */
+export interface LiveStreamEnd {
+  code: string;
+  whatHappened?: string;
+  why?: string;
+}
+
+/**
+ * Why an open live display of session `tokenHash` must end now: the refusal a new request of the stream's route would
+ * get (admitSession, the request gate itself), or null while the session still serves it. A database that cannot be
+ * asked ends the stream too (fail closed).
+ */
+export async function liveStreamEnd(app: AppContext, tokenHash: string): Promise<LiveStreamEnd | null> {
+  try {
+    await admitSession(app, routes.devices.live.id, await resolveSession(app.pools.app, tokenHash));
+    return null;
+  } catch (error) {
+    if (error instanceof HttpRefusal) return { code: error.refusal.code, whatHappened: error.refusal.whatHappened, why: error.refusal.why };
+    return { code: 'SESSION_NOT_CHECKED', whatHappened: 'The session could not be checked, so the live display ended.' };
+  }
+}
+
 async function live(ctx: HandlerContext<typeof routes.devices.live>): Promise<LiveSample> {
   const app = ctx.app;
   const session = ctx.requireSession();
@@ -138,27 +170,45 @@ async function live(ctx: HandlerContext<typeof routes.devices.live>): Promise<Li
     'x-ebmr-installation': app.installation,
     'x-content-type-options': 'nosniff',
   });
+  let ended = false;
   const send = (sample: LiveSample) => {
-    if (!raw.writableEnded) raw.write(`data: ${JSON.stringify(sample)}\n\n`);
+    if (!ended && !raw.writableEnded) raw.write(`data: ${JSON.stringify(sample)}\n\n`);
   };
   send(first);
   const unsubscribe = runtimeOf(app).live.subscribe(scale.gatewayCode, scale.deviceCode, send);
   const keepAlive = setInterval(() => {
     if (!raw.writableEnded) raw.write(': keep-alive\n\n');
   }, 15_000);
-  let ended = false;
   let offZoneChange = (): void => undefined;
-  const end = () => {
+  // SSE-SESSION (DI-38, DI-16): the session is asked again while the stream is open, as each new request would ask it.
+  let checking = false;
+  const recheck = setInterval(() => {
+    if (checking || ended) return;
+    checking = true;
+    void liveStreamEnd(app, session.tokenHash)
+      .then((why) => {
+        if (why !== null) end(why);
+      })
+      .finally(() => {
+        checking = false;
+      });
+  }, LIVE_SESSION_RECHECK_MS);
+  /** Ends the stream; `why` says why when the server ends it (an `end` event; the browser shows no more samples). */
+  const end = (why?: LiveStreamEnd) => {
     if (ended) return;
     ended = true;
     clearInterval(keepAlive);
+    clearInterval(recheck);
     unsubscribe();
     offZoneChange();
-    if (!raw.writableEnded) raw.end();
+    if (!raw.writableEnded) {
+      if (why !== undefined) raw.write(`event: end\ndata: ${JSON.stringify(why)}\n\n`);
+      raw.end();
+    }
   };
-  raw.once('close', end);
+  raw.once('close', () => end());
   // DI-27: after a change of the site's time zone the server shows nothing until it restarts; the stream ends too.
-  offZoneChange = app.siteZone.onChange(end);
+  offZoneChange = app.siteZone.onChange(() => end({ code: SITE_ZONE_CHANGED }));
   // The reply is hijacked, so bindRoutes sends nothing more; the stream ends when the browser leaves.
   return first;
 }
