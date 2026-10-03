@@ -1586,3 +1586,26 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Round 2 (regressions): the limit module's README still documented operatorMayClear, which F13 removed; it now
   says the operator cannot clear a breach because the engine (ENG-ROLE) and the database's QA permission refuse it,
   and recipe-core limits/readme.test.ts fails on any name in the README that the module's code does not have.
+- 2026-10-02: PHASE 2 EXIT FIX, E2E claims and the control register (branch phase-2/recipe-core; findings F26, F27,
+  F28, F14 and F15 of the exit review; each fix with a test that fails on the code before it). What was wrong: the
+  E2E evidence record wrote every passed step's expected text as its observed result ("as expected"), so the
+  validation pack stated results nobody measured; the kiosk no-tap test claimed "records nothing" without reading
+  the database, on an entry that did not exist; the other-room [DI-20] test checked only the screen text and an
+  anonymous request, and still passed with the server's room gate removed; two package steps claimed a write-once
+  file they never checked; the register never checked the tests a control lists (four named tests that no longer
+  existed; DI-20 listed 28 of its tests) and counted one tagged test as proof of a whole catalog test, with
+  deferrals kept only in PROGRESS.md. What changed: the evidence record lists the assertions each step made (with
+  source lines and outcomes) and the facts it measured, and says "not checked" for a step that asserted nothing;
+  access.spec sends its tapless signing request for a stub entry that exists and compares challenges, audit
+  entries and authentication events before and after; devices.spec asks the server, from the BLEND-1 session, for a capture from and the live view of
+  TEST-BAL-01 (403 SCALE_NOT_IN_ROOM, no reading added); `register validate` refuses a listed test its file does
+  not declare and the trace one the run did not report or did not run; every control due by Phase 2 maps its
+  catalog test, word for word, to clauses with listed tests or a deferral to a later phase (`clauses`,
+  `deferred_scope`), and the trace fails a clause with no passing test and no deferral, or a deferral whose phase
+  has started; a control with anything deferred is SPECIFIED (PR-05 and DI-12 went back). Deferred: PR-01
+  packaging orders, DI-04 PLC mismatch, DI-13 formula permission (owner question), DI-24 delete/void offer, IN-02
+  deviation classification, DI-33 reprocessing (Phase 3); DI-34 disposition before review, PR-07 repeated
+  deviations, PR-08 release screen, DI-12 disposition screen, DI-24 review list and PDF (Phase 4); PR-05 dashboard
+  (Phase 6). Tests: e2e evidence-record and spec-claims; register listed-tests-and-clauses and register. Playwright
+  access, devices (also failing with the room gate removed, where the old test passed) and designer: passed.
+  Defaults F14.1-F14.5, F15.1, F15.2 and F28.1 are in docs/decisions/phase-2-open-questions.md.
