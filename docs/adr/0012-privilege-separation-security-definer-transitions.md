@@ -47,11 +47,14 @@
    entries it writes on the held records' chains, and the account and person chains and the activity of the persons who
    opened and lead it. Review round 3, tablets 0460: the application role no longer asks the kernel what blocks a
    record (`records.open_blockers` and the disposition flag, disposal refusals, retention status and blocker counter
-   built on it), which named the investigation and its concern for the account of the person investigated. Not closed
-   in Phase 2: the application role still selects the identity, incident, retention and continuity tables directly
-   (owner residual F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read
-   several of them as that role; moving those reads behind session-checked functions is a kernel change for both
-   editions.
+   built on it), which named the investigation and its concern for the account of the person investigated. Tablets
+   0470: nor who acted on a chain or a row (`iam.chain_persons`, `iam.record_entry_persons`), whether a chain exists
+   (`kernel.checkpoint_chain`), the entries written during a time fault, or the persons excluded from a signing
+   (`iam.segregation_evaluation`); and the verification of a chain no longer names to the person investigated the
+   accounts and terminals of the entries withheld from them. Not closed in Phase 2: the application role still selects
+   the identity, incident, retention and continuity tables directly (owner residual F34.2 in
+   docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read several of them as that
+   role; moving those reads behind session-checked functions is a kernel change for both editions.
 
 ## Consequences
 

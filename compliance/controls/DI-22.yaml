@@ -75,6 +75,8 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-22][DI-50] the governance and audit roles (CSV/DI lead, auditor) read the governance chains and a colleague's activity"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the database (tablets 0420) > [DI-17][DI-22] the application role reads the audit trail only through the session-checked functions"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's other doors to the audit trail (tablets 0430) > [DI-17][DI-22][DI-50] without a session the application role reads no chain whole, no person's activity, no scoping report and no list of the chains, on either installation"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-22][DI-50] the verification of a chain the subject reads names to them neither the account nor the terminal of an entry withheld from them, nor the chains of the persons who opened and lead it; the lead's names them (tablets 0470)"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's readers of who acted on a chain (tablets 0470) > [DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

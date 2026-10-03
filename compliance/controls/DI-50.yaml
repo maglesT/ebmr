@@ -31,6 +31,7 @@ implemented_by:
     - "packages/kernel/sql/0720_authorization_signatures.sql"
     - "apps/tablets-server/sql/0440_investigation_subject_reads.sql"
     - "apps/tablets-server/sql/0460_disposition_blocker_reads.sql"
+    - "apps/tablets-server/sql/0470_audit_actor_readers.sql"
   guards:
     - "records.investigation_scope / records.person_activity: every record the person created or changed in the window, from the audit trail"
     - "records.open_di_investigation: links and holds every record in scope; person investigated cannot open or lead it"
@@ -42,6 +43,7 @@ implemented_by:
     - "tab.withheld_from, tab.chain_read_problem, tab.audit_chains and tab.audit_events (tablets 0440): whatever their role, the person a data-integrity investigation is about neither lists nor reads its chains, the hold chains it creates, the hold entries on the held records' chains, or the account and person chains and activity of the persons who opened and lead it (EBMR-TAB-020)"
     - "tablets 0450: without a session the application role selects no disposal approval, tombstone, restore or restore approval and runs neither integrity list of signatures, so it finds no id of a GOVERNANCE-class signature to ask esig.signature_state about"
     - "tablets 0460: without a session the application role asks the kernel nothing about what blocks a record (records.open_blockers, has_disposition_blockers, disposal_refusals, retention_of, lock_blocker_epoch) and selects neither the blocker counters nor the retention status view, so it cannot list the persons under investigation and their concern"
+    - "tablets 0470: without a session the application role runs none of the kernel's readers of who acted on a chain or a row (iam.chain_persons, iam.record_entry_persons), of whether a chain exists (kernel.checkpoint_chain) or of the entries of a time fault, and selects no segregation evaluation; tab.audit_registry_chains names to the person an investigation is about neither the account and terminal of an entry withheld from them nor a chain withheld from them"
   db_constraints:
     - "records.di_investigation, di_investigation_link, di_investigation_closure insert-only and audited; ebmr_app has SELECT only"
     - "check investigator_person <> subject_person_id and opened_by_person <> subject_person_id"
@@ -68,6 +70,8 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the database refuses the subject's session each of them (EBMR-TAB-020) and drops the hold entries from a record's chain"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50] the application role finds no id of a GOVERNANCE-class signature to ask the kernel about: no disposal approval, tombstone, restore or restore approval, and no integrity list of signatures (tablets 0450)"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: what blocks a record's release or disposal (tablets 0460) > [DI-17][DI-50] without a session the application role learns nothing of an investigation from what blocks a record: no blockers, no disposition flag, no disposal refusals, no retention status, no blocker counter, on either installation"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-22][DI-50] the verification of a chain the subject reads names to them neither the account nor the terminal of an entry withheld from them, nor the chains of the persons who opened and lead it; the lead's names them (tablets 0470)"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's readers of who acted on a chain (tablets 0470) > [DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

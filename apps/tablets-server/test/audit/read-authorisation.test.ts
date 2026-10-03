@@ -319,4 +319,78 @@ describe('F35: the person a DI investigation is about, in a governance role (tab
     expect(leadRows.filter((r: { payload: unknown }) => /DI_INVESTIGATION|hold_id|investigation_id/.test(JSON.stringify(r.payload)))).toHaveLength(3);
     expect(own.filter((r) => /hold_id|investigation_id/.test(JSON.stringify(r.payload)))).toEqual([]);
   });
+
+  it('[DI-17][DI-22][DI-50] the verification of a chain the subject reads names to them neither the account nor the terminal of an entry withheld from them, nor the chains of the persons who opened and lead it; the lead\'s names them (tablets 0470)', async () => {
+    const h = hashOf(gmp, subjectBrowser);
+    const leadHash = hashOf(gmp, leadBrowser);
+    const registry = async (token: string, chainKey: string): Promise<string[]> =>
+      (await gmp.db.app.query<{ c: string }>('select c from tab.audit_registry_chains($1, $2) c', [token, chainKey])).rows.map((r) => r.c);
+    // A colleague who runs no part of the investigation notes it on the subject's record, from a design-office terminal.
+    const checker = personaOf(gmp.seed, 'checker');
+    const office = terminalOf(gmp.seed, 'PC-DESIGN-01');
+    await withCommand(gmp.db.app, reason(await passwordActor(gmp.db, { ...checker }, office.fingerprint)), (c) =>
+      c.query('select kernel.audit_business_event($1, $2, $3)', [`esig_stub:${stub}`, 'record copied to the case file', JSON.stringify({ investigation_id: investigation })]),
+    );
+    const qaTerminal = `device:${terminalOf(gmp.seed, 'PC-QA-01').deviceId}`;
+    // The lead (not the subject of it) is named the account and terminal of every entry on the record's chain.
+    expect(await registry(leadHash, `esig_stub:${stub}`)).toEqual(
+      expect.arrayContaining([`account:${subject.accountId}`, `account:${lead.accountId}`, `account:${checker.accountId}`, qaTerminal, `device:${office.deviceId}`]),
+    );
+    // The subject: their own entry's account and terminal only; not the colleague's withheld note (account, terminal),
+    // and not the lead's account, withheld from them, although the lead also wrote an entry they read.
+    expect((await registry(h, `esig_stub:${stub}`)).sort()).toEqual([`account:${subject.accountId}`, qaTerminal].sort());
+    // On the subject's own account chain the lead's hold entry is left out, and with it the lead's account.
+    expect(await registry(leadHash, `account:${subject.accountId}`)).toContain(`account:${lead.accountId}`);
+    const own = await registry(h, `account:${subject.accountId}`);
+    expect(own.length).toBeGreaterThan(0);
+    expect(own).not.toContain(`account:${lead.accountId}`);
+    expect(own).not.toContain(`account:${investigator.accountId}`);
+    // The route still verifies the record's chain for the subject.
+    const verified = await subjectBrowser.call(routes.audit.verifyChain, { params: { chainKey: `esig_stub:${stub}` } });
+    expect(outcome(verified)).toBe('ok');
+    expect(JSON.stringify(verified)).not.toMatch(new RegExp(`${lead.accountId}|${checker.accountId}|${office.deviceId}`));
+  });
+});
+
+/**
+ * Round 3 of F35: with no session token the application role still had the kernel's readers of who acted on a chain
+ * (iam.chain_persons: on an investigation's chain or the hold chain of the account it holds, the person who opened it;
+ * on an account's chain, everyone who acted on it), on a row (iam.record_entry_persons), whether a chain exists
+ * (kernel.checkpoint_chain refuses only a chain with no entries: tried on record_hold:account:<id> for each account, it
+ * named the persons investigated), every entry of a time fault with its chain (platform.entries_in_time_fault_windows),
+ * and the persons excluded from each signing (iam.segregation_evaluation: for a closure, the opener and the lead).
+ * Tablets 0470 takes them away from the application role on both installations; the owner's tools still run them.
+ */
+describe('F35: the application role\'s readers of who acted on a chain (tablets 0470)', () => {
+  it('[DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does', async () => {
+    const chain = `di_investigation:${investigationId}`;
+    // The owner's tools: the lead opened the investigation (its chain and its row).
+    expect((await gmp.db.admin.query<{ p: string[] }>('select iam.chain_persons($1)::text[] as p', [chain])).rows[0]?.p).toContain(lead.personId);
+    expect((await gmp.db.admin.query<{ p: string[] }>("select iam.record_entry_persons('records.di_investigation', $1)::text[] as p", [investigationId])).rows[0]?.p).toContain(lead.personId);
+    expect((await gmp.db.admin.query('select count(*)::int as n from platform.entries_in_time_fault_windows()')).rows).toHaveLength(1);
+    expect((await gmp.db.admin.query('select count(*)::int as n from iam.segregation_evaluation')).rows).toHaveLength(1);
+    const owner = await gmp.db.admin.connect();
+    try {
+      await owner.query('begin');
+      expect((await owner.query('select kernel.checkpoint_chain($1, $2) as id', [chain, 'review F35 test'])).rows).toHaveLength(1);
+    } finally {
+      await owner.query('rollback');
+      owner.release();
+    }
+    // The application role, without a session, on GMP and in the sandbox (sandbox.mirror_application_privileges).
+    for (const server of [gmp, sbx]) {
+      const account = server === gmp ? personaOf(gmp.seed, 'author').accountId : personaOf(sbx.seed, 'verifier2').accountId;
+      const id = server === gmp ? investigationId : randomUUID();
+      for (const [sqlText, args] of [
+        ['select iam.chain_persons($1)', [`di_investigation:${id}`]],
+        ['select iam.chain_persons($1)', [`account:${account}`]],
+        ["select iam.record_entry_persons('records.di_investigation', $1)", [id]],
+        ['select kernel.checkpoint_chain($1, $2)', [`record_hold:account:${account}`, 'probe']],
+        ['select * from platform.entries_in_time_fault_windows()', []],
+        ['select subject, excluded_persons from iam.segregation_evaluation', []],
+      ] as const) {
+        await expect(server.db.app.query(sqlText, [...args]), `${server.kind}: ${sqlText} ${JSON.stringify(args)}`).rejects.toThrow(/permission denied/);
+      }
+    }
+  });
 });
