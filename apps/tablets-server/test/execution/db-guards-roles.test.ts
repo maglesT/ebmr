@@ -8,7 +8,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { identity, withCommand } from '@ebmr/kernel';
+import { identity, toDbContext, withCommand } from '@ebmr/kernel';
 import { execution } from '@ebmr/recipe-core';
 import { openPersonaSession, passwordActor } from '@ebmr/test-kit';
 import type pg from 'pg';
@@ -69,6 +69,27 @@ async function evaluate(c: pg.PoolClient, who: { personId: string; accountId: st
   const e = rows[0]?.e;
   if (!e?.allowed) throw new Error(`SETUP: the evaluation of ${permission} was not allowed: ${JSON.stringify(e)}`);
   return e.evaluation_id;
+}
+
+/** iam.evaluate_authority's whole answer, allowed or not (now, inside the command). */
+async function evaluation(c: pg.PoolClient, who: { personId: string; accountId: string }, permission: string, scope: Record<string, string>, role: string | null): Promise<{ allowed: boolean; evaluation_id: string; role_code: string | null; reasons: string[] }> {
+  const { rows } = await c.query<{ e: { allowed: boolean; evaluation_id: string; role_code: string | null; reasons: string[] } }>(
+    'select iam.evaluate_authority($1::uuid, $2::uuid, $3, $4::jsonb, clock_timestamp(), $5) as e',
+    [who.personId, who.accountId, permission, JSON.stringify(scope), role],
+  );
+  const e = rows[0]?.e;
+  if (!e) throw new Error(`SETUP: no evaluation of ${permission}`);
+  return e;
+}
+
+/** Each outcome against its pattern: the mismatches, with the outcome itself. */
+function unmatched(outcomes: Readonly<Record<string, string>>, expected: Readonly<Record<string, RegExp>>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, want] of Object.entries(expected)) {
+    const got = outcomes[k] ?? '(no outcome)';
+    if (!want.test(got)) out[k] = `${got} (expected ${String(want)})`;
+  }
+  return out;
 }
 
 async function newRun(): Promise<{ runId: string; issuer: TestBrowser; op: TestBrowser; run: Awaited<ReturnType<typeof runContext>> }> {
@@ -172,6 +193,104 @@ describe('P22: engine roles only from the declared kernel role, at the actor\'s 
     expect(scope).toMatch(/^REFUSED: .*not at the actor's location.*\[EBMR-EXE-036\]/);
     expect(instant).toMatch(/^REFUSED: .*not for the time of this command.*\[EBMR-EXE-036\]/);
     expect(await violations(sbx)).toEqual([]);
+  }, 300_000);
+
+  it('[INV-26][DI-17][D4] a real stored evaluation is refused when it did not allow the permission, was made for another person, evaluated another permission or was made in an earlier command of the same transaction; nothing is recorded', async () => {
+    // Review F19: every other INV-26 test presents made-up evaluation ids, refused because they do not exist. Here each
+    // forged evidence names a real evaluation the application role stored itself, inside the transaction, in the
+    // declared role OPERATOR at the kiosk's location; it differs from an honest one in one respect only.
+    const { runId, op, run } = await newRun();
+    const me = personaIn(sbx, 'operator1');
+    const other = personaIn(sbx, 'operator2');
+    const { rows: perms } = await sbx.db.admin.query<{ p: string }>(
+      "select permission_code as p from iam.role_permission where role_code = 'OPERATOR' and removed_at is null and permission_code <> 'STEP.EXECUTE' order by 1 limit 1",
+    );
+    const otherPermission = perms[0]?.p;
+    if (!otherPermission) throw new Error('SETUP: OPERATOR holds no permission besides STEP.EXECUTE');
+    const rows0 = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from recipe.execution_command where batch_id = $1', [runId]);
+    type Forge = 'none' | 'denied' | 'otherPerson' | 'otherPermission' | 'otherCommand';
+    const attempt = (forge: Forge) =>
+      outcomeOf(async () => {
+        vi.advanceTimersByTime(7_000);
+        const actor = await actorOfBrowser(sbx, op, 'operator1');
+        const { rows } = await sbx.db.admin.query<{ site_code: string | null; room_code: string | null }>('select site_code, room_code from iam.session where id = $1', [actor.sessionId]);
+        const session = rows[0];
+        if (!session?.site_code || !session.room_code) throw new Error(`SETUP: the kiosk session has no site and room: ${JSON.stringify(session)}`);
+        const location = { site: session.site_code, area: session.room_code };
+        // The second command's tap is taken before the transaction opens (a tap inside it would wait on its locks).
+        vi.advanceTimersByTime(7_000);
+        const second = forge === 'otherCommand' ? await actorOfBrowser(sbx, op, 'operator1') : undefined;
+        return withCommand(sbx.db.app, actor, async (c) => {
+          const real = await engineRoles(c);
+          if (real.map((e) => `${e.role}/${e.permission}`).join() !== 'PRODUCTION_OPERATOR/STEP.EXECUTE') throw new Error(`SETUP: unexpected evidence ${JSON.stringify(real)}`);
+          let evaluationId = real[0]?.evaluationId ?? '';
+          if (forge === 'denied') {
+            // operator1 with operator2's account: the account's OPERATOR grant matches (so the evaluation names the role
+            // OPERATOR), but the account is not operator1's, so the kernel denies it.
+            const e = await evaluation(c, { personId: me.personId, accountId: other.accountId }, 'STEP.EXECUTE', location, 'OPERATOR');
+            if (e.allowed || e.role_code !== 'OPERATOR') throw new Error(`SETUP: expected a denial in role OPERATOR: ${JSON.stringify(e)}`);
+            evaluationId = e.evaluation_id;
+          } else if (forge === 'otherPerson') {
+            evaluationId = await evaluate(c, other, 'STEP.EXECUTE', location, 'OPERATOR');
+          } else if (forge === 'otherPermission') {
+            evaluationId = await evaluate(c, me, otherPermission, location, 'OPERATOR');
+          } else if (forge === 'otherCommand') {
+            // operator1's own evaluation from tab.engine_roles() above; then another command begins in this transaction.
+            await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(second ?? actor))]);
+          }
+          const tx = await execution.ExecutionTx.open(c, run.def, runId);
+          const evidence: execution.RoleEvidence[] = [{ role: 'PRODUCTION_OPERATOR', permission: 'STEP.EXECUTE', evaluationId }];
+          return tx.command({ type: 'START_STEP', commandId: randomUUID(), actor: engineActor(me.personId, evidence), step: 'p-disp-clear', context: [] }, evidence);
+        });
+      });
+    const outcomes: Record<string, string> = {};
+    for (const f of ['denied', 'otherPerson', 'otherPermission', 'otherCommand'] as const) outcomes[f] = await attempt(f);
+    const refused = (why: string) => new RegExp(`^REFUSED: Engine role PRODUCTION_OPERATOR is not backed by an allowed authority evaluation of STEP\\.EXECUTE .*: evaluation [0-9a-f-]{36} ${why} \\(INV-26, D4\\)\\. \\[EBMR-EXE-036\\]`);
+    expect(
+      unmatched(outcomes, {
+        denied: refused('did not allow it'),
+        otherPerson: refused('was made for another person or account'),
+        otherPermission: refused(`evaluated ${otherPermission.replace('.', '\\.')}`),
+        otherCommand: refused('was made in another command'),
+      }),
+    ).toEqual({});
+    expect((await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from recipe.execution_command where batch_id = $1', [runId])).rows[0]?.n).toBe(rows0.rows[0]?.n);
+    // The honest command of the same set-up is accepted (so each refusal is due to its evidence).
+    expect(await attempt('none')).toBe('ACCEPTED');
+    expect(await violations(sbx)).toEqual([]);
+  }, 300_000);
+
+  it('[INV-26][DI-17][D4] the database\'s evaluation check names each mismatch: no evaluation id, an unknown one, another person or another account alone, another command', async () => {
+    // recipe.role_evaluation_problem (private to the owner; called here by the superuser) on a real allowed evaluation of
+    // operator1, against the validated actor of the command it was made in with one field changed. An allowed
+    // evaluation is always of an account of its person, so "another account of the same person" can only be shown here.
+    const { op } = await newRun();
+    const me = personaIn(sbx, 'operator1');
+    vi.advanceTimersByTime(7_000);
+    const made = await withCommand(sbx.db.app, await actorOfBrowser(sbx, op, 'operator1'), async (c) => {
+      const real = await engineRoles(c);
+      const actor = (await c.query<{ a: Record<string, unknown> }>('select kernel.current_actor() as a')).rows[0]?.a;
+      return { evaluationId: real[0]?.evaluationId ?? '', actor };
+    });
+    if (!made.actor || !made.evaluationId) throw new Error(`SETUP: no evaluation or actor: ${JSON.stringify(made)}`);
+    expect(made.actor).toMatchObject({ person_id: me.personId, account_id: me.accountId, role_code: 'OPERATOR' });
+    const problem = async (actor: Record<string, unknown>, evaluationId: string | null) =>
+      (await sbx.db.admin.query<{ p: string | null }>('select recipe.role_evaluation_problem($1::jsonb, $2, $3::uuid) as p', [JSON.stringify(actor), 'STEP.EXECUTE', evaluationId])).rows[0]?.p ?? null;
+    const id = made.evaluationId;
+    const unknown = randomUUID();
+    expect({
+      noId: await problem(made.actor, null),
+      unknown: await problem(made.actor, unknown),
+      otherPerson: await problem({ ...made.actor, person_id: randomUUID() }, id),
+      otherAccount: await problem({ ...made.actor, account_id: randomUUID() }, id),
+      otherCommand: await problem({ ...made.actor, correlation_id: randomUUID() }, id),
+    }).toEqual({
+      noId: 'no stored evaluation is named',
+      unknown: `evaluation ${unknown} does not exist`,
+      otherPerson: `evaluation ${id} was made for another person or account`,
+      otherAccount: `evaluation ${id} was made for another person or account`,
+      otherCommand: `evaluation ${id} was made in another command`,
+    });
   }, 300_000);
 
   it('[INV-26][D4] role evidence that names one engine role twice, with the same evaluation or with a second one, is refused (EBMR-EXE-035)', async () => {

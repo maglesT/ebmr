@@ -277,7 +277,10 @@ describe('the append path', () => {
     expect(await violations(sbx)).toEqual([]);
   }, 180_000);
 
-  it('[INV-26] engine roles come from authority evaluations stored in the same command, never from the caller', async () => {
+  // Review F19: this test presents made-up evaluation ids only, so it shows the evidence must exist; a real evaluation
+  // that was denied, made for another person or account, of another permission or in another command is refused in
+  // db-guards-roles.test.ts.
+  it('[INV-26] engine roles come from stored authority evaluations, never from the caller: an unknown evaluation, a permission the role is not held through and a role without evidence are refused; the accepted command stores its own evaluation', async () => {
     const { runId, op } = await newRun();
     const run = await runContext(sbx.db.admin, runId);
     const me = personIn('operator1');
@@ -288,9 +291,11 @@ describe('the append path', () => {
         const actor = evidence === 'real' ? engineActor(me.personId, ev) : { id: me.personId, kind: 'PERSON' as const, roles };
         return tx.command({ type: 'START_STEP', commandId: randomUUID(), actor, step: 'p-disp-clear', context: [] }, ev);
       });
-    expect(await codeOf(start(['QA'], [{ role: 'QA', permission: 'QA.FLOOR_APPROVE', evaluationId: randomUUID() }]))).toBe('EBMR-EXE-036');
-    expect(await codeOf(start(['PRODUCTION_OPERATOR'], [{ role: 'PRODUCTION_OPERATOR', permission: 'QA.FLOOR_APPROVE', evaluationId: randomUUID() }]))).toBe('EBMR-EXE-035');
-    expect(await codeOf(start(['PRODUCTION_SUPERVISOR'], []))).toBe('EBMR-EXE-037');
+    const unknown = randomUUID();
+    expect(await messageOf(start(['QA'], [{ role: 'QA', permission: 'QA.FLOOR_APPROVE', evaluationId: unknown }]))).toMatch(new RegExp(`Engine role QA is not backed by an allowed authority evaluation .*: evaluation ${unknown} does not exist \\(INV-26, D4\\)\\. \\[EBMR-EXE-036\\]`));
+    expect(await messageOf(start(['PRODUCTION_OPERATOR'], [{ role: 'PRODUCTION_OPERATOR', permission: 'QA.FLOOR_APPROVE', evaluationId: randomUUID() }]))).toMatch(/Engine role PRODUCTION_OPERATOR cannot be held through permission QA\.FLOOR_APPROVE \(INV-26\)\. \[EBMR-EXE-035\]/);
+    expect(await messageOf(start(['PRODUCTION_SUPERVISOR'], []))).toMatch(/The command claims engine role PRODUCTION_SUPERVISOR without a stored authority evaluation behind it.*\[EBMR-EXE-037\]/);
+    expect((await rowsOf(sbx, runId)).map((r) => r.kind)).toEqual(['ISSUE']);
     const ok = await start([], 'real');
     expect(ok.accepted).toBe(true);
     const { rows } = await sbx.db.admin.query<{ roles: execution.RoleEvidence[]; correlation_id: string }>('select roles, correlation_id from recipe.execution_command where batch_id = $1 order by seq desc limit 1', [runId]);
