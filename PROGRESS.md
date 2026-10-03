@@ -1383,3 +1383,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   security, session role-withdrawn and sign-out, esig and audit read-authorisation; web api and sign-out screens;
   Playwright security spec (two new browser tests), esig, audit and journey specs re-run. Defaults F34.1, F35.1, F36.1
   and F42.1 are in docs/decisions/phase-2-open-questions.md; ADR 0012 item 9 and ADR 0017 record the rules.
+  Round 2 (F34, F35): with no session token the application role still read investigations, chains and GOVERNANCE-class
+  signatures through the kernel's own readers (scoping report, a person's activity, chain extract, evidence package,
+  chain lists, anchor heads) and the signatures' side tables, and a subject with a governance role still read the holds
+  an investigation places, the hold entries on their own records and the account chains and activity of the persons
+  investigating them. Tablets 0430 revokes those readers and tables and limits the seals, ID register, content changes,
+  invalidations and signing failures to RECORD-class rows; 0450 takes away the disposal, tombstone and restore registers
+  and the integrity lists that named GOVERNANCE-class signature ids; 0440 withholds all of the above from an
+  investigation's subject whatever their role (open or closed), and refuses a person filter on its opener or lead.
+  Tests: server esig and audit read-authorisation (a QA reviewer as subject; database refusals on both installations);
+  audit Playwright spec re-run. Defaults F34.2 (owner residual: the identity, incident and retention tables the
+  application role still selects directly) and F35.2 recorded; F34.1, F35.1 and ADR 0012 item 9 corrected.
