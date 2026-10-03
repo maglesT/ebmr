@@ -113,11 +113,18 @@ describe('commands', () => {
   it('[DI-34] a stale screen is answered 409 (ENG-STALE) before anything is written; an idempotent resend returns the stored result without a second row', async () => {
     const d = await driver();
     const v = await d.version('operator1');
-    const rows0 = (await rowsOf(server, d.runId)).length;
-    expect(outcomeOf(await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { expectedVersion: v + 5 }))).toBe('409:ENG-STALE');
+    const rows0 = await rowsOf(server, d.runId);
+    const state0 = await execution.loadState(server.db.admin, d.runId);
+    const stale = await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { expectedVersion: v + 5 });
+    expect(outcomeOf(stale)).toBe('409:ENG-STALE');
+    expect(refusalOf(stale)).toMatchObject({ kind: 'STALE', controls: ['DI-34'] });
+    expect(refusalOf(stale).whatHappened).toMatch(/Nothing was saved, and no scale reading was used\./);
     // Since the Phase 2 exit review (F58) the server checks the version before it resolves the intent: nothing is
-    // claimed or recorded for a stale screen.
-    expect((await rowsOf(server, d.runId)).length).toBe(rows0);
+    // claimed or recorded for a stale screen (review F20: the rows, the state and its version are all unchanged).
+    expect(await rowsOf(server, d.runId)).toEqual(rows0);
+    const state1 = await execution.loadState(server.db.admin, d.runId);
+    expect({ version: state1?.version, lastSeq: state1?.lastSeq, stateHash: state1?.stateHash }).toEqual({ version: state0?.version, lastSeq: state0?.lastSeq, stateHash: state0?.stateHash });
+    expect(await d.version('operator1')).toBe(v);
     const key = randomUUID();
     const first = valueOf(await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { idempotencyKey: key, expectedVersion: v }));
     const count = (await rowsOf(server, d.runId)).length;
@@ -132,6 +139,7 @@ describe('commands', () => {
     const d = await driver();
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
     const v = await d.version('operator1');
+    const rows0 = (await rowsOf(server, d.runId)).length;
     const [a, b] = await Promise.all([
       d.command('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'A', batchNumber: 'TEST-B26-1' } }, { expectedVersion: v }),
       d.command('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'B', batchNumber: 'TEST-B26-2' } }, { expectedVersion: v }),
@@ -139,6 +147,9 @@ describe('commands', () => {
     expect([outcomeOf(a), outcomeOf(b)].sort()).toEqual(['409:ENG-STALE', 'ok']);
     const rows = await rowsOf(server, d.runId);
     expect(rows.map((r) => Number(r.seq))).toEqual(rows.map((_, i) => i + 1));
+    // The one that applied is the only new row; the stale one wrote nothing (F58, review F20).
+    expect(rows.slice(rows0)).toMatchObject([{ kind: 'COMMAND', command_type: 'RECORD_ENTRY', accepted: true, refusal: null }]);
+    expect(await d.version('operator1')).toBe(v + 1);
     expect(await violations(server)).toEqual([]);
   }, 180_000);
 
