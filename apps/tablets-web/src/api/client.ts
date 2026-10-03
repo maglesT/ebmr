@@ -3,7 +3,7 @@
  * an Idempotency-Key per mutating command, responses parsed with the contract's schemas, and a hard stop when a
  * response comes from the other installation (X-Ebmr-Installation).
  */
-import { createApiClient, describeCallError, routes, type ApiClient, type CallError, type DeviceProof, type FetchLike, type InstallationKind } from '@ebmr/api-contract';
+import { createApiClient, describeCallError, routes, unstorableTextIssues, type ApiClient, type CallError, type DeviceProof, type FetchLike, type InstallationKind } from '@ebmr/api-contract';
 import { signProof } from '../device/proof.ts';
 import type { StoredDeviceKey } from '../device/keystore.ts';
 
@@ -102,14 +102,44 @@ export function notProven(cause: CallError | { local: string }): CallError {
 }
 
 /**
+ * The refusal of a request whose body holds text no record can hold (U+0000, a UTF-16 surrogate without its other half;
+ * review F30, F31), or null: nothing is sent and no nonce is asked for. Canonical JSON has no form for such text, so the
+ * proof could not hash it; the server would refuse it as this does (400 INVALID_INPUT naming the field).
+ */
+export function unstorableBody(body: Record<string, unknown>): CallError | null {
+  const issues = unstorableTextIssues(body);
+  if (issues.length === 0) return null;
+  return {
+    kind: 'REFUSAL',
+    status: 0,
+    envelope: {
+      refusal: {
+        code: 'SCHEMA',
+        kind: 'INVALID_INPUT',
+        whatHappened: 'Nothing was sent: the text entered holds a character no record can hold.',
+        why: issues.map((i) => `/${i.path.join('/')} ${i.message}`).join('; '),
+        controls: ['DI-37'],
+        whatYouCanDo: ['Enter the text again without it.'],
+        whoCanHelp: [],
+      },
+      correlationId: 'client',
+      retryable: false,
+    },
+  };
+}
+
+/**
  * A device proof for an authentication call: a fresh nonce from the server, signed with the terminal key. The nonce
  * request names the terminal's public key (the nonce is bound to it) and the nonce of this terminal's last proof, which
  * the server takes as a proof ticket when that proof succeeded: the request then counts toward this terminal's own
  * rate limit, not the allowance its address shares with requests that show none. When no nonce is issued the answer
  * is a refusal (notProven) that the caller shows like any other: it is never thrown (review F08: a thrown failure left
- * the sign-in and the first-login change without a word, the secrets already cleared).
+ * the sign-in and the first-login change without a word, the secrets already cleared). A body holding text no record can
+ * hold is refused first (unstorableBody), before any nonce is asked for.
  */
 export async function deviceProof(key: StoredDeviceKey, method: string, path: string, body: Record<string, unknown>): Promise<ProofResult> {
+  const unstorable = unstorableBody(body);
+  if (unstorable) return { ok: false, error: unstorable };
   const lastNonce = lastNonces.get(key.publicKeySpki);
   const nonce = await api.call(routes.session.deviceNonce, { body: { spki: key.publicKeySpki, ...(lastNonce !== undefined ? { lastNonce } : {}) } });
   if (!nonce.ok) return { ok: false, error: notProven(nonce.error) };

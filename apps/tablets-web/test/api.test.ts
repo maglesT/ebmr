@@ -70,6 +70,45 @@ describe('device proofs', () => {
   });
 });
 
+// Review F30, F31: text no record can hold (U+0000, a lone surrogate) has no canonical JSON form, so the terminal cannot
+// hash it for its proof. The request is refused here, naming the field, before any nonce is asked for.
+describe('a body holding text no record can hold', () => {
+  it('[DI-37][DI-20] is refused before a nonce is asked for, naming the field, as the server would; text a record can hold is proven', async () => {
+    const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
+    const key = { privateKey: pair.privateKey, publicKeySpki: bytesToBase64(await crypto.subtle.exportKey('spki', pair.publicKey)), label: 'T' };
+    const sent: string[] = [];
+    setTransport((url) => {
+      sent.push(new URL(url, 'http://test.local').pathname);
+      return Promise.resolve({ status: 200, headers: { get: () => null }, text: () => Promise.resolve(JSON.stringify({ nonce: 'nonce-served-000000001', expiresInSeconds: 60 })) });
+    });
+    try {
+      const body = { expectedVersion: 3, intent: { type: 'RAISE_EXCEPTION', description: 'Booth door\u0000 found open', severity: 'ALERT' } };
+      const r = await deviceProof(key, 'POST', '/api/test-runs/x/commands', body);
+      expect(r.ok).toBe(false);
+      if (r.ok || r.error.kind !== 'REFUSAL') throw new Error('expected a refusal');
+      expect(r.error.envelope.refusal).toEqual({
+        code: 'SCHEMA',
+        kind: 'INVALID_INPUT',
+        whatHappened: 'Nothing was sent: the text entered holds a character no record can hold.',
+        why: '/intent/description holds U+0000, which no record can hold: enter the text again without it',
+        controls: ['DI-37'],
+        whatYouCanDo: ['Enter the text again without it.'],
+        whoCanHelp: [],
+      });
+      const surrogate = await deviceProof(key, 'POST', '/api/esig/sign', { action: { intent: { justification: 'Reprinted \uDBFF' } } });
+      expect(!surrogate.ok && surrogate.error.kind === 'REFUSAL' && surrogate.error.envelope.refusal.why).toBe(
+        '/action/intent/justification holds an unpaired surrogate U+DBFF, which no record can hold: enter the text again without it',
+      );
+      expect(sent, 'no nonce was asked for').toEqual([]);
+      const fine = await deviceProof(key, 'POST', '/api/test-runs/x/commands', { ...body, intent: { ...body.intent, description: 'Booth door found open 😀' } });
+      expect(fine.ok).toBe(true);
+      expect(sent).toEqual([routes.session.deviceNonce.path]);
+    } finally {
+      setTransport(browserFetch);
+    }
+  });
+});
+
 // Review F41: the server refuses a request that carried this installation's cookie twice (a copy another page of
 // the host set) and removes the copy; the page sends that request once more, never more often.
 describe('a request refused as COOKIE_DUPLICATED', () => {
