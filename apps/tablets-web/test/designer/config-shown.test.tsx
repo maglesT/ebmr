@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { blocks, flow } from '@ebmr/recipe-core/pure';
 import granulation from '../../../../packages/recipe-core/test/fixtures/tablet-granulation-compression.mbr.json' with { type: 'json' };
 import packaging from '../../../../packages/recipe-core/test/fixtures/tablet-blister-packaging.mbr.json' with { type: 'json' };
-import dcMini from '../../../tablets-server/src/features/designer/templates/dc-mini.mbr.json' with { type: 'json' };
+import dcMini from '../../../../packages/recipe-core/test/fixtures/dc-mini.mbr.json' with { type: 'json' };
 import { ConfigForm } from '../../src/features/designer/components/ConfigForm.tsx';
 import { DocumentView } from '../../src/features/designer/components/DocumentView.tsx';
 import { StepEditor } from '../../src/features/designer/components/StepEditor.tsx';
