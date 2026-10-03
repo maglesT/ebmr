@@ -18,6 +18,7 @@ import { vi } from 'vitest';
 import { IDEMPOTENCY_HEADER, type Attribution, type FetchLike, type ReadingView, type RefusalEnvelope, type StepScreenView } from '@ebmr/api-contract';
 import { EXAMPLES, example } from '@ebmr/api-contract/examples';
 import { setTransport } from '../../src/api/client.ts';
+import { NotFoundPage } from '../../src/app/not-found.tsx';
 import { ResetReadsOnPersonChange } from '../../src/app/session-reads.tsx';
 import { fixturesFromExamples } from '../../src/api/examples.ts';
 import { createFixtureFetch, type FixtureMap } from '../../src/api/fixture-fetch.ts';
@@ -153,6 +154,8 @@ export function renderFloor(path: string, opts: RenderOptions = {}) {
         <Outlet />
       </>
     ),
+    // As the application's router (app/router.tsx): an address no screen has, or a floor address naming no run or step.
+    notFoundComponent: NotFoundPage,
   });
   const router = createRouter({ routeTree: root.addChildren(floorFeature.routes(root)), history: createMemoryHistory({ initialEntries: [path] }) });
   const tap = opts.tap ?? fakeTap();

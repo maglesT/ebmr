@@ -9,7 +9,7 @@
  * The Provider supplies the floor's view of the session (who is signed in, tap per entry). It supplies no port:
  * the ceremony and badge tap come from C1, the scale slot from C5, through app/ports.tsx.
  */
-import { createRoute, type AnyRootRoute, type AnyRoute } from '@tanstack/react-router';
+import { createRoute, notFound, type AnyRootRoute, type AnyRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import type { HomeTile } from '../../app/feature.ts';
 import { CockpitPage } from './pages/Cockpit.tsx';
@@ -21,6 +21,46 @@ import { StepScreenPage } from './pages/StepScreen.tsx';
 import { RefreshReadsAfterUnlock } from './queries.ts';
 import { FloorSessionProvider } from './session.tsx';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Whether `id` can be a run id (a UUID, as the contract requires). */
+export function isRunId(id: string): boolean {
+  return UUID.test(id);
+}
+
+/**
+ * Whether `key` is a step key in the engine's own form, `<step>@<construct>=<index>/...`, read as the server reads it
+ * and written back unchanged (the server answers 404 for any other: execution/views.ts, F65).
+ */
+export function isStepKey(key: string): boolean {
+  const at = key.indexOf('@');
+  if (at <= 0) return false;
+  const frames: string[] = [];
+  let rest = key.slice(at + 1);
+  while (rest.length > 0) {
+    const m = /^([^=]+)=(0|[1-9][0-9]{0,8})(?:\/(.*))?$/s.exec(rest);
+    if (!m) return false;
+    frames.push(`${m[1] ?? ''}=${m[2] ?? ''}`);
+    rest = m[3] ?? '';
+  }
+  return `${key.slice(0, at)}@${frames.join('/')}` === key;
+}
+
+/**
+ * A floor address that names no run or step, such as a link copied with a sentence's full stop ("/runs/<id>." or
+ * ".../steps/p-disp-clear@."), is the not-found page, which offers the address without the punctuation; the server is
+ * asked nothing about it (review F65; before, a run link got a refusal no reload could fix and a step link a step
+ * screen for a key no step can have).
+ */
+const onlyIf =
+  (names: (params: Record<string, string>) => boolean) =>
+  ({ params }: { params: Record<string, string> }): void => {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error -- the router's notFound() is thrown by design: the router then shows the not-found page.
+    if (!names(params)) throw notFound();
+  };
+const runParams = onlyIf((p) => isRunId(p['runId'] ?? ''));
+const stepParams = onlyIf((p) => isRunId(p['runId'] ?? '') && isStepKey(p['stepKey'] ?? ''));
+
 export function routes(root: AnyRootRoute): AnyRoute[] {
   return [
     createRoute({ getParentRoute: () => root, path: '/packages', component: PackagesPage }),
@@ -28,8 +68,8 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/test-packages', component: PackagesPage }),
     createRoute({ getParentRoute: () => root, path: '/packages/$packageId/issue', component: IssueFormPage }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage }),
-    createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunOverviewPage }),
-    createRoute({ getParentRoute: () => root, path: '/runs/$runId/steps/$stepKey', component: StepScreenPage }),
+    createRoute({ getParentRoute: () => root, path: '/runs/$runId', beforeLoad: runParams, component: RunOverviewPage }),
+    createRoute({ getParentRoute: () => root, path: '/runs/$runId/steps/$stepKey', beforeLoad: stepParams, component: StepScreenPage }),
     createRoute({ getParentRoute: () => root, path: '/cockpit', component: CockpitPage }),
   ];
 }

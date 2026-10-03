@@ -836,6 +836,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   hold-point comment is refused 400 INVALID_INPUT naming the field, by the contract or by the preview's decoding,
   before any jsonb bind; nothing is recorded or proposed and no hash is offered to the signer; adversarial text a
   record can hold goes through every challenge and append with hashes that agree in TypeScript and SQL.
+- `step-address.test.ts` (Phase 2 exit review F65; DI-34): a step screen asked for by a key that is not in the
+  engine's own form (a link copied with a sentence's full stop or comma, "p-disp-clear@.") is answered 404
+  EXE_NOT_FOUND instead of a PENDING screen with no entries; the real key keeps its screen, a step not reached yet
+  its PENDING view.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
   run records the signature-budget baseline: 29 signatures.

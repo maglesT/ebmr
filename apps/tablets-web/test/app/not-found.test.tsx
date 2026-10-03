@@ -44,3 +44,11 @@ describe('page not found', () => {
     expect(withoutTrailingPunctuation('.')).toBeNull();
   });
 });
+
+describe('page not found: what the offer keeps (F65)', () => {
+  it('the address without the punctuation keeps its search and its fragment', async () => {
+    await renderAt('/floor.?package=abc123#top');
+    expect(await screen.findByTestId('not-found')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open /floor?package=abc123#top instead (the address without the punctuation at its end)' }).getAttribute('href')).toBe('/floor?package=abc123#top');
+  });
+});

@@ -13,7 +13,11 @@ export function withoutTrailingPunctuation(path: string): string | null {
 
 export function NotFoundPage() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const suggestion = withoutTrailingPunctuation(path);
+  const search = useRouterState({ select: (s) => s.location.searchStr });
+  const hash = useRouterState({ select: (s) => s.location.hash });
+  const trimmed = withoutTrailingPunctuation(path);
+  // The offer keeps the address's search and fragment (/packages.?package=<hash> offers /packages?package=<hash>; F65).
+  const suggestion = trimmed === null ? null : `${trimmed}${search}${hash ? `#${hash.replace(/^#/, '')}` : ''}`;
   return (
     <section aria-labelledby="not-found-title" data-testid="not-found">
       <h1 id="not-found-title">{t('app.notFound.title')}</h1>

@@ -40,7 +40,7 @@ import type {
 import type { z } from 'zod';
 import type { AppContext } from '../../platform/context.ts';
 import { signaturesOf as recordSignaturesOf } from '../esig/views.ts';
-import { stepRoomReason, wireOf } from './intents.ts';
+import { parseStepKey, stepRoomReason, wireOf } from './intents.ts';
 import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
 
@@ -778,9 +778,25 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
 
 const WEIGHING_KINDS = new Set(['CONTAINER_WEIGHING', 'OUTPUT_CONTAINER']);
 
+/**
+ * Whether `key` is a step key in the engine's own form, `<step>@<construct>=<index>/...` written back exactly as the
+ * engine writes it (engine.stepKey). A link copied from a sentence carries its full stop or comma ("p-disp-clear@."):
+ * such a key names no step instance and never will (Phase 2 exit review F65).
+ */
+function isEngineStepKey(key: string): boolean {
+  try {
+    const { step, context } = parseStepKey(key);
+    return engine.stepKey(step, context) === key;
+  } catch {
+    return false;
+  }
+}
+
 export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<StepScreenView> {
   const def = ctx.run.def;
   const inst = ctx.state.steps[stepKey];
+  // A step not reached yet has a view (PENDING); a key no step instance can have has none (F65; DI-34).
+  if (!inst && !isEngineStepKey(stepKey)) throw notFound('step');
   const stepId = inst?.step ?? stepKey.slice(0, Math.max(0, stepKey.indexOf('@')));
   const stepDef = def.steps.get(stepId);
   if (!stepDef) throw notFound('step');
