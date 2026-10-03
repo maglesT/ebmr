@@ -60,7 +60,7 @@ export interface PendingSignature {
  */
 export async function prepareSignature(sbx: ExecServer, browser: TestBrowser, persona: string, aggregateType: string, aggregateId: string, meaning: string): Promise<PendingSignature> {
   const who = personaIn(sbx, persona);
-  const content = await esig.contentForSigning(sbx.db.app, aggregateType, aggregateId);
+  const content = await esig.contentForSigning(sbx.db.admin, aggregateType, aggregateId);
   if (!content.exists || content.contentVersion === undefined || content.contentHash === undefined) throw new Error(`SETUP: ${aggregateType} ${aggregateId} has no signable content: ${JSON.stringify(content)}`);
   const challenge = await withCommand(sbx.db.app, await actorOf(sbx, browser, persona), (c) =>
     esig.createChallenge(c, { aggregateType, aggregateId, contentVersion: content.contentVersion ?? '', meaning, clientContentHash: content.contentHash ?? '' }),

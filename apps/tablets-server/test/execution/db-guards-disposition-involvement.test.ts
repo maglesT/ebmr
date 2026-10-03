@@ -136,7 +136,7 @@ async function qaDisposition(d: RunDriver, exception: string): Promise<{ qa: Act
   const agg = `${d.runId}:${exception}`;
   const asQa = async (extra: Partial<ActorContext> = {}): Promise<ActorContext> => ({ ...(await actorOf(sbx, d.browser('operator1'), 'operator1')), roleCode: 'QA_SHOP_FLOOR', ...extra });
   await withCommand(sbx.db.app, await asQa(), (c) => execution.proposeDisposition(c, d.runId, exception, { outcome: 'NO_IMPACT', justification: 'Door closed, booth re-checked; no impact.', deviationRef: null }));
-  const content = await esig.contentForSigning(sbx.db.app, 'batch_exception', agg);
+  const content = await esig.contentForSigning(sbx.db.admin, 'batch_exception', agg);
   const challenge = await withCommand(sbx.db.app, await asQa(), (c) =>
     esig.createChallenge(c, { aggregateType: 'batch_exception', aggregateId: agg, contentVersion: content.contentVersion ?? '', meaning: 'EXCEPTION_DISPOSITIONED', clientContentHash: content.contentHash ?? '' }),
   );
@@ -219,7 +219,7 @@ describe('F11: a person involved in the step that raised an exception never disp
     const justification = 'Door closed, booth re-checked; no impact.';
     await withCommand(sbx.db.app, await asQa(), (c) => execution.proposeDisposition(c, d.runId, exception, { outcome: 'NO_IMPACT', justification, deviationRef: null }));
     const agg = `${d.runId}:${exception}`;
-    const content = await esig.contentForSigning(sbx.db.app, 'batch_exception', agg);
+    const content = await esig.contentForSigning(sbx.db.admin, 'batch_exception', agg);
     const challenge = await withCommand(sbx.db.app, await asQa(), (c) =>
       esig.createChallenge(c, { aggregateType: 'batch_exception', aggregateId: agg, contentVersion: content.contentVersion ?? '', meaning: 'EXCEPTION_DISPOSITIONED', clientContentHash: content.contentHash ?? '' }),
     );

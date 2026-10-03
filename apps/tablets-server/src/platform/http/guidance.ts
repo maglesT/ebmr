@@ -109,6 +109,31 @@ export const PLATFORM_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [],
     controls: ['DI-14'],
   },
+  // Read authorisation decided by the database for the request's session (tablets 0410 and 0420, review F34 and F35).
+  'EBMR-TAB-018': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'Only an active session working in a role granted to you now can read this.',
+    whatYouCanDo: ['Unlock the session, choose your role, or sign in again.'],
+    whoCanHelp: [],
+    controls: ['DI-16', 'DI-17'],
+  },
+  'EBMR-TAB-019': {
+    status: 404,
+    kind: 'NOT_ENABLED',
+    whatHappened: 'This record is not signed with that meaning on this installation. Nothing of it is shown.',
+    whatYouCanDo: ['Check the record and the meaning you were asked to sign.'],
+    whoCanHelp: [],
+    controls: ['DI-37'],
+  },
+  'EBMR-TAB-020': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'Your role may not read this record. Nothing of it is shown.',
+    whatYouCanDo: ['Ask a person whose role reads it (QA, data integrity, access review or audit).'],
+    whoCanHelp: ['The system administrator (role grants)'],
+    controls: ['DI-17', 'DI-50'],
+  },
   NOT_FOUND: {
     status: 404,
     kind: 'NOT_ENABLED',

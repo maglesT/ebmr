@@ -10,11 +10,11 @@
  *  - apply: a completing signature completes the entry through esig.stub_complete (which re-checks everything).
  */
 import type pg from 'pg';
-import { esig } from '@ebmr/kernel';
 import type { SignableAction } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { DryRunOutcome, SignableActionHandler, SignableContext } from '../../platform/ports.ts';
-import { kernelContent, type EsigSignableContext } from './content.ts';
+import { kernelContent, recordContentForSigning, type EsigSignableContext } from './content.ts';
+import { signaturesOf } from './views.ts';
 
 type StubAction = Extract<SignableAction, { kind: 'ESIG_STUB' }>;
 
@@ -41,9 +41,9 @@ export function esigStubHandler(app: AppContext): SignableActionHandler<StubActi
     aggregateTypes: ['esig_stub'],
     // The meaning is the one the challenge names ('' = take the request's).
     describe: (a) => ({ aggregateType: 'esig_stub', aggregateId: a.stubId, meaning: '', expectedState: 'OPEN' }),
-    previewContent: (_ctx, query) => kernelContent(app.pools.app, query),
+    previewContent: (ctx, query) => kernelContent(app.pools.app, (ctx as Partial<EsigSignableContext>).tokenHash ?? '', query),
     async prepareForChallenge(client, _ctx, a) {
-      const c = await esig.contentForSigning(client, 'esig_stub', a.stubId);
+      const c = await recordContentForSigning(client, 'esig_stub', a.stubId);
       return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
     },
     async dryRun(client, ctx, a) {
@@ -55,8 +55,8 @@ export function esigStubHandler(app: AppContext): SignableActionHandler<StubActi
       const rule = COMPLETING[row.kind];
       const meaning = meaningOf(ctx);
       if (rule && rule.meanings.includes(meaning)) {
-        const sigs = await esig.recordSignatures(client, 'esig_stub', a.stubId);
-        if (!sigs.some((s) => s.meaningCode === rule.prerequisite && s.valid)) {
+        const sigs = await signaturesOf(client, 'esig_stub', a.stubId);
+        if (!sigs.some((s) => s.meaning === rule.prerequisite && s.valid)) {
           return refused(
             422,
             'ESIG_STUB_ORDER',
@@ -66,7 +66,7 @@ export function esigStubHandler(app: AppContext): SignableActionHandler<StubActi
           );
         }
       }
-      const c = await esig.contentForSigning(client, 'esig_stub', a.stubId);
+      const c = await recordContentForSigning(client, 'esig_stub', a.stubId);
       return { accepted: true, contentHash: c.contentHash ?? '', contentVersion: c.contentVersion ?? '0' };
     },
     async apply(client, ctx, a, signature) {

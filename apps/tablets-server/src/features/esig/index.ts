@@ -33,6 +33,11 @@
  *     esig.logSigningFailure then records it outside the rolled-back transaction (INV-10), with the authentication
  *     event it used and, for a thrown refusal, its code and reason as a returned refusal is logged.
  *  4. GET signatures: the stored manifestations of a record, with their current validity (DI-36, INV-09).
+ * Steps 1 and 4 read for the session only what the database lets it read (tablets 0410, review F34): a record of its
+ * role's read class (RECORD.READ, or a governance role for an investigation, a disposal or a restore, never the
+ * investigation's own subject), previewed only with a meaning its role signs (on a shop-floor terminal the person who
+ * taps signs, and esig.sign checks that person), and through the kernel's provider only the pairs this installation
+ * signs that way.
  *
  * Credentials: badge and PIN on kiosks (the badge of the challenge's tap is kept by the server, see badges.ts),
  * user ID and password on office PCs; never logged, cached or re-sent. A lost sign response is reconciled by the
@@ -55,10 +60,10 @@ import { bindRoutes, pathOf } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { ChallengeBadgeStore } from './badges.ts';
-import { kernelContent, type EsigSignableContext } from './content.ts';
+import { kernelContent, meaningOfIntent, type EsigSignableContext } from './content.ts';
 import { ESIG_GUIDANCE } from './guidance.ts';
 import { esigStubHandler } from './stub.ts';
-import { manifestationView, meaningInfo, meaningPhrase, readChallenge, type StoredChallenge } from './views.ts';
+import { manifestationView, meaningInfo, meaningPhrase, readChallenge, recordSignaturesFor, type StoredChallenge } from './views.ts';
 
 export const guidance = ESIG_GUIDANCE;
 
@@ -172,7 +177,20 @@ const requestUsed = (): Error =>
   });
 
 function signableContext(session: ResolvedSession, actor: EsigSignableContext['actor'], meaning: string): EsigSignableContext {
-  return { actor, room: session.roomCode, deviceClass: session.deviceClass, meaning };
+  return { actor, room: session.roomCode, deviceClass: session.deviceClass, meaning, tokenHash: session.tokenHash };
+}
+
+/** The database refused this session the preview (tablets 0410, review F34): nothing of the record is shown. */
+function previewRefused(aggregateType: string, aggregateId: string, problem: string): Error {
+  return refusal(403, {
+    code: 'ESIG_PREVIEW_NOT_ALLOWED',
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'You may not see this record as content to be signed. Nothing of it is shown.',
+    why: `${aggregateType} ${aggregateId}: ${problem}.`,
+    controls: ['DI-17', 'DI-50'],
+    whatYouCanDo: ['Sign only what your role signs; ask the person whose role signs it.'],
+    whoCanHelp: ['The system administrator (role grants)'],
+  });
 }
 
 type RefusedWork = { refused: { status: number; refusal: Refusal } };
@@ -251,8 +269,17 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     {
       content: async ({ query, requireSession, actor }) => {
         const s = requireSession();
+        // DI-17, DI-50 (tablets 0410, review F34): the database decides whether this session may read the record and
+        // preview it as content to be signed with this meaning, before any handler or the kernel's provider reads it.
+        const meaning = meaningOfIntent(query.intent);
+        await meaningInfo(app.pools.app, meaning);
+        const { rows } = await app.pools.app.query<{ p: string | null }>('select tab.signing_preview_problem($1, $2, $3, $4) as p', [s.tokenHash, query.aggregateType, query.aggregateId, meaning]);
+        const problem = rows[0]?.p ?? null;
+        if (problem !== null) throw previewRefused(query.aggregateType, query.aggregateId, problem);
         const handler = app.signables.forAggregateType(query.aggregateType);
-        const view: SignableContentView = handler ? await handler.previewContent(signableContext(s, actor(), query.intent), query) : await kernelContent(app.pools.app, query);
+        const view: SignableContentView = handler
+          ? await handler.previewContent(signableContext(s, actor(), query.intent), query)
+          : await kernelContent(app.pools.app, s.tokenHash, query);
         if (view.aggregateType !== query.aggregateType || view.aggregateId !== query.aggregateId) throw mismatch('The preview names another record than the one asked for.');
         return view;
       },
@@ -428,14 +455,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return work.signed;
       },
 
-      signatures: async ({ query }) => {
-        const list = await esig.recordSignatures(app.pools.app, query.aggregateType, query.aggregateId);
-        const signatures: ManifestationView[] = [];
-        for (const r of list) {
-          const stored = await esig.getManifestation(app.pools.app, r.signatureId);
-          signatures.push(manifestationView(stored.manifestation, r.signerPerson, stored.valid));
-        }
-        return { signatures };
+      // DI-17, DI-36, DI-50 (tablets 0410, review F34): only when the session's role may read the record.
+      signatures: async ({ query, requireSession }) => {
+        const s = requireSession();
+        return { signatures: await recordSignaturesFor(app.pools.app, s.tokenHash, query.aggregateType, query.aggregateId) };
       },
     },
     { rateLimits: { sign: { max: 20, timeWindow: '1 minute', by: 'SESSION' } } },

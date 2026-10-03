@@ -27,6 +27,13 @@
 6. **Administrator separation:** no person holds an administrator role and a GMP role anywhere in the installation; a person's administrator account never acts on that person's own GMP account or grants.
 7. **Break-glass** superuser access needs two people, is time-boxed and is logged by pgaudit to a sink that administrators cannot write.
 8. **Every invariant** has an application guard, a database enforcement (constraint, trigger, privilege or SECURITY DEFINER function), a bypass test that attacks it with raw SQL under the application role, and an invariant query that must return zero rows; production runs those queries on a schedule. Bypass tests are split into **prevented** (raw SQL cannot update a data point, delete an audit row, overlap occupancy, update a status column, insert a signature or authentication event, write from the sandbox role, or insert a shared-device data point without an authentication event) and **detected** (a superuser rewrite caught by chain verification; a transplanted or forged signature caught by seal verification).
+9. **Reads limited to authorised persons** (tablets 0410, Phase 2 exit review F34): what a session may read is decided
+   in the database for the session whose cookie token the server presents (an active session in a role granted now).
+   RECORD-class records need RECORD.READ; GOVERNANCE-class records (investigations, disposals, restores, any type not
+   named) need a governance or audit role and are never shown to the person an investigation is about. Content to be
+   signed and signature lists are served only through such token-checked SECURITY DEFINER functions; the application
+   role keeps token-free readers for RECORD-class records only and sees only RECORD-class rows of `esig.signature` and
+   `esig.challenge` (row-level security).
 
 ## Consequences
 

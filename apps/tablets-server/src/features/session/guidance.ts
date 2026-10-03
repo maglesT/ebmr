@@ -66,6 +66,14 @@ export const SESSION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: ['The system administrator (role grants)'],
     controls: ['DI-16'],
   },
+  'EBMR-TAB-017': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The role this session works in is no longer granted to you, so it cannot be kept open or unlocked.',
+    whatYouCanDo: ['Sign in again, in a role you hold.'],
+    whoCanHelp: ['The system administrator (role grants)'],
+    controls: ['DI-16', 'DI-38'],
+  },
   'EBMR-TAB-015': {
     status: 409,
     kind: 'NOT_ALLOWED',

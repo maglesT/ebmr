@@ -11,7 +11,7 @@
  *    the command itself evaluates authority).
  * Instants carry the site-time text the server formats; the browser never formats GMP time.
  */
-import { esig, sandbox } from '@ebmr/kernel';
+import { sandbox } from '@ebmr/kernel';
 import { Dec } from '@ebmr/expr';
 import { blocks, engine, flow } from '@ebmr/recipe-core';
 import type {
@@ -39,7 +39,7 @@ import type {
 } from '@ebmr/api-contract';
 import type { z } from 'zod';
 import type { AppContext } from '../../platform/context.ts';
-import { manifestationView } from '../esig/views.ts';
+import { signaturesOf as recordSignaturesOf } from '../esig/views.ts';
 import { stepRoomReason, wireOf } from './intents.ts';
 import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
@@ -144,13 +144,9 @@ function productOf(ctx: Pick<ViewContext, 'run'>): { code: string; name: string;
 // ---------------------------------------------------------------------------------------------
 // Signatures (stored manifestations, DI-36)
 
-export async function signaturesOf(db: Db, aggregateType: string, aggregateId: string): Promise<ManifestationView[]> {
-  const out: ManifestationView[] = [];
-  for (const r of await esig.recordSignatures(db, aggregateType, aggregateId)) {
-    const stored = await esig.getManifestation(db, r.signatureId);
-    out.push(manifestationView(stored.manifestation, r.signerPerson, stored.valid));
-  }
-  return out;
+/** The signatures shown beside a step or stage (tablets 0410: RECORD-class records only, through tab.signatures_of). */
+export function signaturesOf(db: Db, aggregateType: string, aggregateId: string): Promise<ManifestationView[]> {
+  return recordSignaturesOf(db, aggregateType, aggregateId);
 }
 
 // ---------------------------------------------------------------------------------------------

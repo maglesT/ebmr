@@ -6,7 +6,7 @@
  * site zone that the database applied. Renaming a person later never changes a historic manifestation.
  */
 import type pg from 'pg';
-import type { esig } from '@ebmr/kernel';
+import { esig } from '@ebmr/kernel';
 import type { Instant, ManifestationView } from '@ebmr/api-contract';
 import { refusal } from '../../platform/http/refusal.ts';
 
@@ -49,6 +49,33 @@ export function manifestationView(m: esig.Manifestation, signerPersonId: string,
     contentVersion: m.record.contentVersion,
     contentHash: m.record.contentHash,
   };
+}
+
+interface SignatureRow {
+  signature_id: string;
+  signer_person: string;
+  manifestation: Record<string, unknown>;
+  valid: boolean;
+}
+
+const viewsOf = (rows: SignatureRow[]): ManifestationView[] => rows.map((r) => manifestationView(esig.toManifestation(r.manifestation), r.signer_person, r.valid));
+
+/**
+ * The signatures of a record for the session bound to `tokenHash` (GET /api/esig/signatures): the database serves them
+ * only when the session's role may read the record (tablets 0410, review F34; EBMR-TAB-018, EBMR-TAB-020).
+ */
+export async function recordSignaturesFor(db: pg.Pool | pg.PoolClient, tokenHash: string, aggregateType: string, aggregateId: string): Promise<ManifestationView[]> {
+  const { rows } = await db.query<SignatureRow>('select * from tab.record_signatures($1, $2, $3)', [tokenHash, aggregateType, aggregateId]);
+  return viewsOf(rows);
+}
+
+/**
+ * The signatures of a RECORD-class record shown beside it (a run's steps and stages) or checked by a handler; the
+ * database never serves a GOVERNANCE-class record's this way (tablets 0410, EBMR-TAB-020).
+ */
+export async function signaturesOf(db: pg.Pool | pg.PoolClient, aggregateType: string, aggregateId: string): Promise<ManifestationView[]> {
+  const { rows } = await db.query<SignatureRow>('select * from tab.signatures_of($1, $2)', [aggregateType, aggregateId]);
+  return viewsOf(rows);
 }
 
 export interface MeaningInfo {

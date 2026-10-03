@@ -32,7 +32,7 @@ const ready = (): Promise<RunDriver> => dispensingAwaitingSignOff(sbx, () => vi.
 
 /** The provider's content of the stage (what the kernel signs). */
 async function provided(d: RunDriver): Promise<Json> {
-  const c = await esig.contentForSigning(sbx.db.app, 'batch_stage', `${d.runId}:${STAGE}`);
+  const c = await esig.contentForSigning(sbx.db.admin, 'batch_stage', `${d.runId}:${STAGE}`);
   return (JSON.parse(c.canonical ?? '{}') as { content: Json }).content;
 }
 
@@ -47,7 +47,7 @@ describe('F01: the database binds a stage sign-off to its summary (DI-37, IN-15,
     // The database derives the same member as the engine: the server's preview hashes the provider's content.
     expect(content['summary']).toMatchObject({ statement: 'COMPLETED_PER_MBR', deviations: [] });
     expect(content['summary']).toEqual((JSON.parse(preview.canonicalText) as { content: Json }).content['summary']);
-    expect((await esig.contentForSigning(sbx.db.app, 'batch_stage', `${d.runId}:${STAGE}`)).contentHash).toBe(preview.contentHash);
+    expect((await esig.contentForSigning(sbx.db.admin, 'batch_stage', `${d.runId}:${STAGE}`)).contentHash).toBe(preview.contentHash);
     // A signature prepared on that content, then an operator's alert about a step of the stage: the kernel refuses it.
     const p = await prepareSignature(sbx, d.browser('supervisor1'), 'supervisor1', 'batch_stage', `${d.runId}:${STAGE}`, 'STAGE_SIGNED_OFF');
     await d.ok('operator1', ALERT);
