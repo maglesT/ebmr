@@ -1360,3 +1360,26 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   recipe-core 0320 refuses any sign-off that is not exactly what the engine records (EBMR-EXE-135) and makes the list
   an audited, insert-only record of its batch the application reads. Tests: server db-guards-stage-sign-off and
   db-guards-stage-summary, recipe-core stage-summary-sql and lifecycle authorization.
+- 2026-10-02: PHASE 2 EXIT FIX, Read authorisation and the cross-installation surface (branch phase-2/recipe-core;
+  findings F34, F35, F36, F41, F42, F43 of the exit review; each fix with a test that fails on the code before it).
+  F34: the signing preview served the kernel's content of any record for any meaning to any session (a data-integrity
+  investigation reached the person it investigates) and the signature list of any record; now the database decides for
+  the request's session (tablets 0410): RECORD-class records with RECORD.READ, investigations, disposals, restores and
+  any type not named only in a governance or audit role and never to an investigation's subject, a preview only with a
+  meaning the role signs (on the shop floor the person who taps is checked at signing), the kernel's provider only for
+  the pairs signed that way here; the application role lost the kernel's content and signature readers, the
+  investigation tables and the GOVERNANCE-class rows of the signatures and signing requests. F35: the audit viewer
+  served every chain, and a colleague's activity across chains, to every role; now the database serves only the chains
+  the session may read (tablets 0420, same classes), a person filter on another person needs a governance or audit
+  role, verification only of a readable chain, and the application role has no SELECT on the audit tables. F36: a
+  revoked or expired role kept reading and the session could be kept alive or unlocked; now such a session resolves no
+  role, ends at its next request, cannot be kept alive or unlocked (tablets 0400, EBMR-TAB-017), and an account with no
+  role opens no session. F41: a page on another port could plant a copy of the session cookie that the server took
+  first (lock-out or another person's session); now a doubled session or CSRF cookie is served as nobody, the copies
+  are removed and the page sends the request once more. F42: the sign-out mark was also a cookie any port could write
+  or delete (forced logouts, a pending sign-out looking finished); now it lives in site storage and this origin's
+  broadcast channel only. F43: the gate's own refusals (403 ORIGIN, the non-literal /api 404) and Fastify's bad-URL
+  answer carried no security headers; now helmet runs first and the framework errors carry its headers. Tests: server
+  security, session role-withdrawn and sign-out, esig and audit read-authorisation; web api and sign-out screens;
+  Playwright security spec (two new browser tests), esig, audit and journey specs re-run. Defaults F34.1, F35.1, F36.1
+  and F42.1 are in docs/decisions/phase-2-open-questions.md; ADR 0012 item 9 and ADR 0017 record the rules.
