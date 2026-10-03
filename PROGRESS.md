@@ -1678,3 +1678,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   record (round 1 had changed only code comments there, not the notice). Tests: server db-guards-stale-row and
   devices/stale-weighing-readings (one reading as both, at the database and through the server), web step-screen (both
   notices) and entries (the weighing's notice); each fails on bbb83d0.
+  Round 3 (3 Oct): the "uses no reading" rule held only for claims made before the stale row in its own transaction;
+  the round-2 verifier recorded the honest stale weighing and then claimed its readings under its correlation id, and
+  the record said the stale command used them. Tablets 0520 checks it at commit on both sides (deferred constraint
+  triggers on the stale row and on every claim, meeting on one key of tab.reading_claim_mark): no claim under a stale
+  row's correlation id commits, before or after the row, in any transaction, or concurrently (a serialization failure
+  under REPEATABLE READ); it also binds evidence.namedReadings to exactly the stored tare and gross of a stale device
+  weighing. The contract now refuses a run version beyond the integer a run's version is stored in (400 before anything
+  is written, not 422 EBMR-EXE-140). Residual in F58.2: a command that claims readings and writes no row is still not
+  refused. Tests: server execution/db-guards-stale-row-commit (new), devices/stale-weighing-readings,
+  execution/commands, api-contract contract; each new one fails on 8c3496a.
