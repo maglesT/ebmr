@@ -9,6 +9,16 @@
  * accepted signature then read CONTENT_MISMATCH and the signed content named the other user's decision. Now the
  * proposal waits for the batch's lock, then finds the record decided and is refused (EBMR-EXE-084); the signature stays
  * VALID. And a proposal on a content version a decision was already signed on is refused even without the race.
+ *
+ * F37.R (the completeness critic's F37 defect; recipe-core 0329): 0309 serialised the proposals only on the batch's row
+ * lock, which a signing takes only on the server's path. esig.sign takes the record's own signing lock
+ * (esig.aggregate_lock), which the proposals never took, and the content providers lock nothing. So a signer holding
+ * the application role, signing without the batch's lock and keeping its transaction open, let another QA user's
+ * proposal commit on the signed content version (the uncommitted signature was invisible to 0309's check): the
+ * signature then read CONTENT_MISMATCH, which only esig.verify_signatures noticed. Now both proposal functions take that
+ * lock too, after the batch's: on two connections, a proposal made while such a signing is open waits for it and is
+ * refused, and a signing asked for while such a proposal is open waits for it and is refused because the record
+ * changed (EBMR-ESIG-012).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -100,6 +110,36 @@ async function withException(): Promise<{ d: RunDriver; exception: string }> {
   return { d, exception };
 }
 
+
+/**
+ * Runs `p` (a command on its own connection) and returns once it has settled or a backend of the test database waits
+ * for a lock (the other connection's transaction is still open): whether it waited, and its outcome once settled.
+ */
+async function waitingOrDone(p: Promise<unknown>): Promise<{ waited: boolean; state: () => string; done: Promise<void> }> {
+  let state = 'running';
+  const done = p.then(
+    () => void (state = 'committed'),
+    (e: unknown) => void (state = `refused: ${e instanceof Error ? e.message : String(e)}`),
+  );
+  for (let i = 0; i < 200 && state === 'running' && (await lockWaits()) === 0; i += 1) await new Promise((res) => setTimeout(res, 25));
+  return { waited: state === 'running', state: () => state, done };
+}
+
+/** A dc-mini run with a QA hold point after the clearance, the clearance done: the hold point waits for its decision. */
+async function atHoldPoint(): Promise<{ d: RunDriver; runId: string }> {
+  const CLEAR = 'p-disp-clear@';
+  const issuer = await sbx.asPersona('issuer');
+  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, withEarlyHoldPoint()));
+  const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), verifier1: await sbx.asPersona('verifier1'), qa1: await sbx.asPersona('qa1') });
+  d.beforeTap = () => vi.advanceTimersByTime(7_000);
+  await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+  await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+  await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9997' } });
+  await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+  await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+  return { d, runId };
+}
+
 describe('F37: a proposed decision never lands on a signed content version (INV-09, DI-37)', () => {
   it('[INV-09][DI-37][PR-49] a disposition proposed through the store while QA1\'s signed disposition commits waits for it and is refused; QA1\'s signature stays VALID over its own disposition', async () => {
     const { d, exception } = await withException();
@@ -188,5 +228,75 @@ describe('F37: a proposed decision never lands on a signed content version (INV-
     // Another proposal on that version would change what the signature covers: refused, and the signature stays VALID.
     expect(await propose(qa2Actor(), B)).toMatch(new RegExp(`A disposition of exception ${exception} is already signed on content version 1; no other is proposed on it \\(INV-09, DI-37\\)\\. \\[EBMR-EXE-084\\]`));
     expect(await signatureStates(aggregateId)).toEqual(['EXCEPTION_DISPOSITIONED@1:VALID']);
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-49] F37.R: on two connections, a disposition proposed while a signer outside the server\'s path (no batch lock) keeps its signed transaction open waits for it and is refused; the signature, committed after, stays VALID', async () => {
+    const { d, exception } = await withException();
+    const aggregateId = `${d.runId}:${exception}`;
+    const proposeOn = (c: Parameters<typeof execution.proposeDisposition>[0], proposal: typeof A) => execution.proposeDisposition(c, d.runId, exception, { ...proposal, deviationRef: null });
+    expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, A)))).toBe('ok');
+    const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_exception', aggregateId, 'EXCEPTION_DISPOSITIONED');
+    const qa2 = await qa2Actor();
+    let second: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+    // Connection 1: QA1 signs and keeps the transaction open, never taking the batch's lock. Connection 2: QA2 proposes.
+    await withCommand(sbx.db.app, await signing.actor(), async (c) => {
+      await signing.sign(c);
+      second = await waitingOrDone(withCommand(sbx.db.app, qa2, (c2) => proposeOn(c2, B)));
+    });
+    await second?.done;
+    expect({ waited: second?.waited, state: second?.state() }).toEqual({
+      waited: true,
+      state: expect.stringMatching(new RegExp(`^refused: A disposition of exception ${exception} is already signed on content version 1; no other is proposed on it \\(INV-09, DI-37\\)\\. \\[EBMR-EXE-084\\]`)) as unknown,
+    });
+    expect(await signatureStates(aggregateId)).toEqual(['EXCEPTION_DISPOSITIONED@1:VALID']);
+    const { rows } = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from esig.verify_signatures()');
+    expect(rows[0]?.n).toBe('0');
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-49] F37.R: on two connections, a signing asked for while another QA user\'s proposal is open waits for it, then is refused because the record changed (EBMR-ESIG-012); no signature covers content it does not have', async () => {
+    const { d, exception } = await withException();
+    const aggregateId = `${d.runId}:${exception}`;
+    const proposeOn = (c: Parameters<typeof execution.proposeDisposition>[0], proposal: typeof A) => execution.proposeDisposition(c, d.runId, exception, { ...proposal, deviationRef: null });
+    expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, A)))).toBe('ok');
+    const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_exception', aggregateId, 'EXCEPTION_DISPOSITIONED');
+    const signer = await signing.actor();
+    let first: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+    // Connection 2: QA2's proposal, transaction open. Connection 1: QA1 signs (outside the server's path).
+    await withCommand(sbx.db.app, await qa2Actor(), async (c2) => {
+      await proposeOn(c2, B);
+      first = await waitingOrDone(withCommand(sbx.db.app, signer, (c) => signing.sign(c)));
+    });
+    await first?.done;
+    expect({ waited: first?.waited, state: first?.state() }).toEqual({
+      waited: true,
+      state: expect.stringMatching(/^refused: EBMR-ESIG-012 the record changed after the challenge was issued/) as unknown,
+    });
+    expect(await signatureStates(aggregateId)).toEqual([]);
+    const { rows } = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from esig.verify_signatures()');
+    expect(rows[0]?.n).toBe('0');
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-45] F37.R: on two connections, a hold-point decision proposed while a release signed outside the server\'s path is open waits for it and is refused; the release, committed after, stays VALID over APPROVED', async () => {
+    const { d, runId } = await atHoldPoint();
+    const HOLD = 'H-TEST@';
+    const aggregateId = `${runId}:${HOLD}`;
+    const proposeOn = (c: { query: (q: string, v: unknown[]) => Promise<unknown> }, disposition: string, comment: string | null) =>
+      c.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [runId, HOLD, JSON.stringify({ disposition, comment })]);
+    expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, 'APPROVED', null)))).toBe('ok');
+    const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_step', aggregateId, 'HOLD_POINT_RELEASED');
+    const qa2 = await qa2Actor();
+    let second: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+    await withCommand(sbx.db.app, await signing.actor(), async (c) => {
+      await signing.sign(c);
+      second = await waitingOrDone(withCommand(sbx.db.app, qa2, (c2) => proposeOn(c2, 'NOT_APPROVED', 'QA2: booth not released')));
+    });
+    await second?.done;
+    expect({ waited: second?.waited, state: second?.state() }).toEqual({
+      waited: true,
+      state: expect.stringMatching(/^refused: A decision on hold point H-TEST@ is already signed on content version 1; no other is proposed on it \(INV-09, DI-37, PR-45\)\. \[EBMR-EXE-084\]/) as unknown,
+    });
+    expect((await signatureStates(aggregateId)).filter((x) => x.startsWith('HOLD_POINT_'))).toEqual(['HOLD_POINT_RELEASED@1:VALID']);
+    const now = await esig.contentForSigning(sbx.db.admin, 'batch_step', aggregateId);
+    expect((JSON.parse(now.canonical ?? '{}') as { content?: { proposedDecision?: unknown } }).content?.proposedDecision).toEqual({ disposition: 'APPROVED', comment: null });
   }, 300_000);
 });

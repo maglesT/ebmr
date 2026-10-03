@@ -451,11 +451,15 @@ one plain-language business entry on the chain `batch:<id>`.
   soft hyphen says nothing, as in the engine's `requireReason`); the deviation is the linked one. As in the
   engine, DEVIATION_RAISED needs a linked deviation, and an exception that needs a deviation is never proposed
   NO_IMPACT. An absent or null member is refused (sql 0270). It and `propose_hold_point_decision` take the batch's
-  row lock (the one `lock_execution` takes and a signing holds to its commit) before they read anything, so a
-  proposal made while a decision is being signed waits for it and then finds the record decided (EBMR-EXE-084); and
-  neither proposes on a content version that already carries a signature of the deciding meaning
-  (EXCEPTION_DISPOSITIONED; HOLD_POINT_RELEASED or HOLD_POINT_NOT_RELEASED), so what a signature covers never
-  changes (INV-09; sql 0309, Phase 2 exit review F37).
+  row lock (the one `lock_execution` takes and a signing on the server's path holds to its commit) and, since sql
+  0329, the record's own signing lock (`esig.aggregate_lock`, which `esig.sign` takes whatever the path) before they
+  read anything, so a proposal made while any signing of the record is open waits for it and then finds the record
+  decided or signed (EBMR-EXE-084), and a signing asked for while a proposal is open waits for it and is refused
+  because the record changed (EBMR-ESIG-012); and neither proposes on a content version that already carries a
+  committed signature of the deciding meaning (EXCEPTION_DISPOSITIONED; HOLD_POINT_RELEASED or
+  HOLD_POINT_NOT_RELEASED), so what a signature covers never changes (INV-09; sql 0309, Phase 2 exit review F37).
+  Under 0309 alone a signer outside the server's path, which takes no batch lock, could keep its signed transaction
+  open while a proposal committed on that version (F37.R).
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
   `batch_point_content` read the latest content version, the state and the persons involved. For an exception
   these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
@@ -850,10 +854,13 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
-- `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309): a second QA user's disposition, and a
+- `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309, 0329): a second QA user's disposition, and a
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content
-  version a disposition was already signed on is refused, with the exception still open.
+  version a disposition was already signed on is refused, with the exception still open. F37.R (sql 0329), on two
+  connections with a signer outside the server's path (no batch lock): a disposition or hold-point decision proposed
+  while that signer's transaction is open waits for it and is refused, the signature committed after stays VALID; a
+  signing asked for while another QA user's proposal is open waits for it and is refused (EBMR-ESIG-012).
 - `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328): a real previous batch number
   typed into a line clearance is refused by the server before anything is written (EBMR-SBX-022), and by the database
   when written through the store (EBMR-EXE-078); every identifier an entry carries (previous, scanned and source
