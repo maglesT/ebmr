@@ -1,0 +1,11 @@
+{
+  "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+  "identical": true,
+  "rows": 6,
+  "firstDifference": null,
+  "invariantViolations": [],
+  "checkedAt": {
+    "us": "1790584623000000",
+    "text": "28-SEP-2026 14:07:03 +05:30 (Asia/Kolkata)"
+  }
+}

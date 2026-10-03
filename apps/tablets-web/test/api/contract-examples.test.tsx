@@ -184,6 +184,56 @@ describe('the step and run examples (review F55)', () => {
   });
 });
 
+describe('the sandbox examples (lead TODO T7)', () => {
+  const run = EXAMPLES.run.data as { header: { runId: string; batchNumber: string; mbr: unknown } };
+  const pkg = (EXAMPLES['test-packages'].data as { packages: { packageId: string }[] }).packages[0];
+
+  it('[DI-05][INV-18] issue form, command answer, timeline, replay and lot belong to the run and package examples, under TEST- numbers', () => {
+    const form = EXAMPLES['issue-form'].data;
+    expect(form.packageId).toBe(pkg?.packageId);
+    expect(form.batchSizes.map((b) => b.id)).toEqual(['BS-100K', 'BS-50K']);
+    expect(form.markets).toContainEqual({ code: 'IN', locked: true });
+    const result = EXAMPLES['command-result'].data as unknown as { accepted: true; step: StepScreenView };
+    expect(result.step.run.runId).toBe(run.header.runId);
+    expect(result.step.run.batchNumber).toBe(run.header.batchNumber);
+    expect(result.step.run.batchNumber).toMatch(/^TEST-B\d{2}-\d{4}$/);
+    expect(result.step.run.watermark.text).toBe('TEST, NOT GMP');
+    expect(result.step.run.mbr).toEqual(run.header.mbr);
+    expect(EXAMPLES.replay.data.runId).toBe(run.header.runId);
+    expect(EXAMPLES.replay.data).toMatchObject({ identical: true, firstDifference: null, invariantViolations: [] });
+    const entries = EXAMPLES.timeline.data.entries;
+    expect(entries[0]?.kind).toBe('ISSUE');
+    expect(entries.filter((e) => !e.accepted).map((e) => e.refusal)).toEqual([expect.stringContaining('ENG-NOT-ENABLED')]);
+    expect(entries.map((e) => BigInt(e.at.us))).toEqual([...entries.map((e) => BigInt(e.at.us))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)));
+    expect(EXAMPLES.lot.data.lotCode).toMatch(/^TEST-/);
+  });
+
+  it('[DI-05] fixture mode answers a command as the server answers an accepted one, and an unknown lot as the server refuses it', async () => {
+    const fetch = createFixtureFetch(fixturesFromExamples('SANDBOX'), { installation: 'SANDBOX' });
+    const post = async (path: string, body: unknown) => JSON.parse(await (await fetch(path, { method: 'POST', headers: {}, body: JSON.stringify(body) })).text()) as unknown;
+    const runId = run.header.runId;
+    const start = await post(`/api/test-runs/${runId}/commands`, { expectedVersion: 0, intent: { type: 'START_STEP', stepKey: 'p-disp-clear@' } });
+    expect(start).toEqual(EXAMPLES['command-result'].data);
+    const other = (await post(`/api/test-runs/${runId}/commands`, { expectedVersion: 7, intent: { type: 'SIGN_PERFORMED', stepKey: 'p-blend@' } })) as { version: number; step: StepScreenView };
+    expect(routes.execution.command.response.safeParse(other).success).toBe(true);
+    expect([other.version, other.step.step.stepKey]).toEqual([8, 'p-blend@']);
+    const unknown = await fetch('/api/lots/TEST-L26-9999', { method: 'GET', headers: {} });
+    expect(unknown.status).toBe(404);
+    expect(JSON.parse(await unknown.text())).toMatchObject({ refusal: { code: 'EXE_NOT_FOUND', whatHappened: 'The lot was not found.' } });
+    const known = await fetch(`/api/lots/${EXAMPLES.lot.data.lotCode}`, { method: 'GET', headers: {} });
+    expect(JSON.parse(await known.text())).toEqual(EXAMPLES.lot.data);
+  });
+
+  it('[DI-05][PR-01] a fixture-mode kiosk page starts on the example session and shows the issue form of the example package', async () => {
+    setTransport(createFixtureFetch(fixturesFromExamples('SANDBOX'), { installation: 'SANDBOX' }));
+    window.history.replaceState(null, '', `/packages/${pkg?.packageId ?? ''}/issue`);
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Issue a test batch' }, { timeout: 10000 })).toBeTruthy();
+    const sizes = await screen.findByRole('radiogroup', { name: 'Batch size (approved sizes only)' });
+    expect(within(sizes).getAllByRole('radio').map((r) => r.closest('label')?.textContent ?? r.getAttribute('aria-label') ?? '')).toEqual([expect.stringContaining('60.000 kg'), expect.stringContaining('30.000 kg')]);
+  });
+});
+
 describe('fixture mode (lead TODO T7; review F55)', () => {
   it('[DI-05] a page with a terminal key starts on the example session and opens the example version in the designer', async () => {
     setTransport(createFixtureFetch(fixturesFromExamples('GMP'), { installation: 'GMP' }));

@@ -10,10 +10,12 @@
 import type { z } from 'zod';
 import audit from '../fixtures/audit-events.json' with { type: 'json' };
 import challenge from '../fixtures/challenge.json' with { type: 'json' };
+import commandResult from '../fixtures/command-result.json' with { type: 'json' };
 import manifestation from '../fixtures/manifestation.json' with { type: 'json' };
 import metaGmp from '../fixtures/meta-gmp.json' with { type: 'json' };
 import metaSandbox from '../fixtures/meta-sandbox.json' with { type: 'json' };
 import reading from '../fixtures/reading.json' with { type: 'json' };
+import replay from '../fixtures/replay.json' with { type: 'json' };
 import run from '../fixtures/run.json' with { type: 'json' };
 import runs from '../fixtures/runs.json' with { type: 'json' };
 import sessionKiosk from '../fixtures/session-kiosk.json' with { type: 'json' };
@@ -29,7 +31,10 @@ import g17 from '../fixtures/step-g17-hold-point.json' with { type: 'json' };
 import g20 from '../fixtures/step-g20-yield.json' with { type: 'json' };
 import g22 from '../fixtures/step-g22-output.json' with { type: 'json' };
 import testPackages from '../fixtures/test-packages.json' with { type: 'json' };
+import timeline from '../fixtures/timeline.json' with { type: 'json' };
 import families from '../fixtures/families.json' with { type: 'json' };
+import issueForm from '../fixtures/issue-form.json' with { type: 'json' };
+import lot from '../fixtures/lot.json' with { type: 'json' };
 import palette from '../fixtures/palette.json' with { type: 'json' };
 import templates from '../fixtures/templates.json' with { type: 'json' };
 import validationFindings from '../fixtures/validation-report-findings.json' with { type: 'json' };
@@ -69,6 +74,13 @@ export const EXAMPLES = {
   runs: { schema: r.execution.runs.response, data: runs, routeId: r.execution.runs.id },
   'work-queue': { schema: r.execution.workQueue.response, data: workQueue, routeId: r.execution.workQueue.id },
   'test-packages': { schema: r.execution.testPackages.response, data: testPackages, routeId: r.execution.testPackages.id },
+  // The sandbox server's own answers for a test batch of the version example (lead TODO T7), compared with the
+  // server by apps/tablets-server/test/execution/contract-examples.test.ts.
+  'issue-form': { schema: r.execution.issueForm.response, data: issueForm, routeId: r.execution.issueForm.id },
+  'command-result': { schema: r.execution.command.response, data: commandResult, routeId: r.execution.command.id },
+  timeline: { schema: r.execution.timeline.response, data: timeline, routeId: r.execution.timeline.id },
+  replay: { schema: r.execution.verifyReplay.response, data: replay, routeId: r.execution.verifyReplay.id },
+  lot: { schema: r.execution.lot.response, data: lot, routeId: r.execution.lot.id },
   challenge: { schema: ChallengeView, data: challenge, routeId: r.esig.createChallenge.id },
   manifestation: { schema: ManifestationView, data: manifestation },
   reading: { schema: ReadingView, data: reading, routeId: r.devices.capture.id },
