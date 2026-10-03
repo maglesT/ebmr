@@ -133,7 +133,9 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       requireSession();
       const pkg = await packageToImport(app, params.packageId);
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (client) => {
-        const r = await execution.importTestPackage(client, pkg, `${pkg.packageHash}.json`);
+        // The name of the inbox file read, never one computed from the package: the database checks it against the
+        // package hash (DI-05, DI-37), so a renamed file is refused there too (Phase 2 exit review F16).
+        const r = await execution.importTestPackage(client, pkg, `${params.packageId}.json`);
         return { packageHash: r.packageHash };
       });
       const imported = await loadPackage(pool, pkg.packageHash);

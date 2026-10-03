@@ -699,9 +699,19 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 
 **tablets-server (`--project server apps/tablets-server/test/execution`)**
 - `store.test.ts`: INV-18/DI-05 in GMP and sandbox; INV-40; INV-16; INV-26; INV-03 in SQL; no
-  application-role writes; the role map.
+  application-role writes; the role map. Phase 2 exit review F16: the import writer called directly refuses a package
+  from a sandbox or carrying a watermark (EBMR-EXE-018), changed after export, with a content hash not its content's
+  or under another package's file name (EBMR-EXE-017), of another format or format version (EBMR-EXE-016) and a
+  second import (EBMR-EXE-019), and stores nothing.
+- `import-db-guard.test.ts` (Phase 2 exit review F16; DI-05, INV-18, DI-37): with the server's TypeScript pre-check
+  of the import replaced by one that passes the inbox file on as it is, the import route is still refused by the
+  database for a package from a sandbox, one changed after export, and an honest package stored under another
+  package's file name (the route passes the name of the file it read); nothing is stored.
 - `commands.test.ts`: packages, issue, DI-34 refusals, ENG-STALE, idempotency, serialisation, INV-25,
   lots, PR-08, views.
+- `contract-examples.test.ts` (lead TODO T7 of the Phase 2 exit; DI-05, INV-18, PR-01): the issue form, a command's
+  answer, a lot, the timeline with a refused command and the replay of a TEST- run equal the shared contract
+  examples, once the values that differ from one database to the next are made stable.
 - `signing.test.ts`: the ceremony; INV-10; disposition proposals; hold-point decisions; witness; INV-09.
 - `sweeper.test.ts`: INV-20; only the sweeper identity records a time sweep, and the gateway (SITE_GATEWAY) is
   refused even as source SYSTEM (DI-17).

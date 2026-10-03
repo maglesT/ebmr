@@ -51,6 +51,8 @@ async function driver(content = dcMini(), personas: string[] = ['operator1', 've
 describe('test packages and issue (DI-05, INV-18)', () => {
   it('[DI-05][INV-18] only packages exported from GMP are imported; a changed package or a wrong file name is refused; the listing shows why', async () => {
     const issuer = await server.asPersona('issuer');
+    const stored = async () => (await server.db.admin.query<{ h: string }>('select package_hash as h from recipe.test_package order by package_hash')).rows.map((r) => r.h);
+    const before = await stored();
     const fromSandbox = writePackage(server, dcMini(), { source: { installationKind: 'SANDBOX', watermark: 'TEST, NOT GMP' } });
     expect(outcomeOf(await issuer.call(routes.execution.importPackage, { params: { packageId: fromSandbox.packageHash }, body: {} }))).toBe('422:EBMR-EXE-018');
     const good = execution.buildTestPackage({
@@ -65,14 +67,25 @@ describe('test packages and issue (DI-05, INV-18)', () => {
     const tampered = { ...good, version: { ...good.version, number: '9' } };
     writeFileSync(join(server.exchangeDir, 'to-sandbox', `${good.packageHash}.json`), JSON.stringify(tampered));
     expect(outcomeOf(await issuer.call(routes.execution.importPackage, { params: { packageId: good.packageHash }, body: {} }))).toBe('422:EBMR-EXE-017');
+    // A package exactly as exported, stored under another package's file name (review F16: never exercised before).
+    const elsewhere = 'e'.repeat(64);
+    const renamed = writePackage(server, dcMini(), {}, `${elsewhere}.json`);
+    const wrongName = await issuer.call(routes.execution.importPackage, { params: { packageId: elsewhere }, body: {} });
+    expect(outcomeOf(wrongName)).toBe('422:EBMR-EXE-017');
+    expect(refusalOf(wrongName).why).toMatch(new RegExp(`the file name ${elsewhere}\\.json is not <packageHash>\\.json`));
     const listed = valueOf(await issuer.call(routes.execution.testPackages)).packages;
     expect(listed.find((p) => p.fileName === `${good.packageHash}.json`)?.problem).toMatch(/changed after export/);
     expect(listed.find((p) => p.packageHash === fromSandbox.packageHash)?.problem).toMatch(/only MBR versions exported from GMP/);
+    expect(listed.find((p) => p.fileName === `${elsewhere}.json`)?.problem).toMatch(/is not <packageHash>\.json/);
     expect(outcomeOf(await issuer.call(routes.execution.importPackage, { params: { packageId: 'not-a-hash' }, body: {} }))).toBe('404:EXE_NOT_FOUND');
+    // Nothing of the refused packages was stored.
+    expect(await stored()).toEqual(before);
+    expect(before).not.toContain(renamed.packageHash);
     const ok = writePackage(server, dcMini());
     const view = valueOf(await issuer.call(routes.execution.importPackage, { params: { packageId: ok.packageHash }, body: {} }));
     expect(view).toMatchObject({ packageHash: ok.packageHash, imported: true, sourceInstallation: 'GMP', problem: null });
     expect(outcomeOf(await issuer.call(routes.execution.importPackage, { params: { packageId: ok.packageHash }, body: {} }))).toBe('409:EBMR-EXE-019');
+    expect(await stored()).toEqual([...before, ok.packageHash].sort());
   }, 180_000);
 
   it('[DI-05][PR-10][PR-01] issue: every header input is required (a count is positive); the TEST- number, the engine version, the block registry and the policy are pinned', async () => {
