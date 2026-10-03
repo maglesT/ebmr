@@ -1427,3 +1427,25 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Stryker on the changed lines of identity/secrets.ts: no survivor. Playwright audit, access, esig, smoke, floor,
   devices and journey specs re-run: all passed. Defaults F04.1, F05.1 and F56.1 are in
   docs/decisions/phase-2-open-questions.md.
+- 2026-10-02: PHASE 2 EXIT FIX, U+0000 and lone surrogates in free text (branch phase-2/recipe-core; findings F30,
+  F31, F32 and F33 of the exit review; each fix with a test that fails on the code before it). What was wrong: the API
+  contract took any string, so a U+0000 or a UTF-16 surrogate without its other half in free text (an exception's
+  description, a previous batch, a deviation number, a hold reason, a TEXT value, an MBR step name, a save note, a
+  product name, a justification, a disposition justification or hold-point comment in the signing preview) reached a
+  jsonb or text bind; PostgreSQL refused it without an EBMR code and the server answered 500 INTERNAL, wrote no
+  refused row, and had already shown the signer a hash for content it could never store. A hold reason with U+0000
+  was accepted and stored escaped. A lone surrogate sent as a text parameter, and bytes that are not UTF-8, were turned
+  into U+FFFD on the way, so a justification was stored with a character its author never sent. Both TypeScript
+  canonical JSON writers wrote such text and disagreed on the order of such keys. What changed: canonicalJson in expr
+  and in the kernel refuses such text in strings and member names (UnstorableTextError, EBMR-ESIG-004), so no client
+  hashes what the server cannot store (Stryker on esig/canonical.ts: 100 %). The contract (defineRoute, storableText)
+  refuses it in the params, query and body of every route, at any depth, with 400 INVALID_INPUT naming the field and
+  never the text; the preview's decision is decoded as strict UTF-8 and checked; request bodies that are not UTF-8 are
+  refused before they are read; the server's pools refuse a query parameter holding such text before the driver
+  encodes it; the error mapper answers the database's refusals (22P05, 22P02, 22021) and the guard's 400, never 500;
+  flow.parseMbr names each place; a kiosk refuses such a body before it asks for a nonce; the gateway login refuses it
+  as SCHEMA, and a heartbeat the database refuses for it is answered 400 with its receipt still lost. The database's
+  refusal stays the last line. Tests: kernel esig canonical and signing (TS against SQL), expr evidence, recipe-core
+  canonical-json and flow model, api-contract contract; server execution/free-text, designer/free-text,
+  platform/unstorable-text and devices/gateway-free-text; web api. Playwright smoke re-run: passed. Defaults F30.1,
+  F30.2, F30.3, F31.1 and F33.1 are in docs/decisions/phase-2-open-questions.md.
