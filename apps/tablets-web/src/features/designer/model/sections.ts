@@ -26,6 +26,23 @@ export interface JumpTarget {
   stepId: string | null;
 }
 
+/** The content lists whose items the document shows under their own element `mbr-item-<id>` (review F44). */
+const ITEM_LISTS: readonly string[] = [
+  'parameters',
+  'acceptanceSchemes',
+  'calculations',
+  'intermediates',
+  'timeConstraints',
+  'yieldCheckpoints',
+  'riskReductions',
+  'goldenCases',
+  'inputs',
+  'batchSizes',
+  'variants',
+  'references',
+  'bom',
+];
+
 /**
  * Where a finding leads in the document: a procedure node (its row), a listed item (parameter, time constraint,
  * yield, ...), or its section heading.
@@ -33,7 +50,7 @@ export interface JumpTarget {
 export function jumpTarget(f: { section: string; nodeId: string | null; subjectPath: readonly string[] }, isStep: (id: string) => boolean): JumpTarget {
   if (f.nodeId) return { elementId: `mbr-node-${f.nodeId}`, stepId: isStep(f.nodeId) ? f.nodeId : null };
   const item = f.subjectPath.length === 2 ? f.subjectPath[1] : undefined;
-  if (item && ['parameters', 'calculations', 'intermediates', 'timeConstraints', 'yieldCheckpoints', 'riskReductions', 'goldenCases'].includes(f.subjectPath[0] ?? '')) {
+  if (item && ITEM_LISTS.includes(f.subjectPath[0] ?? '')) {
     return { elementId: `mbr-item-${item}`, stepId: null };
   }
   return { elementId: `${sectionId(f.section)}-title`, stepId: null };

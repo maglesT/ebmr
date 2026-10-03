@@ -16,13 +16,37 @@ import { dcls } from '../classes.ts';
 import { insertionPoint, newStep, type Content, type Op } from '../model/ops.ts';
 import type { FindingItem, PaletteItem } from '../model/types.ts';
 import { roleTitle } from './common.tsx';
+import { humanize, itemLabel, referenceLabel, samplingWords } from './words.ts';
 
 export const rowId = (nodeId: string): string => `mbr-node-${nodeId}`;
 
 const PLAIN: Readonly<Record<string, string>> = {};
 
-function label(c: Content, id: string): string {
-  return c.parameters.find((p) => p.id === id)?.name ?? c.calculations.find((x) => x.id === id)?.name ?? c.inputs.find((x) => x.id === id)?.name ?? id;
+/**
+ * What a step's row says besides its name and records (review F44): significance and risk class, what it reads and
+ * uses, its equipment, yield checkpoint, acceptance scheme and sampling, the computerised system with its recipe, PAT
+ * and reprocessing. The checker's document carries them, not only the properties panel of a selected step.
+ */
+function phaseFacts(c: Content, n: flow.PhaseNode): string[] {
+  const out: string[] = [`${n.significant ? 'Significant step (performer and an independent checker)' : 'Not significant'} · risk class ${n.riskClass}`];
+  if (n.reads.length > 0) out.push(`Reads ${n.reads.map((r) => itemLabel(c, r)).join(', ')}`);
+  for (const e of n.equipment) out.push(`Equipment ${e.ref}: ${e.use === 'STATUS_CHECK' ? 'checks its status (status check)' : 'uses it (use)'}`);
+  if (n.yieldCheckpoint) out.push(`Yield checkpoint ${c.yieldCheckpoints.find((y) => y.id === n.yieldCheckpoint)?.name ?? ''} (${n.yieldCheckpoint})`);
+  if (n.acceptanceScheme) out.push(`Acceptance scheme ${c.acceptanceSchemes.find((x) => x.id === n.acceptanceScheme)?.title ?? ''} (${n.acceptanceScheme})`);
+  for (const x of n.sampling ?? []) out.push(`Sampling ${samplingWords(x)}`);
+  if (n.system) {
+    out.push(
+      `Computerised system ${humanize(n.system.kind)} ${referenceLabel(c, n.system.ref)}${n.system.recipe !== undefined ? `, recipe ${n.system.recipe}` : ''}${n.system.recipeVersion !== undefined ? ` version ${n.system.recipeVersion}` : ''}`,
+    );
+  }
+  if (n.pat) out.push(`PAT method ${n.pat.method}, model ${n.pat.model} version ${n.pat.modelVersion}${n.pat.acceptance !== undefined ? `, accepted when ${n.pat.acceptance}` : ''}`);
+  if (n.reprocessing) {
+    const r = n.reprocessing;
+    out.push(
+      `Reprocessing: ${humanize(r.case)}${r.maxPercent !== undefined ? `, at most ${r.maxPercent} %` : ''}${r.maxAge ? `, source at most ${r.maxAge.value} ${r.maxAge.unit} old` : ''}${r.maxSourceBatches !== undefined ? `, at most ${r.maxSourceBatches} source batches` : ''}`,
+    );
+  }
+  return out;
 }
 
 function constructLabel(n: flow.FlowNode): string {
@@ -144,6 +168,7 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
       <tr
         key={n.id}
         id={rowId(n.id)}
+        data-node={n.id}
         data-step-row=""
         data-selected={selected === n.id}
         {...(severity ? { 'data-severity': severity } : {})}
@@ -169,6 +194,15 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
               Follow {sop.code} v{sop.version}
             </div>
           ) : null}
+          {n.kind === 'phase' ? (
+            <ul className={dcls('list')} aria-label={`Details of step ${num}`}>
+              {phaseFacts(content, n).map((f, i) => (
+                <li key={i} className={dcls('small')}>
+                  {f}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {findings.length > 0 ? (
             <div className={dcls('small')}>
               {findings.filter((f) => f.severity === 'ERROR').length} errors, {findings.filter((f) => f.severity === 'WARNING').length} warnings
@@ -179,16 +213,24 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
           {n.kind === 'phase' ? (
             <ul className={dcls('list')}>
               {n.records.map((r) => (
-                <li key={`r-${r}`}>{label(content, r)}</li>
+                <li key={`r-${r}`}>{itemLabel(content, r)}</li>
               ))}
               {n.computes.map((r) => (
-                <li key={`c-${r}`}>{label(content, r)} (computed)</li>
+                <li key={`c-${r}`}>{itemLabel(content, r)} (computed)</li>
               ))}
-              {n.consumes.map((b) => (
-                <li key={`b-${b}`}>{b} (dispensed or charged)</li>
-              ))}
+              {n.consumes.map((b) => {
+                const line = content.bom.find((x) => x.id === b);
+                return <li key={`b-${b}`}>{line ? `${b}: ${referenceLabel(content, line.material)}` : b} (dispensed or charged)</li>;
+              })}
               {n.produces.map((b) => (
-                <li key={`p-${b}`}>{content.intermediates.find((i) => i.id === b)?.name ?? b} (produced)</li>
+                <li key={`p-${b}`}>
+                  {content.intermediates.find((i) => i.id === b)?.name ?? b} ({b}, produced)
+                </li>
+              ))}
+              {n.uses.map((b) => (
+                <li key={`u-${b}`}>
+                  {content.intermediates.find((i) => i.id === b)?.name ?? b} ({b}, used)
+                </li>
               ))}
             </ul>
           ) : (
@@ -242,7 +284,7 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
       case 'stage': {
         const num = numbering.byId.get(n.id)?.number ?? '?';
         rows.push(
-          <tr key={n.id} id={rowId(n.id)} className={dcls('stageRow')} tabIndex={-1}>
+          <tr key={n.id} id={rowId(n.id)} data-node={n.id} className={dcls('stageRow')} tabIndex={-1}>
             <td className={dcls('no')}>{num}</td>
             <td colSpan={5}>
               Stage {num}: {n.name} · {n.binding.rooms.length > 0 ? `room ${n.binding.rooms.join(', ')}` : 'no room'}
@@ -257,7 +299,7 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
       case 'operation': {
         const num = numbering.byId.get(n.id)?.number ?? '?';
         rows.push(
-          <tr key={n.id} id={rowId(n.id)} className={dcls('operationRow')} tabIndex={-1}>
+          <tr key={n.id} id={rowId(n.id)} data-node={n.id} className={dcls('operationRow')} tabIndex={-1}>
             <td className={dcls('no')}>{num}</td>
             <td colSpan={5}>{n.name}</td>
           </tr>,
