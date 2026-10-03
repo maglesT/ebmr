@@ -245,6 +245,7 @@ tests:
   - "packages/ui-kit/test/floor/components.test.tsx > PrimaryActionBar, RefusalPanel, ExceptionBanner, StatusOutline > [DI-34] keeps an unavailable action visible, greyed, with the server's reason; the More menu lists the rest with their reasons"
   - "tools/e2e/specs/floor/floor.spec.ts > floor screens against the live sandbox (after checkpoint D5) > [DI-05][INV-18][DI-34] every floor screen carries TEST, NOT GMP and TEST- numbers; a later step is shown unavailable with the engine's reason"
   - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
+  - "apps/tablets-server/test/execution/golden.test.ts > REPLAY-GATE: the replay of the stored rows finds what the database does not re-derive (decision REPLAY-GATE.1) > [DI-34][DI-33] a computed value forged through the application role is stored, since the database does not re-run calculations, and the invariant query is empty; the replay of the stored rows with the pinned engine differs at that row, so a release gate that replays stays NOT_READY"
 clauses:
   - clause: "Try step N+1 before step N. Blocked."
     tests:

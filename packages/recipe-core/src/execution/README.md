@@ -920,4 +920,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   text.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
-  run records the signature-budget baseline: 29 signatures.
+  run records the signature-budget baseline: 29 signatures. REPLAY-GATE (decision REPLAY-GATE.1): a computed value
+  forged through the application role is stored (the database does not re-run calculations) and the invariant query
+  stays empty, but the replay of the stored rows with the pinned engine differs at that row, as the release gate
+  G-REL will read it.
