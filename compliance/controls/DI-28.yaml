@@ -52,6 +52,9 @@ tests:
   - "apps/tablets-server/test/devices/reading-age-policy.test.ts > F38: the maximum age of a scale reading is the database's policy (DI-28) > [DI-28][DI-32] a site that tightens the policy gets the tighter maximum, whatever the server asks"
   - "apps/tablets-web/test/floor/dialog-saved-stays-done.test.tsx > a saved plain-intent dialog after a newer read of the step > [DI-28][INV-40] Raise an exception: the open dialog stays done; the same words are not offered for a second Send"
   - "apps/tablets-web/test/floor/dialog-saved-stays-done.test.tsx > a saved plain-intent dialog after a newer read of the step > [DI-28][INV-40] Hold the batch (supervisor): the open dialog stays done; a second hold is not offered"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-28][DI-32] a tare too old to use (422 EBMR-DEV-104 naming it, rolled back): only the tare goes; the unused gross stays"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > the age of a captured reading (F59) > [DI-28][DI-32] a fresh capture says how long it can still be used"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > the age of a captured reading (F59) > [DI-28][DI-32] a capture near the maximum age warns before the save; past it, it says to capture again"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

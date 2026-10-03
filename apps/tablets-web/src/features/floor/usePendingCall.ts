@@ -89,12 +89,14 @@ export interface PendingCallOptions<R extends AnyRoute> {
    */
   onLateAnswer?: (saved: RouteResponse<R> | null, samePerson: boolean) => void | Promise<void>;
   /**
-   * A definite answer that nothing was applied and the readings are gone (refused, another person's badge). Scale
-   * readings named by the entry are used up even by a refused command, so forms clear them: a retry needs a fresh
-   * capture. Not called for a stale answer: the server checks the run version before it claims any reading, so the
-   * readings stay usable for the resend from the reloaded screen (Phase 2 exit review F58).
+   * A definite answer that nothing was applied (refused, another person's badge), with its refusal; null when the entry
+   * was discarded after it may have reached the server. A form decides from the refusal what it keeps for the retry: a
+   * scale reading is spent only when a command naming it commits, which an engine refusal does (the server names the
+   * readings it used, details.readingsUsed), and a refusal given before the command, or thrown while it was resolved,
+   * spends none (Phase 2 exit review F59). Not called for a stale answer: the server checks the run version before it
+   * claims any reading, so the readings stay usable for the resend from the reloaded screen (F58).
    */
-  onNotApplied?: () => void;
+  onNotApplied?: (refusal: RefusalEnvelope | null) => void;
   /** The entry was discarded because another person's badge was tapped: forms clear what was typed. */
   onDiscarded?: () => void;
   /**
@@ -224,14 +226,14 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
       case 'SWITCH_USER':
         // Another person's badge: the entry is discarded and never sent under that person; C1 then offers the
         // switch ("Switch to <name>?" + PIN). If they switch, they enter their own values themselves.
-        live.current.options.onNotApplied?.();
+        live.current.options.onNotApplied?.(outcome.envelope);
         live.current.options.onDiscarded?.();
         send({ type: 'SWITCH_USER', refusal: outcome.envelope });
         await live.current.tap.offerSwitch(outcome.envelope);
         return;
       case 'REFUSED':
         lostKey.current = null;
-        live.current.options.onNotApplied?.();
+        live.current.options.onNotApplied?.(outcome.envelope);
         send({ type: 'REFUSED', refusal: outcome.envelope });
         return;
       case 'STALE': {
@@ -307,7 +309,12 @@ export interface RunCommand extends PendingCall {
  * A plain engine intent on a test run (POST /api/test-runs/:runId/commands). `viewStepKey` names the step whose
  * view comes back (and is reloaded when the entry arrives stale).
  */
-export function useRunCommand(runId: string, viewStepKey: string | null, reason: string, extra: { onSaved?: () => void; onNotApplied?: () => void; onDiscarded?: () => void } = {}): RunCommand {
+export function useRunCommand(
+  runId: string,
+  viewStepKey: string | null,
+  reason: string,
+  extra: { onSaved?: () => void; onNotApplied?: (refusal: RefusalEnvelope | null) => void; onDiscarded?: () => void } = {},
+): RunCommand {
   const qc = useQueryClient();
   const signedInNow = useSignedInNow();
   const extraRef = useRef(extra);
@@ -328,7 +335,7 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
       await refreshRun(qc, { steps: !put });
       extraRef.current.onSaved?.();
     },
-    onNotApplied: () => extraRef.current.onNotApplied?.(),
+    onNotApplied: (refusal) => extraRef.current.onNotApplied?.(refusal),
     onDiscarded: () => extraRef.current.onDiscarded?.(),
     onStale: async () => {
       if (!viewStepKey) {
@@ -343,7 +350,7 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
       return after ? describeChanges(before, after) : ['The step was reloaded from the server.'];
     },
     onDiscard: () => {
-      extraRef.current.onNotApplied?.();
+      extraRef.current.onNotApplied?.(null);
       extraRef.current.onDiscarded?.();
       return refreshRun(qc, { steps: true });
     },

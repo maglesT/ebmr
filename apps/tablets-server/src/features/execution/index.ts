@@ -94,6 +94,28 @@ function stepKeyOf(intent: ClientIntent): string | undefined {
 
 type CommandWork = { refused: { status: number; refusal: Refusal } } | { accepted: { version: number } };
 
+/**
+ * The scale readings a resolved command claimed (its evidence). They stay used once the command commits, accepted or
+ * refused by the engine (tab.reading_use is written in the command's transaction; DI-32).
+ */
+function readingsClaimed(evidence: Record<string, unknown>): string[] {
+  const readings = evidence['readings'];
+  if (!Array.isArray(readings)) return [];
+  return readings.flatMap((r: unknown) => {
+    const id = r !== null && typeof r === 'object' ? (r as { readingId?: unknown }).readingId : undefined;
+    return typeof id === 'string' ? [id] : [];
+  });
+}
+
+/**
+ * An engine refusal committed with the command: it names the scale readings the command used (details.readingsUsed,
+ * comma-separated), so a form drops exactly those and keeps captures that a refusal given before the command, or
+ * thrown while it was resolved, never used (Phase 2 exit review F59; DI-32, PR-19).
+ */
+function withReadingsUsed(refusal: Refusal, used: readonly string[]): Refusal {
+  return used.length === 0 ? refusal : { ...refusal, details: { ...(refusal.details ?? {}), readingsUsed: used.join(',') } };
+}
+
 export async function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
   await preloadRuns(app, pool).catch((e: unknown) => scope.log.warn({ err: e instanceof Error ? e.message : String(e) }, 'the run cache could not be preloaded'));
@@ -228,7 +250,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         );
         const r = await tx.command(resolved.command, roles, { ...resolved.evidence, ...(idempotencyKey ? { idempotencyKey } : {}) });
         runCache(app).set(params.runId, { def: run.def, state: tx.state });
-        const work: CommandWork = r.accepted ? { accepted: { version: tx.state.version } } : { refused: engineRefusal(app.guidance, r.refusal ?? { code: 'ENG-REFUSED', message: 'Refused', controls: ['DI-34'] }) };
+        const refused = r.accepted ? null : engineRefusal(app.guidance, r.refusal ?? { code: 'ENG-REFUSED', message: 'Refused', controls: ['DI-34'] });
+        const work: CommandWork = refused ? { refused: { status: refused.status, refusal: withReadingsUsed(refused.refusal, readingsClaimed(resolved.evidence)) } } : { accepted: { version: tx.state.version } };
         return work as unknown as commands.JsonValue;
       });
       const work = out.result as unknown as CommandWork;

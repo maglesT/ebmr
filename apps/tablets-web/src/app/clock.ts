@@ -20,3 +20,9 @@ export function secondsUntil(us: string): number | null {
   const now = serverNowMs();
   return now === null ? null : Math.max(0, Math.floor((Number(BigInt(us) / 1000n) - now) / 1000));
 }
+
+/** Whole seconds since a server instant (epoch microseconds text), for display ages only; null when unknown. */
+export function secondsSince(us: string): number | null {
+  const now = serverNowMs();
+  return now === null ? null : Math.max(0, Math.floor((now - Number(BigInt(us) / 1000n)) / 1000));
+}

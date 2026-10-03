@@ -12,7 +12,7 @@
  * (DI-30, PR-14; review findings P34, P58), and the field says so before it is saved. A weighing is captured from any
  * ONLINE scale of the step's room; keying the weights by hand is offered only while none of them is online (PR-20).
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ClientEntry,
   routes,
@@ -20,10 +20,12 @@ import {
   type DataValueWire,
   type FieldView,
   type ReadingView,
+  type RefusalEnvelope,
   type StepScreenView,
 } from '@ebmr/api-contract';
 import { Button, decimalProblem, Field, floor } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../../api/hooks.ts';
+import { secondsSince } from '../../../app/clock.ts';
 import { ScaleCaptureSlot } from '../../../app/ports.tsx';
 import { wcls } from '../classes.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
@@ -249,6 +251,60 @@ function purposeOf(name: string): 'TARE' | 'GROSS' | 'CHECK' {
   return /tare/i.test(name) ? 'TARE' : /gross/i.test(name) ? 'GROSS' : 'CHECK';
 }
 
+/**
+ * How long a scale reading can be used after it was taken, as the server asks the database for it (tablets-server
+ * intents.ts READING_MAX_AGE_US, 120 s; a site may set less, tablets 0360). Display only: the database decides whether a
+ * reading is fresh enough (DI-28, DI-32).
+ */
+export const READING_USABLE_S = 120;
+/** The last seconds of that time in which a captured reading warns that it is about to become too old (F59). */
+const READING_WARN_S = 30;
+
+/** When a reading was taken: the capture time the gateway signed when the device clock is synchronised, else when it was recorded. */
+function takenAt(r: ReadingView): string {
+  return r.trust === 'DEVICE_SYNCED' && r.sourceTime !== null && BigInt(r.sourceTime.us) < BigInt(r.recordedAt.us) ? r.sourceTime.us : r.recordedAt.us;
+}
+
+/**
+ * The age of a captured reading on the display clock, with a warning in its last half minute, so a slow fill is not
+ * refused without notice (Phase 2 exit review F59). Display only; nothing when the display clock is not anchored yet.
+ */
+function ReadingAge({ reading }: { reading: ReadingView }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const age = secondsSince(takenAt(reading));
+  if (age === null) return null;
+  const left = READING_USABLE_S - age;
+  const text = left <= 0 ? st('reading.age.old', { age }) : left <= READING_WARN_S ? st('reading.age.soon', { age, left }) : st('reading.age.fresh', { age, max: READING_USABLE_S });
+  return (
+    <p className={left <= READING_WARN_S ? undefined : wcls('muted')} data-testid="reading-age">
+      {text}
+    </p>
+  );
+}
+
+/**
+ * The captures a form keeps after a refusal (Phase 2 exit review F59; DI-32, PR-19). A reading is spent only when a
+ * command naming it commits:
+ * - an engine refusal is committed with the command's claims, and the server names the readings it used
+ *   (details.readingsUsed): exactly those go;
+ * - a claim refusal (EBMR-DEV-1xx: too old, already used, not a stable weight, another room...) rolls the command back,
+ *   but the reading it names cannot be used again: that one goes;
+ * - any other refusal (a badge or PIN not accepted, a locked session, an unknown lot, tare and gross from different
+ *   scales...) is given before the command runs, or rolls it back: every capture stays for the resend;
+ * - null (the entry was discarded after it may have reached the server): nothing is known, every capture goes.
+ */
+export function readingsAfterRefusal(readings: Record<string, ReadingView>, refusal: RefusalEnvelope | null): Record<string, ReadingView> {
+  if (refusal === null) return {};
+  const r = refusal.refusal;
+  const used = r.details?.['readingsUsed'];
+  const spent = (id: string): boolean => (used !== undefined ? used.split(',').includes(id) : /^EBMR-DEV-1[0-9]{2}$/.test(r.code) && r.why.includes(id));
+  return Object.fromEntries(Object.entries(readings).filter(([, reading]) => !spent(reading.readingId)));
+}
+
 const BAND_TIERS = ['ALERT', 'INTERNAL_ACTION', 'VALIDATED', 'REGISTERED'] as const;
 
 /**
@@ -287,6 +343,7 @@ function ReadingCapture({ label, purpose, reading, onReading, view, disabled }: 
     return (
       <div className={wcls('readingBox')} data-testid={`reading-${purpose}`}>
         <p>{st('reading.captured', { purpose: label, value: reading.value, unit: reading.unit, device: reading.deviceCode, status: reading.stable ? 'stable' : reading.status, raw: reading.raw, at: reading.recordedAt.text })}</p>
+        <ReadingAge reading={reading} />
         <Button onPress={() => onReading(null)} isDisabled={disabled}>
           {st('reading.again')}
         </Button>
@@ -397,9 +454,10 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const record = availability(view, 'RECORD_ENTRY');
   const [state, setState] = useState<FormState>(EMPTY_FORM);
   const clear = () => setState(EMPTY_FORM);
-  // A reading is used up even by a refused command (DEV-105): after a refusal the person captures again. A stale answer
-  // used none (the server checks the version first, F58), so the captures stay for the resend.
-  const dropReadings = () => setState((s) => ({ ...s, readings: {} }));
+  // A reading is spent only by a command that commits (an engine refusal does, and names the readings it used); a
+  // refusal before the command, or one that rolled it back, spent none, so the captures stay for the resend (F59). A
+  // stale answer used none either (the server checks the version first, F58) and does not come here.
+  const dropReadings = (refusal: RefusalEnvelope | null) => setState((s) => ({ ...s, readings: readingsAfterRefusal(s.readings, refusal) }));
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: form.title }), { onSaved: clear, onNotApplied: dropReadings, onDiscarded: clear });
   useSessionChange(clear);
   useDraftGuard([state.texts, state.choices, state.scans, state.readings, state.checks].some((part) => Object.keys(part).length > 0));
@@ -425,6 +483,21 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   };
   const tareWeight = weighed('TARE');
   const grossWeight = weighed('GROSS');
+  // The server refuses tare and gross from different scales or in different units (EBMR-EXE-076): said before sending.
+  const captured = (purpose: 'TARE' | 'GROSS'): ReadingView | undefined => {
+    const field = manual ? undefined : readingFields.find((f) => purposeOf(f.name) === purpose);
+    return field ? state.readings[field.name] : undefined;
+  };
+  const tareReading = captured('TARE');
+  const grossReading = captured('GROSS');
+  const pairProblem =
+    tareReading && grossReading
+      ? tareReading.deviceCode !== grossReading.deviceCode
+        ? st('form.readingsOtherScale', { tare: tareReading.deviceCode, gross: grossReading.deviceCode })
+        : tareReading.unit !== grossReading.unit
+          ? st('form.readingsOtherUnit', { tare: tareReading.unit, gross: grossReading.unit })
+          : null
+      : null;
   const netProblem =
     tareWeight && grossWeight && tareWeight.unit === grossWeight.unit && grossAboveTare(grossWeight.value, tareWeight.value) === false
       ? st('form.netNotPositive', { gross: `${grossWeight.value} ${grossWeight.unit}`, tare: `${tareWeight.value} ${tareWeight.unit}` })
@@ -432,7 +505,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
   const problem =
     missing.length > 0
       ? st('form.missingField', { name: missing.join(', ') })
-      : netProblem ?? (parsed && !parsed.success ? st('form.problem', { problem: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') }) : null);
+      : pairProblem ?? netProblem ?? (parsed && !parsed.success ? st('form.problem', { problem: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') }) : null);
 
   const set = <K extends keyof FormState>(part: K, name: string, value: FormState[K][string] | null) =>
     setState((s) => {
@@ -443,7 +516,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
     });
 
   const save = () => {
-    if (!parsed?.success || netProblem !== null) return;
+    if (!parsed?.success || netProblem !== null || pairProblem !== null) return;
     cmd.send({ type: 'RECORD_ENTRY', stepKey: view.step.stepKey, entry: parsed.data }, view.run.version, view);
   };
 
@@ -529,7 +602,7 @@ export function EntryFormCard({ form, view, options = {} }: { form: EntryFormVie
               {st('form.stillNeeded', { names: pending.join(', ') })}
             </p>
           ) : null}
-          <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!parsed?.success || netProblem !== null || locked}>
+          <Button variant="primary" className={wcls('saveButton')} onPress={save} isDisabled={!parsed?.success || netProblem !== null || pairProblem !== null || locked}>
             {st('save.form', { title: form.title })}
           </Button>
         </>

@@ -47,6 +47,13 @@ tests:
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-19][PR-08] a total outside the tolerance of its target cannot be confirmed without an exception and a deviation"
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-21][PR-19] a dispensing step cannot be performed while a BOM line it dispenses has no container"
   - "packages/recipe-core/test/engine/corrections.test.ts > executed targets (outline 5.2.3) > [DI-33][PR-19] a corrected input that moves an already dispensed target outside tolerance raises an exception; the dispensed quantity is never recomputed"
+  - "apps/tablets-server/test/devices/refused-weighing-readings.test.ts > F59: the readings of a refused weighing (DI-32, PR-19) > [DI-32][PR-19] a badge not accepted (401 EBMR-IAM-140) and an unknown lot (EBMR-EXE-072) leave both readings unused and name none; the same readings are then accepted"
+  - "apps/tablets-server/test/devices/refused-weighing-readings.test.ts > F59: the readings of a refused weighing (DI-32, PR-19) > [DI-32][PR-19] an engine refusal (a quarantined lot, G07-LOT-STATUS) is committed with the claims: its answer names both readings it used, and a resend of them is refused as used"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-32][PR-19] a badge not accepted (401 EBMR-IAM-140, refused before the command): both readings stay, and the resend names the same readings"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-32][PR-19] a PIN typo on a TAP_PIN kiosk (401 EBMR-IAM-140): the unused tare and gross stay for the resend"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-32][PR-19] an engine refusal the server committed with the claims (details.readingsUsed): both readings are spent and go"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-30][PR-19] tare and gross from different scales are said before anything is sent; Save stays disabled"
+  - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-30][PR-19] tare and gross in different units are said before anything is sent; Save stays disabled"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

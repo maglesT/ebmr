@@ -84,12 +84,14 @@ describe('G-07 weighing and dispensing', () => {
     expect(within(form).getByRole('button', { name: 'Save: Weigh one container' }).hasAttribute('disabled')).toBe(true);
   });
 
-  it('after a refused entry the readings are used up: the person captures again (DEV-105)', async () => {
+  it('after an engine refusal the readings it used are used up: the person captures again (DEV-105)', async () => {
     const slot = fakeScaleSlot({ TARE: reading('TARE', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e01', '1.250'), GROSS: reading('GROSS', 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e02', '13.753') });
+    // The engine refusal is committed with the command's claims; the server names the readings it used (F59).
+    const readingsUsed = 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e01,c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e02';
     renderFloor(stepPath('p-disp-api@'), {
       scaleSlot: slot,
       fixtures: stepFixtures(g07WithBom),
-      intercept: (r) => (r.path === commandPath ? { status: 422, body: envelope('NOT_ALLOWED', 'G07-LOT-QUARANTINE', { whatHappened: 'Lot TEST-L26-0101 is in quarantine.' }) } : undefined),
+      intercept: (r) => (r.path === commandPath ? { status: 422, body: envelope('NOT_ALLOWED', 'G07-LOT-STATUS', { whatHappened: 'Lot TEST-L26-0101 is in quarantine.', details: { readingsUsed } }) } : undefined),
     });
     const form = await screen.findByTestId('form-CONTAINER_WEIGHING');
     await userEvent.type(within(form).getByRole('textbox', { name: 'Lot' }), 'TEST-L26-0101{Enter}');
