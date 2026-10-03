@@ -115,7 +115,7 @@ describe('canonical JSON: containers', () => {
 describe('canonical JSON: text no record can hold (review F31)', () => {
   const holding = (what: string): string => `EBMR-ESIG-004 text holding ${what} has no canonical JSON form: no record can hold it`;
 
-  it('[DI-37] U+0000 has no canonical form: refused in a string and in a member name, at any depth, never written as \\u0000', () => {
+  it('[DI-37] U+0000 has no canonical form: refused in a string and in a member name, at any depth, never written as an escape', () => {
     expect(refusal(() => canonicalJson('a\u0000b')).message).toBe(holding('U+0000'));
     expect(refusal(() => canonicalJson('\u0000')).message).toBe(holding('U+0000'));
     expect(refusal(() => canonicalJson({ ['k\u0000']: '1' })).message).toBe(holding('U+0000'));
