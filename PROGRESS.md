@@ -1720,3 +1720,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   in any other isolation level (EBMR-EXE-084, EBMR-ESIG-015; decision F37.2, F37.1 corrected). Tests: server
   db-guards-entry-identifiers (round 5) and db-guards-proposal-race (round 2, both levels, both orders, exception and
   hold point, change side); recipe-core entry-data-sql (round 5); kernel esig/isolation (new).
+  Round 3 of the lane (F12): the database never applied a block's data schema, so a weighing whose command and data
+  both carried lotNumber L2409-0017, a clearance answered NO stored as passed, and G-24 start data without its
+  references were stored; recipe-core 0332 holds every entry, start data and refused row to the schema of its step's
+  block version and refuses a kind the block does not record (EBMR-EXE-126; decision F12.4, F12.3 and T2.3/T2.4
+  corrected). Tests: server db-guards-entry-identifiers (round 6); recipe-core entry-data-sql (round 6).
