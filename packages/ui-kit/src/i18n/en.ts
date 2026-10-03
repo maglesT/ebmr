@@ -27,6 +27,8 @@ export const EN = {
   'session.noRoleWhy': 'No role grant of your account is valid now: it may still wait for approval, have expired or have been revoked.',
   'session.noRoleWho': 'The system administrator (role grants)',
   'session.changeSecret': 'Choose a new {kind}',
+  'session.changeFor': 'This sets the {kind} of {name}.',
+  'session.confirmNewPin': 'Tap your badge to confirm your new PIN.',
   'session.newSecret': 'New {kind}',
   'session.repeatSecret': 'Repeat the new {kind}',
   'session.secretsDiffer': 'The two entries differ.',

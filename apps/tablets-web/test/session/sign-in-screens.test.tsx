@@ -322,6 +322,7 @@ describe('F05: a new kiosk PIN is never longer than the PIN pad takes', () => {
     await userEvent.type(first(), TWELVE);
     await userEvent.type(second(), TWELVE);
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.type(await screen.findByLabelText<HTMLInputElement>('Badge'), `${UID}{Enter}`);
     expect(await screen.findByText('Your new PIN is set. Sign in with it now.')).toBeTruthy();
     expect(changes).toHaveLength(1);
     expect(changes[0]).toMatchObject({ newSecret: TWELVE, kind: 'PIN' });

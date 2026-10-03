@@ -391,4 +391,37 @@ describe('secrets (DI-19, DI-15)', () => {
     await expectRefused(changeSecret(authn, { authEventId: pinEv.authEventId, kind: 'PIN', newSecret: '123456' }), 'EBMR-IAM-055', /sequence/);
     await changeSecret(authn, { authEventId: pinEv.authEventId, kind: 'PIN', newSecret: '482915' });
   });
+  it('[DI-15][DI-38][DI-19] on a shared terminal a secret change counts only within the terminal class\'s attribution window; elsewhere within the event window (F04, kernel 0990)', async () => {
+    const authn = seedAuthn(db);
+    const age = (ev: string, seconds: number) => asTimeTraveller(db, `update iam.auth_event set recorded_at = clock_timestamp() - make_interval(secs => ${seconds}) where id = $1`, [ev]);
+    for (const deviceClass of ['SHARED', 'GRADE_A_B'] as const) {
+      const kiosk = await seedActor(db, { deviceClass, withPin: true, acknowledgeEsig: false });
+      const pinEvent = async () =>
+        (await authenticate(authn, { method: 'BADGE_PIN', identifier: kiosk.seed.badgeUid ?? '', secret: kiosk.seed.pin ?? '', deviceFingerprint: kiosk.seed.deviceFingerprint, purpose: 'CREDENTIAL_CHANGE' })).authEventId;
+      // Past the 60 s attribution window (inside the 120 s event window): refused, nothing changed.
+      const late = await pinEvent();
+      await age(late, 61);
+      await expectRefused(changeSecret(authn, { authEventId: late, kind: 'PIN', newSecret: '730519' }), 'EBMR-IAM-092', /too old/);
+      // The window is the class's policy value: shortened to 30 s, an event of 40 s is refused too.
+      await policy(`attribution.freshness_seconds.${deviceClass}`, '30');
+      const shortened = await pinEvent();
+      await age(shortened, 40);
+      await expectRefused(changeSecret(authn, { authEventId: shortened, kind: 'PIN', newSecret: '730519' }), 'EBMR-IAM-092');
+      await policy(`attribution.freshness_seconds.${deviceClass}`, '60');
+      // Inside it: the change goes through.
+      const inTime = await pinEvent();
+      await age(inTime, 50);
+      await changeSecret(authn, { authEventId: inTime, kind: 'PIN', newSecret: '730519' });
+    }
+    // Control: a personal (office) terminal keeps the event window (120 s).
+    const office = await seedActor(db, { acknowledgeEsig: false });
+    const pwEvent = async () =>
+      (await authenticate(authn, { method: 'PASSWORD', identifier: office.seed.loginName, secret: office.seed.password, deviceFingerprint: office.seed.deviceFingerprint, purpose: 'CREDENTIAL_CHANGE' })).authEventId;
+    const tooOld = await pwEvent();
+    await age(tooOld, 121);
+    await expectRefused(changeSecret(authn, { authEventId: tooOld, kind: 'PASSWORD', newSecret: 'Office-Secret-2026-x', loginName: office.seed.loginName }), 'EBMR-IAM-092');
+    const office100 = await pwEvent();
+    await age(office100, 100);
+    await changeSecret(authn, { authEventId: office100, kind: 'PASSWORD', newSecret: 'Office-Secret-2026-x', loginName: office.seed.loginName });
+  });
 });

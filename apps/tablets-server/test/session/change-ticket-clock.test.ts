@@ -7,7 +7,7 @@
  * vi.advanceTimersByTime moves both. The login flow that issues and uses the ticket is in login.test.ts.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CHANGE_TICKET_TTL_MS, ChangeTicketStore } from '../../src/platform/auth/change-tickets.ts';
+import { CHANGE_TICKET_TTL_MS, ChangeTicketStore, SHOP_FLOOR_CHANGE_TICKET_TTL_MS } from '../../src/platform/auth/change-tickets.ts';
 
 const HOUR_MS = 3_600_000;
 const ENTRY = { authEventId: 'auth-1', method: 'PASSWORD', identifier: 'op.one', fingerprint: 'fp-1' } as const;
@@ -58,5 +58,21 @@ describe('change tickets', () => {
     const after = store.issue(ENTRY);
     vi.advanceTimersByTime(CHANGE_TICKET_TTL_MS);
     expect(peek(store, after)).toBe('auth-1');
+  });
+
+  it('[DI-15][DI-38] a change ticket issued on a shared shop-floor terminal lives one minute (F04); no ticket lives longer than two', () => {
+    expect(SHOP_FLOOR_CHANGE_TICKET_TTL_MS).toBe(60_000);
+    const store = new ChangeTicketStore();
+    const kiosk = store.issue(ENTRY, SHOP_FLOOR_CHANGE_TICKET_TTL_MS);
+    const office = store.issue(ENTRY);
+    const tooLong = store.issue(ENTRY, 10 * CHANGE_TICKET_TTL_MS);
+    vi.advanceTimersByTime(SHOP_FLOOR_CHANGE_TICKET_TTL_MS);
+    expect(peek(store, kiosk)).toBe('auth-1');
+    vi.advanceTimersByTime(1);
+    expect(peek(store, kiosk)).toBeNull();
+    expect(peek(store, office)).toBe('auth-1');
+    vi.advanceTimersByTime(CHANGE_TICKET_TTL_MS - SHOP_FLOOR_CHANGE_TICKET_TTL_MS);
+    expect(peek(store, office)).toBeNull();
+    expect(peek(store, tooLong)).toBeNull();
   });
 });

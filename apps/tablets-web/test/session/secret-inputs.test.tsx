@@ -207,12 +207,18 @@ describe('CN2: sign-in secrets stay cleared', () => {
     await userEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(await screen.findByRole('heading', { name: 'Choose a new PIN' })).toBeTruthy();
     expect(server.logins[0]).toMatchObject({ method: 'BADGE_PIN', identifier: UID, secret: '482913' });
-    // The change needs the badge UID and the ticket again: they wait in a ref, never in React state or the DOM.
-    expectOnlyInRefs(UID);
+    // The change keeps the ticket in a ref, never in React state or the DOM, and no badge UID at all: the badge is
+    // tapped again to confirm the new PIN (F04).
+    expect(reactTraces(UID), 'the badge UID, refs included').toEqual([]);
+    expect(document.documentElement.outerHTML.includes(UID)).toBe(false);
     expectOnlyInRefs(TICKET);
     await userEvent.type(screen.getByLabelText<HTMLInputElement>('New PIN'), '731904');
     await userEvent.type(screen.getByLabelText<HTMLInputElement>('Repeat the new PIN'), '731904');
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    // The new PIN waits in a ref for the confirming tap.
+    expectOnlyInRefs('731904');
+    const confirm = await screen.findByLabelText<HTMLInputElement>('Badge');
+    await userEvent.type(confirm, `${UID}{Enter}`);
     expect(await screen.findByText('Your new PIN is set. Sign in with it now.')).toBeTruthy();
     expect(server.changes[0]).toMatchObject({ method: 'BADGE_PIN', identifier: UID, changeTicket: TICKET, newSecret: '731904', kind: 'PIN' });
     await waitFor(() => expect(screen.getByLabelText<HTMLInputElement>('Badge')).toBeTruthy());
@@ -244,6 +250,81 @@ describe('CN2: sign-in secrets stay cleared', () => {
     expect(reactTraces(UID), 'anywhere in React, refs included').toEqual([]);
     expect(document.documentElement.outerHTML.includes(UID)).toBe(false);
     expect(server.logins).toHaveLength(0);
+  });
+
+  it('[DI-15][DI-38] kiosk first-login change: a person who walks away leaves nothing for the next one; after KEEP_BADGE_MS without input it is wiped and the screen asks for a badge again (F04)', async () => {
+    const UID_A = '04A10000000A0A';
+    const server = fixtureServer({
+      floor: true,
+      login: () => ({ status: 409, body: envelope('MUST_CHANGE_SECRET', 'NOT_ALLOWED', 'You must choose a new password or PIN before you continue.', { kind: 'PIN', changeTicket: TICKET, legalName: 'TEST-Priya Nair' }) }),
+    });
+    setTransport(server.fetch);
+    renderGate();
+    const field = await screen.findByLabelText<HTMLInputElement>('Badge');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+    await userEvent.type(field, `${UID_A}{Enter}`);
+    await screen.findByRole('group', { name: 'Enter your PIN' });
+    for (const d of '482913') await userEvent.click(screen.getByRole('button', { name: d }));
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByRole('heading', { name: 'Choose a new PIN' })).toBeTruthy();
+    // The form says whose PIN it sets.
+    expect(screen.getByText('This sets the PIN of TEST-Priya Nair.')).toBeTruthy();
+
+    // Input restarts the limit: typing just before it runs out keeps the form.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(KEEP_BADGE_MS - 1_000);
+    });
+    await userEvent.type(screen.getByLabelText<HTMLInputElement>('New PIN'), '9');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(KEEP_BADGE_MS - 1_000);
+    });
+    expect(screen.getByRole('heading', { name: 'Choose a new PIN' })).toBeTruthy();
+
+    // Person A walks away: KEEP_BADGE_MS without input.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(screen.queryByRole('heading', { name: 'Choose a new PIN' })).toBeNull();
+    expect(await screen.findByLabelText('Badge')).toBeTruthy();
+    expect(screen.getByText('The PIN change was closed because nothing was entered for a while. Nothing was changed.')).toBeTruthy();
+    expect(server.changes).toHaveLength(0);
+    for (const sec of [UID_A, TICKET]) {
+      expect(reactTraces(sec), `${sec}, refs included`).toEqual([]);
+      expect(document.documentElement.outerHTML.includes(sec), sec).toBe(false);
+    }
+  });
+
+  it('[DI-15][DI-38][DI-19] kiosk first-login change: the next person cannot complete it; the new PIN is sent only with the badge tapped to confirm it, never with the badge of the sign-in (F04)', async () => {
+    const UID_A = '04A10000000A0A';
+    const UID_B = '04A10000000B0B';
+    const server = fixtureServer({
+      floor: true,
+      login: () => ({ status: 409, body: envelope('MUST_CHANGE_SECRET', 'NOT_ALLOWED', 'You must choose a new password or PIN before you continue.', { kind: 'PIN', changeTicket: TICKET }) }),
+      // As the server: the ticket counts only for the badge it was issued to.
+      change: (body) => (body['identifier'] === UID_A ? { changed: true } : { status: 409, body: envelope('CHANGE_TICKET', 'STALE', 'The secret change took too long or was started elsewhere.') }),
+    });
+    setTransport(server.fetch);
+    renderGate();
+    await userEvent.type(await screen.findByLabelText<HTMLInputElement>('Badge'), `${UID_A}{Enter}`);
+    await screen.findByRole('group', { name: 'Enter your PIN' });
+    for (const d of '482913') await userEvent.click(screen.getByRole('button', { name: d }));
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByRole('heading', { name: 'Choose a new PIN' })).toBeTruthy();
+
+    // Person B types a PIN of their own choosing and taps their own badge to confirm it.
+    await userEvent.type(screen.getByLabelText<HTMLInputElement>('New PIN'), '905172');
+    await userEvent.type(screen.getByLabelText<HTMLInputElement>('Repeat the new PIN'), '905172');
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText('Tap your badge to confirm your new PIN.')).toBeTruthy();
+    expect(server.changes).toHaveLength(0);
+    await userEvent.type(screen.getByLabelText<HTMLInputElement>('Badge'), `${UID_B}{Enter}`);
+    expect(await screen.findByText('The secret change took too long or was started elsewhere.')).toBeTruthy();
+    expect(server.changes).toHaveLength(1);
+    expect(server.changes[0]).toMatchObject({ identifier: UID_B, changeTicket: TICKET, newSecret: '905172' });
+    // No request ever carried A's badge without A tapping it, and the form asks for the PIN again (nothing kept).
+    expect(server.changes.filter((c) => c['identifier'] === UID_A)).toEqual([]);
+    expect(screen.getByLabelText<HTMLInputElement>('New PIN').value).toBe('');
+    expect(reactTraces('905172'), 'the refused PIN, refs included').toEqual([]);
   });
 
   it('[DI-38][DI-15] cancelling a first-login change wipes the ticket and the identifier', async () => {

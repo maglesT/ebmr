@@ -9,7 +9,7 @@
 import { routes, type DeviceView } from '@ebmr/api-contract';
 import { identity } from '@ebmr/kernel';
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { ChangeTicketStore } from '../../platform/auth/change-tickets.ts';
+import { CHANGE_TICKET_TTL_MS, ChangeTicketStore, SHOP_FLOOR_CHANGE_TICKET_TTL_MS } from '../../platform/auth/change-tickets.ts';
 import { spkiFingerprint, without } from '../../platform/auth/device-proof.ts';
 import { mintNonce } from '../../platform/auth/nonces.ts';
 import { clearSessionCookie, isShopFloor, newSessionToken, noRoleHeld, resolveSession, sessionView, setSessionCookie, tokenHash, type ResolvedSession } from '../../platform/auth/session.ts';
@@ -56,6 +56,17 @@ function loginMethodRefused(device: identity.DeviceInfo, method: string) {
     why: `${device.code} is a ${device.deviceClass} terminal; it takes ${isShopFloor(device.deviceClass) ? 'badge and PIN' : 'user ID and password'}, not ${method === 'PASSWORD' ? 'user ID and password' : 'badge and PIN'}.`,
     controls: ['DI-20'],
     whatYouCanDo: ['Kiosks: tap your badge and enter your PIN. Office PCs: user ID and password.'],
+  });
+}
+
+/** A first-login change whose ticket is unknown, expired, of another identifier or terminal, or whose event is too old. */
+function changeTicketStale(): Error {
+  return refusal(409, {
+    code: 'CHANGE_TICKET',
+    kind: 'STALE',
+    whatHappened: 'The secret change took too long or was started elsewhere.',
+    whatYouCanDo: ['Sign in again; you will be asked for a new secret.'],
+    whoCanHelp: ['The system administrator, if your initial secret no longer works'],
   });
 }
 
@@ -111,15 +122,25 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           purpose: 'LOGIN',
         });
         if (ev.restricted) {
-          const changeTicket = tickets.issue({ authEventId: ev.authEventId, method: body.method, identifier: body.identifier, fingerprint });
+          const shopFloor = isShopFloor(device.deviceClass);
+          const changeTicket = tickets.issue(
+            { authEventId: ev.authEventId, method: body.method, identifier: body.identifier, fingerprint },
+            shopFloor ? SHOP_FLOOR_CHANGE_TICKET_TTL_MS : CHANGE_TICKET_TTL_MS,
+          );
+          // Whose secret is changed, so the screen can say it (F04): the person who just proved the current secret.
+          const { rows } = await app.pools.app.query<{ legal_name: string }>('select legal_name from iam.person where id = $1', [ev.personId]);
           throw refusal(409, {
             code: 'MUST_CHANGE_SECRET',
             kind: 'NOT_ALLOWED',
             whatHappened: 'You must choose a new password or PIN before you continue.',
             why: 'The secret you used is an initial, reset or expired one.',
             controls: ['DI-15'],
-            whatYouCanDo: ['Set a new secret of your own; nobody else will know it.'],
-            details: { kind: body.method === 'PASSWORD' ? 'PASSWORD' : 'PIN', changeTicket },
+            whatYouCanDo: [shopFloor ? 'Set a new PIN of your own now, then tap your badge to confirm it; nobody else will know it.' : 'Set a new secret of your own; nobody else will know it.'],
+            details: {
+              kind: body.method === 'PASSWORD' ? 'PASSWORD' : 'PIN',
+              changeTicket,
+              ...(rows[0] ? { legalName: rows[0].legal_name } : {}),
+            },
           });
         }
         const opened = await identity.openSession(app.pools.app, ev.authEventId, fingerprint);
@@ -156,15 +177,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         let authEventId: string;
         if (body.changeTicket !== undefined) {
           const fromTicket = tickets.peek(body.changeTicket, body.method, body.identifier, fingerprint);
-          if (!fromTicket) {
-            throw refusal(409, {
-              code: 'CHANGE_TICKET',
-              kind: 'STALE',
-              whatHappened: 'The secret change took too long or was started elsewhere.',
-              whatYouCanDo: ['Sign in again; you will be asked for a new secret.'],
-              whoCanHelp: ['The system administrator, if your initial secret no longer works'],
-            });
-          }
+          if (!fromTicket) throw changeTicketStale();
           authEventId = fromTicket;
         } else {
           const ev = await identity.authenticate(app.pools.authn, {
@@ -176,12 +189,22 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           });
           authEventId = ev.authEventId;
         }
-        await identity.changeSecret(app.pools.authn, {
-          authEventId,
-          kind: body.kind,
-          newSecret: body.newSecret,
-          ...(body.method === 'PASSWORD' ? { loginName: body.identifier } : {}),
-        });
+        try {
+          await identity.changeSecret(app.pools.authn, {
+            authEventId,
+            kind: body.kind,
+            newSecret: body.newSecret,
+            ...(body.method === 'PASSWORD' ? { loginName: body.identifier } : {}),
+          });
+        } catch (e) {
+          // The database's own window ran out (kernel 0990 on a shared terminal; the event window elsewhere): the ticket is
+          // dead, and the person is told so as for an expired ticket.
+          if (body.changeTicket !== undefined && identity.ebmrCode(e) === 'EBMR-IAM-092') {
+            tickets.consume(body.changeTicket);
+            throw changeTicketStale();
+          }
+          throw e;
+        }
         if (body.changeTicket !== undefined) tickets.consume(body.changeTicket);
         return { changed: true as const };
       },
