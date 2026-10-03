@@ -1648,3 +1648,23 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   designer simulation-loader; tools/boundaries runtime-loader; web step-screen, switch-reads, app-person-change.
   Playwright smoke (3/3, after T8), FCV journey and floor (6/6, after T12): passed. Defaults T8.1, T10.1, T11.1 and
   T12.1 are in docs/decisions/phase-2-open-questions.md.
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, A stale-screen refusal is recorded (branch phase-2/recipe-core; follow-up F58.1
+  of F58; the fix with tests that fail on the code before it). What was wrong: since the F58 fix a run command from a
+  screen that showed an older version of the run (409 ENG-STALE) was answered before anything was written, so its scale
+  readings were not spent, but the attempt was no longer a row of the run, against DI-34's rule that a refused engine
+  call is a row with its refusal; and the database never held the engine's version check at all (an accepted command
+  from an older screen, or an ENG-STALE refusal at the run's own version, was recorded). Recording it with the readings
+  claimed would spend them again, and a savepoint that rolls the claims back leaves a row tablets 0300 refuses. What
+  changed: the server resolves a stale request as any other and records the engine's refusal with what was entered and
+  the version the screen showed; the readings of a stale weighing are named, not used (tab.peek_readings makes the claim
+  with every check in a subtransaction and rolls it back; the row lists them as namedReadings), so the resend from the
+  reloaded screen uses them. Recipe-core 0326 (EBMR-EXE-140) records a command from an older screen only as the refusal
+  ENG-STALE, that refusal only for such a command, and a stale refusal only with the state before it (the time sweep's
+  findings apart); tablets 0500 (EBMR-EXE-124) keeps 0300's rule for every other row and holds a stale refusal to using
+  no reading and to naming genuine readings a claim would accept now. The ENG-STALE guidance, the comments of the route,
+  the intents, the reading port and the floor form, the execution README and DI-34 now say the refusal is recorded and
+  no reading is used. Defaults F58.2 and F58.3 (the signing challenge still answers a stale screen before the PIN without
+  a row) replace F58.1 in docs/decisions/phase-2-open-questions.md. Tests: server devices/stale-weighing-readings and
+  execution/db-guards-stale-row (new: every forgery of the version check, of a stale refusal's state and of a stale
+  weighing's readings refused at the database), execution/commands (stale and concurrent commands recorded). Floor
+  Playwright spec 5/5 passed.
