@@ -62,6 +62,12 @@ export interface PendingCall {
   resendRefusal: RefusalEnvelope | null;
   /** discarded only: the entry had been sent before it was discarded, so it may be in the record. */
   discardedSent: DiscardedSent | null;
+  /**
+   * saved only: the step on show has moved past the run version the save produced, so a "Saved" note under a step form
+   * no longer speaks for it. Only the note goes: the entry stays saved (F57: a dialog that took 'saved' for done must not
+   * come back with the same words and Send enabled).
+   */
+  savedNoteExpired: boolean;
   submit: (body: Record<string, unknown>, summary: string) => void;
   resend: () => void;
   discard: () => void;
@@ -284,6 +290,7 @@ export function usePendingCall<R extends AnyRoute>(route: R, params: RouteParams
     tapRequired,
     resendRefusal: state === 'notSaved' ? resendRefusal : null,
     discardedSent: state === 'discarded' && discarded ? discarded.sent : null,
+    savedNoteExpired: false,
     submit,
     resend,
     discard,
@@ -308,13 +315,13 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
     extraRef.current = extra;
   });
   /** The run version the last saved command produced. */
-  const savedVersion = useRef<number | null>(null);
+  const [savedVersion, setSavedVersion] = useState<number | null>(null);
   const call = usePendingCall(routes.execution.command, { runId }, {
     reason,
     // POST /api/test-runs/:runId/commands: the engine runs inside the command, after the key is claimed.
     engineAfterClaim: true,
     onSaved: async (value) => {
-      savedVersion.current = value.version;
+      setSavedVersion(value.version);
       // The server's post-commit view (a newer one already on show is kept, and so is the screen when the person signed
       // in is no longer the sender; then the step is read again).
       const put = value.step ? await applyStepView(qc, value.step, signedInNow) : false;
@@ -352,19 +359,19 @@ export function useRunCommand(runId: string, viewStepKey: string | null, reason:
   });
   // A "Saved" note speaks for the moment of the save. Once the step on show is past the version the save produced (a
   // signature, another entry, another person's action), the note goes: found in the owner's demo run, where "Saved:
-  // Start step" stayed under the step after it had been signed.
+  // Start step" stayed under the step after it had been signed. Only the note goes; the entry stays saved, so a dialog
+  // that is done stays done (F57).
   const shownVersion = viewStepKey ? qc.getQueryData<StepScreenView>(stepQueryKey(runId, viewStepKey))?.run.version : undefined;
-  const { state, reset, submit } = call;
-  useEffect(() => {
-    if (state === 'saved' && savedVersion.current !== null && shownVersion !== undefined && shownVersion > savedVersion.current) reset();
-  }, [state, shownVersion, reset]);
+  const { state, submit } = call;
+  const savedNoteExpired = state === 'saved' && savedVersion !== null && shownVersion !== undefined && shownVersion > savedVersion;
   const sendIntent = useCallback(
     (intent: ClientIntent, expectedVersion: number, view?: StepScreenView) => {
+      setSavedVersion(null);
       submit({ expectedVersion, intent, ...(viewStepKey ? { viewStepKey } : {}) }, describeIntent(intent, view));
     },
     [submit, viewStepKey],
   );
-  return { ...call, send: sendIntent };
+  return { ...call, savedNoteExpired, send: sendIntent };
 }
 
 /** The refusal of the entry's last send, if any. */

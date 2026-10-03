@@ -42,11 +42,13 @@ export function CommandDialog({ title, isOpen, children }: { title: string; isOp
 export function CommandBody({ onClose, runId, viewStepKey, reason, intent, expectedVersion, view, children }: CommandBodyProps) {
   const cmd = useRunCommand(runId, viewStepKey, reason);
   const unsettled = cmd.busy || cmd.state === 'notSaved';
+  // Done once saved, for as long as the dialog is open: a newer view of the step (the poll, another person's entry) never
+  // brings the form back with the same words and Send enabled (F57; a second Send would be a duplicate exception or hold).
   const done = cmd.state === 'saved';
   return (
     <div className={wcls('dialogBody')}>
       {done ? null : children}
-      <EntryStatus call={cmd} />
+      <EntryStatus call={cmd} keepSavedNote />
       <div className={wcls('row')}>
         {done ? null : (
           <Button variant="primary" onPress={() => intent && cmd.send(intent, expectedVersion, view)} isDisabled={!intent || unsettled}>

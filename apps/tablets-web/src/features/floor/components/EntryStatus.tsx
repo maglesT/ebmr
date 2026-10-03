@@ -32,7 +32,11 @@ function DiscardedNotice({ call }: { call: PendingCall }) {
   );
 }
 
-export function EntryStatus({ call }: { call: PendingCall }) {
+/**
+ * `keepSavedNote`: the "Saved" note stays while the component is shown, even once the step has moved past the save (a
+ * dialog whose note is the result of its one send). Otherwise the note goes then (PendingCall.savedNoteExpired).
+ */
+export function EntryStatus({ call, keepSavedNote = false }: { call: PendingCall; keepSavedNote?: boolean }) {
   const { state, context } = call;
   return (
     <>
@@ -42,7 +46,7 @@ export function EntryStatus({ call }: { call: PendingCall }) {
           {floor.ft('pending.sending')}
         </p>
       ) : null}
-      {state === 'saved' ? <Banner tone="ok" title={`${floor.ft('pending.saved')}: ${context.summary}`} /> : null}
+      {state === 'saved' && (keepSavedNote || !call.savedNoteExpired) ? <Banner tone="ok" title={`${floor.ft('pending.saved')}: ${context.summary}`} /> : null}
       {state === 'refused' && context.refusal ? <floor.RefusalPanel refusal={context.refusal.refusal} correlationId={context.refusal.correlationId} /> : null}
       {state === 'stale' ? (
         <Banner tone="warning" title={floor.ft('pending.stale')}>
