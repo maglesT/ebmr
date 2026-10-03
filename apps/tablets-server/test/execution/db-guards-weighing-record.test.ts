@@ -5,6 +5,11 @@
  * was 50.000 and whose label said "50 kg". And the quantity a step's weighings count into (the dispensed quantity) is the
  * sum of all their nets in the quantity's unit, at the resolution they were weighed at carried through the conversion
  * (EBMR-EXE-138): 50000.0 g is 50.0000 kg, never 50 nor 50.000. The application role is the writer under test.
+ *
+ * Round 3 (recipe-core sql 0323): which quantity a weighing counts into was the entry's own word (data.item), so the
+ * round-2 verification stored a second dispensed container without item, and the honest signature's total then left it
+ * out. The database now decides it from the MBR: a dispensed container counts into a mass quantity its phase records, an
+ * output container into the first one (EBMR-EXE-139).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -14,7 +19,7 @@ import { resolveClientIntent } from '../../src/features/execution/intents.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { actorOf, appendAs, messageOf, prepareSignature, unmatched } from './db-guards-support.ts';
-import { dcMini, importAndIssue, personaIn, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
+import { dcMini, dcMiniVariant, importAndIssue, personaIn, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -274,6 +279,8 @@ describe('T2 round 2: the label and the total of weighings are what the weighing
       twoValid: await totals(running, done('COMPLETED', { 'DP-1': total('8.0000', ['E1']), 'DP-2': total('8.0000', ['E1']) })),
       stillRunning: await totals({ ...running, points: { 'DP-1': total('8', ['E1']) } }, { ...running, points: { 'DP-1': total('8', ['E1']) } }),
       oldStatus: await totals({ ...running, steps: { 'd@': { status: 'AWAITING_VERIFICATION' } }, points: { 'DP-1': total('8', ['E1']) } }, done('COMPLETED', { 'DP-1': total('8', ['E1']) })),
+      // An output container counting into no quantity adds none to check here; whether its phase records one is
+      // decided at the entry since sql 0323 (EBMR-EXE-139, round 3 below).
       noItem: await totals({ steps: { 'g@': { status: 'IN_PROGRESS' } }, points: {}, entries: {} }, { steps: { 'g@': { status: 'COMPLETED' } }, points: {}, entries: { E9: { stepKey: 'g@', kind: 'OUTPUT_CONTAINER', data: { item: null, net: '1', unit: 'kg' } } } }),
     }, {
       honest: 'null',
@@ -286,5 +293,122 @@ describe('T2 round 2: the label and the total of weighings are what the weighing
       oldStatus: 'null',
       noItem: 'null',
     })).toEqual({});
+  }, 300_000);
+});
+
+type Json = Record<string, unknown>;
+
+/**
+ * operator1's RECORD_ENTRY of `entry` at `stepKey` in DISP-1, resolved and run through the engine as the server does, then
+ * stored through the application's role with the new entry's data and the recorded command changed by `forge`. 'ok', or
+ * the refusal's message.
+ */
+async function entryForged(d: RunDriver, stepKey: string, entry: Json, forge: (data: Json, command: Json) => void): Promise<string> {
+  const run = await runContext(sbx.db.admin, d.runId);
+  const who = personaIn(sbx, 'operator1');
+  return messageOf(
+    withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+      const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+      const roles = await engineRoles(c);
+      const resolved = await resolveClientIntent(
+        { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version },
+        { type: 'RECORD_ENTRY', stepKey, entry } as Parameters<typeof resolveClientIntent>[1],
+      );
+      const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+      if (!r.accepted) throw new Error(`SETUP: the engine refused the entry: ${JSON.stringify(r.refusal)}`);
+      const state = structuredClone(r.state);
+      const added = Object.values(state.entries).find((e) => !(e.id in tx.state.entries));
+      if (!added) throw new Error('SETUP: no new entry');
+      const recorded = structuredClone(engine.encodeCommand(resolved.command)) as Json;
+      forge(added.data, recorded);
+      return appendAs(tx, resolved.command, { state, events: r.events }, roles, recorded as engine.JsonValue, engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
+    }),
+  );
+}
+
+/** The block values of `item` the stored state holds: value and the entries they are computed from. */
+async function totalsOf(d: RunDriver, item: string): Promise<unknown[]> {
+  const state = (await execution.loadState(sbx.db.admin, d.runId))?.state;
+  return Object.values(state?.points ?? {}).filter((x) => x.item === item && x.source.mode === 'BLOCK').map((x) => ({ value: x.value, status: x.status, entries: (x.source as unknown as { entries: string[] }).entries }));
+}
+
+async function entryIds(d: RunDriver, kind: string): Promise<string[]> {
+  const state = (await execution.loadState(sbx.db.admin, d.runId))?.state;
+  return Object.values(state?.entries ?? {}).filter((e) => e.kind === kind).map((e) => e.id);
+}
+
+describe('T2 round 3: a weighing counts into the quantity its phase records, decided by the database (INV-25, PR-19; sql 0323)', () => {
+  it('[INV-25][PR-19][DI-30] a second dispensed container stored without item, or counting into another quantity, is refused (EBMR-EXE-139); the signed total counts every container stored', async () => {
+    const d = await atWeighing();
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: PCM, entry: { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } } });
+    const [honest] = await entryIds(d, 'CONTAINER_WEIGHING');
+    const second: Json = { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '11.250', tare: '1.250', unit: 'kg' } };
+    const outcomes = {
+      // The round-2 verification's row: the entry's item deleted (0313 binds only the members the entry still holds).
+      noItem: await entryForged(d, PCM, second, (data) => {
+        delete data['item'];
+      }),
+      // Another phase's dispensed quantity, in the command and the entry alike.
+      otherQuantity: await entryForged(d, PCM, second, (data, command) => {
+        data['item'] = 'excDispensed';
+        (command['entry'] as Json)['item'] = 'excDispensed';
+      }),
+      // A quantity of the MBR that is no mass.
+      notMass: await entryForged(d, PCM, second, (data, command) => {
+        data['item'] = 'blendTime';
+        (command['entry'] as Json)['item'] = 'blendTime';
+      }),
+    };
+    expect(unmatched(outcomes, {
+      noItem: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(CONTAINER_WEIGHING\) at p-disp-pcm@ counted into \(no item\), where its phase p-disp-pcm records the mass quantities \["pcmDispensed"\]: .*\[EBMR-EXE-139\]$/,
+      otherQuantity: /stores entry EN-\d+ \(CONTAINER_WEIGHING\) at p-disp-pcm@ counted into "excDispensed", where its phase p-disp-pcm records the mass quantities \["pcmDispensed"\]: .*\[EBMR-EXE-139\]$/,
+      notMass: /counted into "blendTime", where .*\[EBMR-EXE-139\]$/,
+    })).toEqual({});
+    expect(await entryIds(d, 'CONTAINER_WEIGHING')).toEqual([honest]);
+    // operator1's honest signature: the dispensed quantity counts every container the step holds.
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: PCM });
+    expect(await totalsOf(d, 'pcmDispensed')).toEqual([{ value: { kind: 'DECIMAL', value: '50.000', unit: 'kg' }, status: 'VALID', entries: [honest] }]);
+    expect(await violations(sbx)).toEqual([]);
+  }, 300_000);
+
+  it('[INV-25][PR-19][DI-30] an output container stored into no quantity, or into another, where its phase records one is refused (EBMR-EXE-139); the signed total counts it', async () => {
+    // dc-mini with an output step first in the dispensing booth: it records earlyNet (kg) and produces I-EARLY.
+    const content = dcMiniVariant((prep, c) => {
+      (c['intermediates'] as Json[]).push({ id: 'I-EARLY', name: 'Early output', holdTime: { max: { value: '30', unit: 'd' }, source: { kind: 'HOLD_STUDY', ref: 'HS-PCM-01' }, storage: 'Closed, labelled containers' } });
+      (c['parameters'] as Json[]).push({ id: 'earlyNet', name: 'Early output (net)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' });
+      const out = { kind: 'phase', id: 'p-early-out', name: 'Discharge the early output', block: { type: 'G-22', version: '1' }, config: {}, records: ['earlyNet'], computes: [], reads: [], consumes: [], produces: ['I-EARLY'], uses: [], equipment: [], signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } }, significant: true, riskClass: 'HIGH' };
+      return [out, ...prep];
+    });
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, content));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    const OUT = 'p-early-out@';
+    await d.ok('operator1', { type: 'START_STEP', stepKey: OUT });
+    const container = { kind: 'OUTPUT_CONTAINER' as const, intermediate: 'I-EARLY', manual: { gross: '26.100', tare: '1.050', unit: 'kg' } };
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: OUT, entry: container });
+    const [honest] = await entryIds(d, 'OUTPUT_CONTAINER');
+    const second: Json = { ...container, manual: { gross: '101.000', tare: '1.000', unit: 'kg' } };
+    const outcomes = {
+      // G-22 adds item itself (the command has none), so the writer could set it to null or drop it.
+      nullItem: await entryForged(d, OUT, second, (data) => {
+        data['item'] = null;
+      }),
+      noItem: await entryForged(d, OUT, second, (data) => {
+        delete data['item'];
+      }),
+      otherQuantity: await entryForged(d, OUT, second, (data) => {
+        data['item'] = 'pcmDispensed';
+      }),
+    };
+    expect(unmatched(outcomes, {
+      nullItem: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(OUTPUT_CONTAINER\) at p-early-out@ counted into null, where its phase p-early-out counts it into "earlyNet": .*\[EBMR-EXE-139\]$/,
+      noItem: /\(OUTPUT_CONTAINER\) at p-early-out@ counted into \(no item\), where its phase p-early-out counts it into "earlyNet": .*\[EBMR-EXE-139\]$/,
+      otherQuantity: /\(OUTPUT_CONTAINER\) at p-early-out@ counted into "pcmDispensed", where its phase p-early-out counts it into "earlyNet": .*\[EBMR-EXE-139\]$/,
+    })).toEqual({});
+    expect(await entryIds(d, 'OUTPUT_CONTAINER')).toEqual([honest]);
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: OUT });
+    expect(await totalsOf(d, 'earlyNet')).toEqual([{ value: { kind: 'DECIMAL', value: '25.050', unit: 'kg' }, status: 'VALID', entries: [honest] }]);
+    expect(await violations(sbx)).toEqual([]);
   }, 300_000);
 });
