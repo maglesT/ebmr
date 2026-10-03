@@ -1402,3 +1402,28 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   installations) and filter the subject's registry chains. Tests: server esig and audit read-authorisation (each door
   'permission denied', the owner still reads; the subject's registry chains without the withheld actors); audit
   Playwright spec re-run. F34.1, F34.2, F35.1, F35.2 and ADR 0012 item 9 corrected.
+- 2026-10-02: PHASE 2 EXIT FIX, Login, PIN, session and audit screens (branch phase-2/recipe-core; findings F04, F05,
+  F06, F07, F08, F09, F10 and F56 of the exit review, and lead TODO T1; each fix with a test that fails on the code
+  before it). F56, the owner's refused first signing tap (EBMR-IAM-140): the signing dialog's focused Badge field
+  sent whatever was keyed into it (the PIN) as the badge UID, and any refusal of the tap ended the signing with Close
+  only; now the ui-kit badge prompt takes only a reader's tap (a key more than 100 ms after the previous one starts
+  the field afresh, so a stray key is never part of the badge) and sends nothing that cannot be a badge UID by the
+  kernel's rule (it says "That is not a badge. Nothing was sent"), and a tap the server refuses returns to the tap with
+  the refusal shown in the prompt. T1: the kiosk sign-in uses the same ui-kit BadgePrompt and PinPad as unlock, switch
+  and signing. F04: a first-login PIN change left open on a shared kiosk let the next person choose the absent
+  person's PIN; now the kiosk keeps no badge UID for it, wipes it after 30 s without input, names whose PIN it sets and
+  asks for the badge again to confirm, and the database refuses the change on a shared terminal once its
+  authentication is older than the terminal's attribution window (kernel 0990). F05: a PIN longer than the 12 digits
+  every pad takes was accepted and could never be typed; the kernel now refuses it (one maximum for the pads, the
+  contract and the kernel). F06: a chain whose head row was deleted vanished from the chain list and "Verify chain"
+  said it never existed; now it is listed and verified, and the kernel names the deleted head (tablets 0490). F07: a
+  failed re-verification left the earlier green "Chain intact" beside the error; now only the latest answer shows.
+  F08: a sign-in, PIN change, unlock, switch or signing that could not get a device nonce failed without a word; now
+  it says nothing was sent and why. F09: the kiosk sign-in said "Sandbox" on the GMP installation. F10: an account
+  with no live role saw an empty role choice; now it is told why and who handles role grants, and the database binds
+  no session for it (tablets 0480). Tests: web session (sign-in-screens, secret-inputs), access (keyed-badge,
+  no-device-proof) and audit screens; ui-kit identity, audit and ceremony machine; server session (kiosk-secret-change,
+  pin-length, no-role-binding, change tickets) and audit view-integrity; kernel identity secrets and credentials.
+  Stryker on the changed lines of identity/secrets.ts: no survivor. Playwright audit, access, esig, smoke, floor,
+  devices and journey specs re-run: all passed. Defaults F04.1, F05.1 and F56.1 are in
+  docs/decisions/phase-2-open-questions.md.
