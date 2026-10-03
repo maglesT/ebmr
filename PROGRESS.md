@@ -1394,3 +1394,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Tests: server esig and audit read-authorisation (a QA reviewer as subject; database refusals on both installations);
   audit Playwright spec re-run. Defaults F34.2 (owner residual: the identity, incident and retention tables the
   application role still selects directly) and F35.2 recorded; F34.1, F35.1 and ADR 0012 item 9 corrected.
+  Round 3 (F34, F35): without a session the application role still asked the kernel what blocks a record (on the
+  account of the person investigated: the investigation, its concern and its hold), who acted on a chain or a row (the
+  opener), whether a chain exists (checkpointing a hold chain told who is held), the entries of a time fault and the
+  persons excluded from a signing; and a subject's chain verification still named the accounts and terminals of
+  entries withheld from them. Tablets 0460 and 0470 revoke those functions and tables from the application role (both
+  installations) and filter the subject's registry chains. Tests: server esig and audit read-authorisation (each door
+  'permission denied', the owner still reads; the subject's registry chains without the withheld actors); audit
+  Playwright spec re-run. F34.1, F34.2, F35.1, F35.2 and ADR 0012 item 9 corrected.
