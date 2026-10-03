@@ -15,7 +15,9 @@ import type { PaletteItem, ValidationData } from '../../src/features/designer/mo
 
 export const VERSION_ID = 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f';
 
-const person = { personId: '7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11', legalName: 'Asha Rao', loginName: 'asha.rao', role: 'MBR_AUTHOR' };
+/** The signed-in author (the person whose unsaved drafts the editor keeps and offers, decision D7). */
+export const PERSON_ID = '7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11';
+const person = { personId: PERSON_ID, legalName: 'Asha Rao', loginName: 'asha.rao', role: 'MBR_AUTHOR' };
 const at = { us: '1790580603000000', text: '28-SEP-2026 13:00:03 +05:30 (Asia/Kolkata)' };
 
 export function fixtureContent(): flow.MbrContent {

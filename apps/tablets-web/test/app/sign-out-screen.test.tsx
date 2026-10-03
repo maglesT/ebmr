@@ -297,6 +297,45 @@ describe('P5: a sign-out another tab of this browser started', () => {
   });
 });
 
+describe('F50: what the browser keeps for a person goes at sign-out', () => {
+  const draftKeys = (): string[] => Object.keys(window.localStorage).filter((k) => k.startsWith('ebmr.designer.draft.'));
+  /** Unsaved designer drafts (decision D7) of two authors and one kept before drafts named their author. */
+  function storeDrafts(): void {
+    window.localStorage.setItem('ebmr.designer.draft.v2.7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11.c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f', '{}');
+    window.localStorage.setItem('ebmr.designer.draft.v2.0b9a8c7d-6e5f-4a3b-8c2d-1e0f9a8b7c6d.c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f', '{}');
+    window.localStorage.setItem('ebmr.designer.draft.v1.c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f', '{}');
+  }
+
+  it('[PR-02][DI-38] signing out removes every unsaved designer draft kept in this browser', async () => {
+    const server = fixtureServer();
+    server.state.logoutFails = false;
+    setTransport(server.fetch);
+    const boot = renderPage();
+    expect(await screen.findByText('Signed in as Asha Rao')).toBeTruthy();
+    storeDrafts();
+    await act(async () => {
+      await boot().signOut();
+    });
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
+    expect(draftKeys()).toEqual([]);
+  });
+
+  it('[PR-02][DI-38] a page that joins another tab\'s sign-out removes them too, even when the server does not confirm it', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const server = fixtureServer();
+    setTransport(server.fetch);
+    renderPage();
+    expect(await screen.findByText('Signed in as Asha Rao')).toBeTruthy();
+    storeDrafts();
+    window.localStorage.setItem(SIGN_OUT_MARK_KEY, '8c7b6a5948372615f4e3d2c1b0a99887');
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: SIGN_OUT_MARK_KEY, oldValue: null, newValue: '8c7b6a5948372615f4e3d2c1b0a99887' }));
+    });
+    expect(await screen.findByText('Sign-out not confirmed')).toBeTruthy();
+    expect(draftKeys()).toEqual([]);
+  });
+});
+
 // Review F42: cookies are shared by every port of the host. The mark was also kept in a page-readable cookie, so a page
 // of another installation (or any page on the host) could write it, and this page ended the person's session, or
 // delete it, and a pending sign-out looked finished. Only this origin's own site storage and channel keep it now.

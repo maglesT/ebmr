@@ -11,7 +11,7 @@ import { flow } from '@ebmr/recipe-core/pure';
 import { setTransport } from '../../src/api/client.ts';
 import { createFixtureFetch, type FixtureMap } from '../../src/api/fixture-fetch.ts';
 import { DesignerEditor } from '../../src/features/designer/DesignerPage.tsx';
-import { fixtureVersion, PALETTE, renderRouted, report } from './support.tsx';
+import { fixtureVersion, PALETTE, PERSON_ID, renderRouted, report } from './support.tsx';
 
 const at = { us: '1790580603000000', text: '28-SEP-2026 13:00:03 +05:30 (Asia/Kolkata)' };
 const OTHER_CONTENT = 'This simulation ran on other content than the saved revision on screen.';
@@ -82,7 +82,7 @@ afterEach(() => {
 
 describe('simulation panel (DI-04: a report belongs to the content it was run on)', () => {
   it('[DI-04] after a new revision is saved, the earlier revision\'s "Simulation passed" is no longer shown', async () => {
-    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
     await userEvent.click(await screen.findByRole('tab', { name: 'Simulation' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Simulate saved revision 3' }));
     expect(await screen.findByText('Simulation passed')).toBeTruthy();
@@ -104,7 +104,7 @@ describe('simulation panel (DI-04: a report belongs to the content it was run on
   it('[DI-04] an answer for revision 3 that arrives after revision 4 was saved is not shown as current', async () => {
     let release: () => void = () => undefined;
     simulateGate = new Promise<void>((r) => (release = r));
-    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
     await userEvent.click(await screen.findByRole('tab', { name: 'Simulation' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Simulate saved revision 3' }));
     expect(await screen.findByRole('button', { name: 'Simulating…' })).toBeTruthy();
@@ -126,7 +126,7 @@ describe('simulation panel (DI-04: a report belongs to the content it was run on
   it('[DI-04] an answer for revision 3 that arrives after revision 4 was saved, with nothing simulated since, shows nothing', async () => {
     let release: () => void = () => undefined;
     simulateGate = new Promise<void>((r) => (release = r));
-    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
     await userEvent.click(await screen.findByRole('tab', { name: 'Simulation' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Simulate saved revision 3' }));
     await saveRevision4();
@@ -141,7 +141,7 @@ describe('simulation panel (DI-04: a report belongs to the content it was run on
 
   it('[DI-04] a report the server made on other content than the saved revision on screen is shown as such, never as passed', async () => {
     serverHash = 'e'.repeat(64); // someone saved the version elsewhere since this screen loaded it
-    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
     await userEvent.click(await screen.findByRole('tab', { name: 'Simulation' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Simulate saved revision 3' }));
     expect(await screen.findByText(OTHER_CONTENT)).toBeTruthy();

@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { flow } from '@ebmr/recipe-core/pure';
 import { DesignerEditor } from '../../src/features/designer/DesignerPage.tsx';
-import { finding, fixtureVersion, installFixtures, PALETTE, renderRouted, report } from './support.tsx';
+import { finding, fixtureVersion, installFixtures, PALETTE, PERSON_ID, renderRouted, report } from './support.tsx';
 
 const KEY = 'G07-TOLERANCE-MISSING@p-disp-exc';
 const WARNING = finding({ key: KEY, rule: 'G07-TOLERANCE-MISSING', severity: 'WARNING', message: 'The excipient dispensing step has no tolerance.' });
@@ -38,7 +38,7 @@ describe('justify dialog (IN-02, DI-04)', () => {
   it('[IN-02][DI-04] the justification names the saved revision and content hash whose warning is on screen', async () => {
     install((content) => flow.mbrContentHash(content));
     const v = fixtureVersion();
-    renderRouted(() => <DesignerEditor initial={v} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={v} palette={PALETTE} personId={PERSON_ID} />);
     await userEvent.click(await screen.findByRole('button', { name: `Justify ${KEY}` }, { timeout: 5_000 }));
     const dialog = await screen.findByRole('dialog', { name: 'Justify a warning' });
     await userEvent.type(within(dialog).getByRole('textbox', { name: 'Why the warning is acceptable' }), 'Checked at reconciliation.');
@@ -51,7 +51,7 @@ describe('justify dialog (IN-02, DI-04)', () => {
     // The report on screen is not the saved revision's (as while its check has not answered yet).
     install(() => 'b'.repeat(64));
     const v = fixtureVersion();
-    renderRouted(() => <DesignerEditor initial={v} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={v} palette={PALETTE} personId={PERSON_ID} />);
     const button = await screen.findByRole('button', { name: `Justify ${KEY}` }, { timeout: 5_000 });
     expect(button.hasAttribute('disabled') || button.getAttribute('data-disabled') === 'true').toBe(true);
     expect(screen.getByText(/Wait until the saved revision has been checked/)).toBeTruthy();

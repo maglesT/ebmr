@@ -5,7 +5,9 @@
  * Editing happens in the browser on a copy of the saved revision (pure operations with undo and redo); the server
  * validates every change (debounced) and saves a revision only when the author saves with a change note, based on
  * the revision the edits started from (409 when someone saved meanwhile). Unsaved edits are kept as a local draft
- * (decision D7) and, when restored, shown as UNSAVED until saved.
+ * of the signed-in person (decision D7) and, when restored, shown as UNSAVED until saved. A draft is offered only to
+ * the person who made it, and only while the version is a DRAFT: a version that can no longer be edited always shows
+ * its saved content (review F50; DI-04, PR-02, PR-06).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,6 +18,7 @@ import { flow } from '@ebmr/recipe-core/pure';
 import { Banner, Button, StatusChip } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
 import { useApiQuery } from '../../api/hooks.ts';
+import { useBoot } from '../../app/boot.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { dcls } from './classes.ts';
 import { StateChip, shortHash } from './components/common.tsx';
@@ -40,16 +43,18 @@ export function DesignerPage() {
   const versionId = params.versionId ?? '';
   const version = useApiQuery(routes.designer.version, { params: { versionId } }, { enabled: versionId !== '' });
   const palette = useApiQuery(routes.designer.palette);
+  // The unsaved draft (D7) is the signed-in person's own: it is stored under their id and offered to nobody else.
+  const personId = useBoot().session?.person.personId ?? '';
   if (version.error) return version.error.error ? <RefusalMessage error={version.error.error} /> : <p>The version could not be loaded.</p>;
   if (!version.data || !palette.data) return <p>Loading the master record…</p>;
-  return <DesignerEditor key={`${version.data.versionId}`} initial={version.data} palette={palette.data.blocks} />;
+  return <DesignerEditor key={`${version.data.versionId}|${personId}`} initial={version.data} palette={palette.data.blocks} personId={personId} />;
 }
 
 /** The justify dialog keeps the warning and the saved revision (with its content hash) it was opened on. */
 type JustifyDialog = { justify: FindingItem; revision: number; contentHash: string };
 type Dialogs = 'save' | 'start' | 'package' | JustifyDialog | null;
 
-export function DesignerEditor({ initial, palette }: { initial: VersionView; palette: readonly PaletteItem[] }) {
+export function DesignerEditor({ initial, palette, personId }: { initial: VersionView; palette: readonly PaletteItem[]; personId: string }) {
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState<VersionView>(initial);
   const [history, setHistory] = useState<History>(() => initHistory(fromWire(initial.content)));
@@ -59,7 +64,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
   const [note, setNote] = useState('');
   const [justification, setJustification] = useState('');
   const [pkg, setPkg] = useState<PackageResult | null>(null);
-  const [draftOffer, setDraftOffer] = useState<Draft | null>(() => loadDraft(initial.versionId));
+  const [draftOffer, setDraftOffer] = useState<Draft | null>(() => loadDraft(personId, initial.versionId));
   const [restored, setRestored] = useState(false);
   const [generation, setGeneration] = useState(0);
   const [tab, setTab] = useState<string>('findings');
@@ -70,12 +75,12 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
   const dirty = presentHash !== saved.contentHash;
   const validation = useDebouncedValidation(saved.versionId, present, generation);
 
-  // D7: the unsaved content (only) is kept in this browser while it differs from the saved revision.
+  // D7: the unsaved content (only) is kept in this browser, as this person's, while it differs from the saved revision.
   useEffect(() => {
     if (readOnly || draftOffer) return;
-    if (dirty) saveDraft({ versionId: saved.versionId, baseRevision: saved.revision, baseHash: saved.contentHash, content: present });
-    else clearDraft(saved.versionId);
-  }, [present, dirty, readOnly, saved.versionId, saved.revision, saved.contentHash, draftOffer]);
+    if (dirty) saveDraft({ personId, versionId: saved.versionId, baseRevision: saved.revision, baseHash: saved.contentHash, content: present });
+    else clearDraft(personId, saved.versionId);
+  }, [present, dirty, readOnly, personId, saved.versionId, saved.revision, saved.contentHash, draftOffer]);
 
   // Applies one operation; an OpError is shown in plain language and changes nothing.
   const apply = useCallback(
@@ -212,13 +217,29 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
       </div>
 
       {draftOffer ? (
-        draftOffer.baseRevision === saved.revision ? (
+        readOnly ? (
+          // A version that is no longer a DRAFT always shows its saved content: the draft can only be discarded (F50).
+          <Banner tone="warning" title="Your unsaved changes from an earlier session cannot be applied.">
+            <p>
+              They were based on revision {draftOffer.baseRevision}, but this version is {saved.state.replace(/_/g, ' ')}, no longer a DRAFT: what is shown is the saved revision {saved.revision}.
+            </p>
+            <Button
+              onPress={() => {
+                clearDraft(personId, saved.versionId);
+                setDraftOffer(null);
+              }}
+            >
+              Discard them
+            </Button>
+          </Banner>
+        ) : draftOffer.baseRevision === saved.revision ? (
           <Banner tone="warning" title="Unsaved changes from an earlier session were found in this browser.">
             <p>They are based on the saved revision {draftOffer.baseRevision}. They are not saved and not part of the master until you save them as a new revision.</p>
             <div className={dcls('inline')}>
               <Button
                 variant="primary"
                 onPress={() => {
+                  if (readOnly) return;
                   setHistory((h) => ({ past: [...h.past, h.present], present: draftOffer.content, future: [] }));
                   setRestored(true);
                   setDraftOffer(null);
@@ -228,7 +249,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
               </Button>
               <Button
                 onPress={() => {
-                  clearDraft(saved.versionId);
+                  clearDraft(personId, saved.versionId);
                   setDraftOffer(null);
                 }}
               >
@@ -243,7 +264,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
             </p>
             <Button
               onPress={() => {
-                clearDraft(saved.versionId);
+                clearDraft(personId, saved.versionId);
                 setDraftOffer(null);
               }}
             >
@@ -343,7 +364,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
           api.call(routes.designer.saveContent, { params: { versionId: saved.versionId }, body: { baseRevision: saved.revision, content: asWire(present), note: note.trim() }, idempotencyKey })
         }
         onDone={(v) => {
-          clearDraft(v.versionId);
+          clearDraft(personId, v.versionId);
           setRestored(false);
           afterServerChange(v);
           setDialog(null);

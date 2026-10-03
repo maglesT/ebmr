@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { unstorableText } from '@ebmr/expr';
 import { DesignerEditor } from '../../src/features/designer/DesignerPage.tsx';
 import { draftKey } from '../../src/features/designer/model/draft.ts';
-import { finding, fixtureVersion, installFixtures, PALETTE, renderRouted, report, VERSION_ID } from './support.tsx';
+import { finding, fixtureVersion, installFixtures, PALETTE, PERSON_ID, renderRouted, report, VERSION_ID } from './support.tsx';
 
 let validated: unknown[] = [];
 
@@ -75,7 +75,7 @@ function editorIsUp(): void {
 
 describe('text no record can hold, typed into the designer (review F31 round 2)', () => {
   it('[DI-37][DI-04] U+0000 in the title: the editor stays up, the title is named, and the text never enters the content, its validation or its draft', async () => {
-    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
     const title = await screen.findByRole('textbox', { name: 'Title' });
     await waitFor(() => expect(validated.length).toBeGreaterThan(0), { timeout: 5000 });
     enter(title, 'Edited\u0000 title');
@@ -90,11 +90,11 @@ describe('text no record can hold, typed into the designer (review F31 round 2)'
     await waitFor(() => expect(screen.queryByText('That change was not made.')).toBeNull());
     await waitFor(() => expect((validated.at(-1) as { header: { title: string } }).header.title).toBe('Edited title'), { timeout: 5000 });
     expect(validated.flatMap(unstorableIn)).toEqual([]);
-    expect(unstorableIn(JSON.parse(window.localStorage.getItem(draftKey(VERSION_ID)) ?? 'null'))).toEqual([]);
+    expect(unstorableIn(JSON.parse(window.localStorage.getItem(draftKey(PERSON_ID, VERSION_ID)) ?? 'null'))).toEqual([]);
   });
 
   it('[DI-37][DI-04] a lone surrogate in a step name and U+0000 in a hold point name: the editor stays up and names each field; nothing enters the content', async () => {
-    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} />);
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
     await userEvent.click(await screen.findByRole('row', { name: /Step 1\.1\.1 Dispensing booth clearance/ }));
     const stepName = await screen.findByRole('textbox', { name: 'Step name (as the operator sees it)' });
     enter(stepName, 'Booth \ud800 clearance');
@@ -111,6 +111,6 @@ describe('text no record can hold, typed into the designer (review F31 round 2)'
     expect(screen.getByRole('row', { name: /Cores approved for coating/ })).toBeTruthy();
     expect(screen.queryByText('Unsaved changes')).toBeNull();
     expect(validated.flatMap(unstorableIn)).toEqual([]);
-    expect(window.localStorage.getItem(draftKey(VERSION_ID))).toBeNull();
+    expect(window.localStorage.getItem(draftKey(PERSON_ID, VERSION_ID))).toBeNull();
   });
 });

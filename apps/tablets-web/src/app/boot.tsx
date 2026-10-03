@@ -16,6 +16,8 @@
  * it sees the mark (a storage event, a channel message, becoming visible, or its next look every SIGN_OUT_MARK_CHECK_MS):
  * it blocks at once and ends (else locks) the session itself, so closing the tab that started the sign-out leaves no
  * tab usable as the person who signed out.
+ * What this browser keeps for a person outside the session (their unsaved designer drafts, decision D7) is removed as
+ * soon as a sign-out starts or is joined here, and when a start-up finds one pending (review F50).
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { routes, type CallError, type DeviceView, type MetaView, type Result, type SessionView } from '@ebmr/api-contract';
@@ -23,6 +25,7 @@ import { machines } from '@ebmr/ui-kit';
 import { api, apiState, deviceProof } from '../api/client.ts';
 import { callWithDeadline } from '../api/deadline.ts';
 import { forgetDeviceKey, loadDeviceKey, type StoredDeviceKey } from '../device/keystore.ts';
+import { clearAllDrafts } from '../features/designer/model/draft.ts';
 import { anchorServerTime } from './clock.ts';
 import {
   confirmSignedOut,
@@ -135,6 +138,11 @@ async function endServerSession(stillWanted: () => boolean): Promise<SignOutOutc
   return unconfirmed(again.error);
 }
 
+/** A sign-out starts, is joined or is found pending: the unsaved designer drafts (D7) kept in this browser go (F50). */
+function forgetSignedOutPersonsData(): void {
+  clearAllDrafts();
+}
+
 async function runBoot(): Promise<BootState> {
   const empty: BootState = { phase: 'loading', meta: null, deviceKey: null, device: null, session: null, problem: null };
   apiState.installation = undefined;
@@ -158,6 +166,7 @@ async function runBoot(): Promise<BootState> {
   if (signOutPendingAtStartUp()) {
     // A sign-out the server never confirmed (or a browser that could not have kept its mark): finish it first; the
     // session it concerned is never shown again.
+    forgetSignedOutPersonsData();
     apiState.csrfToken = session.ok ? session.value.csrfToken : undefined;
     const outcome: SignOutOutcome = session.ok
       ? await endServerSession(() => signOutStillPending())
@@ -246,6 +255,7 @@ export function BootProvider({ children }: { children: ReactNode }) {
           }
         } else {
           startSignOut();
+          forgetSignedOutPersonsData();
           // Blocking at once: the page is not usable as the person signing out while the server is asked.
           setState((s) => ({ ...s, session: null, phase: 'signing-out', problem: null }));
         }
@@ -261,6 +271,7 @@ export function BootProvider({ children }: { children: ReactNode }) {
     void serialized(async () => {
       // Checked again: the mark may have gone meanwhile (another tab finished that sign-out).
       if (!joinSignOut()) return;
+      forgetSignedOutPersonsData();
       machines.announceSessionChange({ reason: 'ENDED', personId: null });
       setState((s) => ({ ...s, session: null, phase: 'signing-out', problem: null }));
       await finish();
