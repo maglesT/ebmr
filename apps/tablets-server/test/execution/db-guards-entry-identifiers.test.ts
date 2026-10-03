@@ -40,7 +40,7 @@ import { resolveClientIntent } from '../../src/features/execution/intents.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { actorOf, appendAs, messageOf, unmatched } from './db-guards-support.ts';
-import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from './support.ts';
+import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, personaIn, rowsOf, RunDriver, startExecServer, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -409,10 +409,10 @@ describe('F12: a test run records only test identifiers and registered test lots
 
   /**
    * operator1's entry `entry` at step `stepKey`, resolved and run through the engine as the server does, then stored
-   * through the application role after `forge` changed the new entry's data, the state or the recorded command: what a
+   * through the application role after `forge` changed the new entry's data, the state, the recorded command or the events: what a
    * writer that stores another entry than the block builds stores. 'ok' or the refusal.
    */
-  async function forgedEntry(d: RunDriver, stepKey: string, entry: Json, forge: (x: { data: Json; state: engine.BatchState; command: Json }) => void = () => undefined): Promise<string> {
+  async function forgedEntry(d: RunDriver, stepKey: string, entry: Json, forge: (x: { data: Json; state: engine.BatchState; command: Json; events: engine.EngineEvent[] }) => void = () => undefined): Promise<string> {
     const run = await runContext(sbx.db.admin, d.runId);
     const who = personaIn(sbx, 'operator1');
     return messageOf(
@@ -429,8 +429,9 @@ describe('F12: a test run records only test identifiers and registered test lots
         const added = Object.values(state.entries).find((e) => !(e.id in tx.state.entries));
         if (!added) throw new Error('SETUP: no new entry');
         const recorded = engine.encodeCommand(resolved.command) as Json;
-        forge({ data: added.data, state, command: recorded });
-        return appendAs(tx, resolved.command, { state, events: r.events }, roles, recorded as engine.JsonValue, engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
+        const events = structuredClone(r.events);
+        forge({ data: added.data, state, command: recorded, events });
+        return appendAs(tx, resolved.command, { state, events }, roles, recorded as engine.JsonValue, engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
       }),
     );
   }
@@ -511,5 +512,113 @@ describe('F12: a test run records only test identifiers and registered test lots
     expect(await entriesOf(disp.runId, 'CONTAINER_WEIGHING')).toEqual([]);
     expect(await forgedEntry(disp, 'p-disp-pcm@', weighing)).toBe('ok');
     expect((await execution.loadState(sbx.db.admin, disp.runId))?.state.steps['p-disp-pcm@']?.verificationRequired).toBe(true);
+  }, 300_000);
+  const SCHEMA_REFUSAL = String.raw`: an entry and a step's start data meet the data schema of the step's block version and are of a kind it records, as the engine checks them before the block accepts them \(DI-05, DI-30, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47\)\. \[EBMR-EXE-126\]$`;
+
+  it('[DI-05][DI-30][PR-19] round 6: the round-5 verification\'s weighing whose command and data both carry lotNumber L2409-0017, and a dispensed container stored under a kind its block does not record (CONTAINER_WEIGHING_2, its container and event left out), are refused (EBMR-EXE-126) and nothing holds them; the honest weighing is recorded', async () => {
+    const disp = await atDispensing();
+    const weighing = { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } };
+    const outcomes = {
+      // The round-5 verification's probe: the member in the command and in the data alike.
+      lotNumber: await forgedEntry(disp, 'p-disp-pcm@', weighing, ({ data, command }) => {
+        data['lotNumber'] = 'L2409-0017';
+        (command['entry'] as Json)['lotNumber'] = 'L2409-0017';
+      }),
+      // The T2 verification's probe: the same weighing under another kind, which the net, label and total checks do not read.
+      renamed: await forgedEntry(disp, 'p-disp-pcm@', weighing, ({ data, state, command, events }) => {
+        const e = Object.values(state.entries).find((x) => x.data === data);
+        if (!e) throw new Error('SETUP: no entry');
+        e.kind = 'CONTAINER_WEIGHING_2';
+        (command['entry'] as Json)['kind'] = 'CONTAINER_WEIGHING_2';
+        delete state.containers[String(data['container'])];
+        for (let i = events.length - 1; i >= 0; i -= 1) {
+          const ev = events[i] as unknown as Json;
+          if (ev['type'] === 'CONTAINER_REGISTERED') events.splice(i, 1);
+          else if (ev['type'] === 'ENTRY_RECORDED') ev['kind'] = 'CONTAINER_WEIGHING_2';
+        }
+      }),
+    };
+    expect(unmatched(outcomes, {
+      lotNumber: new RegExp(String.raw`^This accepted RECORD_ENTRY row records at step p-disp-pcm an entry that does not meet the data schema of block G-07@1: CONTAINER_WEIGHING\.lotNumber is not a field of this block \(unknown fields are refused\) \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+      renamed: new RegExp(String.raw`^This accepted RECORD_ENTRY row records an entry of kind CONTAINER_WEIGHING_2 at step p-disp-pcm, whose block G-07@1 does not record that kind \(ENG-ENTRY-KIND\)` + SCHEMA_REFUSAL),
+    })).toEqual({});
+    expect(await stateHolding(disp.runId, 'L2409-0017')).toBe(0);
+    expect(await rowsHolding(disp.runId, 'L2409-0017')).toBe(0);
+    expect(await rowsHolding(disp.runId, 'CONTAINER_WEIGHING_2')).toBe(0);
+    expect(await entriesOf(disp.runId, 'CONTAINER_WEIGHING')).toEqual([]);
+    expect(await forgedEntry(disp, 'p-disp-pcm@', weighing)).toBe('ok');
+    expect((await entriesOf(disp.runId, 'CONTAINER_WEIGHING')).map((e) => e['lot'] && (e['lot'] as Json)['id'])).toEqual(['TEST-L26-0101']);
+  }, 300_000);
+
+  it('[PR-34][PR-23][DI-30] round 6: a line clearance answered NO and an equipment status answered no, which the earlier checks stored as passed, are refused (EBMR-EXE-126) and nothing records them; the honest checks are recorded', async () => {
+    const answered = (i: number, v: string) => ({ data, command }: { data: Json; command: Json }): void => {
+      for (const list of [data['answers'], (command['entry'] as Json)['answers']] as Json[][]) (list[i] as Json)['answer'] = v;
+    };
+    const d = await startedRun();
+    const clearance = { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' })) };
+    const outcomes: Record<string, string> = { clearanceNo: await forgedEntry(d, CLEAR, clearance, answered(0, 'NO')) };
+    expect(await entriesOf(d.runId, 'CLEARANCE_CHECK')).toEqual([]);
+    // Sent over the API, the answer NO never reaches the engine: the contract refuses it and nothing is written.
+    const before = (await rowsOf(sbx, d.runId)).length;
+    const sent = await d.command('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: clearance.answers.map((a, i) => (i === 0 ? { ...a, answer: 'NO' } : a)) } } as Parameters<RunDriver['command']>[1]);
+    expect({ outcome: outcomeOf(sent), rows: (await rowsOf(sbx, d.runId)).length - before }).toEqual({ outcome: '400:SCHEMA', rows: 0 });
+    expect(await forgedEntry(d, CLEAR, clearance)).toBe('ok');
+    expect((await entriesOf(d.runId, 'CLEARANCE_CHECK')).map((e) => e['passed'])).toEqual([true]);
+    // operator1's next run (a new session of theirs ends the one above).
+    const bal = await atPreparation('p-disp-bal@');
+    const status = { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' })) };
+    outcomes['statusNo'] = await forgedEntry(bal, 'p-disp-bal@', status, answered(1, 'no'));
+    expect(await entriesOf(bal.runId, 'EQUIPMENT_STATUS')).toEqual([]);
+    expect(unmatched(outcomes, {
+      clearanceNo: new RegExp(String.raw`^This accepted RECORD_ENTRY row records at step p-disp-clear an entry that does not meet the data schema of block G-10@1: CLEARANCE_CHECK\.answers\[0\]\.answer must be one of CONFIRMED, NOT_CONFIRMED, NOT_APPLICABLE \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+      statusNo: new RegExp(String.raw`^This accepted RECORD_ENTRY row records at step p-disp-bal an entry that does not meet the data schema of block G-09@1: EQUIPMENT_STATUS\.answers\[1\]\.answer must be one of YES, NO \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+    })).toEqual({});
+    expect(await forgedEntry(bal, 'p-disp-bal@', status)).toBe('ok');
+    expect((await entriesOf(bal.runId, 'EQUIPMENT_STATUS')).map((e) => e['passed'])).toEqual([true]);
+  }, 300_000);
+  /**
+   * operator1's entry `entry` at step `stepKey`, resolved as the server does and refused by the engine, stored through the
+   * application role as the refused row the server writes, its recorded command changed by `forge`. 'ok' or the refusal.
+   */
+  async function refusedEntry(d: RunDriver, stepKey: string, entry: Json, forge: (command: Json) => void = () => undefined): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          { type: 'RECORD_ENTRY', stepKey, entry } as Parameters<typeof resolveClientIntent>[1],
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (r.accepted) throw new Error('SETUP: the engine accepted the entry');
+        const recorded = engine.encodeCommand(resolved.command) as Json;
+        forge(recorded);
+        return execution.appendExecution(tx.client, {
+          batchId: tx.locked.batch.id, expectedSeq: tx.lastSeq, kind: 'COMMAND', command: recorded as engine.JsonValue, commandId: resolved.command.commandId, nowUs: tx.nowUs,
+          accepted: false, refusal: r.refusal, state: r.state, events: r.events, roles, contents: engine.changedContents(tx.def, tx.state, r.state), evidence: resolved.evidence as engine.JsonValue,
+        });
+      }),
+    );
+  }
+
+  it('[DI-05][DI-30] round 6: a refused entry is recorded as it was sent, schema breaches included, but a refused row whose command carries lotNumber L2409-0017, a member no block version declares, is refused (EBMR-EXE-126) and nothing holds it', async () => {
+    const d = await startedRun();
+    const answeredNo = { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id, i) => ({ id, answer: i === 0 ? 'NO' : 'CONFIRMED' })) };
+    const outcomes = {
+      lotNumber: await refusedEntry(d, CLEAR, answeredNo, (command) => void ((command['entry'] as Json)['lotNumber'] = 'L2409-0017')),
+      answerMember: await refusedEntry(d, CLEAR, answeredNo, (command) => void ((((command['entry'] as Json)['answers'] as Json[])[2] as Json)['lot'] = 'L2409-0017')),
+    };
+    expect(unmatched(outcomes, {
+      lotNumber: new RegExp(String.raw`^This refused RECORD_ENTRY row records at step p-disp-clear a refused entry holding a member no block version declares for it: CLEARANCE_CHECK\.lotNumber is not a field of this block \(unknown fields are refused\) \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+      answerMember: new RegExp(String.raw`^This refused RECORD_ENTRY row records at step p-disp-clear a refused entry holding a member no block version declares for it: CLEARANCE_CHECK\.answers\[2\]\.lot is not a field of this block \(unknown fields are refused\) \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+    })).toEqual({});
+    expect(await rowsHolding(d.runId, 'L2409-0017')).toBe(0);
+    // The engine's refusal of the answer NO itself is part of the record.
+    const before = (await rowsOf(sbx, d.runId)).length;
+    expect(await refusedEntry(d, CLEAR, answeredNo)).toBe('ok');
+    expect((await rowsOf(sbx, d.runId)).slice(before).map((r) => ({ type: r.command_type, accepted: r.accepted, code: r.refusal?.code }))).toEqual([{ type: 'RECORD_ENTRY', accepted: false, code: 'ENG-ENTRY-SCHEMA' }]);
+    expect(await entriesOf(d.runId, 'CLEARANCE_CHECK')).toEqual([]);
   }, 300_000);
 });

@@ -35,6 +35,7 @@ import { createTestDatabase, type TestDatabase } from '../../../kernel/test/supp
 import type { BlockVersion } from '../../src/blocks/contract.ts';
 import { GENERIC_BLOCK_VERSIONS } from '../../src/blocks/generic/index.ts';
 import { DEFAULT_CLEARANCE_CHECKLIST, DEFAULT_STATUS_CHECKS } from '../../src/blocks/generic/status.ts';
+import { validateSchema, type FieldSchema } from '../../src/blocks/schema.ts';
 import { encodeCommand, encodeState, type JsonValue } from '../../src/engine/codec.ts';
 import type { BatchState } from '../../src/engine/types.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
@@ -386,189 +387,190 @@ describe('F12 round 4: an entry names only what its step\'s node in the MBR name
   }, 300_000);
 });
 
-describe('F12 round 5: an entry holds exactly what its block builds and accepts (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47)', () => {
-  interface MRow extends Row {
-    mbr: MbrContent;
-  }
-  const G = (type: string) => ({ type, version: '1' });
-  const steps = (st: Json): Record<string, Json> => (st['steps'] as Record<string, Json> | undefined) ?? {};
+// Rounds 5 and 6: rows of runs made for each block (with the MBR they ran on), and forged copies of them.
+interface MRow extends Row {
+  mbr: MbrContent;
+}
+const G = (type: string) => ({ type, version: '1' });
+const steps = (st: Json): Record<string, Json> => (st['steps'] as Record<string, Json> | undefined) ?? {};
 
-  async function blockProblem(r: MRow): Promise<string | null> {
-    const { rows } = await db.admin.query<{ p: string | null }>('select recipe.entry_block_problem($1::jsonb, $2::jsonb, $3::jsonb, $4::jsonb) as p', [
-      JSON.stringify(r.mbr),
-      JSON.stringify(r.before),
-      JSON.stringify(r.after),
-      JSON.stringify(r.command),
-    ]);
-    return rows[0]?.p ?? null;
-  }
+async function blockProblem(r: MRow): Promise<string | null> {
+  const { rows } = await db.admin.query<{ p: string | null }>('select recipe.entry_block_problem($1::jsonb, $2::jsonb, $3::jsonb, $4::jsonb) as p', [
+    JSON.stringify(r.mbr),
+    JSON.stringify(r.before),
+    JSON.stringify(r.after),
+    JSON.stringify(r.command),
+  ]);
+  return rows[0]?.p ?? null;
+}
 
-  /** The rows of a run of `mbr` (issued with `issue`, its state set up by `setup`) that `script` drives. */
-  function rowsFor(mbr: MbrContent, script: (run: Run) => void, issue: Parameters<typeof Run.issue>[1] = {}, setup: (run: Run) => void = () => undefined): MRow[] {
-    const run = Run.issue(define(mbr), issue, T0);
-    setup(run);
-    const start = structuredClone(run.state);
-    script(run);
-    return rowsOf(run, start).map((r) => ({ ...r, mbr }));
-  }
+/** The rows of a run of `mbr` (issued with `issue`, its state set up by `setup`) that `script` drives. */
+function rowsFor(mbr: MbrContent, script: (run: Run) => void, issue: Parameters<typeof Run.issue>[1] = {}, setup: (run: Run) => void = () => undefined): MRow[] {
+  const run = Run.issue(define(mbr), issue, T0);
+  setup(run);
+  const start = structuredClone(run.state);
+  script(run);
+  return rowsOf(run, start).map((r) => ({ ...r, mbr }));
+}
 
-  /** The rows of a block's golden fixture: issued, started (with its start data), its script, PERFORMED and the check. */
-  function fixtureRows(b: BlockVersion): MRow[] {
-    const f = b.goldenFixture;
-    if (!f) throw new Error('SETUP: no fixture');
-    const inputs = Object.fromEntries(
-      (f.inputs ?? []).map((i) => [i.id, { value: i.valueType === 'COUNT' ? { kind: 'COUNT' as const, value: i.value } : { kind: 'DECIMAL' as const, value: i.value, unit: i.unit ?? '1' }, source: 'golden fixture' }]),
-    );
-    return rowsFor(
-      fixtureMbr(b),
-      (run) => {
-        const startData = f.script.find((s): s is { startData: Record<string, unknown> } => 'startData' in s)?.startData;
-        run.start('p', [], undefined, startData);
-        for (const s of f.script) {
-          if ('record' in s) run.record('p', s.record, s.value, { source: run.def.analysis.parameters.get(s.record)?.capture === 'MANUAL' ? { mode: 'MANUAL' } : { mode: 'DEVICE', device: 'DEV-G' } });
-          else if ('entry' in s) run.entry('p', s.entry);
-          else if ('advanceUs' in s) run.advance(s.advanceUs);
-        }
-      },
-      { inputs },
-      (run) => {
-        for (const c of f.containers ?? []) run.state.containers[c.id] = { id: c.id, holds: c.holds, holdsKind: c.holdsKind, producedBy: 'setup@', producedIn: [], status: 'QUARANTINE' };
-      },
-    );
-  }
+/** The rows of a block's golden fixture: issued, started (with its start data), its script, PERFORMED and the check. */
+function fixtureRows(b: BlockVersion): MRow[] {
+  const f = b.goldenFixture;
+  if (!f) throw new Error('SETUP: no fixture');
+  const inputs = Object.fromEntries(
+    (f.inputs ?? []).map((i) => [i.id, { value: i.valueType === 'COUNT' ? { kind: 'COUNT' as const, value: i.value } : { kind: 'DECIMAL' as const, value: i.value, unit: i.unit ?? '1' }, source: 'golden fixture' }]),
+  );
+  return rowsFor(
+    fixtureMbr(b),
+    (run) => {
+      const startData = f.script.find((s): s is { startData: Record<string, unknown> } => 'startData' in s)?.startData;
+      run.start('p', [], undefined, startData);
+      for (const s of f.script) {
+        if ('record' in s) run.record('p', s.record, s.value, { source: run.def.analysis.parameters.get(s.record)?.capture === 'MANUAL' ? { mode: 'MANUAL' } : { mode: 'DEVICE', device: 'DEV-G' } });
+        else if ('entry' in s) run.entry('p', s.entry);
+        else if ('advanceUs' in s) run.advance(s.advanceUs);
+      }
+    },
+    { inputs },
+    (run) => {
+      for (const c of f.containers ?? []) run.state.containers[c.id] = { id: c.id, holds: c.holds, holdsKind: c.holdsKind, producedBy: 'setup@', producedIn: [], status: 'QUARANTINE' };
+    },
+  );
+}
 
-  const seqOf = (id: string, ...children: FlowNode[]): FlowNode => ({ kind: 'sequence', id, children });
-  const SOP = { id: 'SOP-1', kind: 'SOP' as const, code: 'SOP-GRAN-004', version: '7', hash: 'd'.repeat(64) };
-  const LOT = { id: 'AR-9', material: 'MAT-M', status: 'RELEASED', identityTested: true };
-  const BOM = [{ id: 'B', material: 'MAT-M', role: 'ACTIVE' as const, quantity: { value: '1', unit: 'kg' } }];
+const seqOf = (id: string, ...children: FlowNode[]): FlowNode => ({ kind: 'sequence', id, children });
+const SOP = { id: 'SOP-1', kind: 'SOP' as const, code: 'SOP-GRAN-004', version: '7', hash: 'd'.repeat(64) };
+const LOT = { id: 'AR-9', material: 'MAT-M', status: 'RELEASED', identityTested: true };
+const BOM = [{ id: 'B', material: 'MAT-M', role: 'ACTIVE' as const, quantity: { value: '1', unit: 'kg' } }];
 
-  /** Runs made for what the golden fixtures leave out: each named row adds the entry its name says. */
-  function specialRows(): Record<string, MRow> {
-    const out: Record<string, MRow> = {};
-    const name = (rows: MRow[], ...names: string[]): void => {
-      const adding = rows.filter((r) => Object.keys(entries(r.after)).some((k) => !(k in entries(r.before))));
-      names.forEach((n, i) => {
-        const r = adding[i];
-        if (!r) throw new Error(`SETUP: no row for ${n}`);
-        out[n] = r;
-      });
-    };
-    // G-03: an acknowledgement of the SOP its step names (with and without the version shown), one with no SOP.
-    name(
-      rowsFor(mbrWith(seqOf('ops', phase('read', { block: G('G-03'), config: { sop: 'SOP-1', acknowledgement: 'READ' } }), phase('plain', { block: G('G-03'), config: { acknowledgement: 'CONFIRM_PERFORMED' } })), { references: [SOP] }), (run) => {
-        run.start('read');
-        run.entry('read', { kind: 'ACKNOWLEDGE', mode: 'READ', sopVersion: '7' });
-        run.entry('read', { kind: 'ACKNOWLEDGE', mode: 'READ' });
-        run.perform('read');
-        run.verify('read');
-        run.start('plain');
-        run.entry('plain', { kind: 'ACKNOWLEDGE', mode: 'CONFIRM_PERFORMED' });
-      }),
-      'ackSop', 'ackSopNoVersion', 'ackPlain',
-    );
-    // G-12 in a sub-lot: the id and label carry the sub-lot; a sample from a named container.
-    const subLot = mbrWith(seqOf('ops', phase('pre'), { kind: 'replicate', id: 'R', name: 'Sub-lots', count: { mode: 'RUNTIME', min: 1, max: 2, reasonRequired: true }, instances: 'SEQUENTIAL', subLotPrefix: 'SL', body: phase('smp', { block: G('G-12'), config: { locations: 2, purpose: 'BU' } }) }, phase('after')));
-    const i1 = [{ construct: 'R', index: 1 }];
-    name(
-      rowsFor(subLot, (run) => {
-        done(run, 'pre');
-        run.ok({ type: 'CHOOSE_REPLICATE_COUNT', actor: SUP1, construct: 'R', count: 1, reason: 'one load' });
-        run.start('smp', i1);
-        run.entry('smp', { kind: 'SAMPLE', point: 'L1', purpose: 'BU', units: 1 }, i1);
-        run.entry('smp', { kind: 'SAMPLE', point: 'L2', purpose: 'BU', units: 2, container: 'TEST-C-9' }, i1);
-      }),
-      'sampleSubLot', 'sampleContainer',
-    );
-    // G-15: a transfer issued by one person and received by another.
-    name(
-      rowsFor(mbrWith(seqOf('ops', phase('xfer', { block: G('G-15'), config: { transfer: true } }))), (run) => {
-        run.start('xfer');
-        run.entry('xfer', { kind: 'TRANSFER_ISSUED', material: 'Granules', quantity: { value: '1', unit: 'kg' } });
-        run.entry('xfer', { kind: 'TRANSFER_RECEIVED', material: 'Granules' }, [], OP2);
-      }),
-      'transferIssued', 'transferReceived',
-    );
-    // G-05: a scanned paper original (needs the check) and a photo.
-    name(
-      rowsFor(mbrWith(seqOf('ops', phase('att', { block: G('G-05') }))), (run) => {
-        run.start('att');
-        run.entry('att', { kind: 'ATTACHMENT', sha256: 'a'.repeat(64), mediaType: 'application/pdf', description: 'Printout of the blender', paperOriginal: true });
-        run.entry('att', { kind: 'ATTACHMENT', sha256: 'b'.repeat(64), mediaType: 'image/png', description: 'Photo of the label' });
-      }),
-      'attachmentPaper', 'attachmentPhoto',
-    );
-    // G-10 with an item that may be not applicable.
-    name(
-      rowsFor(mbrWith(seqOf('ops', phase('clr', { block: G('G-10'), config: { checklist: [{ id: 'AREA', text: 'Area clean', expected: 'CONFIRMED_OR_NOT_APPLICABLE' }, { id: 'DOCS', text: 'No documents', expected: 'CONFIRMED' }] } }))), (run) => {
-        run.start('clr');
-        run.entry('clr', { kind: 'CLEARANCE_CHECK', answers: [{ id: 'AREA', answer: 'NOT_APPLICABLE' }, { id: 'DOCS', answer: 'CONFIRMED' }] });
-      }),
-      'clearanceNotApplicable',
-    );
-    // G-07 keyed by hand for a batch for the US (an identity-tested lot); G-08 charging a lot with its quantity.
-    const weigh = mbrWith(seqOf('ops', phase('w', { block: G('G-07'), consumes: ['B'], records: ['q'] })), {
-      bom: BOM,
-      references: [{ id: 'MAT-M', kind: 'MATERIAL', code: 'M-CODE', version: '1', hash: 'c'.repeat(64) }],
-      parameters: [{ id: 'q', name: 'q', valueType: 'DECIMAL', unit: 'kg', role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' }],
+/** Runs made for what the golden fixtures leave out: each named row adds the entry its name says. */
+function specialRows(): Record<string, MRow> {
+  const out: Record<string, MRow> = {};
+  const name = (rows: MRow[], ...names: string[]): void => {
+    const adding = rows.filter((r) => Object.keys(entries(r.after)).some((k) => !(k in entries(r.before))));
+    names.forEach((n, i) => {
+      const r = adding[i];
+      if (!r) throw new Error(`SETUP: no row for ${n}`);
+      out[n] = r;
     });
-    weigh.header = { ...weigh.header, marketSet: ['IN', 'US'] };
-    name(
-      rowsFor(
-        weigh,
-        (run) => {
-          run.start('w');
-          run.entry('w', { kind: 'CONTAINER_WEIGHING', item: 'q', bomLine: 'B', container: 'C-1', lot: { ...LOT, material: 'M-CODE', expiresAtUs: String(T0 + 10n ** 12n) }, gross: '2.000', tare: '1.000', unit: 'kg', balance: 'BAL-1', source: 'MANUAL' });
-        },
-        { marketSet: ['IN', 'US'] },
-      ),
-      'weighingManual',
-    );
-    name(
-      rowsFor(mbrWith(seqOf('ops', phase('k', { block: G('G-08'), consumes: ['B'] })), { bom: BOM }), (run) => {
-        run.start('k');
-        run.entry('k', { kind: 'CHARGE_LOT', bomLine: 'B', container: 'TEST-K-1', lot: LOT, quantity: { value: '1', unit: 'kg' } });
-      }),
-      'chargeLotQuantity',
-    );
-    // G-23: a reject in its container and a return of material that is not batch coded.
-    name(
-      rowsFor(mbrWith(seqOf('ops', phase('dis', { block: G('G-23') }))), (run) => {
-        run.start('dis');
-        run.entry('dis', { kind: 'DISPOSAL', category: 'REJECT_CONTAINER', material: 'Tablets', quantity: { value: '2', unit: 'kg' }, container: 'TEST-R-1' });
-        run.entry('dis', { kind: 'DISPOSAL', category: 'RETURN_TO_STORES', material: 'Foil', batchCoded: false, quantity: { value: '3', unit: 'kg' } });
-      }),
-      'disposalReject', 'disposalReturn',
-    );
-    // G-24: a reprocessing addition limited to one source batch; a validated re-treatment needs no authorisation.
-    name(
-      rowsFor(mbrWith(seqOf('ops', phase('add', { block: G('G-24'), reprocessing: { case: 'REPROCESSING_ADDITION', maxSourceBatches: 1, maxAge: { value: '30', unit: 'd' } } }))), (run) => {
-        run.start('add', [], undefined, { investigationRef: 'INV-1', riskEvaluationRef: 'RA-1', authorisationRef: 'AUTH-1', authorisedBy: 'QA1' });
-        run.entry('add', { kind: 'SOURCE_ADDITION', sourceBatch: 'TEST-B26-0007', productCode: 'P', quantity: { value: '0.01', unit: 'kg' }, manufacturedAtUs: String(T0 - 10n ** 12n) });
-        run.entry('add', { kind: 'SOURCE_ADDITION', sourceBatch: 'TEST-B26-0007', productCode: 'P', quantity: { value: '0.01', unit: 'kg' }, manufacturedAtUs: String(T0 - 10n ** 12n) });
-      }),
-      'additionStart', 'addition', 'additionSameSource',
-    );
-    const retreat = rowsFor(mbrWith(seqOf('ops', phase('rt', { block: G('G-24'), reprocessing: { case: 'VALIDATED_RETREATMENT' } }))), (run) => void run.start('rt'));
-    if (!retreat[0]) throw new Error('SETUP: no re-treatment start');
-    out['retreatmentStart'] = retreat[0];
-    return out;
-  }
-
-  /** Row `r` with the entry it adds (and the state after, the state before, the command) changed by `change`. */
-  function forge(r: MRow, change: (x: { e: Json; data: Json; after: Json; before: Json; command: Json; mbr: Json }) => void): MRow {
-    const f = structuredClone(r);
-    const [k] = added(f);
-    const e = entries(f.after)[k] as Json;
-    change({ e, data: e['data'] as Json, after: f.after, before: f.before, command: f.command as Json, mbr: f.mbr as unknown as Json });
-    return f;
-  }
-  const about = (r: MRow): string => {
-    const [k, e] = added(r);
-    return `entry ${k} (${String(e['kind'])}) of step ${String(e['stepKey'])}`;
   };
-  /** `about(r)` as a regular expression. */
-  const aboutRe = (r: MRow): string => about(r).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // G-03: an acknowledgement of the SOP its step names (with and without the version shown), one with no SOP.
+  name(
+    rowsFor(mbrWith(seqOf('ops', phase('read', { block: G('G-03'), config: { sop: 'SOP-1', acknowledgement: 'READ' } }), phase('plain', { block: G('G-03'), config: { acknowledgement: 'CONFIRM_PERFORMED' } })), { references: [SOP] }), (run) => {
+      run.start('read');
+      run.entry('read', { kind: 'ACKNOWLEDGE', mode: 'READ', sopVersion: '7' });
+      run.entry('read', { kind: 'ACKNOWLEDGE', mode: 'READ' });
+      run.perform('read');
+      run.verify('read');
+      run.start('plain');
+      run.entry('plain', { kind: 'ACKNOWLEDGE', mode: 'CONFIRM_PERFORMED' });
+    }),
+    'ackSop', 'ackSopNoVersion', 'ackPlain',
+  );
+  // G-12 in a sub-lot: the id and label carry the sub-lot; a sample from a named container.
+  const subLot = mbrWith(seqOf('ops', phase('pre'), { kind: 'replicate', id: 'R', name: 'Sub-lots', count: { mode: 'RUNTIME', min: 1, max: 2, reasonRequired: true }, instances: 'SEQUENTIAL', subLotPrefix: 'SL', body: phase('smp', { block: G('G-12'), config: { locations: 2, purpose: 'BU' } }) }, phase('after')));
+  const i1 = [{ construct: 'R', index: 1 }];
+  name(
+    rowsFor(subLot, (run) => {
+      done(run, 'pre');
+      run.ok({ type: 'CHOOSE_REPLICATE_COUNT', actor: SUP1, construct: 'R', count: 1, reason: 'one load' });
+      run.start('smp', i1);
+      run.entry('smp', { kind: 'SAMPLE', point: 'L1', purpose: 'BU', units: 1 }, i1);
+      run.entry('smp', { kind: 'SAMPLE', point: 'L2', purpose: 'BU', units: 2, container: 'TEST-C-9' }, i1);
+    }),
+    'sampleSubLot', 'sampleContainer',
+  );
+  // G-15: a transfer issued by one person and received by another.
+  name(
+    rowsFor(mbrWith(seqOf('ops', phase('xfer', { block: G('G-15'), config: { transfer: true } }))), (run) => {
+      run.start('xfer');
+      run.entry('xfer', { kind: 'TRANSFER_ISSUED', material: 'Granules', quantity: { value: '1', unit: 'kg' } });
+      run.entry('xfer', { kind: 'TRANSFER_RECEIVED', material: 'Granules' }, [], OP2);
+    }),
+    'transferIssued', 'transferReceived',
+  );
+  // G-05: a scanned paper original (needs the check) and a photo.
+  name(
+    rowsFor(mbrWith(seqOf('ops', phase('att', { block: G('G-05') }))), (run) => {
+      run.start('att');
+      run.entry('att', { kind: 'ATTACHMENT', sha256: 'a'.repeat(64), mediaType: 'application/pdf', description: 'Printout of the blender', paperOriginal: true });
+      run.entry('att', { kind: 'ATTACHMENT', sha256: 'b'.repeat(64), mediaType: 'image/png', description: 'Photo of the label' });
+    }),
+    'attachmentPaper', 'attachmentPhoto',
+  );
+  // G-10 with an item that may be not applicable.
+  name(
+    rowsFor(mbrWith(seqOf('ops', phase('clr', { block: G('G-10'), config: { checklist: [{ id: 'AREA', text: 'Area clean', expected: 'CONFIRMED_OR_NOT_APPLICABLE' }, { id: 'DOCS', text: 'No documents', expected: 'CONFIRMED' }] } }))), (run) => {
+      run.start('clr');
+      run.entry('clr', { kind: 'CLEARANCE_CHECK', answers: [{ id: 'AREA', answer: 'NOT_APPLICABLE' }, { id: 'DOCS', answer: 'CONFIRMED' }] });
+    }),
+    'clearanceNotApplicable',
+  );
+  // G-07 keyed by hand for a batch for the US (an identity-tested lot); G-08 charging a lot with its quantity.
+  const weigh = mbrWith(seqOf('ops', phase('w', { block: G('G-07'), consumes: ['B'], records: ['q'] })), {
+    bom: BOM,
+    references: [{ id: 'MAT-M', kind: 'MATERIAL', code: 'M-CODE', version: '1', hash: 'c'.repeat(64) }],
+    parameters: [{ id: 'q', name: 'q', valueType: 'DECIMAL', unit: 'kg', role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' }],
+  });
+  weigh.header = { ...weigh.header, marketSet: ['IN', 'US'] };
+  name(
+    rowsFor(
+      weigh,
+      (run) => {
+        run.start('w');
+        run.entry('w', { kind: 'CONTAINER_WEIGHING', item: 'q', bomLine: 'B', container: 'C-1', lot: { ...LOT, material: 'M-CODE', expiresAtUs: String(T0 + 10n ** 12n) }, gross: '2.000', tare: '1.000', unit: 'kg', balance: 'BAL-1', source: 'MANUAL' });
+      },
+      { marketSet: ['IN', 'US'] },
+    ),
+    'weighingManual',
+  );
+  name(
+    rowsFor(mbrWith(seqOf('ops', phase('k', { block: G('G-08'), consumes: ['B'] })), { bom: BOM }), (run) => {
+      run.start('k');
+      run.entry('k', { kind: 'CHARGE_LOT', bomLine: 'B', container: 'TEST-K-1', lot: LOT, quantity: { value: '1', unit: 'kg' } });
+    }),
+    'chargeLotQuantity',
+  );
+  // G-23: a reject in its container and a return of material that is not batch coded.
+  name(
+    rowsFor(mbrWith(seqOf('ops', phase('dis', { block: G('G-23') }))), (run) => {
+      run.start('dis');
+      run.entry('dis', { kind: 'DISPOSAL', category: 'REJECT_CONTAINER', material: 'Tablets', quantity: { value: '2', unit: 'kg' }, container: 'TEST-R-1' });
+      run.entry('dis', { kind: 'DISPOSAL', category: 'RETURN_TO_STORES', material: 'Foil', batchCoded: false, quantity: { value: '3', unit: 'kg' } });
+    }),
+    'disposalReject', 'disposalReturn',
+  );
+  // G-24: a reprocessing addition limited to one source batch; a validated re-treatment needs no authorisation.
+  name(
+    rowsFor(mbrWith(seqOf('ops', phase('add', { block: G('G-24'), reprocessing: { case: 'REPROCESSING_ADDITION', maxSourceBatches: 1, maxAge: { value: '30', unit: 'd' } } }))), (run) => {
+      run.start('add', [], undefined, { investigationRef: 'INV-1', riskEvaluationRef: 'RA-1', authorisationRef: 'AUTH-1', authorisedBy: 'QA1' });
+      run.entry('add', { kind: 'SOURCE_ADDITION', sourceBatch: 'TEST-B26-0007', productCode: 'P', quantity: { value: '0.01', unit: 'kg' }, manufacturedAtUs: String(T0 - 10n ** 12n) });
+      run.entry('add', { kind: 'SOURCE_ADDITION', sourceBatch: 'TEST-B26-0007', productCode: 'P', quantity: { value: '0.01', unit: 'kg' }, manufacturedAtUs: String(T0 - 10n ** 12n) });
+    }),
+    'additionStart', 'addition', 'additionSameSource',
+  );
+  const retreat = rowsFor(mbrWith(seqOf('ops', phase('rt', { block: G('G-24'), reprocessing: { case: 'VALIDATED_RETREATMENT' } }))), (run) => void run.start('rt'));
+  if (!retreat[0]) throw new Error('SETUP: no re-treatment start');
+  out['retreatmentStart'] = retreat[0];
+  return out;
+}
 
+/** Row `r` with the entry it adds (and the state after, the state before, the command) changed by `change`. */
+function forge(r: MRow, change: (x: { e: Json; data: Json; after: Json; before: Json; command: Json; mbr: Json }) => void): MRow {
+  const f = structuredClone(r);
+  const [k] = added(f);
+  const e = entries(f.after)[k] as Json;
+  change({ e, data: e['data'] as Json, after: f.after, before: f.before, command: f.command as Json, mbr: f.mbr as unknown as Json });
+  return f;
+}
+const about = (r: MRow): string => {
+  const [k, e] = added(r);
+  return `entry ${k} (${String(e['kind'])}) of step ${String(e['stepKey'])}`;
+};
+/** `about(r)` as a regular expression. */
+const aboutRe = (r: MRow): string => about(r).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+describe('F12 round 5: an entry holds exactly what its block builds and accepts (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47)', () => {
   it('[DI-05][DI-10][DI-30][PR-14][PR-18][PR-23][PR-29][PR-34][PR-40][PR-47] every entry of the engine\'s own runs passes: every block\'s golden fixture, both golden runs and runs of the kinds they leave out; every entry kind of this release\'s blocks is among them, and the database\'s default checklists are the blocks\'', async () => {
     const kinds = new Set<string>();
     const out: Record<string, string> = {};
@@ -883,5 +885,463 @@ describe('F12 round 5: an entry holds exactly what its block builds and accepts 
       destructionUnwitnessed: `stores ${about(destroy)}, a destruction at a step whose check is not a witness (G23-WITNESS)`,
     });
     for (const r of [status, clearance, previous, weighing, output, charge, lotCharge, manual, paper, photo, issued, received, destroy, reject, ret, failing, notApplicable]) expect(await blockProblem(r), r.label).toBeNull();
+  }, 300_000);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Round 6 (sql 0332): the data schema of the step's block version, as the engine checks it before the block sees an entry.
+
+/** A block schema as recipe.block_data_schema holds it: blocks/schema.ts without descriptions and defaults, a pattern as its source. */
+function schemaJson(s: FieldSchema): Json {
+  const o: Json = { type: s.type };
+  switch (s.type) {
+    case 'string':
+      if (s.enum) o['enum'] = [...s.enum];
+      if (s.pattern) {
+        if (s.pattern.flags !== '') throw new Error(`SETUP: pattern ${String(s.pattern)} has flags the database does not read`);
+        o['pattern'] = s.pattern.source;
+      }
+      break;
+    case 'decimal':
+      if (s.min !== undefined) o['min'] = s.min;
+      if (s.minExclusive === true) o['minExclusive'] = true;
+      break;
+    case 'integer':
+      if (s.min !== undefined) o['min'] = s.min;
+      if (s.max !== undefined) o['max'] = s.max;
+      break;
+    case 'object':
+      o['fields'] = Object.fromEntries(Object.entries(s.fields).map(([k, f]) => [k, schemaJson(f)]));
+      break;
+    case 'array':
+      o['items'] = schemaJson(s.items);
+      if (s.minItems !== undefined) o['minItems'] = s.minItems;
+      if (s.maxItems !== undefined) o['maxItems'] = s.maxItems;
+      break;
+    case 'record':
+      o['values'] = schemaJson(s.values);
+      break;
+    case 'boolean':
+      break;
+  }
+  if (s.optional === true) o['optional'] = true;
+  return o;
+}
+
+/** recipe.entry_schema_problem of row `r` (a COMMAND row, accepted or refused, as the trigger reads it). */
+async function schemaProblem(r: MRow): Promise<string | null> {
+  const { rows } = await db.admin.query<{ p: string | null }>('select recipe.entry_schema_problem($1::jsonb, $2::jsonb, $3::jsonb, $4::jsonb, $5) as p', [
+    JSON.stringify(r.mbr),
+    JSON.stringify(r.before),
+    JSON.stringify(r.after),
+    JSON.stringify(r.command),
+    r.accepted,
+  ]);
+  return rows[0]?.p ?? null;
+}
+
+/** recipe.block_schema_problem of each [schema, value, path], in order. */
+async function sqlSchemaProblems(cases: readonly (readonly [Json, unknown, string])[]): Promise<(string | null)[]> {
+  const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+    "select coalesce(array_agg(recipe.block_schema_problem(x.c -> 0, x.c -> 1, x.c ->> 2) order by x.i), '{}') as p from jsonb_array_elements($1::jsonb) with ordinality x (c, i)",
+    [JSON.stringify(cases)],
+  );
+  return rows[0]?.p ?? [];
+}
+
+/** Every row of the engine's own runs that rounds 5 and 6 read: each block's golden fixture, both golden runs, the special runs. */
+function engineRows(): [string, MRow][] {
+  const all: [string, MRow][] = [];
+  for (const b of GENERIC_BLOCK_VERSIONS) if (b.level === 'PHASE' && b.goldenFixture) for (const r of fixtureRows(b)) all.push([`${b.type} ${r.label}`, r]);
+  for (const { name, rows } of runs()) {
+    const mbr = fixtureDefinition(name as FixtureName).mbr;
+    for (const r of rows) all.push([`${name} ${r.label}`, { ...r, mbr }]);
+  }
+  for (const [n, r] of Object.entries(specialRows())) all.push([n, r]);
+  return all;
+}
+
+const isObject = (v: unknown): v is Json => typeof v === 'object' && v !== null && !Array.isArray(v);
+/** Values that break one rule or another of a schema member, set in place of a member's value. */
+const PROBES: unknown[] = [null, 0, -1, 1.5, 100001, 9007199254740992, '', 'x', 'NO', 'no', 'true', 'released', '-0', '01', '1.', '1e2', '0', '-0.5', 'lower_id', true, false, [], [{}], {}, { id: 'X' }];
+
+/** `value` (meeting `schema`) and its variants: every probe in its place, and each member, item or value of it varied likewise. */
+function variants(schema: FieldSchema, value: unknown, depth = 0): unknown[] {
+  const out: unknown[] = [value, ...PROBES];
+  if (depth > 2) return out;
+  if (schema.type === 'object' && isObject(value)) {
+    out.push({ ...value, lotNumber: 'L2409-0017' });
+    for (const [k, f] of Object.entries(schema.fields)) {
+      const without = { ...value };
+      delete without[k];
+      out.push(without);
+      for (const v of variants(f, value[k], depth + 1)) out.push({ ...value, [k]: v });
+    }
+  }
+  if (schema.type === 'array' && Array.isArray(value) && value.length > 0) {
+    const items = value as unknown[];
+    out.push([], [...items, ...items], Array.from({ length: (schema.maxItems ?? 1) + 1 }, () => items[0]));
+    for (const v of variants(schema.items, items[0], depth + 1)) out.push([v, ...items.slice(1)]);
+  }
+  if (schema.type === 'record' && isObject(value)) for (const [k, x] of Object.entries(value)) for (const v of variants(schema.values, x, depth + 1)) out.push({ ...value, [k]: v });
+  return out;
+}
+
+type ForgeArgs = Parameters<Parameters<typeof forge>[1]>[0];
+/** Member `m` of the new entry's data and of what its command sent (its entry, or its start data) set to `v`; deleted for undefined. */
+const both = (m: string, v: unknown) => ({ data, command, e }: ForgeArgs): void => {
+  const sent = (e['kind'] === 'START_DATA' ? command['blockData'] : command['entry']) as Json;
+  for (const o of [data, sent]) {
+    if (v === undefined) delete o[m];
+    else o[m] = v;
+  }
+};
+/** Member `m` of what the row's command sent only. */
+const sentOnly = (m: string, v: unknown) => ({ command, e }: ForgeArgs): void => {
+  ((e['kind'] === 'START_DATA' ? command['blockData'] : command['entry']) as Json)[m] = v;
+};
+const stepOfCommand = (r: MRow): string => String((r.command as Json)['step']);
+const addsKind = (r: Row, kind: string): boolean => r.accepted && Object.entries(entries(r.after)).some(([k, e]) => !(k in entries(r.before)) && e['kind'] === kind);
+
+describe('F12 round 6: an entry and a step\'s start data meet the data schema of the step\'s block version and are of a kind it records (DI-05, DI-30, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47)', () => {
+  let cached: [string, MRow][] | undefined;
+  const all = (): [string, MRow][] => (cached ??= engineRows());
+  /** The special row named `name`, else the first row of the engine's runs that adds an entry of kind `name`. */
+  const row = (name: string): MRow => {
+    const r = all().find(([n]) => n === name)?.[1] ?? all().find(([, x]) => addsKind(x, name))?.[1];
+    if (!r) throw new Error(`SETUP: no row ${name}`);
+    return r;
+  };
+  const entryRefusal = (r: MRow, block: string, problem: string): string => `records at step ${stepOfCommand(r)} an entry that does not meet the data schema of block ${block}: ${problem} (ENG-ENTRY-SCHEMA)`;
+
+  it('[DI-30][DI-05] the database holds the data schemas of every block version as the block registry declares them, each entry kind and the start data, and nothing can change them', async () => {
+    const want: Record<string, Json> = {};
+    for (const b of GENERIC_BLOCK_VERSIONS) {
+      if (b.dataSchema?.startData) want[`${b.type}@${b.version} START START_DATA`] = schemaJson(b.dataSchema.startData);
+      for (const [k, s] of Object.entries(b.dataSchema?.entries ?? {})) {
+        expect(k, `${b.type}@${b.version} names an entry kind as the state names start data`).not.toBe('START_DATA');
+        want[`${b.type}@${b.version} ENTRY ${k}`] = schemaJson(s);
+      }
+    }
+    const { rows } = await db.admin.query<{ k: string; schema: Json }>("select block_type || '@' || block_version || ' ' || part || ' ' || entry_kind as k, schema from recipe.block_data_schema");
+    expect(Object.fromEntries(rows.map((r) => [r.k, r.schema]))).toEqual(want);
+    await expect(db.admin.query("update recipe.block_data_schema set schema = '{\"type\": \"object\", \"fields\": {}}' where entry_kind = 'SAMPLE'")).rejects.toThrow(/EBMR-AUDIT-004 recipe\.block_data_schema is insert-only/);
+    await expect(db.admin.query("delete from recipe.block_data_schema where entry_kind = 'SAMPLE'")).rejects.toThrow(/EBMR-AUDIT-004/);
+  });
+
+  it('[DI-30][DI-05] the database reads a value against a block schema as the engine does: every entry and start data of the engine\'s own runs, every configuration of the blocks\' golden fixtures, and their forged variants get the same verdict, the database naming one of the engine\'s problems', async () => {
+    const cases: { schema: FieldSchema; value: unknown; path: string }[] = [];
+    const add = (schema: FieldSchema, value: unknown, path: string): void => {
+      for (const v of variants(schema, value)) cases.push({ schema, value: JSON.parse(JSON.stringify(v ?? null)) as unknown, path });
+    };
+    const seen = new Set<string>();
+    for (const [, r] of all()) {
+      const c = r.command as Json;
+      const block = (k: string) => GENERIC_BLOCK_VERSIONS.find((b) => b.dataSchema?.entries[k] !== undefined);
+      if (r.accepted && c['type'] === 'RECORD_ENTRY') {
+        const { kind, ...payload } = c['entry'] as Json;
+        const schema = block(String(kind))?.dataSchema?.entries[String(kind)];
+        if (schema && !seen.has(`${String(kind)}`)) {
+          seen.add(String(kind));
+          add(schema, payload, String(kind));
+        }
+      }
+      if (r.accepted && c['type'] === 'START_STEP' && c['blockData'] !== undefined && !seen.has('START_DATA')) {
+        seen.add('START_DATA');
+        const schema = GENERIC_BLOCK_VERSIONS.find((b) => b.dataSchema?.startData)?.dataSchema?.startData as FieldSchema;
+        add(schema, c['blockData'], 'startData');
+      }
+    }
+    for (const b of GENERIC_BLOCK_VERSIONS) if (b.configSchema && b.goldenFixture) add(b.configSchema, b.goldenFixture.phase.config, `${b.type}.config`);
+    // Members no block version of this release uses, read the same way.
+    add({ type: 'decimal', min: '0', minExclusive: true, description: 'x' }, '0.5', 'exclusive');
+    for (const v of ['0', '0.000', '-0.1', '0.001']) add({ type: 'decimal', min: '0', minExclusive: true, description: 'x' }, v, 'exclusive');
+    add({ type: 'integer', min: -5, max: 5, description: 'x' }, -5, 'bounds');
+    add({ type: 'record', description: 'x', values: { type: 'integer', min: 1, description: 'x' } }, { a: 1, b: 2 }, 'map');
+    expect([...seen].sort()).toEqual([...new Set(GENERIC_BLOCK_VERSIONS.flatMap((b) => [...Object.keys(b.dataSchema?.entries ?? {}), ...(b.dataSchema?.startData ? ['START_DATA'] : [])]))].sort());
+    const got = await sqlSchemaProblems(cases.map((c) => [schemaJson(c.schema), c.value, c.path] as const));
+    const differ: unknown[] = [];
+    const messages = new Set<string>();
+    cases.forEach((c, i) => {
+      const engine = validateSchema(c.schema, c.value, c.path).map((p) => `${p.path} ${p.message}`);
+      const sql = got[i] ?? null;
+      if (sql === null ? engine.length > 0 : !engine.includes(sql)) differ.push({ path: c.path, value: c.value, engine, sql });
+      if (sql !== null) messages.add(sql.replace(/^\S+ /, '').replace(/\d+/g, 'N').replace(/one of .*/, 'one of'));
+    });
+    expect(differ).toEqual([]);
+    expect(cases.length).toBeGreaterThan(3000);
+    // Every rule of the schema language refused something.
+    expect([...messages].sort()).toEqual([
+      'allows at most N items', 'has an invalid format', 'is not a field of this block (unknown fields are refused)', 'is required',
+      'must be a decimal written as text (e.g. "N.N"), never a number', 'must be a list', 'must be a non-empty text', 'must be a whole number',
+      'must be an object', 'must be at least N', 'must be at most N', 'must be greater than N', 'must be one of', 'must be true or false', 'needs at least N items',
+    ]);
+    // A schema of a type the database does not read fails closed.
+    expect(await sqlSchemaProblems([[{ type: 'tuple' }, 1, 'x'], [{}, 1, 'y']])).toEqual(['x has a schema of a type the database does not read (tuple)', 'y has a schema of a type the database does not read (none)']);
+  }, 300_000);
+
+  it('[DI-05][DI-30][PR-18][PR-23][PR-29][PR-34][PR-40][PR-47] every entry and start data of the engine\'s own runs meets its block\'s schema in the database: every block\'s golden fixture, both golden runs and the runs of the kinds they leave out, every kind among them', async () => {
+    const out: Record<string, string> = {};
+    const kinds = new Set<string>();
+    for (const [label, r] of all()) {
+      const p = await schemaProblem(r);
+      if (p !== null) out[label] = p;
+      for (const [k, e] of Object.entries(entries(r.after))) if (!(k in entries(r.before))) kinds.add(String(e['kind']));
+    }
+    expect(out).toEqual({});
+    const { rows } = await db.admin.query<{ k: string }>('select distinct entry_kind as k from recipe.block_data_schema order by 1');
+    expect([...kinds].sort()).toEqual(rows.map((r) => r.k));
+  }, 300_000);
+
+  it('[DI-05][DI-30] the round-5 verification\'s weighing whose command and data both carry lotNumber L2409-0017, and a member of its own in the command and the data of every block that keeps or copies the command, or in the command of every other block, passes the earlier checks and is refused', async () => {
+    const weighing = row('CONTAINER_WEIGHING');
+    const lot = { lotNumber: 'L2409-0017' };
+    const copied: [string, string, MRow][] = [
+      ['weighing', 'G-07@1', forge(weighing, both('lotNumber', 'L2409-0017'))],
+      ['output', 'G-22@1', forge(row('OUTPUT_CONTAINER'), both('lotNumber', 'L2409-0017'))],
+      ['disposal', 'G-23@1', forge(row('disposalReject'), both('lotNumber', 'L2409-0017'))],
+      ['transferIssued', 'G-15@1', forge(row('transferIssued'), both('lotNumber', 'L2409-0017'))],
+      ['transferReceived', 'G-15@1', forge(row('transferReceived'), both('lotNumber', 'L2409-0017'))],
+      ['addition', 'G-24@1', forge(row('addition'), both('lotNumber', 'L2409-0017'))],
+    ];
+    const built: [string, string, MRow][] = [
+      ['acknowledge', 'G-03@1', forge(row('ackSop'), sentOnly('lotNumber', 'L2409-0017'))],
+      ['attachment', 'G-05@1', forge(row('attachmentPhoto'), sentOnly('lotNumber', 'L2409-0017'))],
+      ['chargeLot', 'G-08@1', forge(row('chargeLotQuantity'), sentOnly('lotNumber', 'L2409-0017'))],
+      ['chargeContainer', 'G-08@1', forge(row('CHARGE_CONTAINER'), sentOnly('lotNumber', 'L2409-0017'))],
+      ['previousBatch', 'G-10@1', forge(row('PREVIOUS_BATCH'), sentOnly('lotNumber', 'L2409-0017'))],
+      ['clearance', 'G-10@1', forge(row('CLEARANCE_CHECK'), sentOnly('lotNumber', 'L2409-0017'))],
+      ['status', 'G-09@1', forge(row('EQUIPMENT_STATUS'), sentOnly('lotNumber', 'L2409-0017'))],
+      ['sample', 'G-12@1', forge(row('sampleSubLot'), sentOnly('lotNumber', 'L2409-0017'))],
+    ];
+    const start = forge(row('additionStart'), both('lotNumber', 'L2409-0017'));
+    const earlier: Record<string, unknown> = {};
+    const outcomes: Record<string, string | null> = {};
+    const want: Record<string, string> = {};
+    for (const [n, block, r] of [...copied, ...built]) {
+      earlier[n] = { block: await blockProblem(r), data: await problem(r) };
+      outcomes[n] = await schemaProblem(r);
+      want[n] = entryRefusal(r, block, `${String(added(r)[1]['kind'])}.lotNumber is not a field of this block (unknown fields are refused)`);
+    }
+    earlier['start'] = { block: await blockProblem(start), data: await problem(start) };
+    outcomes['start'] = await schemaProblem(start);
+    want['start'] = `starts step ${stepOfCommand(start)} with start data that does not meet the start-data schema of block G-24@1: startData.lotNumber is not a field of this block (unknown fields are refused) (ENG-ENTRY-SCHEMA)`;
+    // 0313 and 0330 let every one of them through: the command and the data agree, and the block keeps what was sent.
+    expect(Object.values(earlier).filter((x) => JSON.stringify(x) !== JSON.stringify({ block: null, data: null }))).toEqual([]);
+    expect(outcomes).toEqual(want);
+    expect((added(copied[0]?.[2] as MRow)[1]['data'] as Json)['lotNumber']).toBe(lot.lotNumber);
+    for (const r of [weighing, row('addition'), row('additionStart')]) expect(await schemaProblem(r), r.label).toBeNull();
+  }, 300_000);
+
+  it('[PR-34][PR-23][DI-30] a line clearance answered NO and an equipment status answered no, which the earlier checks stored as passed, are refused, and so is an answer with a member of its own', async () => {
+    // Checks the engine stored as passed: every answer CONFIRMED or YES.
+    const passed = (kind: string): MRow => {
+      const r = all().find(([, x]) => addsKind(x, kind) && (added(x)[1]['data'] as Json)['passed'] === true)?.[1];
+      if (!r) throw new Error(`SETUP: no passed ${kind}`);
+      return r;
+    };
+    const clearance = passed('CLEARANCE_CHECK');
+    const status = passed('EQUIPMENT_STATUS');
+    const answer = (i: number, v: string) => ({ data, command }: ForgeArgs): void => {
+      for (const list of [data['answers'], (command['entry'] as Json)['answers']] as Json[][]) (list[i] as Json)['answer'] = v;
+    };
+    const clearanceNo = forge(clearance, answer(0, 'NO'));
+    const statusNo = forge(status, answer(1, 'no'));
+    const noted = forge(clearance, ({ command }) => void ((((command['entry'] as Json)['answers'] as Json[])[0] as Json)['note'] = 'see logbook'));
+    for (const r of [clearanceNo, statusNo]) expect({ block: await blockProblem(r), data: await problem(r) }, r.label).toEqual({ block: null, data: null });
+    expect([clearanceNo, statusNo].map((r) => (added(r)[1]['data'] as Json)['passed'])).toEqual([true, true]);
+    expect({ clearanceNo: await schemaProblem(clearanceNo), statusNo: await schemaProblem(statusNo), noted: await schemaProblem(noted) }).toEqual({
+      clearanceNo: entryRefusal(clearanceNo, 'G-10@1', 'CLEARANCE_CHECK.answers[0].answer must be one of CONFIRMED, NOT_CONFIRMED, NOT_APPLICABLE'),
+      statusNo: entryRefusal(statusNo, 'G-09@1', 'EQUIPMENT_STATUS.answers[1].answer must be one of YES, NO'),
+      noted: entryRefusal(noted, 'G-10@1', 'CLEARANCE_CHECK.answers[0].note is not a field of this block (unknown fields are refused)'),
+    });
+  }, 300_000);
+
+  it('[PR-47][DI-30] reprocessing start data that is empty, holds only its authoriser or leaves out a reference, a source addition without manufacturedAtUs or with it as a number, or with containsRecovered or a quantity of another type, and start data at a step whose block takes none, are refused', async () => {
+    const start = row('additionStart');
+    const addition = row('addition');
+    const startWith = (blockData: Json) => ({ data, command }: ForgeArgs): void => {
+      for (const k of Object.keys(data)) delete data[k];
+      Object.assign(data, blockData);
+      command['blockData'] = structuredClone(blockData);
+    };
+    const forged = {
+      startEmpty: forge(start, startWith({})),
+      startAuthoriserOnly: forge(start, startWith({ authorisedBy: 'QA1' })),
+      startNoRiskEvaluation: forge(start, both('riskEvaluationRef', undefined)),
+      additionUndated: forge(addition, both('manufacturedAtUs', undefined)),
+      additionDatedNumber: forge(addition, both('manufacturedAtUs', 1)),
+      additionRecoveredText: forge(addition, both('containsRecovered', 'true')),
+      additionNoQuantity: forge(addition, both('quantity', undefined)),
+    };
+    const earlier: Record<string, unknown> = {};
+    const outcomes: Record<string, string | null> = {};
+    for (const [n, r] of Object.entries(forged)) {
+      earlier[n] = { block: await blockProblem(r), data: await problem(r) };
+      outcomes[n] = await schemaProblem(r);
+    }
+    expect(Object.entries(earlier).filter(([, x]) => JSON.stringify(x) !== JSON.stringify({ block: null, data: null }))).toEqual([]);
+    const startRefusal = (problemText: string): string => `starts step ${stepOfCommand(start)} with start data that does not meet the start-data schema of block G-24@1: ${problemText} (ENG-ENTRY-SCHEMA)`;
+    expect(outcomes).toEqual({
+      startEmpty: startRefusal('startData.authorisationRef is required'),
+      startAuthoriserOnly: startRefusal('startData.authorisationRef is required'),
+      startNoRiskEvaluation: startRefusal('startData.riskEvaluationRef is required'),
+      additionUndated: entryRefusal(addition, 'G-24@1', 'SOURCE_ADDITION.manufacturedAtUs is required'),
+      additionDatedNumber: entryRefusal(addition, 'G-24@1', 'SOURCE_ADDITION.manufacturedAtUs must be a non-empty text'),
+      additionRecoveredText: entryRefusal(addition, 'G-24@1', 'SOURCE_ADDITION.containsRecovered must be true or false'),
+      additionNoQuantity: entryRefusal(addition, 'G-24@1', 'SOURCE_ADDITION.quantity is required'),
+    });
+    // Start data at a step whose block takes none (an acknowledgement's), on the row that starts it.
+    const ackStart = rowsFor(mbrWith(seqOf('ops', phase('read', { block: G('G-03'), config: { acknowledgement: 'READ' } }))), (run) => void run.start('read'))[0];
+    if (!ackStart) throw new Error('SETUP: no start');
+    expect(await schemaProblem(ackStart)).toBeNull();
+    expect(await schemaProblem({ ...ackStart, command: { ...(ackStart.command as Json), blockData: { investigationRef: 'INV-1' } } })).toBe('starts step read with start data, and its block G-03@1 takes none (ENG-ENTRY-SCHEMA)');
+  }, 300_000);
+
+  it('[PR-29][PR-40][PR-18][PR-14][DI-30] a sample of 0, too many or a fraction of units, a disposal of an unknown category with no method or batch-coded as text, a weighed lot dated by a number or identity-tested as text, a weighing keyed by hand as manual, a weight as a number and a paper original as text pass the earlier checks and are refused', async () => {
+    const sample = row('sampleSubLot');
+    const destroy = row('disposalReject');
+    const ret = row('disposalReturn');
+    const manual = row('weighingManual');
+    const photo = row('attachmentPhoto');
+    const lotMember = (m: string, v: unknown) => ({ data, command }: ForgeArgs): void => {
+      for (const l of [data['lot'], (command['entry'] as Json)['lot']] as Json[]) l[m] = v;
+    };
+    const forged: Record<string, [MRow, string]> = {
+      sampleNone: [forge(sample, both('units', 0)), 'SAMPLE.units must be at least 1'],
+      sampleTooMany: [forge(sample, both('units', 100001)), 'SAMPLE.units must be at most 100000'],
+      sampleFraction: [forge(sample, both('units', 1.5)), 'SAMPLE.units must be a whole number'],
+      disposalReturn: [forge(destroy, ({ data, command, e }) => {
+        both('category', 'RETURN')({ data, command, e } as ForgeArgs);
+        both('container', undefined)({ data, command, e } as ForgeArgs);
+      }), 'DISPOSAL.category must be one of RETURN_TO_STORES, REJECT_CONTAINER, WASTE, DESTRUCTION'],
+      disposalCodedText: [forge(ret, both('batchCoded', 'true')), 'DISPOSAL.batchCoded must be true or false'],
+      lotDatedNumber: [forge(manual, lotMember('expiresAtUs', 1)), 'CONTAINER_WEIGHING.lot.expiresAtUs must be a non-empty text'],
+      lotIdentityText: [forge(manual, lotMember('identityTested', 'false')), 'CONTAINER_WEIGHING.lot.identityTested must be true or false'],
+      weighingSourceLower: [forge(manual, ({ data, command, e, after }) => {
+        both('source', 'manual')({ data, command, e, after } as ForgeArgs);
+        steps(after)[String(e['stepKey'])] = { ...steps(after)[String(e['stepKey'])], verificationRequired: false };
+      }), 'CONTAINER_WEIGHING.source must be one of DEVICE, MANUAL'],
+      weighingGrossNumber: [forge(manual, both('gross', 2)), 'CONTAINER_WEIGHING.gross must be a decimal written as text (e.g. "0.5"), never a number'],
+      paperText: [forge(photo, sentOnly('paperOriginal', 'true')), 'ATTACHMENT.paperOriginal must be true or false'],
+    };
+    const earlier: Record<string, unknown> = {};
+    const outcomes: Record<string, string | null> = {};
+    const want: Record<string, string> = {};
+    const blockOf: Record<string, string> = { SAMPLE: 'G-12@1', DISPOSAL: 'G-23@1', CONTAINER_WEIGHING: 'G-07@1', ATTACHMENT: 'G-05@1' };
+    for (const [n, [r, why]] of Object.entries(forged)) {
+      earlier[n] = await blockProblem(r);
+      outcomes[n] = await schemaProblem(r);
+      want[n] = entryRefusal(r, blockOf[String(added(r)[1]['kind'])] ?? '?', why);
+    }
+    // 0330 lets each through (a disposal of an unknown category meets none of G-23's rules; a manual weighing written in lower case needs no check).
+    expect(Object.entries(earlier).filter(([, p]) => p !== null)).toEqual([]);
+    expect(outcomes).toEqual(want);
+  }, 300_000);
+
+  it('[DI-30][DI-05][PR-19] an entry of a kind its step\'s block does not record is refused, whether the row that adds it was accepted or not: a dispensed container renamed CONTAINER_WEIGHING_2, a previous batch at a weighing step, start data recorded as an entry, an entry naming no kind; a stored entry\'s data that breaks its schema is refused although its command meets it; and every kind a block records has its own rules in 0330', async () => {
+    const weighing = row('CONTAINER_WEIGHING');
+    const kindAs = (kind: string, change: (x: ForgeArgs) => void = () => undefined) => (x: ForgeArgs): void => {
+      x.e['kind'] = kind;
+      (x.command['entry'] as Json)['kind'] = kind;
+      change(x);
+    };
+    const renamed = forge(weighing, kindAs('CONTAINER_WEIGHING_2'));
+    const previousHere = forge(weighing, kindAs('PREVIOUS_BATCH', ({ data, command, e }) => {
+      for (const k of Object.keys(data)) delete data[k];
+      Object.assign(data, { product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999', recordedBy: e['enteredBy'] });
+      command['entry'] = { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' };
+    }));
+    const startAsEntry = forge(row('addition'), kindAs('START_DATA'));
+    const noKind = forge(weighing, ({ command }) => void delete (command['entry'] as Json)['kind']);
+    // 0330 checks nothing of a kind it has no rules for.
+    expect(await blockProblem(renamed)).toBeNull();
+    expect({
+      renamed: await schemaProblem(renamed),
+      previousHere: await schemaProblem(previousHere),
+      startAsEntry: await schemaProblem(startAsEntry),
+      noKind: await schemaProblem(noKind),
+      renamedRefused: await schemaProblem({ ...renamed, accepted: false, command: { ...(renamed.command as Json), entry: { ...((renamed.command as Json)['entry'] as Json), kind: 'CONTAINER_WEIGHING' } } }),
+    }).toEqual({
+      renamed: `records an entry of kind CONTAINER_WEIGHING_2 at step ${stepOfCommand(weighing)}, whose block G-07@1 does not record that kind (ENG-ENTRY-KIND)`,
+      previousHere: `records an entry of kind PREVIOUS_BATCH at step ${stepOfCommand(weighing)}, whose block G-07@1 does not record that kind (ENG-ENTRY-KIND)`,
+      startAsEntry: `records an entry of kind START_DATA at step ${stepOfCommand(row('addition'))}, whose block G-24@1 does not record that kind (ENG-ENTRY-KIND)`,
+      noKind: `records at step ${stepOfCommand(weighing)} an entry that names no kind (ENG-ENTRY-KIND)`,
+      // A row that is not an accepted command adds no entry the engine would add: its kind is read all the same.
+      renamedRefused: `stores ${about(renamed)}, a kind its block G-07@1 does not record (ENG-ENTRY-KIND)`,
+    });
+    // What the stored entry holds meets the schema too, its command aside.
+    const sample = row('sampleSubLot');
+    const start = row('additionStart');
+    expect({
+      sampleUnits: await schemaProblem(forge(sample, ({ data }) => void (data['units'] = 0))),
+      sampleData: await schemaProblem(forge(sample, ({ e }) => void (e['data'] = 'x'))),
+      startData: await schemaProblem(forge(start, ({ data }) => void delete data['investigationRef'])),
+    }).toEqual({
+      sampleUnits: `stores ${about(sample)} whose data does not meet the data schema of block G-12@1: SAMPLE.units must be at least 1 (ENG-ENTRY-SCHEMA)`,
+      sampleData: `stores ${about(sample)} whose data does not meet the data schema of block G-12@1: SAMPLE must be an object (ENG-ENTRY-SCHEMA)`,
+      startData: `stores ${about(start)} whose data does not meet the data schema of block G-24@1: startData.investigationRef is required (ENG-ENTRY-SCHEMA)`,
+    });
+    // So 0330's branch for a kind it has no rules for is never reached: each kind a block records has its rules there.
+    const { rows } = await db.admin.query<{ k: string }>('select entry_kind as k from recipe.block_data_schema order by 1');
+    const unbuilt: string[] = [];
+    for (const { k } of rows) {
+      const r = all().find(([, x]) => addsKind(x, k))?.[1];
+      if (!r) throw new Error(`SETUP: no row adds ${k}`);
+      if (!/with zzForged "x", where its block writes \(no such member\)$/.test((await blockProblem(forge(r, ({ data }) => void (data['zzForged'] = 'x')))) ?? '')) unbuilt.push(k);
+    }
+    expect(unbuilt).toEqual([]);
+  }, 300_000);
+  it('[DI-05][DI-30] a refused row keeps what was sent, which the engine refused, but never a member no block version declares for its kind of entry or for start data, at any depth', async () => {
+    const weighing = row('CONTAINER_WEIGHING');
+    const clearance = row('CLEARANCE_CHECK');
+    const start = row('additionStart');
+    /** Row `r` as a refused row whose command's entry (or start data) is changed by `change`, adding nothing to the state. */
+    const refused = (r: MRow, change: (sent: Json, command: Json) => void): MRow => {
+      const command = structuredClone(r.command) as Json;
+      change(((command['type'] === 'START_STEP' ? command['blockData'] : command['entry']) ?? {}) as Json, command);
+      return { ...r, accepted: false, command: command as JsonValue, after: r.before };
+    };
+    const answers = (sent: Json): Json[] => sent['answers'] as Json[];
+    const outcomes = {
+      // What the engine refuses (for its schema, or a kind the step's block does not record), as an application that let it through sends it: recorded.
+      answeredNo: await schemaProblem(refused(clearance, (sent) => void ((answers(sent)[0] as Json)['answer'] = 'NO'))),
+      lowerId: await schemaProblem(refused(clearance, (sent) => void ((answers(sent)[0] as Json)['id'] = 'lower_id'))),
+      grossNumber: await schemaProblem(refused(weighing, (sent) => void (sent['gross'] = 2))),
+      otherKind: await schemaProblem(refused(weighing, (_sent, command) => void (command['entry'] = { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' }))),
+      startNoRefs: await schemaProblem(refused(start, (sent) => void delete sent['investigationRef'])),
+      // A member of its own, where a real identifier would sit unread: refused.
+      lotNumber: await schemaProblem(refused(weighing, (sent) => void (sent['lotNumber'] = 'L2409-0017'))),
+      lotMember: await schemaProblem(refused(weighing, (sent) => void ((sent['lot'] as Json)['lotNumber'] = 'L2409-0017'))),
+      answerMember: await schemaProblem(refused(clearance, (sent) => void ((answers(sent)[1] as Json)['lot'] = 'L2409-0017'))),
+      startMember: await schemaProblem(refused(start, (sent) => void (sent['lotNumber'] = 'L2409-0017'))),
+      otherKindMembers: await schemaProblem(refused(weighing, (sent) => void (sent['kind'] = 'PREVIOUS_BATCH'))),
+      unknownKind: await schemaProblem(refused(weighing, (sent) => void (sent['kind'] = 'LOT_NOTE'))),
+      noKind: await schemaProblem(refused(weighing, (sent) => void delete sent['kind'])),
+      noEntry: await schemaProblem(refused(weighing, (_sent, command) => void (command['entry'] = 'L2409-0017'))),
+    };
+    const step = (r: MRow): string => stepOfCommand(r);
+    expect(outcomes).toEqual({
+      answeredNo: null,
+      lowerId: null,
+      grossNumber: null,
+      otherKind: null,
+      startNoRefs: null,
+      lotNumber: `records at step ${step(weighing)} a refused entry holding a member no block version declares for it: CONTAINER_WEIGHING.lotNumber is not a field of this block (unknown fields are refused) (ENG-ENTRY-SCHEMA)`,
+      lotMember: `records at step ${step(weighing)} a refused entry holding a member no block version declares for it: CONTAINER_WEIGHING.lot.lotNumber is not a field of this block (unknown fields are refused) (ENG-ENTRY-SCHEMA)`,
+      answerMember: `records at step ${step(clearance)} a refused entry holding a member no block version declares for it: CLEARANCE_CHECK.answers[1].lot is not a field of this block (unknown fields are refused) (ENG-ENTRY-SCHEMA)`,
+      startMember: `records at step ${step(start)} refused start data holding a member no block version declares for it: startData.lotNumber is not a field of this block (unknown fields are refused) (ENG-ENTRY-SCHEMA)`,
+      otherKindMembers: `records at step ${step(weighing)} a refused entry holding a member no block version declares for it: PREVIOUS_BATCH.balance is not a field of this block (unknown fields are refused) (ENG-ENTRY-SCHEMA)`,
+      unknownKind: `records at step ${step(weighing)} a refused entry of kind LOT_NOTE, which no block version records (ENG-ENTRY-KIND)`,
+      noKind: `records at step ${step(weighing)} a refused entry that names no kind (ENG-ENTRY-KIND)`,
+      noEntry: `records at step ${step(weighing)} a refused entry that names no kind (ENG-ENTRY-KIND)`,
+    });
+    // The members of a map's values are read too (a configuration's expected answers, here as a schema of its own).
+    const map = { type: 'object', fields: { expected: { type: 'record', values: { type: 'object', fields: { answer: { type: 'string' } } } } } };
+    const { rows } = await db.admin.query<{ ok: string | null; bad: string | null; scalar: string | null }>(
+      "select recipe.block_schema_unknown_member($1::jsonb, '{\"expected\": {\"q1\": {\"answer\": \"YES\"}}}'::jsonb, 'c') as ok, recipe.block_schema_unknown_member($1::jsonb, '{\"expected\": {\"q1\": {\"answer\": \"YES\", \"lot\": \"L2409-0017\"}}}'::jsonb, 'c') as bad, recipe.block_schema_unknown_member($1::jsonb, '{\"expected\": 1}'::jsonb, 'c') as scalar",
+      [JSON.stringify(map)],
+    );
+    expect(rows[0]).toEqual({ ok: null, bad: 'c.expected.q1.lot is not a field of this block (unknown fields are refused)', scalar: null });
   }, 300_000);
 });

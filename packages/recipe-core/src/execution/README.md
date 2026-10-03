@@ -401,8 +401,19 @@ that another command holds is skipped.
     market other than India; a disposal follows G-23's rules; a source addition is made only at a recovery or
     reprocessing-addition step, of the batch's product, never chained, within the MBR's number of sources and age; a
     reprocessing step other than a validated re-treatment starts only with the quality unit's authorisation, never
-    given by the person who starts it. Whether a block raises the exception an entry calls for, a source addition's
-    share of the batch size, a transfer's two persons and which block an entry kind belongs to stay with the replay;
+    given by the person who starts it. An entry and a step's start data also meet the data schema of the step's
+    block version, as the engine checks them before the block sees them (sql 0332, trigger
+    `zze_execution_entry_schema`, `entry_schema_problem`, the table `block_data_schema` and its reader
+    `block_schema_problem`; Phase 2 exit review F12, the round-5 verification; EBMR-EXE-126), which corrects 0330's
+    "and nothing else": an accepted RECORD_ENTRY's entry meets the schema of its kind in the step's block version,
+    which must record that kind; an accepted START_STEP's start data meets that block's start-data schema; every
+    entry a row adds is of a kind its step's block records and its data's members meet that schema. So no member of
+    its own (a weighing's lotNumber in the command and the data alike), no answer outside a checklist's list (a
+    clearance answered NO stored as passed), no reprocessing start data without its references and no source
+    addition without its manufacture time pass, and no weighing hides under another kind from the net, label and
+    total checks. A refused row keeps what was sent and refused, but never a member that no block version declares
+    for that kind (`block_schema_unknown_member`). Whether a block raises the exception an entry calls for, a source
+    addition's share of the batch size and a transfer's two persons stay with the replay;
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -733,7 +744,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   a replicate section or operation the step comes after), are refused, each with its reason. Round 3 (sql 0316): the
   row that finishes an operation in an alternative's branch, the last operation of a loop iteration or of a sub-lot,
   or the last operation of the final stage, without its END, is refused.
-- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 to 5; sql 0313, 0317, 0328, 0330): every entry of the engine's
+- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 to 6; sql 0313, 0317, 0328, 0330, 0332): every entry of the engine's
   own runs (both golden fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an
   acknowledgement of the MBR's own SOP version) passes `entry_data_problem`; an entry that holds another value than
   its command sent (the real previous batch or product, a weighed container or lot, a sample point, a checklist's
@@ -753,7 +764,17 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   without its authorisation or authorised by its performer, another person, passed flag, status or paper-original
   flag, a member dropped from or added to the data, another id, time or event of the entry record, a step left
   without the check its entry asks for, a checklist that leaves out, repeats or adds an item, an unusable lot and a
-  disposal against G-23's rules are refused, each with its reason.
+  disposal against G-23's rules are refused, each with its reason. Round 6 (sql 0332): `block_data_schema` equals
+  the block registry's data schemas and cannot be changed; `block_schema_problem` gives the engine's verdict on
+  every entry and start data of the engine's runs, every golden configuration and several thousand forged
+  variants, naming one of the engine's problems; every entry and start data of the engine's runs passes
+  `entry_schema_problem`, every kind among them; the round-5 verification's weighing with lotNumber L2409-0017 in its
+  command and data, a member of its own in every block's command (and data where the block keeps it), a clearance
+  answered NO and a status answered no stored as passed, reprocessing start data that is empty or leaves out a
+  reference, a source addition without manufacturedAtUs or with it as a number, a sample of 0 units, a disposal of an
+  unknown category, and further values of another type pass 0313 and 0330 and are refused; an entry of a kind its
+  step's block does not record (a weighing renamed CONTAINER_WEIGHING_2), stored data that breaks the schema, a
+  refused row holding a member no block version declares, and every kind's own rules in 0330.
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -897,7 +918,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   release signed while another QA user's proposal is open is refused (EBMR-ESIG-015); a deviation linked to the
   exception after its disposition was signed and committed is refused (EBMR-ESIG-015) instead of leaving that
   signature unsuperseded; every signature committed stays VALID.
-- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328, 0330): a real previous batch number
+- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328, 0330, 0332): a real previous batch number
   typed into a line clearance is refused by the server before anything is written (EBMR-SBX-022), and by the database
   when written through the store (EBMR-EXE-078); every identifier an entry carries (previous, scanned and source
   batches, containers, lots) is a test identifier, and a weighed or charged lot a registered test lot stated as the
@@ -915,7 +936,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   acknowledgement of p-disp-sop@ naming sop B24-0001 and sopVersion L2409-0017, and one naming another SOP of the MBR,
   are refused (EBMR-EXE-126) and nothing holds them; an equipment status attested in another person's name or leaving
   out a check, and a weighing keyed by hand whose step is not left needing its second person, are refused; the honest
-  entries are recorded, the acknowledgement with the SOP the MBR pins.
+  entries are recorded, the acknowledgement with the SOP the MBR pins. Round 6 (sql 0332): the round-5
+  verification's weighing whose command and data carry lotNumber L2409-0017, a weighing stored as kind
+  CONTAINER_WEIGHING_2 without its container, a clearance answered NO and an equipment status answered no (which
+  0330 stored as passed), and a refused row whose command carries a member no block declares are refused
+  (EBMR-EXE-126) and nothing holds them; the engine's own refusal of an answer NO is recorded as a refused row, and the
+  honest entries are recorded.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and
