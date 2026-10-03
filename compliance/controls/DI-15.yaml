@@ -70,6 +70,16 @@ tests:
   - "apps/tablets-server/test/session/pin-length.test.ts > F05: a new PIN is never longer than the kiosk PIN pads take > [DI-19][DI-15] a 13- or 14-digit new PIN is refused at the change (EBMR-IAM-055) and the current PIN still signs in; 12 digits are accepted"
   - "packages/kernel/test/identity/credentials.test.ts > secrets (DI-19, DI-15) > [DI-15][DI-38][DI-19] on a shared terminal a secret change counts only within the terminal class's attribution window; elsewhere within the event window (F04, kernel 0990)"
   - "packages/kernel/test/identity/secrets.test.ts > PIN rules > [DI-19][DI-15] a PIN longer than the 12 digits every kiosk PIN pad takes is refused, 12 itself accepted (F05)"
+clauses:
+  - clause: "Create an account with a deactivated user's ID. Blocked."
+    tests:
+      - "packages/kernel/test/identity/accounts.test.ts > [DI-15][INV-27] creating an account with a deactivated user's ID is refused, whatever the letter case"
+  - clause: "Activate an account with no identity-verification record. Blocked."
+    tests:
+      - "packages/kernel/test/identity/accounts.test.ts > [DI-15] an account without an identity-verification record cannot be activated or given a secret"
+  - clause: "Sign with an admin-reset password before changing it. Refused."
+    tests:
+      - "packages/kernel/test/identity/accounts.test.ts > [DI-15] signing with an admin-reset password before changing it is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

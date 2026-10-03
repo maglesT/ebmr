@@ -100,6 +100,13 @@ tests:
   - "apps/tablets-server/test/execution/store.test.ts > the append path > [INV-03][DI-35] a fabricated accepted VERIFY by a person who only entered data in the step (another person started it) is refused by the database, and nothing is recorded"
   - "apps/tablets-server/test/execution/store.test.ts > the append path > [INV-03][DI-35][DI-24] a fabricated accepted VERIFY by a person who only corrected an entry of the step is refused by the database, and nothing is recorded"
   - "apps/tablets-server/test/execution/store.test.ts > the append path > [INV-03][DI-35] the database refuses a VERIFY by a person in any one list of the step instance (started, entered data, corrected, signed performed), and only that instance's lists count"
+clauses:
+  - clause: "An inventory maps every predicate signature point to a catalogue type."
+    tests:
+      - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] an inventory maps every predicate signature point to an active type of the minimum set"
+  - clause: "Try to complete a cleaning-log entry with a plain acknowledgment. Impossible."
+    tests:
+      - "packages/kernel/test/esig/catalogue.test.ts > [DI-35] try to complete a cleaning-log entry with a plain acknowledgement: impossible; only the required signature completes it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

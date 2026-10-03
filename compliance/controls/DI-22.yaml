@@ -80,6 +80,19 @@ tests:
   - "apps/tablets-web/test/audit/audit-page.test.tsx > audit trail viewer > [DI-23][DI-22] a chain whose head row is missing is listed with no count or time, and the list says to verify it (F06)"
   - "apps/tablets-server/test/audit/view-integrity.test.ts > P7 audit viewer vs chain verification > [DI-23][DI-22][INV-08] a chain whose head row was deleted is still listed, with no count or time, and \"Verify chain\" names the tamper instead of answering that the chain does not exist (F06, tablets 0490)"
   - "apps/tablets-server/test/platform/unstorable-text.test.ts > text no record can hold, behind the contract (review F30-F33) > [DI-37][DI-22] a path parameter or query string holding U+0000 is refused 400 naming it, never 500 (the database refused it before as 22021)"
+clauses:
+  - clause: "As each role, create, modify and void a value. Every entry carries all fields."
+    tests:
+      - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][INV-07] a GMP insert writes an audit event in the same transaction with who, what, when, how"
+      - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
+      - "packages/kernel/test/audit/audit-trail.test.ts > [DI-24][DI-22] an entry is removed only with a reason, and the audit trail keeps the original values"
+      - "apps/tablets-server/test/audit/viewer.test.ts > [DI-22][DI-23] an entry shows who (legal name, user ID, role), what (fields old and new), when (site time with offset, UTC), why (reason) and how (terminal)"
+  - clause: "Saving a modification without a reason is blocked."
+    tests:
+      - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
+  - clause: "A failed login, a role change and a configuration change each appear in the system log."
+    tests:
+      - "packages/kernel/test/integration/system-log.test.ts > [DI-22] a failed login, a role change and a configuration change each appear in the system log"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

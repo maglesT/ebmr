@@ -80,6 +80,22 @@ tests:
   - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [PR-08][PR-13][PR-45][IN-37] a step the engine refuses as blocked is reported by the database on the same state, and accepted once the block is lifted; a hold point is not released while an exception that is not an alert is open"
   - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [PR-08][PR-13] a block reaches what the execution graph reaches from its anchor: later in a sequence, inside the construct it opens, anywhere in a loop around both; never another branch or another sub-lot; the step it names only when completing"
   - "apps/tablets-web/test/floor/run-exceptions.test.tsx > run-level exceptions on the run overview (T3) > [PR-08][PR-49] a supervisor links a deviation to a run-level exception from the overview: one plain intent on the exception, at the run version shown"
+  - "packages/recipe-core/test/execution/sql-guards.test.ts > a limit exception as the value and the MBR's limits give it (P25 round-2 verification; recipe-core 0305) > [PR-08][PR-49][DI-26][INV-41] a limit exception stored with other facts than its verdict gives it, left out, not marked on its value, or added where nothing is judged, is refused (EBMR-EXE-044); the honest ones are recorded"
+  - "apps/tablets-server/test/execution/commands.test.ts > the actions a step card offers (the viewer's role and the order of the work) > [DI-17][PR-08] linking a deviation is greyed for the operator with the permission it needs, offered to the supervisor; the database refuses the operator's link"
+clauses:
+  - clause: "A value outside a registered limit creates a deviation with the registration flag,"
+    tests:
+      - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: a value outside a registered limit requires a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off"
+      - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"
+      - "packages/recipe-core/test/execution/sql-guards.test.ts > a limit exception as the value and the MBR's limits give it (P25 round-2 verification; recipe-core 0305) > [PR-08][PR-49][DI-26][INV-41] a limit exception stored with other facts than its verdict gives it, left out, not marked on its value, or added where nothing is judged, is refused (EBMR-EXE-044); the honest ones are recorded"
+  - clause: "and it is visible on the release screen."
+    deferred:
+      phase: 4
+      reason: "Phase 2 has no release screen; release screens come with review and release in Phase 4 (build outline 11; decision F13.1). The breach is classified as a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off (clause 1)."
+  - clause: "The operator cannot clear the flag."
+    tests:
+      - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"
+      - "apps/tablets-server/test/execution/commands.test.ts > the actions a step card offers (the viewer's role and the order of the work) > [DI-17][PR-08] linking a deviation is greyed for the operator with the permission it needs, offered to the supervisor; the database refuses the operator's link"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

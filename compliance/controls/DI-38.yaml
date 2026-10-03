@@ -135,6 +135,16 @@ tests:
   - "apps/tablets-server/test/session/no-role-binding.test.ts > F10: no browser session for an account that holds no role now (tablets 0480) > [DI-16][DI-38] GMP: the database refuses to bind such a session with no role named (EBMR-TAB-021) or with its former role (EBMR-TAB-013)"
   - "apps/tablets-server/test/session/no-role-binding.test.ts > F10: no browser session for an account that holds no role now (tablets 0480) > [DI-16][DI-38] SANDBOX: the database refuses to bind such a session with no role named (EBMR-TAB-021) or with its former role (EBMR-TAB-013)"
   - "packages/kernel/test/identity/credentials.test.ts > secrets (DI-19, DI-15) > [DI-15][DI-38][DI-19] on a shared terminal a secret change counts only within the terminal class's attribution window; elsewhere within the event window (F04, kernel 0990)"
+clauses:
+  - clause: "Sign twice in one session. The second signing needs at least the password."
+    tests:
+      - "packages/kernel/test/esig/sessions.test.ts > [DI-38] sign twice in one session: the first signing needs all components, the second needs at least the password"
+  - clause: "After a timeout, both components are needed."
+    tests:
+      - "packages/kernel/test/esig/sessions.test.ts > [DI-38] after an inactivity timeout both components are needed again"
+  - clause: "Try to apply the verifier's signature through the performer's session. Refused."
+    tests:
+      - "packages/kernel/test/esig/sessions.test.ts > [DI-38] the verifier's signature cannot be applied through the performer's session: the performer's credentials and a PIN alone are refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

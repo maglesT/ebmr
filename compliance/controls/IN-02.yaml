@@ -40,6 +40,11 @@ tests:
   - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a lone surrogate in a justification, sent as the ASCII escape a browser sends, is refused: never stored as U+FFFD"
   - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a body whose bytes are not UTF-8 is refused before it is read, never read as U+FFFD; nothing is stored"
   - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] control: a well-formed surrogate pair (an emoji) in a justification round-trips exactly"
+clauses:
+  - clause: "classify a deviation as minor without a rationale; saving is refused."
+    deferred:
+      phase: 3
+      reason: "Phase 2 records no deviation classification (a deviation is linked by its number only). The rationale gate is in place where Phase 2 classifies risk: a parameter classified non-critical, or a risk-based reduction, without a risk class and rationale is refused (recipe-core validator content). Deviation classification comes with deviation-lite in Phase 3 (build outline 11)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

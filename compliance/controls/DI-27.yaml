@@ -77,6 +77,16 @@ tests:
   - "packages/recipe-core/test/execution/own-node-events-sql.test.ts > F67 round 2: an act records the start or end it makes, and the token's arrival the starts of the constructs it enters (INV-20, DI-27) > [INV-20][PR-30][DI-27][DI-34] a row that brings a step in, enabled, without the starts and ends the token's arrival records is refused: a hold point without its START, a step without the START of its stage, sub-lot section or loop, or without the END of a replicate section or operation it comes after"
   - "apps/tablets-server/test/execution/db-guards-step-acts.test.ts > F67: minimum durations and blocks hold in the database (INV-20, PR-08) > [INV-20][PR-30][DI-27] round 3: a PERFORMED signature that finishes an operation in the branch an alternative took, stored without the operation's END, is refused, so the minimum ending there is measured; the honest signature records the END and its TIME_MIN_BREACH"
   - "packages/recipe-core/test/execution/own-node-events-sql.test.ts > F67 round 2: an act records the start or end it makes, and the token's arrival the starts of the constructs it enters (INV-20, DI-27) > [INV-20][PR-30][DI-27][DI-34] round 3: a row that finishes what a construct holds without its END is refused wherever the construct lies: an operation in an alternative's branch, the last operation of a loop iteration and of a sub-lot, the last operation of the final stage"
+clauses:
+  - clause: "Change a terminal clock, then record a step. The stored time is unaffected."
+    tests:
+      - "packages/kernel/test/platform/time-model.test.ts > [DI-27][INV-16] change a terminal clock, then record a step: the stored time is unaffected"
+  - clause: "Run a DST-transition test."
+    tests:
+      - "packages/kernel/test/platform/site-time.test.ts > [DI-27] SQL and TypeScript render the same site time, offset and calendar day around transitions"
+  - clause: "Simulate loss of the time reference. An alarm and an incident are raised."
+    tests:
+      - "packages/kernel/test/platform/drift-monitor.test.ts > [DI-27] simulate loss of the time reference: an alarm and a data-integrity incident are raised"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

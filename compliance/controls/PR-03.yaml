@@ -85,6 +85,17 @@ tests:
   - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [PR-03] any sequence of operations keeps the content well formed (parseMbr) and every step id unique; the input is never changed"
   - "apps/tablets-web/test/designer/editor.test.tsx > designer screen > [PR-03] findings are grouped by document section and jump to their place in the document"
   - "tools/e2e/specs/designer/designer.spec.ts > designer > [PR-03][DI-04][DI-05][PR-06] author a master from the template, find and fix, justify, save, simulate and send to the sandbox"
+clauses:
+  - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
+    tests:
+      - "packages/recipe-core/test/validator/content.test.ts > [PR-03] the complete test master tablet-granulation-compression passes every gate"
+      - "packages/recipe-core/test/validator/content.test.ts > [PR-03] deleting the unit of a data-entry field refuses approval and names the missing item"
+      - "packages/recipe-core/test/validator/content.test.ts > [PR-03] deleting the limits of a CPP refuses approval and names the missing item"
+      - "packages/recipe-core/test/validator/content.test.ts > [PR-03] deleting the limits of an IPC refuses approval and names the missing item"
+      - "packages/recipe-core/test/validator/content.test.ts > [PR-03] deleting the minimum and maximum of a yield checkpoint refuses approval and names the missing item"
+      - "packages/recipe-core/test/validator/content.test.ts > [PR-03] deleting the specimen of a printed component refuses approval and names the missing item"
+      - "packages/recipe-core/test/validator/content.test.ts > [PR-03] deleting the clearance at the start of a stage refuses approval and names the missing item"
+      - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [PR-03] deleting the clearance step gives GMP-STAGE-CLEARANCE naming PR-03 at the stage; start verification is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

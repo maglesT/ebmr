@@ -50,6 +50,13 @@ tests:
   - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-04] creating a batch for a market not linked to the master is refused, naming each market"
   - "packages/recipe-core/test/lifecycle/market.test.ts > [INV-17][PR-04] an approved version becomes CURRENT for a market and scope only with the QA and regulatory signatures of two persons"
   - "packages/recipe-core/test/lifecycle/market.test.ts > [PR-04] a master is authorised only for markets it is linked to, and only once approved"
+clauses:
+  - clause: "Widening a registered CPP range with no variation reference is blocked."
+    tests:
+      - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] widening a registered range with no variation reference is blocked; with the reference per market it is approved"
+  - clause: "Creating a batch for a market not linked to the master is refused."
+    tests:
+      - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-04] creating a batch for a market not linked to the master is refused, naming each market"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -52,9 +52,20 @@ tests:
   - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] only approved versions are reviewed; a retired version leaves the overdue list"
   - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05][PR-02] the inventory export lists every version with ID, version, status and dates, and reconciles with the site document list"
   - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] where-used lists the batches pinned to a version"
+clauses:
+  - clause: "After v2 is effective, starting a batch on v1 is blocked."
+    tests:
+      - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-05][INV-01] once v2 is CURRENT, a new batch cannot be pinned to v1"
+  - clause: "An overdue review appears on the dashboard."
+    deferred:
+      phase: 6
+      reason: "Phase 2 keeps the overdue list in the database (recipe.overdue_reviews, tested in recipe-core lifecycle review-inventory); dashboards come in Phase 6 (build outline 11; decision F13.2)."
+  - clause: "The inventory export reconciles with the site document list."
+    tests:
+      - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05][PR-02] the inventory export lists every version with ID, version, status and dates, and reconciles with the site document list"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: EU requires periodic review (4.5) and a document inventory (4.32) explicitly, so EU is stricter. Blocking superseded versions comes from 4.3 (effective date) and 4.20/4.21 (currently approved instructions), not from 4.5 (see D-11).
 type_detail: ENFORCED (supersession and retirement) + CONFIGURABLE (review interval, set by customer SOP; the texts give no number)

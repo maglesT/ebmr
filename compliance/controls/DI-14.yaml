@@ -109,6 +109,16 @@ tests:
   - "packages/ui-kit/test/identity/identity.test.tsx > BadgePrompt takes only a badge (review F56: the owner's refused first signing tap) > [DI-14][DI-38][DI-19] a PIN keyed into the badge field is not sent: the prompt says it is not a badge and waits for one"
   - "packages/ui-kit/test/identity/identity.test.tsx > BadgePrompt takes only a badge (review F56: the owner's refused first signing tap) > [DI-14][DI-38] a stray key typed before the reader's burst is not sent as part of the badge: a key long after the previous one starts the field afresh"
   - "packages/ui-kit/test/machines/ceremony.test.ts > a kiosk tap refused for the challenge (review F56) > [DI-14][DI-38][DI-19] returns to the tap with the refusal shown, as a wrong PIN returns to the pad; the next tap goes on; a lockout still ends it"
+clauses:
+  - clause: "Assign a write permission to an account flagged generic. Refused."
+    tests:
+      - "packages/kernel/test/identity/generic.test.ts > [DI-14] assigning a write permission to an account flagged generic is refused at assignment"
+  - clause: "A service account attempts a signature. Blocked."
+    tests:
+      - "packages/kernel/test/identity/generic.test.ts > [DI-14] a service account attempting a signature is blocked everywhere"
+  - clause: "A directory scan finds no generic account holding GMP permissions."
+    tests:
+      - "packages/kernel/test/identity/generic.test.ts > [DI-14] a directory scan finds no generic account holding GMP permissions, and it would find one"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

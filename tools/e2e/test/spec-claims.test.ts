@@ -86,7 +86,7 @@ describe('E2E spec claims', () => {
     expect(body).toMatch(/toBe\('TAP_REQUIRED'\)/);
   });
 
-  it('[meta] devices.spec: the [DI-20] room test asks the server, from the other room\'s own session, for a capture from and the live view of TEST-BAL-01 and counts its readings (review F27; DI-20)', () => {
+  it('[meta] devices.spec: the DI-20 room test asks the server, from the other room\'s own session, for a capture from and the live view of TEST-BAL-01 and counts its readings (review F27; DI-20)', () => {
     const sf = sourceOf('devices/devices.spec.ts');
     const t = callsOf(sf, 'test').find((c) => literal(c.arguments[0]).startsWith('[DI-20] ') && textOf(sf, c).includes("'TEST-KIOSK-BLEND-1'"));
     const fn = t?.arguments.at(-1);

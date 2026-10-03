@@ -33,6 +33,14 @@ implemented_by:
     - "mbr_version.critical_elements_risk_assessed (IN_VERIFICATION -> SUBMITTED): every CRITICAL parameter and calculation is covered by a linked risk assessment"
 tests:
   - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-07] submitting a master with a critical parameter and no linked risk assessment is blocked"
+clauses:
+  - clause: "Submitting a master with a critical parameter and no linked assessment is blocked."
+    tests:
+      - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-07] submitting a master with a critical parameter and no linked risk assessment is blocked"
+  - clause: "Three deviations on a low-risk step open a re-review task and pause review-by-exception for that step."
+    deferred:
+      phase: 4
+      reason: "Phase 2 records no deviations (a deviation is linked by its number only) and has no review by exception; re-review tasks raised by repeated deviations come with production and QA review and the deviation stand-in in Phase 4 (build outline 11; recipe-core lifecycle README, Later phases)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

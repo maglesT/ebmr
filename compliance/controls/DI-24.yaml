@@ -47,6 +47,21 @@ tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] an attempt is voided only before a result exists, with a reason and QA approval; the attempt stays in the record"
   - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-24] correction by a checker-role person makes them involved; the re-verification must come from someone else"
   - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][DI-24] a later correction invalidates the stage sign-off and the batch is no longer execution-complete"
+  - "apps/tablets-server/test/execution/db-guards-corrections.test.ts > P24: a correction carries its own signature and the approval of another person > [DI-24][DI-35][INV-10][S25] a correction of critical data without an approval, approved by the corrector or by no person, or signed with another meaning is refused; the signed and approved correction is recorded"
+clauses:
+  - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
+    deferred:
+      phase: 3
+      reason: "The database refuses a removal without a reason and keeps the original (kernel audit-trail tests), and the engine voids an attempt only with a reason and QA approval (recipe-core engine corrections); no screen or route offers to delete or void a batch entry yet: the correction, void and invalidation paths of execution come in Phase 3 (build outline 11)."
+  - clause: "Correct a value. The original is visible in the record,"
+    tests:
+      - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-33][INV-03] a correction keeps the original, recalculates dependents keeping the old result, and sends signed steps back for re-verification"
+      - "apps/tablets-server/test/execution/db-guards-corrections.test.ts > P24: a correction carries its own signature and the approval of another person > [DI-24][DI-35][INV-10][S25] a correction of critical data without an approval, approved by the corrector or by no person, or signed with another meaning is refused; the signed and approved correction is recorded"
+      - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
+  - clause: "in the review list and in the PDF, alongside the corrector's signature and reason."
+    deferred:
+      phase: 4
+      reason: "The review list and the PDF true copy come with production and QA review and the PDF/A-3 true copy in Phase 4 (build outline 11)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

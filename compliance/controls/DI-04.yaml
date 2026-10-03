@@ -116,6 +116,15 @@ tests:
   - "apps/tablets-web/test/designer/free-text.test.tsx > text no record can hold, typed into the designer (review F31 round 2) > [DI-37][DI-04] a lone surrogate in a step name and U+0000 in a hold point name: the editor stays up and names each field; nothing enters the content"
   - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)"
   - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] text edits: whatever the author types, the content either refuses it with an OpError or holds only text a record can hold, so its hash never throws"
+clauses:
+  - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
+    tests:
+      - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] try to make a new MBR version effective without a verification record: it is blocked"
+      - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] evidence is bound to the exact content hash: an edit voids it, and evidence for other content fails"
+  - clause: "Run a batch whose PLC reports a different recipe version from the MBR. It is flagged as an exception."
+    deferred:
+      phase: 3
+      reason: "Phase 2 has no PLC or recipe-version interface; execution with equipment interfaces comes in the Tablets edition, Phase 3 (recipe-core lifecycle README, Later phases; build outline 11)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

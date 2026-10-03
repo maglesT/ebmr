@@ -53,6 +53,16 @@ tests:
   - "apps/tablets-server/test/designer/routes.test.ts > justifications and start of verification (IN-02, DI-04, PR-06) > [PR-06] start verification with a stale base revision is refused with 409"
   - "apps/tablets-web/test/designer/editor.test.tsx > saving a revision > [PR-06] saves with a change note, clears the draft; a stale revision is refused in plain language"
   - "tools/e2e/specs/designer/designer.spec.ts > designer > [PR-03][DI-04][DI-05][PR-06] author a master from the template, find and fix, justify, save, simulate and send to the sandbox"
+clauses:
+  - clause: "A direct edit of an Effective master is impossible."
+    tests:
+      - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] a direct edit of an approved or effective master is impossible; the change is a derived version"
+  - clause: "A process-impacting change with no validation link cannot be approved."
+    tests:
+      - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] a process-impacting change with no validation link cannot be approved"
+  - clause: "The diff report lists exactly the changed fields."
+    tests:
+      - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-06] the diff report lists exactly the changed fields"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

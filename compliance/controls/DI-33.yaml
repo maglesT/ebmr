@@ -229,6 +229,21 @@ tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > executed targets (outline 5.2.3) > [DI-33][PR-19] a corrected input that moves an already dispensed target outside tolerance raises an exception; the dispensed quantity is never recomputed"
   - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-25][DI-33] derived values equal the golden cases of the MBR and each evaluation record re-verifies"
   - "packages/recipe-core/test/integration/canonical-json.test.ts > canonical JSON and hashing agree between expr and the kernel > [DI-33][DI-37] expr and kernel canonical JSON are identical for any record value whose text a record can hold"
+  - "apps/tablets-server/test/execution/golden.test.ts > golden run of dc-mini (TEST- batch, sandbox) > [DI-34][DI-35][DI-37][INV-09][INV-10][INV-26][INV-40] runs every step to EXECUTION_COMPLETE; the model holds after every command; the signature count is recorded"
+clauses:
+  - clause: "The yield step shows inputs, formula version, result and a verification signature."
+    tests:
+      - "packages/expr/test/evidence.test.ts > evaluation record > [DI-33] the yield step result shows its inputs with units and sources, the formula version and the result"
+      - "packages/recipe-core/test/engine/corrections.test.ts > derived values are computed, never typed (INV-25) > [INV-25][DI-33] a derived value carries its evaluation record: inputs with sources, formula version and the result"
+      - "apps/tablets-server/test/execution/golden.test.ts > golden run of dc-mini (TEST- batch, sandbox) > [DI-34][DI-35][DI-37][INV-09][INV-10][INV-26][INV-40] runs every step to EXECUTION_COMPLETE; the model holds after every command; the signature count is recorded"
+  - clause: "Correct an input and recalculate. Both results are kept, with their reasons."
+    tests:
+      - "packages/expr/test/evidence.test.ts > correction and recalculation (DI-33 catalog test) > [DI-33] correct an input and recalculate: both results are kept, the new one names the old one, the reason and the correction"
+      - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-33][INV-03] a correction keeps the original, recalculates dependents keeping the old result, and sends signed steps back for re-verification"
+deferred_scope:
+  - scope: "Reprocessing and recovery, as the behaviour describes them (the catalog test does not exercise them)"
+    phase: 3
+    reason: "Reprocessing and recovery are executed in the Tablets edition, Phase 3 (build outline 11; module brief A1). Phase 2 already makes a reprocessing or recovery step declare its case and limits (recipe-core validator content, G-24 golden)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

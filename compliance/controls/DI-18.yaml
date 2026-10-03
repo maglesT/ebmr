@@ -69,6 +69,17 @@ tests:
   - "packages/kernel/test/integration/authorization.test.ts > [DI-18] a system administrator cannot raise an incident, define a record type, place a hold or open a DI investigation"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-17][DI-18] a QA reviewer cannot operate a restore; a system administrator named as approver cannot approve it; the QA reviewer approves it"
   - "packages/site-services/test/authorization.test.ts > [DI-18] a system administrator cannot define a numbering rule, or allocate, register, void or recover a batch number"
+clauses:
+  - clause: "Assign an administrator role to a user who holds a QA role. Refused."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-18][INV-11] assigning an administrator role to a person who holds a QA role is refused, and the reverse"
+  - clause: "An administrator tries to edit a GMP value through the UI or API. Refused and logged."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-18] an administrator's attempt to change a GMP value is refused and logged"
+      - "packages/kernel/test/identity/access.test.ts > [DI-18] GMP data write paths refuse every administrator role, whatever the permission check says"
+  - clause: "A break-glass login raises an alarm and cannot sign."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-18] a break-glass login needs a second person's approval, raises an alarm, cannot sign and is reviewed afterwards"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

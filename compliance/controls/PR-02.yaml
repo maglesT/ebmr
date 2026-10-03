@@ -61,6 +61,16 @@ tests:
   - "packages/recipe-core/test/lifecycle/machine.test.ts > [PR-02][PR-05][INV-04] every event in every state is accepted by the engine exactly when XState allows it"
   - "packages/recipe-core/test/lifecycle/market.test.ts > [PR-02] approval does not make the master usable before its effective date"
   - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05][PR-02] the inventory export lists every version with ID, version, status and dates, and reconciles with the site document list"
+clauses:
+  - clause: "When the same user tries to prepare and check a master, the check is refused."
+    tests:
+      - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-02][INV-04] when the same person tries to prepare and check a master, the check is refused"
+  - clause: "A master with no effective date cannot be approved."
+    tests:
+      - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-02] a master with no effective date cannot be approved"
+  - clause: "A seeded unit error is caught before the check signature."
+    tests:
+      - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-02][DI-04] a seeded unit error is caught before the check signature"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

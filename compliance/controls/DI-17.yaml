@@ -92,7 +92,7 @@ tests:
   - "packages/kernel/test/integration/authorization.test.ts > [DI-17] every protected action has its permission, with its domain and effect, held by exactly the mapped roles"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-14][DI-17] service accounts get write permissions only; display and break-glass roles get no new permission"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-17] catalogue changes shipped by the release are in the audit trail, attributed to the release"
-  - "packages/kernel/test/integration/authorization.test.ts > [DI-17] every function of market, records and continuity (and site services) that the application may call and that can write checks a known permission"
+  - "packages/kernel/test/integration/authorization.test.ts > every mutating function checks authority (DI-17) and GMP writes refuse administrators (DI-18) > [DI-17] every function of market, records, continuity, site services and the platform that the application may call and that can write checks a known permission"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-17] an operator cannot publish a rule table, a steward cannot publish a source correction, a regulatory signer cannot publish an update; the refusal is logged"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-17] an operator cannot write the stub master data, define a policy, pin a batch or apply a tightening; an auditor cannot record an evaluation"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-17] a site value is authorised in its site's scope: a steward whose grant is limited to another site is refused"
@@ -136,6 +136,20 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's readers of who acted on a chain (tablets 0470) > [DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does"
   - "apps/tablets-server/test/audit/view-integrity.test.ts > P7 audit viewer vs chain verification > [DI-23][DI-17] at the database: a head-less chain counts its entries, and is listed only to a session that may read it (F06, tablets 0490)"
   - "apps/tablets-server/test/execution/free-text.test.ts > free text no record can hold, in a test run (review F30, F31) > [DI-17][DI-34] an attempt the person may not make, holding U+0000, is refused at the contract like any malformed request, before any authority is evaluated; the clean attempt is refused and logged as denied"
+clauses:
+  - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-17] permission matrix: every kernel role allows exactly its permissions and nothing else"
+      - "packages/kernel/test/integration/authorization.test.ts > [DI-17] every protected action has its permission, with its domain and effect, held by exactly the mapped roles"
+  - clause: "The performer tries to verify their own entry. Refused."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-17] the performer of an entry cannot verify it (segregation on the person)"
+  - clause: "A batch executor tries to sign disposition of that batch. Refused."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-17] a person who executed a step of a batch cannot sign that batch's disposition"
+  - clause: "A role without the QU function tries to sign \"Approved for release\". Refused."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-17] a role without the quality-unit release function cannot sign \"Approved for release\""
 expert_decision:
   status: PENDING
   pack_version: "0.9"

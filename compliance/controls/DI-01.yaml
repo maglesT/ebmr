@@ -56,6 +56,13 @@ tests:
   - "packages/kernel/test/records/register.test.ts > [DI-01] every register change is in the audit trail"
   - "packages/kernel/test/records/register.test.ts > [DI-01] the proposed baseline register is accepted by the database and keeps the raw-data floor"
   - "packages/kernel/test/records/register.test.ts > [DI-01][DI-37] a record type is approved only with the approver's own RECORD_TYPE_APPROVED signature of that very version; its author cannot sign it"
+clauses:
+  - clause: "Classify an IPC result that feeds an acceptance limit as \"informational\" and try to approve the MBR. It is blocked."
+    tests:
+      - "packages/kernel/test/records/register.test.ts > [DI-01] approving an MBR whose IPC result feeding an acceptance limit is classified informational is blocked"
+  - clause: "The register shows the official medium and storage location for each record type."
+    tests:
+      - "packages/kernel/test/records/register.test.ts > [DI-01] the register shows the official medium and storage location of each approved record type"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

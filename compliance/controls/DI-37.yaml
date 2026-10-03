@@ -88,7 +88,7 @@ tests:
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-37] a client hash that is not the server's gives EBMR-ESIG-013 CONTENT_CHANGED; a change after the content was read gives it too"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-37][INV-10] a record changed after the challenge answers CONTENT_CHANGED at signing; nothing is signed and the entry keeps its new content"
   - "apps/tablets-web/test/access/ports.test.tsx > [DI-37] content whose text does not match its hash is never challenged; a changed record offers to review again"
-  - "packages/ui-kit/test/identity/identity.test.tsx > [DI-37] every field of the record is shown, known and unknown, and the exact signed text is available with its hash"
+  - "packages/ui-kit/test/identity/identity.test.tsx > what is signed > [DI-37] a rendering kind this terminal does not know still shows every field as labelled text"
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-37] changed content and expiry offer to start again; a lost answer that found nothing says not confirmed"
   - "packages/ui-kit/test/machines/ceremony.test.ts > [DI-37] content whose text does not hash to the server's hash is never signed; a changed record leads to \"changed\", then back to review"
   - "apps/tablets-server/test/execution/signing.test.ts > signing an engine command > [DI-35][DI-37] PERFORMED binds the previewed content; the sign result is the step screen; the challenge names the block meaning"
@@ -142,6 +142,13 @@ tests:
   - "apps/tablets-web/test/designer/free-text.test.tsx > text no record can hold, typed into the designer (review F31 round 2) > [DI-37][DI-04] a lone surrogate in a step name and U+0000 in a hold point name: the editor stays up and names each field; nothing enters the content"
   - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)"
   - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] text edits: whatever the author types, the content either refuses it with an OpError or holds only text a record can hold, so its hash never throws"
+clauses:
+  - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
+    tests:
+      - "packages/kernel/test/esig/invalidation.test.ts > [DI-37][INV-09] correct a signed value: the signature shows as superseded, the element is unsigned and re-signing is required"
+  - clause: "Copy a signature row to another record in a test DB. The integrity check fails."
+    tests:
+      - "packages/kernel/test/esig/integrity.test.ts > [DI-37] copy a signature row to another record in a test database: the integrity check fails"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

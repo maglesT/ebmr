@@ -81,6 +81,16 @@ tests:
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] SQL and TypeScript calendar arithmetic agree, including month ends and 29 February"
   - "packages/kernel/test/records/retention-rules.test.ts > [DI-47] adding a market never shortens retention (tenants and markets can only lengthen it)"
   - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][DI-37] a disposal approval needs the approver's own RECORD_DISPOSAL_APPROVED signature of that record at its current retain-until and cited archive"
+clauses:
+  - clause: "Try to delete a batch record before its retention end. Blocked."
+    tests:
+      - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][INV-22] deleting a batch record before its retention end is blocked: no direct delete, no approval, no purge"
+  - clause: "A component lot used in two batches with different expiries follows the later one."
+    tests:
+      - "packages/kernel/test/records/retention-purge.test.ts > [DI-47][INV-22] a component lot used in two batches with different expiries follows the later one, and moves when a dependant changes"
+  - clause: "An EU batch whose certification date has not been received shows retention \"open\"."
+    tests:
+      - "packages/kernel/test/records/retention-purge.test.ts > [DI-47] an EU batch whose certification date has not been received shows retention \"open\" until the date arrives"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

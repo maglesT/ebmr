@@ -30,6 +30,15 @@ tests:
   - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] a batch size of the author scales the BOM exactly from the reference size (no free scaling later)"
   - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] refuses a batch size that is not a positive mass, or listed twice"
   - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] content whose batch sizes differ from the family is not saved (the approved set is fixed per family)"
+clauses:
+  - clause: "Creating a batch at a size that no approved master lists is refused."
+    tests:
+      - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-01] a batch can only be issued at a batch size the MBR lists; there is no free scaling"
+      - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] content whose batch sizes differ from the family is not saved (the approved set is fixed per family)"
+  - clause: "A packaging order for a pack type with no approved packaging master is refused."
+    deferred:
+      phase: 3
+      reason: "No packaging master keyed by product, pack size and pack type exists yet: an MBR family of record kind PACKAGING is keyed by batch sizes (recipe-core 0110). Packaging orders and their masters come with blister packaging (G-21) in the Tablets edition, Phase 3 (build outline 11)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

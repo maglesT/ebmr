@@ -68,6 +68,16 @@ tests:
   - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a retention-grade backup cannot be catalogued without write-once retention"
   - "packages/kernel/test/continuity/restore.test.ts > [INV-08][DI-45] a restore event needs a second, named person: the operator cannot approve it and approval is refused to anyone not named"
   - "packages/kernel/test/integration/authorization.test.ts > [DI-45][DI-37] a restore is approved only with the approver's own RESTORE_APPROVED signature of that event"
+clauses:
+  - clause: "Restore into an isolated environment and hash-compare records, audit trails and signatures with production."
+    tests:
+      - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a drill restores into an isolated database and matches records, audit trails and signature tables by ordered content hash"
+  - clause: "Make a backup job fail. An alarm is raised."
+    tests:
+      - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a failing backup job is logged, raises an alarm, writes its report and exits non-zero"
+  - clause: "Try to delete a backup with production-admin credentials. Refused."
+    tests:
+      - "packages/kernel/test/continuity/backup-drill.test.ts > [DI-45] a catalogued backup cannot be deleted or altered through the database, not even by the table owner"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

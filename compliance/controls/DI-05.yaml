@@ -118,6 +118,16 @@ tests:
   - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F09: the kiosk sign-in names the installation the page belongs to > [DI-05][DI-20] a SHARED kiosk on the GMP installation says \"GMP installation\", never \"Sandbox (test runs)\""
   - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F09: the kiosk sign-in names the installation the page belongs to > [DI-05][DI-20] a GRADE_A_B kiosk on the GMP installation says \"GMP installation\", never \"Sandbox (test runs)\""
   - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F09: the kiosk sign-in names the installation the page belongs to > [DI-05][DI-20] the same kiosk on the sandbox installation says \"Sandbox (test runs)\""
+clauses:
+  - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
+    tests:
+      - "packages/kernel/test/sandbox/bypass.test.ts > [DI-05] catalog: from the training store, posting to a production batch is blocked"
+      - "packages/kernel/test/sandbox/bypass.test.ts > [DI-05] catalog: reusing a real lot number in the training store is blocked"
+      - "packages/kernel/test/sandbox/identifiers.test.ts > [DI-05] catalog: reusing a real lot number in the sandbox is blocked; only reserved test numbers are accepted"
+  - clause: "Simulation output carries the watermark."
+    tests:
+      - "packages/kernel/test/sandbox/watermark.test.ts > [DI-05] catalog: simulation output carries the TEST, NOT GMP watermark"
+      - "apps/tablets-server/test/designer/simulation.test.ts > simulation (worker thread, SIMULATION watermark) > [DI-04][DI-05] simulates the saved content with full coverage, stamped SIMULATION, writing nothing"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

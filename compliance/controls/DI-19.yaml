@@ -77,7 +77,7 @@ tests:
   - "packages/kernel/test/identity/credentials.test.ts > [DI-19] five failed signing attempts lock the account and the security unit is alerted at once"
   - "packages/kernel/test/identity/credentials.test.ts > [DI-19] the lockout threshold is a policy value allowed between 3 and 5"
   - "packages/kernel/test/identity/credentials.test.ts > [DI-19] unanswered alerts escalate; acknowledgement is tracked and never by the person concerned"
-  - "apps/tablets-server/test/access/attribution.test.ts > [DI-19][INV-40] taps are limited to 10 a minute per terminal and badge"
+  - "apps/tablets-server/test/access/attribution.test.ts > [DI-19][INV-40] taps are limited per minute per terminal and badge (TAP_LIMIT)"
   - "apps/tablets-server/test/access/attribution.test.ts > [INV-40][DI-14][DI-19] on a TAP_PIN class an entry needs badge and PIN; a wrong PIN counts toward lockout; the setting is audited"
   - "apps/tablets-server/test/access/session.test.ts > [DI-19][DI-38] wrong PINs at the unlock screen count toward lockout; at the policy count the account locks and the session ends"
   - "apps/tablets-server/test/access/session.test.ts > [DI-19][DI-14] a wrong PIN at the switch changes nothing and counts toward lockout"
@@ -99,6 +99,17 @@ tests:
   - "apps/tablets-server/test/session/pin-length.test.ts > F05: a new PIN is never longer than the kiosk PIN pads take > [DI-19][DI-15] a 13- or 14-digit new PIN is refused at the change (EBMR-IAM-055) and the current PIN still signs in; 12 digits are accepted"
   - "packages/kernel/test/identity/credentials.test.ts > secrets (DI-19, DI-15) > [DI-15][DI-38][DI-19] on a shared terminal a secret change counts only within the terminal class's attribution window; elsewhere within the event window (F04, kernel 0990)"
   - "packages/kernel/test/identity/secrets.test.ts > PIN rules > [DI-19][DI-15] a PIN longer than the 12 digits every kiosk PIN pad takes is refused, 12 itself accepted (F05)"
+clauses:
+  - clause: "Make 5 failed signing attempts. The account locks and the security unit receives the alert within the configured time."
+    tests:
+      - "packages/kernel/test/identity/credentials.test.ts > [DI-19] five failed signing attempts lock the account and the security unit is alerted at once"
+      - "packages/kernel/test/identity/credentials.test.ts > [DI-19] unanswered alerts escalate; acknowledgement is tracked and never by the person concerned"
+  - clause: "A revoked badge cannot authenticate."
+    tests:
+      - "packages/kernel/test/identity/credentials.test.ts > [DI-19] a revoked or lost badge cannot authenticate, and its use is alerted"
+  - clause: "Badge test records exist."
+    tests:
+      - "packages/kernel/test/identity/credentials.test.ts > [DI-19] badge test records exist: activation needs a passing test at issue, and periodic tests are tracked"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

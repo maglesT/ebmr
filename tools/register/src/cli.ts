@@ -1,10 +1,11 @@
 /**
  * Register CLI.
  *   import     catalogs -> compliance/controls/*.yaml (keeps decisions and build progress)
- *   validate   schema, IDs, requirement references
+ *   validate   schema, IDs, requirement references, listed tests exist, catalog-test clauses (reviews F14, F15)
  *   pins       exact workspace pins (ADR 0015)
  *   trace      traceability matrix from a Vitest JSON report (--results <file>) and, when present, the
- *              Playwright JSON report (--playwright <file>)
+ *              Playwright JSON report (--playwright <file>): passing tests per control, listed tests reported,
+ *              each clause of a due control tested or deferred to a later phase
  */
 import { importCatalogs } from './import.ts';
 import { checkPins, readManifests } from './pins.ts';
@@ -48,7 +49,8 @@ switch (command) {
     const pwFile = pwIdx >= 0 ? args[pwIdx + 1] : undefined;
     const e2e = pwFile && existsSync(pwFile) ? readPlaywrightResults(pwFile) : [];
     if (pwFile && e2e.length) console.log(`including ${e2e.length} end-to-end results from ${pwFile}`);
-    const report = buildTrace(loadControls(), [...readVitestResults(file), ...e2e], phase);
+    // Listed end-to-end tests are checked against the run only when the Playwright report is part of it.
+    const report = buildTrace(loadControls(), [...readVitestResults(file), ...e2e], phase, { e2e: e2e.length > 0 });
     writeMatrix(report, phase, '.reports/trace-matrix.md');
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;

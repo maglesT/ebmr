@@ -72,6 +72,14 @@ tests:
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: what blocks a record's release or disposal (tablets 0460) > [DI-17][DI-50] without a session the application role learns nothing of an investigation from what blocks a record: no blockers, no disposition flag, no disposal refusals, no retention status, no blocker counter, on either installation"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-22][DI-50] the verification of a chain the subject reads names to them neither the account nor the terminal of an entry withheld from them, nor the chains of the persons who opened and lead it; the lead's names them (tablets 0470)"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's readers of who acted on a chain (tablets 0470) > [DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does"
+clauses:
+  - clause: "Open a DI investigation for a user and date range. The system lists every record that user created or changed."
+    tests:
+      - "packages/kernel/test/records/investigations.test.ts > [DI-50] an investigation for a user and date range lists every record the user created or changed; linked batches cannot be disposed of until it closes"
+  - clause: "The linked batches cannot be disposed of until the investigation closes."
+    tests:
+      - "packages/kernel/test/records/investigations.test.ts > [DI-50] an investigation for a user and date range lists every record the user created or changed; linked batches cannot be disposed of until it closes"
+      - "packages/kernel/test/records/investigations.test.ts > [DI-50] investigation holds cannot be lifted except by closing the investigation, and its records cannot be written directly"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

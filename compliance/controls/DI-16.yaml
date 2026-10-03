@@ -63,6 +63,13 @@ tests:
   - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F10: an account that holds no role now is told so, not offered an empty role choice > [DI-16] control: an account with several roles is offered each of them"
   - "apps/tablets-server/test/session/no-role-binding.test.ts > F10: no browser session for an account that holds no role now (tablets 0480) > [DI-16][DI-38] GMP: the database refuses to bind such a session with no role named (EBMR-TAB-021) or with its former role (EBMR-TAB-013)"
   - "apps/tablets-server/test/session/no-role-binding.test.ts > F10: no browser session for an account that holds no role now (tablets 0480) > [DI-16][DI-38] SANDBOX: the database refuses to bind such a session with no role named (EBMR-TAB-021) or with its former role (EBMR-TAB-013)"
+clauses:
+  - clause: "Produce the role list as of a past date and reconcile it with the access-request records."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-16] the role list as of a past date reconciles with the access-request records"
+  - clause: "Disable a leaver, then try to log in and to sign. Both fail."
+    tests:
+      - "packages/kernel/test/identity/access.test.ts > [DI-16] a disabled leaver can neither log in nor sign, and loses sessions, grants and badges at once"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

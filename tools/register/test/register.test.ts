@@ -6,6 +6,7 @@ import { controlTypes, coveredRows, parseCatalog, parseFields } from '../src/cat
 import { checkPins } from '../src/pins.ts';
 import { idsInText } from '../src/phases.ts';
 import { loadControls, loadRequirements } from '../src/register.ts';
+import { reportedPath } from '../src/test-index.ts';
 import { buildTrace, readPlaywrightResults, type TestResult } from '../src/trace.ts';
 import { validateRegister } from '../src/validate.ts';
 
@@ -63,9 +64,13 @@ describe('traceability rules', () => {
     expect(report.errors.join()).toContain('DI-22');
   });
 
-  it('[meta] passes when a tagged test passes, and ignores controls due later', () => {
-    expect(buildTrace([{ ...control, target_phase: 1 }], [pass('[DI-22] audit entry holds all fields')], 1).errors).toEqual([]);
-    expect(buildTrace([{ ...control, target_phase: 4 }], [], 1).errors).toEqual([]);
+  it('[meta] passes when the listed test of each catalog-test clause passes, and ignores controls due later', () => {
+    // Since review F14/F15 a tagged test alone is not enough: the control lists it and a clause names it.
+    const entry = 'packages/kernel/test/audit/x.test.ts > [DI-22] audit entry holds all fields';
+    const proven = { ...control, target_phase: 1, tests: [entry], clauses: [{ clause: control.catalog_test, tests: [entry] }] };
+    const passed: TestResult = { ...pass('[DI-22] audit entry holds all fields'), path: reportedPath('packages/kernel/test/audit/x.test.ts', [], '[DI-22] audit entry holds all fields') };
+    expect(buildTrace([proven], [passed], 1).errors).toEqual([]);
+    expect(buildTrace([{ ...control, target_phase: 4, tests: [] }], [], 1).errors).toEqual([]);
   });
 
   it('[meta] rejects tests that cite an unknown control', () => {

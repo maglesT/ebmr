@@ -79,6 +79,21 @@ tests:
   - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the GMP session"
   - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted by a page on another port neither locks the person out nor swaps their session"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50][DI-13] without a session the application role runs no kernel reader of an investigation or of evidence: scoping report, person activity, chain extract, evidence package, chain list (the owner still runs them)"
+clauses:
+  - clause: "A non-TLS connection is refused."
+    tests:
+      - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] a non-TLS database session is refused by the server-side check"
+      - "packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] a database URL that would allow a connection without TLS is refused"
+  - clause: "USB storage on a kiosk is blocked."
+    tests:
+      - "packages/kernel/test/continuity/hardening.test.ts > [DI-13] USB storage on a kiosk is blocked: an attestation that finds USB mass storage enabled fails and blocks enrolment"
+  - clause: "A user without formula permission cannot open the composition."
+    deferred:
+      phase: 3
+      reason: "No permission to read a composition exists yet: every role that may open the designer reads an MBR's bill of materials. Formula confidentiality comes with the company formulation library and the master-data screens in Phase 3 (decision 0006); recorded for the owner in docs/decisions/phase-2-open-questions.md (F14.3)."
+  - clause: "For a sampled signature, the evidence package can be produced."
+    tests:
+      - "packages/kernel/test/esig/integrity.test.ts > [DI-13] for a sampled signature the evidence package can be produced: identity verification, authentication event, manifestation, audit trail and seal"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -141,6 +141,17 @@ tests:
   - "packages/kernel/test/market/site-values.test.ts > [IN-52] site values are insert-only and written only through the function"
   - "packages/kernel/test/market/site-values.test.ts > [IN-52] loosening an adopted EXAMPLE value needs the same justification and approval; a site value that a later table makes too loose is not applied but flagged"
   - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [IN-52][PR-10] India is in every market set, and a batch cannot target a market the MBR is not approved for"
+clauses:
+  - clause: "set up one tablet and one injectable product, each with a batch for {India} and a batch for {India, US, EU}. The {India, US, EU} batches resolve to: retention max(expiry + 1 y, mfg + 5 y, QP certification + 5 y); reference samples expiry + 1 y; annual self-inspection; new number on rework; identity test per excipient lot; plus, for the tablet, the 30-minute compression IPC and IP weight bands; and, for the injectable, any contaminated APS unit fails, Grade A viable no growth, PUPSIT and a single-batch sterilising filter."
+    tests:
+      - "packages/kernel/test/market/in52.test.ts > [IN-52] the tablet batch for {IN, US, EU} resolves every common row of table B and names the governing market"
+      - "packages/kernel/test/market/in52.test.ts > [IN-52] the injectable batch for {IN, US, EU} resolves every common row of table B and names the governing market"
+      - "packages/kernel/test/market/in52.test.ts > [IN-52] the {IN} batches keep the India values and nothing looser (reference samples 3 months, no QP period)"
+      - "packages/kernel/test/market/in52.test.ts > [IN-52] tablet: 30-minute compression IPC and the IP weight bands, governed by India, for {IN} and {IN, US, EU}"
+      - "packages/kernel/test/market/in52.test.ts > [IN-52] injectable {IN, US, EU}: any contaminated APS unit fails, Grade A viable no growth, PUPSIT and a single-batch filter"
+  - clause: "The resolution log names the governing market for each value."
+    tests:
+      - "packages/kernel/test/market/in52.test.ts > [IN-52] the resolution log of a batch holds one stored evaluation per resolution, each naming its governing market(s)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
