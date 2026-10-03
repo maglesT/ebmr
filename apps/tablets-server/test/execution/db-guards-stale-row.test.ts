@@ -11,8 +11,10 @@
  *    the refusal ENG-STALE, and that refusal only for such a command; a stale refusal stores the state before it,
  *    changed only by the time sweep;
  *  - tablets 0500, EBMR-EXE-124: a stale refusal used no reading in its command and lists none as used; the readings of
- *    a stale weighing are the stored readings it states, named once, and readings a claim by this person would accept
- *    now (otherwise the claim's own refusal, EBMR-DEV-1xx), so the next accepted weighing uses them.
+ *    a stale weighing are the stored readings it states, one named for each purpose, and (tablets 0510) a tare and a
+ *    gross the claims of its command would accept now, together (otherwise the claim's own refusal, EBMR-DEV-1xx; one
+ *    reading named as both is refused as the gross claim refuses it, EBMR-DEV-105), so the next accepted weighing uses
+ *    them.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -278,5 +280,43 @@ describe('F58.1: a stale command is the engine\'s refusal, changes nothing and u
     expect(outcomeOf(await d.command('operator1', weighing(pair.tare, pair.gross)))).toBe('ok');
     expect(await usesOf([pair.tare, pair.gross])).toBe(2);
     expect(await violations(rig.server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-32][DI-34][PR-19] written past the server, a stale weighing that names one reading taken for no stated purpose as both its tare and its gross is refused as the claims of its command would refuse it (EBMR-DEV-105): no row, and the reading stays unused for the next accepted weighing (F58.1)', async () => {
+    const d = await preparedRun();
+    // Two stable readings the gateway took for no stated purpose (a reading may carry none), so either may be claimed
+    // as a tare or as a gross; the second is only there for the server to resolve the weighing before the forgery.
+    const one = rig.gw.next({ value: '5.000', purpose: null });
+    const other = rig.gw.next({ value: '30.000', purpose: null });
+    expect((await rig.gw.uplink([{ reading: one }, { reading: other }])).body.refused).toBeNull();
+    const rowsBefore = await rowsOf(rig.server, d.runId);
+
+    // The weighing as an older screen sends it, then rewritten to name the first reading as its gross too (the weights
+    // the readings state, the reading named once for each purpose): each reading alone is one a claim accepts now, the
+    // pair is not, since the claim of the gross finds the reading used by the tare's.
+    const sameForBoth = await weighingPast(d, { tare: one.readingId, gross: other.readingId }, {
+      edit: (cmd, ev) => {
+        cmd.entry['gross'] = '5.000';
+        for (const r of named(ev)) if (r['purpose'] === 'GROSS') Object.assign(r, { readingId: one.readingId, value: '5.000' });
+      },
+    });
+    expect(sameForBoth).toBe('EBMR-DEV-105');
+    expect(await rowsOf(rig.server, d.runId)).toEqual(rowsBefore);
+    expect(await usesOf([one.readingId, other.readingId])).toBe(0);
+
+    // Nothing of it was used: the weighing from the current screen claims the reading as its tare.
+    expect(outcomeOf(await d.command('operator1', weighing(one.readingId, other.readingId)))).toBe('ok');
+    expect(await usesOf([one.readingId, other.readingId])).toBe(2);
+    expect(await violations(rig.server)).toEqual([]);
+
+    // The pair is checked by one definer function, executable by its owner and the application role only (not PUBLIC;
+    // on this sandbox installation the sandbox's application role holds the grant too); the per-purpose check of 0500,
+    // which let the pair through, is gone.
+    const { rows: fn } = await rig.server.db.admin.query<{ acl: string[]; definer: boolean; config: string[] }>(
+      "select p.proacl::text[] as acl, p.prosecdef as definer, p.proconfig as config from pg_catalog.pg_proc p where p.oid = 'tab.peek_weighing_readings(uuid,uuid,text,bigint)'::regprocedure",
+    );
+    expect(fn).toEqual([{ acl: ['ebmr_owner=X/ebmr_owner', 'ebmr_app=X/ebmr_owner', 'ebmr_sandbox=X/ebmr_owner'], definer: true, config: ['search_path=pg_catalog, tab, pg_temp'] }]);
+    const { rows: gone } = await rig.server.db.admin.query<{ f: string | null }>("select to_regprocedure('tab.peek_readings(uuid[],text,bigint,text)')::text as f");
+    expect(gone).toEqual([{ f: null }]);
   }, 300_000);
 });

@@ -331,8 +331,9 @@ that another command holds is skipped.
   - a device entry (source DEVICE) names an ACTIVE instrument of the terminal's room (EBMR-EXE-124); the tablets
     edition also requires the readings claimed for it in the same command (tablets sql 0300), except in a refusal
     ENG-STALE, which names its readings without using them: stored readings with the weights the entry states,
-    named once, that a claim by the person would accept at that moment, with no reading claimed in its command
-    (tablets sql 0500, EBMR-EXE-124);
+    one named for each purpose, a tare and a gross that the claims of its command by the person would accept at that
+    moment, together (one reading named as both is refused as the gross claim refuses it, EBMR-DEV-105), with no
+    reading claimed in its command (tablets sql 0500, 0510, EBMR-EXE-124);
 - the engine's version check (sql 0326; triggers `ab_execution_stale_command`, `zn_execution_stale_refusal`,
   `stale_command_problem`, DI-34; Phase 2 exit review F58.1): a command whose screen showed another version than
   the run's (its expectedVersion, a whole number) is recorded only as the refusal ENG-STALE, and that refusal only
@@ -875,14 +876,15 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   reading of metric mass units, labels and totals. Round 3 (sql 0323): a second dispensed container stored without
   item, or into another phase's or a non-mass quantity, and an output container stored into null, no quantity or
   another one, are refused (EBMR-EXE-139); the honest signature's total counts every container stored.
-- `db-guards-stale-row.test.ts` (Phase 2 exit review F58.1; DI-34, DI-32, PR-19; sql 0326, tablets sql 0500): written
+- `db-guards-stale-row.test.ts` (Phase 2 exit review F58.1; DI-34, DI-32, PR-19; sql 0326, tablets sql 0500, 0510): written
   through the store, an ENG-STALE refusal at the run's own version, without a version or with one that is no whole
   number, an accepted command and another refusal from an older screen are refused (EBMR-EXE-140), and so is a stale
   refusal that moves the version on or counts its command as applied; the engine's own stale refusal is recorded. A
   stale weighing names its scale readings without using them: refused when its weights are not the readings', a
   reading is not named once, already used (EBMR-DEV-105) or too old (EBMR-DEV-104), or its command claimed or lists
   readings as used (EBMR-EXE-124), and a refusal that is not stale still stands on readings claimed for it; the honest
-  one is recorded and the next accepted weighing uses the same readings.
+  one is recorded and the next accepted weighing uses the same readings. One reading taken for no stated purpose named
+  as both the tare and the gross is refused as the claims of the command refuse it (EBMR-DEV-105), and stays unused.
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and

@@ -9,9 +9,11 @@
  * row of the run, although DI-34 records every refused engine call with its refusal.
  *
  * F58.1: the server resolves a stale request as any other, except that it names the scale readings without using them
- * (tab.peek_readings: every check of a claim, then undone); the engine refuses it (ENG-STALE) and the refusal is
- * recorded with what was entered and the version the screen showed. The readings stay unused, so the resend from the
- * reloaded screen records the weighing with them.
+ * (tab.peek_weighing_readings, tablets 0510: every check of the command's claims, tare then gross, made together, then
+ * undone); the engine refuses it (ENG-STALE) and the refusal is recorded with what was entered and the version the
+ * screen showed. The readings stay unused, so the resend from the reloaded screen records the weighing with them. A
+ * pair the claims refuse (one reading named as both) gets the claims' answer before anything is written, as from the
+ * current screen.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { execution } from '@ebmr/recipe-core';
@@ -110,6 +112,35 @@ describe('F58: a stale weighing keeps its scale readings (DI-32, DI-34)', () => 
     expect((await storedRows(d.runId)).at(-1)).toMatchObject({ accepted: true, evidence: { readings: [{ readingId: tare.readingId }, { readingId: gross.readingId }] } });
     const run = await runContext(rig.server.db.admin, d.runId);
     expect(await execution.replayExecution(rig.server.db.admin, run.def, d.runId)).toMatchObject({ identical: true, firstDifference: null });
+    expect(await violations(rig.server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-32][DI-34][PR-19] a weighing from an older screen that names one reading taken for no stated purpose as both its tare and its gross gets the answer the current screen gets (EBMR-DEV-105) before anything is written: no row, and the reading stays unused (F58.1)', async () => {
+    const d = await newRun(rig);
+    await reachPcm(d);
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    const seen = await d.version('operator1');
+    expect(outcomeOf(await d.command('verifier1', { type: 'RAISE_EXCEPTION', stepKey: PCM, description: 'Spill wiped next to the booth', severity: 'ALERT' }))).toBe('ok');
+    // A stable reading the gateway took for no stated purpose (a reading may carry none): either claim accepts it alone.
+    const one = rig.gw.next({ value: '5.000', purpose: null });
+    expect((await rig.gw.uplink([{ reading: one }])).body.refused).toBeNull();
+    const rowsBefore = await storedRows(d.runId);
+
+    // From the older screen: refused as the claims of the command refuse it (the gross claim finds the reading used by
+    // the tare's), before the engine runs, so no stale row is recorded with that reading named twice.
+    expect(outcomeOf(await d.command('operator1', weighing(one.readingId, one.readingId), { expectedVersion: seen }))).toBe('409:EBMR-DEV-105');
+    expect(await storedRows(d.runId)).toEqual(rowsBefore);
+    expect(await usesOf([one.readingId])).toBe(0);
+    // From the current screen: the same answer, and nothing written either.
+    expect(outcomeOf(await d.command('operator1', weighing(one.readingId, one.readingId)))).toBe('409:EBMR-DEV-105');
+    expect(await storedRows(d.runId)).toEqual(rowsBefore);
+    expect(await usesOf([one.readingId])).toBe(0);
+
+    // The reading is still there to be used once, as the tare of a weighing with a gross of its own.
+    const gross = rig.gw.next({ value: '26.250', purpose: 'GROSS' });
+    expect((await rig.gw.uplink([{ reading: gross }])).body.refused).toBeNull();
+    expect(outcomeOf(await d.command('operator1', weighing(one.readingId, gross.readingId)))).toBe('ok');
+    expect(await usesOf([one.readingId, gross.readingId])).toBe(2);
     expect(await violations(rig.server)).toEqual([]);
   }, 300_000);
 });

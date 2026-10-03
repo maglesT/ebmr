@@ -95,6 +95,16 @@ export interface ReadingClaim {
   purpose: string;
 }
 
+/** The tare and gross readings one weighing names, for the checks of its claims (Phase 2 exit follow-up F58.1). */
+export interface WeighingReadings {
+  tareReadingId: string;
+  grossReadingId: string;
+  /** Room of the kiosk (DI-20), as for a claim. */
+  room: string | null;
+  /** Policy maximum age at database time (default 120 s), as for a claim. */
+  maxAgeUs: bigint;
+}
+
 export interface ClaimedReading {
   readingId: string;
   value: string;
@@ -109,10 +119,12 @@ export interface DeviceReadingPort {
   /** Claims readings once, inside the caller's command transaction (inserts tab.reading_use). */
   claim(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]>;
   /**
-   * The facts `claim` would give, with every check of the claim, without using the readings (nothing is inserted): for
-   * a command refused as stale, which names its readings and uses none (Phase 2 exit review F58.1; tablets 0500).
+   * The facts the claims of a weighing would give, tare then gross, with every check of those claims made as the
+   * command makes them (together, so one reading named as both is refused as the gross claim refuses it), without using
+   * the readings (nothing stays inserted): for a command refused as stale, which names its readings and uses none
+   * (Phase 2 exit review F58.1; tablets 0510).
    */
-  peek(client: pg.PoolClient, claim: ReadingClaim): Promise<ClaimedReading[]>;
+  peekWeighing(client: pg.PoolClient, readings: WeighingReadings): Promise<ClaimedReading[]>;
   /** The scale status of a room, for the step screen header; null when the room has no scale. */
   scaleStatus(room: string | null): Promise<ScaleStatusView | null>;
   /**
@@ -123,7 +135,7 @@ export interface DeviceReadingPort {
   scales(room: string): Promise<ScaleStatusView[]>;
 }
 
-/** Until C5 lands: every claim (and peek) is refused (the manual two-person path still works), and no scale is shown. */
+/** Until C5 lands: every claim (and peekWeighing) is refused (the manual two-person path still works), and no scale is shown. */
 const readingsNotEnabled = (): Promise<never> =>
   Promise.reject(
     refusal(422, {
@@ -139,7 +151,7 @@ const readingsNotEnabled = (): Promise<never> =>
 
 export const REFUSING_DEVICE_READING_PORT: DeviceReadingPort = {
   claim: readingsNotEnabled,
-  peek: readingsNotEnabled,
+  peekWeighing: readingsNotEnabled,
   scaleStatus: () => Promise.resolve(null),
   scales: () => Promise.resolve([]),
 };
