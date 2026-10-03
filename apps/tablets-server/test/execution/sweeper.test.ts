@@ -45,6 +45,7 @@ describe('time sweeper', () => {
       await holder.query('select 1 from recipe.batch_execution where id = $1 for update', [runId]);
       const skipped = await sweepAll(server.built.ctx, sweeper);
       expect(skipped.skipped).toBeGreaterThanOrEqual(1);
+      expect(skipped.outcomes[runId]).toBe('SKIPPED');
       expect(skipped.failures).toEqual([]);
     } finally {
       await holder.query('rollback');
@@ -54,7 +55,7 @@ describe('time sweeper', () => {
 
     const first = await sweepAll(server.built.ctx, sweeper);
     expect(first.failures).toEqual([]);
-    expect(first.events).toBeGreaterThan(0);
+    expect(first.outcomes[runId]).toBeGreaterThan(0);
     expect(await breaches()).toHaveLength(1);
     const sweeps = (await rowsOf(server, runId)).filter((r) => r.kind === 'SWEEP');
     expect(sweeps).toHaveLength(1);
@@ -62,9 +63,14 @@ describe('time sweeper', () => {
     const { rows } = await server.db.admin.query<{ source: string; actor_person: string }>("select source, actor_person from recipe.execution_command where batch_id = $1 and kind = 'SWEEP'", [runId]);
     expect(rows[0]).toMatchObject({ source: 'SYSTEM', actor_person: server.seed.services.find((s) => s.key === 'sweeper')?.personId });
 
-    // A second sweep finds nothing new: no row, no second exception; a command sweeps too and adds none.
+    // A second sweep evaluates the batch and finds nothing new: no row, no second exception; a command sweeps too and
+    // adds none. (Review F24: a batch the sweep skipped or never listed would also leave no row.)
+    const rows0 = await rowsOf(server, runId);
     const second = await sweepAll(server.built.ctx, sweeper);
     expect(second.failures).toEqual([]);
+    expect(second.outcomes[runId]).toBe(0);
+    expect(second.skipped).toBe(0);
+    expect(await rowsOf(server, runId)).toEqual(rows0);
     expect((await rowsOf(server, runId)).filter((r) => r.kind === 'SWEEP')).toHaveLength(1);
     await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-clear@', entry: { kind: 'PREVIOUS_BATCH', product: 'X', batchNumber: 'TEST-B26-7' } });
     expect(await breaches()).toHaveLength(1);
@@ -91,15 +97,21 @@ describe('time sweeper', () => {
     );
     expect(rows.slice(-1)).toEqual([{ kind: 'COMMAND', command_type: 'RECORD_ENTRY', actor_person: operator1, accepted: true }]);
 
-    // The sweeper finds the breach already recorded: no second exception, no SWEEP row.
+    // The sweeper evaluates the batch and finds the breach already recorded: no event, no second exception, no SWEEP
+    // row. (Review F24: a batch the sweep skipped or never listed would also leave no row.)
+    const rows0 = await rowsOf(server, runId);
     const sweeper = { ...(await openServiceSession(server.db, server.seed, 'sweeper')), correlationId: randomUUID() };
     try {
       const swept = await sweepAll(server.built.ctx, sweeper);
       expect(swept.failures).toEqual([]);
+      expect(swept.outcomes[runId]).toBe(0);
+      expect(swept.skipped).toBe(0);
+      expect(Object.keys(swept.outcomes)).toHaveLength(swept.runs);
     } finally {
       await identity.endSession(server.db.app, sweeper.sessionId);
     }
     expect((await rowsOf(server, runId)).filter((r) => r.kind === 'SWEEP')).toEqual([]);
+    expect(await rowsOf(server, runId)).toEqual(rows0);
     expect((await breaches()).map((e) => e.raisedBy)).toEqual(['SYSTEM']);
     expect(await violations(server)).toEqual([]);
   }, 180_000);

@@ -68,6 +68,8 @@ export interface SweepResult {
   skipped: number;
   events: number;
   failures: { runId: string; error: string }[];
+  /** Each running batch listed: the number of events its sweep produced, or SKIPPED when another command held it. */
+  outcomes: Record<string, number | 'SKIPPED'>;
 }
 
 /** One sweep of every running test batch, as `actor` (a SYSTEM service session). */
@@ -75,7 +77,7 @@ export async function sweepAll(app: AppContext, actor: ActorContext): Promise<Sw
   const { rows } = await app.pools.app.query<{ id: string }>(
     "select b.id from recipe.batch_execution b join recipe.execution_state s on s.batch_id = b.id where s.status in ('ISSUED', 'IN_PROGRESS', 'ON_HOLD') order by b.issued_at",
   );
-  const result: SweepResult = { runs: rows.length, swept: 0, skipped: 0, events: 0, failures: [] };
+  const result: SweepResult = { runs: rows.length, swept: 0, skipped: 0, events: 0, failures: [], outcomes: {} };
   for (const r of rows) {
     try {
       const run = await runContext(app.pools.app, r.id);
@@ -87,10 +89,12 @@ export async function sweepAll(app: AppContext, actor: ActorContext): Promise<Sw
       });
       if (outcome === null) {
         result.skipped += 1;
+        result.outcomes[r.id] = 'SKIPPED';
         continue;
       }
       result.swept += 1;
       result.events += outcome.events;
+      result.outcomes[r.id] = outcome.events;
       runCache(app).set(r.id, { def: run.def, state: outcome.state });
     } catch (e) {
       result.failures.push({ runId: r.id, error: e instanceof Error ? e.message : String(e) });
