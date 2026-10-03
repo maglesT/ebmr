@@ -1510,3 +1510,27 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
 - 2026-10-03: OWNER DECISION (docs/decisions/0007): no designer usability test with three QA and production authors.
   Phase 2 exits on its tested criteria, the exit review's fixes, the SQL mutation run on the Phase 2 guards and the
   trace gate at phase 2.
+- 2026-10-02: PHASE 2 EXIT FIX, Designer: what the document shows (branch phase-2/recipe-core; findings F44, F45, F46,
+  F47, F48, F49 and F51 of the exit review; each fix with a test that fails on the code before it). The document view
+  is what the author, checker and approver read, so it now shows every member of the saved master that decides how a
+  batch runs, exactly as written. F44: it left out acceptance schemes, calculation limits, criticality and risk class,
+  readings per capture, market rules, breach handling, time-constraint breach, warning and pauses, hold-time storage,
+  specimens, market predicates, golden-case values and most of a step's facts; now each section renders them, and a
+  completeness test walks every member of dc-mini, both tablet fixtures and a fixture setting every optional member
+  and finds each value in its own place. F47: an exclusive limit bound read "3.5 %" like an inclusive one, and a
+  cleared exclusive bound typed again came back inclusive; now every bound says "at least / more than / at most /
+  less than" in every mode, the author sets it next to the value, and a bound is created only with its comparison.
+  F45: the procedure hid an alternative's conditions, "otherwise" branch, variant values and choosing roles, a loop's
+  endpoint and a replicate's sub-lot prefix, and ran branch bodies together; now the construct rows state the rules
+  and each branch has its own row. F46: the steps a library call brings in had no row (2.4.2 jumped to 2.4.4) and a
+  finding on one went nowhere; now they are shown read-only under their numbers with the call's bindings, findings
+  lead to them, and content that cannot be numbered no longer brings the designer down. F51: a step's configuration
+  was missing from the document and lists were cut at 120 characters; now it is shown in full in the panel and in
+  every procedure row, with the system's recipe and version. F48, F49: a QA hold point could be released by any role,
+  and a role no session carries (QA_SHOP_FLOOR, shown like QA) passed the gate; now the designer offers QA only and
+  marks unknown roles, the validator (FLOW-ROLES, validator 1.1.0) and the engine's definition (ENG-DEF-HOLD-ROLE)
+  fail the gate, and the database refuses such content in a revision or a test package (recipe-core 0324,
+  EBMR-RCP-123). Tests: web designer limit-bounds, document-complete, procedure-constructs, config-shown, roles;
+  server designer finding-locations and roles, execution db-guards-content-roles; recipe-core validator roles.
+  Playwright designer and floor specs re-run: passed. Defaults F47.1, F48.1, F49.1 and F46.1 are in
+  docs/decisions/phase-2-open-questions.md.
