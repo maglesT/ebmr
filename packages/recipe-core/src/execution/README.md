@@ -332,8 +332,14 @@ that another command holds is skipped.
     edition also requires the readings claimed for it in the same command (tablets sql 0300), except in a refusal
     ENG-STALE, which names its readings without using them: stored readings with the weights the entry states,
     one named for each purpose, a tare and a gross that the claims of its command by the person would accept at that
-    moment, together (one reading named as both is refused as the gross claim refuses it, EBMR-DEV-105), with no
-    reading claimed in its command (tablets sql 0500, 0510, EBMR-EXE-124);
+    moment, together (one reading named as both is refused as the gross claim refuses it, EBMR-DEV-105; tablets sql
+    0500, 0510), listed exactly as stored, the tare then the gross, and nothing else (evidence.namedReadings, which
+    no other row carries; tablets sql 0520). No reading is claimed under the correlation id of a row recorded as the
+    refusal ENG-STALE, checked at commit on both sides: before or after the row, in its transaction or another, and
+    in a transaction open at the same time (the two meet on one key of `tab.reading_claim_mark`; under REPEATABLE
+    READ the later one fails to serialise) (tablets sql 0520, EBMR-EXE-124). Until 0520 only claims made before the
+    row in its own transaction were refused. A command that claims readings and writes no row is not refused (decision
+    F58.2);
 - the engine's version check (sql 0326; triggers `ab_execution_stale_command`, `zn_execution_stale_refusal`,
   `stale_command_problem`, DI-34; Phase 2 exit review F58.1): a command whose screen showed another version than
   the run's (its expectedVersion, a whole number) is recorded only as the refusal ENG-STALE, and that refusal only
@@ -885,6 +891,15 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   readings as used (EBMR-EXE-124), and a refusal that is not stale still stands on readings claimed for it; the honest
   one is recorded and the next accepted weighing uses the same readings. One reading taken for no stated purpose named
   as both the tare and the gross is refused as the claims of the command refuse it (EBMR-DEV-105), and stays unused.
+- `db-guards-stale-row-commit.test.ts` (Phase 2 exit follow-up F58.1, round 3; DI-32, DI-34, PR-19; tablets sql 0520):
+  written through the store, the honest stale weighing whose readings are then claimed in its own transaction under its
+  correlation id is refused at commit (EBMR-EXE-124), and so is that claim with every deferred check made at once, a
+  claim under the correlation id of a committed stale row in a later transaction, and a stale row under the correlation
+  id of claims committed earlier; with two transactions open at once, from two sessions, the one that commits second
+  is refused (EBMR-EXE-124, or a serialization failure under REPEATABLE READ); the readings stay usable by the next
+  accepted weighing. The readings a row names without using them are exactly the stored tare and gross of a stale
+  weighing from a device: a third named reading, a value, raw line or capture time other than the stored one, the
+  gross first, or readings named by an accepted weighing are refused (EBMR-EXE-124).
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and

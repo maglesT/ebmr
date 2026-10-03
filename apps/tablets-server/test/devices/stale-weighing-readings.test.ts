@@ -13,7 +13,9 @@
  * undone); the engine refuses it (ENG-STALE) and the refusal is recorded with what was entered and the version the
  * screen showed. The readings stay unused, so the resend from the reloaded screen records the weighing with them. A
  * pair the claims refuse (one reading named as both) gets the claims' answer before anything is written, as from the
- * current screen.
+ * current screen. Round 3 (tablets 0520): the database refuses, at commit, any claim under the correlation id of a stale
+ * row, and binds the readings such a row names to the stored ones; through the server the stale request claims nothing
+ * under its correlation id, names exactly the stored readings, and the resend's claims carry its own correlation id.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { execution } from '@ebmr/recipe-core';
@@ -40,11 +42,12 @@ interface StoredRow {
   state_version: number;
   command: Record<string, unknown>;
   evidence: Record<string, unknown>;
+  correlation_id: string;
 }
 
 async function storedRows(runId: string): Promise<StoredRow[]> {
   const { rows } = await rig.server.db.admin.query<StoredRow>(
-    'select c.seq::text as seq, c.kind, c.command_type, c.accepted, c.refusal, c.state_version, c.command, c.evidence from recipe.execution_command c where c.batch_id = $1 order by c.seq',
+    'select c.seq::text as seq, c.kind, c.command_type, c.accepted, c.refusal, c.state_version, c.command, c.evidence, c.correlation_id from recipe.execution_command c where c.batch_id = $1 order by c.seq',
     [runId],
   );
   return rows;
@@ -52,6 +55,32 @@ async function storedRows(runId: string): Promise<StoredRow[]> {
 
 async function usesOf(ids: string[]): Promise<number> {
   return (await rig.server.db.admin.query('select 1 from tab.reading_use where reading_id = any($1::uuid[])', [ids])).rows.length;
+}
+
+/** The correlation ids the uses of `ids` carry, in the order of `ids`. */
+async function useCorrelations(ids: string[]): Promise<(string | null)[]> {
+  const { rows } = await rig.server.db.admin.query<{ c: string | null }>(
+    'select u.correlation_id::text as c from unnest($1::uuid[]) with ordinality as x(id, n) left join tab.reading_use u on u.reading_id = x.id order by x.n',
+    [ids],
+  );
+  return rows.map((r) => r.c);
+}
+
+/** The marks the database keeps of a correlation id (tablets 0520), or null. */
+async function markOf(correlationId: string | undefined): Promise<{ claimed: boolean; stale_refusal: boolean } | null> {
+  const { rows } = await rig.server.db.admin.query<{ claimed: boolean; stale_refusal: boolean }>('select claimed, stale_refusal from tab.reading_claim_mark where correlation_id = $1', [correlationId]);
+  return rows[0] ?? null;
+}
+
+/** The readings `ids` as a claim gives them, each named for its purpose (TARE, then GROSS). */
+async function storedReadings(ids: [string, string]): Promise<Record<string, unknown>[]> {
+  const { rows } = await rig.server.db.admin.query<{ list: Record<string, unknown>[] }>(
+    `select jsonb_agg(jsonb_build_object('purpose', x.purpose, 'readingId', r.id, 'deviceCode', r.device_code, 'value', r.value, 'unit', r.unit, 'raw', r.raw,
+                                         'sourceTimeUs', r.source_time_us::text, 'trust', r.trust) order by x.n) as list
+       from unnest($1::uuid[], array['TARE', 'GROSS']) with ordinality as x(id, purpose, n) join tab.device_reading r on r.id = x.id`,
+    [ids],
+  );
+  return rows[0]?.list ?? [];
 }
 
 describe('F58: a stale weighing keeps its scale readings (DI-32, DI-34)', () => {
@@ -91,7 +120,13 @@ describe('F58: a stale weighing keeps its scale readings (DI-32, DI-34)', () => 
       { purpose: 'TARE', readingId: tare.readingId, deviceCode: 'TEST-BAL-01', value: '1.250', unit: 'kg' },
       { purpose: 'GROSS', readingId: gross.readingId, deviceCode: 'TEST-BAL-01', value: '26.250', unit: 'kg' },
     ]);
+    // Exactly the stored readings, as a claim gives them, and nothing else (tablets 0520 holds a stale row to that).
+    expect(stale?.evidence['namedReadings']).toEqual(await storedReadings([tare.readingId, gross.readingId]));
     expect(await usesOf([tare.readingId, gross.readingId])).toBe(0);
+    // No reading is claimed under the stale request's correlation id, and the database marks it as a stale refusal's:
+    // a claim under it would be refused at commit (tablets 0520).
+    expect((await rig.server.db.admin.query('select 1 from tab.reading_use where correlation_id = $1', [stale?.correlation_id])).rows).toHaveLength(0);
+    expect(await markOf(stale?.correlation_id)).toEqual({ claimed: false, stale_refusal: true });
     // The answer says so, and names no reading as used (the form keeps its captures).
     const said = first.ok || first.error.kind !== 'REFUSAL' ? null : first.error.envelope.refusal;
     expect(said?.whatHappened).toBe('The test run changed since this screen was loaded. The refusal is recorded; no scale reading was used, and nothing else changed.');
@@ -109,7 +144,15 @@ describe('F58: a stale weighing keeps its scale readings (DI-32, DI-34)', () => 
     // The reloaded screen sends the same readings again: recorded, and only now are they used.
     expect(outcomeOf(await d.command('operator1', weighing(tare.readingId, gross.readingId)))).toBe('ok');
     expect(await usesOf([tare.readingId, gross.readingId])).toBe(2);
-    expect((await storedRows(d.runId)).at(-1)).toMatchObject({ accepted: true, evidence: { readings: [{ readingId: tare.readingId }, { readingId: gross.readingId }] } });
+    const resend = (await storedRows(d.runId)).at(-1);
+    expect(resend).toMatchObject({ accepted: true, evidence: { readings: [{ readingId: tare.readingId }, { readingId: gross.readingId }] } });
+    // The uses are the resend's, a request of its own: they carry its correlation id, never the stale row's.
+    expect(resend?.correlation_id).not.toBe(stale?.correlation_id);
+    expect(await useCorrelations([tare.readingId, gross.readingId])).toEqual([resend?.correlation_id, resend?.correlation_id]);
+    expect([await markOf(stale?.correlation_id), await markOf(resend?.correlation_id)]).toEqual([
+      { claimed: false, stale_refusal: true },
+      { claimed: true, stale_refusal: false },
+    ]);
     const run = await runContext(rig.server.db.admin, d.runId);
     expect(await execution.replayExecution(rig.server.db.admin, run.def, d.runId)).toMatchObject({ identical: true, firstDifference: null });
     expect(await violations(rig.server)).toEqual([]);
