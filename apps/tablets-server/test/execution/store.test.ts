@@ -15,7 +15,8 @@ import { engineActor, engineRoles } from '../../src/features/execution/roles.ts'
 import { runContext } from '../../src/features/execution/runs.ts';
 import { actorOfBrowser } from '../esig/support.ts';
 import { startServer, type TestBrowser, type TestServer } from '../support/harness.ts';
-import { dcMini, importAndIssue, personaIn, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
+import { prepareSignature, signatureAlone, unmatched } from './db-guards-support.ts';
+import { dcMini, importAndIssue, personaIn, rowsOf, RunDriver, startExecServer, violations, withEarlyParameter, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 let gmp: TestServer;
@@ -64,6 +65,68 @@ async function newRun(): Promise<{ runId: string; op: TestBrowser; d: RunDriver 
 async function asOperator<T>(op: TestBrowser, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
   return withCommand(sbx.db.app, await actorOfBrowser(sbx, op, 'operator1'), work);
 }
+
+/** A first step that records the blend time (CRITICAL, keyed by hand): withEarlyParameter. */
+const EARLY = 'p-early-time@';
+const INVOLVEMENT = ['performers', 'dataEnterers', 'correctors', 'performedSigners'] as const;
+
+let secondRole: Promise<void> | undefined;
+/** verifier1 also holds OPERATOR in this file's database (requested by the administrator, approved by the owner; once). */
+function verifierAlsoOperator(): Promise<void> {
+  secondRole ??= (async () => {
+    const who = personIn('verifier1');
+    const admin = await passwordActor(sbx.db, sbx.seed.bootstrap.admin, sbx.seed.bootstrap.admin.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'INV-03 test: a person holding two roles', correlationId: randomUUID() });
+    const grantId = await withCommand(sbx.db.app, admin, (c) => identity.requestRoleGrant(c, { accountId: who.accountId, roleCode: 'OPERATOR', reason: 'INV-03 test: a person holding two roles' }));
+    const owner = await passwordActor(sbx.db, sbx.seed.bootstrap.owner, sbx.seed.bootstrap.owner.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'INV-03 test: approve the second role', correlationId: randomUUID() });
+    await withCommand(sbx.db.app, owner, (c) => identity.decideRoleGrant(c, grantId, true, 'INV-03 test'));
+  })();
+  return secondRole;
+}
+
+/** A dispensing-kiosk session of verifier1 acting in `role`. */
+async function verifier1As(role: 'OPERATOR' | 'VERIFIER'): Promise<TestBrowser> {
+  await verifierAlsoOperator();
+  const s = await openPersonaSession(sbx.db, sbx.seed, 'verifier1', 'TEST-KIOSK-DISP-1');
+  const token = newSessionToken();
+  await sbx.db.app.query('select tab.bind_session($1, $2, $3)', [s.sessionId, tokenHash(token), role]);
+  const b = sbx.browser('TEST-KIOSK-DISP-1');
+  b.cookies.set(sbx.config.cookies.session, token);
+  await b.call(routes.session.get);
+  return b;
+}
+
+/**
+ * verifier1, acting as VERIFIER, appends through the application role an accepted VERIFY of `step` with a forged next
+ * state (the engine would refuse it, INV-03): 'ok' or the database's refusal.
+ */
+async function forgeVerify(runId: string, step: string): Promise<string> {
+  const who = personIn('verifier1');
+  const run = await runContext(sbx.db.admin, runId);
+  const asVer = await verifier1As('VERIFIER');
+  return messageOf(
+    withCommand(sbx.db.app, await actorOfBrowser(sbx, asVer, 'verifier1'), async (c) => {
+      const tx = await execution.ExecutionTx.open(c, run.def, runId);
+      const roles = await engineRoles(c);
+      const command: engine.Command = { type: 'VERIFY', commandId: randomUUID(), actor: engineActor(who.personId, roles), step, context: [], signature: { id: randomUUID(), meaning: 'VERIFIED', signer: who.personId } };
+      const state = { ...tx.state, version: tx.state.version + 1 };
+      await execution.appendExecution(c, { batchId: runId, expectedSeq: tx.lastSeq, kind: 'COMMAND', command: engine.encodeCommand(command), commandId: command.commandId, nowUs: tx.nowUs, accepted: true, state, events: [], roles, contents: [] });
+    }),
+  );
+}
+
+/** The stored step instance `key` of a run. */
+async function instanceOf(runId: string, key: string): Promise<engine.StepInstance | undefined> {
+  return (await execution.loadState(sbx.db.admin, runId))?.state.steps[key];
+}
+
+/** The involvement lists of a step instance that name `person`. */
+function involvementOf(inst: engine.StepInstance | undefined, person: string): string[] {
+  return INVOLVEMENT.filter((l) => inst?.[l].includes(person));
+}
+
+/** recipe.check_verifier's refusal (EBMR-EXE-033) of `person` verifying step instance `key`. */
+const involvedVerifier = (person: string, key: string): RegExp =>
+  new RegExp(`${person} performed, entered data in or corrected step ${key}, so the verification is refused: the verifier is always another person \\(INV-03\\)\\. \\[EBMR-EXE-033\\]`);
 
 describe('installation (DI-05, INV-18)', () => {
   it('[INV-18][DI-05] a GMP database refuses importing packages and issuing test batches; anything that lands there anyway is reported', async () => {
@@ -238,40 +301,110 @@ describe('the append path', () => {
     expect(await violations(sbx)).toEqual([]);
   }, 180_000);
 
-  it('[INV-03] a fabricated accepted VERIFY by a person who entered data in the step is refused by the database', async () => {
+  // INV-03 at the database (recipe.check_verifier): the verifier is never a person who started, performed, entered data
+  // in or corrected the step instance. Review F17: the earlier test's forger both started the step and entered data, so
+  // it was refused through the "started" list alone and could not show the "entered data" rule; each list is now shown
+  // on its own.
+
+  it('[INV-03][DI-35] a fabricated accepted VERIFY by a person who only entered data in the step (another person started it) is refused by the database, and nothing is recorded', async () => {
     const { runId, d } = await newRun();
-    // A person who holds both roles: they enter data as OPERATOR, then try to verify as VERIFIER.
     const who = personIn('verifier1');
-    const admin = await passwordActor(sbx.db, sbx.seed.bootstrap.admin, sbx.seed.bootstrap.admin.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'INV-03 test: a person holding two roles', correlationId: randomUUID() });
-    const grantId = await withCommand(sbx.db.app, admin, (c) => identity.requestRoleGrant(c, { accountId: who.accountId, roleCode: 'OPERATOR', reason: 'INV-03 test: a person holding two roles' }));
-    const owner = await passwordActor(sbx.db, sbx.seed.bootstrap.owner, sbx.seed.bootstrap.owner.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'INV-03 test: approve the second role', correlationId: randomUUID() });
-    await withCommand(sbx.db.app, owner, (c) => identity.decideRoleGrant(c, grantId, true, 'INV-03 test'));
-    const asRole = async (role: string): Promise<TestBrowser> => {
-      const s = await openPersonaSession(sbx.db, sbx.seed, 'verifier1', 'TEST-KIOSK-DISP-1');
-      const token = newSessionToken();
-      await sbx.db.app.query('select tab.bind_session($1, $2, $3)', [s.sessionId, tokenHash(token), role]);
-      const b = sbx.browser('TEST-KIOSK-DISP-1');
-      b.cookies.set(sbx.config.cookies.session, token);
-      await b.call(routes.session.get);
-      return b;
-    };
-    const asOp = new RunDriver(sbx, runId, { verifier1: await asRole('OPERATOR') });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const asOp = new RunDriver(sbx, runId, { verifier1: await verifier1As('OPERATOR') });
     asOp.beforeTap = d.beforeTap;
-    await asOp.ok('verifier1', { type: 'START_STEP', stepKey: CLEAR });
     await asOp.ok('verifier1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'X', batchNumber: 'TEST-B26-5' } });
-    const asVer = await asRole('VERIFIER');
+    // verifier1 is a data enterer of the step and nothing else: only the "entered data" rule can refuse them.
+    expect(involvementOf(await instanceOf(runId, CLEAR), who.personId)).toEqual(['dataEnterers']);
+    const rows0 = await rowsOf(sbx, runId);
+    expect(await forgeVerify(runId, 'p-disp-clear')).toMatch(involvedVerifier(who.personId, CLEAR));
+    expect(await rowsOf(sbx, runId)).toEqual(rows0);
+    expect(await violations(sbx)).toEqual([]);
+  }, 180_000);
+
+  it('[INV-03][DI-35][DI-24] a fabricated accepted VERIFY by a person who only corrected an entry of the step is refused by the database, and nothing is recorded', async () => {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, withEarlyParameter()));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), qa1: await sbx.asPersona('qa1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    const who = personIn('verifier1');
+    await d.ok('operator1', { type: 'START_STEP', stepKey: EARLY });
+    await d.ok('operator1', { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
+    // verifier1, acting as OPERATOR, corrects the blend time (their own CORRECTED signature, qa1's approval: the value is
+    // critical), exactly as the engine accepts it: the correction is the only act of verifier1 in the step.
     const run = await runContext(sbx.db.admin, runId);
-    const forged = withCommand(sbx.db.app, await actorOfBrowser(sbx, asVer, 'verifier1'), async (c) => {
+    const point = Object.values((await execution.loadState(sbx.db.admin, runId))?.state.points ?? {}).find((p) => p.item === 'blendTime' && p.status === 'VALID')?.id ?? '';
+    const qa1 = personIn('qa1');
+    const approvalId = await signatureAlone(sbx, d.browser('qa1'), 'qa1', 'batch_point', `${runId}:${point}`, 'CORRECTION_APPROVED');
+    const asOp = await verifier1As('OPERATOR');
+    const p = await prepareSignature(sbx, asOp, 'verifier1', 'batch_point', `${runId}:${point}`, 'CORRECTED');
+    await withCommand(sbx.db.app, await p.actor(), async (c) => {
+      const id = await p.sign(c);
       const tx = await execution.ExecutionTx.open(c, run.def, runId);
       const roles = await engineRoles(c);
-      const actor = engineActor(who.personId, roles);
-      const command: engine.Command = { type: 'VERIFY', commandId: randomUUID(), actor, step: 'p-disp-clear', context: [], signature: { id: randomUUID(), meaning: 'VERIFIED', signer: who.personId } };
-      // The engine would refuse; a forged "accepted" state is sent instead.
-      const state = { ...tx.state, version: tx.state.version + 1 };
-      await execution.appendExecution(c, { batchId: runId, expectedSeq: tx.lastSeq, kind: 'COMMAND', command: engine.encodeCommand(command), commandId: command.commandId, nowUs: tx.nowUs, accepted: true, state, events: [], roles, contents: [] });
+      const r = await tx.command(
+        {
+          type: 'CORRECT_ENTRY',
+          commandId: randomUUID(),
+          actor: engineActor(who.personId, roles),
+          point,
+          value: { kind: 'DECIMAL', value: '16', unit: 'min' },
+          reason: 'Transcription error: the timer read 16 min',
+          signature: { id, meaning: 'CORRECTED', signer: who.personId },
+          approval: { approver: { id: qa1.personId, kind: 'PERSON', roles: ['QA'] }, signature: { id: approvalId, meaning: 'CORRECTION_APPROVED', signer: qa1.personId } },
+        },
+        roles,
+      );
+      if (!r.accepted) throw new Error(`SETUP: the engine refused the correction: ${JSON.stringify(r.refusal)}`);
     });
-    expect(await codeOf(forged)).toBe('EBMR-EXE-033');
+    expect(involvementOf(await instanceOf(runId, EARLY), who.personId)).toEqual(['correctors']);
+    const rows0 = await rowsOf(sbx, runId);
+    expect(await forgeVerify(runId, 'p-early-time')).toMatch(involvedVerifier(who.personId, EARLY));
+    expect(await rowsOf(sbx, runId)).toEqual(rows0);
     expect(await violations(sbx)).toEqual([]);
+  }, 180_000);
+
+  it('[INV-03][DI-35] the database refuses a VERIFY by a person in any one list of the step instance (started, entered data, corrected, signed performed), and only that instance\'s lists count', async () => {
+    // The guard itself (recipe.check_verifier, private to the owner; called here by the superuser) on the stored state of
+    // a real run, with the instance's lists set one at a time. A PERFORMED signer is also a performer whenever the engine
+    // records the signature, so the "signed performed" list can be shown on its own only here.
+    const { runId, d } = await newRun();
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const { rows } = await sbx.db.admin.query<{ state: { steps: Record<string, Record<string, unknown>> } }>('select state from recipe.execution_state where batch_id = $1', [runId]);
+    const stored = rows[0]?.state;
+    const clear = stored?.steps[CLEAR];
+    if (!stored || !clear) throw new Error('SETUP: the started clearance is not in the stored state');
+    const LISTS = INVOLVEMENT;
+    expect(LISTS.filter((l) => !Array.isArray(clear[l]))).toEqual([]);
+    const someone = randomUUID();
+    const withLists = (lists: Partial<Record<(typeof LISTS)[number], string[]>>, key = CLEAR, step = 'p-disp-clear') => ({
+      ...stored,
+      steps: { ...stored.steps, [key]: { ...clear, key, step, ...Object.fromEntries(LISTS.map((l) => [l, lists[l] ?? []])) } },
+    });
+    const check = (prior: unknown, cmd: Record<string, unknown>) =>
+      messageOf(sbx.db.admin.query('select recipe.check_verifier($1::jsonb, $2::jsonb)', [JSON.stringify(prior), JSON.stringify({ actor: { id: someone, kind: 'PERSON' }, step: 'p-disp-clear', context: [], ...cmd })]));
+    const verify = { type: 'VERIFY' };
+    const outcomes: Record<string, string> = {};
+    for (const l of LISTS) outcomes[l] = await check(withLists({ [l]: [someone] }), verify);
+    // Controls: in no list (others in all of them); in every list of another step instance; not a VERIFY; no such instance.
+    const others = [personIn('operator1').personId];
+    outcomes['none'] = await check(withLists(Object.fromEntries(LISTS.map((l) => [l, others]))), verify);
+    const elsewhere = withLists(Object.fromEntries(LISTS.map((l) => [l, [someone]])), 'p-disp-bal@', 'p-disp-bal');
+    outcomes['anotherInstance'] = await check({ ...elsewhere, steps: { ...elsewhere.steps, [CLEAR]: { ...clear, ...Object.fromEntries(LISTS.map((l) => [l, []])) } } }, verify);
+    outcomes['notVerify'] = await check(withLists(Object.fromEntries(LISTS.map((l) => [l, [someone]]))), { type: 'SIGN_PERFORMED' });
+    outcomes['noInstance'] = await check(withLists({}), { ...verify, context: [{ construct: 'L-X', iteration: 1 }] });
+    const refused = involvedVerifier(someone, CLEAR);
+    expect(
+      unmatched(outcomes, {
+        performers: refused,
+        dataEnterers: refused,
+        correctors: refused,
+        performedSigners: refused,
+        none: 'ok',
+        anotherInstance: 'ok',
+        notVerify: 'ok',
+        noInstance: /The step to verify does not exist in the stored state \(DI-34\)\. \[EBMR-EXE-032\]/,
+      }),
+    ).toEqual({});
   }, 180_000);
 });
 

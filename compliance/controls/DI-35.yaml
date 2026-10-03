@@ -97,6 +97,9 @@ tests:
   - "apps/tablets-server/test/esig/ceremony.test.ts > [INV-03][DI-35] a person who entered data cannot sign VERIFIED: refused in plain language, nothing signed, the failure logged"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-35][DI-36][INV-26] an independent verifier signs VERIFIED and the entry completes; every signature stores its authority evaluation"
   - "apps/tablets-server/test/esig/ceremony.test.ts > [DI-35] only catalogue meanings can be asked for; an unknown meaning is refused before anything is recorded"
+  - "apps/tablets-server/test/execution/store.test.ts > the append path > [INV-03][DI-35] a fabricated accepted VERIFY by a person who only entered data in the step (another person started it) is refused by the database, and nothing is recorded"
+  - "apps/tablets-server/test/execution/store.test.ts > the append path > [INV-03][DI-35][DI-24] a fabricated accepted VERIFY by a person who only corrected an entry of the step is refused by the database, and nothing is recorded"
+  - "apps/tablets-server/test/execution/store.test.ts > the append path > [INV-03][DI-35] the database refuses a VERIFY by a person in any one list of the step instance (started, entered data, corrected, signed performed), and only that instance's lists count"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
