@@ -27,7 +27,7 @@ export interface BatchNumberRuleInput {
   batchKind: BatchKind;
   /** e.g. "AT{YY}{SEQ:4}", "{SITE}/{PRODUCT}/{YYYY}/{SEQ:5}", packaging "{PARENT}-P{SEQ:2}". */
   format: string;
-  /** IANA zone of the site; {YYYY}/{YY}/{MM} use the site-local calendar. */
+  /** The site's IANA zone, exactly the site policy site.zone (any other is refused, EBMR-SITE-002); {YYYY}/{YY}/{MM} use the site-local calendar. */
   siteZone: string;
   /** ISO 8601; defaults to now. A rule never takes effect in the past. */
   effectiveFrom?: string;

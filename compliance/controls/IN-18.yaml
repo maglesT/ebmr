@@ -30,6 +30,7 @@ tests:
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register across a restore > [IN-18][INV-27] after a restore the register never reissues a number allocated in the lost window"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register across a restore > [IN-18][INV-27] a lost number is re-entered only with evidence and only inside the range the restore skipped"
   - "packages/site-services/test/batch-number-register.test.ts > recovery after a restore is held to the rule it recovers for (F62) > [INV-27][IN-18] the recovered number must be what the rule gives for that serial; a packaging number links to a processing number of its own site"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [DI-27][IN-18] a numbering rule or a registered number dated in another zone than the site's (an Etc offset, an alias, another IANA zone) is refused (EBMR-SITE-002) and nothing is written, also when the owner writes the row (lead TODO T10)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

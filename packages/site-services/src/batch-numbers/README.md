@@ -6,7 +6,7 @@ One register per site, shared by both editions: a batch number is allocated once
 
 | Table | Content |
 |---|---|
-| `site.batch_number_rule` | Numbering rule per site, product (or site-wide) and batch kind (PROCESSING, PACKAGING): format, site time zone, effective-from, reason. Each rule owns a protected continuity counter `site.batch_number:<rule_code>`. |
+| `site.batch_number_rule` | Numbering rule per site, product (or site-wide) and batch kind (PROCESSING, PACKAGING): format, site time zone (the site policy site.zone and no other, migration 0700, EBMR-SITE-002), effective-from, reason. Each rule owns a protected continuity counter `site.batch_number:<rule_code>`. |
 | `site.batch_number_allocation` | Every number: batch number (unique site-wide), product code and name, edition, kind, processing parent (packaging), batch size (numeric) and UCUM unit, source (GENERATED, EXTERNAL, RECOVERED_AFTER_RESTORE), rule and serial, external reference, who, and `recorded_at` from the database clock. |
 | `site.batch_number_void` | A void with reason code and text; the number stays in the register. |
 | `site.batch_number_serial_skip` | A serial whose rendered number was already taken (for example registered from ERP); the serial stays accounted for. |

@@ -162,6 +162,37 @@ describe('batch-number register', () => {
     await expect(allocate({ ...atv, batchKind: 'PACKAGING', parentBatchNumber: pack.batchNumber, batchSize: '1' })).rejects.toThrow('EBMR-SITE-014');
   });
 
+  it('[DI-27][IN-18] a numbering rule or a registered number dated in another zone than the site\'s (an Etc offset, an alias, another IANA zone) is refused (EBMR-SITE-002) and nothing is written, also when the owner writes the row (lead TODO T10)', async () => {
+    const counts = async () =>
+      (await db.admin.query<{ rules: string; numbers: string }>('select (select count(*) from site.batch_number_rule)::text as rules, (select count(*) from site.batch_number_allocation)::text as numbers')).rows[0];
+    const before = await counts();
+    const notTheSite = (zone: string) => new RegExp(`^EBMR-SITE-002 site zone ${zone.replace('/', '\\/').replace('+', '\\+')} is not the zone of this site \\(Asia\\/Kolkata\\)`);
+    const rule = { siteCode: SITE, productCode: 'ZONE1', batchKind: 'PROCESSING' as const, format: 'ZN{YY}{SEQ:3}', reason: 'Numbering SOP-QA-017 rev 3' };
+    // Etc/GMT-5 is five hours ahead of UTC (inverted POSIX sign): the database knows it, it names no place, and it is not the site's.
+    for (const zone of ['Etc/GMT-5', 'Europe/Berlin', 'UTC']) {
+      await expect(define({ ...rule, ruleCode: `ZONE-${randomUUID().slice(0, 6).toUpperCase()}`, siteZone: zone })).rejects.toThrow(notTheSite(zone));
+      await expect(
+        withCommand(db.app, issuer, (c) => registerExternalBatchNumber(c, { ...atv, batchNumber: `ZX${randomUUID().slice(0, 6).toUpperCase()}`, siteZone: zone })),
+      ).rejects.toThrow(notTheSite(zone));
+    }
+    // An alias the database does not list is refused by the function's own check, as before.
+    await expect(define({ ...rule, ruleCode: 'ZONE-IST', siteZone: 'IST' })).rejects.toThrow('EBMR-SITE-002 unknown site time zone IST');
+    // The row guard holds for the owner's direct write too (no function in between).
+    const c = await db.admin.connect();
+    try {
+      await expect(
+        c.query(
+          `insert into site.batch_number_rule (rule_code, site_code, batch_kind, format, site_zone, counter_key, effective_from, reason, created_by_person_id, created_by_account_id, correlation_id)
+           values ('ZONE-OWNER', $1, 'PROCESSING', 'ZO{SEQ:3}', 'Etc/GMT-5', 'site.batch_number:ZONE-OWNER', clock_timestamp(), 'test', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+          [SITE],
+        ),
+      ).rejects.toThrow(notTheSite('Etc/GMT-5'));
+    } finally {
+      c.release();
+    }
+    expect(await counts()).toEqual(before);
+  });
+
   it('[INV-27] a rule never wraps its serial around; it is exhausted instead', async () => {
     const tiny: AllocationRequest = { ...atv, productCode: 'TINY1', productName: 'Tiny', batchSize: '1', batchSizeUnit: '{tbl}' };
     const numbers: string[] = [];
