@@ -334,3 +334,49 @@ describe('F05: a new kiosk PIN is never longer than the PIN pad takes', () => {
     expect(logins[1]?.['secret']).toBe(TWELVE);
   });
 });
+
+describe('F56 and T1: the kiosk sign-in takes its badge through the ui-kit BadgePrompt and its PIN on the ui-kit PinPad', () => {
+  it('[DI-14][DI-19][DI-38] a PIN keyed into the sign-in badge field is not taken as a badge, and a stray key before the reader\'s burst is not sent with it', async () => {
+    const UID = '04A1000000F56A';
+    const logins: Record<string, unknown>[] = [];
+    setTransport(
+      createFixtureFetch(
+        {
+          'meta.get': EXAMPLES['meta-sandbox'].data,
+          'session.deviceNonce': { nonce: 'fixture-nonce-0123456789', expiresInSeconds: 60 },
+          'session.identify': kiosk.device,
+          'session.demoDevices': { devices: [] },
+          'session.get': noSession,
+          'session.login': ({ body }: { body: unknown }) => {
+            logins.push(body as Record<string, unknown>);
+            return { status: 401, body: envelope('EBMR-IAM-140', 'AUTH_FAILED', 'Sign-in failed.') };
+          },
+        },
+        { installation: 'SANDBOX' },
+      ),
+    );
+    renderGate();
+    const field = await screen.findByLabelText<HTMLInputElement>('Badge');
+    expect(document.activeElement).toBe(field);
+    expect(screen.getByText('Tap your badge to sign in.')).toBeTruthy();
+    // No countdown and no Cancel: the sign-in screen waits for a badge.
+    expect(screen.queryByText(/Waiting for a badge/)).toBeNull();
+    await userEvent.keyboard('482913{Enter}');
+    expect(await screen.findByText('That is not a badge. Nothing was sent: tap your badge on the reader.')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Enter your PIN' })).toBeNull();
+    // A stray key, then the reader's burst: only the burst is the badge.
+    await userEvent.type(screen.getByLabelText('Badge'), '7');
+    await new Promise((r) => setTimeout(r, 300));
+    await userEvent.type(screen.getByLabelText('Badge'), `${UID}{Enter}`);
+    const pad = await screen.findByRole('group', { name: 'Enter your PIN' });
+    // The ui-kit pad: OK only from 4 digits, at most 12, keyboard digits too.
+    for (const d of '482') await userEvent.click(screen.getByRole('button', { name: d }));
+    expect(screen.getByRole('button', { name: 'OK' }).hasAttribute('disabled')).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: '9' }));
+    pad.focus();
+    await userEvent.keyboard('13{Enter}');
+    await waitFor(() => expect(logins).toHaveLength(1));
+    expect(logins[0]).toMatchObject({ method: 'BADGE_PIN', identifier: UID, secret: '482913' });
+    expect(await screen.findByText('Sign-in failed.')).toBeTruthy();
+  });
+});

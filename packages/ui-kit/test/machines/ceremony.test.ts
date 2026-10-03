@@ -191,6 +191,34 @@ describe('ceremony machine paths', () => {
   });
 });
 
+describe('a kiosk tap refused for the challenge (review F56)', () => {
+  it('[DI-14][DI-38][DI-19] returns to the tap with the refusal shown, as a wrong PIN returns to the pad; the next tap goes on; a lockout still ends it', () => {
+    const challenging = pathsTo(true, 'challenging')[0]?.state;
+    const [again] = transition(ceremonyMachine, challenging as never, fail('createChallenge', refused(401, 'EBMR-IAM-140', 'AUTH_FAILED')) as never);
+    expect((again as { value: unknown }).value).toBe('awaitingTap');
+    expect((again as { context: { attempts: number; attemptError: RefusalEnvelope; refusal: unknown } }).context).toMatchObject({ attempts: 1, attemptError: { refusal: { code: 'EBMR-IAM-140' } }, refusal: null });
+    const [tapped] = transition(ceremonyMachine, again as never, { type: 'TAPPED' } as never);
+    expect((tapped as { value: unknown }).value).toBe('challenging');
+    const [challenge] = transition(ceremonyMachine, tapped as never, done('createChallenge', CHALLENGE) as never);
+    expect((challenge as { value: unknown; context: { attemptError: unknown } }).value).toBe('awaitingSecret');
+    expect((challenge as { context: { attemptError: unknown } }).context.attemptError).toBeNull();
+    // The signer may also stop at the tap.
+    const [cancelled] = transition(ceremonyMachine, again as never, { type: 'CANCEL' } as never);
+    expect((cancelled as { value: unknown }).value).toBe('cancelled');
+    // A lockout or any other refusal of the challenge still ends the signing.
+    for (const [status, code, kind] of [[423, 'AUTH_LOCKED', 'LOCKED'], [422, 'EBMR-ESIG-026', 'NOT_ALLOWED']] as const) {
+      const [ended] = transition(ceremonyMachine, challenging as never, fail('createChallenge', refused(status, code, kind)) as never);
+      expect((ended as { value: unknown }).value, code).toBe('refused');
+    }
+  });
+
+  it('[DI-38] an office challenge (no tap) refused as AUTH_FAILED is not sent back to a tap: it ends as refused', () => {
+    const challenging = pathsTo(false, 'challenging')[0]?.state;
+    const [ended] = transition(ceremonyMachine, challenging as never, fail('createChallenge', refused(401, 'EBMR-IAM-140', 'AUTH_FAILED')) as never);
+    expect((ended as { value: unknown }).value).toBe('refused');
+  });
+});
+
 describe('ceremony with real actors', () => {
   it('[DI-38][INV-10] the PIN never enters the machine: the host keeps it for one request and the actor wipes it', async () => {
     const PIN = '482913';

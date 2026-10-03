@@ -1,6 +1,8 @@
 /**
  * Sign-in (plan section 5): user ID and password on office PCs; badge (keyboard-wedge reader, or the demo
- * badge drawer) and PIN on the keypad at kiosks; the first-login secret change; the role choice.
+ * badge drawer) and PIN on the keypad at kiosks; the first-login secret change; the role choice. The kiosk uses the
+ * ui-kit BadgePrompt and PinPad, the same tested components as unlock, switch and signing (review T1, F56): only a
+ * reader's burst that can be a badge UID is taken, and the pad stops at PIN_MAX_LENGTH digits.
  *
  * Secrets stay in uncontrolled inputs or refs, are cleared after sending, and never enter React state, caches
  * or storage. Every call carries a device proof. A password, PIN or badge field is a ui-kit Field of type
@@ -14,8 +16,8 @@
  * whose PIN it changes, and the new PIN is confirmed by tapping the badge again, so the next person at the kiosk cannot
  * choose the absent person's PIN (the kernel also refuses a change on a shared terminal past its attribution window).
  */
-import { useCallback, useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
-import { PIN_MAX_LENGTH, routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
+import { badgeUidOf, PIN_MAX_LENGTH, routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
 import { Banner, Button, Field, identity, t } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
@@ -341,51 +343,8 @@ export function OfficeLogin() {
   );
 }
 
-function PinPad({ onSubmit, disabled }: { onSubmit: (pin: string) => void; disabled: boolean }) {
-  const pin = useRef('');
-  const [length, setLength] = useState(0);
-  const press = (d: string) => {
-    if (pin.current.length >= PIN_MAX_LENGTH) return;
-    pin.current += d;
-    setLength(pin.current.length);
-  };
-  const clear = () => {
-    pin.current = '';
-    setLength(0);
-  };
-  const ok = () => {
-    const value = pin.current;
-    clear();
-    onSubmit(value);
-  };
-  return (
-    <div role="group" aria-label={t('session.enterPin')}>
-      <div className={cls('dots')} aria-live="polite" aria-label={`${length} digits entered`}>
-        {'•'.repeat(length)}
-      </div>
-      <div className={cls('keypad')}>
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-          <Button key={d} className={cls('key')} onPress={() => press(d)} isDisabled={disabled}>
-            {d}
-          </Button>
-        ))}
-        <Button className={cls('key')} onPress={clear} isDisabled={disabled} aria-label="Clear">
-          C
-        </Button>
-        <Button className={cls('key')} onPress={() => press('0')} isDisabled={disabled}>
-          0
-        </Button>
-        <Button className={cls('key')} variant="primary" onPress={ok} isDisabled={disabled || length === 0} aria-label="OK">
-          OK
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export function KioskLogin() {
   const { boot, error, setError, change, endChange, touchChange, credentials, notice, setNotice, busy, login } = useLogin(identity.KEEP_BADGE_MS);
-  const badgeRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<'badge' | 'pin'>('badge');
   const [who, setWho] = useState<string | null>(null);
   const [demo, setDemo] = useState<DemoDeviceView | null>(null);
@@ -404,19 +363,16 @@ export function KioskLogin() {
       if (r.ok) setDemo(r.value.devices.find((d) => d.deviceCode === boot.device?.deviceCode) ?? null);
     });
   }, [boot.meta?.demo, boot.device?.deviceCode]);
+  const demoBadges = useMemo(() => (demo?.personas ?? []).flatMap((p) => (p.badgeUid ? [{ legalName: p.legalName, badgeUid: p.badgeUid }] : [])), [demo]);
 
-  const tapped = (uid: string, name: string | null) => {
+  // The ui-kit BadgePrompt hands over a badge UID only (a reader's burst, or a demo badge): text that cannot be a badge
+  // never reaches the sign-in (review F56, T1).
+  const tapped = (uid: string) => {
     badge().keep(uid);
-    setWho(name);
+    setWho(demoBadges.find((b) => badgeUidOf(b.badgeUid) === uid)?.legalName ?? null);
     setError(null);
+    setNotice(null);
     setStep('pin');
-  };
-
-  const onBadge = (e: FormEvent) => {
-    e.preventDefault();
-    const uid = badgeRef.current?.value.trim() ?? '';
-    if (badgeRef.current) badgeRef.current.value = '';
-    if (uid) tapped(uid, null);
   };
 
   const onPin = (pin: string) => {
@@ -439,23 +395,18 @@ export function KioskLogin() {
           change={change}
           credentials={credentials}
           onActivity={touchChange}
-          demoBadges={(demo?.personas ?? []).flatMap((p) => (p.badgeUid ? [{ legalName: p.legalName, badgeUid: p.badgeUid }] : []))}
+          demoBadges={demoBadges}
           onDone={(m) => {
             endChange();
             setNotice(m);
           }}
         />
       ) : step === 'badge' ? (
-        <form onSubmit={onBadge} aria-label={t('session.tapBadge')}>
-          <Field label={t('session.badge')} name="badge" type="password" inputRef={badgeRef} autoComplete="off" autoFocus description={t('session.tapBadge')} />
-          <Button type="submit" variant="primary" isDisabled={busy}>
-            {t('common.continue')}
-          </Button>
-        </form>
+        <identity.BadgePrompt reason={t('session.tapToSignIn')} timeoutSeconds={null} busy={busy} demoBadges={demoBadges} onTap={tapped} />
       ) : (
         <>
           <p>{who ? `${who}: ${t('session.enterPin')}` : t('session.enterPin')}</p>
-          <PinPad onSubmit={onPin} disabled={busy} />
+          <identity.PinPad label={t('session.enterPin')} onSubmit={onPin} disabled={busy} />
           <Button
             onPress={() => {
               badge().clear();
@@ -466,20 +417,6 @@ export function KioskLogin() {
           </Button>
         </>
       )}
-      {demo && step === 'badge' && !change ? (
-        <section className={cls('drawer')} aria-label="Demo badge reader">
-          <h2>Demo badge reader (DEMO-ONLY)</h2>
-          <div className={cls('row')}>
-            {demo.personas
-              .filter((p) => p.badgeUid)
-              .map((p) => (
-                <Button key={p.loginName} onPress={() => tapped(p.badgeUid ?? '', p.legalName)}>
-                  Tap {p.legalName}
-                </Button>
-              ))}
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
 import type { ChallengeView, ManifestationView, SignableContentView } from '@ebmr/api-contract';
-import { BadgePrompt, IdentityBanner, LockOverlay, ManifestationCard, PinPad, SignableContent, SignatureDialog } from '../../src/identity/index.ts';
+import { BadgePrompt, BURST_GAP_MS, IdentityBanner, LockOverlay, ManifestationCard, NOT_A_BADGE, PinPad, SignableContent, SignatureDialog } from '../../src/identity/index.ts';
 import type { CeremonyContext } from '../../src/machines/ceremony.ts';
 
 const TEXT = '{"aggregate_id":"s-1","aggregate_type":"esig_stub","content":{"title":"Binder added","value":"12.503"},"content_version":1}';
@@ -105,6 +105,59 @@ describe('PinPad and BadgePrompt', () => {
     const onTimeout = vi.fn();
     render(<BadgePrompt reason="Confirm" onTap={noop} onCancel={noop} onTimeout={onTimeout} timeoutSeconds={1} />);
     await waitFor(() => expect(onTimeout).toHaveBeenCalledTimes(1), { timeout: 3000 });
+  });
+});
+
+describe('BadgePrompt takes only a badge (review F56: the owner\'s refused first signing tap)', () => {
+  it('[DI-14][DI-38][DI-19] a PIN keyed into the badge field is not sent: the prompt says it is not a badge and waits for one', async () => {
+    const onTap = vi.fn();
+    render(<BadgePrompt reason="Tap your badge to sign as TEST-Priya Nair." onTap={onTap} onCancel={noop} />);
+    const field = screen.getByLabelText<HTMLInputElement>('Badge');
+    expect(document.activeElement).toBe(field);
+    await userEvent.keyboard('482913{Enter}');
+    expect(onTap).not.toHaveBeenCalled();
+    expect(screen.getByText(NOT_A_BADGE)).toBeTruthy();
+    expect(field.value).toBe('');
+    expect(document.body.innerHTML).not.toContain('482913');
+    // Too short, not hexadecimal, or too long: nothing is sent.
+    for (const text of ['04A1000', 'GHIJKLMNOP', 'Correct-Password-1', 'A'.repeat(65)]) {
+      await userEvent.type(field, `${text}{Enter}`);
+      expect(onTap, text).not.toHaveBeenCalled();
+    }
+    // The reader's tap then counts, read as the kernel reads it.
+    await userEvent.type(field, '04:a1:00-00 00:00:01{Enter}');
+    expect(onTap).toHaveBeenCalledExactlyOnceWith('04A10000000001');
+    expect(screen.queryByText(NOT_A_BADGE)).toBeNull();
+  });
+
+  it('[DI-14][DI-38] a stray key typed before the reader\'s burst is not sent as part of the badge: a key long after the previous one starts the field afresh', async () => {
+    const onTap = vi.fn();
+    render(<BadgePrompt reason="Confirm your entry" onTap={onTap} onCancel={noop} />);
+    const field = screen.getByLabelText<HTMLInputElement>('Badge');
+    await userEvent.type(field, '4');
+    await new Promise((r) => setTimeout(r, BURST_GAP_MS * 3));
+    await userEvent.type(field, '04A10000000001{Enter}');
+    expect(onTap).toHaveBeenCalledExactlyOnceWith('04A10000000001');
+    // Keys typed one by one, as a person types, never make a badge: only the last one is left.
+    const slow = vi.fn();
+    render(<BadgePrompt reason="Confirm" onTap={slow} onCancel={noop} />);
+    const second = screen.getAllByLabelText<HTMLInputElement>('Badge')[1] as HTMLInputElement;
+    for (const k of '04A10000000001') {
+      await userEvent.type(second, k);
+      await new Promise((r) => setTimeout(r, BURST_GAP_MS * 2));
+    }
+    expect(second.value).toBe('1');
+    await userEvent.type(second, '{Enter}');
+    expect(slow).not.toHaveBeenCalled();
+  });
+
+  it('[DI-38] what happened to the previous tap is shown above the field; with no limit the prompt shows no countdown and, with no cancel, no Cancel', () => {
+    const refusal = { refusal: { code: 'EBMR-IAM-140', kind: 'AUTH_FAILED' as const, whatHappened: 'The badge was not accepted.', why: 'The badge is unknown or not active.', controls: [], whatYouCanDo: ['Tap your own badge again.'], whoCanHelp: [] }, correlationId: 't', retryable: true };
+    render(<BadgePrompt reason="Tap your badge to sign in." onTap={noop} timeoutSeconds={null} refusal={refusal} />);
+    expect(screen.getByText('The badge was not accepted.')).toBeTruthy();
+    expect(screen.getByText('What you can do: Tap your own badge again.')).toBeTruthy();
+    expect(screen.queryByText(/Waiting for a badge/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
   });
 });
 

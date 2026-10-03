@@ -21,6 +21,7 @@ export const EN = {
   'session.badge': 'Badge',
   'session.pin': 'PIN',
   'session.tapBadge': 'Tap your badge on the reader',
+  'session.tapToSignIn': 'Tap your badge to sign in.',
   'session.enterPin': 'Enter your PIN',
   'session.chooseRole': 'Choose the role you are working in',
   'session.noRole': 'You hold no role on this installation now, so there is nothing to choose.',

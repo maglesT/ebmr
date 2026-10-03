@@ -121,7 +121,15 @@ export function SignatureDialog(p: SignatureDialogProps) {
               </div>
             ) : null}
             {p.state === 'awaitingTap' && p.tapStage !== 'pin' ? (
-              <BadgePrompt reason={`Tap your badge to sign as ${p.signerName}.`} onTap={p.onTap} onCancel={p.onCancel} onTimeout={p.onTapTimeout} demoBadges={p.demoBadges ?? []} />
+              <BadgePrompt
+                key={`tap-${c.attempts}`}
+                reason={`Tap your badge to sign as ${p.signerName}.`}
+                refusal={c.attemptError}
+                onTap={p.onTap}
+                onCancel={p.onCancel}
+                onTimeout={p.onTapTimeout}
+                demoBadges={p.demoBadges ?? []}
+              />
             ) : null}
             {p.state === 'awaitingTap' && p.tapStage === 'pin' && p.onTapPin ? <PinPad label="Enter your PIN to confirm the signing request" onSubmit={p.onTapPin} /> : null}
             {p.state === 'challenging' ? <p aria-busy="true">Preparing the signature…</p> : null}

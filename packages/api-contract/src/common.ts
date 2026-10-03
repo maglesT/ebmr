@@ -94,6 +94,17 @@ export type DeviceProof = z.infer<typeof DeviceProof>;
 export const PIN_MAX_LENGTH = 12;
 
 /**
+ * A badge UID as the kernel reads one (iam.badge_uid_hash, EBMR-IAM-060): colons, hyphens and white space removed,
+ * upper case, 8 to 64 hexadecimal digits. Null for text that cannot be a badge UID, such as a PIN keyed into a badge
+ * field or a secret the browser filled in: the badge prompts send nothing then, so nothing is counted or alerted
+ * (review F56).
+ */
+export function badgeUidOf(text: string): string | null {
+  const uid = text.replace(/[:\s-]/g, '').toUpperCase();
+  return /^[0-9A-F]{8,64}$/.test(uid) ? uid : null;
+}
+
+/**
  * Per-entry attribution on SHARED and GRADE_A_B devices (INV-40): a badge tap by the session's own person,
  * with the device proof. TAP_PIN device classes add the PIN (decision D8).
  */

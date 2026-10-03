@@ -11,6 +11,9 @@
  *  - The content is verified by the client: SHA-256 of the exact canonical text must equal the server's hash, or
  *    the ceremony stops before any challenge (DI-37).
  *  - A wrong PIN or password returns to the secret entry (the kernel counts it toward lockout); a lockout ends it.
+ *  - A kiosk tap the server does not accept for the challenge (AUTH_FAILED: an unknown or inactive badge, or a wrong
+ *    PIN on TAP_PIN classes) returns to the tap with the refusal shown, as a wrong PIN returns to the PIN pad (review
+ *    F56: it used to end the signing, Close only); a lockout (LOCKED) still ends it.
  *  - The record changing (EBMR-ESIG-012/013, CONTENT_CHANGED) leads to `changed`, the challenge running out
  *    (host countdown EXPIRE, or the server's EBMR-ESIG-033) to `expired`; both offer to start again.
  *  - A lost sign response never re-sends credentials: `reconciling` reloads the signatures; a matching signature
@@ -128,6 +131,8 @@ export const ceremonyMachine = setup({
     authFailed: (_, params: { error: unknown }) => refusalKind(params.error) === 'AUTH_FAILED',
     contentChanged: (_, params: { error: unknown }) => refusalKind(params.error) === 'CONTENT_CHANGED',
     switchUser: (_, params: { error: unknown }) => refusalKind(params.error) === 'SWITCH_USER',
+    /** A kiosk's tap (and PIN on TAP_PIN classes) for the challenge was not accepted (F56): the signer taps again. */
+    tapRefused: ({ context }, params: { error: unknown }) => context.kiosk && refusalKind(params.error) === 'AUTH_FAILED',
     challengeExpired: (_, params: { error: unknown }) => refusalCode(params.error) === 'EBMR-ESIG-033',
   },
 }).createMachine({
@@ -166,6 +171,11 @@ export const ceremonyMachine = setup({
         onError: [
           { guard: { type: 'contentChanged', params: ({ event }) => ({ error: event.error }) }, target: 'changed', actions: assign({ refusal: ({ event }) => refusalOfFailure(event.error) }) },
           { guard: { type: 'switchUser', params: ({ event }) => ({ error: event.error }) }, target: 'switchOffered', actions: assign({ refusal: ({ event }) => refusalOfFailure(event.error) }) },
+          {
+            guard: { type: 'tapRefused', params: ({ event }) => ({ error: event.error }) },
+            target: 'awaitingTap',
+            actions: assign({ attemptError: ({ event }) => refusalOfFailure(event.error), attempts: ({ context }) => context.attempts + 1 }),
+          },
           { target: 'refused', actions: assign({ refusal: ({ event }) => refusalOfFailure(event.error) }) },
         ],
       },
