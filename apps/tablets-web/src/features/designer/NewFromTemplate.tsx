@@ -1,7 +1,7 @@
 /**
  * New master record from a template (module C2; plan section 12, screen 5). The author names the family, the product
  * and the approved discrete batch sizes (PR-01: a batch can later be made only at one of them), and the markets:
- * India is always included and cannot be unticked (INV-28).
+ * India is always included and cannot be unticked (INV-28). The product and the batch sizes start as the template's.
  */
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,8 +17,11 @@ import { KNOWN_MARKETS } from './model/ops.ts';
 
 interface SizeRow {
   quantity: string;
-  unit: 'kg' | 'g';
+  /** kg or g; a template's size in another unit is shown in that unit (the server says whether it takes it). */
+  unit: string;
 }
+
+const UNITS = ['kg', 'g'];
 
 export function NewFromTemplate() {
   const templates = useApiQuery(routes.designer.templates);
@@ -28,7 +31,7 @@ export function NewFromTemplate() {
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [familyCode, setFamilyCode] = useState<string | null>(null);
   const [productEdit, setProductEdit] = useState<{ code: string; name: string; strength: string } | null>(null);
-  const [sizes, setSizes] = useState<SizeRow[]>([{ quantity: '', unit: 'kg' }]);
+  const [sizesEdit, setSizesEdit] = useState<SizeRow[] | null>(null);
   const [markets, setMarkets] = useState<string[]>(['IN']);
   const [error, setError] = useState<CallError | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,6 +43,10 @@ export function NewFromTemplate() {
   const product = productEdit ?? chosen?.product ?? { code: '', name: '', strength: '' };
   const code = familyCode ?? (chosen ? `${chosen.product.code}-DC` : '');
   const setProduct = (patch: Partial<typeof product>): void => setProductEdit({ ...product, ...patch });
+  // The approved batch sizes start as the template's (its first is the reference its bill of materials is written for),
+  // until the author edits them (lead TODO T6; PR-01).
+  const sizes: SizeRow[] = sizesEdit ?? (chosen?.batchSizes.map((b) => ({ quantity: b.quantity, unit: b.unit })) ?? [{ quantity: '', unit: 'kg' }]);
+  const setSizes = (change: (all: SizeRow[]) => SizeRow[]): void => setSizesEdit(change(sizes));
 
   const complete = chosen !== undefined && code.trim() !== '' && product.code.trim() !== '' && product.name.trim() !== '' && product.strength.trim() !== '' && sizes.every((s) => s.quantity !== '');
 
@@ -80,6 +87,7 @@ export function NewFromTemplate() {
               onChange={() => {
                 setTemplateId(t.templateId);
                 setProductEdit(null);
+                setSizesEdit(null);
               }}
             />
             <label htmlFor={`${templateGroup}-${t.templateId}`}>
@@ -102,9 +110,12 @@ export function NewFromTemplate() {
             <DecimalField label={`Batch size ${i + 1}`} unit={s.unit} value={s.quantity} maxDecimals={3} onChange={(v) => setSizes((all) => all.map((x, j) => (j === i ? { ...x, quantity: v } : x)))} />
             <label>
               Unit{' '}
-              <select className={dcls('select')} value={s.unit} onChange={(e) => setSizes((all) => all.map((x, j) => (j === i ? { ...x, unit: e.target.value === 'g' ? 'g' : 'kg' } : x)))}>
-                <option value="kg">kg</option>
-                <option value="g">g</option>
+              <select className={dcls('select')} value={s.unit} onChange={(e) => setSizes((all) => all.map((x, j) => (j === i ? { ...x, unit: e.target.value } : x)))}>
+                {(UNITS.includes(s.unit) ? UNITS : [s.unit, ...UNITS]).map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
               </select>
             </label>
             {sizes.length > 1 ? (

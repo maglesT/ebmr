@@ -350,6 +350,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     title: t.title,
     description: t.description,
     product: { code: t.content.header.product.code, name: t.content.header.product.name, strength: t.content.header.product.strength },
+    batchSizes: t.content.header.batchSizes.map((b) => ({ quantity: b.quantity.value, unit: b.quantity.unit })),
     markets: [...t.content.header.marketSet],
     steps: stepCount(t.content),
   }));

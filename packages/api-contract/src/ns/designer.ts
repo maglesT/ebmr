@@ -36,6 +36,11 @@ export const TemplateView = z.strictObject({
   title: z.string(),
   description: z.string(),
   product: ProductRef,
+  /**
+   * The template's approved discrete batch sizes, the first being the reference its bill of materials is written for
+   * (PR-01): the new-family form starts from them, in the shape createFamily takes.
+   */
+  batchSizes: z.array(z.strictObject({ quantity: DecimalString, unit: z.string().min(1) })).min(1),
   markets: z.array(z.string()),
   steps: z.number().int().nonnegative(),
 });

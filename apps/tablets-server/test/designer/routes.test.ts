@@ -37,6 +37,22 @@ describe('templates, families and versions', () => {
     expect(r.templates).toEqual([expect.objectContaining({ templateId: 'dc-mini', product: { code: 'PCM500', name: 'Paracetamol tablets', strength: '500 mg' }, markets: ['IN'], steps: 14 })]);
   });
 
+  it('[PR-01] the template lists its approved batch sizes, the reference size first, in the shape createFamily takes (lead TODO T6)', async () => {
+    const r = valueOf(await author.call(routes.designer.templates));
+    expect(r.templates.map((t) => t.batchSizes)).toEqual([
+      [
+        { quantity: '60.000', unit: 'kg' },
+        { quantity: '30.000', unit: 'kg' },
+      ],
+    ]);
+    // Sent back unchanged, they create a family whose content keeps the template's size ids and its bill of materials.
+    const v = await createFamily(author, { familyCode: 'PCM500-TEMPLATE-SIZES', product: { code: 'PCM500-TS', name: 'Paracetamol tablets', strength: '500 mg' }, batchSizes: r.templates[0]?.batchSizes ?? [] });
+    const mbr = flow.parseMbr(v.content);
+    if (!mbr.ok) throw new Error('content does not parse');
+    expect(mbr.mbr.header.batchSizes.map((b) => b.id)).toEqual(['BS-100K', 'BS-50K']);
+    expect(mbr.mbr.bom).toEqual(templateMbr().bom);
+  });
+
   it('[PR-01] creates a family and its DRAFT version from the template with the approved discrete batch sizes', async () => {
     const v = await createFamily(author);
     expect(v.state).toBe('DRAFT');
