@@ -1,29 +1,44 @@
 /**
- * Kiosk access through the real screens (module C1; plan section 5; INV-40, DI-14, DI-38): an entry without a badge
- * tap is refused by the server even with the session's cookie and CSRF token; the terminal locks and only its own
+ * Kiosk access through the real screens (module C1; plan section 5; INV-40, DI-14, DI-38): a signing request without
+ * a badge tap is refused by the server even with the session's cookie and CSRF token, and nothing is recorded (no
+ * challenge on the entry, no audit entry or authentication event of the person); the terminal locks and only its own
  * person unlocks it with badge and PIN; the next person switches in with badge and PIN and gets their own session.
  */
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { axe, expect, signIn, test } from '../../fixtures/index.ts';
-import { enterPinOn, tapInto } from '../esig/support.ts';
+import { createStub, enterPinOn, stubRecords, tapInto } from '../esig/support.ts';
 
 test.describe('kiosk access', () => {
-  test('[INV-40][DI-14] an entry on a kiosk without a badge tap is refused by the server', { tag: '@kiosk' }, async ({ kioskPage, persona, e2e, evidence }) => {
+  test('[INV-40][DI-14] a signing request on a kiosk without a badge tap is refused by the server and records nothing', { tag: '@kiosk' }, async ({ kioskPage, persona, e2e, evidence }) => {
     const operator = persona('SANDBOX', 'operator1');
+    const issuer = persona('SANDBOX', 'issuer');
+    // An entry that exists, with its real content version and hash: with a tap this request would open a challenge
+    // (esig.spec signs such an entry), so no challenge afterwards is the tap guard's doing (review F26).
+    const stub = await createStub(e2e.state, e2e.seeds.SANDBOX, 'SANDBOX', issuer.key, { title: 'Blend: binder solution added', value: '12.503', unit: 'kg' });
     const page = await kioskPage('TEST-KIOSK-DISP-1');
     await signIn.kiosk(page, operator);
     const base = e2e.url('SANDBOX');
-    await evidence.step('Send a signing request from the signed-in kiosk session without a tap', 'The server answers 428 TAP_REQUIRED and records nothing', async () => {
+    await evidence.step('Send a signing request for an existing entry from the signed-in kiosk session without a tap', 'The server answers 428 TAP_REQUIRED and records nothing: no challenge on the entry, no audit entry or authentication event of the operator', async () => {
       const s = await page.request.get(`${base}/api/session`);
       expect(s.status()).toBe(200);
       const { csrfToken } = (await s.json()) as { csrfToken: string };
-      const stub = randomUUID();
+      const c = await page.request.get(`${base}/api/esig/content?aggregateType=esig_stub&aggregateId=${stub}&intent=PERFORMED`);
+      expect(c.status()).toBe(200);
+      const content = (await c.json()) as { contentVersion: string; canonicalText: string; contentHash: string };
+      const clientContentHash = createHash('sha256').update(content.canonicalText, 'utf8').digest('hex');
+      expect(clientContentHash).toBe(content.contentHash);
+      const before = await stubRecords(e2e.state, 'SANDBOX', stub, operator.personId);
       const r = await page.request.post(`${base}/api/esig/challenges`, {
         headers: { origin: base, 'sec-fetch-site': 'same-origin', 'x-csrf-token': csrfToken, 'idempotency-key': randomUUID(), 'content-type': 'application/json' },
-        data: { aggregateType: 'esig_stub', aggregateId: stub, contentVersion: '1', meaning: 'PERFORMED', clientContentHash: 'ab'.repeat(32), action: { kind: 'ESIG_STUB', stubId: stub } },
+        data: { aggregateType: 'esig_stub', aggregateId: stub, contentVersion: content.contentVersion, meaning: 'PERFORMED', clientContentHash, action: { kind: 'ESIG_STUB', stubId: stub } },
       });
       expect(r.status()).toBe(428);
-      expect(((await r.json()) as { refusal: { code: string } }).refusal.code).toBe('TAP_REQUIRED');
+      const { code } = ((await r.json()) as { refusal: { code: string } }).refusal;
+      expect(code).toBe('TAP_REQUIRED');
+      const after = await stubRecords(e2e.state, 'SANDBOX', stub, operator.personId);
+      expect(after.challenges).toBe(0);
+      expect(after).toEqual(before);
+      return { status: r.status(), code, challenges: after.challenges, auditEntriesAdded: after.auditEntries - before.auditEntries, authEventsAdded: after.authEvents - before.authEvents };
     });
   });
 

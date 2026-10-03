@@ -4,7 +4,8 @@
  *
  *  - the live gauge is labelled "live, not recorded"; a captured weight shows the scale's device code and the raw
  *    MT-SICS line, which states exactly the value shown (DI-32);
- *  - a terminal in another room has no scale to capture from (DI-20);
+ *  - a terminal in another room lists no scale of DISP-1, and the server refuses that terminal's own session a capture
+ *    from, and the live view of, the DISP-1 scale (SCALE_NOT_IN_ROOM, 403), adding no reading (DI-20);
  *  - with the simulator OFFLINE the scale turns offline and the screen offers only the manual two-person path,
  *    with its explanation.
  * The claimed weight on a batch record (G-07 step) is covered by the journey spec (fcv.spec.ts), which runs the
@@ -14,6 +15,8 @@
  * (withSimulator; the journey spec weighs on the same balance) and always clears the faults it injects.
  */
 import { routes } from '@ebmr/api-contract';
+import { openDatabase } from '@ebmr/test-kit';
+import type { E2eState } from '../../fixtures/state.ts';
 import { axe, expect, signIn, test, withSimulator } from '../../fixtures/index.ts';
 
 test.describe.configure({ mode: 'serial' });
@@ -21,6 +24,17 @@ test.describe.configure({ mode: 'serial' });
 async function simulator(url: string, action: string, body: Record<string, unknown> = {}): Promise<void> {
   const res = await fetch(`${url}/api/${action}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   expect(res.status).toBe(200);
+}
+
+/** Readings stored for a scale, read by the superuser (evidence that a refused capture recorded nothing). */
+async function readingsOf(state: E2eState, deviceCode: string): Promise<number> {
+  const db = openDatabase(state.databases.SANDBOX, 'SANDBOX');
+  try {
+    const { rows } = await db.admin.query<{ n: number }>('select count(*)::int as n from tab.device_reading where device_code = $1', [deviceCode]);
+    return rows[0]?.n ?? -1;
+  } finally {
+    await db.close();
+  }
 }
 
 test.describe('devices', () => {
@@ -54,15 +68,37 @@ test.describe('devices', () => {
     await axe.check(page);
   }));
 
-  test('[DI-20] a kiosk in another room has no scale of DISP-1 to capture from', { tag: '@kiosk' }, async ({ kioskPage, persona, api }) => {
+  test('[DI-20] a kiosk in another room lists no scale of DISP-1, and the server refuses it a capture from and the live view of TEST-BAL-01', { tag: '@kiosk' }, async ({ kioskPage, persona, api, e2e, evidence }) => withSimulator(e2e.state, async () => {
     const page = await kioskPage('TEST-KIOSK-BLEND-1');
     await signIn.kiosk(page, persona('SANDBOX', 'operator2'));
     await page.getByRole('link', { name: /^Scales/ }).click();
     await expect(page.getByText('No scale is registered to this room.')).toBeVisible();
-    // Without a session the device routes refuse outright.
+    const base = e2e.url('SANDBOX');
+    // The screen's list defaults to the session's room; the gate is the server's own (review F27): the BLEND-1
+    // session itself asks for the DISP-1 scale, and the simulator lock keeps other specs from capturing meanwhile.
+    await evidence.step('The BLEND-1 kiosk session asks the server for a capture from TEST-BAL-01 (DISP-1) and for its live view', 'Both are refused: SCALE_NOT_IN_ROOM (403) and 403; no reading of TEST-BAL-01 is added', async () => {
+      const s = await page.request.get(`${base}/api/session`);
+      expect(s.status()).toBe(200);
+      const { csrfToken } = (await s.json()) as { csrfToken: string };
+      const before = await readingsOf(e2e.state, 'TEST-BAL-01');
+      const r = await page.request.post(`${base}/api/devices/scales/TEST-BAL-01/capture`, {
+        headers: { origin: base, 'sec-fetch-site': 'same-origin', 'x-csrf-token': csrfToken, 'content-type': 'application/json' },
+        data: { purpose: 'CHECK' },
+      });
+      expect(r.status()).toBe(403);
+      const { code } = ((await r.json()) as { refusal: { code: string } }).refusal;
+      expect(code).toBe('SCALE_NOT_IN_ROOM');
+      // A stream that opened would never end: the timeout fails the step instead of waiting for the test's.
+      const live = await page.request.get(`${base}/api/devices/scales/TEST-BAL-01/live`, { headers: { accept: 'text/event-stream' }, timeout: 15_000 });
+      expect(live.status()).toBe(403);
+      const after = await readingsOf(e2e.state, 'TEST-BAL-01');
+      expect(after).toBe(before);
+      return { captureStatus: r.status(), code, liveStatus: live.status(), readingsBefore: before, readingsAfter: after };
+    }, page);
+    // Without a session the device routes refuse outright (authentication, not the room gate).
     const anonymous = await api('SANDBOX').call(routes.devices.scales, { query: {} });
     expect(anonymous.ok).toBe(false);
-  });
+  }));
 
   test('[DI-32] with the simulator OFFLINE the scale turns offline and only the manual two-person path is offered', { tag: '@kiosk' }, async ({ kioskPage, persona, e2e, evidence }) => withSimulator(e2e.state, async () => {
     const sim = e2e.state.urls.simulatorConsole;

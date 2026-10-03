@@ -83,6 +83,33 @@ export async function stubSignatures(state: E2eState, installation: Installation
   }
 }
 
+/** What the database holds about a stub entry and a person, read by the superuser (evidence that a request recorded nothing). */
+export interface StubRecords {
+  /** Challenges on the stub entry. */
+  challenges: number;
+  /** Audit entries whose actor is the person. */
+  auditEntries: number;
+  /** Authentication events of the person (sign-in, taps, unlocks, signatures). */
+  authEvents: number;
+}
+
+export async function stubRecords(state: E2eState, installation: Installation, stubId: string, personId: string): Promise<StubRecords> {
+  const db = openDatabase(state.databases[installation], installation);
+  try {
+    const { rows } = await db.admin.query<StubRecords>(
+      `select (select count(*) from esig.challenge where aggregate_ref = 'esig_stub:' || $1)::int as "challenges",
+              (select count(*) from kernel.audit_event where payload -> 'actor' ->> 'person_id' = $2)::int as "auditEntries",
+              (select count(*) from iam.auth_event where person_id = $2::uuid)::int as "authEvents"`,
+      [stubId, personId],
+    );
+    const r = rows[0];
+    if (!r) throw new Error('no counts');
+    return r;
+  } finally {
+    await db.close();
+  }
+}
+
 /** Types a PIN on the keypad whose group has this accessible name, then OK. */
 export async function enterPinOn(page: Page, padName: string, value: string): Promise<void> {
   const pad = page.getByRole('group', { name: padName });

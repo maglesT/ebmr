@@ -95,7 +95,7 @@ tests:
   - "packages/ui-kit/test/identity/identity.test.tsx > [DI-14] the banner names the person, user ID, role and terminal, with lock, switch (kiosk) and sign out"
   - "packages/ui-kit/test/machines/kiosk-lock.test.ts > [DI-38][DI-14] a locked session opens only through the unlock or a switch; another person's badge at the lock becomes a switch offer"
   - "packages/ui-kit/test/machines/kiosk-lock.test.ts > [INV-40][DI-14] an offer after another person's tap switches or is dismissed; a failed switch returns to the offer"
-  - "tools/e2e/specs/access/access.spec.ts > [INV-40][DI-14] an entry on a kiosk without a badge tap is refused by the server"
+  - "tools/e2e/specs/access/access.spec.ts > kiosk access > [INV-40][DI-14] a signing request on a kiosk without a badge tap is refused by the server and records nothing"
   - "tools/e2e/specs/access/access.spec.ts > [DI-38][DI-14][INV-40] the kiosk locks; its own person unlocks with badge and PIN; the next person switches in with badge and PIN"
   - "apps/tablets-web/test/access/ceremony-person-change.test.tsx > F39: a signing ends when another person is signed in, whatever the path (INV-40, DI-38, DI-14) > [INV-40][DI-38][DI-14] the lock button, then \"Switch user\" on the lock screen: Priya's signing ends with nothing signed; her decision is never challenged or signed under Kavya"
   - "apps/tablets-web/test/access/ceremony-person-change.test.tsx > F39: a signing ends when another person is signed in, whatever the path (INV-40, DI-38, DI-14) > [INV-40][DI-38][DI-14] an idle lock the session poll sees, then \"Switch user\" on the lock screen: the same"
