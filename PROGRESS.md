@@ -1534,3 +1534,28 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   server designer finding-locations and roles, execution db-guards-content-roles; recipe-core validator roles.
   Playwright designer and floor specs re-run: passed. Defaults F47.1, F48.1, F49.1 and F46.1 are in
   docs/decisions/phase-2-open-questions.md.
+- 2026-10-02: PHASE 2 EXIT FIX, Designer: forms, drafts, simulation, contract examples (branch phase-2/recipe-core;
+  findings F50, F52, F53, F54 and F55 of the exit review, lead TODOs T6 and T7; each fix with a test that fails on the
+  code before it). F50: a leftover unsaved draft (D7) was keyed by version only, survived sign-out and was offered on
+  any version, so a checker could restore another author's limits under "it can no longer be edited"; now a draft is
+  the signed-in person's (format 2, key with the person id), a version that is not a DRAFT always shows its saved
+  content (the author's own leftover draft can only be discarded), and every designer draft goes at sign-out. F52: an
+  optional yes/no member shown as an unticked box was applied as yes by the block (G-05 blockOnUnexpected, G-23
+  witness, G-08 chargeAll, G-14 showFormula), and "no" could never be recorded; now each optional boolean declares what
+  its absence means (outside the registry fingerprint) and the form offers block default (value), yes or no; the
+  document lists the members left to the default. F53: a whole number the form did not take was dropped silently and
+  left on screen; now it is refused in words with the schema's range and nothing is committed. F54: the simulation
+  report showed every path as an exception-free COMPLETED run (180 of 600 granulation paths exhaust the drying loop)
+  and listed targeted runs twice; now each run names its LOOP_EXHAUSTED exceptions and the panel counts them and says
+  when a list shows only its first 50. F55: the designer's contract examples were hand-written shapes the server
+  never gives (non-MBR content, wrong hash, "1.0", ":" keys, contradicting evidence, no palette in fixture mode); now
+  they are the server's own answers for dc-mini, compared with the server by a test, the step and run examples keep
+  to the template's limits and their own asOf, and the designer says when the palette is missing. T6: TemplateView
+  lists the template's approved batch sizes and the new-family form starts from them. T7: issue form, command answer,
+  timeline, replay and lot examples from the sandbox server's answers; fixture mode answers them and the session.
+  Tests: web designer editor, config-form, simulation-panel, new-from-template, app sign-out-screen, api
+  contract-examples; server designer simulation-runs, contract-examples, routes; execution contract-examples;
+  recipe-core blocks optional-defaults. Playwright designer, journey, floor and smoke specs re-run: passed. Defaults
+  F50.1, F52.1, F55.1 and T7.1 are in docs/decisions/phase-2-open-questions.md. Open for the owner: the VALIDATOR
+  evidence of start of verification counts only the static validator's warnings (F55.1); showFormula and
+  showResidueYield have no reader yet (F52.1).
