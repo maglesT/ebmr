@@ -179,10 +179,13 @@ describe('signing an engine command', () => {
     const refused = tl.at(-1);
     expect(refused).toMatchObject({ kind: 'COMMAND', accepted: false });
     expect(refused?.summary).not.toMatch(/\(signed /);
-    expect(refused?.summary).toBe(`VERIFY ${CLEAR} (refused before signing: nothing was signed)`);
+    // The timeline names the step by its number and name (lead TODO T4), not by its key.
+    const clear = (await d.stepView('verifier1', CLEAR)).step;
+    const named = `step ${clear.number} ${clear.title}`;
+    expect(refused?.summary).toBe(`VERIFY ${named} (refused before signing: nothing was signed)`);
     expect(refused?.refusal).toBeTruthy();
     // An accepted signed row still names the meaning it was signed with.
-    expect(tl.find((e) => e.kind === 'COMMAND' && e.accepted && e.summary.startsWith('SIGN_PERFORMED'))?.summary).toBe(`SIGN_PERFORMED ${CLEAR} (signed LINE_CLEARANCE_PERFORMED)`);
+    expect(tl.find((e) => e.kind === 'COMMAND' && e.accepted && e.summary.startsWith('SIGN_PERFORMED'))?.summary).toBe(`SIGN_PERFORMED ${named} (signed LINE_CLEARANCE_PERFORMED)`);
   }, 180_000);
 
   it('[INV-10] a failure after the seal rolls back the signature, the seal and the run row together', async () => {

@@ -840,6 +840,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   engine's own form (a link copied with a sentence's full stop or comma, "p-disp-clear@.") is answered 404
   EXE_NOT_FOUND instead of a PENDING screen with no entries; the real key keeps its screen, a step not reached yet
   its PENDING view.
+- `people-text.test.ts` (lead TODO T4 of the Phase 2 exit; DI-34): the step screen, the run overview and the timeline
+  name a step by its document number and name, and items and persons by their names, where the engine's text names
+  their ids; only ids of the run's MBR are replaced, as whole tokens; the stored exception title keeps the engine's
+  text.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
   run records the signature-budget baseline: 29 signatures.

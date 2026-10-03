@@ -103,7 +103,9 @@ describe('commands', () => {
     const rows = await rowsOf(server, d.runId);
     expect(rows.at(-1)).toMatchObject({ kind: 'COMMAND', command_type: 'START_STEP', accepted: false, refusal: { code: 'ENG-NOT-ENABLED' } });
     const tl = valueOf(await d.browser('operator1').call(routes.execution.timeline, { params: { runId: d.runId } })).entries;
-    expect(tl.at(-1)).toMatchObject({ kind: 'COMMAND', accepted: false, summary: 'START_STEP p-disp-pcm@' });
+    // The timeline names the step by its number and name (lead TODO T4), not by its key.
+    const pcm = (await d.stepView('operator1', 'p-disp-pcm@')).step;
+    expect(tl.at(-1)).toMatchObject({ kind: 'COMMAND', accepted: false, summary: `START_STEP step ${pcm.number} ${pcm.title}` });
     expect(tl.at(-1)?.refusal).toMatch(/out of sequence/);
     expect(await violations(server)).toEqual([]);
   }, 180_000);

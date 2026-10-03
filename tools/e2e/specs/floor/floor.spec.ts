@@ -528,7 +528,8 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
       await expect(page.getByTestId('primary-action')).toHaveText('Verify');
       await expect(page.getByTestId('primary-action')).toBeDisabled();
       const reason = page.getByTestId('primary-reason');
-      await expect(reason).toContainText(`${operator.legalName} performed, entered data in or corrected step p-disp-clear@ and so cannot verify or witness it`);
+      // The step is named by its number and name, not by its key (lead TODO T4).
+      await expect(reason).toContainText(new RegExp(`${operator.legalName} performed, entered data in or corrected step [0-9.]+ Dispensing booth clearance and so cannot verify or witness it`));
       await expect(reason).toContainText('(ENG-SEGREGATION; INV-03');
       await expect(reason).not.toContainText('does not hold a role');
       await expect(reason).not.toContainText('does not hold the permission');

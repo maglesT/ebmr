@@ -24,6 +24,7 @@ import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent } from './intents.ts';
+import { peopleText } from './people-text.ts';
 import { lotView, resolveLot } from './lots.ts';
 import { checkIssue, issueForm, packageToImport, packageView, packageViews } from './packages.ts';
 import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
@@ -201,8 +202,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
     timeline: async ({ params, requireSession }) => {
       requireSession();
-      await runContext(pool, params.runId);
-      return { entries: timeline(app, await loadRowFacts(pool, params.runId)) };
+      const run = await runContext(pool, params.runId);
+      return { entries: timeline(app, await loadRowFacts(pool, params.runId), run.def) };
     },
 
     verifyReplay: async ({ params, requireSession }) => {
@@ -251,7 +252,10 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         const r = await tx.command(resolved.command, roles, { ...resolved.evidence, ...(idempotencyKey ? { idempotencyKey } : {}) });
         runCache(app).set(params.runId, { def: run.def, state: tx.state });
         const refused = r.accepted ? null : engineRefusal(app.guidance, r.refusal ?? { code: 'ENG-REFUSED', message: 'Refused', controls: ['DI-34'] });
-        const work: CommandWork = refused ? { refused: { status: refused.status, refusal: withReadingsUsed(refused.refusal, readingsClaimed(resolved.evidence)) } } : { accepted: { version: tx.state.version } };
+        // The engine's reason as people read it (T4): the step by number and name, the person by name; the row keeps
+        // the engine's own text.
+        const said = refused ? { ...refused.refusal, why: peopleText({ def: run.def, person: (id) => (id === a.personId ? s.legalName : null) }, refused.refusal.why) } : null;
+        const work: CommandWork = refused && said ? { refused: { status: refused.status, refusal: withReadingsUsed(said, readingsClaimed(resolved.evidence)) } } : { accepted: { version: tx.state.version } };
         return work as unknown as commands.JsonValue;
       });
       const work = out.result as unknown as CommandWork;

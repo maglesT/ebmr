@@ -41,6 +41,7 @@ import type { z } from 'zod';
 import type { AppContext } from '../../platform/context.ts';
 import { signaturesOf as recordSignaturesOf } from '../esig/views.ts';
 import { parseStepKey, stepRoomReason, wireOf } from './intents.ts';
+import { peopleText } from './people-text.ts';
 import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
 
@@ -194,6 +195,21 @@ export interface ActionExtras {
   roomReason?: string | null;
   /** Who may give the step's check (checkersOf), shown with a verification or witness refused to this viewer by role or by INV-03. */
   checkers?: readonly string[];
+  /** The engine's text as people read it: steps by number and name, items and persons by name (T4; peopleText). */
+  say?: (text: string) => string;
+}
+
+const sayIt = (say: ((text: string) => string) | undefined, text: string | null): string | null => (text !== null && say ? say(text) : text);
+
+/** The engine's texts for this view's viewer as people read them (T4): see people-text.ts. */
+export function sayFor(def: engine.BatchDefinition, rows: RunRows): (text: string) => string {
+  return (text) => peopleText({ def, person: (id) => rows.person(id)?.legalName ?? null }, text);
+}
+
+/** An exception as a screen shows it: its title as people read it (the record and the signed content keep the engine's text; T4). */
+function shownException(ctx: ViewContext, e: engine.ExceptionRecord): ExceptionView {
+  const v = exceptionView(ctx, e);
+  return { ...v, title: sayFor(ctx.run.def, ctx.rows)(v.title) };
 }
 
 /**
@@ -214,7 +230,7 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
     return {
       a,
       available,
-      reason: a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : (denied ?? elsewhere),
+      reason: sayIt(extras.say, a.refusal ? (who ? a.refusal.message.split(who.id).join(who.name) : a.refusal.message) : (denied ?? elsewhere)),
       whoCanHelp: byWho ? [...(extras.checkers ?? [])] : [],
     };
   });
@@ -844,9 +860,9 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     fields: fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
     entryForms: entryFormsOf(def, stepDef),
-    exceptions: exceptions.map((e) => exceptionView(ctx, e)),
+    exceptions: exceptions.map((e) => shownException(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
-    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, extras),
+    actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, { ...extras, say: sayFor(ctx.run.def, ctx.rows) }),
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
   };
@@ -967,9 +983,9 @@ export async function runView(ctx: ViewContext): Promise<RunView> {
     stages: await stagesOf(ctx),
     exceptions: Object.values(ctx.state.exceptions)
       .sort((a, b) => a.raisedSeq - b.raisedSeq)
-      .map((e) => exceptionView(ctx, e)),
+      .map((e) => shownException(ctx, e)),
     holds: Object.values(ctx.state.holds).map((h) => holdView(ctx, h)),
-    actions: actionViews(engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }), shopFloor, whoOf(ctx), ctx.permissions),
+    actions: actionViews(engine.availableActions(ctx.run.def, ctx.state, ctx.viewer, { nowUs: ctx.nowUs }), shopFloor, whoOf(ctx), ctx.permissions, { say: sayFor(ctx.run.def, ctx.rows) }),
     auditChain: `batch:${ctx.run.batch.id}`,
   };
 }
@@ -1003,7 +1019,7 @@ export function workQueueItems(ctx: ViewContext, room: string | null): WorkQueue
     const stage = stepDef.stage ? def.stages.get(stepDef.stage) : undefined;
     const rooms = stage?.binding.rooms ?? [];
     if (room !== null && rooms.length > 0 && !rooms.includes(room)) continue;
-    const views = actionViews(stepActions(ctx, inst, inst.key), shopFloor, whoOf(ctx), ctx.permissions, { roomReason: stepRoomReason(def, inst.step, ctx.session?.roomCode ?? null) });
+    const views = actionViews(stepActions(ctx, inst, inst.key), shopFloor, whoOf(ctx), ctx.permissions, { roomReason: stepRoomReason(def, inst.step, ctx.session?.roomCode ?? null), say: sayFor(ctx.run.def, ctx.rows) });
     const action = views.find((v) => v.primary) ?? views.find((v) => v.action !== 'RAISE_EXCEPTION' && v.action !== 'HOLD_BATCH') ?? views[0];
     if (!action) continue;
     const sn = stepDef.stage ? n.byId.get(stepDef.stage) : undefined;
@@ -1056,14 +1072,16 @@ function rowSummary(r: RunRows['rows'][number]): string {
   }
 }
 
-export function timeline(app: AppContext, rows: RunRows): TimelineEntry[] {
+/** Every engine call of the run; its summary and refusal name steps, items and persons as people do (T4). */
+export function timeline(app: AppContext, rows: RunRows, def: engine.BatchDefinition): TimelineEntry[] {
+  const say = sayFor(def, rows);
   return rows.rows.map((r) => ({
     seq: r.seq.toString(),
     kind: r.kind,
     at: app.formatInstant(r.nowUs),
     actor: r.actor,
-    summary: rowSummary(r),
+    summary: say(rowSummary(r)),
     accepted: r.accepted,
-    refusal: r.refusal ? r.refusal.message || r.refusal.code : null,
+    refusal: r.refusal ? say(r.refusal.message || r.refusal.code) : null,
   }));
 }

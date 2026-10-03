@@ -47,6 +47,7 @@ import type { EsigSignableContext } from '../esig/content.ts';
 import { meaningInfo } from '../esig/views.ts';
 import { engineRefusal } from './guidance.ts';
 import { signedCommand, signedMeaning, signedSubject, stepRoomRefusal, stepTarget, wireOf } from './intents.ts';
+import { peopleText } from './people-text.ts';
 import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
 import { loadRowFacts, notFound, runCache, runContext, type Db, type RunContext } from './runs.ts';
 import { entriesOf, exceptionsOfStep, exceptionView, fieldsOf, limitViews, specOf, stageRef, stepScreen, stepSummary, type ViewContext, type ViewerInfo } from './views.ts';
@@ -772,7 +773,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
         const r = await o.tx.command(command, roles, { signing: 'refused before signing', meaning: o.meaning });
         cache.set(a.runId, { def: o.run.def, state: o.tx.state });
         const mapped = engineRefusal(app.guidance, r.refusal ?? { code: 'ENG-REFUSED', message: 'Refused', controls: ['DI-34'] });
-        return { accepted: false, status: mapped.status, refusal: { ...mapped.refusal, whatHappened: `${mapped.refusal.whatHappened} Nothing was signed.` } };
+        // The engine's reason as people read it (T4); the refused row keeps the engine's own text.
+        return { accepted: false, status: mapped.status, refusal: { ...mapped.refusal, whatHappened: `${mapped.refusal.whatHappened} Nothing was signed.`, why: peopleText({ def: o.run.def }, mapped.refusal.why) } };
       }
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
       const c = engine.aggregateContent(o.run.def, dry.state, o.subject.aggregateType, o.subject.key);
