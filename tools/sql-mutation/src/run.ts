@@ -17,10 +17,14 @@
  * each project with its own files; a failure in either kills the mutant.
  *
  * Usage: tsx tools/sql-mutation/src/run.ts [--count] [--verify] [--baseline] [--group <name>] [--only <ids>]
- *                                          [--workers <n>] [--out <dir>]
- *   --count     mutant counts per group (no database);
- *   --verify    build the templates and run the checks above, nothing else;
- *   --baseline  also run each group's tests once on the unmutated templates and report the times and limits.
+ *                                          [--workers <n>] [--out <dir>] [--own-cluster]
+ *   --count        mutant counts per group (no database);
+ *   --verify       build the templates and run the checks above, nothing else;
+ *   --baseline     also run each group's tests once on the unmutated templates and report the times and limits;
+ *   --own-cluster  the cluster is this run's alone (a CI job's service or a spare cluster): drop the databases the
+ *                  tests left behind (sweepLeftovers). Without it nothing but the run's own databases is dropped, so
+ *                  a run on a shared cluster (port 5432, where other test runs and the demo databases live) never
+ *                  drops another run's templates; leftovers from cancelled test files then stay until dropped by hand.
  * Needs the same PostgreSQL superuser as the tests (EBMR_PG_ADMIN_URL).
  */
 import { spawn } from 'node:child_process';
@@ -192,8 +196,8 @@ let startOid = 0;
  * Drops the databases the tests left behind and returns their names: with --bail a run stops at its first failure, and
  * a test file cancelled in its set-up (a hook still running, then timed out) never drops the copy it made. Only
  * databases created after the run began (a higher oid), named ebmr_*, not this run's own and with no connection are
- * dropped, and only while no test runs (between groups, at the end). The run's cluster must not be shared with another
- * test run while it runs (a CI job's own service, or a spare cluster).
+ * dropped, and only while no test runs (between groups, at the end), and only with --own-cluster: the run's cluster
+ * must then not be shared with another test run while it runs (a CI job's own service, or a spare cluster).
  */
 export async function sweepLeftovers(sinceOid = startOid, keep: ReadonlySet<string> = created, like = 'ebmr\\_%'): Promise<string[]> {
   if (sinceOid === 0) return [];
@@ -629,7 +633,8 @@ async function main(): Promise<void> {
 
   const all: Result[] = [];
   const timing = new Map<string, GroupLimits>();
-  startOid = await highestDatabaseOid();
+  // The sweep drops other databases, so it runs only on a cluster the run has to itself (--own-cluster).
+  if (process.argv.includes('--own-cluster')) startOid = await highestDatabaseOid();
   try {
     const started = process.hrtime.bigint();
     const t = await buildTemplates(new Set(plan.flatMap((p) => p.projects)));
