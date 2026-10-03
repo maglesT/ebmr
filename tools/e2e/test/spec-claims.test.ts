@@ -106,4 +106,15 @@ describe('E2E spec claims', () => {
     // No other spec captures from the scale meanwhile (the readings count is the room gate's alone).
     expect(textOf(sf, t)).toMatch(/withSimulator\(e2e\.state/);
   });
+
+  it('[meta] the steps that send a test package claim only what they check: the file in the inbox and its GMP stamp, not that it is write-once (review F28; DI-05)', () => {
+    for (const spec of ['designer/designer.spec.ts', 'journey/fcv.spec.ts']) {
+      const sf = sourceOf(spec);
+      const step = stepBody(sf, sf, 'in the sandbox inbox');
+      const expected = callsOf(sf, 'evidence.step').map((c) => literal(c.arguments[1])).find((e) => e.includes('in the sandbox inbox')) ?? '';
+      expect(expected, spec).not.toMatch(/write-once/i);
+      expect(textOf(sf, step), spec).toMatch(/readFileSync\(join\(e2e\.state\.exchangeDir, 'to-sandbox', `\$\{packageHash\}\.json`\)/);
+      expect(textOf(sf, step), spec).toMatch(/\.source\)\.toEqual\(\{ installationKind: 'GMP', watermark: null \}\)/);
+    }
+  });
 });

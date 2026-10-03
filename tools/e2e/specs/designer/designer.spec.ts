@@ -98,18 +98,21 @@ test.describe('designer', () => {
     await axe.check(page);
 
     let packageHash = '';
-    await evidence.step('Send the version to a sandbox test run', 'A write-once package with the GMP stamp is in the sandbox inbox', async () => {
+    // The step checks the file in the inbox (its name, GMP stamp, revision and justification); that the name is
+    // write-once is the server's export test (designer package-export), not something this step observes.
+    await evidence.step('Send the version to a sandbox test run', 'The package of revision 2, named by its hash and stamped as exported from GMP with its justification, is in the sandbox inbox', async () => {
       await page.getByRole('button', { name: 'Send to sandbox…' }).click();
       await page.getByRole('dialog', { name: 'Send to a sandbox test run' }).getByRole('button', { name: 'Write the test package' }).click();
       const banner = page.getByText('The test package is in the sandbox inbox.');
       await expect(banner).toBeVisible();
       await expect(page.getByRole('link', { name: 'Open the sandbox test packages' })).toHaveAttribute('href', /\/test-packages\?package=[0-9a-f]{64}$/);
       packageHash = /package=([0-9a-f]{64})/.exec((await page.getByRole('link', { name: 'Open the sandbox test packages' }).getAttribute('href')) ?? '')?.[1] ?? '';
+      const pkg = JSON.parse(readFileSync(join(e2e.state.exchangeDir, 'to-sandbox', `${packageHash}.json`), 'utf8')) as { source: unknown; version: { revision: number }; justifications: { key: string }[] };
+      expect(pkg.source).toEqual({ installationKind: 'GMP', watermark: null });
+      expect(pkg.version.revision).toBe(2);
+      expect(pkg.justifications.map((j) => j.key)).toEqual(['G07-TOLERANCE-MISSING@p-disp-exc']);
+      return { packageHash, revision: pkg.version.revision };
     }, page);
-    const pkg = JSON.parse(readFileSync(join(e2e.state.exchangeDir, 'to-sandbox', `${packageHash}.json`), 'utf8')) as { source: unknown; version: { revision: number }; justifications: { key: string }[] };
-    expect(pkg.source).toEqual({ installationKind: 'GMP', watermark: null });
-    expect(pkg.version.revision).toBe(2);
-    expect(pkg.justifications.map((j) => j.key)).toEqual(['G07-TOLERANCE-MISSING@p-disp-exc']);
 
     await evidence.step('The audit trail of the version shows the revision and the export', 'Revision 2, the justification and the test-package entry are on the chain mbr_version:<id>, which verifies', async () => {
       await expect(page.getByRole('link', { name: 'Audit trail' })).toHaveAttribute('href', `/audit?chain=${encodeURIComponent(`mbr_version:${versionId}`)}`);

@@ -84,7 +84,7 @@ test.describe('first clickable version (journey)', () => {
       await shots.shot(designer, 'gmp-simulation-passed');
 
       let packageHash = '';
-      await evidence.step('GMP: the author sends the version to a sandbox test run', 'A write-once test package with the GMP stamp is in the sandbox inbox', async () => {
+      await evidence.step('GMP: the author sends the version to a sandbox test run', 'A test package named by its hash and stamped as exported from GMP is in the sandbox inbox', async () => {
         await designer.getByRole('button', { name: 'Send to sandbox…' }).click();
         await designer.getByRole('dialog', { name: 'Send to a sandbox test run' }).getByRole('button', { name: 'Write the test package' }).click();
         await expect(designer.getByText('The test package is in the sandbox inbox.')).toBeVisible();
