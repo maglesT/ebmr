@@ -33,7 +33,10 @@
    named) need a governance or audit role and are never shown to the person an investigation is about. Content to be
    signed and signature lists are served only through such token-checked SECURITY DEFINER functions; the application
    role keeps token-free readers for RECORD-class records only and sees only RECORD-class rows of `esig.signature` and
-   `esig.challenge` (row-level security).
+   `esig.challenge` (row-level security). The audit trail is read the same way (tablets 0420, review F35): the viewer's
+   chains, events, person filter and verification go through token-checked functions that apply the same classes to
+   chains (account, person, investigation and the other governance chains need a governance or audit role), and the
+   application role has no SELECT on `kernel.audit_event` and `kernel.audit_chain_head`.
 
 ## Consequences
 

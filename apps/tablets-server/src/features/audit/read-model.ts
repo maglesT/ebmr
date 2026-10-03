@@ -1,8 +1,12 @@
 /**
- * The audit trail read model (module C1; plan section 11; DI-22, DI-23): typed Kysely reads over the kernel's
- * hash-chained audit trail (kernel.audit_event, kernel.audit_chain_head); user IDs and terminal codes come from the
- * registry's own audit entries. Read-only: the application role holds SELECT on these tables and nothing else, and
- * this module has no write path of any kind.
+ * The audit trail read model (module C1; plan section 11; DI-22, DI-23): reads of the kernel's hash-chained audit trail
+ * (kernel.audit_event, kernel.audit_chain_head) through the database's own read functions, for the session whose cookie
+ * token the request presents (tablets 0420, review F35; DI-17, DI-50): the database serves only the chains that
+ * session's role may read (RECORD-class chains with RECORD.READ; account, person, investigation and the other
+ * governance chains only in a governance or audit role, never an investigation to the person it is about), a person
+ * filter only on the session's own person or in a governance role, and refuses a chain it may not read
+ * (EBMR-TAB-020). The application role has no SELECT on the audit tables; user IDs and terminal codes come from the
+ * registry's own audit entries. Read-only: this module has no write path of any kind.
  *
  * Each entry says who (legal name as recorded, user ID, role), what (the business message, or the fields changed
  * with old and new values), when (site time with offset and zone, plus UTC microseconds), why (the reason given)
@@ -58,9 +62,6 @@ export const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 export const DEFAULT_LIMIT = 50;
 export const MAX_LIMIT = 200;
 
-/** SQL for a UTC epoch-microseconds text parameter as a timestamptz (exact; no floating point). */
-const fromMicros = (us: string) => sql<Date>`(timestamptz 'epoch' + (${us}::bigint * interval '1 microsecond'))`;
-
 export interface EventFilter {
   chainKey?: string | undefined;
   correlationId?: string | undefined;
@@ -90,47 +91,11 @@ interface EventRow {
   device_code: string | null;
 }
 
-/**
- * A registry value as its own chain hashed it: `field` of the new row in the audited INSERT of `table` whose record
- * is the actor's `idMember` (account_id or device_id), on chain `<prefix>:<id>`. Matched on the hashed payload only.
- */
-const hashedRegistryValue = (prefix: 'account' | 'device', table: 'iam.account' | 'iam.device', idMember: 'account_id' | 'device_id', field: 'login_name' | 'code') =>
-  sql<string | null>`(select x.payload -> 'body' -> 'new' ->> ${field}
-      from kernel.audit_event x
-     where x.chain_key = ${`${prefix}:`} || (e.payload -> 'actor' ->> ${idMember})
-       and x.payload ->> 'action' = 'INSERT' and x.payload ->> 'table' = ${table}
-       and x.payload ->> 'record_id' = e.payload -> 'actor' ->> ${idMember}
-     order by x.seq limit 1)`;
-
-/** The hashed recorded_at as epoch microseconds (the column only if the payload's value is not a time at all). */
-const hashedMicros = sql<string>`(extract(epoch from case when pg_input_is_valid(e.payload ->> 'recorded_at', 'timestamptz')
-      then (e.payload ->> 'recorded_at')::timestamptz else e.recorded_at end) * 1000000)::bigint::text`;
-
 /** Events in chronological order (id order), keyset-paged; one row more than the limit tells whether more exist. */
-export async function readEvents(db: AuditDb, f: EventFilter): Promise<EventRow[]> {
-  let q = db
-    .selectFrom('kernel.audit_event as e')
-    .select([
-      sql<string>`e.id::text`.as('id'),
-      sql<string>`coalesce(e.payload ->> 'chain_key', '')`.as('chain_key'),
-      sql<string>`coalesce(e.payload ->> 'seq', '')`.as('seq'),
-      hashedMicros.as('us'),
-      sql<string | null>`e.payload ->> 'correlation_id'`.as('correlation_id'),
-      sql<string>`coalesce(e.payload ->> 'action', '')`.as('action'),
-      sql<string | null>`e.payload ->> 'table'`.as('table_name'),
-      sql<string | null>`e.payload ->> 'record_id'`.as('record_id'),
-      'e.payload',
-      hashedRegistryValue('account', 'iam.account', 'account_id', 'login_name').as('login_name'),
-      hashedRegistryValue('device', 'iam.device', 'device_id', 'code').as('device_code'),
-    ]);
-  if (f.chainKey !== undefined) q = q.where('e.chain_key', '=', f.chainKey);
-  if (f.correlationId !== undefined) q = q.where(sql<boolean>`e.correlation_id = ${f.correlationId}::uuid`);
-  if (f.personId !== undefined) q = q.where(sql<boolean>`e.payload -> 'actor' ->> 'person_id' = ${f.personId}`);
-  if (f.fromUs !== undefined) q = q.where(sql<boolean>`e.recorded_at >= ${fromMicros(f.fromUs)}`);
-  if (f.toUs !== undefined) q = q.where(sql<boolean>`e.recorded_at <= ${fromMicros(f.toUs)}`);
-  if (f.afterId !== undefined) q = q.where(sql<boolean>`e.id > ${f.afterId}::bigint`);
-  if (f.upToId !== undefined) q = q.where(sql<boolean>`e.id <= ${f.upToId}::bigint`);
-  const rows = await q.orderBy('e.id', 'asc').limit(f.limit + 1).execute();
+export async function readEvents(db: AuditDb, tokenHash: string, f: EventFilter): Promise<EventRow[]> {
+  const { rows } = await sql<EventRow>`
+    select * from tab.audit_events(${tokenHash}, ${f.chainKey ?? null}, ${f.correlationId ?? null}::uuid, ${f.personId ?? null}::uuid,
+                                   ${f.fromUs ?? null}, ${f.toUs ?? null}, ${f.afterId ?? null}, ${f.upToId ?? null}, ${f.limit})`.execute(db);
   return rows;
 }
 
@@ -245,29 +210,16 @@ export function chainLabel(chainKey: string): string {
 }
 
 /**
- * The chains, newest activity first. What is shown of each (its entry count and the time of its last entry) comes from
- * the hashed payload of the chain's last entry (review P7). That entry is found only through what kernel.verify_chain
- * checks: the head's last_seq and last_hash, matched on the entry's chain key, position and hash. The head's
- * last_event pointer is never used, because verification does not cover it: a pointer moved to an earlier entry would
- * otherwise show a smaller count and an older time while "Verify chain" answers intact. When no entry matches the head
- * (verification then names the chain), the head's own count is shown with no time.
+ * The chains the session may read, newest activity first. What is shown of each (its entry count and the time of its last
+ * entry) comes from the hashed payload of the chain's last entry (review P7). That entry is found only through what
+ * kernel.verify_chain checks: the head's last_seq and last_hash, matched on the entry's chain key, position and hash. The
+ * head's last_event pointer is never used, because verification does not cover it: a pointer moved to an earlier entry
+ * would otherwise show a smaller count and an older time while "Verify chain" answers intact. When no entry matches the
+ * head (verification then names the chain), the head's own count is shown with no time. The prefix is taken literally.
  */
-export async function readChains(db: AuditDb, prefix: string | undefined, limit = 500): Promise<{ chain_key: string; last_seq: string; us: string | null }[]> {
-  let q = db
-    .selectFrom('kernel.audit_chain_head as h')
-    .leftJoin('kernel.audit_event as e', (j) =>
-      j.on(sql<boolean>`e.chain_key = h.chain_key and e.seq = h.last_seq and e.hash = h.last_hash and e.payload ->> 'chain_key' = h.chain_key`),
-    )
-    .select([
-      'h.chain_key',
-      sql<string>`coalesce(e.payload ->> 'seq', h.last_seq::text)`.as('last_seq'),
-      sql<string | null>`case when e.id is null then null else ${hashedMicros} end`.as('us'),
-    ]);
-  if (prefix !== undefined && prefix !== '') {
-    const escaped = prefix.replace(/[\\%_]/g, (c) => `\\${c}`);
-    q = q.where(sql<boolean>`h.chain_key like ${`${escaped}%`} escape '\\'`);
-  }
-  const rows = await q.orderBy(sql`e.id desc nulls last`).limit(limit).execute();
+export async function readChains(db: AuditDb, tokenHash: string, prefix: string | undefined, limit = 500): Promise<{ chain_key: string; last_seq: string; us: string | null }[]> {
+  const { rows } = await sql<{ chain_key: string; last_seq: string; us: string | null }>`
+    select chain_key, last_seq, us from tab.audit_chains(${tokenHash}, ${prefix ?? null}, ${limit})`.execute(db);
   return rows;
 }
 
@@ -275,18 +227,14 @@ export async function readChains(db: AuditDb, prefix: string | undefined, limit 
  * The registry chains the view of a chain draws on: the account and terminal of every actor on it (their hashed INSERT
  * entries give the user IDs and terminal codes shown), in byte order. The installation pipeline's nil ids have none.
  */
-export async function registryChainsOf(db: AuditDb, chainKey: string): Promise<string[]> {
-  const { rows } = await sql<{ chain_key: string }>`
-    select k.chain_key
-      from kernel.audit_event e
-     cross join lateral (values ('account:' || (e.payload -> 'actor' ->> 'account_id')), ('device:' || (e.payload -> 'actor' ->> 'device_id'))) k (chain_key)
-     where e.chain_key = ${chainKey} and k.chain_key is not null and k.chain_key not like ${`%:${NIL_UUID}`}
-     group by k.chain_key
-     order by k.chain_key collate "C"`.execute(db);
+export async function registryChainsOf(db: AuditDb, tokenHash: string, chainKey: string): Promise<string[]> {
+  const { rows } = await sql<{ chain_key: string }>`select c as chain_key from tab.audit_registry_chains(${tokenHash}, ${chainKey}) c`.execute(db);
   return rows.map((r) => r.chain_key);
 }
 
-export async function chainLength(db: AuditDb, chainKey: string): Promise<number | null> {
-  const row = await db.selectFrom('kernel.audit_chain_head').select(sql<string>`last_seq::text`.as('n')).where('chain_key', '=', chainKey).executeTakeFirst();
-  return row ? Number(row.n) : null;
+/** The number of entries of a chain the session may read; null when none was ever written on it. */
+export async function chainLength(db: AuditDb, tokenHash: string, chainKey: string): Promise<number | null> {
+  const { rows } = await sql<{ n: string | null }>`select tab.audit_chain_length(${tokenHash}, ${chainKey})::text as n`.execute(db);
+  const n = rows[0]?.n ?? null;
+  return n === null ? null : Number(n);
 }

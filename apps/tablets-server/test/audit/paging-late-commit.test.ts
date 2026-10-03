@@ -11,6 +11,8 @@ import { routes, type AuditEventView } from '@ebmr/api-contract';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { actorOfBrowser, personaIn, startSigningServer, valueOf } from '../esig/support.ts';
 
+// The test entries go on chains of a RECORD-class prefix (esig_stub:), which the author's role reads (tablets 0420,
+// review F35: a chain of a prefix nobody classified is a governance chain, read only in a governance or audit role).
 let gmp: TestServer;
 let author: TestBrowser;
 /** The same person in a second session (each command locks its own session row, kernel 0190). */
@@ -41,8 +43,8 @@ async function page(query: Record<string, string>): Promise<{ events: AuditEvent
 describe('P11 audit paging and entries that commit late', () => {
   it('[DI-22] paging the entries of a person never skips an entry whose transaction commits after a later entry was committed', async () => {
     const me = personaIn(gmp, 'author');
-    const chainA = `review_p11:${randomUUID()}`;
-    const chainB = `review_p11:${randomUUID()}`;
+    const chainA = `esig_stub:review-p11-${randomUUID()}`;
+    const chainB = `esig_stub:review-p11-${randomUUID()}`;
 
     // Transaction A writes its entry on chain A and is still running.
     const a = await gmp.db.app.connect();
@@ -93,8 +95,8 @@ describe('P11 audit paging and entries that commit late', () => {
 
 /** While transaction A (chain A) runs and B (chain B, a higher id) has committed, a cross-chain list holds back. */
 async function heldBackThenComplete(filter: Record<string, string>): Promise<void> {
-  const chainA = `review_p11:${randomUUID()}`;
-  const chainB = `review_p11:${randomUUID()}`;
+  const chainA = `esig_stub:review-p11-${randomUUID()}`;
+  const chainB = `esig_stub:review-p11-${randomUUID()}`;
   const a = await gmp.db.app.connect();
   try {
     await a.query('begin');

@@ -112,9 +112,7 @@ export async function latestContent(db: Db, versionId: string): Promise<SavedCon
     role: string | null;
   }>(
     `select c.id, c.revision, c.content, c.content_hash, ${US('c.recorded_at')} as at_us, c.edited_by_person, c.edited_by_account, c.reason,
-            (select e.payload -> 'actor' ->> 'role_code' from kernel.audit_event e
-              where e.chain_key = 'mbr_version:' || c.version_id and e.table_name = 'recipe.mbr_content' and e.record_id = c.id::text
-              order by e.seq limit 1) as role
+            tab.mbr_content_saved_role(c.version_id, c.id) as role
        from recipe.mbr_content c where c.version_id = $1 order by c.revision desc limit 1`,
     [versionId],
   );

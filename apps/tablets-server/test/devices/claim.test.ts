@@ -48,8 +48,9 @@ describe('DeviceReadingPort.claim', () => {
     ]);
     const use = await server.db.app.query<{ purpose: string; room_code: string }>('select purpose, room_code from tab.reading_use where reading_id = $1', [id]);
     expect(use.rows).toEqual([{ purpose: 'GROSS', room_code: 'DISP-1' }]);
-    // The use is audited on the reading's own chain, attributed to the operator.
-    const audit = await server.db.app.query<{ n: string }>(
+    // The use is audited on the reading's own chain, attributed to the operator (read as the owner: the application role
+    // reads the audit trail only through its session-checked functions, tablets 0420).
+    const audit = await server.db.admin.query<{ n: string }>(
       `select count(*)::text as n from kernel.audit_event where chain_key = $1 and action = 'INSERT' and table_name = 'tab.reading_use'`,
       [`device_reading:${id}`],
     );

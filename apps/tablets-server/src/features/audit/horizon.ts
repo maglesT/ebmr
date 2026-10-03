@@ -62,7 +62,7 @@ export class SettledHorizon {
 
   async current(): Promise<Horizon> {
     const { rows } = await sql<{ h: string | null; writers: string[] }>`
-      select (select max(e.id) from kernel.audit_event e)::text as h,
+      select tab.audit_horizon_max()::text as h,
              array(${WRITERS}) as writers`.execute(this.#db);
     const sample = rows[0];
     if (!sample?.h) return { upTo: this.#settled, complete: true };

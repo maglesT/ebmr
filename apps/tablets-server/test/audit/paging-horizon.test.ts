@@ -12,6 +12,8 @@ import { routes, type AuditEventView } from '@ebmr/api-contract';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { actorOfBrowser, startSigningServer, valueOf } from '../esig/support.ts';
 
+// The test entries go on chains of a RECORD-class prefix (esig_stub:), which the author's role reads (tablets 0420,
+// review F35: a chain of a prefix nobody classified is a governance chain, read only in a governance or audit role).
 let gmp: TestServer;
 let author: TestBrowser;
 let authorElsewhere: TestBrowser;
@@ -44,7 +46,7 @@ describe('P11: what holds the audit list back', () => {
       await idle.query('begin');
       await idle.query('select txid_current()');
       await idle.query('create temporary table p11_scratch (x int)');
-      const entry = await committedEntry(`review_p11:${randomUUID()}`);
+      const entry = await committedEntry(`esig_stub:review-p11-${randomUUID()}`);
       const after = (BigInt(entry) - 1n).toString();
       for (const filter of [{}, { from: '0' }] as Record<string, string>[]) {
         const listed = await page({ ...filter, cursor: after, limit: '50' });
@@ -61,8 +63,8 @@ describe('P11: what holds the audit list back', () => {
     try {
       await writer.query('begin');
       await writer.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(await actorOfBrowser(gmp, author, 'author')))]);
-      const late = (await writer.query<{ id: string }>(`select kernel.audit_business_event($1, 'late', '{}'::jsonb)::text as id`, [`review_p11:${randomUUID()}`])).rows[0]?.id ?? '';
-      const onTime = await committedEntry(`review_p11:${randomUUID()}`);
+      const late = (await writer.query<{ id: string }>(`select kernel.audit_business_event($1, 'late', '{}'::jsonb)::text as id`, [`esig_stub:review-p11-${randomUUID()}`])).rows[0]?.id ?? '';
+      const onTime = await committedEntry(`esig_stub:review-p11-${randomUUID()}`);
       const after = (BigInt(late) - 1n).toString();
       const held = await page({ cursor: after, limit: '50' });
       expect(held.events).toEqual([]);
