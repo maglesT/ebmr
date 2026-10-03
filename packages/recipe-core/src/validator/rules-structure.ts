@@ -269,6 +269,33 @@ const decisions = defineRule('FLOW-DECISIONS', 'Alternatives say how the branch 
   return out;
 });
 
+/**
+ * Every role the master names is an engine role of the installation (review F49; INV-26): who performs and checks a
+ * step, who releases a hold point, who signs off a stage and who may choose a branch. A role outside the vocabulary
+ * (a kernel role such as QA_SHOP_FLOOR, a typing error) is one no session ever carries, so the step could never be
+ * done. Fails closed when the installation's vocabulary is not supplied. The database refuses such content too
+ * (recipe-core 0324, EBMR-RCP-123).
+ */
+const roles = defineRule('FLOW-ROLES', 'Every role is an engine role of the installation', ['INV-26', 'PR-14', 'PR-45'], (a) => {
+  const vocabulary = a.ctx.roles?.engineRoles;
+  if (!vocabulary) return [error('$', 'The engine roles of this installation were not supplied, so the roles this master names cannot be checked')];
+  const known = new Set(vocabulary);
+  const out: RuleFinding[] = [];
+  const check = (subject: string, role: string, what: string): void => {
+    if (!known.has(role)) out.push(error(subject, `${what} is ${JSON.stringify(role)}, which is not an engine role of this installation (${vocabulary.join(', ')}); no person could ever act there`));
+  };
+  for (const info of a.nodes.values()) {
+    const n = info.node;
+    if (n.kind === 'phase') {
+      if (n.signatures.perform) check(n.id, n.signatures.perform.role, `The performer of ${label(a, n.id)}`);
+      if (n.signatures.check) check(n.id, n.signatures.check.role, `The checker of ${label(a, n.id)}`);
+    } else if (n.kind === 'holdPoint') check(n.id, n.role, `The releaser of hold point ${label(a, n.id)}`);
+    else if (n.kind === 'stage') check(n.id, n.responsibleRole, `The person responsible for stage ${label(a, n.id)}`);
+    else if (n.kind === 'alternative' && n.decision.mode === 'OPERATOR_CHOICE') for (const r of n.decision.roles) check(n.id, r, `A role allowed to choose a branch of ${n.id}`);
+  }
+  return out;
+});
+
 // ---------------------------------------------------------------------------------------------
 // Graph gates
 
@@ -304,4 +331,4 @@ const graphRules: Rule[] = GRAPH_RULES.map((r) =>
   ),
 );
 
-export const STRUCTURE_RULES: readonly Rule[] = [idsUnique, levels, constructs, library, blocks, loops, replicates, decisions, ...graphRules];
+export const STRUCTURE_RULES: readonly Rule[] = [idsUnique, levels, constructs, library, blocks, loops, replicates, decisions, roles, ...graphRules];

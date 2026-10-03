@@ -299,6 +299,12 @@ export function defineBatch(mbr: MbrContent, options: DefineOptions): BatchDefin
       if (!n.dispositions.some((d) => RELEASING_DISPOSITIONS.includes(d))) {
         problems.push(problem('ENG-DEF-HOLD', 'ERROR', id, `Hold point ${id} lists no releasing disposition (one of ${RELEASING_DISPOSITIONS.join(', ')})`, ['PR-45']));
       }
+      // A QA hold point is released by the quality unit (PR-45; review F48): the engine releases it only with the
+      // role the master names, so a master naming any other role would let that role decide on the material (or, for
+      // a role no session carries, leave the batch stuck). The database refuses such content too (recipe-core 0324).
+      if (!policy.qaRoles.includes(n.role)) {
+        problems.push(problem('ENG-DEF-HOLD-ROLE', 'ERROR', id, `Hold point ${id} is released by ${n.role}; a QA hold point is released by the quality unit (${policy.qaRoles.join(' or ')})`, ['PR-45']));
+      }
       def.performRoles = [n.role];
     }
     steps.set(id, def);

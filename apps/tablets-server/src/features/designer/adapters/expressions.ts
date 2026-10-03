@@ -1,7 +1,7 @@
 /**
  * The validation context of the designer (module C2; validator README; decision D10): the expression language
- * (@ebmr/expr through recipe-core's ExpressionService), the generic block catalogue, and the two database-backed
- * ports (reference documents, market minima), pre-loaded for one MBR at the site date. The same pure validator and
+ * (@ebmr/expr through recipe-core's ExpressionService), the generic block catalogue, and the database-backed ports
+ * (reference documents, market minima, the installation's engine roles), pre-loaded for one MBR at the site date. The same pure validator and
  * simulator run in the designer's Web Worker later (A2); the server stays authoritative.
  */
 import type pg from 'pg';
@@ -31,6 +31,19 @@ export interface LoadedContext {
   references: ReferenceRow[];
   minimaRequest: validator.MinimaRequest;
   minima: validator.ResolvedMinimum[];
+  /** The engine roles of this installation (recipe.engine_role_permission), for FLOW-ROLES (review F49). */
+  engineRoles: string[];
+}
+
+/**
+ * The engine roles of this installation, as the database holds them (recipe.engine_role_permission): the roles a session
+ * can carry on the floor. The validator checks every role an MBR names against them, and the database refuses content
+ * naming another (recipe-core 0324, EBMR-RCP-123), so both read one list.
+ */
+export async function engineRoles(db: Db): Promise<string[]> {
+  const { rows } = await db.query<{ engine_role: string }>('select distinct engine_role from recipe.engine_role_permission order by engine_role');
+  if (rows.length === 0) throw new Error('the database holds no engine roles');
+  return rows.map((r) => r.engine_role);
 }
 
 /** Pre-loads every port the validator needs for this MBR (validator.requiredLookups) at the site date. */
@@ -47,11 +60,13 @@ export async function loadValidationContext(db: Db, mbr: flow.MbrContent, asOf?:
     ruleKeys: lookups.ruleKeys,
   };
   const market = await loadMarketMinimaPort(db, request);
+  const roles = await engineRoles(db);
   return {
-    context: { expressions: EXPRESSIONS, blocks: BLOCK_CATALOG, references: refs.port, market: market.port, asOf: date },
+    context: { expressions: EXPRESSIONS, blocks: BLOCK_CATALOG, references: refs.port, market: market.port, roles: { engineRoles: roles }, asOf: date },
     asOf: date,
     references: refs.rows,
     minimaRequest: request,
     minima: market.minima,
+    engineRoles: roles,
   };
 }

@@ -4,7 +4,7 @@
  * GMP values go only through DecimalField (text, never a number).
  */
 import { useId, useState, type ReactNode } from 'react';
-import { ROLE_TITLES } from '@ebmr/api-contract';
+import { ENGINE_ROLES, ROLE_TITLES } from '@ebmr/api-contract';
 import { DecimalField, decimalProblem, StatusChip } from '@ebmr/ui-kit';
 import { dcls } from '../classes.ts';
 
@@ -26,7 +26,17 @@ export function SeverityChip({ severity }: { severity: 'ERROR' | 'WARNING' | 'IN
   return <StatusChip tone={severity === 'ERROR' ? 'error' : severity === 'WARNING' ? 'warning' : 'info'} label={severity === 'ERROR' ? 'Error' : severity === 'WARNING' ? 'Warning' : 'Information'} />;
 }
 
-export const roleTitle = (role: string | undefined): string => (role ? (ROLE_TITLES[role] ?? role.replace(/_/g, ' ').toLowerCase()) : '—');
+const ENGINE: ReadonlySet<string> = new Set(ENGINE_ROLES);
+
+/**
+ * The title of a role an MBR names. Only engine roles have a title here: a master names engine roles, and a kernel
+ * role such as QA_SHOP_FLOOR (titled like the engine role QA elsewhere) or any other code is shown as written, marked
+ * as no engine role, so a master naming it never reads like a correct one (review F49).
+ */
+export const roleTitle = (role: string | undefined): string => {
+  if (!role) return '—';
+  return ENGINE.has(role) ? (ROLE_TITLES[role] ?? role) : `${role} (not an engine role: no one can act in it)`;
+};
 
 /** The comparison of a limit bound in words: whether the bound value itself passes (at least / at most) or fails. */
 export function comparisonWords(side: 'low' | 'high', inclusive: boolean): string {
@@ -145,13 +155,18 @@ export interface Option {
   label: string;
 }
 
+/**
+ * A native select. A value that is none of the options (content saved through the API) is shown as it is, marked, never
+ * replaced on screen by the first option (review F49).
+ */
 export function Select({ label, value, options, onChange, disabled }: { label: string; value: string; options: readonly Option[]; onChange: (value: string) => void; disabled?: boolean }) {
   const id = useId();
+  const shown = options.some((o) => o.value === value) ? options : [{ value, label: `${value || '(none)'}: not one of the choices` }, ...options];
   return (
     <div className={dcls('stack')}>
       <label htmlFor={id}>{label}</label>
       <select id={id} className={dcls('select')} value={value} disabled={disabled ?? false} onChange={(e) => onChange(e.target.value)}>
-        {options.map((o) => (
+        {shown.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>

@@ -4,7 +4,7 @@
  * records, computes, reads, consumes, produces and which stage equipment it checks or uses. Each change is one
  * undoable operation; the findings panel re-validates.
  */
-import { ENGINE_ROLES } from '@ebmr/api-contract';
+import { ENGINE_ROLES, PINNED_POLICY_ROLES } from '@ebmr/api-contract';
 import { flow } from '@ebmr/recipe-core/pure';
 import { Banner, StatusChip } from '@ebmr/ui-kit';
 import { dcls } from '../classes.ts';
@@ -15,6 +15,8 @@ import { ConfigForm } from './ConfigForm.tsx';
 import { ConfigList } from './ConfigView.tsx';
 
 const roleOptions: Option[] = ENGINE_ROLES.map((r) => ({ value: r, label: roleTitle(r) }));
+/** A QA hold point is released by the quality unit only (PR-45; review F48): the pinned policy's QA roles. */
+const releaserOptions: Option[] = PINNED_POLICY_ROLES.qaRoles.map((r) => ({ value: r, label: roleTitle(r) }));
 
 function stageOf(c: Content, id: string): flow.StageNode | undefined {
   let found: flow.StageNode | undefined;
@@ -39,7 +41,7 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
           Step {number}: QA hold point
         </h3>
         <CommitText label="Name" value={h.name} readOnly={readOnly} onCommit={(v) => dispatch({ kind: 'UPDATE_HOLD', nodeId: h.id, patch: { name: v } })} />
-        <Select label="Released by" value={h.role} disabled={readOnly} options={roleOptions} onChange={(v) => dispatch({ kind: 'UPDATE_HOLD', nodeId: h.id, patch: { role: v } })} />
+        <Select label="Released by" value={h.role} disabled={readOnly} options={releaserOptions} onChange={(v) => dispatch({ kind: 'UPDATE_HOLD', nodeId: h.id, patch: { role: v } })} />
         <p className={dcls('small')}>Dispositions: {h.dispositions.join(', ')}. Everything after the hold point waits for the release.</p>
       </div>
     );

@@ -12,7 +12,8 @@ validateGraph(graph) -> Finding[]                      // structure gates on any
 
 `ValidationContext`: `expressions` (ExpressionService), `blocks` (BlockCatalog), `references`
 (ReferencePort: EFFECTIVE / NOT_YET_EFFECTIVE / SUPERSEDED / RETIRED / WITHDRAWN / HASH_MISMATCH /
-UNKNOWN), `market` (MarketMinimaPort; absent = fail closed), `asOf` (date passed in; no clock).
+UNKNOWN), `market` (MarketMinimaPort; absent = fail closed), `roles` (RoleVocabularyPort: the
+installation's engine roles; absent = fail closed), `asOf` (date passed in; no clock).
 
 Every finding: rule id, controls, severity, subject id, message ("plain language first (RULE-ID;
 CONTROLS)") and a stable key `RULE@subject` that a warning justification names. A rule that throws is
@@ -22,7 +23,7 @@ reported as a failed check, never a pass.
 
 | Group | Rules | Controls |
 |---|---|---|
-| Structure (tree) | FLOW-ID-UNIQUE, FLOW-LEVELS, FLOW-CONSTRUCTS, FLOW-LIBRARY, FLOW-BLOCKS, FLOW-LOOPS (bounded, exit on a process endpoint written inside, never on an acceptance/release test), FLOW-REPLICATES, FLOW-DECISIONS | DI-34, INV-19, DI-04 |
+| Structure (tree) | FLOW-ID-UNIQUE, FLOW-LEVELS, FLOW-CONSTRUCTS, FLOW-LIBRARY, FLOW-BLOCKS, FLOW-LOOPS (bounded, exit on a process endpoint written inside, never on an acceptance/release test), FLOW-REPLICATES, FLOW-DECISIONS, FLOW-ROLES (every performer, checker, hold-point releaser, stage responsible and choosing role is an engine role of the installation) | DI-34, INV-19, DI-04, INV-26 |
 | Structure (graph) | GRAPH-START-END, GRAPH-REACHABLE, GRAPH-TERMINATES, GRAPH-DECLARED-CYCLES, GRAPH-MATCHED (degrees, join rules, single-entry single-exit regions via dominators), GRAPH-BOUNDARIES | DI-34 |
 | Data | DATA-REFERENCES, DATA-WRITTEN-BEFORE-READ (must-analysis: AND-joins unite, XOR-joins intersect), DATA-SINGLE-WRITER, DATA-EXPRESSIONS (via expr), DATA-CALC-CYCLES, DATA-GUARDS (exact decision procedure: exhaustive, non-overlapping, no dead branch; undecidable = warning), DATA-PARALLEL (writes, process equipment, BOM lines; concurrent sub-lots), DATA-UNITS | DI-34, DI-04, DI-33, PR-08 |
 | Time | TIME-BOUNDS, TIME-NEVER-APPLIES, TIME-CONSISTENT (simple temporal network, loops/replicates unrolled to their maximum, alternatives enumerated only when the union is contradictory, exact bigint microseconds) | INV-20 |

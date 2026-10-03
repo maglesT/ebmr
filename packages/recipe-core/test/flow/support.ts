@@ -8,7 +8,7 @@ import { createExprService } from '../../src/flow/expr-adapter.ts';
 import { childrenOf, type FlowNode, type MbrContent, type PhaseNode } from '../../src/flow/model.ts';
 import { parseMbr } from '../../src/flow/parse.ts';
 import type { Rule } from '../../src/validator/rule-kit.ts';
-import type { Finding, MarketMinimaPort, ReferenceStatus, ValidationContext, ValidationReport } from '../../src/validator/types.ts';
+import type { Finding, MarketMinimaPort, ReferenceStatus, RoleVocabularyPort, ValidationContext, ValidationReport } from '../../src/validator/types.ts';
 import { RuleRegistry, validateMbr } from '../../src/validator/validate.ts';
 
 export type FixtureName = 'tablet-granulation-compression' | 'tablet-blister-packaging';
@@ -30,12 +30,22 @@ export const expr = createExprService();
 
 export const noMinima: MarketMinimaPort = { minima: () => [] };
 
+/**
+ * The role vocabulary of these tests' installation: the tablets engine roles plus the short roles the test masters
+ * use (phase() performs as OPERATOR and checks as VERIFIER). The server supplies the installation's own vocabulary
+ * from the database, which refuses to store content naming any other role (sql 0324).
+ */
+export const TEST_ROLES: RoleVocabularyPort = {
+  engineRoles: ['PRODUCTION_OPERATOR', 'DISPENSER', 'PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'STAGE_RESPONSIBLE', 'HEAD_OF_PRODUCTION', 'QA', 'QA_REVIEWER', 'OPERATOR', 'VERIFIER', 'SUP', 'SUPERVISOR'],
+};
+
 export function context(overrides: Partial<ValidationContext> = {}, statuses: Record<string, ReferenceStatus> = {}): ValidationContext {
   return {
     expressions: expr,
     blocks: genericBlockCatalog,
     references: { status: (r) => statuses[r.id] ?? 'EFFECTIVE' },
     market: noMinima,
+    roles: TEST_ROLES,
     asOf: '2026-09-28',
     ...overrides,
   };

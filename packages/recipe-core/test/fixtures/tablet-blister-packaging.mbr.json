@@ -805,7 +805,7 @@
             ]
           },
           "purpose": "MATERIAL",
-          "responsibleRole": "PACKAGING_SUPERVISOR",
+          "responsibleRole": "PRODUCTION_SUPERVISOR",
           "body": {
             "kind": "sequence",
             "id": "s-pri-seq",
@@ -1284,7 +1284,7 @@
             ]
           },
           "purpose": "MATERIAL",
-          "responsibleRole": "PACKAGING_SUPERVISOR",
+          "responsibleRole": "PRODUCTION_SUPERVISOR",
           "body": {
             "kind": "sequence",
             "id": "s-sec-seq",

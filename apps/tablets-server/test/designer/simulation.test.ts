@@ -60,7 +60,7 @@ describe('simulation (worker thread, SIMULATION watermark)', () => {
   it('the worker returns the same report as an in-process simulation (deterministic evidence)', async () => {
     const mbr = templateMbr();
     const loaded = await loadValidationContext(server.db.app, mbr);
-    const out = await simulateInWorker({ content: mbr, asOf: loaded.asOf, references: loaded.references, minimaRequest: loaded.minimaRequest, minima: loaded.minima });
+    const out = await simulateInWorker({ content: mbr, asOf: loaded.asOf, references: loaded.references, minimaRequest: loaded.minimaRequest, minima: loaded.minima, engineRoles: loaded.engineRoles });
     expect(out.ok).toBe(true);
     if (!out.ok) return;
     const inProcess = simulator.simulate(mbr, loaded.context);

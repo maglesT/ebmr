@@ -84,12 +84,24 @@ export interface MarketMinimaPort {
   minima(request: MinimaRequest): ResolvedMinimum[];
 }
 
+/**
+ * The engine roles of the installation (review F49): the roles a session can carry on the floor (tablets:
+ * recipe.engine_role_permission, reached from kernel roles through tab.engine_role_map). Every role an MBR names (who
+ * performs, checks, releases a hold point, signs off a stage, may choose a branch) must be one of them, or no person
+ * can ever act in that place.
+ */
+export interface RoleVocabularyPort {
+  engineRoles: readonly string[];
+}
+
 export interface ValidationContext {
   expressions: ExpressionService;
   blocks: BlockCatalog;
   references: ReferencePort;
   /** Absent: market minima are not checked and the validation fails closed (error MKT-UNRESOLVED). */
   market?: MarketMinimaPort;
+  /** Absent: the roles cannot be checked and the validation fails closed (error FLOW-ROLES). */
+  roles?: RoleVocabularyPort;
   /** Validation date (YYYY-MM-DD), passed in: domain code never reads the clock. */
   asOf: string;
   /** Upper bounds for the analyses (defaults in DEFAULT_LIMITS). */

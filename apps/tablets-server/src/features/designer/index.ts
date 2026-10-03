@@ -476,7 +476,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         if (!parsed.ok) throw parseRefusal(parsed.problems);
         const a = await analyse(pool, parsed.mbr, []);
         const outcome = await simulateInWorker(
-          { content: saved.content, asOf: a.loaded.asOf, references: a.loaded.references, minimaRequest: a.loaded.minimaRequest, minima: a.loaded.minima },
+          { content: saved.content, asOf: a.loaded.asOf, references: a.loaded.references, minimaRequest: a.loaded.minimaRequest, minima: a.loaded.minima, engineRoles: a.loaded.engineRoles },
           designerSettings.simulationTimeoutMs,
         );
         if (!outcome.ok) {

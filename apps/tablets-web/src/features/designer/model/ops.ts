@@ -17,6 +17,7 @@
  * value, and the editor hashes the content it shows (canonical JSON refuses such text), so letting it in would bring
  * the editor down instead of pointing the author at the field.
  */
+import { ENGINE_ROLES, PINNED_POLICY_ROLES } from '@ebmr/api-contract';
 import { unstorableText } from '@ebmr/expr';
 import { flow, type limits } from '@ebmr/recipe-core/pure';
 
@@ -82,6 +83,12 @@ function checkConfigText(value: unknown, path: readonly string[]): void {
       checkConfigText(v, [...path, k]);
     }
   }
+}
+
+/** A role an MBR names is an engine role (review F49); a hold point is released by QA (PR-45; review F48). */
+function checkRole(role: string, what: string, allowed: readonly string[]): string {
+  if (!allowed.includes(role)) throw new OpError(`${what} must be one of ${allowed.join(', ')} (${JSON.stringify(role)} is not).`);
+  return role;
 }
 
 function checkDecimal(value: string, what: string, opts: { positive?: boolean } = {}): string {
@@ -209,6 +216,8 @@ function applyInPlace(c: Content, op: Op): void {
       const next: flow.PhaseNode = { ...s, ...structuredClone(patch) };
       if (patch.name !== undefined) next.name = checkName(patch.name, 'The step name');
       if (patch.config !== undefined) checkConfigText(patch.config, []);
+      if (patch.signatures?.perform) checkRole(patch.signatures.perform.role, 'The performer', ENGINE_ROLES);
+      if (patch.signatures?.check) checkRole(patch.signatures.check.role, 'The checker', ENGINE_ROLES);
       if (system === null) delete next.system;
       else if (system !== undefined) next.system = structuredClone(system);
       const parsed = flow.parseFlowNodeStandalone(next);
@@ -221,7 +230,7 @@ function applyInPlace(c: Content, op: Op): void {
       const s = stepOf(c, op.nodeId);
       if (s.kind !== 'holdPoint') throw new OpError(`${op.nodeId} is a step, not a hold point.`);
       if (op.patch.name !== undefined) s.name = checkName(op.patch.name, 'The hold point name');
-      if (op.patch.role !== undefined) s.role = checkName(op.patch.role, 'The releasing role');
+      if (op.patch.role !== undefined) s.role = checkRole(checkName(op.patch.role, 'The releasing role'), 'The releasing role of a QA hold point', PINNED_POLICY_ROLES.qaRoles);
       return;
     }
     case 'SET_LIMIT_BOUND': {

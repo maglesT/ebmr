@@ -835,6 +835,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `db-guards-package-header.test.ts` (Phase 2 exit review F03; sql 0318): a package whose family code or product
   differs from its content is refused by the server (EBMR-EXE-017) and, called directly, by the database
   (EBMR-EXE-134).
+- `db-guards-content-roles.test.ts` (Phase 2 exit review F48, F49; sql 0324): a package whose hold point a production
+  operator or the kernel role QA_SHOP_FLOOR releases, or whose step a role no session carries performs, is refused
+  by the server and, called directly, by the database (`content_role_problem`, EBMR-RCP-123).
 - `db-guards-weighing-net.test.ts` (lead TODO T2 of the Phase 2 exit; INV-25, PR-19; sql 0321): a weighing row whose
   net is not gross minus tare at the resolution of the weighings ("50" for 51.250 - 1.250, or another value) is refused
   (EBMR-EXE-136); the engine's own net ("50.000") is recorded; the database's reading of both weighing kinds.

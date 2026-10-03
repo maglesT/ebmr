@@ -16,7 +16,8 @@ import { graphRuleFor, STRUCTURE_RULES } from './rules-structure.ts';
 import { TIME_RULES } from './rules-time.ts';
 import type { Finding, GateResult, RuleFinding, ValidationContext, ValidationReport, WarningJustification } from './types.ts';
 
-export const VALIDATOR_VERSION = '1.0.0';
+/** 1.1.0: FLOW-ROLES (every role the master names is an engine role of the installation; review F49). */
+export const VALIDATOR_VERSION = '1.1.0';
 
 /** Rules registered per edition. Editions add theirs with `withEditionRules`; generic rules always run. */
 export class RuleRegistry {

@@ -70,6 +70,16 @@ export const DESIGNER_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: AUTHOR,
     controls: ['PR-03'],
   },
+  // Every role an MBR names is an engine role, and a QA hold point is released by QA (recipe-core 0324, F48, F49): the
+  // validator (FLOW-ROLES) and the engine's definition (ENG-DEF-HOLD-ROLE) report it first; the database refuses the row.
+  'EBMR-RCP-123': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The content was not stored: a role it names cannot act there (a role no person carries, or a hold point released by someone other than QA).',
+    whatYouCanDo: ['Choose the performer, checker and releaser from the roles the designer offers; a QA hold point is released by QA.'],
+    whoCanHelp: AUTHOR,
+    controls: ['PR-45', 'INV-26', 'PR-14'],
+  },
   'EBMR-RCP-040': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The verification evidence was not accepted.', whatYouCanDo: ['Validate again on the current content.'], whoCanHelp: AUTHOR, controls: ['DI-04'] },
   'EBMR-RCP-041': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The verification evidence is not for this content.', whatYouCanDo: ['Validate again on the current content.'], whoCanHelp: AUTHOR, controls: ['DI-04'] },
   'EBMR-TAB-150': { status: 500, kind: 'NOT_SAVED', whatHappened: 'Nothing was recorded: the change was not run as a recorded command.', whatYouCanDo: ['Reload the page and try again.'], whoCanHelp: ['The system administrator'] },

@@ -1,6 +1,6 @@
 /**
  * The designer's simulation worker (module C2; node:worker_threads). Runs recipe-core's simulator on one MBR content
- * with ports rebuilt from pre-loaded data (reference rows, resolved market minima, the site date), so a large or
+ * with ports rebuilt from pre-loaded data (reference rows, resolved market minima, engine roles, the site date), so a large or
  * pathological record cannot block the server's event loop; the parent terminates it after the timeout.
  * No database, no clock, no writes: the output is a SIMULATION, never a GMP record (DI-05).
  */
@@ -15,6 +15,8 @@ export interface SimulationJob {
   references: ReferenceRow[];
   minimaRequest: validator.MinimaRequest;
   minima: validator.ResolvedMinimum[];
+  /** The installation's engine roles (FLOW-ROLES; review F49). */
+  engineRoles: string[];
 }
 
 export type SimulationResult = { ok: true; report: simulator.SimulationReport } | { ok: false; message: string };
@@ -27,6 +29,7 @@ export function runSimulationJob(job: SimulationJob): SimulationResult {
     blocks: flow.genericBlockCatalog,
     references: referencePortFrom(job.references, job.asOf),
     market: marketMinimaPortFrom(job.minimaRequest, job.minima),
+    roles: { engineRoles: job.engineRoles },
     asOf: job.asOf,
   };
   try {
