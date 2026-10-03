@@ -5,7 +5,10 @@
  *
  * After every accepted command or signature the persistence model holds (INV-09, INV-10, DI-34, DI-37):
  * execution_violations() is empty, the kernel's valid-signature set equals the engine's, and a replay of the
- * stored rows equals the head. Every view parses with its contract schema (the typed client validates).
+ * stored rows equals the head. The driver's command and signing calls, and each challenge (which may store a PREPARE
+ * row), are wrapped so the check runs after each one, and the test shows that every row of the run was checked
+ * (review F23: it used to run once per step group).
+ * Every view parses with its contract schema (the typed client validates).
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { esig } from '@ebmr/kernel';
@@ -62,12 +65,40 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
       qa1: await server.asPersona('qa1'),
     });
     d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    // The model is checked after every call that can store a row of the run, each on its own: every command, every
+    // challenge (it stores a PREPARE row when the system facts changed the record the signer sees) and every signature.
+    // Each check notes the run's last row, so the test can show that no row was left unchecked.
+    const checkedRows = new Set<string>();
+    let accepted = 0;
+    const checkpoint = async (): Promise<void> => {
+      await modelHolds(runId);
+      const { rows } = await server.db.admin.query<{ s: string }>('select last_seq::text as s from recipe.execution_state where batch_id = $1', [runId]);
+      checkedRows.add(rows[0]?.s ?? '');
+    };
+    await checkpoint();
+    const checked = async <T>(act: Promise<T>): Promise<T> => {
+      const value = await act;
+      accepted += 1;
+      await checkpoint();
+      return value;
+    };
+    const ok = d.ok.bind(d);
+    const signed = d.signed.bind(d);
+    d.ok = (...args: Parameters<RunDriver['ok']>) => checked(ok(...args));
+    d.signed = (...args: Parameters<RunDriver['signed']>) => checked(signed(...args));
+    for (const b of Object.values(d.browsers)) {
+      const call = b.call.bind(b);
+      b.call = (async (route: Parameters<typeof call>[0], input?: Parameters<typeof call>[1]) => {
+        const r = await call(route, input);
+        if (route === routes.esig.createChallenge && r.ok) await checkpoint();
+        return r;
+      }) as typeof b.call;
+    }
     const step = async (op: string, ver: string | null, key: string, entries: Parameters<RunDriver['ok']>[1][] = []) => {
       await d.ok(op, { type: 'START_STEP', stepKey: key });
       for (const e of entries) await d.ok(op, e);
       await d.signed(op, { type: 'SIGN_PERFORMED', stepKey: key });
       if (ver) await d.signed(ver, { type: 'VERIFY', stepKey: key, meaning: 'VERIFIED' });
-      await modelHolds(runId);
       expect((await d.stepView(op, key)).step.status).toBe('COMPLETED');
     };
     const clearance = (key: string) => [
@@ -104,7 +135,6 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
     const before = (await d.runView('supervisor1')).stages.find((s) => s.stageKey === 'S-DISP@');
     expect(before).toMatchObject({ status: 'AWAITING_SIGN_OFF', signOff: null, summary: { statement: 'COMPLETED_PER_MBR', deviations: [] } });
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-DISP@' });
-    await modelHolds(runId);
     expect((await d.runView('supervisor1')).stages.find((s) => s.stageKey === 'S-DISP@')?.summary).toEqual(before?.summary);
 
     // Stage 2, blending room BLEND-1.
@@ -124,7 +154,6 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
       { type: 'RECORD_DATA', stepKey: 'p-blend@', item: 'blenderSpeed', value: { kind: 'DECIMAL', value: '10', unit: '/min' }, source: { mode: 'MANUAL' } },
     ]);
     await d.signed('qa1', { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-BLEND@', disposition: 'APPROVED' });
-    await modelHolds(runId);
     await step('operator2', 'verifier2', 'p-blend-out@', [
       { type: 'RECORD_ENTRY', stepKey: 'p-blend-out@', entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-BLEND', manual: { gross: '60.500', tare: '1.000', unit: 'kg' } } },
     ]);
@@ -134,7 +163,6 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
       await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: 'Scale interface not installed in the sandbox; second person verified the weighing.' });
     }
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-BLEND@' });
-    await modelHolds(runId);
 
     const done = await d.runView('supervisor1');
     expect(done.header.status).toBe('EXECUTION_COMPLETE');
@@ -142,9 +170,18 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
     expect(done.stages.map((s) => s.status)).toEqual(['SIGNED_OFF', 'SIGNED_OFF']);
     const replay = valueOf(await d.browser('issuer').call(routes.execution.verifyReplay, { params: { runId }, body: {} }));
     expect(replay).toMatchObject({ identical: true, firstDifference: null, invariantViolations: [] });
+    // Every row of the run was the last row at one of the checks: none was left unchecked. 59 commands and signatures
+    // were accepted, each one row; the rest are the issue and the PREPARE rows of challenges.
+    const { rows: runRows } = await server.db.admin.query<{ seq: string; kind: string; accepted: boolean }>('select seq::text as seq, kind, accepted from recipe.execution_command where batch_id = $1 order by seq', [runId]);
+    expect(runRows.filter((r) => !checkedRows.has(r.seq)).map((r) => `${r.seq} ${r.kind}`)).toEqual([]);
+    expect(runRows.filter((r) => !r.accepted)).toEqual([]);
+    expect(accepted).toBe(59);
+    expect(runRows.filter((r) => r.kind === 'COMMAND')).toHaveLength(accepted);
     // Signature-budget baseline (plan section 6): recorded, and every signature is a valid one of the kernel.
-    const { rows } = await server.db.admin.query<{ n: string }>('select count(*)::text as n from esig.signature where aggregate_id like $1', [`${runId}:%`]);
-    expect(Number(rows[0]?.n)).toBe(d.signatures);
+    const { rows: aggregates } = await server.db.admin.query<{ aggregate_type: string; aggregate_id: string }>('select distinct aggregate_type, aggregate_id from esig.signature where aggregate_id like $1', [`${runId}:%`]);
+    const all = (await Promise.all(aggregates.map((a) => esig.recordSignatures(server.db.admin, a.aggregate_type, a.aggregate_id)))).flat();
+    expect(all.filter((sig) => !sig.valid).map((sig) => sig.signatureId)).toEqual([]);
+    expect(all).toHaveLength(d.signatures);
     console.info(`[signature budget] dc-mini golden run: ${d.signatures} signatures`);
     // 13 PERFORMED + 1 hold point + 9 verifications + 2 stage sign-offs + 4 dispositions of the manual-weighing alerts.
     expect(d.signatures).toBe(29);
