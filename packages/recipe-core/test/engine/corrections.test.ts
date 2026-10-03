@@ -150,7 +150,8 @@ describe('executed targets (outline 5.2.3)', () => {
     const assay = Object.values(run.state.points).find((p) => p.item === 'assay');
     run.ok({ type: 'CORRECT_ENTRY', actor: OP1, point: assay?.id ?? '', value: { kind: 'DECIMAL', value: '98.0', unit: '%' }, reason: 'CoA shows 98.0', signature: sig('CORRECTED', OP1), approval: { approver: SUP1, signature: sig('CORRECTION_APPROVED', SUP1) } });
     expect(run.exceptions('EXECUTED_TARGET_CHANGED')).toHaveLength(1);
-    expect(run.value('dispensed', 'disp')).toBe('8');
+    // Weighed at 0.001 kg (gross 9.000, tare 1.000): the dispensed quantity keeps that resolution (engine 1.2.0).
+    expect(run.value('dispensed', 'disp')).toBe('8.000');
   });
 });
 

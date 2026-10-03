@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { FlowNode, MbrContent, PhaseNode } from '../../src/flow/model.ts';
+import { netOf, sumDecimals } from '../../src/blocks/generic/common.ts';
 import { mbrWith, phase } from '../flow/support.ts';
 import { define, done, OP1, OP2, param, Run, sig, T0, VER1 } from '../engine/support.ts';
 
@@ -72,11 +73,38 @@ describe('G-07 weighing and dispensing', () => {
     run.entry('d', weigh({ gross: '5.000', tare: '1.000', container: 'C2' }));
     run.refused({ type: 'RECORD_DATA', actor: OP1, step: 'd', item: 'disp', value: { kind: 'DECIMAL', value: '8.000', unit: 'kg' }, source: { mode: 'DEVICE', device: 'B' } }, 'ENG-DERIVED-TYPED');
     run.perform('d');
-    expect(run.value('disp', 'd')).toBe('8');
+    expect(run.value('disp', 'd')).toBe('8.000');
     const e = Object.values(run.state.entries)[0]?.data;
-    expect(e?.['net']).toBe('4');
-    expect(e?.['label']).toEqual({ component: 'MAT-API', lot: 'AR-1', quantity: '4 kg', batch: 'B0001', product: 'P', container: 'C1' });
+    expect(e?.['net']).toBe('4.000');
+    expect(e?.['label']).toEqual({ component: 'MAT-API', lot: 'AR-1', quantity: '4.000 kg', batch: 'B0001', product: 'P', container: 'C1' });
     expect(Object.keys(run.state.containers)).toEqual(['C1', 'C2']);
+  });
+
+  it('[INV-25][PR-19][DI-30] a computed net and the dispensed total keep the resolution of the weighings, in the entry, the label, the container and the recorded value (engine 1.2.0; lead TODO T2)', () => {
+    const run = issueDispensing();
+    run.entry('d', weigh({ gross: '51.250', tare: '1.250', container: 'C1' }));
+    run.entry('d', weigh({ gross: '5.50', tare: '1.125', container: 'C2' }));
+    const [first, second] = Object.values(run.state.entries).map((x) => x.data);
+    expect({ net: first?.['net'], label: (first?.['label'] as { quantity: string }).quantity, container: run.state.containers['C1']?.net }).toEqual({
+      net: '50.000',
+      label: '50.000 kg',
+      container: { value: '50.000', unit: 'kg' },
+    });
+    // The finer of the two weighings sets the resolution of the net; the finest net, that of the total.
+    expect(second?.['net']).toBe('4.375');
+    run.perform('d');
+    expect(run.value('disp', 'd')).toBe('54.375');
+  });
+
+  it('[INV-25][PR-19] netOf and sumDecimals are exact and keep the written resolution: nothing is rounded, no trailing zero dropped (T2)', () => {
+    expect([netOf('51.250', '1.250'), netOf('26.10', '1.05'), netOf('10', '2.5'), netOf('7', '2'), netOf('1.0', '1.0')]).toEqual([
+      { ok: true, net: '50.000' },
+      { ok: true, net: '25.05' },
+      { ok: true, net: '7.5' },
+      { ok: true, net: '5' },
+      { ok: false, message: 'the net weight (1.0 - 1.0) is not positive' },
+    ]);
+    expect([sumDecimals(['12.55', '12.55']), sumDecimals(['4.000', '4.4']), sumDecimals(['3', '4']), sumDecimals([])]).toEqual(['25.10', '8.400', '7', '0']);
   });
 
   it('[PR-19][PR-08] a total outside the tolerance of its target cannot be confirmed without an exception and a deviation', () => {

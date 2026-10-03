@@ -436,7 +436,7 @@ export const G22: BlockVersion = {
       { entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-DRY', gross: '13.60', tare: '1.05', unit: 'kg', balance: 'BAL-2', source: 'DEVICE' } },
       { entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-DRY', gross: '13.55', tare: '1.00', unit: 'kg', balance: 'BAL-2', source: 'DEVICE' } },
     ],
-    expect: { exceptions: [], status: 'COMPLETED', values: { net: '25.1' } },
+    expect: { exceptions: [], status: 'COMPLETED', values: { net: '25.10' } },
   },
   tests: ['packages/recipe-core/test/blocks/golden.test.ts', 'packages/recipe-core/test/blocks/material.test.ts'],
 };

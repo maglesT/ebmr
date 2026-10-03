@@ -8,7 +8,8 @@
  *
  * The run touches what changed between released versions: time facts noticed inside a person's command and signing
  * preparation, a clock regression, the meaning of a verification (a witness or a generic VERIFIED where the step
- * requires its own check) and of a PERFORMED signature on a block with its own perform meaning.
+ * requires its own check) and of a PERFORMED signature on a block with its own perform meaning, and (since 1.2.0) the
+ * resolution of a computed net weight (an output container weighed at 0.001 kg whose net ends in zeros).
  *
  * This module depends on `src` only (no test helper), with the MBR written out in full, so the fingerprint moves only
  * when the engine, its blocks or the expression language answer differently. It is also run against earlier commits
@@ -55,7 +56,7 @@ function phaseNode(id: string, extra: Partial<PhaseNode> = {}): PhaseNode {
   };
 }
 
-/** mix (timed: 15 min at most, warned 5 min before), a G-10 line clearance, and an end step. */
+/** mix (timed: 15 min at most, warned 5 min before), a G-10 line clearance, a G-22 output weighing, and an end step. */
 export function fingerprintMbr(): MbrContent {
   return {
     format: 'ebmr.mbr-content',
@@ -76,8 +77,8 @@ export function fingerprintMbr(): MbrContent {
     library: [],
     inputs: [],
     bom: [],
-    intermediates: [],
-    parameters: [],
+    intermediates: [{ id: 'I-OUT', name: 'Output', finalOutput: true }],
+    parameters: [{ id: 'outNet', name: 'Output (net)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' }],
     calculations: [],
     yieldCheckpoints: [],
     acceptanceSchemes: [],
@@ -115,7 +116,16 @@ export function fingerprintMbr(): MbrContent {
               kind: 'operation',
               id: 'O',
               name: 'Operation',
-              body: { kind: 'sequence', id: 'ops', children: [phaseNode('mix'), phaseNode('clear', { block: { type: 'G-10', version: '1' }, significant: true }), phaseNode('end')] },
+              body: {
+                kind: 'sequence',
+                id: 'ops',
+                children: [
+                  phaseNode('mix'),
+                  phaseNode('clear', { block: { type: 'G-10', version: '1' }, significant: true }),
+                  phaseNode('out', { block: { type: 'G-22', version: '1' }, records: ['outNet'], produces: ['I-OUT'] }),
+                  phaseNode('end'),
+                ],
+              },
             },
           },
         ],
@@ -165,6 +175,9 @@ function rows(): Row[] {
     // The generic VERIFIED on a block with its own check, then the block's own.
     c(27, { type: 'VERIFY', actor: VER2, step: 'clear', context: [], signature: signed('FP-S6', 'VERIFIED', VER2) }, 12),
     c(28, { type: 'VERIFY', actor: VER2, step: 'clear', context: [], signature: signed('FP-S7', 'LINE_CLEARANCE_VERIFIED', VER2) }, 13),
+    // An output container weighed at 0.001 kg: its net and the recorded quantity keep that resolution (1.2.0).
+    c(29, { type: 'START_STEP', actor: OP1, step: 'out', context: [] }, 14),
+    c(30, { type: 'RECORD_ENTRY', actor: OP1, step: 'out', context: [], entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-OUT', gross: '26.100', tare: '1.100', unit: 'kg', balance: 'BAL-2', source: 'DEVICE' } }, 15),
     { kind: 'SWEEP', at: at(40) },
   ];
 }

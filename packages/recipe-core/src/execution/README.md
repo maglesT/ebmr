@@ -456,7 +456,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, or a container the state registers, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380, 0390), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
-| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316) |
+| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316); a stage sign-off other than the engine's (135; sql 0319, 0320); a weighing entry whose net is not gross minus tare at the resolution of the weighings (136; sql 0321) |
 
 ## TypeScript
 
@@ -826,6 +826,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `db-guards-package-header.test.ts` (Phase 2 exit review F03; sql 0318): a package whose family code or product
   differs from its content is refused by the server (EBMR-EXE-017) and, called directly, by the database
   (EBMR-EXE-134).
+- `db-guards-weighing-net.test.ts` (lead TODO T2 of the Phase 2 exit; INV-25, PR-19; sql 0321): a weighing row whose
+  net is not gross minus tare at the resolution of the weighings ("50" for 51.250 - 1.250, or another value) is refused
+  (EBMR-EXE-136); the engine's own net ("50.000") is recorded; the database's reading of both weighing kinds.
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and

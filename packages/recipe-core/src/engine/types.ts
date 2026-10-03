@@ -21,6 +21,10 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  * version (EBMR-EXE-061), because replay compares every stored row's events and state with the engine's. Any change
  * of what `issue`, `step`, `sweep` or `prepareForSignature` answer for the same input needs a new version, recorded
  * with its output fingerprint in test/engine/engine-version.test.ts. Semantic changes:
+ *  - 1.2.0: a computed weight keeps the resolution of the weighings it comes from (lead TODO T2 of the Phase 2 exit):
+ *    the net of a container is gross minus tare written with the decimals of the finer of the two ("50.000 kg", not
+ *    "50 kg"), in the entry, its label and the container register, and a total of nets with the decimals of the finest
+ *    net; nothing is rounded. The database checks the net the same way (recipe-core 0321).
  *  - 1.1.0: a time fact (a breach, a warning, a void) and a clock regression noticed inside a person's command or
  *    signing preparation are raised by SYSTEM, not by that person (P35, P28); the check a verifier signs is
  *    exactly the one the step requires (RE_VERIFIED_AFTER_CORRECTION, the MBR's WITNESSED, the block's own check,
@@ -30,7 +34,7 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  *    database's blank test (kernel.is_blank) refuses it.
  *  - 1.0.0: Phase 2 first release.
  */
-export const ENGINE_VERSION = '1.1.0';
+export const ENGINE_VERSION = '1.2.0';
 export const STATE_SCHEMA = 'ebmr.batch-execution-state';
 
 /** Trusted server time of the command's transaction (kernel clock; `recorded_at`), UTC epoch microseconds. */

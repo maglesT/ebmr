@@ -54,6 +54,10 @@ tests:
   - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-32][PR-19] an engine refusal the server committed with the claims (details.readingsUsed): both readings are spent and go"
   - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-30][PR-19] tare and gross from different scales are said before anything is sent; Save stays disabled"
   - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-30][PR-19] tare and gross in different units are said before anything is sent; Save stays disabled"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [INV-25][PR-19][DI-30] a computed net and the dispensed total keep the resolution of the weighings, in the entry, the label, the container and the recorded value (engine 1.2.0; lead TODO T2)"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [INV-25][PR-19] netOf and sumDecimals are exact and keep the written resolution: nothing is rounded, no trailing zero dropped (T2)"
+  - "apps/tablets-server/test/execution/db-guards-weighing-net.test.ts > T2: a recorded net weight keeps the resolution of the weighings (INV-25, PR-19; sql 0321) > [INV-25][PR-19][DI-30] a weighing row recording its net without the trailing zeros of the weighings, or another net, is refused; the engine's own net is recorded"
+  - "apps/tablets-server/test/execution/db-guards-weighing-net.test.ts > T2: a recorded net weight keeps the resolution of the weighings (INV-25, PR-19; sql 0321) > [INV-25][PR-19] the database's reading: gross minus tare at the finer resolution, for both weighing kinds; other entries pass"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

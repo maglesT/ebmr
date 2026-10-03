@@ -59,18 +59,38 @@ export function convert(view: HandlerView, value: string, from: string, to: stri
   return from === to ? value : view.expr.convert(value, from, to);
 }
 
-/** net = gross - tare, exact; refuses a negative or zero net. */
+/** The digits after the decimal point of decimal text as it is written ("51.250": 3), the resolution it was taken at. */
+function writtenDecimals(text: string): number {
+  const point = text.indexOf('.');
+  return point < 0 ? 0 : text.length - point - 1;
+}
+
+/**
+ * Exact decimal text of `value` with at least `decimals` digits after the point: the resolution of the weighings it was
+ * computed from is kept ("50.000", not "50"; engine 1.2.0, lead TODO T2). Never rounds: a value with more digits keeps
+ * them all.
+ */
+function atResolution(value: Dec, decimals: number): string {
+  return value.toFixed(Math.max(decimals, value.decimalPlaces()), 'HALF_EVEN');
+}
+
+/**
+ * net = gross - tare, exact, at the resolution of the finer of the two weighings (as PostgreSQL's numeric subtraction
+ * writes it, which the database checks: recipe-core 0321); refuses a negative or zero net.
+ */
 export function netOf(gross: string, tare: string): { ok: true; net: string } | { ok: false; message: string } {
   const g = Dec.parse(gross);
   const t = Dec.parse(tare);
   if (t.isNegative() || g.isNegative()) return { ok: false, message: 'gross and tare weights cannot be negative' };
   const net = g.minus(t);
   if (!net.isPositive()) return { ok: false, message: `the net weight (${gross} - ${tare}) is not positive` };
-  return { ok: true, net: net.toString() };
+  return { ok: true, net: atResolution(net, Math.max(writtenDecimals(gross), writtenDecimals(tare))) };
 }
 
+/** The exact sum, at the resolution of the finest of the values summed (engine 1.2.0). */
 export function sumDecimals(values: readonly string[]): string {
-  return values.reduce((acc, v) => acc.plus(Dec.parse(v)), Dec.ZERO).toString();
+  const total = values.reduce((acc, v) => acc.plus(Dec.parse(v)), Dec.ZERO);
+  return atResolution(total, values.reduce((most, v) => Math.max(most, writtenDecimals(v)), 0));
 }
 
 /**
