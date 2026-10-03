@@ -86,6 +86,7 @@ tests:
   - "packages/ui-kit/test/identity/signed-content.test.tsx > a hold-point decision is shown as part of what is signed (P26, P38) > [DI-37][PR-45] P26/P38: a decision without a comment says so; a preview without the decision says the signature binds none"
   - "packages/ui-kit/test/identity/signed-content.test.tsx > a hold-point decision is shown as part of what is signed (P26, P38) > [DI-37][PR-45] an empty comment and a comment of white space only are each shown as such, never as no comment or as an empty cell"
   - "apps/tablets-server/test/execution/db-guards-proposal-race.test.ts > F37: a proposed decision never lands on a signed content version (INV-09, DI-37) > [INV-09][DI-37][PR-45] F37.R: on two connections, a hold-point decision proposed while a release signed outside the server's path is open waits for it and is refused; the release, committed after, stays VALID over APPROVED"
+  - "apps/tablets-server/test/execution/db-guards-proposal-race.test.ts > F37: a proposed decision never lands on a signed content version (INV-09, DI-37) > [INV-09][DI-37][PR-45] F37.R round 2: on two connections, for a hold point, a decision proposed in REPEATABLE READ or SERIALIZABLE while a release signed outside the server's path is open is refused (EBMR-EXE-084), and a release signed in REPEATABLE READ or SERIALIZABLE while a proposal is open is refused (EBMR-ESIG-015); the committed release stays VALID over APPROVED"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

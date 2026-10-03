@@ -476,7 +476,12 @@ one plain-language business entry on the chain `batch:<id>`.
   committed signature of the deciding meaning (EXCEPTION_DISPOSITIONED; HOLD_POINT_RELEASED or
   HOLD_POINT_NOT_RELEASED), so what a signature covers never changes (INV-09; sql 0309, Phase 2 exit review F37).
   Under 0309 alone a signer outside the server's path, which takes no batch lock, could keep its signed transaction
-  open while a proposal committed on that version (F37.R).
+  open while a proposal committed on that version (F37.R). These waits serialise only in READ COMMITTED, where each
+  statement after the lock reads what committed before it: a proposal or a signing in REPEATABLE READ or SERIALIZABLE
+  read its first statement's snapshot and committed over content its record no longer had. So the proposals refuse
+  any other isolation level before they lock or read anything (sql 0331, EBMR-EXE-084), and so does the kernel's
+  signing lock, taken by `esig.sign` and every change of signed content (kernel migration 1020, EBMR-ESIG-015; F37.R round
+  2, decision F37.2).
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
   `batch_point_content` read the latest content version, the state and the persons involved. For an exception
   these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
@@ -880,13 +885,18 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
-- `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309, 0329): a second QA user's disposition, and a
+- `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309, 0329, 0331): a second QA user's disposition, and a
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content
   version a disposition was already signed on is refused, with the exception still open. F37.R (sql 0329), on two
   connections with a signer outside the server's path (no batch lock): a disposition or hold-point decision proposed
   while that signer's transaction is open waits for it and is refused, the signature committed after stays VALID; a
-  signing asked for while another QA user's proposal is open waits for it and is refused (EBMR-ESIG-012).
+  signing asked for while another QA user's proposal is open waits for it and is refused (EBMR-ESIG-012). Round 2
+  (sql 0331, kernel migration 1020), on two connections at REPEATABLE READ and SERIALIZABLE: a disposition or hold-point
+  decision proposed while an outside signer's transaction is open is refused (EBMR-EXE-084), and a disposition or
+  release signed while another QA user's proposal is open is refused (EBMR-ESIG-015); a deviation linked to the
+  exception after its disposition was signed and committed is refused (EBMR-ESIG-015) instead of leaving that
+  signature unsuperseded; every signature committed stays VALID.
 - `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328, 0330): a real previous batch number
   typed into a line clearance is refused by the server before anything is written (EBMR-SBX-022), and by the database
   when written through the store (EBMR-EXE-078); every identifier an entry carries (previous, scanned and source
