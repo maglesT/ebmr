@@ -12,6 +12,7 @@ import { sha256Hex } from '@ebmr/expr';
 import { engine, execution, flow } from '@ebmr/recipe-core';
 import { routes, type ActionView, type ClientIntent, type Result, type SignedIntent, type SignatureCredentials } from '@ebmr/api-contract';
 import { openPersonaSession } from '@ebmr/test-kit';
+import { newSessionToken, tokenHash } from '../../src/platform/auth/session.ts';
 import { DEMO_LOTS, registerLots } from '../../src/features/execution/seed.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { personaIn, refusalOf, startSigningServer, tapFor, valueOf } from '../esig/support.ts';
@@ -267,6 +268,23 @@ export async function dispensingAwaitingSignOff(server: ExecServer, beforeTap: (
     await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: 'Second person verified each weighing.' });
   }
   return d;
+}
+
+/**
+ * A browser with a session of persona `key` on its home terminal (or `terminal`) acting in `role`, bound as asPersona
+ * binds a session: for a person holding a second role (the kernel checks the account holds it).
+ */
+export async function asPersonaInRole(server: TestServer, key: string, role: string, terminal?: string): Promise<TestBrowser> {
+  const persona = server.seed.personas.find((p) => p.key === key);
+  if (!persona) throw new Error(`persona ${key} is not seeded`);
+  const at = terminal ?? persona.homeTerminal;
+  const s = await openPersonaSession(server.db, server.seed, key, at);
+  const token = newSessionToken();
+  await server.db.app.query('select tab.bind_session($1, $2, $3)', [s.sessionId, tokenHash(token), role]);
+  const b = server.browser(at);
+  b.cookies.set(server.config.cookies.session, token);
+  valueOf(await b.call(routes.session.get));
+  return b;
 }
 
 /** `status:code` of a refused call, or 'ok'. */

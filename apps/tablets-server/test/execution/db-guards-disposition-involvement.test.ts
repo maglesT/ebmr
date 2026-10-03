@@ -33,7 +33,7 @@ import { passwordActor, terminalOf } from '@ebmr/test-kit';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { actorOf, appendAs, messageOf } from './db-guards-support.ts';
-import { dcMini, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
+import { asPersonaInRole, dcMini, importAndIssue, outcomeOf, personaIn, refusalOf, rowsOf, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -285,11 +285,28 @@ describe('F11: a person involved in the step that raised an exception never disp
 
   it('[INV-03][PR-13][PR-49] the server\'s own signing path refuses the same disposition, and an uninvolved QA reviewer records it', async () => {
     const { d, exception } = await runWithStepException();
+    // Review F13 (same defect as its INV-03 tag on esig/disposition.test): this test used to show only the uninvolved
+    // reviewer's disposition. operator1, who entered data in the raising step, now asks for it through the server's
+    // ceremony routes, in a session acting as QA_SHOP_FLOOR: the sign request's dry run is refused by the engine
+    // (ENG-SEGREGATION), the refusal is recorded as a refused row, and nothing is signed.
+    await operatorAsQa();
+    const involved = new RunDriver(sbx, d.runId, { operator1: await asPersonaInRole(sbx, 'operator1', 'QA_SHOP_FLOOR') });
+    involved.beforeTap = d.beforeTap;
+    const rows0 = await rowsOf(sbx, d.runId);
+    const refused = await involved.sign('operator1', { type: 'DISPOSITION_EXCEPTION', exception, outcome: 'NO_IMPACT', justification: 'Door closed, booth re-checked; no impact.' });
+    expect({ stage: refused.stage, outcome: outcomeOf(refused.result) }).toEqual({ stage: 'sign', outcome: '422:ENG-SEGREGATION' });
+    expect(refusalOf(refused.result)).toMatchObject({ kind: 'INDEPENDENCE', controls: ['PR-13', 'PR-49', 'INV-03'] });
+    expect(refusalOf(refused.result).whatHappened).toMatch(/Nothing was signed\./);
+    expect((await rowsOf(sbx, d.runId)).slice(rows0.length)).toMatchObject([{ kind: 'COMMAND', command_type: 'DISPOSITION_EXCEPTION', accepted: false, refusal: { code: 'ENG-SEGREGATION' }, signature_ids: [] }]);
+    const signed = async () => (await sbx.db.admin.query<{ n: string }>("select count(*)::text as n from esig.signature where aggregate_id = $1 and meaning_code = 'EXCEPTION_DISPOSITIONED'", [`${d.runId}:${exception}`])).rows[0]?.n;
+    expect(await signed()).toBe('0');
+    expect((await execution.loadState(sbx.db.admin, d.runId))?.state.exceptions[exception]?.status).toBe('OPEN');
     // supervisor1 raised it: the kernel's rule on the raiser holds as before.
     const own = await d.sign('qa1', { type: 'DISPOSITION_EXCEPTION', exception, outcome: 'NO_IMPACT', justification: 'Door closed, booth re-checked; no impact.' });
     expect(outcomeOf(own.result), own.result.ok ? '' : JSON.stringify(own.result.error)).toBe('ok');
     const after = await execution.loadState(sbx.db.admin, d.runId);
     expect(after?.state.exceptions[exception]?.disposition?.by).toBe(personaIn(sbx, 'qa1').personId);
+    expect(await signed()).toBe('1');
     expect(await violations(sbx)).toEqual([]);
   }, 300_000);
 

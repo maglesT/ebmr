@@ -20,7 +20,8 @@ afterAll(async () => {
 });
 
 describe('periodic review (PR-05)', () => {
-  it('[PR-05] an overdue review appears on the dashboard until the review is recorded', async () => {
+  // Review F13: the dashboard that shows this list comes with Phase 6; this test shows the list the database keeps.
+  it('[PR-05] an overdue review is on the overdue list (recipe.overdue_reviews) until the review is recorded', async () => {
     const content = uniqueContent();
     const v = await w.approvedVersion(content, { effectiveFrom: '2026-01-01T00:00:00Z', reviewDue: '2026-06-30' });
     await w.authorise({ versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell('S1', 'L1', 'PO-20K')], regulatoryBasis: 'IN' });

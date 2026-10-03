@@ -35,7 +35,10 @@ describe('limit tiers (PR-08; outline 5.2.4)', () => {
     expect(lenient.dependentStepsBlockedUntilDeviation).toBe(true);
   });
 
-  it('[PR-08] a value outside a registered limit requires a registration-relevant deviation that only QA dispositions, shown on the release screen; the operator cannot clear it', () => {
+  // Review F13: this classification is what the engine and the database act on. That the operator cannot clear the
+  // deviation is shown where it is enforced (engine/exceptions.test.ts, ENG-ROLE; the database's QA permission for the
+  // disposition); the release screen of PR-08 comes with Phase 4 and no test claims it yet.
+  it('[PR-08] the tier table: a value outside a registered limit requires a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off', () => {
     const r = at('94.0');
     expect(r).toMatchObject({
       breached: 'REGISTERED',
@@ -43,9 +46,7 @@ describe('limit tiers (PR-08; outline 5.2.4)', () => {
       deviationRequired: true,
       registrationRelevant: true,
       qaOnlyDisposition: true,
-      onReleaseScreen: true,
       stageSignOffBlockedUntilQaClassification: true,
-      operatorMayClear: false,
     });
     // An internal-action "continue" setting never softens a registered breach.
     expect(evaluateLimits({ ...assay, actionBreach: 'CONTINUE_CURRENT_STEP_WITH_DEVIATION' }, { value: '94.0', unit: '%' }, expr).currentStepMayContinueWithDeviation).toBe(false);

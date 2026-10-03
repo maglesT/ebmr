@@ -49,10 +49,7 @@ export interface LimitEvaluation {
   /** Only for internal action limits when the MBR allows it (PR-08 type_detail). */
   currentStepMayContinueWithDeviation: boolean;
   qaOnlyDisposition: boolean;
-  onReleaseScreen: boolean;
   stageSignOffBlockedUntilQaClassification: boolean;
-  /** Always false: an operator can never suppress or clear the flag (PR-08). */
-  operatorMayClear: false;
   /** Expression-language version that did the rounding (stored with the result). */
   languageVersion: string;
 }
@@ -76,7 +73,6 @@ export function evaluateLimits(spec: LimitSpec, captured: { value: string; unit:
     capturedValue: captured?.value,
     capturedUnit: captured?.unit,
     unit: spec.unit,
-    operatorMayClear: false as const,
     languageVersion: expr.languageVersion,
   };
   if (!captured) {
@@ -96,7 +92,6 @@ export function evaluateLimits(spec: LimitSpec, captured: { value: string; unit:
       dependentStepsBlockedUntilDeviation: true,
       currentStepMayContinueWithDeviation: false,
       qaOnlyDisposition: false,
-      onReleaseScreen: false,
       stageSignOffBlockedUntilQaClassification: false,
     };
   }
@@ -132,7 +127,6 @@ export function evaluateLimits(spec: LimitSpec, captured: { value: string; unit:
     dependentStepsBlockedUntilDeviation: severity >= 2,
     currentStepMayContinueWithDeviation: continueAllowed,
     qaOnlyDisposition: severity === 3,
-    onReleaseScreen: severity === 3,
     stageSignOffBlockedUntilQaClassification: severity === 3,
   };
 }

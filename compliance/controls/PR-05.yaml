@@ -33,7 +33,7 @@ implemented_by:
     - "INV-17"
   guards:
     - "batch_mbr_pin trigger: a new batch pins only the version the selection gives at the issue instant; after v2 is CURRENT, v1 is refused (EBMR-RCP-101)"
-    - "mbr_version.review_due_set: every approved master carries a review due date after its effective date; recipe.overdue_reviews for the dashboard"
+    - "mbr_version.review_due_set: every approved master carries a review due date after its effective date; recipe.overdue_reviews lists the overdue ones (the dashboard that shows them comes with Phase 6: open, see phase-2-open-questions F13.2)"
     - "mbr_version.no_open_authorisation and recipe.retire_version: retirement ends every open authorisation; retired versions are never selected, issued records stay readable (recipe.verify_control_recipe)"
     - "mbr_version.in_flight_dispositioned: issued and running batches of earlier versions get CONTINUE (default), HOLD_FOR_ASSESSMENT or CANCEL_UNSTARTED before a successor is approved"
   db_constraints:
@@ -48,7 +48,7 @@ tests:
   - "packages/recipe-core/test/lifecycle/machine.test.ts > [PR-02][PR-05][INV-04] every event in every state is accepted by the engine exactly when XState allows it"
   - "packages/recipe-core/test/lifecycle/market.test.ts > [INV-17][PR-05] the successor supersedes the predecessor for its market and scope in the same transaction; partial scope leaves the rest CURRENT"
   - "packages/recipe-core/test/lifecycle/market.test.ts > [PR-05][INV-17] withdrawal ends the authorisation; retirement ends every open authorisation and the version"
-  - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] an overdue review appears on the dashboard until the review is recorded"
+  - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] an overdue review is on the overdue list (recipe.overdue_reviews) until the review is recorded"
   - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] only approved versions are reviewed; a retired version leaves the overdue list"
   - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05][PR-02] the inventory export lists every version with ID, version, status and dates, and reconciles with the site document list"
   - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05] where-used lists the batches pinned to a version"

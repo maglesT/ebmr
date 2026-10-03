@@ -29,7 +29,7 @@ implemented_by:
     - "apps/tablets-server/src/features/execution/views.ts (limits with tier and source reference, the stored verdict of each attempt, blocking exceptions with what to do)"
   guards:
     - "checkLimitSpec / checkNestingAfterRounding: alert inside internal action inside registered and validated, exactly and after each tier rounds"
-    - "evaluateLimits: value kept as acquired; outermost breached tier decides: REGISTER_ITEM, STOP_UNTIL_DEVIATION, REGISTRATION_RELEVANT_DEVIATION (QA-only, release screen, sign-off blocked); operatorMayClear always false"
+    - "evaluateLimits: value kept as acquired; outermost breached tier decides: REGISTER_ITEM, STOP_UNTIL_DEVIATION, REGISTRATION_RELEVANT_DEVIATION (QA-only, sign-off blocked). The release screen that shows the flag comes with Phase 4 (open; see phase-2-open-questions F13.1)"
     - "evaluateAllApply: every criterion with its own rounding and sampling; sampling plan = union"
     - "At recording the value is stored as acquired and evaluated: ALERT a register item; INTERNAL_ACTION stops the step and the steps after it until a deviation is linked; REGISTERED or VALIDATED a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off; the operator cannot clear it"
     - "Loop endpoint limits are judged at loop exit; every iteration is kept"
@@ -43,7 +43,7 @@ tests:
   - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: inside all tiers nothing is required"
   - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: an alert breach needs an exception-register item only"
   - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: an internal action breach stops the dependent step until a deviation is opened"
-  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] a value outside a registered limit requires a registration-relevant deviation that only QA dispositions, shown on the release screen; the operator cannot clear it"
+  - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the tier table: a value outside a registered limit requires a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off"
   - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] a validated range (CPP proven acceptable range) breach is treated like a registered one"
   - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] a missing value is an exception, never a pass"
   - "packages/recipe-core/test/limits/tiers.test.ts > [PR-08] the value is stored exactly as acquired; rounding only decides the comparison (USP: raw 94.95 passes 95.0, 94.94 fails)"
