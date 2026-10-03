@@ -16,10 +16,11 @@ import type { EnvConfig, ServerConfig } from './config.ts';
 import { FEATURES, type FeatureEntry } from './features/index.ts';
 import { webCryptoDeviceProvider } from './platform/auth/device-proof.ts';
 import type { AppContext } from './platform/context.ts';
-import { createPools, type Pools } from './platform/db/pools.ts';
+import { createPools, refuseUnstorableParameters, type Pools } from './platform/db/pools.ts';
 import { createReadDb } from './platform/db/read.ts';
 import { installErrorHandling } from './platform/http/errors.ts';
 import { GuidanceCatalogue, PLATFORM_GUIDANCE } from './platform/http/guidance.ts';
+import { installStrictJsonBodies } from './platform/http/json-body.ts';
 import { loggerOptions } from './platform/http/logging.ts';
 import { answerFrameworkError, installSecurity, isApiRequest } from './platform/http/security.ts';
 import { installSpa } from './platform/http/static.ts';
@@ -55,6 +56,9 @@ export interface BuiltApp {
 export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<BuiltApp> {
   const pools = deps.pools ?? createPools(env.appUrl, env.authnUrl);
   const ownPools = deps.pools === undefined;
+  // No query of the server carries text no record can hold (review F33): the pools tests hand in are guarded too.
+  refuseUnstorableParameters(pools.app);
+  refuseUnstorableParameters(pools.authn.pool);
   try {
     await assertInstallation(pools.app, env);
     // Every actor context this server builds declares this zone (EBMR-IAM-118): never a configured constant.
@@ -81,6 +85,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     });
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
+    installStrictJsonBodies(app);
     if (demo.warning) app.log.warn(demo.warning);
 
     const features = (deps.features ?? FEATURES).filter((f) => f.installations.includes(config.installation));

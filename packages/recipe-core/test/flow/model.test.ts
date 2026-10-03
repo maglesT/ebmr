@@ -67,6 +67,28 @@ describe('MBR content model: parsing', () => {
     if (!r.ok) expect(r.problems.some((p) => p.message === `nests flow nodes more than ${MAX_FLOW_DEPTH} deep`)).toBe(true);
   });
 
+  it('[DI-04][IN-02] content holding U+0000 or a lone surrogate is refused with the path of each place, so the designer points at it (review F32)', () => {
+    const json = clone(fixtureJson('tablet-blister-packaging')) as { procedure: { name: string }; parameters: { name: string }[]; header?: Record<string, unknown> };
+    json.procedure.name = 'Blister\u0000 packaging';
+    const first = json.parameters[0];
+    if (!first) throw new Error('fixture changed');
+    first.name = 'Seal temperature \uD800';
+    (json as Record<string, unknown>)['extra\uDC00'] = 'x';
+    const r = parseMbr(json);
+    expect(r.ok ? [] : r.problems).toEqual([
+      { path: '$', message: 'has a field name holding an unpaired surrogate U+DC00, which no record can hold' },
+      { path: '$.parameters[0].name', message: 'holds an unpaired surrogate U+D800, which no record can hold' },
+      { path: '$.procedure.name', message: 'holds U+0000, which no record can hold' },
+    ]);
+    // A node parsed on its own (the designer's palette) is checked the same way.
+    const node = parseFlowNodeStandalone({ kind: 'holdPoint', id: 'H', name: 'Hold\u0000', role: 'QA', dispositions: ['OK'] });
+    expect(node.ok ? [] : node.problems).toEqual([{ path: '$.name', message: 'holds U+0000, which no record can hold' }]);
+    // Text a record can hold, however unusual, parses as before.
+    const fine = clone(fixtureJson('tablet-blister-packaging')) as { procedure: { name: string } };
+    fine.procedure.name = 'Blister packaging मिश्रण 😀 \uFFFD \u0001 e\u0301';
+    expect(parseMbr(fine).ok).toBe(true);
+  });
+
   it('every problem names the JSON path of the offending field', () => {
     const r = parseMbr({ format: 'x' });
     expect(r.ok).toBe(false);

@@ -4,7 +4,10 @@
  * Refuses unknown fields, JSON numbers where a GMP value is expected (decimals travel as strings),
  * non-integer counts, malformed identifiers and wrong enumerations. Every problem carries a JSON path
  * so the designer can point at it. This checks shape only; meaning is the static validator's job.
+ * Content holding text no record can hold (U+0000, a lone surrogate) is refused before anything else
+ * (review F32).
  */
+import { unstorableText } from '@ebmr/expr';
 import { LIMIT_SOURCE_KINDS, LIMIT_TIERS, ROUNDING_RULES } from '../limits/model.ts';
 import type { AcceptanceCriterion, AcceptanceScheme, LimitBound, LimitRange, LimitSource, LimitSpec, SamplingNeed } from '../limits/model.ts';
 import { isDecimalLiteral } from './decimal.ts';
@@ -929,8 +932,58 @@ function libraryElement(r: Reader, v: unknown, path: string): LibraryElement | u
   return ref && level && symbols && body ? { ref, level, symbols, body } : undefined;
 }
 
-/** Parses and shape-checks MBR content. Nothing is defaulted: every field is explicit. */
+/** At most this many places holding text no record can hold are reported. */
+const MAX_TEXT_PROBLEMS = 10;
+
+/**
+ * The places in `json` that hold text no record can hold (review F32): U+0000, which PostgreSQL refuses, or a UTF-16
+ * surrogate without its other half, which jsonb refuses and UTF-8 encoding replaces with U+FFFD, so the saved master
+ * record would hold a character its author never wrote. Each is reported with its path (a field name at its object),
+ * so the designer's validator points at it; the walk keeps its own stack, so no nesting overflows the call stack.
+ */
+function unstorableTextProblems(json: unknown): ParseProblem[] {
+  interface Place {
+    v: unknown;
+    parent: Place | null;
+    step: string;
+  }
+  const pathOf = (place: Place): string => {
+    const steps: string[] = [];
+    for (let p: Place | null = place; p !== null; p = p.parent) steps.push(p.step);
+    return steps.reverse().join('');
+  };
+  const out: ParseProblem[] = [];
+  const stack: Place[] = [{ v: json, parent: null, step: '$' }];
+  while (stack.length > 0 && out.length < MAX_TEXT_PROBLEMS) {
+    const place = stack.pop() as Place;
+    const v = place.v;
+    if (typeof v === 'string') {
+      const problem = unstorableText(v);
+      if (problem !== null) out.push({ path: pathOf(place), message: `holds ${problem}, which no record can hold` });
+    } else if (Array.isArray(v)) {
+      for (let i = v.length - 1; i >= 0; i -= 1) stack.push({ v: v[i] as unknown, parent: place, step: `[${i}]` });
+    } else if (v !== null && typeof v === 'object') {
+      const entries = Object.entries(v as Record<string, unknown>);
+      for (const [k] of entries) {
+        const problem = unstorableText(k);
+        if (problem !== null) out.push({ path: pathOf(place), message: `has a field name holding ${problem}, which no record can hold` });
+      }
+      for (let i = entries.length - 1; i >= 0; i -= 1) {
+        const [k, x] = entries[i] as [string, unknown];
+        if (unstorableText(k) === null) stack.push({ v: x, parent: place, step: `.${k}` });
+      }
+    }
+  }
+  return out.slice(0, MAX_TEXT_PROBLEMS);
+}
+
+/**
+ * Parses and shape-checks MBR content. Nothing is defaulted: every field is explicit. Content holding text no record
+ * can hold is refused first, with the places that hold it, and not parsed further.
+ */
 export function parseMbr(json: unknown): ParseResult {
+  const text = unstorableTextProblems(json);
+  if (text.length > 0) return { ok: false, problems: text };
   const r = new Reader();
   const o = r.object(json, '$', [
     'format',
@@ -1007,6 +1060,8 @@ export function parseMbr(json: unknown): ParseResult {
 
 /** Parses a library-element body on its own (used when hashing embedded snapshots). */
 export function parseFlowNodeStandalone(json: unknown): { ok: true; node: FlowNode } | { ok: false; problems: ParseProblem[] } {
+  const text = unstorableTextProblems(json);
+  if (text.length > 0) return { ok: false, problems: text };
   const r = new Reader();
   const node = parseFlowNode(r, json, '$');
   if (r.problems.length > 0 || !node) return { ok: false, problems: r.problems };

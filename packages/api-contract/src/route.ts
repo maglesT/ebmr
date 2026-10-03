@@ -4,7 +4,7 @@
  * coverage test (every route id registered exactly once, in the right installation).
  */
 import { z } from 'zod';
-import { Empty } from './common.ts';
+import { Empty, storableText } from './common.ts';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 /** Which server installation serves the route. ANY: both. */
@@ -64,7 +64,8 @@ export interface RouteSpec<Params extends z.ZodType, Query extends z.ZodType, Bo
 
 /**
  * Defines one route. Defaults: attribution NONE; idempotency REQUIRED for mutating SESSION routes, otherwise NONE.
- * A path parameter needs a params schema member and vice versa (checked here, at definition time).
+ * A path parameter needs a params schema member and vice versa (checked here, at definition time). The params, query
+ * and body schemas also refuse, at any depth, text no record can hold (storableText; review F30-F33).
  */
 export function defineRoute<
   Res extends z.ZodType,
@@ -98,9 +99,9 @@ export function defineRoute<
     idempotency: spec.idempotency ?? (spec.mutating && spec.auth === 'SESSION' ? 'REQUIRED' : 'NONE'),
     ...(spec.stream ? { stream: spec.stream } : {}),
     summary: spec.summary,
-    params,
-    query: (spec.query ?? Empty) as Query,
-    body,
+    params: storableText(params),
+    query: storableText((spec.query ?? Empty) as Query),
+    body: body === undefined ? undefined : storableText(body),
     response: spec.response,
   };
 }

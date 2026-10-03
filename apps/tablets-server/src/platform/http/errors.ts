@@ -5,6 +5,7 @@
  */
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from 'fastify-type-provider-zod';
+import { UnstorableTextError } from '@ebmr/expr';
 import { commands, identity } from '@ebmr/kernel';
 import type { RefusalEnvelope } from '@ebmr/api-contract';
 import type { AppContext } from '../context.ts';
@@ -14,6 +15,8 @@ import { HttpRefusal } from './refusal.ts';
 export interface MappedError {
   status: number;
   envelope: RefusalEnvelope;
+  /** Logged at warn with the error: a refusal that a line before it should have given (unstorableTextRefusal). */
+  warn?: true;
 }
 
 export function fromGuidance(code: string, entry: GuidanceEntry, why: string, correlationId: string, details?: Record<string, string>): MappedError {
@@ -38,6 +41,33 @@ export function fromGuidance(code: string, entry: GuidanceEntry, why: string, co
 
 const stripCode = (message: string): string => message.replace(/^\s*EBMR-[A-Z]+-\d{3}:?\s*/, '').replace(/\s*\[EBMR-[A-Z]+-\d{3}\]\s*$/, '');
 
+/**
+ * The SQLSTATE of a PostgreSQL refusal of text no record can hold, looking through `cause`: 22P05 (jsonb: the escape of
+ * U+0000), 22021 (text: the byte 0x00), 22P02 with a surrogate in its detail (jsonb: the escape of a lone surrogate).
+ */
+function unstorableTextSqlState(error: unknown): string | null {
+  for (let e: unknown = error, depth = 0; e !== null && typeof e === 'object' && depth < 4; e = (e as { cause?: unknown }).cause, depth += 1) {
+    const { code, detail } = e as { code?: unknown; detail?: unknown };
+    if (code === '22P05' || code === '22021') return code;
+    if (code === '22P02' && typeof detail === 'string' && /surrogate/i.test(detail)) return code;
+  }
+  return null;
+}
+
+/**
+ * Text no record can hold (U+0000, a UTF-16 surrogate without its other half) that got past the contract (storableText)
+ * to a canonical hash (UnstorableTextError), the query guard (pools.ts) or PostgreSQL itself (review F30-F33): a 400
+ * INVALID_INPUT refusal, never 500 INTERNAL, logged at warn because the contract should have refused it first. The
+ * database's refusal stays the last line; the text is never echoed.
+ */
+function unstorableTextRefusal(app: AppContext, error: unknown, correlationId: string): MappedError | null {
+  const state = error instanceof UnstorableTextError ? null : unstorableTextSqlState(error);
+  if (!(error instanceof UnstorableTextError) && state === null) return null;
+  const entry = app.guidance.lookup('SCHEMA')!;
+  const where = state === null ? 'before it reached the database' : `by the database (SQLSTATE ${state})`;
+  return { ...fromGuidance('SCHEMA', entry, `The request holds text no record can hold (U+0000, or half of a surrogate pair); it was refused ${where} and nothing was saved.`, correlationId), warn: true };
+}
+
 export function mapError(app: AppContext, error: unknown, correlationId: string): MappedError {
   const g = (code: string): GuidanceEntry => app.guidance.lookup(code) ?? app.guidance.lookup('INTERNAL')!;
   if (error instanceof HttpRefusal) return { status: error.status, envelope: { refusal: error.refusal, correlationId, retryable: error.retryable } };
@@ -54,6 +84,8 @@ export function mapError(app: AppContext, error: unknown, correlationId: string)
     return fromGuidance(code, g(code), locked ? 'The account is locked after too many failed attempts.' : 'The user ID, badge, password or PIN is not correct, or the account cannot sign in here.', correlationId);
   }
   if (error instanceof Error && isResponseSerializationError(error)) return fromGuidance('INTERNAL', g('INTERNAL'), 'The server built an answer that does not match the contract.', correlationId);
+  const unstorable = unstorableTextRefusal(app, error, correlationId);
+  if (unstorable) return unstorable;
   const code = commands.errorCode(error) ?? identity.ebmrCode(error);
   if (code) {
     const entry = app.guidance.lookup(code);
@@ -71,6 +103,7 @@ export function installErrorHandling(scope: FastifyInstance, app: AppContext): v
     const correlationId = String(request.id);
     const mapped = mapError(app, error, correlationId);
     if (mapped.status >= 500) request.log.error({ err: error, correlationId }, 'request failed');
+    else if (mapped.warn) request.log.warn({ err: error, code: mapped.envelope.refusal.code, status: mapped.status, correlationId }, 'request refused late');
     else request.log.info({ code: mapped.envelope.refusal.code, status: mapped.status, correlationId }, 'request refused');
     void reply.code(mapped.status).send(mapped.envelope);
   });

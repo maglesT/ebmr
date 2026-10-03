@@ -4,9 +4,12 @@
  * route table is well formed.
  */
 import { describe, expect, it } from 'vitest';
-import type { z } from 'zod';
+import { z } from 'zod';
 import {
   allRoutes,
+  defineRoute,
+  storableText,
+  unstorableTextIssues,
   CLIENT_PLAIN_TYPES,
   CLIENT_SIGNED_TYPES,
   ClientEntry,
@@ -204,5 +207,73 @@ describe('route table', () => {
   it('[INV-26] the role map mirror names each shop-floor kernel role once', () => {
     expect(new Set(ENGINE_ROLE_MAP.map((m) => m.kernelRole)).size).toBe(ENGINE_ROLE_MAP.length);
     expect(ENGINE_ROLE_MAP.find((m) => m.kernelRole === 'QA_SHOP_FLOOR')).toMatchObject({ engineRole: 'QA', viaPermission: 'QA.FLOOR_APPROVE' });
+  });
+});
+
+describe('text a record can hold (review F30-F33)', () => {
+  const issues = (schema: z.ZodType, value: unknown) => {
+    const r = schema.safeParse(value);
+    return r.success ? [] : r.error.issues.map((i) => ({ path: i.path, message: i.message }));
+  };
+
+  it('[DI-37] every string and member name holding U+0000 or a lone surrogate is found, with its path, at any depth; text a record can hold is not', () => {
+    expect(unstorableTextIssues({ a: 'ok', b: ['x', { c: 'Booth\u0000' }], ['k\u0000']: 1, d: 'Line stop \uDBFF', e: '\uDC00', f: ['\uD83D\uDE00', 'e\u0301 \uFFFD \u0001'] })).toEqual([
+      { path: [], message: 'has a member name holding U+0000, which no record can hold' },
+      { path: ['b', 1, 'c'], message: 'holds U+0000, which no record can hold: enter the text again without it' },
+      { path: ['d'], message: 'holds an unpaired surrogate U+DBFF, which no record can hold: enter the text again without it' },
+      { path: ['e'], message: 'holds an unpaired surrogate U+DC00, which no record can hold: enter the text again without it' },
+    ]);
+    expect(unstorableTextIssues('\u0000')).toEqual([{ path: [], message: 'holds U+0000, which no record can hold: enter the text again without it' }]);
+    expect(unstorableTextIssues({ n: 1, b: true, z: null, t: 'मिश्रण 😀 \u{10FFFF}' })).toEqual([]);
+    // At most `limit` places are named; the walk has no recursion, so no nesting overflows the stack.
+    expect(unstorableTextIssues(Array.from({ length: 50 }, () => '\u0000'))).toHaveLength(10);
+    let deep: unknown = 'x\u0000';
+    for (let i = 0; i < 100_000; i += 1) deep = [deep];
+    const [far] = unstorableTextIssues(deep);
+    expect(far?.path).toHaveLength(100_000);
+  });
+
+  it('[DI-37][DI-34] defineRoute refuses such text in the params, query and body of every route, naming the place; a route\'s own schema is unchanged otherwise', () => {
+    const route = defineRoute({
+      id: 'test.anything',
+      method: 'POST',
+      path: '/api/test/:key',
+      installation: 'ANY',
+      auth: 'SESSION',
+      mutating: true,
+      summary: 'a route that takes anything',
+      params: z.strictObject({ key: z.string() }),
+      query: z.looseObject({}),
+      body: z.looseObject({}),
+      response: z.unknown(),
+    });
+    expect(issues(route.params, { key: 'a\u0000' })).toEqual([{ path: ['key'], message: 'holds U+0000, which no record can hold: enter the text again without it' }]);
+    expect(issues(route.query, { q: 'x\uD800' })).toEqual([{ path: ['q'], message: 'holds an unpaired surrogate U+D800, which no record can hold: enter the text again without it' }]);
+    expect(issues(route.body ?? z.never(), { content: { steps: [{ name: 'Booth\u0000' }] } })).toEqual([{ path: ['content', 'steps', 0, 'name'], message: 'holds U+0000, which no record can hold: enter the text again without it' }]);
+    expect(issues(route.body ?? z.never(), { content: { steps: [{ name: 'Booth 😀' }] } })).toEqual([]);
+    // storableText keeps the schema's own type and rules.
+    const s = storableText(z.strictObject({ a: z.string().min(2) }));
+    expect(s).toBeInstanceOf(z.ZodObject);
+    expect(issues(s, { a: 'x' })[0]?.path).toEqual(['a']);
+  });
+
+  it('[DI-37][DI-34][PR-49][DI-04] the real routes refuse it: a plain intent, a signed decision in a challenge, MBR content and a note, an audit chain key and prefix', () => {
+    const intent = { type: 'RAISE_EXCEPTION', description: 'Booth door\u0000 found open', severity: 'ALERT' };
+    expect(issues(routes.execution.command.body ?? z.never(), { expectedVersion: 1, intent })).toEqual([
+      { path: ['intent', 'description'], message: 'holds U+0000, which no record can hold: enter the text again without it' },
+    ]);
+    const challenge = {
+      aggregateType: 'batch_exception',
+      aggregateId: 'x',
+      contentVersion: '1',
+      meaning: 'EXCEPTION_DISPOSITIONED',
+      clientContentHash: 'a'.repeat(64),
+      action: { kind: 'ENGINE_COMMAND', runId: '00000000-0000-4000-8000-000000000000', expectedVersion: 1, intent: { type: 'DISPOSITION_EXCEPTION', exception: 'E-1', outcome: 'NO_IMPACT', justification: 'Reprinted \udfff' } },
+    };
+    expect(issues(routes.esig.createChallenge.body ?? z.never(), challenge).map((i) => i.path.join('/'))).toContain('action/intent/justification');
+    const save = { baseRevision: 1, content: { format: 'x', formatVersion: 1, procedure: { name: 'Booth\u0000' } }, note: 'Renamed\uD800' };
+    expect(issues(routes.designer.saveContent.body ?? z.never(), save).map((i) => i.path.join('/'))).toEqual(['content/procedure/name', 'note']);
+    expect(issues(routes.audit.verifyChain.params, { chainKey: 'mbr_version:\u0000' }).map((i) => i.path.join('/'))).toEqual(['chainKey']);
+    expect(issues(routes.audit.chains.query, { prefix: '\u0000' }).map((i) => i.path.join('/'))).toEqual(['prefix']);
   });
 });

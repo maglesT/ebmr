@@ -6,9 +6,12 @@
  *    server formatted (kernel time.siteTime); the browser never formats GMP time.
  *  - Persons travel as {personId, legalName, loginName, role}.
  *  - Every non-2xx response is a RefusalEnvelope.
+ *  - Text travels only if a record can hold it: no U+0000 and no UTF-16 surrogate without its other half, in any
+ *    string or member name of a route's params, query or body (storableText; review F30-F33).
  * JSON numbers are used only for counts, indices and versions (safe integers).
  */
 import { z } from 'zod';
+import { unstorableText } from '@ebmr/expr';
 
 export const DECIMAL_PATTERN = /^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/;
 
@@ -56,6 +59,69 @@ export const Watermark = z.strictObject({
   control: z.literal('DI-05'),
 });
 export type Watermark = z.infer<typeof Watermark>;
+
+// ---------------------------------------------------------------------------------------------
+// Text a record can hold (review F30-F33)
+
+/** A string or member name holding text no record can hold, at `path` (a member name is reported at its object). */
+export interface UnstorableTextIssue {
+  path: (string | number)[];
+  message: string;
+}
+
+/**
+ * Every string and member name of `value` that holds text no record can hold (at most `limit`): U+0000, which
+ * PostgreSQL text and jsonb refuse, or a UTF-16 surrogate without its other half, which jsonb refuses and UTF-8
+ * encoding (node-postgres, the browser's fetch) silently replaces with U+FFFD, so a record would hold a character
+ * nobody sent. The walk keeps its own stack: no nesting depth overflows the call stack. The value is never echoed.
+ */
+export function unstorableTextIssues(value: unknown, limit = 10): UnstorableTextIssue[] {
+  // Each place keeps its parent and its key, not a copy of its path: the walk stays linear in the size of the value.
+  interface Place {
+    v: unknown;
+    parent: Place | null;
+    key: string | number;
+  }
+  const pathOf = (place: Place): (string | number)[] => {
+    const path: (string | number)[] = [];
+    for (let p: Place | null = place; p !== null && p.parent !== null; p = p.parent) path.push(p.key);
+    return path.reverse();
+  };
+  const out: UnstorableTextIssue[] = [];
+  const stack: Place[] = [{ v: value, parent: null, key: '' }];
+  while (stack.length > 0 && out.length < limit) {
+    const place = stack.pop() as Place;
+    const v = place.v;
+    if (typeof v === 'string') {
+      const problem = unstorableText(v);
+      if (problem !== null) out.push({ path: pathOf(place), message: `holds ${problem}, which no record can hold: enter the text again without it` });
+    } else if (Array.isArray(v)) {
+      for (let i = v.length - 1; i >= 0; i -= 1) stack.push({ v: v[i] as unknown, parent: place, key: i });
+    } else if (v !== null && typeof v === 'object') {
+      const entries = Object.entries(v as Record<string, unknown>);
+      for (const [k] of entries) {
+        const problem = unstorableText(k);
+        if (problem !== null) out.push({ path: pathOf(place), message: `has a member name holding ${problem}, which no record can hold` });
+      }
+      for (let i = entries.length - 1; i >= 0; i -= 1) {
+        const [k, x] = entries[i] as [string, unknown];
+        if (unstorableText(k) === null) stack.push({ v: x, parent: place, key: k });
+      }
+    }
+  }
+  return out.slice(0, limit);
+}
+
+/**
+ * `schema`, refusing as well any string or member name, at any depth, that holds text no record can hold, each named
+ * by its path. defineRoute applies it to the params, query and body of every route, so the server answers such a
+ * request 400 INVALID_INPUT naming the field before any hook, handler, hash or database call sees the text.
+ */
+export function storableText<S extends z.ZodType>(schema: S): S {
+  return schema.superRefine((value, ctx) => {
+    for (const issue of unstorableTextIssues(value)) ctx.addIssue({ code: 'custom', path: issue.path, message: issue.message });
+  });
+}
 
 // ---------------------------------------------------------------------------------------------
 // Values

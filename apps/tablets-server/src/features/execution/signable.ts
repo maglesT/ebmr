@@ -38,7 +38,7 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { engine, execution, flow } from '@ebmr/recipe-core';
-import type { ExceptionView, FieldView, Refusal, SignableAction, SignableContentView } from '@ebmr/api-contract';
+import { unstorableTextIssues, type ExceptionView, type FieldView, type Refusal, type SignableAction, type SignableContentView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs } from '../../platform/db/commands.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
@@ -136,6 +136,9 @@ function badIntent(expected: string): Error {
  *  - an exception disposition: `EXCEPTION_DISPOSITIONED|<base64url of the JSON {outcome, justification}>`;
  *  - a hold-point decision: `HOLD_POINT_RELEASED|<base64url of the JSON {disposition, comment}>` (or
  *    HOLD_POINT_NOT_RELEASED), the comment a text or null (review findings P26, P38).
+ * The decision travels encoded, so the contract's check of the query cannot see its text: bytes that are not UTF-8 are
+ * refused, never read as U+FFFD, and so is text no record can hold (U+0000, a lone surrogate), naming the member, before
+ * anything is hashed or stored (review F31, F33).
  */
 export function parseIntent(intent: string): {
   meaning: string;
@@ -147,11 +150,22 @@ export function parseIntent(intent: string): {
   const meaning = intent.slice(0, bar);
   let p: unknown;
   try {
-    p = JSON.parse(Buffer.from(intent.slice(bar + 1), 'base64url').toString('utf8'));
+    p = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(Buffer.from(intent.slice(bar + 1), 'base64url')));
   } catch {
     p = null;
   }
   const r = (p !== null && typeof p === 'object' && !Array.isArray(p) ? p : {}) as Record<string, unknown>;
+  const unstorable = unstorableTextIssues(r);
+  if (unstorable.length > 0) {
+    throw refusal(400, {
+      code: 'SCHEMA',
+      kind: 'INVALID_INPUT',
+      whatHappened: 'The decision to sign in the request holds text no record can hold. Nothing was signed.',
+      why: unstorable.map((i) => `The ${i.path.length > 0 ? i.path.join('.') : 'decision'} ${i.message}.`).join(' '),
+      controls: ['DI-37'],
+      whatYouCanDo: ['Enter the text again, then start the signing again.'],
+    });
+  }
   if (meaning === engine.MEANINGS.HOLD_RELEASED || meaning === engine.MEANINGS.HOLD_NOT_RELEASED) {
     const comment = r['comment'] ?? null;
     const known = Object.keys(r).every((k) => k === 'disposition' || k === 'comment');
