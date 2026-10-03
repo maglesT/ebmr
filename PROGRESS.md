@@ -1709,3 +1709,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   server execution/db-guards-disposition-involvement (round 4), db-guards-entry-identifiers (round 4),
   db-guards-proposal-race (F37.R, two connections), golden (REPLAY-GATE); recipe-core execution/exception-source-sql
   (new) and entry-data-sql (round 4).
+  Round 2 of the lane (F12, F37.R): the database compared only what an entry's command sent, so an acknowledgement
+  naming sop B24-0001 / L2409-0017 was stored; recipe-core 0330 holds every new entry to exactly the data its block
+  builds (SOP reference, sample id and label, source-addition case, the person, passed flags, the whole command where
+  kept, the entry's own id, time and event, the second-person check it asks for) and to the blocks' accept rules that
+  read only the MBR, the batch and the entry (checklist answers, sampling plan, lot usability, disposals, source
+  additions, reprocessing authorisation; EBMR-EXE-126; decision F12.3, F12.2 corrected). The proposal and signing locks
+  serialised only in READ COMMITTED: a proposal or signing in REPEATABLE READ or SERIALIZABLE, and a change of an
+  exception's signed content, still ended in a CONTENT_MISMATCH signature; recipe-core 0331 and kernel 1020 refuse them
+  in any other isolation level (EBMR-EXE-084, EBMR-ESIG-015; decision F37.2, F37.1 corrected). Tests: server
+  db-guards-entry-identifiers (round 5) and db-guards-proposal-race (round 2, both levels, both orders, exception and
+  hold point, change side); recipe-core entry-data-sql (round 5); kernel esig/isolation (new).
