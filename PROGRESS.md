@@ -1457,3 +1457,35 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   up and its alarm stored holding it) and answered unreadable requests 500; it now reads them as strict UTF-8 and
   answers 400 SCHEMA, a heartbeat with a token whose bytes are not UTF-8 counting as lost (gateway free-text tests; the
   designer test now sends F0 9F 98, a sequence the old reader did read). Defaults F31.2 and F33.2 added.
+- 2026-10-02: PHASE 2 EXIT FIX, Shop-floor screens under real use (branch phase-2/recipe-core; findings F57, F59, F60,
+  F61, F62, F63, F64 and F65 of the exit review, and lead TODOs T2, T3 and T4; each fix with a test that fails on the code
+  before it). F57: the "Saved" note fix reset a saved entry once the step moved on, which brought a still-open floor
+  dialog back with the same words and Send enabled (a second Send raised a duplicate exception or hold); now only the
+  note under a step form goes and a dialog stays done until it is closed. F59: after any refusal the weighing form
+  threw both captured readings away, though only an engine refusal (committed with its claims) spends them; now the
+  server names the readings an engine refusal used, the form drops exactly those (or the one a claim refusal names) and
+  keeps them after a badge or PIN not accepted, a locked session or an unknown lot; tare and gross from two scales or
+  in two units are said before sending, and each capture shows its age against the 120 s. F60: a send with no answer
+  stayed "Saving..." for good; a floor entry, an issue, an import and a signature now give up after 30 s, abort the
+  request and count it as lost (NOT SAVED with resend under the same key; a signature reads the signatures again).
+  F61: each capture slot opened its own live stream (two per weighing form against the browser's six connections per
+  server); now one stream per scale and page serves every gauge. F62: after an unlock the gauge waited up to 15 s for
+  its next retry; now the stream stops at the lock and opens at once at the unlock or a switch. F63: the reload guard
+  covered the step entry forms only; the four command dialogs, the hold-point and disposition dialogs and the issue
+  form now ask first too. F64: a value card's greyed Save said nothing; it now names what is still needed (or that the
+  number ends with its decimal point). F65: a run or step link with a sentence's full stop got a refusal no reload could
+  fix or a PENDING screen for a key no step can have; such floor addresses are now the not-found page with the offer
+  (search and fragment kept), and the server answers a step key not in the engine's form 404. T3: run-level
+  exceptions are linked to a deviation and dispositioned by QA from the run overview. T4: screens name a step by its
+  number and name and items and persons by their names where the engine's text names their ids (display only; the
+  record and the signed content keep the engine's text). T2: a computed net and a total of nets keep the resolution
+  of the weighings ("50.000 kg", not "50 kg"); this changes the engine's output, so it is engine 1.2.0 and test batches
+  issued under 1.1.0 (the owner's demo database) are neither continued nor replayed: issue a new test batch; the
+  database checks every new weighing's net (recipe-core 0321, EBMR-EXE-136). T5 (a simulated balance in BLEND-1) is
+  still open: it changes what the scripted demo shows in BLEND-1 (the two-person manual path today) and needs the demo
+  set-up, which this lane may not run against the owner's demo databases. Tests: web floor dialog-saved-stays-done,
+  readings-after-refusal, send-deadline, draft-guard, entries, deep-link-punctuation, run-exceptions; web devices
+  live-shared; web access ports; web app not-found; server devices refused-weighing-readings; server execution
+  step-address, people-text, db-guards-weighing-net; recipe-core blocks material and engine version. Playwright floor,
+  devices, esig and journey specs re-run: all passed. Defaults F59.1, F59.2, F60.1, T2.1 and T4.1 are in
+  docs/decisions/phase-2-open-questions.md.
