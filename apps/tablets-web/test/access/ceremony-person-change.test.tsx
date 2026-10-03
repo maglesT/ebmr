@@ -253,4 +253,31 @@ describe('F39: a signing ends when another person is signed in, whatever the pat
     expect(screen.queryByRole('button', { name: 'Sign' })).toBeNull();
     expect(server.state.challenges).toEqual([]);
   });
+
+  it('[INV-40][DI-38] a signing asked for the moment the page shows the person opens for that person; it is never refused as "no session"', async () => {
+    // The page shows Priya's session; a signing asked for at that moment (a DOM observer, as a screen effect or a test
+    // reacting to the page would) must find her session. Before, the ceremony learnt the session in a passive effect
+    // that ran later, so this call was refused at once with "no session" and no dialog opened (CI on c30950a).
+    const server = fixtureServer();
+    setTransport(server.fetch);
+    const page: { seen: ReturnType<typeof renderPage> | null } = { seen: null };
+    let early: SignOutcome | 'PENDING' | null = null;
+    const observer = new MutationObserver(() => {
+      if (early !== null || !document.body.textContent?.includes('Signed in as TEST-Priya Nair')) return;
+      const ceremony = page.seen?.ceremony;
+      if (!ceremony) return;
+      early = 'PENDING';
+      void ceremony.sign(PRIYAS_DECISION).then((o) => {
+        early = o;
+      });
+    });
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    page.seen = renderPage();
+    try {
+      expect(await screen.findByRole('button', { name: 'Sign' })).toBeTruthy();
+      expect(early).toBe('PENDING');
+    } finally {
+      observer.disconnect();
+    }
+  });
 });

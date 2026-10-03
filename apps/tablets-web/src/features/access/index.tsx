@@ -9,7 +9,7 @@
  * the real ceremony (demo installations only).
  */
 import { createRoute, type AnyRootRoute, type AnyRoute } from '@tanstack/react-router';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { identity, machines, t } from '@ebmr/ui-kit';
 import type { HomeTile } from '../../app/feature.ts';
 import { useBoot } from '../../app/boot.tsx';
@@ -98,7 +98,9 @@ function useCeremonyService() {
   const counter = useRef(0);
   const sessionRef = useRef(boot.session);
   const jobRef = useRef<SignJob | null>(null);
-  useEffect(() => {
+  // A layout effect, so sign() knows the session the moment the page shows it: a passive effect ran later, and a
+  // signing asked for in between (a screen's own effect, an observer of the page) was refused as "no session".
+  useLayoutEffect(() => {
     sessionRef.current = boot.session;
     jobRef.current = job;
   });
