@@ -831,6 +831,11 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and
   state, and of exceptions and decisions, reaches the person with its own guidance; a step screen outside the
   step's room offers none of its actions.
+- `free-text.test.ts` (Phase 2 exit review F30, F31; DI-37, DI-34): free text no record can hold (U+0000, a UTF-16
+  surrogate without its other half) in any field of an intent, a TEXT value, a disposition justification or a
+  hold-point comment is refused 400 INVALID_INPUT naming the field, by the contract or by the preview's decoding,
+  before any jsonb bind; nothing is recorded or proposed and no hash is offered to the signer; adversarial text a
+  record can hold goes through every challenge and append with hashes that agree in TypeScript and SQL.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
   run records the signature-budget baseline: 29 signatures.
