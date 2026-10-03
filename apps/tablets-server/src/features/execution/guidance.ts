@@ -57,16 +57,17 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [SUPERVISOR],
     controls: ['DI-20', 'DI-30', 'PR-20'],
   },
-  // The exceptions and hold-point decisions of a run are kept as raised and as signed, and a value outside its limits
-  // raises the exception its limit tier requires (recipe-core 0270, 0295, 0298, 0305).
+  // The exceptions and hold-point decisions of a run are kept as raised and as signed, a value outside its limits
+  // raises the exception its limit tier requires, and an exception is recorded at the step the engine raises it at
+  // (recipe-core 0270, 0295, 0298, 0305, 0327).
   'EBMR-EXE-044': {
     status: 422,
     kind: 'NOT_ALLOWED',
     whatHappened:
-      'The action would have changed an exception or a hold-point decision otherwise than as raised or signed, or recorded a limit exception otherwise than as the value and its limits require. Nothing was saved.',
+      'The action would have changed an exception or a hold-point decision otherwise than as raised or signed, recorded a limit exception otherwise than as the value and its limits require, or recorded an exception at another step than the one it was raised at. Nothing was saved.',
     whatYouCanDo: ['Reload the screen and try again.', 'If it happens again, stop and report it; exceptions and decisions change only through their own linked deviation or signed decision.'],
     whoCanHelp: [ADMIN, QA],
-    controls: ['DI-26', 'DI-37', 'INV-41', 'PR-08', 'PR-13', 'PR-45', 'PR-49'],
+    controls: ['DI-26', 'DI-37', 'INV-03', 'INV-41', 'PR-08', 'PR-13', 'PR-45', 'PR-49'],
   },
   'EBMR-EXE-084': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The disposition could not be prepared for signing. Nothing was signed.', whatYouCanDo: ['Reload the exception and start the signing again.'], whoCanHelp: [QA], controls: ['DI-26', 'PR-49'] },
   'EBMR-EXE-085': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The batch cannot be issued with these values. Nothing was issued.', whatYouCanDo: ['Correct the values and issue again.'], whoCanHelp: [], controls: ['PR-10', 'DI-10'] },
