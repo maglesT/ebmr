@@ -10,7 +10,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { flow } from '@ebmr/recipe-core/pure';
 import granulation from '../../../../packages/recipe-core/test/fixtures/tablet-granulation-compression.mbr.json' with { type: 'json' };
 import packaging from '../../../../packages/recipe-core/test/fixtures/tablet-blister-packaging.mbr.json' with { type: 'json' };
-import dcMini from '../../../tablets-server/src/features/designer/templates/dc-mini.mbr.json' with { type: 'json' };
+// A copy of the server's shipped template (apps never import each other); apps/tablets-server/test/designer/
+// template-fixture.test.ts fails the moment the copy and the shipped file differ.
+import dcMini from '../../../../packages/recipe-core/test/fixtures/dc-mini.mbr.json' with { type: 'json' };
 import { DocumentView } from '../../src/features/designer/components/DocumentView.tsx';
 import { jumpTarget } from '../../src/features/designer/model/sections.ts';
 import { documentLeaves, missingLeaves, type Area } from './completeness.ts';
