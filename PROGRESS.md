@@ -1504,3 +1504,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   phase records, an output container only at a G-22 step and into the first one; a compound unit fails closed) and
   refuses any other (EBMR-EXE-139). Tests: server execution db-guards-weighing-record (round 3), recipe-core execution
   weighing-item-sql; both fail without 0323. Default T2.3 corrected, T2.4 added.
+- 2026-10-02: OWNER DECISION (amendment to docs/decisions/0006): the example generics pack (Phase 6) is dropped; no
+  example formulas are built or used. The Phase 3 company formulation library and the potency-adjusted dispensing
+  (TB-01) stay.
+- 2026-10-03: OWNER DECISION (docs/decisions/0007): no designer usability test with three QA and production authors.
+  Phase 2 exits on its tested criteria, the exit review's fixes, the SQL mutation run on the Phase 2 guards and the
+  trace gate at phase 2.
