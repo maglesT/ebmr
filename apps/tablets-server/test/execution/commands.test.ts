@@ -14,6 +14,7 @@ import {
   dcMini,
   importAndIssue,
   outcomeOf,
+  personaIn,
   refusalOf,
   rowsOf,
   RunDriver,
@@ -260,7 +261,12 @@ describe('views', () => {
     expect(run.stages.map((s) => [s.stageKey, s.status])).toEqual([['S-DISP@', 'IN_PROGRESS'], ['S-BLEND@', 'NOT_STARTED']]);
     expect(run.stages[0]?.steps.map((s) => s.stepKey)).toEqual(['p-disp-clear@', 'p-disp-bal@', 'p-disp-sop@', 'p-disp-calc@', 'p-disp-pcm@', 'p-disp-exc@', 'p-disp-recon@']);
     expect(run.auditChain).toBe(`batch:${d.runId}`);
+    // DI-05: every view of a test run carries the TEST, NOT GMP watermark of a sandbox test run (review F25: the
+    // contract accepts other sandbox sources too, so the source is asserted here).
+    const testRun = { text: 'TEST, NOT GMP', source: 'SANDBOX_TEST_RUN', control: 'DI-05' };
+    expect(run.header.watermark).toMatchObject(testRun);
     const step = await d.stepView('operator1', CLEAR);
+    expect(step.run.watermark).toMatchObject(testRun);
     expect(step.step).toMatchObject({ number: '1.1.1', ordinal: 1, of: 14, block: 'G-10@1', status: 'ENABLED', statusText: 'Ready to start' });
     expect(step.actions.find((a) => a.primary)).toMatchObject({ action: 'START_STEP', available: true, requires: 'TAP' });
     expect(step.entryForms.map((f) => f.kind)).toEqual(['CLEARANCE_CHECK', 'PREVIOUS_BATCH']);
@@ -273,6 +279,11 @@ describe('views', () => {
     expect(runs.find((r) => r.runId === d.runId)).toMatchObject({ status: 'ISSUED', statusText: 'Issued', version: 0, openExceptions: 0 });
     const replay = valueOf(await d.browser('issuer').call(routes.execution.verifyReplay, { params: { runId: d.runId }, body: {} }));
     expect(replay).toMatchObject({ runId: d.runId, identical: true, rows: 1, firstDifference: null });
+    // The timeline (parsed by the typed client with its contract schema): the issue is the run's one row so far.
+    const timeline = valueOf(await d.browser('operator1').call(routes.execution.timeline, { params: { runId: d.runId } })).entries;
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]).toMatchObject({ seq: '1', kind: 'ISSUE', accepted: true, refusal: null });
+    expect(timeline[0]?.actor?.personId).toBe(personaIn(server, 'issuer').personId);
   }, 180_000);
 });
 
