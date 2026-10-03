@@ -25,6 +25,7 @@ implemented_by:
 tests:
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
   - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-30][DI-31][PR-20] a heartbeat whose not-ready reason holds U+0000 or a lone surrogate is refused by the database: answered 400 SCHEMA, its receipt lost (the next tick is unclean, so the manual path stays shut), the stored reason unchanged"
+  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-30][DI-31][PR-20] a heartbeat whose bytes are not UTF-8 (F0 9F 98 among them) is refused 400 SCHEMA before it is read, never recorded as U+FFFD; sent with the gateway token its arrival is lost, so the next tick is unclean (review F33 round 2)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

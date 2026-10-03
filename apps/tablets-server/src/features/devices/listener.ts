@@ -92,6 +92,7 @@ import { consumeNonce, mintNonce } from '../../platform/auth/nonces.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
 import { unstorableTextSqlState } from '../../platform/http/errors.ts';
+import { installStrictJsonBodies, NotUtf8BodyError } from '../../platform/http/json-body.ts';
 import { HttpRefusal } from '../../platform/http/refusal.ts';
 import { HEARTBEAT_ANSWER_MS, runtimeOf, TurnTaken } from './runtime.ts';
 import type { Arrival } from './watch.ts';
@@ -144,10 +145,16 @@ export function gatewaySessionOf(hash: string, r: Record<string, unknown>): Gate
 }
 
 /** The SHA-256 of the request's bearer token; 401 NO_TOKEN when it carries none in the expected form. */
-function bearerHash(request: FastifyRequest): string {
+/** The bearer token of `request` when it is in the expected form, otherwise null. */
+function bearerToken(request: FastifyRequest): string | null {
   const header = request.headers.authorization;
   const token = typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-  if (!/^[A-Za-z0-9_-]{40,128}$/.test(token)) throw new GwError(401, 'NO_TOKEN', 'a bearer token is required', true);
+  return /^[A-Za-z0-9_-]{40,128}$/.test(token) ? token : null;
+}
+
+function bearerHash(request: FastifyRequest): string {
+  const token = bearerToken(request);
+  if (token === null) throw new GwError(401, 'NO_TOKEN', 'a bearer token is required', true);
   return tokenHash(token);
 }
 
@@ -167,12 +174,25 @@ async function resolveBearer(app: AppContext, request: FastifyRequest): Promise<
  * Whether `error`, ending a heartbeat request before its receipt was started, shows the request was no gateway's
  * heartbeat at all (no bearer token in the expected form, a body that is not a heartbeat or cannot be read): then
  * nothing was lost. Anything else (a changed time zone, an unexpected failure) loses a heartbeat that may be the
- * gateway's.
+ * gateway's. A body whose bytes are not UTF-8 sent with a bearer token in the expected form is lost too (review F33,
+ * round 2): such a heartbeat was read before, with U+FFFD in place of those bytes, and put on record; refusing it now
+ * must keep the manual path shut, not open it (decision X37, the fail-closed side). Without such a token it is no
+ * gateway's heartbeat, as the handler would find first.
  */
-function notAHeartbeat(error: unknown): boolean {
+function notAHeartbeat(error: unknown, request: FastifyRequest): boolean {
   if (error instanceof GwError) return error.code === 'NO_TOKEN' || error.code === 'SCHEMA';
+  if (error instanceof NotUtf8BodyError) return bearerToken(request) === null;
+  return frameworkRefusal(error) !== null;
+}
+
+/**
+ * The status of a request Fastify itself refused before any handler ran (a body that is not JSON, not UTF-8, of
+ * another content type, over the body limit, or of another length than announced), or null for any other error.
+ */
+function frameworkRefusal(error: unknown): number | null {
+  if (error instanceof HttpRefusal || error instanceof GwError) return null;
   const status = typeof error === 'object' && error !== null ? (error as { statusCode?: unknown }).statusCode : undefined;
-  return typeof status === 'number' && status >= 400 && status < 500 && !(error instanceof HttpRefusal);
+  return typeof status === 'number' && status >= 400 && status < 500 ? status : null;
 }
 
 /** Why a heartbeat is answered before it is recorded: its answer is due, or a newer heartbeat took its turn. */
@@ -302,6 +322,10 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
   if (app.installation !== 'SANDBOX') throw new Error('the gateway listener runs on the sandbox installation in Phase 2');
   const runtime = runtimeOf(app);
   const server = Fastify({ logger: false, bodyLimit: 1024 * 1024, trustProxy: false });
+  // Review F33, round 2: a JSON body is read as strict UTF-8, never through Fastify's replacing decoder, which made
+  // U+FFFD of bytes that stand for no character (a login name looked up, a not-ready reason recorded, with a character
+  // the gateway never sent).
+  installStrictJsonBodies(server);
 
   // DI-30, PR-20 (tablets 0350 item 6): every heartbeat request is an arrival of the listener's watch from its first
   // hook on; one that ends before its receipt was started is settled here.
@@ -309,7 +333,7 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
 
   server.setErrorHandler((error: unknown, request: FastifyRequest, reply: FastifyReply) => {
     const arrival = arrivals.get(request);
-    if (arrival && !arrival.started) arrival.settle(notAHeartbeat(error));
+    if (arrival && !arrival.started) arrival.settle(notAHeartbeat(error, request));
     if (error instanceof GwError) {
       void reply.code(error.status).send({ error: { code: error.code, message: error.message, relogin: error.relogin } });
       return;
@@ -324,6 +348,13 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       // guard, is a request not in the expected form, never INTERNAL. A heartbeat refused so was settled above as lost
       // (its receipt was not written), so the watch's next tick is unclean and the manual path stays shut (X37).
       void reply.code(400).send({ error: { code: 'SCHEMA', message: 'the request holds text no record can hold (U+0000, or half of a surrogate pair); nothing of it was stored', relogin: false } });
+      return;
+    }
+    const framework = frameworkRefusal(error);
+    if (framework !== null) {
+      // Review F33, round 2: a request Fastify could not read (not UTF-8, not JSON, another content type, over the
+      // limit) is not in the expected form, never INTERNAL; its message names no text of the body but Fastify's own.
+      void reply.code(400).send({ error: { code: 'SCHEMA', message: error instanceof Error ? error.message : 'the request could not be read', relogin: false } });
       return;
     }
     const code = commands.errorCode(error) ?? 'INTERNAL';

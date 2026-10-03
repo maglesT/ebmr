@@ -4,10 +4,21 @@
  * stored it as if it had. Such a body is refused (400, answered as a SCHEMA refusal), before any hook, validation or
  * handler sees it; every other body goes to Fastify's own JSON parser, which refuses prototype and constructor
  * poisoning as before. The text then meets the contract's check (storableText): no U+0000, no lone surrogate.
+ * Installed on the browser routes' server (app.ts) and on the gateway listener (devices/listener.ts), which is a
+ * Fastify instance of its own (review F33, round 2).
  */
 import type { FastifyInstance } from 'fastify';
 
 export const NOT_UTF8_BODY = 'The request body is not UTF-8 text: a byte sequence in it stands for no character, so it was not read.';
+
+/** A JSON body refused because its bytes are not UTF-8 (400): nothing of it was read. */
+export class NotUtf8BodyError extends Error {
+  readonly statusCode = 400;
+  constructor() {
+    super(NOT_UTF8_BODY);
+    this.name = 'NotUtf8BodyError';
+  }
+}
 
 export function installStrictJsonBodies(app: FastifyInstance): void {
   const parse = app.getDefaultJsonParser('error', 'error');
@@ -19,7 +30,7 @@ export function installStrictJsonBodies(app: FastifyInstance): void {
     try {
       text = decoder.decode(body as Buffer);
     } catch {
-      done(Object.assign(new Error(NOT_UTF8_BODY), { statusCode: 400 }), undefined);
+      done(new NotUtf8BodyError(), undefined);
       return;
     }
     void parse(request, text, done);

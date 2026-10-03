@@ -66,6 +66,8 @@ tests:
   - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-20][DI-31] a login name, service key or nonce holding U+0000 or a lone surrogate is refused 400 SCHEMA, never 500, and never looked up as U+FFFD"
   - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-20] the login schema itself refuses such text in its free text members; text a record can hold passes"
   - "apps/tablets-web/test/api.test.ts > a body holding text no record can hold > [DI-37][DI-20] is refused before a nonce is asked for, naming the field, as the server would; text a record can hold is proven"
+  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-20][DI-31] a login whose bytes are not UTF-8 (F0 9F 98 in its login name, the proof signed over the U+FFFD the old reader made of them) is refused 400 SCHEMA before it is read: never looked up as U+FFFD, no refusal recorded (review F33 round 2)"
+  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-20][DI-31] a request the listener cannot read (not JSON, a content type it does not read, over the body limit) is answered 400 SCHEMA, never 500 INTERNAL (review F33 round 2)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

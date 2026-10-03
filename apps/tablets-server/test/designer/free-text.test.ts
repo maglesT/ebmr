@@ -147,8 +147,10 @@ describe('designer free text no record can hold (review F32, F33)', () => {
     const before = await counts(v1.versionId);
     const text = JSON.stringify(justifyBody(v2, 'DATA-SINGLE-WRITER@pX', 'Room humidity is in the room log MARK.'));
     const [head, tail] = text.split('MARK') as [string, string];
+    // 0xF0 0x9F 0x98 is a four-byte sequence cut short: Fastify's replacing reader made it one U+FFFD of the same byte
+    // length, so its Content-Length check passed and the justification was stored holding U+FFFD (review F33 round 2).
     // 0xFF never occurs in UTF-8; 0xED 0xA0 0x80 would be the surrogate U+D800, which UTF-8 does not encode either.
-    for (const bad of [Buffer.from([0xff]), Buffer.from([0xed, 0xa0, 0x80]), Buffer.from([0xc3])]) {
+    for (const bad of [Buffer.from([0xf0, 0x9f, 0x98]), Buffer.from([0xff]), Buffer.from([0xed, 0xa0, 0x80]), Buffer.from([0xc3])]) {
       const res = await author.inject({
         method: 'POST',
         url: routes.designer.justify.path.replace(':versionId', v1.versionId),
@@ -165,6 +167,7 @@ describe('designer free text no record can hold (review F32, F33)', () => {
       });
     }
     expect(await counts(v1.versionId)).toEqual(before);
+    expect((await server.db.admin.query("select 1 from tab.designer_justification where version_id = $1 and text like '%\uFFFD%'", [v1.versionId])).rowCount).toBe(0);
     // The same body in UTF-8 is taken, character for character.
     const ok = await author.inject({
       method: 'POST',
