@@ -29,6 +29,7 @@ implemented_by:
     - "packages/kernel/sql/0430_records_di_investigations.sql"
     - "packages/kernel/sql/0440_records_blockers_and_purge.sql"
     - "packages/kernel/sql/0720_authorization_signatures.sql"
+    - "apps/tablets-server/sql/0440_investigation_subject_reads.sql"
   guards:
     - "records.investigation_scope / records.person_activity: every record the person created or changed in the window, from the audit trail"
     - "records.open_di_investigation: links and holds every record in scope; person investigated cannot open or lead it"
@@ -37,6 +38,7 @@ implemented_by:
     - "records.close_di_investigation accepts only the approver's own valid DI_INVESTIGATION_CLOSED signature of the investigation (di_investigation:<id>; EBMR-REC-065)"
     - "tablets 0410 and 0420: a data-integrity investigation's content, signatures and audit chains are never served to the person it is about; the application role has no SELECT on the investigation tables"
     - "tablets 0430: without a session the application role executes no evidence package, chain extract, scoping report, person activity or chain list, selects no anchor, checkpoint, verification run or retention hold, and sees only RECORD-class rows of the signature seals, ID register, content changes, invalidations and signing failures (row-level security)"
+    - "tab.withheld_from, tab.chain_read_problem, tab.audit_chains and tab.audit_events (tablets 0440): whatever their role, the person a data-integrity investigation is about neither lists nor reads its chains, the hold chains it creates, the hold entries on the held records' chains, or the account and person chains and activity of the persons who opened and lead it (EBMR-TAB-020)"
   db_constraints:
     - "records.di_investigation, di_investigation_link, di_investigation_closure insert-only and audited; ebmr_app has SELECT only"
     - "check investigator_person <> subject_person_id and opened_by_person <> subject_person_id"
@@ -58,6 +60,9 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's other doors to the audit trail (tablets 0430) > [DI-17][DI-22][DI-50] without a session the application role reads no chain whole, no person's activity, no scoping report and no list of the chains, on either installation"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50][DI-13] without a session the application role runs no kernel reader of an investigation or of evidence: scoping report, person activity, chain extract, evidence package, chain list (the owner still runs them)"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50] the application roles see no row of a GOVERNANCE-class record in the seals, the signature-ID register, the content changes, the invalidations and the signing failures, and no retention hold; the owner sees them, and RECORD-class rows stay visible"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the subject lists and reads no hold chain the investigation created, and no hold entry on the records it holds; the lead does"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the subject reads neither the activity nor the account and person chains of the persons who opened and lead it; other colleagues' it does"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the database refuses the subject's session each of them (EBMR-TAB-020) and drops the hold entries from a record's chain"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

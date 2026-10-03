@@ -14,7 +14,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type AuditEventView, type Result } from '@ebmr/api-contract';
-import { identity, records, withCommand, type ActorContext } from '@ebmr/kernel';
+import { esig, identity, records, withCommand, type ActorContext } from '@ebmr/kernel';
 import { passwordActor, personaOf, terminalOf } from '@ebmr/test-kit';
 import { tokenHash } from '../../src/platform/auth/session.ts';
 import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
@@ -175,5 +175,148 @@ describe('F35: the application role\'s other doors to the audit trail (tablets 0
     for (const [server, sqlText, args] of refused) {
       await expect(server.db.app.query(sqlText, args), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
     }
+  });
+});
+
+/**
+ * Round 2 of F35: the rule that an investigation is never shown to the person it is about covered only its own chains.
+ * A subject who holds a governance role (here a QA reviewer) read what the investigation wrote elsewhere: the hold
+ * chains of the records it holds (record_hold:account:<the subject's own account>, with the lead placing the hold), the
+ * hold entries on those records' own chains, the account chains of the persons who opened and lead it, and, through
+ * the person filter, their activity across the trail. Tablets 0440 withholds all of it from the subject, whatever the
+ * subject's role and the investigation's status.
+ */
+describe('F35: the person a DI investigation is about, in a governance role (tablets 0440)', () => {
+  const OPENED = randomUUID();
+  let subject: GrantedPerson;
+  let investigator: GrantedPerson;
+  let subjectBrowser: TestBrowser;
+  let stub = '';
+  let held: string[] = [];
+  let signing: string[] = [];
+  let investigation = '';
+
+  beforeAll(async () => {
+    const fp = terminalOf(gmp.seed, 'PC-QA-01').fingerprint;
+    subject = await grantedPerson(gmp, 'QA_REVIEWER', 'Kiran Desai (QA reviewer)');
+    investigator = await grantedPerson(gmp, 'CSV_DI_LEAD', 'Meera Iyer (CSV/DI lead)');
+    // The subject enters a record of the RECORD class (a stub entry) before the investigation opens.
+    const subjectActor = await passwordActor(gmp.db, subject, fp);
+    stub = await withCommand(gmp.db.app, reason(subjectActor), async (c) =>
+      (await c.query<{ id: string }>("insert into esig.stub_signable (kind, title, value, unit) values ('STEP', 'Blend uniformity sample', '4.98', 'g') returning id")).rows[0]?.id ?? '',
+    );
+    // The lead opens it with the other lead as investigator; its scope links and holds what the subject touched.
+    const opener = await passwordActor(gmp.db, lead, fp);
+    await withCommand(gmp.db.app, { ...reason(opener), correlationId: OPENED }, (c) =>
+      records.openDiInvestigation(c, {
+        subjectPersonId: subject.personId,
+        windowFrom: new Date(Date.UTC(2000, 0, 1)),
+        windowTo: new Date(Date.UTC(2100, 0, 1)),
+        concern: 'Suspected sharing of the QA reviewer password',
+        investigatorPersonId: investigator.personId,
+      }),
+    );
+    // A QA reviewer's signing request on it (a closure about to be signed) and its signatures' chain.
+    investigation = (await gmp.db.admin.query<{ id: string }>('select id::text from records.di_investigation where subject_person_id = $1', [subject.personId])).rows[0]?.id ?? '';
+    const content = await esig.contentForSigning(gmp.db.admin, 'di_investigation', investigation);
+    const approver = await passwordActor(gmp.db, await grantedPerson(gmp, 'QA_REVIEWER', 'Ravi Menon (QA reviewer)'), fp);
+    await withCommand(gmp.db.app, reason(approver), (c) => identity.acknowledgeEsigPolicy(c));
+    await withCommand(gmp.db.app, reason(approver), async (c) => {
+      await esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: investigation, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' });
+      await c.query('select kernel.audit_business_event($1, $2)', [`esig_signature:di_investigation:${investigation}`, 'closure signature expected']);
+    });
+    signing = [`esig_challenge:di_investigation:${investigation}`, `esig_signature:di_investigation:${investigation}`];
+    held = (await gmp.db.admin.query<{ k: string }>(
+      "select 'record_hold:' || h.record_key as k from records.retention_hold h join records.di_investigation i on i.id = h.investigation_id where i.subject_person_id = $1 order by 1",
+      [subject.personId],
+    )).rows.map((r) => r.k);
+    subjectBrowser = await loginOf(gmp, subject);
+  });
+
+  it('[DI-17][DI-50] the subject lists and reads no hold chain the investigation created, and no hold entry on the records it holds; the lead does', async () => {
+    expect(held).toContain(`record_hold:esig_stub:${stub}`);
+    expect(held).toContain(`record_hold:account:${subject.accountId}`);
+    // The lead (a governance reader the rule does not withhold them from) lists and reads them.
+    expect(await chainKeys(leadBrowser, 'record_hold:')).toEqual(expect.arrayContaining(held));
+    const leadView = await events(leadBrowser, { chainKey: `esig_stub:${stub}` });
+    expect(JSON.stringify(leadView)).toContain('investigation hold placed');
+    for (const k of signing) expect(await chainKeys(leadBrowser, k)).toEqual([k]);
+    // The subject: none of them is listed, and each is refused.
+    const listed = await chainKeys(subjectBrowser, 'record_hold:');
+    expect(listed.filter((k) => held.includes(k))).toEqual([]);
+    for (const k of signing) {
+      expect(await chainKeys(subjectBrowser, k), k).toEqual([]);
+      expect(outcome(await events(subjectBrowser, { chainKey: k })), k).toBe('403:EBMR-TAB-020');
+    }
+    for (const k of held) {
+      expect(outcome(await events(subjectBrowser, { chainKey: k })), k).toBe('403:EBMR-TAB-020');
+      expect(outcome(await subjectBrowser.call(routes.audit.verifyChain, { params: { chainKey: k } })), k).toBe('403:EBMR-TAB-020');
+    }
+    // Entries another command may write on a record's chain naming only one of its holds (as the release at closure
+    // does) or only the investigation itself.
+    const holdId = (await gmp.db.admin.query<{ id: string }>("select id::text from records.retention_hold where record_key = $1 and kind = 'DI_INVESTIGATION'", [`esig_stub:${stub}`])).rows[0]?.id;
+    await withCommand(gmp.db.app, reason(await passwordActor(gmp.db, lead, terminalOf(gmp.seed, 'PC-QA-01').fingerprint)), async (c) => {
+      await c.query('select kernel.audit_business_event($1, $2, $3)', [`esig_stub:${stub}`, 'hold note: still held for the review', JSON.stringify({ hold_id: holdId })]);
+      await c.query('select kernel.audit_business_event($1, $2, $3)', [`esig_stub:${stub}`, 'entry reviewed for the open case', JSON.stringify({ investigation_id: investigation })]);
+      // And one that names neither: the subject reads it like any colleague.
+      await c.query('select kernel.audit_business_event($1, $2, $3)', [`esig_stub:${stub}`, 'sample label checked', JSON.stringify({ label: 'BU-4.98' })]);
+    });
+    expect(JSON.stringify(await events(leadBrowser, { chainKey: `esig_stub:${stub}` }))).toContain('entry reviewed for the open case');
+    // The subject's own record still reads, without the entries the investigation wrote on its chain.
+    const own = await events(subjectBrowser, { chainKey: `esig_stub:${stub}` });
+    expect(outcome(own)).toBe('ok');
+    if (own.ok) expect(own.value.events.length).toBeGreaterThan(0);
+    expect(JSON.stringify(own)).not.toMatch(/investigation|hold note|for the open case/i);
+    expect(JSON.stringify(own)).toContain('sample label checked');
+    // Nothing of the command that opened it, across the chains.
+    const opened = await events(subjectBrowser, { correlationId: OPENED, limit: '200' });
+    expect(outcome(opened)).toBe('ok');
+    if (opened.ok) expect(opened.value.events).toEqual([]);
+    const leadOpened = await events(leadBrowser, { correlationId: OPENED, limit: '200' });
+    if (leadOpened.ok) expect(leadOpened.value.events.length).toBeGreaterThan(0);
+  });
+
+  it('[DI-17][DI-50] the subject reads neither the activity nor the account and person chains of the persons who opened and lead it; other colleagues\' it does', async () => {
+    for (const p of [lead, investigator]) {
+      expect(outcome(await events(subjectBrowser, { personId: p.personId })), p.legalName).toBe('403:EBMR-TAB-020');
+      expect(outcome(await events(subjectBrowser, { chainKey: `account:${p.accountId}` })), p.legalName).toBe('403:EBMR-TAB-020');
+      expect(outcome(await events(subjectBrowser, { chainKey: `person:${p.personId}` })), p.legalName).toBe('403:EBMR-TAB-020');
+    }
+    const accounts = await chainKeys(subjectBrowser, 'account:');
+    expect(accounts).not.toContain(`account:${lead.accountId}`);
+    expect(accounts).not.toContain(`account:${investigator.accountId}`);
+    // The rule is about this investigation only: the subject's governance role still reads a colleague's activity.
+    const author = personaOf(gmp.seed, 'author');
+    expect(accounts).toContain(`account:${author.accountId}`);
+    expect(outcome(await events(subjectBrowser, { personId: author.personId }))).toBe('ok');
+    expect(outcome(await events(subjectBrowser, { chainKey: `account:${author.accountId}` }))).toBe('ok');
+  });
+
+  it('[DI-17][DI-50] the database refuses the subject\'s session each of them (EBMR-TAB-020) and drops the hold entries from a record\'s chain', async () => {
+    const h = hashOf(gmp, subjectBrowser);
+    const q = (sqlText: string, args: unknown[]) => gmp.db.app.query(sqlText, args);
+    const hold = `record_hold:esig_stub:${stub}`;
+    await expect(q('select * from tab.audit_events($1, $2, null, null, null, null, null, null, 50)', [h, hold])).rejects.toThrow(/EBMR-TAB-020/);
+    await expect(q('select tab.audit_chain_length($1, $2)', [h, hold])).rejects.toThrow(/EBMR-TAB-020/);
+    await expect(q('select * from tab.audit_registry_chains($1, $2)', [h, hold])).rejects.toThrow(/EBMR-TAB-020/);
+    for (const p of [lead, investigator]) {
+      await expect(q('select * from tab.audit_events($1, null, null, $2, null, null, null, null, 50)', [h, p.personId])).rejects.toThrow(/EBMR-TAB-020/);
+      await expect(q('select tab.audit_chain_length($1, $2)', [h, `account:${p.accountId}`])).rejects.toThrow(/EBMR-TAB-020/);
+    }
+    expect((await q("select chain_key from tab.audit_chains($1, 'record_hold:', 500)", [h])).rows.filter((r: { chain_key: string }) => held.includes(r.chain_key))).toEqual([]);
+    expect((await q("select chain_key from tab.audit_chains($1, 'esig_', 500)", [h])).rows.filter((r: { chain_key: string }) => signing.includes(r.chain_key))).toEqual([]);
+    // A subject without a governance role is refused such a chain as anyone in that role is, not told why.
+    const author = hashOf(gmp, await gmp.asPersona('author'));
+    await expect(q('select tab.audit_chain_length($1, $2)', [author, `account:${lead.accountId}`])).rejects.toThrow(/read only in a role that reviews audit trails[^]*EBMR-TAB-020/);
+    // Without a limit the list keeps 0420's default of 500 chains (this installation has more than 50).
+    expect(((await q('select count(*)::int as n from tab.audit_chains($1, null, null)', [hashOf(gmp, leadBrowser)])).rows[0] as { n: number }).n).toBeGreaterThan(50);
+    const own = (await q('select action, payload from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [h, `esig_stub:${stub}`])).rows as { action: string; payload: unknown }[];
+    expect(own.length).toBeGreaterThan(0);
+    expect(own.filter((r) => JSON.stringify(r.payload).includes('DI_INVESTIGATION'))).toEqual([]);
+    expect((await q('select * from tab.audit_events($1, null, $2, null, null, null, null, null, 200)', [h, OPENED])).rows).toEqual([]);
+    // The lead's session reads the hold entry on the record's chain.
+    const leadRows = (await q('select payload from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [hashOf(gmp, leadBrowser), `esig_stub:${stub}`])).rows;
+    expect(leadRows.filter((r: { payload: unknown }) => /DI_INVESTIGATION|hold_id|investigation_id/.test(JSON.stringify(r.payload)))).toHaveLength(3);
+    expect(own.filter((r) => /hold_id|investigation_id/.test(JSON.stringify(r.payload)))).toEqual([]);
   });
 });

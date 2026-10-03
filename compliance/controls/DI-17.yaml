@@ -56,6 +56,7 @@ implemented_by:
     - "apps/tablets-server/sql/0410_signing_content_read.sql"
     - "apps/tablets-server/sql/0420_audit_read.sql"
     - "apps/tablets-server/sql/0430_governance_read_doors.sql"
+    - "apps/tablets-server/sql/0440_investigation_subject_reads.sql"
   invariants:
     - "INV-26"
   guards:
@@ -71,6 +72,7 @@ implemented_by:
     - "tab.record_read_problem and tab.signing_preview_problem (tablets 0410): a session reads a RECORD-class record with RECORD.READ, a GOVERNANCE-class one (investigations, disposals, restores, any type not named) only in a governance or audit role, never an investigation about itself, and previews content only with a meaning its role signs (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)"
     - "tab.audit_chains, tab.audit_events, tab.audit_chain_length and tab.audit_registry_chains (tablets 0420): the audit viewer serves only the chains the session's role may read, a person filter only on the session's own person unless the role is a governance one; the application role has no SELECT on the audit tables"
     - "tablets 0430: without a session the application role executes no evidence package, chain extract, scoping report, person activity or chain list, selects no anchor, checkpoint, verification run or retention hold, and sees only RECORD-class rows of the signature seals, ID register, content changes, invalidations and signing failures (row-level security)"
+    - "tab.withheld_from, tab.chain_read_problem, tab.audit_chains and tab.audit_events (tablets 0440): whatever their role, the person a data-integrity investigation is about neither lists nor reads its chains, the hold chains it creates, the hold entries on the held records' chains, or the account and person chains and activity of the persons who opened and lead it (EBMR-TAB-020)"
   db_constraints:
     - "grant scopes (site, area, product): a grant covers only its own scope, so data stay isolated between sites"
 tests:
@@ -119,6 +121,9 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's other doors to the audit trail (tablets 0430) > [DI-17][DI-22][DI-50] without a session the application role reads no chain whole, no person's activity, no scoping report and no list of the chains, on either installation"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50][DI-13] without a session the application role runs no kernel reader of an investigation or of evidence: scoping report, person activity, chain extract, evidence package, chain list (the owner still runs them)"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50] the application roles see no row of a GOVERNANCE-class record in the seals, the signature-ID register, the content changes, the invalidations and the signing failures, and no retention hold; the owner sees them, and RECORD-class rows stay visible"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the subject lists and reads no hold chain the investigation created, and no hold entry on the records it holds; the lead does"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the subject reads neither the activity nor the account and person chains of the persons who opened and lead it; other colleagues' it does"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the database refuses the subject's session each of them (EBMR-TAB-020) and drops the hold entries from a record's chain"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
