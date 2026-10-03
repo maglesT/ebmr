@@ -1668,3 +1668,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   execution/db-guards-stale-row (new: every forgery of the version check, of a stale refusal's state and of a stale
   weighing's readings refused at the database), execution/commands (stale and concurrent commands recorded). Floor
   Playwright spec 5/5 passed.
+  Round 2 (3 Oct): two gaps closed. (1) Tablets 0500 checked each reading of a stale weighing alone, so one reading
+  taken for no stated purpose, named as both tare and gross, was recorded as a stale row although the command's own
+  claims refuse it (EBMR-DEV-105); tablets 0510 checks the pair as the claims of the command would, tare then gross in
+  one rolled-back subtransaction (tab.peek_weighing_readings, also used by the server, which now gives that request the
+  answer the current screen gets before anything is written), and drops the per-purpose tab.peek_readings. (2) The
+  floor's stale notice still said "Nothing was saved"; it now says the entry was not saved, the refusal is recorded and
+  no scale reading was used, and other stale answers (a badge tap too old, for one) say nothing of the entry is in the
+  record (round 1 had changed only code comments there, not the notice). Tests: server db-guards-stale-row and
+  devices/stale-weighing-readings (one reading as both, at the database and through the server), web step-screen (both
+  notices) and entries (the weighing's notice); each fails on bbb83d0.
