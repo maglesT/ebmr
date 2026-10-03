@@ -243,7 +243,9 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   },
   // The engine's version check, held by the database (recipe-core 0326, F58.1): a command from a screen that showed
   // another version is recorded only as the refusal ENG-STALE, that refusal only for such a command, and it changes
-  // nothing. The server records the engine's own verdict, so only a defect or a writer that skips the server gets here.
+  // nothing. The server records the engine's own verdict, so only a defect or a writer that skips the server gets here
+  // (a version no run can have, beyond the integer a run's version is stored in, is refused by the contract as malformed
+  // before anything is written: api-contract RunVersion, F58.1 round 3).
   'EBMR-EXE-140': {
     status: 422,
     kind: 'NOT_ALLOWED',

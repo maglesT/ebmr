@@ -7,7 +7,7 @@
  * pre-filled.
  */
 import { z } from 'zod';
-import { DataValueWire, DecimalString, Empty, Instant, IntegerString, PersonRef, SignableRef, Uuid, Watermark, withAttribution } from '../common.ts';
+import { DataValueWire, DecimalString, Empty, Instant, IntegerString, PersonRef, RunVersion, SignableRef, Uuid, Watermark, withAttribution } from '../common.ts';
 import { ClientIntent, StepKey } from '../intents.ts';
 import { defineRoute } from '../route.ts';
 import { ScaleStatusView } from './devices.ts';
@@ -514,7 +514,7 @@ export const execution = {
     summary: 'One plain client intent (no signature), resolved by the server into an engine command',
     params: runIdParams,
     body: withAttribution({
-      expectedVersion: z.number().int().nonnegative(),
+      expectedVersion: RunVersion,
       intent: ClientIntent,
       /** Step to return in the response when the intent is run-level (hold, deviation link). */
       viewStepKey: StepKey.optional(),

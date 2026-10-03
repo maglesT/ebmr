@@ -20,6 +20,7 @@ import {
   ENGINE_ROLE_MAP,
   NAMESPACE_OWNERS,
   RefusalEnvelope,
+  RUN_VERSION_MAX,
   routes,
   SignableAction,
   SignedIntent,
@@ -129,6 +130,23 @@ describe('client intents refuse browser-supplied facts (J1-3, J2-8)', () => {
     expect(ok(SignableAction, action)).toBe(true);
     expect(ok(SignableAction, { ...action, actor: { id: 'x' } })).toBe(false);
     expect(ok(SignableAction, { ...action, intent: { type: 'START_STEP', stepKey: 'p-blend@' } })).toBe(false);
+  });
+
+  it('[DI-34] the run version a screen sends back is one a run can have: a whole number up to the largest PostgreSQL integer, the type a run\'s version is stored in; the run command and the signed engine command refuse one beyond it as malformed (Phase 2 exit follow-up F58.1)', () => {
+    expect(RUN_VERSION_MAX).toBe(2 ** 31 - 1);
+    const runId = '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e';
+    const command = (expectedVersion: number) => ({ expectedVersion, intent: { type: 'START_STEP', stepKey: 'p-blend@' } });
+    const signed = (expectedVersion: number) => ({ kind: 'ENGINE_COMMAND', runId, expectedVersion, intent: { type: 'SIGN_PERFORMED', stepKey: 'p-blend@' } });
+    const body = routes.execution.command.body;
+    if (!body) throw new Error('the run command has no body schema');
+    for (const v of [0, 7, RUN_VERSION_MAX]) {
+      expect(ok(body, command(v)), String(v)).toBe(true);
+      expect(ok(SignableAction, signed(v)), String(v)).toBe(true);
+    }
+    for (const v of [RUN_VERSION_MAX + 1, Number.MAX_SAFE_INTEGER, -1, 1.5]) {
+      expect(ok(body, command(v)), String(v)).toBe(false);
+      expect(ok(SignableAction, signed(v)), String(v)).toBe(false);
+    }
   });
 });
 

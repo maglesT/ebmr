@@ -7,7 +7,7 @@
  *  - ESIG_STUB: test-only, over the kernel's esig_stub aggregate, so the ceremony is tested before C3 lands.
  */
 import { z } from 'zod';
-import { Uuid } from './common.ts';
+import { RunVersion, Uuid } from './common.ts';
 import { SignedIntent } from './intents.ts';
 
 export const SignableAction = z.discriminatedUnion('kind', [
@@ -15,7 +15,7 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('ENGINE_COMMAND'),
     runId: Uuid,
     /** Run version the person reviewed (optimistic locking; stale gives 409). */
-    expectedVersion: z.number().int().nonnegative(),
+    expectedVersion: RunVersion,
     intent: SignedIntent,
   }),
   z.strictObject({
