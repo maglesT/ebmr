@@ -1616,3 +1616,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   entries), and a CI traceability job runs the trace on both reports with the Playwright report required
   (`pnpm trace:e2e`). F15.1 and F15.2 rewritten. Tests: register listed-tests-and-clauses ("every passing tagged
   test is listed").
+  Round 3 (regressions): a test that skips itself at run time (DI-47 retain-until on 29 February, DI-13 without TLS,
+  DI-37 platform hook, DI-45 restore steps: 13 tests) had to be listed, but the trace refused it listed when skipped.
+  Now the register reads from the source whether a test runs always, conditionally or never; the trace accepts a
+  listed test skipped only when its source may skip it at run time, counts it as no proof and names it in its
+  output. Default F15.3. Tests: register listed-tests-and-clauses ("a listed test that skips itself at run time").
