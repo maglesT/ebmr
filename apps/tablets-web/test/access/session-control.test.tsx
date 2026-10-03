@@ -108,9 +108,9 @@ function renderPage(): { boot: () => Boot; access: () => Access } {
 }
 
 /**
- * Asks the page to check its session once the session control is there. The control registers itself in an effect,
- * which a loaded runner can run after the signed-in text is on screen; until then a check does nothing. `done` says
- * whether the check had its effect (a poll went out, or the page joined a marked sign-out).
+ * Asks the page to check its session, and asks again until the check had its effect. `done` says whether it had it (a
+ * poll went out, or the page joined a marked sign-out). The session control registers itself in a layout effect of
+ * the commit that shows the session (see the test "a lock asked for the moment ..."), so the first check counts.
  */
 async function checkWhenControlled(page: ReturnType<typeof renderPage>, done: () => boolean): Promise<void> {
   await waitFor(() => {
@@ -246,6 +246,29 @@ describe('late answers of the session poll', () => {
       expect(page.boot().session?.locked).toBe(false);
     } finally {
       window.removeEventListener('ebmr:session-change', listen);
+    }
+  });
+
+  it('[DI-14][INV-40] a lock asked for the moment the page shows the person locks the terminal; it is never lost', async () => {
+    // The page shows Asha's session; a lock asked for at that moment (a DOM observer, as a screen effect or a test
+    // reacting to the page would) must lock. The session control registered itself in a passive effect that ran
+    // later, so this lock did nothing and no lock screen came (CI on d2394af).
+    const server = fixtureServer();
+    setTransport(server.fetch);
+    let asked = false;
+    const holder: { page: ReturnType<typeof renderPage> | null } = { page: null };
+    const observer = new MutationObserver(() => {
+      if (asked || !document.body.textContent?.includes('Signed in as Asha Rao') || !holder.page) return;
+      asked = true;
+      holder.page.access().lock();
+    });
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    holder.page = renderPage();
+    try {
+      expect(await screen.findByRole('alertdialog', { name: 'This terminal is locked' })).toBeTruthy();
+      expect(asked).toBe(true);
+    } finally {
+      observer.disconnect();
     }
   });
 });

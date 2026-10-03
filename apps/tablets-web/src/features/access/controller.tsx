@@ -10,7 +10,7 @@
  * Secrets: badge UIDs and PINs live in Vault / KeptBadge holders only, for as long as the next step needs them (a
  * badge tapped for an entry is kept 30 s so a "Switch to <name>?" offer needs only the PIN), and are wiped when used.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useMachine } from '@xstate/react';
 import { fromPromise } from 'xstate';
 import { routes, type Attribution, type RefusalEnvelope, type SessionView } from '@ebmr/api-contract';
@@ -80,7 +80,8 @@ interface TapJob {
 export function AccessRoot({ children, render }: { children: ReactNode; render: (ctl: AccessController) => ReactNode }) {
   const boot = useBoot();
   const [latestBoot] = useState(() => new Latest<Boot>(boot));
-  useEffect(() => {
+  // A layout effect: what a lock, switch or poll acts on is the session the page shows from the commit that shows it.
+  useLayoutEffect(() => {
     latestBoot.set(boot);
   });
   const demoBadges = useDemoBadges(boot);
@@ -238,7 +239,8 @@ function SessionControl(props: {
   const { control, session, kiosk, demoBadges, remembered, hasRemembered } = props;
   const boot = useBoot();
   const [latestBoot] = useState(() => new Latest<Boot>(boot));
-  useEffect(() => {
+  // A layout effect: what a lock, switch or poll acts on is the session the page shows from the commit that shows it.
+  useLayoutEffect(() => {
     latestBoot.set(boot);
   });
   const [secret] = useState(() => new Vault<Secret>());
@@ -284,7 +286,7 @@ function SessionControl(props: {
   const [snap, send] = useMachine(machine, { input: { locked: session.locked } });
   const state = snap.value as string;
   const [latestState] = useState(() => new Latest<string>(state));
-  useEffect(() => {
+  useLayoutEffect(() => {
     latestState.set(state);
   });
 
@@ -344,7 +346,10 @@ function SessionControl(props: {
     return () => clearInterval(id);
   }, [check]);
 
-  useEffect(() => {
+  // Registered in a layout effect, so lock, switch and check work the moment the page shows the session. In a passive
+  // effect, which runs later, a lock asked for in between (a screen's own effect, an observer of the page) did
+  // nothing: control.get() was still null.
+  useLayoutEffect(() => {
     control.set({
       offer: (refusal) => {
         offerResolve.take()?.(false);
