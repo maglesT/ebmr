@@ -27,7 +27,9 @@ behaviour: |-
   - **QU/QP view.** The QU and QP can open the full batch audit trail from the disposition/certification screen. That screen shows review status, reviewer, date and findings.
 catalog_test: Change a value after entry. It appears in the checker's step view and in the batch review list. Disposition stays blocked until the review is signed. A batch executor tries to sign the review. Refused. No configuration offers deferral.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/audit/verification.test.ts > moving a row to another aggregate (F77) > [DI-22][DI-25][INV-07] an entry moved to another batch appears in both batches' trails, and both still verify"
+  - "packages/kernel/test/review/f77.test.ts > F77: moving a row to another aggregate must be visible in the old aggregate's audit chain > [DI-22][DI-25][INV-07] update market.stub_pack set batch_id = B2 is recorded in chain market_stub_batch:B1 as well as B2"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

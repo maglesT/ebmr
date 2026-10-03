@@ -22,6 +22,7 @@ implemented_by:
     - "G-17: everything after a QA hold point waits for its disposition by the hold-point role; a negative disposition rejects the intermediate and holds the batch"
 tests:
   - "packages/recipe-core/test/engine/stage.test.ts > G-17 QA hold point > [PR-45][IN-37] everything after a hold point waits for the QA disposition; only the hold point role signs it"
+  - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [PR-08][PR-13][PR-45][IN-37] a step the engine refuses as blocked is reported by the database on the same state, and accepted once the block is lifted; a hold point is not released while an exception that is not an alert is open"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

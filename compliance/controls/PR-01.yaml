@@ -30,6 +30,13 @@ tests:
   - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] a batch size of the author scales the BOM exactly from the reference size (no free scaling later)"
   - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] refuses a batch size that is not a positive mass, or listed twice"
   - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] content whose batch sizes differ from the family is not saved (the approved set is fixed per family)"
+  - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] the template lists its approved batch sizes, the reference size first, in the shape createFamily takes (lead TODO T6)"
+  - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [DI-05][PR-10][PR-01] issue: every header input is required (a count is positive); the TEST- number, the engine version, the block registry and the policy are pinned"
+  - "apps/tablets-server/test/execution/contract-examples.test.ts > the sandbox examples are the server's answers (lead TODO T7) > [DI-05][INV-18][PR-01] issue form, a command's answer, a lot, the timeline with a refused command, and the replay of a TEST- run"
+  - "apps/tablets-web/test/api/contract-examples.test.tsx > the sandbox examples (lead TODO T7) > [DI-05][PR-01] a fixture-mode kiosk page starts on the example session and shows the issue form of the example package"
+  - "apps/tablets-web/test/designer/new-from-template.test.tsx > new master record from a template > [PR-01] the form waits for the templates; the product code typed then keeps the template's product name and strength"
+  - "apps/tablets-web/test/designer/new-from-template.test.tsx > new master record from a template > [PR-01] the approved batch sizes start as the template's (the first is its bill of materials' reference) and are sent as shown, until the author edits them (lead TODO T6)"
+  - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:

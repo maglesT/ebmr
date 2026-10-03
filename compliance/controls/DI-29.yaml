@@ -55,6 +55,9 @@ tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][INV-41] three readings where the first two fail: all kept and flagged; the first failing result governs until it is invalidated"
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][IN-20] invalidating a result needs an investigation and QA approval; the original stays, the next attempt governs"
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] an attempt is voided only before a result exists, with a reason and QA approval; the attempt stays in the record"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [DI-24][DI-29][DI-33][INV-20][PR-21] the golden runs of both fixtures: every row and every sweep passes; the rows include the verdict on a loop endpoint and charged containers"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [DI-29][IN-20][INV-41] the invalidation path and the void: an invalidated result, a re-test, a result invalidated after its step was signed (the step re-opened, the value re-computed); a voided attempt"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > a row that rewrites what the state recorded, or makes the engine's change in the wrong row, is refused (P34, P58, P36 round 2) > [DI-24][DI-29][DI-30][DI-32][DI-33][INV-41][PR-21] each rule of recipe.kept_records_problem refuses the forged row and names what it changes"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -11,14 +11,20 @@
  *    the tag is not proof of every clause;
  *  - a control lists a test the run did not report, or one that did not run (review F15); the end-to-end tests a
  *    control lists are checked when the Playwright report is part of the run;
+ *  - a test tagged with a control passed and the control's `tests` list does not name it (review F15, round 2): the
+ *    list is every test that proves the control, titles built from data included, so it cannot drift as tests are
+ *    added; `register sync-tests` adds them from the run (sync.ts);
  *  - a DONT_FOLLOW control still has tests proving active enforcement.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import { ROOT, type ClauseRecord, type ControlRecord } from './register.ts';
-import { fileOfEntry, names, reportedPath, type TestPath } from './test-index.ts';
+import { entryOf, fileOfEntry, names, reportedPath, type TestPath } from './test-index.ts';
 
 const CONTROL_TAG = /\[((?:DI|PR|ST|IN)-\d{2})\]/g;
+
+/** The controls a test's full name (its describes and title) is tagged with, each once. */
+export const controlTags = (name: string): string[] => [...new Set([...name.matchAll(CONTROL_TAG)].map((m) => m[1] ?? ''))];
 
 /** Listed tests under this directory are end-to-end tests (Playwright report). */
 export const E2E_DIR = 'tools/e2e/';
@@ -29,7 +35,15 @@ export interface TestResult {
   file: string;
   /** Where the test is, as a control lists it: its file from the repository root, its describes and its title. */
   path?: TestPath;
+  /** The test as a control lists it, every describe included (`<file> > <describe> > ... > <title>`). */
+  entry?: string;
 }
+
+/** Whether a control's tests list names the test of this result. */
+export const listsResult = (c: ControlRecord, r: TestResult): boolean => {
+  const path = r.path;
+  return path !== undefined && c.tests.some((e) => names(e, path));
+};
 
 interface VitestJson {
   testResults: { name: string; assertionResults: { fullName: string; status: string; title?: string; ancestorTitles?: string[] }[] }[];
@@ -44,7 +58,9 @@ export function readVitestResults(file: string): TestResult[] {
       name: a.fullName,
       status: a.status as TestResult['status'],
       file: f.name,
-      ...(a.title !== undefined ? { path: reportedPath(fromRoot(f.name), a.ancestorTitles ?? [], a.title) } : {}),
+      ...(a.title !== undefined
+        ? { path: reportedPath(fromRoot(f.name), a.ancestorTitles ?? [], a.title), entry: entryOf(fromRoot(f.name), a.ancestorTitles ?? [], a.title) }
+        : {}),
     })),
   );
 }
@@ -77,7 +93,9 @@ export function readPlaywrightResults(file: string): TestResult[] {
           name: [...here, spec.title, t.projectName ? `(${t.projectName})` : ''].filter(Boolean).join(' '),
           status,
           file: spec.file ?? suite.title,
-          ...(rootDir ? { path: reportedPath(fromRoot(join(rootDir, specFile)), inner, spec.title) } : {}),
+          ...(rootDir
+            ? { path: reportedPath(fromRoot(join(rootDir, specFile)), inner, spec.title), entry: entryOf(fromRoot(join(rootDir, specFile)), inner, spec.title) }
+            : {}),
         });
       }
     }
@@ -124,6 +142,15 @@ function resultsNamed(entry: string, byFile: Map<string, TestResult[]>): TestRes
 export function buildTrace(controls: ControlRecord[], results: TestResult[], phase: number, options: TraceOptions = {}): TraceReport {
   const byId = new Map(controls.map((c) => [c.id, { control: c, passing: [] as string[], failing: [] as string[], clauses: [] as ClauseStatus[] }]));
   const errors: string[] = [];
+  /** Per control, the passing tests tagged with it that its tests list does not name (review F15, round 2). */
+  const unlisted = new Map<string, Set<string>>();
+  for (const t of results) {
+    if (t.status !== 'passed') continue;
+    for (const id of controlTags(t.name)) {
+      const row = byId.get(id);
+      if (row && !listsResult(row.control, t)) unlisted.set(id, (unlisted.get(id) ?? new Set()).add(t.entry ?? t.name));
+    }
+  }
   for (const t of results) {
     for (const m of t.name.matchAll(CONTROL_TAG)) {
       const id = m[1] ?? '';
@@ -156,6 +183,10 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
       const named = resultsNamed(entry, byFile);
       if (named.length === 0) errors.push(`${c.id} lists a test the run did not report: "${entry}"`);
       else if (!named.some((r) => r.status === 'passed' || r.status === 'failed')) errors.push(`${c.id} lists a test that did not run (${named[0]?.status ?? ''}): "${entry}"`);
+    }
+    // Every test tagged with the control that passed is in its list (review F15, round 2).
+    for (const entry of unlisted.get(c.id) ?? []) {
+      errors.push(`${c.id} does not list a test tagged with it that passed (register sync-tests adds it): "${entry}"`);
     }
 
     // Each clause of the catalog test: a listed test passed, or it is deferred to a phase not yet started (F14).

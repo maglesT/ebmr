@@ -1,15 +1,18 @@
 /**
  * What the register says about tests (reviews F14 and F15): every test a control lists exists, statically
- * (validate) and in the run (trace); and a due control is proven clause by clause of its catalog test, each clause
- * by a listed test that passed or by a deferral to a phase that has not started.
+ * (validate) and in the run (trace); every test tagged with a control that passed is in its list (trace; sync-tests
+ * adds them from the run); and a due control is proven clause by clause of its catalog test, each clause by a listed
+ * test that passed or by a deferral to a phase that has not started.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadControls, type ControlRecord } from '../src/register.ts';
-import { declaredTests, names, reportedPath } from '../src/test-index.ts';
-import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
+import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/register.ts';
+import { appendListedTests, testsToAdd } from '../src/sync.ts';
+import { declaredTests, entryOf, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
+import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
 import { clauseErrors, validateRegister, words } from '../src/validate.ts';
 
 const control = (id: string): ControlRecord => {
@@ -21,7 +24,7 @@ const control = (id: string): ControlRecord => {
 /** A passed (or other) result at the place an entry names: `<file> > <describe> > ... > <title>`. */
 const result = (entry: string, status: TestResult['status'] = 'passed'): TestResult => {
   const [file = '', ...rest] = entry.split(' > ');
-  return { name: rest.join(' '), status, file, path: reportedPath(file, rest.slice(0, -1), rest.at(-1) ?? '') };
+  return { name: rest.join(' '), status, file, path: reportedPath(file, rest.slice(0, -1), rest.at(-1) ?? ''), entry };
 };
 
 describe('listed tests exist (review F15)', () => {
@@ -42,6 +45,10 @@ describe('listed tests exist (review F15)', () => {
     const tests = declaredTests('x/a.test.ts', SRC);
     const hits = (entry: string): number => tests.filter((t) => names(entry, t)).length;
     expect(tests.map((t) => t.exact)).toEqual([true, false, false, true, true]);
+    // A test written out in full is also known as a control lists it, and by its full name (which carries the tags).
+    expect(tests.map((t) => t.entry)).toEqual(['x/a.test.ts > outer > inner > [DI-20] a literal title', null, null, 'x/a.test.ts > outer > [DI-20] skipped when', 'x/a.test.ts > pw > [DI-20] a spec']);
+    expect(tests[0]?.name).toBe('outer inner [DI-20] a literal title');
+    expect(tests.map((t) => t.mayNotRun)).toEqual([false, false, false, true, false]);
     expect(hits('x/a.test.ts > outer > inner > [DI-20] a literal title')).toBe(1);
     expect(hits('x/a.test.ts > inner > [DI-20] a literal title')).toBe(1);
     expect(hits('x/a.test.ts > [DI-20] a literal title')).toBe(1);
@@ -101,8 +108,11 @@ describe('listed tests exist (review F15)', () => {
     expect(errs([])).toEqual([`DI-20 lists a test the run did not report: "${vitest}"`]);
     expect(errs([result(vitest, 'skipped')])).toEqual([`DI-20 lists a test that did not run (skipped): "${vitest}"`]);
     expect(errs([result(vitest)])).toEqual([]);
-    // Another test of the same title elsewhere is not the listed one.
-    expect(errs([result('packages/x/test/b.test.ts > d > [DI-20] listed')])).toHaveLength(1);
+    // Another test of the same title elsewhere is not the listed one (and, tagged and passing, must be listed itself).
+    expect(errs([result('packages/x/test/b.test.ts > d > [DI-20] listed')])).toEqual([
+      `DI-20 lists a test the run did not report: "${vitest}"`,
+      'DI-20 does not list a test tagged with it that passed (register sync-tests adds it): "packages/x/test/b.test.ts > d > [DI-20] listed"',
+    ]);
     expect(errs([result(vitest)], true)).toEqual([`DI-20 lists a test the run did not report: "${e2e}"`]);
     expect(errs([result(vitest), result(e2e)], true)).toEqual([]);
   });
@@ -125,6 +135,145 @@ describe('listed tests exist (review F15)', () => {
     expect(v?.path && names('packages/x/test/a.test.ts > d > [DI-20] t', v.path)).toBe(true);
     expect(p?.path && names('tools/e2e/specs/x/x.spec.ts > outer > [DI-20] s', p.path)).toBe(true);
     expect(p?.path && names('tools/e2e/specs/x/x.spec.ts > [DI-20] s', p.path)).toBe(true);
+  });
+});
+
+/** The test files of the Vitest projects and the end-to-end specs (vitest.config.ts, tools/e2e/playwright.config.ts). */
+function testFiles(): string[] {
+  const out: string[] = [];
+  const walk = (dir: string): void => {
+    for (const d of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${d.name}`;
+      if (d.isDirectory()) {
+        if (d.name !== 'node_modules' && d.name !== 'fixtures') walk(rel);
+      } else if (/\.(test|spec)\.tsx?$/.test(d.name)) out.push(rel);
+    }
+  };
+  for (const top of ['packages', 'apps', 'tools']) {
+    for (const d of readdirSync(join(ROOT, top), { withFileTypes: true })) {
+      if (d.isDirectory() && existsSync(join(ROOT, top, d.name, 'test'))) walk(`${top}/${d.name}/test`);
+    }
+  }
+  walk('tools/e2e/specs');
+  return out.sort();
+}
+
+describe('every passing tagged test is listed (review F15, round 2)', () => {
+  const C = 'packages/x/test/a.test.ts';
+  const listed = `${C} > d > [DI-20] listed`;
+  const base: ControlRecord = { ...control('DI-20'), target_phase: 7, tests: [listed] };
+  delete base.clauses;
+  const unlisted = (entry: string): string => `DI-20 does not list a test tagged with it that passed (register sync-tests adds it): "${entry}"`;
+
+  it('[meta] the trace refuses a passing test tagged with a control that the control does not list, titles built from data and end-to-end tests included', () => {
+    const errs = (results: TestResult[], c: ControlRecord = base): string[] => buildTrace([c], results, 1, { e2e: true }).errors;
+    expect(errs([result(listed)])).toEqual([]);
+    // A tagged test the list does not name, whether its title is literal or built from data (golden.test.ts).
+    expect(errs([result(listed), result(`${C} > d > [DI-20] another`)])).toEqual([unlisted(`${C} > d > [DI-20] another`)]);
+    expect(errs([result(listed), result(`${C} > G-07@1 > [DI-20] built from data`)])).toEqual([unlisted(`${C} > G-07@1 > [DI-20] built from data`)]);
+    // The tag may be on a describe around it: the test's full name carries it.
+    const inDescribe: TestResult = { name: 'devices [DI-20] rooms a scale elsewhere', status: 'passed', file: C, path: reportedPath(C, ['devices [DI-20] rooms'], 'a scale elsewhere'), entry: `${C} > devices [DI-20] rooms > a scale elsewhere` };
+    expect(errs([result(listed), inDescribe])).toEqual([unlisted(`${C} > devices [DI-20] rooms > a scale elsewhere`)]);
+    // Listed under a shorter name (a describe left out), it is listed.
+    expect(errs([result(listed), inDescribe], { ...base, tests: [listed, `${C} > a scale elsewhere`] })).toEqual([]);
+    // Only passing tests: a skipped one need not be listed, a failing one fails the trace anyway.
+    expect(errs([result(listed), result(`${C} > d > [DI-20] skipped`, 'skipped')])).toEqual([]);
+    expect(errs([result(listed), result(`${C} > d > [DI-20] failing`, 'failed')])).toEqual([`DI-20 has failing tests: d [DI-20] failing`]);
+    // Each control the test is tagged with lists it; a control not due yet too.
+    const other: ControlRecord = { ...control('DI-41'), target_phase: 9, tests: [] };
+    delete other.clauses;
+    expect(buildTrace([base, other], [result(listed), result(`${C} > d > [DI-20][DI-41] both`)], 1).errors).toEqual([
+      unlisted(`${C} > d > [DI-20][DI-41] both`),
+      'DI-41 does not list a test tagged with it that passed (register sync-tests adds it): "packages/x/test/a.test.ts > d > [DI-20][DI-41] both"',
+    ]);
+    // An end-to-end test from the Playwright report, once per project.
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-trace-'));
+    writeFileSync(
+      join(dir, 'playwright.json'),
+      JSON.stringify({
+        config: { rootDir: join(ROOT, 'tools/e2e/specs') },
+        suites: [{ title: 'x/x.spec.ts', file: 'x/x.spec.ts', suites: [{ title: 'outer', specs: [{ title: '[DI-20] s', file: 'x/x.spec.ts', tests: [{ projectName: 'kiosk', results: [{ status: 'passed' }] }, { projectName: 'office', results: [{ status: 'passed' }] }] }] }] }],
+      }),
+    );
+    expect(errs([result(listed), ...readPlaywrightResults(join(dir, 'playwright.json'))])).toEqual([unlisted('tools/e2e/specs/x/x.spec.ts > outer > [DI-20] s')]);
+  });
+
+  it('[meta] sync-tests adds every passing tagged test a list lacks after the entries already there, in file order, and nothing that did not pass', () => {
+    const results = [
+      result('packages/y/test/b.test.ts > [DI-20] second file'),
+      result(`${C} > d > [DI-20] first`),
+      result(listed),
+      result(`${C} > d > [DI-20] skipped`, 'skipped'),
+      result(`${C} > d > [DI-20] failing`, 'failed'),
+      result(`${C} > d > [DI-41] other control`),
+      result(`${C} > d > [DI-20] then`),
+      result(`${C} > d > [DI-20] then`),
+      result(`${C} > [DI-99] unknown control`),
+    ];
+    const di41: ControlRecord = { ...control('DI-41'), tests: [] };
+    const add = testsToAdd([base, di41], results);
+    expect([...add]).toEqual([
+      ['DI-20', [`${C} > d > [DI-20] first`, `${C} > d > [DI-20] then`, 'packages/y/test/b.test.ts > [DI-20] second file']],
+      ['DI-41', [`${C} > d > [DI-41] other control`]],
+    ]);
+    // Written into the YAML, after the listed entries and in their style; an empty list becomes a block list.
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-sync-'));
+    // DI-20 as `base` (one listed test), DI-41 with an empty list.
+    for (const [id, tests] of [['DI-20', `tests:\n  - "${listed}"\n`], ['DI-41', 'tests: []\n']] as const) {
+      copyFileSync(join(CONTROLS_DIR, `${id}.yaml`), join(dir, `${id}.yaml`));
+      writeFileSync(join(dir, `${id}.yaml`), readFileSync(join(dir, `${id}.yaml`), 'utf8').replace(/^tests:\n(?: {2}- .*\n)+/m, tests));
+    }
+    const before = loadControls(dir);
+    expect(appendListedTests(add, dir)).toBe(4);
+    const after = loadControls(dir);
+    expect(after[0]?.tests).toEqual([...(before[0]?.tests ?? []), ...(add.get('DI-20') ?? [])]);
+    expect(after[1]?.tests).toEqual([`${C} > d > [DI-41] other control`]);
+    expect(readFileSync(join(dir, 'DI-41.yaml'), 'utf8')).toContain(`tests:\n  - "${C} > d > [DI-41] other control"\n`);
+    // Everything else in the file is as it was.
+    expect({ ...after[0], tests: [] }).toEqual({ ...before[0], tests: [] });
+    // Once listed, the trace is satisfied and a second sync adds nothing.
+    const synced = after.map((c) => ({ ...c, target_phase: 7 }));
+    expect(buildTrace(synced, results.filter((r) => !r.name.includes('[DI-99]') && r.status !== 'failed'), 1).errors).toEqual([]);
+    expect([...testsToAdd(after, results)]).toEqual([]);
+  });
+
+  it('[meta] every control lists each test tagged with it that a test file declares in full and always runs; titles built from data are the trace\'s to check', () => {
+    const controls = new Map(loadControls().map((c) => [c.id, c]));
+    const missing: string[] = [];
+    let tagged = 0;
+    for (const file of testFiles()) {
+      const declared: DeclaredTest[] = declaredTests(file, readFileSync(join(ROOT, file), 'utf8'));
+      for (const t of declared) {
+        if (!t.exact || t.mayNotRun || t.name === null) continue;
+        for (const id of controlTags(t.name)) {
+          const c = controls.get(id);
+          if (!c) continue;
+          tagged++;
+          if (!c.tests.some((e) => names(e, t))) missing.push(`${id}: ${t.entry ?? ''}`);
+        }
+      }
+    }
+    expect(tagged).toBeGreaterThan(2500);
+    expect(missing).toEqual([]);
+    // The ones the review counted: DI-37, IN-52 and DI-14 list every test tagged with them, not a third.
+    for (const [id, n] of [['DI-37', 190], ['IN-52', 200], ['DI-14', 135]] as const) expect(control(id).tests.length, id).toBeGreaterThanOrEqual(n);
+  });
+
+  it('[meta] the trace with --require-playwright fails without end-to-end results (the CI job that has both reports)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ebmr-cli-'));
+    writeFileSync(join(dir, 'vitest.json'), JSON.stringify({ testResults: [] }));
+    const cli = (...extra: string[]) =>
+      spawnSync(process.execPath, ['--import', 'tsx', join(ROOT, 'tools/register/src/cli.ts'), 'trace', '--results', join(dir, 'vitest.json'), ...extra], { cwd: ROOT, encoding: 'utf8' });
+    const missing = cli('--playwright', join(dir, 'none.json'), '--require-playwright');
+    expect(missing.status).toBe(1);
+    expect(missing.stderr).toContain(`--require-playwright: no end-to-end results in ${join(dir, 'none.json')}`);
+    writeFileSync(join(dir, 'empty.json'), JSON.stringify({ suites: [] }));
+    expect(cli('--playwright', join(dir, 'empty.json'), '--require-playwright').stderr).toContain('--require-playwright: no end-to-end results in');
+  });
+
+  it('[meta] a listed test is named as a run reports it: file, every describe, title', () => {
+    expect(entryOf('a/b.test.ts', ['x', 'y'], '[DI-20] t')).toBe('a/b.test.ts > x > y > [DI-20] t');
+    expect(entryOf('a/b.test.ts', [], '[DI-20] t')).toBe('a/b.test.ts > [DI-20] t');
   });
 });
 
@@ -158,10 +307,11 @@ describe('catalog-test clauses (review F14)', () => {
     const only = passing.filter((r) => r.path && !names(pr01.tests[2] ?? '', r.path));
     expect(buildTrace([untested], [...only, result('packages/z.test.ts > [PR-01] anything')], 2).errors).toEqual([
       `PR-01 lists a test the run did not report: "${pr01.tests[2] ?? ''}"`,
+      'PR-01 does not list a test tagged with it that passed (register sync-tests adds it): "packages/z.test.ts > [PR-01] anything"',
       `PR-01 clause 2 has no passing test and no deferral: "${second?.clause ?? ''}"`,
     ]);
     // A due control that maps no clause fails; the review's reproducer: one arbitrary tagged test.
-    const unmapped: ControlRecord = { ...pr01, tests: [] };
+    const unmapped: ControlRecord = { ...pr01, tests: ['x/y.test.ts > [PR-01] anything'] };
     delete unmapped.clauses;
     expect(buildTrace([unmapped], [result('x/y.test.ts > [PR-01] anything')], 2).errors).toEqual([
       'PR-01 (target phase 2) does not map its catalog test to clauses with tests or deferrals',

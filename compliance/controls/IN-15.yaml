@@ -37,6 +37,9 @@ tests:
   - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] every sign-off of the golden runs of both fixtures has exactly the engine's shape; each member, time or signer of its own is a problem (F01 round 2)"
   - "packages/ui-kit/test/identity/signable-content.test.tsx > what is signed: the C3 rendering shapes > [DI-37][IN-15] F01: a stage shows its summary (statement, step counts, exceptions, deviations, yields) as part of the record to be signed"
   - "apps/tablets-web/test/floor/step-screen.test.tsx > signatures through the ceremony port > [DI-37][IN-15] F01: the stage sign-off is asked at the run version of the run view whose summary the dialog showed"
+  - "apps/tablets-server/test/execution/db-guards-step-order.test.ts > F66: the order of the steps holds in the database (DI-34, PR-13) > [DI-34][PR-13][IN-15] the marks the order reads are the engine's: a row that marks the clearance finished while it is in progress, or signs off its stage, is refused"
+  - "packages/recipe-core/test/execution/step-order-sql.test.ts > F66: the database brings in a step instance only where the token can be (DI-34, PR-13) > [DI-34][PR-13][IN-15][INV-19] every row of the engine's own runs passes, and so does every final state in the invariant query's form: both golden fixtures, a loop that exits and one that is exhausted, a correction that sends a finished step back while the steps after it go on"
+  - "packages/recipe-core/test/execution/step-order-sql.test.ts > F66: the database brings in a step instance only where the token can be (DI-34, PR-13) > [IN-15][DI-34] a stage's sign-off appears or is replaced only by its own accepted SIGN_OFF_STAGE, and is otherwise kept, apart from being made invalid"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

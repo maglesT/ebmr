@@ -30,7 +30,13 @@ behaviour: |-
   - End of use sets the unit to Dirty and starts the dirty-hold timer.
 catalog_test: A Dirty unit is blocked. An expired clean-hold is blocked. A balance with overdue calibration is blocked. A failed as-found calibration produces the list of affected batches.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/execution/evidence-source-room.test.ts > P36: scale readings and commands are bound to the step's room (DI-20) > [DI-20][PR-23] the DISP-1 clearance cannot be started or recorded from the BLEND-1 kiosk or an office PC; the terminal of the room is accepted"
+  - "apps/tablets-server/test/execution/evidence-source-room.test.ts > P36: scale readings and commands are bound to the step's room (DI-20) > [DI-20][DI-35][PR-23] the step's PERFORMED and VERIFY signatures from a terminal outside the step's room are refused before the PIN, with the room to go to; the database refuses the signed rows written past the server; nothing is signed"
+  - "apps/tablets-server/test/execution/refusals-and-room-views.test.ts > refusals keep their declared controls and advice > [DI-30][DI-32][PR-14][DI-20][PR-23] a scan claim, an attachment hash and a terminal outside the step's room are answered with the controls, reason and advice the server declared, not the generic refusal"
+  - "apps/tablets-server/test/execution/refusals-and-room-views.test.ts > a step screen on a terminal outside the step's room (DI-20) > [DI-20][PR-23] offers none of the step's own actions: start, record, sign and verify are greyed with the room to go to; raising an exception stays open; the terminal of the room is offered them"
+  - "apps/tablets-web/test/designer/config-shown.test.tsx > the configuration of a step is shown in full (review F51) > [PR-03][PR-02][PR-23] the step panel shows every clearance checklist item with the answer it expects, never a cut text"
+  - "apps/tablets-web/test/designer/config-shown.test.tsx > the configuration of a step is shown in full (review F51) > [PR-02][PR-03][PR-23] the checker's document carries each step's configuration in its procedure row: every checklist item of the clearance"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

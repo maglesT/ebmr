@@ -40,6 +40,7 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-30][DI-05][PR-18] round 3: a container registered beside an entry that registers none is refused even under a test identifier (EBMR-EXE-126): a container is the one its entry names"
   - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][PR-18] round 3: a container a row registers is read as a test lot number, apart from the id the output weighing builds from the test batch's own number"
   - "apps/tablets-web/test/floor/readings-after-refusal.test.tsx > captured readings after a refused weighing (F59) > [DI-32][PR-18] an unknown lot (422 EBMR-EXE-072, rolled back): the unused tare and gross stay while the lot is scanned again"
+  - "apps/tablets-server/test/execution/commands.test.ts > commands > [PR-18][DI-05] lots are resolved by the server: an unknown lot writes nothing; a quarantined lot is refused by the block and recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -26,6 +26,9 @@ tests:
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-21][PR-19] a dispensing step cannot be performed while a BOM line it dispenses has no container"
   - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21] a wrong container is rejected, a missing container blocks completion, and a container is charged only once"
   - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21][PR-13] a container holding an intermediate the step does not charge is rejected as unplanned"
+  - "apps/tablets-server/test/execution/evidence-source-room.test.ts > P36 (round-2 verification): a row from another room cannot rewrite what the step recorded (recipe-core 0303) > [DI-20][DI-32][DI-24][PR-21] an exception raised from the BLEND-1 kiosk whose state rewrites the DISP-1 device weighing, relabels it as a hand entry, or takes its container out of quarantine is refused; the honest exception is recorded"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [DI-24][DI-29][DI-33][INV-20][PR-21] the golden runs of both fixtures: every row and every sweep passes; the rows include the verdict on a loop endpoint and charged containers"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > a row that rewrites what the state recorded, or makes the engine's change in the wrong row, is refused (P34, P58, P36 round 2) > [DI-24][DI-29][DI-30][DI-32][DI-33][INV-41][PR-21] each rule of recipe.kept_records_problem refuses the forged row and names what it changes"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

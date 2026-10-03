@@ -15,7 +15,8 @@ sources: Schedule M Part VIII 3.3-3.4, 3.8 (weight variation against pharmacopoe
 behaviour: "Individual-weight IPC limits are computed from the target tablet weight using a pharmacopoeia band table stored as versioned data. IP/BP/Ph. Eur. uniformity-of-mass bands as reported by secondary sources (to be confirmed against IP 2026): 80 mg or less 10%; more than 80 mg and less than 250 mg 7.5%; 250 mg or more 5%. Legacy USP in-process bands often used by US-market firms: 130 mg or less 10%; 130-324 mg 7.5%; more than 324 mg 5%. The MBR shows which table applies; for a product sold in India and the US the tighter band applies (IP is equal or tighter at every weight: e.g., 100 mg is 7.5% vs 10%; 300 mg is 5% vs 7.5%). Release testing of uniformity of dosage units (USP chapter 905 / Ph. Eur. 2.9.40 acceptance value) is a separate calculation."
 catalog_test: "300 mg tablet: India or India+US gives plus/minus 5%; US-only legacy table gives 7.5%."
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/review/f20.test.ts > F20: ALL_APPLY strictness must compare criterion content, not only ids > [IN-52][INV-28][IN-34][ST-01] a HARD India criterion cannot be weakened under the same id, by a site value or by an UPDATE"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

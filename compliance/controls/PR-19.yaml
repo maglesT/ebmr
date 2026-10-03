@@ -70,6 +70,8 @@ tests:
   - "packages/recipe-core/test/execution/weighing-item-sql.test.ts > T2 round 3: a weighing counts into the quantity its phase records, decided by the database (INV-25, PR-19; sql 0323) > [INV-25][PR-19] the items a phase records are the MBR items the engine expands it to, through nested library calls"
   - "packages/recipe-core/test/execution/weighing-item-sql.test.ts > T2 round 3: a weighing counts into the quantity its phase records, decided by the database (INV-25, PR-19; sql 0323) > [INV-25][PR-19][DI-30] every weighing of the engine's own runs passes: dispensed containers, output containers into a quantity and into none"
   - "packages/recipe-core/test/execution/weighing-item-sql.test.ts > T2 round 3: a weighing counts into the quantity its phase records, decided by the database (INV-25, PR-19; sql 0323) > [INV-25][PR-19][DI-30] a weighing that counts into another quantity than its phase records is refused: no item, null, another phase's or a non-mass quantity, an output container into none or the second, a weighing at another block's step"
+  - "apps/tablets-server/test/devices/stale-weighing-readings.test.ts > F58: a stale weighing keeps its scale readings (DI-32, DI-34) > [DI-32][DI-34][PR-19] another person moves the run on; the weighing from the older screen is refused as stale, claims nothing and writes nothing; the resend with the same readings is recorded"
+  - "packages/api-contract/test/contract.test.ts > client intents refuse browser-supplied facts (J1-3, J2-8) > [DI-32][PR-19] lots travel as codes and weights as reading ids: lot status, expiry, identity, balance and device values are refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

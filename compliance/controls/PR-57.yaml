@@ -35,7 +35,8 @@ behaviour: |-
   - Lookups: a complaint-to-lot lookup opens the record, genealogy, deviations and shipments. An API supply-chain traceability report can be produced for each finished batch.
 catalog_test: A seeded split/merge/rework scenario returns exactly the expected nodes. A forward trace from a component lot lists every consignee, matching an ERP extract.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [INV-25][DI-33][PR-57] a block value recomputed when its step is signed performed supersedes the earlier one: in the preparation, the accepted signature and a refused one"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

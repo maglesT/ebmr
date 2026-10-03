@@ -16,7 +16,8 @@ sources: Schedule M Part I 17.3.1 (items (a)-(g), including expiry and manufactu
 behaviour: "(a) Artwork templates are typed by destination class: India domestic (Schedule M 17.3.1 plus Drugs Rules Rules 96/97, section C), India export (Rule 94), US, EU. (b) The India-domestic template cannot be approved without fields for: drug name; active ingredients with INN and amount each, and net contents; batch number; **date of manufacture and expiry date in plain (uncoded) form**; special storage/handling; directions, warnings and precautions; name and address of the manufacturer and of the party placing the product on the market. (c) The packaging-record coding check compares every printed variable (batch, manufacturing date, expiry, MRP where applicable) against batch data at start, at intervals and at end. (d) Status labels on containers, equipment and premises follow the company format, optionally colour-coded."
 catalog_test: load an India-domestic template without a manufacturing-date field; approval fails. Print an expiry one month off; the coding check fails.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/review/f23.test.ts > F23: a PACK scope resolves a PER_DESTINATION key only for its own destination > [IN-52][IN-31][INV-28] an India-domestic pack cannot be resolved under the US label rule by naming destination US"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -17,7 +17,19 @@ sources: Schedule M Part I 17.3.10.8-17.3.10.11 (numbering SOP, relation of proc
 behaviour: "A configurable batch-number generator with a site-wide uniqueness constraint: a number is never reissued, including after cancellation or reprocessing; manual entry of an existing number is rejected. Processing and packaging batch numbers are linked by a defined rule. Every allocation writes immediately to an allocation register with at least allocation date, product identity and batch size. A reworked batch always receives a new batch number (IN-19)."
 catalog_test: cancel a batch; its number is never offered again. Export the register; the three fields are present.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/review/f58.test.ts > F58 counter reservation writes to the ledger before authorisation > [INV-27][IN-18][DI-17] a reservation refused by the database leaves no ceiling in the external ledger, burns no serials and raises no LEDGER_AHEAD alarm"
+  - "packages/kernel/test/review/f75.test.ts > F75 retention purge of a kernel control register > [INV-27][IN-18][DI-47][INV-22] a QA reviewer plus the retention job cannot erase the batch-number register and reissue a batch number"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] a generated number follows its rule and is written to the register at once with date, product and batch size"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] cancel a batch: its number is never offered again"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] a number is unique across both editions at the site, and generation skips a number registered from outside"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18] export the register: allocation date, product identity and batch size are present for every entry"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18] a product without its own rule uses the site-wide rule; without any rule no number is issued"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18] a packaging number is linked to its processing number by the packaging rule"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [INV-27][IN-18] the application role cannot write the register, draw a serial or rewrite history directly"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register across a restore > [IN-18][INV-27] after a restore the register never reissues a number allocated in the lost window"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register across a restore > [IN-18][INV-27] a lost number is re-entered only with evidence and only inside the range the restore skipped"
+  - "packages/site-services/test/batch-number-register.test.ts > recovery after a restore is held to the rule it recovers for (F62) > [INV-27][IN-18] the recovered number must be what the rule gives for that serial; a packaging number links to a processing number of its own site"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -54,6 +54,7 @@ jobs:
               if (t.status === "failed") console.log(`FAILED ${f.name.replace(process.cwd() + "/", "")} > ${t.fullName}\n  ${(t.failureMessages || []).join("\n").split("\n").slice(0, 12).join("\n  ")}`);
             console.log(`${r.numFailedTests} failed, ${r.numPassedTests} passed, ${r.numTotalTests} total`);
           '
+      # The Vitest report alone: listed end-to-end tests are checked against a run in the traceability job below.
       - run: pnpm trace
       - name: OpenAPI document of the frozen contract
         run: pnpm openapi
@@ -98,4 +99,38 @@ jobs:
             .reports/playwright.json
             .reports/e2e-evidence.json
             .reports/playwright-output/
+          if-no-files-found: ignore
+
+  # The trace on both reports (review F15, round 2): every end-to-end test a control lists ran, and every passing
+  # end-to-end test tagged with a control is in its list. The Playwright report is required here.
+  traceability:
+    name: Traceability with the end-to-end results
+    needs: [checks, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Vitest report of the checks job
+        uses: actions/download-artifact@v4
+        with:
+          name: trace-matrix
+          path: .reports
+      - name: Playwright report of the e2e job
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-reports
+          path: .reports
+      - run: pnpm trace:e2e
+      - name: Upload the traceability matrix with the end-to-end results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trace-matrix-e2e
+          path: .reports/trace-matrix.md
           if-no-files-found: ignore
