@@ -54,8 +54,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Every group of tools/sql-mutation/src/targets.ts (tools/sql-mutation/test/harness.test.ts checks the list).
         group: [audit-trail, actor-validation, signing, signature-invalidation, segregation-and-grants,
-                authentication-events, retention-and-purge, site-values-and-policies, protected-numbers]
+                authentication-events, retention-and-purge, site-values-and-policies, protected-numbers,
+                mbr-lifecycle, market-authorisation-and-issue, execution-commands, execution-state-binding,
+                evidence-source-and-entries, execution-steps-and-order, system-facts-and-time, exceptions-and-dispositions,
+                limit-exceptions, involvement-and-independence, weighing, signed-content, sandbox-and-import,
+                device-readings, evidence-listener, manual-weighing-gate, read-authorisation, tablets-sessions,
+                designer-guards, site-zone, signing-failure-and-reasons, connection-roles, batch-number-register]
     services:
       postgres:
         image: postgres:16
