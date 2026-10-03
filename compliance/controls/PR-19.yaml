@@ -61,6 +61,9 @@ tests:
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [INV-25][PR-19] convertAtResolution carries the resolution through a power of ten, exactly; countableInto names the units the database converts (T2 round 2)"
   - "apps/tablets-server/test/execution/db-guards-weighing-net.test.ts > T2: a recorded net weight keeps the resolution of the weighings (INV-25, PR-19; sql 0321) > [INV-25][PR-19][DI-30] a weighing row recording its net without the trailing zeros of the weighings, or another net, is refused; the engine's own net is recorded"
   - "apps/tablets-server/test/execution/db-guards-weighing-net.test.ts > T2: a recorded net weight keeps the resolution of the weighings (INV-25, PR-19; sql 0321) > [INV-25][PR-19] the database's reading: gross minus tare at the finer resolution, for both weighing kinds; other entries pass"
+  - "apps/tablets-server/test/execution/db-guards-weighing-record.test.ts > T2 round 2: the label and the total of weighings are what the weighings record (INV-25, PR-19; sql 0322) > [PR-19][INV-25][DI-30] a weighing row whose label says \"50 kg\" for a net of 50.000 kg, or names another lot or batch, is refused; the engine's own label is recorded"
+  - "apps/tablets-server/test/execution/db-guards-weighing-record.test.ts > T2 round 2: the label and the total of weighings are what the weighings record (INV-25, PR-19; sql 0322) > [INV-25][PR-19][DI-30] a dispensed quantity weighed in g and recorded as 50 or 50.000 kg, another figure, or without its weighings is refused; 50.0000 kg is recorded"
+  - "apps/tablets-server/test/execution/db-guards-weighing-record.test.ts > T2 round 2: the label and the total of weighings are what the weighings record (INV-25, PR-19; sql 0322) > [INV-25][PR-19] the database's reading: metric mass units, the label a weighing gives, and the total of a step's weighings at their resolution"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

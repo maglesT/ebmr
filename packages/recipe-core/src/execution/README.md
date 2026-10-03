@@ -456,7 +456,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, or a container the state registers, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380, 0390), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
-| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316); a stage sign-off other than the engine's (135; sql 0319, 0320); a weighing entry whose net is not gross minus tare at the resolution of the weighings (136; sql 0321) |
+| 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316); a stage sign-off other than the engine's (135; sql 0319, 0320); a weighing entry whose net is not gross minus tare at the resolution of the weighings (136; sql 0321); a container label other than the one its weighing and the batch give (137; sql 0322); a quantity counted from weighings that is not the sum of all their nets at the resolution they were weighed at (138; sql 0322) |
 
 ## TypeScript
 
@@ -829,6 +829,11 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `db-guards-weighing-net.test.ts` (lead TODO T2 of the Phase 2 exit; INV-25, PR-19; sql 0321): a weighing row whose
   net is not gross minus tare at the resolution of the weighings ("50" for 51.250 - 1.250, or another value) is refused
   (EBMR-EXE-136); the engine's own net ("50.000") is recorded; the database's reading of both weighing kinds.
+- `db-guards-weighing-record.test.ts` (lead TODO T2 of the Phase 2 exit, round 2; INV-25, PR-19; sql 0322): a weighing
+  row whose label says "50 kg" for a net of 50.000 kg, or names another lot or batch, is refused (EBMR-EXE-137); a
+  dispensed quantity weighed in g and recorded as 50 or 50.000 kg instead of 50.0000 kg, another figure or unit, without
+  its weighings, or a step signed performed with no total of its weighings, is refused (EBMR-EXE-138); the database's
+  reading of metric mass units, labels and totals.
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and
