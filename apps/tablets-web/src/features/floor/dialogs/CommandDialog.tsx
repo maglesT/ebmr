@@ -10,6 +10,7 @@ import { Button, Dialog, t } from '@ebmr/ui-kit';
 import { wcls } from '../classes.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
 import { st } from '../text.ts';
+import { useDraftGuard } from '../unsettled.ts';
 import { useRunCommand } from '../usePendingCall.ts';
 
 export interface CommandBodyProps {
@@ -23,6 +24,8 @@ export interface CommandBodyProps {
   intent: ClientIntent | null;
   expectedVersion: number;
   view?: StepScreenView;
+  /** The person has typed or chosen something: a reload asks first until it is sent or the dialog closes (F63). */
+  draft: boolean;
   children: ReactNode;
 }
 
@@ -39,12 +42,13 @@ export function CommandDialog({ title, isOpen, children }: { title: string; isOp
   );
 }
 
-export function CommandBody({ onClose, runId, viewStepKey, reason, intent, expectedVersion, view, children }: CommandBodyProps) {
+export function CommandBody({ onClose, runId, viewStepKey, reason, intent, expectedVersion, view, draft, children }: CommandBodyProps) {
   const cmd = useRunCommand(runId, viewStepKey, reason);
   const unsettled = cmd.busy || cmd.state === 'notSaved';
   // Done once saved, for as long as the dialog is open: a newer view of the step (the poll, another person's entry) never
   // brings the form back with the same words and Send enabled (F57; a second Send would be a duplicate exception or hold).
   const done = cmd.state === 'saved';
+  useDraftGuard(draft && !done);
   return (
     <div className={wcls('dialogBody')}>
       {done ? null : children}

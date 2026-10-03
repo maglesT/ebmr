@@ -5,7 +5,8 @@
  *
  * Each dialog's words and choice live in a form mounted only while the dialog is open, and a session change
  * (switch, lock, sign-out) empties them: nothing one person typed or chose is offered to the next person, nor to
- * the same person on a later opening; nothing is pre-selected (INV-40, DI-14).
+ * the same person on a later opening; nothing is pre-selected (INV-40, DI-14). While the person has typed or chosen
+ * something not yet sent, a reload or closing the tab asks first (useDraftGuard, review F63).
  */
 import { useState } from 'react';
 import type { ExceptionView, StepScreenView } from '@ebmr/api-contract';
@@ -57,7 +58,7 @@ function RaiseExceptionForm({ stepKey, ...p }: FormBase & { stepKey: string | nu
       ? ({ type: 'RAISE_EXCEPTION', ...(stepKey ? { stepKey } : {}), description: description.trim(), severity } as const)
       : null;
   return (
-    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.RAISE_EXCEPTION')} intent={intent} {...p}>
+    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.RAISE_EXCEPTION')} intent={intent} draft={description !== '' || severity !== null} {...p}>
       <Field label={st('dialog.exception.description')} name="description" value={description} onChange={setDescription} isRequired autoComplete="off" />
       <floor.ChoiceGroup
         label={st('dialog.exception.severity')}
@@ -86,7 +87,7 @@ function LinkDeviationForm({ exception, stepKey, ...p }: FormBase & { exception:
   const [ref, setRef] = useTyped();
   const intent = nonEmpty(ref) ? ({ type: 'ATTACH_DEVIATION', exception: exception.exceptionId, deviationRef: ref.trim() } as const) : null;
   return (
-    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.ATTACH_DEVIATION')} intent={intent} {...p}>
+    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.ATTACH_DEVIATION')} intent={intent} draft={ref !== ''} {...p}>
       <Field label={st('dialog.deviation.ref')} name="deviationRef" value={ref} onChange={setRef} description={st('dialog.deviation.help')} isRequired autoComplete="off" />
     </CommandBody>
   );
@@ -105,7 +106,7 @@ function HoldBatchForm({ stepKey, ...p }: FormBase & { stepKey: string | null })
   const [reason, setReason] = useTyped();
   const intent = (holdType === 'SUPERVISOR' || holdType === 'QA') && nonEmpty(reason) ? ({ type: 'HOLD_BATCH', holdType, reason: reason.trim() } as const) : null;
   return (
-    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.HOLD_BATCH')} intent={intent} {...p}>
+    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.HOLD_BATCH')} intent={intent} draft={holdType !== null || reason !== ''} {...p}>
       <floor.ChoiceGroup
         label={st('dialog.hold.type')}
         options={[
@@ -132,7 +133,7 @@ function ReleaseHoldForm({ hold, stepKey, ...p }: FormBase & { hold: string; ste
   const [reason, setReason] = useTyped();
   const intent = nonEmpty(reason) ? ({ type: 'RELEASE_HOLD', hold, reason: reason.trim() } as const) : null;
   return (
-    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.RELEASE_HOLD')} intent={intent} {...p}>
+    <CommandBody viewStepKey={stepKey} reason={st('tap.reason.RELEASE_HOLD')} intent={intent} draft={reason !== ''} {...p}>
       <Field label={st('dialog.release.reason')} name="reason" value={reason} onChange={setReason} isRequired autoComplete="off" />
     </CommandBody>
   );

@@ -3,7 +3,8 @@
  * summary (G-02: "completed per MBR" or "with deviations", never typed) and the QA disposition of an exception.
  * They collect the choice, close, and the screen then asks the ceremony (C1) for the signature.
  * The choice and the words live in a form mounted only while the dialog is open and are emptied by a session
- * change, so nothing one person chose or typed is offered to the next person (INV-40, DI-14).
+ * change, so nothing one person chose or typed is offered to the next person (INV-40, DI-14). While something is chosen
+ * or typed, a reload or closing the tab asks first (useDraftGuard, review F63).
  */
 import { useState } from 'react';
 import type { ExceptionView, RunView } from '@ebmr/api-contract';
@@ -11,6 +12,7 @@ import { Button, Dialog, Field, floor } from '@ebmr/ui-kit';
 import { wcls } from '../classes.ts';
 import { useSessionChange } from '../session.tsx';
 import { st, stEnum } from '../text.ts';
+import { useDraftGuard } from '../unsettled.ts';
 
 export interface UnavailableDecision {
   disposition: string;
@@ -44,6 +46,8 @@ function HoldPointForm({ onClose, dispositions, unavailable = [], onContinue }: 
     setDisposition(null);
     setComment('');
   });
+  // Chosen or typed and not yet signed: a reload asks first (F63). The form goes when the dialog closes.
+  useDraftGuard(disposition !== null || comment !== '');
   return (
     <div className={wcls('dialogBody')}>
       <floor.ChoiceGroup label={st('dialog.holdPoint.disposition')} options={dispositions.map((d) => ({ value: d, label: stEnum('disposition', d) }))} value={disposition} onChange={setDisposition} />
@@ -121,6 +125,7 @@ function DispositionForm({ onClose, onContinue }: Pick<DispositionProps, 'onClos
     setOutcome(null);
     setJustification('');
   });
+  useDraftGuard(outcome !== null || justification !== '');
   const ready = (outcome === 'NO_IMPACT' || outcome === 'DEVIATION_RAISED') && justification.trim().length > 0;
   return (
     <div className={wcls('dialogBody')}>

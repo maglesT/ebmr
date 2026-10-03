@@ -18,7 +18,7 @@ import { useRouteParams } from '../params.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
 import { useSessionChange } from '../session.tsx';
 import { st } from '../text.ts';
-import { useLeaveGuard } from '../unsettled.ts';
+import { useDraftGuard, useLeaveGuard } from '../unsettled.ts';
 import { usePendingCall } from '../usePendingCall.ts';
 
 type IssueForm = NonNullable<ReturnType<typeof useApiQuery<typeof routes.execution.issueForm>>['data']>;
@@ -74,6 +74,10 @@ function IssueFormBody({ packageId, form }: { packageId: string; form: IssueForm
     else if (i.required) complete = false;
   }
   const unsettled = issue.busy || issue.state === 'notSaved';
+  // Something chosen or typed beyond the markets the MBR fixes, not yet issued: a reload asks first (F63).
+  const fixed = lockedMarkets();
+  const marketsChanged = markets.length !== fixed.length || markets.some((m) => !fixed.includes(m));
+  useDraftGuard(issue.state !== 'saved' && (size !== null || marketsChanged || Object.keys(variants).length > 0 || Object.values(inputs).some((v) => v !== '')));
   const submit = () => {
     if (!complete || size === null) return;
     const chosen = form.batchSizes.find((b) => b.id === size);
