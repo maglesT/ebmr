@@ -26,6 +26,15 @@ export interface Leaf {
 
 const ROUNDING: Readonly<Record<string, string>> = { USP_HALF_UP_AT_LIMIT_DECIMALS: 'USP, half up at the limit decimals', PH_EUR_SIG_FIGS: 'Ph. Eur., significant figures' };
 
+/** How a construct decides its route or count, in the document's words. */
+const MODE_WORDS: Readonly<Record<string, string>> = {
+  DATA: 'decided by recorded data',
+  OPERATOR_CHOICE: 'chosen by an authorised person',
+  ISSUE_VARIANT: 'fixed at issue by variant',
+  EXPRESSION: 'count from',
+  RUNTIME: 'count chosen at run time',
+};
+
 const COMPARISON = { low: { true: 'at least', false: 'more than' }, high: { true: 'at most', false: 'less than' } } as const;
 
 const BOOLEAN_WORDS: Readonly<Record<string, { true: RegExp; false: RegExp }>> = {
@@ -65,6 +74,7 @@ export function documentLeaves(c: flow.MbrContent): Leaf[] {
   const visit = (v: unknown, path: string, key: string, area: Area, scope: string, parentKey: string): void => {
     if (typeof v === 'string') {
       if (key === 'rounding') push(area, path, scope, [ROUNDING[v] ?? v]);
+      else if (key === 'mode' && area === 'construct') push(area, path, scope, [MODE_WORDS[v] ?? v]);
       else push(area, path, scope, stringForms(v));
       return;
     }
@@ -95,7 +105,7 @@ export function documentLeaves(c: flow.MbrContent): Leaf[] {
       push(area, path, scope, [`${COMPARISON[key][v['inclusive'] ? 'true' : 'false']} ${v['value']}`]);
       return;
     }
-    const inner: Area = key === 'config' && area === 'step' ? 'config' : area;
+    const inner: Area = key === 'config' && (area === 'step' || area === 'library') ? 'config' : area;
     for (const [k, x] of Object.entries(v)) {
       // The member names of a free map are data; inside a step's configuration every member name is.
       if (FREE_MAPS.has(key) || inner === 'config') push(inner, `${path}.${k} (name)`, scope, [k]);

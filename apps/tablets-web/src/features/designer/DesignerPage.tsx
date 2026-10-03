@@ -27,6 +27,7 @@ import { SimulationPanel } from './components/SimulationPanel.tsx';
 import { StepEditor } from './components/StepEditor.tsx';
 import { clearDraft, loadDraft, saveDraft, type Draft } from './model/draft.ts';
 import { canRedo, canUndo, initHistory, locate, OpError, perform, redo, undo, type History, type Op } from './model/ops.ts';
+import { documentNumbering } from './model/numbering.ts';
 import { jumpTarget } from './model/sections.ts';
 import type { FindingItem, PackageResult, PaletteItem } from './model/types.ts';
 import { useDebouncedValidation } from './model/validation.ts';
@@ -110,7 +111,7 @@ export function DesignerEditor({ initial, palette }: { initial: VersionView; pal
     return () => window.removeEventListener('keydown', onKey);
   }, [readOnly]);
 
-  const numbering = useMemo(() => flow.numberMbr(present), [present]);
+  const numbering = useMemo(() => documentNumbering(present).numbering, [present]);
   const findingsByNode = useMemo(() => {
     const m = new Map<string, FindingItem[]>();
     for (const f of validation.report?.findings ?? []) if (f.nodeId) m.set(f.nodeId, [...(m.get(f.nodeId) ?? []), f]);

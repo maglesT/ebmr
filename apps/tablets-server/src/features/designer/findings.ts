@@ -36,16 +36,27 @@ export interface FindingLocation {
   nodeId: string | null;
 }
 
-/** Ancestor chains of every tree node (procedure body and embedded library elements). */
+/**
+ * Ancestor chains of every tree node: the procedure body, the steps a library call brings in under their expanded ids
+ * ("call/inner", as flow.numberMbr numbers them and the validator names them; review F46), and the embedded library
+ * elements themselves.
+ */
 function nodePaths(content: flow.MbrContent): Map<string, string[]> {
   const out = new Map<string, string[]>();
-  const visit = (n: flow.FlowNode, trail: string[]): void => {
-    const here = [...trail, n.id];
-    if (!out.has(n.id)) out.set(n.id, here);
-    for (const c of flow.childrenOf(n)) visit(c, here);
+  const library = new Map(content.library.map((e) => [e.ref, e]));
+  const visit = (n: flow.FlowNode, trail: string[], prefix: string, calls: readonly string[]): void => {
+    const id = `${prefix}${n.id}`;
+    const here = [...trail, id];
+    if (!out.has(id)) out.set(id, here);
+    if (n.kind === 'libraryCall') {
+      const element = library.get(n.element);
+      if (element && !calls.includes(n.element)) visit(element.body, here, `${id}/`, [...calls, n.element]);
+      return;
+    }
+    for (const c of flow.childrenOf(n)) visit(c, here, prefix, calls);
   };
-  visit(content.procedure.body, ['procedure']);
-  for (const e of content.library) visit(e.body, ['library', e.ref]);
+  visit(content.procedure.body, ['procedure'], '', []);
+  for (const e of content.library) visit(e.body, ['library', e.ref], '', [e.ref]);
   return out;
 }
 

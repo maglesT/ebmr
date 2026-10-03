@@ -1,7 +1,11 @@
 /**
  * Section 8, the numbered procedure (module C2; plan section 8): stage -> operation -> step rows with No.,
  * Instruction, Records, Done by and Checked by, like a paper batch record. Constructs (parallel, alternative, loop,
- * replicate, library call) are read-only labelled boxes around their steps in A1.
+ * replicate, library call) are read-only labelled boxes around their steps in A1. A construct row states the rules
+ * that decide the route (an alternative's conditions, "otherwise" branch, variant values or the roles allowed to
+ * choose; a loop's exit and endpoint; a replicate's count and sub-lot prefix), and each branch body follows its own
+ * branch row (review F45). A library call shows its bindings and the element's steps under their expanded,
+ * numbered ids, read-only (review F46).
  *
  * Editing without drag, by menu or keyboard on a focused step row:
  *   Enter or Space  open the step's properties        Arrow Up / Down        previous / next step
@@ -10,7 +14,7 @@
  */
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-components';
-import { flow } from '@ebmr/recipe-core/pure';
+import type { flow } from '@ebmr/recipe-core/pure';
 import { Button, Dialog, StatusChip } from '@ebmr/ui-kit';
 import { dcls } from '../classes.ts';
 import { insertionPoint, newStep, type Content, type Op } from '../model/ops.ts';
@@ -49,22 +53,77 @@ function phaseFacts(c: Content, n: flow.PhaseNode): string[] {
   return out;
 }
 
-function constructLabel(n: flow.FlowNode): string {
+/** How an alternative's branch is chosen (review F45): the decision, with the roles allowed to choose. */
+function decisionWords(n: flow.AlternativeNode): string {
+  const d = n.decision;
+  if (d.mode === 'OPERATOR_CHOICE') return `Alternative chosen by an authorised person, with a reason: ${d.roles.map(roleTitle).join(' or ')} may choose`;
+  if (d.mode === 'ISSUE_VARIANT') return `Alternative fixed at issue by variant ${d.variant}`;
+  const otherwise = n.branches.find((b) => b.otherwise === true);
+  return `Alternative decided by recorded data: the branch whose condition holds is taken${otherwise ? `, or "${otherwise.name}" (otherwise) when none holds` : ''}; when more than one holds${otherwise ? '' : ', or none'}, the batch stops for a decision`;
+}
+
+/** When one branch of an alternative is taken: its condition, "otherwise", its variant values, or the person's choice. */
+function branchRule(n: flow.AlternativeNode, b: flow.AlternativeBranch): string {
+  const d = n.decision;
+  const rule =
+    d.mode === 'DATA'
+      ? b.otherwise === true
+        ? 'otherwise (taken when no other condition holds)'
+        : `taken when ${b.guard ?? '(no condition)'}`
+      : d.mode === 'ISSUE_VARIANT'
+        ? `taken when variant ${d.variant} is ${(b.variantValues ?? []).join(' or ') || '(no value)'}`
+        : 'one of the choices';
+  return `"${b.name}": ${rule}${b.body ? '' : ' · no action (no step)'}`;
+}
+
+/** The construct row of a parallel, alternative, loop or replicate section: the rules that decide the route. */
+function constructWords(c: Content, n: flow.ParallelNode | flow.AlternativeNode | flow.LoopNode | flow.ReplicateNode): string {
   switch (n.kind) {
     case 'parallel':
-      return `Parallel branches (${n.branches.map((b) => b.name).join(' | ')}): all run, all must finish`;
+      return `Parallel branches ${n.branches.map((b) => `"${b.name}"`).join(' and ')}: they run side by side, and the next step waits until every branch has finished`;
     case 'alternative':
-      return `Alternative (${n.decision.mode === 'DATA' ? 'decided by recorded data' : n.decision.mode === 'OPERATOR_CHOICE' ? 'chosen by an authorised person, with a reason' : `fixed at issue by variant ${n.decision.variant}`}): ${n.branches.map((b) => b.name).join(' | ')}`;
+      return `${decisionWords(n)}. Branches: ${n.branches.map((b) => branchRule(n, b)).join('; ')}`;
     case 'loop':
-      return `Repeat "${n.name}" until ${n.exit.condition} (at most ${n.maxIterations} times${n.maxDuration ? `, ${n.maxDuration.value} ${n.maxDuration.unit}` : ''})`;
-    case 'replicate':
-      return `Per sub-lot "${n.name}" (${n.count.mode === 'EXPRESSION' ? `count from ${n.count.expression}` : 'count chosen at run time'}, ${n.count.min}-${n.count.max}, ${n.instances.toLowerCase()})`;
-    case 'libraryCall':
-      return `Library element ${n.element}`;
-    default:
-      return n.kind;
+      return `Repeat "${n.name}" until ${n.exit.condition}, on the process endpoint ${itemLabel(c, n.exit.endpoint)}: at most ${n.maxIterations} times${n.maxDuration ? ` and at most ${n.maxDuration.value} ${n.maxDuration.unit}` : ''}; every repetition is kept, and running out is an exception`;
+    case 'replicate': {
+      const k = n.count;
+      return `Per sub-lot "${n.name}": ${k.mode === 'EXPRESSION' ? `count from ${k.expression}` : 'count chosen at run time, with a reason'}, between ${k.min} and ${k.max}; ${n.instances === 'SEQUENTIAL' ? 'one after the other (sequential)' : 'they may overlap in time (concurrent)'}; sub-lots are named <batch number>-${n.subLotPrefix}1, -${n.subLotPrefix}2 and so on`;
+    }
   }
 }
+
+/** A library call in words: the pinned element, its level and what each symbol is bound to (review F46). */
+function callWords(c: Content, n: flow.LibraryCallNode, element: flow.LibraryElement | undefined, bind: (id: string) => string): string {
+  const binds = Object.entries(n.bind).map(([symbol, item]) => `${symbol} bound to ${itemLabel(c, bind(item))}`);
+  return `Library element ${referenceLabel(c, n.element)}${element ? `, ${humanize(element.level)} level, symbols ${element.symbols.join(', ') || 'none'}` : ''}${binds.length > 0 ? `: ${binds.join('; ')}` : ''}`;
+}
+
+/** A phase of a library element as the floor runs it: its symbols replaced by the items the call binds (expand.ts). */
+function boundPhase(p: flow.PhaseNode, id: string, bind: (s: string) => string): flow.PhaseNode {
+  const out: flow.PhaseNode = {
+    ...p,
+    id,
+    records: p.records.map(bind),
+    computes: p.computes.map(bind),
+    reads: p.reads.map(bind),
+    consumes: p.consumes.map(bind),
+    produces: p.produces.map(bind),
+    uses: p.uses.map(bind),
+    equipment: p.equipment.map((e) => ({ ref: bind(e.ref), use: e.use })),
+  };
+  if (p.yieldCheckpoint !== undefined) out.yieldCheckpoint = bind(p.yieldCheckpoint);
+  if (p.acceptanceScheme !== undefined) out.acceptanceScheme = bind(p.acceptanceScheme);
+  return out;
+}
+
+/** Where a node is rendered: its id in the numbering (a library body's nodes under "call/inner"), and its binding. */
+interface At {
+  prefix: string;
+  bind: (id: string) => string;
+  calls: readonly string[];
+}
+
+const TOP: At = { prefix: '', bind: (id) => id, calls: [] };
 
 export interface ProcedureProps {
   content: Content;
@@ -156,7 +215,11 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
     }
   };
 
-  const stepRow = (n: flow.PhaseNode | flow.HoldPointNode): ReactNode => {
+  /**
+   * The row of a step or hold point. A step of a library element (inLibrary) is shown under its expanded id
+   * ("call/inner") with its number and bound items, read-only: the element is approved on its own and edited there.
+   */
+  const stepRow = (n: flow.PhaseNode | flow.HoldPointNode, inLibrary = false): ReactNode => {
     const num = numbering.byId.get(n.id)?.number ?? '?';
     const findings = findingsByNode.get(n.id) ?? [];
     const severity = findings.some((f) => f.severity === 'ERROR') ? 'ERROR' : findings.some((f) => f.severity === 'WARNING') ? 'WARNING' : undefined;
@@ -169,14 +232,12 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
         key={n.id}
         id={rowId(n.id)}
         data-node={n.id}
-        data-step-row=""
-        data-selected={selected === n.id}
+        {...(inLibrary ? { 'data-library-step': '' } : { 'data-step-row': '', 'data-selected': selected === n.id })}
         {...(severity ? { 'data-severity': severity } : {})}
         className={dcls('stepRow')}
-        tabIndex={0}
+        tabIndex={inLibrary ? -1 : 0}
         aria-label={`Step ${num} ${n.name}`}
-        onClick={() => onSelect(n.id)}
-        onKeyDown={(e) => onRowKey(e, n.id)}
+        {...(inLibrary ? {} : { onClick: () => onSelect(n.id), onKeyDown: (e: KeyboardEvent<HTMLTableRowElement>) => onRowKey(e, n.id) })}
       >
         <td className={dcls('no')}>{num}</td>
         <td>
@@ -240,6 +301,9 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
         <td>{n.kind === 'phase' ? roleTitle(n.signatures.perform?.role) : roleTitle(n.role)}</td>
         <td>{n.kind === 'phase' && n.signatures.check ? `${roleTitle(n.signatures.check.role)} (${n.signatures.check.meaning.toLowerCase()})` : '—'}</td>
         <td>
+          {inLibrary ? (
+            <span className={dcls('small')}>Step of a library element (read-only here)</span>
+          ) : (
           <MenuTrigger>
             <Button aria-label={`Actions for step ${num}`} variant="quiet">
               ⋯
@@ -273,18 +337,28 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
               </Menu>
             </Popover>
           </MenuTrigger>
+          )}
         </td>
       </tr>
     );
   };
 
   const rows: ReactNode[] = [];
-  const visit = (n: flow.FlowNode, depth: number): void => {
+  const box = (key: string, nodeId: string, words: ReactNode, idAttr?: string, small = false): ReactNode => (
+    <tr key={key} {...(idAttr ? { id: idAttr, tabIndex: -1 } : {})} data-node={nodeId} className={dcls('constructRow')}>
+      <td />
+      <td colSpan={5} {...(small ? { className: dcls('small') } : {})}>
+        {words}
+      </td>
+    </tr>
+  );
+  const visit = (n: flow.FlowNode, at: At): void => {
+    const id = `${at.prefix}${n.id}`;
     switch (n.kind) {
       case 'stage': {
-        const num = numbering.byId.get(n.id)?.number ?? '?';
+        const num = numbering.byId.get(id)?.number ?? '?';
         rows.push(
-          <tr key={n.id} id={rowId(n.id)} data-node={n.id} className={dcls('stageRow')} tabIndex={-1}>
+          <tr key={id} id={rowId(id)} data-node={id} className={dcls('stageRow')} tabIndex={-1}>
             <td className={dcls('no')}>{num}</td>
             <td colSpan={5}>
               Stage {num}: {n.name} · {n.binding.rooms.length > 0 ? `room ${n.binding.rooms.join(', ')}` : 'no room'}
@@ -293,48 +367,64 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
             </td>
           </tr>,
         );
-        visit(n.body, depth + 1);
+        visit(n.body, at);
         return;
       }
       case 'operation': {
-        const num = numbering.byId.get(n.id)?.number ?? '?';
+        const num = numbering.byId.get(id)?.number ?? '?';
         rows.push(
-          <tr key={n.id} id={rowId(n.id)} data-node={n.id} className={dcls('operationRow')} tabIndex={-1}>
+          <tr key={id} id={rowId(id)} data-node={id} className={dcls('operationRow')} tabIndex={-1}>
             <td className={dcls('no')}>{num}</td>
             <td colSpan={5}>{n.name}</td>
           </tr>,
         );
-        visit(n.body, depth + 1);
+        visit(n.body, at);
         return;
       }
       case 'sequence':
-        for (const c of n.children) visit(c, depth);
+        for (const c of n.children) visit(c, at);
         return;
       case 'phase':
-      case 'holdPoint':
-        rows.push(stepRow(n));
+        rows.push(stepRow(at.prefix ? boundPhase(n, id, at.bind) : n, at.prefix !== ''));
         return;
-      default:
-        rows.push(
-          <tr key={`${n.id}-box`} id={rowId(n.id)} className={dcls('constructRow')} tabIndex={-1}>
-            <td />
-            <td colSpan={5}>
-              {constructLabel(n)} <span className={dcls('small')}>(read-only in this release)</span>
-            </td>
-          </tr>,
-        );
-        for (const c of flow.childrenOf(n)) visit(c, depth + 1);
-        rows.push(
-          <tr key={`${n.id}-end`} className={dcls('constructRow')}>
-            <td />
-            <td colSpan={5} className={dcls('small')}>
-              end of {n.kind}
-            </td>
-          </tr>,
-        );
+      case 'holdPoint':
+        rows.push(stepRow(at.prefix ? { ...n, id } : n, at.prefix !== ''));
+        return;
+      case 'parallel':
+      case 'alternative': {
+        rows.push(box(`${id}-box`, id, <>{constructWords(content, n)} <span className={dcls('small')}>(read-only in this release)</span></>, rowId(id)));
+        // Each branch body under its own boundary row, so a step is never read as part of another branch (review F45).
+        for (const b of n.branches) {
+          const rule = n.kind === 'alternative' ? branchRule(n, b) : `"${b.name}" (runs side by side with the other branches)`;
+          rows.push(box(`${id}-branch-${b.id}`, id, <strong>Branch {rule}</strong>, `mbr-branch-${id}-${b.id}`));
+          if (b.body) visit(b.body, at);
+        }
+        rows.push(box(`${id}-end`, id, `end of the ${n.kind === 'parallel' ? 'parallel branches' : 'alternative'}`, undefined, true));
+        return;
+      }
+      case 'loop':
+      case 'replicate':
+        rows.push(box(`${id}-box`, id, <>{constructWords(content, n)} <span className={dcls('small')}>(read-only in this release)</span></>, rowId(id)));
+        visit(n.body, at);
+        rows.push(box(`${id}-end`, id, `end of ${n.kind === 'loop' ? 'repeat' : 'per sub-lot'} "${n.name}"`, undefined, true));
+        return;
+      case 'libraryCall': {
+        // The element's body is numbered in place under "call/inner" (flow.numberMbr); its rows are shown read-only
+        // with the items the call binds, so the document never skips a numbered step (review F46).
+        const element = content.library.find((e) => e.ref === n.element);
+        rows.push(box(`${id}-box`, id, <>{callWords(content, n, element, at.bind)} <span className={dcls('small')}>(read-only in this release)</span></>, rowId(id)));
+        if (!element) rows.push(box(`${id}-missing`, id, `The element ${n.element} is not embedded in this master, so its steps cannot be shown; the validator refuses such a master.`));
+        else if (at.calls.includes(n.element)) rows.push(box(`${id}-recursive`, id, `The element ${n.element} calls itself; the validator refuses such a master.`));
+        else {
+          const outer = at.bind;
+          visit(element.body, { prefix: `${id}/`, bind: (s) => (n.bind[s] !== undefined ? outer(n.bind[s]) : s), calls: [...at.calls, n.element] });
+        }
+        rows.push(box(`${id}-end`, id, `end of library element ${n.element}`, undefined, true));
+        return;
+      }
     }
   };
-  visit(content.procedure.body, 0);
+  visit(content.procedure.body, TOP);
 
   return (
     <>

@@ -15,6 +15,7 @@ import { flow } from '@ebmr/recipe-core/pure';
 import type { VersionView } from '@ebmr/api-contract';
 import { dcls } from '../classes.ts';
 import { KNOWN_MARKETS, type Content, type Op } from '../model/ops.ts';
+import { documentNumbering } from '../model/numbering.ts';
 import { DOCUMENT_SECTIONS, sectionId } from '../model/sections.ts';
 import type { FindingItem, PaletteItem } from '../model/types.ts';
 import { boundWords, Check, CommitDecimal, CommitText, comparisonWords, roleTitle, Select } from './common.tsx';
@@ -250,7 +251,7 @@ function timeBoundWords(side: 'min' | 'max', q: { value: string; unit: string } 
 
 export function DocumentView(props: DocumentProps) {
   const { content: c, version: v, dispatch, readOnly } = props;
-  const numbering = flow.numberMbr(c);
+  const { numbering, problem: numberingProblem } = documentNumbering(c);
   const h = c.header;
   const stages: flow.StageNode[] = [];
   flow.walk(c.procedure.body, (n) => {
@@ -500,6 +501,7 @@ export function DocumentView(props: DocumentProps) {
         <p>
           Procedure {c.procedure.name} <span className={dcls('mono')}>{c.procedure.id}</span>
         </p>
+        {numberingProblem ? <p role="alert">This procedure cannot be numbered in full: {numberingProblem}</p> : null}
         <ProcedureTable
           content={c}
           numbering={numbering}
