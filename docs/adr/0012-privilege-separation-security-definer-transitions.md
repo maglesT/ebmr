@@ -36,7 +36,14 @@
    `esig.challenge` (row-level security). The audit trail is read the same way (tablets 0420, review F35): the viewer's
    chains, events, person filter and verification go through token-checked functions that apply the same classes to
    chains (account, person, investigation and the other governance chains need a governance or audit role), and the
-   application role has no SELECT on `kernel.audit_event` and `kernel.audit_chain_head`.
+   application role has no SELECT on `kernel.audit_event` and `kernel.audit_chain_head`. Tablets 0430 (review round 2)
+   closes the kernel's other doors to the same data: the application role no longer executes the evidence package, the
+   chain extract, an investigation's scoping report, a person's activity or the chain lists, no longer selects the
+   anchors, checkpoints, verification runs or retention holds, and sees only RECORD-class rows of the signature seals,
+   the signature-ID register, the content changes, the invalidations and the signing failures. Not closed in Phase 2:
+   the application role still selects the identity, incident, retention and continuity tables directly (owner residual
+   F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read several of them
+   as that role; moving those reads behind session-checked functions is a kernel change for both editions.
 
 ## Consequences
 

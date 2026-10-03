@@ -143,3 +143,37 @@ describe('F35: the database (tablets 0420)', () => {
     });
   });
 });
+
+/**
+ * Round 2 of F35: with no session token at all the application role still read the trail around tab.audit_*: a whole
+ * chain (esig.chain_extract: a colleague's account chain with the grant's revocation reason), any person's activity
+ * (records.person_activity), an investigation's scoping report (records.investigation_scope), and the list of every
+ * chain (kernel.chain_keys, kernel.verify_all_chains, the heads of an anchor it may create itself, checkpoints and
+ * verification runs). Tablets 0430 closes those doors on both installations; the owner's tools still read them.
+ */
+describe('F35: the application role\'s other doors to the audit trail (tablets 0430)', () => {
+  it('[DI-17][DI-22][DI-50] without a session the application role reads no chain whole, no person\'s activity, no scoping report and no list of the chains, on either installation', async () => {
+    const v2 = personaOf(sbx.seed, 'verifier2');
+    const sup = personaOf(sbx.seed, 'supervisor1');
+    const window = [new Date(Date.UTC(2000, 0, 1)), new Date(Date.UTC(2100, 0, 1))];
+    // The owner's extract of verifier2's account chain holds the revocation and its reason.
+    expect(JSON.stringify((await sbx.db.admin.query('select esig.chain_extract($1) as x', [`account:${v2.accountId}`])).rows[0])).toContain('PIN sharing');
+    const refused: [TestServer, string, unknown[]][] = [
+      [sbx, 'select esig.chain_extract($1)', [`account:${v2.accountId}`]],
+      [sbx, 'select * from records.person_activity($1, $2, $3)', [sup.personId, ...window]],
+      [gmp, 'select * from records.investigation_scope($1)', [investigationId]],
+    ];
+    for (const server of [sbx, gmp]) {
+      refused.push([server, 'select * from kernel.chain_keys()', []], [server, 'select * from kernel.verify_all_chains()', []]);
+      // The kernel's anchor function still runs for the application role, but the anchors' heads (every chain key),
+      // the checkpoints and the verification runs are no longer its to read.
+      await server.db.app.query('select kernel.create_anchor()');
+      for (const sqlText of ['select heads from kernel.audit_anchor', 'select chain_key from kernel.audit_checkpoint', 'select problems from kernel.audit_verification_run']) {
+        refused.push([server, sqlText, []]);
+      }
+    }
+    for (const [server, sqlText, args] of refused) {
+      await expect(server.db.app.query(sqlText, args), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+    }
+  });
+});

@@ -20,7 +20,7 @@ import { passwordActor, personaOf, terminalOf } from '@ebmr/test-kit';
 import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
 import { tokenHash } from '../../src/platform/auth/session.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
-import { createStub, startSigningServer } from './support.ts';
+import { challengeFor, createStub, passwordOf, sign, startSigningServer, valueOf } from './support.ts';
 
 let gmp: TestServer;
 let sbx: TestServer;
@@ -174,5 +174,109 @@ describe('F34: the database (tablets 0410)', () => {
       esig.createChallenge(c, { aggregateType: 'esig_stub', aggregateId: stub, contentVersion: stubContent.contentVersion ?? '1', meaning: 'PREPARED', clientContentHash: stubContent.contentHash ?? '' }),
     );
     expect((await gmp.db.app.query('select id from esig.challenge where id = $1', [stubChallenge.challengeId])).rows).toHaveLength(1);
+  });
+});
+
+/**
+ * Round 2 of F34: with no session token at all the application role still reached investigations and GOVERNANCE-class
+ * signatures through the kernel's own readers (the scoping report, a chain extract, the evidence package, the chain
+ * list) and through the signatures' side tables (seals, ID register, content changes, invalidations, signing failures),
+ * which had no row-level security. Tablets 0430 closes those doors; the owner's tools still read them.
+ */
+describe('F34: the application role\'s other doors to investigations and GOVERNANCE-class signatures (tablets 0430)', () => {
+  let signatureId = '';
+  let failedChallengeId = '';
+
+  /** The QA reviewer's DI_INVESTIGATION_CLOSED signature of the investigation (the kernel's ceremony), and a refused attempt logged against a second request. */
+  beforeAll(async () => {
+    const fp = terminalOf(gmp.seed, 'PC-QA-01').fingerprint;
+    const reviewer = await passwordActor(gmp.db, qa, fp);
+    await withCommand(gmp.db.app, reason(reviewer), (c) => identity.acknowledgeEsigPolicy(c));
+    const content = await esig.contentForSigning(gmp.db.admin, 'di_investigation', investigationId);
+    const request = () =>
+      withCommand(gmp.db.app, reason(reviewer), (c) =>
+        esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: investigationId, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' }),
+      );
+    const challenge = await request();
+    const ev = await identity.authenticate(gmp.db.authn, { method: 'PASSWORD', identifier: qa.loginName, secret: qa.password, deviceFingerprint: fp, purpose: 'SIGNATURE', challengeId: challenge.challengeId });
+    const sealKey = gmp.built.ctx.sealKey;
+    if (!sealKey) throw new Error('SETUP: the server has no seal key');
+    signatureId = await withCommand(gmp.db.app, reason({ ...reviewer, authEventId: ev.authEventId }), async (c) =>
+      (await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: content.state ?? null }, sealKey)).signatureId,
+    );
+    failedChallengeId = (await request()).challengeId;
+    await gmp.db.app.query('select esig.record_signing_failure($1, null, $2, $3)', [failedChallengeId, 'EBMR-IAM-020', 'review F34 test: the password was wrong']);
+    // A content change of the investigation and the invalidation of its signature, as the kernel writes them for a
+    // GOVERNANCE-class record whose content changes (owner fixtures: an investigation's own content never changes).
+    await withCommand(gmp.db.admin, reason(reviewer), async (c) => {
+      await c.query("select esig.content_changed('di_investigation', $1, 'records.di_investigation_link', 'INSERT')", [investigationId]);
+      await c.query(
+        `insert into esig.signature_invalidation (signature_id, aggregate_ref, reason, previous_content_hash, current_content_hash, change_id, person_id, account_id, correlation_id)
+         select s.id, s.aggregate_ref, 'SUPERSEDED_BY_CHANGE', s.content_hash, repeat('0', 64), (select max(id) from esig.content_change where aggregate_ref = s.aggregate_ref), $2, $3, $4
+           from esig.signature s where s.id = $1`,
+        [signatureId, reviewer.personId, reviewer.accountId, randomUUID()],
+      );
+    });
+  });
+
+  it('[DI-17][DI-50][DI-13] without a session the application role runs no kernel reader of an investigation or of evidence: scoping report, person activity, chain extract, evidence package, chain list (the owner still runs them)', async () => {
+    const author = personaOf(gmp.seed, 'author');
+    const window = [new Date(Date.UTC(2000, 0, 1)), new Date(Date.UTC(2100, 0, 1))];
+    for (const [sqlText, args] of [
+      ['select * from records.investigation_scope($1)', [investigationId]],
+      ['select * from records.person_activity($1, $2, $3)', [author.personId, ...window]],
+      ['select esig.chain_extract($1)', [`di_investigation:${investigationId}`]],
+      ['select esig.evidence_package($1)', [signatureId]],
+      ['select * from kernel.chain_keys()', []],
+      ['select * from kernel.verify_all_chains()', []],
+    ] as const) {
+      await expect(gmp.db.app.query(sqlText, [...args]), sqlText).rejects.toThrow(/permission denied/);
+    }
+    // The owner's tools: the package is the investigation's closure signature, and the chain list names the investigation.
+    const pkg = (await gmp.db.admin.query<{ p: { signature: { aggregate_ref: string } } }>('select esig.evidence_package($1) as p', [signatureId])).rows[0]?.p;
+    expect(pkg?.signature.aggregate_ref).toBe(`di_investigation:${investigationId}`);
+    expect((await gmp.db.admin.query('select k from kernel.chain_keys() k where k = $1', [`di_investigation:${investigationId}`])).rows).toHaveLength(1);
+  });
+
+  it('[DI-17][DI-50] the application roles see no row of a GOVERNANCE-class record in the seals, the signature-ID register, the content changes, the invalidations and the signing failures, and no retention hold; the owner sees them, and RECORD-class rows stay visible', async () => {
+    const ref = `di_investigation:${investigationId}`;
+    const counts = async (db: typeof gmp.db.app) =>
+      (
+        await db.query<Record<string, number>>(
+          `select (select count(*)::int from esig.signature_seal where aggregate_ref = $1) as seal,
+                  (select count(*)::int from esig.signature_id_register where signature_id = $2) as register,
+                  (select count(*)::int from esig.content_change where aggregate_ref = $1) as change,
+                  (select count(*)::int from esig.signature_invalidation where signature_id = $2) as invalidation,
+                  (select count(*)::int from esig.signing_failure where challenge_id = $3) as failure`,
+          [ref, signatureId, failedChallengeId],
+        )
+      ).rows[0];
+    expect(await counts(gmp.db.admin)).toEqual({ seal: 1, register: 1, change: 1, invalidation: 1, failure: 1 });
+    expect(await counts(gmp.db.app)).toEqual({ seal: 0, register: 0, change: 0, invalidation: 0, failure: 0 });
+    for (const sqlText of ['select * from records.retention_hold', 'select * from records.retention_hold_release', 'select * from records.active_hold']) {
+      await expect(gmp.db.app.query(sqlText), sqlText).rejects.toThrow(/permission denied/);
+    }
+    // RECORD-class rows: the author's signature of a stub entry, its seal, register entry and the entry's content change.
+    const author = await gmp.asPersona('author');
+    const stub = await createStub(gmp, author, 'author');
+    const { r } = await challengeFor(gmp, author, 'author', stub, 'PREPARED');
+    const signed = valueOf(await sign(author, valueOf(r).challengeId, stub, passwordOf(gmp, 'author')));
+    const stubRows = (
+      await gmp.db.app.query<Record<string, number>>(
+        `select (select count(*)::int from esig.signature_seal where aggregate_ref = $1) as seal,
+                (select count(*)::int from esig.signature_id_register where signature_id = $2) as register,
+                (select count(*)::int from esig.content_change where aggregate_ref = $1) as change`,
+        [`esig_stub:${stub}`, signed.manifestation.signatureId],
+      )
+    ).rows[0];
+    expect(stubRows).toEqual({ seal: 1, register: 1, change: 1 });
+    // The policies name both application roles (GMP and sandbox).
+    const { rows: policies } = await gmp.db.admin.query<{ t: string; roles: string[] }>(
+      `select tablename as t, roles::text[] as roles from pg_policies where schemaname = 'esig' and policyname = 'app_reads_record_class'
+          and tablename in ('signature_seal', 'signature_id_register', 'content_change', 'signature_invalidation', 'signing_failure') order by 1`,
+    );
+    expect(policies.map((p) => `${p.t}:${[...p.roles].sort().join(',')}`)).toEqual(
+      ['content_change', 'signature_id_register', 'signature_invalidation', 'signature_seal', 'signing_failure'].map((t) => `${t}:ebmr_app,ebmr_sandbox`),
+    );
   });
 });

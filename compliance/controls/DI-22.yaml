@@ -74,6 +74,7 @@ tests:
   - "tools/e2e/specs/audit/audit.spec.ts > [DI-22][DI-23] GMP: who, when, why and what changed, and the chain verifies"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the audit viewer serves only the chains the session may read > [DI-17][DI-22][DI-50] the governance and audit roles (CSV/DI lead, auditor) read the governance chains and a colleague's activity"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the database (tablets 0420) > [DI-17][DI-22] the application role reads the audit trail only through the session-checked functions"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's other doors to the audit trail (tablets 0430) > [DI-17][DI-22][DI-50] without a session the application role reads no chain whole, no person's activity, no scoping report and no list of the chains, on either installation"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

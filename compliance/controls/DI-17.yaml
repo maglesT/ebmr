@@ -55,6 +55,7 @@ implemented_by:
     - "packages/kernel/sql/0720_authorization_signatures.sql"
     - "apps/tablets-server/sql/0410_signing_content_read.sql"
     - "apps/tablets-server/sql/0420_audit_read.sql"
+    - "apps/tablets-server/sql/0430_governance_read_doors.sql"
   invariants:
     - "INV-26"
   guards:
@@ -69,6 +70,7 @@ implemented_by:
     - "approval signature types name the approving permissions (RECORD_TYPE_APPROVED, RECORD_DISPOSAL_APPROVED, DI_INVESTIGATION_CLOSED, RESTORE_APPROVED), so esig evaluates the same permission at signing"
     - "tab.record_read_problem and tab.signing_preview_problem (tablets 0410): a session reads a RECORD-class record with RECORD.READ, a GOVERNANCE-class one (investigations, disposals, restores, any type not named) only in a governance or audit role, never an investigation about itself, and previews content only with a meaning its role signs (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)"
     - "tab.audit_chains, tab.audit_events, tab.audit_chain_length and tab.audit_registry_chains (tablets 0420): the audit viewer serves only the chains the session's role may read, a person filter only on the session's own person unless the role is a governance one; the application role has no SELECT on the audit tables"
+    - "tablets 0430: without a session the application role executes no evidence package, chain extract, scoping report, person activity or chain list, selects no anchor, checkpoint, verification run or retention hold, and sees only RECORD-class rows of the signature seals, ID register, content changes, invalidations and signing failures (row-level security)"
   db_constraints:
     - "grant scopes (site, area, product): a grant covers only its own scope, so data stay isolated between sites"
 tests:
@@ -114,6 +116,9 @@ tests:
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] the application role sees no signing request or signature of a GOVERNANCE-class record (row-level security); the owner sees them"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the database (tablets 0410) > [DI-17][DI-50] with a session token it decides by the session's role and person (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)"
   - "apps/tablets-server/test/session/role-withdrawn.test.ts > F36: the server, after the role a session works in is withdrawn > [DI-16][DI-17] a revoked office session reads nothing more: the next request ends it, and a new login of the account is refused"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's other doors to the audit trail (tablets 0430) > [DI-17][DI-22][DI-50] without a session the application role reads no chain whole, no person's activity, no scoping report and no list of the chains, on either installation"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50][DI-13] without a session the application role runs no kernel reader of an investigation or of evidence: scoping report, person activity, chain extract, evidence package, chain list (the owner still runs them)"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50] the application roles see no row of a GOVERNANCE-class record in the seals, the signature-ID register, the content changes, the invalidations and the signing failures, and no retention hold; the owner sees them, and RECORD-class rows stay visible"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

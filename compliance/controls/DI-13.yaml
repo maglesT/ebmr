@@ -78,6 +78,7 @@ tests:
   - "apps/tablets-web/test/app/sign-out-screen.test.tsx > F42: what another port of the host can write is no sign-out mark > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the session"
   - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the GMP session"
   - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted by a page on another port neither locks the person out nor swaps their session"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50][DI-13] without a session the application role runs no kernel reader of an investigation or of evidence: scoping report, person activity, chain extract, evidence package, chain list (the owner still runs them)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
