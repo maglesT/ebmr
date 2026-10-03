@@ -63,7 +63,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trace-matrix
-          path: .reports/
+          # Named files, as the e2e job does: given the hidden directory itself (.reports/), upload-artifact v4 finds
+          # no files (hidden files are left out by default) and, with ignore, uploads nothing; the traceability job
+          # downloads this artifact for vitest.json.
+          path: |
+            .reports/vitest.json
+            .reports/trace-matrix.md
+            .reports/openapi.json
           if-no-files-found: ignore
 
   e2e:
