@@ -40,7 +40,7 @@
 | playwright-core | 1.56.1 | tools/e2e (dev) | Pins the peer of @axe-core/playwright to the same core, so pnpm's auto-installed peers do not pull a second, newer Playwright |
 | @axe-core/playwright | 4.13.0 | tools/e2e (dev) | WCAG 2.2 AA checks on every A1 screen; zero serious or critical findings allowed (outline 7.4) |
 | pino-pretty | 13.1.3 | apps/tablets-server (dev) | Readable dev logs; production logs stay JSON with credential paths redacted |
-| tsx | 4.23.15 | root (existing dev pin); used as the runtime loader | Every server, gateway, simulator and demo process runs with node --import tsx, because Node 22 type stripping cannot run the repo's TypeScript parameter properties |
+| tsx | 4.23.15 | root (existing dev pin); runtime dependency of apps/tablets-server, apps/site-gateway and apps/simulators (lead TODO T11, Phase 2 exit) | Every server, gateway, simulator and demo process runs with node --import tsx, because Node 22 type stripping cannot run the repo's TypeScript parameter properties; the server's simulation worker imports it from the server's own module. Each process app declares it so an install of that app's runtime dependencies alone can start it; a bundled build replaces it later |
 | @xyflow/react | 12.12.0 | deferred: apps/tablets-web (A2) | Secondary read-only canvas per operation (outline 7.3); not needed for the first clickable version |
 | i18next | 26.4.2 | deferred: apps/tablets-web, packages/ui-kit (A2, with Hindi) | Translation runtime. A1 uses a typed English t() catalogue in ui-kit/i18n, so the later switch is mechanical |
 | react-i18next | 17.0.15 | deferred: apps/tablets-web, packages/ui-kit (A2) | React bindings for i18next |

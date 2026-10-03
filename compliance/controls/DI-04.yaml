@@ -165,6 +165,7 @@ tests:
   - "packages/recipe-core/test/integration/canonical-json.test.ts > canonical JSON and hashing agree between expr and the kernel > [DI-04][DI-37] the canonical text and content hash of both fixture MBRs are byte for byte equal in expr, the kernel and flow"
   - "packages/ui-kit/test/identity/signable-content.test.tsx > what is signed: the C3 rendering shapes > [DI-37][DI-04] F03: the master record shows as signed by family and content hash; the package version label is shown apart as not signed"
   - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
+  - "apps/tablets-server/test/designer/simulation-loader.test.ts > the simulation worker loader (lead TODO T11) > [DI-04] the simulation worker loads tsx installed for the server itself, at the exact version the repository pins, not the root's development copy"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:

@@ -33,8 +33,10 @@ export type WorkerOutcome = SimulationResult | { ok: false; timeout: true; messa
 /**
  * The worker's bootstrap, an ES module in a data: URL. The server runs from TypeScript source in Phase 2
  * (`node --import tsx`, or Vitest in tests) and loader hooks registered in the parent do not reach a worker's entry,
- * so the bootstrap loads the TypeScript worker through tsx's scoped import (tsImport). No fallback: without tsx the
- * simulation fails with a plain error, never silently. A bundled server replaces this.
+ * so the bootstrap loads the TypeScript worker through tsx's scoped import (tsImport). tsx is a runtime dependency of
+ * the server itself (package.json, lead TODO T11), resolved from this module, so an install of the server's runtime
+ * dependencies alone can simulate. No fallback: without tsx the simulation fails with a plain error, never silently.
+ * A bundled server replaces this.
  */
 const BOOTSTRAP = `import { workerData } from 'node:worker_threads';
 let api;
