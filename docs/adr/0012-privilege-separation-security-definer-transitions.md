@@ -58,7 +58,9 @@
    entry points of the anchor comparison, and the viewer verifies through the session-checked `tab.audit_verify_chain`.
    The same migration answers the person an investigation is about, about what is withheld from them, as a colleague in
    the same role is answered about what is not there (no entries, no length, nothing to verify, no signatures), instead
-   of a refusal that told them. Not closed in Phase 2: the application role still selects
+   of a refusal that told them. Tablets 0540: nor the high-water marks and moves of the protected sequences
+   (`continuity.sequence_high_water`, `continuity.sequence_bump`), whose investigation and hold numbers told when and
+   how many investigations and holds were opened. Not closed in Phase 2: the application role still selects
    the identity, incident, retention and continuity tables directly (owner residual F34.2 in
    docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read several of them as that
    role; moving those reads behind session-checked functions is a kernel change for both editions.

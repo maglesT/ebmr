@@ -33,6 +33,7 @@ implemented_by:
     - "apps/tablets-server/sql/0460_disposition_blocker_reads.sql"
     - "apps/tablets-server/sql/0470_audit_actor_readers.sql"
     - "apps/tablets-server/sql/0530_chain_verification_and_subject_answers.sql"
+    - "apps/tablets-server/sql/0540_sequence_high_water_reads.sql"
   guards:
     - "records.investigation_scope / records.person_activity: every record the person created or changed in the window, from the audit trail"
     - "records.open_di_investigation: links and holds every record in scope; person investigated cannot open or lead it"
@@ -47,6 +48,7 @@ implemented_by:
     - "tablets 0470: without a session the application role runs none of the kernel's readers of who acted on a chain or a row (iam.chain_persons, iam.record_entry_persons), of the checkpoint of a chain (kernel.checkpoint_chain, which refused only a chain with no entries) or of the entries of a time fault, and selects no segregation evaluation; tab.audit_registry_chains names to the person an investigation is about neither the account and terminal of an entry withheld from them nor a chain withheld from them"
     - "tablets 0530: without a session the application role verifies no chain (kernel.verify_chain from a position it chose named a chain's length, records.verify_chain) and compares no external anchor with the live chains (continuity.compare_external_anchors, verify_external_anchors, external_anchor_problems), so it learns from neither whether a chain exists; the audit viewer verifies through the session-checked tab.audit_verify_chain (EBMR-TAB-018, EBMR-TAB-020), with the registry chains its view draws on"
     - "tab.record_withheld, tab.content_for_signing, tab.record_signatures, tab.chain_read_problem, tab.audit_events, tab.audit_chain_length, tab.audit_registry_chains and tab.audit_verify_chain (tablets 0530): the person a data-integrity investigation is about is answered about what is withheld from them as a colleague in the same role is about what is not there (same status, message and body shape): no entries, no length, nothing to verify, no registry chains, no signatures, the content of a record that does not exist; a person filter on its opener or lead is served from the chains the person may read"
+    - "tablets 0540: without a session the application role reads no high-water mark or move of a protected sequence (continuity.sequence_high_water, continuity.sequence_bump), so the investigation and hold numbers tell it neither when nor how many investigations and holds were opened"
   db_constraints:
     - "records.di_investigation, di_investigation_link, di_investigation_closure insert-only and audited; ebmr_app has SELECT only"
     - "check investigator_person <> subject_person_id and opened_by_person <> subject_person_id"
@@ -88,6 +90,7 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > [DI-17][DI-22][DI-23][DI-50] the verification of a chain the subject reads checks no registry chain withheld from them: a tampered account chain of the opener is named to a colleague, not to the subject"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the person a DI investigation is about is answered as a colleague in the same role (tablets 0530) > [DI-17][DI-50] through the routes, the signatures and the preview of the investigation about the reviewer answer the reviewer as they answer a colleague in the same role about an investigation that is not there"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the person a DI investigation is about is answered as a colleague in the same role (tablets 0530) > [DI-17][DI-50] the database answers the reviewer's session about the investigation of the reviewer as a colleague's about one that is not there (tab.signing_preview_problem, tab.record_signatures, tab.content_for_signing), and would serve no content of it were it signed through the kernel's provider"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: when and how many investigations and holds were opened (tablets 0540) > [DI-17][DI-50] without a session the application role reads no protected sequence's high-water mark and no sequence move, on either installation; the owner still does"
 clauses:
   - clause: "Open a DI investigation for a user and date range. The system lists every record that user created or changed."
     tests:

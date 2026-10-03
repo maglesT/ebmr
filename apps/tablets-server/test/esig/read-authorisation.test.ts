@@ -458,3 +458,41 @@ describe('F34: the person a DI investigation is about is answered as a colleague
     }
   });
 });
+
+/**
+ * Round 4 of F34 (the verifier's minor item HIGH-WATER): continuity.sequence_high_water(), SECURITY DEFINER and granted
+ * to the application role, read every protected sequence's last value without a session, among them the numbers of
+ * data-integrity investigations (records.di_investigation.investigation_no) and of retention holds
+ * (records.retention_hold.hold_no): watched over time, it told when and how many investigations and holds were opened
+ * (not who). continuity.sequence_bump keeps each sequence's values before and after a restore moved it. No screen,
+ * handler or command of this installation reads either; the anchor job that copies the marks to the external ledger
+ * reads the anchors, which are the owner's since tablets 0430, so it runs as the owner here. Tablets 0540 takes both
+ * away from the application role on both installations; the owner's tools still read them.
+ */
+describe('F34: when and how many investigations and holds were opened (tablets 0540)', () => {
+  /** A CSV/DI lead opens an investigation whose window covers now: it holds the subject's account. */
+  beforeAll(async () => {
+    const fp = terminalOf(gmp.seed, 'PC-QA-01').fingerprint;
+    const subject = await grantedPerson(gmp, 'QA_REVIEWER', 'Ravi Shankar (QA reviewer)');
+    const opener = await passwordActor(gmp.db, await grantedPerson(gmp, 'CSV_DI_LEAD', 'Lata Pillai (CSV/DI lead)'), fp);
+    await withCommand(gmp.db.app, reason(opener), (c) =>
+      records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a terminal session' }),
+    );
+  });
+
+  it('[DI-17][DI-50] without a session the application role reads no protected sequence\'s high-water mark and no sequence move, on either installation; the owner still does', async () => {
+    // The owner: the investigations and holds this file opened moved their numbers.
+    const marks = (await gmp.db.admin.query<{ sequence_key: string; last_value: string }>(
+      "select sequence_key, last_value::text from continuity.sequence_high_water() where sequence_key in ('records.di_investigation.investigation_no', 'records.retention_hold.hold_no') order by 1",
+    )).rows;
+    expect(marks.map((m) => m.sequence_key)).toEqual(['records.di_investigation.investigation_no', 'records.retention_hold.hold_no']);
+    for (const m of marks) expect(BigInt(m.last_value), m.sequence_key).toBeGreaterThan(0n);
+    expect((await gmp.db.admin.query('select count(*)::int as n from continuity.sequence_bump')).rows).toHaveLength(1);
+    // The application role, without a session: neither, on GMP or in the sandbox (sandbox.mirror_application_privileges).
+    for (const server of [gmp, sbx]) {
+      for (const sqlText of ['select sequence_key, last_value from continuity.sequence_high_water()', 'select sequence_key, value_before, value_after from continuity.sequence_bump']) {
+        await expect(server.db.app.query(sqlText), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+      }
+    }
+  });
+});
