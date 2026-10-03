@@ -92,13 +92,22 @@ export function loginProofMessage(nonce: string, gatewayCode: string, loginName:
   return Buffer.from(`ebmr.gateway-login.v1|${nonce}|${gatewayCode}|${loginName}|${spki}`, 'utf8');
 }
 
+/**
+ * U+0000, or a UTF-16 surrogate without its other half: PostgreSQL refuses U+0000, and UTF-8 encoding writes U+FFFD in
+ * place of a lone surrogate, so the server would look up text the gateway never sent (review F30-F33). The login's
+ * free text members refuse it; every other text member of the uplink is a pattern of printable characters.
+ */
+// eslint-disable-next-line no-control-regex -- U+0000 is looked for on purpose.
+const UNSTORABLE = /\u0000|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const storable = (s: z.ZodString) => s.refine((t) => !UNSTORABLE.test(t), 'holds U+0000 or a surrogate without its other half, which no record can hold');
+
 export const LoginRequest = z.strictObject({
   gatewayCode: DeviceCode,
-  loginName: z.string().min(1).max(128),
-  serviceKey: z.string().min(1).max(512),
+  loginName: storable(z.string().min(1).max(128)),
+  serviceKey: storable(z.string().min(1).max(512)),
   /** The gateway's Ed25519 public key (SPKI DER, base64). */
   spki: Base64,
-  nonce: z.string().min(16).max(128),
+  nonce: storable(z.string().min(16).max(128)),
   /** Ed25519 over loginProofMessage(...). */
   sig: Base64,
   /** The token the server presents to the gateway API from now on. */
