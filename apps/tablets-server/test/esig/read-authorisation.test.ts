@@ -279,4 +279,24 @@ describe('F34: the application role\'s other doors to investigations and GOVERNA
       ['content_change', 'signature_id_register', 'signature_invalidation', 'signature_seal', 'signing_failure'].map((t) => `${t}:ebmr_app,ebmr_sandbox`),
     );
   });
+
+  it('[DI-17][DI-50] the application role finds no id of a GOVERNANCE-class signature to ask the kernel about: no disposal approval, tombstone, restore or restore approval, and no integrity list of signatures (tablets 0450)', async () => {
+    // The kernel answers who signed what for a signature id the caller holds (the MBR guards need it without a session),
+    // so the ids of GOVERNANCE-class signatures are not the application role's to find.
+    for (const sqlText of [
+      'select approval_signature_id from records.purge_approval',
+      'select approval_signature_id from records.tombstone',
+      'select signature_id from continuity.restore_event_approval',
+      'select affected_chain_keys from continuity.restore_event',
+      'select affected_chain_keys from continuity.restore_event_status',
+      'select * from esig.verify_signatures()',
+      'select * from esig.invariant_violations()',
+    ]) {
+      await expect(gmp.db.app.query(sqlText), sqlText).rejects.toThrow(/permission denied/);
+    }
+    // The owner's integrity jobs still run, and the owner reads the restore and disposal registers.
+    for (const sqlText of ['select count(*) from esig.verify_signatures()', 'select count(*) from esig.invariant_violations()', 'select count(*) from records.purge_approval', 'select count(*) from continuity.restore_event_status']) {
+      expect((await gmp.db.admin.query(sqlText)).rows, sqlText).toHaveLength(1);
+    }
+  });
 });

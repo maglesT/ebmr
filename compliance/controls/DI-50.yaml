@@ -39,6 +39,7 @@ implemented_by:
     - "tablets 0410 and 0420: a data-integrity investigation's content, signatures and audit chains are never served to the person it is about; the application role has no SELECT on the investigation tables"
     - "tablets 0430: without a session the application role executes no evidence package, chain extract, scoping report, person activity or chain list, selects no anchor, checkpoint, verification run or retention hold, and sees only RECORD-class rows of the signature seals, ID register, content changes, invalidations and signing failures (row-level security)"
     - "tab.withheld_from, tab.chain_read_problem, tab.audit_chains and tab.audit_events (tablets 0440): whatever their role, the person a data-integrity investigation is about neither lists nor reads its chains, the hold chains it creates, the hold entries on the held records' chains, or the account and person chains and activity of the persons who opened and lead it (EBMR-TAB-020)"
+    - "tablets 0450: without a session the application role selects no disposal approval, tombstone, restore or restore approval and runs neither integrity list of signatures, so it finds no id of a GOVERNANCE-class signature to ask esig.signature_state about"
   db_constraints:
     - "records.di_investigation, di_investigation_link, di_investigation_closure insert-only and audited; ebmr_app has SELECT only"
     - "check investigator_person <> subject_person_id and opened_by_person <> subject_person_id"
@@ -63,6 +64,7 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the subject lists and reads no hold chain the investigation created, and no hold entry on the records it holds; the lead does"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the subject reads neither the activity nor the account and person chains of the persons who opened and lead it; other colleagues' it does"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-50] the database refuses the subject's session each of them (EBMR-TAB-020) and drops the hold entries from a record's chain"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50] the application role finds no id of a GOVERNANCE-class signature to ask the kernel about: no disposal approval, tombstone, restore or restore approval, and no integrity list of signatures (tablets 0450)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

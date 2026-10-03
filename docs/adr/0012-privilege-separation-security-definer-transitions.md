@@ -36,17 +36,19 @@
    `esig.challenge` (row-level security). The audit trail is read the same way (tablets 0420, review F35): the viewer's
    chains, events, person filter and verification go through token-checked functions that apply the same classes to
    chains (account, person, investigation and the other governance chains need a governance or audit role), and the
-   application role has no SELECT on `kernel.audit_event` and `kernel.audit_chain_head`. Tablets 0440 (review round 2)
-   withholds from the person an investigation is about, whatever their role, also the hold chains it creates, the hold
-   entries it writes on the held records' chains, and the account and person chains and the activity of the persons who
-   opened and lead it. Tablets 0430 (review round 2)
-   closes the kernel's other doors to the same data: the application role no longer executes the evidence package, the
-   chain extract, an investigation's scoping report, a person's activity or the chain lists, no longer selects the
+   application role has no SELECT on `kernel.audit_event` and `kernel.audit_chain_head`. Review round 2 closed the
+   kernel's other doors to the same data. Tablets 0430: the application role no longer executes the evidence package,
+   the chain extract, an investigation's scoping report, a person's activity or the chain lists, no longer selects the
    anchors, checkpoints, verification runs or retention holds, and sees only RECORD-class rows of the signature seals,
-   the signature-ID register, the content changes, the invalidations and the signing failures. Not closed in Phase 2:
-   the application role still selects the identity, incident, retention and continuity tables directly (owner residual
-   F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read several of them
-   as that role; moving those reads behind session-checked functions is a kernel change for both editions.
+   the signature-ID register, the content changes, the invalidations and the signing failures. Tablets 0450: it no
+   longer selects the disposal approvals, tombstones, restores and restore approvals nor lists signatures through the
+   integrity jobs, so it finds no id of a GOVERNANCE-class signature to ask `esig.signature_state` about. Tablets 0440:
+   the person an investigation is about, whatever their role, is also refused the hold chains it creates, the hold
+   entries it writes on the held records' chains, and the account and person chains and the activity of the persons who
+   opened and lead it. Not closed in Phase 2: the application role still selects the identity, incident, retention and
+   continuity tables directly (owner residual F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's
+   own code and the server read several of them as that role; moving those reads behind session-checked functions is a
+   kernel change for both editions.
 
 ## Consequences
 
