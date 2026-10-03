@@ -20,7 +20,14 @@
  * cluster, whatever this set-up declared: kernel 0980 run on a fresh cluster's roles, in a transaction rolled back at
  * the end, must give each listener role 8 and each application role the slots less 8; and a database migrated to 0980
  * with the application roles unlimited must keep each listener role's share and level its application role with it.
+ *
+ * EBMR_SERVER_TEMPLATES (optional) names a JSON file holding prepared templates and their seeds, { gmp: { template, seed },
+ * sandbox: { template, seed } } (ServerTemplates), to use instead of building them: they are used as they are and kept,
+ * and the listener share is not declared again. The SQL mutation harness (tools/sql-mutation) builds the pair once with
+ * buildServerTemplates, so the seeds are exactly what the tests expect, and gives each mutant copies of both. When the
+ * variable is unset nothing here changes.
  */
+import { readFileSync } from 'node:fs';
 import type pg from 'pg';
 import type { TestProject } from 'vitest/node';
 import {
@@ -35,11 +42,20 @@ import {
   type SiteSeed,
 } from '@ebmr/test-kit';
 
+/** The GMP and sandbox templates the test files copy, with the seeds (DEMO-ONLY credentials and keys) they hold. */
+export interface ServerTemplates {
+  gmp: { template: string; seed: SiteSeed };
+  sandbox: { template: string; seed: SiteSeed };
+}
+
 declare module 'vitest' {
   export interface ProvidedContext {
-    serverTemplates: { gmp: { template: string; seed: SiteSeed }; sandbox: { template: string; seed: SiteSeed } };
+    serverTemplates: ServerTemplates;
   }
 }
+
+/** Names a JSON file of prepared templates (ServerTemplates) the set-up uses instead of building its own. */
+export const PREPARED_TEMPLATES_ENV = 'EBMR_SERVER_TEMPLATES';
 
 export const TABLETS_SQL = new URL('../../sql', import.meta.url).pathname;
 
@@ -97,7 +113,29 @@ export function tabletsMigrationSources() {
   return editionMigrationSources([{ namespace: 'tablets', directory: TABLETS_SQL }]);
 }
 
-export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+/**
+ * Prepared templates from a JSON file (PREPARED_TEMPLATES_ENV): both templates named, a GMP template under a GMP name
+ * and a sandbox template under a sandbox name, each with the seed of its own kind. Anything else fails the run.
+ */
+export function readPreparedTemplates(file: string): ServerTemplates {
+  const parsed = JSON.parse(readFileSync(file, 'utf8')) as Partial<Record<'gmp' | 'sandbox', Partial<{ template: unknown; seed: Partial<SiteSeed> }>>>;
+  for (const [kind, installation] of [['gmp', 'GMP'], ['sandbox', 'SANDBOX']] as const) {
+    const t = parsed[kind];
+    if (typeof t?.template !== 'string' || t.template === '' || t.seed?.installation !== installation) {
+      throw new Error(`${PREPARED_TEMPLATES_ENV} (${file}): ${kind} needs a template name and the seed of a ${installation} installation`);
+    }
+    if (t.template.startsWith('ebmr_sandbox_') !== (kind === 'sandbox')) {
+      throw new Error(`${PREPARED_TEMPLATES_ENV} (${file}): ${t.template} is not a ${installation} database name (DI-05)`);
+    }
+  }
+  return parsed as ServerTemplates;
+}
+
+/**
+ * Builds and seeds both templates, checks what migrating them left of the listener share (kernel 0980) and declares the
+ * test cluster's share. On a failure both templates are dropped and the error is thrown.
+ */
+export async function buildServerTemplates(): Promise<ServerTemplates> {
   const sources = tabletsMigrationSources();
   const [gmp, sandbox] = await Promise.all([
     (async () => {
@@ -133,9 +171,32 @@ export default async function setup(project: TestProject): Promise<() => Promise
     await dropDatabase(sandbox.template);
     throw error;
   }
-  project.provide('serverTemplates', { gmp, sandbox });
-  return async () => {
-    await dropDatabase(gmp.template);
-    await dropDatabase(sandbox.template);
+  return { gmp, sandbox };
+}
+
+/**
+ * The templates of a run and their teardown: the prepared ones named by PREPARED_TEMPLATES_ENV, used as they are and kept
+ * (nothing is built, nothing is dropped); otherwise a pair built by `build`, dropped at the teardown.
+ */
+export async function serverTemplatesFor(
+  env: NodeJS.ProcessEnv = process.env,
+  build: () => Promise<ServerTemplates> = buildServerTemplates,
+): Promise<{ templates: ServerTemplates; teardown: () => Promise<void> }> {
+  const prepared = env[PREPARED_TEMPLATES_ENV];
+  if (prepared) return { templates: readPreparedTemplates(prepared), teardown: () => Promise.resolve() };
+  const templates = await build();
+  return {
+    templates,
+    teardown: async () => {
+      await dropDatabase(templates.gmp.template);
+      await dropDatabase(templates.sandbox.template);
+    },
   };
+}
+
+export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+  // Prepared templates (the SQL mutation harness gives each mutant copies of its own) are used as they are and kept.
+  const { templates, teardown } = await serverTemplatesFor();
+  project.provide('serverTemplates', templates);
+  return teardown;
 }

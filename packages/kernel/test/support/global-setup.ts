@@ -19,21 +19,11 @@ declare module 'vitest' {
   }
 }
 
-export default async function setup(project: TestProject): Promise<() => Promise<void>> {
-  // A prepared template (the SQL mutation harness builds one per mutant) is used as it is and kept.
-  const prepared = process.env['EBMR_TEMPLATE_DB'];
-  if (prepared) {
-    project.provide('templateDb', prepared);
-    return () => Promise.resolve();
-  }
-  const template = `ebmr_tpl_${randomBytes(5).toString('hex')}`;
-  const server = new pg.Client({ connectionString: ADMIN_URL });
-  await server.connect();
-  // Explicit, as every other test database: a cluster whose template1 is SQL_ASCII would refuse the migrations.
-  await server.query(`create database ${template} template template0 encoding 'UTF8'`);
-  await server.end();
-
-  const filter = process.env['EBMR_MIGRATIONS'] ? new RegExp(process.env['EBMR_MIGRATIONS']) : undefined;
+/**
+ * The migrations of the template, in order: kernel, site services, recipe-core (applied to every edition database after
+ * the kernel, ADR 0011), then the test fixtures. `filter` (EBMR_MIGRATIONS) limits the files of the first three.
+ */
+export function templateSources(filter?: RegExp): MigrationSource[] {
   const sources: MigrationSource[] = [{ ...KERNEL_MIGRATIONS, ...(filter ? { include: filter } : {}) }];
   const siteServices = new URL('../../../site-services/sql', import.meta.url).pathname;
   if (existsSync(siteServices)) sources.push({ namespace: 'site-services', directory: siteServices, ...(filter ? { include: filter } : {}) });
@@ -41,14 +31,41 @@ export default async function setup(project: TestProject): Promise<() => Promise
   const recipeCore = new URL('../../../recipe-core/sql', import.meta.url).pathname;
   if (existsSync(recipeCore)) sources.push({ namespace: 'recipe-core', directory: recipeCore, ...(filter ? { include: filter } : {}) });
   sources.push({ namespace: 'test-fixtures', directory: new URL('.', import.meta.url).pathname });
+  return sources;
+}
 
-  const client = new pg.Client({ connectionString: urlFor(template) });
+/**
+ * Creates and migrates a template database named `name` (templateSources). The SQL mutation harness builds its base
+ * with this, so a mutant runs against exactly what this set-up gives the test files.
+ */
+export async function buildTemplate(name: string, filter?: RegExp): Promise<string> {
+  const server = new pg.Client({ connectionString: ADMIN_URL });
+  await server.connect();
+  // Explicit, as every other test database: a cluster whose template1 is SQL_ASCII would refuse the migrations.
+  await server.query(`create database ${name} template template0 encoding 'UTF8'`);
+  await server.end();
+
+  const client = new pg.Client({ connectionString: urlFor(name) });
   await client.connect();
   try {
-    await migrate(client, sources);
+    await migrate(client, templateSources(filter));
   } finally {
     await client.end();
   }
+  return name;
+}
+
+export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+  // A prepared template (the SQL mutation harness builds one per mutant) is used as it is and kept.
+  const prepared = process.env['EBMR_TEMPLATE_DB'];
+  if (prepared) {
+    project.provide('templateDb', prepared);
+    return () => Promise.resolve();
+  }
+  const template = await buildTemplate(
+    `ebmr_tpl_${randomBytes(5).toString('hex')}`,
+    process.env['EBMR_MIGRATIONS'] ? new RegExp(process.env['EBMR_MIGRATIONS']) : undefined,
+  );
   project.provide('templateDb', template);
 
   return async () => {
