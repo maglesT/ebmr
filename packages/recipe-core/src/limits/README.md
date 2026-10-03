@@ -21,8 +21,11 @@ validation report, pharmacopoeia, ...) and, for compendial limits, the pharmacop
   rounded value compared, the tiers breached, the most severe one and what it requires:
   ALERT -> `REGISTER_ITEM`; INTERNAL_ACTION -> `STOP_UNTIL_DEVIATION` (the MBR may let the current step
   continue with the deviation); REGISTERED / VALIDATED -> `REGISTRATION_RELEVANT_DEVIATION`
-  (QA-only disposition, on every release screen, stage sign-off blocked until QA classifies it);
-  missing -> `MISSING_VALUE_EXCEPTION`. `operatorMayClear` is always false. Values captured in
+  (QA-only disposition, stage sign-off blocked until QA classifies it; it must also show on every
+  release screen, which comes with Phase 4, see phase-2-open-questions F13.1);
+  missing -> `MISSING_VALUE_EXCEPTION`. The evaluation has no flag an operator could clear: the engine
+  refuses an operator's or supervisor's disposition (ENG-ROLE, engine/exceptions.test.ts) and the
+  database accepts a disposition only from a person with a QA permission. Values captured in
   another unit are converted exactly first. `TIER_REQUIREMENTS` is the tier table as data.
 - ALL_APPLY (`all-apply.ts`): `samplingUnion(scheme)`, `samplingShortfalls(scheme, plan)`,
   `evaluateAllApply(scheme, statistics, expr)`: each criterion on its own statistic, unit, rounding
@@ -30,6 +33,7 @@ validation report, pharmacopoeia, ...) and, for compendial limits, the pharmacop
 
 ## Controls
 
-PR-08 (limit model and tier behaviour; tests `test/limits/*.test.ts`). The deviation record,
-release-screen flag and QA disposition themselves belong to the engine and QMS modules (later
+PR-08 (limit model and tier behaviour; tests `test/limits/*.test.ts`; `readme.test.ts` keeps this
+README's names true). The deviation record and its QA disposition belong to the engine and the
+execution store, the release-screen flag to the release screen (Phase 4) and the QMS (later
 phases); this module states exactly what each breach requires.
