@@ -9,8 +9,10 @@
  *  - such a due control does not map its catalog test to clauses, or a clause of it has neither a listed test that
  *    passed nor a deferral, or is deferred to a phase that has started (review F14): one passing test that carries
  *    the tag is not proof of every clause;
- *  - a control lists a test the run did not report, or one that did not run (review F15); the end-to-end tests a
- *    control lists are checked when the Playwright report is part of the run;
+ *  - a control lists a test the run did not report, or one that did not run (review F15), unless its source lets it
+ *    be skipped while the run goes on (skipIf/runIf, or a skip at run time such as the DI-47 retain-until test on
+ *    29 February: review F15, round 3); a skipped test proves nothing, so its clauses need another passing test; the
+ *    end-to-end tests a control lists are checked when the Playwright report is part of the run;
  *  - a test tagged with a control passed and the control's `tests` list does not name it (review F15, round 2): the
  *    list is every test that proves the control, titles built from data included, so it cannot drift as tests are
  *    added; `register sync-tests` adds them from the run (sync.ts);
@@ -19,7 +21,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import { ROOT, type ClauseRecord, type ControlRecord } from './register.ts';
-import { entryOf, fileOfEntry, names, reportedPath, type TestPath } from './test-index.ts';
+import { declaredIn, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest, type TestPath } from './test-index.ts';
 
 const CONTROL_TAG = /\[((?:DI|PR|ST|IN)-\d{2})\]/g;
 
@@ -125,11 +127,15 @@ export interface TraceRow {
 export interface TraceReport {
   rows: TraceRow[];
   errors: string[];
+  /** Listed tests the run skipped as their source allows (`<control>: <entry>`); they prove nothing in this run. */
+  skipped: string[];
 }
 
 export interface TraceOptions {
   /** True when the Playwright report is part of the run, so the end-to-end tests a control lists are checked. */
   e2e?: boolean;
+  /** The tests a file declares (default: read from the repository), which say whether a test may be skipped. */
+  declared?: (file: string) => readonly DeclaredTest[] | null;
 }
 
 const isE2e = (entry: string): boolean => fileOfEntry(entry).startsWith(E2E_DIR);
@@ -142,6 +148,7 @@ function resultsNamed(entry: string, byFile: Map<string, TestResult[]>): TestRes
 export function buildTrace(controls: ControlRecord[], results: TestResult[], phase: number, options: TraceOptions = {}): TraceReport {
   const byId = new Map(controls.map((c) => [c.id, { control: c, passing: [] as string[], failing: [] as string[], clauses: [] as ClauseStatus[] }]));
   const errors: string[] = [];
+  const skipped: string[] = [];
   /** Per control, the passing tests tagged with it that its tests list does not name (review F15, round 2). */
   const unlisted = new Map<string, Set<string>>();
   for (const t of results) {
@@ -166,6 +173,12 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
   const byFile = new Map<string, TestResult[]>();
   for (const r of results) if (r.path) byFile.set(r.path.file, [...(byFile.get(r.path.file) ?? []), r]);
   const checked = (entry: string): boolean => options.e2e === true || !isE2e(entry);
+  const declared = options.declared ?? declaredIn(ROOT);
+  /** A skipped result whose test's source lets it be skipped while the run goes on (review F15, round 3). */
+  const skippedAsDeclared = (r: TestResult): boolean => {
+    const entry = r.entry;
+    return r.status === 'skipped' && entry !== undefined && (declared(fileOfEntry(entry)) ?? []).some((d) => d.runs === 'conditionally' && names(entry, d));
+  };
   const passed = (entry: string): boolean => checked(entry) && resultsNamed(entry, byFile).some((r) => r.status === 'passed');
 
   for (const row of byId.values()) {
@@ -178,11 +191,15 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     if (rejected && row.passing.length > 0) errors.push(`${c.id} is DONT_FOLLOW but tests still prove enforcement`);
     if (row.failing.length > 0) errors.push(`${c.id} has failing tests: ${row.failing.join('; ')}`);
 
-    // Every test the control lists is one the run reported, and it ran (review F15).
+    // Every test the control lists is one the run reported, and it ran (review F15) or was skipped as its source
+    // allows (review F15, round 3).
     for (const entry of c.tests.filter(checked)) {
       const named = resultsNamed(entry, byFile);
       if (named.length === 0) errors.push(`${c.id} lists a test the run did not report: "${entry}"`);
-      else if (!named.some((r) => r.status === 'passed' || r.status === 'failed')) errors.push(`${c.id} lists a test that did not run (${named[0]?.status ?? ''}): "${entry}"`);
+      else if (!named.some((r) => r.status === 'passed' || r.status === 'failed')) {
+        if (named.some(skippedAsDeclared)) skipped.push(`${c.id}: ${entry}`);
+        else errors.push(`${c.id} lists a test that did not run (${named[0]?.status ?? ''}): "${entry}"`);
+      }
     }
     // Every test tagged with the control that passed is in its list (review F15, round 2).
     for (const entry of unlisted.get(c.id) ?? []) {
@@ -208,7 +225,7 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
       }
     });
   }
-  return { rows: [...byId.values()], errors };
+  return { rows: [...byId.values()], errors, skipped };
 }
 
 const cell = (s: string): string => s.replace(/\|/g, '/').replace(/\s+/g, ' ').trim();

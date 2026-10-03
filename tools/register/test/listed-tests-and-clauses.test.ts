@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/register.ts';
 import { appendListedTests, testsToAdd } from '../src/sync.ts';
-import { declaredTests, entryOf, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
+import { declaredIn, declaredTests, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
 import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
 import { clauseErrors, validateRegister, words } from '../src/validate.ts';
 
@@ -48,7 +48,7 @@ describe('listed tests exist (review F15)', () => {
     // A test written out in full is also known as a control lists it, and by its full name (which carries the tags).
     expect(tests.map((t) => t.entry)).toEqual(['x/a.test.ts > outer > inner > [DI-20] a literal title', null, null, 'x/a.test.ts > outer > [DI-20] skipped when', 'x/a.test.ts > pw > [DI-20] a spec']);
     expect(tests[0]?.name).toBe('outer inner [DI-20] a literal title');
-    expect(tests.map((t) => t.mayNotRun)).toEqual([false, false, false, true, false]);
+    expect(tests.map((t) => t.runs)).toEqual(['always', 'always', 'always', 'conditionally', 'always']);
     expect(hits('x/a.test.ts > outer > inner > [DI-20] a literal title')).toBe(1);
     expect(hits('x/a.test.ts > inner > [DI-20] a literal title')).toBe(1);
     expect(hits('x/a.test.ts > [DI-20] a literal title')).toBe(1);
@@ -237,14 +237,14 @@ describe('every passing tagged test is listed (review F15, round 2)', () => {
     expect([...testsToAdd(after, results)]).toEqual([]);
   });
 
-  it('[meta] every control lists each test tagged with it that a test file declares in full and always runs; titles built from data are the trace\'s to check', () => {
+  it('[meta] every control lists each test tagged with it that a test file declares in full and that may run (one that may skip itself at run time included); titles built from data are the trace\'s to check', () => {
     const controls = new Map(loadControls().map((c) => [c.id, c]));
     const missing: string[] = [];
     let tagged = 0;
     for (const file of testFiles()) {
       const declared: DeclaredTest[] = declaredTests(file, readFileSync(join(ROOT, file), 'utf8'));
       for (const t of declared) {
-        if (!t.exact || t.mayNotRun || t.name === null) continue;
+        if (!t.exact || t.runs === 'never' || t.name === null) continue;
         for (const id of controlTags(t.name)) {
           const c = controls.get(id);
           if (!c) continue;
@@ -274,6 +274,133 @@ describe('every passing tagged test is listed (review F15, round 2)', () => {
   it('[meta] a listed test is named as a run reports it: file, every describe, title', () => {
     expect(entryOf('a/b.test.ts', ['x', 'y'], '[DI-20] t')).toBe('a/b.test.ts > x > y > [DI-20] t');
     expect(entryOf('a/b.test.ts', [], '[DI-20] t')).toBe('a/b.test.ts > [DI-20] t');
+  });
+});
+
+describe('a listed test that skips itself at run time (review F15, round 3)', () => {
+  // Tests that are skipped while the run goes on: the trace must neither refuse them listed when they are skipped nor
+  // let them go unlisted when they pass (that is the deadlock the round-2 verifier found for DI-47 on 29 February).
+  const F = 'x/s.test.ts';
+  const SRC = `
+    const needs = (ctx: TestContext, step: string): void => ctx.skip(!done.has(step), step);
+    function deeper(c: TestContext): void { needs(c, 'x'); }
+    const names = (c: TestContext): string => c.task.name;
+    describe('d', () => {
+      it('[DI-47] the context skips it', async (ctx) => { if (leap) ctx.skip(); });
+      it('[DI-47] a destructured skip', async ({ skip }) => { if (leap) skip(); });
+      it('[DI-47] a renamed destructured skip', async ({ skip: pass }) => { pass(leap); });
+      it('[DI-47] a helper it hands its context to', async (ctx) => { needs(ctx, 'a'); });
+      it('[DI-47] a helper of a helper', async (t) => { deeper(t); });
+      it('[DI-47] skip destructured in the body', async (ctx) => { const { skip } = ctx; skip(); });
+      it('[DI-47] the context used for something else', async (ctx) => { expect(names(ctx)).toBeTruthy(); queue.skip(); });
+      it.each([{ skip: 1 }])('[DI-47] an each row with a skip $skip', ({ skip }) => { expect(skip).toBe(1); });
+      it.skip('[DI-47] skipped outright', (ctx) => { ctx.skip(); });
+      it.todo('[DI-47] todo');
+    });
+    describe('hooked', () => {
+      beforeEach((ctx) => { if (leap) ctx.skip(); });
+      it('[DI-47] under a beforeEach that skips', () => {});
+    });
+    describe.skip('outright', () => { it('[DI-47] in a skipped describe', (ctx) => { ctx.skip(); }); });
+    test.describe('pw', () => {
+      test('[DI-20] testInfo skips it', async ({ page }, testInfo) => { testInfo.skip(cond, 'why'); });
+      test('[DI-20] a test.skip annotation in its body', async ({ page }) => { test.skip(cond, 'why'); });
+      test.fixme('[DI-20] fixme outright', async () => {});
+    });
+    test.describe('pw group', () => {
+      test.skip(({ browserName }) => browserName === 'webkit', 'why');
+      test('[DI-20] in a group with a skip annotation', async () => {});
+    });
+  `;
+  const declared = (file: string): DeclaredTest[] | null => (file === F ? declaredTests(F, SRC) : null);
+
+  it('[meta] a test that may skip itself at run time runs conditionally: its context\'s skip, directly, destructured or in a function of the file it hands the context to; a beforeEach that skips; Playwright\'s testInfo.skip and test.skip annotations', () => {
+    const runs = Object.fromEntries((declared(F) ?? []).map((t) => [String(t.entry), t.runs] as const));
+    expect(runs).toEqual({
+      [`${F} > d > [DI-47] the context skips it`]: 'conditionally',
+      [`${F} > d > [DI-47] a destructured skip`]: 'conditionally',
+      [`${F} > d > [DI-47] a renamed destructured skip`]: 'conditionally',
+      [`${F} > d > [DI-47] a helper it hands its context to`]: 'conditionally',
+      [`${F} > d > [DI-47] a helper of a helper`]: 'conditionally',
+      [`${F} > d > [DI-47] skip destructured in the body`]: 'conditionally',
+      [`${F} > d > [DI-47] the context used for something else`]: 'always',
+      // An .each test's parameters are its row, not the context; its title is built from data.
+      null: 'always',
+      [`${F} > d > [DI-47] skipped outright`]: 'never',
+      [`${F} > d > [DI-47] todo`]: 'never',
+      [`${F} > hooked > [DI-47] under a beforeEach that skips`]: 'conditionally',
+      [`${F} > outright > [DI-47] in a skipped describe`]: 'never',
+      [`${F} > pw > [DI-20] testInfo skips it`]: 'conditionally',
+      [`${F} > pw > [DI-20] a test.skip annotation in its body`]: 'conditionally',
+      [`${F} > pw > [DI-20] fixme outright`]: 'never',
+      [`${F} > pw group > [DI-20] in a group with a skip annotation`]: 'conditionally',
+    });
+    // A Playwright annotation is not a test.
+    expect(declared(F)).toHaveLength(16);
+    // The tests of the review: DI-47 on 29 February, DI-13 without TLS, the platform hook when it is not installed,
+    // the restore-event steps of a partial run.
+    const real = (file: string, title: string): string | undefined =>
+      declaredTests(file, readFileSync(join(ROOT, file), 'utf8')).find((t) => t.entry?.endsWith(title))?.runs;
+    expect(real('packages/kernel/test/mutation/retention-and-purge.test.ts', '[DI-47][INV-22] on its retain-until date a record is still kept (EBMR-REC-031); from the next site day it may be disposed of')).toBe('conditionally');
+    expect(real('packages/kernel/test/continuity/security-baseline.test.ts', '[DI-13] an encrypted session passes the server-side check (when the database server offers TLS)')).toBe('conditionally');
+    expect(real('packages/kernel/test/continuity/security-baseline.test.ts', '[DI-13] a non-TLS database session is refused by the server-side check')).toBe('always');
+    expect(real('packages/kernel/test/esig/platform-hook.test.ts', '[DI-37][INV-04] a signature applied in an earlier state of the record never authorises a transition out of a later one')).toBe('conditionally');
+    expect(real('packages/kernel/test/mutation/protected-numbers.test.ts', '[DI-45][INV-27] completion refuses malformed high-water marks and a margin that is not positive (EBMR-CONT-022)')).toBe('conditionally');
+    expect(real('packages/kernel/test/mutation/protected-numbers.test.ts', '[DI-45][INV-08][INV-27] a restore event that does not exist is never approved, approvable or completable')).toBe('always');
+  });
+
+  it('[meta] the trace accepts a listed test reported skipped only when its source lets it be skipped at run time, and a skipped test proves no clause', () => {
+    const at = (title: string): string => `${F} > d > ${title}`;
+    const skips = at('[DI-47] the context skips it');
+    const always = at('[DI-47] the context used for something else');
+    const outright = at('[DI-47] skipped outright');
+    const c: ControlRecord = { ...control('DI-47'), target_phase: 7, tests: [skips, always, outright] };
+    delete c.clauses;
+    const errs = (results: TestResult[], k: ControlRecord = c, phase = 1): string[] => buildTrace([k], results, phase, { declared }).errors;
+    const did = (entry: string): string => `DI-47 lists a test that did not run (skipped): "${entry}"`;
+    // Skipped as its source allows: accepted (and reported as skipped); an always-running test or one skipped
+    // outright: refused, as before.
+    expect(errs([result(skips, 'skipped'), result(always), result(outright, 'skipped')])).toEqual([did(outright)]);
+    expect(buildTrace([c], [result(skips, 'skipped'), result(always), result(outright, 'skipped')], 1, { declared }).skipped).toEqual([`DI-47: ${skips}`]);
+    expect(errs([result(skips), result(always, 'skipped'), result(outright, 'skipped')])).toEqual([did(always), did(outright)]);
+    // Without the source (a file that is not there), a skipped listed test is refused.
+    expect(buildTrace([c], [result(skips, 'skipped'), result(always)], 1, { declared: () => null }).errors).toEqual([did(skips), `DI-47 lists a test the run did not report: "${outright}"`]);
+    // A skipped test is no proof: a due control whose clause names only it fails while it is skipped.
+    const due: ControlRecord = { ...c, target_phase: 1, tests: [skips, always], clauses: [{ clause: c.catalog_test, tests: [skips] }] };
+    expect(errs([result(skips, 'skipped'), result(always)], due)).toEqual([`DI-47 clause 1 has no passing test and no deferral: "${c.catalog_test}"`]);
+    expect(errs([result(skips), result(always)], due)).toEqual([]);
+    // Passing, it must still be listed.
+    expect(errs([result(skips), result(always)], { ...c, tests: [always] })).toEqual([
+      `DI-47 does not list a test tagged with it that passed (register sync-tests adds it): "${skips}"`,
+    ]);
+  });
+
+  it('[meta] no listed test that may skip itself at run time blocks the trace: each control passes with all of them skipped (DI-47 on 29 February, DI-13 without TLS, DI-37, DI-45)', () => {
+    const controls = loadControls();
+    const fromSource = declaredIn(ROOT);
+    const conditional = (entry: string): boolean => (fromSource(fileOfEntry(entry)) ?? []).some((d) => d.runs === 'conditionally' && names(entry, d));
+    const listed = controls.flatMap((c) => c.tests.filter(conditional).map((e) => `${c.id}: ${e}`));
+    expect(listed).toEqual(
+      expect.arrayContaining([
+        'DI-47: packages/kernel/test/mutation/retention-and-purge.test.ts > INV-22 retain-until boundary > [DI-47][INV-22] on its retain-until date a record is still kept (EBMR-REC-031); from the next site day it may be disposed of',
+        'DI-13: packages/kernel/test/continuity/security-baseline.test.ts > [DI-13] an encrypted session passes the server-side check (when the database server offers TLS)',
+        'DI-37: packages/kernel/test/esig/platform-hook.test.ts > platform SIGNATURE hook adapter > [DI-37][INV-04] a signature applied in an earlier state of the record never authorises a transition out of a later one',
+      ]),
+    );
+    expect(listed.length).toBeGreaterThanOrEqual(13);
+    for (const c of controls.filter((k) => k.tests.some(conditional))) {
+      // Only this control is in the register here, so the results carry no other control's tag.
+      const other = new RegExp(`\\[(?!${c.id}\\])(?:DI|PR|ST|IN)-\\d{2}\\]`, 'g');
+      const results = c.tests.map((t) => {
+        const r = result(t, conditional(t) ? 'skipped' : 'passed');
+        return { ...r, name: r.name.replace(other, '') };
+      });
+      for (const phase of [1, 2]) {
+        const report = buildTrace([c], results, phase, { e2e: true });
+        expect(report.errors, `${c.id} at phase ${phase}`).toEqual([]);
+        expect(report.skipped, `${c.id} at phase ${phase}`).toEqual(c.tests.filter(conditional).map((e) => `${c.id}: ${e}`));
+      }
+    }
   });
 });
 

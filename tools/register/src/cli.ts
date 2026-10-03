@@ -67,6 +67,10 @@ switch (command) {
     // Listed end-to-end tests are checked against the run only when the Playwright report is part of it.
     const report = buildTrace(loadControls(), results, phase, { e2e });
     writeMatrix(report, phase, '.reports/trace-matrix.md');
+    if (report.skipped.length) {
+      console.log(`${report.skipped.length} listed test(s) skipped themselves in this run, as their source allows (they prove nothing here):`);
+      for (const s of report.skipped) console.log(`  - ${s}`);
+    }
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;
     console.log(`traceability ok for phase ${phase}: ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);

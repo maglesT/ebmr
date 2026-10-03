@@ -7,6 +7,13 @@
  * written; a describe may be left out (`<file> > <title>` names a test in a describe block too). A title built from
  * data (a template literal, a variable, an it.each placeholder) becomes a pattern here, so this check can only say
  * such an entry is possible; the trace checks every entry exactly against the names the run reported (trace.ts).
+ *
+ * Whether a test runs is read from the same source: `never` when it, or a describe around it, is skip, todo or fixme;
+ * `conditionally` when it may be skipped while the run goes on (skipIf or runIf, or a skip at run time: the test
+ * context's skip in its body, in a function of the file it hands the context to, or in a beforeEach around it;
+ * Playwright's testInfo.skip/fixme and test.skip/fixme annotations); `always` otherwise. A listed test that runs
+ * conditionally may be reported skipped without failing the trace (review F15, round 3): on 29 February the DI-47
+ * retain-until test has nothing to prove, and it must stay listed for the days it passes.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,16 +26,19 @@ export interface TestPath {
   title: string;
 }
 
+/** Whether a declared test runs in a run of its file (see the header). */
+export type Runs = 'always' | 'conditionally' | 'never';
+
 /**
  * One test a file declares; `exact` when no part of its name is built from data, and then `entry` is the test as a
- * control lists it and `name` its full name (describes and title, as a report gives it); `mayNotRun` when it or a
- * describe around it is skipped, todo or run only under a condition.
+ * control lists it and `name` its full name (describes and title, as a report gives it); `runs` whether it always
+ * runs, may be skipped while the run goes on, or never runs.
  */
 export interface DeclaredTest extends TestPath {
   exact: boolean;
   entry: string | null;
   name: string | null;
-  mayNotRun: boolean;
+  runs: Runs;
 }
 
 export const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -66,17 +76,26 @@ export function names(entry: string, path: TestPath): boolean {
 }
 
 const MODIFIERS = new Set(['skip', 'only', 'todo', 'concurrent', 'sequential', 'fails', 'serial', 'parallel', 'fixme', 'shuffle']);
-/** Modifiers under which a test does not run, or runs only when a condition holds. */
-const NOT_RUN = new Set(['skip', 'todo', 'fixme', 'skipIf', 'runIf']);
+/** Modifiers under which a test never runs. */
+const NEVER = new Set(['skip', 'todo', 'fixme']);
+/** Modifiers under which a test runs only when a condition holds. */
 const CONDITIONAL = new Set(['skipIf', 'runIf']);
+/** What skips the running test: the test context's skip (Vitest), testInfo.skip or fixme (Playwright). */
+const SKIPS = new Set(['skip', 'fixme']);
+
+const RANK: Record<Runs, number> = { always: 0, conditionally: 1, never: 2 };
+/** The less certain of two: a test runs only as surely as the least certain of it and the describes around it. */
+const least = (a: Runs, b: Runs): Runs => (RANK[a] >= RANK[b] ? a : b);
 
 type Kind = 'describe' | 'test';
+type Fn = ts.ArrowFunction | ts.FunctionExpression | ts.FunctionDeclaration;
+const isFn = (n: ts.Node): n is ts.ArrowFunction | ts.FunctionExpression => ts.isArrowFunction(n) || ts.isFunctionExpression(n);
 
 /**
  * Whether a call declares a describe block or a test, whether its title takes .each placeholders, and whether it
- * may not run (skipped, todo or conditional).
+ * runs (skipped or todo: never; skipIf or runIf: conditionally).
  */
-function classify(callee: ts.Expression): { kind: Kind; each: boolean; mayNotRun: boolean } | null {
+function classify(callee: ts.Expression): { kind: Kind; each: boolean; runs: Runs } | null {
   if (ts.isCallExpression(callee)) {
     // describe.each(table)(title, fn), it.skipIf(cond)(title, fn)
     const inner = callee.expression;
@@ -84,23 +103,107 @@ function classify(callee: ts.Expression): { kind: Kind; each: boolean; mayNotRun
     const name = inner.name.text;
     if (name !== 'each' && !CONDITIONAL.has(name)) return null;
     const base = classify(inner.expression);
-    return base ? { kind: base.kind, each: base.each || name === 'each', mayNotRun: base.mayNotRun || NOT_RUN.has(name) } : null;
+    return base ? { kind: base.kind, each: base.each || name === 'each', runs: CONDITIONAL.has(name) ? least(base.runs, 'conditionally') : base.runs } : null;
   }
   if (ts.isPropertyAccessExpression(callee)) {
     const name = callee.name.text;
     if (MODIFIERS.has(name)) {
       const base = classify(callee.expression);
-      return base ? { ...base, mayNotRun: base.mayNotRun || NOT_RUN.has(name) } : null;
+      return base ? { ...base, runs: NEVER.has(name) ? 'never' : base.runs } : null;
     }
     // Playwright: test.describe(...)
-    if (name === 'describe' && ts.isIdentifier(callee.expression) && callee.expression.text === 'test') return { kind: 'describe', each: false, mayNotRun: false };
+    if (name === 'describe' && ts.isIdentifier(callee.expression) && callee.expression.text === 'test') return { kind: 'describe', each: false, runs: 'always' };
     return null;
   }
   if (ts.isIdentifier(callee)) {
-    if (callee.text === 'describe' || callee.text === 'suite') return { kind: 'describe', each: false, mayNotRun: false };
-    if (callee.text === 'it' || callee.text === 'test') return { kind: 'test', each: false, mayNotRun: false };
+    if (callee.text === 'describe' || callee.text === 'suite') return { kind: 'describe', each: false, runs: 'always' };
+    if (callee.text === 'it' || callee.text === 'test') return { kind: 'test', each: false, runs: 'always' };
   }
   return null;
+}
+
+/**
+ * Whether a call is a Playwright annotation `test.skip(...)` or `test.fixme(...)` (it skips the running test, or the
+ * tests of its group) rather than a test declared skipped: no test body follows a title.
+ */
+function isSkipAnnotation(node: ts.CallExpression): boolean {
+  const callee = node.expression;
+  if (!ts.isPropertyAccessExpression(callee) || !SKIPS.has(callee.name.text) || !ts.isIdentifier(callee.expression) || callee.expression.text !== 'test') return false;
+  const [first, ...rest] = node.arguments;
+  return first === undefined || isFn(first) || !rest.some(isFn);
+}
+
+/** The function this file declares under a name (`function f` or `const f = (...) => ...`), if any. */
+function functionNamed(sf: ts.SourceFile, name: string): Fn | null {
+  let found: Fn | null = null;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    if (ts.isFunctionDeclaration(node) && node.name?.text === name && node.body) found = node;
+    else if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name && node.initializer && isFn(node.initializer)) found = node.initializer;
+    else ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return found;
+}
+
+/** Whether a destructuring takes the skip (or fixme) of what it destructures. */
+const takesSkip = (pattern: ts.ObjectBindingPattern): ts.BindingElement[] =>
+  pattern.elements.filter((e) => {
+    const key = e.propertyName ?? e.name;
+    return ts.isIdentifier(key) && SKIPS.has(key.text);
+  });
+
+/**
+ * Whether a function may skip the running test through its parameters at `params` (every one for a test or a
+ * beforeEach): a parameter's skip or fixme (Vitest's test context, Playwright's testInfo), a skip destructured from
+ * one, a function of this file it hands one to that does so; or a Playwright test.skip/fixme annotation in its body.
+ */
+function skipsAtRunTime(sf: ts.SourceFile, fn: Fn, params: readonly number[] | 'all', seen = new Set<Fn>()): boolean {
+  seen.add(fn);
+  const contexts = new Set<string>();
+  const skips = new Set<string>();
+  fn.parameters.forEach((p, i) => {
+    if (params !== 'all' && !params.includes(i)) return;
+    if (ts.isIdentifier(p.name)) contexts.add(p.name.text);
+    else if (ts.isObjectBindingPattern(p.name)) for (const e of takesSkip(p.name)) if (ts.isIdentifier(e.name)) skips.add(e.name.text);
+  });
+  const isContext = (n: ts.Node): boolean => ts.isIdentifier(n) && contexts.has(n.text);
+  let found = false;
+  const visit = (n: ts.Node): void => {
+    if (ts.isPropertyAccessExpression(n) && isContext(n.expression) && SKIPS.has(n.name.text)) found = true;
+    else if (ts.isIdentifier(n) && skips.has(n.text) && !(ts.isPropertyAccessExpression(n.parent) && n.parent.name === n)) found = true;
+    else if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && n.initializer && isContext(n.initializer) && takesSkip(n.name).length > 0) found = true;
+    else if (ts.isCallExpression(n) && isSkipAnnotation(n)) found = true;
+    else if (ts.isCallExpression(n) && ts.isIdentifier(n.expression)) {
+      const handed = n.arguments.flatMap((a, i) => (isContext(a) ? [i] : []));
+      const callee = handed.length > 0 ? functionNamed(sf, n.expression.text) : null;
+      if (callee && !seen.has(callee) && skipsAtRunTime(sf, callee, handed, seen)) found = true;
+    }
+    if (!found) ts.forEachChild(n, visit);
+  };
+  if (fn.body) visit(fn.body);
+  return found;
+}
+
+/**
+ * Whether the statements of a describe body (or of the file) skip its tests: a Playwright test.skip/fixme annotation
+ * (with no argument it skips them all), or a beforeEach whose context skips the test (Vitest beforeEach, Playwright
+ * test.beforeEach).
+ */
+function groupRuns(sf: ts.SourceFile, statements: readonly ts.Statement[]): Runs {
+  let runs: Runs = 'always';
+  for (const st of statements) {
+    if (!ts.isExpressionStatement(st) || !ts.isCallExpression(st.expression)) continue;
+    const call = st.expression;
+    const callee = call.expression;
+    const beforeEach =
+      (ts.isIdentifier(callee) && callee.text === 'beforeEach') ||
+      (ts.isPropertyAccessExpression(callee) && callee.name.text === 'beforeEach' && ts.isIdentifier(callee.expression) && callee.expression.text === 'test');
+    const hook = beforeEach ? call.arguments.find(isFn) : undefined;
+    if (isSkipAnnotation(call)) runs = least(runs, call.arguments.length === 0 ? 'never' : 'conditionally');
+    else if (hook && skipsAtRunTime(sf, hook, 'all')) runs = least(runs, 'conditionally');
+  }
+  return runs;
 }
 
 /** The string a `const NAME = '...'` of this file holds, if that is what the identifier names. */
@@ -124,11 +227,11 @@ interface Title {
   source: string;
   exact: boolean;
   text: string;
-  mayNotRun: boolean;
+  runs: Runs;
 }
 
-function titleSource(sf: ts.SourceFile, arg: ts.Expression | undefined, each: boolean): Omit<Title, 'mayNotRun'> {
-  const literal = (text: string): Omit<Title, 'mayNotRun'> => {
+function titleSource(sf: ts.SourceFile, arg: ts.Expression | undefined, each: boolean): Omit<Title, 'runs'> {
+  const literal = (text: string): Omit<Title, 'runs'> => {
     if (!each) return { source: escape(text), exact: true, text };
     // it.each placeholders: printf forms and $name / $0 (Vitest), %% is a literal percent.
     const parts = text.split(/(%%|%[sdifjo#]|\$[A-Za-z_][\w.]*|\$\d+)/);
@@ -151,11 +254,19 @@ function titleSource(sf: ts.SourceFile, arg: ts.Expression | undefined, each: bo
 export function declaredTests(file: string, source: string): DeclaredTest[] {
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, file.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const out: DeclaredTest[] = [];
+  const fileRuns = groupRuns(sf, sf.statements);
   const visit = (node: ts.Node, chain: Title[]): void => {
-    if (ts.isCallExpression(node)) {
+    if (ts.isCallExpression(node) && !isSkipAnnotation(node)) {
       const c = classify(node.expression);
       if (c) {
-        const title: Title = { ...titleSource(sf, node.arguments[0], c.each), mayNotRun: c.mayNotRun };
+        const fn = node.arguments.slice(1).find(isFn);
+        // A test's own function may skip it at run time (not an .each test's: its parameters are the table's row);
+        // a describe's hooks and annotations may skip its tests.
+        const runs =
+          c.kind === 'test'
+            ? fn && !c.each && skipsAtRunTime(sf, fn, 'all') ? least(c.runs, 'conditionally') : c.runs
+            : fn && ts.isBlock(fn.body) ? least(c.runs, groupRuns(sf, fn.body.statements)) : c.runs;
+        const title: Title = { ...titleSource(sf, node.arguments[0], c.each), runs };
         if (c.kind === 'test') {
           const exact = title.exact && chain.every((d) => d.exact);
           const texts = chain.map((d) => d.text);
@@ -166,12 +277,12 @@ export function declaredTests(file: string, source: string): DeclaredTest[] {
             exact,
             entry: exact ? entryOf(file, texts, title.text) : null,
             name: exact ? [...texts, title.text].join(' ') : null,
-            mayNotRun: title.mayNotRun || chain.some((d) => d.mayNotRun),
+            runs: chain.reduce((r, d) => least(r, d.runs), least(fileRuns, title.runs)),
           });
         }
         const inner = c.kind === 'describe' ? [...chain, title] : chain;
         for (const a of node.arguments.slice(1)) {
-          if (ts.isArrowFunction(a) || ts.isFunctionExpression(a)) ts.forEachChild(a, (n) => visit(n, inner));
+          if (isFn(a)) ts.forEachChild(a, (n) => visit(n, inner));
         }
         return;
       }
@@ -188,19 +299,27 @@ export function fileOfEntry(entry: string): string {
   return at < 0 ? entry : entry.slice(0, at);
 }
 
+/** The tests each file under `root` declares, read once per file; null when there is no such file. */
+export function declaredIn(root: string, cache = new Map<string, DeclaredTest[] | null>()): (file: string) => DeclaredTest[] | null {
+  return (file) => {
+    if (!cache.has(file)) {
+      const path = join(root, file);
+      cache.set(file, existsSync(path) ? declaredTests(file, readFileSync(path, 'utf8')) : null);
+    }
+    return cache.get(file) ?? null;
+  };
+}
+
 /**
  * Listed tests that their file does not declare, or whose file does not exist, with the reason. `root` is the
  * repository root the files are named from.
  */
 export function missingListedTests(entries: readonly string[], root: string, cache = new Map<string, DeclaredTest[] | null>()): { entry: string; reason: string }[] {
+  const declared = declaredIn(root, cache);
   const out: { entry: string; reason: string }[] = [];
   for (const entry of entries) {
     const file = fileOfEntry(entry);
-    if (!cache.has(file)) {
-      const path = join(root, file);
-      cache.set(file, file !== entry && existsSync(path) ? declaredTests(file, readFileSync(path, 'utf8')) : null);
-    }
-    const tests = cache.get(file);
+    const tests = file !== entry ? declared(file) : null;
     if (!tests) out.push({ entry, reason: file === entry ? 'not of the form "<file> > <describe> > <title>"' : `no such file ${file}` });
     else if (!tests.some((t) => names(entry, t))) out.push({ entry, reason: `${file} declares no test of that name (its describes in order, then the title)` });
   }
