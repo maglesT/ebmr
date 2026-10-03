@@ -10,27 +10,14 @@ import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
 import { StepExceptions } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
+import { SignedResult } from '../components/SignedResult.tsx';
 import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
 import { useRunView, useStepView } from '../queries.ts';
 import { rendererFor } from '../renderers/registry.ts';
 import { st } from '../text.ts';
 import { useLeaveGuard } from '../unsettled.ts';
-import { useSignedAction, type SignedActionResult } from '../useSignedAction.ts';
+import { useSignedAction } from '../useSignedAction.ts';
 import type { RunView, StepScreenView } from '@ebmr/api-contract';
-
-function SignedResult({ result }: { result: SignedActionResult }) {
-  if (!result) return null;
-  switch (result.status) {
-    case 'SIGNED': {
-      const m = result.manifestation;
-      return <Banner tone="ok" title={st('sign.done', { meaning: m.meaningText, name: floor.personLine(m.signer), at: m.signedAt.text })} />;
-    }
-    case 'REFUSED':
-      return <floor.RefusalPanel refusal={result.refusal.refusal} correlationId={result.refusal.correlationId} />;
-    case 'NOT_CONFIRMED':
-      return <Banner tone="warning" title={st('sign.notConfirmed')} />;
-  }
-}
 
 function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | undefined }) {
   const navigate = useNavigate();

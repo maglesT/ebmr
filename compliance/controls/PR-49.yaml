@@ -51,6 +51,9 @@ tests:
   - "packages/api-contract/test/contract.test.ts > text a record can hold (review F30-F33) > [DI-37][DI-34][PR-49][DI-04] the real routes refuse it: a plain intent, a signed decision in a challenge, MBR content and a note, an audit chain key and prefix"
   - "apps/tablets-server/test/execution/free-text.test.ts > free text no record can hold, in a test run (review F30, F31) > [DI-37][PR-49] a disposition justification holding U+0000 or a lone surrogate: the preview refuses it naming the member, so the signer is never offered its hash; the challenge refuses it at the contract; nothing is proposed"
   - "apps/tablets-server/test/execution/free-text.test.ts > free text no record can hold, in a test run (review F30, F31) > [DI-37][PR-49][PR-45] adversarial text a record can hold goes through every challenge and append: the hashes agree, stored contents re-hash in SQL and the replay is identical"
+  - "apps/tablets-web/test/floor/run-exceptions.test.tsx > run-level exceptions on the run overview (T3) > [PR-08][PR-49] a supervisor links a deviation to a run-level exception from the overview: one plain intent on the exception, at the run version shown"
+  - "apps/tablets-web/test/floor/run-exceptions.test.tsx > run-level exceptions on the run overview (T3) > [PR-49][DI-37] QA dispositions a run-level exception from the overview through the signature ceremony, on the exception's own record"
+  - "apps/tablets-web/test/floor/run-exceptions.test.tsx > run-level exceptions on the run overview (T3) > [PR-49] an exception with no action offered on it shows no buttons"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
