@@ -40,6 +40,8 @@ tests:
   - "packages/recipe-core/test/engine/stage.test.ts > G-17 QA hold point > [PR-45] \"not approved\" rejects the intermediate: the steps after it never run and the batch goes on a QA hold that only QA lifts"
   - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [PR-08][PR-13][PR-45][IN-37] a step the engine refuses as blocked is reported by the database on the same state, and accepted once the block is lifted; a hold point is not released while an exception that is not an alert is open"
   - "apps/tablets-server/test/execution/db-guards-proposal-race.test.ts > F37: a proposed decision never lands on a signed content version (INV-09, DI-37) > [INV-09][DI-37][PR-45] a hold-point decision proposed through the store while QA1's release commits waits for it and is refused; the release stays VALID over APPROVED"
+  - "apps/tablets-server/test/execution/free-text.test.ts > free text no record can hold, in a test run (review F30, F31) > [DI-37][PR-45] a hold-point comment holding U+0000: the preview and the challenge refuse it naming the member; nothing is proposed; a clean comment is signed"
+  - "apps/tablets-server/test/execution/free-text.test.ts > free text no record can hold, in a test run (review F30, F31) > [DI-37][PR-49][PR-45] adversarial text a record can hold goes through every challenge and append: the hashes agree, stored contents re-hash in SQL and the replay is identical"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

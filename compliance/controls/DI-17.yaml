@@ -135,6 +135,7 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the person a DI investigation is about, in a governance role (tablets 0440) > [DI-17][DI-22][DI-50] the verification of a chain the subject reads names to them neither the account nor the terminal of an entry withheld from them, nor the chains of the persons who opened and lead it; the lead's names them (tablets 0470)"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's readers of who acted on a chain (tablets 0470) > [DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does"
   - "apps/tablets-server/test/audit/view-integrity.test.ts > P7 audit viewer vs chain verification > [DI-23][DI-17] at the database: a head-less chain counts its entries, and is listed only to a session that may read it (F06, tablets 0490)"
+  - "apps/tablets-server/test/execution/free-text.test.ts > free text no record can hold, in a test run (review F30, F31) > [DI-17][DI-34] an attempt the person may not make, holding U+0000, is refused at the contract like any malformed request, before any authority is evaluated; the clean attempt is refused and logged as denied"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -79,6 +79,7 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F35: the application role's readers of who acted on a chain (tablets 0470) > [DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does"
   - "apps/tablets-web/test/audit/audit-page.test.tsx > audit trail viewer > [DI-23][DI-22] a chain whose head row is missing is listed with no count or time, and the list says to verify it (F06)"
   - "apps/tablets-server/test/audit/view-integrity.test.ts > P7 audit viewer vs chain verification > [DI-23][DI-22][INV-08] a chain whose head row was deleted is still listed, with no count or time, and \"Verify chain\" names the tamper instead of answering that the chain does not exist (F06, tablets 0490)"
+  - "apps/tablets-server/test/platform/unstorable-text.test.ts > text no record can hold, behind the contract (review F30-F33) > [DI-37][DI-22] a path parameter or query string holding U+0000 is refused 400 naming it, never 500 (the database refused it before as 22021)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

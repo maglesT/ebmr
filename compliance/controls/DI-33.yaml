@@ -228,6 +228,7 @@ tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-33][INV-03] a correction keeps the original, recalculates dependents keeping the old result, and sends signed steps back for re-verification"
   - "packages/recipe-core/test/engine/corrections.test.ts > executed targets (outline 5.2.3) > [DI-33][PR-19] a corrected input that moves an already dispensed target outside tolerance raises an exception; the dispensed quantity is never recomputed"
   - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-25][DI-33] derived values equal the golden cases of the MBR and each evaluation record re-verifies"
+  - "packages/recipe-core/test/integration/canonical-json.test.ts > canonical JSON and hashing agree between expr and the kernel > [DI-33][DI-37] expr and kernel canonical JSON are identical for any record value whose text a record can hold"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

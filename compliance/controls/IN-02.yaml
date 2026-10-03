@@ -34,6 +34,12 @@ tests:
   - "packages/recipe-core/test/validator/content.test.ts > [IN-02] changing a parameter to critical changes its verification requirements (a checker becomes mandatory)"
   - "apps/tablets-server/test/designer/routes.test.ts > validation with the real adapters > [IN-02] a risk-based reduction without a rationale is refused by the gate, naming IN-02"
   - "apps/tablets-server/test/designer/routes.test.ts > justifications and start of verification (IN-02, DI-04, PR-06) > [DI-04][IN-02] a definition warning is justified by the author, then the version passes and enters verification; evidence is bound to the hash"
+  - "packages/recipe-core/test/flow/model.test.ts > MBR content model: parsing > [DI-04][IN-02] content holding U+0000 or a lone surrogate is refused with the path of each place, so the designer points at it (review F32)"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] adversarial text a record can hold saves with agreeing TypeScript and SQL content hashes"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a step name, note, product name or justification holding U+0000 or a lone surrogate is refused 400 INVALID_INPUT naming the field; nothing is saved"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a lone surrogate in a justification, sent as the ASCII escape a browser sends, is refused: never stored as U+FFFD"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a body whose bytes are not UTF-8 is refused before it is read, never read as U+FFFD; nothing is stored"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] control: a well-formed surrogate pair (an emoji) in a justification round-trips exactly"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

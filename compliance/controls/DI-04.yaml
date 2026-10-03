@@ -104,6 +104,13 @@ tests:
   - "tools/e2e/specs/designer/designer.spec.ts > designer > [PR-03][DI-04][DI-05][PR-06] author a master from the template, find and fix, justify, save, simulate and send to the sandbox"
   - "apps/tablets-server/test/execution/db-guards-package-header.test.ts > F03: a test package names the family and product of its MBR content (DI-04, DI-37) > [DI-04][DI-37] a package whose family code or product differs from its MBR content is refused by the server and, called directly, by the database"
   - "apps/tablets-server/test/execution/signed-content.test.ts > the record to be signed is the signed content (CN1) > [DI-37][DI-04] F03: the record to be signed names the family and product of the MBR content; the package's version label is shown apart as not signed"
+  - "packages/api-contract/test/contract.test.ts > text a record can hold (review F30-F33) > [DI-37][DI-34][PR-49][DI-04] the real routes refuse it: a plain intent, a signed decision in a challenge, MBR content and a note, an audit chain key and prefix"
+  - "packages/recipe-core/test/flow/model.test.ts > MBR content model: parsing > [DI-04][IN-02] content holding U+0000 or a lone surrogate is refused with the path of each place, so the designer points at it (review F32)"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] adversarial text a record can hold saves with agreeing TypeScript and SQL content hashes"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a step name, note, product name or justification holding U+0000 or a lone surrogate is refused 400 INVALID_INPUT naming the field; nothing is saved"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a lone surrogate in a justification, sent as the ASCII escape a browser sends, is refused: never stored as U+FFFD"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a body whose bytes are not UTF-8 is refused before it is read, never read as U+FFFD; nothing is stored"
+  - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] control: a well-formed surrogate pair (an emoji) in a justification round-trips exactly"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
