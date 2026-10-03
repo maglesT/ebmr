@@ -299,9 +299,21 @@ describe('the actions a step card offers (the viewer\'s role and the order of th
     expect(forOperator).toMatchObject({ available: false, target: exc?.exceptionId });
     expect(forOperator?.reason).toMatch(/STEP\.SUPERVISE or QA\.FLOOR_APPROVE/);
     expect((await d.stepView('supervisor1', CLEAR)).actions.find((a) => a.action === 'ATTACH_DEVIATION')).toMatchObject({ available: true, reason: null });
+    const rows0 = await rowsOf(server, d.runId);
+    const v0 = await d.version('operator1');
     const refused = await d.command('operator1', { type: 'ATTACH_DEVIATION', exception: exc?.exceptionId ?? '', deviationRef: 'TEST-DEV-0002' });
-    expect(refused.ok).toBe(false);
+    // The refusal is the database's: recipe.require_command_permission through the kernel's authorisation, for the
+    // role the operator acts in (review F21: any failure used to satisfy this test).
+    expect(outcomeOf(refused)).toBe('422:EBMR-IAM-040');
+    expect(`${refusalOf(refused).whatHappened} ${refusalOf(refused).why}`).toMatch(/STEP\.SUPERVISE/);
+    // Nothing was recorded: no row, the same version, the exception still open without a deviation.
+    expect(await rowsOf(server, d.runId)).toEqual(rows0);
+    expect(await d.version('operator1')).toBe(v0);
+    const still = (await execution.loadState(server.db.admin, d.runId))?.state.exceptions[exc?.exceptionId ?? ''];
+    expect(still).toMatchObject({ status: 'OPEN' });
+    expect(still?.deviation ?? null).toBeNull();
     await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: exc?.exceptionId ?? '', deviationRef: 'TEST-DEV-0002' });
+    expect((await execution.loadState(server.db.admin, d.runId))?.state.exceptions[exc?.exceptionId ?? '']?.deviation).toMatchObject({ ref: 'TEST-DEV-0002' });
     expect(await violations(server)).toEqual([]);
   }, 180_000);
 
