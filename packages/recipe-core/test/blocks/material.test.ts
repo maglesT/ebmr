@@ -5,7 +5,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { FlowNode, MbrContent, PhaseNode } from '../../src/flow/model.ts';
-import { netOf, sumDecimals } from '../../src/blocks/generic/common.ts';
+import { convertAtResolution, countableInto, netOf, sumDecimals } from '../../src/blocks/generic/common.ts';
+import type { HandlerView } from '../../src/blocks/contract.ts';
+import { createExprService } from '../../src/flow/expr-adapter.ts';
 import { mbrWith, phase } from '../flow/support.ts';
 import { define, done, OP1, OP2, param, Run, sig, T0, VER1 } from '../engine/support.ts';
 
@@ -105,6 +107,67 @@ describe('G-07 weighing and dispensing', () => {
       { ok: false, message: 'the net weight (1.0 - 1.0) is not positive' },
     ]);
     expect([sumDecimals(['12.55', '12.55']), sumDecimals(['4.000', '4.4']), sumDecimals(['3', '4']), sumDecimals([])]).toEqual(['25.10', '8.400', '7', '0']);
+  });
+
+  it('[INV-25][PR-19][DI-30] a weight weighed in g counts into a quantity in kg at its own resolution: 9250.0 g - 1250.0 g is 8.0000 kg, never 8 (engine 1.3.0; lead TODO T2 round 2)', () => {
+    const run = issueDispensing();
+    run.entry('d', weigh({ gross: '9250.0', tare: '1250.0', unit: 'g', container: 'C1' }));
+    const e = Object.values(run.state.entries)[0]?.data;
+    // The entry, its label and the register keep the balance's own unit and resolution.
+    expect({ net: e?.['net'], label: (e?.['label'] as { quantity: string }).quantity, container: run.state.containers['C1']?.net }).toEqual({
+      net: '8000.0',
+      label: '8000.0 g',
+      container: { value: '8000.0', unit: 'g' },
+    });
+    run.perform('d');
+    expect(run.value('disp', 'd')).toBe('8.0000');
+    // Mixed with a weighing in kg: the finest resolution of the two, in the quantity's unit.
+    const mixed = issueDispensing();
+    mixed.entry('d', weigh({ gross: '5.000', tare: '1.000', container: 'C1' }));
+    mixed.entry('d', weigh({ gross: '5000', tare: '1000', unit: 'g', container: 'C2' }));
+    mixed.entry('d', weigh({ gross: '1500', tare: '1000', unit: 'mg', container: 'C3' }));
+    mixed.perform('d');
+    expect(mixed.value('disp', 'd')).toBe('8.000500');
+  });
+
+  it('[INV-25][DI-30] a weight in a unit that cannot be counted into its quantity exactly as the database counts it is refused (engine 1.3.0; T2 round 2)', () => {
+    const run = issueDispensing();
+    expect(entry(run, weigh({ unit: 'kg{wet}' })).refusal?.code).toBe('G07-UNIT');
+    expect(entry(run, weigh({ unit: 'g.m/m' })).refusal?.message).toContain('A weight in g.m/m cannot be counted into disp (kg)');
+    expect(entry(run, weigh({ unit: 'ug', gross: '9000000', tare: '1000000' })).accepted).toBe(true);
+    const mbr = mbrWith(seq('ops', phase('make', { block: { type: 'G-22', version: '1' }, records: ['made'], produces: ['I-A'] })), {
+      intermediates: [{ id: 'I-A', name: 'A' }],
+      parameters: [param('made', { unit: 'kg' })],
+    });
+    const g22 = Run.issue(define(mbr));
+    g22.start('make');
+    expect(entry(g22, { ...out('I-A', 'A1'), unit: 'kg{wet}' }, 'make').refusal?.code).toBe('G22-UNIT');
+    g22.entry('make', { ...out('I-A', 'A2'), gross: '2000.0', tare: '1000.0', unit: 'g' });
+    g22.entry('make', out('I-A', 'A3'));
+    g22.perform('make');
+    expect(g22.value('made', 'make')).toBe('2.0000');
+    // Without a quantity the step computes, any mass unit is recorded as weighed.
+    const free = Run.issue(define(chargeMbr()));
+    free.start('make');
+    expect(entry(free, { ...out('I-KIT', 'K1'), unit: 'kg{wet}' }, 'make').accepted).toBe(true);
+  });
+
+  it('[INV-25][PR-19] convertAtResolution carries the resolution through a power of ten, exactly; countableInto names the units the database converts (T2 round 2)', () => {
+    const view = { expr: createExprService() } as unknown as HandlerView;
+    expect([
+      convertAtResolution(view, '8000.0', 'g', 'kg'),
+      convertAtResolution(view, '8.000', 'kg', 'g'),
+      convertAtResolution(view, '8.0', 'kg', 'g'),
+      convertAtResolution(view, '500', 'mg', 'kg'),
+      convertAtResolution(view, '12.34', 'g', 'kg'),
+      convertAtResolution(view, '0.5', 'g', 'mg'),
+      convertAtResolution(view, '50.000', 'kg', 'kg'),
+      convertAtResolution(view, '50.000', 'kg', 'kg{wet}'),
+      convertAtResolution(view, '1', 'kg', 'm'),
+    ]).toEqual(['8.0000', '8000', '8000', '0.000500', '0.01234', '500', '50.000', '50.000', undefined]);
+    expect([countableInto('g', 'kg'), countableInto('ug', 'mg'), countableInto('dag', 'hg'), countableInto('kg{wet}', 'kg{wet}'), countableInto('kg{wet}', 'kg'), countableInto('g.m/m', 'kg'), countableInto('kg', 'kgf'), countableInto('kg', 'xg')]).toEqual([
+      true, true, true, true, false, false, false, false,
+    ]);
   });
 
   it('[PR-19][PR-08] a total outside the tolerance of its target cannot be confirmed without an exception and a deviation', () => {

@@ -11,7 +11,7 @@
 import { Dec } from '@ebmr/expr';
 import type { MbrContent, PhaseNode } from '../../flow/model.ts';
 import type { BlockVersion, ComputedItem, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
-import { configRecord, convert, CORE_VALUE_RULES, isMassUnit, LOT_SCHEMA, massItems, micros, netOf, problem, QUANTITY_SCHEMA, sumDecimals } from './common.ts';
+import { configRecord, convert, convertAtResolution, CORE_VALUE_RULES, countableInto, isMassUnit, LOT_SCHEMA, massItems, micros, netOf, problem, QUANTITY_SCHEMA, sumDecimals } from './common.ts';
 
 const WEIGHING_FIELDS = {
   gross: { type: 'decimal' as const, description: 'Gross weight from the balance' },
@@ -38,6 +38,17 @@ function lotProblems(view: HandlerView, lot: Record<string, unknown>, expectedMa
   return out;
 }
 
+/**
+ * A weight in `unit` is counted into the quantity `item` records (engine 1.3.0): in the item's own unit, or both in
+ * metric mass units, so that the total keeps the resolution of every weighing and the database can check it exactly
+ * (recipe-core 0322, EBMR-EXE-138). None when no quantity is computed from it.
+ */
+function countingProblems(code: string, view: HandlerView, unit: string, item: string | undefined): HandlerProblem[] {
+  const itemUnit = item === undefined ? undefined : view.parameter(item)?.unit;
+  if (itemUnit === undefined || countableInto(unit, itemUnit)) return [];
+  return [problem(code, `A weight in ${unit} cannot be counted into ${item ?? ''} (${itemUnit}): weigh in ${itemUnit}, or both in metric mass units such as kg, g and mg`, ['DI-30', 'INV-25'])];
+}
+
 function containerTotals(view: HandlerView, kind: string, itemOf: (data: Record<string, unknown>) => string | undefined): ComputedItem[] {
   const byItem = new Map<string, { nets: string[]; entries: string[] }>();
   const items = massItems(view.phase, view.mbr);
@@ -45,7 +56,8 @@ function containerTotals(view: HandlerView, kind: string, itemOf: (data: Record<
     const item = itemOf(e.data);
     if (item === undefined || !items.includes(item)) continue;
     const p = view.parameter(item);
-    const net = convert(view, String(e.data['net']), String(e.data['unit']), p?.unit ?? String(e.data['unit']));
+    // In the item's unit at the resolution of the weighings (8000.0 g counts as 8.0000 kg; engine 1.3.0).
+    const net = convertAtResolution(view, String(e.data['net']), String(e.data['unit']), p?.unit ?? String(e.data['unit']));
     if (net === undefined) continue;
     const acc = byItem.get(item) ?? { nets: [], entries: [] };
     acc.nets.push(net);
@@ -153,6 +165,7 @@ export const G07: BlockVersion = {
       problems.push(...lotProblems(view, entry['lot'] as Record<string, unknown>, bom?.material));
       const unit = String(entry['unit']);
       if (!isMassUnit(unit)) problems.push(problem('G07-UNIT', `${unit} is not a mass unit`, ['DI-30']));
+      else problems.push(...countingProblems('G07-UNIT', view, unit, items.includes(item) ? item : undefined));
       const net = netOf(String(entry['gross']), String(entry['tare']));
       if (!net.ok) problems.push(problem('G07-NET', net.message, ['PR-19', 'INV-25']));
       if (problems.length > 0 || !net.ok) return { ok: false, problems };
@@ -400,14 +413,15 @@ export const G22: BlockVersion = {
       const problems: HandlerProblem[] = [];
       if (!view.phase.produces.includes(intermediate)) problems.push(problem('G22-NOT-PRODUCED', `${view.phase.id} does not produce ${intermediate}`, ['PR-57', 'PR-13']));
       const unit = String(entry['unit']);
+      const items = massItems(view.phase, view.mbr);
       if (!isMassUnit(unit)) problems.push(problem('G22-UNIT', `${unit} is not a mass unit`, ['DI-30']));
+      else problems.push(...countingProblems('G22-UNIT', view, unit, items[0]));
       const net = netOf(String(entry['gross']), String(entry['tare']));
       if (!net.ok) problems.push(problem('G22-NET', net.message, ['INV-25']));
       if (problems.length > 0 || !net.ok) return { ok: false, problems };
       const n = view.entries('OUTPUT_CONTAINER').length + 1;
       const id = typeof entry['container'] === 'string' ? entry['container'] : `${view.batch.batchNumber}/${intermediate}/${view.stepKey.split('@')[1] || '0'}/${n}`;
       const manual = entry['source'] === 'MANUAL';
-      const items = massItems(view.phase, view.mbr);
       return {
         ok: true,
         data: { intermediate, container: id, gross: entry['gross'], tare: entry['tare'], net: net.net, unit, balance: entry['balance'], source: entry['source'], status: 'QUARANTINE', item: items[0] ?? null },

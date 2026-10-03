@@ -18,12 +18,14 @@ import { engineFingerprint, fingerprintDefinition } from './fingerprint.ts';
  * The fingerprint of each released engine version (fingerprint.ts; the state's own version stamp left out).
  * 1.0.0: commit b5b7d40 (Phase 2 before the round that made time facts SYSTEM's and step meanings exact), recorded with
  * the run as it then stood (no output weighing; 1.1.0 answered that run with d8cc7822...).
- * 1.1.0 and later: the run with its output weighing (added with 1.2.0); 1.1.0's is commit 4d703ec's answer to it.
+ * 1.1.0 and later: the run with its output weighings (the one in kg added with 1.2.0, the ones in g and kg{wet} and the
+ * output step signed performed added with 1.3.0); 1.1.0's is commit 4d703ec's answer to it, 1.2.0's commit 26968b5's.
  */
 const RELEASED: Readonly<Record<string, string>> = {
   '1.0.0': 'b2ddd06e58a7779e0ffab4c8231db99d004475ca710dc40b056010ed30767ad2',
-  '1.1.0': 'eeac109534b9d2c86f9d40fc3732c11c3d5b9fa68a8c24141cd55e62d08fa2fc',
-  '1.2.0': '597ecb19f6dc7b2f408020b1758e2ef1f7f6db2df09764bc75e37fc205079eb7',
+  '1.1.0': '75105cf1f74cd13cb35b3cf5fbcad65e356714b57e02feba254a4578db7ce64d',
+  '1.2.0': '0d824c01c642c0e25597401e1434993a3b826b0cf51c01108300f0b4e5b0cfe9',
+  '1.3.0': '1e2831962f34bd26363cca76624319fb5b1fb73813a122cf416087cc4df0cba0',
 };
 
 describe('the engine version names its output (ADR 0010)', () => {
@@ -39,6 +41,7 @@ describe('the engine version names its output (ADR 0010)', () => {
     const { rows } = engineFingerprint();
     // 1.1.0: a witness in place of a step's check, and the generic meanings on a block with its own, are refused.
     // 1.2.0: the output weighing is accepted as before; its net keeps the resolution (in the hashes, not the answers).
+    // 1.3.0: the weighing in g counts at its resolution (in the hashes); the one in kg{wet} is refused (G22-UNIT).
     expect(rows.map((r) => `${r.what}:${r.answer}`)).toEqual([
       'ISSUE:ACCEPTED',
       'START_STEP:ACCEPTED',
@@ -59,11 +62,14 @@ describe('the engine version names its output (ADR 0010)', () => {
       'VERIFY:ACCEPTED',
       'START_STEP:ACCEPTED',
       'RECORD_ENTRY:ACCEPTED',
+      'RECORD_ENTRY:ACCEPTED',
+      'RECORD_ENTRY:G22-UNIT',
+      'SIGN_PERFORMED:ACCEPTED',
       'SWEEP:ACCEPTED',
     ]);
   });
 
-  it('[DI-10][DI-34] a batch stored under engine 1.0.0 or 1.1.0 is never run or replayed by this engine (EBMR-EXE-061)', () => {
+  it('[DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0 or 1.2.0 is never run or replayed by this engine (EBMR-EXE-061)', () => {
     expect(ENGINE_VERSION).not.toBe('1.0.0');
     const def = fingerprintDefinition();
     const batch = (engineVersion: string): BatchExecutionRecord =>
@@ -78,6 +84,7 @@ describe('the engine version names its output (ADR 0010)', () => {
     };
     expect(refusal('1.0.0')).toBe('EBMR-EXE-061');
     expect(refusal('1.1.0')).toBe('EBMR-EXE-061');
+    expect(refusal('1.2.0')).toBe('EBMR-EXE-061');
     expect(refusal(ENGINE_VERSION)).toBe('fits');
   });
 });

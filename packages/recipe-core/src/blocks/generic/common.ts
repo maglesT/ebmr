@@ -87,6 +87,34 @@ export function netOf(gross: string, tare: string): { ok: true; net: string } | 
   return { ok: true, net: atResolution(net, Math.max(writtenDecimals(gross), writtenDecimals(tare))) };
 }
 
+/**
+ * A balance's metric mass unit: grams with a metric prefix (kg, g, mg, ug). Between two of them a conversion is a power
+ * of ten, which the database repeats exactly when it checks a total of weighings (recipe-core 0322).
+ */
+const METRIC_MASS = /^(?:Y|Z|E|P|T|G|M|k|h|da|d|c|m|u|n|p|f|a|z|y)?g$/;
+
+/**
+ * Whether a weight in `unit` is counted into a quantity in `itemUnit`: the same unit, or two metric mass units (engine
+ * 1.3.0; the database checks the total the same way, recipe-core 0322).
+ */
+export function countableInto(unit: string, itemUnit: string): boolean {
+  return unit === itemUnit || (METRIC_MASS.test(unit) && METRIC_MASS.test(itemUnit));
+}
+
+/**
+ * `value` (decimal text in `from`, written at the resolution it was weighed at) in `to`, exactly, still written at that
+ * resolution: 8000.0 g is 8.0000 kg (a reading to 0.1 g is a reading to 0.0001 kg) and 8.000 kg is 8000 g (engine 1.3.0,
+ * lead TODO T2). Never rounds; undefined when the conversion is not exact.
+ */
+export function convertAtResolution(view: HandlerView, value: string, from: string, to: string): string | undefined {
+  if (from === to) return value;
+  const converted = view.expr.convert(value, from, to);
+  if (converted === undefined) return undefined;
+  const places = writtenDecimals(value);
+  const step = view.expr.convert(places === 0 ? '1' : `0.${'0'.repeat(places - 1)}1`, from, to);
+  return atResolution(Dec.parse(converted), step === undefined ? 0 : writtenDecimals(step));
+}
+
 /** The exact sum, at the resolution of the finest of the values summed (engine 1.2.0). */
 export function sumDecimals(values: readonly string[]): string {
   const total = values.reduce((acc, v) => acc.plus(Dec.parse(v)), Dec.ZERO);

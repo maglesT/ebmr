@@ -8,8 +8,9 @@
  *
  * The run touches what changed between released versions: time facts noticed inside a person's command and signing
  * preparation, a clock regression, the meaning of a verification (a witness or a generic VERIFIED where the step
- * requires its own check) and of a PERFORMED signature on a block with its own perform meaning, and (since 1.2.0) the
- * resolution of a computed net weight (an output container weighed at 0.001 kg whose net ends in zeros).
+ * requires its own check) and of a PERFORMED signature on a block with its own perform meaning, (since 1.2.0) the
+ * resolution of a computed net weight (an output container weighed at 0.001 kg whose net ends in zeros) and (since
+ * 1.3.0) the total of containers weighed in another unit (one in g, one in a unit the total cannot be counted in).
  *
  * This module depends on `src` only (no test helper), with the MBR written out in full, so the fingerprint moves only
  * when the engine, its blocks or the expression language answer differently. It is also run against earlier commits
@@ -178,6 +179,11 @@ function rows(): Row[] {
     // An output container weighed at 0.001 kg: its net and the recorded quantity keep that resolution (1.2.0).
     c(29, { type: 'START_STEP', actor: OP1, step: 'out', context: [] }, 14),
     c(30, { type: 'RECORD_ENTRY', actor: OP1, step: 'out', context: [], entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-OUT', gross: '26.100', tare: '1.100', unit: 'kg', balance: 'BAL-2', source: 'DEVICE' } }, 15),
+    // A container weighed in g counts into the quantity in kg at its own resolution (8000.0 g is 8.0000 kg), and a weight
+    // in a unit the total cannot be counted in exactly is refused (1.3.0); the step signed performed computes the total.
+    c(31, { type: 'RECORD_ENTRY', actor: OP1, step: 'out', context: [], entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-OUT', gross: '9250.0', tare: '1250.0', unit: 'g', balance: 'BAL-2', source: 'DEVICE' } }, 16),
+    c(32, { type: 'RECORD_ENTRY', actor: OP1, step: 'out', context: [], entry: { kind: 'OUTPUT_CONTAINER', intermediate: 'I-OUT', gross: '2.000', tare: '1.000', unit: 'kg{wet}', balance: 'BAL-2', source: 'DEVICE' } }, 17),
+    c(33, { type: 'SIGN_PERFORMED', actor: OP1, step: 'out', context: [], signature: signed('FP-S8', 'PERFORMED', OP1) }, 18),
     { kind: 'SWEEP', at: at(40) },
   ];
 }

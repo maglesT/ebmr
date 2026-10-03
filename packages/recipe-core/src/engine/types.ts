@@ -21,6 +21,10 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  * version (EBMR-EXE-061), because replay compares every stored row's events and state with the engine's. Any change
  * of what `issue`, `step`, `sweep` or `prepareForSignature` answer for the same input needs a new version, recorded
  * with its output fingerprint in test/engine/engine-version.test.ts. Semantic changes:
+ *  - 1.3.0: a weight weighed in another unit than the quantity it counts into keeps its resolution in the total (lead
+ *    TODO T2, round 2): 8000.0 g counts into a quantity in kg as 8.0000 kg, not 8; a weighing is counted only in the
+ *    quantity's own unit or when both are metric mass units (kg, g, mg), and is refused otherwise (G07-UNIT,
+ *    G22-UNIT). The database checks every recorded total (recipe-core 0322).
  *  - 1.2.0: a computed weight keeps the resolution of the weighings it comes from (lead TODO T2 of the Phase 2 exit):
  *    the net of a container is gross minus tare written with the decimals of the finer of the two ("50.000 kg", not
  *    "50 kg"), in the entry, its label and the container register, and a total of nets with the decimals of the finest
@@ -34,7 +38,7 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  *    database's blank test (kernel.is_blank) refuses it.
  *  - 1.0.0: Phase 2 first release.
  */
-export const ENGINE_VERSION = '1.2.0';
+export const ENGINE_VERSION = '1.3.0';
 export const STATE_SCHEMA = 'ebmr.batch-execution-state';
 
 /** Trusted server time of the command's transaction (kernel clock; `recorded_at`), UTC epoch microseconds. */
