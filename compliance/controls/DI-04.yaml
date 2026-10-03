@@ -35,6 +35,7 @@ implemented_by:
     - "apps/tablets-server/src/features/designer/adapters (ReferencePort over tab.reference_document; MarketMinimaPort over market.resolve, failing closed)"
     - "apps/tablets-server/src/features/designer/simulation.ts and simulate-worker.ts (simulation of the saved content in a worker thread with a timeout; no writes)"
     - "apps/tablets-server/src/features/designer/index.ts (startVerification: lifecycle.validateAndStartVerification; evidence views valid only for the current content hash)"
+    - "apps/tablets-web/src/features/designer/model/ops.ts (an edit that would bring text no record can hold into the MBR content is refused, naming the field, so the designer never hashes such content; review F31 round 2)"
   guards:
     - "buildVerificationEvidence / verifyMbr: validator report, warning justifications and simulation report bound to the content hash"
     - "evidenceHolds: only unaltered VERIFIED evidence of exactly this content counts (for the MBR life-cycle gate)"
@@ -111,6 +112,10 @@ tests:
   - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a lone surrogate in a justification, sent as the ASCII escape a browser sends, is refused: never stored as U+FFFD"
   - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] a body whose bytes are not UTF-8 is refused before it is read, never read as U+FFFD; nothing is stored"
   - "apps/tablets-server/test/designer/free-text.test.ts > designer free text no record can hold (review F32, F33) > [DI-04][IN-02] control: a well-formed surrogate pair (an emoji) in a justification round-trips exactly"
+  - "apps/tablets-web/test/designer/free-text.test.tsx > text no record can hold, typed into the designer (review F31 round 2) > [DI-37][DI-04] U+0000 in the title: the editor stays up, the title is named, and the text never enters the content, its validation or its draft"
+  - "apps/tablets-web/test/designer/free-text.test.tsx > text no record can hold, typed into the designer (review F31 round 2) > [DI-37][DI-04] a lone surrogate in a step name and U+0000 in a hold point name: the editor stays up and names each field; nothing enters the content"
+  - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)"
+  - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] text edits: whatever the author types, the content either refuses it with an OpError or holds only text a record can hold, so its hash never throws"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

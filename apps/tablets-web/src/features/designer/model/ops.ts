@@ -10,7 +10,13 @@
  * name, configuration, signatures, significance, risk class, data and equipment lists, hold points, parameter
  * targets, limit bounds of parameters, calculations and yields, time-constraint bounds and hold times.
  * Construct editing (wrap and unwrap) comes in A2.
+ *
+ * Text no record can hold (U+0000, a UTF-16 surrogate without its other half) never enters the content: the operation
+ * that would bring it in is refused, naming the field (review F31, round 2). A browser keeps U+0000 in an input's
+ * value, and the editor hashes the content it shows (canonical JSON refuses such text), so letting it in would bring
+ * the editor down instead of pointing the author at the field.
  */
+import { unstorableText } from '@ebmr/expr';
 import { flow, type limits } from '@ebmr/recipe-core/pure';
 
 export type Content = flow.MbrContent;
@@ -46,10 +52,28 @@ export const KNOWN_MARKETS = ['IN', 'US', 'EU'] as const;
 const MAX_TEXT = 200;
 
 function checkName(text: string, what: string): string {
+  const unstorable = unstorableText(text);
+  if (unstorable !== null) throw new OpError(`${what} holds ${unstorable}, which no record can hold: enter it again without it.`);
   const t = text.trim();
   if (t === '') throw new OpError(`${what} cannot be empty.`);
   if (t.length > MAX_TEXT) throw new OpError(`${what} is longer than ${MAX_TEXT} characters.`);
   return t;
+}
+
+/** Refuses a configuration value holding text no record can hold in any string or member name, naming the field. */
+function checkConfigText(value: unknown, path: readonly string[]): void {
+  if (typeof value === 'string') {
+    const problem = unstorableText(value);
+    if (problem !== null) throw new OpError(`The configuration field ${path.join('.')} holds ${problem}, which no record can hold: enter it again without it.`);
+  } else if (Array.isArray(value)) {
+    value.forEach((v: unknown, i) => checkConfigText(v, [...path, String(i)]));
+  } else if (value !== null && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      const problem = unstorableText(k);
+      if (problem !== null) throw new OpError(`The configuration has a field name holding ${problem}, which no record can hold.`);
+      checkConfigText(v, [...path, k]);
+    }
+  }
 }
 
 function checkDecimal(value: string, what: string, opts: { positive?: boolean } = {}): string {
@@ -176,6 +200,7 @@ function applyInPlace(c: Content, op: Op): void {
       const { system, ...patch } = op.patch;
       const next: flow.PhaseNode = { ...s, ...structuredClone(patch) };
       if (patch.name !== undefined) next.name = checkName(patch.name, 'The step name');
+      if (patch.config !== undefined) checkConfigText(patch.config, []);
       if (system === null) delete next.system;
       else if (system !== undefined) next.system = structuredClone(system);
       const parsed = flow.parseFlowNodeStandalone(next);

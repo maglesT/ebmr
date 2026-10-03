@@ -4,6 +4,7 @@
  */
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { unstorableText } from '@ebmr/expr';
 import { flow, limits } from '@ebmr/recipe-core/pure';
 import granulation from '../../../../packages/recipe-core/test/fixtures/tablet-granulation-compression.mbr.json' with { type: 'json' };
 import packaging from '../../../../packages/recipe-core/test/fixtures/tablet-blister-packaging.mbr.json' with { type: 'json' };
@@ -183,6 +184,76 @@ describe('designer edit operations', () => {
 
   it('[INV-28] India cannot be removed from the market set', () => {
     expect(() => applyOp(FIXTURES[0] as Content, { kind: 'SET_MARKETS', markets: ['US'] })).toThrow(/India/);
+  });
+
+  it('[DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)', () => {
+    const c = FIXTURES[0] as Content;
+    const phase = steps(c).find((id) => locate(c, id)?.node.kind === 'phase') as string;
+    const hold = steps(c).find((id) => locate(c, id)?.node.kind === 'holdPoint') as string;
+    const before = canonical(c);
+    const cases: Array<[(t: string) => Op, RegExp]> = [
+      [(t) => ({ kind: 'SET_TITLE', title: t }), /^The title holds /],
+      [(t) => ({ kind: 'UPDATE_PHASE', nodeId: phase, patch: { name: t } }), /^The step name holds /],
+      [(t) => ({ kind: 'UPDATE_PHASE', nodeId: phase, patch: { config: { text: t } } }), /^The configuration field text holds /],
+      [(t) => ({ kind: 'UPDATE_PHASE', nodeId: phase, patch: { config: { checks: ['Floor clean', t] } } }), /^The configuration field checks\.1 holds /],
+      [(t) => ({ kind: 'UPDATE_PHASE', nodeId: phase, patch: { config: { [t]: 'x' } } }), /^The configuration has a field name holding /],
+      [(t) => ({ kind: 'UPDATE_HOLD', nodeId: hold, patch: { name: t } }), /^The hold point name holds /],
+      [(t) => ({ kind: 'UPDATE_HOLD', nodeId: hold, patch: { role: t } }), /^The releasing role holds /],
+    ];
+    const texts: Array<[string, string]> = [
+      ['Edited\u0000 title', 'U+0000'],
+      ['Booth \ud800 clearance', 'an unpaired surrogate U+D800'],
+      ['\udfffBooth', 'an unpaired surrogate U+DFFF'],
+      ['Booth \udc00\ud800 reversed', 'an unpaired surrogate U+DC00'],
+      ['Booth \ud83d\ude00\ud83d', 'an unpaired surrogate U+D83D'],
+    ];
+    for (const [text, problem] of texts) {
+      for (const [op, field] of cases) {
+        let error: unknown;
+        try {
+          applyOp(c, op(text));
+        } catch (e) {
+          error = e;
+        }
+        expect(error, `${JSON.stringify(op(text))} is refused`).toBeInstanceOf(OpError);
+        expect((error as OpError).message).toMatch(field);
+        expect((error as OpError).message).toContain(`hold${(error as OpError).message.includes('field name') ? 'ing' : 's'} ${problem}, which no record can hold`);
+        expect((error as OpError).message).not.toContain(text);
+      }
+      // A new step whose name holds such text is refused too (its shape check names the place).
+      const step = { ...newStep(c, PALETTE[0] as PaletteEntry), name: text };
+      expect(() => applyOp(c, { kind: 'INSERT_STEP', ...(insertionPoint(c, phase) as { sequenceId: string; index: number }), step })).toThrow(OpError);
+    }
+    expect(canonical(c)).toBe(before);
+  });
+
+  it('[DI-37][DI-04] text edits: whatever the author types, the content either refuses it with an OpError or holds only text a record can hold, so its hash never throws', () => {
+    const c = FIXTURES[0] as Content;
+    const phase = steps(c).find((id) => locate(c, id)?.node.kind === 'phase') as string;
+    const hold = steps(c).find((id) => locate(c, id)?.node.kind === 'holdPoint') as string;
+    const piece = fc.constantFrom('a', 'Z', ' ', '-', '\u00e9', '\u0915', '\u0000', '\u0001', '\ud800', '\udbff', '\udc00', '\udfff', '\ud83d\ude00', '\ufffd', '\uffff');
+    const text = fc.array(piece, { minLength: 1, maxLength: 12 }).map((p) => p.join(''));
+    const opOf = (k: number, t: string): Op => {
+      if (k === 0) return { kind: 'SET_TITLE', title: t };
+      if (k === 1) return { kind: 'UPDATE_PHASE', nodeId: phase, patch: { name: t } };
+      if (k === 2) return { kind: 'UPDATE_PHASE', nodeId: phase, patch: { config: { text: t } } };
+      if (k === 3) return { kind: 'UPDATE_HOLD', nodeId: hold, patch: { name: t } };
+      return { kind: 'UPDATE_HOLD', nodeId: hold, patch: { role: t } };
+    };
+    fc.assert(
+      fc.property(fc.nat(4), text, (k, typed) => {
+        const o = opOf(k, typed);
+        let next: Content | undefined;
+        try {
+          next = applyOp(c, o);
+        } catch (e) {
+          expect(e).toBeInstanceOf(OpError);
+        }
+        if (unstorableText(typed) !== null) expect(next, 'text no record can hold is refused').toBeUndefined();
+        if (next) expect(() => flow.mbrContentHash(next)).not.toThrow();
+      }),
+      { numRuns: 400 },
+    );
   });
 
   it('inserts a palette step with a unique id after the chosen step, and moves it within its sequence only', () => {

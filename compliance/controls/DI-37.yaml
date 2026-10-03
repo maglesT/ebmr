@@ -48,6 +48,7 @@ implemented_by:
     - "apps/tablets-server/src/features/execution/signable.ts (ENGINE_COMMAND: preview, prepare, dry run, apply)"
     - "packages/api-contract/src/common.ts (storableText, unstorableTextIssues: text no record can hold), packages/api-contract/src/route.ts (defineRoute applies it)"
     - "apps/tablets-server/src/platform/db/pools.ts (refuseUnstorableParameters), apps/tablets-server/src/platform/http/json-body.ts (strict UTF-8 request bodies), apps/tablets-server/src/platform/http/errors.ts (unstorableTextRefusal)"
+    - "apps/tablets-web/src/features/designer/model/ops.ts (an edit that would bring text no record can hold into the MBR content is refused, naming the field, so the designer never hashes such content; review F31 round 2)"
   invariants:
     - "INV-09"
     - "INV-10"
@@ -137,6 +138,10 @@ tests:
   - "apps/tablets-server/test/platform/unstorable-text.test.ts > text no record can hold, behind the contract (review F30-F33) > [DI-37] the database cannot refuse a lone surrogate in a text parameter (the driver writes U+FFFD); the server's pools refuse such a query before it is sent, U+0000 too, in any parameter"
   - "apps/tablets-server/test/platform/unstorable-text.test.ts > text no record can hold, behind the contract (review F30-F33) > [DI-37][DI-22] a path parameter or query string holding U+0000 is refused 400 naming it, never 500 (the database refused it before as 22021)"
   - "apps/tablets-web/test/api.test.ts > a body holding text no record can hold > [DI-37][DI-20] is refused before a nonce is asked for, naming the field, as the server would; text a record can hold is proven"
+  - "apps/tablets-web/test/designer/free-text.test.tsx > text no record can hold, typed into the designer (review F31 round 2) > [DI-37][DI-04] U+0000 in the title: the editor stays up, the title is named, and the text never enters the content, its validation or its draft"
+  - "apps/tablets-web/test/designer/free-text.test.tsx > text no record can hold, typed into the designer (review F31 round 2) > [DI-37][DI-04] a lone surrogate in a step name and U+0000 in a hold point name: the editor stays up and names each field; nothing enters the content"
+  - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] no operation lets text no record can hold into the content: each refusal names the field and leaves the content as it was (review F31 round 2)"
+  - "apps/tablets-web/test/designer/ops.test.ts > designer edit operations > [DI-37][DI-04] text edits: whatever the author types, the content either refuses it with an OpError or holds only text a record can hold, so its hash never throws"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
