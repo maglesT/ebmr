@@ -63,8 +63,8 @@ tests:
   - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F08: a sign-in or secret change that cannot get a device nonce says so > [DI-38][DI-20] office sign-in, nonce refused 429: nothing is sent, the screen says why, no failure escapes"
   - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F08: a sign-in or secret change that cannot get a device nonce says so > [DI-38][DI-20] office sign-in, nonce unreachable: nothing is sent, the screen says why, no failure escapes"
   - "apps/tablets-web/test/session/sign-in-screens.test.tsx > F08: a sign-in or secret change that cannot get a device nonce says so > [DI-38][DI-20] kiosk badge and PIN, nonce refused 429: the screen says nothing was sent and asks for the badge again"
-  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway login refuses text no record can hold (review F30-F33) > [DI-20][DI-31] a login name, service key or nonce holding U+0000 or a lone surrogate is refused 400 SCHEMA, never 500, and never looked up as U+FFFD"
-  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway login refuses text no record can hold (review F30-F33) > [DI-20] the login schema itself refuses such text in its free text members; text a record can hold passes"
+  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-20][DI-31] a login name, service key or nonce holding U+0000 or a lone surrogate is refused 400 SCHEMA, never 500, and never looked up as U+FFFD"
+  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-20] the login schema itself refuses such text in its free text members; text a record can hold passes"
   - "apps/tablets-web/test/api.test.ts > a body holding text no record can hold > [DI-37][DI-20] is refused before a nonce is asked for, naming the field, as the server would; text a record can hold is proven"
 expert_decision:
   status: PENDING

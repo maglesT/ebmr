@@ -53,6 +53,7 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-30][DI-05][PR-18] round 3: a container registered beside an entry that registers none is refused even under a test identifier (EBMR-EXE-126): a container is the one its entry names"
   - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 3: a container a row registers is the one its entry names (DI-30, DI-05) > [DI-30][DI-05] every container the engine's own runs register passes: dispensed containers and output containers, named by the entry or built by the block"
   - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 3: a container a row registers is the one its entry names (DI-30, DI-05) > [DI-30][DI-05] a container that is not the one its entry registers is refused: the verifier's container beside a previous batch, another id, a second container, other facts, a row that records no entry"
+  - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-30][DI-31][PR-20] a heartbeat whose not-ready reason holds U+0000 or a lone surrogate is refused by the database: answered 400 SCHEMA, its receipt lost (the next tick is unclean, so the manual path stays shut), the stored reason unchanged"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
