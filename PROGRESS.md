@@ -1489,3 +1489,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   step-address, people-text, db-guards-weighing-net; recipe-core blocks material and engine version. Playwright floor,
   devices, esig and journey specs re-run: all passed. Defaults F59.1, F59.2, F60.1, T2.1 and T4.1 are in
   docs/decisions/phase-2-open-questions.md.
+  Round 2 (T2, T5): a weight weighed in another unit than its quantity lost its resolution in the total (9250.0 g -
+  1250.0 g on a quantity in kg was recorded as 8, not 8.0000) and the database checked neither a weighing's label (a
+  label "50 kg" for a net of 50.000 kg was stored) nor the total; now each net counts at the resolution it was weighed
+  at, carried through the conversion, a weighing is counted only in its quantity's unit or when both are metric mass
+  units (else G07-UNIT, G22-UNIT), which is engine 1.3.0 (1.2.0 batches are no longer continued: issue a new test
+  batch), and recipe-core 0322 refuses another label (EBMR-EXE-137) and a total other than the sum of all the step's
+  weighings at their resolution, or a step signed performed without it (EBMR-EXE-138). T5 stays open for the owner,
+  now recorded as default T5.1 with its plan. Tests: recipe-core blocks material and engine version; server execution
+  db-guards-weighing-record; Playwright journey re-run: passed. Defaults T2.2, T2.3 and T5.1.
