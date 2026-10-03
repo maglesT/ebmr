@@ -107,12 +107,43 @@ export function simulationWatermark(): Watermark {
   return { text: w.text, source: w.source, notice: w.notice, control: w.control };
 }
 
+/**
+ * The exceptions a simulated path ended with, from its decisions (review F54; DI-04). The token game raises one kind
+ * of exception, a loop driven to its maximum without meeting its exit condition (LOOP_EXHAUSTED), exactly where the
+ * path decides EXHAUSTED at the loop's test: "<node>@<context>#<iteration>=EXHAUSTED". The simulator counts those paths
+ * (paths.withExceptions); the view names each one's exceptions.
+ */
+export function pathExceptions(decisions: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const d of decisions) {
+    const m = /^loop-test:(.+?)@(.*)#(\d+)=EXHAUSTED$/.exec(d);
+    if (m) out.push(`LOOP_EXHAUSTED: loop ${m[1] ?? '?'}${m[2] ? ` (${m[2]})` : ''} reached its maximum of ${m[3] ?? '?'} iterations without meeting its exit condition`);
+  }
+  return out;
+}
+
+/**
+ * What became of one simulated path: completed, completed with an exception (and which), or not completed (the
+ * simulator reports such a path among its problems by its decisions).
+ */
+function runOutcome(decisions: readonly string[], exceptions: readonly string[], unfinished: ReadonlySet<string>): string {
+  if (unfinished.has(decisions.join(' '))) return 'DID NOT COMPLETE';
+  return exceptions.length > 0 ? 'COMPLETED WITH EXCEPTION' : 'COMPLETED';
+}
+
 /** The view of a simulation report (plan section 4). */
 export function simulationReportView(report: simulator.SimulationReport, simulatedAt: Instant): SimulationReportView {
-  const runs = [
-    ...report.paths.decisions.map((_d, i) => ({ pathId: `P${i + 1}`, outcome: 'COMPLETED', exceptions: [] as string[] })),
-    ...report.paths.targeted.map((t, i) => ({ pathId: `T${i + 1}`, outcome: `TARGETED: ${t}`, exceptions: [] as string[] })),
-  ];
+  const unfinished = new Set(report.problems.flatMap((p) => /^a (?:targeted )?path did not complete: (.*)$/.exec(p)?.slice(1, 2) ?? []));
+  // The decisions list the enumerated paths first, then one targeted run per decision option they missed (in order):
+  // each path is listed once, the enumerated ones as P-n and the targeted ones as T-n (review F54).
+  const enumerated = report.paths.decisions.length - report.paths.targeted.length;
+  const runs = report.paths.decisions.map((d, i) => {
+    const exceptions = pathExceptions(d);
+    const outcome = runOutcome(d, exceptions, unfinished);
+    return i < enumerated
+      ? { pathId: `P${i + 1}`, outcome, exceptions }
+      : { pathId: `T${i - enumerated + 1}`, outcome: `${outcome}, TARGETED: ${report.paths.targeted[i - enumerated] ?? '?'}`, exceptions };
+  });
   const problems: SimulationReportView['problems'] = report.problems.map((p) => ({ code: 'SIMULATION', message: p, path: null }));
   for (const [dimension, c] of Object.entries(report.coverage)) {
     for (const m of c.missing) problems.push({ code: `NOT_COVERED_${dimension.toUpperCase()}`, message: `${dimension}: ${m} is not reached by any simulated path`, path: m });

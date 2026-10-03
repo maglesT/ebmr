@@ -3,6 +3,9 @@
  * TEST, NOT GMP watermark with the SIMULATION notice and is never a GMP record). The simulation runs on the server
  * in a worker thread and writes nothing.
  *
+ * Each simulated run is listed with its outcome and the exceptions it ended with (a loop driven to its maximum), and
+ * the panel counts the runs that ended with an exception; a list that shows only its first runs says so (review F54).
+ *
  * A report is shown only for the saved content it was run on (DI-04; review P20): once a new revision is saved, an
  * earlier report (or one still on its way) is no longer shown as the current one, and a report the server made on
  * other content than the revision on screen is shown as such, never as "Simulation passed".
@@ -21,6 +24,37 @@ interface Run {
   savedAs: string;
   result: SimulationData | null;
   error: CallError | null;
+}
+
+/** How many runs a list shows; the summary says when the list is cut (review F54). */
+export const RUNS_SHOWN = 50;
+
+type SimulatedRun = SimulationData['runs'][number];
+
+/** A list of simulated runs with each one's outcome and exceptions; the summary says when it shows only the first ones. */
+function RunList({ title, runs }: { title: string; runs: readonly SimulatedRun[] }) {
+  if (runs.length === 0) return null;
+  const cut = runs.length > RUNS_SHOWN;
+  return (
+    <details>
+      <summary>
+        {title} ({cut ? `the first ${RUNS_SHOWN} of ${runs.length}` : runs.length})
+      </summary>
+      <ul className={dcls('list')} aria-label={title}>
+        {runs.slice(0, RUNS_SHOWN).map((r) => (
+          <li key={r.pathId}>
+            {r.pathId}: {r.outcome}
+            {r.exceptions.length > 0 ? ` (exceptions: ${r.exceptions.join('; ')})` : ''}
+          </li>
+        ))}
+      </ul>
+      {cut ? (
+        <p className={dcls('small')}>
+          {runs.length - RUNS_SHOWN} more {runs.length - RUNS_SHOWN === 1 ? 'run is' : 'runs are'} not listed here; the counts above include them.
+        </p>
+      ) : null}
+    </details>
+  );
 }
 
 export function SimulationPanel({ versionId, revision, contentHash, dirty }: { versionId: string; revision: number; contentHash: string; dirty: boolean }) {
@@ -44,6 +78,7 @@ export function SimulationPanel({ versionId, revision, contentHash, dirty }: { v
   const error = current?.error ?? null;
   const busy = busyFor === savedAs;
   const otherContent = result !== null && result.contentHash !== contentHash;
+  const withExceptions = result?.runs.filter((r) => r.exceptions.length > 0).length ?? 0;
   return (
     <div className={dcls('stack')}>
       <Button variant="primary" onPress={() => void start()} isDisabled={busy}>
@@ -69,6 +104,8 @@ export function SimulationPanel({ versionId, revision, contentHash, dirty }: { v
           <dl className={dcls('dl')}>
             <dt>Paths</dt>
             <dd>{result.paths}</dd>
+            <dt>Ended with an exception</dt>
+            <dd>{withExceptions === 0 ? 'none' : `${withExceptions} of ${result.runs.length} runs (a loop driven to its maximum)`}</dd>
             <dt>Steps reached</dt>
             <dd>
               {result.coverage.nodes.covered} of {result.coverage.nodes.total}
@@ -89,17 +126,8 @@ export function SimulationPanel({ versionId, revision, contentHash, dirty }: { v
               </ul>
             </Banner>
           ) : null}
-          <details>
-            <summary>Simulated runs ({result.runs.length})</summary>
-            <ul className={dcls('list')}>
-              {result.runs.slice(0, 50).map((r) => (
-                <li key={r.pathId}>
-                  {r.pathId}: {r.outcome}
-                  {r.exceptions.length > 0 ? ` (exceptions: ${r.exceptions.join(', ')})` : ''}
-                </li>
-              ))}
-            </ul>
-          </details>
+          <RunList title="Runs that ended with an exception" runs={result.runs.filter((r) => r.exceptions.length > 0)} />
+          <RunList title="Simulated runs" runs={result.runs} />
         </section>
       ) : null}
     </div>

@@ -148,3 +148,45 @@ describe('simulation panel (DI-04: a report belongs to the content it was run on
     expect(screen.queryByText('Simulation passed')).toBeNull();
   });
 });
+
+describe('simulated runs and their exceptions (review F54)', () => {
+  /** 600 runs as the granulation master gives them: every tenth run of three ends with the drying loop exhausted. */
+  function manyRuns(contentHash: string): SimulationReportView {
+    const runs = Array.from({ length: 600 }, (_, i) =>
+      i % 10 < 3
+        ? { pathId: `P${i + 1}`, outcome: 'COMPLETED WITH EXCEPTION', exceptions: ['LOOP_EXHAUSTED: loop L-DRY (R-SUBLOT=1/L-DRY=5) reached its maximum of 5 iterations without meeting its exit condition'] }
+        : { pathId: `P${i + 1}`, outcome: 'COMPLETED', exceptions: [] },
+    );
+    return { ...simulation(contentHash), paths: 600, runs };
+  }
+
+  it('[DI-04][DI-05] the panel counts the runs that ended with an exception, lists them with it, and says when a list shows only its first runs', async () => {
+    install({ 'designer.simulate': () => manyRuns(serverHash) });
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Simulation' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Simulate saved revision 3' }));
+    const section = await screen.findByRole('region', { name: 'Simulation report' });
+    expect(within(section).getByText('180 of 600 runs (a loop driven to its maximum)')).toBeTruthy();
+
+    const flagged = within(section).getByText('Runs that ended with an exception (the first 50 of 180)').closest('details') as HTMLElement;
+    const items = [...within(flagged).getByRole('list', { hidden: true }).querySelectorAll('li')].map((li) => li.textContent);
+    expect(items).toHaveLength(50);
+    expect(items[0]).toBe('P1: COMPLETED WITH EXCEPTION (exceptions: LOOP_EXHAUSTED: loop L-DRY (R-SUBLOT=1/L-DRY=5) reached its maximum of 5 iterations without meeting its exit condition)');
+    expect(flagged.textContent).toContain('130 more runs are not listed here; the counts above include them.');
+
+    const all = within(section).getByText('Simulated runs (the first 50 of 600)').closest('details') as HTMLElement;
+    expect(all.querySelectorAll('li')).toHaveLength(50);
+    expect(all.textContent).toContain('550 more runs are not listed here');
+  });
+
+  it('[DI-04] a report without exceptions says so, and a short list is not marked as cut', async () => {
+    renderRouted(() => <DesignerEditor initial={fixtureVersion()} palette={PALETTE} personId={PERSON_ID} />);
+    await userEvent.click(await screen.findByRole('tab', { name: 'Simulation' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Simulate saved revision 3' }));
+    const section = await screen.findByRole('region', { name: 'Simulation report' });
+    expect(within(section).getByText('none')).toBeTruthy();
+    expect(within(section).getByText('Simulated runs (1)')).toBeTruthy();
+    expect(within(section).queryByText(/Runs that ended with an exception/)).toBeNull();
+    expect(section.textContent).not.toMatch(/not listed here/);
+  });
+});
