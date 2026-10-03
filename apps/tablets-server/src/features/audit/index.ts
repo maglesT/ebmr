@@ -4,7 +4,8 @@
  * path, and the application role cannot change, disable or purge audit rows (kernel 0010). A route inventory
  * test proves no audit mutation route exists.
  *
- *  - chains: the audit chains, optionally by key prefix (mbr_version:, batch:), newest activity first;
+ *  - chains: the audit chains, optionally by key prefix (mbr_version:, batch:), newest activity first, after any chain
+ *    whose head row is missing (tablets 0490, review F06: listed with no count or time, to be verified);
  *  - events: by chain, correlation, person and time, in chronological order, keyset-paged; a list across chains
  *    never goes past the settled horizon (horizon.ts, review P11), so no page steps past an entry that a transaction
  *    still in progress may yet commit (a page that stops there still has a next cursor);
@@ -22,7 +23,7 @@ import { dbNowUs } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { SettledHorizon } from './horizon.ts';
-import { auditDb, chainLabel, chainLength, DEFAULT_LIMIT, MAX_LIMIT, readChains, readEvents, registryChainsOf, toView } from './read-model.ts';
+import { auditDb, chainLabel, chainLength, DEFAULT_LIMIT, MAX_LIMIT, readChains, readEvents, readHeadlessChains, registryChainsOf, toView } from './read-model.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -41,9 +42,15 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const horizon = new SettledHorizon(db);
   bindRoutes(scope, app, routes.audit, {
     chains: async ({ query, requireSession }) => {
-      const rows = await readChains(db, requireSession().tokenHash, query.prefix);
+      const token = requireSession().tokenHash;
+      const headless = await readHeadlessChains(db, token, query.prefix);
+      const rows = await readChains(db, token, query.prefix);
       return {
-        chains: rows.map((r) => ({ chainKey: r.chain_key, label: chainLabel(r.chain_key), events: Number(r.last_seq), lastAt: r.us ? app.formatInstant(r.us) : null })),
+        chains: [
+          // A chain whose head row is missing is listed first, with no count or time from its entries (F06).
+          ...headless.map((r) => ({ chainKey: r.chain_key, label: chainLabel(r.chain_key), events: Number(r.entries), lastAt: null, headMissing: true as const })),
+          ...rows.map((r) => ({ chainKey: r.chain_key, label: chainLabel(r.chain_key), events: Number(r.last_seq), lastAt: r.us ? app.formatInstant(r.us) : null })),
+        ],
       };
     },
 
@@ -74,6 +81,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     verifyChain: async ({ params, requireSession }) => {
       const s = requireSession();
       const events = await chainLength(db, s.tokenHash, params.chainKey);
+      // Null only for a chain with neither a head nor an entry; a chain whose head row is missing is verified, and the
+      // kernel names the tamper (F06).
       if (events === null) {
         throw refusal(404, {
           code: 'AUDIT_CHAIN_NOT_FOUND',

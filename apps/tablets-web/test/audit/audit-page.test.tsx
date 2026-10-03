@@ -15,11 +15,13 @@ import { auditHref, auditLink, routes as auditRoutes } from '../../src/features/
 import { parseAuditSearch } from '../../src/features/audit/links.ts';
 
 const seen: string[] = [];
+/** Chains listed before the default one (F06: a chain whose head row is missing). */
+let headless: unknown[] = [];
 const transport: FetchLike = (url, init) => {
   const u = new URL(url, 'http://t.local');
   seen.push(`${init.method} ${u.pathname}${u.search}`);
   let body: unknown;
-  if (u.pathname === '/api/audit/chains') body = { chains: [{ chainKey: 'batch:b2c3', label: 'Batch b2c3', events: 12, lastAt: { us: '1790586663000000', text: '28-SEP-2026 14:41:03 +05:30 (Asia/Kolkata)' } }] };
+  if (u.pathname === '/api/audit/chains') body = { chains: [...headless, { chainKey: 'batch:b2c3', label: 'Batch b2c3', events: 12, lastAt: { us: '1790586663000000', text: '28-SEP-2026 14:41:03 +05:30 (Asia/Kolkata)' } }] };
   else if (u.pathname === '/api/audit/events') body = EXAMPLES['audit-events'].data;
   else if (u.pathname.startsWith('/api/audit/chains/') && u.pathname.endsWith('/verify')) body = { chainKey: 'batch:b2c3', ok: true, events: 12, problems: [], verifiedAt: { us: '1790586663000000', text: '28-SEP-2026 14:41:03 +05:30 (Asia/Kolkata)' } };
   else return Promise.resolve({ status: 404, headers: { get: () => null }, text: () => Promise.resolve('{}') });
@@ -38,10 +40,22 @@ function renderAt(path: string) {
 
 beforeEach(() => {
   seen.length = 0;
+  headless = [];
   setTransport(transport);
 });
 
 describe('audit trail viewer', () => {
+  it('[DI-23][DI-22] a chain whose head row is missing is listed with no count or time, and the list says to verify it (F06)', async () => {
+    headless = [{ chainKey: 'batch:dead', label: 'Batch dead', events: 7, lastAt: null, headMissing: true }];
+    renderAt('/audit');
+    const link = await screen.findByRole('link', { name: 'Batch dead' });
+    expect(link.getAttribute('href')).toBe('/audit?chain=batch%3Adead');
+    const item = link.closest('li');
+    expect(item?.textContent).toBe('Batch dead · The head of this chain is missing: verify the chain to see what is wrong.');
+    expect(item?.textContent).not.toContain('7 entries');
+    expect(screen.getByText(/12 entries/)).toBeTruthy();
+  });
+
   it('[DI-22] the chain list links to each chain', async () => {
     renderAt('/audit');
     const link = await screen.findByRole('link', { name: 'Batch b2c3' });

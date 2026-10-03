@@ -44,7 +44,9 @@ function ChainList() {
             {q.data.chains.map((c) => (
               <li key={c.chainKey}>
                 <Link {...auditLink({ chain: c.chainKey })}>{c.label}</Link>
-                {` · ${c.events} entries${c.lastAt ? ` · last ${c.lastAt.text}` : ''}`}
+                {c.headMissing
+                  ? ' · The head of this chain is missing: verify the chain to see what is wrong.'
+                  : ` · ${c.events} entries${c.lastAt ? ` · last ${c.lastAt.text}` : ''}`}
               </li>
             ))}
           </ul>

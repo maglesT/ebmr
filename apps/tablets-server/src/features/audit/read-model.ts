@@ -224,6 +224,16 @@ export async function readChains(db: AuditDb, tokenHash: string, prefix: string 
 }
 
 /**
+ * The chains the session may list that have entries but no head row (a deleted head; review F06), with the number of
+ * entries found, in byte order (tablets 0490). They are listed before the others: the head's absence is a tamper.
+ */
+export async function readHeadlessChains(db: AuditDb, tokenHash: string, prefix: string | undefined): Promise<{ chain_key: string; entries: string }[]> {
+  const { rows } = await sql<{ chain_key: string; entries: string }>`
+    select chain_key, entries::text as entries from tab.audit_headless_chains(${tokenHash}, ${prefix ?? null})`.execute(db);
+  return rows;
+}
+
+/**
  * The registry chains the view of a chain draws on: the account and terminal of every actor on it (their hashed INSERT
  * entries give the user IDs and terminal codes shown), in byte order. The installation pipeline's nil ids have none.
  */
@@ -232,7 +242,10 @@ export async function registryChainsOf(db: AuditDb, tokenHash: string, chainKey:
   return rows.map((r) => r.chain_key);
 }
 
-/** The number of entries of a chain the session may read; null when none was ever written on it. */
+/**
+ * The number of entries of a chain the session may read (its head's count, or the entries found when its head row is
+ * missing: tablets 0490, F06); null only when the chain has neither a head nor an entry.
+ */
 export async function chainLength(db: AuditDb, tokenHash: string, chainKey: string): Promise<number | null> {
   const { rows } = await sql<{ n: string | null }>`select tab.audit_chain_length(${tokenHash}, ${chainKey})::text as n`.execute(db);
   const n = rows[0]?.n ?? null;

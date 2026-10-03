@@ -32,6 +32,12 @@ export const AuditChainView = z.strictObject({
   label: z.string(),
   events: z.number().int().nonnegative(),
   lastAt: Instant.nullable(),
+  /**
+   * The chain has entries but its head row is missing (deleted behind the trail's back; review F06): `events` then
+   * counts the entries found, not a verified head's count, and `lastAt` is null. The screen shows neither and asks to
+   * verify the chain, which names the tamper.
+   */
+  headMissing: z.literal(true).optional(),
 });
 
 export const ChainVerificationView = z.strictObject({

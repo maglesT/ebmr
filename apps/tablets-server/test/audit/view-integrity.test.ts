@@ -14,6 +14,9 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type AuditEventView } from '@ebmr/api-contract';
+import { verifyChain } from '@ebmr/kernel';
+import { personaOf } from '@ebmr/test-kit';
+import { tokenHash } from '../../src/platform/auth/session.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { correctStub, createStub, personaIn, startSigningServer, valueOf } from '../esig/support.ts';
 
@@ -169,5 +172,54 @@ describe('P7 audit viewer vs chain verification', () => {
     await tamper(`update kernel.audit_chain_head set last_hash = sha256(last_hash) where chain_key = $1`, [chainKey]);
     expect(await listed()).toEqual({ ...before, lastAt: null });
     expect((await verify(chainKey)).problems).toContain(`entry ${entries.length}: chain head does not match the last event (events removed or head altered)`);
+  });
+
+  it('[DI-23][DI-22][INV-08] a chain whose head row was deleted is still listed, with no count or time, and "Verify chain" names the tamper instead of answering that the chain does not exist (F06, tablets 0490)', async () => {
+    const stub = await createStub(gmp, author, 'author', { kind: 'MASTER_DOCUMENT', title: 'Paracetamol 500 mg, section 13', value: 'packing v1', unit: '' });
+    await correctStub(gmp, author, 'author', stub, 'packing v2');
+    const chainKey = `esig_stub:${stub}`;
+    const listed = async () => valueOf(await author.call(routes.audit.chains, { query: { prefix: chainKey } })).chains.filter((c) => c.chainKey === chainKey);
+    const entries = await eventsOf(chainKey);
+    const n = entries.length;
+    expect(await verify(chainKey)).toMatchObject({ ok: true, events: n });
+    expect(await listed()).toEqual([{ chainKey, label: expect.any(String) as string, events: n, lastAt: { us: entries.at(-1)?.at.us, text: expect.any(String) as string } }]);
+
+    await tamper('delete from kernel.audit_chain_head where chain_key = $1', [chainKey]);
+
+    // The kernel names the tamper and the entries are still there.
+    expect((await verifyChain(gmp.db.admin, chainKey)).map((p) => p.problem)).toContain('chain head is missing although the chain has events (head deleted)');
+    expect(await eventsOf(chainKey)).toHaveLength(n);
+    // The list keeps the chain, with nothing taken from an entry no verified head vouches for, flagged to be verified.
+    expect(await listed()).toEqual([{ chainKey, label: expect.any(String) as string, events: n, lastAt: null, headMissing: true }]);
+    // Verify chain reports the chain broken and names the problem.
+    const v = await verify(chainKey);
+    expect(v).toMatchObject({ chainKey, ok: false, events: n });
+    expect(v.problems).toContain(`entry ${n}: chain head is missing although the chain has events (head deleted)`);
+    // A chain that never had an entry or a head is still "does not exist".
+    const none = await author.call(routes.audit.verifyChain, { params: { chainKey: 'esig_stub:00000000-0000-4000-8000-0000000000f6' } });
+    expect(!none.ok && none.error.kind === 'REFUSAL' && `${none.error.status}:${none.error.envelope.refusal.code}`).toBe('404:AUDIT_CHAIN_NOT_FOUND');
+  });
+
+  it('[DI-23][DI-17] at the database: a head-less chain counts its entries, and is listed only to a session that may read it (F06, tablets 0490)', async () => {
+    const stub = await createStub(gmp, author, 'author', { kind: 'MASTER_DOCUMENT', title: 'Paracetamol 500 mg, section 14', value: 'labelling v1', unit: '' });
+    const chainKey = `esig_stub:${stub}`;
+    const hash = tokenHash(author.cookies.get(gmp.config.cookies.session) ?? '');
+    const q = async <T,>(text: string, params: unknown[]): Promise<T[]> => (await gmp.db.app.query(text, params)).rows as T[];
+    const n = (await eventsOf(chainKey)).length;
+    expect(await q('select tab.audit_chain_length($1, $2)::int as n', [hash, chainKey])).toEqual([{ n }]);
+    expect(await q('select chain_key from tab.audit_headless_chains($1, $2)', [hash, chainKey])).toEqual([]);
+    await tamper('delete from kernel.audit_chain_head where chain_key = $1', [chainKey]);
+    expect(await q('select tab.audit_chain_length($1, $2)::int as n', [hash, chainKey])).toEqual([{ n }]);
+    expect(await q('select chain_key, entries::int as entries from tab.audit_headless_chains($1, $2)', [hash, chainKey])).toEqual([{ chain_key: chainKey, entries: n }]);
+    expect(await q('select tab.audit_chain_length($1, $2) as n', [hash, 'esig_stub:00000000-0000-4000-8000-0000000000f6'])).toEqual([{ n: null }]);
+
+    // A governance-class chain (an account's) whose head is missing is not listed to the author, who may not read it.
+    const account = `account:${personaOf(gmp.seed, 'checker').accountId}`;
+    await tamper('delete from kernel.audit_chain_head where chain_key = $1', [account]);
+    expect(await q('select chain_key from tab.audit_headless_chains($1, null) where chain_key = $2', [hash, account])).toEqual([]);
+    await expect(gmp.db.app.query('select tab.audit_chain_length($1, $2)', [hash, account])).rejects.toThrow(/EBMR-TAB-020/);
+    expect(valueOf(await author.call(routes.audit.chains, { query: { prefix: 'account:' } })).chains).toEqual([]);
+    // The application role reads no chain keys around the session rule.
+    await expect(gmp.db.app.query('select * from kernel.audit_event limit 1')).rejects.toThrow(/permission denied/);
   });
 });
