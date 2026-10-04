@@ -1904,4 +1904,55 @@ describe('F12 round 7: a row records the engine command of its type with exactly
       null,
     ]);
   }, 120_000);
+
+  it('[DI-05][DI-10][DI-34] a batch is issued only with a request its MBR accepts, as the engine checks it at issue: the requests of both golden fixtures pass; a batch size, market, variant, variant choice or input the MBR does not hold, an input left out, given without its source or as another type, are refused', async () => {
+    const problem = async (content: unknown, request: unknown): Promise<string | null> => {
+      const { rows } = await db.admin.query<{ p: string | null }>('select recipe.issue_request_problem($1::jsonb, $2::jsonb) as p', [JSON.stringify(content), JSON.stringify(request)]);
+      return rows[0]?.p ?? null;
+    };
+    const requestOf = (name: FixtureName): { mbr: MbrContent; request: Json } => {
+      const mbr = fixtureDefinition(name).mbr;
+      const request: IssueRequest = {
+        batchId: 'BATCH-1', batchNumber: 'B0001', batchSize: mbr.header.batchSizes[0]?.id ?? '', marketSet: [...mbr.header.marketSet], inputs: FIXTURE_INPUTS[name] ?? {}, issuedBy: SUP1,
+        ...(name === 'tablet-blister-packaging' ? { variants: { packDestination: 'US-EXPORT' } } : {}),
+      };
+      // The engine accepts it.
+      Run.issue(fixtureDefinition(name), request);
+      return { mbr, request: encode(request) as Json };
+    };
+    const g = requestOf('tablet-granulation-compression');
+    const p = requestOf('tablet-blister-packaging');
+    expect({ granulation: await problem(g.mbr, g.request), packaging: await problem(p.mbr, p.request) }).toEqual({ granulation: null, packaging: null });
+    const firstInput = (r: Json): string => Object.keys(r['inputs'] as Json)[0] ?? '';
+    const gi = firstInput(g.request);
+    const typeOf = (id: string): string => String(g.mbr.inputs.find((i) => i.id === id)?.valueType);
+    const forged = async (base: { mbr: MbrContent; request: Json }, change: (r: Json) => void): Promise<string | null> => {
+      const r = structuredClone(base.request);
+      change(r);
+      return problem(base.mbr, r);
+    };
+    expect({
+      size: await forged(g, (r) => void (r['batchSize'] = 'L2409-0017')),
+      noIndia: await forged(g, (r) => void (r['marketSet'] = (r['marketSet'] as string[]).filter((m) => m !== 'IN'))),
+      market: await forged(g, (r) => void (r['marketSet'] = [...(r['marketSet'] as string[]), 'L2409-0017'])),
+      variantChoice: await forged(p, (r) => void (r['variants'] = { packDestination: 'L2409-0017' })),
+      variantLeftOut: await forged(p, (r) => void delete r['variants']),
+      variantOther: await forged(g, (r) => void (r['variants'] = { 'L2409-0017': 'X' })),
+      inputOther: await forged(g, (r) => void ((r['inputs'] as Json)['L2409-0017'] = { value: { kind: 'TEXT', value: 'X' }, source: 's' })),
+      inputLeftOut: await forged(g, (r) => void delete (r['inputs'] as Json)[gi]),
+      inputNoSource: await forged(g, (r) => void (((r['inputs'] as Json)[gi] as Json)['source'] = '  ')),
+      inputType: await forged(g, (r) => void (((r['inputs'] as Json)[gi] as Json)['value'] = { kind: 'TEXT', value: 'L2409-0017' })),
+    }).toEqual({
+      size: 'the batch size L2409-0017 is not one of the approved sizes of its MBR (ENG-ISSUE-SIZE)',
+      noIndia: 'its market set does not hold India (IN), which every market set holds (ENG-ISSUE-MARKETS)',
+      market: 'its market set names L2409-0017, a market its MBR is not approved for (ENG-ISSUE-MARKETS)',
+      variantChoice: 'variant packDestination of its MBR is not given one of its values (ENG-ISSUE-VARIANT)',
+      variantLeftOut: 'variant packDestination of its MBR is not given one of its values (ENG-ISSUE-VARIANT)',
+      variantOther: 'it names L2409-0017, which is not a variant of its MBR (ENG-ISSUE-VARIANT)',
+      inputOther: 'it gives L2409-0017, which is not a header or master-data input of its MBR (ENG-ISSUE-INPUT)',
+      inputLeftOut: `input ${gi} of its MBR is not given (ENG-ISSUE-INPUT)`,
+      inputNoSource: `input ${gi} is given without its source (ENG-ISSUE-INPUT)`,
+      inputType: `input ${gi} is not given as its declared type ${typeOf(gi)} (ENG-ISSUE-INPUT)`,
+    });
+  }, 120_000);
 });

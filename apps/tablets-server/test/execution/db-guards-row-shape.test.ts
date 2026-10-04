@@ -351,4 +351,49 @@ describe('F12 round 7: a row records its command and evidence as the server does
     expect(await storedWith(d, answeredNo, false, (own) => own)).toBe('ok');
     expect((await lastRows(d.runId, 1))[0]).toEqual({ type: 'RECORD_ENTRY', accepted: false, code: 'ENG-ENTRY-SCHEMA' });
   }, 300_000);
+
+  it('[DI-05][DI-10][DI-34] round 7: a batch is issued only with a request its MBR accepts, as the engine checks it at issue: written past the engine with the state of an honest request, a request naming L2409-0017 as its batch size, a market, a variant or an input, or giving an input of another type, is refused (EBMR-EXE-126) and no batch holds it; the honest issue is recorded', async () => {
+    const d = await startedRun();
+    const run = await runContext(sbx.db.admin, d.runId);
+    const issuer = personaIn(sbx, 'issuer');
+    const issueAs = async (forge: (request: Json) => void = () => undefined): Promise<string> =>
+      messageOf(
+        withCommand(sbx.db.app, await actorOf(sbx, d.browser('issuer'), 'issuer'), async (c) => {
+          const batchId = randomUUID();
+          const begun = await execution.beginIssue(c, batchId);
+          const request: engine.IssueRequest = {
+            batchId, batchNumber: begun.batchNumber, batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {},
+            inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'F12 round 7' } }, issuedBy: { id: issuer.personId, kind: 'PERSON', roles: [] },
+          };
+          const r = engine.issue(run.def, request, { nowUs: begun.nowUs });
+          const recorded = engine.encode(request) as Json;
+          forge(recorded);
+          await execution.issueExecution(c, {
+            batchId, packageHash: run.batch.packageHash, batchNumber: begun.batchNumber, request: recorded as engine.JsonValue, policy: execution.pinnedPolicy(run.def.policy),
+            registryFingerprint: run.def.registry.fingerprint(), engineVersion: engine.ENGINE_VERSION, nowUs: begun.nowUs, state: r.state, events: r.events,
+            contents: engine.changedContents(run.def, undefined, r.state), evidence: { packageHash: run.batch.packageHash },
+          });
+        }),
+      );
+    const inputs = (request: Json): Json => request['inputs'] as Json;
+    const outcomes = {
+      batchSize: await issueAs((q) => void (q['batchSize'] = 'L2409-0017')),
+      market: await issueAs((q) => void (q['marketSet'] = ['IN', 'L2409-0017'])),
+      variant: await issueAs((q) => void (q['variants'] = { 'L2409-0017': 'X' })),
+      input: await issueAs((q) => void (inputs(q)['L2409-0017'] = { value: { kind: 'TEXT', value: 'X' }, source: 'F12 round 7' })),
+      inputType: await issueAs((q) => void (inputs(q)['tabletsPerBatch'] = { value: { kind: 'TEXT', value: 'L2409-0017' }, source: 'F12 round 7' })),
+    };
+    const ISSUE = String.raw`\. A batch is issued only with a request its MBR accepts, as the engine checks it at issue, so nothing sits in the record unread \(DI-05, DI-10, DI-34\)\. \[EBMR-EXE-126\]$`;
+    const head = String.raw`^The issue request of test batch TEST-B\d{2}-\d{4} cannot be recorded: `;
+    expect(unmatched(outcomes, {
+      batchSize: new RegExp(head + String.raw`the batch size L2409-0017 is not one of the approved sizes of its MBR \(ENG-ISSUE-SIZE\)` + ISSUE),
+      market: new RegExp(head + String.raw`its market set names L2409-0017, a market its MBR is not approved for \(ENG-ISSUE-MARKETS\)` + ISSUE),
+      variant: new RegExp(head + String.raw`it names L2409-0017, which is not a variant of its MBR \(ENG-ISSUE-VARIANT\)` + ISSUE),
+      input: new RegExp(head + String.raw`it gives L2409-0017, which is not a header or master-data input of its MBR \(ENG-ISSUE-INPUT\)` + ISSUE),
+      inputType: new RegExp(head + String.raw`input tabletsPerBatch is not given as its declared type COUNT \(ENG-ISSUE-INPUT\)` + ISSUE),
+    })).toEqual({});
+    const held = await sbx.db.admin.query<{ n: string }>("select count(*)::text as n from recipe.batch_execution where issue_request::text like '%L2409-0017%' or batch_size = 'L2409-0017'");
+    expect(held.rows[0]?.n).toBe('0');
+    expect(await issueAs()).toBe('ok');
+  }, 300_000);
 });
