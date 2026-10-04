@@ -143,6 +143,7 @@ tests:
   - "packages/kernel/test/mutation/connection-roles.test.ts > the listener's share of the connections (kernel 0980) > [DI-17][DI-30][PR-20] a share of exactly one listener's 8 is accepted, and so is a share that leaves the application roles exactly one slot"
   - "packages/kernel/test/mutation/connection-roles.test.ts > the listener's share of the connections (kernel 0980) > [DI-17][DI-30][PR-20] each pair is levelled from its own roles: on a cluster without the sandbox role the GMP pair is levelled and the sandbox listener left as it was"
   - "packages/recipe-core/test/mutation/execution-row-shape.test.ts > the evidence a row records (recipe.row_evidence_problem, 0335) > [DI-05][DI-30][PR-18][PR-20] an entry is read only as the entry of a RECORD_ENTRY command, and only as an object: a weighing's evidence beside another command that carries a weighing, or beside an entry that is a text, is refused by what that command records"
+  - "apps/tablets-server/test/mutation/signed-content.test.ts > a verifier signs the check its step requires when the row is recorded (recipe-core 0297, P37) > [DI-35][PR-14][PR-20][INV-10] a block check meaning a release commits while a VERIFY waits to read its step's meanings: the VERIFY signed with the check the step no longer requires is refused by the second check, which names the check now required (EBMR-EXE-051); nothing is recorded or signed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

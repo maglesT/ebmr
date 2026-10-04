@@ -75,6 +75,7 @@ tests:
   - "packages/ui-kit/test/identity/signed-content.test.tsx > what is shown as signed, and what is shown beside it (CN1) > [DI-37][DI-36] CN1: a step shows as signed only the exception its content holds, as raised; its status and the act exception are shown apart, labelled not signed"
   - "packages/ui-kit/test/identity/signed-content.test.tsx > what is shown as signed, and what is shown beside it (CN1) > [DI-37][DI-36] CN1: a stage shows its steps as signed without open counts; its exceptions and open counts are shown apart"
   - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
+  - "apps/tablets-server/test/mutation/signed-content.test.ts > the content provider: a record that is not there is not signable (recipe-core 0319) > [DI-37][DI-36] an id that is not a record id of this system, or names no stored record, is answered as not there; the record itself is there"
 clauses:
   - clause: "Sign a step, then view it on screen, in the PDF and in the export. All elements appear."
     tests:

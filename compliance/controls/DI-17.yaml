@@ -300,6 +300,9 @@ tests:
   - "packages/kernel/test/mutation/connection-roles.test.ts > the listener's share of the connections (kernel 0980) > [DI-17][DI-30][PR-20] each pair is levelled from its own roles: on a cluster without the sandbox role the GMP pair is levelled and the sandbox listener left as it was"
   - "packages/kernel/test/mutation/sandbox-and-import.test.ts > the installation is bootstrapped once (kernel 1000) > [DI-16][DI-17] once the first administrator and process owner hold their grants, a second bootstrap is refused (EBMR-IAM-190) and writes nothing"
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > a command on an unknown family or version is refused as unknown (DI-17) > [DI-17][PR-06] every command names the unknown family or version (EBMR-RCP-010, -020) before it checks a permission, a reason or a kind, and writes nothing"
+  - "apps/tablets-server/test/mutation/device-readings.test.ts > gateway sessions: binding, resolution, the session of a reading command, refusals on record > [DI-31][DI-17] a SERVICE identity on its own SERVER device (the sweeper) cannot open a gateway session (EBMR-DEV-023)"
+  - "apps/tablets-server/test/mutation/device-readings.test.ts > gateway sessions: binding, resolution, the session of a reading command, refusals on record > [DI-31][DI-17] a bound token resolves to its own session, account, enrolment and the roles the account holds now"
+  - "apps/tablets-server/test/mutation/device-readings.test.ts > claims: who may claim, the claim's own arguments, and readings that reached the table without ingestion > [DI-17][INV-40] a person who can neither execute steps nor dispense (a verifier at the DISP-1 kiosk) neither claims nor alerts"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

@@ -137,6 +137,7 @@ tests:
   - "packages/recipe-core/test/mutation/involvement-and-independence.test.ts > recipe.command_step_key: the step instance a command acts on (INV-03, PR-13, PR-49) > [INV-03][PR-13][PR-49] a command that acts on no step names none even when its recorded JSON carries a step or a point, and a correction names none when its point is not a string id or the stored point names no step as a string (fail closed: a restore landed it so)"
   - "packages/recipe-core/test/mutation/limit-exceptions.test.ts > a computed value and the exception a value names (recipe.limit_verdicts, recipe.limit_exceptions_problem) > [PR-08][PR-49][DI-26][INV-41] a value outside its limits names the exception its verdict raises: a value that names none (no list of exceptions at all) is refused"
   - "packages/recipe-core/test/mutation/limit-exceptions.test.ts > the helpers' own contracts where the guard never reaches a branch (NULL: the database cannot judge as the engine does) > [PR-08][PR-49] recipe.limit_exception_record: a verdict that breaches no tier, a rank outside 1-3, or a kind other than PARAMETER, CALCULATION or YIELD raises nothing (NULL)"
+  - "apps/tablets-server/test/mutation/signed-content.test.ts > the disposition an exception's signature covers is the one proposed for that exception (recipe-core 0210, 0295) > [PR-49][DI-37][INV-10] with proposals made for two exceptions, each exception's signable text holds its own proposal; the honest disposition of the first is signed and stays VALID"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
