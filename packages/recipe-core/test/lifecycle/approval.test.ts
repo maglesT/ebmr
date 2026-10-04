@@ -6,7 +6,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../../kernel/src/db/command.ts';
-import { challengeFor, cmd, ensureSealKey } from '../../../kernel/test/esig/helpers.ts';
+import { challengeFor, cmd, ensureSealKey, signatureAuth } from '../../../kernel/test/esig/helpers.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { approvePolicyVersion } from '../../../kernel/test/market/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
@@ -53,6 +53,20 @@ const FORGED_VALUES = `select 'mbr_version', $1, 'mbr_version:' || $1, c.content
   iam.policy_text('site.zone'), '+00:00', $4::text, '{}'::jsonb, 'forged'
   from esig.challenge c where c.id = $2`;
 
+/**
+ * The forged row as kernel 1112 still lets owner-level code write it: exactly what the challenge names (record,
+ * content, meaning and that meaning type's wording, signer, session, terminal) and an authentication event of the
+ * signer made for the challenge ($5), consumed in the forging transaction. The authority evaluation, role and
+ * independence checks of esig.sign are what it skips. ($1 version id, $2 challenge id, $3 role code, $4 record state.)
+ */
+const FORGED_FROM_CHALLENGE = `select c.aggregate_type, c.aggregate_id, c.aggregate_ref, c.content_version, c.content_hash, c.meaning_code, c.meaning_version,
+  t.title, t.meaning_text, c.signer_person, c.signer_account, 'forged', 'forged', $3, 'forged', c.session_id, c.session_person, c.cosignature,
+  c.device_id, e.id, e.method, e.components, 'ALL', gen_random_uuid(), c.id, gen_random_uuid(),
+  iam.policy_text('site.zone'), '+00:00', $4::text, '{}'::jsonb, 'forged'
+  from esig.challenge c join esig.meaning_type t on t.code = c.meaning_code and t.version = c.meaning_version
+  join iam.auth_event e on e.id = $5::uuid
+  where c.id = $2 and c.aggregate_id = $1`;
+
 const FORGED_SEAL = `insert into esig.signature_seal (signature_id, aggregate_ref, key_id, algorithm, payload_sha256, seal)
   values ($1, 'mbr_version:' || $2, 'test-hmac-1', 'HMAC-SHA256', repeat('0', 64), encode(sha256('x'), 'base64'))`;
 
@@ -60,10 +74,38 @@ const FORGED_SEAL = `insert into esig.signature_seal (signature_id, aggregate_re
  * An owner-level writer forges a sealed signature row that passes the engine's SIGNATURE hook: the
  * attack INV-04's database guard must stop. The row is inserted in a command of the signer, naming
  * its challenge exactly as esig.sign does (so the insert is audited, after the transition that
- * entered `recordState`, and bound to that state, kernel 0230/0910), but without the e-signature
- * module's authentication, authority and independence checks (EBMR-ESIG-043/044).
+ * entered `recordState`, and bound to that state, kernel 0230/0910). Since kernel 1112 the signature
+ * guard holds the row to its challenge and to an authentication of the signer consumed for it in the
+ * same transaction, so the forger authenticates the signer for the challenge and consumes the event as
+ * esig.sign does; it still skips the e-signature module's authority and independence checks
+ * (EBMR-ESIG-040, 043, 044), which is what the machine's guards must catch.
  */
 async function forgeSignature(signer: SeededActor, versionId: string, meaning: 'CHECKED' | 'APPROVED', recordState: string): Promise<string> {
+  await ensureSealKey(db);
+  const ch = await challengeFor(db, signer, versionId, { meaning, aggregateType: 'mbr_version' });
+  const authEvent = await signatureAuth(db, signer, signer, ch.challengeId);
+  return withCommand(db.admin, await cmd(db, signer), async (c) => {
+    await c.query("select iam.consume_auth_event($1, $2, $3, interval '5 minutes')", [authEvent, signer.personId, ch.challengeId]);
+    await c.query("select set_config('esig.signing_challenge', $1, true)", [ch.challengeId]);
+    const { rows } = await c.query<{ id: string }>(`insert into esig.signature (${FORGED_COLUMNS}) ${FORGED_FROM_CHALLENGE} returning id`, [
+      versionId,
+      ch.challengeId,
+      signer.roleCode,
+      recordState,
+      authEvent,
+    ]);
+    const id = rows[0]?.id ?? '';
+    await c.query(FORGED_SEAL, [id, versionId]);
+    return id;
+  });
+}
+
+/**
+ * The forgery kernel 1112 refuses (D11 found again in the e-signature module): the signing marker set by hand for the
+ * signer's open challenge, the meaning wording not the meaning type's and an authentication event nobody made, sealed.
+ * Before 1112 it was accepted and committed.
+ */
+async function forgeOnMarkerAlone(signer: SeededActor, versionId: string, meaning: 'CHECKED' | 'APPROVED', recordState: string): Promise<string> {
   await ensureSealKey(db);
   const ch = await challengeFor(db, signer, versionId, { meaning, aggregateType: 'mbr_version' });
   return withCommand(db.admin, await cmd(db, signer), async (c) => {
@@ -162,7 +204,11 @@ describe('preparation, independent check and QA approval (PR-02, INV-04)', () =>
     await expect(w.run(w.cast.checker, (c) => lc.checkVersion(c, v.versionId, s.version, replica))).rejects.toThrow(
       /EBMR-PLAT-008 .*applied while the record was in state \(none\)/,
     );
-    // Even a forged, sealed CHECKED signature of the author that passes the hook is refused by the database guard (INV-04).
+    // A CHECKED row written on the signing marker alone, with wording and an authentication its challenge does not back,
+    // is refused by the signature guard itself (kernel 1112).
+    await expect(forgeOnMarkerAlone(authorAsChecker, v.versionId, 'CHECKED', 'SUBMITTED')).rejects.toThrow(/EBMR-ESIG-065/);
+    // Even a forged, sealed CHECKED signature of the author that passes the hook and the signature guard (the author
+    // authenticated for it) is refused by the machine's database guard (INV-04).
     const forged = await forgeSignature(authorAsChecker, v.versionId, 'CHECKED', 'SUBMITTED');
     await expect(w.run(w.cast.checker, (c) => lc.checkVersion(c, v.versionId, s.version, forged))).rejects.toThrow(
       /mbr_version\.checker_independent: the author cannot check their own MBR version/,

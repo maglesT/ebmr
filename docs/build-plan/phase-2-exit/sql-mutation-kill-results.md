@@ -146,6 +146,17 @@ Fixed:
   state-engine-rows (`packages/kernel/test/mutation/state-engine-rows.test.ts`). The kill test for
   `recipe.guard_in_flight_dispositioned#3` now shows the owner-level forged row refused and arranges it as the
   superuser with triggers off, taking it away before the approval; it still kills the mutant.
+  The same fault, found while looking for it elsewhere: `esig.signature_guard` took a signature row on the signing
+  marker alone (`esig.signing_challenge`, set by `esig.sign` and by any role with `set_config`), so owner-level code
+  could insert a signature for an open challenge naming another signer, content hash or meaning wording, with an
+  authentication event nobody made. Fixed in kernel 1112 (decision D11.2): whatever the marker says, the row names
+  exactly what its challenge names and that meaning type's wording (EBMR-ESIG-065), and its authentication event is the
+  signer's own, made for that challenge on its terminal, with the method and components the row records, consumed for
+  a signature in the same transaction (EBMR-ESIG-066). Tests: `packages/kernel/test/esig/signing.test.ts` and
+  `packages/kernel/test/mutation/signature-invalidation.test.ts` ([INV-10][DI-37], the forged rows refused, a row
+  backed by its challenge and a consumed event taken); the recipe-core approval tests now forge their CHECKED and
+  APPROVED rows the way 1112 leaves possible (the signer authenticated, the event consumed) and first show the
+  marker-alone forgery refused; their machine guards are proved as before.
 - **D13. Evidence listener: the hold ended before the time it was announced.** The tick prune deleted by tick time,
   but the hold by another key's run is measured from the time the tick was closed, so a late-closed tick was pruned
   early, the hold ended early, and the `heldUntilUs` the database had already returned was too late. Fixed in tablets
