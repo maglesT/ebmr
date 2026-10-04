@@ -108,6 +108,8 @@ tests:
   - "packages/integration-sdk/test/scale/mt-sics.test.ts > MT-SICS codec > [DI-31] a garbled line is refused, never read as a weight (fast-check over arbitrary bytes)"
   - "packages/integration-sdk/test/scale/reading.test.ts > scale reading seal > [DI-31] the canonical text is a fixed-order JSON array (golden vector)"
   - "packages/integration-sdk/test/scale/reading.test.ts > scale reading seal > [DI-31] a sealed reading verifies; any altered field, hash or signature is refused"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 7: a row records the engine command of its type with exactly its members, each of its JSON type, and the evidence the server records (DI-05, DI-30) > [DI-05][DI-30][DI-31][DI-32][PR-18][PR-20] a row's command id is one the server gives, its signatures name a signature (or the dry run's placeholder), a meaning of the kernel and the person who gives them, and its evidence is exactly what the server records with it: the server's own rows pass, and the round-6 verification's probe C and every member forged into evidence are refused"
+  - "apps/tablets-server/test/execution/db-guards-used-readings.test.ts > F12 round 7: the readings a device weighing uses are recorded as stored (DI-05, DI-31, DI-32) > [DI-05][DI-31][DI-32] F12 round 7: written past the server, a device weighing whose used readings carry a raw line L2409-0017, another device, capture time, trust or value than the stored reading, a member of its own, or the gross first is refused (EBMR-EXE-124), and nothing holds L2409-0017 or uses the readings; the honest weighing is recorded with them"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
