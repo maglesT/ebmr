@@ -595,7 +595,7 @@ describe('whether the gate may count a scale unusable (tab.manual_path_verdict, 
     });
   });
 
-  it('[DI-30][PR-20] the API report is ANSWERED only by an answer after it was made; one at its very instant does not answer it, and a report seen at the window\'s very start is YOUNG', async () => {
+  it('[DI-30][PR-20] the API report counts until the gateway\'s API answers: an answer before the report does not answer it, one at its very instant or after does (ANSWERED, tablets 0600); a report seen at the window\'s very start is YOUNG', async () => {
     const v = await rolledBack(async (c) => {
       const t = await cleanSlate(c);
       const from = await shift(c, t, -10);
@@ -603,19 +603,28 @@ describe('whether the gate may count a scale unusable (tab.manual_path_verdict, 
       const ok = hb({ state: 'ONLINE', serial: 'SIM-0001', reportedAt: await shift(c, t, -1) });
       const changed = await shift(c, t, -30);
       await unreachableSince(c, changed, await shift(c, t, -20));
-      // An answer recorded at the very microsecond of the report (written by hand).
-      await c.query("insert into tab.gateway_api_answer (gateway_key_id, answered_at, detail) values ($1, $2, 'test: answered')", [key1, changed]);
+      const answer = async (at: string) => c.query("insert into tab.gateway_api_answer (gateway_key_id, answered_at, detail) values ($1, $2, 'test: answered')", [key1, at]);
+      const unanswered = await verdict(c, ok, from, attested);
+      // Answers recorded a microsecond before the report, then at its very microsecond (written by hand: the listener and
+      // the monitor read the database clock on two connections), then after it.
+      await answer(await shift(c, changed, -0.000001));
+      const before = await verdict(c, ok, from, attested);
+      await answer(changed);
       const sameInstant = await verdict(c, ok, from, attested);
-      await c.query("insert into tab.gateway_api_answer (gateway_key_id, answered_at, detail) values ($1, $2, 'test: answered')", [key1, await shift(c, changed, 0.000001)]);
+      await c.query('delete from tab.gateway_api_answer where gateway_key_id = $1', [key1]);
+      await answer(await shift(c, changed, 0.000001));
       const after = await verdict(c, ok, from, attested);
       await c.query('delete from tab.gateway_api_answer where gateway_key_id = $1', [key1]);
       await c.query('update tab.gateway_api_contact set seen_at = $2 where gateway_key_id = $1', [key1, from]);
       const seenAtStart = await verdict(c, ok, from, attested);
-      return { sameInstant, after, seenAtStart };
+      return { unanswered, before, sameInstant, after, seenAtStart };
     });
+    const answered = { status: 'ONLINE', reason: null, why: 'ANSWERED', detail: API_REASON };
     expect(v).toEqual({
-      sameInstant: { status: 'OFFLINE', reason: API_REASON },
-      after: { status: 'ONLINE', reason: null, why: 'ANSWERED', detail: API_REASON },
+      unanswered: { status: 'OFFLINE', reason: API_REASON },
+      before: { status: 'OFFLINE', reason: API_REASON },
+      sameInstant: answered,
+      after: answered,
       seenAtStart: { status: 'ONLINE', reason: null, why: 'YOUNG', detail: API_REASON },
     });
   });
@@ -703,6 +712,28 @@ async function whileRoomHeld<T>(room: string, work: () => Promise<T>): Promise<T
   }
 }
 
+/**
+ * The scales of DISP-1 as recorded, written by hand as the gateway's heartbeats would have left them: TEST-BAL-00
+ * OFFLINE for a minute and reported now (it counts as unusable), TEST-BAL-01 ONLINE with its serial and last reported
+ * `bal01AgoS` seconds ago; no receipt and no API report of TEST-GW-01 left.
+ */
+async function craftDisp1(bal01AgoS: number): Promise<void> {
+  await rig.server.db.admin.query('delete from tab.heartbeat_receipt where gateway_key_id = $1', [key1]);
+  await rig.server.db.admin.query('delete from tab.gateway_api_answer where gateway_key_id = $1', [key1]);
+  await rig.server.db.admin.query('delete from tab.gateway_api_contact where gateway_key_id = $1', [key1]);
+  await rig.server.db.admin.query(
+    `insert into tab.instrument_heartbeat (instrument_device_id, gateway_key_id, state, serial, reported_at, not_ready, written_xact, offline_since)
+     select d.id, $1, case d.code when 'TEST-BAL-00' then 'OFFLINE' else 'ONLINE' end, case d.code when 'TEST-BAL-00' then null else 'SIM-0001' end,
+            case d.code when 'TEST-BAL-00' then clock_timestamp() else clock_timestamp() - make_interval(secs => $2::float8) end, null, null,
+            case d.code when 'TEST-BAL-00' then clock_timestamp() - interval '1 minute' end
+       from iam.device d where d.code in ('TEST-BAL-00', 'TEST-BAL-01')
+     on conflict (instrument_device_id) do update
+       set gateway_key_id = excluded.gateway_key_id, state = excluded.state, serial = excluded.serial, reported_at = excluded.reported_at,
+           not_ready = null, written_xact = null, offline_since = excluded.offline_since`,
+    [key1, bal01AgoS],
+  );
+}
+
 describe('the gate of hand-keyed weighings (tab.manual_weighing_check, tablets 0350)', () => {
   it('[DI-30][PR-20] a hand-keyed weighing written in a REPEATABLE READ or SERIALIZABLE transaction is refused (EBMR-EXE-074): the scales\' reports are read as committed when it is written; nothing is recorded', async () => {
     const before = (await rowsOf(rig.server, run.runId)).length;
@@ -743,20 +774,7 @@ describe('the gate of hand-keyed weighings (tab.manual_weighing_check, tablets 0
     const before = (await rowsOf(rig.server, run.runId)).length;
     // TEST-BAL-00 recorded OFFLINE for a minute (counts); TEST-BAL-01 last recorded a minute ago, while the listener
     // keeps receiving heartbeats naming it (written by hand: the gateway's heartbeats cannot be held up on demand).
-    await rig.server.db.admin.query('delete from tab.heartbeat_receipt where gateway_key_id = $1', [key1]);
-    await rig.server.db.admin.query('delete from tab.gateway_api_contact where gateway_key_id = $1', [key1]);
-    await rig.server.db.admin.query(
-      `insert into tab.instrument_heartbeat (instrument_device_id, gateway_key_id, state, serial, reported_at, not_ready, written_xact, offline_since)
-       select d.id, $1, case d.code when 'TEST-BAL-00' then 'OFFLINE' else 'ONLINE' end, case d.code when 'TEST-BAL-00' then null else 'SIM-0001' end,
-              case d.code when 'TEST-BAL-00' then clock_timestamp() else clock_timestamp() - interval '1 minute' end, null, null,
-              case d.code when 'TEST-BAL-00' then clock_timestamp() - interval '1 minute' end
-         from iam.device d where d.code in ('TEST-BAL-00', 'TEST-BAL-01')
-       on conflict (instrument_device_id) do update
-         set gateway_key_id = excluded.gateway_key_id, state = excluded.state, serial = excluded.serial, reported_at = excluded.reported_at,
-             not_ready = null, written_xact = null, offline_since = excluded.offline_since`,
-      [key1],
-    );
-    expect((await rig.server.db.admin.query("select count(*)::int as n from tab.instrument_heartbeat h join iam.device d on d.id = h.instrument_device_id where d.code in ('TEST-BAL-00', 'TEST-BAL-01')")).rows[0]).toEqual({ n: 2 });
+    await craftDisp1(60);
     expect(await receipt([online('TEST-BAL-01', 'SIM-0001')])).toMatchObject({ received: true });
     expect(await messageOf(forgedWeighingRow(rig, run))).toMatch(
       /Scale TEST-BAL-01 of room DISP-1 is shown offline \(no heartbeat from the site gateway in the last 10 seconds\), but heartbeats of the site gateway that name it have arrived since 10 seconds before this weighing began and were not recorded, and a heartbeat held up or cut off on its way into the record is no proof that the scale cannot be used\. Nothing is keyed by hand until its heartbeats are recorded again or have stopped arriving for 10 seconds \(DI-30, PR-20\)\. \[EBMR-EXE-074\]$/,
@@ -765,7 +783,32 @@ describe('the gate of hand-keyed weighings (tab.manual_weighing_check, tablets 0
     await heartbeat([online('TEST-BAL-01', 'SIM-0001'), offline('TEST-BAL-00')]);
   });
 
-  it('[DI-30][DI-32][PR-20] the gate reads the entry of a RECORD_ENTRY command only: a start of the step the engine refused is recorded with its refusal, even when its command carries an `entry` member naming a weighing of another source', async () => {
+  it('[DI-30][PR-20] beside a scale whose heartbeat is ONLINE, the report that the gateway API cannot be reached does not open the manual path once the API answered at the very instant the report was made (EBMR-EXE-074, ANSWERED; tablets 0600); nothing is recorded', async () => {
+    const before = (await rowsOf(rig.server, run.runId)).length;
+    // TEST-BAL-00 counts as unusable, TEST-BAL-01 reported ONLINE a second ago. The monitor's report changed 30 s ago and
+    // was seen 20 s ago; the listener recorded an answer of the API at the very microsecond of the report (written by
+    // hand: the two transactions read the database clock on two connections).
+    await craftDisp1(1);
+    await rig.server.db.admin.query(
+      `with t as (select clock_timestamp() - interval '30 seconds' as changed)
+       insert into tab.gateway_api_contact (gateway_key_id, reachable, detail, observed_at, changed_at, seen_at) select $1, false, 'test: no answer', changed, changed, changed + interval '10 seconds' from t`,
+      [key1],
+    );
+    await rig.server.db.admin.query("insert into tab.gateway_api_answer (gateway_key_id, answered_at, detail) select gateway_key_id, changed_at, 'test: answered' from tab.gateway_api_contact where gateway_key_id = $1", [key1]);
+    try {
+      expect(await messageOf(forgedWeighingRow(rig, run))).toMatch(
+        new RegExp(
+          `Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\\. The report that it cannot be used \\(${API_REASON.replace(/[()]/g, '\\$&')}\\) is answered: the gateway's API answered the server after that report was made, so it does not open the manual path; capture the weight from the scale \\(DI-30, PR-20\\)\\. \\[EBMR-EXE-074\\]$`,
+        ),
+      );
+      expect((await rowsOf(rig.server, run.runId)).length).toBe(before);
+    } finally {
+      await rig.server.db.admin.query('delete from tab.gateway_api_answer where gateway_key_id = $1', [key1]);
+      await rig.server.db.admin.query('delete from tab.gateway_api_contact where gateway_key_id = $1', [key1]);
+    }
+  });
+
+  it('[DI-30][DI-32][PR-20] the gate reads the entry of a RECORD_ENTRY command only: a start of the step the engine refused, whose command carries an `entry` member naming a weighing of another source, is never refused by the gate', async () => {
     const ctx = await runContext(rig.server.db.admin, run.runId);
     const operator = await actorOf(rig.server, run.browser('operator1'), 'operator1');
     const outcome = await messageOf(
@@ -780,6 +823,14 @@ describe('the gate of hand-keyed weighings (tab.manual_weighing_check, tablets 0
         expect(r.accepted).toBe(false);
       }),
     );
+    // Where recipe-core 0335 holds every command to the members its type declares (its trigger zz_execution_row_shape,
+    // checked once the row is written, after this gate), the stray member is refused there (EBMR-EXE-126); before it,
+    // the row is recorded with the engine's refusal. Either way the gate (BEFORE INSERT) lets the row through.
+    const rowShape = ((await rig.server.db.admin.query("select 1 from pg_catalog.pg_trigger where tgname = 'zz_execution_row_shape'")).rowCount ?? 0) > 0;
+    if (rowShape) {
+      expect(outcome).toMatch(/\[EBMR-EXE-126\]/);
+      return;
+    }
     expect(outcome).toBe('ok');
     const last = (await rowsOf(rig.server, run.runId)).at(-1);
     const row = await rig.server.db.admin.query<{ type: string; accepted: boolean; code: string; entry: Json }>(
