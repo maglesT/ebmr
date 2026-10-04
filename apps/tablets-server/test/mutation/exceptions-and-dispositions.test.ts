@@ -1,6 +1,6 @@
 /**
  * Proposals, signed decisions and the corrections that need an approval, through the store (SQL mutation group
- * "exceptions-and-dispositions": recipe-core 0270, 0295, 0297, 0331). These tests close the gaps the SQL mutation run
+ * "exceptions-and-dispositions": recipe-core 0270, 0295, 0297, 0331, 0344). These tests close the gaps the SQL mutation run
  * (tools/sql-mutation) found in the group's server tests, which drive the server: its own checks refuse most forgeries
  * before the database sees them, and the database's refusals were asserted by their code only. Here every forgery is
  * written past the server with the application role's own credentials (ADR 0012, ebmr_sandbox here), with signatures
@@ -15,9 +15,12 @@
  *     latest on that record's signed content version (not another record's), prepared by the signer in the command that
  *     asked for the signature, and recorded exactly (each fact on its own);
  *   - recipe.correction_needs_approval: a value the batch's own MBR declares NON_CRITICAL is corrected without an
- *     approval; any other needs one, whatever other parameters or other batches declare.
+ *     approval; any other needs one, whatever other parameters or other batches declare;
+ *   - recipe.check_exception_changes (recipe-core 0344): the row that decides a loop's exit is judged against the
+ *     endpoint's limits although it changes no value, so the exit cannot leave its endpoint waiting and drop the breach
+ *     its verdict raises (a defect the mutation run found: before 0344 that row was stored).
  *
- * Controls: PR-45, PR-49, DI-24, DI-26, DI-37, INV-09, INV-10; S25 (decision on corrections).
+ * Controls: PR-08, PR-45, PR-49, DI-07, DI-24, DI-26, DI-37, INV-09, INV-10, INV-19; S25 (decision on corrections).
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -483,6 +486,69 @@ describe('recipe.check_disposition_proposal: the disposition recorded is the one
     expect(versions[0], 'SETUP: both proposals are on the same content version').toBe(versions[1]);
     expect(await exceptionRecord(d, first)).toEqual({ status: 'DISPOSITIONED', disposition: { outcome: 'NO_IMPACT', justification: 'Reprint reconciled.' }, signatures: 1 });
     expect(await exceptionRecord(d, second)).toEqual({ status: 'OPEN', disposition: null, signatures: 0 });
+    expect(await violations(sbx)).toEqual([]);
+  }, 300_000);
+});
+
+describe('recipe.check_exception_changes: a loop\'s exit gives its endpoint the verdict of its limits (PR-08, PR-49, INV-19)', () => {
+  /**
+   * dc-mini with a drying loop first in the dispensing preparation: one LOD test per iteration, the loop exits once
+   * LOD <= 2 %, and LOD has an internal action limit of 0.0-1.0 %, judged at the loop's exit (ADR 0004).
+   */
+  const withDryingLoop = (): flow.MbrContent =>
+    dcMiniVariant((prep, c) => {
+      const blendTime = (c['parameters'] as Json[]).find((p) => p['id'] === 'blendTime') as Json;
+      const lod: Json = {
+        ...blendTime, id: 'lod', name: 'Loss on drying', unit: '%', precision: { kind: 'DECIMALS', digits: 1 }, role: 'PROCESS_ENDPOINT', criticality: 'NON_CRITICAL', riskClass: 'LOW', evidence: 'NONE',
+        limits: { unit: '%', ranges: [{ tier: 'INTERNAL_ACTION', low: { value: '0.0', inclusive: true }, high: { value: '1.0', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'COMPANY_STANDARD', ref: 'SOP-DRY-001' } }] },
+      };
+      delete lod['target'];
+      (c['parameters'] as Json[]).push(lod);
+      const blend = (((((c['procedure'] as Json)['body'] as Json)['children'] as Json[])[1] as Json)['body'] as Json)['children'] as Json[];
+      const p = (((blend[0] as Json)['body'] as Json)['children'] as Json[]).find((x) => x['id'] === 'p-blend') as Json;
+      const test = { ...p, id: 'p-lod', name: 'LOD test', records: ['lod'], equipment: [], signatures: { perform: { role: 'PRODUCTION_OPERATOR' } } };
+      return [{ kind: 'loop', id: 'L-DRY', name: 'Drying', maxIterations: 3, exit: { condition: 'lod <= 2 [%]', endpoint: 'lod' }, body: { kind: 'sequence', id: 'L-DRY-seq', children: [test] } }, ...prep];
+    });
+
+  it('[PR-08][PR-49][INV-19][DI-26] the row that decides a loop\'s exit and leaves its endpoint waiting, without the breach its verdict raises, is refused although it changes no value; the engine\'s own exit is recorded with that breach', async () => {
+    const d = await driver(withDryingLoop(), ['operator1']);
+    const key = 'p-lod@L-DRY=1';
+    await d.ok('operator1', { type: 'START_STEP', stepKey: key });
+    // 1.5 % ends the loop (<= 2 %) and is outside the internal action limit (0.0-1.0 %).
+    await d.ok('operator1', { type: 'RECORD_DATA', stepKey: key, item: 'lod', value: { kind: 'DECIMAL', value: '1.5', unit: '%' }, source: { mode: 'MANUAL' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: key });
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    /** operator1 completes the iteration through the store: the engine's row, or with its verdict left out. */
+    const exit = async (leaveWaiting: boolean): Promise<string> =>
+      asApp('operator1', async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = { type: 'COMPLETE_LOOP_ITERATION', commandId: randomUUID(), actor: engineActor(who.personId, roles), construct: 'L-DRY', context: [{ construct: 'L-DRY', index: 1 }] };
+        const r = engineResult(tx, command);
+        const raised = Object.values(r.state.exceptions).filter((x) => tx.state.exceptions[x.id] === undefined);
+        expect(raised.map((x) => [x.type, x.tier, x.severity, x.deviationRequired]), 'SETUP: the engine raises the breach at the exit').toEqual([['LIMIT_BREACH', 'INTERNAL_ACTION', 'ACTION', true]]);
+        if (!leaveWaiting) return appendAs(tx, command, r, roles);
+        // The exit is decided, the endpoint keeps waiting as before the row, and the breach is left out with its event.
+        const state = structuredClone(r.state);
+        for (const x of raised) delete state.exceptions[x.id];
+        state.points = structuredClone(tx.state.points);
+        const events = r.events.filter((e) => e.type !== 'EXCEPTION_RAISED');
+        return appendAs(tx, command, { state, events }, roles);
+      });
+    const forged = await exit(true);
+    expect(forged).toMatch(
+      /^The limit verdicts of this COMMAND row are not recorded as the engine gives them: the exit of loop L-DRY \(L-DRY@L-DRY=1\) is not recorded with the verdict the engine gives it: it judges the endpoint lod of that iteration against its limits, and the state gives none of its values that verdict\. .*\(PR-08, PR-49, DI-26\)\. \[EBMR-EXE-044\]$/,
+    );
+    const waiting = await execution.loadState(sbx.db.admin, d.runId);
+    expect(Object.keys(waiting?.state.decisions ?? {})).toEqual([]);
+    expect((await rowsOf(sbx, d.runId)).filter((r) => r.command_type === 'COMPLETE_LOOP_ITERATION')).toEqual([]);
+    // The engine's own exit: the loop ends, the endpoint is judged and its breach raised.
+    expect(await exit(false)).toBe('ok');
+    const judged = (await execution.loadState(sbx.db.admin, d.runId))?.state;
+    expect(Object.values(judged?.decisions ?? {}).map((x) => [x.key, x.outcome])).toEqual([['L-DRY@L-DRY=1', 'EXIT']]);
+    const point = Object.values(judged?.points ?? {}).find((x) => x.item === 'lod');
+    expect({ failed: point?.failed, waiting: point?.evaluation?.requirement === 'ENDPOINT_IN_PROGRESS', exceptions: point?.exceptions.map((x) => judged?.exceptions[x]?.type) }).toEqual({ failed: true, waiting: false, exceptions: ['LIMIT_BREACH'] });
     expect(await violations(sbx)).toEqual([]);
   }, 300_000);
 });
