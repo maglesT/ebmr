@@ -489,7 +489,7 @@ describe('the activation and withdrawal of a market authorisation', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The guard on the record, whoever writes it (recipe-core 0345)
+// The guard on the record, whoever writes it (recipe-core 0371)
 // ---------------------------------------------------------------------------------------------------------------------
 
 describe('the market-authorisation record, whoever writes it (recipe.market_authorisation_guard)', () => {

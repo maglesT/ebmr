@@ -68,7 +68,7 @@ supersedes the signatures in the same transaction (INV-09).
    set, PR-04), kind CURRENT or BRIDGING, scope cells, effective date, regulatory basis; for
    BRIDGING the successor and the end of validity. Whoever writes the record, the table's guard
    refuses one filed under another family than its version's, or naming a successor of another
-   family (EBMR-RCP-094, migration 0345): every INV-17 rule holds per family and trusts it.
+   family (EBMR-RCP-094, migration 0371): every INV-17 rule holds per family and trusts it.
 2. Signatures on aggregate `mbr_market_authorisation`: `MBR_MARKET_AUTHORISED` by QA and
    `REGULATORY_CONFIRMED` by a regulatory-conformity signer, two persons.
 3. `activateMarketAuthorisation` by the QA signer: needs complete evidence (DI-04); takes effect at
