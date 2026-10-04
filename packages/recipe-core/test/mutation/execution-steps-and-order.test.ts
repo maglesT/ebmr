@@ -443,4 +443,11 @@ describe('F67 rounds 2 and 3: the starts and ends the acts and the token record 
     (decisionsOf(unreadable)['R-SUBLOT@'] as Json)['outcome'] = 'two';
     expect(await content(unreadable, 'R-SUBLOT', [])).toBe(false);
   }, 300_000);
+
+  it('[INV-20][DI-27][DI-34] a parallel section without a branch is never finished: its join has nothing to join (the validator refuses such a section, FLOW-CONSTRUCTS)', async () => {
+    const empty = { kind: 'parallel', id: 'P', name: 'Nothing in parallel', branches: [] } as unknown as FlowNode;
+    const mbr = mbrWith(seq('ops', phase('a'), empty, phase('b')));
+    const s = { steps: {}, decisions: {}, nodeEvents: { 'P|START|': { node: 'P', event: 'START', frames: [], at: { $u: '1000000' } } } };
+    expect(await one<boolean>('select recipe.flow_content_left(recipe.flow_tree($1::jsonb), $2::jsonb, $3, $4::jsonb) as v', [mbr, s, 'P', []])).toBe(false);
+  });
 });
