@@ -12,6 +12,13 @@
  * so and waits for the badge. What happened to the previous tap of the same request (`refusal`, e.g. "The badge was
  * not accepted") is shown above the field.
  *
+ * A tap is text that reached the field as one burst of keys (Phase 2 exit follow-up BADGE-AUTOFILL): the field is
+ * marked for browsers and password managers as a one-time code they should neither fill nor save (SecretInput
+ * `noAutofill`), and text that did not arrive key by key in the current burst (a saved secret filled in by the browser
+ * or a password manager, a paste, a drop: the field saw an insertion that was not typed, or holds more characters than
+ * the burst brought keys) is not sent, even when it reads as a badge UID: the prompt says the badge was not tapped and
+ * waits. The first key of a burst empties the field, so a reader's tap after such text still counts.
+ *
  * DemoBadgeReader (DEMO-ONLY, demo installations only) offers one button per demo person of this terminal instead
  * of a physical reader.
  */
@@ -19,7 +26,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { badgeUidOf, type RefusalEnvelope } from '@ebmr/api-contract';
 import { Banner } from '../primitives/Banner.tsx';
 import { Button } from '../primitives/Button.tsx';
-import { SecretInput, takeSecret } from '../primitives/SecretInput.tsx';
+import { clearSecret, SecretInput, takeSecret, wasFilled } from '../primitives/SecretInput.tsx';
 import { icls } from './classes.ts';
 import { RefusalNotice } from './RefusalNotice.tsx';
 
@@ -31,6 +38,9 @@ export const BURST_GAP_MS = 100;
 
 /** What the prompt says when the text entered cannot be a badge UID (nothing is sent). */
 export const NOT_A_BADGE = 'That is not a badge. Nothing was sent: tap your badge on the reader.';
+
+/** What the prompt says when the text did not come from the reader key by key: filled in, pasted or dropped (nothing is sent). */
+export const NOT_TAPPED = 'That was not a tap of the reader: it was filled in or pasted. Nothing was sent: tap your badge on the reader.';
 
 export interface DemoBadge {
   legalName: string;
@@ -75,10 +85,15 @@ export function DemoBadgeReader({ badges, onTap }: { badges: readonly DemoBadge[
 export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds = 30, demoBadges = [], busy = false, refusal = null }: BadgePromptProps) {
   const input = useRef<HTMLInputElement>(null);
   const [left, setLeft] = useState(timeoutSeconds ?? 0);
-  const [notABadge, setNotABadge] = useState(false);
+  const [notABadge, setNotABadge] = useState<'NOT_A_BADGE' | 'NOT_TAPPED' | null>(null);
   const done = useRef(false);
   /** When the last printable key reached the field (the event's own time stamp: no clock is read). */
   const lastKeyAt = useRef<number | null>(null);
+  /**
+   * How many printable keys the current burst brought, compared with what the field holds when it is read
+   * (BADGE-AUTOFILL). A count only: the keys themselves are a badge UID, which never enters React.
+   */
+  const keyed = useRef(0);
 
   useEffect(() => {
     if (timeoutSeconds === null) return;
@@ -88,7 +103,7 @@ export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds
   useEffect(() => {
     if (timeoutSeconds !== null && left === 0 && !done.current) {
       done.current = true;
-      if (input.current) input.current.value = '';
+      clearSecret(input);
       (onTimeout ?? onCancel)?.();
     }
   }, [left, timeoutSeconds, onTimeout, onCancel]);
@@ -97,34 +112,47 @@ export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds
     if (done.current || busy) return;
     const uid = badgeUidOf(text);
     if (!uid) {
-      setNotABadge(true);
+      setNotABadge('NOT_A_BADGE');
       return;
     }
     done.current = true;
-    setNotABadge(false);
+    setNotABadge(null);
     onTap(uid);
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    const filled = wasFilled(input);
+    const burst = keyed.current;
     lastKeyAt.current = null;
+    keyed.current = 0;
     const text = takeSecret(input);
-    if (text.trim()) tap(text);
+    if (!text.trim()) return;
+    // Only what the reader typed in this burst is a tap: text filled in, pasted or dropped is never sent.
+    if (filled || [...text].length !== burst) {
+      if (!done.current && !busy) setNotABadge('NOT_TAPPED');
+      return;
+    }
+    tap(text);
   };
-  // A printable key long after the previous one is not part of a reader's burst: the field starts again with it.
+  // The first printable key, or one long after the previous one, starts a burst: the field starts again with it.
   const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
     if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
     const last = lastKeyAt.current;
     lastKeyAt.current = e.timeStamp;
-    if (last !== null && e.timeStamp - last > BURST_GAP_MS && input.current) input.current.value = '';
+    if (last === null || e.timeStamp - last > BURST_GAP_MS) {
+      clearSecret(input);
+      keyed.current = 0;
+    }
+    keyed.current += 1;
   };
 
   return (
     <div className={icls('badgePrompt')}>
       {refusal ? <RefusalNotice envelope={refusal} tone="warning" /> : null}
-      {notABadge ? <Banner tone="warning" title={NOT_A_BADGE} /> : null}
+      {notABadge ? <Banner tone="warning" title={notABadge === 'NOT_TAPPED' ? NOT_TAPPED : NOT_A_BADGE} /> : null}
       <p>{reason}</p>
       <form onSubmit={submit} onKeyDownCapture={onKeyDown} aria-label="Tap your badge">
-        <SecretInput label="Badge" name="badge" inputRef={input} autoFocus description="Tap your badge on the reader" isDisabled={busy} />
+        <SecretInput label="Badge" name="badge" inputRef={input} autoFocus noAutofill description="Tap your badge on the reader" isDisabled={busy} />
         {timeoutSeconds !== null ? (
           <p className={icls('muted')} aria-live="off">
             {`Waiting for a badge: ${left} s`}
@@ -138,7 +166,8 @@ export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds
             <Button
               onPress={() => {
                 done.current = true;
-                if (input.current) input.current.value = '';
+                keyed.current = 0;
+                clearSecret(input);
                 onCancel();
               }}
             >

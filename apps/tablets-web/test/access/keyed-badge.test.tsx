@@ -125,6 +125,23 @@ describe('F56: the signing badge prompt', () => {
     expect((challenges()[0]?.body?.['attribution'] as { badgeUid?: string }).badgeUid).toBe('04A10000000001');
   });
 
+  it('[DI-14][DI-38][DI-19] BADGE-AUTOFILL: a saved ten-digit secret a browser or password manager fills into the signing Badge field is not sent, although it reads as a badge UID; the reader\'s tap then goes on to the PIN', async () => {
+    startSigning();
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign' }));
+    const field = await screen.findByLabelText<HTMLInputElement>('Badge');
+    expect([field.getAttribute('autocomplete'), field.getAttribute('data-1p-ignore'), field.getAttribute('data-lpignore'), field.getAttribute('data-bwignore')]).toEqual(['one-time-code', 'true', 'true', 'true']);
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(field, '4829137065');
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('That was not a tap of the reader: it was filled in or pasted. Nothing was sent: tap your badge on the reader.')).toBeTruthy();
+    expect(challenges()).toEqual([]);
+    expect(sent.filter((s) => s.path === '/api/session/device-nonce')).toEqual([]);
+    expect(field.value).toBe('');
+    await userEvent.type(screen.getByLabelText('Badge'), '04A10000000001{Enter}');
+    expect(await screen.findByRole('group', { name: 'Enter your PIN to sign' })).toBeTruthy();
+    expect(challenges().map((c) => (c.body?.['attribution'] as { badgeUid?: string }).badgeUid)).toEqual(['04A10000000001']);
+  });
+
   it('[DI-14][DI-38][DI-19] a badge the server does not accept returns to the tap with the refusal in the prompt, never to Close only; the next tap signs', async () => {
     const { outcome } = startSigning();
     await userEvent.click(await screen.findByRole('button', { name: 'Sign' }));

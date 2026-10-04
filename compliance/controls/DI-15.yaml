@@ -85,6 +85,7 @@ tests:
   - "packages/kernel/test/identity/secrets.test.ts > initial secrets (DI-15: delivered to the user, never chosen by the administrator) > [DI-15] an initial service key is 32 random bytes in base64url and passes the service-key rule"
   - "packages/kernel/test/review/f59.test.ts > F59: login names issued in a restore lost window > [INV-27][DI-15] a login name issued before the restore (in the lost window) is never issued again, to anyone"
   - "packages/test-kit/test/seed.test.ts > test-kit installations > [DI-15][DI-20] personas log in with their changed secrets: password in the office, badge and PIN on the kiosk; a kiosk command needs a fresh tap"
+  - "apps/tablets-web/test/session/badge-autofill.test.tsx > BADGE-AUTOFILL: the kiosk sends no secret a browser or password manager filled in > [DI-15][DI-19][DI-38] kiosk first-login change: a new PIN filled in or pasted is not taken (no badge is asked for, nothing is sent); typed key by key it is"
 clauses:
   - clause: "Create an account with a deactivated user's ID. Blocked."
     tests:

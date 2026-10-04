@@ -1,5 +1,6 @@
 export { Button, type ButtonProps } from './Button.tsx';
 export { Field, type FieldProps } from './Field.tsx';
+export { clearSecret, takeSecret, wasFilled } from './SecretInput.tsx';
 export { DecimalField, acceptTyping, decimalProblem, type DecimalFieldProps, type DecimalRules } from './DecimalField.tsx';
 export { Dialog, type DialogProps } from './Dialog.tsx';
 export { StatusChip, type StatusChipProps } from './StatusChip.tsx';
