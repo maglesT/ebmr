@@ -453,7 +453,11 @@ that another command holds is skipped.
     is named as the engine names it: exceptions, entries, data points, computed values and holds by their own
     `<prefix>-<n>` id within the state's counter, stage frames and decisions by their construct and frames in the MBR,
     sub-lots from the batch number, the section's prefix and its indexes (sql 0339, trigger
-    `zzj_execution_state_records`, `state_record_problem`). Free text a type declares (a reason,
+    `zzj_execution_state_records`, `state_record_problem`); and an approval names only engine roles its approver
+    holds through the authority behind the approver's own signature (the signer's declared kernel role, through the
+    permission the kernel evaluated and allowed for it, in `engine_role_map`), a refused row's approval only engine
+    roles (sql 0340, constraint trigger `zz_execution_row_shape_approver`, `approval_roles_problem`; Phase 2 exit review
+    F12, the lane's round-2 verification; decision F12.7). Free text a type declares (a reason,
     a description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
@@ -857,7 +861,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   parameter takes, and an engine version that is not major.minor.patch are refused, each with its reason. Every
   record the golden runs bring into the state passes `state_record_problem` (sql 0339), and one renamed L2409-0017,
   numbered outside its counter, keyed otherwise than by its id, naming a construct, frames, branch or outcome the MBR
-  does not have, or a sub-lot otherwise named, is refused.
+  does not have, or a sub-lot otherwise named, is refused. Round 9 (sql 0340, `approval_roles_problem`): a refused
+  row's approval, and each of an abort's approvals, naming L2409-0017 or a role in lower case is refused, every engine
+  role passes; an accepted row's approval under a signature id the kernel does not have, or the dry run's placeholder,
+  backs no role.
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -1053,6 +1060,11 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   state's, superseded by the honest one, is reported by the replay with the row that superseded it; a challenge for a
   PERFORMED signature of a step instance the run does not have is answered 404 and stores no preparation; the honest
   rows are recorded.
+- `db-guards-approver-roles.test.ts` (Phase 2 exit review F12, round 9; sql 0340): through the application role, on
+  the honest store and engine path, an accepted correction approved by qa1 as QA and L2409-0017 (the lane's round-2
+  verification's probe, which the engine accepts) or as PRODUCTION_SUPERVISOR, which qa1 does not hold, and a refused
+  correction approved as QA and L2409-0017, are refused (EBMR-EXE-126) and no row holds L2409-0017; the honest refused
+  and accepted corrections approved as QA are recorded.
 - `db-guards-used-readings.test.ts` (Phase 2 exit review F12, round 7; tablets sql 0590): a device weighing whose used
   readings carry a raw line L2409-0017, another device, time, trust or value than the stored reading, a member of its
   own or the gross first is refused (EBMR-EXE-124) and uses no reading; the honest weighing uses its readings.

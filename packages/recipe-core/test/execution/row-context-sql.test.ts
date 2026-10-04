@@ -375,3 +375,41 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
   }, 60_000);
 });
 
+describe('F12 round 9: an approval names the engine roles its approver holds (DI-05, DI-30, INV-26; sql 0340)', () => {
+  /** recipe.approval_roles_problem of each [command, accepted]. */
+  async function approvalProblems(cases: readonly (readonly [Json, boolean])[]): Promise<(string | null)[]> {
+    const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+      'select array_agg(recipe.approval_roles_problem(x.v -> 0, (x.v ->> 1)::boolean) order by x.i) as p from jsonb_array_elements($1::jsonb) with ordinality x (v, i)',
+      [JSON.stringify(cases)],
+    );
+    return rows[0]?.p ?? [];
+  }
+  const person = '00000000-0000-4000-8000-000000000001';
+  const approval = (roles: readonly string[], signatureId: string = '00000000-0000-4000-8000-0000000000aa'): Json => ({
+    approver: { id: person, kind: 'PERSON', roles },
+    signature: { id: signatureId, meaning: 'CORRECTION_APPROVED', signer: person },
+  });
+  const correction = (extra: Json): Json => ({ type: 'CORRECT_ENTRY', point: 'DP-1', ...extra });
+
+  it('[DI-05][DI-30][INV-26] round 9: a refused row\'s approval, and each of an abort\'s approvals, names engine roles only, so L2409-0017 and a role in lower case are refused; an accepted row\'s approval names roles only under an e-signature of its approver, so a signature id the kernel does not have, or the dry run\'s placeholder, backs no role', async () => {
+    const cases: Record<string, readonly [readonly [Json, boolean], string | null]> = {
+      refusedHonest: [[correction({ approval: approval(['QA']) }), false], null],
+      refusedEveryEngineRole: [[correction({ approval: approval(['PRODUCTION_OPERATOR', 'DISPENSER', 'PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'STAGE_RESPONSIBLE', 'HEAD_OF_PRODUCTION', 'QA', 'QA_REVIEWER']) }), false], null],
+      refusedNoRole: [[correction({ approval: approval([]) }), false], null],
+      noApproval: [[correction({}), true], null],
+      noApprovalRefused: [[correction({}), false], null],
+      refusedLot: [[correction({ approval: approval(['QA', LOT]) }), false], `command.approval.approver.roles[1] "${LOT}" is not an engine role`],
+      refusedLowerCase: [[correction({ approval: approval(['qa']) }), false], 'command.approval.approver.roles[0] "qa" is not an engine role'],
+      refusedAbortLot: [[{ type: 'ABORT_BATCH', reason: 'x', approvals: [approval(['HEAD_OF_PRODUCTION']), approval(['QA', LOT])] }, false], `command.approvals[1].approver.roles[1] "${LOT}" is not an engine role`],
+      refusedAbortHonest: [[{ type: 'ABORT_BATCH', reason: 'x', approvals: [approval(['HEAD_OF_PRODUCTION']), approval(['QA'])] }, false], null],
+      acceptedUnknownSignature: [[correction({ approval: approval(['QA']) }), true], 'command.approval names no e-signature of its approver, so no role it names is backed by an authority'],
+      acceptedDryRun: [[correction({ approval: approval([], '$dry-run') }), true], 'command.approval names no e-signature of its approver, so no role it names is backed by an authority'],
+      acceptedAbort: [[{ type: 'ABORT_BATCH', reason: 'x', approvals: [approval(['HEAD_OF_PRODUCTION'])] }, true], 'command.approvals[0] names no e-signature of its approver, so no role it names is backed by an authority'],
+      rolesAsText: [[correction({ approval: { ...approval([]), approver: { id: person, kind: 'PERSON', roles: LOT } } }), false], 'command.approval.approver.roles must be a list of engine roles'],
+    };
+    const names = Object.keys(cases);
+    const out = await approvalProblems(names.map((n) => (cases[n] as (typeof cases)[string])[0]));
+    expect(Object.fromEntries(names.map((n, i) => [n, out[i]]))).toEqual(Object.fromEntries(names.map((n) => [n, (cases[n] as (typeof cases)[string])[1]])));
+  }, 60_000);
+});
+
