@@ -259,3 +259,28 @@ describe('inside its own command, every other attempted-misuse check still runs 
     expect(await alertsFor(ev)).toEqual([{ severity: 'HIGH', person_id: colleague.personId, code: 'EBMR-IAM-093' }]);
   });
 });
+
+/**
+ * An edition may let its application role log a failure only through a function of its own (the Tablets edition's
+ * session-checked tab.record_signing_failure, its migration 0620): logSigningFailure then hands the failure's code and
+ * message to the recorder it is given instead of calling esig.record_signing_failure, and still swallows errors.
+ */
+describe('logged through the recorder an edition passes (HIGH-WATER round 5)', () => {
+  it('[DI-19][INV-10] logSigningFailure gives the code and message to the recorder it is given and does not call the kernel function itself; a failing recorder never hides the refusal; without one the kernel function logs it', async () => {
+    const { op } = await signer('OFFICE');
+    const id = await createStub(db, op);
+    const ch = await challengeFor(db, op, id, { meaning: 'PERFORMED' });
+    const seen: [string, string][] = [];
+    await logSigningFailure(db.app, ch.challengeId, new Error('EBMR-IAM-020 the password was wrong (test)'), undefined, {
+      record: (code, message) => {
+        seen.push([code, message]);
+        return Promise.resolve();
+      },
+    });
+    expect(seen).toEqual([['EBMR-IAM-020', 'EBMR-IAM-020 the password was wrong (test)']]);
+    expect(await logged(ch.challengeId)).toEqual([]);
+    await expect(logSigningFailure(db.app, ch.challengeId, new Error('EBMR-IAM-020 again (test)'), undefined, { record: () => Promise.reject(new Error('refused')) })).resolves.toBeUndefined();
+    await logSigningFailure(db.app, ch.challengeId, new Error('EBMR-IAM-020 the password was wrong (test)'));
+    expect(await logged(ch.challengeId)).toEqual([{ code: 'EBMR-IAM-020', misuse: null }]);
+  });
+});

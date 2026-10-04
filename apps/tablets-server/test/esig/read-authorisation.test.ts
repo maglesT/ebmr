@@ -207,7 +207,7 @@ describe('F34: the application role\'s other doors to investigations and GOVERNA
       (await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: content.state ?? null }, sealKey)).signatureId,
     );
     failedChallengeId = (await request()).challengeId;
-    await gmp.db.app.query('select esig.record_signing_failure($1, null, $2, $3)', [failedChallengeId, 'EBMR-IAM-020', 'review F34 test: the password was wrong']);
+    await gmp.db.admin.query('select esig.record_signing_failure($1, null, $2, $3)', [failedChallengeId, 'EBMR-IAM-020', 'review F34 test: the password was wrong']);
     // A content change of the investigation and the invalidation of its signature, as the kernel writes them for a
     // GOVERNANCE-class record whose content changes (owner fixtures: an investigation's own content never changes).
     await withCommand(gmp.db.admin, reason(reviewer), async (c) => {
@@ -699,7 +699,7 @@ describe('HIGH-WATER: the planner\'s view of the signing requests and signatures
       const sealKey = server.built.ctx.sealKey;
       if (!sealKey) throw new Error('the signing server has no seal key');
       await withCommand(server.db.app, reason({ ...approverActor, authEventId: ev.authEventId }), (c) => esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: 'OPEN' }, sealKey));
-      await server.db.app.query('select esig.record_signing_failure($1, null, $2, $3)', [(await request()).challengeId, 'EBMR-IAM-020', 'HIGH-WATER test set-up: the password was wrong']);
+      await server.db.admin.query('select esig.record_signing_failure($1, null, $2, $3)', [(await request()).challengeId, 'EBMR-IAM-020', 'HIGH-WATER test set-up: the password was wrong']);
       closed.set(server, { challengeId: challenge.challengeId, approver });
     }
   });
@@ -781,6 +781,83 @@ describe('HIGH-WATER: the planner\'s view of the signing requests and signatures
       // A locked session reads nothing of it.
       expect(outcome(await b.call(routes.access.lock, { body: {} })), server.kind).toBe('ok');
       expect(await read(own, challengeId), server.kind).toEqual([]);
+    }
+  });
+});
+
+/**
+ * Found while correcting default HW.1 (5) in round 5 of HIGH-WATER: the authentication of a signing (iam.auth_event,
+ * which the application role reads: owner residual F34.2) names its signing request. Given that id,
+ * esig.record_signing_failure, which the application role executed without a session, logged a failure against any
+ * request and, when the authentication it was given was another person's, raised a HIGH security alert naming the
+ * request's record and meaning in iam.security_alert, which the application role also reads. So for a GOVERNANCE-class
+ * signing it told which record and which kind (an investigation's closure, a disposal approval, a restore approval).
+ * Tablets 0620 takes the function from the application role; the server logs a failure through the session-checked
+ * tab.record_signing_failure, for a request made in the session whose token it presents.
+ */
+describe('HIGH-WATER: the signing-failure log of a signing request (tablets 0620)', () => {
+  const made = new Map<TestServer, { challengeId: string; signingEvent: string; approver: GrantedPerson }>();
+
+  /** On each installation a QA reviewer requests an investigation's closure signature and authenticates for it. */
+  beforeAll(async () => {
+    for (const server of [gmp, sbx]) {
+      const label = (name: string): string => (server === sbx ? `TEST-${name}` : name);
+      const fp = terminalOf(server.seed, server === gmp ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+      const subject = await grantedPerson(server, 'QA_REVIEWER', label('Gita Pillai QA reviewer'));
+      const lead = await passwordActor(server.db, await grantedPerson(server, 'CSV_DI_LEAD', label('Rahul Joshi CSV-DI lead')), fp);
+      const approver = await grantedPerson(server, 'QA_REVIEWER', label('Anita Das QA reviewer'));
+      const approverActor = await passwordActor(server.db, approver, fp);
+      const investigation = await withCommand(server.db.app, reason(lead), (c) =>
+        records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a QA reviewer password' }),
+      );
+      await withCommand(server.db.app, reason(approverActor), (c) => identity.acknowledgeEsigPolicy(c));
+      const content = await esig.contentForSigning(server.db.admin, 'di_investigation', investigation);
+      const challenge = await withCommand(server.db.app, reason(approverActor), (c) =>
+        esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: investigation, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' }),
+      );
+      const ev = await identity.authenticate(server.db.authn, { method: 'PASSWORD', identifier: approver.loginName, secret: approver.password, deviceFingerprint: fp, purpose: 'SIGNATURE', challengeId: challenge.challengeId });
+      made.set(server, { challengeId: challenge.challengeId, signingEvent: ev.authEventId, approver });
+    }
+  });
+
+  it('[DI-17][DI-50][DI-19] without a session the application role logs no signing failure against a request it did not make, so no alert names to it the record of a GOVERNANCE-class signing request; the session that made a request still logs its failures, also after signing out, and misuse still raises the alert, on either installation', async () => {
+    for (const server of [gmp, sbx]) {
+      const { challengeId, signingEvent, approver } = made.get(server) ?? { challengeId: '', signingEvent: '', approver: qa };
+      const app = server.db.app;
+      // What the application role holds: the closure's signing authentication names its request.
+      expect((await app.query("select challenge_id::text as id from iam.auth_event where purpose = 'SIGNATURE' and person_id = $1", [approver.personId])).rows, server.kind).toEqual([{ id: challengeId }]);
+      // Two sessions of the same person through the server, each with a signing request of its own.
+      const key = server === gmp ? 'author' : 'operator1';
+      const meaning = server === gmp ? 'PREPARED' : 'PERFORMED';
+      const earlier = await server.asPersona(key);
+      const earlierChallenge = valueOf((await challengeFor(server, earlier, key, await createStub(server, earlier, key), meaning)).r).challengeId;
+      const b = await server.asPersona(key);
+      const own = hashOf(server, b);
+      const stub = await createStub(server, b, key);
+      const stubChallenge = valueOf((await challengeFor(server, b, key, stub, meaning)).r).challengeId;
+      const otherEvent = (await app.query<{ id: string }>('select id::text as id from iam.auth_event where person_id = $1 order by recorded_at desc limit 1', [personaOf(server.seed, key).personId])).rows[0]?.id;
+      // Asked to log a failure against the closure's request, with another person's authentication: refused, without a
+      // session or with the token of a session that did not make that request, and nothing is logged or alerted; so is
+      // a failure against the other session's request.
+      await expect(app.query("select esig.record_signing_failure($1, $2, 'EBMR-IAM-020', 'HIGH-WATER probe')", [challengeId, otherEvent]), server.kind).rejects.toThrow(/permission denied/);
+      for (const token of [own, '0'.repeat(64)]) {
+        await expect(app.query("select tab.record_signing_failure($1, $2, $3, 'EBMR-IAM-020', 'HIGH-WATER probe')", [token, challengeId, otherEvent]), server.kind).rejects.toThrow(/EBMR-ESIG-031/);
+      }
+      await expect(app.query("select tab.record_signing_failure($1, $2, null, 'EBMR-IAM-020', 'HIGH-WATER probe')", [own, earlierChallenge]), server.kind).rejects.toThrow(/EBMR-ESIG-031/);
+      expect((await app.query("select count(*)::int as n from iam.security_alert where details ->> 'challenge_id' = any ($1)", [[challengeId, earlierChallenge]])).rows, server.kind).toEqual([{ n: 0 }]);
+      expect((await server.db.admin.query('select count(*)::int as n from esig.signing_failure where challenge_id = any ($1)', [[challengeId, earlierChallenge]])).rows, server.kind).toEqual([{ n: 0 }]);
+      // The session that made a request logs its failures; another person's authentication for it is misuse, alerted.
+      await app.query("select tab.record_signing_failure($1, $2, null, 'EBMR-IAM-020', 'HIGH-WATER test: the password was wrong')", [own, stubChallenge]);
+      await app.query("select tab.record_signing_failure($1, $2, $3, 'EBMR-IAM-093', 'HIGH-WATER test: another person authenticated')", [own, stubChallenge, signingEvent]);
+      expect((await app.query("select kind, details ->> 'record' as record from iam.security_alert where details ->> 'challenge_id' = $1", [stubChallenge])).rows, server.kind).toEqual([
+        { kind: 'SIGNING_FAILED', record: `esig_stub:${stub}` },
+      ]);
+      // A failure that arrives after the session signed out is still logged against its request.
+      expect(outcome(await b.call(routes.session.logout, { body: {} })), server.kind).toBe('ok');
+      await app.query("select tab.record_signing_failure($1, $2, null, 'EBMR-IAM-020', 'HIGH-WATER test: after sign-out')", [own, stubChallenge]);
+      expect((await server.db.admin.query<{ code: string }>('select code from esig.signing_failure where challenge_id = $1 order by id', [stubChallenge])).rows.map((r) => r.code), server.kind).toEqual([
+        'EBMR-IAM-020', 'EBMR-IAM-093', 'EBMR-IAM-020',
+      ]);
     }
   });
 });

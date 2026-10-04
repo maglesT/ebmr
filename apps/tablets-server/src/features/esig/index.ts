@@ -18,7 +18,8 @@
  *     the attempt for misuse and alerts the security unit on what the committed rows prove (DI-19; proxy signing
  *     included).
  *     Refused before signing (the dry run returned a refusal, or CONTENT_CHANGED): the same one command logs the
- *     refusal with the event (esig.record_signing_failure, inside the command), stores the answer under the
+ *     refusal with the event (tab.record_signing_failure, inside the command: the kernel's esig.record_signing_failure
+ *     for a request made in this session, tablets 0620), stores the answer under the
  *     idempotency key and commits, together with what the handler records on purpose (its refusal record, plan
  *     section 6); nothing is signed. The kernel sets aside exactly this command's own use of the event (kernel
  *     0950: the COMMAND use of this transaction by the validated command the event attributes), so it runs every
@@ -30,8 +31,9 @@
  *     command, with its own fresh authentication event.
  *     Any other failure rolls the whole command back (signature, seal, consumed event, and whatever the dry run
  *     wrote), a refusal the handler throws included (an HttpRefusal, for example a run that is not found);
- *     esig.logSigningFailure then records it outside the rolled-back transaction (INV-10), with the authentication
- *     event it used and, for a thrown refusal, its code and reason as a returned refusal is logged.
+ *     esig.logSigningFailure then records it outside the rolled-back transaction (INV-10), through the same
+ *     session-checked tab.record_signing_failure, with the authentication event it used and, for a thrown refusal,
+ *     its code and reason as a returned refusal is logged.
  *  4. GET signatures: the stored manifestations of a record, with their current validity (DI-36, INV-09).
  * Steps 1 and 4 read for the session only what the database lets it read (tablets 0410, review F34): a record of its
  * role's read class (RECORD.READ, or a governance role for an investigation, a disposal or a restore, never the
@@ -214,9 +216,11 @@ function refusalMessage(r: Refusal): string {
  * PIN or password, a locked account). A refusal thrown as an HttpRefusal (by a handler, for example) is logged with
  * its code and reason, as a refusal the dry run returns is logged inside the command.
  */
-async function logged(app: AppContext, challengeId: string, error: unknown, authEventId?: string): Promise<void> {
+async function logged(app: AppContext, tokenHash: string, challengeId: string, error: unknown, authEventId?: string): Promise<void> {
   const failure = error instanceof HttpRefusal ? new Error(refusalMessage(error.refusal), { cause: error }) : error;
-  await esig.logSigningFailure(app.pools.app, challengeId, failure, authEventId);
+  await esig.logSigningFailure(app.pools.app, challengeId, failure, authEventId, {
+    record: (code, message) => app.pools.app.query('select tab.record_signing_failure($1, $2, $3, $4, $5)', [tokenHash, challengeId, authEventId ?? null, code, message]),
+  });
 }
 
 /**
@@ -227,8 +231,8 @@ async function logged(app: AppContext, challengeId: string, error: unknown, auth
  * It runs on the command's own client and lets errors through (esig.logSigningFailure, on the pool, swallows them:
  * inside a transaction that would leave it aborted).
  */
-async function loggedInCommand(client: pg.PoolClient, challengeId: string, refused: RefusedWork['refused'], authEventId: string): Promise<void> {
-  await client.query('select esig.record_signing_failure($1, $2, $3, $4)', [challengeId, authEventId, refused.refusal.code, refusalMessage(refused.refusal)]);
+async function loggedInCommand(client: pg.PoolClient, tokenHash: string, challengeId: string, refused: RefusedWork['refused'], authEventId: string): Promise<void> {
+  await client.query('select tab.record_signing_failure($1, $2, $3, $4, $5)', [tokenHash, challengeId, authEventId, refused.refusal.code, refusalMessage(refused.refusal)]);
 }
 
 /** A failed signature authentication in plain language; why it failed stays in the security log (DI-19). */
@@ -391,7 +395,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         try {
           ev = await identity.authenticate(app.pools.authn, { method: c.kind === 'PIN' ? 'BADGE_PIN' : 'PASSWORD', identifier, secret, deviceFingerprint: fingerprint, purpose: 'SIGNATURE', challengeId: ch.challengeId });
         } catch (error) {
-          await logged(app, ch.challengeId, error);
+          await logged(app, s.tokenHash, ch.challengeId, error);
           if (error instanceof identity.AuthenticationFailedError && (error.locked || error.reason === 'ACCOUNT_LOCKED')) badges.forget(ch.challengeId);
           throw signingAuthRefusal(error, c.kind);
         }
@@ -405,7 +409,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             controls: ['DI-38'],
             whatYouCanDo: ['The person named on the signature enters their own credentials.'],
           });
-          await logged(app, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev.authEventId);
+          await logged(app, s.tokenHash, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev.authEventId);
           throw e;
         }
         const a = { ...actor(), authEventId: ev.authEventId };
@@ -429,7 +433,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
                   ? { status: 409, refusal: contentChanged(`The record is now at content version ${dry.contentVersion}; the challenge was for version ${ch.contentVersion}.`) }
                   : null;
               if (refused) {
-                await loggedInCommand(client, ch.challengeId, refused, ev.authEventId);
+                await loggedInCommand(client, s.tokenHash, ch.challengeId, refused, ev.authEventId);
                 const result: SignWork = { refused };
                 return result as unknown as commands.JsonValue;
               }
@@ -441,7 +445,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             {
               onReplay: async (client, stored) => {
                 const w = stored as unknown as SignWork;
-                if ('refused' in w) await loggedInCommand(client, ch.challengeId, w.refused, ev.authEventId);
+                if ('refused' in w) await loggedInCommand(client, s.tokenHash, ch.challengeId, w.refused, ev.authEventId);
               },
             },
           );
@@ -449,7 +453,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         } catch (error) {
           // Every failure of the authenticated attempt is logged with its authentication, a refusal a handler threw
           // (which the command wrapper passes through as it is) included (INV-10, DI-19).
-          await logged(app, ch.challengeId, error, ev.authEventId);
+          await logged(app, s.tokenHash, ch.challengeId, error, ev.authEventId);
           throw error;
         }
         if ('refused' in work) throw new HttpRefusal(work.refused.status, work.refused.refusal);
