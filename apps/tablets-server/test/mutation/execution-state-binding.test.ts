@@ -619,11 +619,20 @@ const withReworkGate = (): flow.MbrContent =>
     ...prep,
   ]);
 
-describe('the start data of a step is the entry its START_STEP records (0300 EBMR-EXE-128)', () => {
-  it('[DI-30][DI-20][DI-14][PR-47] a start whose start data is stored as an entry of another kind is refused; the start with its authorisation is recorded as START_DATA of its step, in its person\'s name', async () => {
+describe('the start data of a step is the entry its START_STEP records (0300 EBMR-EXE-128; recipe-core 0345)', () => {
+  // Written when a test run still recorded a start's start data. Since recipe-core 0345 (Phase 2 exit review F12) an
+  // accepted START_STEP carries none (the quality unit's authorisation of a reprocessing is not given through a test
+  // run in this release), so the honest start with its authorisation is refused before its state is judged, and 0300's
+  // entry rule is reached only by a start recorded without its start data or by a row that is not a start.
+  it('[DI-30][DI-20][DI-14][PR-47] a start that carries start data is refused, as a test run records none (recipe-core 0345); start data stored by its start as an entry of another kind, or stored by a row that is not a start, is refused (0300); nothing is recorded', async () => {
     const d = await driver(withReworkGate());
     const KEY_REWORK = 'p-early-rework@';
     const authorised = { investigationRef: 'TEST-INV-7', riskEvaluationRef: 'TEST-RA-9', authorisationRef: 'TEST-AUTH-3', authorisedBy: personaIn(server, 'qa1').personId };
+    expect(await honest(d, 'operator1', (me) => started(me, 'p-early-rework', authorised))).toBe(
+      "This accepted START_STEP row cannot be recorded: command.blockData is start data, which an accepted START_STEP never records: the server sends none, and a reprocessing's authorisation by the quality unit is not given through a test run in this release. A test run records only start data it can bind, so nothing sits in the record unread (DI-05, DI-30, PR-47). [EBMR-EXE-126]",
+    );
+    // The engine's start, its start data stored as an entry of another kind, recorded without the start data (which
+    // 0345 refuses first).
     let id = '';
     const otherKind = await forged(d, 'operator1', (tx, me) => {
       const command = started(me, 'p-early-rework', authorised);
@@ -632,17 +641,28 @@ describe('the start data of a step is the entry its START_STEP records (0300 EBM
       const e = only(newEntries(tx.state, state), 'start data');
       id = e.id;
       e.kind = 'SOURCE_ADDITION';
-      return { command, state, events: r.events };
+      const recorded = engine.encodeCommand(command) as Json;
+      delete recorded['blockData'];
+      return { command, state, events: r.events, recorded: recorded as engine.JsonValue };
     });
     expect(otherKind).toBe(
       `Entry ${id} (SOURCE_ADDITION of step ${KEY_REWORK}) is not the entry this START_STEP row records: an entry is recorded by the accepted RECORD_ENTRY of its own step, in the name of its person (DI-20, DI-30, DI-14). [EBMR-EXE-128]`,
     );
-    expect(await honest(d, 'operator1', (me) => started(me, 'p-early-rework', authorised))).toBe('ok');
+    // Start data stored by an accepted row that is not a start: an exception, which acts on no step.
+    const byException = await forged(d, 'operator1', (tx, me) => {
+      const command = raised(me);
+      const r = engineResult(tx, command);
+      const state = structuredClone(r.state);
+      const entry: Partial<engine.EntryRecord> = { id: 'EN-99', kind: 'START_DATA', data: authorised, enteredBy: me.id, recordedAt: tx.nowUs, recordedSeq: state.seq };
+      state.entries['EN-99'] = entry as engine.EntryRecord;
+      return { command, state, events: r.events, noContents: true };
+    });
+    expect(byException).toBe(
+      'Entry EN-99 (START_DATA of step (none)) is not the entry this RAISE_EXCEPTION row records: an entry is recorded by the accepted RECORD_ENTRY of its own step, in the name of its person (DI-20, DI-30, DI-14). [EBMR-EXE-128]',
+    );
     const st = await stateOf(d);
-    expect(stepOf(st, KEY_REWORK).status).toBe('IN_PROGRESS');
-    expect(Object.values(st.entries).map((e) => ({ kind: e.kind, stepKey: e.stepKey, enteredBy: e.enteredBy, data: e.data }))).toEqual([
-      { kind: 'START_DATA', stepKey: KEY_REWORK, enteredBy: personaIn(server, 'operator1').personId, data: authorised },
-    ]);
+    expect(stepOf(st, KEY_REWORK).status).toBe('ENABLED');
+    expect(Object.values(st.entries)).toEqual([]);
   }, 240_000);
 });
 
