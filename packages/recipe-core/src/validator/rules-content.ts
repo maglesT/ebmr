@@ -5,7 +5,7 @@
  */
 import { computedItemsOf } from '../blocks/generic/material.ts';
 import { DEFAULT_POLICY } from '../engine/types.ts';
-import { CAPTURE_WORDS, capturedOtherwise, checkRunsAsWitness } from '../flow/check-in-release.ts';
+import { CAPTURE_WORDS, CHECK_PERMISSIONS, capturedOtherwise, checkersInRun, checkRunsAsWitness, type CheckersInRun } from '../flow/check-in-release.ts';
 import { compareDecimal } from '../flow/decimal.ts';
 import type { GraphNode } from '../flow/graph.ts';
 import { childrenOf, isNodeEvent, type FlowNode, type PhaseNode, type ReferenceKind, type StageNode } from '../flow/model.ts';
@@ -183,6 +183,13 @@ const witnessed = defineRule('GMP-WITNESS', 'WITNESSED where a critical value ha
  * value typed by hand, so such a phase is checked all the same, by a person in the fallback verifier roles (the
  * engine's policy), as the timed witness and then the later review with WITNESS_LATE; the author and the approver saw
  * no check at all.
+ *
+ * Round 4: the warning names the people the run accepts, not every role the check names. The kernel signs a witness only
+ * in a role holding STEP.WITNESS and a later review only in one holding STEP.VERIFY, so of the roles the check names (the
+ * MBR's check role, else the fallback verifier roles) it names those the installation's checker roles allow for each
+ * (flow `checkersInRun`; as delivered, a witness by PRODUCTION_VERIFIER or QA and a later review by PRODUCTION_VERIFIER:
+ * a production supervisor holds neither permission). Round 3 named PRODUCTION_SUPERVISOR and let QA give the later review,
+ * both of which the run refuses. The witness window is the site's (the kernel's), 5 minutes by default.
  */
 const witnessedInThisRelease = defineRule('GMP-WITNESS-NO-ATTACHMENT', 'A later review of a value typed by hand from a printout runs as a witness in this release', ['PR-03', 'DI-30', 'PR-14', 'DI-35'], (a) => {
   const out: RuleFinding[] = [];
@@ -196,13 +203,64 @@ const witnessedInThisRelease = defineRule('GMP-WITNESS-NO-ATTACHMENT', 'A later 
         ? ''
         : ` The MBR captures ${andList(otherwise.map((x) => `${x.id} ${CAPTURE_WORDS[x.capture]}`))}, but in this release every value of a step is typed by hand on the step screen (a scanned code is recorded as typed by hand).`;
     const named = p.signatures.check ? 'its check is a later review (VERIFIED)' : 'the MBR names no check for it';
-    const who = p.signatures.check
-      ? 'this check runs as a witness (WITNESSED): the second person'
-      : `the step is checked all the same, as a witness (WITNESSED): a second person holding ${orList(DEFAULT_POLICY.fallbackVerifierRoles)} (the verifier roles where the MBR names no check)`;
+    const roles = p.signatures.check ? [p.signatures.check.role] : [...DEFAULT_POLICY.fallbackVerifierRoles];
+    const how = p.signatures.check
+      ? 'this check runs as a witness (WITNESSED)'
+      : `the step is checked all the same, as a witness (WITNESSED), by a person in one of the engine's verifier roles where the MBR names no check (${andList(roles)}) whose role holds the check's permission`;
+    const checkers = a.ctx.roles ? checkersInRun(p, DEFAULT_POLICY.fallbackVerifierRoles, a.ctx.roles.checkers) : undefined;
     out.push(
       warning(
         p.id,
-        `${label(a, p.id)} records ${ids.join(', ')} by hand from the printout or photo the MBR names as ${ids.length === 1 ? 'its' : 'their'} evidence, and ${named}.${captured} In this release no printout or photo can be attached to a value typed by hand, so ${who} watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition`,
+        `${label(a, p.id)} records ${ids.join(', ')} by hand from the printout or photo the MBR names as ${ids.length === 1 ? 'its' : 'their'} evidence, and ${named}.${captured} In this release no printout or photo can be attached to a value typed by hand, so ${how}: ${witnessThenReview(checkers, roles)}`,
+      ),
+    );
+  }
+  return out;
+});
+
+/**
+ * Who gives a check that runs as a witness in this release, and then its later review, naming the people the run accepts
+ * (T12.DOC round 4): `c` from the installation's checker roles; undefined where the validator was not given them (then
+ * FLOW-ROLES fails closed), and the roles the check names (`named`) are given with the permission each check needs.
+ */
+function witnessThenReview(c: CheckersInRun | undefined, named: readonly string[]): string {
+  const holders = (roles: readonly string[] | undefined, permission: string): string | undefined =>
+    roles === undefined ? `${orList(named)} whose role holds ${permission}` : roles.length > 0 ? `${orList(roles)} (${permission})` : undefined;
+  const witness = holders(c?.witness, CHECK_PERMISSIONS.witness);
+  const review = holders(c?.review, CHECK_PERMISSIONS.review);
+  const watch =
+    witness !== undefined
+      ? `a second person holding ${witness} watches the entry within the site's witness window (5 minutes by default) after the step is signed performed, and before the run moves on.`
+      : `no person may witness it, as no role of this installation that carries ${orList(named)} holds ${CHECK_PERMISSIONS.witness}; the step waits until the site's witness window (5 minutes by default) has passed or the run moved on.`;
+  const later =
+    review !== undefined
+      ? `Once no witness is possible, the later review by a person holding ${review} completes the step and records an exception (WITNESS_LATE) that QA must disposition`
+      : `Once no witness is possible, no person may give the later review that completes the step, as no role of this installation that carries ${orList(named)} holds ${CHECK_PERMISSIONS.review}: the run cannot complete this step`;
+  return `${watch} ${later}`;
+}
+
+/**
+ * Phase 2 exit follow-up T12.DOC round 4 (PR-14, DI-35, INV-26): a person of this installation may give every check the
+ * MBR names. The engine asks for the check's role, and the kernel signs a witness only in a role holding STEP.WITNESS and
+ * a later review (VERIFIED, or a block's own check meaning) only in one holding STEP.VERIFY. A check whose role is carried
+ * by no kernel role holding that permission (as delivered: a later review by PRODUCTION_SUPERVISOR or QA, a witness by
+ * PRODUCTION_SUPERVISOR) can never be given, so the run would stop at the step for good while the document names that
+ * role as its checker. A role outside the vocabulary is FLOW-ROLES' error; without the installation's roles FLOW-ROLES
+ * fails closed and this rule says nothing more.
+ */
+const checkPermission = defineRule('GMP-CHECK-PERMISSION', 'A person of this installation may give every check the MBR names', ['PR-14', 'DI-35', 'INV-26'], (a) => {
+  const roles = a.ctx.roles;
+  if (!roles) return [];
+  const out: RuleFinding[] = [];
+  for (const p of a.phases) {
+    const check = p.signatures.check;
+    if (!check || !roles.engineRoles.includes(check.role)) continue;
+    const kind = check.meaning === 'WITNESSED' ? 'witness' : 'review';
+    if (roles.checkers[kind].includes(check.role)) continue;
+    out.push(
+      error(
+        p.id,
+        `${label(a, p.id)} is checked ${check.meaning} by ${check.role}, but no role of this installation that carries ${check.role} holds ${CHECK_PERMISSIONS[kind]}, the permission ${kind === 'witness' ? 'a witness' : 'a later review'} is signed with, so no person could ever give this check and the run would stop at this step`,
       ),
     );
   }
@@ -565,6 +623,7 @@ export const CONTENT_RULES: readonly Rule[] = [
   significantSteps,
   witnessed,
   witnessedInThisRelease,
+  checkPermission,
   stageClearance,
   stageYield,
   nonMaterialStages,

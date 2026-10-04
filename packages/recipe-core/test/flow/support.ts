@@ -33,10 +33,13 @@ export const noMinima: MarketMinimaPort = { minima: () => [] };
 /**
  * The role vocabulary of these tests' installation: the tablets engine roles plus the short roles the test masters
  * use (phase() performs as OPERATOR and checks as VERIFIER). The server supplies the installation's own vocabulary
- * from the database, which refuses to store content naming any other role (sql 0324).
+ * from the database, which refuses to store content naming any other role (sql 0324). Its checker roles (T12.DOC round
+ * 4) are the tablets ones as delivered (a witness by PRODUCTION_VERIFIER or QA, a later review by PRODUCTION_VERIFIER;
+ * apps/tablets-server test execution/witness-without-printout ties them to the database) plus the short VERIFIER.
  */
 export const TEST_ROLES: RoleVocabularyPort = {
   engineRoles: ['PRODUCTION_OPERATOR', 'DISPENSER', 'PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'STAGE_RESPONSIBLE', 'HEAD_OF_PRODUCTION', 'QA', 'QA_REVIEWER', 'OPERATOR', 'VERIFIER', 'SUP', 'SUPERVISOR'],
+  checkers: { witness: ['PRODUCTION_VERIFIER', 'QA', 'VERIFIER'], review: ['PRODUCTION_VERIFIER', 'VERIFIER'] },
 };
 
 export function context(overrides: Partial<ValidationContext> = {}, statuses: Record<string, ReferenceStatus> = {}): ValidationContext {

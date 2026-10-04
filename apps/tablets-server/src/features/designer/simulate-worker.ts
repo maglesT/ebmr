@@ -17,6 +17,8 @@ export interface SimulationJob {
   minima: validator.ResolvedMinimum[];
   /** The installation's engine roles (FLOW-ROLES; review F49). */
   engineRoles: string[];
+  /** Of them, those in which a person may give a witness and a later review (T12.DOC round 4). */
+  checkers: flow.CheckerRoles;
 }
 
 export type SimulationResult = { ok: true; report: simulator.SimulationReport } | { ok: false; message: string };
@@ -29,7 +31,7 @@ export function runSimulationJob(job: SimulationJob): SimulationResult {
     blocks: flow.genericBlockCatalog,
     references: referencePortFrom(job.references, job.asOf),
     market: marketMinimaPortFrom(job.minimaRequest, job.minima),
-    roles: { engineRoles: job.engineRoles },
+    roles: { engineRoles: job.engineRoles, checkers: job.checkers },
     asOf: job.asOf,
   };
   try {

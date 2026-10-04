@@ -4,9 +4,10 @@ import type { MbrContent } from '../../src/flow/model.ts';
 import { parseMbr } from '../../src/flow/parse.ts';
 import { GENERIC_BLOCK_VERSIONS, MATERIAL_BLOCKS } from '../../src/blocks/generic/index.ts';
 import { checkMeaning } from '../../src/engine/actions.ts';
-import { gate } from '../../src/validator/validate.ts';
+import type { ValidationContext } from '../../src/validator/types.ts';
+import { gate, validateMbr } from '../../src/validator/validate.ts';
 import { define, param as engineParam, Run, T0 } from '../engine/support.ts';
-import { clone, errors, findPhase, loadFixture, mbrWith, phase as mbrPhase, removeNode, validate, type FixtureName } from '../flow/support.ts';
+import { clone, context, errors, findPhase, loadFixture, mbrWith, phase as mbrPhase, removeNode, TEST_ROLES, validate, type FixtureName } from '../flow/support.ts';
 
 interface Deletion {
   item: string;
@@ -149,6 +150,13 @@ const DELETIONS: Deletion[] = [
   },
 ];
 
+/** The test installation's context without its roles (FLOW-ROLES then fails closed). */
+function withoutRoles(): ValidationContext {
+  const ctx = context();
+  delete ctx.roles;
+  return ctx;
+}
+
 describe('GMP content gates', () => {
   it.each(['tablet-granulation-compression', 'tablet-blister-packaging'] as const)('[PR-03] the complete test master %s passes every gate', (name) => {
     const report = validate(loadFixture(name));
@@ -229,7 +237,7 @@ describe('GMP content gates', () => {
         subject: 'p-blend',
         key: 'GMP-WITNESS-NO-ATTACHMENT@p-blend',
         message:
-          '"Blend" (p-blend) records blendTime, blenderSpeed by hand from the printout or photo the MBR names as their evidence, and its check is a later review (VERIFIED). In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)',
+          '"Blend" (p-blend) records blendTime, blenderSpeed by hand from the printout or photo the MBR names as their evidence, and its check is a later review (VERIFIED). In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): a second person holding PRODUCTION_VERIFIER (STEP.WITNESS) watches the entry within the site\'s witness window (5 minutes by default) after the step is signed performed, and before the run moves on. Once no witness is possible, the later review by a person holding PRODUCTION_VERIFIER (STEP.VERIFY) completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)',
       },
     ]);
     // The packaging master's photo of the India codes is the same case where its check is a later review (the fixture
@@ -254,7 +262,7 @@ describe('GMP content gates', () => {
     findPhase(m, 'p-blend').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
     const found = (mbr: MbrContent) => validate(mbr).findings.filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT').map((f) => ({ severity: f.severity, subject: f.subject, message: f.message }));
     const RUNS =
-      'In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
+      'In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): a second person holding PRODUCTION_VERIFIER (STEP.WITNESS) watches the entry within the site\'s witness window (5 minutes by default) after the step is signed performed, and before the run moves on. Once no witness is possible, the later review by a person holding PRODUCTION_VERIFIER (STEP.VERIFY) completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
     const HOW = { DEVICE: 'from a device', SCAN: 'by scanning', LIMS: 'from LIMS', AUTOMATION: 'from the automation system' } as const;
     for (const [capture, how] of Object.entries(HOW) as [keyof typeof HOW, string][]) {
       const v = clone(m);
@@ -305,9 +313,9 @@ describe('GMP content gates', () => {
 
   it('[PR-03][DI-30][PR-14][DI-35] T12.DOC round 3: a phase whose MBR names no check is checked all the same where it records a critical value whose MBR names a printout or photo, whatever its capture: the validator warns (GMP-WITNESS-NO-ATTACHMENT) and says how, as the engine runs it (a witness while possible, then the later review with WITNESS_LATE), exactly as for a phase whose check is a later review', () => {
     const RUNS_NO_CHECK =
-      'In this release no printout or photo can be attached to a value typed by hand, so the step is checked all the same, as a witness (WITNESSED): a second person holding PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR or QA (the verifier roles where the MBR names no check) watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
+      'In this release no printout or photo can be attached to a value typed by hand, so the step is checked all the same, as a witness (WITNESSED), by a person in one of the engine\'s verifier roles where the MBR names no check (PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR and QA) whose role holds the check\'s permission: a second person holding PRODUCTION_VERIFIER or QA (STEP.WITNESS) watches the entry within the site\'s witness window (5 minutes by default) after the step is signed performed, and before the run moves on. Once no witness is possible, the later review by a person holding PRODUCTION_VERIFIER (STEP.VERIFY) completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
     const RUNS_REVIEW =
-      'In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
+      'In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): a second person holding VERIFIER (STEP.WITNESS) watches the entry within the site\'s witness window (5 minutes by default) after the step is signed performed, and before the run moves on. Once no witness is possible, the later review by a person holding VERIFIER (STEP.VERIFY) completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
     const HOW = { MANUAL: undefined, DEVICE: 'from a device', SCAN: 'by scanning', LIMS: 'from LIMS', AUTOMATION: 'from the automation system' } as const;
     const CHECKS = { 'no check': undefined, 'a later review': { meaning: 'VERIFIED', role: 'VERIFIER' } } as const;
     for (const [capture, how] of Object.entries(HOW) as [keyof typeof HOW, string | undefined][]) {
@@ -370,6 +378,84 @@ describe('GMP content gates', () => {
         status: variant === 'witnessed' ? 'AWAITING_VERIFICATION' : 'COMPLETED',
       });
     }
+  });
+
+  it('[PR-03][DI-30][PR-14][DI-35][INV-26] T12.DOC round 4: the warning names the people the run accepts, the roles the check names narrowed to those whose role holds the permission each check is signed with (a witness STEP.WITNESS, the later review STEP.VERIFY): a production verifier or QA witnesses and only a production verifier reviews later where the MBR names no check, never a production supervisor; where no role may give one, it says so', () => {
+    const TAIL = 'watches the entry within the site\'s witness window (5 minutes by default) after the step is signed performed, and before the run moves on.';
+    const LATE = 'completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
+    const FALLBACK = 'the step is checked all the same, as a witness (WITNESSED), by a person in one of the engine\'s verifier roles where the MBR names no check (PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR and QA) whose role holds the check\'s permission';
+    const mbrOf = (check?: { meaning: 'VERIFIED'; role: string }) =>
+      mbrWith({ kind: 'sequence', id: 'ops', children: [mbrPhase('p', { records: ['t'], signatures: { perform: { role: 'OPERATOR' }, ...(check ? { check } : {}) } }), mbrPhase('after')] }, {
+        parameters: [engineParam('t', { unit: 'min', capture: 'LIMS', evidence: 'PRINTOUT', accuracyCheck: 'SECOND_PERSON' })],
+      });
+    const how = (mbr: MbrContent, ctx: ValidationContext = context()): string[] =>
+      validateMbr(mbr, ctx)
+        .findings.filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT')
+        .map((f) => f.message.slice(f.message.indexOf('In this release no printout')));
+    const installation = (witness: string[], review: string[]): ValidationContext => context({ roles: { engineRoles: TEST_ROLES.engineRoles, checkers: { witness, review } } });
+    const OPENING = 'In this release no printout or photo can be attached to a value typed by hand, so';
+    expect({
+      // As delivered (the server reads it from tab.engine_role_map and the kernel role permissions; apps/tablets-server
+      // test execution/witness-without-printout holds it to the database and to the run's refusals).
+      delivered: how(mbrOf()),
+      // An installation where no fallback verifier role holds STEP.WITNESS: nobody can witness, the later review follows.
+      noWitness: how(mbrOf(), installation([], ['PRODUCTION_VERIFIER'])),
+      // One that gave production supervisors STEP.WITNESS too: they are named, as the run then accepts them.
+      supervisorsWitness: how(mbrOf(), installation(['PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'QA'], ['PRODUCTION_VERIFIER'])),
+      // A later review the MBR gives to QA: QA may witness, but nobody may give the later review (GMP-CHECK-PERMISSION too).
+      qaReview: how(mbrOf({ meaning: 'VERIFIED', role: 'QA' })),
+      // Without the installation's roles (FLOW-ROLES fails closed): the roles the check names, with each permission.
+      unknown: how(mbrOf(), withoutRoles()),
+    }).toEqual({
+      delivered: [`${OPENING} ${FALLBACK}: a second person holding PRODUCTION_VERIFIER or QA (STEP.WITNESS) ${TAIL} Once no witness is possible, the later review by a person holding PRODUCTION_VERIFIER (STEP.VERIFY) ${LATE}`],
+      noWitness: [
+        `${OPENING} ${FALLBACK}: no person may witness it, as no role of this installation that carries PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR or QA holds STEP.WITNESS; the step waits until the site's witness window (5 minutes by default) has passed or the run moved on. Once no witness is possible, the later review by a person holding PRODUCTION_VERIFIER (STEP.VERIFY) ${LATE}`,
+      ],
+      supervisorsWitness: [`${OPENING} ${FALLBACK}: a second person holding PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR or QA (STEP.WITNESS) ${TAIL} Once no witness is possible, the later review by a person holding PRODUCTION_VERIFIER (STEP.VERIFY) ${LATE}`],
+      qaReview: [
+        `${OPENING} this check runs as a witness (WITNESSED): a second person holding QA (STEP.WITNESS) ${TAIL} Once no witness is possible, no person may give the later review that completes the step, as no role of this installation that carries QA holds STEP.VERIFY: the run cannot complete this step (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)`,
+      ],
+      unknown: [
+        `${OPENING} ${FALLBACK}: a second person holding PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR or QA whose role holds STEP.WITNESS ${TAIL} Once no witness is possible, the later review by a person holding PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR or QA whose role holds STEP.VERIFY ${LATE}`,
+      ],
+    });
+  });
+
+  it('[PR-14][DI-35][INV-26] T12.DOC round 4: a check the MBR names that no person of this installation may give is refused (GMP-CHECK-PERMISSION, an error): a later review by a production supervisor or QA, a witness by a production supervisor; a witness by QA, either check by a production verifier and the shipped fixtures pass', () => {
+    const checked = (meaning: 'VERIFIED' | 'WITNESSED', role: string) =>
+      mbrWith({ kind: 'sequence', id: 'ops', children: [mbrPhase('p', { signatures: { perform: { role: 'OPERATOR' }, check: { meaning, role } } }), mbrPhase('after')] });
+    const refused = (mbr: MbrContent, ctx: ValidationContext = context()) =>
+      validateMbr(mbr, ctx)
+        .findings.filter((f) => f.rule === 'GMP-CHECK-PERMISSION')
+        .map((f) => `${f.severity} ${f.subject}: ${f.message}`);
+    expect({
+      supervisorReviews: refused(checked('VERIFIED', 'PRODUCTION_SUPERVISOR')),
+      qaReviews: refused(checked('VERIFIED', 'QA')),
+      supervisorWitnesses: refused(checked('WITNESSED', 'PRODUCTION_SUPERVISOR')),
+      qaWitnesses: refused(checked('WITNESSED', 'QA')),
+      verifierReviews: refused(checked('VERIFIED', 'PRODUCTION_VERIFIER')),
+      verifierWitnesses: refused(checked('WITNESSED', 'PRODUCTION_VERIFIER')),
+      // A role outside the vocabulary is FLOW-ROLES' error, and without the installation's roles FLOW-ROLES fails closed.
+      unknownRole: refused(checked('VERIFIED', 'NOBODY')),
+      noRoles: refused(checked('VERIFIED', 'QA'), withoutRoles()),
+      fixtures: [dcMini(), loadFixture('tablet-granulation-compression'), loadFixture('tablet-blister-packaging')].flatMap((m) => refused(m)),
+    }).toEqual({
+      supervisorReviews: [
+        'ERROR p: "Step p" (p) is checked VERIFIED by PRODUCTION_SUPERVISOR, but no role of this installation that carries PRODUCTION_SUPERVISOR holds STEP.VERIFY, the permission a later review is signed with, so no person could ever give this check and the run would stop at this step (GMP-CHECK-PERMISSION; PR-14, DI-35, INV-26)',
+      ],
+      qaReviews: [
+        'ERROR p: "Step p" (p) is checked VERIFIED by QA, but no role of this installation that carries QA holds STEP.VERIFY, the permission a later review is signed with, so no person could ever give this check and the run would stop at this step (GMP-CHECK-PERMISSION; PR-14, DI-35, INV-26)',
+      ],
+      supervisorWitnesses: [
+        'ERROR p: "Step p" (p) is checked WITNESSED by PRODUCTION_SUPERVISOR, but no role of this installation that carries PRODUCTION_SUPERVISOR holds STEP.WITNESS, the permission a witness is signed with, so no person could ever give this check and the run would stop at this step (GMP-CHECK-PERMISSION; PR-14, DI-35, INV-26)',
+      ],
+      qaWitnesses: [],
+      verifierReviews: [],
+      verifierWitnesses: [],
+      unknownRole: [],
+      noRoles: [],
+      fixtures: [],
+    });
   });
 
   it('[PR-03] nothing that processes material may run after a stage yield', () => {

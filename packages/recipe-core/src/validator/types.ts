@@ -7,6 +7,7 @@
  * what to fetch.
  */
 import type { BlockCatalog } from '../flow/blocks.ts';
+import type { CheckerRoles } from '../flow/check-in-release.ts';
 import type { ExpressionService } from '../flow/expression-port.ts';
 import type { Edition, Reference } from '../flow/model.ts';
 
@@ -92,6 +93,13 @@ export interface MarketMinimaPort {
  */
 export interface RoleVocabularyPort {
   engineRoles: readonly string[];
+  /**
+   * Of those, the roles in which a person may give a witness and a later review (Phase 2 exit follow-up T12.DOC round
+   * 4): a kernel role carrying the engine role holds STEP.WITNESS, or STEP.VERIFY (tablets: tab.engine_role_map and the
+   * kernel role permissions, read from the database). GMP-WITNESS-NO-ATTACHMENT names the people the run accepts from
+   * them, and GMP-CHECK-PERMISSION refuses a check no one of the installation may give.
+   */
+  checkers: CheckerRoles;
 }
 
 export interface ValidationContext {

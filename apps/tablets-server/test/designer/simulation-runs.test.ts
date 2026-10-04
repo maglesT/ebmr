@@ -29,7 +29,7 @@ async function granulationReport(): Promise<simulator.SimulationReport> {
   const parsed = flow.parseMbr(structuredClone(granulation));
   if (!parsed.ok) throw new Error('fixture does not parse');
   const loaded = await loadValidationContext(server.db.app, parsed.mbr);
-  const out = await simulateInWorker({ content: parsed.mbr, asOf: loaded.asOf, references: loaded.references, minimaRequest: loaded.minimaRequest, minima: loaded.minima, engineRoles: loaded.engineRoles });
+  const out = await simulateInWorker({ content: parsed.mbr, asOf: loaded.asOf, references: loaded.references, minimaRequest: loaded.minimaRequest, minima: loaded.minima, engineRoles: loaded.engineRoles, checkers: loaded.checkers });
   if (!out.ok) throw new Error(out.message);
   return out.report;
 }

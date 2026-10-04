@@ -2,7 +2,7 @@
  * Plain words for members of MBR content in the document view (module C2; review F44). Every value is shown as the
  * content holds it (decimal text as written, never rounded); codes are shown in lower case with their meaning.
  */
-import { PINNED_POLICY_ROLES, ROLE_TITLES } from '@ebmr/api-contract';
+import { CHECKER_ROLES, PINNED_POLICY_ROLES, ROLE_TITLES } from '@ebmr/api-contract';
 import { blocks, flow } from '@ebmr/recipe-core/pure';
 
 type Content = flow.MbrContent;
@@ -78,7 +78,11 @@ export function samplingWords(x: { point: string; purpose: string; units: number
  * GMP-WITNESS-NO-ATTACHMENT). Whatever capture the MBR names (device, scan, LIMS, automation), every value a step records
  * is typed by hand in this release, which the words then say (round 2). Round 3: where the MBR names no check at all, the
  * engine still asks for a second person for such a value, from the fallback verifier roles, as the witness and then the
- * later review; the words say so. Null when the check runs as the MBR names it.
+ * later review; the words say so. Round 4: they name the people the run accepts for each, not every role the check names:
+ * the kernel signs a witness only in a role holding STEP.WITNESS and a later review only in one holding STEP.VERIFY (flow
+ * `checkersInRun` with the delivered CHECKER_ROLES, which the server's test holds to the database): a witness by a
+ * production verifier or QA (shop floor), the later review by a production verifier, never a production supervisor. The
+ * witness window is the site's, 5 minutes by default. Null when the check runs as the MBR names it.
  */
 export function checkInThisRelease(c: Content, n: flow.PhaseNode): string | null {
   const parameter = (id: string) => c.parameters.find((p) => p.id === id);
@@ -89,10 +93,21 @@ export function checkInThisRelease(c: Content, n: flow.PhaseNode): string | null
   const otherwise = flow.capturedOtherwise(parameter, items);
   const typed = otherwise.length === 0 ? '' : `every value is typed by hand on the step screen, whatever capture the MBR names (${otherwise.map((x) => `${itemLabel(c, x.id)}: ${flow.CAPTURE_WORDS[x.capture]}`).join('; ')}), and `;
   const named = n.signatures.check ? 'In this release this check runs as a witness (witnessed)' : 'The MBR names no check, but in this release the step is checked all the same, as a witness (witnessed)';
-  const who = n.signatures.check
-    ? 'the second person'
-    : `a second person who holds ${orWords(PINNED_POLICY_ROLES.fallbackVerifierRoles.map((r) => ROLE_TITLES[r] ?? r))}, the roles that check a step whose MBR names no check,`;
-  return `${named}: ${typed}no printout or photo can be attached to ${items.map((id) => itemLabel(c, id)).join(', ')}, so ${who} watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`;
+  const who = flow.checkersInRun(n, PINNED_POLICY_ROLES.fallbackVerifierRoles, CHECKER_ROLES);
+  const titles = (roles: readonly string[]): string => orWords(roles.map((r) => ROLE_TITLES[r] ?? r));
+  const attached = `no printout or photo can be attached to ${items.map((id) => itemLabel(c, id)).join(', ')}`;
+  const watch =
+    who.witness.length > 0
+      ? `${attached}, so a second person who holds ${titles(who.witness)} watches the entry within the site's witness window (5 minutes by default) after the performed signature and before the run moves on`
+      : `${attached}, and no one may witness it, as no role that carries ${titles(who.named)} holds the witness permission (${flow.CHECK_PERMISSIONS.witness}), so the step waits for the site's witness window (5 minutes by default) to pass or the run to move on`;
+  const later =
+    who.review.length > 0
+      ? `the later review by a person who holds ${titles(who.review)} completes the step and records an exception for QA`
+      : `no one may give the later review, as no role that carries ${titles(who.named)} holds the review permission (${flow.CHECK_PERMISSIONS.review}), so the run cannot complete this step`;
+  const roles = n.signatures.check
+    ? ''
+    : ` Of the roles that check a step whose MBR names no check (${who.named.map((r) => ROLE_TITLES[r] ?? r).join(', ')}), a person witnesses only in one that holds the witness permission (${flow.CHECK_PERMISSIONS.witness}) and reviews later only in one that holds the review permission (${flow.CHECK_PERMISSIONS.review}).`;
+  return `${named}: ${typed}${watch}; after that, ${later} (GMP-WITNESS-NO-ATTACHMENT).${roles}`;
 }
 
 /** "a", "a or b", "a, b or c". */

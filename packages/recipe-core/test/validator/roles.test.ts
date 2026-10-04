@@ -12,15 +12,19 @@ import { EngineDefinitionError } from '../../src/engine/definition.ts';
 import { libraryElementHash } from '../../src/flow/canonical.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import { STRUCTURE_RULES } from '../../src/validator/rules-structure.ts';
+import type { RoleVocabularyPort } from '../../src/validator/types.ts';
 import { define } from '../engine/support.ts';
 import { validateMbr } from '../../src/validator/validate.ts';
 import { clone, context, loadFixture, mbrWith, phase, registryOf } from '../flow/support.ts';
 
 const structureOnly = registryOf(STRUCTURE_RULES);
 const seq = (id: string, children: FlowNode[]): FlowNode => ({ kind: 'sequence', id, children });
-const ENGINE = { engineRoles: ['PRODUCTION_OPERATOR', 'DISPENSER', 'PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'STAGE_RESPONSIBLE', 'HEAD_OF_PRODUCTION', 'QA', 'QA_REVIEWER'] };
+const ENGINE: RoleVocabularyPort = {
+  engineRoles: ['PRODUCTION_OPERATOR', 'DISPENSER', 'PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'STAGE_RESPONSIBLE', 'HEAD_OF_PRODUCTION', 'QA', 'QA_REVIEWER'],
+  checkers: { witness: ['PRODUCTION_VERIFIER', 'QA'], review: ['PRODUCTION_VERIFIER'] },
+};
 
-function roleFindings(mbr: MbrContent, roles: { engineRoles: readonly string[] } | null = ENGINE): { subject: string; message: string }[] {
+function roleFindings(mbr: MbrContent, roles: RoleVocabularyPort | null = ENGINE): { subject: string; message: string }[] {
   const ctx = context();
   if (roles) ctx.roles = roles;
   else delete ctx.roles;

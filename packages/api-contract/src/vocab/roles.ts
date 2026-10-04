@@ -59,6 +59,19 @@ export const PINNED_POLICY_ROLES = {
   fallbackVerifierRoles: ['PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'QA'],
 } as const satisfies Record<string, readonly EngineRole[]>;
 
+/**
+ * The engine roles in which a person may give each kind of second-person check, as delivered (Phase 2 exit follow-up
+ * T12.DOC round 4): a kernel role carrying the engine role (ENGINE_ROLE_MAP) also holds the permission the kernel signs
+ * that check with, STEP.WITNESS for a witness and STEP.VERIFY for a later review (kernel 0120: VERIFIER holds both,
+ * QA_SHOP_FLOOR only STEP.WITNESS, SHIFT_SUPERVISOR neither). Mirror for the designer's document; the server reads the
+ * installation's own from tab.engine_role_map and the kernel role permissions (designer adapters `checkerRoles`), and
+ * apps/tablets-server test execution/witness-without-printout proves both agree and that the run refuses everyone else.
+ */
+export const CHECKER_ROLES = {
+  witness: ['PRODUCTION_VERIFIER', 'QA'],
+  review: ['PRODUCTION_VERIFIER'],
+} as const satisfies Record<'witness' | 'review', readonly EngineRole[]>;
+
 /** Plain-language names of the roles for screens. */
 export const ROLE_TITLES: Readonly<Record<string, string>> = {
   PRODUCTION_OPERATOR: 'Production operator',

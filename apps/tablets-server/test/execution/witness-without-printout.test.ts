@@ -15,12 +15,15 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
-import { engine, execution, type flow } from '@ebmr/recipe-core';
+import { CHECKER_ROLES, PINNED_POLICY_ROLES } from '@ebmr/api-contract';
+import { engine, execution, flow } from '@ebmr/recipe-core';
+import { checkerRoles, loadValidationContext } from '../../src/features/designer/adapters/expressions.ts';
+import { analyse } from '../../src/features/designer/validation.ts';
 import { resolveClientIntent, signedCommand, signedMeaning } from '../../src/features/execution/intents.ts';
 import { dbNowUs } from '../../src/platform/db/commands.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { actorOf, appendAs, engineResult, interceptSigned, messageOf, unmatched } from './db-guards-support.ts';
+import { actorOf, appendAs, engineResult, interceptSigned, messageOf, signatureAlone, unmatched } from './db-guards-support.ts';
 import { dcMiniVariant, importAndIssue, personaIn, RunDriver, startExecServer, valueOf, violations, withEarlyParameter, writePackage, type ExecServer } from './support.ts';
 
 let server: ExecServer;
@@ -459,6 +462,180 @@ describe('T12.LATE round 2: the act\'s time, the run\'s moving on and the witnes
     const outcomes = { probeB: await issued(1n), justShort: await issued(299_999_999n), tooLong: await issued(1_800_000_001n), site: await issued(300_000_000n), longest: await issued(1_800_000_000n) };
     expect(unmatched(Object.fromEntries(Object.entries(outcomes).map(([k, v]) => [k, v.answer])), { probeB: refused, justShort: refused, tooLong: refused, site: 'ok', longest: 'ok' })).toEqual({});
     expect(Object.fromEntries(Object.entries(outcomes).map(([k, v]) => [k, v.stored]))).toEqual({ probeB: 0, justShort: 0, tooLong: 0, site: 1, longest: 1 });
+    expect(await violations(server)).toEqual([]);
+  }, 300_000);
+});
+
+/**
+ * T12.DOC round 4 (DI-30, PR-14, DI-35, INV-26, DI-17): the people the designer's document and the validator name for the
+ * check of a step whose MBR names no check are the people the run accepts. Round 3 named every role of the engine's
+ * fallbackVerifierRoles (production verifier, production supervisor, QA) for the witness and said the later review
+ * completes the step, while the kernel signs a witness only in a role holding STEP.WITNESS and a later review only in one
+ * holding STEP.VERIFY: the lane verifier's supervisor1 was refused the witness (EBMR-ESIG-040) and qa1 the later review.
+ * Here the named roles are read from tab.engine_role_map and the kernel role permissions, and the run is shown refusing
+ * everyone else, at the database (the signature itself, the command's permission) and on the floor.
+ *
+ * The run is withEarlyParameter (and withEarlyBesideClearance, for a run that moved on) with no check on the early step:
+ * the blend time is critical, typed by hand, and its MBR names a printout, so the engine asks for a second person.
+ */
+describe('T12.DOC round 4: who checks a step whose MBR names no check is who the run accepts (tab.engine_role_map, the kernel permissions)', () => {
+  /** `content` with the early step's check removed: the MBR names none. */
+  const noCheck = (content: flow.MbrContent): flow.MbrContent => {
+    const c = structuredClone(content);
+    flow.walk(c.procedure.body, (n) => {
+      if (n.kind === 'phase' && n.id === 'p-early-time') n.signatures = n.signatures.perform ? { perform: n.signatures.perform } : {};
+    });
+    return c;
+  };
+  const FALLBACK = engine.DEFAULT_POLICY.fallbackVerifierRoles;
+
+  /** For each fallback verifier role: the kernel role carrying it, whether it holds the map's permission, STEP.WITNESS and STEP.VERIFY now. */
+  async function facts(): Promise<{ engine_role: string; kernel_role: string; carries: boolean; witness: boolean; review: boolean }[]> {
+    const { rows } = await server.db.admin.query<{ engine_role: string; kernel_role: string; carries: boolean; witness: boolean; review: boolean }>(
+      `select m.engine_role, m.kernel_role, m.via_permission = any (h.held) as carries, 'STEP.WITNESS' = any (h.held) as witness, 'STEP.VERIFY' = any (h.held) as review
+         from tab.engine_role_map m
+         cross join lateral (select iam.role_permissions_at(m.kernel_role, clock_timestamp()) as held) h
+        where m.engine_role = any ($1::text[])
+        order by array_position($1::text[], m.engine_role), m.kernel_role`,
+      [[...FALLBACK]],
+    );
+    return rows;
+  }
+
+  it('[DI-30][PR-14][DI-35][INV-26][DI-17] the validator names, for the witness and for the later review, exactly the fallback verifier roles whose kernel role in tab.engine_role_map holds STEP.WITNESS or STEP.VERIFY: a production verifier or QA witnesses, only a production verifier reviews later, a production supervisor neither', async () => {
+    const f = await facts();
+    expect(f).toEqual([
+      { engine_role: 'PRODUCTION_VERIFIER', kernel_role: 'VERIFIER', carries: true, witness: true, review: true },
+      { engine_role: 'PRODUCTION_SUPERVISOR', kernel_role: 'SHIFT_SUPERVISOR', carries: true, witness: false, review: false },
+      { engine_role: 'QA', kernel_role: 'QA_SHOP_FLOOR', carries: true, witness: true, review: false },
+    ]);
+    const witness = f.filter((r) => r.carries && r.witness).map((r) => r.engine_role);
+    const review = f.filter((r) => r.carries && r.review).map((r) => r.engine_role);
+    // The validator as the designer runs it on this installation (the application role's view of the database).
+    const a = await analyse(server.db.app, noCheck(withEarlyParameter()), []);
+    const warned = a.findings.filter((x) => x.rule === 'GMP-WITNESS-NO-ATTACHMENT' && x.subject === 'p-early-time').map((x) => x.message);
+    expect(warned).toEqual([
+      `"Record the blend time" (p-early-time) records blendTime by hand from the printout or photo the MBR names as its evidence, and the MBR names no check for it. In this release no printout or photo can be attached to a value typed by hand, so the step is checked all the same, as a witness (WITNESSED), by a person in one of the engine's verifier roles where the MBR names no check (PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR and QA) whose role holds the check's permission: a second person holding ${witness.join(' or ')} (STEP.WITNESS) watches the entry within the site's witness window (5 minutes by default) after the step is signed performed, and before the run moves on. Once no witness is possible, the later review by a person holding ${review.join(' or ')} (STEP.VERIFY) completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)`,
+    ]);
+    expect({ witness, review }).toEqual({ witness: ['PRODUCTION_VERIFIER', 'QA'], review: ['PRODUCTION_VERIFIER'] });
+  }, 120_000);
+
+  it('[DI-30][PR-14][DI-35][INV-26][DI-17] the server reads those roles from the database as the validator\'s checker roles, and the designer\'s document reads the same from its delivered mirror (CHECKER_ROLES); both narrow the policy\'s fallback verifier roles alike', async () => {
+    const f = await facts();
+    const fromDb = await checkerRoles(server.db.app);
+    expect(fromDb).toEqual({ witness: f.filter((r) => r.carries && r.witness).map((r) => r.engine_role), review: f.filter((r) => r.carries && r.review).map((r) => r.engine_role) });
+    expect(fromDb).toEqual({ witness: [...CHECKER_ROLES.witness], review: [...CHECKER_ROLES.review] });
+    expect([...PINNED_POLICY_ROLES.fallbackVerifierRoles]).toEqual([...FALLBACK]);
+    const early = { signatures: {} };
+    expect(flow.checkersInRun(early, FALLBACK, fromDb)).toEqual({ named: ['PRODUCTION_VERIFIER', 'PRODUCTION_SUPERVISOR', 'QA'], witness: ['PRODUCTION_VERIFIER', 'QA'], review: ['PRODUCTION_VERIFIER'] });
+    expect(flow.checkersInRun(early, PINNED_POLICY_ROLES.fallbackVerifierRoles, CHECKER_ROLES)).toEqual(flow.checkersInRun(early, FALLBACK, fromDb));
+    expect((await loadValidationContext(server.db.app, noCheck(withEarlyParameter()))).context.roles?.checkers).toEqual(fromDb);
+  }, 120_000);
+
+  /**
+   * The early step (no check) typed by hand and signed performed, in a run of `content`; the checkers signed in at the
+   * dispensing booth's kiosk, the step's room, so only their roles decide.
+   */
+  async function performedNoCheck(content: flow.MbrContent): Promise<RunDriver> {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, noCheck(content)));
+    const d = new RunDriver(server, runId, {
+      issuer,
+      operator1: await server.asPersona('operator1'),
+      verifier1: await server.asPersona('verifier1', 'TEST-KIOSK-DISP-1'),
+      supervisor1: await server.asPersona('supervisor1', 'TEST-KIOSK-DISP-1'),
+      qa1: await server.asPersona('qa1', 'TEST-KIOSK-DISP-1'),
+    });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: EARLY });
+    await d.ok('operator1', { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: EARLY });
+    return d;
+  }
+
+  /** `persona`'s `meaning` on the early step, made at the database as the application role (esig.createChallenge, esig.sign): 'ok', or the refusal. */
+  const signedAtDb = (d: RunDriver, persona: string, meaning: string): Promise<string> =>
+    messageOf(signatureAlone(server, d.browser(persona), persona, 'batch_step', `${d.runId}:${EARLY}`, meaning));
+  /**
+   * `persona`'s VERIFY of the early step signed `meaning`, written past the server as the application role with the
+   * engine's own result (the engine takes the role: it knows no permission), so the database decides: the row's command
+   * permission in the persona's declared role (recipe.require_command_permission: STEP.WITNESS for a witness, else
+   * STEP.VERIFY) is checked before its signature. 'ok', or the refusal.
+   */
+  const rowAtDb = async (d: RunDriver, persona: string, meaning: string): Promise<string> => {
+    const run = await runContext(server.db.admin, d.runId);
+    const who = personaIn(server, persona);
+    return messageOf(
+      withCommand(server.db.app, await actorOf(server, d.browser(persona), persona), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = { type: 'VERIFY', commandId: randomUUID(), actor: engineActor(who.personId, roles), step: 'p-early-time', context: [], signature: { id: randomUUID(), meaning, signer: who.personId } };
+        return appendAs(tx, command, engineResult(tx, command), roles);
+      }),
+    );
+  };
+  /** The engine roles `persona`'s session carries at the database (tab.engine_roles: the map, evaluated for the person). */
+  const carriedAtDb = async (d: RunDriver, persona: string): Promise<string[]> =>
+    withCommand(server.db.app, await actorOf(server, d.browser(persona), persona), async (c) => (await engineRoles(c)).map((r) => r.role));
+  const signaturesOn = async (d: RunDriver): Promise<string[]> =>
+    (await server.db.admin.query<{ m: string }>('select meaning_code as m from esig.signature where aggregate_id = $1 order by recorded_at', [`${d.runId}:${EARLY}`])).rows.map((r) => r.m);
+  const whoCanHelp = async (d: RunDriver, persona: string, action: 'WITNESS' | 'VERIFY'): Promise<string[]> =>
+    ((await d.stepView(persona, EARLY)).actions.find((a) => a.action === action)?.whoCanHelp ?? []).filter((w) => !w.startsWith('Not '));
+
+  it('[DI-30][PR-14][DI-35][INV-26][DI-17] while a witness is possible the run takes it from a production verifier or QA only: a production supervisor carries a fallback verifier role but the database refuses their witness signature and the command\'s permission, the floor greys it and names who may, and nothing is signed; QA\'s witness completes the step', async () => {
+    const d = await performedNoCheck(withEarlyParameter());
+    expect(await carriedAtDb(d, 'supervisor1')).toContain('PRODUCTION_SUPERVISOR');
+    expect(
+      unmatched(
+        { signature: await signedAtDb(d, 'supervisor1', 'WITNESSED'), row: await rowAtDb(d, 'supervisor1', 'WITNESSED') },
+        { signature: /^EBMR-ESIG-040 the signer is not authorised to sign WITNESSED now: /, row: /^EBMR-IAM-040 .* acting as SHIFT_SUPERVISOR lacks permission STEP\.WITNESS in scope / },
+      ),
+    ).toEqual({});
+    const own = (await d.stepView('supervisor1', EARLY)).actions.find((a) => a.action === 'WITNESS');
+    expect({ available: own?.available, reason: own?.reason }).toEqual({ available: false, reason: 'The role SHIFT_SUPERVISOR of this session does not hold the permission this needs (STEP.WITNESS) (EBMR-EXE-ROLE; DI-17)' });
+    const may = ['QA operations (shop floor) (QA_SHOP_FLOOR)', 'Verifier / checker (VERIFIER)'];
+    expect(await whoCanHelp(d, 'supervisor1', 'WITNESS')).toEqual(may);
+    expect(await whoCanHelp(d, 'operator1', 'WITNESS')).toEqual(may);
+    const supervisor = await d.sign('supervisor1', { type: 'VERIFY', stepKey: EARLY, meaning: 'WITNESSED' });
+    expect(supervisor.result.ok).toBe(false);
+    expect({ ...(await checks(d)), signed: await signaturesOn(d) }).toEqual({ status: 'AWAITING_VERIFICATION', checks: [], signed: ['PERFORMED'] });
+    valueOf((await d.sign('qa1', { type: 'VERIFY', stepKey: EARLY, meaning: 'WITNESSED' })).result);
+    expect({ ...(await checks(d)), signed: await signaturesOn(d) }).toEqual({ status: 'COMPLETED', checks: ['WITNESSED'], signed: ['PERFORMED', 'WITNESSED'] });
+    expect(await violations(server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-30][PR-14][DI-35][INV-26][DI-17] once no witness is possible the later review is taken from a production verifier only: the database refuses QA\'s and the supervisor\'s VERIFIED signature and command permission, the floor names only the verifier, nothing is signed; the verifier\'s review completes the step with WITNESS_LATE', async () => {
+    const d = await performedNoCheck(withEarlyBesideClearance());
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const signature = /^EBMR-ESIG-040 the signer is not authorised to sign VERIFIED now: /;
+    expect(
+      unmatched(
+        {
+          qaSignature: await signedAtDb(d, 'qa1', 'VERIFIED'),
+          supervisorSignature: await signedAtDb(d, 'supervisor1', 'VERIFIED'),
+          qaRow: await rowAtDb(d, 'qa1', 'VERIFIED'),
+          supervisorRow: await rowAtDb(d, 'supervisor1', 'VERIFIED'),
+        },
+        {
+          qaSignature: signature,
+          supervisorSignature: signature,
+          qaRow: /^EBMR-IAM-040 .* acting as QA_SHOP_FLOOR lacks permission STEP\.VERIFY in scope /,
+          supervisorRow: /^EBMR-IAM-040 .* acting as SHIFT_SUPERVISOR lacks permission STEP\.VERIFY in scope /,
+        },
+      ),
+    ).toEqual({});
+    const own = (await d.stepView('qa1', EARLY)).actions.find((a) => a.action === 'VERIFY');
+    expect({ available: own?.available, reason: own?.reason }).toEqual({ available: false, reason: 'The role QA_SHOP_FLOOR of this session does not hold the permission this needs (STEP.VERIFY) (EBMR-EXE-ROLE; DI-17)' });
+    expect(await whoCanHelp(d, 'qa1', 'VERIFY')).toEqual(['Verifier / checker (VERIFIER)']);
+    for (const persona of ['qa1', 'supervisor1']) expect((await d.sign(persona, { type: 'VERIFY', stepKey: EARLY, meaning: 'VERIFIED' })).result.ok, persona).toBe(false);
+    expect({ ...(await checks(d)), signed: await signaturesOn(d), late: (await lateExceptions(d)).length }).toEqual({ status: 'AWAITING_VERIFICATION', checks: [], signed: ['PERFORMED'], late: 0 });
+    valueOf((await d.sign('verifier1', { type: 'VERIFY', stepKey: EARLY, meaning: 'VERIFIED' })).result);
+    expect({ ...(await checks(d)), signed: await signaturesOn(d), late: (await lateExceptions(d)).map((e) => e.raisedBy) }).toEqual({
+      status: 'COMPLETED',
+      checks: ['VERIFIED'],
+      signed: ['PERFORMED', 'VERIFIED'],
+      late: [personaIn(server, 'verifier1').personId],
+    });
     expect(await violations(server)).toEqual([]);
   }, 300_000);
 });
