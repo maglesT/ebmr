@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { FlowNode, MbrContent, TimeConstraint } from '../../src/flow/model.ts';
+import type { FlowNode, MbrContent, NodeEvent, TimeConstraint } from '../../src/flow/model.ts';
+import type { Frame } from '../../src/flow/tokens.ts';
 import { Analysis } from '../../src/validator/analysis.ts';
 import { networkConstraints, TIME_RULES } from '../../src/validator/rules-time.ts';
 import { checkTemporalNetwork } from '../../src/validator/time-network.ts';
-import { clone, context, endpoint, loadFixture, mbrWith, phase, registryOf, validate } from '../flow/support.ts';
+import { define, done, HEAD1, OP1, QA1, Run, sig, SUP1 } from '../engine/support.ts';
+import { clone, context, endpoint, errors, loadFixture, mbrWith, phase, registryOf, validate } from '../flow/support.ts';
 
 const timeRules = registryOf(TIME_RULES);
 const seq = (id: string, children: FlowNode[]): FlowNode => ({ kind: 'sequence', id, children });
@@ -166,5 +168,162 @@ describe('time-constraint gates (INV-20 model part)', () => {
     const m = altFlow('1');
     m.timeConstraints.push(tc('T-ACROSS', ['x1', 'END'], ['y1', 'START'], { max: '1' }));
     expect(found(m, 'TIME-NEVER-APPLIES')).toEqual([expect.stringMatching(/^WARNING: .*T-ACROSS.*can never apply/)]);
+  });
+});
+
+/**
+ * SQL mutation defect D6 (Phase 2 exit, execution steps and order; decision D6.1): the engine records the start of an
+ * operation, a parallel section, an alternative, a replicate section, a stage, a loop and a hold point by itself when the
+ * token arrives there (engine advance.ts afterFire, tryFire), and neither refuses nor flags such a start before a minimum
+ * ending at it (flagEarlyAutomaticEvent is called for ends only; recipe-core 0308 skips these starts the same way). Its
+ * own INV-20 check (invariants.ts checkTime) counts such a start before the minimum as a violation. The validator passed
+ * such a minimum, so an honest run of an approved MBR broke INV-20 with nobody told. The validator now refuses it and
+ * names where the minimum can end instead: the first act of a person inside, which the engine holds back.
+ */
+describe('D6: a minimum ends where a person acts, never at a token\'s arrival (TIME-MIN-AT-ARRIVAL; INV-20, PR-30)', () => {
+  const seqOf = (id: string, ...children: FlowNode[]): FlowNode => ({ kind: 'sequence', id, children });
+  const op = (id: string, ...children: FlowNode[]): FlowNode => ({ kind: 'operation', id, name: `Operation ${id}`, body: seqOf(`${id}-seq`, ...children) });
+  const stage = (id: string, ...children: FlowNode[]): FlowNode => ({
+    kind: 'stage',
+    id,
+    name: `Stage ${id}`,
+    binding: { rooms: [], equipment: [] },
+    purpose: 'NON_MATERIAL',
+    responsibleRole: 'HEAD_OF_PRODUCTION',
+    body: seqOf(`${id}-seq`, ...children),
+  });
+  const hold: FlowNode = { kind: 'holdPoint', id: 'H', name: 'QA release', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] };
+  const base = mbrWith(phase('unused'));
+  const references: MbrContent['references'] = [
+    ...base.references,
+    { id: 'VR', kind: 'VALIDATION_REPORT', code: 'VR-1', version: '1', hash: 'b'.repeat(64) },
+    { id: 'SYS-LOD', kind: 'COMPUTERISED_SYSTEM', code: 'CS-LOD', version: '1', hash: 'c'.repeat(64) },
+  ];
+  const procedure = (stages: FlowNode[], extra: Partial<MbrContent> = {}): MbrContent => ({ ...base, references, procedure: { id: 'PROC', name: 'Procedure', body: seqOf('proc-seq', ...stages) }, ...extra });
+  const minimum = (id: string, to: NodeEvent): TimeConstraint => ({ ...tc(id, ['a', 'END'], [to.node, to.event], { min: '10' }), name: 'Rest after a' });
+
+  /** Each place the token arrives at: the MBR (phase a just before it), what the run does to arrive, and the first acts of a person inside. */
+  interface Arrival {
+    kind: string;
+    node: string;
+    words: string;
+    mbr: MbrContent;
+    arrive: (run: Run) => void;
+    firstActs: { event: NodeEvent; frames: Frame[]; words: string }[];
+  }
+  const start = (node: string, frames: Frame[] = []) => ({ event: { node, event: 'START' as const }, frames, words: `the start of "Step ${node}" (${node})` });
+  const nothing = (): void => undefined;
+  const ARRIVALS: Arrival[] = [
+    {
+      kind: 'a stage',
+      node: 'S2',
+      words: 'stage "Stage S2" (S2)',
+      mbr: procedure([stage('S1', op('O1', phase('a'))), stage('S2', op('O2', phase('b')))]),
+      arrive: (run) => run.ok({ type: 'SIGN_OFF_STAGE', actor: HEAD1, stage: 'S1', signature: sig('STAGE_SIGNED_OFF', HEAD1) }),
+      firstActs: [start('b')],
+    },
+    { kind: 'an operation', node: 'O2', words: 'operation "Operation O2" (O2)', mbr: procedure([stage('S1', op('O1', phase('a')), op('O2', phase('b')))]), arrive: nothing, firstActs: [start('b')] },
+    {
+      kind: 'a hold point',
+      node: 'H',
+      words: 'hold point "QA release" (H)',
+      mbr: procedure([stage('S1', op('O1', phase('a'), hold, phase('b')))]),
+      arrive: nothing,
+      firstActs: [{ event: { node: 'H', event: 'END' }, frames: [], words: 'the release of hold point "QA release" (H) (its end)' }],
+    },
+    {
+      kind: 'a parallel section',
+      node: 'PAR',
+      words: 'parallel section PAR',
+      mbr: procedure([stage('S1', op('O1', phase('a'), { kind: 'parallel', id: 'PAR', branches: [{ id: 'B1', name: 'One', body: phase('p1') }, { id: 'B2', name: 'Two', body: phase('p2') }] }, phase('b')))]),
+      arrive: nothing,
+      firstActs: [start('p1'), start('p2')],
+    },
+    {
+      kind: 'an alternative',
+      node: 'ALT',
+      words: 'alternative ALT',
+      mbr: procedure([
+        stage(
+          'S1',
+          op(
+            'O1',
+            phase('a'),
+            { kind: 'alternative', id: 'ALT', decision: { mode: 'OPERATOR_CHOICE', roles: ['PRODUCTION_SUPERVISOR'], reasonRequired: true }, branches: [{ id: 'B1', name: 'One', body: phase('x1') }, { id: 'B2', name: 'Two', body: phase('x2') }] },
+            phase('b'),
+          ),
+        ),
+      ]),
+      arrive: (run) => run.ok({ type: 'CHOOSE_ALTERNATIVE', actor: SUP1, construct: 'ALT', context: [], branch: 'B1', reason: 'Route one' }),
+      firstActs: [start('x1'), start('x2')],
+    },
+    {
+      kind: 'a replicate section',
+      node: 'REP',
+      words: 'replicate section "Loads" (REP)',
+      mbr: procedure([stage('S1', op('O1', phase('a'), { kind: 'replicate', id: 'REP', name: 'Loads', count: { mode: 'RUNTIME', min: 1, max: 2, reasonRequired: true }, instances: 'SEQUENTIAL', subLotPrefix: 'LD', body: phase('r') }, phase('b')))]),
+      arrive: (run) => run.ok({ type: 'CHOOSE_REPLICATE_COUNT', actor: SUP1, construct: 'REP', context: [], count: 1, reason: 'One load' }),
+      firstActs: [start('r', [{ construct: 'REP', index: 1 }])],
+    },
+    {
+      kind: 'a loop',
+      node: 'L',
+      words: 'loop "Dry" (L)',
+      mbr: procedure(
+        [stage('S1', op('O1', phase('a'), { kind: 'loop', id: 'L', name: 'Dry', maxIterations: 3, exit: { condition: 'ep <= 1 [%]', endpoint: 'ep' }, body: phase('l', { records: ['ep'], system: { kind: 'OTHER', ref: 'SYS-LOD' } }) }, phase('b')))],
+        { parameters: [endpoint('ep')] },
+      ),
+      arrive: nothing,
+      firstActs: [start('l', [{ construct: 'L', index: 1 }])],
+    },
+  ];
+
+  const refusal = (c: Arrival): string =>
+    `Time constraint "Rest after a" (TC) has a minimum of 10 min that ends at the start of ${c.words}. The run starts it by itself as soon as what comes before it is done, so nothing holds that start back until the minimum has passed, and the run would break the minimum without a refusal or an exception. ${
+      c.node === 'H'
+        ? 'End the minimum at the release of the hold point instead (its end): the run holds the release back until the minimum has passed'
+        : `End the minimum at the first step inside instead, where a person acts and the run holds the act back until the minimum has passed: ${c.firstActs.map((x) => x.words).join(' and ')}${c.firstActs.length > 1 ? ' (one time constraint for each)' : ''}`
+    } (TIME-MIN-AT-ARRIVAL; INV-20, PR-30)`;
+
+  it.each(ARRIVALS.map((c) => [c.kind, c] as const))(
+    '[INV-20][PR-30] a minimum ending at the start of %s is refused, naming where a person acts instead; the engine records that start at the token\'s arrival without refusing or flagging it, so its own INV-20 check would fail the run',
+    (_kind, c) => {
+      const mbr: MbrContent = { ...c.mbr, timeConstraints: [minimum('TC', { node: c.node, event: 'START' })] };
+      const refused = errors(validate(mbr));
+      expect(refused.map((f) => f.key)).toEqual(['TIME-MIN-AT-ARRIVAL@TC']);
+      expect(refused[0]?.message).toBe(refusal(c));
+      // Why: an honest run of this MBR breaks INV-20 at the arrival, and nothing in the engine refuses or flags it.
+      const run = Run.issue(define(mbr));
+      expect(() => {
+        done(run, 'a');
+        c.arrive(run);
+      }).toThrow(/invariant violated after [A-Z_]+: \[INV-20\] TC: /);
+      expect(run.exceptions('TIME_MIN_BREACH')).toEqual([]);
+    },
+  );
+
+  it.each(ARRIVALS.map((c) => [c.kind, c] as const))('[INV-20][PR-30] the minimum ended at the first act inside %s instead passes, and the engine holds that act back until the minimum has passed', (_kind, c) => {
+    const mbr: MbrContent = { ...c.mbr, timeConstraints: c.firstActs.map((x, i) => ({ ...minimum(`TC-${i + 1}`, x.event), name: `Rest after a ${i + 1}` })) };
+    expect(errors(validate(mbr))).toEqual([]);
+    const run = Run.issue(define(mbr));
+    done(run, 'a');
+    c.arrive(run);
+    const act = (x: Arrival['firstActs'][number]): Parameters<Run['ok']>[0] =>
+      x.event.event === 'START'
+        ? { type: 'START_STEP', actor: OP1, step: x.event.node, context: x.frames }
+        : { type: 'DISPOSITION_HOLD_POINT', actor: QA1, step: x.event.node, context: x.frames, disposition: 'APPROVED', signature: sig('HOLD_POINT_RELEASED', QA1) };
+    const open = c.firstActs.filter((x) => run.status(x.event.node, x.frames) === 'ENABLED');
+    expect(open.length, 'SETUP: the first act inside is open to a person').toBeGreaterThan(0);
+    run.minutes(9);
+    for (const x of open) expect(run.refused(act(x), 'ENG-MIN-DURATION').message).toMatch(/has a minimum of 10 min; only 9 min have passed/);
+    run.minutes(1);
+    for (const x of open) run.ok(act(x));
+    expect(run.exceptions('TIME_MIN_BREACH')).toEqual([]);
+  });
+
+  it('[INV-20][PR-30] the shipped and seeded MBRs hold no such minimum', () => {
+    for (const name of ['tablet-granulation-compression', 'tablet-blister-packaging'] as const) {
+      expect(validate(loadFixture(name)).findings.filter((f) => f.rule === 'TIME-MIN-AT-ARRIVAL')).toEqual([]);
+    }
   });
 });

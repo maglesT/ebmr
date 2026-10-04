@@ -34,7 +34,7 @@ How to read the table:
 | market-authorisation-and-issue | 345/485, 71.1 % | 140 | 137 | 2 | 1 (a) | 32 |
 | execution-state-binding | 219/333, 65.8 % | 114 | 119 (b) | 2 | 0 | 11 + 9 |
 | system-facts-and-time | 226/333, 67.9 % | 107 | 99 | 8 | 0 | 21 + 11 |
-| execution-steps-and-order | 374/461, 81.1 % | 87 | 73 | 12 | 2 (c) | 20 + 7 |
+| execution-steps-and-order | 374/461, 81.1 % | 87 | 74 (c) | 12 | 1 (c) | 20 + 7 |
 | manual-weighing-gate | 163/242, 67.4 % | 79 | 74 | 5 | 0 | 32 (server) |
 | batch-number-register | 92/145, 63.4 % | 53 | 52 | 1 | 0 | 37 |
 | limit-exceptions | 181/223, 81.2 % | 42 | 41 | 1 | 0 | 17 |
@@ -69,8 +69,12 @@ Notes:
   decides whether to record it.
 - (b) The batch counted the two overloads of `recipe.row_step_key` under shared ids; the agent ran every current id
   of both, 121 in all.
-- (c) `recipe.minimum_duration_problem#15` and `recipe.own_node_event_problem#39`, each tied to an open defect below
-  (D6, D7). A test for either would have to fix in place behaviour the lead has not decided yet.
+- (c) `recipe.minimum_duration_problem#15` and `recipe.own_node_event_problem#39` were left, each tied to an open
+  defect below (D6, D7): a test for either would have fixed in place behaviour the lead had not decided yet. D6 is
+  decided (D6.1) and `#15` is killed by the D6 test in `packages/recipe-core/test/mutation/execution-steps-and-order.test.ts`
+  (harness run on branch phase-2/defects-validator: KILLED; that test is not counted in the Tests column, which
+  counts the kill agents' tests); it is not equivalent, because the database does not run the validator and can be
+  handed content holding such a minimum. `#39` stays tied to D7.
 - (d) Counted on the kill branch's base, which had 44 survivors (functions redefined after batch 1).
 - (e) The fix migration (kernel 1100) replaced the function, so the agent killed every mutant of the new definition.
 - (f) `tab.resolve_session` was redefined (tablets 0550) after batch 1; the agent counted 45 survivors on its base.
@@ -130,15 +134,17 @@ Fixed:
   the cluster lacks made `sandbox.segregation_problems()` fail with "role does not exist" instead of reporting the
   problem, because PostgreSQL evaluated the privilege test before the existence test; rows also came out in join
   order. Fixed in kernel 1100: roles are read from the catalogue and asked about by oid, in role order.
+- **D6. Execution steps: a minimum duration that ends where a token arrives.** The validator accepted a minimum that
+  ends at the start of an operation, section, stage, loop or hold point; the engine records such a start without
+  refusing or flagging it, its own INV-20 checker then reported a violation, and the database skips it. Fixed in the
+  validator, no migration (decision D6.1): rule TIME-MIN-AT-ARRIVAL refuses such a minimum and names where a person
+  acts instead (the first act inside, or a hold point's release); the engine and the database stay as they are. Tests:
+  `packages/recipe-core/test/validator/time.test.ts`, `apps/tablets-server/test/designer/arrival-minimum-and-nested-loops.test.ts`,
+  and the kill test of `recipe.minimum_duration_problem#15` in `packages/recipe-core/test/mutation/execution-steps-and-order.test.ts`
+  (note (c)).
 
 Open (the lead takes these next):
 
-- **D6. Execution steps: a minimum duration that ends where a token arrives.** The validator accepts a minimum that
-  ends at the start of an operation, section, stage, loop or hold point; the engine records such a start without
-  flagging it, the engine's own INV-20 checker then reports a violation, and the database skips it. An honest run of
-  a validated MBR thus fails INV-20 in the engine while the database accepts it. Needs a decision: the validator
-  refuses such a minimum, or the engine and database flag the early start. Leaves
-  `recipe.minimum_duration_problem#15`.
 - **D7. Execution steps: a loop exit recorded without its loop context.** The rule that a loop's exit needs the loop's
   END (recipe-core 0312, 0314, 0316) applies only when the iteration's context is not empty, so through the
   application role a loop could be left before its minimum duration with no END recorded. The kill agent read that
