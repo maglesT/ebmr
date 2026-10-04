@@ -8,6 +8,16 @@ on:
   schedule:
     - cron: '17 2 * * 0'
   workflow_dispatch:
+    inputs:
+      groups:
+        description: 'SQL groups to run, comma-separated (empty: every group)'
+        required: false
+        default: ''
+      typescript:
+        description: 'Also run StrykerJS on the kernel TypeScript'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -15,6 +25,8 @@ permissions:
 jobs:
   typescript:
     name: StrykerJS (kernel TypeScript)
+    # The weekly run always; a run started by hand only when asked for.
+    if: github.event_name == 'schedule' || inputs.typescript
     runs-on: ubuntu-latest
     timeout-minutes: 360
     services:
@@ -45,6 +57,7 @@ jobs:
         with:
           name: mutation-ts
           path: .reports/mutation/
+          include-hidden-files: true
           if-no-files-found: ignore
 
   sql:
@@ -83,11 +96,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm mutation:sql --group ${{ matrix.group }} --workers 2 --own-cluster --out .reports/sql-mutation/${{ matrix.group }}
+      # A run started by hand with a list of groups runs only those; the other jobs end at once.
+      - name: Mutation run
+        if: inputs.groups == '' || inputs.groups == null || contains(format(',{0},', inputs.groups), format(',{0},', matrix.group))
+        run: pnpm mutation:sql --group ${{ matrix.group }} --workers 2 --own-cluster --out .reports/sql-mutation/${{ matrix.group }}
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mutation-sql-${{ matrix.group }}
           path: .reports/sql-mutation/
+          include-hidden-files: true
           if-no-files-found: ignore
