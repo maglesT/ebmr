@@ -6,6 +6,8 @@
  * close the gaps the SQL mutation run (tools/sql-mutation, batch 2) found in packages/recipe-core/test/execution
  * entry-data-sql.test.ts: each rule is shown from the side it refuses, with the words it refuses in, and from the side
  * it lets through, at its boundary, on rows of the engine's own runs (forged where the rule is about a forgery).
+ * recipe.lot_usability_problem is the one 0372 replaces: the run's surviving mutant #6 read a BOM line that names null
+ * as its material the way the engine does, so the migration fixed the function rather than a test locking 0330 in.
  *
  * Controls: DI-05 (no identifier in the record that the MBR does not give it), DI-10 and DI-30 (an entry holds what its
  * block builds and meets its block's data schema), PR-14 (the second person an entry asks for), PR-18 (lot usability),
