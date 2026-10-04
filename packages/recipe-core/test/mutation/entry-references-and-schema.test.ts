@@ -260,6 +260,33 @@ describe('recipe-core 0330: the checklists, the lot and the entry its block buil
     });
   });
 
+  it('[PR-18][IN-23][PR-21] a lot is of the material its BOM line names even where the line names null (sql 0372): the engine refuses that lot (G07-WRONG-MATERIAL), and so does the database, for the lot and for the row that stores its charge', async () => {
+    const lot = { id: 'AR-9', material: 'MAT-M', status: 'RELEASED', identityTested: true };
+    const bomOf = (material: string | null) => [{ id: 'B', material, role: 'ACTIVE', quantity: { value: '1', unit: 'kg' } }] as unknown as MbrContent['bom'];
+    const chargeMbr = (material: string | null): MbrContent => mbrWith(seqOf('ops', phase('k', { block: G('G-08'), consumes: ['B'] })), { bom: bomOf(material) });
+    const entry = { kind: 'CHARGE_LOT', bomLine: 'B', container: 'TEST-K-1', lot, quantity: { value: '1', unit: 'kg' } };
+    // The engine on an MBR whose BOM line names null as its material (its parser defines no such MBR; a test package
+    // imported through the application role can hold one): the lot is not of the item the MBR names.
+    const run = Run.issue(define(chargeMbr(null)), {}, T0);
+    run.start('k');
+    expect(run.refused({ type: 'RECORD_ENTRY', actor: OP1, step: 'k', context: [], entry }, 'G07-WRONG-MATERIAL').message).toContain('Lot AR-9 is MAT-M, not the item the MBR names (null)');
+    // The engine's accepted charge of the line of MAT-M, and the same row read against an MBR whose line names null.
+    const charge = adding(rowsFor(chargeMbr('MAT-M'), (r) => {
+      r.start('k');
+      r.entry('k', entry);
+    }), 'CHARGE_LOT');
+    const nullLine = forge(charge, ({ mbr }) => void (mbr.bom = bomOf(null)));
+    const { rows } = await db.admin.query<{ p: string | null }>(
+      "select recipe.lot_usability_problem($1::jsonb, '\"B\"'::jsonb, $2::jsonb, 0, '[\"IN\"]'::jsonb) as p",
+      [JSON.stringify({ bom: bomOf(null) }), JSON.stringify({ ...lot, material: 'MAT-X' })],
+    );
+    expect({ lot: rows[0]?.p ?? null, honest: await blockProblem(charge), nullLine: await blockProblem(nullLine) }).toEqual({
+      lot: 'lot AR-9 is of material MAT-X, not the item the MBR names (null) (G07-WRONG-MATERIAL)',
+      honest: null,
+      nullLine: `stores ${about(nullLine)} whose lot AR-9 is of material MAT-M, not the item the MBR names (null) (G07-WRONG-MATERIAL)`,
+    });
+  }, 120_000);
+
   it('[DI-30][DI-05] an entry is recorded by an event of its own row: an entry numbered with the last event before the row, or after the row\'s last, is refused', async () => {
     const status = adding(fixtureRows('G-09'), 'EQUIPMENT_STATUS');
     const s0 = Number(status.before['seq']);
