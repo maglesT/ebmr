@@ -597,7 +597,7 @@ describe('whether the gate may count a scale unusable (tab.manual_path_verdict, 
     });
   });
 
-  it('[DI-30][PR-20] the API report counts until the gateway\'s API answers: an answer before the report does not answer it, one at its very instant or after does (ANSWERED, tablets 0640); a report seen at the window\'s very start is YOUNG', async () => {
+  it('[DI-30][PR-20] the API report counts until the gateway\'s API answers: an answer before the report does not answer it, one at its very instant or after does (ANSWERED, tablets 0700); a report seen at the window\'s very start is YOUNG', async () => {
     const v = await rolledBack(async (c) => {
       const t = await cleanSlate(c);
       const from = await shift(c, t, -10);
@@ -805,7 +805,7 @@ describe('the gate of hand-keyed weighings (tab.manual_weighing_check, tablets 0
     await heartbeat([online('TEST-BAL-01', 'SIM-0001'), offline('TEST-BAL-00')]);
   });
 
-  it('[DI-30][PR-20] beside a scale whose heartbeat is ONLINE, the report that the gateway API cannot be reached does not open the manual path once the API answered at the very instant the report was made (EBMR-EXE-074, ANSWERED; tablets 0640); nothing is recorded', async () => {
+  it('[DI-30][PR-20] beside a scale whose heartbeat is ONLINE, the report that the gateway API cannot be reached does not open the manual path once the API answered at the very instant the report was made (EBMR-EXE-074, ANSWERED; tablets 0700); nothing is recorded', async () => {
     const before = (await rowsOf(rig.server, run.runId)).length;
     // TEST-BAL-00 counts as unusable, TEST-BAL-01 reported ONLINE a second ago. The monitor's report changed 30 s ago and
     // was seen 20 s ago; the listener recorded an answer of the API at the very microsecond of the report (written by
