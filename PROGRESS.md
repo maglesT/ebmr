@@ -1777,3 +1777,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   session/badge-autofill (new), access/keyed-badge; ui-kit identity/badge-autofill (new). E2E smoke, fcv journey,
   floor, esig, access and designer pass; the floor spec's PR-08 variant, which types a value by hand from its printout,
   now asks for the witness itself to pass the gate.
+  Lane round 2 (T12.LATE, T12.DOC, BADGE-AUTOFILL): 0333 decided when a witness could be replaced from a step's end
+  time, other steps' start times, values' times and the pinned witness window, all written unbound by the application
+  role (an end stored 400 s back, or a batch pinned with a 1 microsecond window, let the later review replace the
+  witness at once); recipe-core 0334 binds each to its own act at the row's trusted time (EBMR-EXE-142 to 145) and the
+  window to no shorter than the site's kernel window (EBMR-EXE-146; default T12.4, T12.2 corrected). The validator and
+  the designer warned only for MANUAL capture, while every value is typed by hand in this release; they now warn for
+  every capture except a weighing step's computed quantities (T12.3 corrected). A password manager that "types" a saved
+  secret with script events was read as a reader; untrusted key and input events now count as a fill
+  (BADGE-AUTOFILL.1 corrected). Tests: recipe-core execution/step-times-sql (new), validator/content; server
+  execution/witness-without-printout, refusals-and-room-views; web designer/check-in-release; ui-kit
+  identity/badge-autofill. E2E floor and esig pass.
