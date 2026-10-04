@@ -706,6 +706,35 @@ describe('the guards of the version machine, on the version they are asked about
     await w.run(w.cast.regulatory, (c) => lc.addChangeRegulatory(c, cr, 'IN', 'NOTIFICATION'));
     expect(await guard(db.admin, 'registered_ranges_kept', v.versionId)).toBeNull();
   });
+
+  it('[PR-04] a registered range whose unit alone changed is a widening: an assessment without a variation, supplement or approval reference does not let it through', async () => {
+    // Same bounds, same inclusive flags: only the unit of AS-UOW/IP-AVG moves from mg to g.
+    const v = await derived(base.versionId, (m) => {
+      const c = m.acceptanceSchemes.find((s) => s.id === 'AS-UOW')?.criteria.find((x) => x.id === 'IP-AVG');
+      if (c?.unit !== 'mg') throw new Error('fixture changed: AS-UOW/IP-AVG unit');
+      c.unit = 'g';
+    });
+    const cr = await w.changeRecord();
+    await w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v.versionId, { changeRecordId: cr }), reason('change record linked'));
+    // A widened change names the stricter action it lacks, with or without an assessment.
+    const refusalText =
+      'registered elements changed without the regulatory action each market needs: AS-UOW/IP-AVG: registered range unit changed from mg to g without a variation, supplement or approval reference for market IN (PR-04)';
+    expect(await guard(db.admin, 'registered_ranges_kept', v.versionId)).toBe(refusalText);
+    await w.run(w.cast.regulatory, (c) => lc.addChangeRegulatory(c, cr, 'IN', 'NOTIFICATION'));
+    expect(await guard(db.admin, 'registered_ranges_kept', v.versionId)).toBe(refusalText);
+  });
+
+  it('[PR-04] a unit-only registered change is let through once the assessment for the market carries its reference', async () => {
+    const v = await derived(base.versionId, (m) => {
+      const c = m.acceptanceSchemes.find((s) => s.id === 'AS-UOW')?.criteria.find((x) => x.id === 'IP-AVG');
+      if (c?.unit !== 'mg') throw new Error('fixture changed: AS-UOW/IP-AVG unit');
+      c.unit = 'g';
+    });
+    const cr = await w.changeRecord();
+    await w.run(w.cast.author, (c) => lc.setDraftAttributes(c, v.versionId, { changeRecordId: cr }), reason('change record linked'));
+    await w.run(w.cast.regulatory, (c) => lc.addChangeRegulatory(c, cr, 'IN', 'PRIOR_APPROVAL', `VAR-${tag()}`));
+    expect(await guard(db.admin, 'registered_ranges_kept', v.versionId)).toBeNull();
+  });
 });
 
 // -------------------------------------------------------------------------------------------------------------------
@@ -747,6 +776,24 @@ describe('registered ranges and their changes (PR-04)', () => {
     expect(await changes(strict, lowInclusive)).toEqual([{ subject: 'binderTemp', change: 'registered range changed from (20.0, 30.0) to [20.0, 30.0)', widened: true }]);
     const highInclusive = withRegisteredBinder({ value: '20.0' }, { value: '30.0', inclusive: true });
     expect(await changes(strict, highInclusive)).toEqual([{ subject: 'binderTemp', change: 'registered range changed from (20.0, 30.0) to (20.0, 30.0]', widened: true }]);
+  });
+
+  it('[PR-04] a registered range whose unit alone changed (same bounds, same inclusive flags) is a change and a widening', async () => {
+    const inGrams = clone(baseContent);
+    const c = inGrams.acceptanceSchemes.find((s) => s.id === 'AS-UOW')?.criteria.find((x) => x.id === 'IP-AVG');
+    if (c?.unit !== 'mg') throw new Error('fixture changed: AS-UOW/IP-AVG unit');
+    c.unit = 'g';
+    expect(await changes(baseContent, inGrams)).toEqual([{ subject: 'AS-UOW/IP-AVG', change: 'registered range unit changed from mg to g', widened: true }]);
+    // The same on a parameter's limits: binderTemp's unit changes, its registered range does not.
+    const before = withRegisteredBinder({ value: '20.0', inclusive: true }, { value: '30.0', inclusive: true });
+    const after = clone(before);
+    const limits = after.parameters.find((x) => x.id === 'binderTemp')?.limits;
+    if (!limits) throw new Error('fixture changed: binderTemp');
+    const unitBefore = limits.unit;
+    limits.unit = `${unitBefore}-other`;
+    expect(await changes(before, after)).toEqual([
+      { subject: 'binderTemp', change: `registered range unit changed from ${unitBefore} to ${unitBefore}-other`, widened: true },
+    ]);
   });
 
   it('[PR-04] narrowing one bound while the other stays as it was is not a widening, whether that other bound is inclusive or strict', async () => {
