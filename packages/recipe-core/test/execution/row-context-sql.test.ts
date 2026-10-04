@@ -16,6 +16,7 @@
  * Every command, preparation and content version of the engine's own golden runs passes (steps in loops and replicate
  * sections, choices, loop iterations, stage sign-offs), and each forged variant is refused with its reason.
  */
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { encodeCommand, encodeState } from '../../src/engine/codec.ts';
@@ -409,6 +410,38 @@ describe('F12 round 9: an approval names the engine roles its approver holds (DI
     };
     const names = Object.keys(cases);
     const out = await approvalProblems(names.map((n) => (cases[n] as (typeof cases)[string])[0]));
+    expect(Object.fromEntries(names.map((n, i) => [n, out[i]]))).toEqual(Object.fromEntries(names.map((n) => [n, (cases[n] as (typeof cases)[string])[1]])));
+  }, 60_000);
+
+  it('[DI-05][DI-30] round 9 (self-review, sql 0342): an approval, and each of an abort\'s approvals, names its approver by the id of a person of this installation: L2409-0017, a text that is no id and an id the installation does not have are refused, a person of the installation passes', async () => {
+    // A person of the installation, written as the owner with its triggers off (set-up only: the template seeds none).
+    const known = randomUUID();
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query("insert into iam.person (id, kind, legal_name) values ($1, 'NATURAL', 'Round 9 approver')", [known]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    const by = (id: string): Json => ({ approver: { id, kind: 'PERSON', roles: ['QA'] }, signature: { id: '$dry-run', meaning: 'CORRECTION_APPROVED', signer: id } });
+    const cases: Record<string, readonly [Json, string | null]> = {
+      known: [correction({ approval: by(known) }), null],
+      none: [correction({}), null],
+      abortKnown: [{ type: 'ABORT_BATCH', reason: 'x', approvals: [by(known), by(known)] }, null],
+      lot: [correction({ approval: by(LOT) }), `command.approval.approver.id "${LOT}" is not the id of a person of this installation`],
+      upperCase: [correction({ approval: by(known.toUpperCase()) }), `command.approval.approver.id "${known.toUpperCase()}" is not the id of a person of this installation`],
+      unknown: [correction({ approval: by('00000000-0000-4000-8000-0000000000ff') }), 'command.approval.approver.id "00000000-0000-4000-8000-0000000000ff" is not the id of a person of this installation'],
+      abortLot: [{ type: 'ABORT_BATCH', reason: 'x', approvals: [by(known), by(LOT)] }, `command.approvals[1].approver.id "${LOT}" is not the id of a person of this installation`],
+      noId: [correction({ approval: { approver: { kind: 'PERSON', roles: [] }, signature: { id: '$dry-run', meaning: 'CORRECTION_APPROVED', signer: known } } }), 'command.approval.approver.id "none" is not the id of a person of this installation'],
+    };
+    const names = Object.keys(cases);
+    const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+      'select array_agg(recipe.approval_person_problem(x.v) order by x.i) as p from jsonb_array_elements($1::jsonb) with ordinality x (v, i)',
+      [JSON.stringify(names.map((n) => (cases[n] as (typeof cases)[string])[0]))],
+    );
+    const out = rows[0]?.p ?? [];
     expect(Object.fromEntries(names.map((n, i) => [n, out[i]]))).toEqual(Object.fromEntries(names.map((n) => [n, (cases[n] as (typeof cases)[string])[1]])));
   }, 60_000);
 });

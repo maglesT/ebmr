@@ -99,10 +99,10 @@ async function correct(d: RunDriver, point: string, approval: engine.Approval): 
  * when that refused row was recorded, else the refusal of the database. No signature is made: a refused row's
  * signatures are what was sent.
  */
-async function refusedCorrection(d: RunDriver, roles: readonly string[]): Promise<string> {
+async function refusedCorrection(d: RunDriver, roles: readonly string[], approverId?: string): Promise<string> {
   const run = await runContext(sbx.db.admin, d.runId);
   const me = personaIn(sbx, 'operator1');
-  const qa1 = personaIn(sbx, 'qa1');
+  const qa1 = { personId: approverId ?? personaIn(sbx, 'qa1').personId };
   return messageOf(
     withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (client) => {
       const tx = await execution.ExecutionTx.open(client, run.def, d.runId);
@@ -165,5 +165,23 @@ describe('F12 round 9: an approval names the engine roles its approver holds (DI
     expect(corrections.map((x) => x.accepted)).toEqual([false, true]);
     expect(corrections[1]?.signature_ids).toContain(approval.signature.id);
     expect(await violations(sbx)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-05][DI-30] round 9 (self-review, sql 0342): an approval names its approver by the id of a person of this installation: a refused correction approved by L2409-0017, or by a person id the installation does not have, is refused (EBMR-EXE-126) and no row holds L2409-0017; the refused correction approved by qa1 is recorded', async () => {
+    const d = await verifiedRun();
+    const PERSON = String.raw`\. An approval names its approver by the id of a person of this installation, so nothing sits in the record unread \(DI-05, DI-30\)\. \[EBMR-EXE-126\]$`;
+    const outcomes = {
+      lotApprover: await refusedCorrection(d, ['QA'], LOT),
+      unknownPerson: await refusedCorrection(d, ['QA'], '00000000-0000-4000-8000-0000000000ff'),
+    };
+    expect(
+      unmatched(outcomes, {
+        lotApprover: new RegExp(String.raw`^This refused CORRECT_ENTRY row cannot be recorded: command\.approval\.approver\.id "L2409-0017" is not the id of a person of this installation` + PERSON),
+        unknownPerson: new RegExp(String.raw`^This refused CORRECT_ENTRY row cannot be recorded: command\.approval\.approver\.id "00000000-0000-4000-8000-0000000000ff" is not the id of a person of this installation` + PERSON),
+      }),
+    ).toEqual({});
+    expect(await rowsWith(d.runId, LOT)).toBe(0);
+    expect(await refusedCorrection(d, ['QA'])).toBe('ok');
+    expect((await rowsOf(sbx, d.runId)).filter((x) => x.command_type === 'CORRECT_ENTRY').map((x) => x.accepted)).toEqual([false]);
   }, 300_000);
 });

@@ -463,7 +463,9 @@ that another command holds is skipped.
     holds through the authority behind the approver's own signature (the signer's declared kernel role, through the
     permission the kernel evaluated and allowed for it, in `engine_role_map`), a refused row's approval only engine
     roles (sql 0340, constraint trigger `zz_execution_row_shape_approver`, `approval_roles_problem`; Phase 2 exit review
-    F12, the lane's round-2 verification; decision F12.7). Free text a type declares (a reason,
+    F12, the lane's round-2 verification; decision F12.7), and its approver is a person of this installation on every
+    row, accepted or refused (sql 0342, constraint trigger `zz_execution_row_shape_approver_person`,
+    `approval_person_problem`). Free text a type declares (a reason,
     a description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
@@ -870,7 +872,8 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   does not have, or a sub-lot otherwise named, is refused. Round 9 (sql 0340, `approval_roles_problem`): a refused
   row's approval, and each of an abort's approvals, naming L2409-0017 or a role in lower case is refused, every engine
   role passes; an accepted row's approval under a signature id the kernel does not have, or the dry run's placeholder,
-  backs no role.
+  backs no role; an approver named L2409-0017, by an upper-case id or by an id the installation does not have is
+  refused (sql 0342, `approval_person_problem`).
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -1070,7 +1073,8 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   the honest store and engine path, an accepted correction approved by qa1 as QA and L2409-0017 (the lane's round-2
   verification's probe, which the engine accepts) or as PRODUCTION_SUPERVISOR, which qa1 does not hold, and a refused
   correction approved as QA and L2409-0017, are refused (EBMR-EXE-126) and no row holds L2409-0017; the honest refused
-  and accepted corrections approved as QA are recorded.
+  and accepted corrections approved as QA are recorded. A refused correction approved by L2409-0017, or by a person id
+  the installation does not have, is refused too (sql 0342).
 - `db-guards-sandbox-registers.test.ts` (Phase 2 exit review F12, round 9; tablets sql 0600, sql 0341): a weighing of a
   test lot registered with the material L2409-0017, which the engine refuses as the wrong material, is refused
   (EBMR-EXE-078) and nothing in the record holds L2409-0017, while a cellulose lot at the paracetamol line is still
