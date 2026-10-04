@@ -284,7 +284,8 @@ describe('the identifier rule reads a text as it shows (kernel 1050)', () => {
 
   it('[DI-05][INV-18] kernel 1050: every look-alike sandbox.look_alike lists is read as what it reads as, alone and between a letter and digits; the table holds the 760 decimal digits of Unicode 18.0.0 by value, 1998 characters of confusables.txt 18.0.0 (86 of them read as their decomposition, a vulgar fraction one half as 1/2) and 19 other dashes, and the characters the verification named; the application role reads it and cannot write it', async () => {
     const { rows: counts } = await gmp.app.query<{ basis: string; n: number }>(
-      "select basis, count(*)::int as n from sandbox.look_alike where basis <> 'UNICODE_NAME' group by basis order by basis",
+      // Kernel 1050's own bases (1060 and 1070 add others, counted in their tests).
+      "select basis, count(*)::int as n from sandbox.look_alike where basis in ('DASH_PUNCTUATION', 'DECIMAL_DIGIT', 'UTS39_CONFUSABLE', 'UTS39_DECOMPOSED') group by basis order by basis",
     );
     expect(counts).toEqual([
       { basis: 'DASH_PUNCTUATION', n: 19 },
@@ -395,5 +396,175 @@ describe('the identifier rule reads a text as it shows (kernel 1050)', () => {
       [[0x29f, 0x1d0d, 0x1f1f1, 0x1f17b, 0x2776, 0x1369, 0x26c]],
     );
     expect(Object.fromEntries(samples.map((r) => [r.code_point, r.reads_as]))).toEqual({ [0x26c]: 'l', [0x29f]: 'L', [0x1369]: '1', [0x1d0d]: 'M', [0x2776]: '1', [0x1f17b]: 'L', [0x1f1f1]: 'L' });
+  });
+});
+
+/**
+ * UTS #39 confusables.txt 18.0.0: the class of U+30FC KATAKANA-HIRAGANA PROLONGED SOUND MARK, the prototype it gives
+ * U+2014 EM DASH, U+2015 HORIZONTAL BAR and U+FF0D FULLWIDTH HYPHEN-MINUS, which the reading reads as '-' (kernel 1070).
+ */
+const PROLONGED_SOUND_MARK_CLASS = [
+  0x1173, 0x1bc7, 0x2014, 0x2015, 0x2500, 0x2501, 0x2f00, 0x30fc, 0x3161, 0x3192, 0x31d0, 0x4e00, 0xa7f7, 0xff0d, 0xff70,
+  0xffda, 0x1104b,
+];
+/** Kernel 1070: the dashes read by name (UnicodeData.txt 18.0.0) or as Chromium 141 draws them (a stroke at hyphen height). */
+const DASHES = [
+  0x0c7c, 0x1680, 0x172d, 0x1b78, 0x1c7c, 0x23af, 0x23e4, 0x2504, 0x2505, 0x2508, 0x2509, 0x254c, 0x254d, 0x2574, 0x2576,
+  0x2578, 0x257a, 0x257c, 0x257e, 0x29ff, 0x2d67, 0x2e43, 0x3127, 0x10110, 0x10d8f, 0x11049, 0x11052, 0x110be, 0x1bc03,
+  0x1bc08, 0x1bc0d, 0x1ce0d, 0x1ce0e, 0x1d01a, 0x1d047, 0x1d116, 0x1d13c, 0x1d2e5, 0x1fb78, 0x1fb79, 0x1fb7a,
+];
+/** Kernel 1070: the solidi read by name or as Chromium 141 draws them (a stroke along the rising diagonal). */
+const SOLIDI = [0x0f3c, 0x2e4a, 0xa6f3, 0xa937, 0x10462, 0x1aff0, 0x1bc4f, 0x1f67c];
+const HAIR_SPACE = ch(0x200a);
+const SIX_PER_EM_SPACE = ch(0x2006);
+const THIN_SPACE = ch(0x2009);
+const OGHAM_SPACE_MARK = ch(0x1680);
+
+describe('the identifier rule reads the look-alikes of the separators as a class (kernel 1070)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1070: every member of the UTS #39 class of U+30FC (the class of the em dash and the fullwidth hyphen-minus: box-drawing horizontals, the prolonged sound mark, CJK one, Hangul eu, the Brahmi line) and every listed dash is read as - between letters and digits, and every listed solidus as /: LOT─2409─0017, LOTー2409ー0017, LOT⎯2409⎯0017, B─24─0001 and BATCH🙼2409🙼0017 are read; the Ogham space mark, drawn as a stroke, is a dash; the hair space and the six-per-em space show no gap and the thin space still does', async () => {
+    const probes = {
+      boxHorizontal: 'LOT─2409─0017',
+      heavyBoxHorizontal: 'LOT━2409━0017',
+      prolongedSoundMark: 'LOTー2409ー0017',
+      cjkStroke: 'LOT㇐2409㇐0017',
+      lineExtension: 'LOT⎯2409⎯0017',
+      batchNumber: 'B─24─0001',
+      tripleDash: 'LOT┄2409┄0017',
+      verySolidus: `BATCH${ch(0x1f67c)}2409${ch(0x1f67c)}0017`,
+      ogham: `L${OGHAM_SPACE_MARK}2409${OGHAM_SPACE_MARK}0017`,
+      hairSpace: `Drum of lot L${HAIR_SPACE}2409-0017 set aside`,
+      sixPerEmSpace: `Drum of lot L${SIX_PER_EM_SPACE}2409-0017 set aside`,
+      // A residual (decision F12.11): the thin space, a fifth of an em, separates a number from its unit in honest text.
+      thinSpace: `Drum of lot L${THIN_SPACE}2409-0017 set aside`,
+    };
+    const read = await readText(Object.values(probes));
+    expect(Object.fromEntries(Object.entries(probes).map(([k, t]) => [k, read[t]]))).toEqual({
+      boxHorizontal: ['LOT-2409-0017'],
+      heavyBoxHorizontal: ['LOT-2409-0017'],
+      prolongedSoundMark: ['LOT-2409-0017'],
+      cjkStroke: ['LOT-2409-0017'],
+      lineExtension: ['LOT-2409-0017'],
+      batchNumber: ['B-24-0001'],
+      tripleDash: ['LOT-2409-0017'],
+      verySolidus: ['BATCH/2409/0017'],
+      ogham: ['L-2409-0017'],
+      hairSpace: ['L2409-0017'],
+      sixPerEmSpace: ['L2409-0017'],
+      thinSpace: [],
+    });
+    // The whole class and every listed separator: a test that fails as soon as one of them is not folded.
+    const unread: string[] = [];
+    for (const [cps, sep, head] of [[PROLONGED_SOUND_MARK_CLASS, '-', 'LOT'], [DASHES, '-', 'LOT'], [SOLIDI, '/', 'BATCH']] as const) {
+      for (const cp of cps) {
+        const c = ch(cp);
+        const words = (await readText([`${head}${c}2409${c}0017`]))[`${head}${c}2409${c}0017`] ?? [];
+        if (!words.includes(`${head}${sep}2409${sep}0017`)) unread.push(`U+${cp.toString(16).toUpperCase()}`);
+      }
+    }
+    expect(unread).toEqual([]);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1070: a letter drawn with a dot or an apostrophe in one character (U+013F, U+0140, U+14B7, U+0491) and the letters UTS #39 gives the look of a letter the reading reads by name (Cyrillic в, к and т, Greek κ and τ, Cherokee small letters) are read as that letter; the compatibility forms of Unicode 18.0.0 that PostgreSQL 16 does not decompose are read through their decomposition; sandbox.look_alike holds kernel 1070\'s 179 rows, each read alone and between a letter and digits; the application role cannot write them', async () => {
+    const probes = {
+      lWithMiddleDot: `${ch(0x13f)}2409-0017`,
+      smallLWithMiddleDot: `${ch(0x140)}2409-0017`,
+      syllabicsLWithDot: `${ch(0x14b7)}2409-0017`,
+      cyrillicVe: `${ch(0x432)}24-0001`,
+      cyrillicKa: `${ch(0x43a)}24-0001`,
+      greekKappa: `${ch(0x3ba)}24-0001`,
+      cyrillicTe: `LO${ch(0x442)}-2409-0017`,
+      cherokeeSmallTle: `${ch(0xabae)}2409-0017`,
+      modifierCapitalS: `${ch(0xa7f1)}24-0001`,
+    };
+    const read = await readText(Object.values(probes));
+    expect(Object.fromEntries(Object.entries(probes).map(([k, t]) => [k, read[t]]))).toEqual({
+      lWithMiddleDot: ['L2409-0017'],
+      smallLWithMiddleDot: ['l2409-0017'],
+      syllabicsLWithDot: ['L2409-0017'],
+      cyrillicVe: ['B24-0001'],
+      cyrillicKa: ['K24-0001'],
+      greekKappa: ['K24-0001'],
+      cyrillicTe: ['LOT-2409-0017'],
+      cherokeeSmallTle: ['L2409-0017'],
+      modifierCapitalS: ['S24-0001'],
+    });
+    const { rows: counts } = await gmp.app.query<{ basis: string; n: number; unread: number }>(
+      `select basis, count(*)::int as n,
+              count(*) filter (where sandbox.look_alikes_read(chr(l.code_point)) <> l.reads_as
+                                  or not exists (select 1 from sandbox.real_identifiers('Q' || chr(l.code_point) || '24')))::int as unread
+         from sandbox.look_alike l
+        where basis in ('LETTER_WITH_SIGN', 'SEPARATOR_SHAPE', 'UCD_COMPATIBILITY', 'UTS39_PROTOTYPE_CLASS')
+        group by basis order by basis`,
+    );
+    expect(counts).toEqual([
+      { basis: 'LETTER_WITH_SIGN', n: 27, unread: 0 },
+      { basis: 'SEPARATOR_SHAPE', n: 49, unread: 0 },
+      { basis: 'UCD_COMPATIBILITY', n: 34, unread: 0 },
+      { basis: 'UTS39_PROTOTYPE_CLASS', n: 69, unread: 0 },
+    ]);
+    await expect(gmp.app.query("insert into sandbox.look_alike (code_point, reads_as, basis) values (12290, '.', 'SEPARATOR_SHAPE')")).rejects.toThrow(/permission denied/);
+    await expect(gmp.app.query("delete from sandbox.look_alike where code_point = 12540")).rejects.toThrow(/permission denied/);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1070: honest text is still not read: Japanese prose with the prolonged sound mark, Chinese prose with the ideograph one, Korean prose with the letter eu, Greek prose with kappa and tau, a number and its unit written with a thin space or a narrow no-break space, an emoji, TEST- identifiers; the same texts naming LOTー2409ー0017 or L─24─0001 are read', async () => {
+    const texts = [
+      'ローラーを清掃し、データ 3 件を記録しました。',
+      '一号滚筒已称重，共 3 桶。',
+      '드럼 3개 확인 ㅡ 이상 없음',
+      'Το κουτί 3 ζυγίστηκε στις 10:15',
+      `250${THIN_SPACE}mg and 12${ch(0x202f)}kg weighed ${ch(0x2714)}${ch(0xfe0f)}`,
+      'Drum TEST-L26-0101 ー TEST-B26-0001 一 done',
+    ];
+    expect(await readText(texts)).toEqual(Object.fromEntries(texts.map((t) => [t, []])));
+    const named = texts.flatMap((t) => [`${t} LOTー2409ー0017`, `L─24─0001 ${t}`]);
+    const read = await readText(named);
+    expect(Object.entries(read).filter(([t, w]) => !w.includes(t.startsWith('L─') ? 'L-24-0001' : 'LOT-2409-0017')).map(([t]) => t)).toEqual([]);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1070: sandbox.guard_free_text refuses in a sandbox a row whose text holds LOT─2409─0017, Ŀ2409-0017 or L2409-0017 with a hair space after the L (EBMR-SBX-024) without the word in the refusal, and a sandbox person whose employee reference holds Ŀ2409-0017 (EBMR-SBX-024); a GMP installation keeps them; honest text with the prolonged sound mark is stored', async () => {
+    const table = `
+      create schema a4_sep;
+      create table a4_sep.note (id serial primary key, title text);
+      create trigger ac_sandbox_free_text before insert on a4_sep.note for each row execute function sandbox.guard_free_text('title');
+      grant usage on schema a4_sep to ebmr_app;
+      grant select, insert on a4_sep.note to ebmr_app;
+      grant usage on all sequences in schema a4_sep to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const insert = 'insert into a4_sep.note (title) values ($1)';
+    const outcome = async (db: { query: (q: string, v: unknown[]) => Promise<unknown> }, title: string): Promise<string> => {
+      try {
+        await db.query(insert, [title]);
+        return 'ok';
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const FREE_TEXT = /^a4_sep\.note title holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/;
+    for (const title of ['Drum of LOT─2409─0017', `Drum of ${ch(0x13f)}2409-0017`, `Drum of L${HAIR_SPACE}2409-0017`, 'Drum of LOTー2409ー0017']) {
+      const m = await outcome(sbx.sandbox, title);
+      expect(m, title).toMatch(FREE_TEXT);
+      expect(m, title).not.toMatch(/2409/);
+    }
+    expect(await outcome(sbx.sandbox, 'Drum TEST-L26-0101 ー データ 3 件')).toBe('ok');
+    expect((await sbx.admin.query("select 1 from a4_sep.note where title like '%2409%'")).rowCount).toBe(0);
+    for (const title of ['Drum of LOT─2409─0017', `Drum of ${ch(0x13f)}2409-0017`]) expect(await outcome(gmp.app, title)).toBe('ok');
+    // The person register reads names as the stubs do (kernel 1040): a person label allows ASCII only after TEST-.
+    const c = await sbx.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query(`select kernel.set_actor_context(jsonb_build_object(
+        'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+        'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+        'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1070 test'))`);
+      await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref ${ch(0x13f)}2409-0017`])).rejects.toThrow(
+        /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
+      );
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
   });
 });
