@@ -1977,3 +1977,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   standard dc-mini record it performs the clearance as OPERATOR, signs in again as VERIFIER (one role per session) and is
   refused Verify by the segregation rule (ENG-SEGREGATION; INV-03), not by the role rule. Also: every E2E badge tap now
   stamps the reader's keys 5 ms apart (readerTap), so a loaded machine no longer splits a tap and sends the UID's tail.
+- 2026-10-04: OWNER CONTEXT (no plan change): products the owner plans later, separate from this build: e-logbooks,
+  e-qualification protocols, engineering work orders, investigation management, eQMS, material management,
+  productivity, hiring, and training modules for SME development (the owner's list starts at 2 = eBMR; item 1 is not
+  named). The owner's instruction: build the BMR only for now; the others can come later. Nothing in the phase plan
+  changes for them.
+- 2026-10-04: PHASE 2 EXIT, review backlog (docs/build-plan/phase-2-exit/review-backlog.md): what the exit review did
+  not cover and what its follow-ups left open on purpose: the critic's uncovered areas, checked against rounds 4 to 6
+  (closed items listed with what closed them); the areas no reviewer has checked yet, by the phase that takes them;
+  the residuals that owner decisions accept (REPLAY-GATE.1, F34.2, HW.1-HW.3, F12.5 onwards, T5.1); and the defects
+  the SQL mutation kill agents reported. Each later phase's exit review starts from the items that name it.
