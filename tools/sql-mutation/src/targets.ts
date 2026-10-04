@@ -272,7 +272,9 @@ export const TARGETS: Target[] = [
                 'sandbox.identifier_problem_for', 'sandbox.assert_identifier_allowed', 'sandbox.guard_identifier', 'sandbox.batch_issue_problem_for',
                 'sandbox.assert_batch_issue_allowed', 'sandbox.watermark', 'iam.bootstrap_installation', 'recipe.import_test_package',
                 'recipe.package_header_problem', 'recipe.test_package_header_check', 'recipe.begin_issue', 'tab.register_sandbox_lot',
-                'tab.mbr_test_package_export_guard', 'tab.record_test_package_export', 'tab.mark_demo_installation', 'tab.is_demo_installation'],
+                'tab.mbr_test_package_export_guard', 'tab.record_test_package_export', 'tab.mark_demo_installation', 'tab.is_demo_installation',
+                // recipe-core 0384 (defect D14): how a refusal of package_header_problem names a JSON value.
+                'recipe.json_value_described'],
     tests: [k('sandbox/installation.test.ts'), k('sandbox/identifiers.test.ts'), k('sandbox/bypass.test.ts'), k('sandbox/bootstrap.test.ts'),
             k('sandbox/provision.test.ts'), k('sandbox/watermark.test.ts'), s('execution/import-db-guard.test.ts'),
             s('execution/db-guards-package-header.test.ts'), s('execution/store.test.ts'), s('execution/commands.test.ts'),

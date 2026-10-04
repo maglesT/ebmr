@@ -55,6 +55,7 @@ tests:
   - "apps/tablets-server/test/mutation/sandbox-and-import.test.ts > test lots (tablets 0200, 0701) > [PR-18] expiry and retest dates are whole epoch microseconds: a negative or fractional value of either alone is refused (EBMR-EXE-070); valid dates are stored as given"
   - "apps/tablets-server/test/mutation/sandbox-and-import.test.ts > test lots (tablets 0200, 0701) > [PR-18][DI-05] a lot is registered once and never changed: registering its code again is refused (EBMR-EXE-071) and the first registration stays"
   - "packages/recipe-core/test/mutation/execution-row-shape.test.ts > the evidence a row records (recipe.row_evidence_problem, 0335) > [DI-05][DI-30][PR-18][PR-20] an entry is read only as the entry of a RECORD_ENTRY command, and only as an object: a weighing's evidence beside another command that carries a weighing, or beside an entry that is a text, is refused by what that command records"
+  - "apps/tablets-server/test/mutation/sandbox-and-import.test.ts > test lots (tablets 0200, 0701) > [PR-18][DI-05] D4: the register's own refusal names what it checks; a lot without a material or a status is refused by the register's table (its NOT NULL constraints), and nothing is registered"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

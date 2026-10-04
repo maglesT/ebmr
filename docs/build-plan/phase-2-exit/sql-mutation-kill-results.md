@@ -124,8 +124,11 @@ Fixed:
   only: the ANSWERED refusal still says the API answered "after" the report.
 - **D4. Sandbox and import: a test lot without its identity-test flag.** The register's check gave NULL for a missing
   flag, so the lot was refused by the table's NOT NULL constraint with a bare database error instead of EBMR-EXE-070.
-  Fixed in tablets 0701. Still open, wording only: the message names a material and a status the function itself
-  does not check (the table's constraints refuse such a lot).
+  Fixed in tablets 0701. The wording followed in tablets 0711: the message names only what the function checks (a lot
+  code and a yes or no for the identity test); a lot without a material or a status is refused by the table's NOT NULL
+  constraints, as a new test shows. Tests: "[PR-18][DI-05] a test lot without a lot code, or without a yes-or-no
+  identity test ..." (failing before 0711) and "[PR-18][DI-05] D4: the register's own refusal names what it checks
+  ..." (apps/tablets-server/test/mutation/sandbox-and-import.test.ts).
 - **D5. Connection roles: the sandbox segregation query failed on a missing role.** In a sandbox, a GMP login role
   the cluster lacks made `sandbox.segregation_problems()` fail with "role does not exist" instead of reporting the
   problem, because PostgreSQL evaluated the privilege test before the existence test; rows also came out in join
@@ -182,6 +185,14 @@ Fixed:
   the version machine has no way from APPROVED back to CHECKED, so when the approval's guard runs no batch is pinned to
   the version itself. Not closed here: a cell's end and a withdrawal row written around their commands (they only take
   an authorisation away), and D11 (the state row moved under the engine flag).
+- **D14. Sandbox and import: a misleading family-code reason.** When a test package's family code was not text, the
+  refusal (EBMR-EXE-134, correct) named the same value on both sides, and when only the stored family code or product
+  differed it named the package's value, which is the content's own. Fixed in recipe-core 0384 (wording only, what is
+  refused is unchanged): a family code that is not text is named as such with both values and their JSON type; a
+  value that differs is named on the side that differs, the package's or the stored one. Tests: "[DI-04][DI-37] a
+  family code or product that is not the content's is named on the side that differs ..."
+  (packages/kernel/test/mutation/sandbox-and-import.test.ts) and the two family-code tests of
+  apps/tablets-server/test/mutation/sandbox-and-import.test.ts, failing before 0384.
 
 Open (the lead takes these next):
 
@@ -205,9 +216,6 @@ Open (the lead takes these next):
   the hold ends early, and the `heldUntilUs` the database already returned is too late. A one-condition fix (prune
   only rows whose tick and close are both over an hour old) is proposed; decision X43 words the rule both ways, so
   the owner or lead picks it.
-- **D14. Sandbox and import: a misleading family-code reason.** When a test package's family code is not text, the
-  refusal (EBMR-EXE-134, correct) names the same value on both sides; reachable through the application role. Message
-  wording only.
 - **D15. Connection roles: an unknown grantee breaks the connect policy's statement.** When a backend-signal function's
   privileges name a role oid the cluster does not know (a direct catalogue write by a superuser), the policy fails
   with a syntax error instead of a coded refusal. It fails closed; only the message is wrong.
