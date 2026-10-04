@@ -173,6 +173,20 @@ const loops = defineRule('FLOW-LOOPS', 'Loops are bounded and exit on a process 
         ),
       );
     }
+    // D12 (decision D12.1): a loop inside a loop on the same endpoint. The inner exit judges the endpoint's last
+    // reading; the outer exit would judge that reading again (engine data.ts raiseForEvaluationAtExit) and, outside its
+    // limits, raise a second limit breach, and the database refuses that exit row either way (recipe-core 0303, 0305).
+    for (const outerId of info.ancestors) {
+      const outer = a.nodes.get(outerId)?.node;
+      if (outer?.kind !== 'loop' || outer.exit.endpoint !== n.exit.endpoint) continue;
+      const ep = label(a, endpoint.id);
+      out.push(
+        error(
+          n.id,
+          `Loop ${label(a, n.id)} lies inside loop ${label(a, outer.id)}, and both exit on ${ep}. The inner loop's exit judges the last reading of ${ep} against its limits; the outer loop's exit would judge that same reading again, and raise a second limit breach for it when it is outside them, which the database refuses, so the batch would stop at the outer loop's exit. Give the outer loop an endpoint of its own, recorded inside it, or keep only one of the two loops`,
+        ),
+      );
+    }
     const bodyPhases = new Set<string>();
     const collect = (x: FlowNode): void => {
       if (x.kind === 'phase') bodyPhases.add(x.id);

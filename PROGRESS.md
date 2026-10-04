@@ -2065,3 +2065,20 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   state history forged with the session flag, nested loops on one endpoint, the listener hold measured from the
   close, and two refusal messages) are in docs/build-plan/phase-2-exit/sql-mutation-kill-results.md. Harness smoke on
   this tree: site-zone 25/33 before the kill tests, 33/33 after.
+- 2026-10-04: PHASE 2 EXIT, SQL mutation defects, what the designer refuses (D6, D12) (branch phase-2/defects-validator
+  from 9307dd2; no migration). D6: a time constraint whose minimum ends at the start of an operation, a parallel
+  section, an alternative, a replicate section, a stage, a loop or a hold point passed the validator, although the
+  engine starts such a node by itself when the token arrives and neither refuses nor flags the start, so an honest run
+  broke the engine's own INV-20 check with nobody told. The validator now refuses it (rule TIME-MIN-AT-ARRIVAL, an
+  error) and tells the author where to end the minimum instead: a hold point's release, or the first act of a person
+  inside (a phase's start). The engine and the database stay as they are (decision D6.1). The SQL mutant
+  recipe.minimum_duration_problem#15 is now killed by a test that pins that division (harness: KILLED); it is not
+  equivalent, because the database does not run the validator. D12: two loops, one inside the other, on the same
+  endpoint passed the validator; the outer exit judged the inner exit's reading again (a second limit breach for one
+  reading) and the database refused that exit, so the batch stopped there. FLOW-LOOPS now refuses such loops, in plain
+  words at the inner loop; the database's refusal stays and a test pins it (decision D12.1). Validator 1.2.0. The
+  designer shows both errors where they belong (the constraint in section 9, the inner loop in section 8) and the
+  version stays a draft. Every shipped and seeded MBR (the fixtures, dc-mini, the api-contract examples) still passes
+  with no finding. Each new validator and designer test fails on the old validator. Left for the owner: a database
+  check of MBR content against D6, as recipe-core 0324 does for roles, since the database trusts the validator report
+  it stores.

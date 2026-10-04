@@ -18,8 +18,8 @@ import type { Finding, GateResult, RuleFinding, ValidationContext, ValidationRep
 
 /**
  * 1.1.0: FLOW-ROLES (every role the master names is an engine role of the installation; review F49).
- * 1.2.0: TIME-MIN-AT-ARRIVAL (a minimum never ends at a start the run records by itself; SQL mutation defect D6). A
- * report of an earlier version did not check it.
+ * 1.2.0: TIME-MIN-AT-ARRIVAL (a minimum never ends at a start the run records by itself; SQL mutation defect D6) and
+ * FLOW-LOOPS refuses a loop inside a loop on the same endpoint (D12). A report of an earlier version checked neither.
  */
 export const VALIDATOR_VERSION = '1.2.0';
 

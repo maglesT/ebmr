@@ -142,6 +142,13 @@ Fixed:
   `packages/recipe-core/test/validator/time.test.ts`, `apps/tablets-server/test/designer/arrival-minimum-and-nested-loops.test.ts`,
   and the kill test of `recipe.minimum_duration_problem#15` in `packages/recipe-core/test/mutation/execution-steps-and-order.test.ts`
   (note (c)).
+- **D12. Limit exceptions: nested loops on the same endpoint.** The validator and the engine accepted two nested loops
+  that exit on the same endpoint; at the outer exit the engine judged the point again and, on a breach, raised a
+  second limit breach, and the database refused that outer exit row. Fixed in the validator, no migration (decision
+  D12.1): FLOW-LOOPS refuses such loops in plain words at the inner loop; the database's fail-closed refusal of the
+  outer exit stays and is pinned. Tests: `packages/recipe-core/test/validator/structure.test.ts`,
+  `apps/tablets-server/test/designer/arrival-minimum-and-nested-loops.test.ts`,
+  `packages/recipe-core/test/mutation/limit-exceptions.test.ts` (D12).
 
 Open (the lead takes these next):
 
@@ -171,11 +178,6 @@ Open (the lead takes these next):
   `platform.state_history` the guard checks only a session setting any role can set, so owner-level code can write
   an arbitrary transition (for example a version approved at version 100); `platform.state_violations()` finds it only
   afterwards. The kernel's own tests treat a forged flag as an attack the guards must withstand.
-- **D12. Limit exceptions: nested loops on the same endpoint.** The validator and the engine accept two nested loops
-  that exit on the same endpoint; at the outer exit the engine judges the point again and, on a breach, raises a
-  second limit breach. The database refuses that outer exit row (fail-closed: the batch is stuck, nothing wrong is
-  stored). Needs a decision; the skeptic favours the engine or validator side (two critical breaches for one reading
-  look wrong on their own).
 - **D13. Evidence listener: the hold ends before the time it was announced.** The tick prune deletes by tick time, but
   the hold by another key's run is measured from the time the tick was closed, so a late-closed tick is pruned early,
   the hold ends early, and the `heldUntilUs` the database already returned is too late. A one-condition fix (prune

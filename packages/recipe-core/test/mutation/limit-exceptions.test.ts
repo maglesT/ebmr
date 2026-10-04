@@ -36,11 +36,12 @@ import {
   type BatchState,
   type DataValue,
 } from '../../src/engine/index.ts';
+import { encodeCommand } from '../../src/engine/codec.ts';
 import type { FlowNode, MbrContent, Parameter } from '../../src/flow/model.ts';
 import type { Frame } from '../../src/flow/tokens.ts';
 import type { LimitRange, LimitSpec } from '../../src/limits/model.ts';
 import { define, done, omit, OP1, param, QA1, Run, sig } from '../engine/support.ts';
-import { endpoint, mbrWith, phase } from '../flow/support.ts';
+import { endpoint, mbrWith, phase, validate } from '../flow/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -355,6 +356,46 @@ describe('the verdict at a loop\'s exit (recipe.limit_verdicts, recipe.loop_exit
     expect(await differences(content, rowsOf(run, start))).toEqual({});
     const judged = Object.values(exit.after.points).filter((p) => p.item === 'ep').map((p) => `${p.stepKey} ${p.evaluation?.requirement ?? '-'}`);
     expect(judged).toEqual(['test@OL=1/IL=1 ENDPOINT_IN_PROGRESS', 'test@OL=1/IL=2 NONE']);
+  });
+
+  it('[PR-08][INV-19][INV-41] D12: a loop inside a loop on the same endpoint (refused by the validator since decision D12.1): the outer exit judges the inner exit\'s reading again, and the database refuses that row whether the reading passes or not; the batch stops there and nothing wrong is stored', async () => {
+    const inner: FlowNode = { kind: 'loop', id: 'IL', name: 'Inner', maxIterations: 1, exit: { condition: 'ep <= 1 [%]', endpoint: 'ep' }, body: seq('ib', phase('test', { records: ['ep'] })) };
+    const content = mbrWith(seq('ops', { kind: 'loop', id: 'OL', name: 'Outer', maxIterations: 1, exit: { condition: 'ep <= 1 [%]', endpoint: 'ep' }, body: seq('ob', inner) }, phase('after')), {
+      parameters: [endpoint('ep')],
+    });
+    expect(validate(content).findings.filter((f) => f.rule === 'FLOW-LOOPS').map((f) => f.key), 'SETUP: the gate refuses this MBR').toEqual(['FLOW-LOOPS@IL']);
+    /** The database's objections to the two exit rows of an honest run whose reading is `v`. */
+    const exits = async (v: string): Promise<Record<string, { kept: string | null; limits: string | null }>> => {
+      const run = Run.issue(define(content));
+      const f: Frame[] = [{ construct: 'OL', index: 1 }, { construct: 'IL', index: 1 }];
+      run.start('test', f);
+      run.record('test', 'ep', decimal(v, '%'), { frames: f });
+      run.perform('test', f);
+      run.verify('test', f);
+      run.ok({ type: 'COMPLETE_LOOP_ITERATION', actor: OP1, construct: 'IL', context: f });
+      run.ok({ type: 'COMPLETE_LOOP_ITERATION', actor: OP1, construct: 'OL', context: [{ construct: 'OL', index: 1 }] });
+      const out: Record<string, { kept: string | null; limits: string | null }> = {};
+      for (const [name, at] of [['inner exit', run.log.length - 2], ['outer exit', run.log.length - 1]] as const) {
+        const [previous, entry] = [run.log[at - 1], run.log[at]];
+        if (!previous || !entry) throw new Error('SETUP: no exit row');
+        const before = encodeState(previous.result.state);
+        const after = encodeState(entry.result.state);
+        out[name] = {
+          kept: await value<string>('select recipe.kept_records_problem($1::jsonb, $2::jsonb, $3, $4, $5::jsonb) as p', [JSON.stringify(before), JSON.stringify(after), 'COMMAND', true, JSON.stringify(encodeCommand(entry.command))]),
+          limits: await limitProblem(content, before, after),
+        };
+      }
+      return out;
+    };
+    const judgedAgain =
+      'changes the evaluation, verdict or exceptions of data point DP-1 (ep of step test@OL=1/IL=1); only the exit of a loop whose endpoint was waiting for it (the accepted COMPLETE_LOOP_ITERATION that ends the loop) gives that verdict, with the exceptions the row raises for it';
+    expect({ passing: await exits('0.5'), breaching: await exits('7.0') }).toEqual({
+      passing: { 'inner exit': { kept: null, limits: null }, 'outer exit': { kept: judgedAgain, limits: null } },
+      breaching: {
+        'inner exit': { kept: null, limits: null },
+        'outer exit': { kept: judgedAgain, limits: 'exception EX-3 (LIMIT_BREACH, tier VALIDATED, severity CRITICAL) is not an exception a verdict of this row raises' },
+      },
+    });
   });
 
   it('[PR-08][INV-19][INV-41] the exit gives its verdict to no other value: an earlier inner iteration\'s, one of two values at the same depth (the engine judges neither), or one given in a row that decides no exit or an exit decided before, is refused', async () => {
