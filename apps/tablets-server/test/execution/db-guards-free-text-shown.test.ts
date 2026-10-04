@@ -18,6 +18,10 @@
  * draws as such, a letter drawn with a dot (U+013F), a space narrower than the thin space and the Ogham space mark
  * (drawn as a dash) hid L2409-0017 or B24-0001 in records the honest server kept.
  *
+ * Kernel 1090 (the verification of the lane's round 7, lane round 2): what Chromium, the E2E browser, lays out with no
+ * advance hides nothing. U+FFFC OBJECT REPLACEMENT CHARACTER (no advance, no ink) and the spacing combining marks
+ * (U+1031 and U+102B drawn before the L, U+0C03 on it) hid L2409-0017 and B24-0001 in records the honest server kept.
+ *
  * The writer is the application role, through the honest server (HTTP) or with the application's own credentials (a
  * business entry of the audit trail), as in the other db-guards files. Characters that show nothing are written by
  * number. Own file and server: the kiosk's device nonces are rate-limited per terminal and minute.
@@ -80,6 +84,15 @@ const SEPARATOR_PROBES: Record<string, string> = {
   'U+0432': `${ch(0x432)}24-0001`,
   'U+200A': `L${ch(0x200a)}2409-0017`,
   'U+1680': `L${ch(0x1680)}2409${ch(0x1680)}0017`,
+};
+
+/** Kernel 1090: L2409-0017 or B24-0001 with a character Chromium lays out with no advance after the letter. */
+const NO_ADVANCE_PROBES: Record<string, string> = {
+  'U+FFFC': `L${ch(0xfffc)}2409-0017`,
+  'U+FFFC batch': `B${ch(0xfffc)}24-0001`,
+  'U+1031': `L${ch(0x1031)}2409-0017`,
+  'U+102B': `L${ch(0x102b)}2409-0017`,
+  'U+0C03': `L${ch(0xc03)}2409-0017`,
 };
 
 /** A run of dc-mini issued by the issuer, with the kiosks of operator1 and supervisor1. */
@@ -207,6 +220,45 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
     expect(await recordHolding(d.runId, 'データ 3 件を記録')).toMatchObject({ rows: 1 });
     expect(await recordHolding(d.runId, '一号滚筒 3 桶')).toMatchObject({ audit: 1 });
+    expect(await violations(sbx)).toEqual([]);
+  }, 600_000);
+
+  it('[DI-05][DI-30][INV-18] kernel 1090: over HTTP L2409-0017 with U+FFFC after the L, B24-0001 with U+FFFC after the B, and L2409-0017 with the spacing marks U+1031, U+102B or U+0C03 after the L, in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi prose with its vowel signs and a number written against a word, Tamil and Telugu prose are recorded', async () => {
+    const d = await issued();
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const chain = `batch:${d.runId}`;
+    const AUDIT = String.raw`, a word of the form of a batch or lot number that is not a test one\. .*\[EBMR-EXE-147\]$`;
+    const raised: Record<string, string> = {};
+    const held: Record<string, string> = {};
+    const entries: Record<string, { message: string; details: string }> = {};
+    for (const [name, word] of Object.entries(NO_ADVANCE_PROBES)) {
+      raised[name] = outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum of ${word} set aside`, severity: 'ALERT' }));
+      held[name] = outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: drum of ${word} found in the booth` }));
+      entries[name] = {
+        message: await businessEntry(d, chain, `Drum of ${word} moved to the booth`),
+        details: await businessEntry(d, chain, 'Drum moved to the booth', { drum: { of: { lot: `lot ${word}` } } }),
+      };
+    }
+    const names = Object.keys(NO_ADVANCE_PROBES);
+    expect({ raised, held }).toEqual({ raised: Object.fromEntries(names.map((n) => [n, REFUSED])), held: Object.fromEntries(names.map((n) => [n, REFUSED])) });
+    for (const [name, o] of Object.entries(entries)) {
+      expect(o.message, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.message` + AUDIT));
+      expect(o.details, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.details\.drum\.of\.lot` + AUDIT));
+      // The run's id (a UUID) is cut out first: its hex digits could hold 2409 by chance. The refusal's own example,
+      // TEST-L24-0001, is not the probe B24-0001.
+      for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, ''), name).not.toMatch(/2409|0017|B\W?24\W?0001/u);
+    }
+    const honest = {
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ड्रम को साफ़ किया गया और 3 नमूने लिए गए। यह 25वां बैच है।', severity: 'ALERT' })),
+      tamil: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'டிரம் 3 எடை பார்க்கப்பட்டது', severity: 'ALERT' })),
+      hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'Hold: ड्रम TEST-L26-0101 की जाँच बाकी है' })),
+      entry: await businessEntry(d, chain, 'డ్రమ్ 3 బరువు చూశారు', { drum: { note: { text: 'कुल वज़न 250 किलो' } } }),
+    };
+    expect(honest).toEqual({ hindi: 'ok', tamil: 'ok', hold: 'ok', entry: 'ok' });
+    for (const [name, word] of Object.entries(NO_ADVANCE_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, 'यह 25वां बैच है')).toMatchObject({ rows: 1 });
+    expect(await recordHolding(d.runId, 'कुल वज़न 250 किलो')).toMatchObject({ audit: 1 });
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
 });

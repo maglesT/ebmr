@@ -586,3 +586,101 @@ describe('the identifier rule reads the look-alikes of the separators as a class
     expect(rows).toEqual(FULL_STOPS.map((cp) => ({ code_point: cp, reads_as: '.', basis: 'SEPARATOR_SHAPE' })));
   });
 });
+
+/** Kernel 1090: the characters Chromium 141 lays out with no advance after a Latin letter, other than the spacing marks. */
+const NO_ADVANCE = [0xa717, 0xa718, 0xa719, 0xa71a, 0xa8fa, 0xfffc, 0x1193f, 0x11941, 0x11a3a, 0x11a86, 0x11a87, 0x11a88, 0x11a89, 0x11d46];
+/** Every spacing combining mark (general category Mc) of the runtime's Unicode tables (17.0; kernel 1090 holds 18.0's 477). */
+const SPACING_MARKS: number[] = [];
+for (let cp = 0x80; cp <= 0x10ffff; cp++) if ((cp < 0xd800 || cp > 0xdfff) && /\p{Mc}/u.test(String.fromCodePoint(cp))) SPACING_MARKS.push(cp);
+const OBJECT_REPLACEMENT = ch(0xfffc);
+
+describe('the identifier rule reads what takes no room in the E2E browser as nothing (kernel 1090)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1090: L2409-0017 and B24-0001 with U+FFFC after the letter (laid out with no advance and no ink), and L2409-0017 with a spacing mark after the L (U+1031 and U+102B drawn before it, U+0C03 on it, U+0903 with an advance), are read; every spacing mark and every other character laid out with no advance is read as nothing between a letter and digits; the class holds the 477 spacing marks of Unicode 18.0.0 and 14 others', async () => {
+    const probes = {
+      objectReplacement: `Drum L${OBJECT_REPLACEMENT}2409-0017 set aside`,
+      objectReplacementBatch: `after batch B${OBJECT_REPLACEMENT}24-0001`,
+      myanmarE: `Drum L${ch(0x1031)}2409-0017`,
+      myanmarTallAa: `Drum L${ch(0x102b)}2409-0017`,
+      teluguVisarga: `Drum L${ch(0xc03)}2409-0017`,
+      devanagariVisarga: `Drum L${ch(0x903)}2409-0017`,
+    };
+    const read = await readText(Object.values(probes));
+    expect(Object.fromEntries(Object.entries(probes).map(([k, t]) => [k, read[t]]))).toEqual({
+      objectReplacement: ['L2409-0017'],
+      objectReplacementBatch: ['B24-0001'],
+      myanmarE: ['L2409-0017'],
+      myanmarTallAa: ['L2409-0017'],
+      teluguVisarga: ['L2409-0017'],
+      devanagariVisarga: ['L2409-0017'],
+    });
+    // Every one of them between Q and 24, which is read as an identifier only when the character is read as nothing.
+    const { rows: unread } = await gmp.app.query<{ cp: number }>(
+      "select cp from unnest($1::int[]) cp where not exists (select 1 from sandbox.real_identifiers('Q' || chr(cp) || '24'))",
+      [[...NO_ADVANCE, ...SPACING_MARKS]],
+    );
+    expect(unread.map((r) => `U+${r.cp.toString(16).toUpperCase()}`)).toEqual([]);
+    const { rows: count } = await gmp.app.query<{ n: number; fffc: boolean; mc: number }>(
+      `select count(*)::int as n, bool_or(g = 65532) as fffc, count(*) filter (where g <> all ($1::int[]))::int as mc
+         from generate_series(128, 1114111) g where (g < 55296 or g > 57343) and chr(g) ~ sandbox.no_advance_class()`,
+      [NO_ADVANCE],
+    );
+    expect(count).toEqual([{ n: 491, fffc: true, mc: 477 }]);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1090: honest text is still not read: Hindi prose with its vowel signs, Devanagari and ASCII digits and a number written against a word (25वां), Tamil and Telugu prose with a number, an emoji and its variation selector, a soft hyphen in a long word, TEST- identifiers', async () => {
+    const texts = [
+      'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
+      'ड्रम को साफ़ किया गया और 3 नमूने लिए गए।',
+      'டிரம் 3 எடை பார்க்கப்பட்டது',
+      'డ్రమ్ 3 బరువు చూశారు: సరే',
+      `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)}, pharma${SOFT_HYPHEN}ceutical grade, TEST-L26-0101 and TEST-B26-0001`,
+    ];
+    expect(await readText(texts)).toEqual(Object.fromEntries(texts.map((t) => [t, []])));
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1090: in a sandbox sandbox.guard_free_text refuses a row whose text holds L2409-0017 with U+FFFC, U+1031 or U+0C03 after the L (EBMR-SBX-024) without the word in the refusal, and a person whose employee reference holds L U+FFFC 2409-0017; a GMP installation keeps them; honest Hindi prose and a TEST- identifier are stored', async () => {
+    const table = `
+      create schema a4_room;
+      create table a4_room.note (id serial primary key, title text);
+      create trigger ac_sandbox_free_text before insert on a4_room.note for each row execute function sandbox.guard_free_text('title');
+      grant usage on schema a4_room to ebmr_app;
+      grant select, insert on a4_room.note to ebmr_app;
+      grant usage on all sequences in schema a4_room to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const outcome = async (db: { query: (q: string, v: unknown[]) => Promise<unknown> }, title: string): Promise<string> => {
+      try {
+        await db.query('insert into a4_room.note (title) values ($1)', [title]);
+        return 'ok';
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const FREE_TEXT = /^a4_room\.note title holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/;
+    const probes = [`Drum of L${OBJECT_REPLACEMENT}2409-0017`, `Drum of L${ch(0x1031)}2409-0017`, `Drum of L${ch(0xc03)}2409-0017`];
+    for (const title of probes) {
+      const m = await outcome(sbx.sandbox, title);
+      expect(m, title).toMatch(FREE_TEXT);
+      expect(m, title).not.toMatch(/2409/);
+    }
+    expect(await outcome(sbx.sandbox, 'ड्रम TEST-L26-0101 को साफ़ किया गया, 25वां बैच')).toBe('ok');
+    expect((await sbx.admin.query("select 1 from a4_room.note where title like '%2409%'")).rowCount).toBe(0);
+    for (const title of probes) expect(await outcome(gmp.app, title)).toBe('ok');
+    const c = await sbx.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query(`select kernel.set_actor_context(jsonb_build_object(
+        'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+        'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+        'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1090 test'))`);
+      await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref L${OBJECT_REPLACEMENT}2409-0017`])).rejects.toThrow(
+        /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
+      );
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+});
