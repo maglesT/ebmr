@@ -476,10 +476,13 @@ that another command holds is skipped.
     (kernel migrations 1030 and 1040: the text as written and with its escapes read), whatever member holds it: the
     batch's columns and issue request, every text, text[] and jsonb column of the command rows (command, evidence,
     refusal, roles and, since sql 0346, the actor's name), the state, the events, the four content stores, the
-    proposals, the clock and the legacy stage summaries, at any depth and in member names, and on the run's audit
-    chains the chain key after the run's id, the reason, the actor's name and every business entry, and on a scale
-    reading's chain every entry likewise (deferred constraint triggers `zzz_sandbox_free_text`,
-    `execution_free_text_check`, `audit_free_text_check`; EBMR-EXE-147). A word the rule reads as a real batch or lot
+    proposals, the clock and the legacy stage summaries, at any depth and in member names, since tablets sql 0640 the
+    manual-weighing gate's record of a hand-keyed weighing (`tab.manual_weighing_basis`: its room and every scale's
+    reason, which copies a gateway's text, a serial or the API's detail; `tab.weighing_basis_free_text_check`, the
+    installation's own error codes allowed there), and on the run's audit chains the chain key after the run's id,
+    the reason, the actor's name and every business entry, and on a scale reading's chain every entry likewise
+    (deferred constraint triggers `zzz_sandbox_free_text`, `execution_free_text_check`, `audit_free_text_check`;
+    EBMR-EXE-147). A word the rule reads as a real batch or lot
     number is refused unless the run has it (sql 0346, the lane's round-11 verification, decision F12.9): its MBR,
     batch number, site and room (`run_bound_words`), a name of the engine's registers (table `recipe.engine_name`:
     block rule codes, block types, the controls of the register and the invariants, the engine's schema tag), a record
@@ -620,7 +623,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
 | 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
 | 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
-| 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347, 0348; kernel migrations 1030, 1040): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them (a number in a compound only in the engine's shapes), in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
+| 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347, 0348; kernel migrations 1030, 1040; tablets sql 0640 for the manual-weighing basis): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them (a number in a compound only in the engine's shapes), in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
 
 ## TypeScript
 
@@ -1156,6 +1159,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   numbers) in an exception's description and in a hold reason, and BATCH/2409/0017 in a business entry the application
   role appends on the run's chain (its message, a member three levels down), are refused (EBMR-EXE-147) and nothing
   holds them; compounds of the run's words, a ratio, a date and prose are recorded.
+- `db-guards-free-text-weighing-basis.test.ts` (Phase 2 exit follow-up F12, round 12; tablets sql 0640): over HTTP, a
+  gateway's not-ready text and a scale's serial naming L2409-0017, the server's detail of an unreachable gateway API
+  naming it, and a refused reading's alarm code L2409-0017 or EBMR-LOT-017 that the application role recorded, each
+  standing for the gate's window, make the hand-keyed weighing refused (EBMR-EXE-147) and no basis row of the run holds
+  them; an honest serial quoted in a mismatch is refused too (decision F12.10); the gate's own reasons and a refused
+  reading's code the installation raises (EBMR-DEV-048) are recorded.
 - `db-guards-kernel-stubs.test.ts` (Phase 2 exit follow-up F12.KERNEL; kernel migration 1030): through the application role,
   in the sandbox a stub material lot, stub batch or stub pack with a real-format identifier is refused (EBMR-SBX-022)
   and the stubs' free text (predicates, a stub MBR limit's value, a stub signable's title, value and unit, a sample
