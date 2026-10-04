@@ -484,8 +484,9 @@ that another command holds is skipped.
     batch number, site and room (`run_bound_words`), a name of the engine's registers (table `recipe.engine_name`:
     block rule codes, block types, the controls of the register and the invariants, the engine's schema tag), a record
     id its state holds (`state_record_ids`: EX-, EN-, DP-, DV-, HOLD-<n> up to the number of records of its kind), an
-    edge of its MBR's flow (`flow_edge_count`), or a compound of these the engine builds, a sample's number only last in
-    an id of the run's batch number (`run_word_bound`); on a reading's chain the site and room of the writing session
+    edge of its MBR's flow (`flow_edge_count`), or a compound of these, a compound of the run's batch number (a sample's
+    or an output container's id) only as its state holds it (`run_word_bound`, `state_compound_ids`, sql 0347); on a
+    reading's chain the site and room of the writing session
     (`session_bound_words`). No word passes by its form alone (0344's `engine_word` and the person register's names in
     an audit entry no longer do). A refusal names the column and the JSON path, a member name in it only when it holds
     no unbound word (else `<member>`), and an audit chain only up to the id it names (`chain_shown`): never the word.
@@ -616,7 +617,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
 | 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
 | 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
-| 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346; kernel migrations 1030, 1040): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them, in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
+| 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347; kernel migrations 1030, 1040): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them, in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
 
 ## TypeScript
 
@@ -885,12 +886,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   and control the engine's and the blocks' sources name meets the rule, and an accepted row records none (sql 0336);
   the issue requests of both golden fixtures pass and a size, market, variant, choice or input the MBR does not hold,
   one left out, a blank source or another input type is refused (sql 0337).
-- `test/execution/engine-names-sql.test.ts` (Phase 2 exit follow-up F12, round 11; DI-05, DI-30; sql 0346):
+- `test/execution/engine-names-sql.test.ts` (Phase 2 exit follow-up F12, round 11; DI-05, DI-30; sql 0346, 0347):
   `recipe.engine_name` holds exactly the block rule codes of the engine's sources, the block types of the registry,
   the controls of compliance/controls and the invariants INV-01 to INV-48, the schema tag and member name the engine
   writes, insert-only and unreadable by the application role; `flow_edge_count` equals the compiler's edge count for
   dc-mini, both golden fixtures and flows of every construct, and is never below it; `state_record_ids`,
-  `run_word_bound`, `word_path` and `chain_shown` bind and show words as the migration says.
+  `state_compound_ids`, `run_word_bound`, `word_path` and `chain_shown` bind and show words as the migrations say.
 - `test/execution/row-context-sql.test.ts` (Phase 2 exit review F12, round 8; DI-05, DI-30, DI-37, DI-10; sql 0338):
   every accepted command of both golden runs (steps in loops and replicate sections, choices, loop iterations, stage
   sign-offs) and the preparation for each of their signatures passes `row_context_problem`, and every content version
@@ -1131,9 +1132,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   SCALE-01, TRAINEE-01, in lower case, full-width, escaped, glued into a longer word, joined by a slash) is refused
   (EBMR-EXE-147) and nothing holds it; prose, numbers, dates, ranges, ordinals, TEST- identifiers, the MBR's codes and
   the engine's names are recorded.
-- `db-guards-free-text-bound-names.test.ts` (Phase 2 exit follow-up F12, round 11; sql 0346, kernel migration 1040):
-  over HTTP, S24090017 (also in lower case), E24090017, EX-24090017, DV-24090017, HOLD-2409017, G24-LOT, E2409/0017
-  and EX-9 (an exception the run does not have) in an exception's description and in a hold reason, and 50%B24-0001,
+- `db-guards-free-text-bound-names.test.ts` (Phase 2 exit follow-up F12, round 11; sql 0346, 0347, kernel migration
+  1040): over HTTP, S24090017 (also in lower case), E24090017, EX-24090017, DV-24090017, HOLD-2409017, G24-LOT,
+  E2409/0017, EX-9 (an exception the run does not have) and a sample id of the run's batch number that the run does not
+  hold in an exception's description and in a hold reason, and 50%B24-0001,
   lot %E2409001 found and ref%A24-0001 in a description, are refused (EBMR-EXE-147) and nothing holds them, while the
   run's own exception, a block rule code, a block type and controls of the registers are recorded; the
   administrator's rename of operator1 to TEST-Priya L2409-0017 through the application role is refused (EBMR-SBX-024)

@@ -1,6 +1,6 @@
 /**
  * The words a test run's record may hold besides a TEST- identifier, bound to the run and to the engine's registers
- * (recipe-core sql/0346; Phase 2 exit follow-up F12, the lane's round-11 verification, need 1; DI-05, DI-30).
+ * (recipe-core sql/0346 and 0347; Phase 2 exit follow-up F12, the lane's round-11 verification, need 1; DI-05, DI-30).
  *
  * recipe-core 0344 allowed every word of the form of an engine name (EX-<n>, E<n>, S<n>, G<nn>-<WORDS>, control ids ...)
  * in every member of every run. 0346 allows such a word only as the run has it: a name of the engine's registers
@@ -115,12 +115,21 @@ describe('the names a test run may hold beside TEST- identifiers (recipe-core 03
     expect(await count(tampered)).toBeGreaterThanOrEqual(compileMbr(tampered).graph.edges.length);
   });
 
-  it('[DI-05][DI-30] a record id is bound only when the state holds it, up to the number of its kind; a word is bound when the run has it, a compound when each part is, and a sample\'s number only last in an id of the run\'s batch number; a refusal\'s path writes <member> for a member name that holds an unbound word, and a chain only up to the id it names', async () => {
+  it('[DI-05][DI-30] a record id is bound only when the state holds it, up to the number of its kind; a word is bound when the run has it, a compound when each part is, and a compound of the run\'s batch number (a sample\'s or an output container\'s id) only as the state holds it (sql 0347); a refusal\'s path writes <member> for a member name that holds an unbound word, and a chain only up to the id it names', async () => {
     const ids = async (state: object): Promise<string[]> => (await db.admin.query<{ r: string[] }>('select recipe.state_record_ids($1::jsonb) as r', [JSON.stringify(state)])).rows[0]?.r.sort() ?? [];
     expect(await ids({ exceptions: { 'EX-1': {}, 'EX-2': {} }, entries: { 'EN-1': {} }, points: {}, derived: { 'DV-1': {} }, holds: { 'HOLD-1': {} } })).toEqual(['DV-1', 'EN-1', 'EX-1', 'EX-2', 'HOLD-1']);
     // A key the engine never gives, or numbered beyond the records its map holds (a counter forged high).
     expect(await ids({ exceptions: { 'EX-1': {}, 'EX-24090017': {}, 'L2409-0017': {} }, entries: { 'EN-2': {} }, holds: { 'HOLD-0': {} } })).toEqual(['EX-1']);
     expect(await ids({ exceptions: 'EX-1' })).toEqual([]);
+    const compounds = async (state: object): Promise<string[]> => (await db.admin.query<{ r: string[] }>('select recipe.state_compound_ids($1::jsonb) as r', [JSON.stringify(state)])).rows[0]?.r.sort() ?? [];
+    expect(
+      await compounds({
+        entries: { 'EN-1': { data: { sampleId: 'TEST-B26-0001/p-sample/S1' } }, 'EN-2': { data: { point: 'TOP' } }, 'EN-3': { data: { sampleId: 7 } } },
+        containers: { 'TEST-B26-0001/I-BLEND/0/1': {} },
+        subLots: { 'TEST-B26-0001-SL1': {} },
+      }),
+    ).toEqual(['TEST-B26-0001-SL1', 'TEST-B26-0001/I-BLEND/0/1', 'TEST-B26-0001/P-SAMPLE/S1']);
+    expect(await compounds({ entries: [], containers: 'x' })).toEqual([]);
 
     const bound = async (word: string, words: string[], batch: string | null = 'TEST-B26-0001'): Promise<boolean> =>
       (await db.admin.query<{ b: boolean }>('select recipe.run_word_bound($1, $2::text[], $3) as b', [word, words, batch])).rows[0]?.b ?? false;
@@ -133,6 +142,8 @@ describe('the names a test run may hold beside TEST- identifiers (recipe-core 03
       compound: await bound('EX-1/2', run),
       compoundUnbound: await bound('E2409/0017', run),
       sample: await bound('TEST-B26-0001/p-disp-clear/S3', run),
+      sampleHeld: await bound('TEST-B26-0001/p-disp-clear/S3', [...run, 'TEST-B26-0001/P-DISP-CLEAR/S3']),
+      containerForged: await bound('TEST-B26-0001/E1/0/1', run),
       sampleAlone: await bound('S24090017', run),
       sampleNotLast: await bound('TEST-B26-0001/S3/p-disp-clear', run),
       sampleOtherBatch: await bound('B24-0001/p-disp-clear/S3', run),
@@ -140,7 +151,7 @@ describe('the names a test run may hold beside TEST- identifiers (recipe-core 03
       emptyPart: await bound('TEST-B26-0001//S3', run),
       control: await bound('di-05', run),
     }).toEqual({
-      own: true, notHeld: false, edge: true, edgeBeyond: false, compound: true, compoundUnbound: false, sample: true, sampleAlone: false,
+      own: true, notHeld: false, edge: true, edgeBeyond: false, compound: true, compoundUnbound: false, sample: false, sampleHeld: true, containerForged: false, sampleAlone: false,
       sampleNotLast: false, sampleOtherBatch: false, sampleNoBatch: false, emptyPart: false, control: true,
     });
 

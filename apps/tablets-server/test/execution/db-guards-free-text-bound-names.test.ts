@@ -116,7 +116,7 @@ async function recordHolding(runId: string, text: string): Promise<Record<string
 const NOTHING = { rows: 0, events: 0, state: 0, contents: 0, proposals: 0, signatures: 0, audit: 0 };
 
 describe('F12 round 11: the words a test run records are bound to the run (DI-05, DI-30)', () => {
-  it('[DI-05][DI-30] round 11 (recipe-core 0346): a word of the form of an engine name is recorded only as the run has it: over HTTP S24090017 (also in lower case), E24090017, EX-24090017, DV-24090017, HOLD-2409017, G24-LOT, E2409/0017 and EX-9 (an exception the run does not have) in an exception\'s description and in a hold reason are refused (EBMR-EXE-147) and nothing holds them; an exception of the run, a block rule code, block type and controls of the registers, prose, numbers and TEST- identifiers are recorded', async () => {
+  it('[DI-05][DI-30] round 11 (recipe-core 0346): a word of the form of an engine name is recorded only as the run has it: over HTTP S24090017 (also in lower case), E24090017, EX-24090017, DV-24090017, HOLD-2409017, G24-LOT, E2409/0017 EX-9 (an exception the run does not have) and a sample id of the run\'s batch number that the run does not hold (sql 0347) in an exception\'s description and in a hold reason are refused (EBMR-EXE-147) and nothing holds them; an exception of the run, a block rule code, block type and controls of the registers, prose, numbers and TEST- identifiers are recorded', async () => {
     const d = await issued(dcMini());
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
     const probes: Record<string, string> = {
@@ -130,6 +130,9 @@ describe('F12 round 11: the words a test run records are bound to the run (DI-05
       'E2409/0017': 'Lot E2409/0017',
       'EX-9': 'Follow-up of EX-9',
     };
+    // A compound of the run's batch number, too long to be a TEST- identifier, so read part by part.
+    const batchNumber = (await execution.loadState(sbx.db.admin, d.runId))?.state.header.batchNumber ?? '';
+    probes['S24090017/'] = `Sample ${batchNumber}/p-disp-clear/S24090017 set aside`;
     const raised: Record<string, string> = {};
     for (const [word, text] of Object.entries(probes)) {
       raised[word] = outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: text, severity: 'ALERT' }));
