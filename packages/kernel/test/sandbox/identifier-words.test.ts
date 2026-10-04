@@ -283,7 +283,9 @@ describe('the identifier rule reads a text as it shows (kernel 1050)', () => {
   });
 
   it('[DI-05][INV-18] kernel 1050: every look-alike sandbox.look_alike lists is read as what it reads as, alone and between a letter and digits; the table holds the 760 decimal digits of Unicode 18.0.0 by value, 1998 characters of confusables.txt 18.0.0 (86 of them read as their decomposition, a vulgar fraction one half as 1/2) and 19 other dashes, and the characters the verification named; the application role reads it and cannot write it', async () => {
-    const { rows: counts } = await gmp.app.query<{ basis: string; n: number }>('select basis, count(*)::int as n from sandbox.look_alike group by basis order by basis');
+    const { rows: counts } = await gmp.app.query<{ basis: string; n: number }>(
+      "select basis, count(*)::int as n from sandbox.look_alike where basis <> 'UNICODE_NAME' group by basis order by basis",
+    );
     expect(counts).toEqual([
       { basis: 'DASH_PUNCTUATION', n: 19 },
       { basis: 'DECIMAL_DIGIT', n: 760 },
@@ -363,5 +365,35 @@ describe('the identifier rule reads a text as it shows (kernel 1050)', () => {
     // A GMP installation keeps what was written.
     expect(await asRelease(gmp, person(`Priya ${hidden}`, hidden))).toBe('ok');
     expect(await asRelease(gmp, record(`Drum of lot ${hidden}`))).toBe('ok');
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1060: letters and digits that Unicode names and no other table reads are read: L2409-0017 with a small capital L, a regional indicator L or a negative squared L, and in dingbat circled digits; sandbox.look_alike holds 372 such characters with no decomposition (UNICODE_NAME), each read as what its name says, alone and between a letter and digits; the flag of India, two regional indicators, away from a number is not read', async () => {
+    const texts = {
+      smallCapital: `${ch(0x29f)}2409-0017`,
+      regionalIndicator: `${ch(0x1f1f1)}2409-0017`,
+      negativeSquared: `${ch(0x1f17b)}2409-0017`,
+      dingbatDigits: `L${ch(0x2777)}${ch(0x2779)}${ch(0x24ff)}${ch(0x277e)}-0017`,
+      flag: `Export to ${ch(0x1f1ee)}${ch(0x1f1f3)} in 2026`,
+    };
+    const read = await readText(Object.values(texts));
+    expect(Object.fromEntries(Object.entries(texts).map(([k, t]) => [k, read[t]]))).toEqual({
+      smallCapital: ['L2409-0017'],
+      regionalIndicator: ['L2409-0017'],
+      negativeSquared: ['L2409-0017'],
+      dingbatDigits: ['L2409-0017'],
+      flag: [],
+    });
+    const { rows: named } = await gmp.app.query<{ n: number; unread: number }>(
+      `select count(*)::int as n,
+              count(*) filter (where sandbox.look_alikes_read(chr(l.code_point)) <> l.reads_as
+                                  or not exists (select 1 from sandbox.real_identifiers('Q' || chr(l.code_point) || '24')))::int as unread
+         from sandbox.look_alike l where l.basis = 'UNICODE_NAME'`,
+    );
+    expect(named).toEqual([{ n: 372, unread: 0 }]);
+    const { rows: samples } = await gmp.app.query<{ code_point: number; reads_as: string }>(
+      "select code_point, reads_as from sandbox.look_alike where basis = 'UNICODE_NAME' and code_point = any ($1::int[]) order by 1",
+      [[0x29f, 0x1d0d, 0x1f1f1, 0x1f17b, 0x2776, 0x1369, 0x26c]],
+    );
+    expect(Object.fromEntries(samples.map((r) => [r.code_point, r.reads_as]))).toEqual({ [0x26c]: 'l', [0x29f]: 'L', [0x1369]: '1', [0x1d0d]: 'M', [0x2776]: '1', [0x1f17b]: 'L', [0x1f1f1]: 'L' });
   });
 });
