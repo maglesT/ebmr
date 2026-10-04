@@ -371,3 +371,54 @@ describe('F67 and F01: a stage sign-off keeps its minimum and records the summar
     expect((await violations(sbx)).filter((v) => v.batchId === d.runId)).toEqual([]);
   }, 300_000);
 });
+
+describe('F67 round 3: a recorded start stays as recorded, whatever the row ends (0299, 0316; DI-27, INV-20, DI-34)', () => {
+  it('[DI-27][INV-20][DI-34] the check that finishes the dispensing preparation, stored with the operation\'s END written over its recorded START, is refused as changing that start (EBMR-EXE-026); nothing is written; the honest check records the END under its own key', async () => {
+    const OP = 'O-DISP-PREP';
+    const d = await newRun(clearanceStage(), ['operator1', 'verifier1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: CHECKLIST });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: PREVIOUS });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    const s0 = await stateOf(d);
+    expect(s0.steps[CLEAR]?.status, 'SETUP: the clearance awaits its check').toBe('AWAITING_VERIFICATION');
+    const recordedStart = s0.nodeEvents[`${OP}|START|`];
+    expect(recordedStart, 'SETUP: the preparation\'s start is recorded').toBeDefined();
+    // verifier1's check, signed through the kernel, stored with the engine's own result except that the preparation's
+    // END (the token leaves the operation in this row) is written under the key of its START.
+    const run = await runContext(sbx.db.admin, d.runId);
+    const ver = personaIn(sbx, 'verifier1');
+    const meaning = (await d.signing('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' })).meaning;
+    expect(meaning, 'SETUP: the meaning of the clearance\'s check').not.toBe('');
+    const p = await prepareSignature(sbx, d.browser('verifier1'), 'verifier1', 'batch_step', `${d.runId}:${CLEAR}`, meaning);
+    let seq = '';
+    const forged = await messageOf(
+      withCommand(sbx.db.app, await p.actor(), async (c) => {
+        const id = await p.sign(c);
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = { type: 'VERIFY', commandId: randomUUID(), actor: engineActor(ver.personId, roles), step: 'p-disp-clear', context: [], signature: { id, meaning, signer: ver.personId } };
+        const r = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the check: ${JSON.stringify(r.refusal)}`);
+        const end = r.state.nodeEvents[`${OP}|END|`];
+        if (!end) throw new Error('SETUP: the check does not end the preparation');
+        r.state.nodeEvents[`${OP}|START|`] = end;
+        delete r.state.nodeEvents[`${OP}|END|`];
+        seq = String(tx.lastSeq + 1n);
+        return appendAs(tx, command, r, roles);
+      }),
+    );
+    expect(forged).toBe(`Row ${seq} changes or removes node event ${OP}|START|; a recorded start or end is kept as recorded (DI-27, INV-20). [EBMR-EXE-026]`);
+    const s1 = await stateOf(d);
+    expect(s1.steps[CLEAR]?.status, 'nothing was checked').toBe('AWAITING_VERIFICATION');
+    expect(s1.nodeEvents[`${OP}|START|`], 'the start is as recorded').toEqual(recordedStart);
+    expect(s1.nodeEvents[`${OP}|END|`]).toBeUndefined();
+    // The honest check: the END under its own key, the START as recorded.
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+    const s2 = await stateOf(d);
+    expect(s2.steps[CLEAR]?.status).toBe('COMPLETED');
+    expect(s2.nodeEvents[`${OP}|START|`]).toEqual(recordedStart);
+    expect(s2.nodeEvents[`${OP}|END|`]).toMatchObject({ node: OP, event: 'END', frames: [] });
+    expect((await violations(sbx)).filter((v) => v.batchId === d.runId)).toEqual([]);
+  }, 300_000);
+});
