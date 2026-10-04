@@ -2039,3 +2039,29 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   group plus tab.record_signatures#2): 58 killed, 12 survived, mean 17 s per mutant; every guard removal killed but
   tab.content_for_signing#8 (TAB-020 tested only through the server, which refuses first). Estimate of the full run:
   about 21 h with 2 workers on 4 shared CPUs. Weekly workflow lists every group.
+- 2026-10-04: PHASE 2 EXIT, SQL mutation kill tests integrated (24 groups): branch phase-2/kill-integration from
+  093ee58 merges phase-2/sql-mutation (the harness; PROGRESS kept from both sides, the test set-ups take the harness's
+  template support unchanged) and kill/<group> for mbr-lifecycle, market-authorisation-and-issue,
+  execution-state-binding, system-facts-and-time, execution-steps-and-order, manual-weighing-gate,
+  batch-number-register, limit-exceptions, sandbox-and-import, connection-roles, designer-guards, tablets-sessions,
+  evidence-listener, signing-failure-and-reasons, site-zone, exceptions-and-dispositions, execution-row-shape,
+  execution-commands, weighing, involvement-and-independence, read-authorisation, exception-source,
+  late-witness-and-step-times and stale-commands-and-readings (device-readings, evidence-source-and-entries,
+  entry-references-and-schema and signed-content are still being worked on). The five kill fix migrations moved into
+  ranges kept for the kill work, in their branches' order: recipe-core 0344 loop-exit limit verdicts -> 0370, 0345
+  market-authorisation family -> 0371, tablets 0640 API answer at the report's instant -> 0700, 0650 sandbox lot
+  identity test -> 0701, kernel 1030 segregation query with missing roles -> 1100; none of their functions is
+  redefined on the PR branch after the body each fix was built on. 445 kill tests in 33 files (271 db, 174 server) pass
+  on the integrated tree, and register sync-tests from that run lists them under the 54 controls they are tagged with
+  (726 entries). Two were adapted, nothing loosened: the execution-state-binding start-data test (recipe-core
+  0345 now refuses every accepted start carrying start data; the test asserts that refusal and reaches the 0300 entry
+  rule the two ways left, keeping execution_state_binding_check#98 killed, checked with the harness) and the
+  execution-commands role-map test (an exception description "D4 kill test" read as a lot number by EBMR-EXE-147; now
+  prose). equivalent.json records the 94 equivalence claims the skeptics upheld, under their current ids (17 -> 111
+  entries); activate_market_authorisation#56 was claimed only after the skeptic's review and is not recorded. Batch
+  scores, kills, equivalents and the 15 defects the kill agents reported (5 fixed by the migrations above, 10 open for
+  the lead: start of a minimum at a token arrival, a loop exit without its context, a signature's missing validity,
+  signatures of other steps invalidated by any row, market activation rows written around the command, the kernel
+  state history forged with the session flag, nested loops on one endpoint, the listener hold measured from the
+  close, and two refusal messages) are in docs/build-plan/phase-2-exit/sql-mutation-kill-results.md. Harness smoke on
+  this tree: site-zone 25/33 before the kill tests, 33/33 after.
