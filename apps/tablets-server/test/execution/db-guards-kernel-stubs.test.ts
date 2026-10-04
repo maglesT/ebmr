@@ -201,4 +201,34 @@ describe('F12.KERNEL: the kernel\'s stub tables under the sandbox identifier rul
     );
     expect(holding.rowCount).toBe(0);
   }, 180_000);
+
+  it('[DI-05][DI-30][INV-18] kernel 1100: in the sandbox the stubs\' free text holding L2409-0017 or L24-0001 written with the Armenian capital LIWN or the Canadian syllabic MAA for the L (letters the E2E browser draws as L), or L2409-0017 with U+1D1A0 after the L, is refused (EBMR-SBX-024) and nothing holds it; Hindi and Greek prose are stored; a GMP installation keeps the same texts', async () => {
+    const ch = (cp: number): string => String.fromCodePoint(cp);
+    const drawn = {
+      armenianLiwn: `Drum of lot ${ch(0x53c)}2409-0017 checked`,
+      armenianLiwnBatch: `after lot ${ch(0x53c)}24-0001`,
+      syllabicsMaa: `Drum of lot ${ch(0x14ab)}2409-0017 checked`,
+      ornamentStroke: `Drum of lot L${ch(0x1d1a0)}2409-0017 checked`,
+    };
+    const sandboxOutcomes: Record<string, string> = {};
+    const gmpOutcomes: Record<string, string> = {};
+    for (const [name, write] of Object.entries(STUB_TEXTS)) {
+      for (const [variant, v] of Object.entries(drawn)) sandboxOutcomes[`${name}.${variant}`] = await asSteward(sbx, write(v));
+      sandboxOutcomes[`${name}.prose`] = await asSteward(sbx, write('ड्रम 3 तौला गया, Το δοχείο 3, TEST-L26-0101'));
+      gmpOutcomes[`${name}.armenianLiwn`] = await asSteward(gmp, write(drawn.armenianLiwn));
+    }
+    const expected: Record<string, string> = {};
+    for (const name of Object.keys(STUB_TEXTS)) {
+      for (const variant of Object.keys(drawn)) expected[`${name}.${variant}`] = 'EBMR-SBX-024';
+      expected[`${name}.prose`] = 'ok';
+    }
+    expect(sandboxOutcomes).toEqual(expected);
+    expect(gmpOutcomes).toEqual(Object.fromEntries(Object.keys(STUB_TEXTS).map((n) => [`${n}.armenianLiwn`, 'ok'])));
+    const holding = await sbx.db.admin.query(
+      `select 1 from market.stub_site where predicates::text ~ '2409|24-0001' union all select 1 from market.stub_product where predicates::text ~ '2409|24-0001'
+       union all select 1 from market.stub_mbr_limit where value::text ~ '2409|24-0001' union all select 1 from esig.stub_signable where title || value ~ '2409|24-0001'
+       union all select 1 from platform.stub_record where body ~ '2409|24-0001'`,
+    );
+    expect(holding.rowCount).toBe(0);
+  }, 180_000);
 });

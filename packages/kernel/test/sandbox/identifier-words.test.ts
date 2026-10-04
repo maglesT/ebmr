@@ -593,6 +593,8 @@ const NO_ADVANCE = [0xa717, 0xa718, 0xa719, 0xa71a, 0xa8fa, 0xfffc, 0x1193f, 0x1
 const SPACING_MARKS: number[] = [];
 for (let cp = 0x80; cp <= 0x10ffff; cp++) if ((cp < 0xd800 || cp > 0xdfff) && /\p{Mc}/u.test(String.fromCodePoint(cp))) SPACING_MARKS.push(cp);
 const OBJECT_REPLACEMENT = ch(0xfffc);
+/** Kernel 1100: U+1D1A0 MUSICAL SYMBOL ORNAMENT STROKE-6, laid out with an advance of at most a pixel between digits. */
+const ORNAMENT_STROKE_6 = 0x1d1a0;
 
 describe('the identifier rule reads what takes no room in the E2E browser as nothing (kernel 1090)', () => {
   it('[DI-05][DI-30][INV-18] kernel 1090: L2409-0017 and B24-0001 with U+FFFC after the letter (laid out with no advance and no ink), and L2409-0017 with a spacing mark after the L (U+1031 and U+102B drawn before it, U+0C03 on it, U+0903 with an advance), are read; every spacing mark and every other character laid out with no advance is read as nothing between a letter and digits; the class holds the 477 spacing marks of Unicode 18.0.0 and 14 others', async () => {
@@ -622,9 +624,10 @@ describe('the identifier rule reads what takes no room in the E2E browser as not
     const { rows: count } = await gmp.app.query<{ n: number; fffc: boolean; mc: number }>(
       `select count(*)::int as n, bool_or(g = 65532) as fffc, count(*) filter (where g <> all ($1::int[]))::int as mc
          from generate_series(128, 1114111) g where (g < 55296 or g > 57343) and chr(g) ~ sandbox.no_advance_class()`,
-      [NO_ADVANCE],
+      [[...NO_ADVANCE, ORNAMENT_STROKE_6]],
     );
-    expect(count).toEqual([{ n: 491, fffc: true, mc: 477 }]);
+    // Kernel 1100 adds U+1D1A0 to the class (its own test reads it).
+    expect(count).toEqual([{ n: 492, fffc: true, mc: 477 }]);
   });
 
   it('[DI-05][DI-30][INV-18] kernel 1090: honest text is still not read: Hindi prose with its vowel signs, Devanagari and ASCII digits and a number written against a word (25वां), Tamil and Telugu prose with a number, an emoji and its variation selector, a soft hyphen in a long word, TEST- identifiers', async () => {
@@ -676,6 +679,108 @@ describe('the identifier rule reads what takes no room in the E2E browser as not
         'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
         'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1090 test'))`);
       await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref L${OBJECT_REPLACEMENT}2409-0017`])).rejects.toThrow(
+        /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
+      );
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+});
+
+/** Kernel 1100: punctuation drawn close to a letter with a mark, left out (a separator, as the danda). */
+const PUNCTUATION_DRAWN_AS_LETTERS = [0x230a, 0x230b, 0xff3b];
+
+describe('the identifier rule reads letters and digits as the E2E browser draws them (kernel 1100)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1100: letters UTS #39 does not list but Chromium 141 draws as the alphabet are read: U+053C ARMENIAN CAPITAL LETTER LIWN as L in L2409-0017 and L24-0001, U+14AB CANADIAN SYLLABICS MAA as L with a dot; sandbox.look_alike holds 58 such characters (LETTER_SHAPE), each read alone and between a letter and digits; punctuation drawn close to a letter stays a separator; U+1D1A0, laid out with no room between digits, is read as nothing', async () => {
+    const probes = {
+      armenianLiwn: `${ch(0x53c)}2409-0017`,
+      armenianLiwnBatch: `after lot ${ch(0x53c)}24-0001`,
+      syllabicsMaa: `${ch(0x14ab)}2409-0017`,
+      gothicHagl: `Drum ${ch(0x10337)}24-0001 weighed`,
+      ornamentStroke: `Drum L${ch(ORNAMENT_STROKE_6)}2409-0017`,
+      floor: `Q${ch(0x230a)}24`,
+    };
+    const read = await readText(Object.values(probes));
+    expect(Object.fromEntries(Object.entries(probes).map(([k, t]) => [k, read[t]]))).toEqual({
+      armenianLiwn: ['L2409-0017'],
+      armenianLiwnBatch: ['L24-0001'],
+      syllabicsMaa: ['L2409-0017'],
+      gothicHagl: ['h24-0001'],
+      ornamentStroke: ['L2409-0017'],
+      floor: [],
+    });
+    const { rows: counts } = await gmp.app.query<{ n: number; unread: number }>(
+      `select count(*)::int as n,
+              count(*) filter (where sandbox.look_alikes_read(chr(l.code_point)) <> l.reads_as
+                                  or not exists (select 1 from sandbox.real_identifiers('Q' || chr(l.code_point) || '24')))::int as unread
+         from sandbox.look_alike l where l.basis = 'LETTER_SHAPE'`,
+    );
+    expect(counts).toEqual([{ n: 58, unread: 0 }]);
+    const { rows: samples } = await gmp.app.query<{ code_point: number; reads_as: string }>(
+      "select code_point, reads_as from sandbox.look_alike where basis = 'LETTER_SHAPE' and code_point = any ($1::int[]) order by 1",
+      [[0x43f, 0x53c, 0x5d7, 0x7d7, 0x14ab, 0x18ba, 0x2758, 0x4e28, 0x10337]],
+    );
+    expect(Object.fromEntries(samples.map((r) => [r.code_point, r.reads_as]))).toEqual({
+      [0x43f]: 'n', [0x53c]: 'L', [0x5d7]: 'n', [0x7d7]: '1', [0x14ab]: 'L', [0x18ba]: 'L', [0x2758]: 'l', [0x4e28]: 'l', [0x10337]: 'h',
+    });
+    expect((await gmp.app.query('select 1 from sandbox.look_alike where code_point = any ($1::int[])', [PUNCTUATION_DRAWN_AS_LETTERS])).rowCount).toBe(0);
+    await expect(gmp.app.query("insert into sandbox.look_alike (code_point, reads_as, basis) values (1329, 'A', 'LETTER_SHAPE')")).rejects.toThrow(/permission denied/);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1100: honest text is still not read: Hindi, Tamil and Telugu prose with numbers (no letter of their scripts is drawn as the alphabet), Greek, Japanese, Chinese and Korean prose, an emoji, TEST- identifiers; Japanese prose that joins a Latin letter to a number with the prolonged sound mark (ラインAー1) is read as A-1 and so refused in a test run (decision F12.12 (4) corrected)', async () => {
+    const texts = [
+      'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
+      'டிரம் 3 எடை பார்க்கப்பட்டது',
+      'డ్రమ్ 3 బరువు చూశారు',
+      'Το δοχείο 3 ζυγίστηκε στις 10:15',
+      'ドラム 3 本を計量しました',
+      '一号滚筒已称重，共 3 桶。',
+      '드럼 3개 확인',
+      `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)}, TEST-L26-0101 and TEST-B26-0001`,
+    ];
+    expect(await readText(texts)).toEqual(Object.fromEntries(texts.map((t) => [t, []])));
+    expect(await readText(['ラインAー1を清掃しました'])).toEqual({ 'ラインAー1を清掃しました': ['A-1'] });
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1100: in a sandbox sandbox.guard_free_text refuses a row whose text holds U+053C 2409-0017 or U+14AB 2409-0017 (EBMR-SBX-024) without the word in the refusal, and a person whose employee reference holds U+053C 2409-0017; a GMP installation keeps them; honest text is stored', async () => {
+    const table = `
+      create schema a4_drawn;
+      create table a4_drawn.note (id serial primary key, title text);
+      create trigger ac_sandbox_free_text before insert on a4_drawn.note for each row execute function sandbox.guard_free_text('title');
+      grant usage on schema a4_drawn to ebmr_app;
+      grant select, insert on a4_drawn.note to ebmr_app;
+      grant usage on all sequences in schema a4_drawn to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const outcome = async (db: { query: (q: string, v: unknown[]) => Promise<unknown> }, title: string): Promise<string> => {
+      try {
+        await db.query('insert into a4_drawn.note (title) values ($1)', [title]);
+        return 'ok';
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const FREE_TEXT = /^a4_drawn\.note title holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/;
+    const probes = [`Drum of ${ch(0x53c)}2409-0017`, `Drum of ${ch(0x14ab)}2409-0017`, `Drum of L${ch(ORNAMENT_STROKE_6)}2409-0017`];
+    for (const title of probes) {
+      const m = await outcome(sbx.sandbox, title);
+      expect(m, title).toMatch(FREE_TEXT);
+      expect(m, title).not.toMatch(/2409/);
+    }
+    expect(await outcome(sbx.sandbox, 'Drum TEST-L26-0101 ड्रम 3 டிரம் 3')).toBe('ok');
+    expect((await sbx.admin.query("select 1 from a4_drawn.note where title like '%2409%'")).rowCount).toBe(0);
+    for (const title of probes) expect(await outcome(gmp.app, title)).toBe('ok');
+    const c = await sbx.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query(`select kernel.set_actor_context(jsonb_build_object(
+        'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+        'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+        'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1100 test'))`);
+      await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref ${ch(0x53c)}2409-0017`])).rejects.toThrow(
         /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
       );
     } finally {
