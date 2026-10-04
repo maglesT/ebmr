@@ -15,7 +15,7 @@ import type { Locator, Page } from '@playwright/test';
 import { routes } from '@ebmr/api-contract';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
 import type { SeededPersona } from '@ebmr/test-kit';
-import { axe, cspViolations, expect, pin, signIn, test } from '../../fixtures/index.ts';
+import { axe, cspViolations, expect, pin, readerTap, signIn, test } from '../../fixtures/index.ts';
 import { packageTag, pageApi, valueOf } from '../../fixtures/test-package.ts';
 
 const RUN = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
@@ -143,8 +143,7 @@ async function tapBadge(page: Page, who: SeededPersona): Promise<void> {
   const field = page.getByLabel('Badge', { exact: true }).last();
   await expect(field).toBeVisible();
   await field.focus();
-  await page.keyboard.type(who.badgeUid, { delay: 5 });
-  await page.keyboard.press('Enter');
+  await readerTap(page, who.badgeUid);
 }
 
 /** Chooses a react-aria radio the way a person does: its label covers the input, so the label is what is tapped. */
