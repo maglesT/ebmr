@@ -183,7 +183,13 @@ describe('P28 round 2: forgery A, a person\'s own text in a breach the system fo
       severity: (content) => void ((content['exception'] as Json)['severity'] = 'ALERT'),
       blocks: (content) => void ((content['exception'] as Json)['blocks'] = { steps: [], downstream: null, until: 'DISPOSITION' }),
       product: (content) => void ((content['batch'] as Json)['product'] = 'ANOTHER-PRODUCT'),
+      title: (content) => void ((content['exception'] as Json)['title'] = 'Window breached; no action needed'),
+      raisedAt: (content) => void ((content['exception'] as Json)['raisedAt'] = '1'),
     };
+    // Since recipe-core 0338 (Phase 2 exit review F12, round 8) a version naming another severity than its exception's, or
+    // another batch's header, is refused before it is stored (EBMR-EXE-126): nothing is logged. The other edits are stored,
+    // and logged as the person's change.
+    const refused = new Set(['severity', 'product']);
     const loggedAs: Record<string, string[]> = {};
     for (const [name, edit] of Object.entries(edits)) {
       const d = await newRun(['operator1', 'qa1']);
@@ -198,11 +204,11 @@ describe('P28 round 2: forgery A, a person\'s own text in a breach the system fo
             return { ...c, content: content as engine.AggregateContent['content'], contentHash: sha256Hex(canonicalJson(content)) };
           }),
       });
-      expect(outcome, name).toBe('ok');
+      expect(outcome, name).toBe(refused.has(name) ? 'EBMR-EXE-126' : 'ok');
       const breach = Object.values((await stateOf(d.runId)).exceptions).find((e) => e.type === 'TIME_MAX_BREACH');
-      loggedAs[name] = (await changedBy(`batch_exception:${d.runId}:${breach?.id ?? ''}`)).map((p) => (p === qa1 ? 'qa1' : p));
+      loggedAs[name] = breach ? (await changedBy(`batch_exception:${d.runId}:${breach.id}`)).map((p) => (p === qa1 ? 'qa1' : p)) : [];
     }
-    expect(loggedAs).toEqual({ severity: ['qa1'], blocks: ['qa1'], product: ['qa1'] });
+    expect(loggedAs).toEqual({ severity: [], blocks: ['qa1'], product: [], title: ['qa1'], raisedAt: ['qa1'] });
   }, 300_000);
 });
 
@@ -450,7 +456,11 @@ describe('P28, round-2 verification: a hold point\'s first version is the system
     };
     const outcomes: Record<string, { outcome: string; changedBy: string[] }> = {};
     for (const [name, edit] of Object.entries(edits)) outcomes[name] = await issue(edit);
-    expect(outcomes).toEqual(Object.fromEntries(Object.keys(edits).map((name) => [name, { outcome: 'ok', changedBy: ['issuer'] }])));
+    // Since recipe-core 0338 (Phase 2 exit review F12, round 8) a version with frames other than its instance's, another
+    // batch's header or a member of its own is refused before it is stored (EBMR-EXE-126): nothing is stored or logged. The
+    // other edits are stored, and logged as the issuer's change.
+    const refused = new Set(['frames', 'batchNumber', 'product', 'extraMember']);
+    expect(outcomes).toEqual(Object.fromEntries(Object.keys(edits).map((name) => [name, refused.has(name) ? { outcome: 'EBMR-EXE-126', changedBy: [] } : { outcome: 'ok', changedBy: ['issuer'] }])));
     // H-FIRST lies in no loop or replicate section, so every instance of it has no frame. Filed under a section that
     // does not enclose it, its stored content (frames and number suffix included) is what the engine derives from that
     // state, but the engine never creates such an instance: since recipe-core 0307 (Phase 2 exit review F66, DI-34) the

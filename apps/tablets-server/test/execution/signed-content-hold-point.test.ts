@@ -351,9 +351,12 @@ describe('hold-point signatures made before 0295 keep the content they signed (r
     expect(await violations(server)).toEqual([]);
   }, 240_000);
 
-  it('[DI-37][PR-45] a hold point\'s stored content cannot stand for a proposed decision: without a proposal the content provider gives the member as null, never as stored', async () => {
-    // The application role (ADR 0012) stores the new hold point's first content with a decision in it.
+  it('[DI-37][PR-45][DI-05] a hold point\'s stored content cannot stand for a proposed decision: a first content naming a decision is refused (recipe-core 0338), and without a proposal the content provider gives no decision', async () => {
+    // The application role (ADR 0012) stores the new hold point's first content with a decision in it. Since recipe-core
+    // 0338 (Phase 2 exit review F12, round 8) a content version has exactly the members of its kind's content, so that
+    // version is refused before it is stored; the clearance is then verified as the server records it.
     const forged = { disposition: 'APPROVED', comment: 'Released as stored' };
+    let refused: unknown;
     const d = await atHoldPoint(withEarlyHoldPoint(), async (run) => {
       const r = await interceptSigned(
         'VERIFY',
@@ -367,16 +370,19 @@ describe('hold-point signatures made before 0295 keep the content they signed (r
           await appendAs(tx, command, result, roles, engine.encodeCommand(command), contents);
           return result;
         },
-        () => verifyClearance(run),
+        () => verifyClearance(run).catch((e: unknown) => e),
       );
-      if (r.calls !== 1 || r.error) throw new Error(`SETUP: the verification was not recorded: ${String(r.error)}`);
+      if (r.calls !== 1) throw new Error('SETUP: the verification was not intercepted');
+      refused = r.error;
+      await verifyClearance(run);
     });
+    expect(String(refused)).toMatch(/^.*Content batch_step:H-TEST@ of row \d+ cannot be recorded: content\.proposedDecision is a member the content of a step instance does not have\. .*\[EBMR-EXE-126\]/);
     const id = `${d.runId}:${HOLD}`;
-    const { rows } = await server.db.admin.query<{ content: Json }>('select content from recipe.execution_step_content where aggregate_id = $1 order by content_version desc limit 1', [id]);
-    expect(rows[0]?.content['proposedDecision'], 'SETUP: the stored content names a decision').toEqual(forged);
+    const { rows } = await server.db.admin.query<{ n: string }>("select count(*)::text as n from recipe.execution_step_content where aggregate_id = $1 and content ? 'proposedDecision'", [id]);
+    expect(rows[0]?.n).toBe('0');
     expect(await proposals(d)).toEqual([]);
-    // The member is the database's own: no decision was proposed.
+    // The member is the database's own: no decision was proposed, so the provider gives none (recipe-core 0302).
     const k = await esig.contentForSigning(server.db.admin, 'batch_step', id);
-    expect((JSON.parse(k.canonical ?? '{}') as { content: Json }).content['proposedDecision']).toBeNull();
+    expect((JSON.parse(k.canonical ?? '{}') as { content: Json }).content).not.toHaveProperty('proposedDecision');
   }, 240_000);
 });
