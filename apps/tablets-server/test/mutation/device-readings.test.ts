@@ -10,8 +10,9 @@
  *     enrolled key or a binding from ever changing but by revocation and end (tab.gateway_key_guard,
  *     tab.gateway_instrument_guard);
  *   - the gateway's sessions: what tab.bind_gateway_session refuses and answers, what tab.resolve_gateway_session
- *     reports, which session tab.actor_gateway_key takes for a reading's command, and what tab.record_gateway_refusal
- *     records for a refused transfer;
+ *     reports (and, microsecond by microsecond, the roles of grants held from their valid_from up to, not at, their
+ *     valid_to), which session tab.actor_gateway_key takes for a reading's command, and what
+ *     tab.record_gateway_refusal records for a refused transfer;
  *   - tab.ingest_reading's own refusals (the id, the sequence and the format, a reading id already used for other
  *     content, a reading of another enrolment, an instrument no longer ACTIVE) and the proof of a stored reading
  *     (tab.device_reading_problem: a raw line naming another unit);
@@ -22,20 +23,22 @@
  *     characters);
  *   - tab.claim_readings and tab.alert_refused_claim: who may claim or alert, the claim's own arguments, and readings
  *     that reached the table without ingestion (another installation's, one of a terminal that is no instrument);
- *     the binding a claim needs; and tab.alert_claim_refusal (0250), no longer executable by the application role.
+ *     the binding a claim needs; the maximum age at its exact microsecond (a reading exactly that old is not too
+ *     old); and tab.alert_claim_refusal (0250), no longer executable by the application role.
  * Everything goes through the functions the server and the listener call, with the application role and the actors
  * they build (the gateway session's actor, an operator's command with a fresh tap, the administrator's command). The
  * private helpers (the Ed25519 functions, the signature checks, the raw-line reader, tab.alert_claim_refusal) are called
  * as the superuser, as the module tests call them. Where only a state no product path produces reaches a rule (a row
  * written by owner-level code, a reading that reached the table without ingestion, a key revoked without its
- * sessions), the superuser writes it, and the comment says so.
+ * sessions), or one no test can produce through the product in its time (thousands of copies of an approved
+ * one-microsecond grant, in a transaction rolled back), the superuser writes it, and the comment says so.
  *
- * Controls: DI-14, DI-17, DI-20, DI-22, DI-23, DI-28, DI-31, DI-32, INV-40.
+ * Controls: DI-14, DI-16, DI-17, DI-20, DI-22, DI-23, DI-28, DI-31, DI-32, INV-40.
  */
 import { createHash, generateKeyPairSync, randomBytes, randomUUID, sign, type KeyObject } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { identity, type ActorContext } from '@ebmr/kernel';
-import { freshTap, openPersonaSession, openServiceSession, terminalOf } from '@ebmr/test-kit';
+import { freshTap, openPersonaSession, openServiceSession, passwordActor, terminalOf } from '@ebmr/test-kit';
 import {
   READING_FORMAT,
   ed25519PrivateKey,
@@ -422,6 +425,161 @@ describe('gateway sessions: binding, resolution, the session of a reading comman
       kind: 'GATEWAY_ALARM', code: 'TEST-CODE', gateway_code: 'TEST-GW-99', session_id: null, message: 'refused in a test', details: { from: 'test', authenticated: false },
     });
   });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The roles of a gateway token, microsecond by microsecond
+// ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * tab.resolve_gateway_session reports the roles of grants held at the moment it reads each grant row: valid_from at or
+ * before the clock, valid_to after it (kernel 0120: a grant holds on [valid_from, valid_to)). The clock is read per row,
+ * so a one-microsecond grant [v, v + 1) is reported only by a resolution that reads its row in microsecond v, both
+ * clock readings of that row being v.
+ *
+ * The grants: two customer roles any INTEGRATION account may hold (iam.create_role, IAM.ROLE_MANAGE), and one
+ * one-microsecond grant of the first to the gateway's account, requested by the administrator and approved by the
+ * process owner (iam.request_role_grant accepts any window with valid_to after valid_from). A sweep needs thousands of
+ * such grants a few milliseconds ahead, which no test can request and approve one by one: the superuser copies the
+ * approved grant (triggers off) into a transaction that is rolled back, each copy one microsecond, the latest first.
+ * VACUUM FULL beforehand leaves no free space in the table, so the copies lie in the table in insertion order, latest
+ * first, and are read in that order (a sequential scan, a bitmap scan, or an index scan on account_id, whose equal keys
+ * are in heap order); a sweep whose copies are found out of that order is not counted. Then, as the
+ * application role, in the same transaction, the sweep calls tab.resolve_gateway_session for the fake gateway's token
+ * again and again until the clock has passed the copies.
+ */
+describe('a gateway token\'s roles at the microsecond: a grant holds from its valid_from up to, not at, its valid_to', () => {
+  const MARK_A = 'TEST_GW_MARK_A';
+  const MARK_B = 'TEST_GW_MARK_B';
+  /** The approved one-microsecond grant of MARK_A to the gateway's account, which the sweeps copy. */
+  let approved: string;
+
+  beforeAll(async () => {
+    const s = gatewayService(server);
+    const admin = await adminActor(server, 'device-readings kill tests: marker roles of the gateway account');
+    const requested = await withActorCommand(server.db.app, admin, async (c) => {
+      for (const code of [MARK_A, MARK_B]) {
+        await c.query("select iam.create_role($1, $2, 'EXECUTION', 'Marker role of the device-readings kill tests (no permission)', array['INTEGRATION'])", [code, `${code} (test)`]);
+      }
+      return identity.requestRoleGrant(c, {
+        accountId: s.accountId, roleCode: MARK_A, validFrom: '2026-01-01T00:00:00.000000Z', validTo: '2026-01-01T00:00:00.000001Z', reason: 'one microsecond (device-readings kill tests)',
+      });
+    });
+    const owner = await passwordActor(server.db, server.seed.bootstrap.owner, server.seed.bootstrap.owner.fingerprint, {
+      reasonCode: 'TEST_SETUP', reasonText: 'device-readings kill tests: a one-microsecond grant', correlationId: randomUUID(),
+    });
+    await withActorCommand(server.db.app, owner, (c) => identity.decideRoleGrant(c, requested, true, 'one microsecond (device-readings kill tests)'));
+    approved = requested;
+  });
+
+  interface Sweep {
+    /** Whether the copies lay in the table latest first (otherwise the sweep is not counted). */
+    ordered: boolean;
+    calls: number;
+    /** Answers naming MARK_A or MARK_B, and answers naming both. */
+    marked: number;
+    both: number;
+  }
+
+  /**
+   * One sweep over 2000 copies of the approved grant, the first starting 50 ms after the copy statement's clock: role
+   * MARK_A, or with `alternate` MARK_A for an even microsecond and MARK_B for an odd one.
+   */
+  async function sweep(alternate: boolean): Promise<Sweep> {
+    const appRole = (await server.db.app.query<{ u: string }>('select current_user as u')).rows[0]?.u;
+    const c = await server.db.admin.connect();
+    try {
+      await c.query('vacuum full iam.role_grant');
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      const top = (
+        await c.query<{ top: string }>(
+          `with t as (select platform.epoch_micros(clock_timestamp()) + 50000 + 2000 as top)
+           insert into iam.role_grant (account_id, person_id, role_code, valid_from, valid_to, reason, status, requested_by_person, requested_by_account,
+                                       requested_at, decided_by_person, decided_by_account, decided_at, decision_reason)
+           select g.account_id, g.person_id, case when $2 and (t.top - i) % 2 = 1 then $3 else g.role_code end,
+                  timestamptz 'epoch' + (t.top - i) * interval '1 microsecond', timestamptz 'epoch' + (t.top - i + 1) * interval '1 microsecond',
+                  g.reason, g.status, g.requested_by_person, g.requested_by_account, g.requested_at, g.decided_by_person, g.decided_by_account,
+                  g.decided_at, g.decision_reason
+             from iam.role_grant g, t, generate_series(0, 1999) i
+            where g.id = $1
+            order by i
+           returning (select top from t)::text as top`,
+          [approved, alternate, MARK_B],
+        )
+      ).rows[0]?.top;
+      const ordered = (
+        await c.query<{ ok: boolean }>(
+          `select bool_and(prev is null or v < prev) as ok from (
+             select platform.epoch_micros(valid_from) as v, lag(platform.epoch_micros(valid_from)) over (order by ctid) as prev
+               from iam.role_grant where account_id = $1 and role_code in ($2, $3) and id <> $4) s`,
+          [gatewayService(server).accountId, MARK_A, MARK_B, approved],
+        )
+      ).rows[0]?.ok;
+      await c.query("select set_config('ebmr_test.token_hash', $1, true), set_config('ebmr_test.top', $2, true)", [sha256Hex(gw.token), top]);
+      await c.query(`set local role "${appRole}"`);
+      await c.query(`do $$
+        declare
+          v_top  bigint := current_setting('ebmr_test.top')::bigint;
+          v_hash text := current_setting('ebmr_test.token_hash');
+          v_r    jsonb;
+          v_calls int := 0;
+          v_marked int := 0;
+          v_both int := 0;
+        begin
+          while platform.epoch_micros(clock_timestamp()) <= v_top + 2000 loop
+            v_r := tab.resolve_gateway_session(v_hash) -> 'roles';
+            v_calls := v_calls + 1;
+            if v_r ? '${MARK_A}' or v_r ? '${MARK_B}' then v_marked := v_marked + 1; end if;
+            if v_r ? '${MARK_A}' and v_r ? '${MARK_B}' then v_both := v_both + 1; end if;
+          end loop;
+          perform set_config('ebmr_test.sweep', format('%s %s %s', v_calls, v_marked, v_both), true);
+        end $$`);
+      const [calls = 0, marked = 0, both = 0] = ((await c.query<{ s: string }>("select current_setting('ebmr_test.sweep') as s")).rows[0]?.s ?? '').split(' ').map(Number);
+      return { ordered: ordered === true, calls, marked, both };
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  }
+
+  /** Sweeps until `enough` answers named a marker role (ordered sweeps only), or `budgetMs` has passed. */
+  async function sweepUntil(alternate: boolean, enough: number, budgetMs: number): Promise<Sweep & { sweeps: number; unordered: number }> {
+    const total = { ordered: true, calls: 0, marked: 0, both: 0, sweeps: 0, unordered: 0 };
+    const started = performance.now();
+    while (total.marked < enough && performance.now() - started < budgetMs) {
+      const s = await sweep(alternate);
+      if (!s.ordered) {
+        total.unordered += 1;
+        continue;
+      }
+      total.sweeps += 1;
+      total.calls += s.calls;
+      total.marked += s.marked;
+      total.both += s.both;
+    }
+    return total;
+  }
+
+  it('[DI-16][DI-31] a grant holds from its valid_from: a one-microsecond grant is reported by the resolution that reads it in that microsecond', async () => {
+    // The approved grant itself (1 January 2026) is long past: the token resolves to the gateway's own role only.
+    expect((await resolve(sha256Hex(gw.token)))?.['roles']).toEqual(['SITE_GATEWAY']);
+    const r = await sweepUntil(false, 1, 60_000);
+    expect(r.marked, JSON.stringify(r)).toBeGreaterThan(0);
+    expect((await resolve(sha256Hex(gw.token)))?.['roles']).toEqual(['SITE_GATEWAY']);
+    expect((await server.db.admin.query('select 1 from iam.role_grant where role_code in ($1, $2)', [MARK_A, MARK_B])).rowCount).toBe(1);
+  }, 120_000);
+
+  it('[DI-16][DI-31] a grant no longer holds at its valid_to: of adjacent one-microsecond grants, read latest first, no answer names two', async () => {
+    // Along a sweep the clock never goes back while the grants go back one microsecond per row, so at most one row is
+    // read in its own microsecond: at most one marker role per answer. A grant still held at its valid_to would also be
+    // reported when read in the microsecond after its own, that is in the microsecond of the row before it (the other
+    // marker role): both roles in one answer.
+    const r = await sweepUntil(true, 60, 120_000);
+    expect(r.marked, JSON.stringify(r)).toBeGreaterThanOrEqual(60);
+    expect(r.both, JSON.stringify(r)).toBe(0);
+    expect((await resolve(sha256Hex(gw.token)))?.['roles']).toEqual(['SITE_GATEWAY']);
+  }, 180_000);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -926,6 +1084,135 @@ describe('claims: who may claim, the claim\'s own arguments, and readings that r
     );
     expect(alarms.rows.map((a) => a.reading_id)).toEqual([r1, r2]);
   });
+
+  /**
+   * tab.claim_readings (0360) reads the database clock once (v_now) and checks every reading of the claim against it, in
+   * the order of the ids: a reading is too old when its proven age, v_now - base with base = recorded_us -
+   * uplink_delay_us, is more than the maximum M; a DEVICE_SYNCED reading is also refused when its signed capture time s
+   * lies more than M + T before v_now (T the clock tolerance, twice the drift alarm threshold). With a* = v_now - M, a
+   * reading Y_b of base b is too old exactly when b < a*, and a DEVICE_SYNCED reading X_b captured at b - T - 1 is
+   * refused by its capture time exactly when b <= a*.
+   *
+   * The claim lists Y_b, X_b for consecutive bases b, youngest first; bases where no Y reading landed are left out.
+   * Everything above a* passes. If a* is one of the bases, Y_a* is exactly M old, so it is used, and X_a* is refused by its
+   * capture time. Otherwise the first refusal is the age of Y_b for the base b just below a*, and b + 1 is then a base
+   * left out. So a claim refused as too old on Y_b while Y_b+1 is in the list never happens: it would mean Y_b refused
+   * at exactly M old. v_now cannot be known in advance, so M is set from the clock in the claim's own statement
+   * (clock - C) and C is aimed from each refusal at the middle of the bases, each claim in a savepoint rolled back,
+   * until a claim's refusal decides: X_b refused by its capture time (a* = b), or Y_b refused as too old while Y_b+1 is
+   * in the list (which the rule never gives).
+   */
+  it('[DI-28] a reading exactly as old as the maximum age is not too old: at that microsecond only the signed capture time refuses (EBMR-DEV-104), and nothing is used', async () => {
+    const tolerance = BigInt(await su<string>("select (2 * platform.setting_numeric('time.drift_alarm_threshold_s') * 1000000)::bigint::text as r", []));
+    let at = await head();
+    const next = (overrides: Partial<ReadingBody> = {}): ScaleReading => {
+      const r = sealReading(body(at, overrides), key1Private());
+      at = { seq: r.seq, hash: r.hash };
+      return r;
+    };
+    const ingestAll = async (challengeId: string, items: { reading: ScaleReading; delayUs: bigint }[]) =>
+      withActorCommand(server.db.app, await gwActor(), async (c) => {
+        for (const { reading, delayUs } of items) {
+          await c.query(INGEST_READING_SQL, [JSON.stringify(reading), delayUs.toString(), challengeId, signWait(server, challengeId, reading.readingId, delayUs.toString())]);
+        }
+      });
+
+    // Y readings: DEVICE_UNSYNCED, one challenge, signed waits P - j. The stored wait adds the database's time from the
+    // challenge to the insert and recorded_us is the insert's clock, so base = issued - (P - j) + the few microseconds
+    // between those two clock readings: consecutive bases, with gaps and repeats.
+    const P = 1_000_000n;
+    const first = await issueChallenge(server, await gwActor());
+    const ys = Array.from({ length: 140 }, (_, j) => ({ reading: next(), delayUs: P - BigInt(j) }));
+    await ingestAll(first.challengeId, ys);
+    const baseOf = new Map(
+      (
+        await server.db.admin.query<{ id: string; b: string }>('select id::text as id, (recorded_us - uplink_delay_us)::text as b from tab.device_reading where id = any($1::uuid[])', [
+          ys.map((y) => y.reading.readingId),
+        ])
+      ).rows.map((r) => [r.id, BigInt(r.b)]),
+    );
+    const offsets = new Map<bigint, number>();
+    for (const y of ys) {
+      const o = (baseOf.get(y.reading.readingId) ?? 0n) - (first.issuedUs - y.delayUs);
+      offsets.set(o, (offsets.get(o) ?? 0) + 1);
+    }
+    const offset = [...offsets.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] ?? 0n;
+    const lo = first.issuedUs - P + offset + 15n;
+    const hi = lo + 109n;
+    const yAt = new Map<bigint, string>();
+    for (const y of ys) {
+      const b = baseOf.get(y.reading.readingId) ?? 0n;
+      if (b >= lo && b <= hi && !yAt.has(b)) yAt.set(b, y.reading.readingId);
+    }
+    const bases = [...yAt.keys()].sort((x, y) => (x > y ? -1 : x < y ? 1 : 0));
+    expect(bases.length).toBeGreaterThan(30);
+    // X readings: DEVICE_SYNCED, for each base b captured at b - T - 1, ingested now with no wait (so their own age is small).
+    const second = await issueChallenge(server, await gwActor());
+    const xAt = new Map(bases.map((b) => [b, next({ trust: 'DEVICE_SYNCED', sourceTimeUs: (b - tolerance - 1n).toString() })] as const));
+    await ingestAll(second.challengeId, [...xAt.values()].map((reading) => ({ reading, delayUs: 0n })));
+    const ids: string[] = [];
+    const which = new Map<string, { kind: 'Y' | 'X'; b: bigint }>();
+    for (const b of bases) {
+      const y = yAt.get(b) ?? '';
+      const x = xAt.get(b)?.readingId ?? '';
+      ids.push(y, x);
+      which.set(y, { kind: 'Y', b });
+      which.set(x, { kind: 'X', b });
+    }
+
+    // d = a* - C, the clock's advance from the argument to v_now (a few hundred microseconds): estimated from each refusal.
+    const estimates: bigint[] = [];
+    let d = 300n;
+    const aim = lo + 55n;
+    const outcomes: string[] = [];
+    let decided: { kind: 'Y' | 'X'; id: string; message: string } | undefined;
+    for (let command = 0; command < 8 && !decided; command++) {
+      await withActorCommand(server.db.app, await operatorActor(server), async (c) => {
+        // A connection's first claim compiles what it calls: a refused one (no purpose) does that before the aimed ones.
+        await c.query('savepoint warm');
+        await c.query("select tab.claim_readings($1::uuid[], 'DISP-1', 1000000, '')", [ids]).catch(() => undefined);
+        await c.query('rollback to savepoint warm');
+        for (let k = 0; k < 8 && !decided; k++) {
+          const C = aim - d;
+          let message: string | undefined;
+          await c.query('savepoint attempt');
+          try {
+            await c.query("select tab.claim_readings($1::uuid[], 'DISP-1', platform.epoch_micros(clock_timestamp()) - $2::bigint, 'GROSS')", [ids, C.toString()]);
+          } catch (e) {
+            message = e instanceof Error ? e.message : String(e);
+          }
+          await c.query('rollback to savepoint attempt');
+          if (message === undefined) {
+            outcomes.push(`C = lo - ${lo - C}: every reading used (a* below every base)`);
+            estimates.push((bases[bases.length - 1] ?? lo) - C - 15n);
+          } else {
+            const id = /^EBMR-DEV-104 DI-28: reading ([0-9a-f-]{36}) /.exec(message)?.[1] ?? '';
+            const r = which.get(id);
+            if (r?.kind === 'X' && message.includes('by the gateway\'s synchronised clock')) {
+              decided = { kind: 'X', id, message };
+            } else if (r?.kind === 'Y' && message.includes('is too old to use')) {
+              if (yAt.has(r.b + 1n)) decided = { kind: 'Y', id, message };
+              else estimates.push(r.b === bases[0] ? r.b - C + 15n : r.b + 1n - C);
+            } else {
+              throw new Error(`unexpected refusal: ${message}`);
+            }
+            outcomes.push(`C = lo - ${lo - C}: ${r.kind}${r.b - lo} refused${decided ? ` (decides: ${r.kind === 'Y' ? `Y${r.b + 1n - lo} is in the list` : 'capture time'})` : ''}`);
+          }
+          const recent = [...estimates.slice(-5)].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+          d = recent[Math.floor(recent.length / 2)] ?? d;
+        }
+      });
+    }
+    const story = outcomes.join('\n');
+    expect(decided, story).toBeDefined();
+    expect(decided?.kind, `${story}\n${decided?.message ?? ''}`).toBe('X');
+    const t = `${tolerance / 1000000n}.${((tolerance % 1000000n) / 1000n).toString().padStart(3, '0')}`;
+    expect(decided?.message).toMatch(
+      new RegExp(`^EBMR-DEV-104 DI-28: reading ${decided?.id ?? ''} was captured [0-9]+\\.[0-9] s ago by the gateway's synchronised clock, more than [0-9]+\\.[0-9] s plus a clock tolerance of ${t.replace('.', '\\.')} s; take a new reading$`),
+    );
+    // Every claim was rolled back: nothing used.
+    expect((await server.db.admin.query('select 1 from tab.reading_use where reading_id = any($1::uuid[])', [ids])).rowCount).toBe(0);
+  }, 600_000);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
