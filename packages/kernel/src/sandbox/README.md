@@ -15,6 +15,7 @@ training data live in a separate database; GMP batches only from CURRENT or BRID
 | Sandbox login role | `sql/0800`, `sql/0820` | `ebmr_sandbox` (LOGIN, NOINHERIT, member of nothing). CONNECT on sandbox databases only; in a GMP database CONNECT is revoked from PUBLIC and granted to `ebmr_app` and `ebmr_authn`. Inside a sandbox the role holds exactly the object privileges of `ebmr_app` and `ebmr_authn` (mirrored after every migration run), never a role membership, since memberships are cluster-wide. |
 | Reserved identifiers | `sql/0810`, `identifiers.ts` | Sandbox batch numbers, lot numbers and person and device labels start with `TEST-`. A GMP database refuses any identifier whose NFKC form starts with `TEST-` in any letter case (`EBMR-SBX-021`); the sandbox refuses anything else (`EBMR-SBX-022`), so a real batch or lot number is never reused. Patterns are rows of `sandbox.reserved_identifier_pattern`. |
 | Identifiers in free text | `sql/1030` | `sandbox.real_identifiers(text | jsonb)` reads a text, or every string and member name of a JSON value at any depth, for the words 0810's rule reads as real batch or lot numbers in a sandbox: a word of the batch/lot alphabet (after NFKC and with percent and backslash escapes read) holding a letter and a digit, not an ordinal or a UUID, that the rule accepts with `TEST-` in front and refuses as it stands; a word too long to be one is read part by part (`sandbox.real_identifier_parts`). No second definition of an identifier. It cannot see an identifier of digits only, one broken by a space or another character, or written in words. Trigger function `sandbox.guard_free_text(column, ...)`: outside a GMP installation a row whose named columns hold such a word is refused (`EBMR-SBX-024`), naming the column, never the word. On the kernel's stub tables: `guard_identifier` on `market.stub_batch.batch_number`, `market.stub_material_lot.code`, `market.stub_pack.code`, `guard_free_text` on the stubs' free text (Phase 2 exit follow-up F12.KERNEL; recipe-core 0344 reads a test run's record with the same functions). |
+| Identifiers as written, person register | `sql/1040` | `sandbox.identifier_words` reads a text as written (`sandbox.as_written`: NFKC, only the escapes of U+0000 and of `%` itself, `%00`, `%25` and `\u0000`, read as a space) as well as with its escapes read, so an escape no longer hides the identifier written right after it (`50%B24-0001` holds `B24-0001`). Outside a GMP installation `guard_free_text` also guards the person register: `iam.person.legal_name` and `.employee_ref`, `iam.issued_identifier.identifier` (login names), whatever follows the `TEST-` prefix (`EBMR-SBX-024`); a GMP installation keeps its real names (Phase 2 exit follow-up F12, round 11). |
 | Batch source rule | `sql/0810`, `batchIssueProblem` | GMP: every market state of the pinned version is CURRENT or BRIDGING (`EBMR-SBX-012`). Sandbox: any version may be test-run. |
 | Watermark | `watermark.ts`, `sandbox.watermark()` | `TEST, NOT GMP` on every output of a sandbox and of every non-GMP function (simulation, training, analytics). |
 | Provisioning | `provision.ts` | Creates, migrates, marks, closes and checks a sandbox; upgrades re-level its privileges. |
@@ -44,7 +45,8 @@ SQL (granted to `ebmr_app`; mirrored to `ebmr_sandbox` in a sandbox):
 - `sandbox.identifier_problem(kind, value)`, `sandbox.identifier_problem_for(installation, kind, value)`,
   `sandbox.assert_identifier_allowed(kind, value)`; trigger function `sandbox.guard_identifier(kind, column [, column ...])`.
 - `sandbox.identifier_words(text | jsonb)`, `sandbox.real_identifier_parts(word)`, `sandbox.real_identifiers(text | jsonb)`,
-  `sandbox.escapes_decoded(text)` (1030); trigger function `sandbox.guard_free_text(column [, column ...])` (owner only).
+  `sandbox.escapes_decoded(text)` (1030), `sandbox.as_written(text)` (1040); trigger function
+  `sandbox.guard_free_text(column [, column ...])` (owner only).
 - `sandbox.batch_issue_problem_for(installation, market_states)`, `sandbox.assert_batch_issue_allowed(market_states)`.
 - `sandbox.segregation_problems()`, `sandbox.direct_privileges(role)`, `sandbox.mirror_differences()`, `sandbox.role_mirror_differences(role, roles[])` (0980).
 - Superuser only: `sandbox.apply_connect_policy()` (connect policy, since kernel 0980 with the listener role of the
@@ -96,7 +98,7 @@ Messages give the reason first, then the control, then the code.
 
 `identifiers.test.ts` (rules, disjointness property, TypeScript and SQL agree on random input incl. NFKC
 look-alikes), `identifier-words.test.ts` (1030: what the reading reads and does not, `guard_free_text` in both
-installations), `watermark.test.ts`, `installation.test.ts` (GMP marker, identifier guard, connect policy,
+installations; 1040: an escape hides nothing, the person register in both installations), `watermark.test.ts`, `installation.test.ts` (GMP marker, identifier guard, connect policy,
 copy under a sandbox name), `bypass.test.ts` (INV-18 bypass attempts through the sandbox role; DI-05 catalog
 test), `provision.test.ts` (provisioning, upgrade re-levelling, no half-built sandbox, kind/name mismatch);
 `test/security/listener-roles.test.ts` (the listener roles, their segregation and mirror, the listener roles' and the

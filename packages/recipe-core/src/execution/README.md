@@ -473,15 +473,25 @@ that another command holds is skipped.
     constraint trigger `zz_execution_row_start_data`, `start_data_problem`; trigger `zzl_execution_status_equipment`,
     `status_equipment_problem`; the lane's round-3 verification, needs A and B). Since sql 0344 (Phase 2 exit review
     F12 closed for the class; decision F12.8) every text the record holds is read with the kernel's identifier rule
-    (kernel sql 1030), whatever member holds it: the batch's columns and issue request, every text, text[] and jsonb
-    column of the command rows (command, evidence, refusal, roles), the state, the events, the four content stores, the
-    proposals, the clock and the legacy stage summaries, at any depth and in member names, and the reason and business
-    entries of the run's audit chains (deferred constraint triggers `zzz_sandbox_free_text`, `execution_free_text_check`,
-    `audit_free_text_check`; EBMR-EXE-147). A word the rule reads as a real batch or lot number is refused unless the
-    run's record has it from a bound source: its MBR (`batch_bound_words`), its batch number, site and room, the
-    engine's own names (`engine_word`), or a compound of these the engine builds (`bound_word`). A refusal names the
-    column and the JSON path, never the word. Free text a type declares (a reason, a description, a TEXT value, what a
-    refused row sent) is therefore held to that rule too; decision F12.5's default no longer applies in a test run;
+    (kernel migrations 1030 and 1040: the text as written and with its escapes read), whatever member holds it: the
+    batch's columns and issue request, every text, text[] and jsonb column of the command rows (command, evidence,
+    refusal, roles and, since sql 0346, the actor's name), the state, the events, the four content stores, the
+    proposals, the clock and the legacy stage summaries, at any depth and in member names, and on the run's audit
+    chains the chain key after the run's id, the reason, the actor's name and every business entry, and on a scale
+    reading's chain every entry likewise (deferred constraint triggers `zzz_sandbox_free_text`,
+    `execution_free_text_check`, `audit_free_text_check`; EBMR-EXE-147). A word the rule reads as a real batch or lot
+    number is refused unless the run has it (sql 0346, the lane's round-11 verification, decision F12.9): its MBR,
+    batch number, site and room (`run_bound_words`), a name of the engine's registers (table `recipe.engine_name`:
+    block rule codes, block types, the controls of the register and the invariants, the engine's schema tag), a record
+    id its state holds (`state_record_ids`: EX-, EN-, DP-, DV-, HOLD-<n> up to the number of records of its kind), an
+    edge of its MBR's flow (`flow_edge_count`), or a compound of these the engine builds, a sample's number only last in
+    an id of the run's batch number (`run_word_bound`); on a reading's chain the site and room of the writing session
+    (`session_bound_words`). No word passes by its form alone (0344's `engine_word` and the person register's names in
+    an audit entry no longer do). A refusal names the column and the JSON path, a member name in it only when it holds
+    no unbound word (else `<member>`), and an audit chain only up to the id it names (`chain_shown`): never the word.
+    Free text a type declares (a reason, a description, a TEXT value, what a refused row sent) is therefore held to
+    that rule too; decision F12.5's default no longer applies in a test run, and a refused row that names a record the
+    run does not have (EX-9 when the run has two exceptions) is not recorded either;
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -606,6 +616,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
 | 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
 | 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
+| 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346; kernel migrations 1030, 1040): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them, in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
 
 ## TypeScript
 
@@ -874,6 +885,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   and control the engine's and the blocks' sources name meets the rule, and an accepted row records none (sql 0336);
   the issue requests of both golden fixtures pass and a size, market, variant, choice or input the MBR does not hold,
   one left out, a blank source or another input type is refused (sql 0337).
+- `test/execution/engine-names-sql.test.ts` (Phase 2 exit follow-up F12, round 11; DI-05, DI-30; sql 0346):
+  `recipe.engine_name` holds exactly the block rule codes of the engine's sources, the block types of the registry,
+  the controls of compliance/controls and the invariants INV-01 to INV-48, the schema tag and member name the engine
+  writes, insert-only and unreadable by the application role; `flow_edge_count` equals the compiler's edge count for
+  dc-mini, both golden fixtures and flows of every construct, and is never below it; `state_record_ids`,
+  `run_word_bound`, `word_path` and `chain_shown` bind and show words as the migration says.
 - `test/execution/row-context-sql.test.ts` (Phase 2 exit review F12, round 8; DI-05, DI-30, DI-37, DI-10; sql 0338):
   every accepted command of both golden runs (steps in loops and replicate sections, choices, loop iterations, stage
   sign-offs) and the preparation for each of their signatures passes `row_context_problem`, and every content version
@@ -1103,7 +1120,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (tablets sql 0630, EBMR-SBX-024), and a lot's material name, the register's, is in no row of the record;
   a stub batch planned in the sandbox with the batch number L2409-0017 is refused (EBMR-SBX-022), a TEST- number is
   planned. The purpose of a scale-reading claim (tablets sql 0600) is tested in `test/devices/claim.test.ts`.
-- `db-guards-free-text-identifiers.test.ts` (Phase 2 exit review F12, round 10; sql 0344, 0345, kernel sql 1030):
+- `db-guards-free-text-identifiers.test.ts` (Phase 2 exit review F12, round 10; sql 0344, 0345, kernel migration 1030):
   through the application role, the lane's round-3 verification's probes, an accepted START_STEP of a recovery with
   start data authorised by L2409-0017 (or by a person: no accepted start data at all) and an equipment status naming
   L2409-0017 or another stage's equipment at a status step that lists none (over HTTP), and a refused start authorised
@@ -1114,7 +1131,18 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   SCALE-01, TRAINEE-01, in lower case, full-width, escaped, glued into a longer word, joined by a slash) is refused
   (EBMR-EXE-147) and nothing holds it; prose, numbers, dates, ranges, ordinals, TEST- identifiers, the MBR's codes and
   the engine's names are recorded.
-- `db-guards-kernel-stubs.test.ts` (Phase 2 exit follow-up F12.KERNEL; kernel sql 1030): through the application role,
+- `db-guards-free-text-bound-names.test.ts` (Phase 2 exit follow-up F12, round 11; sql 0346, kernel migration 1040):
+  over HTTP, S24090017 (also in lower case), E24090017, EX-24090017, DV-24090017, HOLD-2409017, G24-LOT, E2409/0017
+  and EX-9 (an exception the run does not have) in an exception's description and in a hold reason, and 50%B24-0001,
+  lot %E2409001 found and ref%A24-0001 in a description, are refused (EBMR-EXE-147) and nothing holds them, while the
+  run's own exception, a block rule code, a block type and controls of the registers are recorded; the
+  administrator's rename of operator1 to TEST-Priya L2409-0017 through the application role is refused (EBMR-SBX-024)
+  and the run then holds it in no row, signature or audit entry; a name stored before kernel migration 1040 is refused
+  where the run would copy it, its challenge included (EBMR-EXE-147); a business entry the application role appends
+  on a scale reading's chain naming L2409-0017 in its message or details, or on a chain whose key holds it, is refused
+  without the word in the message, and an entry naming the writing session's room is recorded; business details
+  {"Z2409-0018": {"x": "L2409-0017"}} are refused at `$.body.details.<member>.x`.
+- `db-guards-kernel-stubs.test.ts` (Phase 2 exit follow-up F12.KERNEL; kernel migration 1030): through the application role,
   in the sandbox a stub material lot, stub batch or stub pack with a real-format identifier is refused (EBMR-SBX-022)
   and the stubs' free text (predicates, a stub MBR limit's value, a stub signable's title, value and unit, a sample
   record's body) holding one is refused (EBMR-SBX-024); a GMP installation keeps the real ones and refuses TEST- ones

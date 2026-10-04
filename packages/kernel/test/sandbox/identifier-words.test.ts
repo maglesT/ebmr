@@ -7,7 +7,12 @@
  * The reading has no definition of its own of what an identifier looks like: a word is read as one when 0810's rule
  * accepts it with the reserved prefix in front and refuses it as it stands. The expected values below are what the
  * PostgreSQL 16 server answered for each input (run against the migrated template).
+ *
+ * Kernel 1040 (the lane's round-11 verification, needs 2 and 3): a text is read as written as well as with its escapes
+ * read, so an escape no longer hides the identifier written right after it; and in a sandbox the person register's
+ * names, references and login names are read too.
  */
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { provisionTestSandbox, type TestSandbox } from './helpers.ts';
@@ -58,8 +63,9 @@ describe('the identifier rule read in free text (kernel 1030)', () => {
       'trainee TRAINEE-01': ['TRAINEE-01'],
       'l2409-0017': ['l2409-0017'],
       'Ｌ２４０９－００１７': ['L2409-0017'],
-      '%4C2409-0017': ['L2409-0017'],
-      '\\u004C2409-0017': ['L2409-0017'],
+      // Since kernel 1040 also as written: 4C2409-0017 and u004C2409-0017 are words of the form of one too.
+      '%4C2409-0017': ['4C2409-0017', 'L2409-0017'],
+      '\\u004C2409-0017': ['L2409-0017', 'u004C2409-0017'],
       // Longer than an identifier can be: every run of its parts that is one, as the server reads it.
       'drum-L2409-0017-from-the-supplier-warehouse-north': [
         '0017-from', '0017-from-the', '0017-from-the-supplier', 'L2409', 'L2409-0017', 'L2409-0017-from', 'L2409-0017-from-the',
@@ -122,5 +128,75 @@ describe('the identifier rule read in free text (kernel 1030)', () => {
     await expect(gmp.app.query(insert, ['Drum of lot L2409-0017', JSON.stringify({ a: { b: { c: 'B24-0001' } } })])).resolves.toBeDefined();
     // A misconfigured trigger is refused before anything is read.
     await expect(sbx.sandbox.query("insert into a4_notes.broken (body) values ('x')")).rejects.toThrow(/names column nope, which a4_notes\.broken does not have \(DI-05\)\. \[EBMR-SBX-023\]$/);
+  });
+  it('[DI-05][INV-18] kernel 1040: an escape never hides the identifier written right after it: the text is read as written and with its escapes read, so 50%B24-0001, lot %E2409001 found and ref%A24-0001 hold B24-0001, E2409001 and A24-0001, and sandbox.guard_free_text refuses them in a sandbox (EBMR-SBX-024) where a GMP installation keeps them; the escapes of U+0000 and of % itself are not words', async () => {
+    expect(await readText(['50%B24-0001', 'lot %E2409001 found', 'ref%A24-0001', '%4C2409-0017', 'at 100% load, 50%RH, 100%25 sure, %00perform'])).toEqual({
+      '50%B24-0001': ['B24-0001'],
+      'lot %E2409001 found': ['E2409001'],
+      'ref%A24-0001': ['A24-0001'],
+      // As written 4C2409-0017 (a word of the form of one), with its escape read L2409-0017.
+      '%4C2409-0017': ['4C2409-0017', 'L2409-0017'],
+      'at 100% load, 50%RH, 100%25 sure, %00perform': [],
+    });
+    const table = `
+      create schema a4_escapes;
+      create table a4_escapes.note (id serial primary key, body text);
+      create trigger ac_sandbox_free_text before insert on a4_escapes.note for each row execute function sandbox.guard_free_text('body');
+      grant usage on schema a4_escapes to ebmr_app;
+      grant select, insert on a4_escapes.note to ebmr_app;
+      grant usage on all sequences in schema a4_escapes to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const insert = 'insert into a4_escapes.note (body) values ($1)';
+    for (const text of ['50%B24-0001', 'lot %E2409001 found', 'ref%A24-0001']) {
+      await expect(sbx.sandbox.query(insert, [text]), text).rejects.toThrow(/^a4_escapes\.note body holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/);
+      await expect(gmp.app.query(insert, [text]), text).resolves.toBeDefined();
+    }
+    await expect(sbx.sandbox.query(insert, ['at 100% load, 50%RH'])).resolves.toBeDefined();
+    expect((await sbx.admin.query("select 1 from a4_escapes.note where body like '%B24%' or body like '%E24%' or body like '%A24%'")).rowCount).toBe(0);
+  });
+
+  it('[DI-05][INV-18] kernel 1040: in a sandbox the person register holds no real-format identifier after the TEST- prefix: a legal name, an employee reference or a login name holding one is refused (EBMR-SBX-024); TEST- names and login names pass, and a GMP installation keeps its real names', async () => {
+    const asRelease = async (db: { admin: { connect: () => Promise<pg.PoolClient> } }, work: (c: pg.PoolClient) => Promise<unknown>): Promise<string> => {
+      const c = await db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query(`select kernel.set_actor_context(jsonb_build_object(
+          'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+          'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+          'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+          'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1040 test person'))`);
+        await work(c);
+        await c.query('commit');
+        return 'ok';
+      } catch (error) {
+        await c.query('rollback');
+        return (error as Error).message;
+      } finally {
+        c.release();
+      }
+    };
+    const person = (name: string, ref: string | null = null) => (c: pg.PoolClient) => c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', $1, $2)", [name, ref]);
+    const login = (identifier: string) => (c: pg.PoolClient) => c.query('insert into iam.issued_identifier (identifier, account_id) values ($1, gen_random_uuid())', [identifier]);
+    const REFUSED = /^iam\.(person (legal_name|employee_ref)|issued_identifier identifier) holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/;
+    const sandbox = {
+      name: await asRelease(sbx, person('TEST-Priya L2409-0017')),
+      lowerCase: await asRelease(sbx, person('TEST-Priya l2409-0017')),
+      employeeRef: await asRelease(sbx, person('TEST-Asha Rao', 'L2409-0017')),
+      longLogin: await asRelease(sbx, login(`test-${'a'.repeat(30)}-l2409-0017`)),
+      testName: await asRelease(sbx, person('TEST-Priya Nair')),
+      testNumberedName: await asRelease(sbx, person('TEST-Trainee-01')),
+      testLogin: await asRelease(sbx, login('test-operator-1')),
+    };
+    expect(sandbox.name).toMatch(REFUSED);
+    expect(sandbox.lowerCase).toMatch(REFUSED);
+    expect(sandbox.employeeRef).toMatch(REFUSED);
+    expect(sandbox.longLogin).toMatch(REFUSED);
+    expect({ testName: sandbox.testName, testNumberedName: sandbox.testNumberedName, testLogin: sandbox.testLogin }).toEqual({ testName: 'ok', testNumberedName: 'ok', testLogin: 'ok' });
+    for (const m of Object.values(sandbox)) expect(m).not.toMatch(/2409/);
+    expect((await sbx.admin.query("select 1 from iam.person where legal_name like '%2409%' or employee_ref like '%2409%'")).rowCount).toBe(0);
+    // A GMP installation keeps its real names.
+    expect(await asRelease(gmp, person('Priya L2409-0017', 'L2409-0017'))).toBe('ok');
   });
 });
