@@ -1846,9 +1846,21 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
     own key with exactly its kind's members, a hand-keyed value to its parameter's form, and an engine version to
     major.minor.patch matching the batch's state. recipe-core 0339 names what a row brings into the state as the engine
     names it (EX/EN/DP/DV/HOLD ids, stage frames, decisions, sub-lots). The replay now reads every stored content
-    version (F12.5 and REPLAY-GATE.1 corrected; decision F12.6). The challenge answers 404 for a step that is not
-    started. Tests: apps/tablets-server/test/execution/db-guards-row-context.test.ts (7) and
+    version (F12.5 and REPLAY-GATE.1 corrected; decision F12.6). The challenge answers 404 for a step instance the run
+    does not have. Tests: apps/tablets-server/test/execution/db-guards-row-context.test.ts (7) and
     packages/recipe-core/test/execution/row-context-sql.test.ts (7), each failing with its migration moved aside.
     Still open (F12.6): free text F12.5 names; tab.sandbox_lot material code and name and tab.reading_use purpose; the
     kernel sandbox stub lot code and batch number (a DI-05 kernel item for the lead). The E2E fcv journey failed on a
     client-side badge tap this lane does not touch.
+  - Lane round 3 (F12 round 9): the round-2 verification stored L2409-0017 as a role of the approver of an accepted
+    correction (check_engine_roles binds the actor's roles only). recipe-core 0340 now holds an accepted row's approver
+    roles to the engine roles the approver holds through the authority behind their own signature, and a refused row's
+    to engine roles; 0342 holds the approver to a person of the installation. tablets 0600 claims readings as TARE or
+    GROSS only and refuses a weighing or lot charge whose lot is of a material the batch's MBR does not name; recipe-core
+    0341 puts the sandbox identifier rule on a stub batch's number. The self-review found accepted deviation links and
+    hold releases naming L2409-0017 stored 'ok'; 0343 binds them to an exception or hold of the state they change.
+    Tests (each fails with its migration moved aside): db-guards-approver-roles, db-guards-act-targets and
+    db-guards-sandbox-registers (server, new), devices claim.test.ts, recipe-core row-context-sql (round 9). Decision
+    F12.7; F12.6 corrected. Still open: the lot register may hold such a material code (owner: set-up order), the
+    kernel stub tables and the sandbox's MBR life-cycle writers (reported to the lead), F12.5's free text and refused
+    rows as sent, the imported test package.
