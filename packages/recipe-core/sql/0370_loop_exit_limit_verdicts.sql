@@ -100,7 +100,7 @@ begin
       message = 'The accepted RAISE_EXCEPTION of this row is not recorded in the state as the operator''s exception it raises (PR-13, PR-49, DI-26). [EBMR-EXE-044]';
   end if;
   -- The limit exceptions are those the verdicts on the values the row judges raise (PR-08, PR-49): judged whenever the
-  -- row changes a data point, a computed value or a decision (a loop's exit judges its endpoint, 0344), or adds a limit
+  -- row changes a data point, a computed value or a decision (a loop's exit judges its endpoint, 0370), or adds a limit
   -- exception.
   if (p_state -> 'points') is distinct from (p_prior -> 'points') or (p_state -> 'derived') is distinct from (p_prior -> 'derived')
      or (p_state -> 'decisions') is distinct from (p_prior -> 'decisions')

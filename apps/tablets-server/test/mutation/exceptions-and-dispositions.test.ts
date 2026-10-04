@@ -1,6 +1,6 @@
 /**
  * Proposals, signed decisions and the corrections that need an approval, through the store (SQL mutation group
- * "exceptions-and-dispositions": recipe-core 0270, 0295, 0297, 0331, 0344). These tests close the gaps the SQL mutation run
+ * "exceptions-and-dispositions": recipe-core 0270, 0295, 0297, 0331, 0370). These tests close the gaps the SQL mutation run
  * (tools/sql-mutation) found in the group's server tests, which drive the server: its own checks refuse most forgeries
  * before the database sees them, and the database's refusals were asserted by their code only. Here every forgery is
  * written past the server with the application role's own credentials (ADR 0012, ebmr_sandbox here), with signatures
@@ -16,9 +16,9 @@
  *     asked for the signature, and recorded exactly (each fact on its own);
  *   - recipe.correction_needs_approval: a value the batch's own MBR declares NON_CRITICAL is corrected without an
  *     approval; any other needs one, whatever other parameters or other batches declare;
- *   - recipe.check_exception_changes (recipe-core 0344): the row that decides a loop's exit is judged against the
+ *   - recipe.check_exception_changes (recipe-core 0370): the row that decides a loop's exit is judged against the
  *     endpoint's limits although it changes no value, so the exit cannot leave its endpoint waiting and drop the breach
- *     its verdict raises (a defect the mutation run found: before 0344 that row was stored).
+ *     its verdict raises (a defect the mutation run found: before 0370 that row was stored).
  *
  * Controls: PR-08, PR-45, PR-49, DI-07, DI-24, DI-26, DI-37, INV-09, INV-10, INV-19; S25 (decision on corrections).
  */
