@@ -31,6 +31,8 @@ implemented_by:
     - "packages/ui-kit/src/audit/AuditEventList.tsx"
     - "packages/ui-kit/src/audit/ChainVerifyBadge.tsx"
     - "apps/tablets-server/sql/0490_audit_headless_chains.sql"
+    - "apps/tablets-server/sql/0530_chain_verification_and_subject_answers.sql"
+    - "apps/tablets-server/sql/0560_subject_counts_shown_entries.sql"
   invariants:
     - INV-06
     - INV-08
@@ -40,6 +42,7 @@ implemented_by:
     - "per-aggregate SHA-256 hash chains, checkpoints and external anchors; kernel.verify_chain names the altered entry"
     - "definer functions pin search_path with pg_temp last; the application cannot create temporary objects (ADR-0016)"
     - "tab.audit_headless_chains and tab.audit_chain_length (tablets 0490): a chain whose head row is missing is listed (no count or time) and verified, so kernel.verify_chain names the deleted head instead of the viewer answering that the chain does not exist"
+    - "tab.audit_verify_chain (tablets 0530): the audit viewer's verification of a chain, from its first entry, and of the registry chains its view draws on, for a session that may read it; the application role no longer runs kernel.verify_chain or the external anchor comparison itself"
 tests:
   - "packages/kernel/test/audit/audit-trail.test.ts > [DI-23] nothing the application can call disables the audit trail or removes audit events"
   - "packages/kernel/test/audit/audit-trail.test.ts > [INV-06][DI-23] the application role cannot write, change or delete audit events"
@@ -91,6 +94,10 @@ tests:
   - "packages/kernel/test/review/f57.test.ts > F57: an approved restore event must not cover changed (not lost) anchored history > [INV-08][DI-45][DI-23] a FAILOVER event on a never-restored database does not turn a rewritten anchored event into COVERED"
   - "packages/recipe-core/test/execution/sql-guards.test.ts > a limit exception as the value and the MBR's limits give it (P25 round-2 verification; recipe-core 0305) > [DI-13][DI-23] the derivation is private to the owner and pins its search_path; the guard keeps its owner, SECURITY DEFINER, volatility, search_path and privileges"
   - "tools/e2e/specs/journey/fcv.spec.ts > first clickable version (journey) > [PR-03][DI-04][DI-05][INV-18][PR-01][DI-20][INV-40][DI-32][INV-25][DI-36][DI-38][INV-03][DI-34][PR-08][DI-37][DI-22][DI-23] the owner path: design, send, issue, execute on the kiosks with the scale and the ceremony, replay and audit"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > [DI-17][DI-22][DI-23] the audit viewer verifies a chain only through the session-checked tab.audit_verify_chain: no session (EBMR-TAB-018), a chain the role may not read (EBMR-TAB-020); a chain it may read is verified with its registry chains, and the route still verifies"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > [DI-17][DI-22][DI-23][DI-50] a withheld chain that does not verify still reads to the subject as a chain with no entries, as the colleague's own reads; the opener's verification names the tamper"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > [DI-17][DI-22][DI-23][DI-50] the verification of a chain the subject reads checks no registry chain withheld from them: a tampered account chain of the opener is named to a colleague, not to the subject"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > the subject's own account chain (tablets 0560) > [DI-17][DI-22][DI-23][DI-50] a chain whose head row is missing counts for the subject only the entries shown (tab.audit_headless_chains, tab.audit_chain_length), and is not listed when none is, as for a colleague; the colleague counts the hold"
 clauses:
   - clause: "Search the UI, the API and the admin console for any disable or purge function. None exists."
     tests:

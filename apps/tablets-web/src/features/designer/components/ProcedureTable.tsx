@@ -21,7 +21,7 @@ import { insertionPoint, newStep, type Content, type Op } from '../model/ops.ts'
 import type { FindingItem, PaletteItem } from '../model/types.ts';
 import { roleTitle } from './common.tsx';
 import { blockDefaults, ConfigList } from './ConfigView.tsx';
-import { humanize, itemLabel, referenceLabel, samplingWords } from './words.ts';
+import { checkWords, humanize, itemLabel, referenceLabel, samplingWords } from './words.ts';
 
 export const rowId = (nodeId: string): string => `mbr-node-${nodeId}`;
 
@@ -311,7 +311,7 @@ export function ProcedureTable({ content, numbering, palette, selected, onSelect
           )}
         </td>
         <td>{n.kind === 'phase' ? roleTitle(n.signatures.perform?.role) : roleTitle(n.role)}</td>
-        <td>{n.kind === 'phase' && n.signatures.check ? `${roleTitle(n.signatures.check.role)} (${n.signatures.check.meaning.toLowerCase()})` : '—'}</td>
+        <td>{n.kind === 'phase' ? checkWords(content, n, roleTitle) : '—'}</td>
         <td>
           {inLibrary ? (
             <span className={dcls('small')}>Step of a library element (read-only here)</span>

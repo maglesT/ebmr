@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { badgeUidOf, PIN_MAX_LENGTH, routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
-import { Banner, Button, Field, identity, t } from '@ebmr/ui-kit';
+import { Banner, Button, Field, identity, t, takeSecret, wasFilled } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
@@ -161,6 +161,8 @@ function ChangeSecretForm({ change, credentials, onDone, onActivity, demoBadges 
   const [error, setError] = useState<CallError | null>(null);
   const [mismatch, setMismatch] = useState(false);
   const [notAPin, setNotAPin] = useState(false);
+  /** Kiosk: the new PIN reached a field otherwise than typed (filled in by a password manager, pasted): BADGE-AUTOFILL. */
+  const [notTyped, setNotTyped] = useState(false);
   const kindWord = change.kind === 'PIN' ? 'PIN' : 'password';
   const pin = change.kind === 'PIN';
   useEffect(
@@ -200,10 +202,17 @@ function ChangeSecretForm({ change, credentials, onDone, onActivity, demoBadges 
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const a = first.current?.value ?? '';
-    const b = second.current?.value ?? '';
-    if (first.current) first.current.value = '';
-    if (second.current) second.current.value = '';
+    // A kiosk PIN filled in by the browser or a password manager, or pasted, is one its owner may not know and the shared
+    // browser may keep: nothing is sent (BADGE-AUTOFILL).
+    const filled = pin && (wasFilled(first) || wasFilled(second));
+    const a = takeSecret(first);
+    const b = takeSecret(second);
+    setNotTyped(filled);
+    if (filled) {
+      setMismatch(false);
+      setNotAPin(false);
+      return;
+    }
     if (a !== b) {
       setMismatch(true);
       setNotAPin(false);
@@ -268,12 +277,14 @@ function ChangeSecretForm({ change, credentials, onDone, onActivity, demoBadges 
       {error ? <RefusalMessage error={error} /> : null}
       {mismatch ? <Banner tone="warning" title={t('session.secretsDiffer')} /> : null}
       {notAPin ? <Banner tone="warning" title={t('session.pinDigits', { max: String(PIN_MAX_LENGTH) })} /> : null}
+      {notTyped ? <Banner tone="warning" title={t('session.pinTyped')} /> : null}
       <Field
         label={t('session.newSecret', { kind: kindWord })}
         name="newSecret"
         type="password"
         inputRef={first}
         autoComplete="new-password"
+        noAutofill={pin}
         isRequired
         inputMode={pin ? 'numeric' : 'text'}
         {...(pin ? { maxLength: PIN_MAX_LENGTH, description: t('session.pinDigits', { max: String(PIN_MAX_LENGTH) }) } : {})}
@@ -284,6 +295,7 @@ function ChangeSecretForm({ change, credentials, onDone, onActivity, demoBadges 
         type="password"
         inputRef={second}
         autoComplete="new-password"
+        noAutofill={pin}
         isRequired
         inputMode={pin ? 'numeric' : 'text'}
         {...(pin ? { maxLength: PIN_MAX_LENGTH } : {})}

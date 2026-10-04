@@ -11,7 +11,7 @@
  * session's own person unless the role is a governance one, verification only of a chain the session may read; the
  * application role reads the audit tables only through these functions.
  */
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type AuditEventView, type Result } from '@ebmr/api-contract';
 import { esig, identity, records, withCommand, type ActorContext } from '@ebmr/kernel';
@@ -241,16 +241,18 @@ describe('F35: the person a DI investigation is about, in a governance role (tab
     const leadView = await events(leadBrowser, { chainKey: `esig_stub:${stub}` });
     expect(JSON.stringify(leadView)).toContain('investigation hold placed');
     for (const k of signing) expect(await chainKeys(leadBrowser, k)).toEqual([k]);
-    // The subject: none of them is listed, and each is refused.
+    // The subject: none of them is listed, and each reads as a chain with no entries (tablets 0530, default F35.3: as a
+    // colleague's own hold chain reads, never a refusal that would tell the subject).
     const listed = await chainKeys(subjectBrowser, 'record_hold:');
     expect(listed.filter((k) => held.includes(k))).toEqual([]);
+    const none = { ok: true, status: 200, value: { events: [], nextCursor: null } };
     for (const k of signing) {
       expect(await chainKeys(subjectBrowser, k), k).toEqual([]);
-      expect(outcome(await events(subjectBrowser, { chainKey: k })), k).toBe('403:EBMR-TAB-020');
+      expect(await events(subjectBrowser, { chainKey: k }), k).toEqual(none);
     }
     for (const k of held) {
-      expect(outcome(await events(subjectBrowser, { chainKey: k })), k).toBe('403:EBMR-TAB-020');
-      expect(outcome(await subjectBrowser.call(routes.audit.verifyChain, { params: { chainKey: k } })), k).toBe('403:EBMR-TAB-020');
+      expect(await events(subjectBrowser, { chainKey: k }), k).toEqual(none);
+      expect(outcome(await subjectBrowser.call(routes.audit.verifyChain, { params: { chainKey: k } })), k).toBe('404:AUDIT_CHAIN_NOT_FOUND');
     }
     // Entries another command may write on a record's chain naming only one of its holds (as the release at closure
     // does) or only the investigation itself.
@@ -276,11 +278,20 @@ describe('F35: the person a DI investigation is about, in a governance role (tab
     if (leadOpened.ok) expect(leadOpened.value.events.length).toBeGreaterThan(0);
   });
 
-  it('[DI-17][DI-50] the subject reads neither the activity nor the account and person chains of the persons who opened and lead it; other colleagues\' it does', async () => {
+  it('[DI-17][DI-50] the subject reads neither the account and person chains of the persons who opened and lead it nor, in their activity, anything the investigation wrote; other colleagues\' it does', async () => {
+    const none = { ok: true, status: 200, value: { events: [], nextCursor: null } };
     for (const p of [lead, investigator]) {
-      expect(outcome(await events(subjectBrowser, { personId: p.personId })), p.legalName).toBe('403:EBMR-TAB-020');
-      expect(outcome(await events(subjectBrowser, { chainKey: `account:${p.accountId}` })), p.legalName).toBe('403:EBMR-TAB-020');
-      expect(outcome(await events(subjectBrowser, { chainKey: `person:${p.personId}` })), p.legalName).toBe('403:EBMR-TAB-020');
+      // Their activity is served from the chains the subject may read (tablets 0530, default F35.3), without their
+      // account and person chains and without the entries the investigation wrote.
+      const activity = await events(subjectBrowser, { personId: p.personId, limit: '200' });
+      expect(outcome(activity), p.legalName).toBe('ok');
+      if (activity.ok) {
+        const withheld = [...held, ...signing, `di_investigation:${investigation}`, ...[lead, investigator].flatMap((x) => [`account:${x.accountId}`, `person:${x.personId}`])];
+        expect(activity.value.events.map((e) => e.chainKey).filter((k) => withheld.includes(k)), p.legalName).toEqual([]);
+      }
+      expect(JSON.stringify(activity), p.legalName).not.toContain('Suspected sharing of the QA reviewer password');
+      expect(await events(subjectBrowser, { chainKey: `account:${p.accountId}` }), p.legalName).toEqual(none);
+      expect(await events(subjectBrowser, { chainKey: `person:${p.personId}` }), p.legalName).toEqual(none);
     }
     const accounts = await chainKeys(subjectBrowser, 'account:');
     expect(accounts).not.toContain(`account:${lead.accountId}`);
@@ -292,16 +303,18 @@ describe('F35: the person a DI investigation is about, in a governance role (tab
     expect(outcome(await events(subjectBrowser, { chainKey: `account:${author.accountId}` }))).toBe('ok');
   });
 
-  it('[DI-17][DI-50] the database refuses the subject\'s session each of them (EBMR-TAB-020) and drops the hold entries from a record\'s chain', async () => {
+  it('[DI-17][DI-50] the database answers the subject\'s session on each of them as on a chain with no entries and drops the hold entries from a record\'s chain', async () => {
     const h = hashOf(gmp, subjectBrowser);
     const q = (sqlText: string, args: unknown[]) => gmp.db.app.query(sqlText, args);
     const hold = `record_hold:esig_stub:${stub}`;
-    await expect(q('select * from tab.audit_events($1, $2, null, null, null, null, null, null, 50)', [h, hold])).rejects.toThrow(/EBMR-TAB-020/);
-    await expect(q('select tab.audit_chain_length($1, $2)', [h, hold])).rejects.toThrow(/EBMR-TAB-020/);
-    await expect(q('select * from tab.audit_registry_chains($1, $2)', [h, hold])).rejects.toThrow(/EBMR-TAB-020/);
+    // As a chain with no entries reads (tablets 0530, default F35.3), never a refusal that would tell the subject.
+    expect((await q('select * from tab.audit_events($1, $2, null, null, null, null, null, null, 50)', [h, hold])).rows).toEqual([]);
+    expect((await q('select tab.audit_chain_length($1, $2) as n', [h, hold])).rows).toEqual([{ n: null }]);
+    expect((await q('select * from tab.audit_registry_chains($1, $2)', [h, hold])).rows).toEqual([]);
     for (const p of [lead, investigator]) {
-      await expect(q('select * from tab.audit_events($1, null, null, $2, null, null, null, null, 50)', [h, p.personId])).rejects.toThrow(/EBMR-TAB-020/);
-      await expect(q('select tab.audit_chain_length($1, $2)', [h, `account:${p.accountId}`])).rejects.toThrow(/EBMR-TAB-020/);
+      const activity = (await q('select chain_key, payload from tab.audit_events($1, null, null, $2, null, null, null, null, 200)', [h, p.personId])).rows as { chain_key: string; payload: unknown }[];
+      expect(activity.filter((r) => held.includes(r.chain_key) || signing.includes(r.chain_key) || r.chain_key === `di_investigation:${investigation}` || /hold_id|investigation_id/.test(JSON.stringify(r.payload)))).toEqual([]);
+      expect((await q('select tab.audit_chain_length($1, $2) as n', [h, `account:${p.accountId}`])).rows).toEqual([{ n: null }]);
     }
     expect((await q("select chain_key from tab.audit_chains($1, 'record_hold:', 500)", [h])).rows.filter((r: { chain_key: string }) => held.includes(r.chain_key))).toEqual([]);
     expect((await q("select chain_key from tab.audit_chains($1, 'esig_', 500)", [h])).rows.filter((r: { chain_key: string }) => signing.includes(r.chain_key))).toEqual([]);
@@ -362,7 +375,7 @@ describe('F35: the person a DI investigation is about, in a governance role (tab
  * Tablets 0470 takes them away from the application role on both installations; the owner's tools still run them.
  */
 describe('F35: the application role\'s readers of who acted on a chain (tablets 0470)', () => {
-  it('[DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, whether a chain exists, the entries of a time fault or the persons excluded from a signing, on either installation; the owner still does', async () => {
+  it('[DI-17][DI-22][DI-50] without a session the application role learns no investigation, its subject or its opener from who acted on a chain or a row, from checkpointing a chain (refused only for a chain with no entries), from the entries of a time fault or from the persons excluded from a signing, on either installation; the owner still does', async () => {
     const chain = `di_investigation:${investigationId}`;
     // The owner's tools: the lead opened the investigation (its chain and its row).
     expect((await gmp.db.admin.query<{ p: string[] }>('select iam.chain_persons($1)::text[] as p', [chain])).rows[0]?.p).toContain(lead.personId);
@@ -392,5 +405,415 @@ describe('F35: the application role\'s readers of who acted on a chain (tablets 
         await expect(server.db.app.query(sqlText, [...args]), `${server.kind}: ${sqlText} ${JSON.stringify(args)}`).rejects.toThrow(/permission denied/);
       }
     }
+  });
+});
+
+/**
+ * Round 4 of F34 and F35. (1) Tablets 0470 took kernel.checkpoint_chain away because it told whether a chain exists,
+ * but the application role still verified any chain and compared any external anchor without a session. Asked about
+ * the hold chain of an account (record_hold:account:<id>), kernel.verify_chain from a position past the end named one
+ * problem at the chain's length for a held account and none for another, and from position 0 a gap for the held account
+ * only; continuity.compare_external_anchors called a forged one-head anchor UNEXPLAINED for a held account and
+ * DISCARDABLE for another. Listing the accounts and asking each named every person under investigation. (2) The person
+ * an investigation is about, in a governance role, was told about it by the session-checked reads themselves: their own
+ * account's hold chain was refused "not shown to the person of this session" (EBMR-TAB-020) in the events and in its
+ * verification, where a colleague in the same role, asking about their own account, got an empty list and "no audit
+ * entry"; a person filter on the investigation's opener was refused where the colleague's was served.
+ *
+ * Tablets 0530 takes the verification and the anchor comparison away from the application role on both installations
+ * (the audit viewer verifies through the session-checked tab.audit_verify_chain; the owner's tools still verify and
+ * compare), and answers everything withheld from the subject as an absent chain is (default F35.3): no entries, no
+ * length, nothing to verify, no registry chains; a person filter on the opener or lead is served from the chains the
+ * subject may read. A subject and a colleague in the same role get the same status, message and body shape.
+ */
+describe('F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530)', () => {
+  type Pair = {
+    kind: 'GMP' | 'SANDBOX';
+    server: TestServer;
+    subject: GrantedPerson;
+    control: GrantedPerson;
+    opener: GrantedPerson;
+    subjectBrowser: TestBrowser;
+    controlBrowser: TestBrowser;
+    openerBrowser: TestBrowser;
+    investigation: string;
+  };
+  const pairs: Pair[] = [];
+  const holdChain = (account: string): string => `record_hold:account:${account}`;
+  const forgedAnchor = (account: string) => {
+    const key = holdChain(account);
+    return {
+      anchor_id: '987654321',
+      created_at: '2026-10-03T00:00:00.000000Z',
+      merkle_root_hex: createHash('sha256').update(`${key}:1:00`).digest('hex'),
+      heads: [{ chain_key: key, seq: '1', hash_hex: '00' }],
+    };
+  };
+
+  /**
+   * An answer as the person sees it (the value, or the refusal's status and text; a refusal's correlation id differs per
+   * request), with the asker's own account id replaced, so a subject's and a colleague's compare.
+   */
+  const same = (r: Result<unknown>, own: string): string =>
+    JSON.stringify(r.ok ? { ok: true, status: r.status, value: r.value } : r.error.kind === 'REFUSAL' ? { status: r.error.status, refusal: r.error.envelope.refusal, retryable: r.error.envelope.retryable } : r.error)
+      .split(own)
+      .join('<own>');
+  /** Whether rows or an answer name anything withheld from the subject: a withheld chain, a hold or the investigation. */
+  const namesWithheld = async (p: Pair, served: unknown): Promise<string[]> => {
+    const w = (await p.server.db.admin.query<{ chains: string[]; holds: string[]; investigations: string[] }>(
+      'select (w).chains, (w).holds, (w).investigations from (select tab.withheld_from($1) as w) x', [p.subject.personId],
+    )).rows[0];
+    const text = JSON.stringify(served);
+    return [...(w?.chains ?? []), ...(w?.holds ?? []), ...(w?.investigations ?? [])].filter((x) => text.includes(`"${x}"`) || text.includes(`:${x}`));
+  };
+
+  beforeAll(async () => {
+    for (const server of [gmp, sbx]) {
+      // In the sandbox every person's name is a test label (DI-05).
+      const label = (name: string): string => (server === sbx ? `TEST-${name}` : name);
+      const opener = server === gmp ? lead : await grantedPerson(sbx, 'CSV_DI_LEAD', 'TEST-Dev Lead CSV-DI');
+      const subject = await grantedPerson(server, 'QA_REVIEWER', label('Anil Kumar QA reviewer'));
+      const control = await grantedPerson(server, 'QA_REVIEWER', label('Sunita Rao QA reviewer'));
+      const fp = terminalOf(server.seed, server === gmp ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+      const investigation = await withCommand(server.db.app, reason(await passwordActor(server.db, opener, fp)), (c) =>
+        records.openDiInvestigation(c, {
+          subjectPersonId: subject.personId,
+          windowFrom: new Date(Date.UTC(2000, 0, 1)),
+          windowTo: new Date(Date.UTC(2100, 0, 1)),
+          concern: 'Suspected sharing of a QA reviewer password',
+        }),
+      );
+      pairs.push({
+        kind: server.kind, server, subject, control, opener, investigation,
+        subjectBrowser: await loginOf(server, subject),
+        controlBrowser: await loginOf(server, control),
+        openerBrowser: server === gmp ? leadBrowser : await loginOf(server, opener),
+      });
+    }
+  });
+
+  it('[DI-17][DI-50] through the routes, the subject\'s own hold chain, its verification and a person filter on the opener answer the subject as they answer a colleague in the same role about their own account', async () => {
+    for (const p of pairs) {
+      // The owner sees the hold on the subject's account (the chain the routes are asked about).
+      expect((await p.server.db.admin.query('select 1 from kernel.audit_chain_head where chain_key = $1', [holdChain(p.subject.accountId)])).rows, p.kind).toHaveLength(1);
+      const answers = async (b: TestBrowser, own: GrantedPerson) => ({
+        events: same(await events(b, { chainKey: holdChain(own.accountId) }), own.accountId),
+        verify: same(await b.call(routes.audit.verifyChain, { params: { chainKey: holdChain(own.accountId) } }), own.accountId),
+        listed: await chainKeys(b, holdChain(own.accountId)),
+        opener: outcome(await events(b, { personId: p.opener.personId, limit: '200' })),
+      });
+      const subject = await answers(p.subjectBrowser, p.subject);
+      const control = await answers(p.controlBrowser, p.control);
+      expect(subject, p.kind).toEqual(control);
+      expect(control.events, p.kind).toBe(JSON.stringify({ ok: true, status: 200, value: { events: [], nextCursor: null } }));
+      expect(control.verify, p.kind).toMatch(/"status":404[^]*"code":"AUDIT_CHAIN_NOT_FOUND"/);
+      expect(control.listed, p.kind).toEqual([]);
+      expect(control.opener, p.kind).toBe('ok');
+      // What the person filter serves the subject: the opener's entries on chains the subject may read only, nothing
+      // the investigation wrote; a colleague is served the investigation's entries too.
+      expect(await namesWithheld(p, await events(p.subjectBrowser, { personId: p.opener.personId, limit: '200' })), p.kind).toEqual([]);
+      expect(JSON.stringify(await events(p.controlBrowser, { personId: p.opener.personId, limit: '200' })), p.kind).toContain(`di_investigation:${p.investigation}`);
+    }
+  });
+
+  it('[DI-17][DI-22][DI-50] the database answers the subject\'s session on its own hold chain as a colleague\'s on theirs (tab.audit_events, tab.audit_chain_length, tab.audit_registry_chains, tab.audit_verify_chain) and serves a person filter on the opener, on either installation', async () => {
+    for (const p of pairs) {
+      const q = (sqlText: string, args: unknown[]) => p.server.db.app.query(sqlText, args);
+      const answers = async (b: TestBrowser, own: GrantedPerson) => {
+        const h = hashOf(p.server, b);
+        const key = holdChain(own.accountId);
+        return {
+          events: (await q('select * from tab.audit_events($1, $2, null, null, null, null, null, null, 50)', [h, key])).rows,
+          length: (await q('select tab.audit_chain_length($1, $2) as n', [h, key])).rows,
+          registry: (await q('select c from tab.audit_registry_chains($1, $2) c', [h, key])).rows,
+          verify: (await q('select * from tab.audit_verify_chain($1, $2)', [h, key])).rows,
+        };
+      };
+      const subject = await answers(p.subjectBrowser, p.subject);
+      expect(subject, p.kind).toEqual(await answers(p.controlBrowser, p.control));
+      expect(subject, p.kind).toEqual({ events: [], length: [{ n: null }], registry: [], verify: [] });
+      // A person filter on the opener is served to both, never refused; the subject's holds nothing of the
+      // investigation. On GMP the opener also opened the investigation of the MBR author (this file's set-up), which the
+      // subject's governance role reads; in the sandbox the opener did nothing else the subject may read.
+      const opener = async (b: TestBrowser) =>
+        (await q('select chain_key, payload from tab.audit_events($1, null, null, $2, null, null, null, null, 200)', [hashOf(p.server, b), p.opener.personId])).rows as { chain_key: string }[];
+      const served = await opener(p.subjectBrowser);
+      expect(await namesWithheld(p, served), p.kind).toEqual([]);
+      expect((await opener(p.controlBrowser)).map((r) => r.chain_key), p.kind).toContain(`di_investigation:${p.investigation}`);
+      expect(served.some((r) => r.chain_key === `di_investigation:${investigationId}`), p.kind).toBe(p.kind === 'GMP');
+    }
+  });
+
+  it('[DI-17][DI-22][DI-50] without a session the application role learns from no chain verification and no forged external anchor whether an account is held, on either installation; the owner\'s tools still tell a held account from another', async () => {
+    for (const p of pairs) {
+      const held = p.subject.accountId; // the investigation holds the subject's account
+      const free = p.control.accountId;
+      // The owner: verification past the end names the held chain's length, and a forged anchor tells the two apart.
+      const owner = async (sqlText: string, args: unknown[]): Promise<unknown[]> => (await p.server.db.admin.query<Record<string, unknown>>(sqlText, args)).rows;
+      expect(await owner('select seq::text from kernel.verify_chain($1, $2)', [holdChain(held), 1_000_000_000]), p.kind).toHaveLength(1);
+      expect(await owner('select seq::text from kernel.verify_chain($1, $2)', [holdChain(free), 1_000_000_000]), p.kind).toEqual([]);
+      expect(await owner('select status from continuity.compare_external_anchors($1::jsonb)', [JSON.stringify([forgedAnchor(held)])]), p.kind).toEqual([{ status: 'UNEXPLAINED' }]);
+      expect(await owner('select status from continuity.compare_external_anchors($1::jsonb)', [JSON.stringify([forgedAnchor(free)])]), p.kind).toEqual([{ status: 'DISCARDABLE' }]);
+      // The application role without a session (in the sandbox through sandbox.mirror_application_privileges).
+      for (const account of [held, free]) {
+        for (const [sqlText, args] of [
+          ['select * from kernel.verify_chain($1, $2)', [holdChain(account), 1_000_000_000]],
+          ['select * from kernel.verify_chain($1, $2)', [holdChain(account), 0]],
+          ['select * from kernel.verify_chain($1)', [holdChain(account)]],
+          ['select * from records.verify_chain($1)', [holdChain(account)]],
+          ['select * from continuity.compare_external_anchors($1::jsonb)', [JSON.stringify([forgedAnchor(account)])]],
+          ['select * from continuity.verify_external_anchors($1::jsonb)', [JSON.stringify([forgedAnchor(account)])]],
+          ['select * from continuity.external_anchor_problems($1::jsonb)', [JSON.stringify(forgedAnchor(account))]],
+        ] as const) {
+          await expect(p.server.db.app.query(sqlText, [...args]), `${p.kind}: ${sqlText} ${account === held ? 'held' : 'free'}`).rejects.toThrow(/permission denied/);
+        }
+      }
+    }
+  });
+
+  it('[DI-17][DI-22][DI-23] the audit viewer verifies a chain only through the session-checked tab.audit_verify_chain: no session (EBMR-TAB-018), a chain the role may not read (EBMR-TAB-020); a chain it may read is verified with its registry chains, and the route still verifies', async () => {
+    const op = hashOf(sbx, operator);
+    const v2 = personaOf(sbx.seed, 'verifier2');
+    const q = (sqlText: string, args: unknown[]) => sbx.db.app.query(sqlText, args);
+    await expect(q('select * from tab.audit_verify_chain($1, $2)', ['0'.repeat(64), `account:${v2.accountId}`])).rejects.toThrow(/EBMR-TAB-018/);
+    await expect(q('select * from tab.audit_verify_chain($1, $2)', [op, `account:${v2.accountId}`])).rejects.toThrow(/EBMR-TAB-020/);
+    const recordChain = (await chainKeys(operator))[0] ?? '';
+    expect((await q('select * from tab.audit_verify_chain($1, $2)', [op, recordChain])).rows).toEqual([]);
+    const verified = await operator.call(routes.audit.verifyChain, { params: { chainKey: recordChain } });
+    expect(outcome(verified)).toBe('ok');
+    if (verified.ok) expect(verified.value).toMatchObject({ chainKey: recordChain, ok: true, problems: [] });
+  });
+
+  it('[DI-17][DI-22][DI-23][DI-50] a withheld chain that does not verify still reads to the subject as a chain with no entries, as the colleague\'s own reads; the opener\'s verification names the tamper', async () => {
+    for (const p of pairs) {
+      const key = holdChain(p.subject.accountId);
+      const q = (sqlText: string, args: unknown[]) => p.server.db.app.query(sqlText, args);
+      const owner = await p.server.db.admin.connect();
+      // The head row is kept aside in this connection and put back afterwards.
+      await owner.query('create temporary table kept_head as select * from kernel.audit_chain_head where chain_key = $1', [key]);
+      expect((await owner.query('select chain_key from kept_head')).rows, p.kind).toEqual([{ chain_key: key }]);
+      // A superuser deletes the head row of the subject's hold chain (the tamper verification names, F06).
+      const tamper = async (sqlText: string, args: unknown[]) => {
+        await owner.query('begin');
+        await owner.query('set local session_replication_role = replica');
+        await owner.query(sqlText, args);
+        await owner.query('commit');
+      };
+      await tamper('delete from kernel.audit_chain_head where chain_key = $1', [key]);
+      try {
+        const opener = hashOf(p.server, p.openerBrowser);
+        expect((await q('select problem from tab.audit_verify_chain($1, $2) where not registry', [opener, key])).rows, p.kind).toEqual([
+          { problem: 'chain head is missing although the chain has events (head deleted)' },
+        ]);
+        expect(((await q('select tab.audit_chain_length($1, $2) as n', [opener, key])).rows[0] as { n: string | null }).n, p.kind).not.toBeNull();
+        const asks = async (b: TestBrowser, own: GrantedPerson) => ({
+          verify: (await q('select * from tab.audit_verify_chain($1, $2)', [hashOf(p.server, b), holdChain(own.accountId)])).rows,
+          length: (await q('select tab.audit_chain_length($1, $2) as n', [hashOf(p.server, b), holdChain(own.accountId)])).rows,
+          route: same(await b.call(routes.audit.verifyChain, { params: { chainKey: holdChain(own.accountId) } }), own.accountId),
+        });
+        const subject = await asks(p.subjectBrowser, p.subject);
+        expect(subject, p.kind).toEqual(await asks(p.controlBrowser, p.control));
+        expect(subject.verify, p.kind).toEqual([]);
+      } finally {
+        await tamper('insert into kernel.audit_chain_head select * from kept_head', []);
+        await owner.query('drop table kept_head');
+        owner.release();
+      }
+      expect((await p.server.db.admin.query('select * from kernel.verify_chain($1)', [key])).rows, p.kind).toEqual([]);
+    }
+  });
+
+  it('[DI-17][DI-22][DI-23][DI-50] the verification of a chain the subject reads checks no registry chain withheld from them: a tampered account chain of the opener is named to a colleague, not to the subject', async () => {
+    // On GMP the opener also opened the investigation of the MBR author (this file's set-up): a chain both QA reviewers
+    // read, whose registry chains include the opener's account, withheld from the subject.
+    const p = pairs.find((x) => x.kind === 'GMP');
+    if (!p) throw new Error('SETUP: no GMP pair');
+    const chain = `di_investigation:${investigationId}`;
+    const account = `account:${p.opener.accountId}`;
+    const verify = async (b: TestBrowser) =>
+      (await p.server.db.app.query<{ chain_key: string; problem: string }>('select chain_key, problem from tab.audit_verify_chain($1, $2)', [hashOf(p.server, b), chain])).rows;
+    expect(await verify(p.subjectBrowser)).toEqual([]);
+    expect(await verify(p.controlBrowser)).toEqual([]);
+    const owner = await p.server.db.admin.connect();
+    const tamper = async (sqlText: string) => {
+      await owner.query('begin');
+      await owner.query('set local session_replication_role = replica');
+      await owner.query(sqlText, [account]);
+      await owner.query('commit');
+    };
+    await owner.query('create temporary table kept_head as select * from kernel.audit_chain_head where chain_key = $1', [account]);
+    await tamper('delete from kernel.audit_chain_head where chain_key = $1');
+    try {
+      expect(await verify(p.controlBrowser)).toEqual([{ chain_key: account, problem: 'chain head is missing although the chain has events (head deleted)' }]);
+      expect(await verify(p.subjectBrowser)).toEqual([]);
+    } finally {
+      await tamper('insert into kernel.audit_chain_head select * from kept_head where chain_key = $1');
+      await owner.query('drop table kept_head');
+      owner.release();
+    }
+    expect(await verify(p.controlBrowser)).toEqual([]);
+  });
+
+  /**
+   * Lane round 2 of round 4 (the verifier of F35): every investigation notes the hold it places on the subject's own
+   * account on that account's chain (records.add_hold: "di investigation hold placed", on account:<subject>), an entry
+   * withheld from the subject. The chain list still counted it (9 entries where a colleague's own account chain has 8),
+   * showed its time as the chain's last activity and put the chain first by it, and "Verify chain" said 9 entries were
+   * verified, while the chain's events showed 8: with one request any subject in a governance role saw that an entry on
+   * their own account was hidden from them. Since tablets 0560 the database counts for the session's person only the
+   * entries shown to them (tab.audit_chains, tab.audit_chain_length, tab.audit_headless_chains), dates and orders the
+   * chain by the last of them. Known limit (default F35.3): the sequence numbers and event ids shown are the hashed ones,
+   * so once a later entry is written on that chain the number of the withheld one is skipped.
+   */
+  describe('the subject\'s own account chain (tablets 0560)', () => {
+    const accountChain = (account: string): string => `account:${account}`;
+    /** What the person is told of their own account chain: the chain list, its events and its verification. */
+    const ownChain = async (b: TestBrowser, own: GrantedPerson) => {
+      const key = accountChain(own.accountId);
+      const listed = await b.call(routes.audit.chains, { query: { prefix: key } });
+      const shown = await events(b, { chainKey: key, limit: '200' });
+      const verified = await b.call(routes.audit.verifyChain, { params: { chainKey: key } });
+      const all = await b.call(routes.audit.chains, { query: { prefix: 'account:' } });
+      if (!listed.ok || !shown.ok || !verified.ok || !all.ok) throw new Error(JSON.stringify([listed, shown, verified, all].filter((r) => !r.ok)));
+      const chain = listed.value.chains[0];
+      return {
+        listedEvents: chain?.events,
+        seqs: shown.value.events.map((e) => Number(e.seq)),
+        verifiedEvents: verified.value.events,
+        ok: verified.value.ok,
+        // The chain's last activity is that of the last entry the person is shown, and the list of account chains is
+        // ordered by what it shows (newest first), so the chain's place tells nothing either.
+        lastAtIsLastShown: chain?.lastAt?.us === shown.value.events.at(-1)?.at.us,
+        listOrderedByShown: all.value.chains.every((c, i, list) => i === 0 || BigInt(list[i - 1]?.lastAt?.us ?? '0') >= BigInt(c.lastAt?.us ?? '0')),
+      };
+    };
+    /** The owner's view: the entries on the chain, the last one the hold this investigation placed. */
+    const ownerEntries = async (p: Pair, account: string) =>
+      (await p.server.db.admin.query<{ seq: string; message: string | null; hold: string | null }>(
+        "select seq::text, payload -> 'body' ->> 'message' as message, payload -> 'body' -> 'details' ->> 'hold_id' as hold from kernel.audit_event where chain_key = $1 order by seq",
+        [accountChain(account)],
+      )).rows;
+
+    it('[DI-17][DI-22][DI-50] through the routes, the subject\'s own account chain lists, dates, orders and verifies as many entries as its events show, as a colleague\'s own does, on either installation', async () => {
+      for (const p of pairs) {
+        const held = await ownerEntries(p, p.subject.accountId);
+        const free = await ownerEntries(p, p.control.accountId);
+        // The set-up: the subject's chain holds one entry more than the colleague's, the hold of the investigation.
+        expect(held.length, p.kind).toBe(free.length + 1);
+        expect(held.at(-1), p.kind).toMatchObject({ message: expect.stringMatching(/^di investigation hold placed: /) as string, hold: expect.any(String) as string });
+        const subject = await ownChain(p.subjectBrowser, p.subject);
+        const control = await ownChain(p.controlBrowser, p.control);
+        expect(subject, p.kind).toEqual(control);
+        expect(subject, p.kind).toEqual({
+          listedEvents: free.length, seqs: free.map((e) => Number(e.seq)), verifiedEvents: free.length, ok: true, lastAtIsLastShown: true, listOrderedByShown: true,
+        });
+      }
+    });
+
+    it('[DI-17][DI-22][DI-50] the database counts for the subject\'s session only the entries shown on its own account chain (tab.audit_chains, tab.audit_chain_length), also after a later entry, as for a colleague\'s; the colleague still counts the subject\'s hold, on either installation', async () => {
+      for (const p of pairs) {
+        const q = <T extends Record<string, unknown>>(sqlText: string, args: unknown[]) => p.server.db.app.query<T>(sqlText, args);
+        const count = async (b: TestBrowser, account: string) => {
+          const h = hashOf(p.server, b);
+          const key = accountChain(account);
+          const listed = (await q<{ last_seq: string; us: string | null }>('select last_seq, us from tab.audit_chains($1, $2, 500)', [h, key])).rows;
+          const length = (await q<{ n: string | null }>('select tab.audit_chain_length($1, $2)::text as n', [h, key])).rows[0]?.n ?? null;
+          const shown = (await q<{ seq: string; us: string }>('select seq, us from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [h, key])).rows;
+          return { listed: listed.map((r) => r.last_seq), length, shown: shown.length, lastShown: listed[0]?.us === shown.at(-1)?.us };
+        };
+        const before = { subject: await count(p.subjectBrowser, p.subject.accountId), control: await count(p.controlBrowser, p.control.accountId) };
+        expect(before.subject, p.kind).toEqual(before.control);
+        expect(before.subject, p.kind).toEqual({ listed: [String(before.subject.shown)], length: String(before.subject.shown), shown: before.subject.shown, lastShown: true });
+        // The colleague reads the subject's account chain whole: the hold is counted, and its time is the chain's last.
+        const all = (await ownerEntries(p, p.subject.accountId)).length;
+        expect(await count(p.controlBrowser, p.subject.accountId), p.kind).toEqual({ listed: [String(all)], length: String(all), shown: all, lastShown: true });
+        // A later entry on both accounts (the administrator requests another role for each): still as many as shown.
+        const admin = await passwordActor(p.server.db, p.server.seed.bootstrap.admin, p.server.seed.bootstrap.admin.fingerprint);
+        for (const who of [p.subject, p.control]) {
+          await withCommand(p.server.db.app, reason(admin), (c) => identity.requestRoleGrant(c, { accountId: who.accountId, roleCode: 'AUDITOR_READONLY', reason: 'review F35 test set-up: a later entry' }));
+        }
+        const after = { subject: await count(p.subjectBrowser, p.subject.accountId), control: await count(p.controlBrowser, p.control.accountId) };
+        expect(after.subject, p.kind).toEqual(after.control);
+        expect(after.subject, p.kind).toEqual({ listed: [String(before.subject.shown + 1)], length: String(before.subject.shown + 1), shown: before.subject.shown + 1, lastShown: true });
+        // The known limit of default F35.3: the hashed sequence numbers shown skip the withheld entry.
+        const seqs = async (b: TestBrowser, account: string) =>
+          (await q<{ seq: string }>('select seq from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [hashOf(p.server, b), accountChain(account)])).rows.map((r) => Number(r.seq));
+        const n = before.subject.shown;
+        expect(await seqs(p.subjectBrowser, p.subject.accountId), p.kind).toEqual([...Array.from({ length: n }, (_, i) => i + 1), n + 2]);
+        expect(await seqs(p.controlBrowser, p.control.accountId), p.kind).toEqual(Array.from({ length: n + 1 }, (_, i) => i + 1));
+      }
+    });
+
+    it('[DI-17][DI-22][DI-50] a chain on which every entry is withheld from the subject (the hold on a record linked to the investigation that has no other entry) answers the subject as a chain that is not there answers a colleague (list, events, verification, length); the colleague reads its hold, on either installation', async () => {
+      for (const p of pairs) {
+        const linked = randomUUID();
+        const absent = randomUUID();
+        const fp = terminalOf(p.server.seed, p.kind === 'GMP' ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+        await withCommand(p.server.db.app, reason(await passwordActor(p.server.db, p.opener, fp)), (c) =>
+          records.linkDiInvestigation(c, p.investigation, 'sample_record', linked, 'review F35 test set-up: a record with no other entry'));
+        const key = `sample_record:${linked}`;
+        expect((await p.server.db.admin.query<{ message: string }>("select payload -> 'body' ->> 'message' as message from kernel.audit_event where chain_key = $1", [key])).rows, p.kind)
+          .toEqual([{ message: expect.stringMatching(/^di investigation hold placed: /) as string }]);
+        const answers = async (b: TestBrowser, id: string) => {
+          const k = `sample_record:${id}`;
+          const h = hashOf(p.server, b);
+          return {
+            listed: same(await b.call(routes.audit.chains, { query: { prefix: k } }), id),
+            events: same(await events(b, { chainKey: k }), id),
+            verify: same(await b.call(routes.audit.verifyChain, { params: { chainKey: k } }), id),
+            length: (await p.server.db.app.query('select tab.audit_chain_length($1, $2) as n', [h, k])).rows,
+            chains: (await p.server.db.app.query('select * from tab.audit_chains($1, $2, 500)', [h, k])).rows,
+          };
+        };
+        const subject = await answers(p.subjectBrowser, linked);
+        expect(subject, p.kind).toEqual(await answers(p.controlBrowser, absent));
+        expect(subject, p.kind).toMatchObject({ listed: JSON.stringify({ ok: true, status: 200, value: { chains: [] } }), length: [{ n: null }], chains: [] });
+        expect(subject.verify, p.kind).toMatch(/"status":404[^]*"code":"AUDIT_CHAIN_NOT_FOUND"/);
+        // The colleague reads the linked record's chain: one entry, the hold.
+        const colleague = await p.controlBrowser.call(routes.audit.chains, { query: { prefix: key } });
+        expect(colleague.ok && colleague.value.chains.map((c) => [c.chainKey, c.events]), p.kind).toEqual([[key, 1]]);
+      }
+    });
+
+    it('[DI-17][DI-22][DI-23][DI-50] a chain whose head row is missing counts for the subject only the entries shown (tab.audit_headless_chains, tab.audit_chain_length), and is not listed when none is, as for a colleague; the colleague counts the hold', async () => {
+      const p = pairs.find((x) => x.kind === 'GMP');
+      if (!p) throw new Error('SETUP: no GMP pair');
+      const key = accountChain(p.subject.accountId);
+      // A record linked to the investigation with no other entry: its chain holds the hold only.
+      const linked = `sample_record:${randomUUID()}`;
+      await withCommand(p.server.db.app, reason(await passwordActor(p.server.db, p.opener, terminalOf(p.server.seed, 'PC-QA-01').fingerprint)), (c) =>
+        records.linkDiInvestigation(c, p.investigation, 'sample_record', linked.slice('sample_record:'.length), 'review F35 test set-up: a record with no other entry'));
+      const owner = await p.server.db.admin.connect();
+      const tamper = async (sqlText: string) => {
+        await owner.query('begin');
+        await owner.query('set local session_replication_role = replica');
+        await owner.query(sqlText, [[key, linked]]);
+        await owner.query('commit');
+      };
+      await owner.query('create temporary table kept_head as select * from kernel.audit_chain_head where chain_key = any ($1)', [[key, linked]]);
+      expect((await owner.query('select 1 from kept_head')).rows).toHaveLength(2);
+      await tamper('delete from kernel.audit_chain_head where chain_key = any ($1)');
+      try {
+        const asks = async (b: TestBrowser, chain: string) => {
+          const h = hashOf(p.server, b);
+          return {
+            headless: (await p.server.db.app.query<{ entries: string }>('select entries::text from tab.audit_headless_chains($1, $2)', [h, chain])).rows.map((r) => r.entries),
+            length: (await p.server.db.app.query<{ n: string | null }>('select tab.audit_chain_length($1, $2)::text as n', [h, chain])).rows[0]?.n,
+          };
+        };
+        const all = (await ownerEntries(p, p.subject.accountId)).length;
+        const shown = (await p.server.db.app.query('select 1 from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [hashOf(p.server, p.subjectBrowser), key])).rows.length;
+        expect(shown).toBe(all - 1);
+        expect(await asks(p.subjectBrowser, key)).toEqual({ headless: [String(shown)], length: String(shown) });
+        expect(await asks(p.controlBrowser, key)).toEqual({ headless: [String(all)], length: String(all) });
+        expect(await asks(p.subjectBrowser, linked)).toEqual({ headless: [], length: null });
+        expect(await asks(p.controlBrowser, linked)).toEqual({ headless: ['1'], length: '1' });
+      } finally {
+        await tamper('insert into kernel.audit_chain_head select * from kept_head where chain_key = any ($1)');
+        await owner.query('drop table kept_head');
+        owner.release();
+      }
+      for (const chain of [key, linked]) expect((await p.server.db.admin.query('select * from kernel.verify_chain($1)', [chain])).rows, chain).toEqual([]);
+    });
   });
 });

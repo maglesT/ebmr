@@ -36,6 +36,8 @@ export interface SecretFieldProps extends FieldCommon {
   autoComplete?: 'off' | 'new-password';
   inputMode?: 'text' | 'numeric';
   maxLength?: number;
+  /** A kiosk secret no browser or password manager may fill or save (SecretInput `noAutofill`; BADGE-AUTOFILL). */
+  noAutofill?: boolean;
 }
 
 export type FieldProps = TextFieldProps | SecretFieldProps;
@@ -43,7 +45,7 @@ export type FieldProps = TextFieldProps | SecretFieldProps;
 /** A labelled input. Secrets (type 'password') go to SecretInput: uncontrolled, native, never in React state. */
 export function Field(props: FieldProps) {
   if (props.type === 'password') {
-    const { label, name, inputRef, description, errorMessage, isRequired, isDisabled, autoComplete, autoFocus, inputMode, maxLength } = props;
+    const { label, name, inputRef, description, errorMessage, isRequired, isDisabled, autoComplete, autoFocus, inputMode, maxLength, noAutofill } = props;
     return (
       <SecretInput
         label={label}
@@ -57,6 +59,7 @@ export function Field(props: FieldProps) {
         {...(autoFocus !== undefined ? { autoFocus } : {})}
         {...(inputMode !== undefined ? { inputMode } : {})}
         {...(maxLength !== undefined ? { maxLength } : {})}
+        {...(noAutofill !== undefined ? { noAutofill } : {})}
       />
     );
   }

@@ -269,7 +269,7 @@ export function actionViews(actions: readonly engine.AvailableAction[], shopFloo
 export async function checkersOf(ctx: ViewContext, stepDef: engine.StepDef, inst: engine.StepInstance): Promise<string[]> {
   const def = ctx.run.def;
   const engineRoles = stepDef.checkRole !== undefined ? [stepDef.checkRole] : [...def.policy.fallbackVerifierRoles];
-  const permission = engine.checkMeaning(def, inst, inst.step, ctx.state) === engine.MEANINGS.WITNESSED ? 'STEP.WITNESS' : 'STEP.VERIFY';
+  const permission = engine.checkMeaning(def, inst, inst.step, ctx.state, ctx.nowUs) === engine.MEANINGS.WITNESSED ? 'STEP.WITNESS' : 'STEP.VERIFY';
   const { rows } = await ctx.db.query<{ code: string; name: string }>(
     `select distinct r.code, r.name
        from tab.engine_role_map m

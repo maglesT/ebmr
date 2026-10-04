@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { parseMbr } from '../../src/flow/parse.ts';
 import type { AlternativeBranch, Calculation, FlowNode, MbrContent, Parameter } from '../../src/flow/model.ts';
 import { analyseGuards } from '../../src/validator/guards.ts';
 import { DATA_RULES } from '../../src/validator/rules-data.ts';
@@ -129,6 +131,51 @@ describe('data gates', () => {
     const p = m.parameters.find((x) => x.id === 'inletTemp');
     if (p?.limits) p.limits.unit = 'kg';
     expect(found(m, 'DATA-UNITS').join(' ')).toMatch(/limits of "Inlet air temperature \(drying\)" \(inletTemp\) are in another dimension/);
+  });
+});
+
+describe('weighed quantities in a unit the database cannot read (COMPOUND-UNIT; recipe-core sql 0323)', () => {
+  /** The granulation master with the dried-granules output step (G-22) also recording `density` in `unit`, before or after its net. */
+  function withDensity(unit: string, where: 'before' | 'after' | 'alone', extra: Partial<Parameter> = {}): MbrContent {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    m.parameters.push({ ...weight('density'), name: 'Bulk density', unit, role: 'OBSERVATION', ...extra });
+    const out = findPhase(m, 'p-gran-out');
+    out.records = where === 'before' ? ['density', ...out.records] : where === 'after' ? [...out.records, 'density'] : ['density'];
+    if (where === 'alone') m.parameters = m.parameters.map((x) => (x.id === 'driedNet' ? { ...x, unit: 'L' } : x));
+    return m;
+  }
+  /** `m` with the density counted, without a unit. */
+  function counted(m: MbrContent): MbrContent {
+    for (const x of m.parameters) if (x.id === 'density') delete x.unit;
+    return m;
+  }
+  const RULE = 'DATA-WEIGHED-UNITS';
+
+  it('[INV-25][PR-19][DI-30] an output step (G-22) recording a quantity in a compound unit before its first plain mass quantity, or with none, is warned about with its code: the database refuses every output container of such a step', () => {
+    expect(found(withDensity('g/mL', 'before'), RULE)).toEqual([
+      'WARNING: "Weigh dried granules into labelled containers" (p-gran-out) registers output containers (G-22) and records "Bulk density" (density) in g/mL before its first plain mass quantity. In this release the database cannot tell whether a compound unit (written with ".", "/" or parentheses) is a mass, so it refuses every output container of this step (EBMR-EXE-139), although the engine would count it. Record the produced quantity first, or write the unit plainly (kg, g, mg) (DATA-WEIGHED-UNITS; INV-25, PR-19, DI-30)',
+    ]);
+    expect(found(withDensity('kg/1', 'alone'), RULE)).toEqual([expect.stringMatching(/^WARNING: .*records "Bulk density" \(density\) in kg\/1 and no plain mass quantity\. In this release the database cannot tell/)]);
+    // After the plain mass quantity, in a plain unit, or not a single decimal reading: nothing to warn about.
+    expect({
+      after: found(withDensity('g/mL', 'after'), RULE),
+      plain: found(withDensity('L', 'before'), RULE),
+      readings: found(withDensity('g/mL', 'before', { readings: 3 }), RULE),
+      count: found(counted(withDensity('g/mL', 'before', { valueType: 'COUNT', precision: { kind: 'DECIMALS', digits: 0 } })), RULE),
+    }).toEqual({ after: [], plain: [], readings: [], count: [] });
+  });
+
+  it('[INV-25][PR-19][DI-30] a dispensing step (G-07) counting into a mass written as a compound unit is warned about too: the database refuses every container weighed into it; the fixtures and dc-mini are warned about nowhere', () => {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    m.parameters = m.parameters.map((x) => (x.id === 'apiDispensed' ? { ...x, unit: 'kg/1' } : x));
+    expect(found(m, RULE)).toEqual([
+      'WARNING: "Dispense atorvastatin calcium" (p-disp-api) dispenses into "API dispensed (net)" (apiDispensed), a mass written as a compound unit (kg/1). In this release the database cannot read it as a mass, so it refuses every container weighed into it (EBMR-EXE-139). Write the unit plainly (kg, g, mg) (DATA-WEIGHED-UNITS; INV-25, PR-19, DI-30)',
+    ]);
+    for (const name of ['tablet-granulation-compression', 'tablet-blister-packaging'] as const) expect(found(loadFixture(name), RULE), name).toEqual([]);
+    const dcMini = parseMbr(JSON.parse(readFileSync(new URL('../fixtures/dc-mini.mbr.json', import.meta.url), 'utf8')));
+    expect(dcMini.ok && found(dcMini.mbr, RULE)).toEqual([]);
+    // A warning: the author justifies it or changes the MBR before verification can start.
+    expect(validate(withDensity('g/mL', 'before'), {}, dataRules).findings.filter((f) => f.rule === RULE).map((f) => [f.severity, f.key])).toEqual([['WARNING', 'DATA-WEIGHED-UNITS@p-gran-out']]);
   });
 });
 

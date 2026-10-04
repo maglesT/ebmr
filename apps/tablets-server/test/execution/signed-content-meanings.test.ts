@@ -16,6 +16,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { engine, execution } from '@ebmr/recipe-core';
 import { signedCommand, signedMeaning } from '../../src/features/execution/intents.ts';
+import { dbNowUs } from '../../src/platform/db/commands.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { appendAs, engineResult } from './db-guards-support.ts';
@@ -62,8 +63,8 @@ describe('the check meaning a verifier signs (P37)', () => {
     // The meaning the server requires for a VERIFY intent is the step's, also when the intent asks for WITNESSED.
     const run = await runContext(server.db.admin, d.runId);
     const state = (await execution.loadState(server.db.admin, d.runId))?.state;
-    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'WITNESSED' })).toBe('LINE_CLEARANCE_VERIFIED');
-    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' })).toBe('LINE_CLEARANCE_VERIFIED');
+    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'WITNESSED' }, await dbNowUs(server.db.admin))).toBe('LINE_CLEARANCE_VERIFIED');
+    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' }, await dbNowUs(server.db.admin))).toBe('LINE_CLEARANCE_VERIFIED');
     // The ceremony: a WITNESSED challenge does not match the action's meaning.
     const r = await d.sign('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'WITNESSED' });
     expect({ stage: r.stage, outcome: outcomeOf(r.result), checks: await checkSignatures(d) }).toEqual({ stage: 'challenge', outcome: '422:ESIG_ACTION_MISMATCH', checks: [] });
@@ -79,8 +80,8 @@ describe('the check meaning a verifier signs (P37)', () => {
     const d = await performed(withWitnessedClearance());
     const run = await runContext(server.db.admin, d.runId);
     const state = (await execution.loadState(server.db.admin, d.runId))?.state;
-    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' })).toBe('WITNESSED');
-    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'WITNESSED' })).toBe('WITNESSED');
+    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' }, await dbNowUs(server.db.admin))).toBe('WITNESSED');
+    expect(signedMeaning(run.def, state, { type: 'VERIFY', stepKey: CLEAR, meaning: 'WITNESSED' }, await dbNowUs(server.db.admin))).toBe('WITNESSED');
   }, 240_000);
 });
 
@@ -157,13 +158,13 @@ describe('the database requires the check the step requires (P37; ADR 0012)', ()
       expect(phases.length).toBeGreaterThan(3);
       for (const s of phases) {
         const inst = stored?.steps[engine.stepKey(s.id, [])];
-        expect(await inDb(state, s.id), s.id).toEqual([engine.checkMeaning(run.def, inst, s.id, stored)]);
+        expect(await inDb(state, s.id), s.id).toEqual([engine.checkMeaning(run.def, inst, s.id, stored, await dbNowUs(server.db.admin))]);
       }
       // The clearance awaiting re-verification (after a correction) is re-verified, in both.
       const steps = state['steps'] as Record<string, Record<string, unknown>>;
       const reverifying = { ...state, steps: { ...steps, [CLEAR]: { ...steps[CLEAR], reverification: true } } };
       const inst = stored?.steps[CLEAR];
-      expect(await inDb(reverifying, 'p-disp-clear')).toEqual([engine.checkMeaning(run.def, inst ? { ...inst, reverification: true } : undefined, 'p-disp-clear', stored)]);
+      expect(await inDb(reverifying, 'p-disp-clear')).toEqual([engine.checkMeaning(run.def, inst ? { ...inst, reverification: true } : undefined, 'p-disp-clear', stored, await dbNowUs(server.db.admin))]);
       expect(await inDb(reverifying, 'p-disp-clear')).toEqual(['RE_VERIFIED_AFTER_CORRECTION']);
       // A step the MBR does not hold requires no meaning the database would accept.
       expect(await inDb(state, 'p-not-in-this-mbr')).toEqual([]);
@@ -187,7 +188,7 @@ describe('the database requires the check the step requires (P37; ADR 0012)', ()
       for (const s of phases) {
         const inst = stored?.steps[engine.stepKey(s.id, [])];
         expect(await inDb(state, 'SIGN_PERFORMED', s.id), `${s.id} SIGN_PERFORMED`).toEqual(sorted(engine.performMeanings(s)));
-        expect(await inDb(state, 'VERIFY', s.id), `${s.id} VERIFY`).toEqual(sorted(engine.checkMeanings(s, inst, engine.handEntriesWithoutDeclaredEvidence(run.def, stored, inst))));
+        expect(await inDb(state, 'VERIFY', s.id), `${s.id} VERIFY`).toEqual(sorted(engine.checkMeanings(s, inst, engine.handEntriesWithoutDeclaredEvidence(run.def, stored, inst), engine.witnessPossible(run.def, stored, inst, await dbNowUs(server.db.admin)))));
       }
       // The generic PERFORMED only where the block has no perform meaning of its own.
       expect(await inDb(state, 'SIGN_PERFORMED', 'p-disp-clear')).toEqual(['LINE_CLEARANCE_PERFORMED']);
@@ -196,7 +197,7 @@ describe('the database requires the check the step requires (P37; ADR 0012)', ()
       const reverifying = { ...state, steps: { ...steps, [CLEAR]: { ...steps[CLEAR], reverification: true } } };
       const inst = stored?.steps[CLEAR];
       const clear = run.def.steps.get('p-disp-clear');
-      expect(await inDb(reverifying, 'VERIFY', 'p-disp-clear')).toEqual([...engine.checkMeanings(clear, inst ? { ...inst, reverification: true } : undefined, engine.handEntriesWithoutDeclaredEvidence(run.def, stored, inst))]);
+      expect(await inDb(reverifying, 'VERIFY', 'p-disp-clear')).toEqual([...engine.checkMeanings(clear, inst ? { ...inst, reverification: true } : undefined, engine.handEntriesWithoutDeclaredEvidence(run.def, stored, inst), true)]);
       expect(await inDb(reverifying, 'VERIFY', 'p-disp-clear')).toEqual(['RE_VERIFIED_AFTER_CORRECTION']);
       // A step the MBR does not hold accepts no meaning.
       expect(await inDb(state, 'SIGN_PERFORMED', 'p-not-in-this-mbr')).toEqual([]);

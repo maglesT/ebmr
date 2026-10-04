@@ -17,7 +17,7 @@ const CHAIN = 'batch:b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 const AT1 = { us: '1790586663000000', text: '28-SEP-2026 14:41:03 +05:30 (Asia/Kolkata)' };
 const AT2 = { us: '1790586723000000', text: '28-SEP-2026 14:42:03 +05:30 (Asia/Kolkata)' };
 const INTACT = 'Chain intact: 12 entries verified';
-const NOT_FOUND = 'This audit chain does not exist on this installation.';
+const NOT_FOUND = 'This audit chain has no entry this session is shown on this installation.';
 
 type Second = 'refused' | 'network' | 'broken';
 let verifyCalls = 0;
@@ -39,7 +39,7 @@ const transport: FetchLike = async (url) => {
     if (second === 'network') throw new TypeError('Failed to fetch');
     if (second === 'broken') return respond(200, { chainKey: CHAIN, ok: false, events: 12, problems: ['entry 7: hash mismatch'], verifiedAt: AT2 });
     return respond(404, {
-      refusal: { code: 'AUDIT_CHAIN_NOT_FOUND', kind: 'STALE', whatHappened: NOT_FOUND, why: `No audit entry was ever written on chain ${CHAIN}.`, controls: ['DI-22'], whatYouCanDo: [], whoCanHelp: [] },
+      refusal: { code: 'AUDIT_CHAIN_NOT_FOUND', kind: 'STALE', whatHappened: NOT_FOUND, why: `No entry of chain ${CHAIN} is shown to this session: none was written on it here, or it is not shown to this session.`, controls: ['DI-22'], whatYouCanDo: [], whoCanHelp: [] },
       correlationId: 'c',
       retryable: false,
     });

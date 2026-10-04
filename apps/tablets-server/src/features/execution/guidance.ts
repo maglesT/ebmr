@@ -57,16 +57,17 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [SUPERVISOR],
     controls: ['DI-20', 'DI-30', 'PR-20'],
   },
-  // The exceptions and hold-point decisions of a run are kept as raised and as signed, and a value outside its limits
-  // raises the exception its limit tier requires (recipe-core 0270, 0295, 0298, 0305).
+  // The exceptions and hold-point decisions of a run are kept as raised and as signed, a value outside its limits
+  // raises the exception its limit tier requires, and an exception is recorded at the step the engine raises it at
+  // (recipe-core 0270, 0295, 0298, 0305, 0327).
   'EBMR-EXE-044': {
     status: 422,
     kind: 'NOT_ALLOWED',
     whatHappened:
-      'The action would have changed an exception or a hold-point decision otherwise than as raised or signed, or recorded a limit exception otherwise than as the value and its limits require. Nothing was saved.',
+      'The action would have changed an exception or a hold-point decision otherwise than as raised or signed, recorded a limit exception otherwise than as the value and its limits require, or recorded an exception at another step than the one it was raised at. Nothing was saved.',
     whatYouCanDo: ['Reload the screen and try again.', 'If it happens again, stop and report it; exceptions and decisions change only through their own linked deviation or signed decision.'],
     whoCanHelp: [ADMIN, QA],
-    controls: ['DI-26', 'DI-37', 'INV-41', 'PR-08', 'PR-13', 'PR-45', 'PR-49'],
+    controls: ['DI-26', 'DI-37', 'INV-03', 'INV-41', 'PR-08', 'PR-13', 'PR-45', 'PR-49'],
   },
   'EBMR-EXE-084': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The disposition could not be prepared for signing. Nothing was signed.', whatYouCanDo: ['Reload the exception and start the signing again.'], whoCanHelp: [QA], controls: ['DI-26', 'PR-49'] },
   'EBMR-EXE-085': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The batch cannot be issued with these values. Nothing was issued.', whatYouCanDo: ['Correct the values and issue again.'], whoCanHelp: [], controls: ['PR-10', 'DI-10'] },
@@ -101,7 +102,7 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     controls: ['DI-05', 'PR-18'],
   },
   'EBMR-EXE-080': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The signature meaning does not match this action. Nothing was signed.', whatYouCanDo: ['Reload the screen and start the signing again.'], whoCanHelp: [], controls: ['DI-35', 'DI-37'] },
-  'EBMR-EXE-081': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The next step has started, so this act can no longer be witnessed. Nothing was signed.', whatYouCanDo: ['Raise an exception for the missed witness; a supervisor decides how to proceed.'], whoCanHelp: [SUPERVISOR, QA], controls: ['DI-35', 'PR-14'] },
+  'EBMR-EXE-081': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The next step has started, so this act can no longer be witnessed. Nothing was signed.', whatYouCanDo: ['Reload the step: its check is now a later review (Verify), which records an exception for QA with it.'], whoCanHelp: [SUPERVISOR, QA], controls: ['DI-35', 'PR-14'] },
   // The source and the room of what a step records (review findings P34, P36, P58): the server refuses these first
   // with the particulars of the request; the entries answer the database's own refusal of the same row
   // (recipe-core 0285, 0300; tablets 0300, 0310).
@@ -154,7 +155,7 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whatHappened: 'The value the system was about to store is not the one this action records, or it would have changed a value already recorded. Nothing was saved.',
     whatYouCanDo: ['Stop and report it; do not enter the value again until it has been looked into.'],
     whoCanHelp: [ADMIN, QA],
-    controls: ['DI-05', 'DI-14', 'DI-24', 'DI-29', 'DI-30', 'DI-32', 'DI-33', 'DI-34', 'INV-25', 'INV-41', 'PR-14'],
+    controls: ['DI-05', 'DI-10', 'DI-14', 'DI-24', 'DI-29', 'DI-30', 'DI-32', 'DI-33', 'DI-34', 'INV-25', 'INV-41', 'PR-14', 'PR-18', 'PR-21', 'PR-23', 'PR-29', 'PR-34', 'PR-40', 'PR-47'],
   },
   'EBMR-EXE-127': {
     status: 422,
@@ -243,7 +244,9 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   },
   // The engine's version check, held by the database (recipe-core 0326, F58.1): a command from a screen that showed
   // another version is recorded only as the refusal ENG-STALE, that refusal only for such a command, and it changes
-  // nothing. The server records the engine's own verdict, so only a defect or a writer that skips the server gets here.
+  // nothing. The server records the engine's own verdict, so only a defect or a writer that skips the server gets here
+  // (a version no run can have, beyond the integer a run's version is stored in, is refused by the contract as malformed
+  // before anything is written: api-contract RunVersion, F58.1 round 3).
   'EBMR-EXE-140': {
     status: 422,
     kind: 'NOT_ALLOWED',
@@ -251,6 +254,62 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whatYouCanDo: ['Reload the screen and try again; if it happens again, stop and report it.'],
     whoCanHelp: [ADMIN],
     controls: ['DI-34'],
+  },
+  // The late check, held by the database (recipe-core 0333, T12.LATE): a step's later review, once its witness is no
+  // longer possible, records the engine's WITNESS_LATE, and no other row records one. The server records the engine's own
+  // result, so only a defect or a writer that skips the server gets here.
+  'EBMR-EXE-141': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The check the system was about to record does not carry the exception a late check records, or another action carried one. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and sign its check again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-30', 'DI-35', 'PR-14'],
+  },
+  // The times the late check is measured from, and its window, held by the database (recipe-core 0334, T12.LATE round 2):
+  // a step's start and end and a value's time are the row's trusted time and kept as recorded, and a batch is pinned
+  // with a witness window no shorter than the site's. The server records the engine's own result and pins the engine's
+  // default window, so only a defect, a site setting the engine does not follow, or a writer that skips the server gets
+  // here.
+  'EBMR-EXE-142': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The action the system was about to record would change the start or end time already recorded for a step. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and try again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'DI-35', 'INV-20'],
+  },
+  'EBMR-EXE-143': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The action the system was about to record gives a step a start time other than the time this start was recorded at. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and start it again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'INV-16', 'DI-35'],
+  },
+  'EBMR-EXE-144': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The signature the system was about to record ends a step at another time than the time it was signed. Nothing was signed.',
+    whatYouCanDo: ['Reload the step and sign it again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'INV-16', 'DI-35', 'PR-14'],
+  },
+  'EBMR-EXE-145': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The value the system was about to record carries another time than the time it was entered. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and enter the value again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'INV-16', 'DI-35'],
+  },
+  'EBMR-EXE-146': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The test batch was not issued: the witness window it would run with is shorter than this site\'s witness window, or longer than the system allows.',
+    whatYouCanDo: ['Ask the system administrator to check the site\'s witness window (e-signature policy) against this release, which pins 5 minutes; then issue the batch again.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-35', 'PR-14', 'INV-26'],
   },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   // A command from a screen that shows another version of the run: recorded as a refused row, with no scale reading

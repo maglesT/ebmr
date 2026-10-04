@@ -13,6 +13,7 @@ import type { PaletteItem } from '../model/types.ts';
 import { Check, CheckList, CommitText, roleTitle, Select, type Option } from './common.tsx';
 import { ConfigForm } from './ConfigForm.tsx';
 import { ConfigList } from './ConfigView.tsx';
+import { checkInThisRelease } from './words.ts';
 
 const roleOptions: Option[] = ENGINE_ROLES.map((r) => ({ value: r, label: roleTitle(r) }));
 /** A QA hold point is released by the quality unit only (PR-45; review F48): the pinned policy's QA roles. */
@@ -129,6 +130,7 @@ export function StepEditor({ content, stepId, number, palette, readOnly, dispatc
           onChange={(v) => update({ signatures: { ...(p.signatures.perform ? { perform: p.signatures.perform } : {}), check: { meaning: check.meaning, role: v } } })}
         />
       ) : null}
+      {checkInThisRelease(content, p) !== null ? <p className={dcls('small')}>{checkInThisRelease(content, p)}</p> : null}
       <Check label="Significant step (performer and an independent checker)" checked={p.significant} disabled={readOnly} onChange={(on) => update({ significant: on })} />
       <Select label="Risk class" value={p.riskClass} disabled={readOnly} options={content.riskScale.classes.map((c) => ({ value: c, label: c }))} onChange={(v) => update({ riskClass: v })} />
       <h4>Data, materials and equipment</h4>

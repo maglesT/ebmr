@@ -21,6 +21,13 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  * version (EBMR-EXE-061), because replay compares every stored row's events and state with the engine's. Any change
  * of what `issue`, `step`, `sweep` or `prepareForSignature` answer for the same input needs a new version, recorded
  * with its output fingerprint in test/engine/engine-version.test.ts. Semantic changes:
+ *  - 1.5.0: once a witness is no longer possible (the witness window after the act has passed, or the run moved on: the
+ *    kernel refuses a witness signature then, EBMR-ESIG-051/052), a step whose check is a witness (the MBR's WITNESSED,
+ *    or a critical value typed by hand without the photo or printout its MBR names, 1.4.0) is checked by its later review
+ *    (its block's own check, else VERIFIED), which raises WITNESS_LATE for QA (QA only); a late WITNESSED signature is
+ *    refused, never accepted as a witness with an exception (Phase 2 exit follow-up T12.LATE; DI-30, PR-14, DI-35).
+ *    Before, such a step could never be completed once its witness was late. The database requires the same
+ *    (recipe-core 0333).
  *  - 1.4.0: a step holding a critical value typed by hand without the photo or printout its MBR names as the value's
  *    evidence is checked by a witness (WITNESSED), not reviewed later (VERIFIED) (lead TODO T12 of the Phase 2 exit;
  *    DI-30): the validator lets the check be a later review only because that evidence will be there (GMP-WITNESS),
@@ -43,7 +50,7 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  *    database's blank test (kernel.is_blank) refuses it.
  *  - 1.0.0: Phase 2 first release.
  */
-export const ENGINE_VERSION = '1.4.0';
+export const ENGINE_VERSION = '1.5.0';
 export const STATE_SCHEMA = 'ebmr.batch-execution-state';
 
 /** Trusted server time of the command's transaction (kernel clock; `recorded_at`), UTC epoch microseconds. */
@@ -725,7 +732,10 @@ export interface EnginePolicy {
   replicateCountRoles: readonly string[];
   /** Roles that may verify when two-person mode is forced on a phase without a checker. */
   fallbackVerifierRoles: readonly string[];
-  /** Window for a WITNESSED signature after the act (default 5 min); later raises an exception. */
+  /**
+   * Window for a WITNESSED signature after the act (default 5 min). After it (or once the run moved on) no witness is
+   * accepted: the step's later review is its check and raises WITNESS_LATE (engine 1.5.0).
+   */
   witnessWindowUs: bigint;
 }
 

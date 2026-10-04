@@ -20,6 +20,7 @@ function reactAriaStyleHash(): string {
   return `sha256-${createHash('sha256').update(match[1].trim(), 'utf8').digest('base64')}`;
 }
 const REACT_ARIA_STYLE_HASH = 'sha256-gYiS/BvZvRcK27JIXTuwhZ3hs2+VJ1X+2gUlE+farlg=';
+import { terminalOf } from '@ebmr/test-kit';
 import { logCollector, ORIGINS, startServer, type TestServer } from '../support/harness.ts';
 
 let gmp: TestServer;
@@ -167,6 +168,70 @@ describe('a cookie of this installation sent more than once', () => {
     // Non-API pages carry no session: a doubled cookie there is not refused (the SPA's own page loads).
     const page = await gmp.app.inject({ method: 'GET', url: '/', headers: { cookie: `ebmr_gmp_sid=${'A'.repeat(43)}; ebmr_gmp_sid=${'D'.repeat(43)}` } });
     expect(page.statusCode).not.toBe(401);
+  });
+});
+
+// Review F41, round 4 (the residuals): when the browser holds no session cookie of this installation, a page on another
+// port can set one at Path=/ with another person's live session token, and the person's page worked in it; a cookie
+// replaced while the page works (another tab's sign-in) went on silently too. The page now names the key of its own
+// terminal and the person its session started with, and a session of another terminal or person is served as nobody.
+describe('a sign-in the page did not start with', () => {
+  const same = (extra: Record<string, string>) => ({ origin: ORIGINS.GMP, 'sec-fetch-site': 'same-origin', ...extra });
+  const codeOf = (body: string): string => (JSON.parse(body) as { refusal: { code: string } }).refusal.code;
+  const keyOf = (code: string): string => terminalOf(gmp.seed, code).fingerprint;
+  const persona = (key: string) => gmp.seed.personas.find((p) => p.key === key) ?? (() => { throw new Error(key); })();
+
+  it('[DI-13][DI-14][DI-38] a session opened on another terminal than the page\'s own is served as nobody (SESSION_OTHER_TERMINAL), mutations included; on its own terminal, or without the page\'s key, it is served', async () => {
+    // The approver's live session, opened on PC-QA-01, set as the cookie of a page on PC-DESIGN-01 (the author's).
+    const approver = await gmp.asPersona('approver');
+    const token = approver.cookies.get('ebmr_gmp_sid') ?? '';
+    const asPage = (key: string) => same({ cookie: `ebmr_gmp_sid=${token}`, 'x-ebmr-terminal-key': key });
+    const res = await gmp.app.inject({ method: 'GET', url: '/api/session', headers: asPage(keyOf('PC-DESIGN-01')) });
+    expect(res.statusCode).toBe(401);
+    expect(codeOf(res.body)).toBe('SESSION_OTHER_TERMINAL');
+    expect(res.body).not.toContain(persona('approver').legalName);
+    // A mutation runs nothing: the logout of a page on another terminal leaves the session live.
+    const logout = await gmp.app.inject({
+      method: 'POST',
+      url: '/api/session/logout',
+      payload: {},
+      headers: { ...asPage(keyOf('PC-DESIGN-01')), 'content-type': 'application/json', 'x-csrf-token': approver.csrf ?? '', cookie: `ebmr_gmp_sid=${token}; ebmr_gmp_csrf=${approver.cookies.get('ebmr_gmp_csrf') ?? ''}` },
+    });
+    expect(logout.statusCode).toBe(401);
+    expect(codeOf(logout.body)).toBe('SESSION_OTHER_TERMINAL');
+    expect((await approver.call(routes.session.get)).ok).toBe(true);
+    // The page of the session's own terminal, and a request that names no key (a tool, not the page), are served.
+    expect((await gmp.app.inject({ method: 'GET', url: '/api/session', headers: asPage(keyOf('PC-QA-01')) })).statusCode).toBe(200);
+    expect((await gmp.app.inject({ method: 'GET', url: '/api/session', headers: same({ cookie: `ebmr_gmp_sid=${token}` }) })).statusCode).toBe(200);
+  });
+
+  it('[DI-13][DI-14][DI-38] a session of another person than the one the page started with is served as nobody (SESSION_CHANGED); the page\'s own person\'s is served, and so is a sandbox kiosk\'s', async () => {
+    const author = await gmp.asPersona('author');
+    const token = author.cookies.get('ebmr_gmp_sid') ?? '';
+    const asPage = (person: string) => same({ cookie: `ebmr_gmp_sid=${token}`, 'x-ebmr-terminal-key': keyOf('PC-DESIGN-01'), 'x-ebmr-page-person': person });
+    const other = await gmp.app.inject({ method: 'GET', url: '/api/session', headers: asPage(persona('approver').personId) });
+    expect(other.statusCode).toBe(401);
+    expect(codeOf(other.body)).toBe('SESSION_CHANGED');
+    expect(other.body).not.toContain(persona('author').legalName);
+    const own = await gmp.app.inject({ method: 'GET', url: '/api/session', headers: asPage(persona('author').personId) });
+    expect(own.statusCode).toBe(200);
+    expect((JSON.parse(own.body) as { person: { personId: string } }).person.personId).toBe(persona('author').personId);
+    // The sandbox: an operator's kiosk session, named by the kiosk's own page.
+    const op = await sbx.asPersona('operator1');
+    const opPerson = sbx.seed.personas.find((p) => p.key === 'operator1')?.personId ?? '';
+    const kiosk = await sbx.app.inject({
+      method: 'GET',
+      url: '/api/session',
+      headers: { cookie: `ebmr_sbx_sid=${op.cookies.get('ebmr_sbx_sid') ?? ''}`, 'x-ebmr-terminal-key': terminalOf(sbx.seed, 'TEST-KIOSK-DISP-1').fingerprint, 'x-ebmr-page-person': opPerson },
+    });
+    expect(kiosk.statusCode).toBe(200);
+    const swapped = await sbx.app.inject({
+      method: 'GET',
+      url: '/api/session',
+      headers: { cookie: `ebmr_sbx_sid=${op.cookies.get('ebmr_sbx_sid') ?? ''}`, 'x-ebmr-terminal-key': terminalOf(sbx.seed, 'TEST-KIOSK-BLEND-1').fingerprint },
+    });
+    expect(swapped.statusCode).toBe(401);
+    expect(codeOf(swapped.body)).toBe('SESSION_OTHER_TERMINAL');
   });
 });
 

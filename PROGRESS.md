@@ -1678,6 +1678,116 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   record (round 1 had changed only code comments there, not the notice). Tests: server db-guards-stale-row and
   devices/stale-weighing-readings (one reading as both, at the database and through the server), web step-screen (both
   notices) and entries (the weighing's notice); each fails on bbb83d0.
+  Round 3 (3 Oct): the "uses no reading" rule held only for claims made before the stale row in its own transaction;
+  the round-2 verifier recorded the honest stale weighing and then claimed its readings under its correlation id, and
+  the record said the stale command used them. Tablets 0520 checks it at commit on both sides (deferred constraint
+  triggers on the stale row and on every claim, meeting on one key of tab.reading_claim_mark): no claim under a stale
+  row's correlation id commits, before or after the row, in any transaction, or concurrently (a serialization failure
+  under REPEATABLE READ); it also binds evidence.namedReadings to exactly the stored tare and gross of a stale device
+  weighing. The contract now refuses a run version beyond the integer a run's version is stored in (400 before anything
+  is written, not 422 EBMR-EXE-140). Residual in F58.2: a command that claims readings and writes no row is still not
+  refused. Tests: server execution/db-guards-stale-row-commit (new), devices/stale-weighing-readings,
+  execution/commands, api-contract contract; each new one fails on 8c3496a.
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 4 (branch phase-2/recipe-core; F11, F12,
+  F37.R and the REPLAY-GATE design item; each fix with tests that fail on the code before it). F11: the database read
+  the step an exception was raised at from the stored source and the command's own step, so a correction of the blend
+  time that made a later step's calculation fail could store its CALCULATION_FAILED without that step and let the person
+  who worked only in the later step disposition it; exceptions raised in a preparation row or a refused PERFORMED, and
+  step exceptions added by a row that acts on no step, had the same hole. Recipe-core 0327 binds the source of every
+  exception a row adds to the step the engine raises it at (the row's own step, or for a correction or invalidation a
+  step its change reaches as the engine's propagation does; EBMR-EXE-044), reads preparation and refused rows as raising
+  rows, and the invariant query reports an exception naming no step instance (decisions F11.1 corrected, F11.2). F12: a
+  container held what its entry named, never compared with the MBR, so an output holding L2409-0017 was stored;
+  recipe-core 0328 binds a weighing's or lot charge's BOM line, an output's intermediate, a container charge (container,
+  contents, plan, sub-lot, this batch's label, the containers consumed) and an equipment check to the step's MBR node
+  (EBMR-EXE-126; decision F12.2). F37.R: 0309 serialised proposals only on the batch's lock, which a signer outside the
+  server's path does not take; recipe-core 0329 also takes the record's own signing lock, so a proposal waits for any
+  open signing of the record and is refused, and a signing waits for an open proposal and is refused (EBMR-ESIG-012);
+  0309's claim and decision F37.1 corrected. REPLAY-GATE: decided by default (REPLAY-GATE.1) that the release gate G-REL,
+  built in Phase 4, replays the stored rows with the engine pinned to the batch and stays NOT_READY on any difference;
+  a Phase 2 test shows a computed value forged through the application role is stored and the replay finds it. Tests:
+  server execution/db-guards-disposition-involvement (round 4), db-guards-entry-identifiers (round 4),
+  db-guards-proposal-race (F37.R, two connections), golden (REPLAY-GATE); recipe-core execution/exception-source-sql
+  (new) and entry-data-sql (round 4).
+  Round 2 of the lane (F12, F37.R): the database compared only what an entry's command sent, so an acknowledgement
+  naming sop B24-0001 / L2409-0017 was stored; recipe-core 0330 holds every new entry to exactly the data its block
+  builds (SOP reference, sample id and label, source-addition case, the person, passed flags, the whole command where
+  kept, the entry's own id, time and event, the second-person check it asks for) and to the blocks' accept rules that
+  read only the MBR, the batch and the entry (checklist answers, sampling plan, lot usability, disposals, source
+  additions, reprocessing authorisation; EBMR-EXE-126; decision F12.3, F12.2 corrected). The proposal and signing locks
+  serialised only in READ COMMITTED: a proposal or signing in REPEATABLE READ or SERIALIZABLE, and a change of an
+  exception's signed content, still ended in a CONTENT_MISMATCH signature; recipe-core 0331 and kernel 1020 refuse them
+  in any other isolation level (EBMR-EXE-084, EBMR-ESIG-015; decision F37.2, F37.1 corrected). Tests: server
+  db-guards-entry-identifiers (round 5) and db-guards-proposal-race (round 2, both levels, both orders, exception and
+  hold point, change side); recipe-core entry-data-sql (round 5); kernel esig/isolation (new).
+  Round 3 of the lane (F12): the database never applied a block's data schema, so a weighing whose command and data
+  both carried lotNumber L2409-0017, a clearance answered NO stored as passed, and G-24 start data without its
+  references were stored; recipe-core 0332 holds every entry, start data and refused row to the schema of its step's
+  block version and refuses a kind the block does not record (EBMR-EXE-126; decision F12.4, F12.3 and T2.3/T2.4
+  corrected). Tests: server db-guards-entry-identifiers (round 6); recipe-core entry-data-sql (round 6).
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, Read authorisation and sessions, round 4 (branch phase-2/recipe-core; F34, F35,
+  HIGH-WATER, SSE-SESSION, F41.R). F34/F35: without a session the application role still learned who is under
+  investigation: kernel.verify_chain from a position past the end of record_hold:account:<id> named the chain's length
+  for a held account only, and continuity.compare_external_anchors called a forged one-head anchor UNEXPLAINED for a
+  held account and DISCARDABLE for another; and the subject of an investigation in a governance role was told about it
+  by the session-checked reads ("not shown to the person of this session", 403) where a colleague in the same role got
+  an empty list or 404. Tablets 0530 takes the verification and the anchor comparison from the application role on
+  both installations (the viewer verifies through the session-checked tab.audit_verify_chain) and answers everything
+  withheld from the subject as what is not there, on the audit and signing routes and functions (decision F35.3; F34.1,
+  F34.2, F35.1, F35.2, the DI-17/DI-50 guards, ADR 0012 and the 0470 test title corrected). HIGH-WATER: tablets 0540
+  takes continuity.sequence_high_water and continuity.sequence_bump from the application role (they showed when and how
+  many investigations and holds were opened). SSE-SESSION: the live display stream asks the request gate again every
+  2 s and ends at a lock, an idle lock, a sign-out or a withdrawn role (decision SSE-SESSION.1). F41.R: the page names
+  its terminal key and the person its session started with on every request, and the server serves another terminal's
+  or person's session as nobody (tablets 0550); the page shows the sign-in form or says its sign-in changed; the
+  re-planting lock-out and the other residuals are recorded (ADR 0017, decision F41.1), and the E2E title says what it
+  proves. Tests: server audit/read-authorisation and esig/read-authorisation (0530, 0540, on GMP and the sandbox),
+  devices/live-session (new), platform/security (page binding); web app/page-binding (new); E2E security (new test).
+  Lane round 2 (F35, HIGH-WATER): the subject's own account chain still counted and dated the hold the investigation
+  notes on it (9 entries listed and verified, 8 shown; a colleague 8 of 8); tablets 0560 counts, dates and orders a
+  chain for that person by the entries shown, and the residual (hashed sequence numbers and event ids skip the withheld
+  entry) is default F35.4 (F35.2, F35.3(a)/(c), guards corrected). The table statistics (pg_stat_user_tables and the
+  other counters, relation sizes) still told every role when and how many investigations and holds were opened; tablets
+  0570 takes them from PUBLIC on both installations, and what the server needs (pg_stat_activity, pg_locks) is default
+  HW.1. Tests: audit/read-authorisation (tablets 0560, 4 tests) and esig/read-authorisation (tablets 0570).
+  Lane round 3 (HIGH-WATER): the stored authority evaluations (iam.authority_evaluation, granted to the application
+  role by kernel 0130) still told it when and how many investigations were opened, linked, refreshed and closed and
+  legal holds placed and released, and which lead or QA reviewer acted; tablets 0580 takes the table from the
+  application role on both installations (every reader is SECURITY DEFINER; the role still evaluates), default HW.2,
+  HW.1 and F34.2 corrected. Test: esig/read-authorisation (tablets 0580).
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, Shop-floor record and checks, round 4 (branch phase-2/recipe-core; T2, T12.LATE,
+  T12.DOC, COMPOUND-UNIT, BADGE-AUTOFILL; each fix with tests that fail on the code before it). T2: recipe-core 0332
+  already refuses a weighing stored under a kind its step's block does not record; tests now show it at a dispensing and
+  an output step, and that the honest signed total names every container. T12.LATE: a witness more than 5 minutes late,
+  or after the run moved on, was refused by the kernel and nothing else completed the step, so the run was stuck for
+  good. Engine 1.5.0 and recipe-core 0333: once no witness is possible the step is completed by its later review
+  (VERIFIED), which raises WITNESS_LATE for QA; a late signature never counts as a witness and the window is not
+  widened; the database holds the same rule (EBMR-EXE-141; decision T12.2, T12.1 corrected). T12.DOC: the validator
+  and the designer showed "verified" where the floor asks for a timed witness; rule GMP-WITNESS-NO-ATTACHMENT warns,
+  the document and step properties say how the check runs, and the dc-mini template asks for the witness itself
+  (decision T12.3). COMPOUND-UNIT: an MBR whose G-22 step records a quantity in a compound unit before its net, or
+  whose G-07 step weighs into a mass written so, had every container refused by the database (EBMR-EXE-139) with no
+  warning before approval; rule DATA-WEIGHED-UNITS warns, reading units as the database does (decision
+  COMPOUND-UNIT.1). BADGE-AUTOFILL: a ten-digit secret a password manager filled into the kiosk Badge field was sent
+  as a badge UID, and a filled or pasted new kiosk PIN was taken; those fields now ask managers to leave them alone and
+  send nothing that was not typed key by key (decision BADGE-AUTOFILL.1). Tests: server execution/
+  db-guards-weighing-record (round 4), execution/witness-without-printout (T12.LATE), designer/weighed-units (new);
+  recipe-core engine/late-witness (new), execution/late-witness-sql (new), execution/weighed-units-sql (new),
+  execution/entry-data-sql, validator/content and data, engine-version (1.5.0); web designer/check-in-release (new),
+  session/badge-autofill (new), access/keyed-badge; ui-kit identity/badge-autofill (new). E2E smoke, fcv journey,
+  floor, esig, access and designer pass; the floor spec's PR-08 variant, which types a value by hand from its printout,
+  now asks for the witness itself to pass the gate.
+  Lane round 2 (T12.LATE, T12.DOC, BADGE-AUTOFILL): 0333 decided when a witness could be replaced from a step's end
+  time, other steps' start times, values' times and the pinned witness window, all written unbound by the application
+  role (an end stored 400 s back, or a batch pinned with a 1 microsecond window, let the later review replace the
+  witness at once); recipe-core 0334 binds each to its own act at the row's trusted time (EBMR-EXE-142 to 145) and the
+  window to no shorter than the site's kernel window (EBMR-EXE-146; default T12.4, T12.2 corrected). The validator and
+  the designer warned only for MANUAL capture, while every value is typed by hand in this release; they now warn for
+  every capture except a weighing step's computed quantities (T12.3 corrected). A password manager that "types" a saved
+  secret with script events was read as a reader; untrusted key and input events now count as a fill
+  (BADGE-AUTOFILL.1 corrected). Tests: recipe-core execution/step-times-sql (new), validator/content; server
+  execution/witness-without-printout, refusals-and-room-views; web designer/check-in-release; ui-kit
+  identity/badge-autofill. E2E floor and esig pass.
 - 2026-10-03: SQL MUTATION HARNESS FOR THE PHASE 2 GUARDS (branch phase-2/sql-mutation from 979e747; the full run and
   the kill tests are the next step). tools/sql-mutation knew only the Phase 1 kernel. Definitions now come from every
   SQL directory in migration order (kernel, site services, recipe-core, tablets), a function identified as PostgreSQL

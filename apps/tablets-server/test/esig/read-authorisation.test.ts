@@ -82,9 +82,10 @@ describe('F34: GET /api/esig/content and /api/esig/signatures read only what the
     const r = await qaBrowser.call(routes.esig.content, { query: { aggregateType: 'di_investigation', aggregateId: investigationId, intent: 'DI_INVESTIGATION_CLOSED' } });
     expect(outcome(r)).toBe('404:EBMR-TAB-019');
     expect(leaked(r)).not.toContain('back-dating');
-    // Never the investigation about the reviewer.
+    // Never the investigation about the reviewer: it has no signatures for the reviewer, as an investigation that is not
+    // there has none (tablets 0530, default F35.3).
     const own = await qaBrowser.call(routes.esig.signatures, { query: { aggregateType: 'di_investigation', aggregateId: ownInvestigationId } });
-    expect(outcome(own)).toBe('403:EBMR-TAB-020');
+    expect(own).toEqual({ ok: true, status: 200, value: { signatures: [] } });
   });
 
   it('[DI-17][DI-37] on an office terminal the content of a record is previewed only with a meaning the session\'s role signs; any record type the kernel provider does not sign here is refused', async () => {
@@ -134,7 +135,7 @@ describe('F34: the database (tablets 0410)', () => {
     await expect(gmp.db.app.query('select * from tab.signatures_of($1, $2)', ['some_new_type', 'x'])).rejects.toThrow(/EBMR-TAB-020/);
   });
 
-  it('[DI-17][DI-50] with a session token it decides by the session\'s role and person (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)', async () => {
+  it('[DI-17][DI-50] with a session token it decides by the session\'s role, and answers an investigation about the session\'s person as one that is not there (EBMR-TAB-018, EBMR-TAB-019, EBMR-TAB-020)', async () => {
     const subject = hashOf(gmp, await gmp.asPersona('author'));
     const reviewer = hashOf(gmp, qaBrowser);
     const q = (sqlText: string, args: unknown[]) => gmp.db.app.query(sqlText, args);
@@ -145,10 +146,12 @@ describe('F34: the database (tablets 0410)', () => {
     expect(subjectProblem.p).toMatch(/read only in a role that reviews audit trails/);
     await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [subject, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rejects.toThrow(/EBMR-TAB-019/);
     await expect(q('select * from tab.record_signatures($1, $2, $3)', [subject, 'di_investigation', investigationId])).rejects.toThrow(/EBMR-TAB-020/);
-    // The QA reviewer may read and close an investigation, but never the one about the reviewer.
+    // The QA reviewer may read and close an investigation, but never the one about the reviewer: its signatures and
+    // content are those of an investigation that is not there (tablets 0530, default F35.3), and its preview is decided
+    // by the reviewer's role alone, as for any investigation.
     expect(((await q('select tab.signing_preview_problem($1, $2, $3, $4) as p', [reviewer, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { p: string | null }).p).toBeNull();
-    expect(((await q('select tab.signing_preview_problem($1, $2, $3, $4) as p', [reviewer, 'di_investigation', ownInvestigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { p: string | null }).p).toMatch(/never shown to the person it investigates/);
-    await expect(q('select * from tab.record_signatures($1, $2, $3)', [reviewer, 'di_investigation', ownInvestigationId])).rejects.toThrow(/EBMR-TAB-020/);
+    expect(((await q('select tab.signing_preview_problem($1, $2, $3, $4) as p', [reviewer, 'di_investigation', ownInvestigationId, 'DI_INVESTIGATION_CLOSED'])).rows[0] as { p: string | null }).p).toBeNull();
+    expect((await q('select * from tab.record_signatures($1, $2, $3)', [reviewer, 'di_investigation', ownInvestigationId])).rows).toEqual([]);
     expect((await q('select * from tab.record_signatures($1, $2, $3)', [reviewer, 'di_investigation', investigationId])).rows).toEqual([]);
     // The kernel provider serves only the pairs signed that way here, and only to a role that signs the meaning.
     await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [reviewer, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rejects.toThrow(/EBMR-TAB-019/);
@@ -353,6 +356,301 @@ describe('F34: what blocks a record\'s release or disposal (tablets 0460)', () =
       ] as const) {
         await expect(server.db.app.query(sqlText, [...args]), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
       }
+    }
+  });
+});
+
+/**
+ * Round 4 of F34: the QA reviewer an investigation is about was told about it by the session-checked reads themselves.
+ * Its signatures were refused "a data-integrity investigation is never shown to the person it investigates"
+ * (EBMR-TAB-020), and so was its preview, where a colleague in the same role asking about an investigation that is not
+ * there was answered with an empty list of signatures and with this installation's refusal of the type (EBMR-TAB-019),
+ * or of the meaning. Now (tablets 0530; default F35.3) an investigation about the session's person is answered as an
+ * investigation that is not there: the same status, message and body shape as for the colleague.
+ */
+describe('F34: the person a DI investigation is about is answered as a colleague in the same role (tablets 0530)', () => {
+  let control: GrantedPerson;
+  let controlBrowser: TestBrowser;
+  /** An answer as the person sees it (a refusal's correlation id differs per request), with the record's id replaced. */
+  const same = (r: Result<unknown>, id: string): string =>
+    JSON.stringify(r.ok ? { ok: true, status: r.status, value: r.value } : r.error.kind === 'REFUSAL' ? { status: r.error.status, refusal: r.error.envelope.refusal, retryable: r.error.envelope.retryable } : r.error)
+      .split(id)
+      .join('<id>');
+  const refusalText = async (p: Promise<unknown>, id: string): Promise<string> => {
+    try {
+      await p;
+      return 'resolved';
+    } catch (error) {
+      return (error as Error).message.split(id).join('<id>');
+    }
+  };
+
+  /** The colleague signs the closure of the investigation about the reviewer (the kernel's ceremony), so it has a signature. */
+  beforeAll(async () => {
+    control = await grantedPerson(gmp, 'QA_REVIEWER', 'Sunita Rao (QA reviewer)');
+    controlBrowser = await loginOf(gmp, control);
+    const fp = terminalOf(gmp.seed, 'PC-QA-01').fingerprint;
+    const signer = await passwordActor(gmp.db, control, fp);
+    await withCommand(gmp.db.app, reason(signer), (c) => identity.acknowledgeEsigPolicy(c));
+    const content = await esig.contentForSigning(gmp.db.admin, 'di_investigation', ownInvestigationId);
+    const challenge = await withCommand(gmp.db.app, reason(signer), (c) =>
+      esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: ownInvestigationId, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' }),
+    );
+    const ev = await identity.authenticate(gmp.db.authn, { method: 'PASSWORD', identifier: control.loginName, secret: control.password, deviceFingerprint: fp, purpose: 'SIGNATURE', challengeId: challenge.challengeId });
+    const sealKey = gmp.built.ctx.sealKey;
+    if (!sealKey) throw new Error('SETUP: the server has no seal key');
+    await withCommand(gmp.db.app, reason({ ...signer, authEventId: ev.authEventId }), (c) =>
+      esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: content.state ?? null }, sealKey),
+    );
+  });
+
+  it('[DI-17][DI-50] through the routes, the signatures and the preview of the investigation about the reviewer answer the reviewer as they answer a colleague in the same role about an investigation that is not there', async () => {
+    const absent = randomUUID();
+    const answers = async (b: TestBrowser, id: string) => ({
+      signatures: same(await b.call(routes.esig.signatures, { query: { aggregateType: 'di_investigation', aggregateId: id } }), id),
+      closure: same(await b.call(routes.esig.content, { query: { aggregateType: 'di_investigation', aggregateId: id, intent: 'DI_INVESTIGATION_CLOSED' } }), id),
+      prepared: same(await b.call(routes.esig.content, { query: { aggregateType: 'di_investigation', aggregateId: id, intent: 'PREPARED' } }), id),
+    });
+    const subject = await answers(qaBrowser, ownInvestigationId);
+    const colleague = await answers(controlBrowser, absent);
+    expect(subject).toEqual(colleague);
+    expect(colleague.signatures).toBe(JSON.stringify({ ok: true, status: 200, value: { signatures: [] } }));
+    expect(colleague.closure).toMatch(/"status":404[^]*"code":"EBMR-TAB-019"/);
+    expect(colleague.prepared).toMatch(/"status":403[^]*"code":"ESIG_PREVIEW_NOT_ALLOWED"/);
+  });
+
+  it('[DI-17][DI-50] the database answers the reviewer\'s session about the investigation of the reviewer as a colleague\'s about one that is not there (tab.signing_preview_problem, tab.record_signatures, tab.content_for_signing), and would serve no content of it were it signed through the kernel\'s provider', async () => {
+    const reviewer = hashOf(gmp, qaBrowser);
+    const colleague = hashOf(gmp, controlBrowser);
+    const absent = randomUUID();
+    const q = (sqlText: string, args: unknown[]) => gmp.db.app.query(sqlText, args);
+    const answers = async (h: string, id: string) => ({
+      closure: (await q('select tab.signing_preview_problem($1, $2, $3, $4) as p', [h, 'di_investigation', id, 'DI_INVESTIGATION_CLOSED'])).rows,
+      prepared: JSON.stringify((await q('select tab.signing_preview_problem($1, $2, $3, $4) as p', [h, 'di_investigation', id, 'PREPARED'])).rows).split(id).join('<id>'),
+      signatures: (await q('select * from tab.record_signatures($1, $2, $3)', [h, 'di_investigation', id])).rows,
+      content: await refusalText(q('select tab.content_for_signing($1, $2, $3, $4)', [h, 'di_investigation', id, 'DI_INVESTIGATION_CLOSED']), id),
+    });
+    const subject = await answers(reviewer, ownInvestigationId);
+    expect(subject).toEqual(await answers(colleague, absent));
+    expect(subject).toMatchObject({ closure: [{ p: null }], signatures: [] });
+    // The investigation about the reviewer has a signature (the colleague's), which the colleague reads.
+    expect((await q('select meaning_code from tab.record_signatures($1, $2, $3)', [colleague, 'di_investigation', ownInvestigationId])).rows).toEqual([{ meaning_code: 'DI_INVESTIGATION_CLOSED' }]);
+    expect(subject.content).toMatch(/EBMR-TAB-019/);
+    // Were this installation to sign investigations through the kernel's provider (a later signing flow), the reviewer's
+    // session would be served the investigation about the reviewer as one that is not there; the colleague its content.
+    const c = await gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local role ebmr_owner');
+      await c.query(`create or replace function tab.kernel_signing_meanings(p_aggregate_type text) returns text[]
+                     language sql immutable set search_path = pg_catalog, pg_temp as $$ select case p_aggregate_type when 'di_investigation' then array['DI_INVESTIGATION_CLOSED'] else '{}'::text[] end $$`);
+      await c.query('set local role ebmr_app');
+      const content = async (h: string, id: string) =>
+        (await c.query<{ r: Record<string, unknown> }>('select tab.content_for_signing($1, $2, $3, $4) as r', [h, 'di_investigation', id, 'DI_INVESTIGATION_CLOSED'])).rows[0]?.r;
+      expect(await content(reviewer, ownInvestigationId)).toEqual({ exists: false, aggregate_type: 'di_investigation', aggregate_id: ownInvestigationId });
+      expect(await content(colleague, absent)).toEqual({ exists: false, aggregate_type: 'di_investigation', aggregate_id: absent });
+      const served = await content(colleague, ownInvestigationId);
+      expect(served?.['exists']).toBe(true);
+      expect(String(served?.['canonical'])).toContain('Suspected sharing of the QA reviewer password');
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+});
+
+/**
+ * Round 4 of F34 (the verifier's minor item HIGH-WATER): continuity.sequence_high_water(), SECURITY DEFINER and granted
+ * to the application role, read every protected sequence's last value without a session, among them the numbers of
+ * data-integrity investigations (records.di_investigation.investigation_no) and of retention holds
+ * (records.retention_hold.hold_no): watched over time, it told when and how many investigations and holds were opened
+ * (not who). continuity.sequence_bump keeps each sequence's values before and after a restore moved it. No screen,
+ * handler or command of this installation reads either; the anchor job that copies the marks to the external ledger
+ * reads the anchors, which are the owner's since tablets 0430, so it runs as the owner here. Tablets 0540 takes both
+ * away from the application role on both installations; the owner's tools still read them.
+ */
+describe('F34: when and how many investigations and holds were opened (tablets 0540)', () => {
+  /** A CSV/DI lead opens an investigation whose window covers now: it holds the subject's account. */
+  beforeAll(async () => {
+    const fp = terminalOf(gmp.seed, 'PC-QA-01').fingerprint;
+    const subject = await grantedPerson(gmp, 'QA_REVIEWER', 'Ravi Shankar (QA reviewer)');
+    const opener = await passwordActor(gmp.db, await grantedPerson(gmp, 'CSV_DI_LEAD', 'Lata Pillai (CSV/DI lead)'), fp);
+    await withCommand(gmp.db.app, reason(opener), (c) =>
+      records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a terminal session' }),
+    );
+  });
+
+  it('[DI-17][DI-50] without a session the application role reads no protected sequence\'s high-water mark and no sequence move, on either installation; the owner still does', async () => {
+    // The owner: the investigations and holds this file opened moved their numbers.
+    const marks = (await gmp.db.admin.query<{ sequence_key: string; last_value: string }>(
+      "select sequence_key, last_value::text from continuity.sequence_high_water() where sequence_key in ('records.di_investigation.investigation_no', 'records.retention_hold.hold_no') order by 1",
+    )).rows;
+    expect(marks.map((m) => m.sequence_key)).toEqual(['records.di_investigation.investigation_no', 'records.retention_hold.hold_no']);
+    for (const m of marks) expect(BigInt(m.last_value), m.sequence_key).toBeGreaterThan(0n);
+    expect((await gmp.db.admin.query('select count(*)::int as n from continuity.sequence_bump')).rows).toHaveLength(1);
+    // The application role, without a session: neither, on GMP or in the sandbox (sandbox.mirror_application_privileges).
+    for (const server of [gmp, sbx]) {
+      for (const sqlText of ['select sequence_key, last_value from continuity.sequence_high_water()', 'select sequence_key, value_before, value_after from continuity.sequence_bump']) {
+        await expect(server.db.app.query(sqlText), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+      }
+    }
+  });
+});
+
+/**
+ * Lane round 2 of round 4 (the verifier of HIGH-WATER): tablets 0540 took the protected sequences' high-water marks
+ * away from the application role, but PostgreSQL's statistics still served it, without a session and without any
+ * privilege on the tables, the counters of every table: rows inserted and live in records.di_investigation,
+ * di_investigation_link, retention_hold (pg_stat_user_tables, pg_stat_get_tuples_inserted and the other per-table and
+ * per-index counters), their block reads (pg_statio_*) and their size on disk (pg_relation_size and its siblings). Read
+ * now and again later, they told when and how many investigations and holds were opened and closed (not who). Tablets
+ * 0570 takes from PUBLIC, in each installation's database, the per-table, per-index, per-sequence and per-function
+ * statistics views, the counter functions behind them and the relation size functions; what the server and the kernel
+ * read as the application role (pg_stat_ssl for the encrypted-session check, pg_locks for the audit viewer's settled
+ * horizon, pg_stat_activity) stays. What remains open is default HW.1.
+ */
+describe('HIGH-WATER: the statistics of the investigation and hold tables (tablets 0570)', () => {
+  const TABLES = ['di_investigation', 'di_investigation_link', 'retention_hold'] as const;
+  /** The oid of records.<table>, as the owner finds it (no privilege on the table is needed to name it). */
+  const oidOf = async (server: TestServer, table: string): Promise<string> =>
+    (await server.db.admin.query<{ oid: string }>("select c.oid::text as oid from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'records' and c.relname = $1", [table])).rows[0]?.oid ?? '';
+
+  beforeAll(async () => {
+    // One more investigation on each installation, so its tables have counted inserts.
+    for (const server of [gmp, sbx]) {
+      const label = (name: string): string => (server === sbx ? `TEST-${name}` : name);
+      const fp = terminalOf(server.seed, server === gmp ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+      const subject = await grantedPerson(server, 'QA_REVIEWER', label('Meena Iyer QA reviewer'));
+      const opener = await passwordActor(server.db, await grantedPerson(server, 'CSV_DI_LEAD', label('Arun Das CSV-DI lead')), fp);
+      await withCommand(server.db.app, reason(opener), (c) =>
+        records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a QA reviewer password' }),
+      );
+    }
+  });
+
+  it('[DI-17][DI-50] without a session the application role reads no counter, block count or size of the investigation and hold tables, on either installation; the owner still reads them, and the application role still reads its TLS state, the locks and the activity it needs', async () => {
+    for (const server of [gmp, sbx]) {
+      // The owner (the operator's monitoring): the statistics views answer.
+      const seen = (await server.db.admin.query<{ relname: string }>(
+        "select relname from pg_stat_user_tables where schemaname = 'records' and relname = any ($1) order by relname", [[...TABLES]],
+      )).rows.map((r) => r.relname);
+      expect(seen, server.kind).toEqual([...TABLES]);
+      const app = server.db.app;
+      for (const table of TABLES) {
+        const oid = await oidOf(server, table);
+        for (const sqlText of [
+          'select n_tup_ins, n_live_tup from pg_catalog.pg_stat_user_tables where relid = $1::oid',
+          'select n_tup_ins from pg_catalog.pg_stat_all_tables where relid = $1::oid',
+          'select n_tup_ins from pg_catalog.pg_stat_xact_user_tables where relid = $1::oid',
+          'select heap_blks_hit from pg_catalog.pg_statio_user_tables where relid = $1::oid',
+          'select idx_scan from pg_catalog.pg_stat_user_indexes where relid = $1::oid',
+          'select idx_blks_hit from pg_catalog.pg_statio_all_indexes where relid = $1::oid',
+          'select pg_catalog.pg_stat_get_tuples_inserted($1::oid)',
+          'select pg_catalog.pg_stat_get_live_tuples($1::oid)',
+          'select pg_catalog.pg_stat_get_numscans($1::oid)',
+          'select pg_catalog.pg_stat_get_blocks_hit($1::oid)',
+          'select pg_catalog.pg_stat_get_last_autoanalyze_time($1::oid)',
+          'select pg_catalog.pg_stat_get_xact_tuples_inserted($1::oid)',
+          'select pg_catalog.pg_relation_size($1::oid::regclass)',
+          'select pg_catalog.pg_total_relation_size($1::oid::regclass)',
+          'select pg_catalog.pg_table_size($1::oid::regclass)',
+          'select pg_catalog.pg_indexes_size($1::oid::regclass)',
+        ]) {
+          await expect(app.query(sqlText, [oid]), `${server.kind} ${table}: ${sqlText}`).rejects.toThrow(/permission denied/);
+        }
+      }
+      await expect(app.query("select blks_hit from pg_catalog.pg_statio_user_sequences where schemaname = 'records'"), server.kind).rejects.toThrow(/permission denied/);
+      await expect(app.query('select calls from pg_catalog.pg_stat_user_functions'), server.kind).rejects.toThrow(/permission denied/);
+      // What the server and the kernel read as the application role still answers.
+      expect((await app.query('select count(*)::int as n from pg_catalog.pg_stat_ssl where pid = pg_catalog.pg_backend_pid()')).rows, server.kind).toEqual([{ n: 1 }]);
+      expect((await app.query("select count(*)::int as n from pg_catalog.pg_locks where locktype = 'relation' and pid = pg_catalog.pg_backend_pid()")).rows[0], server.kind).toBeDefined();
+      expect((await app.query('select count(*)::int as n from pg_catalog.pg_stat_activity where pid = pg_catalog.pg_backend_pid()')).rows, server.kind).toEqual([{ n: 1 }]);
+    }
+  });
+});
+
+/**
+ * Lane round 3 of round 4 (the verifier of HIGH-WATER): tablets 0540 and 0570 took the sequence marks and the table
+ * statistics away from the application role, but kernel 0130 also granted it SELECT on iam.authority_evaluation, where
+ * every permission check is stored with its time, person, account, role and outcome. VALIDATION.MANAGE is checked only
+ * by the opening, linking and scope refresh of a data-integrity investigation, DI_INVESTIGATION.APPROVE_CLOSURE only by
+ * its closure and the signing of it, and RECORD.LEGAL_HOLD only by placing and releasing a legal hold: read now and again
+ * later, the table told when and how many investigations were opened, linked, refreshed and closed and holds placed and
+ * released, and which lead or QA reviewer acted (not whom the investigation is about). Every reader of the table in the
+ * kernel and recipe-core is SECURITY DEFINER (the evaluation itself, the signing flow's checks, the evidence package, the
+ * engine's role checks) and the server reads it nowhere, so tablets 0580 takes the SELECT away; the application role
+ * still evaluates (iam.evaluate_authority answers its own call) and the commands still run.
+ */
+describe('HIGH-WATER: the authority evaluations of the investigation and hold commands (tablets 0580)', () => {
+  const PERMISSIONS = ['DI_INVESTIGATION.APPROVE_CLOSURE', 'RECORD.LEGAL_HOLD', 'VALIDATION.MANAGE'];
+  const acted = new Map<TestServer, { lead: GrantedPerson; approver: GrantedPerson; investigation: string }>();
+
+  /** On each installation a CSV/DI lead opens, links and refreshes an investigation; a QA reviewer signs and closes it, then places and releases a legal hold. */
+  beforeAll(async () => {
+    for (const server of [gmp, sbx]) {
+      const label = (name: string): string => (server === sbx ? `TEST-${name}` : name);
+      const fp = terminalOf(server.seed, server === gmp ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+      const subject = await grantedPerson(server, 'QA_REVIEWER', label('Nisha Rao QA reviewer'));
+      const lead = await grantedPerson(server, 'CSV_DI_LEAD', label('Vikram Sen CSV-DI lead'));
+      const approver = await grantedPerson(server, 'QA_REVIEWER', label('Farah Khan QA reviewer'));
+      const leadActor = await passwordActor(server.db, lead, fp);
+      const approverActor = await passwordActor(server.db, approver, fp);
+      const investigation = await withCommand(server.db.app, reason(leadActor), (c) =>
+        records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a QA reviewer password' }),
+      );
+      await withCommand(server.db.app, reason(leadActor), (c) => records.linkDiInvestigation(c, investigation, 'sample_record', randomUUID(), 'HIGH-WATER test set-up: a linked record'));
+      await withCommand(server.db.app, reason(leadActor), (c) => records.refreshDiInvestigationScope(c, investigation));
+      // The closure, signed through the kernel (no signing flow of this installation serves an investigation's content).
+      await withCommand(server.db.app, reason(approverActor), (c) => identity.acknowledgeEsigPolicy(c));
+      const content = await esig.contentForSigning(server.db.admin, 'di_investigation', investigation);
+      const challenge = await withCommand(server.db.app, reason(approverActor), (c) =>
+        esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: investigation, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' }),
+      );
+      const ev = await identity.authenticate(server.db.authn, { method: 'PASSWORD', identifier: approver.loginName, secret: approver.password, deviceFingerprint: fp, purpose: 'SIGNATURE', challengeId: challenge.challengeId });
+      const sealKey = server.built.ctx.sealKey;
+      if (!sealKey) throw new Error('the signing server has no seal key');
+      const signed = await withCommand(server.db.app, reason(approverActor), (c) => esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: 'OPEN' }, sealKey));
+      await withCommand(server.db.app, reason(approverActor), (c) =>
+        records.closeDiInvestigation(c, investigation, { conclusion: 'No sharing found', remediation: 'None required', approvalSignatureId: signed.signatureId }),
+      );
+      const hold = await withCommand(server.db.app, reason(approverActor), (c) => records.placeLegalHold(c, 'sample_record', randomUUID(), 'HIGH-WATER test set-up: a legal hold', 'LEGAL-HW-1'));
+      await withCommand(server.db.app, reason(approverActor), (c) => records.releaseLegalHold(c, hold, 'HIGH-WATER test set-up: released'));
+      acted.set(server, { lead, approver, investigation });
+    }
+  });
+
+  it('[DI-17][DI-50] without a session the application role reads no authority evaluation, so neither when nor how many investigations were opened, linked, refreshed and closed and legal holds placed and released, nor who acted, on either installation; the commands still run, the application role still evaluates, and the owner reads every evaluation', async () => {
+    for (const server of [gmp, sbx]) {
+      const { lead, approver, investigation } = acted.get(server) ?? { lead: qa, approver: qa, investigation: '' };
+      // The commands ran (the investigation is closed) and stored their evaluations, which the owner reads.
+      expect((await server.db.admin.query('select approved_by_person::text as by from records.di_investigation_closure where investigation_id = $1', [investigation])).rows, server.kind).toEqual([{ by: approver.personId }]);
+      const stored = (await server.db.admin.query<{ permission_code: string; n: number; allowed: boolean }>(
+        'select permission_code, count(*)::int as n, bool_and(allowed) as allowed from iam.authority_evaluation where person_id = any ($1) and permission_code = any ($2) group by 1 order by 1',
+        [[lead.personId, approver.personId], PERMISSIONS],
+      )).rows;
+      expect(stored, server.kind).toEqual([
+        { permission_code: 'DI_INVESTIGATION.APPROVE_CLOSURE', n: 2, allowed: true },
+        { permission_code: 'RECORD.LEGAL_HOLD', n: 2, allowed: true },
+        { permission_code: 'VALIDATION.MANAGE', n: 3, allowed: true },
+      ]);
+      // The application role, without a session: no row and no column of them, on GMP or in the sandbox
+      // (sandbox.mirror_application_privileges).
+      const app = server.db.app;
+      for (const [sqlText, args] of [
+        ['select * from iam.authority_evaluation', []],
+        ['select count(*) from iam.authority_evaluation', []],
+        ["select evaluated_at from iam.authority_evaluation where permission_code = 'VALIDATION.MANAGE'", []],
+        ['select permission_code, evaluated_at from iam.authority_evaluation where person_id = $1', [lead.personId]],
+      ] as const) {
+        await expect(app.query(sqlText, [...args]), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+      }
+      expect((await app.query("select pg_catalog.has_any_column_privilege(current_user, 'iam.authority_evaluation', 'SELECT') as v")).rows, server.kind).toEqual([{ v: false }]);
+      // The application role still evaluates (the kernel's authorisation and the signing flow call it); the evaluation is stored.
+      const own = (await app.query<{ e: { evaluation_id: string; allowed: boolean } }>(
+        "select iam.evaluate_authority($1::uuid, $2::uuid, 'VALIDATION.MANAGE', '{}'::jsonb, null, 'CSV_DI_LEAD') as e", [lead.personId, lead.accountId],
+      )).rows[0]?.e;
+      expect(own?.allowed, server.kind).toBe(true);
+      expect((await server.db.admin.query('select permission_code from iam.authority_evaluation where id = $1', [own?.evaluation_id])).rows, server.kind).toEqual([{ permission_code: 'VALIDATION.MANAGE' }]);
     }
   });
 });

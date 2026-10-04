@@ -83,14 +83,16 @@ describe('verifier is never involved (INV-03)', () => {
     expect(run.exceptions('LIMIT_BREACH')[0]?.status).toBe('DISPOSITIONED');
   });
 
-  it('[INV-03][DI-35] a WITNESSED step needs the WITNESSED meaning, and a witness after the window raises an exception', () => {
+  it('[INV-03][DI-35] a WITNESSED step needs the WITNESSED meaning while a witness is possible; after the window a late witness is refused and the later review raises an exception for QA (engine 1.5.0)', () => {
     const mbr = mbrWith(seq('ops', phase('w', { signatures: { perform: { role: 'OPERATOR' }, check: { meaning: 'WITNESSED', role: 'VERIFIER' } } }), phase('z')));
     const run = Run.issue(define(mbr));
     run.start('w');
     run.perform('w');
     run.refused({ type: 'VERIFY', actor: VER1, step: 'w', signature: sig('VERIFIED', VER1) }, 'ENG-SIGNATURE-MEANING');
     run.minutes(6);
-    run.verify('w', [], VER1, 'WITNESSED');
-    expect(run.exceptions('WITNESS_LATE')).toHaveLength(1);
+    // A late signature never counts as a witness (the kernel refuses it too, EBMR-ESIG-052): the later review is the check.
+    run.refused({ type: 'VERIFY', actor: VER1, step: 'w', signature: sig('WITNESSED', VER1) }, 'ENG-SIGNATURE-MEANING');
+    run.verify('w', [], VER1, 'VERIFIED');
+    expect(run.exceptions('WITNESS_LATE').map((e) => ({ qaOnly: e.qaOnly, stepKey: e.source.stepKey }))).toEqual([{ qaOnly: true, stepKey: 'w@' }]);
   });
 });

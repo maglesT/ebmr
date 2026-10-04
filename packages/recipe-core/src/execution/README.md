@@ -116,14 +116,23 @@ that another command holds is skipped.
     which follows library calls as the engine expands them); a step the database cannot find accepts no meaning:
     - SIGN_PERFORMED: the step block's own perform meaning (LINE_CLEARANCE_PERFORMED, SAMPLE_TAKEN,
       IPC_PERFORMED) where the block has one, else PERFORMED; the generic PERFORMED never replaces the block's own;
-    - VERIFY (`step_check_meanings`, sql 0295, 0325): RE_VERIFIED_AFTER_CORRECTION alone while the step awaits
+    - VERIFY (`step_check_meanings`, sql 0295, 0325, 0333): RE_VERIFIED_AFTER_CORRECTION alone while the step awaits
       re-verification; else WITNESSED alone where the MBR asks for a witness, or where the step holds a critical value
       typed by hand without the photo or printout its MBR names (`hand_entries_without_declared_evidence`, sql 0325,
-      engine 1.4.0 `handEntriesWithoutDeclaredEvidence`; lead TODO T12); else the block's own check meaning
+      engine 1.4.0 `handEntriesWithoutDeclaredEvidence`; lead TODO T12), while a witness is still possible at the
+      command's trusted time (`witness_possible`, sql 0333, engine 1.5.0 `witnessPossible`: the pinned policy's witness
+      window after the act has not passed and the run has not moved on; T12.LATE; the times it reads and the window are
+      bound by sql 0334, `step_time_problem` and `witness_window_problem`); else the block's own check meaning
       (CONTAINER_CHECKED, LINE_CLEARANCE_VERIFIED, ...) where it has one; else VERIFIED. A witness, a generic
-      VERIFIED or another block's check never replaces the check the step requires (P37);
+      VERIFIED or another block's check never replaces the check the step requires (P37); a later review never
+      replaces a witness that is still possible, and a late signature never counts as a witness;
     - DISPOSITION_HOLD_POINT: a decision the hold point offers, signed with the meaning of its class
       (HOLD_POINT_RELEASED for a releasing decision, else HOLD_POINT_NOT_RELEASED);
+  - for a VERIFY that checks a step by its later review because the witness it required is no longer possible, comes
+    with exactly the exception the engine raises for it (`late_check_record`, trigger `zzf_execution_late_check`; sql
+    0333, engine 1.5.0; T12.LATE): WITNESS_LATE at that step, QA only, its title naming the items typed by hand without
+    their declared evidence (or the MBR's witness), why no witness was possible and the reviewer; no other row adds a
+    WITNESS_LATE (EBMR-EXE-141);
   - was made by the person who uses it (an approval by another person than the corrector);
   - was never used by another row;
   - is valid on that aggregate (content unchanged, sealed, not superseded);
@@ -161,8 +170,10 @@ that another command holds is skipped.
     only the one its stored source names, which the writer controls for an exception a block or the engine raises,
     but also the step the command of the row that raised it acts on (`exception_raising_steps`: the row whose
     EXCEPTION_RAISED event names the exception; the step and context of the command, or the step of the data point a
-    CORRECT_ENTRY or INVALIDATE_RESULT names). A time finding of the system keeps only its stored source, which
-    0299 binds;
+    CORRECT_ENTRY or INVALIDATE_RESULT names; since sql 0327 also a preparation row's step and a refused row's). A time
+    finding of the system keeps only its stored source, which 0299 binds. Since sql 0327 the stored source is itself
+    bound when the row is written (see the exceptions as raised below), so it names the step the engine raised the
+    exception at;
 - every row leaves the exceptions of the stored state as they were raised (DI-26, INV-41; sql 0270,
   `check_exception_changes`, EBMR-EXE-044): none is removed or changed, except the status and disposition of the
   exception an accepted DISPOSITION_EXCEPTION names and the deviation link an accepted ATTACH_DEVIATION adds to an
@@ -192,8 +203,18 @@ that another command holds is skipped.
   findings (DECISION_NOT_EVALUABLE, REPLICATE_COUNT_INVALID, LOOP_EXHAUSTED), ACCEPTANCE_CRITERION_FAILED,
   CALCULATION_FAILED, the post-entry and repeat findings (for example REPEAT_AFTER_FAIL, POST_ENTRY_CORRECTION,
   DECISION_AFFECTING_CORRECTION) and the blocks' own types. For those the database checks only that they are
-  raised open, by the row's person, told by their event and kept as raised. The rest of the engine state is
-  checked by replay, not here;
+  raised open, by the row's person, told by their event and kept as raised. Since sql 0327 (trigger
+  `zzb_execution_exception_source`, `exception_source_problem`, EBMR-EXE-044; Phase 2 exit review F11, round 4)
+  every exception any row adds, the issue, a preparation and a refused row included, is recorded at the step the
+  engine raises it at: an exception of a type the engine raises at a step (every type but an operator's exception,
+  the time findings and the flow findings) names a step instance of the state with its step and frames; apart from a
+  limit verdict (whose step 0305 derives), that step is the one the row acts on (a step command's, a correction's or
+  an invalidation's data point's, the step a preparation finalises), a CALCULATION_FAILED is at a step that computes
+  its item, and only an accepted CORRECT_ENTRY or INVALIDATE_RESULT raises a CALCULATION_FAILED or an
+  EXECUTED_TARGET_CHANGED at a step its change reaches as the engine's propagate reaches it (a current computed value
+  of that step, or its target of the item, fed by the replaced value or by a computed value the row supersedes); a
+  flow finding names no step. Which of several reached step instances gets which exception, and whether the engine
+  raises it at all, stay with the replay. The rest of the engine state is checked by replay, not here;
 - every row leaves a hold point's recorded decision as it is: a decision is never changed or removed, and a new one
   comes only from that hold point's own accepted DISPOSITION_HOLD_POINT, recording the signed disposition and
   comment, by the signer, under the one signature the row uses (PR-45, DI-37; sql 0295, `check_hold_point_changes`:
@@ -332,8 +353,14 @@ that another command holds is skipped.
     edition also requires the readings claimed for it in the same command (tablets sql 0300), except in a refusal
     ENG-STALE, which names its readings without using them: stored readings with the weights the entry states,
     one named for each purpose, a tare and a gross that the claims of its command by the person would accept at that
-    moment, together (one reading named as both is refused as the gross claim refuses it, EBMR-DEV-105), with no
-    reading claimed in its command (tablets sql 0500, 0510, EBMR-EXE-124);
+    moment, together (one reading named as both is refused as the gross claim refuses it, EBMR-DEV-105; tablets sql
+    0500, 0510), listed exactly as stored, the tare then the gross, and nothing else (evidence.namedReadings, which
+    no other row carries; tablets sql 0520). No reading is claimed under the correlation id of a row recorded as the
+    refusal ENG-STALE, checked at commit on both sides: before or after the row, in its transaction or another, and
+    in a transaction open at the same time (the two meet on one key of `tab.reading_claim_mark`; under REPEATABLE
+    READ the later one fails to serialise) (tablets sql 0520, EBMR-EXE-124). Until 0520 only claims made before the
+    row in its own transaction were refused. A command that claims readings and writes no row is not refused (decision
+    F58.2);
 - the engine's version check (sql 0326; triggers `ab_execution_stale_command`, `zn_execution_stale_refusal`,
   `stale_command_problem`, DI-34; Phase 2 exit review F58.1): a command whose screen showed another version than
   the run's (its expectedVersion, a whole number) is recorded only as the refusal ENG-STALE, and that refusal only
@@ -359,7 +386,43 @@ that another command holds is skipped.
     line) or an output weighing's (G-22, OUTPUT_CONTAINER, holding its intermediate), under the id the entry names or,
     for an output weighing that names none, the id the block builds, with the entry's net quantity, produced by the
     row's step instance in its frames, in quarantine (EBMR-EXE-126); and the tablets edition reads its id as a test
-    lot number, the built output id excepted (tablets sql 0390, EBMR-EXE-078);
+    lot number, the built output id excepted (tablets sql 0390, EBMR-EXE-078). An entry names only what its step's node
+    in the batch's MBR names (sql 0328, trigger `zzc_execution_entry_references`, `entry_reference_problem`; Phase 2
+    exit review F12, round 4; EBMR-EXE-126): a weighing's or lot charge's BOM line is a line of the MBR's bill of
+    materials the step consumes, an output's intermediate one the step produces, a container charge names a container
+    the batch held in quarantine, states what it holds, is of content the step charges (an intermediate it uses, a BOM
+    line it consumes), of the step's own sub-lot, scanned with this batch's label, and the row consumes exactly the
+    containers its charges name; an equipment check names equipment the step lists for a status check, when it lists
+    any. So a container never holds what the MBR does not give it. An entry holds exactly the data its block builds
+    (sql 0330, trigger `zzd_execution_entry_block`, `entry_block_problem`; Phase 2 exit review F12, the round-4
+    verification; EBMR-EXE-126), which corrects 0328's claim to have listed every member that names the MBR: an
+    acknowledgement's SOP code, version and hash are those of the reference its step's configuration names (none when
+    it names none) and its mode the configuration's; a sample's id and label are built from the batch number, the MBR's
+    product, the step, its sub-lot, the person and the time; a source addition carries its step's reprocessing case;
+    the person each block writes, the passed flag of an equipment status or a clearance, an output's status and an
+    attachment's paper-original flag are the block's; a block that keeps the whole command (a disposal, a transfer, a
+    source addition, start data) keeps all of it, and no block's data holds a member of its own beside what it builds.
+    The entry record carries its own id, the row's trusted time and an event of the row; an entry the block asks a
+    second person to check (a weighing keyed by hand, a scanned paper original, a line clearance) leaves its step
+    needing that check. The accept rules that read only the MBR, the batch and the entry hold too: a checklist answers
+    exactly its step's list, NOT_APPLICABLE only where allowed; a sample is of its step's sampling plan; a weighed or
+    charged lot is released, of the line's material, before expiry and retest, and identity-tested for a batch for a
+    market other than India; a disposal follows G-23's rules; a source addition is made only at a recovery or
+    reprocessing-addition step, of the batch's product, never chained, within the MBR's number of sources and age; a
+    reprocessing step other than a validated re-treatment starts only with the quality unit's authorisation, never
+    given by the person who starts it. An entry and a step's start data also meet the data schema of the step's
+    block version, as the engine checks them before the block sees them (sql 0332, trigger
+    `zze_execution_entry_schema`, `entry_schema_problem`, the table `block_data_schema` and its reader
+    `block_schema_problem`; Phase 2 exit review F12, the round-5 verification; EBMR-EXE-126), which corrects 0330's
+    "and nothing else": an accepted RECORD_ENTRY's entry meets the schema of its kind in the step's block version,
+    which must record that kind; an accepted START_STEP's start data meets that block's start-data schema; every
+    entry a row adds is of a kind its step's block records and its data's members meet that schema. So no member of
+    its own (a weighing's lotNumber in the command and the data alike), no answer outside a checklist's list (a
+    clearance answered NO stored as passed), no reprocessing start data without its references and no source
+    addition without its manufacture time pass, and no weighing hides under another kind from the net, label and
+    total checks. A refused row keeps what was sent and refused, but never a member that no block version declares
+    for that kind (`block_schema_unknown_member`). Whether a block raises the exception an entry calls for, a source
+    addition's share of the batch size and a transfer's two persons stay with the replay;
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -425,16 +488,26 @@ one plain-language business entry on the chain `batch:<id>`.
   soft hyphen says nothing, as in the engine's `requireReason`); the deviation is the linked one. As in the
   engine, DEVIATION_RAISED needs a linked deviation, and an exception that needs a deviation is never proposed
   NO_IMPACT. An absent or null member is refused (sql 0270). It and `propose_hold_point_decision` take the batch's
-  row lock (the one `lock_execution` takes and a signing holds to its commit) before they read anything, so a
-  proposal made while a decision is being signed waits for it and then finds the record decided (EBMR-EXE-084); and
-  neither proposes on a content version that already carries a signature of the deciding meaning
-  (EXCEPTION_DISPOSITIONED; HOLD_POINT_RELEASED or HOLD_POINT_NOT_RELEASED), so what a signature covers never
-  changes (INV-09; sql 0309, Phase 2 exit review F37).
+  row lock (the one `lock_execution` takes and a signing on the server's path holds to its commit) and, since sql
+  0329, the record's own signing lock (`esig.aggregate_lock`, which `esig.sign` takes whatever the path) before they
+  read anything, so a proposal made while any signing of the record is open waits for it and then finds the record
+  decided or signed (EBMR-EXE-084), and a signing asked for while a proposal is open waits for it and is refused
+  because the record changed (EBMR-ESIG-012); and neither proposes on a content version that already carries a
+  committed signature of the deciding meaning (EXCEPTION_DISPOSITIONED; HOLD_POINT_RELEASED or
+  HOLD_POINT_NOT_RELEASED), so what a signature covers never changes (INV-09; sql 0309, Phase 2 exit review F37).
+  Under 0309 alone a signer outside the server's path, which takes no batch lock, could keep its signed transaction
+  open while a proposal committed on that version (F37.R). These waits serialise only in READ COMMITTED, where each
+  statement after the lock reads what committed before it: a proposal or a signing in REPEATABLE READ or SERIALIZABLE
+  read its first statement's snapshot and committed over content its record no longer had. So the proposals refuse
+  any other isolation level before they lock or read anything (sql 0331, EBMR-EXE-084), and so does the kernel's
+  signing lock, taken by `esig.sign` and every change of signed content (kernel migration 1020, EBMR-ESIG-015; F37.R round
+  2, decision F37.2).
 - The content providers `batch_step_content`, `batch_stage_content`, `batch_exception_content` and
   `batch_point_content` read the latest content version, the state and the persons involved. For an exception
   these are its raiser, the person who linked its deviation and (sql 0306) the involvement set of the step it was
   raised at, as the step's lists and (sql 0310) the accepted commands recorded on that step name it; since sql 0315
-  for every step it was raised at, the step the command of its raising row acts on included. For a witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
+  for every step it was raised at, the step the command of its raising row acts on included (since sql 0327 also a
+  preparation or refused row that raised it). For a witnessed act, `batch_step` also reports `act {device_id, at, next_step_started}`.
 - `execution_violations()` must return no rows. It checks:
   - sequence gaps and the hash chain;
   - the projection against the last row;
@@ -447,6 +520,8 @@ one plain-language business entry on the chain `batch:<id>`.
     event of an accepted row before it, or, sql 0310, an accepted command before it that acted in that step) put
     them in its performers, data enterers, correctors or PERFORMED signers (INV-03, PR-13, PR-49); since sql 0315
     for every step the exception was raised at (`exception_raising_steps`);
+  - (sql 0327) an exception of a type the engine raises at a step that names no step instance of the stored state,
+    with its step and frames (INV-03, PR-13, PR-49);
   - (sql 0307) a step instance of a stored state that the steps before it did not precede: one of them first
     finished after the instance was enabled (its `firstCompletedSeq` later than the instance's `enabledSeq`) or
     never, or the conditions of `step_order_problem` do not hold for it (DI-34, PR-13; as the engine's own invariant
@@ -463,13 +538,15 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 010-019 | packages and issue |
 | 020-029 | an MBR version the engine cannot execute (020, server); clock, sequence and command id (021-024); the time bookkeeping of the state (025, 026; sql 0299) |
 | 030-039 | state and events, the verifier (033), engine roles (035-037), who may record the row (038, 039) |
-| 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it (044; sql 0270, 0295, 0298, 0305); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
+| 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it, an exception at the step the engine raises it at (044; sql 0270, 0295, 0298, 0305, 0327); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
 | 050-059 | signatures (050-052) and signable content (055-057) |
 | 060-064 | definition fit (TypeScript) |
 | 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, or a container the state registers, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380, 0390), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316); a stage sign-off other than the engine's (135; sql 0319, 0320); a weighing entry whose net is not gross minus tare at the resolution of the weighings (136; sql 0321); a container label other than the one its weighing and the batch give (137; sql 0322); a quantity counted from weighings that is not the sum of all their nets at the resolution they were weighed at (138; sql 0322); a weighing entry that does not count into the quantity its phase records in the MBR (139; sql 0323) |
 | 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
+| 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
+| 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
 
 ## TypeScript
 
@@ -670,6 +747,22 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   not take it in (the untaken branch started, an entry on a finished step, a verification of a step in progress) and
   a status change the engine never makes, or made by another row than the act that makes it (a correction that
   starts or finishes steps, an invalidation that reopens another step), are refused, each with its reason.
+- `test/execution/late-witness-sql.test.ts` (Phase 2 exit follow-up T12.LATE; sql 0333, engine 1.5.0): the database's
+  `witness_possible` agrees with the engine's `witnessPossible` at the window's last microsecond after the act and after
+  it, once the run moved on, before the act ended, and without a time (a witness stays due); `late_check_record` is the
+  exception the engine raises for a late review, member for member (a value typed by hand without its printout after
+  the window and after the run moved on, two such values, the MBR's witness), and none where the engine raises none
+  (within the window, a plain step, a re-verification).
+- `test/execution/step-times-sql.test.ts` (Phase 2 exit follow-up T12.LATE, round 2; sql 0334): every row of the
+  engine's own runs (both golden fixtures with their loops, sub-lots, hold points, preparations for a PERFORMED
+  signature and refused commands; a hold point released; two data enterers signing in turn; a clock that went back
+  before the PERFORMED signature) passes `step_time_problem`; a step's end recorded 400 s back or ahead of the row's
+  trusted time (the lane verifier's PROBE A), or by another act, step, a refused row or a preparation (EBMR-EXE-144), a
+  start a year ahead or back, or by another act or for another step (EBMR-EXE-143), a recorded start or end moved or
+  removed by a later row (EBMR-EXE-142), and a value recorded at another time than its row's, in an accepted, refused
+  or preparation row (EBMR-EXE-145), are refused with their reasons; `witness_window_problem` passes the engine's
+  default (300 s) and windows up to the kernel's maximum, and refuses one shorter than the site's (1 microsecond: the
+  verifier's PROBE B), longer than the kernel allows, or not a whole number of microseconds (EBMR-EXE-146).
 - `test/execution/own-node-events-sql.test.ts` (Phase 2 exit review F67, rounds 2 and 3; sql 0312, 0314, 0316): every row of the
   engine's own runs, the issue included (both golden fixtures, loops that exit or are exhausted, a step reopened for a
   re-test and signed performed again, a hold point released) passes `own_node_event_problem`; the same rows with a
@@ -678,14 +771,45 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   a replicate section or operation the step comes after), are refused, each with its reason. Round 3 (sql 0316): the
   row that finishes an operation in an alternative's branch, the last operation of a loop iteration or of a sub-lot,
   or the last operation of the final stage, without its END, is refused.
-- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 and 3; sql 0313, 0317): every entry of the engine's
+- `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 to 6; sql 0313, 0317, 0328, 0330, 0332): every entry of the engine's
   own runs (both golden fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an
   acknowledgement of the MBR's own SOP version) passes `entry_data_problem`; an entry that holds another value than
   its command sent (the real previous batch or product, a weighed container or lot, a sample point, a checklist's
   answers), or no data its command sent, is refused, each with the member it names. Round 3 (sql 0317): every
   container of both golden runs (named by the entry or built by the block) passes `new_container_problem`; a
   container beside a previous batch entry, under another id than its entry names or the block builds, a second one,
-  one with other facts, or one in a refused row is refused, each with its reason.
+  one with other facts, or one in a refused row is refused, each with its reason. Round 4 (sql 0328): every entry and
+  charge of both golden runs passes `entry_reference_problem`; a weighing or lot charge of a BOM line not in the BOM or
+  not the step's, an output of an intermediate the step does not produce, a container charge of an unknown, consumed,
+  unplanned or other sub-lot's container, with other contents or another batch's label, a consumption no charge
+  names, and an equipment check of equipment the step does not check are refused, each with its reason. Round 5 (sql
+  0330): every entry of every block's golden fixture, of both golden runs and of runs made for the kinds they leave
+  out passes `entry_block_problem`, every entry kind of this release's blocks among them, and the default checklists
+  the database applies are the blocks' own; the round-4 verification's acknowledgement naming sop B24-0001 and
+  sopVersion L2409-0017, another SOP, version, hash or mode, a sample with another id or label, outside its plan, a
+  source addition of another product, case or step, chained, too old or of too many sources, a reprocessing started
+  without its authorisation or authorised by its performer, another person, passed flag, status or paper-original
+  flag, a member dropped from or added to the data, another id, time or event of the entry record, a step left
+  without the check its entry asks for, a checklist that leaves out, repeats or adds an item, an unusable lot and a
+  disposal against G-23's rules are refused, each with its reason. Round 6 (sql 0332): `block_data_schema` equals
+  the block registry's data schemas and cannot be changed; `block_schema_problem` gives the engine's verdict on
+  every entry and start data of the engine's runs, every golden configuration and several thousand forged
+  variants, naming one of the engine's problems; every entry and start data of the engine's runs passes
+  `entry_schema_problem`, every kind among them; the round-5 verification's weighing with lotNumber L2409-0017 in its
+  command and data, a member of its own in every block's command (and data where the block keeps it), a clearance
+  answered NO and a status answered no stored as passed, reprocessing start data that is empty or leaves out a
+  reference, a source addition without manufacturedAtUs or with it as a number, a sample of 0 units, a disposal of an
+  unknown category, and further values of another type pass 0313 and 0330 and are refused; an entry of a kind its
+  step's block does not record (a weighing renamed CONTAINER_WEIGHING_2), stored data that breaks the schema, a
+  refused row holding a member no block version declares, and every kind's own rules in 0330.
+- `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
+  exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
+  fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
+  moved; a decision a correction would change; a preparation row and a refused PERFORMED signature that keep their
+  finalisation's exception); one stored without its step, at a step instance that is not one or with another step or
+  frames, at a step that does not compute its item, at the corrected step, at a step the change does not reach, from
+  a row that is not an accepted correction or invalidation, in a preparation or refused row without its step, from a
+  row that acts on no step, or a flow finding placed at a step, is refused, each with its reason.
 - `test/execution/weighing-item-sql.test.ts` (lead TODO T2 of the Phase 2 exit, round 3; INV-25, PR-19; sql 0323): the
   database reads a unit as a mass (`mass_unit_class`) only where the expression language does (g with a metric prefix,
   an exponent of 1, an annotation), and a compound unit as one it cannot tell; the items a phase records
@@ -695,6 +819,13 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   quantity, an output container into none, the second or another quantity, or after a quantity whose unit the database
   cannot read, a weighing at another block's step (a dispensed container is G-07's, an output container G-22's), and
   a weight in a unit not counted into its quantity, are refused, each with its reason.
+- `test/execution/weighed-units-sql.test.ts` (Phase 2 exit follow-up COMPOUND-UNIT; INV-25, PR-19, DI-30; sql 0323):
+  the validator's reading of a unit (recipe-core flow `databaseMassClass`) is `mass_unit_class`'s, unit for unit
+  (prefixes, exponents, annotations, compound units, two annotations, lengths at 120 characters counted as code points,
+  values that are no text); and the validator's warning DATA-WEIGHED-UNITS is given at a G-22 or G-07 step exactly
+  where `weighing_item_problem` refuses the weighing the engine would store there (a compound unit before the net or
+  with no plain mass quantity, the net itself or the dispensed mass written so), and nowhere it accepts it (after the
+  net, a plain unit, several readings, a count, the shipped master).
 - `test/execution/step-acts-sql.test.ts` (Phase 2 exit review F67; sql 0308): every accepted act of both golden
   runs and of runs with an operator's action exception, its deviation and QA decision, a hold point released after
   it, and minimum durations kept passes the minimum, block and hold-release checks; each act the engine refuses as
@@ -773,7 +904,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   another tier, left out, or not marked failed (EBMR-EXE-044), while the honest one is recorded and QA cannot
   disposition it NO_IMPACT; an ISSUE row whose state already records a decision, a closed, linked or operator's
   exception, a data point, a performer or a signature (EBMR-EXE-030, 044).
-- `db-guards-disposition-involvement.test.ts` (Phase 2 exit review F11; sql 0306, 0310, 0315): the signed content of an
+- `db-guards-disposition-involvement.test.ts` (Phase 2 exit review F11; sql 0306, 0310, 0315, 0327): the signed content of an
   exception raised at a step names the step's performers, data enterers, correctors and PERFORMED signers; a
   person who entered data in that step, also holding a QA role, cannot disposition it through the store with the
   application role (the kernel refuses the signature, EBMR-ESIG-044); the invariant query reports a disposition by
@@ -785,7 +916,16 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   without the step it was raised at (operator2's checklist row, the engine's result with the source's step deleted)
   is still the clearance's: operator1, who started it, cannot sign its disposition (EBMR-ESIG-044), one signed before
   operator1 entered data in the step is refused in the same transaction (EBMR-EXE-087), and one landed with the
-  triggers off is reported by the invariant query.
+  triggers off is reported by the invariant query. Round 4 (sql 0327): a correction of the blend time that makes the
+  blend ratio of a later step fail raises CALCULATION_FAILED at the later step; stored without that step, or at the
+  line clearance, the row is refused (EBMR-EXE-044); stored as raised, operator1, who worked only in the later step,
+  cannot sign its disposition (EBMR-ESIG-044); stored without its step behind the triggers' back, it is reported by
+  the invariant query; the round-3 bypass through the application role is refused when it is written; and a
+  DISPENSE_OUT_OF_TOLERANCE raised by a preparation row (the PERFORMED finalisation) without its step is refused from
+  the application role, and landed behind the triggers' back is still the dispensing step's (the preparation row
+  names it, so the signed content names the person who weighed). The round-3
+  cases now land their unsourced CLEARANCE_FAILED behind the triggers' back, as a restore or a row stored before sql
+  0327 would hold it.
 - `db-guards-step-order.test.ts` (Phase 2 exit review F66; sql 0307, 0311): the critic's row, which enabled the
   dispensing beside an entry on the line clearance in progress, is refused (EBMR-EXE-129) and the dispensing still
   cannot start; a row that marks the clearance finished while in progress, or signs off its stage, is refused; the
@@ -800,11 +940,19 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
-- `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309): a second QA user's disposition, and a
+- `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309, 0329, 0331): a second QA user's disposition, and a
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content
-  version a disposition was already signed on is refused, with the exception still open.
-- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370): a real previous batch number
+  version a disposition was already signed on is refused, with the exception still open. F37.R (sql 0329), on two
+  connections with a signer outside the server's path (no batch lock): a disposition or hold-point decision proposed
+  while that signer's transaction is open waits for it and is refused, the signature committed after stays VALID; a
+  signing asked for while another QA user's proposal is open waits for it and is refused (EBMR-ESIG-012). Round 2
+  (sql 0331, kernel migration 1020), on two connections at REPEATABLE READ and SERIALIZABLE: a disposition or hold-point
+  decision proposed while an outside signer's transaction is open is refused (EBMR-EXE-084), and a disposition or
+  release signed while another QA user's proposal is open is refused (EBMR-ESIG-015); a deviation linked to the
+  exception after its disposition was signed and committed is refused (EBMR-ESIG-015) instead of leaving that
+  signature unsuperseded; every signature committed stays VALID.
+- `db-guards-entry-identifiers.test.ts` (Phase 2 exit review F12; tablets sql 0370; sql 0328, 0330, 0332): a real previous batch number
   typed into a line clearance is refused by the server before anything is written (EBMR-SBX-022), and by the database
   when written through the store (EBMR-EXE-078); every identifier an entry carries (previous, scanned and source
   batches, containers, lots) is a test identifier, and a weighed or charged lot a registered test lot stated as the
@@ -815,7 +963,19 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   command did not name does not. Round 3 (sql 0317, tablets sql 0390): the verifier's row, a real-format container
   L2409-0017 registered beside a previous batch entry, is refused (EBMR-EXE-078) and nothing holds it; the same with a
   test-format container is refused too (EBMR-EXE-126); a container's key and id are read as test lot numbers, the
-  output id built from the test batch's own number excepted.
+  output id built from the test batch's own number excepted. Round 4 (sql 0328): an output container holding
+  L2409-0017, an intermediate its step does not produce, and a weighing of a BOM line L2409-0017 or of another step's
+  line, each relabelled in the entry, the container, the events and the command, are refused (EBMR-EXE-126) and
+  nothing holds them; the honest entries are recorded. Round 5 (sql 0330): the round-4 verification's
+  acknowledgement of p-disp-sop@ naming sop B24-0001 and sopVersion L2409-0017, and one naming another SOP of the MBR,
+  are refused (EBMR-EXE-126) and nothing holds them; an equipment status attested in another person's name or leaving
+  out a check, and a weighing keyed by hand whose step is not left needing its second person, are refused; the honest
+  entries are recorded, the acknowledgement with the SOP the MBR pins. Round 6 (sql 0332): the round-5
+  verification's weighing whose command and data carry lotNumber L2409-0017, a weighing stored as kind
+  CONTAINER_WEIGHING_2 without its container, a clearance answered NO and an equipment status answered no (which
+  0330 stored as passed), and a refused row whose command carries a member no block declares are refused
+  (EBMR-EXE-126) and nothing holds them; the engine's own refusal of an answer NO is recorded as a refused row, and the
+  honest entries are recorded.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and
@@ -865,7 +1025,19 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `witness-without-printout.test.ts` (lead TODO T12 of the Phase 2 exit; DI-30, PR-14, DI-35; sql 0325, engine 1.4.0):
   a critical value typed by hand without the printout its MBR names makes the step's check a witness: the screen
   offers WITNESS, the server asks for WITNESSED also when the intent names VERIFIED, and a verification recorded as
-  VERIFIED on that step is refused by the database (EBMR-EXE-051) with nothing signed.
+  VERIFIED on that step is refused by the database (EBMR-EXE-051) with nothing signed. T12.LATE (sql 0333, engine
+  1.5.0): once the run moved on after the act (the blend time beside the booth clearance, which the operator starts) a
+  witness is refused with nothing signed, and the screen, the challenge and the signature are the later review
+  (VERIFIED), which completes the step and records WITNESS_LATE that only QA dispositions; written past the server, the
+  late review without that exception, with it not QA-only or with another title is refused (EBMR-EXE-141), and so is a
+  WITNESS_LATE raised by any other row; the database asks for the witness up to the window's last microsecond after the
+  act and for the later review after it, at the command's trusted time (its marker), and for the witness without one. Round 2
+  (sql 0334): written past the server, operator1's PERFORMED signature with the act 400 s in the past (the lane
+  verifier's PROBE A) is refused (EBMR-EXE-144) and, signed honestly, the step asks for the witness; a start of another
+  step dated a year ahead (EBMR-EXE-143), a value recorded a year ahead (EBMR-EXE-145) and a step's start moved back
+  by a later row of that step (EBMR-EXE-142) are refused, and the run moves on only when the clearance really starts; a batch issued
+  through the application role with a pinned witness window of 1 microsecond (PROBE B), 299.999999 s or 1800.000001 s
+  is refused with nothing issued (EBMR-EXE-146), and 300 s and 1800 s are issued.
 - `db-guards-weighing-net.test.ts` (lead TODO T2 of the Phase 2 exit; INV-25, PR-19; sql 0321): a weighing row whose
   net is not gross minus tare at the resolution of the weighings ("50" for 51.250 - 1.250, or another value) is refused
   (EBMR-EXE-136); the engine's own net ("50.000") is recorded; the database's reading of both weighing kinds.
@@ -885,6 +1057,15 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   readings as used (EBMR-EXE-124), and a refusal that is not stale still stands on readings claimed for it; the honest
   one is recorded and the next accepted weighing uses the same readings. One reading taken for no stated purpose named
   as both the tare and the gross is refused as the claims of the command refuse it (EBMR-DEV-105), and stays unused.
+- `db-guards-stale-row-commit.test.ts` (Phase 2 exit follow-up F58.1, round 3; DI-32, DI-34, PR-19; tablets sql 0520):
+  written through the store, the honest stale weighing whose readings are then claimed in its own transaction under its
+  correlation id is refused at commit (EBMR-EXE-124), and so is that claim with every deferred check made at once, a
+  claim under the correlation id of a committed stale row in a later transaction, and a stale row under the correlation
+  id of claims committed earlier; with two transactions open at once, from two sessions, the one that commits second
+  is refused (EBMR-EXE-124, or a serialization failure under REPEATABLE READ); the readings stay usable by the next
+  accepted weighing. The readings a row names without using them are exactly the stored tare and gross of a stale
+  weighing from a device: a third named reading, a value, raw line or capture time other than the stored one, the
+  gross first, or readings named by an accepted weighing are refused (EBMR-EXE-124).
 - `engine-version.test.ts`: a batch issued under engine 1.0.0 is neither run nor replayed by this engine
   (EBMR-EXE-061).
 - `refusals-and-room-views.test.ts` (round-1 verification): each database refusal of a step's source, room and
@@ -905,4 +1086,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   text.
 - `golden.test.ts`: the dc-mini run to EXECUTION_COMPLETE. The persistence model is checked after every
   step: no violations, the kernel's valid signatures equal the engine's, and replay is identical. The
-  run records the signature-budget baseline: 29 signatures.
+  run records the signature-budget baseline: 29 signatures. REPLAY-GATE (decision REPLAY-GATE.1): a computed value
+  forged through the application role is stored (the database does not re-run calculations) and the invariant query
+  stays empty, but the replay of the stored rows with the pinned engine differs at that row, as the release gate
+  G-REL will read it.

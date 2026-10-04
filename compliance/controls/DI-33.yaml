@@ -241,6 +241,7 @@ tests:
   - "packages/recipe-core/test/integration/canonical-json.test.ts > canonical JSON and hashing agree between expr and the kernel > [DI-33][DI-37] bigints are treated alike by both (written as integers, never refused differently)"
   - "packages/recipe-core/test/validator/data.test.ts > data gates > [DI-04][DI-33] DATA-EXPRESSIONS: a unit error in a calculation is refused with the expression language rule and control"
   - "packages/recipe-core/test/validator/data.test.ts > data gates > [DI-04][DI-33] DATA-CALC-CYCLES: calculations depending on each other in a cycle are refused"
+  - "apps/tablets-server/test/execution/golden.test.ts > REPLAY-GATE: the replay of the stored rows finds what the database does not re-derive (decision REPLAY-GATE.1) > [DI-34][DI-33] a computed value forged through the application role is stored, since the database does not re-run calculations, and the invariant query is empty; the replay of the stored rows with the pinned engine differs at that row, so a release gate that replays stays NOT_READY"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

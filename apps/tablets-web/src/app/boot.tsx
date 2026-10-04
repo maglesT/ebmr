@@ -22,7 +22,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { routes, type CallError, type DeviceView, type MetaView, type Result, type SessionView } from '@ebmr/api-contract';
 import { machines } from '@ebmr/ui-kit';
-import { api, apiState, deviceProof } from '../api/client.ts';
+import { api, apiState, deviceProof, isForeignSession, type ForeignSessionCode } from '../api/client.ts';
+import { bindPagePerson, terminalKeyOf } from '../api/page-binding.ts';
 import { callWithDeadline } from '../api/deadline.ts';
 import { forgetDeviceKey, loadDeviceKey, type StoredDeviceKey } from '../device/keystore.ts';
 import { clearAllDrafts } from '../features/designer/model/draft.ts';
@@ -41,7 +42,17 @@ import {
   startSignOut,
 } from './sign-out-mark.ts';
 
-export type BootPhase = 'loading' | 'failed' | 'mismatch' | 'no-device' | 'device-refused' | 'signed-out' | 'signing-out' | 'sign-out-unconfirmed' | 'ready';
+export type BootPhase =
+  | 'loading'
+  | 'failed'
+  | 'mismatch'
+  | 'no-device'
+  | 'device-refused'
+  | 'signed-out'
+  | 'signing-out'
+  | 'sign-out-unconfirmed'
+  | 'session-changed'
+  | 'ready';
 
 export interface BootState {
   phase: BootPhase;
@@ -75,6 +86,11 @@ export interface Boot extends BootState {
    */
   signOut: () => Promise<void>;
   forgetTerminal(): Promise<void>;
+  /**
+   * After 'session-changed' (review F41, round 4): this page lets go of the session it started with and starts again,
+   * showing who is signed in on this browser now (or the sign-in form), never acting as them before it shows them.
+   */
+  showBrowserSignIn(): void;
 }
 
 const BootContext = createContext<Boot | null>(null);
@@ -103,6 +119,14 @@ const describe = (e: CallError): string =>
 /** The server's own answer that this browser holds no session (never assumed from a lost or failed answer). */
 const isNoSession = (e: CallError): boolean => e.kind === 'REFUSAL' && e.status === 401 && e.envelope.refusal.code === 'NO_SESSION';
 
+/** What the page says when the browser's sign-in is not the one it started with (review F41, round 4). */
+export const SESSION_CHANGED_TEXT: Record<ForeignSessionCode, string> = {
+  SESSION_CHANGED:
+    'The sign-in this browser now sends is another person\'s than the one this page was signed in as: another tab signed in, or another page of this computer set it. Nothing was done with it.',
+  SESSION_OTHER_TERMINAL:
+    'The sign-in this browser now sends was opened on another terminal: another page of this computer may have set it. Nothing was done with it.',
+};
+
 /** One sign-out request, given up (and aborted) when the server has not answered within SIGN_OUT_REQUEST_TIMEOUT_MS. */
 function withDeadline<T>(run: (signal: AbortSignal) => Promise<Result<T>>): Promise<Result<T>> {
   return callWithDeadline(SIGN_OUT_REQUEST_TIMEOUT_MS, run, TIMED_OUT);
@@ -121,20 +145,25 @@ const ELSEWHERE: SignOutOutcome = { kind: 'ELSEWHERE' };
  */
 async function endServerSession(stillWanted: () => boolean): Promise<SignOutOutcome> {
   const unconfirmed = (e: CallError): SignOutOutcome => ({ kind: 'UNCONFIRMED', problem: describe(e) });
+  // The browser's sign-in is not this page's any more (F41, round 4): it is another person's or another terminal's,
+  // which this page never ends or locks.
   if (apiState.csrfToken !== undefined) {
     if (!stillWanted()) return ELSEWHERE;
     const out = await withDeadline((signal) => api.call(routes.session.logout, { body: {}, signal }));
     if (out.ok || isNoSession(out.error)) return ENDED;
+    if (isForeignSession(out.error)) return ELSEWHERE;
   }
   const now = await withDeadline((signal) => api.call(routes.session.get, { signal }));
-  if (!now.ok) return isNoSession(now.error) ? ENDED : unconfirmed(now.error);
+  if (!now.ok) return isNoSession(now.error) ? ENDED : isForeignSession(now.error) ? ELSEWHERE : unconfirmed(now.error);
   apiState.csrfToken = now.value.csrfToken;
   if (!stillWanted()) return ELSEWHERE;
   const again = await withDeadline((signal) => api.call(routes.session.logout, { body: {}, signal }));
   if (again.ok || isNoSession(again.error)) return ENDED;
+  if (isForeignSession(again.error)) return ELSEWHERE;
   if (!stillWanted()) return ELSEWHERE;
   const locked = await withDeadline((signal) => api.call(routes.access.lock, { body: {}, signal }));
   if (!locked.ok && isNoSession(locked.error)) return ENDED;
+  if (!locked.ok && isForeignSession(locked.error)) return ELSEWHERE;
   return unconfirmed(again.error);
 }
 
@@ -155,6 +184,7 @@ async function runBoot(): Promise<BootState> {
   const withMeta = { ...empty, meta: meta.value };
   if (window.location.pathname === '/demo/devices') return { ...withMeta, phase: 'no-device' };
   const deviceKey = await loadDeviceKey();
+  apiState.terminalKey = deviceKey ? await terminalKeyOf(deviceKey.publicKeySpki) : undefined;
   if (!deviceKey) return { ...withMeta, phase: 'no-device' };
   const proof = await deviceProof(deviceKey, 'POST', '/api/session/identify', {});
   if (!proof.ok) return { ...withMeta, deviceKey, phase: 'failed', problem: describe(proof.error) };
@@ -185,9 +215,16 @@ async function runBoot(): Promise<BootState> {
   }
   if (!session.ok) {
     apiState.csrfToken = undefined;
+    // F41, round 4: the browser's sign-in is another person's than the one this tab started with: said, never used.
+    if (isForeignSession(session.error) && session.error.kind === 'REFUSAL' && session.error.envelope.refusal.code === 'SESSION_CHANGED') {
+      return { ...known, phase: 'session-changed', problem: SESSION_CHANGED_TEXT.SESSION_CHANGED };
+    }
+    // No session, or one opened on another terminal (never this page's): the sign-in form, whose sign-in replaces it.
+    bindPagePerson(null);
     return { ...known, phase: 'signed-out' };
   }
   apiState.csrfToken = session.value.csrfToken;
+  bindPagePerson(session.value.person.personId);
   return { ...known, session: session.value, phase: 'ready' };
 }
 
@@ -233,6 +270,7 @@ export function BootProvider({ children }: { children: ReactNode }) {
     apiState.csrfToken = undefined;
     if (outcome.kind === 'ENDED') {
       confirmSignedOut();
+      bindPagePerson(null);
       setState((s) => ({ ...s, session: null, phase: 'signed-out', problem: null }));
     } else if (outcome.kind === 'ELSEWHERE') {
       forgetSignOut();
@@ -286,6 +324,7 @@ export function BootProvider({ children }: { children: ReactNode }) {
       // this browser keeps the mark of another tab's sign-out, no session is shown either: this page joins it.
       if (joinMarkedSignOut()) return;
       apiState.csrfToken = session?.csrfToken;
+      bindPagePerson(session ? session.person.personId : null);
       setState((s) => ({ ...s, session, phase: session ? 'ready' : s.device ? 'signed-out' : s.phase }));
     },
     [joinMarkedSignOut],
@@ -350,12 +389,30 @@ export function BootProvider({ children }: { children: ReactNode }) {
 
   const forgetTerminal = useCallback(async () => {
     await forgetDeviceKey();
+    apiState.terminalKey = undefined;
+    bindPagePerson(null);
     setGeneration((g) => g + 1);
   }, []);
 
+  // F41, round 4: a request of the session this page shows was served as nobody, because the browser's sign-in is
+  // another person's or another terminal's (page-binding.ts). The page stops showing the session at once and says so.
+  useEffect(() => {
+    const onForeign = (code: ForeignSessionCode) =>
+      setState((s) => (s.phase === 'ready' ? { ...s, session: null, phase: 'session-changed', problem: SESSION_CHANGED_TEXT[code] } : s));
+    apiState.onForeignSession.add(onForeign);
+    return () => {
+      apiState.onForeignSession.delete(onForeign);
+    };
+  }, []);
+
+  const showBrowserSignIn = useCallback(() => {
+    bindPagePerson(null);
+    restart();
+  }, [restart]);
+
   const value = useMemo<Boot>(
-    () => ({ ...state, restart, setSession, joinMarkedSignOut, signOut, forgetTerminal }),
-    [state, restart, setSession, joinMarkedSignOut, signOut, forgetTerminal],
+    () => ({ ...state, restart, setSession, joinMarkedSignOut, signOut, forgetTerminal, showBrowserSignIn }),
+    [state, restart, setSession, joinMarkedSignOut, signOut, forgetTerminal, showBrowserSignIn],
   );
   return <BootContext.Provider value={value}>{children}</BootContext.Provider>;
 }

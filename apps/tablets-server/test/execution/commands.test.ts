@@ -157,6 +157,25 @@ describe('commands', () => {
     expect(await violations(server)).toEqual([]);
   }, 180_000);
 
+  it('[DI-34] a run version no run can have (beyond the PostgreSQL integer a run\'s version is stored in) is refused as malformed before anything is written, never answered as a refusal of the store (EBMR-EXE-140); the highest version a run can have is a stale screen like any other, recorded with the version it showed (Phase 2 exit follow-up F58.1)', async () => {
+    const d = await driver();
+    const rows0 = await rowsOf(server, d.runId);
+    const beyond = await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { expectedVersion: 2 ** 31 });
+    expect(outcomeOf(beyond)).toBe('400:SCHEMA');
+    expect(await rowsOf(server, d.runId)).toEqual(rows0);
+    const highest = await d.command('operator1', { type: 'START_STEP', stepKey: CLEAR }, { expectedVersion: 2 ** 31 - 1 });
+    expect(outcomeOf(highest)).toBe('409:ENG-STALE');
+    const rows1 = await rowsOf(server, d.runId);
+    expect(rows1.slice(0, rows0.length)).toEqual(rows0);
+    expect(rows1.slice(rows0.length)).toMatchObject([{ kind: 'COMMAND', command_type: 'START_STEP', accepted: false, refusal: { code: 'ENG-STALE' } }]);
+    const { rows: recorded } = await server.db.admin.query<{ seen: number }>(
+      "select (command ->> 'expectedVersion')::int as seen from recipe.execution_command where batch_id = $1 and seq = $2",
+      [d.runId, rows1.length],
+    );
+    expect(recorded).toEqual([{ seen: 2 ** 31 - 1 }]);
+    expect(await violations(server)).toEqual([]);
+  }, 180_000);
+
   it('[DI-34] two commands at once on one run are serialised: one applies, the other is refused as stale; the rows stay gapless', async () => {
     const d = await driver();
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });

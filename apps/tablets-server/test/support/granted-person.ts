@@ -21,11 +21,18 @@ export interface GrantedPerson {
 
 const reason = <T extends ActorContext>(ctx: T): T => ({ ...ctx, reasonCode: 'TEST_SETUP', reasonText: 'read-authorisation test set-up', correlationId: randomUUID() });
 
-/** A person holding `roleCode` (optionally until `validTo`), requested by the administrator and approved by the owner. */
+/** The office terminal the person signs in on: the QA office PC on GMP, the sandbox's office PC there. */
+const officeOf = (server: TestServer): string => (server.kind === 'GMP' ? 'PC-QA-01' : 'TEST-PC-01');
+
+/**
+ * A person holding `roleCode` (optionally until `validTo`), requested by the administrator and approved by the owner. In
+ * the sandbox the legal name given must be a test label (TEST-..., DI-05), and the user ID is made one.
+ */
 export async function grantedPerson(server: TestServer, roleCode: string, legalName: string, validTo?: string): Promise<GrantedPerson> {
   const admin = await passwordActor(server.db, server.seed.bootstrap.admin, server.seed.bootstrap.admin.fingerprint);
   const owner = await passwordActor(server.db, server.seed.bootstrap.owner, server.seed.bootstrap.owner.fingerprint);
-  const loginName = `${roleCode.toLowerCase().replace(/_/g, '.')}.${randomUUID().slice(0, 8)}`;
+  // In the sandbox a user ID is a test label too (DI-05).
+  const loginName = `${server.kind === 'SANDBOX' ? 'test-' : ''}${roleCode.toLowerCase().replace(/_/g, '.')}.${randomUUID().slice(0, 8)}`;
   const created = await withCommand(server.db.app, reason(admin), async (c) => {
     const personId = await identity.createPerson(c, 'NATURAL', legalName);
     await identity.recordIdentityVerification(c, {
@@ -39,16 +46,16 @@ export async function grantedPerson(server: TestServer, roleCode: string, legalN
     return { personId, accountId, secret, grantId };
   });
   await withCommand(server.db.app, reason(owner), (c) => identity.decideRoleGrant(c, created.grantId, true, `test set-up: ${roleCode}`));
-  const fp = terminalOf(server.seed, 'PC-QA-01').fingerprint;
+  const fp = terminalOf(server.seed, officeOf(server)).fingerprint;
   const password = `Review-${randomUUID()}`;
   const ev = await identity.authenticate(server.db.authn, { method: 'PASSWORD', identifier: loginName, secret: created.secret, deviceFingerprint: fp, purpose: 'LOGIN' });
   await identity.changeSecret(server.db.authn, { authEventId: ev.authEventId, kind: 'PASSWORD', newSecret: password, loginName });
   return { personId: created.personId, accountId: created.accountId, loginName, legalName, roleCode, password };
 }
 
-/** A real login of a created person on PC-QA-01. */
+/** A real login of a created person on the office terminal (PC-QA-01 on GMP, TEST-PC-01 in the sandbox). */
 export async function loginOf(server: TestServer, p: GrantedPerson): Promise<TestBrowser> {
-  const b = server.browser('PC-QA-01');
+  const b = server.browser(officeOf(server));
   const body = { method: 'PASSWORD' as const, identifier: p.loginName, secret: p.password };
   const r = await b.call(routes.session.login, { body: { ...body, proof: await b.proof('POST', '/api/session/login', body) } });
   if (!r.ok) throw new Error(`login of ${p.loginName}: ${JSON.stringify(r.error)}`);

@@ -24,6 +24,19 @@ export type DecimalString = z.infer<typeof DecimalString>;
 /** A non-negative integer as text (content versions, sequence numbers beyond 2^53 in the database). */
 export const IntegerString = z.string().regex(/^(0|[1-9][0-9]*)$/, 'a whole number as text');
 
+/**
+ * The highest version a test run can have: a run's version is stored as a PostgreSQL integer
+ * (recipe.execution_command.state_version), and the store refuses a command naming a version outside that range
+ * (recipe-core 0326, EBMR-EXE-140). Phase 2 exit follow-up F58.1, round 3.
+ */
+export const RUN_VERSION_MAX = 2_147_483_647;
+
+/**
+ * The version of a test run a screen showed, sent back with a command (optimistic locking: another version is a stale
+ * screen, 409). One no run can have is refused as malformed before anything is written.
+ */
+export const RunVersion = z.number().int().nonnegative().max(RUN_VERSION_MAX);
+
 /** UTC epoch microseconds as text (may be negative before 1970). */
 export const EpochMicros = z.string().regex(/^-?(0|[1-9][0-9]*)$/, 'UTC epoch microseconds as text');
 

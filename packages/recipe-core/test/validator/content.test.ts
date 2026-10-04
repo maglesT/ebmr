@@ -1,7 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { MbrContent } from '../../src/flow/model.ts';
+import { parseMbr } from '../../src/flow/parse.ts';
+import { GENERIC_BLOCK_VERSIONS, MATERIAL_BLOCKS } from '../../src/blocks/generic/index.ts';
+import { checkMeaning } from '../../src/engine/actions.ts';
 import { gate } from '../../src/validator/validate.ts';
-import { clone, errors, findPhase, loadFixture, removeNode, validate, type FixtureName } from '../flow/support.ts';
+import { define, param as engineParam, Run, T0 } from '../engine/support.ts';
+import { clone, errors, findPhase, loadFixture, mbrWith, phase as mbrPhase, removeNode, validate, type FixtureName } from '../flow/support.ts';
 
 interface Deletion {
   item: string;
@@ -9,6 +14,13 @@ interface Deletion {
   remove: (m: MbrContent) => void;
   rule: string;
   names: RegExp;
+}
+
+/** dc-mini, the designer's shipped template (its copy among the fixtures; template-fixture.test.ts keeps them equal). */
+function dcMini(): MbrContent {
+  const r = parseMbr(JSON.parse(readFileSync(new URL('../fixtures/dc-mini.mbr.json', import.meta.url), 'utf8')));
+  if (!r.ok) throw new Error(`dc-mini does not parse: ${JSON.stringify(r.problems.slice(0, 3))}`);
+  return r.mbr;
 }
 
 function param(m: MbrContent, id: string): MbrContent['parameters'][number] {
@@ -203,6 +215,92 @@ describe('GMP content gates', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
     findPhase(m, 'p-binder-prep').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-WITNESS')?.message).toMatch(/records binderTemp by hand with no device capture, scan, photo or printout, so the checker must witness the act/);
+  });
+
+  it('[PR-03][DI-30][PR-14][DI-35] T12.DOC: a later review (VERIFIED) of a critical value typed by hand from a printout or photo is warned about (GMP-WITNESS-NO-ATTACHMENT): in this release the check runs as a timed witness, and once none is possible as the later review with an exception for QA; never where the MBR already asks for the witness (the shipped dc-mini template does), nor for an uncritical value', () => {
+    // The shipped template asks for the witness itself (since T12.DOC); an author who makes the check a later review is warned.
+    const template = dcMini();
+    const m = clone(template);
+    findPhase(m, 'p-blend').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
+    const found = (mbr: MbrContent) => validate(mbr).findings.filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT').map((f) => ({ severity: f.severity, subject: f.subject, key: f.key, message: f.message }));
+    expect(found(m)).toEqual([
+      {
+        severity: 'WARNING',
+        subject: 'p-blend',
+        key: 'GMP-WITNESS-NO-ATTACHMENT@p-blend',
+        message:
+          '"Blend" (p-blend) records blendTime, blenderSpeed by hand from the printout or photo the MBR names as their evidence, and its check is a later review (VERIFIED). In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)',
+      },
+    ]);
+    // The packaging master's photo of the India codes is the same case where its check is a later review (the fixture
+    // asks for the witness, since T12.DOC).
+    const packaging = clone(loadFixture('tablet-blister-packaging'));
+    expect(found(packaging)).toEqual([]);
+    findPhase(packaging, 'p-india-codes').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
+    expect(found(packaging).map((f) => f.subject)).toEqual(['p-india-codes']);
+    // Not where the MBR already asks for the witness, nor for a value that is not critical (a value captured by a device
+    // is typed by hand in this release all the same: the next test).
+    const witnessed = template;
+    expect(findPhase(witnessed, 'p-blend').signatures.check?.meaning).toBe('WITNESSED');
+    const uncritical = clone(m);
+    for (const id of ['blendTime', 'blenderSpeed']) param(uncritical, id).criticality = 'NON_CRITICAL';
+    expect({ witnessed: found(witnessed), uncritical: found(uncritical) }).toEqual({ witnessed: [], uncritical: [] });
+    // A warning, so the MBR can be approved once the author justifies it, as every warning (lifecycle START_VERIFICATION).
+    expect(errors(validate(m)).filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT')).toEqual([]);
+  });
+
+  it('[PR-03][DI-30][PR-14][DI-35] T12.DOC round 2: in this release every value of a step is typed by hand whatever capture the MBR names, so the later review of a critical value whose MBR names a printout or photo is warned about for device, scan, LIMS and automation capture too, saying so; never for a quantity the step\'s block computes from its weighings', () => {
+    const m = clone(dcMini());
+    findPhase(m, 'p-blend').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
+    const found = (mbr: MbrContent) => validate(mbr).findings.filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT').map((f) => ({ severity: f.severity, subject: f.subject, message: f.message }));
+    const RUNS =
+      'In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
+    const HOW = { DEVICE: 'from a device', SCAN: 'by scanning', LIMS: 'from LIMS', AUTOMATION: 'from the automation system' } as const;
+    for (const [capture, how] of Object.entries(HOW) as [keyof typeof HOW, string][]) {
+      const v = clone(m);
+      param(v, 'blendTime').capture = capture;
+      expect(found(v), capture).toEqual([
+        {
+          severity: 'WARNING',
+          subject: 'p-blend',
+          message: `"Blend" (p-blend) records blendTime, blenderSpeed by hand from the printout or photo the MBR names as their evidence, and its check is a later review (VERIFIED). The MBR captures blendTime ${how}, but in this release every value of a step is typed by hand on the step screen (a scanned code is recorded as typed by hand). ${RUNS}`,
+        },
+      ]);
+    }
+    const both = clone(m);
+    param(both, 'blendTime').capture = 'DEVICE';
+    param(both, 'blenderSpeed').capture = 'AUTOMATION';
+    expect(found(both).map((f) => f.message)).toEqual([
+      `"Blend" (p-blend) records blendTime, blenderSpeed by hand from the printout or photo the MBR names as their evidence, and its check is a later review (VERIFIED). The MBR captures blendTime from a device and blenderSpeed from the automation system, but in this release every value of a step is typed by hand on the step screen (a scanned code is recorded as typed by hand). ${RUNS}`,
+    ]);
+    // A dispensed or output quantity is computed by its block from the container weighings (never typed by hand), so its
+    // step keeps the later review the MBR names, printout or not: nothing to warn about.
+    const weighed = clone(dcMini());
+    for (const id of ['pcmDispensed', 'excDispensed', 'blendNet']) param(weighed, id).evidence = 'PRINTOUT';
+    expect(found(weighed)).toEqual([]);
+  });
+
+  it('[DI-30][PR-14][DI-35] T12.DOC round 2: the warning agrees with the engine for every capture mode (a critical value whose MBR names a printout, typed by hand as this release records every value, is checked by a witness) and for the quantities a weighing step computes (no witness)', () => {
+    for (const capture of ['MANUAL', 'DEVICE', 'SCAN', 'LIMS', 'AUTOMATION'] as const) {
+      const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [mbrPhase('p', { records: ['t'] }), mbrPhase('after')] }, {
+        parameters: [engineParam('t', { unit: 'min', capture, evidence: 'PRINTOUT', accuracyCheck: 'SECOND_PERSON' })],
+      });
+      const warned = validate(mbr).findings.some((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT' && f.subject === 'p');
+      const run = Run.issue(define(mbr), {}, T0);
+      run.start('p');
+      run.record('p', 't', { kind: 'DECIMAL', value: '15', unit: 'min' }, { source: { mode: 'MANUAL' } });
+      run.perform('p');
+      expect({ capture, warned, engine: checkMeaning(run.def, run.inst('p'), 'p', run.state, run.nowUs) }).toEqual({ capture, warned: true, engine: 'WITNESSED' });
+    }
+    // The quantities the validator leaves out are those the engine's definition computes at the weighing steps, read
+    // from the same handlers: every generic block version that computes items is one computedItemsOf reads.
+    expect(GENERIC_BLOCK_VERSIONS.filter((b) => b.handler?.computedItems !== undefined).map((b) => `${b.type}@${b.version}`)).toEqual(
+      MATERIAL_BLOCKS.filter((b) => b.handler?.computedItems !== undefined).map((b) => `${b.type}@${b.version}`),
+    );
+    const weighed = clone(dcMini());
+    for (const id of ['pcmDispensed', 'excDispensed', 'blendNet']) param(weighed, id).evidence = 'PRINTOUT';
+    const def = define(weighed);
+    expect(['p-disp-pcm', 'p-disp-exc', 'p-blend-out'].map((s) => [...(def.steps.get(s)?.computedItems ?? [])])).toEqual([['pcmDispensed'], ['excDispensed'], ['blendNet']]);
   });
 
   it('[PR-03] nothing that processes material may run after a stage yield', () => {

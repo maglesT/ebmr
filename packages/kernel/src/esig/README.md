@@ -121,8 +121,11 @@ TypeScript (`@ebmr/kernel` once `./esig/index.ts` is exported): `contentForSigni
   Detected: `esig.verify_signatures`, `esig.invariant_violations`.
 - **INV-09**: every registered signed table has an AFTER ROW trigger that, in the changing
   transaction, compares each unsuperseded signature's hash with the record's current hash and
-  inserts SUPERSEDED_BY_CHANGE rows; signing and changing a record take the same transaction lock;
-  signing is refused while an invalidation trigger is missing or disabled (EBMR-ESIG-008).
+  inserts SUPERSEDED_BY_CHANGE rows; signing and changing a record take the same transaction lock
+  (`esig.aggregate_lock`), and take it only in a READ COMMITTED transaction (1020, EBMR-ESIG-015): under
+  REPEATABLE READ or SERIALIZABLE the statements after the lock would read the transaction's first snapshot, so a
+  signing could cover content changed meanwhile and a change could miss a signature made meanwhile (test
+  `isolation.test.ts`); signing is refused while an invalidation trigger is missing or disabled (EBMR-ESIG-008).
 - **INV-03**: types whose role class is VERIFIER or WITNESS must exclude performers (check
   constraint); the excluded set is every person in `content_change` for the record, the provider's
   `entered_by` and every signer of a PERFORMER-class meaning, superseded or not; evaluated on the

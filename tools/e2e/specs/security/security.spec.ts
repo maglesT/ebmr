@@ -65,8 +65,10 @@ test.describe('security', () => {
   });
 
   // Review F41: cookies ignore ports. A page on another port of this host (here the sandbox's own origin) can set a
-  // copy of the GMP session cookie with a longer path, which the browser sends first on every API request.
-  test('[DI-13][DI-38][DI-14] a copy of the GMP session cookie planted by a page on another port neither locks the person out nor swaps their session', { tag: '@office' }, async ({ browser, e2e, persona }) => {
+  // copy of the GMP session cookie with a longer path, which the browser sends first on every API request. The copy is
+  // planted once here: a page that keeps planting it faster than the requests can remove it keeps the person locked
+  // out for as long as it runs (residual, ADR 0017 item 4 and decision F41.1).
+  test('[DI-13][DI-38][DI-14] a copy of the GMP session cookie planted once by a page on another port is removed by the next request: the person signs in and works in their own session, never in the planted one', { tag: '@office' }, async ({ browser, e2e, persona }) => {
     const author = persona('GMP', 'author');
     const approver = persona('GMP', 'approver');
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -118,6 +120,48 @@ test.describe('security', () => {
       await expect(page.getByText(approver.legalName)).toHaveCount(0);
       await expect(page.getByText(author.legalName).first()).toBeVisible();
       expect(await seenByPage(page)).toEqual({ status: 200, person: author.legalName, code: null });
+    } finally {
+      await context.close();
+      await other.close();
+    }
+  });
+
+  // Review F41, round 4: when the browser holds no GMP sign-in, a page on another port can set the GMP session cookie at
+  // Path=/ (no copy, so nothing is doubled) with another person's live session token: the GMP page worked in it. The page
+  // now names its terminal key on every request, and a session opened on another terminal is served as nobody.
+  test('[DI-13][DI-14][DI-38] another terminal\'s live sign-in planted at Path=/ by a page on another port, while the browser holds no GMP sign-in, is never worked in: the GMP page shows the sign-in form', { tag: '@office' }, async ({ browser, e2e, persona }) => {
+    const author = persona('GMP', 'author');
+    const approver = persona('GMP', 'approver');
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const other = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    try {
+      const { pickTerminal } = await import('../../fixtures/index.ts');
+      // The approver's live session, opened on PC-QA-01 in another browser.
+      const approverPage = await other.newPage();
+      await pickTerminal(approverPage, e2e.url('GMP'), 'PC-QA-01');
+      await signIn.office(approverPage, approver);
+      const approverToken = (await other.cookies()).find((c) => c.name === 'ebmr_gmp_sid')?.value ?? '';
+      expect(approverToken).not.toBe('');
+      // This browser: the terminal PC-DESIGN-01, nobody signed in; a page on the sandbox's port sets the GMP cookie.
+      const page = await context.newPage();
+      await pickTerminal(page, e2e.url('GMP'), 'PC-DESIGN-01');
+      await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+      const sibling = await context.newPage();
+      await sibling.goto(`${e2e.url('SANDBOX')}/`);
+      await sibling.evaluate((v) => {
+        document.cookie = `ebmr_gmp_sid=${v}; Path=/; Max-Age=31536000; SameSite=Strict`;
+      }, approverToken);
+      await sibling.close();
+      expect((await context.cookies(`${e2e.url('GMP')}/api/session`)).filter((c) => c.name === 'ebmr_gmp_sid').map((c) => c.value)).toEqual([approverToken]);
+      // The GMP page starts again: it is not signed in as the approver, it shows the sign-in form.
+      await page.reload();
+      await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+      await expect(page.getByText(approver.legalName)).toHaveCount(0);
+      // The person signs in: their own session replaces the planted cookie, and the page works as them.
+      await signIn.office(page, author);
+      await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+      await expect(page.getByText(author.legalName).first()).toBeVisible();
+      await expect(page.getByText(approver.legalName)).toHaveCount(0);
     } finally {
       await context.close();
       await other.close();

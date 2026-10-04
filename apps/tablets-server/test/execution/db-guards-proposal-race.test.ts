@@ -9,16 +9,38 @@
  * accepted signature then read CONTENT_MISMATCH and the signed content named the other user's decision. Now the
  * proposal waits for the batch's lock, then finds the record decided and is refused (EBMR-EXE-084); the signature stays
  * VALID. And a proposal on a content version a decision was already signed on is refused even without the race.
+ *
+ * F37.R (the completeness critic's F37 defect; recipe-core 0329): 0309 serialised the proposals only on the batch's row
+ * lock, which a signing takes only on the server's path. esig.sign takes the record's own signing lock
+ * (esig.aggregate_lock), which the proposals never took, and the content providers lock nothing. So a signer holding
+ * the application role, signing without the batch's lock and keeping its transaction open, let another QA user's
+ * proposal commit on the signed content version (the uncommitted signature was invisible to 0309's check): the
+ * signature then read CONTENT_MISMATCH, which only esig.verify_signatures noticed. Now both proposal functions take that
+ * lock too, after the batch's: on two connections, a proposal made while such a signing is open waits for it and is
+ * refused, and a signing asked for while such a proposal is open waits for it and is refused because the record
+ * changed (EBMR-ESIG-012).
+ *
+ * F37.R round 2 (recipe-core 0331, kernel 1020; the round-4 verification): those waits serialise only in READ COMMITTED.
+ * Under REPEATABLE READ or SERIALIZABLE a transaction reads the snapshot of its first statement, taken before the wait:
+ * the steward's proposal in REPEATABLE READ waited for the outside signer, then committed on the signed content version,
+ * and QA1's signing in REPEATABLE READ waited for the open proposal, then signed the content its snapshot showed; both
+ * signatures read CONTENT_MISMATCH. Now the proposals refuse any isolation level but READ COMMITTED (EBMR-EXE-084), and
+ * the kernel's signing lock, which esig.sign and every change of signed content take, does the same (EBMR-ESIG-015):
+ * in both orders, at both levels, for an exception and a hold point, no signature covers content its record no longer
+ * has; nor does a change of an exception's signed content made under REPEATABLE READ after a signing committed leave
+ * that signature unsuperseded.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
 import { routes } from '@ebmr/api-contract';
-import { esig, identity, withCommand, type ActorContext } from '@ebmr/kernel';
-import { execution } from '@ebmr/recipe-core';
+import { esig, identity, toDbContext, withCommand, type ActorContext } from '@ebmr/kernel';
+import { execution, type engine } from '@ebmr/recipe-core';
 import { openPersonaSession, passwordActor } from '@ebmr/test-kit';
 import { tapFor } from '../esig/support.ts';
-import { actorOf, messageOf, prepareSignature } from './db-guards-support.ts';
+import { actorOf, appendAs, engineResult, messageOf, prepareSignature } from './db-guards-support.ts';
+import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
+import { runContext } from '../../src/features/execution/runs.ts';
 import { dcMini, importAndIssue, personaIn, pinOf, RunDriver, startExecServer, valueOf, withEarlyHoldPoint, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
@@ -98,6 +120,36 @@ async function withException(): Promise<{ d: RunDriver; exception: string }> {
   const exception = (await d.runView('qa1')).exceptions[0]?.exceptionId;
   if (!exception) throw new Error('SETUP: no exception');
   return { d, exception };
+}
+
+
+/**
+ * Runs `p` (a command on its own connection) and returns once it has settled or a backend of the test database waits
+ * for a lock (the other connection's transaction is still open): whether it waited, and its outcome once settled.
+ */
+async function waitingOrDone(p: Promise<unknown>): Promise<{ waited: boolean; state: () => string; done: Promise<void> }> {
+  let state = 'running';
+  const done = p.then(
+    () => void (state = 'committed'),
+    (e: unknown) => void (state = `refused: ${e instanceof Error ? e.message : String(e)}`),
+  );
+  for (let i = 0; i < 200 && state === 'running' && (await lockWaits()) === 0; i += 1) await new Promise((res) => setTimeout(res, 25));
+  return { waited: state === 'running', state: () => state, done };
+}
+
+/** A dc-mini run with a QA hold point after the clearance, the clearance done: the hold point waits for its decision. */
+async function atHoldPoint(): Promise<{ d: RunDriver; runId: string }> {
+  const CLEAR = 'p-disp-clear@';
+  const issuer = await sbx.asPersona('issuer');
+  const runId = await importAndIssue(sbx, issuer, writePackage(sbx, withEarlyHoldPoint()));
+  const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), verifier1: await sbx.asPersona('verifier1'), qa1: await sbx.asPersona('qa1') });
+  d.beforeTap = () => vi.advanceTimersByTime(7_000);
+  await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+  await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+  await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9997' } });
+  await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+  await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+  return { d, runId };
 }
 
 describe('F37: a proposed decision never lands on a signed content version (INV-09, DI-37)', () => {
@@ -188,5 +240,251 @@ describe('F37: a proposed decision never lands on a signed content version (INV-
     // Another proposal on that version would change what the signature covers: refused, and the signature stays VALID.
     expect(await propose(qa2Actor(), B)).toMatch(new RegExp(`A disposition of exception ${exception} is already signed on content version 1; no other is proposed on it \\(INV-09, DI-37\\)\\. \\[EBMR-EXE-084\\]`));
     expect(await signatureStates(aggregateId)).toEqual(['EXCEPTION_DISPOSITIONED@1:VALID']);
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-49] F37.R: on two connections, a disposition proposed while a signer outside the server\'s path (no batch lock) keeps its signed transaction open waits for it and is refused; the signature, committed after, stays VALID', async () => {
+    const { d, exception } = await withException();
+    const aggregateId = `${d.runId}:${exception}`;
+    const proposeOn = (c: Parameters<typeof execution.proposeDisposition>[0], proposal: typeof A) => execution.proposeDisposition(c, d.runId, exception, { ...proposal, deviationRef: null });
+    expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, A)))).toBe('ok');
+    const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_exception', aggregateId, 'EXCEPTION_DISPOSITIONED');
+    const qa2 = await qa2Actor();
+    let second: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+    // Connection 1: QA1 signs and keeps the transaction open, never taking the batch's lock. Connection 2: QA2 proposes.
+    await withCommand(sbx.db.app, await signing.actor(), async (c) => {
+      await signing.sign(c);
+      second = await waitingOrDone(withCommand(sbx.db.app, qa2, (c2) => proposeOn(c2, B)));
+    });
+    await second?.done;
+    expect({ waited: second?.waited, state: second?.state() }).toEqual({
+      waited: true,
+      state: expect.stringMatching(new RegExp(`^refused: A disposition of exception ${exception} is already signed on content version 1; no other is proposed on it \\(INV-09, DI-37\\)\\. \\[EBMR-EXE-084\\]`)) as unknown,
+    });
+    expect(await signatureStates(aggregateId)).toEqual(['EXCEPTION_DISPOSITIONED@1:VALID']);
+    const { rows } = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from esig.verify_signatures()');
+    expect(rows[0]?.n).toBe('0');
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-49] F37.R: on two connections, a signing asked for while another QA user\'s proposal is open waits for it, then is refused because the record changed (EBMR-ESIG-012); no signature covers content it does not have', async () => {
+    const { d, exception } = await withException();
+    const aggregateId = `${d.runId}:${exception}`;
+    const proposeOn = (c: Parameters<typeof execution.proposeDisposition>[0], proposal: typeof A) => execution.proposeDisposition(c, d.runId, exception, { ...proposal, deviationRef: null });
+    expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, A)))).toBe('ok');
+    const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_exception', aggregateId, 'EXCEPTION_DISPOSITIONED');
+    const signer = await signing.actor();
+    let first: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+    // Connection 2: QA2's proposal, transaction open. Connection 1: QA1 signs (outside the server's path).
+    await withCommand(sbx.db.app, await qa2Actor(), async (c2) => {
+      await proposeOn(c2, B);
+      first = await waitingOrDone(withCommand(sbx.db.app, signer, (c) => signing.sign(c)));
+    });
+    await first?.done;
+    expect({ waited: first?.waited, state: first?.state() }).toEqual({
+      waited: true,
+      state: expect.stringMatching(/^refused: EBMR-ESIG-012 the record changed after the challenge was issued/) as unknown,
+    });
+    expect(await signatureStates(aggregateId)).toEqual([]);
+    const { rows } = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from esig.verify_signatures()');
+    expect(rows[0]?.n).toBe('0');
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-45] F37.R: on two connections, a hold-point decision proposed while a release signed outside the server\'s path is open waits for it and is refused; the release, committed after, stays VALID over APPROVED', async () => {
+    const { d, runId } = await atHoldPoint();
+    const HOLD = 'H-TEST@';
+    const aggregateId = `${runId}:${HOLD}`;
+    const proposeOn = (c: { query: (q: string, v: unknown[]) => Promise<unknown> }, disposition: string, comment: string | null) =>
+      c.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [runId, HOLD, JSON.stringify({ disposition, comment })]);
+    expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, 'APPROVED', null)))).toBe('ok');
+    const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_step', aggregateId, 'HOLD_POINT_RELEASED');
+    const qa2 = await qa2Actor();
+    let second: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+    await withCommand(sbx.db.app, await signing.actor(), async (c) => {
+      await signing.sign(c);
+      second = await waitingOrDone(withCommand(sbx.db.app, qa2, (c2) => proposeOn(c2, 'NOT_APPROVED', 'QA2: booth not released')));
+    });
+    await second?.done;
+    expect({ waited: second?.waited, state: second?.state() }).toEqual({
+      waited: true,
+      state: expect.stringMatching(/^refused: A decision on hold point H-TEST@ is already signed on content version 1; no other is proposed on it \(INV-09, DI-37, PR-45\)\. \[EBMR-EXE-084\]/) as unknown,
+    });
+    expect((await signatureStates(aggregateId)).filter((x) => x.startsWith('HOLD_POINT_'))).toEqual(['HOLD_POINT_RELEASED@1:VALID']);
+    const now = await esig.contentForSigning(sbx.db.admin, 'batch_step', aggregateId);
+    expect((JSON.parse(now.canonical ?? '{}') as { content?: { proposedDecision?: unknown } }).content?.proposedDecision).toEqual({ disposition: 'APPROVED', comment: null });
+  }, 300_000);
+
+  const SNAPSHOT_LEVELS = ['repeatable read', 'serializable'] as const;
+  type Level = (typeof SNAPSHOT_LEVELS)[number];
+
+  /** `work` in one command of `actor` in a transaction at `level` (its snapshot taken by kernel.begin_command); rolled back on any error. */
+  async function withCommandAt<T>(actor: ActorContext, level: Level, work: (c: Parameters<Parameters<typeof withCommand>[2]>[0]) => Promise<T>): Promise<T> {
+    const c = await sbx.db.app.connect();
+    try {
+      await c.query(`begin isolation level ${level}`);
+      await c.query("set local statement_timeout = '60s'");
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(actor))]);
+      const result = await work(c);
+      await c.query('commit');
+      return result;
+    } catch (error) {
+      await c.query('rollback');
+      throw error;
+    } finally {
+      c.release();
+    }
+  }
+
+  async function signatureProblems(): Promise<string> {
+    const { rows } = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from esig.verify_signatures()');
+    return rows[0]?.n ?? '?';
+  }
+
+  const proposalRefused = (what: string, level: Level): RegExp =>
+    new RegExp(`^refused: A ${what} is proposed only in a READ COMMITTED transaction: under ${level} the proposal would read .*\\. \\[EBMR-EXE-084\\]$`);
+  const signingRefused = (level: Level): RegExp => new RegExp(`^refused: EBMR-ESIG-015 a signature, and a change of signed content, are made only in a READ COMMITTED transaction: under ${level} `);
+
+  it('[INV-09][DI-37][PR-49] F37.R round 2: on two connections, a disposition proposed in REPEATABLE READ or SERIALIZABLE while a signer outside the server\'s path keeps its signed transaction open is refused (EBMR-EXE-084); the signature, committed after, stays VALID', async () => {
+    const out: Record<string, unknown> = {};
+    for (const level of SNAPSHOT_LEVELS) {
+      const { d, exception } = await withException();
+      const aggregateId = `${d.runId}:${exception}`;
+      const proposeOn = (c: Parameters<typeof execution.proposeDisposition>[0], proposal: typeof A) => execution.proposeDisposition(c, d.runId, exception, { ...proposal, deviationRef: null });
+      expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, A)))).toBe('ok');
+      const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_exception', aggregateId, 'EXCEPTION_DISPOSITIONED');
+      const qa2 = await qa2Actor();
+      let second: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+      // Connection 1: QA1 signs outside the server's path (no batch lock), transaction open. Connection 2: QA2 proposes at `level`.
+      await withCommand(sbx.db.app, await signing.actor(), async (c) => {
+        await signing.sign(c);
+        second = await waitingOrDone(withCommandAt(qa2, level, (c2) => proposeOn(c2, B)));
+      });
+      await second?.done;
+      out[level] = { proposal: second?.state(), signatures: await signatureStates(aggregateId), problems: await signatureProblems() };
+    }
+    expect(out).toEqual(Object.fromEntries(SNAPSHOT_LEVELS.map((level) => [level, {
+      proposal: expect.stringMatching(proposalRefused('disposition of exception EX-\\d+', level)) as unknown,
+      signatures: ['EXCEPTION_DISPOSITIONED@1:VALID'],
+      problems: '0',
+    }])));
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-49] F37.R round 2: on two connections, a signing in REPEATABLE READ or SERIALIZABLE asked for while another QA user\'s proposal is open is refused (EBMR-ESIG-015) instead of signing the content its snapshot shows; no signature covers content the record does not have', async () => {
+    const out: Record<string, unknown> = {};
+    for (const level of SNAPSHOT_LEVELS) {
+      const { d, exception } = await withException();
+      const aggregateId = `${d.runId}:${exception}`;
+      const proposeOn = (c: Parameters<typeof execution.proposeDisposition>[0], proposal: typeof A) => execution.proposeDisposition(c, d.runId, exception, { ...proposal, deviationRef: null });
+      expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(c, A)))).toBe('ok');
+      const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_exception', aggregateId, 'EXCEPTION_DISPOSITIONED');
+      const signer = await signing.actor();
+      let first: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+      // Connection 2: QA2's proposal (READ COMMITTED), transaction open. Connection 1: QA1 signs at `level`, outside the server's path.
+      await withCommand(sbx.db.app, await qa2Actor(), async (c2) => {
+        await proposeOn(c2, B);
+        first = await waitingOrDone(withCommandAt(signer, level, (c) => signing.sign(c)));
+      });
+      await first?.done;
+      out[level] = { signing: first?.state(), signatures: await signatureStates(aggregateId), problems: await signatureProblems() };
+    }
+    expect(out).toEqual(Object.fromEntries(SNAPSHOT_LEVELS.map((level) => [level, { signing: expect.stringMatching(signingRefused(level)) as unknown, signatures: [], problems: '0' }])));
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-45] F37.R round 2: on two connections, for a hold point, a decision proposed in REPEATABLE READ or SERIALIZABLE while a release signed outside the server\'s path is open is refused (EBMR-EXE-084), and a release signed in REPEATABLE READ or SERIALIZABLE while a proposal is open is refused (EBMR-ESIG-015); the committed release stays VALID over APPROVED', async () => {
+    const HOLD = 'H-TEST@';
+    const out: Record<string, unknown> = {};
+    for (const level of SNAPSHOT_LEVELS) {
+      const proposeOn = (runId: string, c: { query: (q: string, v: unknown[]) => Promise<unknown> }, disposition: string, comment: string | null) =>
+        c.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [runId, HOLD, JSON.stringify({ disposition, comment })]);
+      // Signing first: the release is open, the steward proposes at `level`.
+      const first = await atHoldPoint();
+      const agg1 = `${first.runId}:${HOLD}`;
+      expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, first.d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(first.runId, c, 'APPROVED', null)))).toBe('ok');
+      const release = await prepareSignature(sbx, first.d.browser('qa1'), 'qa1', 'batch_step', agg1, 'HOLD_POINT_RELEASED');
+      const qa2 = await qa2Actor();
+      let proposal: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+      await withCommand(sbx.db.app, await release.actor(), async (c) => {
+        await release.sign(c);
+        proposal = await waitingOrDone(withCommandAt(qa2, level, (c2) => proposeOn(first.runId, c2, 'NOT_APPROVED', 'QA2: booth not released')));
+      });
+      await proposal?.done;
+      const content = await esig.contentForSigning(sbx.db.admin, 'batch_step', agg1);
+      // Proposal first: the steward's proposal is open, QA1 signs the release at `level`.
+      const second = await atHoldPoint();
+      const agg2 = `${second.runId}:${HOLD}`;
+      expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, second.d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => proposeOn(second.runId, c, 'APPROVED', null)))).toBe('ok');
+      const release2 = await prepareSignature(sbx, second.d.browser('qa1'), 'qa1', 'batch_step', agg2, 'HOLD_POINT_RELEASED');
+      const signer = await release2.actor();
+      let signing: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
+      await withCommand(sbx.db.app, await qa2Actor(), async (c2) => {
+        await proposeOn(second.runId, c2, 'NOT_APPROVED', 'QA2: booth not released');
+        signing = await waitingOrDone(withCommandAt(signer, level, (c) => release2.sign(c)));
+      });
+      await signing?.done;
+      out[level] = {
+        proposal: proposal?.state(),
+        released: (await signatureStates(agg1)).filter((x) => x.startsWith('HOLD_POINT_')),
+        decision: (JSON.parse(content.canonical ?? '{}') as { content?: { proposedDecision?: unknown } }).content?.proposedDecision,
+        signing: signing?.state(),
+        unreleased: (await signatureStates(agg2)).filter((x) => x.startsWith('HOLD_POINT_')),
+        problems: await signatureProblems(),
+      };
+    }
+    expect(out).toEqual(Object.fromEntries(SNAPSHOT_LEVELS.map((level) => [level, {
+      proposal: expect.stringMatching(proposalRefused('decision on hold point H-TEST@', level)) as unknown,
+      released: ['HOLD_POINT_RELEASED@1:VALID'],
+      decision: { disposition: 'APPROVED', comment: null },
+      signing: expect.stringMatching(signingRefused(level)) as unknown,
+      unreleased: [],
+      problems: '0',
+    }])));
+  }, 300_000);
+
+  it('[INV-09][DI-37][PR-49] F37.R round 2: on two connections, a change of an exception\'s signed content made in REPEATABLE READ or SERIALIZABLE after a disposition was signed and committed is refused (EBMR-ESIG-015) instead of leaving that signature unsuperseded', async () => {
+    const out: Record<string, unknown> = {};
+    for (const level of SNAPSHOT_LEVELS) {
+      const issuer = await sbx.asPersona('issuer');
+      const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+      const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), qa1: await sbx.asPersona('qa1'), supervisor1: await sbx.asPersona('supervisor1') });
+      d.beforeTap = () => vi.advanceTimersByTime(7_000);
+      await d.ok('operator1', { type: 'RAISE_EXCEPTION', description: 'Label printer jammed once; label reprinted', severity: 'ALERT' });
+      const exception = (await d.runView('qa1')).exceptions[0]?.exceptionId ?? '';
+      const aggregateId = `${runId}:${exception}`;
+      expect(await messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser('qa1'), 'qa1', { roleCode: 'QA_SHOP_FLOOR' }), (c) => execution.proposeDisposition(c, runId, exception, { ...A, deviationRef: null })))).toBe('ok');
+      const signing = await prepareSignature(sbx, d.browser('qa1'), 'qa1', 'batch_exception', aggregateId, 'EXCEPTION_DISPOSITIONED');
+      const run = await runContext(sbx.db.admin, runId);
+      const sup = personaIn(sbx, 'supervisor1');
+      const supervisor = await actorOf(sbx, d.browser('supervisor1'), 'supervisor1');
+      // Connection 1: the supervisor's transaction at `level`, its snapshot taken. Connection 2: QA1's disposition is
+      // signed outside the server's path and committed (not applied: the exception stays open). Connection 1 then links
+      // a deviation through the store, which stores a new content version of the exception.
+      let snapshotTaken!: () => void;
+      const taken = new Promise<void>((res) => (snapshotTaken = res));
+      let signed!: () => void;
+      const signedNow = new Promise<void>((res) => (signed = res));
+      const change = messageOf(
+        withCommandAt(supervisor, level, async (c) => {
+          snapshotTaken();
+          await signedNow;
+          const tx = await execution.ExecutionTx.open(c, run.def, runId);
+          const roles = await engineRoles(c);
+          const command: engine.Command = { type: 'ATTACH_DEVIATION', commandId: randomUUID(), actor: engineActor(sup.personId, roles), exception, deviationRef: 'TEST-DEV-0037' };
+          return appendAs(tx, command, engineResult(tx, command), roles);
+        }),
+      );
+      await taken;
+      await withCommand(sbx.db.app, await signing.actor(), (c) => signing.sign(c));
+      signed();
+      out[level] = {
+        change: await change,
+        signatures: await signatureStates(aggregateId),
+        deviation: (await execution.loadState(sbx.db.admin, runId))?.state.exceptions[exception]?.deviation ?? null,
+        problems: await signatureProblems(),
+      };
+    }
+    expect(out).toEqual(Object.fromEntries(SNAPSHOT_LEVELS.map((level) => [level, {
+      change: expect.stringMatching(new RegExp(`^EBMR-ESIG-015 a signature, and a change of signed content, are made only in a READ COMMITTED transaction: under ${level} `)) as unknown,
+      signatures: ['EXCEPTION_DISPOSITIONED@1:VALID'],
+      deviation: null,
+      problems: '0',
+    }])));
   }, 300_000);
 });

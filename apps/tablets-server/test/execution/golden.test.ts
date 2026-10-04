@@ -9,13 +9,22 @@
  * row), are wrapped so the check runs after each one, and the test shows that every row of the run was checked
  * (review F23: it used to run once per step group).
  * Every view parses with its contract schema (the typed client validates).
+ *
+ * REPLAY-GATE (decision REPLAY-GATE.1 in docs/decisions/phase-2-open-questions.md): the database does not re-derive
+ * everything the engine decides (ADR 0012's engine-only class: a computed value, a data-decided branch, a loop's exit,
+ * whether a block raises an exception). The release gate G-REL, built in Phase 4, replays the stored rows with the
+ * engine version pinned to the batch and stays NOT_READY on any difference. The replay is already Phase 2 code
+ * (recipe-core replayExecution): the second test shows that a forged row the database accepts makes it differ.
  */
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { esig } from '@ebmr/kernel';
+import { esig, withCommand } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
 import { routes } from '@ebmr/api-contract';
+import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { dcMini, importAndIssue, RunDriver, startExecServer, valueOf, violations, writePackage, type ExecServer } from './support.ts';
+import { actorOf, appendAs, engineResult, messageOf } from './db-guards-support.ts';
+import { dcMini, importAndIssue, personaIn, RunDriver, startExecServer, valueOf, violations, writePackage, type ExecServer } from './support.ts';
 
 let server: ExecServer;
 beforeAll(async () => {
@@ -186,4 +195,61 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
     // 13 PERFORMED + 1 hold point + 9 verifications + 2 stage sign-offs + 4 dispositions of the manual-weighing alerts.
     expect(d.signatures).toBe(29);
   }, 600_000);
+});
+
+describe('REPLAY-GATE: the replay of the stored rows finds what the database does not re-derive (decision REPLAY-GATE.1)', () => {
+  it('[DI-34][DI-33] a computed value forged through the application role is stored, since the database does not re-run calculations, and the invariant query is empty; the replay of the stored rows with the pinned engine differs at that row, so a release gate that replays stays NOT_READY', async () => {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, dcMini()));
+    const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1'), verifier1: await server.asPersona('verifier1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    const clear = 'p-disp-clear@';
+    await d.ok('operator1', { type: 'START_STEP', stepKey: clear });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: clear, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: clear, entry: { kind: 'PREVIOUS_BATCH', product: 'NONE', batchNumber: 'TEST-B26-0001' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: clear });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: clear, meaning: 'VERIFIED' });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-bal@' });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-bal@', entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-1', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-disp-bal@' });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-sop@' });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-sop@', entry: { kind: 'ACKNOWLEDGE', mode: 'READ' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-disp-sop@' });
+    const run = await runContext(server.db.admin, runId);
+    expect(await execution.replayExecution(server.db.admin, run.def, runId), 'SETUP: the honest rows replay').toMatchObject({ identical: true, firstDifference: null });
+    // operator1 starts the quantities step through the store; the engine computes the paracetamol to dispense, and the
+    // row stores another value for it (and tells it so in its event).
+    const me = personaIn(server, 'operator1').personId;
+    let forgedSeq = 0n;
+    const computed: string[] = [];
+    const outcome = await messageOf(
+      withCommand(server.db.app, await actorOf(server, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = { type: 'START_STEP', commandId: randomUUID(), actor: engineActor(me, roles), step: 'p-disp-calc', context: [] };
+        const r = engineResult(tx, command);
+        const state = structuredClone(r.state);
+        const target = Object.values(state.derived).find((x) => x.calculation === 'pcmTarget');
+        if (target?.value.kind !== 'DECIMAL') throw new Error('SETUP: no paracetamol target computed');
+        computed.push(target.value.value);
+        target.value = { ...target.value, value: '55' };
+        const events = r.events.map((e) => (e.type === 'DERIVED_VALUE_COMPUTED' && e.derived === target.id ? { ...e, value: target.value } : e));
+        forgedSeq = tx.lastSeq + 1n;
+        return appendAs(tx, command, { state, events }, roles);
+      }),
+    );
+    expect(computed, 'SETUP: the engine computes 50 kg').toEqual(['50']);
+    expect(outcome, 'SETUP: the database stores the forged computed value (it does not re-run calculations; recipe-core 0305 header)').toBe('ok');
+    const stored = await execution.loadState(server.db.admin, runId);
+    expect(Object.values(stored?.state.derived ?? {}).find((x) => x.calculation === 'pcmTarget')?.value).toMatchObject({ value: '55', unit: 'kg' });
+    expect((await violations(server)).filter((v) => v.batchId === runId)).toEqual([]);
+    // The replay with the engine pinned to the batch finds the row: the release gate would not turn READY.
+    const report = await execution.replayExecution(server.db.admin, run.def, runId);
+    expect(report.identical).toBe(false);
+    expect(report.firstDifference).toMatchObject({ seq: forgedSeq });
+    expect(['eventsHash', 'stateHash']).toContain(report.firstDifference?.field);
+    // And the server's own verification route (the on-demand "Verify record") says the same.
+    const answer = valueOf(await d.browser('issuer').call(routes.execution.verifyReplay, { params: { runId }, body: {} }));
+    expect(answer).toMatchObject({ identical: false });
+  }, 300_000);
 });

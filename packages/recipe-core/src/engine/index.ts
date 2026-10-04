@@ -6,7 +6,7 @@ export * from './types.ts';
 export { defineBatch, reachFrom, EngineDefinitionError, RELEASING_DISPOSITIONS, type BatchDefinition, type DefineOptions, type DefinitionProblem, type Installation, type RuntimeConstraint, type StepDef } from './definition.ts';
 export { createEngine, issue, prepareForSignature, step, sweep, IssueRefusedError, type Engine, type SignatureTarget } from './engine.ts';
 export { ENGINE_EXCEPTION_RULES, blockingExceptions, blockActive } from './exceptions.ts';
-export { checkMeanings, handEntriesWithoutDeclaredEvidence, MEANINGS, performMeanings, VERIFICATION_MEANINGS } from './guards.ts';
+export { checkMeanings, handEntriesWithoutDeclaredEvidence, MEANINGS, performMeanings, VERIFICATION_MEANINGS, witnessDue, witnessPossible } from './guards.ts';
 export { effectivePoint, resolveAt, showValue } from './values.ts';
 export { stepKey, ctxKey } from './tx.ts';
 export { checkInvariants, type InvariantViolation } from './invariants.ts';

@@ -513,3 +513,15 @@ export const G23: BlockVersion = {
 };
 
 export const MATERIAL_BLOCKS: readonly BlockVersion[] = [G07, G08, G22, G23];
+
+/**
+ * The items phase `phase` records that its block computes from its entries and that are never typed (Phase 2 exit
+ * follow-up T12.DOC round 2): what the engine's definition reads from the block's handler (computedItems; a dispensing or
+ * output step's mass totals), for the block versions of this release that compute any, the material blocks (a parity
+ * test holds every generic version with computed items to this list). Empty for any other block. The validator and the
+ * designer read it so as not to call such an item typed by hand.
+ */
+export function computedItemsOf(phase: PhaseNode, mbr: MbrContent): string[] {
+  const block = MATERIAL_BLOCKS.find((b) => b.type === phase.block.type && b.version === phase.block.version);
+  return block?.handler?.computedItems?.(phase, mbr) ?? [];
+}

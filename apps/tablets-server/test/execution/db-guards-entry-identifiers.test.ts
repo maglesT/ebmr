@@ -18,15 +18,29 @@
  * row stored a real-format container L2409-0017 registered beside its entry. Now every container a row registers is the
  * one its entry names, in a block that registers containers (EBMR-EXE-126), and its id is a test lot number or the id
  * the output weighing builds from the test batch's own number (EBMR-EXE-078).
+ *
+ * Round 4 (recipe-core 0328): what a container holds was copied from its entry (an output's intermediate, a weighing's
+ * BOM line) and never compared with the MBR. An output container holding L2409-0017, which the step does not produce,
+ * was stored. Now an entry names only what its step's MBR node names: a weighing or a lot charge a BOM line the step
+ * dispenses or charges, an output an intermediate the step produces, a container charge a container of the batch the
+ * step charges (holding what the container holds, of its sub-lot, scanned with the batch's own label, and the one the
+ * row consumes), an equipment status a piece of equipment the step checks (EBMR-EXE-126).
+ *
+ * Round 5 (recipe-core 0330; the round-4 verification): the members a block builds rather than takes from the command
+ * were compared by nothing. The G-03 acknowledgement of p-disp-sop@, its data naming sop B24-0001 and sopVersion
+ * L2409-0017 where the MBR pins SOP-DISP-001 version 1, was stored. Now an entry holds exactly what its block builds
+ * (the SOP reference, the person, the passed flags, ...), answers exactly its step's checklist, and leaves its step
+ * needing the check the block asks for (EBMR-EXE-126).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
+import { resolveClientIntent } from '../../src/features/execution/intents.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { actorOf, appendAs, messageOf } from './db-guards-support.ts';
-import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from './support.ts';
+import { actorOf, appendAs, messageOf, unmatched } from './db-guards-support.ts';
+import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, personaIn, rowsOf, RunDriver, startExecServer, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -280,5 +294,331 @@ describe('F12: a test run records only test identifiers and registered test lots
     expect(await problem('B24-0001/INT-BLEND/0/1', record('B24-0001/INT-BLEND/0/1'), unnamed, null)).toBe(real('B24-0001/INT-BLEND/0/1'));
     expect(await problem('B24-0001/X', record('B24-0001/X'), { type: 'RECORD_ENTRY', entry: { ...unnamed.entry, container: 'B24-0001/X' } }, 'B24-0001')).toBe(real('B24-0001/X'));
     expect(await problem('B24-0001/X', record('B24-0001/X'), weighing, 'B24-0001')).toBe(real('B24-0001/X'));
+  }, 300_000);
+
+  type Json = Record<string, unknown>;
+
+  /**
+   * operator1's entry `entry` at step `stepKey`, resolved and run through the engine as the server does, then stored
+   * through the application role after every occurrence of `from` in the new entry's data, the containers the row
+   * registers, the events and the recorded command was replaced by `to` (and `forge` made any other change): what a
+   * writer that relabels a container's contents stores. 'ok' or the refusal.
+   */
+  async function relabelledEntry(d: RunDriver, stepKey: string, entry: Json, from: string, to: string, forge: (data: Json) => void = () => undefined): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    // Every string equal to `from` (and the built container id that contains it), at any depth; numbers and bigints kept.
+    const swap = <T,>(v: T): T => {
+      if (typeof v === 'string') return (v === from ? to : v.split(`/${from}/`).join(`/${to}/`)) as T;
+      if (Array.isArray(v)) return v.map((x: unknown) => swap(x)) as T;
+      if (v !== null && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [swap(k), swap(x)])) as T;
+      return v;
+    };
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          { type: 'RECORD_ENTRY', stepKey, entry } as Parameters<typeof resolveClientIntent>[1],
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the entry: ${JSON.stringify(r.refusal)}`);
+        const state = structuredClone(r.state);
+        const added = Object.values(state.entries).find((e) => !(e.id in tx.state.entries));
+        if (!added) throw new Error('SETUP: no new entry');
+        added.data = swap(added.data);
+        forge(added.data);
+        for (const k of Object.keys(state.containers)) if (!(k in tx.state.containers)) state.containers[k] = swap(state.containers[k] as engine.ContainerRecord);
+        const recorded = swap(engine.encodeCommand(resolved.command));
+        return appendAs(tx, resolved.command, { state, events: swap(r.events) }, roles, recorded, engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
+      }),
+    );
+  }
+
+  /** dc-mini with an output step first in the dispensing booth (records earlyNet in kg, produces I-EARLY), started. */
+  async function earlyOutputRun(): Promise<RunDriver> {
+    const content = dcMiniVariant((prep, c) => {
+      (c['intermediates'] as Json[]).push({ id: 'I-EARLY', name: 'Early output', holdTime: { max: { value: '30', unit: 'd' }, source: { kind: 'HOLD_STUDY', ref: 'HS-PCM-01' }, storage: 'Closed, labelled containers' } });
+      (c['parameters'] as Json[]).push({ id: 'earlyNet', name: 'Early output (net)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' });
+      const out = { kind: 'phase', id: 'p-early-out', name: 'Discharge the early output', block: { type: 'G-22', version: '1' }, config: {}, records: ['earlyNet'], computes: [], reads: [], consumes: [], produces: ['I-EARLY'], uses: [], equipment: [], signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } }, significant: true, riskClass: 'HIGH' };
+      return [out, ...prep];
+    });
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, content));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-out@' });
+    return d;
+  }
+
+  /** dc-mini run to the start of the paracetamol dispensing. */
+  async function atDispensing(): Promise<RunDriver> {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), verifier1: await sbx.asPersona('verifier1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+    for (const [key, entries] of [
+      ['p-disp-bal@', [{ kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) }]],
+      ['p-disp-sop@', [{ kind: 'ACKNOWLEDGE', mode: 'READ' }]],
+      ['p-disp-calc@', []],
+    ] as const) {
+      await d.ok('operator1', { type: 'START_STEP', stepKey: key });
+      for (const entry of entries) await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: key, entry });
+      await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: key });
+    }
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-pcm@' });
+    return d;
+  }
+
+  it('[DI-05][DI-30][PR-18] round 4: an output container holding L2409-0017, an intermediate its step does not produce, and a weighing of a BOM line L2409-0017 the step does not dispense are refused (EBMR-EXE-126), and nothing holds them', async () => {
+    const output = { kind: 'OUTPUT_CONTAINER', intermediate: 'I-EARLY', manual: { gross: '26.100', tare: '1.050', unit: 'kg' } };
+    const weighing = { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } };
+    // The verifier's probe: the output's intermediate, the container it registers (and the id built from it) relabelled.
+    const out = await earlyOutputRun();
+    const outputIntermediate = await relabelledEntry(out, 'p-early-out@', output, 'I-EARLY', 'L2409-0017');
+    const outputHeld = await stateHolding(out.runId, 'L2409-0017');
+    // The honest entry is recorded; its container holds the intermediate the step produces.
+    const outputHonest = await relabelledEntry(out, 'p-early-out@', output, 'I-EARLY', 'I-EARLY');
+    const outputHolds = Object.values((await execution.loadState(sbx.db.admin, out.runId))?.state.containers ?? {}).map((c) => c.holds);
+    const disp = await atDispensing();
+    const outcomes = {
+      outputIntermediate,
+      // The weighed line, the container it registers and the label's component (the line itself, for a line the BOM does not hold).
+      weighingUnknownLine: await relabelledEntry(disp, 'p-disp-pcm@', weighing, 'BOM-PCM', 'L2409-0017', (data) => void ((data['label'] as Json)['component'] = 'L2409-0017')),
+      // A line of the BOM that another step dispenses.
+      weighingOtherLine: await relabelledEntry(disp, 'p-disp-pcm@', weighing, 'BOM-PCM', 'BOM-MCC', (data) => void ((data['label'] as Json)['component'] = 'MAT-MCC')),
+    };
+    expect(unmatched(outcomes, {
+      outputIntermediate: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(OUTPUT_CONTAINER\) of step p-early-out@ holding intermediate L2409-0017, which step p-early-out does not produce: .*\(DI-05, DI-30, PR-18, PR-21, PR-23\)\. \[EBMR-EXE-126\]$/,
+      weighingUnknownLine: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(CONTAINER_WEIGHING\) of step p-disp-pcm@ with BOM line L2409-0017, which is not a line of the MBR's bill of materials that step p-disp-pcm dispenses: .*\[EBMR-EXE-126\]$/,
+      weighingOtherLine: /stores entry EN-\d+ \(CONTAINER_WEIGHING\) of step p-disp-pcm@ with BOM line BOM-MCC, which is not a line of the MBR's bill of materials that step p-disp-pcm dispenses: .*\[EBMR-EXE-126\]$/,
+    })).toEqual({});
+    expect(outputHeld).toBe(0);
+    expect(await stateHolding(disp.runId, 'L2409-0017')).toBe(0);
+    expect(Object.keys((await execution.loadState(sbx.db.admin, disp.runId))?.state.containers ?? {})).toEqual([]);
+    expect({ outputHonest, outputHolds }).toEqual({ outputHonest: 'ok', outputHolds: ['I-EARLY'] });
+    expect(await relabelledEntry(disp, 'p-disp-pcm@', weighing, 'BOM-PCM', 'BOM-PCM')).toBe('ok');
+    expect(Object.values((await execution.loadState(sbx.db.admin, disp.runId))?.state.containers ?? {}).map((c) => c.holds)).toEqual(['BOM-PCM']);
+  }, 300_000);
+
+  /**
+   * operator1's entry `entry` at step `stepKey`, resolved and run through the engine as the server does, then stored
+   * through the application role after `forge` changed the new entry's data, the state, the recorded command or the events: what a
+   * writer that stores another entry than the block builds stores. 'ok' or the refusal.
+   */
+  async function forgedEntry(d: RunDriver, stepKey: string, entry: Json, forge: (x: { data: Json; state: engine.BatchState; command: Json; events: engine.EngineEvent[] }) => void = () => undefined): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          { type: 'RECORD_ENTRY', stepKey, entry } as Parameters<typeof resolveClientIntent>[1],
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the entry: ${JSON.stringify(r.refusal)}`);
+        const state = structuredClone(r.state);
+        const added = Object.values(state.entries).find((e) => !(e.id in tx.state.entries));
+        if (!added) throw new Error('SETUP: no new entry');
+        const recorded = engine.encodeCommand(resolved.command) as Json;
+        const events = structuredClone(r.events);
+        forge({ data: added.data, state, command: recorded, events });
+        return appendAs(tx, resolved.command, { state, events }, roles, recorded as engine.JsonValue, engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
+      }),
+    );
+  }
+
+  /** dc-mini run to the start of `until` (p-disp-bal@ or p-disp-sop@), the booth cleared and verified before it. */
+  async function atPreparation(until: 'p-disp-bal@' | 'p-disp-sop@'): Promise<RunDriver> {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), verifier1: await sbx.asPersona('verifier1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-bal@' });
+    if (until === 'p-disp-sop@') {
+      await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-bal@', entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) } });
+      await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-disp-bal@' });
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-sop@' });
+    }
+    return d;
+  }
+
+  async function entriesOf(runId: string, kind: string): Promise<Json[]> {
+    return Object.values((await execution.loadState(sbx.db.admin, runId))?.state.entries ?? {}).filter((e) => e.kind === kind).map((e) => e.data);
+  }
+
+  it('[DI-05][DI-30][DI-10] round 5: the round-4 verification\'s acknowledgement naming sop B24-0001 and sopVersion L2409-0017, and one naming another SOP of the MBR, are refused (EBMR-EXE-126) and nothing holds them; the acknowledgement of the SOP the MBR pins is recorded', async () => {
+    const d = await atPreparation('p-disp-sop@');
+    const ack = { kind: 'ACKNOWLEDGE', mode: 'READ' };
+    const outcomes = {
+      // The round-4 verification's probe: the engine's own result, its data naming the real-format batch and lot numbers.
+      verifierProbe: await forgedEntry(d, 'p-disp-sop@', ack, ({ data }) => Object.assign(data, { sop: 'B24-0001', sopVersion: 'L2409-0017' })),
+      // Another SOP of the same MBR, in a version the MBR does not pin.
+      otherSop: await forgedEntry(d, 'p-disp-sop@', ack, ({ data }) => Object.assign(data, { sop: 'SOP-CLEAN-003', sopVersion: '7' })),
+    };
+    expect(unmatched(outcomes, {
+      verifierProbe: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(ACKNOWLEDGE\) of step p-disp-sop@ with sop "B24-0001", where its block writes "SOP-DISP-001": an entry holds exactly what its block builds .*\(DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47\)\. \[EBMR-EXE-126\]$/,
+      otherSop: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(ACKNOWLEDGE\) of step p-disp-sop@ with sop "SOP-CLEAN-003", where its block writes "SOP-DISP-001": .*\[EBMR-EXE-126\]$/,
+    })).toEqual({});
+    expect(await stateHolding(d.runId, 'B24-0001')).toBe(0);
+    expect(await stateHolding(d.runId, 'L2409-0017')).toBe(0);
+    expect(await rowsHolding(d.runId, 'B24-0001')).toBe(0);
+    expect(await entriesOf(d.runId, 'ACKNOWLEDGE')).toEqual([]);
+    // The honest acknowledgement is recorded, with the SOP the MBR pins.
+    expect(await forgedEntry(d, 'p-disp-sop@', ack)).toBe('ok');
+    expect(await entriesOf(d.runId, 'ACKNOWLEDGE')).toEqual([
+      { mode: 'READ', acknowledgedBy: personaIn(sbx, 'operator1').personId, sop: 'SOP-DISP-001', sopVersion: '1', sopHash: 'a10392006925d1f24c34701fcb7c0b1c5ce2793bd979c2fcececb826d4b41f8a' },
+    ]);
+  }, 300_000);
+
+  it('[DI-30][PR-23][PR-14] round 5: an equipment status attested in another person\'s name or leaving out a check, and a weighing keyed by hand whose step is not left needing its second person, are refused (EBMR-EXE-126); the honest entries are recorded', async () => {
+    const bal = await atPreparation('p-disp-bal@');
+    const status = { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' })) };
+    const withoutClean = (answers: unknown): unknown => (answers as Json[]).filter((a) => a['id'] !== 'CLEAN');
+    const weighing = { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } };
+    const outcomes: Record<string, string> = {
+      otherPerson: await forgedEntry(bal, 'p-disp-bal@', status, ({ data }) => void (data['attestedBy'] = personaIn(sbx, 'operator2').personId)),
+      checkLeftOut: await forgedEntry(bal, 'p-disp-bal@', status, ({ data, command }) => {
+        data['answers'] = withoutClean(data['answers']);
+        (command['entry'] as Json)['answers'] = withoutClean((command['entry'] as Json)['answers']);
+      }),
+    };
+    expect(await entriesOf(bal.runId, 'EQUIPMENT_STATUS')).toEqual([]);
+    expect(await forgedEntry(bal, 'p-disp-bal@', status)).toBe('ok');
+    // operator1's next run (a new session of theirs ends the one above).
+    const disp = await atDispensing();
+    outcomes['manualUnchecked'] = await forgedEntry(disp, 'p-disp-pcm@', weighing, ({ state }) => {
+      const inst = state.steps['p-disp-pcm@'];
+      if (inst) inst.verificationRequired = false;
+    });
+    expect(unmatched(outcomes, {
+      otherPerson: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(EQUIPMENT_STATUS\) of step p-disp-bal@ with attestedBy "[0-9a-f-]{36}", where its block writes "[0-9a-f-]{36}": .*\[EBMR-EXE-126\]$/,
+      checkLeftOut: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(EQUIPMENT_STATUS\) of step p-disp-bal@ that does not answer CLEAN; every item of its step's list is answered \(G09-ANSWERS\): .*\[EBMR-EXE-126\]$/,
+      manualUnchecked: /^This accepted RECORD_ENTRY row stores entry EN-\d+ \(CONTAINER_WEIGHING\) of step p-disp-pcm@, which needs a second person's check of its step, and the step does not require it \(PR-14\): .*\[EBMR-EXE-126\]$/,
+    })).toEqual({});
+    expect(await entriesOf(disp.runId, 'CONTAINER_WEIGHING')).toEqual([]);
+    expect(await forgedEntry(disp, 'p-disp-pcm@', weighing)).toBe('ok');
+    expect((await execution.loadState(sbx.db.admin, disp.runId))?.state.steps['p-disp-pcm@']?.verificationRequired).toBe(true);
+  }, 300_000);
+  const SCHEMA_REFUSAL = String.raw`: an entry and a step's start data meet the data schema of the step's block version and are of a kind it records, as the engine checks them before the block accepts them \(DI-05, DI-30, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47\)\. \[EBMR-EXE-126\]$`;
+
+  it('[DI-05][DI-30][PR-19] round 6: the round-5 verification\'s weighing whose command and data both carry lotNumber L2409-0017, and a dispensed container stored under a kind its block does not record (CONTAINER_WEIGHING_2, its container and event left out), are refused (EBMR-EXE-126) and nothing holds them; the honest weighing is recorded', async () => {
+    const disp = await atDispensing();
+    const weighing = { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', lotCode: 'TEST-L26-0101', manual: { gross: '51.250', tare: '1.250', unit: 'kg' } };
+    const outcomes = {
+      // The round-5 verification's probe: the member in the command and in the data alike.
+      lotNumber: await forgedEntry(disp, 'p-disp-pcm@', weighing, ({ data, command }) => {
+        data['lotNumber'] = 'L2409-0017';
+        (command['entry'] as Json)['lotNumber'] = 'L2409-0017';
+      }),
+      // The T2 verification's probe: the same weighing under another kind, which the net, label and total checks do not read.
+      renamed: await forgedEntry(disp, 'p-disp-pcm@', weighing, ({ data, state, command, events }) => {
+        const e = Object.values(state.entries).find((x) => x.data === data);
+        if (!e) throw new Error('SETUP: no entry');
+        e.kind = 'CONTAINER_WEIGHING_2';
+        (command['entry'] as Json)['kind'] = 'CONTAINER_WEIGHING_2';
+        delete state.containers[String(data['container'])];
+        for (let i = events.length - 1; i >= 0; i -= 1) {
+          const ev = events[i] as unknown as Json;
+          if (ev['type'] === 'CONTAINER_REGISTERED') events.splice(i, 1);
+          else if (ev['type'] === 'ENTRY_RECORDED') ev['kind'] = 'CONTAINER_WEIGHING_2';
+        }
+      }),
+    };
+    expect(unmatched(outcomes, {
+      lotNumber: new RegExp(String.raw`^This accepted RECORD_ENTRY row records at step p-disp-pcm an entry that does not meet the data schema of block G-07@1: CONTAINER_WEIGHING\.lotNumber is not a field of this block \(unknown fields are refused\) \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+      renamed: new RegExp(String.raw`^This accepted RECORD_ENTRY row records an entry of kind CONTAINER_WEIGHING_2 at step p-disp-pcm, whose block G-07@1 does not record that kind \(ENG-ENTRY-KIND\)` + SCHEMA_REFUSAL),
+    })).toEqual({});
+    expect(await stateHolding(disp.runId, 'L2409-0017')).toBe(0);
+    expect(await rowsHolding(disp.runId, 'L2409-0017')).toBe(0);
+    expect(await rowsHolding(disp.runId, 'CONTAINER_WEIGHING_2')).toBe(0);
+    expect(await entriesOf(disp.runId, 'CONTAINER_WEIGHING')).toEqual([]);
+    expect(await forgedEntry(disp, 'p-disp-pcm@', weighing)).toBe('ok');
+    expect((await entriesOf(disp.runId, 'CONTAINER_WEIGHING')).map((e) => e['lot'] && (e['lot'] as Json)['id'])).toEqual(['TEST-L26-0101']);
+  }, 300_000);
+
+  it('[PR-34][PR-23][DI-30] round 6: a line clearance answered NO and an equipment status answered no, which the earlier checks stored as passed, are refused (EBMR-EXE-126) and nothing records them; the honest checks are recorded', async () => {
+    const answered = (i: number, v: string) => ({ data, command }: { data: Json; command: Json }): void => {
+      for (const list of [data['answers'], (command['entry'] as Json)['answers']] as Json[][]) (list[i] as Json)['answer'] = v;
+    };
+    const d = await startedRun();
+    const clearance = { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' })) };
+    const outcomes: Record<string, string> = { clearanceNo: await forgedEntry(d, CLEAR, clearance, answered(0, 'NO')) };
+    expect(await entriesOf(d.runId, 'CLEARANCE_CHECK')).toEqual([]);
+    // Sent over the API, the answer NO never reaches the engine: the contract refuses it and nothing is written.
+    const before = (await rowsOf(sbx, d.runId)).length;
+    const sent = await d.command('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: clearance.answers.map((a, i) => (i === 0 ? { ...a, answer: 'NO' } : a)) } } as Parameters<RunDriver['command']>[1]);
+    expect({ outcome: outcomeOf(sent), rows: (await rowsOf(sbx, d.runId)).length - before }).toEqual({ outcome: '400:SCHEMA', rows: 0 });
+    expect(await forgedEntry(d, CLEAR, clearance)).toBe('ok');
+    expect((await entriesOf(d.runId, 'CLEARANCE_CHECK')).map((e) => e['passed'])).toEqual([true]);
+    // operator1's next run (a new session of theirs ends the one above).
+    const bal = await atPreparation('p-disp-bal@');
+    const status = { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-BAL', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' })) };
+    outcomes['statusNo'] = await forgedEntry(bal, 'p-disp-bal@', status, answered(1, 'no'));
+    expect(await entriesOf(bal.runId, 'EQUIPMENT_STATUS')).toEqual([]);
+    expect(unmatched(outcomes, {
+      clearanceNo: new RegExp(String.raw`^This accepted RECORD_ENTRY row records at step p-disp-clear an entry that does not meet the data schema of block G-10@1: CLEARANCE_CHECK\.answers\[0\]\.answer must be one of CONFIRMED, NOT_CONFIRMED, NOT_APPLICABLE \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+      statusNo: new RegExp(String.raw`^This accepted RECORD_ENTRY row records at step p-disp-bal an entry that does not meet the data schema of block G-09@1: EQUIPMENT_STATUS\.answers\[1\]\.answer must be one of YES, NO \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+    })).toEqual({});
+    expect(await forgedEntry(bal, 'p-disp-bal@', status)).toBe('ok');
+    expect((await entriesOf(bal.runId, 'EQUIPMENT_STATUS')).map((e) => e['passed'])).toEqual([true]);
+  }, 300_000);
+  /**
+   * operator1's entry `entry` at step `stepKey`, resolved as the server does and refused by the engine, stored through the
+   * application role as the refused row the server writes, its recorded command changed by `forge`. 'ok' or the refusal.
+   */
+  async function refusedEntry(d: RunDriver, stepKey: string, entry: Json, forge: (command: Json) => void = () => undefined): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          { type: 'RECORD_ENTRY', stepKey, entry } as Parameters<typeof resolveClientIntent>[1],
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (r.accepted) throw new Error('SETUP: the engine accepted the entry');
+        const recorded = engine.encodeCommand(resolved.command) as Json;
+        forge(recorded);
+        return execution.appendExecution(tx.client, {
+          batchId: tx.locked.batch.id, expectedSeq: tx.lastSeq, kind: 'COMMAND', command: recorded as engine.JsonValue, commandId: resolved.command.commandId, nowUs: tx.nowUs,
+          accepted: false, refusal: r.refusal, state: r.state, events: r.events, roles, contents: engine.changedContents(tx.def, tx.state, r.state), evidence: resolved.evidence as engine.JsonValue,
+        });
+      }),
+    );
+  }
+
+  it('[DI-05][DI-30] round 6: a refused entry is recorded as it was sent, schema breaches included, but a refused row whose command carries lotNumber L2409-0017, a member no block version declares, is refused (EBMR-EXE-126) and nothing holds it', async () => {
+    const d = await startedRun();
+    const answeredNo = { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id, i) => ({ id, answer: i === 0 ? 'NO' : 'CONFIRMED' })) };
+    const outcomes = {
+      lotNumber: await refusedEntry(d, CLEAR, answeredNo, (command) => void ((command['entry'] as Json)['lotNumber'] = 'L2409-0017')),
+      answerMember: await refusedEntry(d, CLEAR, answeredNo, (command) => void ((((command['entry'] as Json)['answers'] as Json[])[2] as Json)['lot'] = 'L2409-0017')),
+    };
+    expect(unmatched(outcomes, {
+      lotNumber: new RegExp(String.raw`^This refused RECORD_ENTRY row records at step p-disp-clear a refused entry holding a member no block version declares for it: CLEARANCE_CHECK\.lotNumber is not a field of this block \(unknown fields are refused\) \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+      answerMember: new RegExp(String.raw`^This refused RECORD_ENTRY row records at step p-disp-clear a refused entry holding a member no block version declares for it: CLEARANCE_CHECK\.answers\[2\]\.lot is not a field of this block \(unknown fields are refused\) \(ENG-ENTRY-SCHEMA\)` + SCHEMA_REFUSAL),
+    })).toEqual({});
+    expect(await rowsHolding(d.runId, 'L2409-0017')).toBe(0);
+    // The engine's refusal of the answer NO itself is part of the record.
+    const before = (await rowsOf(sbx, d.runId)).length;
+    expect(await refusedEntry(d, CLEAR, answeredNo)).toBe('ok');
+    expect((await rowsOf(sbx, d.runId)).slice(before).map((r) => ({ type: r.command_type, accepted: r.accepted, code: r.refusal?.code }))).toEqual([{ type: 'RECORD_ENTRY', accepted: false, code: 'ENG-ENTRY-SCHEMA' }]);
+    expect(await entriesOf(d.runId, 'CLEARANCE_CHECK')).toEqual([]);
   }, 300_000);
 });

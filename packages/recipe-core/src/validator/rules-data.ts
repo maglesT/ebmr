@@ -6,7 +6,8 @@
  */
 import type { ExpressionOptions, ExprType, GuardFormula } from '../flow/expression-port.ts';
 import type { GraphNode } from '../flow/graph.ts';
-import { childrenOf, isNodeEvent, type FlowNode, type PhaseNode } from '../flow/model.ts';
+import { childrenOf, isNodeEvent, type FlowNode, type Parameter, type PhaseNode } from '../flow/model.ts';
+import { databaseMassClass } from '../flow/weighed-units.ts';
 import { calculationOptions, CONDITION, GLOBAL_SCOPE, type Analysis, type CheckedExpression } from './analysis.ts';
 import { analyseGuards, describePoint, type GuardBranch } from './guards.ts';
 import { defineRule, error, label, warning, type Rule } from './rule-kit.ts';
@@ -367,4 +368,52 @@ const units = defineRule('DATA-UNITS', 'Units are valid and limits are in commen
   return out;
 });
 
-export const DATA_RULES: readonly Rule[] = [references, writtenBeforeRead, singleWriter, expressions, calcCycles, guards, parallel, units];
+/**
+ * COMPOUND-UNIT (Phase 2 exit follow-up; INV-25, PR-19, DI-30): the database decides from the MBR which quantity of its
+ * step a weighing counts into (recipe-core sql/0323) and does not read a compound unit ("kg/1", "g/mL", "g.%"): where it
+ * would have to, it fails closed and refuses the weighing (EBMR-EXE-139), although the engine would count it. So a step
+ * that would have every container refused is warned about before the MBR can be approved (flow/weighed-units.ts):
+ *  - a G-22 step recording a quantity (a decimal with one reading) in a compound unit before its first quantity in a
+ *    plain mass unit, or with none: every output container (the database cannot tell which quantity it counts into);
+ *  - a G-07 step recording a mass (as the expression language reads it) in a compound unit: every container weighed into it.
+ */
+const weighedUnits = defineRule('DATA-WEIGHED-UNITS', 'The database can read the unit of every quantity a weighing counts into', ['INV-25', 'PR-19', 'DI-30'], (a) => {
+  const out: RuleFinding[] = [];
+  const kg = a.ctx.expressions.unit('kg');
+  const isMass = (unit: string | undefined): boolean => {
+    const u = unit === undefined ? undefined : a.ctx.expressions.unit(unit);
+    return u?.ok === true && kg.ok && u.dimension === kg.dimension;
+  };
+  for (const p of a.phases) {
+    if (p.block.type !== 'G-22' && p.block.type !== 'G-07') continue;
+    // As the blocks and the database read them: the first parameter of each id, a decimal with one reading.
+    const quantities = p.records
+      .map((r) => a.mbr.parameters.find((x) => x.id === r))
+      .filter((x): x is Parameter => x !== undefined && x.valueType === 'DECIMAL' && (x.readings ?? 1) === 1);
+    if (p.block.type === 'G-22') {
+      const first = quantities.findIndex((x) => databaseMassClass(x.unit) !== 'OTHER');
+      const unread = quantities[first];
+      if (unread === undefined || databaseMassClass(unread.unit) !== 'UNKNOWN') continue;
+      const where = quantities.slice(first).some((x) => databaseMassClass(x.unit) === 'MASS') ? 'before its first plain mass quantity' : 'and no plain mass quantity';
+      out.push(
+        warning(
+          p.id,
+          `${label(a, p.id)} registers output containers (G-22) and records ${label(a, unread.id)} in ${String(unread.unit)} ${where}. In this release the database cannot tell whether a compound unit (written with ".", "/" or parentheses) is a mass, so it refuses every output container of this step (EBMR-EXE-139), although the engine would count it. Record the produced quantity first, or write the unit plainly (kg, g, mg)`,
+        ),
+      );
+    } else {
+      for (const x of quantities) {
+        if (!isMass(x.unit) || databaseMassClass(x.unit) !== 'UNKNOWN') continue;
+        out.push(
+          warning(
+            p.id,
+            `${label(a, p.id)} dispenses into ${label(a, x.id)}, a mass written as a compound unit (${String(x.unit)}). In this release the database cannot read it as a mass, so it refuses every container weighed into it (EBMR-EXE-139). Write the unit plainly (kg, g, mg)`,
+          ),
+        );
+      }
+    }
+  }
+  return out;
+});
+
+export const DATA_RULES: readonly Rule[] = [references, writtenBeforeRead, singleWriter, expressions, calcCycles, guards, parallel, units, weighedUnits];

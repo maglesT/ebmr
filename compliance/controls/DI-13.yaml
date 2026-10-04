@@ -42,6 +42,8 @@ implemented_by:
     - "docs/security/asvs-l2-review.md"
     - "packages/kernel/sql/0240_esig_integrity.sql (esig.evidence_package: non-repudiation evidence package of a signature)"
     - "packages/kernel/src/esig/integrity.ts (evidencePackage with seal verification against the trusted key ring)"
+    - "apps/tablets-server/sql/0550_session_terminal_key.sql"
+    - "apps/tablets-web/src/api/page-binding.ts"
   guards:
     - "continuity.assert_device_hardened (enrolment guard for SHARED and GRADE_A_B devices; wiring into device enrolment by the lead)"
     - "assertProductionConfig refuses non-TLS database URLs, non-HTTPS servers, plain-HTTP serving, weak cookies and plain-text integration endpoints"
@@ -49,6 +51,7 @@ implemented_by:
     - "esig.evidence_package: signature row, stored manifestation, authentication event (components, method, terminal, time; no secret, verifier or badge UID), identity-verification record, signer as at signing, authority and segregation evaluations, delegation, invalidation, seal with payload check, integrity problems and the audit chains of the record and its signatures with their verification"
     - "installSecurity: an API request that carries this installation's session or CSRF cookie more than once is served as nobody (401 COOKIE_DUPLICATED) and the copies other pages set are removed; helmet's headers are set before the gate, and Fastify's framework errors carry them too (review F41, F43)"
     - "sign-out-mark.ts: the mark of an unconfirmed sign-out is kept only in site storage and this origin's broadcast channel, never in a cookie other ports of the host can write (review F42)"
+    - "pageBindingRefusal (bind.ts) on tab.resolve_session's terminal key (tablets 0550): a request whose page names its terminal key or the person its session started with is served as nobody when the cookie's session was opened on another terminal (401 SESSION_OTHER_TERMINAL) or is another person's (401 SESSION_CHANGED); the SPA names both on every request (page-binding.ts, the person kept per tab) and then shows the sign-in form or says that its sign-in changed, never working in that session (review F41, round 4; residuals in decision F41.1)"
   db_constraints:
     - "continuity.device_hardening_attestation: PASS only if USB mass storage blocked, malware protection active, OS patched and (SHARED, GRADE_A_B) kiosk mode enforced; insert-only and audited"
     - "continuity.record_hardening_attestation: re-attestation interval 30-365 days"
@@ -77,7 +80,7 @@ tests:
   - "apps/tablets-web/test/api.test.ts > a request refused as COOKIE_DUPLICATED > [DI-13][DI-38] is sent once more, with the same method, headers and body, and the second answer is the answer"
   - "apps/tablets-web/test/app/sign-out-screen.test.tsx > F42: what another port of the host can write is no sign-out mark > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the session"
   - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38] a sign-out mark cookie written by a page on another port does not end the GMP session"
-  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted by a page on another port neither locks the person out nor swaps their session"
+  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-38][DI-14] a copy of the GMP session cookie planted once by a page on another port is removed by the next request: the person signs in and works in their own session, never in the planted one"
   - "apps/tablets-server/test/esig/read-authorisation.test.ts > F34: the application role's other doors to investigations and GOVERNANCE-class signatures (tablets 0430) > [DI-17][DI-50][DI-13] without a session the application role runs no kernel reader of an investigation or of evidence: scoping report, person activity, chain extract, evidence package, chain list (the owner still runs them)"
   - "apps/tablets-server/test/platform/security-encoded-path.test.ts > P8: the DI-13 request checks do not depend on how the path is spelled > [DI-13] a cross-site POST to an API route is refused with ORIGIN before anything runs, whatever the percent-encoding of its path"
   - "apps/tablets-server/test/platform/security-encoded-path.test.ts > P8: the DI-13 request checks do not depend on how the path is spelled > [DI-13] a cross-site mutating request to any spelling of an API path is refused; one that reaches no route and names no API path runs nothing (404)"
@@ -152,6 +155,15 @@ tests:
   - "tools/e2e/specs/security/security.spec.ts > security > [DI-13] the SPA runs under the strict CSP without a single violation"
   - "tools/e2e/specs/security/security.spec.ts > security > [DI-13][DI-05] cookies: one session and CSRF cookie per installation, HttpOnly and SameSite=Strict; separate logins stay separate"
   - "tools/e2e/specs/security/security.spec.ts > security > [DI-13] a cross-origin POST is refused before anything runs"
+  - "apps/tablets-server/test/platform/security.test.ts > a sign-in the page did not start with > [DI-13][DI-14][DI-38] a session opened on another terminal than the page's own is served as nobody (SESSION_OTHER_TERMINAL), mutations included; on its own terminal, or without the page's key, it is served"
+  - "apps/tablets-server/test/platform/security.test.ts > a sign-in the page did not start with > [DI-13][DI-14][DI-38] a session of another person than the one the page started with is served as nobody (SESSION_CHANGED); the page's own person's is served, and so is a sandbox kiosk's"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-20] the terminal key the page names is the kernel's device fingerprint of its key: the SHA-256 of the SPKI"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] every request names the page's terminal key and the person its session started with; neither while unknown"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] a browser that holds a sign-in opened on another terminal (set by another page of this computer) shows the sign-in form, never that person"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] when the browser's sign-in becomes another person's while the page works, the page stops showing the session at once and says so; it shows who is signed in only when asked"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] a reload keeps the person the tab's session started with: another person's sign-in found at start-up is not shown"
+  - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-38] a refusal that names the person this page held before it started another session itself (a switch whose answer came first) is not reported"
+  - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-14][DI-38] another terminal's live sign-in planted at Path=/ by a page on another port, while the browser holds no GMP sign-in, is never worked in: the GMP page shows the sign-in form"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:

@@ -77,7 +77,7 @@ const transport: FetchLike = (url, init) => {
 function bootWith(session: SessionView): Boot {
   return {
     phase: 'ready', meta: null, deviceKey: { privateKey: key.privateKey, publicKeySpki: spki, label: session.device.deviceCode }, device: session.device, session, problem: null,
-    restart: vi.fn(), setSession: vi.fn(), joinMarkedSignOut: vi.fn(() => false), signOut: vi.fn(() => Promise.resolve()), forgetTerminal: vi.fn(() => Promise.resolve()),
+    restart: vi.fn(), setSession: vi.fn(), joinMarkedSignOut: vi.fn(() => false), signOut: vi.fn(() => Promise.resolve()), forgetTerminal: vi.fn(() => Promise.resolve()), showBrowserSignIn: vi.fn(),
   };
 }
 

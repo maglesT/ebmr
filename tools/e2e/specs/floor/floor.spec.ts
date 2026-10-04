@@ -273,7 +273,9 @@ const HOLD_TIME = 'e2eHoldTime';
  * PR-08 variant: the first step (the booth clearance; every stage starts with its clearance) also records a critical
  * parameter by hand, with dc-mini's blend-time limit tiers (registered 10-20 min, internal action 12-18 min, alert
  * 14-16 min). A value outside the internal action limit stops the step and the steps after it until a deviation is
- * linked.
+ * linked. Like the blend time, the value is typed by hand from the printout the MBR names, which cannot be attached in
+ * this release, so the step's check runs as a witness: the variant asks for the witness itself, as dc-mini does on its
+ * blend step, and passes the gate without a justification (T12.DOC: GMP-WITNESS-NO-ATTACHMENT warns otherwise).
  */
 function withParameterAtClearance(content: Json): void {
   const params = content['parameters'] as Json[];
@@ -282,6 +284,8 @@ function withParameterAtClearance(content: Json): void {
   params.push({ ...structuredClone(blendTime), id: HOLD_TIME, name: 'Booth hold time' });
   const clearance = phaseOf(content, 'p-disp-clear');
   clearance['records'] = [...(clearance['records'] as string[]), HOLD_TIME];
+  const signatures = clearance['signatures'] as { check: { meaning: string; role: string } };
+  signatures.check = { ...signatures.check, meaning: 'WITNESSED' };
 }
 
 /** Records every entry form of the step on show (clearance: the checklist and the previous batch), a tap each. */
