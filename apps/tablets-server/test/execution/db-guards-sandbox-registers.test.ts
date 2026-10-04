@@ -77,12 +77,20 @@ async function recordHolding(runId: string, text: string): Promise<{ rows: numbe
 }
 
 describe('F12 round 9: what the sandbox\'s registers let into a test run\'s record (DI-05, PR-18, INV-18)', () => {
-  it('[DI-05][PR-18] round 9 (tablets 0600): a lot a test run names is of a material the batch\'s MBR names: a weighing of a test lot registered with the material L2409-0017, which the engine refuses as the wrong material, is refused (EBMR-EXE-078) and nothing in the record holds L2409-0017; a cellulose lot at the paracetamol line is still recorded refused (G07-WRONG-MATERIAL), and a paracetamol lot whose material name is L2409-0017 is weighed with nothing in the record holding that name', async () => {
+  it('[DI-05][PR-18] round 9 (tablets 0600): a lot a test run names is of a material the batch\'s MBR names: a weighing of a test lot registered with the material L2409-0017, which the engine refuses as the wrong material, is refused (EBMR-EXE-078) and nothing in the record holds L2409-0017; a cellulose lot at the paracetamol line is still recorded refused (G07-WRONG-MATERIAL); since round 10 (tablets 0630) a paracetamol lot whose material name is L2409-0017 is not registered (EBMR-SBX-024), and a lot\'s material name, which is the register\'s, is weighed with nothing in the record holding it', async () => {
     const steward = await openPersonaSession(sbx.db, sbx.seed, 'steward');
+    const NAME = 'Paracetamol, direct-compression grade (register name)';
     await registerLots(sbx.db.app, { ...steward, correlationId: randomUUID() }, [
       { lotCode: 'TEST-L26-0901', materialCode: LOT, materialName: 'Paracetamol, direct-compression grade', status: 'RELEASED', identityTested: true, expiresInDays: 730, retestInDays: 365 },
-      { lotCode: 'TEST-L26-0902', materialCode: 'MAT-PCM', materialName: LOT, status: 'RELEASED', identityTested: true, expiresInDays: 730, retestInDays: 365 },
+      { lotCode: 'TEST-L26-0902', materialCode: 'MAT-PCM', materialName: NAME, status: 'RELEASED', identityTested: true, expiresInDays: 730, retestInDays: 365 },
     ]);
+    // Since tablets 0630 (F12 round 10) a lot's material name holds no real-format batch or lot number.
+    await expect(
+      registerLots(sbx.db.app, { ...steward, correlationId: randomUUID() }, [
+        { lotCode: 'TEST-L26-0903', materialCode: 'MAT-PCM', materialName: LOT, status: 'RELEASED', identityTested: true, expiresInDays: 730, retestInDays: 365 },
+      ]),
+    ).rejects.toThrow(/^tab\.sandbox_lot material_name holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/);
+    expect((await sbx.db.admin.query('select 1 from tab.sandbox_lot where lot_code = $1 or material_name like $2', ['TEST-L26-0903', `%${LOT}%`])).rowCount).toBe(0);
     const d = await atWeighing();
     const lotShaped = await d.command('operator1', weighing('TEST-L26-0901'));
     expect(outcomeOf(lotShaped)).toBe('422:EBMR-EXE-078');
@@ -95,6 +103,7 @@ describe('F12 round 9: what the sandbox\'s registers let into a test run\'s reco
     // A lot's material name is the register's, shown on the screen and recorded in no row.
     await d.ok('operator1', weighing('TEST-L26-0902'));
     expect(await recordHolding(d.runId, LOT)).toEqual({ rows: 0, state: 0, contents: 0 });
+    expect(await recordHolding(d.runId, NAME)).toEqual({ rows: 0, state: 0, contents: 0 });
   }, 300_000);
 
   it('[DI-05][INV-18] round 9 (recipe-core 0341): a stub batch planned in the sandbox carries a test batch number: L2409-0017 is refused (EBMR-SBX-022) and no stub batch holds it; TEST-B26-0901 is planned', async () => {
