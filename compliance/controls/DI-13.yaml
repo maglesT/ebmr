@@ -164,6 +164,9 @@ tests:
   - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-14][DI-38] a reload keeps the person the tab's session started with: another person's sign-in found at start-up is not shown"
   - "apps/tablets-web/test/app/page-binding.test.tsx > F41 round 4: the page works only in the sign-in it started with > [DI-13][DI-38] a refusal that names the person this page held before it started another session itself (a switch whose answer came first) is not reported"
   - "tools/e2e/specs/security/security.spec.ts > [DI-13][DI-14][DI-38] another terminal's live sign-in planted at Path=/ by a page on another port, while the browser holds no GMP sign-in, is never worked in: the GMP page shows the sign-in form"
+  - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > tab.bind_session: which kernel session a cookie is bound to (tablets 0001, 0480) > [DI-13][DI-38] a session that has ended, or that does not exist, is never bound (EBMR-TAB-010) and nothing is written"
+  - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > tab.bind_session: which kernel session a cookie is bound to (tablets 0001, 0480) > [DI-13][DI-38] only a session opened in the last 10 seconds is bound (EBMR-TAB-011); one opened 11 seconds ago is not, and nothing is written"
+  - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > signing out and ending a withdrawn session act on the one token given (tablets 0001, 0400) > [DI-13][DI-38] tab.unbind_session unbinds that cookie only, once; the other session stays bound"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:

@@ -48,6 +48,11 @@ tests:
   - "apps/tablets-server/test/designer/package-publish.test.ts > test-package export: recorded export and file stay together (DI-05, DI-04) > [IN-02][DI-04] the package carries only the justifications that answer a warning of its content"
   - "apps/tablets-web/test/designer/justify-revision.test.tsx > justify dialog (IN-02, DI-04) > [IN-02][DI-04] the justification names the saved revision and content hash whose warning is on screen"
   - "apps/tablets-web/test/designer/justify-revision.test.tsx > justify dialog (IN-02, DI-04) > [IN-02][DI-04] a warning reported for other content than the saved revision cannot be justified"
+  - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] a justification of an unknown version is refused as such (EBMR-RCP-020), whichever form of the writer is called, while other versions exist"
+  - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] a justification written for content that is no longer the saved one, or for none, is refused with that reason (EBMR-TAB-156) and not recorded"
+  - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] a version without content has nothing to justify (EBMR-TAB-155): the writer and the table refuse, whoever writes"
+  - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] the form that names no content (the owner's only) records the justification against the version's latest revision and hash"
+  - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] VALIDATOR evidence holds a justification to the latest one of its own key on its own version: not another key's later one, nor another version's"
 clauses:
   - clause: "classify a deviation as minor without a rationale; saving is refused."
     deferred:

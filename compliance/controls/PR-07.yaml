@@ -33,6 +33,8 @@ implemented_by:
     - "mbr_version.critical_elements_risk_assessed (IN_VERIFICATION -> SUBMITTED): every CRITICAL parameter and calculation is covered by a linked risk assessment"
 tests:
   - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-07] submitting a master with a critical parameter and no linked risk assessment is blocked"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > draft attributes, risk links and change records (PR-06, PR-07) > [PR-07] a risk link names a recorded assessment (EBMR-RCP-061) and subjects that are ids; only a linked assessment is unlinked; nothing is written by a refusal"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > a command on one version never waits for a command on another (decision 0003) > [PR-07][PR-06] a risk link of one version is recorded while another version's content revision is still open"
 clauses:
   - clause: "Submitting a master with a critical parameter and no linked assessment is blocked."
     tests:

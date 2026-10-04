@@ -58,6 +58,8 @@ tests:
   - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [DI-24][DI-29][DI-33][INV-20][PR-21] the golden runs of both fixtures: every row and every sweep passes; the rows include the verdict on a loop endpoint and charged containers"
   - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [DI-29][IN-20][INV-41] the invalidation path and the void: an invalidated result, a re-test, a result invalidated after its step was signed (the step re-opened, the value re-computed); a voided attempt"
   - "packages/recipe-core/test/execution/kept-records-sql.test.ts > a row that rewrites what the state recorded, or makes the engine's change in the wrong row, is refused (P34, P58, P36 round 2) > [DI-24][DI-29][DI-30][DI-32][DI-33][INV-41][PR-21] each rule of recipe.kept_records_problem refuses the forged row and names what it changes"
+  - "packages/recipe-core/test/mutation/execution-state-binding.test.ts > what the state recorded is kept, condition by condition (recipe.kept_records_problem, 0303) > [DI-24][DI-29][DI-30][DI-34] a state without one of the members the check reads, or with a record that is not an object, is refused as malformed"
+  - "packages/recipe-core/test/mutation/execution-state-binding.test.ts > what the state recorded is kept, condition by condition (recipe.kept_records_problem, 0303) > [DI-29][IN-20][INV-41] a value is invalidated only with the approval its INVALIDATE_RESULT carries, its signature and its approver both recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

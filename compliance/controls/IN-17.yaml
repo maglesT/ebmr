@@ -16,7 +16,8 @@ sources: Schedule M Part I 18.2.3, 18.4.6, 18.5.10 (yield checks and reconciliat
 behaviour: Yields are calculated automatically at each stage against MBR limits; printed components and bulk are reconciled automatically (issued = used + destroyed + returned, within limits). Any out-of-limit yield or significant/unusual reconciliation discrepancy opens a deviation that blocks release until explained and closed. No reconciliation waiver is offered for roll labels.
 catalog_test: enter a carton reconciliation with a 2% unexplained loss above the configured limit; a deviation opens and release is blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/mutation/limit-exceptions.test.ts > a computed value and the exception a value names (recipe.limit_verdicts, recipe.limit_exceptions_problem) > [PR-08][PR-31][PR-39][IN-17] a computed value outside the limits of its calculation and of its yield checkpoint is marked failed: one that is not is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
