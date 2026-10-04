@@ -15,7 +15,8 @@
  * managers, so that they neither offer nor save it, and it records any text that reached it otherwise than typed key
  * by key (filled in by a browser or a password manager, pasted, dropped, or set by a script): `wasFilled` tells the
  * caller, which then sends nothing. Attributes alone are advice a manager may ignore; the refusal does not depend on
- * them.
+ * them. A key counts only when the browser made it (a trusted event): a manager or extension that "types" the secret
+ * by dispatching key and input events one character at a time fills the field (BADGE-AUTOFILL round 2).
  */
 import { useId, useImperativeHandle, useLayoutEffect, useRef, type FormEvent, type Ref, type RefObject } from 'react';
 import { cls } from './classes.ts';
@@ -42,7 +43,10 @@ export interface SecretInputProps {
   noAutofill?: boolean;
 }
 
-/** The input events a person typing (or a keyboard-wedge reader) makes; any other insertion counts as filled in. */
+/**
+ * The input events a person typing (or a keyboard-wedge reader) makes; any other insertion counts as filled in. They
+ * count only when trusted: the browser made them from a real key (see `scripted`).
+ */
 const TYPED_INPUT = new Set(['insertText', 'insertCompositionText', 'deleteContentBackward', 'deleteContentForward', 'deleteWordBackward', 'deleteWordForward', 'deleteCompositionText']);
 
 /** The attributes the common password managers read as "leave this field alone" (1Password, LastPass, Bitwarden, Dashlane). */
@@ -57,6 +61,23 @@ function autofilledNow(el: HTMLInputElement): boolean {
     }
   }
   return false;
+}
+
+/**
+ * Whether an event was dispatched by a script (a password manager or extension "typing" a saved secret key by key, a
+ * page script) rather than made by the browser from a real key or a keyboard-wedge reader (BADGE-AUTOFILL round 2).
+ * The browser marks every event it makes itself as trusted and every dispatched one as not; an environment that does
+ * not say (a test DOM) is read as trusted. A key injected at the operating-system level (auto-type) is trusted and is
+ * read as a key.
+ */
+export function scripted(event: Event): boolean {
+  return event.isTrusted === false;
+}
+
+/** Marks a `noAutofill` SecretInput as filled in until it is read or cleared (a scripted key reached it). */
+export function markFilled(ref: RefObject<HTMLInputElement | null>): void {
+  const el = ref.current;
+  if (el) el.dataset['filled'] = 'true';
 }
 
 /**
@@ -96,10 +117,11 @@ export function SecretInput({ label, name, inputRef, description, errorMessage, 
       if (el) el.value = '';
     };
   }, []);
-  // Anything but a key typed (or deleted) marks the field as filled in until it is read or cleared.
+  // Anything but a key typed (or deleted) marks the field as filled in until it is read or cleared; a scripted
+  // insertText is not a key typed.
   const onInput = (e: FormEvent<HTMLInputElement>) => {
     const n = e.nativeEvent;
-    if (!(typeof InputEvent !== 'undefined' && n instanceof InputEvent && TYPED_INPUT.has(n.inputType))) e.currentTarget.dataset['filled'] = 'true';
+    if (scripted(n) || !(typeof InputEvent !== 'undefined' && n instanceof InputEvent && TYPED_INPUT.has(n.inputType))) e.currentTarget.dataset['filled'] = 'true';
   };
   const describedBy = [description ? `${id}-description` : null, errorMessage !== undefined ? `${id}-error` : null].filter((x) => x !== null).join(' ');
   return (

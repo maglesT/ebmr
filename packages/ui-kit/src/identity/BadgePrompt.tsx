@@ -17,7 +17,11 @@
  * `noAutofill`), and text that did not arrive key by key in the current burst (a saved secret filled in by the browser
  * or a password manager, a paste, a drop: the field saw an insertion that was not typed, or holds more characters than
  * the burst brought keys) is not sent, even when it reads as a badge UID: the prompt says the badge was not tapped and
- * waits. The first key of a burst empties the field, so a reader's tap after such text still counts.
+ * waits. The first key of a burst empties the field, so a reader's tap after such text still counts. Only keys the
+ * browser made count (trusted events: real keys and the reader's); a key or input event a script dispatched, as a
+ * password manager or extension does when it "types" a saved secret one key at a time, is a fill (BADGE-AUTOFILL
+ * round 2). Keys injected at the operating-system level (a manager's auto-type) are trusted: typed faster than
+ * BURST_GAP_MS apart they read as a reader, as fast typing does (default BADGE-AUTOFILL.1).
  *
  * DemoBadgeReader (DEMO-ONLY, demo installations only) offers one button per demo person of this terminal instead
  * of a physical reader.
@@ -26,7 +30,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { badgeUidOf, type RefusalEnvelope } from '@ebmr/api-contract';
 import { Banner } from '../primitives/Banner.tsx';
 import { Button } from '../primitives/Button.tsx';
-import { clearSecret, SecretInput, takeSecret, wasFilled } from '../primitives/SecretInput.tsx';
+import { clearSecret, markFilled, scripted, SecretInput, takeSecret, wasFilled } from '../primitives/SecretInput.tsx';
 import { icls } from './classes.ts';
 import { RefusalNotice } from './RefusalNotice.tsx';
 
@@ -134,8 +138,14 @@ export function BadgePrompt({ reason, onTap, onCancel, onTimeout, timeoutSeconds
     }
     tap(text);
   };
-  // The first printable key, or one long after the previous one, starts a burst: the field starts again with it.
+  // The first printable key, or one long after the previous one, starts a burst: the field starts again with it. A
+  // key a script dispatched (a password manager or extension typing a saved secret) is no key of a burst: it marks the
+  // field as filled in, and what it holds is not sent.
   const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
+    if (scripted(e.nativeEvent)) {
+      markFilled(input);
+      return;
+    }
     if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
     const last = lastKeyAt.current;
     lastKeyAt.current = e.timeStamp;

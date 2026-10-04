@@ -12,8 +12,10 @@
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { BadgePrompt, NOT_A_BADGE, NOT_TAPPED } from '../../src/identity/index.ts';
+import { SecretInput, takeSecret, wasFilled } from '../../src/primitives/SecretInput.tsx';
 
 const noop = () => undefined;
 const SAVED = '4829137065';
@@ -99,6 +101,55 @@ describe('BADGE-AUTOFILL: a badge tap is what the reader types, never what is fi
     await userEvent.type(field, '04A10000000002{Enter}');
     expect(onTap).toHaveBeenCalledExactlyOnceWith('04A10000000002');
     expect(screen.queryByText(NOT_TAPPED)).toBeNull();
+  });
+
+  it('[DI-14][DI-19][DI-38] a password manager or extension that types a saved secret one key at a time (untrusted key and insertText events, as a content script dispatches them) is a fill: nothing is sent, and the reader\'s next burst still counts', async () => {
+    // Real keys and a keyboard-wedge reader produce trusted events; an event a script dispatches is not trusted. happy-dom
+    // leaves isTrusted undefined (as userEvent's keys are here), so the scripted events say false themselves.
+    const untrusted = <E extends Event>(event: E): E => Object.defineProperty(event, 'isTrusted', { value: false });
+    const typeAsAScript = (el: HTMLInputElement, text: string) => {
+      for (const ch of text) {
+        el.dispatchEvent(untrusted(new KeyboardEvent('keydown', { bubbles: true, key: ch })));
+        setNatively(el, el.value + ch);
+        el.dispatchEvent(untrusted(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ch })));
+        el.dispatchEvent(untrusted(new KeyboardEvent('keyup', { bubbles: true, key: ch })));
+      }
+    };
+    for (const submit of ['Enter', 'Continue'] as const) {
+      const onTap = vi.fn();
+      const { unmount } = render(<BadgePrompt reason="Tap your badge to sign in." onTap={onTap} timeoutSeconds={null} />);
+      const field = screen.getByLabelText<HTMLInputElement>('Badge');
+      field.focus();
+      typeAsAScript(field, SAVED);
+      expect(field.value, `${submit}: the typed fill reached the field`).toBe(SAVED);
+      if (submit === 'Enter') await userEvent.keyboard('{Enter}');
+      else await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      expect(onTap, submit).not.toHaveBeenCalled();
+      expect(screen.getByText(NOT_TAPPED), submit).toBeTruthy();
+      expect(field.value, `${submit}: the field is emptied`).toBe('');
+      // Typed by a script onto the reader's own keys within one burst: still not a tap.
+      await userEvent.type(field, '04A1000');
+      typeAsAScript(field, '0000001');
+      await userEvent.keyboard('{Enter}');
+      expect(onTap, `${submit}: the reader's keys with a scripted tail`).not.toHaveBeenCalled();
+      // The reader's next burst empties the field and is the tap.
+      await userEvent.type(field, '04A10000000002{Enter}');
+      expect(onTap, submit).toHaveBeenCalledExactlyOnceWith('04A10000000002');
+      unmount();
+    }
+  });
+
+  it('[DI-14][DI-19][DI-38] a kiosk secret field marks a scripted key-by-key insertion as filled, and a typed one as not', async () => {
+    const ref = createRef<HTMLInputElement>();
+    render(<SecretInput label="New PIN" name="newSecret" inputRef={ref} noAutofill />);
+    const field = screen.getByLabelText<HTMLInputElement>('New PIN');
+    await userEvent.type(field, '4829');
+    expect(wasFilled(ref), 'typed').toBe(false);
+    setNatively(field, `${field.value}1`);
+    field.dispatchEvent(Object.defineProperty(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '1' }), 'isTrusted', { value: false }));
+    expect(wasFilled(ref), 'a scripted insertText').toBe(true);
+    expect(takeSecret(ref)).toBe('48291');
+    expect(wasFilled(ref), 'read and cleared').toBe(false);
   });
 
   it('[DI-14][DI-38] keyed text keeps its own answer: a PIN keyed into the field is not a badge, and a reader\'s burst is a tap', async () => {
