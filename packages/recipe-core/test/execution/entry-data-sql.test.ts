@@ -36,8 +36,9 @@ import type { BlockVersion } from '../../src/blocks/contract.ts';
 import { GENERIC_BLOCK_VERSIONS } from '../../src/blocks/generic/index.ts';
 import { DEFAULT_CLEARANCE_CHECKLIST, DEFAULT_STATUS_CHECKS } from '../../src/blocks/generic/status.ts';
 import { validateSchema, type FieldSchema } from '../../src/blocks/schema.ts';
-import { encodeCommand, encodeState, type JsonValue } from '../../src/engine/codec.ts';
-import type { BatchState } from '../../src/engine/types.ts';
+import { encode, encodeCommand, encodeState, type JsonValue } from '../../src/engine/codec.ts';
+import { DEFAULT_POLICY, type Actor, type Approval, type BatchState, type Command, type CommandType, type DataSource, type DataValue, type EnginePolicy, type IssueRequest, type OccurredAt, type SignatureRef, type SignatureTarget } from '../../src/engine/types.ts';
+import type { Frame } from '../../src/flow/tokens.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import { fixtureMbr } from '../blocks/support.ts';
 import { mbrWith, phase, type FixtureName } from '../flow/support.ts';
@@ -1370,4 +1371,465 @@ describe('F12 round 6: an entry and a step\'s start data meet the data schema of
     );
     expect(rows[0]).toEqual({ ok: null, bad: 'c.expected.q1.lot is not a field of this block (unknown fields are refused)', scalar: null });
   }, 300_000);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Round 7 (sql 0335; the round-6 verification): the command of every row and the evidence stored with it.
+
+/**
+ * The members of type T, listed: leaving one out is a compile error (the second argument becomes required), and so is
+ * naming one T does not have. So the lists below are the engine's types, and the test compares the database's with them.
+ */
+const membersOf =
+  <T,>() =>
+  <const L extends readonly (keyof T & string)[]>(list: L, ...exact: [Exclude<keyof T, L[number]>] extends [never] ? [] : [missing: Exclude<keyof T, L[number]>]): L => {
+    void exact;
+    return list;
+  };
+type Of<K extends CommandType> = Extract<Command, { type: K }>;
+const BASE = ['type', 'commandId', 'actor', 'expectedVersion'] as const;
+const COMMAND_MEMBERS = {
+  START_STEP: membersOf<Of<'START_STEP'>>()([...BASE, 'step', 'context', 'occurredAt', 'blockData']),
+  RECORD_DATA: membersOf<Of<'RECORD_DATA'>>()([...BASE, 'step', 'context', 'item', 'value', 'source', 'occurredAt', 'reason']),
+  RECORD_ENTRY: membersOf<Of<'RECORD_ENTRY'>>()([...BASE, 'step', 'context', 'entry', 'occurredAt']),
+  SIGN_PERFORMED: membersOf<Of<'SIGN_PERFORMED'>>()([...BASE, 'step', 'context', 'signature', 'occurredAt']),
+  VERIFY: membersOf<Of<'VERIFY'>>()([...BASE, 'step', 'context', 'signature']),
+  CHOOSE_ALTERNATIVE: membersOf<Of<'CHOOSE_ALTERNATIVE'>>()([...BASE, 'construct', 'context', 'branch', 'reason']),
+  CHOOSE_REPLICATE_COUNT: membersOf<Of<'CHOOSE_REPLICATE_COUNT'>>()([...BASE, 'construct', 'context', 'count', 'reason']),
+  COMPLETE_LOOP_ITERATION: membersOf<Of<'COMPLETE_LOOP_ITERATION'>>()([...BASE, 'construct', 'context']),
+  REQUEST_SKIP: membersOf<Of<'REQUEST_SKIP'>>()([...BASE, 'step', 'context', 'reason', 'approval']),
+  DISPOSITION_HOLD_POINT: membersOf<Of<'DISPOSITION_HOLD_POINT'>>()([...BASE, 'step', 'context', 'disposition', 'signature', 'comment']),
+  SIGN_OFF_STAGE: membersOf<Of<'SIGN_OFF_STAGE'>>()([...BASE, 'stage', 'context', 'signature']),
+  RAISE_EXCEPTION: membersOf<Of<'RAISE_EXCEPTION'>>()([...BASE, 'step', 'context', 'description', 'severity']),
+  ATTACH_DEVIATION: membersOf<Of<'ATTACH_DEVIATION'>>()([...BASE, 'exception', 'deviationRef']),
+  DISPOSITION_EXCEPTION: membersOf<Of<'DISPOSITION_EXCEPTION'>>()([...BASE, 'exception', 'outcome', 'justification', 'signature']),
+  HOLD_BATCH: membersOf<Of<'HOLD_BATCH'>>()([...BASE, 'holdType', 'reason']),
+  RELEASE_HOLD: membersOf<Of<'RELEASE_HOLD'>>()([...BASE, 'hold', 'reason']),
+  CORRECT_ENTRY: membersOf<Of<'CORRECT_ENTRY'>>()([...BASE, 'point', 'value', 'reason', 'signature', 'evidence', 'approval']),
+  VOID_ATTEMPT: membersOf<Of<'VOID_ATTEMPT'>>()([...BASE, 'step', 'context', 'item', 'reason', 'point', 'approval']),
+  INVALIDATE_RESULT: membersOf<Of<'INVALIDATE_RESULT'>>()([...BASE, 'point', 'investigationRef', 'reason', 'approval']),
+  ABORT_BATCH: membersOf<Of<'ABORT_BATCH'>>()([...BASE, 'reason', 'approvals']),
+  CANCEL_BATCH: membersOf<Of<'CANCEL_BATCH'>>()([...BASE, 'reason', 'signature']),
+} satisfies Record<CommandType, readonly string[]>;
+const VALUE_MEMBERS = {
+  DECIMAL: membersOf<Extract<DataValue, { kind: 'DECIMAL' }>>()(['kind', 'value', 'unit']),
+  COUNT: membersOf<Extract<DataValue, { kind: 'COUNT' }>>()(['kind', 'value']),
+  BOOLEAN: membersOf<Extract<DataValue, { kind: 'BOOLEAN' }>>()(['kind', 'value']),
+  CATEGORY: membersOf<Extract<DataValue, { kind: 'CATEGORY' }>>()(['kind', 'value']),
+  TEXT: membersOf<Extract<DataValue, { kind: 'TEXT' }>>()(['kind', 'value']),
+  INSTANT: membersOf<Extract<DataValue, { kind: 'INSTANT' }>>()(['kind', 'us']),
+  SERIES: membersOf<Extract<DataValue, { kind: 'SERIES' }>>()(['kind', 'values', 'unit']),
+} satisfies Record<DataValue['kind'], readonly string[]>;
+const SOURCE_MEMBERS = {
+  MANUAL: membersOf<Extract<DataSource, { mode: 'MANUAL' }>>()(['mode', 'evidence']),
+  DEVICE: membersOf<Extract<DataSource, { mode: 'DEVICE' }>>()(['mode', 'device', 'raw']),
+  SCAN: membersOf<Extract<DataSource, { mode: 'SCAN' }>>()(['mode', 'code']),
+  AUTOMATION: membersOf<Extract<DataSource, { mode: 'AUTOMATION' }>>()(['mode', 'system', 'tag']),
+  LIMS: membersOf<Extract<DataSource, { mode: 'LIMS' }>>()(['mode', 'resultRef']),
+  BLOCK: membersOf<Extract<DataSource, { mode: 'BLOCK' }>>()(['mode', 'entries']),
+} satisfies Record<DataSource['mode'], readonly string[]>;
+const NESTED_MEMBERS = {
+  actor: membersOf<Actor>()(['id', 'kind', 'roles']),
+  frame: membersOf<Frame>()(['construct', 'index']),
+  occurredAt: membersOf<OccurredAt>()(['us', 'trust']),
+  signature: membersOf<SignatureRef>()(['id', 'meaning', 'signer']),
+  approval: membersOf<Approval>()(['approver', 'signature']),
+  correctionEvidence: membersOf<NonNullable<Of<'CORRECT_ENTRY'>['evidence']>>()(['kind', 'sha256']),
+  manualEvidence: membersOf<NonNullable<Extract<DataSource, { mode: 'MANUAL' }>['evidence']>>()(['kind', 'sha256']),
+  prepareTarget: membersOf<SignatureTarget>()(['type', 'step', 'context']),
+  issueRequest: membersOf<IssueRequest>()(['batchId', 'batchNumber', 'batchSize', 'marketSet', 'purpose', 'variants', 'inputs', 'issuedBy', 'issueSignature']),
+  issueInput: membersOf<IssueRequest['inputs'][string]>()(['value', 'source']),
+  policy: membersOf<EnginePolicy>()(['oneVerifierMode', 'voidNeedsQaApproval', 'criticalCorrectionNeedsApproval', 'qaRoles', 'supervisorRoles', 'productionHeadRoles', 'replicateCountRoles', 'fallbackVerifierRoles', 'witnessWindowUs']),
+};
+
+/** recipe.command_member_problem of each [row kind, command, refused], read against the shape of its kind and type, in order. */
+async function shapeProblems(cases: readonly (readonly [string, unknown, boolean])[]): Promise<(string | null)[]> {
+  const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+    "select coalesce(array_agg(recipe.command_member_problem(recipe.command_shape(x.c ->> 0, x.c -> 1 ->> 'type'), x.c -> 1, 'command', (x.c ->> 2)::boolean) order by x.i), '{}') as p from jsonb_array_elements($1::jsonb) with ordinality x (c, i)",
+    [JSON.stringify(cases)],
+  );
+  return rows[0]?.p ?? [];
+}
+
+/** recipe.execution_row_problem of a row of a sandbox batch of package PKG in room DISP-1. */
+async function rowProblem(kind: string, commandId: string, command: unknown, accepted: boolean, evidence: unknown = {}): Promise<string | null> {
+  const { rows } = await db.admin.query<{ p: string | null }>("select recipe.execution_row_problem($1, $2, $3::jsonb, $4, $5::jsonb, 'DISP-1', $6, 'SANDBOX') as p", [
+    kind,
+    commandId,
+    JSON.stringify(command),
+    accepted,
+    JSON.stringify(evidence),
+    PKG,
+  ]);
+  return rows[0]?.p ?? null;
+}
+
+const PKG = 'a'.repeat(64);
+const UUID = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const fields = (shape: unknown): Json => ((shape as Json)['fields'] ?? {}) as Json;
+const sorted = (xs: Iterable<string>): string[] => [...xs].sort();
+
+/** Every place of `v` outside an entry and start data, as a path of members and indices, with its value. */
+function places(v: unknown, path: (string | number)[] = []): { path: (string | number)[]; value: unknown }[] {
+  const out = [{ path, value: v }];
+  if (Array.isArray(v)) v.forEach((x, i) => out.push(...places(x, [...path, i])));
+  else if (isObject(v)) for (const [k, x] of Object.entries(v)) if (!(path.length === 0 && (k === 'entry' || k === 'blockData'))) out.push(...places(x, [...path, k]));
+  return out;
+}
+/** `v` with the value at `path` replaced by `f` of it. */
+function at(v: unknown, path: readonly (string | number)[], f: (x: unknown) => unknown): unknown {
+  if (path.length === 0) return f(v);
+  const [head, ...rest] = path;
+  if (Array.isArray(v)) return (v as unknown[]).map((x, i) => (i === head ? at(x, rest, f) : x));
+  return Object.fromEntries(Object.entries(v as Json).map(([k, x]) => [k, k === head ? at(x, rest, f) : x]));
+}
+
+/** One command of every engine type, every optional member given, typed by the engine's own Command type. */
+const TYPED_COMMANDS: Command[] = (() => {
+  const actor: Actor = { id: 'P-1', kind: 'PERSON', roles: ['PRODUCTION_OPERATOR'] };
+  const approver: Actor = { id: 'P-2', kind: 'PERSON', roles: ['QA'] };
+  const signature: SignatureRef = { id: 'S-1', meaning: 'PERFORMED', signer: actor.id };
+  const approval: Approval = { approver, signature: { id: 'S-2', meaning: 'CORRECTION_APPROVED', signer: approver.id } };
+  const context: Frame[] = [{ construct: 'loop', index: 1 }];
+  const occurredAt: OccurredAt = { us: 1_800_000_000_000_000n, trust: 'DEVICE_SYNCED' };
+  const b = { commandId: 'C-1', actor, expectedVersion: 3 };
+  const values: DataValue[] = [
+    { kind: 'DECIMAL', value: '1.5', unit: 'kg' },
+    { kind: 'COUNT', value: '3' },
+    { kind: 'BOOLEAN', value: true },
+    { kind: 'CATEGORY', value: 'A' },
+    { kind: 'TEXT', value: '' },
+    { kind: 'INSTANT', us: 1_800_000_000_000_000n },
+    { kind: 'SERIES', values: ['1.0', '1.1'], unit: 'g' },
+  ];
+  const sources: DataSource[] = [
+    { mode: 'MANUAL', evidence: { kind: 'PRINTOUT', sha256: 'c'.repeat(64) } },
+    { mode: 'DEVICE', device: 'TEST-BAL-01', raw: 'ST,GS 1.5 kg' },
+    { mode: 'SCAN', code: 'TEST-PUNCH-01' },
+    { mode: 'AUTOMATION', system: 'SCADA', tag: 'T-1' },
+    { mode: 'LIMS', resultRef: 'R-1' },
+    { mode: 'BLOCK', entries: ['EN-1'] },
+  ];
+  return [
+    { ...b, type: 'START_STEP', step: 's', context, occurredAt, blockData: { investigationRef: 'I', riskEvaluationRef: 'R', authorisationRef: 'A', authorisedBy: 'P-2' } },
+    ...values.map((value, i): Command => ({ ...b, type: 'RECORD_DATA', step: 's', context, item: 'x', value, source: sources[i % sources.length] ?? { mode: 'MANUAL' }, occurredAt, reason: 'late' })),
+    { ...b, type: 'RECORD_ENTRY', step: 's', context, entry: { kind: 'PREVIOUS_BATCH', product: 'P', batchNumber: 'TEST-B26-0001' }, occurredAt },
+    { ...b, type: 'SIGN_PERFORMED', step: 's', context, signature, occurredAt },
+    { ...b, type: 'VERIFY', step: 's', context, signature },
+    { ...b, type: 'CHOOSE_ALTERNATIVE', construct: 'alt', context, branch: 'b', reason: 'r' },
+    { ...b, type: 'CHOOSE_REPLICATE_COUNT', construct: 'rep', context, count: 2, reason: 'r' },
+    { ...b, type: 'COMPLETE_LOOP_ITERATION', construct: 'loop', context },
+    { ...b, type: 'REQUEST_SKIP', step: 's', context, reason: 'r', approval },
+    { ...b, type: 'DISPOSITION_HOLD_POINT', step: 'h', context, disposition: 'APPROVED', signature, comment: 'c' },
+    { ...b, type: 'SIGN_OFF_STAGE', stage: 'S', context, signature },
+    { ...b, type: 'RAISE_EXCEPTION', step: 's', context, description: 'd', severity: 'ALERT' },
+    { ...b, type: 'ATTACH_DEVIATION', exception: 'EX-1', deviationRef: 'TEST-DEV-1' },
+    { ...b, type: 'DISPOSITION_EXCEPTION', exception: 'EX-1', outcome: 'NO_IMPACT', justification: 'j', signature },
+    { ...b, type: 'HOLD_BATCH', holdType: 'QA', reason: 'r' },
+    { ...b, type: 'RELEASE_HOLD', hold: 'H-1', reason: 'r' },
+    { ...b, type: 'CORRECT_ENTRY', point: 'DP-1', value: { kind: 'DECIMAL', value: '2', unit: 'kg' }, reason: 'r', signature, evidence: { kind: 'DEVICE_RAW', sha256: 'd'.repeat(64) }, approval },
+    { ...b, type: 'VOID_ATTEMPT', step: 's', context, item: 'x', reason: 'r', point: 'DP-1', approval },
+    { ...b, type: 'INVALIDATE_RESULT', point: 'DP-1', investigationRef: 'INV-1', reason: 'r', approval },
+    { ...b, type: 'ABORT_BATCH', reason: 'r', approvals: [approval, approval] },
+    { ...b, type: 'CANCEL_BATCH', reason: 'r', signature },
+  ];
+})();
+
+describe('F12 round 7: a row records the engine command of its type with exactly its members, each of its JSON type, and the evidence the server records (DI-05, DI-30)', () => {
+  let cached: [string, MRow][] | undefined;
+  const all = (): [string, MRow][] => (cached ??= engineRows());
+  const firstOf = (type: string): MRow => {
+    const r = all().find(([, x]) => (x.command as Json)['type'] === type)?.[1];
+    if (!r) throw new Error(`SETUP: no ${type} command`);
+    return r;
+  };
+  const entryRow = (kind: string): MRow => {
+    const r = all().find(([, x]) => (x.command as Json)['type'] === 'RECORD_ENTRY' && ((x.command as Json)['entry'] as Json)['kind'] === kind)?.[1];
+    if (!r) throw new Error(`SETUP: no ${kind} entry`);
+    return r;
+  };
+
+  it('[DI-05][DI-30] the database holds the members of every engine command type, of its actor, frames, times, signatures, approvals, values and sources, of a preparation\'s target and of an issue request as the engine\'s TypeScript types declare them (a compile-time list), and nothing else', async () => {
+    const shape = async (kind: string, type: string | null): Promise<Json> => {
+      const { rows } = await db.admin.query<{ s: Json | null }>('select recipe.command_shape($1, $2) as s', [kind, type]);
+      return rows[0]?.s ?? {};
+    };
+    const got: Record<string, string[]> = {};
+    const want: Record<string, string[]> = {};
+    for (const [type, members] of Object.entries(COMMAND_MEMBERS)) {
+      want[type] = sorted(members);
+      got[type] = sorted(Object.keys(fields(await shape('COMMAND', type))));
+    }
+    const data = fields(await shape('COMMAND', 'RECORD_DATA'));
+    const corr = fields(await shape('COMMAND', 'CORRECT_ENTRY'));
+    const variants = (u: unknown): Json => ((u as Json)['variants'] ?? {}) as Json;
+    for (const [k, members] of Object.entries(VALUE_MEMBERS)) [want[`value ${k}`], got[`value ${k}`]] = [sorted(members), sorted(Object.keys(fields(variants(data['value'])[k])))];
+    for (const [k, members] of Object.entries(SOURCE_MEMBERS)) [want[`source ${k}`], got[`source ${k}`]] = [sorted(members), sorted(Object.keys(fields(variants(data['source'])[k])))];
+    const prepare = fields(await shape('PREPARE', null));
+    const issue = fields(await shape('ISSUE', null));
+    const request = fields(issue['request']);
+    const nested: Record<keyof typeof NESTED_MEMBERS, unknown> = {
+      actor: data['actor'],
+      frame: (data['context'] as Json)['items'],
+      occurredAt: data['occurredAt'],
+      signature: corr['signature'],
+      approval: corr['approval'],
+      correctionEvidence: corr['evidence'],
+      manualEvidence: fields(variants(data['source'])['MANUAL'])['evidence'],
+      prepareTarget: prepare['target'],
+      issueRequest: issue['request'],
+      issueInput: (request['inputs'] as Json)['values'],
+      policy: null,
+    };
+    for (const [k, members] of Object.entries(NESTED_MEMBERS)) if (k !== 'policy') [want[k], got[k]] = [sorted(members), sorted(Object.keys(fields(nested[k as keyof typeof NESTED_MEMBERS])))];
+    expect(got).toEqual(want);
+    // A preparation targets an engine command type; a sweep is its type alone; an issue holds the request.
+    expect(sorted(((fields(prepare['target'])['type'] as Json)['enum'] as string[]) ?? [])).toEqual(sorted(Object.keys(COMMAND_MEMBERS)));
+    expect(sorted(Object.keys(prepare))).toEqual(['actor', 'meaning', 'target', 'type']);
+    expect(Object.keys(fields(await shape('SWEEP', null)))).toEqual(['type']);
+    expect(sorted(Object.keys(issue))).toEqual(['request', 'type']);
+    // The pinned policy: exactly EnginePolicy's members, each of them required.
+    const policy = encode(DEFAULT_POLICY) as Json;
+    const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+      "select coalesce(array_agg(recipe.engine_policy_problem(x.v) order by x.i), '{}') as p from jsonb_array_elements($1::jsonb) with ordinality x (v, i)",
+      [JSON.stringify([policy, ...NESTED_MEMBERS.policy.map((m) => Object.fromEntries(Object.entries(policy).filter(([k]) => k !== m)))])],
+    );
+    expect(rows[0]?.p).toEqual([null, ...NESTED_MEMBERS.policy.map((m) => `policy.${m} is missing`)]);
+  }, 120_000);
+
+  it('[DI-05][DI-30] every command of the engine\'s own runs (every block\'s golden fixture, both golden runs, the special runs) has the members and JSON types of its type in the database, as accepted and as a refused row', async () => {
+    const cases: [string, unknown, boolean][] = [];
+    const labels: string[] = [];
+    for (const [label, r] of all()) {
+      for (const refused of [!r.accepted, true]) {
+        cases.push(['COMMAND', r.command, refused]);
+        labels.push(`${label}${refused ? ' (refused)' : ''}`);
+      }
+    }
+    const problems = await shapeProblems(cases);
+    const out: Record<string, string> = {};
+    problems.forEach((p, i) => {
+      if (p !== null) out[labels[i] ?? '?'] = p;
+    });
+    expect(out).toEqual({});
+    expect(sorted(new Set(all().map(([, r]) => String((r.command as Json)['type']))))).toEqual(
+      sorted(['CHOOSE_ALTERNATIVE', 'CHOOSE_REPLICATE_COUNT', 'COMPLETE_LOOP_ITERATION', 'DISPOSITION_HOLD_POINT', 'RECORD_DATA', 'RECORD_ENTRY', 'SIGN_OFF_STAGE', 'SIGN_PERFORMED', 'START_STEP', 'VERIFY']),
+    );
+    // Every engine command type with every optional member, as the TypeScript types build them (the runs leave some out).
+    const typed = TYPED_COMMANDS.map((c) => encodeCommand(c));
+    expect(sorted(new Set(TYPED_COMMANDS.map((c) => c.type)))).toEqual(sorted(Object.keys(COMMAND_MEMBERS)));
+    expect(await shapeProblems(typed.flatMap((c) => [['COMMAND', c, false] as const, ['COMMAND', c, true] as const]))).toEqual(typed.flatMap(() => [null, null]));
+  }, 300_000);
+
+  it('[DI-05][DI-30] a member of its own anywhere in a command of the engine\'s own runs (at its top, in its actor, frames, times, signatures, values and sources), and any member given another JSON type, is refused, accepted or refused; the round-6 verification\'s probes A, D, E and F among them', async () => {
+    const types = sorted(new Set(all().map(([, r]) => String((r.command as Json)['type']))));
+    const cases: [string, unknown, boolean][] = [];
+    const labels: string[] = [];
+    for (const type of types) {
+      const command = firstOf(type).command;
+      for (const { path, value } of places(command)) {
+        for (const refused of [false, true]) {
+          if (isObject(value)) {
+            cases.push(['COMMAND', at(command, path, (x) => ({ ...(x as Json), lotNumber: 'L2409-0017' })), refused]);
+            labels.push(`${type} ${['command', ...path].join('.')} + lotNumber${refused ? ' (refused)' : ''}`);
+          }
+          cases.push(['COMMAND', at(command, path, (x) => (Array.isArray(x) ? { lotNumber: 'L2409-0017' } : ['L2409-0017'])), refused]);
+          labels.push(`${type} ${['command', ...path].join('.')} retyped${refused ? ' (refused)' : ''}`);
+        }
+      }
+    }
+    const problems = await shapeProblems(cases);
+    const passed = labels.filter((_, i) => problems[i] === null);
+    expect(passed).toEqual([]);
+    expect(cases.length).toBeGreaterThan(200);
+    // The verification's probes, with the database's words.
+    const clearance = entryRow('CLEARANCE_CHECK').command as Json;
+    const start = firstOf('START_STEP').command as Json;
+    const probes = await shapeProblems([
+      ['COMMAND', { ...clearance, lotNumber: 'L2409-0017' }, false],
+      ['COMMAND', { ...start, entry: { kind: 'CONTAINER_WEIGHING', lotNumber: 'L2409-0017' } }, false],
+      ['COMMAND', { ...clearance, lotNumber: 'L2409-0017' }, true],
+      ['COMMAND', { ...clearance, entry: { ...(clearance['entry'] as Json), answers: 'L2409-0017' } }, true],
+      ['COMMAND', { ...clearance, entry: { ...(clearance['entry'] as Json), answers: [['L2409-0017']] } }, true],
+      ['COMMAND', { ...clearance, blockData: { lotNumber: 'L2409-0017' } }, true],
+      ['COMMAND', { ...start, blockData: 'L2409-0017' }, true],
+      ['COMMAND', { ...start, blockData: ['L2409-0017'] }, true],
+      ['COMMAND', { ...start, entry: { kind: 'CLEARANCE_CHECK', lotNumber: 'L2409-0017' } }, true],
+    ]);
+    expect(probes).toEqual([
+      'command.lotNumber is a member a RECORD_ENTRY command does not declare',
+      'command.entry is a member a START_STEP command does not declare',
+      'command.lotNumber is a member a RECORD_ENTRY command does not declare',
+      'command.entry.answers must be a list',
+      'command.entry.answers[0] must be an object',
+      'command.blockData is a member a RECORD_ENTRY command does not declare',
+      'command.blockData must be an object',
+      'command.blockData must be an object',
+      'command.entry is a member a START_STEP command does not declare',
+    ]);
+  }, 300_000);
+
+  it('[DI-05][DI-30] a refused row\'s entry and start data have the JSON type their block declares wherever it declares an object, a list or a map, and a single value wherever it declares one, so 0332\'s walk reaches every leaf; a single value of another kind is recorded as sent; on an accepted row 0332 holds them to the whole schema', async () => {
+    const weighing = entryRow('CONTAINER_WEIGHING');
+    const clearance = entryRow('CLEARANCE_CHECK');
+    const disposal = all().find(([n]) => n === 'disposal')?.[1] ?? entryRow('DISPOSAL');
+    const start = all().find(([n]) => n === 'additionStart')?.[1];
+    if (!start) throw new Error('SETUP: no additionStart');
+    const sent = (r: MRow, change: (e: Json) => void): Json => {
+      const command = structuredClone(r.command) as Json;
+      change((command['type'] === 'START_STEP' ? command['blockData'] : command['entry']) as Json);
+      return command;
+    };
+    const answers = (e: Json): Json[] => e['answers'] as Json[];
+    const forged: Record<string, [Json, string | null]> = {
+      lotText: [sent(weighing, (e) => void (e['lot'] = 'L2409-0017')), 'command.entry.lot must be an object'],
+      grossObject: [sent(weighing, (e) => void (e['gross'] = { lot: 'L2409-0017' })), 'command.entry.gross must be a single value (a text, a number, true or false), not an object'],
+      idList: [sent(clearance, (e) => void ((answers(e)[0] as Json)['id'] = ['L2409-0017'])), 'command.entry.answers[0].id must be a single value (a text, a number, true or false), not a list'],
+      answersText: [sent(clearance, (e) => void (e['answers'] = 'L2409-0017')), 'command.entry.answers must be a list'],
+      answerItemText: [sent(clearance, (e) => void (answers(e)[1] = 'L2409-0017' as unknown as Json)), 'command.entry.answers[1] must be an object'],
+      quantityList: [sent(disposal, (e) => void (e['quantity'] = ['L2409-0017'])), 'command.entry.quantity must be an object'],
+      startRefList: [sent(start, (e) => void (e['investigationRef'] = ['L2409-0017'])), 'command.blockData.investigationRef must be a single value (a text, a number, true or false), not a list'],
+      // What the engine refuses for a single value, as sent: recorded.
+      grossNumber: [sent(weighing, (e) => void (e['gross'] = 2)), null],
+      answeredNo: [sent(clearance, (e) => void ((answers(e)[0] as Json)['answer'] = 'NO')), null],
+      lowerId: [sent(clearance, (e) => void ((answers(e)[0] as Json)['id'] = 'lower_id')), null],
+      startNoRefs: [sent(start, (e) => void delete e['investigationRef']), null],
+    };
+    const names = Object.keys(forged);
+    const refused = await shapeProblems(names.map((n) => ['COMMAND', forged[n]?.[0], true] as const));
+    expect(Object.fromEntries(names.map((n, i) => [n, refused[i]]))).toEqual(Object.fromEntries(names.map((n) => [n, forged[n]?.[1]])));
+    // On an accepted row this check reads only that they are objects; 0332 refuses the same entries there in full.
+    const accepted = await shapeProblems(names.map((n) => ['COMMAND', forged[n]?.[0], false] as const));
+    expect(accepted.every((p) => p === null)).toBe(true);
+    for (const n of ['lotText', 'answersText', 'grossNumber', 'answeredNo']) {
+      const r = n.startsWith('lot') || n.startsWith('gross') ? weighing : clearance;
+      expect(await schemaProblem({ ...r, command: forged[n]?.[0] as JsonValue, accepted: true }), n).not.toBeNull();
+    }
+  }, 300_000);
+
+  it('[DI-05][DI-30] a preparation, a sweep and an issue record exactly their members: a member of its own in a preparation or its target, besides a sweep\'s type, in an issue request, an input of its header or its issuer, and the request\'s members of another type, are refused', async () => {
+    const actor = { id: UUID(1), kind: 'PERSON', roles: ['PRODUCTION_OPERATOR'] };
+    const prepare = { type: 'PREPARE', target: { type: 'SIGN_PERFORMED', step: 'p', context: [] }, actor, meaning: 'PERFORMED' };
+    const request = encode({ batchId: UUID(2), batchNumber: 'TEST-B26-0001', batchSize: 'BS-1', marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { n: { value: { kind: 'COUNT', value: '100000' }, source: 'Batch header, entered at issue by TEST-ISSUER' } }, issuedBy: actor }) as Json;
+    const issue = { type: 'ISSUE', request };
+    const cases: Record<string, [string, unknown, string | null]> = {
+      prepare: ['PREPARE', prepare, null],
+      prepareNoMeaning: ['PREPARE', { type: 'PREPARE', target: { type: 'VERIFY' }, actor }, null],
+      prepareMember: ['PREPARE', { ...prepare, lotNumber: 'L2409-0017' }, 'command.lotNumber is a member a preparation for a signature does not declare'],
+      prepareTarget: ['PREPARE', { ...prepare, target: { ...prepare.target, lot: 'L2409-0017' } }, 'command.target.lot is a member command.target does not declare'],
+      prepareTargetType: ['PREPARE', { ...prepare, target: { type: 'L2409-0017' } }, `command.target.type must be one of ${Object.keys(COMMAND_MEMBERS).join(', ')}`],
+      sweep: ['SWEEP', { type: 'SWEEP' }, null],
+      sweepMember: ['SWEEP', { type: 'SWEEP', lotNumber: 'L2409-0017' }, 'command.lotNumber is a member a sweep does not declare'],
+      issue: ['ISSUE', issue, null],
+      requestMember: ['ISSUE', { ...issue, request: { ...request, lotNumber: 'L2409-0017' } }, 'command.request.lotNumber is a member an issue request does not declare'],
+      inputMember: ['ISSUE', { ...issue, request: { ...request, inputs: { n: { value: { kind: 'COUNT', value: '1' }, source: 's', lot: 'L2409-0017' } } } }, 'command.request.inputs.n.lot is a member command.request.inputs.n does not declare'],
+      issuerMember: ['ISSUE', { ...issue, request: { ...request, issuedBy: { ...actor, lot: 'L2409-0017' } } }, 'command.request.issuedBy.lot is a member command.request.issuedBy does not declare'],
+      marketsText: ['ISSUE', { ...issue, request: { ...request, marketSet: 'L2409-0017' } }, 'command.request.marketSet must be a list'],
+      variantList: ['ISSUE', { ...issue, request: { ...request, variants: { v: ['L2409-0017'] } } }, 'command.request.variants.v must be a text'],
+      issueMember: ['ISSUE', { ...issue, lotNumber: 'L2409-0017' }, 'command.lotNumber is a member an issue does not declare'],
+    };
+    const names = Object.keys(cases);
+    const got = await shapeProblems(names.map((n) => [cases[n]?.[0] ?? '', cases[n]?.[1], false] as const));
+    expect(Object.fromEntries(names.map((n, i) => [n, got[i]]))).toEqual(Object.fromEntries(names.map((n) => [n, cases[n]?.[2]])));
+    // The pinned policy: a member of its own, a role that is no engine role, a window that is no microsecond count.
+    const policy = encode(DEFAULT_POLICY) as Json;
+    const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+      "select coalesce(array_agg(recipe.engine_policy_problem(x.v) order by x.i), '{}') as p from jsonb_array_elements($1::jsonb) with ordinality x (v, i)",
+      [JSON.stringify([policy, { ...policy, lotNumber: 'L2409-0017' }, { ...policy, qaRoles: ['QA', 'L2409-0017'] }, { ...policy, witnessWindowUs: 300000000 }, { ...policy, witnessWindowUs: { $u: '300000000', lot: 'L2409-0017' } }])],
+    );
+    expect(rows[0]?.p).toEqual([
+      null,
+      'policy.lotNumber is a member the engine policy does not declare',
+      'policy.qaRoles[1] "L2409-0017" is not an engine role',
+      'policy.witnessWindowUs must be a microsecond count ({"$u": "<digits>"})',
+      'policy.witnessWindowUs must be a microsecond count ({"$u": "<digits>"})',
+    ]);
+  }, 120_000);
+
+  it('[DI-05][DI-30][DI-31][DI-32][PR-18][PR-20] a row\'s command id is one the server gives, its signatures name a signature (or the dry run\'s placeholder), a meaning of the kernel and the person who gives them, and its evidence is exactly what the server records with it: the server\'s own rows pass, and the round-6 verification\'s probe C and every member forged into evidence are refused', async () => {
+    const actor = { id: UUID(1), kind: 'PERSON', roles: ['PRODUCTION_OPERATOR'] };
+    const base = { commandId: UUID(3), actor, expectedVersion: 4, step: 'p-disp-pcm', context: [] };
+    const clearance = { ...base, step: 'p-disp-clear', type: 'RECORD_ENTRY', entry: { kind: 'CLEARANCE_CHECK', answers: [{ id: 'NO_PREVIOUS_MATERIAL', answer: 'CONFIRMED' }] } };
+    const lot = { id: 'TEST-L26-0101', material: 'MAT-PCM', status: 'RELEASED', expiresAtUs: '1900000000000000', identityTested: true };
+    const weighing = (source: 'DEVICE' | 'MANUAL') => ({ ...base, type: 'RECORD_ENTRY', entry: { kind: 'CONTAINER_WEIGHING', item: 'pcmDispensed', bomLine: 'BOM-PCM', container: 'TEST-B26-0001/C1', lot, gross: '26.250', tare: '1.250', unit: 'kg', balance: 'TEST-BAL-01', source } });
+    const reading = (purpose: string, n: number) => ({ purpose, readingId: UUID(n), deviceCode: 'TEST-BAL-01', value: purpose === 'TARE' ? '1.250' : '26.250', unit: 'kg', raw: `ST,GS ${purpose === 'TARE' ? '1.250' : '26.250'} kg`, sourceTimeUs: '1800000000000000', trust: 'DEVICE_SYNCED' });
+    const readings = [reading('TARE', 10), reading('GROSS', 11)];
+    const lotEvidence = { code: lot.id, material: lot.material, status: lot.status };
+    const manual = { room: 'DISP-1', balance: 'TEST-BAL-01', declaredBalance: null, scales: [{ deviceCode: 'TEST-BAL-01', status: 'OFFLINE', lastHeartbeatUs: '1800000000000000' }] };
+    const signature = { id: UUID(20), meaning: 'PERFORMED', signer: actor.id };
+    const performed = { ...base, type: 'SIGN_PERFORMED', commandId: `ESIG:${UUID(20)}`, signature };
+    const dry = { ...performed, commandId: `ESIG-DRY:${UUID(21)}`, signature: { ...signature, id: '$dry-run' } };
+    const charge = { ...base, type: 'RECORD_ENTRY', entry: { kind: 'CHARGE_CONTAINER', container: 'TEST-B26-0001/C1', scannedBatch: 'TEST-B26-0001' } };
+    const scanned = { ...base, type: 'RECORD_DATA', item: 'punchSet', value: { kind: 'TEXT', value: 'TEST-PUNCH-01' }, source: { mode: 'MANUAL' } };
+    const approver = { id: UUID(5), kind: 'PERSON', roles: ['PRODUCTION_SUPERVISOR'] };
+    const correction = { ...base, type: 'CORRECT_ENTRY', commandId: UUID(6), point: 'DP-1', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, reason: 'typing error', signature: { ...signature, id: UUID(22), meaning: 'CORRECTED' }, approval: { approver, signature: { id: UUID(23), meaning: 'CORRECTION_APPROVED', signer: approver.id } } };
+    delete (correction as Json)['step'];
+    delete (correction as Json)['context'];
+    const prepare = { type: 'PREPARE', target: { type: 'SIGN_PERFORMED', step: 'p-disp-pcm', context: [] }, actor, meaning: 'PERFORMED' };
+    const key = { idempotencyKey: UUID(30) };
+    type Case = [kind: string, commandId: string, command: unknown, accepted: boolean, evidence: unknown, expected: string | null];
+    const cases: Record<string, Case> = {
+      // The server's own rows.
+      clearance: ['COMMAND', UUID(3), clearance, true, key, null],
+      manualWeighing: ['COMMAND', UUID(3), weighing('MANUAL'), true, { ...key, manual, lot: lotEvidence }, null],
+      deviceWeighing: ['COMMAND', UUID(3), weighing('DEVICE'), true, { ...key, readings, lot: lotEvidence }, null],
+      staleWeighing: ['COMMAND', UUID(3), weighing('DEVICE'), false, { ...key, namedReadings: readings, lot: lotEvidence }, null],
+      charge: ['COMMAND', UUID(3), charge, true, { ...key, scanned: 'TEST-B26-0001/C1' }, null],
+      scannedValue: ['COMMAND', UUID(3), scanned, true, { ...key, unattestedScan: { code: 'TEST-PUNCH-01', recordedAs: 'MANUAL' } }, null],
+      performed: ['COMMAND', `ESIG:${UUID(20)}`, performed, true, { signatureId: UUID(20) }, null],
+      refusedBeforeSigning: ['COMMAND', `ESIG-DRY:${UUID(21)}`, dry, false, { signing: 'refused before signing', meaning: 'PERFORMED' }, null],
+      correction: ['COMMAND', UUID(6), correction, true, {}, null],
+      prepare: ['PREPARE', `PREPARE:${UUID(7)}`, prepare, true, {}, null],
+      sweep: ['SWEEP', `SWEEP:${UUID(8)}`, { type: 'SWEEP' }, true, {}, null],
+      issue: ['ISSUE', `ISSUE:${UUID(2)}`, { type: 'ISSUE', request: encode({ batchId: UUID(2), batchNumber: 'TEST-B26-0001', batchSize: 'BS-1', marketSet: ['IN'], inputs: {}, issuedBy: actor }) }, true, { packageHash: PKG }, null],
+      // Command ids.
+      commandId: ['COMMAND', 'L2409-0017', { ...clearance, commandId: 'L2409-0017' }, true, {}, 'its command id L2409-0017 is not one the server gives a COMMAND row'],
+      prepareId: ['PREPARE', UUID(7), prepare, true, {}, `its command id ${UUID(7)} is not one the server gives a PREPARE row`],
+      // Signatures.
+      signatureId: ['COMMAND', `ESIG:${UUID(20)}`, { ...performed, signature: { ...signature, id: 'L2409-0017' } }, false, {}, 'command.signature.id must be a signature id, or the placeholder of a dry run'],
+      signatureMeaning: ['COMMAND', `ESIG-DRY:${UUID(21)}`, { ...dry, signature: { ...dry.signature, meaning: 'L2409-0017' } }, false, {}, 'command.signature.meaning "L2409-0017" is not a signature meaning of the kernel'],
+      signer: ['COMMAND', `ESIG-DRY:${UUID(21)}`, { ...dry, signature: { ...dry.signature, signer: 'L2409-0017' } }, false, {}, 'command.signature.signer must be the person who gives it'],
+      approvalSigner: ['COMMAND', UUID(6), { ...correction, approval: { approver, signature: { ...correction.approval.signature, signer: actor.id } } }, true, {}, 'command.approval.signature.signer must be the person who gives it'],
+      prepareMeaning: ['PREPARE', `PREPARE:${UUID(7)}`, { ...prepare, meaning: 'L2409-0017' }, true, {}, 'command.meaning "L2409-0017" is not a signature meaning of the kernel'],
+      // Evidence: the round-6 verification's probe C, and every member forged.
+      probeC: ['COMMAND', UUID(3), clearance, true, { lotNumber: 'L2409-0017' }, 'evidence.lotNumber is a member the server does not record with a RECORD_ENTRY command of a CLEARANCE_CHECK entry'],
+      notObject: ['COMMAND', UUID(3), clearance, true, ['L2409-0017'], 'evidence must be an object'],
+      key: ['COMMAND', UUID(3), clearance, true, { idempotencyKey: 'L2409-0017' }, 'evidence.idempotencyKey must be the idempotency key of the request (a UUID)'],
+      prepareEvidence: ['PREPARE', `PREPARE:${UUID(7)}`, prepare, true, key, 'evidence.idempotencyKey is a member the server does not record with a preparation for a signature'],
+      sweepEvidence: ['SWEEP', `SWEEP:${UUID(8)}`, { type: 'SWEEP' }, true, { lotNumber: 'L2409-0017' }, 'evidence.lotNumber is a member the server does not record with a sweep'],
+      packageHash: ['ISSUE', `ISSUE:${UUID(2)}`, { type: 'ISSUE', request: encode({ batchId: UUID(2), batchNumber: 'TEST-B26-0001', batchSize: 'BS-1', marketSet: ['IN'], inputs: {}, issuedBy: actor }) }, true, { packageHash: 'b'.repeat(64) }, 'evidence.packageHash must be the package the batch is issued from'],
+      lotOnClearance: ['COMMAND', UUID(3), clearance, true, { lot: lotEvidence }, 'evidence.lot is a member the server does not record with a RECORD_ENTRY command of a CLEARANCE_CHECK entry'],
+      lotCode: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual, lot: { ...lotEvidence, code: 'L2409-0017' } }, 'evidence.lot must be the code, material and status of the lot its entry names'],
+      lotMember: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual, lot: { ...lotEvidence, lotNumber: 'L2409-0017' } }, 'evidence.lot must be the code, material and status of the lot its entry names'],
+      readingsOnManual: ['COMMAND', UUID(3), weighing('MANUAL'), true, { readings }, 'evidence.readings is recorded only with an entry captured from a device'],
+      manualOnDevice: ['COMMAND', UUID(3), weighing('DEVICE'), true, { manual }, 'evidence.manual is recorded only with an entry keyed by hand'],
+      bothReadings: ['COMMAND', UUID(3), weighing('DEVICE'), true, { readings, namedReadings: readings }, 'evidence names its readings both as used (readings) and as not used (namedReadings)'],
+      readingMember: ['COMMAND', UUID(3), weighing('DEVICE'), true, { readings: [{ ...reading('TARE', 10), lot: 'L2409-0017' }, reading('GROSS', 11)] }, 'evidence.readings[0].lot is a member evidence.readings[0] does not declare'],
+      readingRaw: ['COMMAND', UUID(3), weighing('DEVICE'), true, { readings: [{ ...reading('TARE', 10), raw: ['L2409-0017'] }, reading('GROSS', 11)] }, 'evidence.readings[0].raw must be a text'],
+      readingDevice: ['COMMAND', UUID(3), weighing('DEVICE'), false, { namedReadings: [reading('TARE', 10), { ...reading('GROSS', 11), deviceCode: 'L2409-0017' }] }, null],
+      readingId: ['COMMAND', UUID(3), weighing('DEVICE'), true, { readings: [{ ...reading('TARE', 10), readingId: 'L2409-0017' }, reading('GROSS', 11)] }, 'evidence.readings[0].readingId has an invalid format'],
+      manualMember: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual: { ...manual, lot: 'L2409-0017' } }, 'evidence.manual.lot is a member evidence.manual does not declare'],
+      manualRoom: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual: { ...manual, room: 'L2409-0017' } }, 'evidence.manual.room must be the room of the row (DISP-1)'],
+      manualBalance: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual: { ...manual, balance: 'L2409-0017' } }, 'evidence.manual.balance must be the balance its entry names'],
+      declaredBalance: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual: { ...manual, declaredBalance: 'L2409-0017' } }, 'evidence.manual.declaredBalance must be the balance its entry names, or null'],
+      scaleDevice: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual: { ...manual, scales: [{ ...manual.scales[0], deviceCode: 'L2409-0017' }] } }, null],
+      scaleMember: ['COMMAND', UUID(3), weighing('MANUAL'), true, { manual: { ...manual, scales: [{ ...manual.scales[0], lot: 'L2409-0017' }] } }, 'evidence.manual.scales[0].lot is a member evidence.manual.scales[0] does not declare'],
+      scanned: ['COMMAND', UUID(3), charge, true, { scanned: 'L2409-0017' }, 'evidence.scanned must be the container label its entry charges'],
+      unattestedScanMember: ['COMMAND', UUID(3), scanned, true, { unattestedScan: { code: 'TEST-PUNCH-01', recordedAs: 'MANUAL', lot: 'L2409-0017' } }, 'evidence.unattestedScan.lot is a member evidence.unattestedScan does not declare'],
+      unattestedScanDevice: ['COMMAND', UUID(3), { ...scanned, source: { mode: 'DEVICE', device: 'TEST-BAL-01' } }, true, { unattestedScan: { code: 'TEST-PUNCH-01', recordedAs: 'MANUAL' } }, 'evidence.unattestedScan is recorded only with a value keyed by hand'],
+      signatureIdOther: ['COMMAND', `ESIG:${UUID(20)}`, performed, true, { signatureId: 'L2409-0017' }, 'evidence.signatureId must be the signature its command applies'],
+      signingOnAccepted: ['COMMAND', `ESIG:${UUID(20)}`, performed, true, { signing: 'refused before signing', meaning: 'PERFORMED' }, 'evidence.meaning is a member the server does not record with a SIGN_PERFORMED command'],
+      signingWords: ['COMMAND', `ESIG-DRY:${UUID(21)}`, dry, false, { signing: 'L2409-0017', meaning: 'PERFORMED' }, 'evidence of a signed command refused before signing is {signing: "refused before signing", meaning: the meaning of its signature}'],
+      signingMeaning: ['COMMAND', `ESIG-DRY:${UUID(21)}`, dry, false, { signing: 'refused before signing', meaning: 'L2409-0017' }, 'evidence of a signed command refused before signing is {signing: "refused before signing", meaning: the meaning of its signature}'],
+      signingAlone: ['COMMAND', `ESIG-DRY:${UUID(21)}`, dry, false, { signing: 'refused before signing' }, 'evidence.signing and evidence.meaning are recorded together'],
+    };
+    const got: Record<string, string | null> = {};
+    for (const [n, [kind, id, command, accepted, evidence]] of Object.entries(cases)) got[n] = await rowProblem(kind, id, command, accepted, evidence);
+    const sandboxDevice = (path: string): string => `${path} "L2409-0017" is not a test device label: in the sandbox every device label starts with TEST- (for example TEST-SCALE-01), so a real GMP identifier is never reused (DI-05)`;
+    expect(got).toEqual({
+      ...Object.fromEntries(Object.entries(cases).map(([n, c]) => [n, c[5]])),
+      readingDevice: sandboxDevice('evidence.namedReadings[1].deviceCode'),
+      scaleDevice: sandboxDevice('evidence.manual.scales[0].deviceCode'),
+    });
+  }, 120_000);
 });
