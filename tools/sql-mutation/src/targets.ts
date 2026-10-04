@@ -6,9 +6,15 @@
  * The first nine groups are the Phase 1 kernel's. The others are Phase 2's: the guards of recipe-core (MBR life cycle,
  * market authorisation and issue, the execution store) and of the tablets server (devices, the evidence listener, read
  * gates, sessions, the designer), plus the kernel and site-services functions added or redefined since the Phase 1 exit
- * (kernel 0800-1010, site-services 0600-0700). Each group names the narrowest test files that test its functions at
- * database level; a file under apps/tablets-server/test runs in the Vitest `server` project, any other in `db`.
- * Functions that only read or format (no refusal, check or decision) are left out.
+ * (kernel 0800-1020, site-services 0600-0700). The last five groups are the Phase 2 exit follow-ups' new guards
+ * (recipe-core 0326-0337, tablets 0500-0590); a follow-up that redefined a function already in a group (recipe-core
+ * 0327, 0329, 0331, 0333; tablets 0500, 0510, 0530, 0550, 0560) left it there, with the test file of the new definition
+ * added where the group's tests did not reach it (execution-state-binding, evidence-source-and-entries, signed-content),
+ * and a follow-up's new function that belongs to an existing group's subject joined it (kernel 1020 to signing, tablets
+ * 0530 and 0560 to read-authorisation).
+ * Each group names the narrowest test files that test its functions at database level; a file under
+ * apps/tablets-server/test runs in the Vitest `server` project, any other in `db`. Functions that only read or format
+ * (no refusal, check or decision) are left out: recipe.json_pick and recipe.checklist_answers of recipe-core 0330 too.
  */
 export interface Target {
   group: string;
@@ -45,9 +51,11 @@ export const TARGETS: Target[] = [
     group: 'signing',
     functions: ['esig.required_components', 'esig.component_problem', 'esig.check_independence', 'esig.check_witness',
                 'esig.create_challenge', 'esig.sign', 'esig.signature_problem', 'esig.assert_signature', 'esig.aggregate_id_problem',
-                'esig.signature_state_problem', 'platform.transition_signature_check'],
+                'esig.signature_state_problem', 'platform.transition_signature_check',
+                // Kernel 1020 (F37): the per-record signing lock, taken only in READ COMMITTED (EBMR-ESIG-015).
+                'esig.aggregate_lock'],
     tests: [k('esig/signing.test.ts'), k('esig/sessions.test.ts'), k('esig/independence.test.ts'), k('esig/catalogue.test.ts'),
-            k('esig/platform-hook.test.ts'), k('esig/invalidation.test.ts'), k('integration/wiring.test.ts')],
+            k('esig/platform-hook.test.ts'), k('esig/invalidation.test.ts'), k('integration/wiring.test.ts'), k('esig/isolation.test.ts')],
     threshold: 90,
   },
   {
@@ -145,16 +153,19 @@ export const TARGETS: Target[] = [
             s('execution/db-guards-values.test.ts'), r('execution/sql-guards.test.ts'), r('lifecycle/authorization.test.ts')],
     threshold: 90,
   },
-  // ---- Phase 2: recipe-core, execution store: what a row's state may hold (sql 0300, 0303) -------------------------
+  // ---- Phase 2: recipe-core, execution store: what a row's state may hold (sql 0300, 0303; recipe.row_step_key's
+  //      overload of 0327, which the exception-source check reads, tested by exception-source-sql.test.ts) ------------
   {
     group: 'execution-state-binding',
     functions: ['recipe.execution_state_binding_check', 'recipe.new_instance_problem', 'recipe.signature_change_problem',
                 'recipe.row_step_key', 'recipe.execution_recorded_state_check', 'recipe.sweep_state_problem',
                 'recipe.kept_records_problem', 'recipe.members_changed'],
-    tests: [r('execution/kept-records-sql.test.ts'), s('execution/evidence-source.test.ts')],
+    tests: [r('execution/kept-records-sql.test.ts'), s('execution/evidence-source.test.ts'), r('execution/exception-source-sql.test.ts')],
     threshold: 90,
   },
-  // ---- Phase 2: evidence source, room, entries and identifiers (recipe-core 0300, 0313, 0317; tablets 0300-0390) ---
+  // ---- Phase 2: evidence source, room, entries and identifiers (recipe-core 0300, 0313, 0317; tablets 0300-0390;
+  //      tab.device_entry_readings_check as tablets 0500 and 0510 redefined it: a stale weighing's named readings,
+  //      tested past the server in db-guards-stale-row.test.ts) ---------------------------------------------------------
   {
     group: 'evidence-source-and-entries',
     functions: ['recipe.execution_source_room_check', 'recipe.step_room_problem', 'recipe.execution_entry_data_check',
@@ -162,7 +173,7 @@ export const TARGETS: Target[] = [
                 'tab.device_entry_readings_check', 'tab.entry_identifier_problem', 'tab.entry_identifiers_check',
                 'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/evidence-source.test.ts'), s('execution/evidence-source-room.test.ts'),
-            s('execution/db-guards-entry-identifiers.test.ts')],
+            s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, execution store: step order, acts, status, own node events (sql 0307, 0308, 0311, 0312,
@@ -233,7 +244,8 @@ export const TARGETS: Target[] = [
     threshold: 90,
   },
   // ---- Phase 2: what a signature covers: the signed-content providers and the signatures a row needs (recipe-core
-  //      0270, 0295-0297, 0304, 0319) -----------------------------------------------------------------------------
+  //      0270, 0295-0297, 0304, 0319; recipe.step_check_meanings as 0333 redefined it, the witness only while one is
+  //      possible, tested through the store in witness-without-printout.test.ts) --------------------------------------
   {
     group: 'signed-content',
     functions: ['recipe.execution_content_of', 'recipe.stage_summary_of', 'recipe.canonical_stage_summary', 'recipe.stage_summary_content',
@@ -243,7 +255,8 @@ export const TARGETS: Target[] = [
     tests: [s('execution/signed-content.test.ts'), s('execution/signed-content-meanings.test.ts'), s('execution/signed-content-hold-point.test.ts'),
             s('execution/signed-content-stage-summary.test.ts'), s('execution/db-guards-signatures.test.ts'),
             s('execution/db-guards-signature-freshness.test.ts'), s('execution/db-guards-corrections.test.ts'),
-            s('execution/db-guards-stage-summary.test.ts'), r('execution/stage-summary-sql.test.ts'), r('execution/system-facts-sql.test.ts')],
+            s('execution/db-guards-stage-summary.test.ts'), r('execution/stage-summary-sql.test.ts'), r('execution/system-facts-sql.test.ts'),
+            s('execution/witness-without-printout.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: sandbox installation, TEST- labels, test packages and test batches (kernel 0800, 0810, 1000;
@@ -294,14 +307,16 @@ export const TARGETS: Target[] = [
     tests: [s('devices/manual-weighing-gate.test.ts'), s('devices/scale-readiness.test.ts'), s('devices/room-scales.test.ts')],
     threshold: 90,
   },
-  // ---- Phase 2: tablets, read gates on signing content, signatures and the audit trail (sql 0410-0490) ---------------
+  // ---- Phase 2: tablets, read gates on signing content, signatures and the audit trail (sql 0410-0490; 0530 and 0560:
+  //      the person an investigation is about, the chain verification, the entries counted for that person) ----------
   {
     group: 'read-authorisation',
     functions: ['tab.reader_of', 'tab.role_may', 'tab.record_read_problem', 'tab.signing_preview_problem_for', 'tab.content_for_signing',
                 'tab.record_content_for_signing', 'tab.record_signatures', 'tab.signatures_of', 'tab.audit_chain_class',
                 'tab.audit_registry_value', 'tab.mbr_content_saved_role', 'tab.aggregate_ref_read_class', 'tab.withheld_from',
                 'tab.chain_is_about', 'tab.entry_withheld', 'tab.chain_listed', 'tab.chain_read_problem', 'tab.audit_chains',
-                'tab.audit_events', 'tab.audit_registry_chains', 'tab.audit_headless_chains', 'tab.audit_chain_length'],
+                'tab.audit_events', 'tab.audit_registry_chains', 'tab.audit_headless_chains', 'tab.audit_chain_length',
+                'tab.record_withheld', 'tab.registry_chains_of', 'tab.audit_verify_chain', 'tab.partly_withheld_chains'],
     tests: [s('audit/read-authorisation.test.ts'), s('esig/read-authorisation.test.ts'), s('audit/view-integrity.test.ts')],
     threshold: 90,
   },
@@ -359,6 +374,64 @@ export const TARGETS: Target[] = [
                 'site.allocate_batch_number', 'site.register_external_batch_number', 'site.void_batch_number', 'site.batch_number_pattern',
                 'site.recover_batch_number', 'site.batch_number_invariant_violations'],
     tests: [site('batch-number-register.test.ts')],
+    threshold: 90,
+  },
+
+  // ---- Phase 2 exit follow-ups: a command from a stale screen is the refusal ENG-STALE, changes nothing and uses no
+  //      scale reading; the readings a weighing names or uses are the stored ones (recipe-core 0326, EBMR-EXE-140;
+  //      tablets 0510, 0520, 0590, EBMR-EXE-124; tab.device_entry_readings_check stays in evidence-source-and-entries) --
+  {
+    group: 'stale-commands-and-readings',
+    functions: ['recipe.stale_command_problem', 'recipe.execution_stale_command_check', 'recipe.execution_stale_refusal_check',
+                'tab.peek_weighing_readings', 'tab.stale_row_claims_check', 'tab.reading_use_stale_row_check',
+                'tab.stale_named_readings_check', 'tab.used_readings_check'],
+    tests: [s('execution/db-guards-stale-row.test.ts'), s('execution/db-guards-stale-row-commit.test.ts'),
+            s('execution/db-guards-used-readings.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 2 exit follow-ups: an exception a row raises is recorded at the step the engine raises it at (recipe-core
+  //      0327, EBMR-EXE-044; its exception_raising_steps and execution_rule_violations stay in
+  //      involvement-and-independence, row_step_key in execution-state-binding) -------------------------------------
+  {
+    group: 'exception-source',
+    functions: ['recipe.exception_at_construct', 'recipe.exception_at_step', 'recipe.source_names_instance', 'recipe.provenance_names_any',
+                'recipe.step_computes', 'recipe.change_reaches_step', 'recipe.exception_source_problem',
+                'recipe.execution_exception_source_check'],
+    tests: [r('execution/exception-source-sql.test.ts'), s('execution/db-guards-disposition-involvement.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 2 exit follow-ups: an entry names only what its step's MBR node names, holds what its block builds and
+  //      accepts, and meets its block version's data schema (recipe-core 0328, 0330, 0332; EBMR-EXE-126) --------------
+  {
+    group: 'entry-references-and-schema',
+    functions: ['recipe.node_names', 'recipe.entry_reference_problem', 'recipe.execution_entry_references_check',
+                'recipe.status_check_ids', 'recipe.clearance_items', 'recipe.checklist_answer_problem', 'recipe.lot_usability_problem',
+                'recipe.entry_block_problem', 'recipe.execution_entry_block_check', 'recipe.block_schema_problem',
+                'recipe.block_data_schema_of', 'recipe.block_schema_unknown_member', 'recipe.entry_schema_problem',
+                'recipe.execution_entry_schema_check'],
+    tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-entry-identifiers.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 2 exit follow-ups: once a witness is no longer possible, the later review and its WITNESS_LATE; the
+  //      times and the witness window that decides it are the record's (recipe-core 0333, 0334; EBMR-EXE-141 to 146;
+  //      recipe.step_check_meanings stays in signed-content) ---------------------------------------------------------
+  {
+    group: 'late-witness-and-step-times',
+    functions: ['recipe.witness_possible', 'recipe.late_check_record', 'recipe.execution_late_check', 'recipe.step_time_problem',
+                'recipe.execution_step_times_check', 'recipe.witness_window_problem', 'recipe.execution_witness_window_check'],
+    tests: [r('execution/late-witness-sql.test.ts'), r('execution/step-times-sql.test.ts'), s('execution/witness-without-printout.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 2 exit follow-ups: a row records its command, evidence and refusal as the engine and the server build
+  //      them; a test batch pins exactly the engine policy and is issued only with a request its MBR accepts
+  //      (recipe-core 0335, 0336, 0337; EBMR-EXE-126) ---------------------------------------------------------------
+  {
+    group: 'execution-row-shape',
+    functions: ['recipe.command_shape', 'recipe.block_schema_container_problem', 'recipe.command_member_problem',
+                'recipe.row_evidence_problem', 'recipe.execution_row_problem', 'recipe.execution_row_shape_check',
+                'recipe.engine_policy_problem', 'recipe.execution_policy_shape_check', 'recipe.refusal_problem',
+                'recipe.execution_row_refusal_check', 'recipe.issue_request_problem', 'recipe.execution_issue_request_check'],
+    tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts')],
     threshold: 90,
   },
 ];
