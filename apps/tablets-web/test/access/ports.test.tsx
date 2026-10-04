@@ -397,8 +397,11 @@ describe('SignatureCeremonyPort', () => {
     await tapBadge('04A10000000011');
     expect(await screen.findByText(/Switch to TEST-Kavya Reddy\?/)).toBeTruthy();
     await enterPin('Enter the PIN of TEST-Kavya Reddy', '691357');
+    // The switch is sent once the PIN pad's OK has been handled, after the click returns: wait for it (as
+    // no-device-proof does), then read it.
+    await waitFor(() => expect(calls('/api/session/switch')).toHaveLength(1));
     expect(calls('/api/session/switch')[0]?.body).toMatchObject({ badgeUid: '04A10000000011', pin: '691357' });
-    expect(setSessionSpy).toHaveBeenCalledWith(VERIFIER);
+    await waitFor(() => expect(setSessionSpy).toHaveBeenCalledWith(VERIFIER));
 
     // The signing ends: nothing is signed, and Kavya is not asked to sign Priya's decision.
     await waitFor(() => {
