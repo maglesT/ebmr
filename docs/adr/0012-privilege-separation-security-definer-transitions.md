@@ -60,7 +60,12 @@
    the same role is answered about what is not there (no entries, no length, nothing to verify, no signatures), instead
    of a refusal that told them. Tablets 0540: nor the high-water marks and moves of the protected sequences
    (`continuity.sequence_high_water`, `continuity.sequence_bump`), whose investigation and hold numbers told when and
-   how many investigations and holds were opened. Not closed in Phase 2: the application role still selects
+   how many investigations and holds were opened. Tablets 0570 (correcting 0540, which said that closed it): nor
+   PostgreSQL's per-table, per-index, per-sequence and per-function statistics and the relation sizes, which every role
+   reads out of the box and which counted the same inserts (rows inserted and live in the investigation and hold
+   tables); they are taken from PUBLIC in each installation's database. What the server and the kernel still read
+   (`pg_stat_ssl`, `pg_locks`, `pg_stat_activity`) and the planner's estimates in `pg_class` are default HW.1. Not
+   closed in Phase 2: the application role still selects
    the identity, incident, retention and continuity tables directly (owner residual F34.2 in
    docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read several of them as that
    role; moving those reads behind session-checked functions is a kernel change for both editions.

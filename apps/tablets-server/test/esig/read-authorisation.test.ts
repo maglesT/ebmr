@@ -496,3 +496,75 @@ describe('F34: when and how many investigations and holds were opened (tablets 0
     }
   });
 });
+
+/**
+ * Lane round 2 of round 4 (the verifier of HIGH-WATER): tablets 0540 took the protected sequences' high-water marks
+ * away from the application role, but PostgreSQL's statistics still served it, without a session and without any
+ * privilege on the tables, the counters of every table: rows inserted and live in records.di_investigation,
+ * di_investigation_link, retention_hold (pg_stat_user_tables, pg_stat_get_tuples_inserted and the other per-table and
+ * per-index counters), their block reads (pg_statio_*) and their size on disk (pg_relation_size and its siblings). Read
+ * now and again later, they told when and how many investigations and holds were opened and closed (not who). Tablets
+ * 0570 takes from PUBLIC, in each installation's database, the per-table, per-index, per-sequence and per-function
+ * statistics views, the counter functions behind them and the relation size functions; what the server and the kernel
+ * read as the application role (pg_stat_ssl for the encrypted-session check, pg_locks for the audit viewer's settled
+ * horizon, pg_stat_activity) stays. What remains open is default HW.1.
+ */
+describe('HIGH-WATER: the statistics of the investigation and hold tables (tablets 0570)', () => {
+  const TABLES = ['di_investigation', 'di_investigation_link', 'retention_hold'] as const;
+  /** The oid of records.<table>, as the owner finds it (no privilege on the table is needed to name it). */
+  const oidOf = async (server: TestServer, table: string): Promise<string> =>
+    (await server.db.admin.query<{ oid: string }>("select c.oid::text as oid from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'records' and c.relname = $1", [table])).rows[0]?.oid ?? '';
+
+  beforeAll(async () => {
+    // One more investigation on each installation, so its tables have counted inserts.
+    for (const server of [gmp, sbx]) {
+      const label = (name: string): string => (server === sbx ? `TEST-${name}` : name);
+      const fp = terminalOf(server.seed, server === gmp ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+      const subject = await grantedPerson(server, 'QA_REVIEWER', label('Meena Iyer QA reviewer'));
+      const opener = await passwordActor(server.db, await grantedPerson(server, 'CSV_DI_LEAD', label('Arun Das CSV-DI lead')), fp);
+      await withCommand(server.db.app, reason(opener), (c) =>
+        records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a QA reviewer password' }),
+      );
+    }
+  });
+
+  it('[DI-17][DI-50] without a session the application role reads no counter, block count or size of the investigation and hold tables, on either installation; the owner still reads them, and the application role still reads its TLS state, the locks and the activity it needs', async () => {
+    for (const server of [gmp, sbx]) {
+      // The owner (the operator's monitoring): the statistics views answer.
+      const seen = (await server.db.admin.query<{ relname: string }>(
+        "select relname from pg_stat_user_tables where schemaname = 'records' and relname = any ($1) order by relname", [[...TABLES]],
+      )).rows.map((r) => r.relname);
+      expect(seen, server.kind).toEqual([...TABLES]);
+      const app = server.db.app;
+      for (const table of TABLES) {
+        const oid = await oidOf(server, table);
+        for (const sqlText of [
+          'select n_tup_ins, n_live_tup from pg_catalog.pg_stat_user_tables where relid = $1::oid',
+          'select n_tup_ins from pg_catalog.pg_stat_all_tables where relid = $1::oid',
+          'select n_tup_ins from pg_catalog.pg_stat_xact_user_tables where relid = $1::oid',
+          'select heap_blks_hit from pg_catalog.pg_statio_user_tables where relid = $1::oid',
+          'select idx_scan from pg_catalog.pg_stat_user_indexes where relid = $1::oid',
+          'select idx_blks_hit from pg_catalog.pg_statio_all_indexes where relid = $1::oid',
+          'select pg_catalog.pg_stat_get_tuples_inserted($1::oid)',
+          'select pg_catalog.pg_stat_get_live_tuples($1::oid)',
+          'select pg_catalog.pg_stat_get_numscans($1::oid)',
+          'select pg_catalog.pg_stat_get_blocks_hit($1::oid)',
+          'select pg_catalog.pg_stat_get_last_autoanalyze_time($1::oid)',
+          'select pg_catalog.pg_stat_get_xact_tuples_inserted($1::oid)',
+          'select pg_catalog.pg_relation_size($1::oid::regclass)',
+          'select pg_catalog.pg_total_relation_size($1::oid::regclass)',
+          'select pg_catalog.pg_table_size($1::oid::regclass)',
+          'select pg_catalog.pg_indexes_size($1::oid::regclass)',
+        ]) {
+          await expect(app.query(sqlText, [oid]), `${server.kind} ${table}: ${sqlText}`).rejects.toThrow(/permission denied/);
+        }
+      }
+      await expect(app.query("select blks_hit from pg_catalog.pg_statio_user_sequences where schemaname = 'records'"), server.kind).rejects.toThrow(/permission denied/);
+      await expect(app.query('select calls from pg_catalog.pg_stat_user_functions'), server.kind).rejects.toThrow(/permission denied/);
+      // What the server and the kernel read as the application role still answers.
+      expect((await app.query('select count(*)::int as n from pg_catalog.pg_stat_ssl where pid = pg_catalog.pg_backend_pid()')).rows, server.kind).toEqual([{ n: 1 }]);
+      expect((await app.query("select count(*)::int as n from pg_catalog.pg_locks where locktype = 'relation' and pid = pg_catalog.pg_backend_pid()")).rows[0], server.kind).toBeDefined();
+      expect((await app.query('select count(*)::int as n from pg_catalog.pg_stat_activity where pid = pg_catalog.pg_backend_pid()')).rows, server.kind).toEqual([{ n: 1 }]);
+    }
+  });
+});
