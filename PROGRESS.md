@@ -1750,3 +1750,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   other counters, relation sizes) still told every role when and how many investigations and holds were opened; tablets
   0570 takes them from PUBLIC on both installations, and what the server needs (pg_stat_activity, pg_locks) is default
   HW.1. Tests: audit/read-authorisation (tablets 0560, 4 tests) and esig/read-authorisation (tablets 0570).
+  Lane round 3 (HIGH-WATER): the stored authority evaluations (iam.authority_evaluation, granted to the application
+  role by kernel 0130) still told it when and how many investigations were opened, linked, refreshed and closed and
+  legal holds placed and released, and which lead or QA reviewer acted; tablets 0580 takes the table from the
+  application role on both installations (every reader is SECURITY DEFINER; the role still evaluates), default HW.2,
+  HW.1 and F34.2 corrected. Test: esig/read-authorisation (tablets 0580).
