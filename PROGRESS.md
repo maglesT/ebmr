@@ -1749,4 +1749,4 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   entry) is default F35.4 (F35.2, F35.3(a)/(c), guards corrected). The table statistics (pg_stat_user_tables and the
   other counters, relation sizes) still told every role when and how many investigations and holds were opened; tablets
   0570 takes them from PUBLIC on both installations, and what the server needs (pg_stat_activity, pg_locks) is default
-  HW.1. Tests: audit/read-authorisation (tablets 0560, 5 tests) and esig/read-authorisation (tablets 0570).
+  HW.1. Tests: audit/read-authorisation (tablets 0560, 4 tests) and esig/read-authorisation (tablets 0570).
