@@ -2039,3 +2039,6 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   db-guards-kernel-stubs (1 new). Regressions run: free-text identifiers, bound names, compounds, weighing basis,
   golden, free text, kernel stubs, sandbox registers, device claim, recipe-core engine-names-sql, test-kit, and the
   sandbox set-up with three persona sets.
+  Attacking 1050 ourselves found letters and digits no table read (a small capital L, a regional indicator or negative
+  squared L, dingbat circled digits): kernel 1060 reads the 372 characters with no decomposition whose Unicode names
+  make them a Latin letter or a digit as named (kernel identifier-words test, fails with 1060 moved aside).
