@@ -1788,6 +1788,58 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (BADGE-AUTOFILL.1 corrected). Tests: recipe-core execution/step-times-sql (new), validator/content; server
   execution/witness-without-printout, refusals-and-room-views; web designer/check-in-release; ui-kit
   identity/badge-autofill. E2E floor and esig pass.
+  Lane round 3 (T12.DOC, BADGE-AUTOFILL): a phase whose MBR names no check gave no warning and showed "—" as its check,
+  while the engine checks a critical value typed by hand from its printout by a timed witness (fallback verifier
+  roles), then by the later review with WITNESS_LATE; the validator now warns for it with any capture and the
+  document and step properties say how it is checked (T12.3 corrected; the MANUAL_ENTRY_FALLBACK review of a value
+  whose MBR names another capture is left to the owner there). The kiosk new-PIN fields took a trusted insertion with
+  no key before it (document.execCommand) and a value set with no event; every noAutofill field now takes only what
+  trusted keys brought and checks the length they left (BADGE-AUTOFILL.1 corrected; checked in real Chromium). Tests:
+  recipe-core validator/content, web designer/check-in-release, ui-kit identity/badge-autofill, web
+  session/badge-autofill and sign-in-screens (F05 reaches its digits check by typing). E2E access passes.
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 5 (F12) (branch phase-2/recipe-core;
+  the round-6 verification of F12; DI-05, DI-30, DI-31, DI-32, DI-34, DI-10). What was wrong: recipe-core 0332 read
+  only the entry of a RECORD_ENTRY and the start data of a START_STEP, and only where they had the JSON type their block
+  declares. The rest of a row was read by nothing, and the engine ignores a member it does not know, so the release
+  gate's replay would not flag it either. Through the application role a real-format lot number (L2409-0017) was stored
+  in a test run's record:
+  - at the top of a command, accepted or refused;
+  - in an entry carried by a START_STEP;
+  - in a refused entry whose answers were a text or a list of lists, or in start data on an entry;
+  - in the evidence stored with a row;
+  - in the actor, frames and signatures of a command, and in a preparation, a sweep or an issue request;
+  - in the policy a batch pins;
+  - in the refusal of a row;
+  - in the raw line of a scale reading a weighing used;
+  - as the batch size, a market, a variant or an input of an issue request.
+  What changed:
+  - recipe-core 0335: every COMMAND, PREPARE, SWEEP and ISSUE row's command holds exactly the members its type
+    declares, each of its JSON type (21 engine command types, a preparation, a sweep, an issue request). A refused
+    entry and start data keep the JSON types their block declares. The command id is one the server gives. A signature
+    names a signature id or the dry run's placeholder, a kernel meaning and the person who gives it. The evidence holds
+    only what the server records, bound to the row: lot, room, balance, scanned label, signature, package, a UUID
+    idempotency key, test device labels. A batch pins exactly the engine policy, with engine roles.
+  - recipe-core 0336: a refused row records the engine's refusal {code, message, controls} and an accepted row none.
+  - recipe-core 0337: a batch is issued only with a request its MBR accepts (size, markets, variants, inputs).
+  - tablets 0590: the readings a device weighing uses are its tare and gross exactly as stored.
+  - All four are new migrations (EBMR-EXE-126; 124 for the readings).
+  - 0335's header corrects 0332's claim. Decision F12.4 is corrected, and F12.5 records the default: free text a
+    type declares is not read as an identifier (reasons, descriptions, TEXT values, units, what a refused row sent:
+    the verification's probe H).
+  - A device test fixture no longer stores evidence the server never writes.
+  Tests (each fails with its migration moved aside):
+  - apps/tablets-server/test/execution/db-guards-row-shape.test.ts (new, 7 tests through the application role: the
+    verification's probes A, C, D, E and F and the same hole elsewhere);
+  - apps/tablets-server/test/execution/db-guards-used-readings.test.ts (new);
+  - packages/recipe-core/test/execution/entry-data-sql.test.ts, round 7 (8 tests): the shapes equal the engine's
+    TypeScript types at compile time; every command of the engine's runs and of the 21 types passes; a member forged
+    into, or retyped at, every place is refused; refusal codes and controls are checked against the engine's and the
+    blocks' sources; issue requests.
+  Server execution, device, esig and designer regression files (55 files, 328 tests) and the E2E fcv journey pass.
+  Still open, reported in F12.5:
+  - a member of its own in the state or an event (REPLAY-GATE.1 covers it);
+  - a signable content version superseded before the replay, which nothing reads;
+  - the origin of an imported test package, which is the package's own claim.
 - 2026-10-03: SQL MUTATION HARNESS FOR THE PHASE 2 GUARDS (branch phase-2/sql-mutation from 979e747; the full run and
   the kill tests are the next step). tools/sql-mutation knew only the Phase 1 kernel. Definitions now come from every
   SQL directory in migration order (kernel, site services, recipe-core, tablets), a function identified as PostgreSQL

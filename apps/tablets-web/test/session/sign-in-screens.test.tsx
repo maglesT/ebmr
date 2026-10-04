@@ -303,18 +303,30 @@ describe('F05: a new kiosk PIN is never longer than the PIN pad takes', () => {
     expect(second().maxLength).toBe(12);
     expect(screen.getByText('A PIN has digits only, at most 12 of them (the most a PIN pad takes).')).toBeTruthy();
 
-    // A value the field's limit did not stop (pasted or filled in by a script): not sent, and the screen says why.
+    // A value the field's limit did not stop, set by a script (no key at all): not sent, and the screen says why. Since
+    // BADGE-AUTOFILL round 3 such a value is a fill, refused before its digits are read: a PIN is typed key by key.
     // (Submitted as a script would, past the browser's own length check.)
     first().value = LONG_PIN;
     second().value = LONG_PIN;
     fireEvent.submit(screen.getByRole('form', { name: 'Choose a new PIN' }));
+    await waitFor(() => expect(screen.getByText('A PIN is typed here key by key, never filled in by the browser or a password manager, nor pasted. Nothing was sent: type the new PIN.')).toBeTruthy());
+    expect(changes).toHaveLength(0);
+    expect(first().value).toBe('');
+    // Typed key by key where the browser's own limit did not hold (a browser that ignores maxlength): not sent either,
+    // and the screen says the PIN is too long.
+    for (const f of [first(), second()]) f.removeAttribute('maxlength');
+    await userEvent.type(first(), LONG_PIN);
+    await userEvent.type(second(), LONG_PIN);
+    fireEvent.submit(screen.getByRole('form', { name: 'Choose a new PIN' }));
     await waitFor(() => expect(screen.getAllByText('A PIN has digits only, at most 12 of them (the most a PIN pad takes).')).toHaveLength(2));
     expect(changes).toHaveLength(0);
     expect(first().value).toBe('');
-    first().value = '48291a';
-    second().value = '48291a';
+    for (const f of [first(), second()]) f.setAttribute('maxlength', '12');
+    // A letter typed on a keyboard into the numeric field: not sent.
+    await userEvent.type(first(), '48291a');
+    await userEvent.type(second(), '48291a');
     fireEvent.submit(screen.getByRole('form', { name: 'Choose a new PIN' }));
-    await new Promise((r) => setTimeout(r, 50));
+    await waitFor(() => expect(screen.getAllByText('A PIN has digits only, at most 12 of them (the most a PIN pad takes).')).toHaveLength(2));
     expect(changes).toHaveLength(0);
     expect(first().value).toBe('');
 

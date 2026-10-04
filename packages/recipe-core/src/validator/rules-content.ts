@@ -4,6 +4,7 @@
  * yields). Edition rule sets add their own content rules through the registry.
  */
 import { computedItemsOf } from '../blocks/generic/material.ts';
+import { DEFAULT_POLICY } from '../engine/types.ts';
 import { CAPTURE_WORDS, capturedOtherwise, checkRunsAsWitness } from '../flow/check-in-release.ts';
 import { compareDecimal } from '../flow/decimal.ts';
 import type { GraphNode } from '../flow/graph.ts';
@@ -177,6 +178,11 @@ const witnessed = defineRule('GMP-WITNESS', 'WITNESSED where a critical value ha
  * Round 2: whatever capture the MBR names (device, scan, LIMS, automation), every value a step records is typed by hand
  * in this release and the engine checks it so, so the warning covers those too and says so; never an item the step's
  * block computes from its entries (a weighing step's mass totals), which is not typed (blocks computedItemsOf).
+ *
+ * Round 3: a phase whose MBR names no check is warned about too. The engine asks for a second person for every critical
+ * value typed by hand, so such a phase is checked all the same, by a person in the fallback verifier roles (the
+ * engine's policy), as the timed witness and then the later review with WITNESS_LATE; the author and the approver saw
+ * no check at all.
  */
 const witnessedInThisRelease = defineRule('GMP-WITNESS-NO-ATTACHMENT', 'A later review of a value typed by hand from a printout runs as a witness in this release', ['PR-03', 'DI-30', 'PR-14', 'DI-35'], (a) => {
   const out: RuleFinding[] = [];
@@ -189,10 +195,14 @@ const witnessedInThisRelease = defineRule('GMP-WITNESS-NO-ATTACHMENT', 'A later 
       otherwise.length === 0
         ? ''
         : ` The MBR captures ${andList(otherwise.map((x) => `${x.id} ${CAPTURE_WORDS[x.capture]}`))}, but in this release every value of a step is typed by hand on the step screen (a scanned code is recorded as typed by hand).`;
+    const named = p.signatures.check ? 'its check is a later review (VERIFIED)' : 'the MBR names no check for it';
+    const who = p.signatures.check
+      ? 'this check runs as a witness (WITNESSED): the second person'
+      : `the step is checked all the same, as a witness (WITNESSED): a second person holding ${orList(DEFAULT_POLICY.fallbackVerifierRoles)} (the verifier roles where the MBR names no check)`;
     out.push(
       warning(
         p.id,
-        `${label(a, p.id)} records ${ids.join(', ')} by hand from the printout or photo the MBR names as ${ids.length === 1 ? 'its' : 'their'} evidence, and its check is a later review (VERIFIED).${captured} In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition`,
+        `${label(a, p.id)} records ${ids.join(', ')} by hand from the printout or photo the MBR names as ${ids.length === 1 ? 'its' : 'their'} evidence, and ${named}.${captured} In this release no printout or photo can be attached to a value typed by hand, so ${who} watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition`,
       ),
     );
   }
@@ -201,7 +211,16 @@ const witnessedInThisRelease = defineRule('GMP-WITNESS-NO-ATTACHMENT', 'A later 
 
 /** "a", "a and b", "a, b and c". */
 function andList(parts: readonly string[]): string {
-  return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1] ?? ''}`;
+  return joinList(parts, 'and');
+}
+
+/** "a", "a or b", "a, b or c". */
+function orList(parts: readonly string[]): string {
+  return joinList(parts, 'or');
+}
+
+function joinList(parts: readonly string[], last: 'and' | 'or'): string {
+  return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} ${last} ${parts[parts.length - 1] ?? ''}`;
 }
 
 /** Roles allowed after a stage's yield or reconciliation step. */

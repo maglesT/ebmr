@@ -252,7 +252,8 @@ export async function forgedWeighingRow(rig: Rig, d: RunDriver, opts: ForgedWeig
     };
     opts.edit?.(entry);
     const command: engine.Command = { type: 'RECORD_ENTRY', commandId: randomUUID(), actor: engineActor(personaIn(server, 'operator1').personId, roles), step: 'p-disp-pcm', context: [], entry };
-    const r = await tx.command(command, roles, { manual: { writtenPastTheServer: true } });
+    // No evidence: the server's manual record of the room's scales is what it observes; recipe-core 0335 holds evidence to it.
+    const r = await tx.command(command, roles);
     await opts.during?.(c);
     return r;
   });

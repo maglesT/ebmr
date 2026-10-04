@@ -8,7 +8,8 @@
  */
 import { cleanup, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { flow } from '@ebmr/recipe-core/pure';
+import { PINNED_POLICY_ROLES } from '@ebmr/api-contract';
+import { engine, flow } from '@ebmr/recipe-core/pure';
 import dcMini from '../../../../packages/recipe-core/test/fixtures/dc-mini.mbr.json' with { type: 'json' };
 import { DocumentView } from '../../src/features/designer/components/DocumentView.tsx';
 import { StepEditor } from '../../src/features/designer/components/StepEditor.tsx';
@@ -77,6 +78,37 @@ describe('the document says how a step\'s check runs in this release (T12.DOC)',
       expect(row, step).not.toContain('In this release this check runs as a witness');
       cleanup();
     }
+  });
+
+  it('[DI-30][PR-14][DI-35] T12.DOC round 3: where the MBR names no check, the row and the step\'s properties say the step is checked all the same in this release, as a timed witness by a person in the verifier roles the run uses, then by the later review with an exception for QA, whatever capture the MBR names', async () => {
+    // The roles the words name are those the engine checks such a step with (policy fallbackVerifierRoles).
+    expect([...PINNED_POLICY_ROLES.fallbackVerifierRoles]).toEqual([...engine.DEFAULT_POLICY.fallbackVerifierRoles]);
+    const WHO = 'a second person who holds Production verifier, Production supervisor or QA (shop floor), the roles that check a step whose MBR names no check,';
+    const TAIL = `no printout or photo can be attached to Blend time (blendTime), Blender speed (blenderSpeed), so ${WHO} watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`;
+    const unchecked = (capture: flow.CaptureMode): flow.MbrContent => {
+      const c = parsed(dcMini);
+      flow.walk(c.procedure.body, (n) => {
+        if (n.kind === 'phase' && n.id === 'p-blend') n.signatures = n.signatures.perform ? { perform: n.signatures.perform } : {};
+      });
+      for (const id of ['blendTime', 'blenderSpeed']) parameter(c, id).capture = capture;
+      return c;
+    };
+    expect(await blendRow(unchecked('MANUAL'))).toContain(`The MBR names no check, but in this release the step is checked all the same, as a witness (witnessed): ${TAIL}`);
+    cleanup();
+    expect(await blendRow(unchecked('DEVICE'))).toContain(
+      `The MBR names no check, but in this release the step is checked all the same, as a witness (witnessed): every value is typed by hand on the step screen, whatever capture the MBR names (Blend time (blendTime): from a device; Blender speed (blenderSpeed): from a device), and ${TAIL}`,
+    );
+    cleanup();
+    const content = unchecked('LIMS');
+    const r = renderRouted(() => <StepEditor content={content} stepId="p-blend" number="2.1.4" palette={PALETTE} dispatch={() => undefined} readOnly={false} />);
+    await waitFor(() => expect(text(r.container)).toContain('The MBR names no check, but in this release the step is checked all the same, as a witness (witnessed)'), { timeout: 10000 });
+    expect(text(r.container)).toContain(WHO);
+    cleanup();
+    // An uncritical value needs no check where the MBR names none: the cell says nothing more.
+    const uncritical = unchecked('MANUAL');
+    for (const id of ['blendTime', 'blenderSpeed']) parameter(uncritical, id).criticality = 'NON_CRITICAL';
+    const row = await blendRow(uncritical);
+    expect(row).not.toContain('in this release the step is checked');
   });
 
   it('[DI-30][PR-14][DI-35] the step\'s properties say the same next to the check the author chooses', async () => {

@@ -12,7 +12,7 @@
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createRef } from 'react';
+import { createRef, type RefObject } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { BadgePrompt, NOT_A_BADGE, NOT_TAPPED } from '../../src/identity/index.ts';
 import { SecretInput, takeSecret, wasFilled } from '../../src/primitives/SecretInput.tsx';
@@ -150,6 +150,73 @@ describe('BADGE-AUTOFILL: a badge tap is what the reader types, never what is fi
     expect(wasFilled(ref), 'a scripted insertText').toBe(true);
     expect(takeSecret(ref)).toBe('48291');
     expect(wasFilled(ref), 'read and cleared').toBe(false);
+  });
+
+  it('[DI-14][DI-19][DI-38] BADGE-AUTOFILL round 3: a kiosk secret field marks as filled an insertText no key brought (the trusted event Chromium makes for document.execCommand(\'insertText\')) and a value set with no event at all, also onto typed keys; typed key by key, with deletions, or from a touch keyboard (its unnamed key, Unidentified), it is not', async () => {
+    // Chromium marks the input event of document.execCommand('insertText') as trusted, with inputType insertText and no
+    // key event before it (the lane verifier's probe in a real browser). happy-dom leaves isTrusted undefined, which the
+    // field reads as trusted, as it reads userEvent's keys.
+    const execInsertText = (el: HTMLInputElement, text: string) => {
+      setNatively(el, el.value + text);
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+    };
+    const field = (): { ref: RefObject<HTMLInputElement | null>; el: HTMLInputElement; unmount: () => void } => {
+      const ref = createRef<HTMLInputElement>();
+      const { unmount } = render(<SecretInput label="New PIN" name="newSecret" inputRef={ref} noAutofill />);
+      return { ref, el: screen.getByLabelText<HTMLInputElement>('New PIN'), unmount };
+    };
+    const seen: Record<string, boolean> = {};
+    const check = async (name: string, act: (el: HTMLInputElement) => Promise<void> | void) => {
+      const f = field();
+      f.el.focus();
+      await act(f.el);
+      seen[name] = wasFilled(f.ref);
+      expect(takeSecret(f.ref).length, `${name}: the text reached the field`).toBeGreaterThan(0);
+      expect(wasFilled(f.ref), `${name}: read and cleared`).toBe(false);
+      f.unmount();
+    };
+    await check('execCommand insertText, no key before it', (el) => execInsertText(el, '4829'));
+    await check('execCommand insertText, one character at a time', (el) => {
+      for (const ch of '4829') execInsertText(el, ch);
+    });
+    await check('value set with no event', (el) => setNatively(el, '4829'));
+    await check('typed, then execCommand insertText onto it', async (el) => {
+      await userEvent.type(el, '48');
+      execInsertText(el, '29');
+    });
+    await check('typed, then a value set with no event', async (el) => {
+      await userEvent.type(el, '48');
+      setNatively(el, '4829');
+    });
+    await check('a typed key, then an insertion of more than its one character', (el) => {
+      fireEvent.keyDown(el, { key: '4' });
+      execInsertText(el, '4829');
+      fireEvent.keyUp(el, { key: '4' });
+    });
+    await check('typed key by key', async (el) => {
+      await userEvent.type(el, '4829');
+    });
+    await check('typed, deleted and typed again', async (el) => {
+      await userEvent.type(el, '48291{Backspace}{Backspace}35');
+    });
+    await check('a touch keyboard (trusted key "Unidentified", then its insertText)', (el) => {
+      for (const ch of '4829') {
+        fireEvent.keyDown(el, { key: 'Unidentified', keyCode: 229 });
+        execInsertText(el, ch);
+        fireEvent.keyUp(el, { key: 'Unidentified', keyCode: 229 });
+      }
+    });
+    expect(seen).toEqual({
+      'execCommand insertText, no key before it': true,
+      'execCommand insertText, one character at a time': true,
+      'value set with no event': true,
+      'typed, then execCommand insertText onto it': true,
+      'typed, then a value set with no event': true,
+      'a typed key, then an insertion of more than its one character': true,
+      'typed key by key': false,
+      'typed, deleted and typed again': false,
+      'a touch keyboard (trusted key "Unidentified", then its insertText)': false,
+    });
   });
 
   it('[DI-14][DI-38] keyed text keeps its own answer: a PIN keyed into the field is not a badge, and a reader\'s burst is a tap', async () => {

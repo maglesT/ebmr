@@ -422,7 +422,26 @@ that another command holds is skipped.
     addition without its manufacture time pass, and no weighing hides under another kind from the net, label and
     total checks. A refused row keeps what was sent and refused, but never a member that no block version declares
     for that kind (`block_schema_unknown_member`). Whether a block raises the exception an entry calls for, a source
-    addition's share of the batch size and a transfer's two persons stay with the replay;
+    addition's share of the batch size and a transfer's two persons stay with the replay. A row also records the
+    engine command of its type with exactly the members that type declares, each of the JSON type it declares, and
+    evidence of the shape the server records (sql 0335, constraint trigger `zz_execution_row_shape`,
+    `execution_row_problem`, `command_shape`, `command_member_problem`, `row_evidence_problem`; Phase 2 exit review
+    F12, the round-6 verification; EBMR-EXE-126), which corrects 0332's claim that a real identifier cannot sit unread
+    in a refused row's command: every COMMAND, PREPARE, SWEEP and ISSUE row's command has no member its type (one of
+    the 21 engine command types, a preparation, a sweep, an issue request) does not declare, at any depth; a refused
+    row's entry and start data have the JSON type their block declares wherever it declares an object, a list or a map
+    (`block_schema_container_problem`), so 0332's walk reaches every leaf; the command id is one the server gives; a
+    signature names a signature id or the dry run's placeholder, a meaning of the kernel and the person who gives it;
+    the evidence holds only the members the server records with the row, bound to it (the lot its entry names, the
+    row's room and balance, the scanned label, the signature applied, the package issued from, a UUID idempotency key,
+    test device labels), and a weighing's used readings are its tare and gross as stored (tablets sql 0590); a batch
+    pins exactly the engine policy's members, with engine roles (trigger `ad_execution_policy_shape`,
+    `engine_policy_problem`); and a refused row records the engine's refusal as the engine builds it, an accepted row
+    none (sql 0336, constraint trigger `zz_execution_row_refusal`, `refusal_problem`); and a batch is issued only with
+    a request its MBR accepts, as the engine checks it at issue: an approved batch size, approved markets with IN,
+    every variant one of its values, every input given with a source and of its declared type, nothing else (sql
+    0337, trigger `ae_execution_issue_request`, `issue_request_problem`). Free text a type declares (a reason, a
+    description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -801,7 +820,16 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   reference, a source addition without manufacturedAtUs or with it as a number, a sample of 0 units, a disposal of an
   unknown category, and further values of another type pass 0313 and 0330 and are refused; an entry of a kind its
   step's block does not record (a weighing renamed CONTAINER_WEIGHING_2), stored data that breaks the schema, a
-  refused row holding a member no block version declares, and every kind's own rules in 0330.
+  refused row holding a member no block version declares, and every kind's own rules in 0330. Round 7 (sql 0335,
+  0336): the command shapes equal the engine's TypeScript types (a member list checked at compile time); every command
+  of the engine's runs, and one of each of the 21 types with every optional member, passes as accepted and as refused;
+  a member forged into, or retyped at, every place of those commands is refused, the round-6 verification's probes
+  among them; a refused entry's objects, lists and single values keep their declared JSON types, a single value of
+  another kind is recorded as sent; a preparation, a sweep, an issue request and the pinned policy hold exactly their
+  members; command ids, signatures and every evidence member are bound; a refusal is the engine's, every rule code
+  and control the engine's and the blocks' sources name meets the rule, and an accepted row records none (sql 0336);
+  the issue requests of both golden fixtures pass and a size, market, variant, choice or input the MBR does not hold,
+  one left out, a blank source or another input type is refused (sql 0337).
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -976,6 +1004,19 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   0330 stored as passed), and a refused row whose command carries a member no block declares are refused
   (EBMR-EXE-126) and nothing holds them; the engine's own refusal of an answer NO is recorded as a refused row, and the
   honest entries are recorded.
+- `db-guards-row-shape.test.ts` (Phase 2 exit review F12, round 7; sql 0335, 0336): through the application role, the
+  round-6 verification's probes (L2409-0017 at the top of an accepted clearance's command and in its evidence, an
+  entry carried by a START_STEP, a refused clearance with it at the top, its answers as a text or as lists or start
+  data on the entry, a refused START_STEP with start data as a text or a list or an entry), a member of the actor or a
+  frame, an idempotency key that is no UUID, a weighing's evidence naming another lot, room or scale or with a member
+  of its own, a preparation's own members and meaning, an issue request's, an input's and the pinned policy's own
+  members, a policy role that is no engine role, another package, a refusal of another shape or beside an accepted
+  row (sql 0336), and an issue request naming L2409-0017 as its batch size, a market, a variant or an input, or an
+  input of another type (sql 0337), are refused (EBMR-EXE-126) and nothing holds L2409-0017; the honest rows are
+  recorded.
+- `db-guards-used-readings.test.ts` (Phase 2 exit review F12, round 7; tablets sql 0590): a device weighing whose used
+  readings carry a raw line L2409-0017, another device, time, trust or value than the stored reading, a member of its
+  own or the gross first is refused (EBMR-EXE-124) and uses no reading; the honest weighing uses its readings.
 - `db-guards-corrections.test.ts` (review P24): CORRECT_ENTRY without the approval of critical data (also on a
   batch pinned with the approval switched off), approved by the corrector or by no person, or signed with
   another meaning than CORRECTED and CORRECTION_APPROVED, is refused; the approved correction is recorded, and

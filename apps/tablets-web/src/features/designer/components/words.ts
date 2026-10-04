@@ -2,6 +2,7 @@
  * Plain words for members of MBR content in the document view (module C2; review F44). Every value is shown as the
  * content holds it (decimal text as written, never rounded); codes are shown in lower case with their meaning.
  */
+import { PINNED_POLICY_ROLES, ROLE_TITLES } from '@ebmr/api-contract';
 import { blocks, flow } from '@ebmr/recipe-core/pure';
 
 type Content = flow.MbrContent;
@@ -75,7 +76,9 @@ export function samplingWords(x: { point: string; purpose: string; units: number
  * 2 exit follow-up T12.DOC; DI-30, PR-14, DI-35): a later review of a critical value typed by hand from a printout or
  * photo runs as a timed witness, because no printout or photo can be attached in this release (the validator warns,
  * GMP-WITNESS-NO-ATTACHMENT). Whatever capture the MBR names (device, scan, LIMS, automation), every value a step records
- * is typed by hand in this release, which the words then say (round 2). Null when the check runs as the MBR names it.
+ * is typed by hand in this release, which the words then say (round 2). Round 3: where the MBR names no check at all, the
+ * engine still asks for a second person for such a value, from the fallback verifier roles, as the witness and then the
+ * later review; the words say so. Null when the check runs as the MBR names it.
  */
 export function checkInThisRelease(c: Content, n: flow.PhaseNode): string | null {
   const parameter = (id: string) => c.parameters.find((p) => p.id === id);
@@ -85,14 +88,26 @@ export function checkInThisRelease(c: Content, n: flow.PhaseNode): string | null
   if (items.length === 0) return null;
   const otherwise = flow.capturedOtherwise(parameter, items);
   const typed = otherwise.length === 0 ? '' : `every value is typed by hand on the step screen, whatever capture the MBR names (${otherwise.map((x) => `${itemLabel(c, x.id)}: ${flow.CAPTURE_WORDS[x.capture]}`).join('; ')}), and `;
-  return `In this release this check runs as a witness (witnessed): ${typed}no printout or photo can be attached to ${items.map((id) => itemLabel(c, id)).join(', ')}, so the second person watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`;
+  const named = n.signatures.check ? 'In this release this check runs as a witness (witnessed)' : 'The MBR names no check, but in this release the step is checked all the same, as a witness (witnessed)';
+  const who = n.signatures.check
+    ? 'the second person'
+    : `a second person who holds ${orWords(PINNED_POLICY_ROLES.fallbackVerifierRoles.map((r) => ROLE_TITLES[r] ?? r))}, the roles that check a step whose MBR names no check,`;
+  return `${named}: ${typed}no printout or photo can be attached to ${items.map((id) => itemLabel(c, id)).join(', ')}, so ${who} watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`;
 }
 
-/** The "Checked by" cell of a phase's row: the role and the check the MBR names, and how it runs in this release. */
+/** "a", "a or b", "a, b or c". */
+function orWords(parts: readonly string[]): string {
+  return parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1] ?? ''}`;
+}
+
+/**
+ * The "Checked by" cell of a phase's row: the role and the check the MBR names, and how it runs in this release; where
+ * the MBR names no check but the step is checked all the same in this release (round 3), how it is.
+ */
 export function checkWords(c: Content, n: flow.PhaseNode, roleTitle: (role: string | undefined) => string): string {
   const check = n.signatures.check;
-  if (!check) return '—';
-  const named = `${roleTitle(check.role)} (${check.meaning.toLowerCase()})`;
   const runs = checkInThisRelease(c, n);
+  if (!check) return runs ?? '—';
+  const named = `${roleTitle(check.role)} (${check.meaning.toLowerCase()})`;
   return runs === null ? named : `${named}. ${runs}`;
 }
