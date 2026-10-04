@@ -172,7 +172,12 @@ Fixed:
   two operators fill ..." and "... a correction of a verified value sends its step back for re-verification ..."
   (apps/tablets-server/test/mutation/execution-state-binding.test.ts), the first two store-level tests failing before
   0382 (the third shows the engine's own correction recorded). The golden replays and the execution SQL and store tests
-  pass with it.
+  pass with it. Harness on the three new functions: 76 mutants, 75 killed (two more server tests, a refused value and a
+  refused correction on a step already marked for re-verification, and two unit cases were added for the first run's
+  survivors); `recipe.signature_invalidation_problem#43` is equivalent: it makes the default of
+  `coalesce(role = 'PERFORMED' and status = 'IN_PROGRESS', false)` true, and that line is reached only after the check
+  above it accepted the invalidation, which needs a role of PERFORMED or CHECKED and a status, so the expression is
+  never NULL.
 - **D10. Market authorisation: activation and cells written around the command.** The activation table had only a
   stamp trigger and the cell guard did not check the version's state, so owner-level code could write an activation
   and a CURRENT cell for a version only CHECKED, skipping every check of the activation command, and the issue command

@@ -426,6 +426,69 @@ describe('D9: a row makes a recorded signature invalid only where the engine doe
     expect(await forged(d, 'operator1', exceptionWith(() => undefined))).toBe('ok');
   }, 240_000);
 
+  it('[DI-35][INV-10][PR-14][INV-03] a refused row, a value the engine refuses on the step waiting for its check, whose state makes that step\'s PERFORMED signature invalid is refused and named as refused; nothing is written and the signature stays valid', async () => {
+    const d = await driver(withEarlyParameter(), ['verifier1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    valueOf(await d.command('operator1', { type: 'RECORD_DATA', stepKey: KEY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } }));
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: KEY });
+    const performed = only(stepOf(await stateOf(d), KEY).signatures, 'signature');
+    const rowsBefore = (await rowsOf(server, d.runId)).length;
+    const refusedValue = (tx: execution.ExecutionTx, me: engine.Actor): Forged => {
+      const command = keyed(me, '16');
+      const r = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });
+      if (r.accepted || r.refusal?.code !== 'ENG-STEP-STATUS') throw new Error(`SETUP: the engine did not refuse the value for the step's status: ${JSON.stringify(r.refusal)}`);
+      const state = structuredClone(r.state);
+      const g = stepOf(state, KEY).signatures.find((x) => x.id === performed.id);
+      if (!g) throw new Error('SETUP: no PERFORMED signature');
+      g.valid = false;
+      return { command, state, events: r.events, refusal: r.refusal };
+    };
+    expect(await forged(d, 'operator1', refusedValue)).toBe(
+      invalidates('refused RECORD_DATA', KEY, `its PERFORMED signature ${performed.id} is made invalid with the step left AWAITING_VERIFICATION and none of its data changed`),
+    );
+    expect((await rowsOf(server, d.runId)).length, 'nothing was written').toBe(rowsBefore);
+    expect(stepOf(await stateOf(d), KEY).signatures.map((g) => [g.role, g.valid])).toEqual([['PERFORMED', true]]);
+  }, 240_000);
+
+  it('[DI-35][INV-10][PR-14][INV-03] a refused correction sends no step back: on a step waiting for its check and already marked for re-verification (as an accepted correction, which the check of other steps lets pass, can leave it), a refused CORRECT_ENTRY whose state makes its PERFORMED signature invalid is refused; nothing is written and the signature stays valid', async () => {
+    const d = await driver(withEarlyParameter(), ['verifier1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    valueOf(await d.command('operator1', { type: 'RECORD_DATA', stepKey: KEY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } }));
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: KEY });
+    const performed = only(stepOf(await stateOf(d), KEY).signatures, 'signature');
+    const point = only(Object.values((await stateOf(d)).points).filter((x) => x.item === 'blendTime' && x.status === 'VALID'), 'value').id;
+    // The mark planted by the superuser, every trigger off.
+    const c = await server.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query("update recipe.execution_state set state = jsonb_set(state, array['steps', $2, 'reverification'], 'true'::jsonb) where batch_id = $1", [d.runId, KEY]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    expect({ status: stepOf(await stateOf(d), KEY).status, reverification: stepOf(await stateOf(d), KEY).reverification }, 'SETUP').toEqual({ status: 'AWAITING_VERIFICATION', reverification: true });
+    const rowsBefore = (await rowsOf(server, d.runId)).length;
+    const refusedCorrection = (tx: execution.ExecutionTx, me: engine.Actor): Forged => {
+      const command: engine.Command = {
+        type: 'CORRECT_ENTRY', commandId: randomUUID(), actor: me, point, value: { kind: 'DECIMAL', value: '16', unit: 'min' }, reason: 'Transcription error: the timer read 16 min',
+        signature: { id: randomUUID(), meaning: 'CORRECTED', signer: me.id },
+      };
+      const r = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });
+      if (r.accepted || r.refusal?.code !== 'ENG-CORRECT-APPROVAL') throw new Error(`SETUP: the engine did not refuse the correction for its approval: ${JSON.stringify(r.refusal)}`);
+      const state = structuredClone(r.state);
+      const g = stepOf(state, KEY).signatures.find((x) => x.id === performed.id);
+      if (!g) throw new Error('SETUP: no PERFORMED signature');
+      g.valid = false;
+      return { command, state, events: r.events, refusal: r.refusal };
+    };
+    expect(await forged(d, 'operator1', refusedCorrection)).toBe(
+      invalidates('refused CORRECT_ENTRY', KEY, `its PERFORMED signature ${performed.id} is made invalid with the step left AWAITING_VERIFICATION and none of its data changed`),
+    );
+    expect((await rowsOf(server, d.runId)).length, 'nothing was written').toBe(rowsBefore);
+    expect(stepOf(await stateOf(d), KEY).signatures.map((g) => [g.role, g.valid])).toEqual([['PERFORMED', true]]);
+  }, 240_000);
+
   it('[DI-35][INV-10][PR-14][INV-03] on the clearance two operators fill: another person\'s entry that makes operator1\'s PERFORMED signature invalid keeps the engine\'s rule (its signer drops out) or is refused; an operator\'s exception at the step, an act and not data of the step, makes no signature invalid; the engine\'s own entry is recorded', async () => {
     const issuer = await server.asPersona('issuer');
     const runId = await importAndIssue(server, issuer, writePackage(server, dcMini()));
