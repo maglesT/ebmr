@@ -1743,3 +1743,10 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   re-planting lock-out and the other residuals are recorded (ADR 0017, decision F41.1), and the E2E title says what it
   proves. Tests: server audit/read-authorisation and esig/read-authorisation (0530, 0540, on GMP and the sandbox),
   devices/live-session (new), platform/security (page binding); web app/page-binding (new); E2E security (new test).
+  Lane round 2 (F35, HIGH-WATER): the subject's own account chain still counted and dated the hold the investigation
+  notes on it (9 entries listed and verified, 8 shown; a colleague 8 of 8); tablets 0560 counts, dates and orders a
+  chain for that person by the entries shown, and the residual (hashed sequence numbers and event ids skip the withheld
+  entry) is default F35.4 (F35.2, F35.3(a)/(c), guards corrected). The table statistics (pg_stat_user_tables and the
+  other counters, relation sizes) still told every role when and how many investigations and holds were opened; tablets
+  0570 takes them from PUBLIC on both installations, and what the server needs (pg_stat_activity, pg_locks) is default
+  HW.1. Tests: audit/read-authorisation (tablets 0560, 5 tests) and esig/read-authorisation (tablets 0570).
