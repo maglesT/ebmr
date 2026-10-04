@@ -69,3 +69,24 @@ export function eventWords(numbering: flow.MbrNumbering, e: flow.EventRef): stri
 export function samplingWords(x: { point: string; purpose: string; units: number; destructive: boolean }): string {
   return `at ${x.point}: ${x.units} units for ${x.purpose}, ${x.destructive ? 'destructive' : 'not destructive'}`;
 }
+
+/**
+ * How the second person's check of phase `n` runs in this release, when that differs from the check the MBR names (Phase
+ * 2 exit follow-up T12.DOC; DI-30, PR-14, DI-35): a later review of a critical value typed by hand from a printout or
+ * photo runs as a timed witness, because no printout or photo can be attached in this release (the validator warns,
+ * GMP-WITNESS-NO-ATTACHMENT). Null when the check runs as the MBR names it.
+ */
+export function checkInThisRelease(c: Content, n: flow.PhaseNode): string | null {
+  const items = flow.checkRunsAsWitness((id) => c.parameters.find((p) => p.id === id), n);
+  if (items.length === 0) return null;
+  return `In this release this check runs as a witness (witnessed): no printout or photo can be attached to ${items.map((id) => itemLabel(c, id)).join(', ')}, so the second person watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`;
+}
+
+/** The "Checked by" cell of a phase's row: the role and the check the MBR names, and how it runs in this release. */
+export function checkWords(c: Content, n: flow.PhaseNode, roleTitle: (role: string | undefined) => string): string {
+  const check = n.signatures.check;
+  if (!check) return '—';
+  const named = `${roleTitle(check.role)} (${check.meaning.toLowerCase()})`;
+  const runs = checkInThisRelease(c, n);
+  return runs === null ? named : `${named}. ${runs}`;
+}

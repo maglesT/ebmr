@@ -142,7 +142,7 @@ const withEarlyBesideClearance = (): flow.MbrContent =>
     const mix = ((blend[0] as Json)['body'] as Json)['children'] as Json[];
     const p = mix.find((x) => x['id'] === 'p-blend') as Json;
     p['records'] = ['blenderSpeed'];
-    const early = { ...p, id: 'p-early-time', name: 'Record the blend time', records: ['blendTime'], equipment: [] };
+    const early = { ...p, id: 'p-early-time', name: 'Record the blend time', records: ['blendTime'], equipment: [], signatures: { ...(p['signatures'] as Json), check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } };
     const [clear, ...rest] = prep as [Json, ...Json[]];
     return [{ kind: 'parallel', id: 'par-early', branches: [{ id: 'br-early', name: 'Blend time', body: early }, { id: 'br-clear', name: 'Clearance', body: clear }] }, ...rest];
   });

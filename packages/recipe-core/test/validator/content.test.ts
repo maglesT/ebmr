@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { MbrContent } from '../../src/flow/model.ts';
+import { parseMbr } from '../../src/flow/parse.ts';
 import { gate } from '../../src/validator/validate.ts';
 import { clone, errors, findPhase, loadFixture, removeNode, validate, type FixtureName } from '../flow/support.ts';
 
@@ -9,6 +11,13 @@ interface Deletion {
   remove: (m: MbrContent) => void;
   rule: string;
   names: RegExp;
+}
+
+/** dc-mini, the designer's shipped template (its copy among the fixtures; template-fixture.test.ts keeps them equal). */
+function dcMini(): MbrContent {
+  const r = parseMbr(JSON.parse(readFileSync(new URL('../fixtures/dc-mini.mbr.json', import.meta.url), 'utf8')));
+  if (!r.ok) throw new Error(`dc-mini does not parse: ${JSON.stringify(r.problems.slice(0, 3))}`);
+  return r.mbr;
 }
 
 function param(m: MbrContent, id: string): MbrContent['parameters'][number] {
@@ -203,6 +212,39 @@ describe('GMP content gates', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
     findPhase(m, 'p-binder-prep').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-WITNESS')?.message).toMatch(/records binderTemp by hand with no device capture, scan, photo or printout, so the checker must witness the act/);
+  });
+
+  it('[PR-03][DI-30][PR-14][DI-35] T12.DOC: a later review (VERIFIED) of a critical value typed by hand from a printout or photo is warned about (GMP-WITNESS-NO-ATTACHMENT): in this release the check runs as a timed witness, and once none is possible as the later review with an exception for QA; never where the MBR already asks for the witness (the shipped dc-mini template does), nor for an uncritical value or one captured by a device', () => {
+    // The shipped template asks for the witness itself (since T12.DOC); an author who makes the check a later review is warned.
+    const template = dcMini();
+    const m = clone(template);
+    findPhase(m, 'p-blend').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
+    const found = (mbr: MbrContent) => validate(mbr).findings.filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT').map((f) => ({ severity: f.severity, subject: f.subject, key: f.key, message: f.message }));
+    expect(found(m)).toEqual([
+      {
+        severity: 'WARNING',
+        subject: 'p-blend',
+        key: 'GMP-WITNESS-NO-ATTACHMENT@p-blend',
+        message:
+          '"Blend" (p-blend) records blendTime, blenderSpeed by hand from the printout or photo the MBR names as their evidence, and its check is a later review (VERIFIED). In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)',
+      },
+    ]);
+    // The packaging master's photo of the India codes is the same case where its check is a later review (the fixture
+    // asks for the witness, since T12.DOC).
+    const packaging = clone(loadFixture('tablet-blister-packaging'));
+    expect(found(packaging)).toEqual([]);
+    findPhase(packaging, 'p-india-codes').signatures.check = { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' };
+    expect(found(packaging).map((f) => f.subject)).toEqual(['p-india-codes']);
+    // Not where the MBR already asks for the witness, nor for a value that is not critical or is captured by a device.
+    const witnessed = template;
+    expect(findPhase(witnessed, 'p-blend').signatures.check?.meaning).toBe('WITNESSED');
+    const uncritical = clone(m);
+    for (const id of ['blendTime', 'blenderSpeed']) param(uncritical, id).criticality = 'NON_CRITICAL';
+    const device = clone(m);
+    for (const id of ['blendTime', 'blenderSpeed']) param(device, id).capture = 'DEVICE';
+    expect({ witnessed: found(witnessed), uncritical: found(uncritical), device: found(device) }).toEqual({ witnessed: [], uncritical: [], device: [] });
+    // A warning, so the MBR can be approved once the author justifies it, as every warning (lifecycle START_VERIFICATION).
+    expect(errors(validate(m)).filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT')).toEqual([]);
   });
 
   it('[PR-03] nothing that processes material may run after a stage yield', () => {

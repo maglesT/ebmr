@@ -1563,7 +1563,7 @@
                                 "role": "PRODUCTION_OPERATOR"
                               },
                               "check": {
-                                "meaning": "VERIFIED",
+                                "meaning": "WITNESSED",
                                 "role": "PRODUCTION_VERIFIER"
                               }
                             },

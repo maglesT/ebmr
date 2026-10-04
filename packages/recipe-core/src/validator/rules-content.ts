@@ -3,6 +3,7 @@
  * IN-02 risk-based reductions, DI-04 computerised systems and PAT, INV-34 hold times, timers and
  * yields). Edition rule sets add their own content rules through the registry.
  */
+import { checkRunsAsWitness } from '../flow/check-in-release.ts';
 import { compareDecimal } from '../flow/decimal.ts';
 import type { GraphNode } from '../flow/graph.ts';
 import { childrenOf, isNodeEvent, type FlowNode, type PhaseNode, type ReferenceKind, type StageNode } from '../flow/model.ts';
@@ -160,6 +161,29 @@ const witnessed = defineRule('GMP-WITNESS', 'WITNESSED where a critical value ha
     if (ids.length > 0 && p.signatures.check && p.signatures.check.meaning !== 'WITNESSED') {
       out.push(error(p.id, `${label(a, p.id)} records ${ids.join(', ')} by hand with no device capture, scan, photo or printout, so the checker must witness the act (WITNESSED), not review it later (VERIFIED)`));
     }
+  }
+  return out;
+});
+
+/**
+ * Phase 2 exit follow-up T12.DOC (DI-30, PR-14, DI-35): a later review (VERIFIED) is allowed where a critical value typed
+ * by hand has a photo or printout behind it (GMP-WITNESS), but in this release no hand entry can carry an attachment
+ * (EBMR-EXE-122, until an attachment store exists), so the engine and the database check such a step by a witness
+ * (engine 1.4.0, recipe-core 0325; decision T12.1) and, once no witness is possible, by the later review with an exception
+ * for QA (engine 1.5.0, recipe-core 0333; T12.2). The author and the approver are told before approval what the floor
+ * will run: a warning, which needs a justification before verification starts, like every warning.
+ */
+const witnessedInThisRelease = defineRule('GMP-WITNESS-NO-ATTACHMENT', 'A later review of a value typed by hand from a printout runs as a witness in this release', ['PR-03', 'DI-30', 'PR-14', 'DI-35'], (a) => {
+  const out: RuleFinding[] = [];
+  for (const p of a.phases) {
+    const ids = checkRunsAsWitness((id) => a.parameters.get(id), p);
+    if (ids.length === 0) continue;
+    out.push(
+      warning(
+        p.id,
+        `${label(a, p.id)} records ${ids.join(', ')} by hand from the printout or photo the MBR names as ${ids.length === 1 ? 'its' : 'their'} evidence, and its check is a later review (VERIFIED). In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition`,
+      ),
+    );
   }
   return out;
 });
@@ -505,6 +529,7 @@ export const CONTENT_RULES: readonly Rule[] = [
   limitNesting,
   significantSteps,
   witnessed,
+  witnessedInThisRelease,
   stageClearance,
   stageYield,
   nonMaterialStages,

@@ -77,14 +77,18 @@ export const withShortWindow = (): flow.MbrContent =>
     return prep;
   });
 
-/** Blend time recorded first in the dispensing stage (its internal-action limits make a PR-08 breach easy). */
+/**
+ * Blend time recorded first in the dispensing stage (its internal-action limits make a PR-08 breach easy). Its check is
+ * a later review (VERIFIED) in the MBR, as dc-mini's blend step had it before the template asked for the witness
+ * (T12.DOC), so the check the engine asks for comes from the value typed by hand without its printout (T12).
+ */
 export const withEarlyParameter = (): flow.MbrContent =>
   dcMiniVariant((prep, content) => {
     const blend = (((((content['procedure'] as Json)['body'] as Json)['children'] as Json[])[1] as Json)['body'] as Json)['children'] as Json[];
     const mix = ((blend[0] as Json)['body'] as Json)['children'] as Json[];
     const p = mix.find((x) => x['id'] === 'p-blend') as Json;
     p['records'] = ['blenderSpeed'];
-    const early = { ...p, id: 'p-early-time', name: 'Record the blend time', records: ['blendTime'], equipment: [] };
+    const early = { ...p, id: 'p-early-time', name: 'Record the blend time', records: ['blendTime'], equipment: [], signatures: { ...(p['signatures'] as Json), check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } };
     return [early, ...prep];
   });
 
