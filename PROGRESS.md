@@ -1755,3 +1755,25 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   legal holds placed and released, and which lead or QA reviewer acted; tablets 0580 takes the table from the
   application role on both installations (every reader is SECURITY DEFINER; the role still evaluates), default HW.2,
   HW.1 and F34.2 corrected. Test: esig/read-authorisation (tablets 0580).
+- 2026-10-03: PHASE 2 EXIT FOLLOW-UP, Shop-floor record and checks, round 4 (branch phase-2/recipe-core; T2, T12.LATE,
+  T12.DOC, COMPOUND-UNIT, BADGE-AUTOFILL; each fix with tests that fail on the code before it). T2: recipe-core 0332
+  already refuses a weighing stored under a kind its step's block does not record; tests now show it at a dispensing and
+  an output step, and that the honest signed total names every container. T12.LATE: a witness more than 5 minutes late,
+  or after the run moved on, was refused by the kernel and nothing else completed the step, so the run was stuck for
+  good. Engine 1.5.0 and recipe-core 0333: once no witness is possible the step is completed by its later review
+  (VERIFIED), which raises WITNESS_LATE for QA; a late signature never counts as a witness and the window is not
+  widened; the database holds the same rule (EBMR-EXE-141; decision T12.2, T12.1 corrected). T12.DOC: the validator
+  and the designer showed "verified" where the floor asks for a timed witness; rule GMP-WITNESS-NO-ATTACHMENT warns,
+  the document and step properties say how the check runs, and the dc-mini template asks for the witness itself
+  (decision T12.3). COMPOUND-UNIT: an MBR whose G-22 step records a quantity in a compound unit before its net, or
+  whose G-07 step weighs into a mass written so, had every container refused by the database (EBMR-EXE-139) with no
+  warning before approval; rule DATA-WEIGHED-UNITS warns, reading units as the database does (decision
+  COMPOUND-UNIT.1). BADGE-AUTOFILL: a ten-digit secret a password manager filled into the kiosk Badge field was sent
+  as a badge UID, and a filled or pasted new kiosk PIN was taken; those fields now ask managers to leave them alone and
+  send nothing that was not typed key by key (decision BADGE-AUTOFILL.1). Tests: server execution/
+  db-guards-weighing-record (round 4), execution/witness-without-printout (T12.LATE), designer/weighed-units (new);
+  recipe-core engine/late-witness (new), execution/late-witness-sql (new), execution/weighed-units-sql (new),
+  execution/entry-data-sql, validator/content and data, engine-version (1.5.0); web designer/check-in-release (new),
+  session/badge-autofill (new), access/keyed-badge; ui-kit identity/badge-autofill (new). E2E smoke, fcv journey,
+  floor, esig, access and designer pass; the floor spec's PR-08 variant, which types a value by hand from its printout,
+  now asks for the witness itself to pass the gate.
