@@ -94,8 +94,10 @@ async function correct(d: RunDriver, point: string, approval: engine.Approval): 
 }
 
 /**
- * operator1 sends a correction of a data point the run does not have (DP-99), approved by qa1 with `roles`, through the
- * honest store and engine path: the engine refuses it (ENG-UNKNOWN-POINT) and the store records the refused row. 'ok'
+ * operator1 sends a correction of a data point the run does not have (DP-NONE: since recipe-core 0346 a row names a
+ * record id of the engine's form only when the run's state holds it, so the probe names none of that form), approved by
+ * qa1 with `roles`, through the honest store and engine path: the engine refuses it (ENG-UNKNOWN-POINT) and the store
+ * records the refused row. 'ok'
  * when that refused row was recorded, else the refusal of the database. No signature is made: a refused row's
  * signatures are what was sent.
  */
@@ -112,7 +114,7 @@ async function refusedCorrection(d: RunDriver, roles: readonly string[], approve
           type: 'CORRECT_ENTRY',
           commandId: randomUUID(),
           actor: engineActor(me.personId, roles0),
-          point: 'DP-99',
+          point: 'DP-NONE',
           value: { kind: 'DECIMAL', value: '16', unit: 'min' },
           reason: 'Transcription error: the timer read 16 min',
           signature: { id: randomUUID(), meaning: 'CORRECTED', signer: me.personId },
@@ -120,7 +122,7 @@ async function refusedCorrection(d: RunDriver, roles: readonly string[], approve
         },
         roles0,
       );
-      if (r.accepted) throw new Error('SETUP: the engine accepted a correction of DP-99');
+      if (r.accepted) throw new Error('SETUP: the engine accepted a correction of DP-NONE');
     }),
   );
 }
