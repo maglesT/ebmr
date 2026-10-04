@@ -1896,3 +1896,39 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   RECORD-class rows), and the kernel's signing-failure-own-command.test.ts recorder test. Hand-run mutants of both
   migrations' self-checks and of both functions' conditions are killed. Server esig, execution signing and access
   regression files and the E2E esig spec pass.
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Designer document and kiosk secrets, round 5 (T12.DOC, BADGE-AUTOFILL) (branch
+  phase-2/recipe-core; the verification of the shop-floor lane's round 3; DI-30, PR-14, DI-35, PR-03, INV-26, DI-17,
+  DI-14, DI-15, DI-19, DI-38). What was wrong: T12.DOC: where the MBR names no check, the validator's warning, the
+  designer's "Checked by" cell and the step's properties named a production verifier, a production supervisor or QA
+  (shop floor) for the timed witness and said the later review then completes the step. The run accepts fewer: the
+  kernel signs a witness only in a role holding STEP.WITNESS and a later review only in one holding STEP.VERIFY, so it
+  refused a supervisor's witness and the later review of a supervisor or of QA. The web test held the words only to the
+  engine's policy, and T12.3 said the same. A check the MBR itself gives to a role that may not sign it passed the gate
+  too. BADGE-AUTOFILL: the kiosk's new-PIN fields took their count of typed characters back from the text at every
+  input event and let any deletion through without a key, so a PIN set silently and finished with one real key, a real
+  Backspace or a script's execCommand('delete') was taken and sent. What changed:
+  - recipe-core: flow checkersInRun narrows the roles a check names to those of the installation that may give each
+    check; the validator's role port carries the installation's checker roles, GMP-WITNESS-NO-ATTACHMENT names the
+    people the run accepts with the permission each check needs (and the site's witness window, 5 minutes by default),
+    and the new error GMP-CHECK-PERMISSION refuses a check no role carrying its role may sign;
+  - server: the designer reads the checker roles from tab.engine_role_map and the kernel role permissions, as the
+    floor's list of who may help does; api-contract CHECKER_ROLES mirrors the delivered ones for the document, whose
+    cell and properties now name a production verifier or QA (shop floor) for the witness and a production verifier
+    for the later review;
+  - ui-kit SecretInput: the count is never taken from the field's text. An accepted key adds what it brought and an
+    accepted deletion takes away what it removed, in place of the selection the key went down on; a deletion needs a
+    trusted key too and may take only what that key may remove; every trusted key first compares the field's length
+    with the count;
+  - docs: T12.3 and BADGE-AUTOFILL.1 corrected (round 4), default T12.5 (with a dead end left to the owner: a witness
+    the MBR gives to QA cannot be replaced by a later review or re-verified after a correction, as QA shop floor holds
+    no STEP.VERIFY), the SecretInput header and the validator README.
+  Tests (each fails on the code before it, except the two server refusal tests, which tie the names to what the
+  database already refused): recipe-core validator/content "T12.DOC round 4" (2); web designer/check-in-release round
+  3 (title corrected) and round 4; server execution/witness-without-printout "T12.DOC round 4" (4: the named roles
+  equal the role map with the kernel permissions; at the database and on the floor a supervisor's witness and the
+  later review of QA or a supervisor are refused, QA's witness and the verifier's review are taken); ui-kit identity/badge-autofill "BADGE-AUTOFILL round 4" (2, the verifier's probes and each check
+  on its own); web session/badge-autofill round 4 (the verifier's '73190' plus a typed '4' is not sent). Checked in
+  Chromium 1194 with the real field; E2E access passes. SecretInput's changed lines, mutated one mutant at a time (Stryker
+  does not activate mutants under happy-dom): 191 of 205 killed, the 14 left equivalent or redundant with the count.
+  Also fixed: a race in web access/ports.test (the switch request was read before it was sent; it failed about one
+  run in ten before and after this change).
