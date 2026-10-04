@@ -3,7 +3,7 @@
  * "sandbox-and-import", the functions that need a provisioned sandbox or the tablets schema: kernel 0800
  * sandbox.assert_gmp_installation and sandbox.guard_installation in a sandbox, recipe-core 0240 recipe.begin_issue,
  * 0318 recipe.package_header_problem, tablets 0001 tab.mark_demo_installation and tab.is_demo_installation, 0150
- * tab.mbr_test_package_export_guard and tab.record_test_package_export, 0610 tab.register_sandbox_lot). The scenario
+ * tab.mbr_test_package_export_guard and tab.record_test_package_export, 0650 tab.register_sandbox_lot). The scenario
  * tests go through the server, whose TypeScript checks most inputs before the database sees them; these tests call
  * the database functions with the application role inside properly attributed commands (or, where a migration says a
  * rule holds whoever inserts, as the table owner would), so each refusal is proven where it is enforced, with its own
@@ -99,7 +99,7 @@ describe('the installation kind in a sandbox (kernel 0800)', () => {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-describe('test lots (tablets 0200, 0610)', () => {
+describe('test lots (tablets 0200, 0650)', () => {
   let steward: ActorContext | undefined;
   const register = async (lot: unknown): Promise<string> => {
     steward ??= await openPersonaSession(sbx.db, sbx.seed, 'steward');
@@ -269,6 +269,20 @@ describe('a test package names the family and product of its MBR content (recipe
     expect(await stored(pkg.packageHash)).toBe(0);
     expect(await insert(pkg, pkg.family.familyCode, own)).toBe('ok');
     expect(await stored(pkg.packageHash)).toBe(1);
+  });
+
+  it('[DI-04][DI-37] a family code that is not text is refused through the application role (EBMR-EXE-134), even when the package\'s family member and the content header agree, and nothing is stored', async () => {
+    // recipe.import_test_package stores the family code as text, which is never the header's number, boolean or null.
+    // The reason's wording for this case is reported to the lead (it names the same value on both sides); the refusal is asserted.
+    for (const odd of [500, true, null]) {
+      const pkg = pkgWith((f, c) => {
+        f['familyCode'] = odd;
+        (c['header'] as Json)['family'] = odd;
+      });
+      const m = await importDirect(pkg);
+      expect([odd, m]).toEqual([odd, expect.stringMatching(new RegExp(`^Test package ${pkg.packageHash.slice(0, 12)} is refused: the family code .* is not the family of the MBR content \\(.*\\)\\. .*\\(DI-04, DI-37\\)\\. \\[EBMR-EXE-134\\]$`))]);
+      expect([odd, await stored(pkg.packageHash)]).toEqual([odd, 0]);
+    }
   });
 });
 
