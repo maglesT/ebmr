@@ -5,6 +5,7 @@
 import type { Frame } from '../flow/tokens.ts';
 import type { BatchDefinition, StepDef } from './definition.ts';
 import { blockingExceptions, describeBlocking } from './exceptions.ts';
+import { nextStepStarted } from './signing-content.ts';
 import { refuse, stepKey, type Tx } from './tx.ts';
 import type { Actor, BatchState, BatchStatus, SignatureRef, StepInstance } from './types.ts';
 
@@ -81,17 +82,48 @@ export function handEntriesWithoutDeclaredEvidence(
 }
 
 /**
- * The meanings the check of a step instance may carry, exactly (DI-35, PR-14, PR-20, DI-24; review finding P37;
- * engine 1.1.0, 1.4.0): RE_VERIFIED_AFTER_CORRECTION while it awaits re-verification; else WITNESSED where the MBR asks
- * for a witness, or where the step holds a critical hand entry without the photo or printout its MBR names
- * (`unevidenced`, from handEntriesWithoutDeclaredEvidence; T12); else the block's own check meanings
- * (CONTAINER_CHECKED on a dispensing step); else VERIFIED. A verifier never chooses: a witness, a generic VERIFIED or
- * another block's check never replaces the check the step requires. The screen offers the first (actions.ts
- * checkMeaning) and the database accepts the same set (recipe.step_check_meanings, recipe.step_signature_meanings).
+ * Whether the check of step instance `inst` is due as a witness (DI-35, PR-14, DI-30): the MBR asks for one
+ * (WITNESSED), or the instance holds a critical value typed by hand without the photo or printout its MBR names (T12,
+ * engine 1.4.0). A re-verification after a correction is not: it keeps its precedence.
  */
-export function checkMeanings(step: StepDef | undefined, inst: Pick<StepInstance, 'reverification'> | undefined, unevidenced: readonly string[]): readonly string[] {
+export function witnessDue(
+  def: Pick<BatchDefinition, 'analysis' | 'steps'>,
+  state: Pick<BatchState, 'points'> | undefined,
+  inst: Pick<StepInstance, 'key' | 'step' | 'reverification'> | undefined,
+): boolean {
+  if (!inst || inst.reverification === true) return false;
+  return def.steps.get(inst.step)?.checkMeaning === 'WITNESSED' || handEntriesWithoutDeclaredEvidence(def, state, inst).length > 0;
+}
+
+/**
+ * Whether a witness can still watch the act of step instance `inst` at `nowUs` (Phase 2 exit follow-up T12.LATE; DI-35,
+ * PR-14; engine 1.5.0): the act (the step's end, its PERFORMED signature) is no more than the witness window
+ * (policy.witnessWindowUs) ago, and the run has not moved on since (nextStepStarted: another step instance started, or
+ * data or an entry was recorded in another instance, at or after the act). These are the kernel's own refusals of a
+ * witness signature (esig.check_witness: EBMR-ESIG-052 after the window, EBMR-ESIG-051 once the run moved on), so a
+ * witness the engine still asks for is one the kernel can still sign. An instance not ended yet can still be witnessed.
+ * The window is never widened: once it has passed, a late signature never counts as a witness.
+ */
+export function witnessPossible(def: Pick<BatchDefinition, 'policy'>, state: BatchState | undefined, inst: Pick<StepInstance, 'key' | 'endedAt'> | undefined, nowUs: bigint): boolean {
+  if (!inst || inst.endedAt === undefined) return true;
+  if (nowUs - inst.endedAt > def.policy.witnessWindowUs) return false;
+  return state === undefined || !nextStepStarted(state, inst.key);
+}
+
+/**
+ * The meanings the check of a step instance may carry, exactly (DI-35, PR-14, PR-20, DI-24; review finding P37;
+ * engine 1.1.0, 1.4.0, 1.5.0): RE_VERIFIED_AFTER_CORRECTION while it awaits re-verification; else WITNESSED where the
+ * MBR asks for a witness, or where the step holds a critical hand entry without the photo or printout its MBR names
+ * (`unevidenced`, from handEntriesWithoutDeclaredEvidence; T12), as long as a witness is still `possible`
+ * (witnessPossible; T12.LATE); else the block's own check meanings (CONTAINER_CHECKED on a dispensing step); else
+ * VERIFIED. Once a witness is no longer possible the step's later review is its check, and verify() raises WITNESS_LATE
+ * for QA. A verifier never chooses: a witness, a generic VERIFIED or another block's check never replaces the check the
+ * step requires. The screen offers the first (actions.ts checkMeaning) and the database accepts the same set
+ * (recipe.step_check_meanings, recipe.step_signature_meanings).
+ */
+export function checkMeanings(step: StepDef | undefined, inst: Pick<StepInstance, 'reverification'> | undefined, unevidenced: readonly string[], possible: boolean): readonly string[] {
   if (inst?.reverification === true) return [MEANINGS.RE_VERIFIED];
-  if (step?.checkMeaning === 'WITNESSED' || unevidenced.length > 0) return [MEANINGS.WITNESSED];
+  if ((step?.checkMeaning === 'WITNESSED' || unevidenced.length > 0) && possible) return [MEANINGS.WITNESSED];
   const own = step?.block?.handler?.meanings?.check ?? [];
   return own.length > 0 ? own : [MEANINGS.VERIFIED];
 }

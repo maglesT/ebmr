@@ -10,9 +10,10 @@
  * preparation, a clock regression, the meaning of a verification (a witness or a generic VERIFIED where the step
  * requires its own check) and of a PERFORMED signature on a block with its own perform meaning, (since 1.2.0) the
  * resolution of a computed net weight (an output container weighed at 0.001 kg whose net ends in zeros), (since
- * 1.3.0) the total of containers weighed in another unit (one in g, one in a unit the total cannot be counted in) and
+ * 1.3.0) the total of containers weighed in another unit (one in g, one in a unit the total cannot be counted in),
  * (since 1.4.0) the check of a step holding a critical value typed by hand without the printout its MBR names (a later
- * review, then a witness).
+ * review, then a witness) and (since 1.5.0) the check of such a step once its witness window has passed, and of a step
+ * the MBR declares WITNESSED once the run moved on (a witness, then a later review that raises WITNESS_LATE for QA).
  *
  * This module depends on `src` only (no test helper), with the MBR written out in full, so the fingerprint moves only
  * when the engine, its blocks or the expression language answer differently. It is also run against earlier commits
@@ -97,6 +98,20 @@ export function fingerprintMbr(): MbrContent {
         evidence: 'PRINTOUT',
         accuracyCheck: 'SECOND_PERSON',
       },
+      // The same, checked after its witness window (1.5.0).
+      {
+        id: 'lateTime',
+        name: 'Late time on the printout',
+        valueType: 'DECIMAL',
+        unit: 'min',
+        precision: { kind: 'DECIMALS', digits: 0 },
+        role: 'OBSERVATION',
+        criticality: 'CRITICAL',
+        riskClass: 'HIGH',
+        capture: 'MANUAL',
+        evidence: 'PRINTOUT',
+        accuracyCheck: 'SECOND_PERSON',
+      },
     ],
     calculations: [],
     yieldCheckpoints: [],
@@ -143,6 +158,17 @@ export function fingerprintMbr(): MbrContent {
                   phaseNode('clear', { block: { type: 'G-10', version: '1' }, significant: true }),
                   phaseNode('out', { block: { type: 'G-22', version: '1' }, records: ['outNet'], produces: ['I-OUT'] }),
                   phaseNode('end', { records: ['endTime'] }),
+                  // Three branches at once (1.5.0): a value typed by hand checked after its witness window, a step the MBR
+                  // declares WITNESSED, and a step started after that one's act, so the run moved on.
+                  {
+                    kind: 'parallel',
+                    id: 'par',
+                    branches: [
+                      { id: 'b-late', name: 'Late', body: phaseNode('late', { records: ['lateTime'] }) },
+                      { id: 'b-wit', name: 'Witnessed', body: phaseNode('wit', { signatures: { perform: { role: 'OPERATOR' }, check: { meaning: 'WITNESSED', role: 'VERIFIER' } } }) },
+                      { id: 'b-side', name: 'Side', body: phaseNode('side') },
+                    ],
+                  },
                 ],
               },
             },
@@ -210,6 +236,19 @@ function rows(): Row[] {
     c(38, { type: 'VERIFY', actor: VER1, step: 'end', context: [], signature: signed('FP-S11', 'VERIFIED', VER1) }, 23),
     c(39, { type: 'VERIFY', actor: VER1, step: 'end', context: [], signature: signed('FP-S12', 'WITNESSED', VER1) }, 24),
     { kind: 'SWEEP', at: at(40) },
+    // The same value checked six minutes after the act, past the witness window: a witness, then a later review (1.5.0).
+    c(41, { type: 'START_STEP', actor: OP2, step: 'late', context: [] }, 25),
+    c(42, { type: 'RECORD_DATA', actor: OP2, step: 'late', context: [], item: 'lateTime', value: { kind: 'DECIMAL', value: '42', unit: 'min' }, source: { mode: 'MANUAL' } }, 26),
+    c(43, { type: 'SIGN_PERFORMED', actor: OP2, step: 'late', context: [], signature: signed('FP-S13', 'PERFORMED', OP2) }, 27),
+    c(49, { type: 'VERIFY', actor: VER1, step: 'late', context: [], signature: signed('FP-S14', 'WITNESSED', VER1) }, 28),
+    c(49, { type: 'VERIFY', actor: VER1, step: 'late', context: [], signature: signed('FP-S15', 'VERIFIED', VER1) }, 29),
+    // A step the MBR declares WITNESSED, and another step started after its act: the run moved on (1.5.0).
+    c(50, { type: 'START_STEP', actor: OP1, step: 'wit', context: [] }, 30),
+    c(51, { type: 'SIGN_PERFORMED', actor: OP1, step: 'wit', context: [], signature: signed('FP-S16', 'PERFORMED', OP1) }, 31),
+    c(52, { type: 'START_STEP', actor: OP2, step: 'side', context: [] }, 32),
+    c(53, { type: 'VERIFY', actor: VER2, step: 'wit', context: [], signature: signed('FP-S17', 'WITNESSED', VER2) }, 33),
+    c(53, { type: 'VERIFY', actor: VER2, step: 'wit', context: [], signature: signed('FP-S18', 'VERIFIED', VER2) }, 34),
+    { kind: 'SWEEP', at: at(54) },
   ];
 }
 

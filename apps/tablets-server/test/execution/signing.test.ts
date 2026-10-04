@@ -304,8 +304,17 @@ describe('witnessing', () => {
     expect((await provider())?.act?.next_step_started).toBe(true);
     expect(engine.nextStepStarted(await stateOf(d), CLEAR)).toBe(true);
     const r = await d.sign('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'WITNESSED' });
-    expect(outcomeOf(r.result)).toBe('422:EBMR-EXE-081');
+    // Engine 1.5.0 (T12.LATE): no witness is possible any more, so the step's check is its later review and a witness is
+    // a meaning mismatch at the challenge (it was EBMR-EXE-081 before); nothing is signed.
+    expect({ stage: r.stage, outcome: outcomeOf(r.result) }).toEqual({ stage: 'challenge', outcome: '422:EBMR-EXE-080' });
     expect(await signatureCount(d)).toBe(1);
+    // The later review (the block's own check) completes the step and records WITNESS_LATE, which only QA dispositions.
+    const reviewed = valueOf((await d.sign('verifier1', { type: 'VERIFY', stepKey: CLEAR, meaning: 'VERIFIED' })).result);
+    expect(reviewed.manifestation.meaning).toBe('LINE_CLEARANCE_VERIFIED');
+    const state = await stateOf(d);
+    expect(state.steps[CLEAR]?.status).toBe('COMPLETED');
+    expect(Object.values(state.exceptions).filter((e) => e.type === 'WITNESS_LATE').map((e) => ({ qaOnly: e.qaOnly, stepKey: e.source.stepKey, status: e.status }))).toEqual([{ qaOnly: true, stepKey: CLEAR, status: 'OPEN' }]);
+    expect(await violations(server)).toEqual([]);
   }, 180_000);
 
   it('[DI-35] a timely witness on the terminal of the act is accepted', async () => {

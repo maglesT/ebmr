@@ -202,7 +202,9 @@ stage 2.
    `DEV-TEST-0001`, clicks **Send** and taps. The block is lifted. The operator switches back and signs as
    performed, and the verifier signs as witness (**Witness**): the blend time and speed were typed by hand and the
    printout the MBR names cannot be attached in this release, so the second person witnesses them instead of
-   reviewing them later (engine 1.4.0, default T12.1).
+   reviewing them later (engine 1.4.0, default T12.1). The witness signs within five minutes of the performed
+   signature. Later, the step offers **Verify** instead: the review completes the step and records a WITNESS_LATE
+   exception that only QA dispositions in step 6 (engine 1.5.0, default T12.2).
 6. **QA hold point.** TEST-Fatima Sheikh (PIN `935172`) switches in and opens 2.2.1. **Decide the hold point**
    lists "Approved (released)" as not available, with the reason: open exceptions have no QA decision yet (PR-45).
    Cancel. Open the run overview: the steps with open exceptions are marked "n open". On step 2.1.4, click

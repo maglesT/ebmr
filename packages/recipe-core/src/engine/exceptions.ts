@@ -40,7 +40,7 @@ export const ENGINE_EXCEPTION_RULES: readonly ExceptionRule[] = [
   { type: 'LATE_ENTRY', category: 'LATE_ENTRY', severity: 'ALERT', summary: 'An entry with a person-claimed event time', controls: ['DI-28', 'PR-11'] },
   { type: 'MANUAL_ENTRY_FALLBACK', category: 'MANUAL_ENTRY', severity: 'ALERT', summary: 'A value was keyed by hand where device capture is configured; two-person mode', controls: ['DI-30', 'PR-14', 'DI-26'] },
   { type: 'STEP_SKIPPED', category: 'FORCED_SKIPPED_NA', severity: 'ALERT', summary: 'A skippable step was skipped with an approver', controls: ['PR-13', 'DI-26'] },
-  { type: 'WITNESS_LATE', category: 'DEVIATION_OR_OVERRIDE', severity: 'ALERT', summary: 'A WITNESSED signature came after its window', controls: ['DI-35', 'DI-30'] },
+  { type: 'WITNESS_LATE', category: 'DEVIATION_OR_OVERRIDE', severity: 'ALERT', summary: 'The witness a step required was no longer possible (its window passed or the run moved on): a later review checked the step, and QA dispositions the exception', controls: ['DI-35', 'DI-30'] },
   { type: 'HOLD_POINT_NOT_APPROVED', category: 'DEVIATION_OR_OVERRIDE', severity: 'CRITICAL', summary: 'A QA hold point was not approved: the intermediate is rejected', controls: ['PR-45', 'IN-37'] },
   { type: 'OPERATOR_RAISED', category: 'DEVIATION_OR_OVERRIDE', severity: 'ALERT', summary: 'An exception raised by a person at a step', controls: ['PR-13', 'PR-49'] },
   { type: 'CLOCK_REGRESSION', category: 'TIME_SYNC', severity: 'ALERT', summary: 'The trusted clock went backwards; maximum checks use the latest time seen', controls: ['DI-27'] },

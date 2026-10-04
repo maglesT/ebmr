@@ -62,7 +62,7 @@ export function runFixture(b: BlockVersion): FixtureOutcome {
   // Signed with the meanings the step asks for (the block's own where it has one; engine 1.1.0 accepts no other).
   const r = run.exec({ type: 'SIGN_PERFORMED', actor: OP1, step: 'p', signature: sig(performMeaning(def, 'p'), OP1) });
   if (!r.accepted) performRefusal = r.refusal?.code;
-  if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p', [], VER1, checkMeaning(def, run.inst('p'), 'p', run.state));
+  if (run.status('p') === 'AWAITING_VERIFICATION') run.verify('p', [], VER1, checkMeaning(def, run.inst('p'), 'p', run.state, run.nowUs));
   return { run, exceptions: run.exceptions().map((e) => e.type).sort(), status: run.status('p'), ...(performRefusal ? { performRefusal } : {}) };
 }
 

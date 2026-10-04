@@ -83,7 +83,7 @@ describe('the check meaning of a step (P37)', () => {
     const offered = availableActions(def, run.state, VER1, { nowUs: run.nowUs }, { stepKey: 'd@' }).filter((a) => a.action === 'VERIFY' || a.action === 'WITNESS');
     expect(offered.map((a) => `${a.action}:${a.meaning}:${a.available}`)).toEqual(['VERIFY:CONTAINER_CHECKED:true']);
     // The meaning the server requires for a VERIFY intent is the same, also when the intent asks for WITNESSED.
-    expect(checkMeaning(def, inst, 'd', run.state)).toBe('CONTAINER_CHECKED');
+    expect(checkMeaning(def, inst, 'd', run.state, run.nowUs)).toBe('CONTAINER_CHECKED');
     expect(asked(def, inst, 'd', run.state, 'VERIFIED')).toBe('CONTAINER_CHECKED');
     expect(asked(def, inst, 'd', run.state, 'WITNESSED')).toBe('CONTAINER_CHECKED');
   });
@@ -93,10 +93,10 @@ describe('the check meaning of a step (P37)', () => {
     const run = Run.issue(def, {}, T0);
     run.start('w');
     const inst = run.state.steps['w@'];
-    expect(checkMeaning(def, inst, 'w', run.state)).toBe(MEANINGS.WITNESSED);
+    expect(checkMeaning(def, inst, 'w', run.state, run.nowUs)).toBe(MEANINGS.WITNESSED);
     expect(asked(def, inst, 'w', run.state, 'VERIFIED')).toBe(MEANINGS.WITNESSED);
     const reverifying = inst ? { ...inst, reverification: true } : undefined;
-    expect(checkMeaning(def, reverifying, 'w', run.state)).toBe(MEANINGS.RE_VERIFIED);
+    expect(checkMeaning(def, reverifying, 'w', run.state, run.nowUs)).toBe(MEANINGS.RE_VERIFIED);
     expect(asked(def, reverifying, 'w', run.state, 'WITNESSED')).toBe(MEANINGS.RE_VERIFIED);
   });
 
@@ -104,7 +104,7 @@ describe('the check meaning of a step (P37)', () => {
     const def = define(mbrWith(seq('ops', phase('p', { records: ['v'] }), phase('z')), { parameters: [param('v')] }));
     const run = Run.issue(def, {}, T0);
     const inst = run.state.steps['p@'];
-    expect(checkMeaning(def, inst, 'p', run.state)).toBe(MEANINGS.VERIFIED);
+    expect(checkMeaning(def, inst, 'p', run.state, run.nowUs)).toBe(MEANINGS.VERIFIED);
     expect(asked(def, inst, 'p', run.state, 'WITNESSED')).toBe(MEANINGS.VERIFIED);
   });
 });
@@ -129,7 +129,7 @@ function checkAfter(content: MbrContent, source: DataSource): { meaning: string;
   run.perform('p');
   const inst = run.inst('p');
   return {
-    meaning: checkMeaning(def, inst, 'p', run.state),
+    meaning: checkMeaning(def, inst, 'p', run.state, run.nowUs),
     offered: availableActions(def, run.state, VER1, { nowUs: run.nowUs }, { stepKey: 'p@' })
       .filter((a) => a.action === 'VERIFY' || a.action === 'WITNESS')
       .map((a) => `${a.action}:${a.meaning}:${a.available}`),
@@ -165,7 +165,7 @@ describe('a critical value typed by hand without the printout or photo its MBR n
     run.start('p');
     run.record('p', 't', { kind: 'DECIMAL', value: '15', unit: 'min' }, { source: { mode: 'MANUAL' } });
     const inst = run.inst('p');
-    expect(checkMeaning(def, inst ? { ...inst, reverification: true } : undefined, 'p', run.state)).toBe(MEANINGS.RE_VERIFIED);
+    expect(checkMeaning(def, inst ? { ...inst, reverification: true } : undefined, 'p', run.state, run.nowUs)).toBe(MEANINGS.RE_VERIFIED);
     const point = Object.values(run.state.points).find((x) => x.item === 't');
     const superseded = { ...run.state, points: Object.fromEntries(Object.entries(run.state.points).map(([k, v]) => [k, v.id === point?.id ? { ...v, status: 'SUPERSEDED' as const } : v])) };
     expect(handEntriesWithoutDeclaredEvidence(def, superseded, inst)).toEqual([]);
@@ -203,7 +203,7 @@ describe('the engine accepts exactly the meaning the step asks for (engine 1.1.0
   it('[DI-35][PR-14][PR-20][DI-37] the verification of a US dispensing step is signed CONTAINER_CHECKED only: WITNESSED, the generic VERIFIED and another block\'s check are refused', () => {
     const { run } = performedDispensing();
     const inst = run.state.steps['d@'];
-    expect(checkMeaning(run.def, inst, 'd', run.state)).toBe('CONTAINER_CHECKED');
+    expect(checkMeaning(run.def, inst, 'd', run.state, run.nowUs)).toBe('CONTAINER_CHECKED');
     const tries = Object.fromEntries(['WITNESSED', 'VERIFIED', 'CHARGE_IN_VERIFIED', MEANINGS.RE_VERIFIED, 'CONTAINER_CHECKED'].map((m) => [m, answer(run, 'VERIFY', 'd', VER1, m)]));
     expect(tries).toEqual({
       WITNESSED: 'ENG-SIGNATURE-MEANING',
@@ -256,7 +256,7 @@ describe('the engine accepts exactly the meaning the step asks for (engine 1.1.0
     for (const s of ['in', 'y']) {
       const tries = Object.fromEntries(['VERIFIED', 'WITNESSED', 'YIELD_VERIFIED', MEANINGS.RE_VERIFIED].map((m) => [m, answer(run, 'VERIFY', s, VER2, m)]));
       expect(tries, s).toEqual({ VERIFIED: 'ENG-SIGNATURE-MEANING', WITNESSED: 'ENG-SIGNATURE-MEANING', YIELD_VERIFIED: 'ENG-SIGNATURE-MEANING', [MEANINGS.RE_VERIFIED]: 'ACCEPTED' });
-      expect(checkMeaning(run.def, run.inst(s), s, run.state)).toBe(MEANINGS.RE_VERIFIED);
+      expect(checkMeaning(run.def, run.inst(s), s, run.state, run.nowUs)).toBe(MEANINGS.RE_VERIFIED);
     }
     run.verify('y', [], VER2, MEANINGS.RE_VERIFIED);
     expect(run.status('y')).toBe('COMPLETED');
@@ -275,7 +275,7 @@ describe('the engine accepts exactly the meaning the step asks for (engine 1.1.0
       if (answer(run, 'SIGN_PERFORMED', 'p', OP1, pm) !== 'ACCEPTED') continue;
       run.perform('p', [], OP1, pm);
       if (run.status('p') !== 'AWAITING_VERIFICATION') continue;
-      const cm = checkMeaning(run.def, run.inst('p'), 'p', run.state);
+      const cm = checkMeaning(run.def, run.inst('p'), 'p', run.state, run.nowUs);
       expect(cm, key).toBe(run.def.steps.get('p')?.checkMeaning === 'WITNESSED' ? MEANINGS.WITNESSED : (b.handler?.meanings?.check?.[0] ?? MEANINGS.VERIFIED));
       const checked = meaningAnswers(run, 'VERIFY', VER1, cm);
       expect({ offeredPasses: checked.offeredPasses, acceptedOthers: checked.acceptedOthers }, `${key} VERIFY`).toEqual({ offeredPasses: true, acceptedOthers: [] });

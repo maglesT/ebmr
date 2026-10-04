@@ -203,7 +203,7 @@ export function candidateCommands(def: BatchDefinition, run: Run, k: number, exi
       const involved = [...inst.performers, ...inst.dataEnterers, ...inst.correctors];
       const verifier = [VER1, VER2].find((v) => !involved.includes(v.id)) ?? VER1;
       const checker = PEOPLE.find((p) => !involved.includes(p.id) && p.roles.includes(step.checkRole ?? 'VERIFIER')) ?? verifier;
-      const meaning = checkMeaning(def, inst, inst.step, run.state);
+      const meaning = checkMeaning(def, inst, inst.step, run.state, run.nowUs);
       progress.push({ type: 'VERIFY', actor: checker, step: inst.step, context: f, signature: sig(meaning, checker) });
       // Adversarial: an involved person verifies (with the checker role when one of them holds it: INV-03).
       const cheater = PEOPLE.find((p) => involved.includes(p.id) && p.roles.includes(step.checkRole ?? 'VERIFIER'));

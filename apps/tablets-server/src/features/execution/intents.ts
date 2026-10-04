@@ -514,14 +514,16 @@ export function signedSubject(state: engine.BatchState | undefined, intent: Sign
 }
 
 /**
- * The meaning the engine requires for a signed intent: the block's PERFORMED meaning, the check meaning of
- * the step (re-verification, witness, the block's own), the hold-point decision's meaning, a stage sign-off
- * or an exception disposition. Undefined when it depends on a state that is not known (describe() without
- * a cached run): the command's transaction checks it then. The meaning a VERIFY intent names is never used:
- * the check a step requires is the step's own, so asking for WITNESSED where the step requires another check
- * is a meaning mismatch (review finding P37).
+ * The meaning the engine requires for a signed intent at the database time `nowUs`: the block's PERFORMED meaning,
+ * the check meaning of the step (re-verification, witness while one is possible, the block's own), the hold-point
+ * decision's meaning, a stage sign-off or an exception disposition. Undefined when it depends on a state that is not
+ * known (describe() without a cached run), or on the time when none is given (describe(): whether a check due as a
+ * witness is still a witness or, the witness window having passed, the step's later review, engine 1.5.0, T12.LATE):
+ * the command's transaction checks it then, at its trusted time. The meaning a VERIFY intent names is never used: the
+ * check a step requires is the step's own, so asking for WITNESSED where the step requires another check is a meaning
+ * mismatch (review finding P37).
  */
-export function signedMeaning(def: engine.BatchDefinition | undefined, state: engine.BatchState | undefined, intent: SignedIntent): string | undefined {
+export function signedMeaning(def: engine.BatchDefinition | undefined, state: engine.BatchState | undefined, intent: SignedIntent, nowUs: bigint | undefined): string | undefined {
   switch (intent.type) {
     case 'SIGN_PERFORMED': {
       if (!def) return undefined;
@@ -530,7 +532,8 @@ export function signedMeaning(def: engine.BatchDefinition | undefined, state: en
     case 'VERIFY': {
       if (!def || !state) return undefined;
       const inst = state.steps[intent.stepKey];
-      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step, state);
+      if (nowUs === undefined && engine.witnessDue(def, state, inst)) return undefined;
+      return engine.checkMeaning(def, inst, inst?.step ?? parseStepKey(intent.stepKey).step, state, nowUs ?? 0n);
     }
     case 'DISPOSITION_HOLD_POINT':
       return engine.holdPointMeaning(intent.disposition);

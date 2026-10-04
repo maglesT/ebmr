@@ -30,9 +30,11 @@
  * The binding of a decision lives in the database, not in this process: the proposal is part of the content the
  * challenge and the signature hash, and recipe.check_signatures refuses a decision other than the one the
  * signature covers, made by the signer when this signature was requested (0295). The meaning of the challenge
- * must be the one the engine requires (EBMR-EXE-080; a verifier signs the step's own check, P37, which the
- * database checks too), and a witness after the run moved on is refused (EBMR-EXE-081; the kernel's
- * act.next_step_started check says the same).
+ * must be the one the engine requires at the transaction's time (EBMR-EXE-080; a verifier signs the step's own check,
+ * P37, which the database checks too). A check due as a witness is a witness only while one is possible: once the
+ * witness window after the act has passed or the run moved on (the kernel refuses a witness then, EBMR-ESIG-051/052),
+ * it is the step's later review, which raises WITNESS_LATE for QA (engine 1.5.0, recipe-core 0333; T12.LATE), so a
+ * witness asked for then is a meaning mismatch and the screen, reloaded, offers the review.
  */
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
@@ -71,18 +73,6 @@ function mismatch(expected: string | undefined, given: string): Refusal {
     controls: ['DI-35', 'DI-37'],
     whatYouCanDo: ['Reload the screen and start the signing again.'],
     whoCanHelp: [],
-  };
-}
-
-function lateWitness(key: string): Refusal {
-  return {
-    code: 'EBMR-EXE-081',
-    kind: 'NOT_ALLOWED',
-    whatHappened: 'The next step has started, so this act can no longer be witnessed. Nothing was signed.',
-    why: `The run moved on after the act of ${key}: another step started or recorded data after it ended; a witness must watch the act itself.`,
-    controls: ['DI-35', 'PR-14'],
-    whatYouCanDo: ['Raise an exception for the missed witness; a supervisor decides how to proceed.'],
-    whoCanHelp: ['The shift supervisor', 'QA (shop floor)'],
   };
 }
 
@@ -679,10 +669,9 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
     const run = await runContext(client, a.runId);
     const tx = await execution.ExecutionTx.open(client, run.def, a.runId);
     const subject = signedSubject(tx.state, a.intent);
-    const meaning = signedMeaning(run.def, tx.state, a.intent) ?? '';
-    let problem: Refusal | null = null;
-    if (meaning !== meaningOf(ctx)) problem = mismatch(meaning, meaningOf(ctx));
-    else if (a.intent.type === 'VERIFY' && meaning === engine.MEANINGS.WITNESSED && engine.nextStepStarted(tx.state, subject.key)) problem = lateWitness(subject.key);
+    // At the transaction's trusted time: a check due as a witness is the step's later review once no witness is possible.
+    const meaning = signedMeaning(run.def, tx.state, a.intent, tx.nowUs) ?? '';
+    const problem: Refusal | null = meaning !== meaningOf(ctx) ? mismatch(meaning, meaningOf(ctx)) : null;
     return { run, tx, subject, meaning, problem };
   }
 
@@ -693,7 +682,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
     describe(a) {
       const cached = cache.get(a.runId);
       const subject = signedSubject(cached?.state, a.intent);
-      return { aggregateType: subject.aggregateType, aggregateId: `${a.runId}:${subject.key}`, meaning: signedMeaning(cached?.def, cached?.state, a.intent) ?? '', expectedState: subject.expectedState };
+      // No time here: a check due as a witness is left to the transaction (signedMeaning answers undefined).
+      return { aggregateType: subject.aggregateType, aggregateId: `${a.runId}:${subject.key}`, meaning: signedMeaning(cached?.def, cached?.state, a.intent, undefined) ?? '', expectedState: subject.expectedState };
     },
 
     async previewContent(ctx, query): Promise<SignableContentView> {
