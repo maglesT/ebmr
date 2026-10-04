@@ -164,4 +164,60 @@ describe('BADGE-AUTOFILL: the kiosk sends no secret a browser or password manage
     expect(server.changes).toHaveLength(1);
     expect(server.changes[0]).toMatchObject({ identifier: UID, changeTicket: TICKET, newSecret: '731904' });
   });
+
+  it('[DI-15][DI-19][DI-38] BADGE-AUTOFILL round 3: kiosk first-login change: a new PIN inserted with no key before it (the trusted insertText Chromium makes for document.execCommand(\'insertText\')) or set with no event at all is not taken (no badge is asked for, nothing is sent); typed key by key it is', async () => {
+    const server = kioskServer();
+    setTransport(server.fetch);
+    render(
+      <BootProvider>
+        <Gate />
+      </BootProvider>,
+    );
+    await userEvent.type(await screen.findByLabelText<HTMLInputElement>('Badge'), `${UID}{Enter}`);
+    await screen.findByRole('group', { name: 'Enter your PIN' });
+    for (const d of '482913') await userEvent.click(screen.getByRole('button', { name: d }));
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByRole('heading', { name: 'Choose a new PIN' })).toBeTruthy();
+    const first = screen.getByLabelText<HTMLInputElement>('New PIN');
+    const second = screen.getByLabelText<HTMLInputElement>('Repeat the new PIN');
+    const setNatively = (el: HTMLInputElement, value: string) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(el, value);
+    // What document.execCommand('insertText') does in Chromium: the text and one trusted insertText input event, no key.
+    const execInsertText = (el: HTMLInputElement, text: string) => {
+      el.focus();
+      setNatively(el, el.value + text);
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+    };
+    const attempts: Record<string, (a: HTMLInputElement, b: HTMLInputElement) => Promise<void> | void> = {
+      'both inserted with no key': (a, b) => {
+        execInsertText(a, '731904');
+        execInsertText(b, '731904');
+      },
+      'both set with no event': (a, b) => {
+        setNatively(a, '731904');
+        setNatively(b, '731904');
+      },
+      'one typed, the other inserted with no key': async (a, b) => {
+        await userEvent.type(a, '731904');
+        execInsertText(b, '731904');
+      },
+      'one typed, the other set with no event': async (a, b) => {
+        await userEvent.type(a, '731904');
+        setNatively(b, '731904');
+      },
+    };
+    for (const [name, attempt] of Object.entries(attempts)) {
+      await attempt(first, second);
+      await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      expect(screen.getByText(PIN_TYPED), name).toBeTruthy();
+      expect(screen.queryByText('Tap your badge to confirm your new PIN.'), name).toBeNull();
+      expect([first.value, second.value], `${name}: both fields are emptied`).toEqual(['', '']);
+    }
+    expect(server.changes).toEqual([]);
+    // Typed key by key: the badge is asked for to confirm it.
+    await userEvent.type(first, '731904');
+    await userEvent.type(second, '731904');
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText('Tap your badge to confirm your new PIN.')).toBeTruthy();
+    expect(server.changes).toEqual([]);
+  });
 });
