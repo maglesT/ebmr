@@ -35,7 +35,7 @@ set local role ebmr_owner;
 --               window's start reported it ONLINE, ready and with its registered serial;
 --   YOUNG       the API report, or a refused reading, stands but had not been seen (or raised) before p_from;
 --   ANSWERED    the API report stands but the gateway's API answered the server since it was made (at its very
---               instant included: tablets 0600).
+--               instant included: tablets 0640).
 create or replace function tab.manual_path_verdict(p_key tab.gateway_key, p_bind tab.gateway_instrument, p_device iam.device,
                                         h tab.instrument_heartbeat, p_from timestamptz, p_attested timestamptz) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, tab, pg_temp as $$
@@ -96,7 +96,7 @@ begin
   end if;
 
   -- The server's side (P51): counted only when seen by another transaction before p_from and unanswered since made (an
-  -- answer at the report's own instant answers it: 0600),
+  -- answer at the report's own instant answers it: 0640),
   -- over a window the listener vouches for (its answers are among what it puts on record).
   select * into v_contact from tab.gateway_api_contact where gateway_key_id = p_key.id;
   if found and not v_contact.reachable then
