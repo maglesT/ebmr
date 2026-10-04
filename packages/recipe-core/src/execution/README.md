@@ -406,8 +406,9 @@ that another command holds is skipped.
     second person to check (a weighing keyed by hand, a scanned paper original, a line clearance) leaves its step
     needing that check. The accept rules that read only the MBR, the batch and the entry hold too: a checklist answers
     exactly its step's list, NOT_APPLICABLE only where allowed; a sample is of its step's sampling plan; a weighed or
-    charged lot is released, of the line's material, before expiry and retest, and identity-tested for a batch for a
-    market other than India; a disposal follows G-23's rules; a source addition is made only at a recovery or
+    charged lot is released, of the line's material (also where the line names null, as the engine reads it: sql
+    0372), before expiry and retest, and identity-tested for a batch for a market other than India; a disposal
+    follows G-23's rules; a source addition is made only at a recovery or
     reprocessing-addition step, of the batch's product, never chained, within the MBR's number of sources and age; a
     reprocessing step other than a validated re-treatment starts only with the quality unit's authorisation, never
     given by the person who starts it. An entry and a step's start data also meet the data schema of the step's
