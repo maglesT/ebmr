@@ -2042,3 +2042,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Attacking 1050 ourselves found letters and digits no table read (a small capital L, a regional indicator or negative
   squared L, dingbat circled digits): kernel 1060 reads the 372 characters with no decomposition whose Unicode names
   make them a Latin letter or a digit as named (kernel identifier-words test, fails with 1060 moved aside).
+  Round 2 (verification of round 7): the em dash's own look-alikes were not read (Unicode's confusables data gives the
+  box-drawing line, the Japanese prolonged sound mark and CJK one the em dash's prototype), nor dashes and slashes drawn
+  as such, an L with a middle dot inside it, or a hair space: LOT─2409─0017, LOTー2409ー0017, LOT⎯2409⎯0017,
+  B─24─0001 and Ŀ2409-0017 were recorded over HTTP. Kernel 1070 reads the look-alikes as a class (every member of a
+  confusables class another member of which is read by its look, a letter drawn with a dot, dashes and solidi by name or
+  as Chromium draws them, the Ogham space mark, compatibility forms PostgreSQL 16 does not know) and a space narrower
+  than the thin space as nothing; kernel 1080, from our own attack, the full stops drawn as such. Decision F12.12 states
+  each group left out and the residual; F12.8, F12.10, F12.11 and sandbox.md corrected. Tests: kernel identifier-words
+  (5 new, each fails with 1070 or 1080 moved aside), server db-guards-free-text-shown (1 new: 13 probes over HTTP and in
+  business entries refused, honest Japanese, Chinese and Korean prose recorded).
