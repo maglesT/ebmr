@@ -489,6 +489,59 @@ describe('the activation and withdrawal of a market authorisation', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// The guard on the record, whoever writes it (recipe-core 0345)
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe('the market-authorisation record, whoever writes it (recipe.market_authorisation_guard)', () => {
+  interface RecordRow {
+    familyId: string;
+    versionId: string;
+    kind: 'CURRENT' | 'BRIDGING';
+    successorVersionId?: string;
+    effectiveTo?: string;
+  }
+  /** An owner-level writer records a market authorisation for IN at S1/L1 directly; the guard stamps the proposer. */
+  const insertRecord = (r: RecordRow): Promise<{ id: string; proposer: string }> =>
+    asOwner(w.cast.qa, async (c) => {
+      const { rows } = await c.query<{ id: string; proposer: string }>(
+        `insert into recipe.market_authorisation (family_id, version_id, market, kind, cells, effective_to, successor_version_id, regulatory_basis,
+                                                  proposed_by_person, proposed_by_account)
+         values ($1, $2, 'IN', $3, $4::jsonb, $5, $6, 'IN: registration on file', $7, $7) returning id, proposed_by_person::text as proposer`,
+        [r.familyId, r.versionId, r.kind, JSON.stringify([cell('S1', 'L1', BS)]), r.effectiveTo ?? null, r.successorVersionId ?? null, NIL],
+      );
+      if (!rows[0]) throw new Error('no record inserted');
+      return rows[0];
+    });
+
+  /**
+   * The INV-17 constraints (one open CURRENT, no overlap) and the selection at issue hold per family and trust the family
+   * a cell repeats from its record. A record filed under another family than its version's would put that version
+   * CURRENT for the other family's batches, outside the constraints of its own family, with nothing reported.
+   */
+  it("[INV-17][PR-04] a record is filed under its version's own family, and a BRIDGING names a successor of that family: whoever writes it, any other record is refused and nothing is recorded", async () => {
+    const a = await familyA();
+    const b = await familyB();
+    const E = '2033-06-30T00:00:00Z';
+    const FAMILY = exactly("A market authorisation is recorded under its version's own family (INV-17; EBMR-RCP-094)");
+    const SUCCESSOR = exactly("A BRIDGING validity names a successor of its version's own family (INV-17; EBMR-RCP-094)");
+    const counts = async () => [await recordsOf(a.v1), await recordsOf(b.v1), await recordsOf(b.v2)];
+    const before = await counts();
+    // Another family's approved version filed under A, and A's under B.
+    await refused(insertRecord({ familyId: a.familyId, versionId: b.v1, kind: 'CURRENT' }), 'EBMR-RCP-094', FAMILY);
+    await refused(insertRecord({ familyId: b.familyId, versionId: a.v1, kind: 'CURRENT' }), 'EBMR-RCP-094', FAMILY);
+    await refused(insertRecord({ familyId: b.familyId, versionId: a.v1, kind: 'BRIDGING', successorVersionId: b.v2, effectiveTo: E }), 'EBMR-RCP-094', FAMILY);
+    // A's v1 bridged until another family's approved later version takes over.
+    await refused(insertRecord({ familyId: a.familyId, versionId: a.v1, kind: 'BRIDGING', successorVersionId: b.v2, effectiveTo: E }), 'EBMR-RCP-094', SUCCESSOR);
+    expect(await counts()).toEqual(before);
+    // The same writer's records of A's own versions are recorded, the proposer stamped.
+    const cur = await insertRecord({ familyId: a.familyId, versionId: a.v1, kind: 'CURRENT' });
+    const bri = await insertRecord({ familyId: a.familyId, versionId: a.v1, kind: 'BRIDGING', successorVersionId: a.v2, effectiveTo: E });
+    expect([cur.proposer, bri.proposer]).toEqual([w.cast.qa.personId, w.cast.qa.personId]);
+    expect(await counts()).toEqual([(before[0] ?? 0) + 2, before[1], before[2]]);
+  }, LONG);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // The guards on authorisation cells, whoever writes them
 // ---------------------------------------------------------------------------------------------------------------------
 
