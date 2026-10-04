@@ -41,6 +41,7 @@ implemented_by:
     - "apps/tablets-server/src/platform/http/bind.ts (admitSession: the session gate of every request, asked again by open streams)"
     - "apps/tablets-server/src/features/devices/routes.ts (live display stream: ends when its session no longer serves it)"
     - "apps/tablets-server/sql/0550_session_terminal_key.sql"
+    - "apps/tablets-server/sql/0610_signature_table_plan_reads.sql (tab.session_challenge)"
     - "apps/tablets-web/src/api/page-binding.ts"
   invariants:
     - "INV-10"
@@ -52,6 +53,7 @@ implemented_by:
     - "esig.set_policy: policy values changed only by the quality unit with a reason and a change-control reference, within their allowed ranges"
     - "devices.live (SSE-SESSION): an open live display asks the session gate again every 2 s (tab.resolve_session through admitSession) and ends, naming the refusal, once the session is locked (by the person or the idle time), signed out, switched, expired or works in a role no longer granted (which ends the session too); the database decides the session's state"
     - "pageBindingRefusal (bind.ts) on tab.resolve_session's terminal key (tablets 0550): a request whose page names its terminal key or the person its session started with is served as nobody when the cookie's session was opened on another terminal (401 SESSION_OTHER_TERMINAL) or is another person's (401 SESSION_CHANGED); the SPA names both on every request (page-binding.ts, the person kept per tab) and then shows the sign-in form or says that its sign-in changed, never working in that session (review F41, round 4; residuals in decision F41.1)"
+    - "tab.session_challenge (tablets 0610, HIGH-WATER round 5): the ceremony reads back the signing request it signs, the signature made for it and its correlation only for the active session bound to the token the server presents, and only a request made in that session; another session's request, an unknown token or a locked session reads as no request (the sign route then refuses EBMR-ESIG-031); the application role selects no row of esig.challenge or esig.signature itself"
   db_constraints:
     - "esig.meaning_type checks: master-record and release types are ALL_COMPONENTS"
     - "esig.policy_value: insert-only and audited"
@@ -217,6 +219,7 @@ tests:
   - "packages/ui-kit/test/identity/badge-autofill.test.tsx > BADGE-AUTOFILL: a badge tap is what the reader types, never what is filled in > [DI-14][DI-19][DI-38] BADGE-AUTOFILL round 3: a kiosk secret field marks as filled an insertText no key brought (the trusted event Chromium makes for document.execCommand('insertText')) and a value set with no event at all, also onto typed keys; typed key by key, with deletions, or from a touch keyboard (its unnamed key, Unidentified), it is not"
   - "apps/tablets-web/test/session/badge-autofill.test.tsx > BADGE-AUTOFILL: the kiosk sends no secret a browser or password manager filled in > [DI-15][DI-19][DI-38] BADGE-AUTOFILL round 3: kiosk first-login change: a new PIN inserted with no key before it (the trusted insertText Chromium makes for document.execCommand('insertText')) or set with no event at all is not taken (no badge is asked for, nothing is sent); typed key by key it is"
   - "apps/tablets-web/test/access/keyed-badge.test.tsx > F56: the signing badge prompt > [DI-14][DI-38][DI-19] BADGE-AUTOFILL: a saved ten-digit secret a browser or password manager fills into the signing Badge field is not sent, although it reads as a badge UID; the reader's tap then goes on to the PIN"
+  - "apps/tablets-server/test/esig/read-authorisation.test.ts > HIGH-WATER: the planner's view of the signing requests and signatures (tablets 0610) > [DI-17][DI-50][DI-38] the server reads a signing request only for the session that made it (tab.session_challenge): another session, an unknown token, a locked session or the application role alone read nothing of it, on either installation; the ceremony still signs"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

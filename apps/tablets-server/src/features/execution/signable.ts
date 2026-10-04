@@ -617,15 +617,19 @@ function decisionChanged(stepKey: string, asked: HoldPointDecision, prepared: St
   };
 }
 
-/** The correlation id of the challenge command the signing's authentication was made for, in this session and for this signer. */
+/**
+ * The correlation id of the challenge command the signing's authentication was made for, in this session and for this
+ * signer. The challenge is read through the session-checked tab.session_challenge (tablets 0610: the application role
+ * selects no row of esig.challenge), for the session whose token the request presented.
+ */
 async function challengeCorrelation(db: Db, ctx: SignableContext): Promise<string | null> {
   if (!ctx.actor.authEventId) return null;
   const { rows } = await db.query<{ correlation_id: string | null }>(
     `select c.correlation_id::text as correlation_id
        from iam.auth_event e
-       join esig.challenge c on c.id = e.challenge_id
+       cross join lateral tab.session_challenge($4, e.challenge_id) c
       where e.id = $1 and e.purpose = 'SIGNATURE' and e.person_id = c.signer_person and c.session_id = $2 and c.signer_person = $3`,
-    [ctx.actor.authEventId, ctx.actor.sessionId, ctx.actor.personId],
+    [ctx.actor.authEventId, ctx.actor.sessionId, ctx.actor.personId, (ctx as Partial<EsigSignableContext>).tokenHash ?? ''],
   );
   return rows[0]?.correlation_id ?? null;
 }

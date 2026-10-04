@@ -138,14 +138,15 @@ const contentChanged = (why: string): Refusal => ({
 });
 
 /**
- * How a challenge was used: the signature made for it (a challenge signs once), and whether a signature
- * authentication for it succeeded (iam.auth_event, purpose SIGNATURE: the kiosk badge is forgotten right after it).
+ * How a challenge of this session was used: the signature made for it (a challenge signs once; read through the
+ * session-checked tab.session_challenge, tablets 0610), and whether a signature authentication for it succeeded
+ * (iam.auth_event, purpose SIGNATURE: the kiosk badge is forgotten right after it).
  */
-async function challengeUse(db: pg.Pool | pg.PoolClient, challengeId: string): Promise<{ signatureId: string | null; authenticated: boolean }> {
+async function challengeUse(db: pg.Pool | pg.PoolClient, tokenHash: string, challengeId: string): Promise<{ signatureId: string | null; authenticated: boolean }> {
   const { rows } = await db.query<{ signature_id: string | null; authenticated: boolean }>(
-    `select (select g.id::text from esig.signature g where g.challenge_id = $1 limit 1) as signature_id,
-            exists (select 1 from iam.auth_event e where e.challenge_id = $1 and e.purpose = 'SIGNATURE') as authenticated`,
-    [challengeId],
+    `select (select c.signature_id::text from tab.session_challenge($1, $2::uuid) c) as signature_id,
+            exists (select 1 from iam.auth_event e where e.challenge_id = $2::uuid and e.purpose = 'SIGNATURE') as authenticated`,
+    [tokenHash, challengeId],
   );
   return { signatureId: rows[0]?.signature_id ?? null, authenticated: rows[0]?.authenticated === true };
 }
@@ -303,7 +304,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             meaning: body.meaning,
             clientContentHash: body.clientContentHash,
           });
-          const stored = await readChallenge(client, ch.challengeId);
+          const stored = await readChallenge(client, s.tokenHash, ch.challengeId);
           if (!stored) throw new Error('the new challenge could not be read back');
           const preview = ch.manifestationPreview;
           const view: ChallengeView = {
@@ -329,7 +330,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         });
         const view = out.result;
         if (out.replayed) {
-          const stored = await readChallenge(app.pools.app, view.challengeId);
+          const stored = await readChallenge(app.pools.app, s.tokenHash, view.challengeId);
           if (!stored || stored.secondsLeft <= 0) {
             throw refusal(409, { code: 'EBMR-ESIG-033', kind: 'STALE', whatHappened: 'The time to sign ran out. Nothing was signed.', why: 'This signing request has expired.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again.'] });
           }
@@ -345,7 +346,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const sealKey = sealKeyOf(app);
         const handler = handlerFor(app, body.action.kind);
         const d = handler.describe(body.action);
-        const ch: StoredChallenge | null = await readChallenge(app.pools.app, body.challengeId);
+        const ch: StoredChallenge | null = await readChallenge(app.pools.app, s.tokenHash, body.challengeId);
         if (!ch || ch.sessionId !== s.sessionId) {
           throw refusal(409, { code: 'EBMR-ESIG-031', kind: 'STALE', whatHappened: 'This signing request is not known here. Nothing was signed.', why: 'The challenge does not exist or belongs to another session.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again.'] });
         }
@@ -375,7 +376,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             // answer lost, a double submit) arrives here: it is told that the request was used, never that nothing
             // was signed (Phase 2 exit review F40). The challenge is this session's own (checked above); nothing is
             // replayed without credentials.
-            const used = await challengeUse(app.pools.app, ch.challengeId);
+            const used = await challengeUse(app.pools.app, s.tokenHash, ch.challengeId);
             if (used.signatureId !== null) throw alreadySigned(used.signatureId);
             if (used.authenticated) throw requestUsed();
             throw refusal(409, { code: 'ESIG_TAP_AGAIN', kind: 'STALE', whatHappened: 'The badge tap of this signing is no longer known. Nothing was signed.', why: 'A signing on a kiosk uses the badge tapped for it within its time limit.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again and tap your badge.'] });

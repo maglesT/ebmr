@@ -105,7 +105,10 @@ export async function meaningInfo(db: pg.Pool | pg.PoolClient, code: string): Pr
   return { code: r.code, title: r.title, text: r.meaning_text };
 }
 
-/** The challenge as the database stored it (ebmr_app may read esig.challenge). */
+/**
+ * The challenge as the database stored it, for the session that made it (tablets 0610, HIGH-WATER: the application role
+ * selects no row of esig.challenge; tab.session_challenge answers only for the active session bound to `tokenHash`).
+ */
 export interface StoredChallenge {
   challengeId: string;
   aggregateType: string;
@@ -122,16 +125,16 @@ export interface StoredChallenge {
   secondsLeft: number;
 }
 
-export async function readChallenge(db: pg.Pool | pg.PoolClient, challengeId: string): Promise<StoredChallenge | null> {
+export async function readChallenge(db: pg.Pool | pg.PoolClient, tokenHash: string, challengeId: string): Promise<StoredChallenge | null> {
   const { rows } = await db.query<{
     id: string; aggregate_type: string; aggregate_id: string; content_version: string; content_hash: string; meaning_code: string;
     signer_person: string; signer_account: string; session_id: string; device_id: string; expires_us: string; seconds_left: number;
   }>(
-    `select id, aggregate_type, aggregate_id, content_version::text as content_version, content_hash, meaning_code, signer_person,
+    `select challenge_id as id, aggregate_type, aggregate_id, content_version::text as content_version, content_hash, meaning_code, signer_person,
             signer_account, session_id, device_id, (extract(epoch from expires_at) * 1000000)::bigint::text as expires_us,
             greatest(0, ceil(extract(epoch from expires_at - clock_timestamp())))::int as seconds_left
-       from esig.challenge where id = $1`,
-    [challengeId],
+       from tab.session_challenge($1, $2)`,
+    [tokenHash, challengeId],
   );
   const r = rows[0];
   if (!r) return null;

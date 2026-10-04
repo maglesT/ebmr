@@ -157,26 +157,25 @@ describe('F34: the database (tablets 0410)', () => {
     await expect(q('select tab.content_for_signing($1, $2, $3, $4)', [reviewer, 'di_investigation', investigationId, 'DI_INVESTIGATION_CLOSED'])).rejects.toThrow(/EBMR-TAB-019/);
   });
 
-  it('[DI-17][DI-50] the application role sees no signing request or signature of a GOVERNANCE-class record (row-level security); the owner sees them', async () => {
+  it('[DI-17][DI-50] the application role sees no signing request or signature of a GOVERNANCE-class record, and since tablets 0610 selects none at all (row-level security showed it the RECORD-class ones until then); the owner sees them, and the session that made a RECORD-class request reads it', async () => {
     const reviewer = await passwordActor(gmp.db, qa, terminalOf(gmp.seed, 'PC-QA-01').fingerprint);
     await withCommand(gmp.db.app, reason(reviewer), (c) => identity.acknowledgeEsigPolicy(c));
     const content = await esig.contentForSigning(gmp.db.admin, 'di_investigation', investigationId);
     const challenge = await withCommand(gmp.db.app, reason(reviewer), (c) =>
       esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: investigationId, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' }),
     );
-    const byApp = await gmp.db.app.query('select id from esig.challenge where id = $1', [challenge.challengeId]);
-    const byOwner = await gmp.db.admin.query('select id from esig.challenge where id = $1', [challenge.challengeId]);
-    expect({ app: byApp.rows.length, owner: byOwner.rows.length }).toEqual({ app: 0, owner: 1 });
-    expect((await gmp.db.app.query("select count(*)::int as n from esig.signature where aggregate_type = 'di_investigation'")).rows[0]).toEqual({ n: 0 });
-    // A RECORD-class signing request stays visible to the application (the screens read them).
+    await expect(gmp.db.app.query('select id from esig.challenge where id = $1', [challenge.challengeId])).rejects.toThrow(/permission denied/);
+    expect((await gmp.db.admin.query('select id from esig.challenge where id = $1', [challenge.challengeId])).rows).toHaveLength(1);
+    await expect(gmp.db.app.query("select count(*)::int as n from esig.signature where aggregate_type = 'di_investigation'")).rejects.toThrow(/permission denied/);
+    // A RECORD-class signing request is read back by the session that made it (the ceremony), through the session-checked
+    // reader, and by no other session.
     const author = await gmp.asPersona('author');
     const stub = await createStub(gmp, author, 'author');
-    const stubContent = await esig.contentForSigning(gmp.db.admin, 'esig_stub', stub);
-    const authorActor = await passwordActor(gmp.db, { ...personaOf(gmp.seed, 'author') }, terminalOf(gmp.seed, 'PC-DESIGN-01').fingerprint);
-    const stubChallenge = await withCommand(gmp.db.app, reason(authorActor), (c) =>
-      esig.createChallenge(c, { aggregateType: 'esig_stub', aggregateId: stub, contentVersion: stubContent.contentVersion ?? '1', meaning: 'PREPARED', clientContentHash: stubContent.contentHash ?? '' }),
-    );
-    expect((await gmp.db.app.query('select id from esig.challenge where id = $1', [stubChallenge.challengeId])).rows).toHaveLength(1);
+    const { r } = await challengeFor(gmp, author, 'author', stub, 'PREPARED');
+    const stubChallenge = valueOf(r).challengeId;
+    await expect(gmp.db.app.query('select id from esig.challenge where id = $1', [stubChallenge])).rejects.toThrow(/permission denied/);
+    expect((await gmp.db.app.query('select challenge_id::text as id from tab.session_challenge($1, $2)', [hashOf(gmp, author), stubChallenge])).rows).toEqual([{ id: stubChallenge }]);
+    expect((await gmp.db.app.query('select challenge_id from tab.session_challenge($1, $2)', [hashOf(gmp, qaBrowser), stubChallenge])).rows).toEqual([]);
   });
 });
 
@@ -241,7 +240,7 @@ describe('F34: the application role\'s other doors to investigations and GOVERNA
     expect((await gmp.db.admin.query('select k from kernel.chain_keys() k where k = $1', [`di_investigation:${investigationId}`])).rows).toHaveLength(1);
   });
 
-  it('[DI-17][DI-50] the application roles see no row of a GOVERNANCE-class record in the seals, the signature-ID register, the content changes, the invalidations and the signing failures, and no retention hold; the owner sees them, and RECORD-class rows stay visible', async () => {
+  it('[DI-17][DI-50] the application roles see no row of a GOVERNANCE-class record in the seals, the signature-ID register, the content changes, the invalidations and the signing failures, and no retention hold, and since tablets 0610 select none of those tables; the owner sees them, and RECORD-class signatures are read through the readers', async () => {
     const ref = `di_investigation:${investigationId}`;
     const counts = async (db: typeof gmp.db.app) =>
       (
@@ -255,24 +254,29 @@ describe('F34: the application role\'s other doors to investigations and GOVERNA
         )
       ).rows[0];
     expect(await counts(gmp.db.admin)).toEqual({ seal: 1, register: 1, change: 1, invalidation: 1, failure: 1 });
-    expect(await counts(gmp.db.app)).toEqual({ seal: 0, register: 0, change: 0, invalidation: 0, failure: 0 });
+    await expect(counts(gmp.db.app)).rejects.toThrow(/permission denied/);
     for (const sqlText of ['select * from records.retention_hold', 'select * from records.retention_hold_release', 'select * from records.active_hold']) {
       await expect(gmp.db.app.query(sqlText), sqlText).rejects.toThrow(/permission denied/);
     }
-    // RECORD-class rows: the author's signature of a stub entry, its seal, register entry and the entry's content change.
+    // RECORD-class rows: the author's signature of a stub entry, its seal, register entry and the entry's content change
+    // are there (the owner); the application role reads the signature, valid (so sealed and registered), through the
+    // token-free RECORD-class reader of 0410, and none of those tables directly (tablets 0610).
     const author = await gmp.asPersona('author');
     const stub = await createStub(gmp, author, 'author');
     const { r } = await challengeFor(gmp, author, 'author', stub, 'PREPARED');
     const signed = valueOf(await sign(author, valueOf(r).challengeId, stub, passwordOf(gmp, 'author')));
-    const stubRows = (
-      await gmp.db.app.query<Record<string, number>>(
-        `select (select count(*)::int from esig.signature_seal where aggregate_ref = $1) as seal,
-                (select count(*)::int from esig.signature_id_register where signature_id = $2) as register,
-                (select count(*)::int from esig.content_change where aggregate_ref = $1) as change`,
-        [`esig_stub:${stub}`, signed.manifestation.signatureId],
-      )
-    ).rows[0];
-    expect(stubRows).toEqual({ seal: 1, register: 1, change: 1 });
+    const stubRows = async (db: typeof gmp.db.app) =>
+      (
+        await db.query<Record<string, number>>(
+          `select (select count(*)::int from esig.signature_seal where aggregate_ref = $1) as seal,
+                  (select count(*)::int from esig.signature_id_register where signature_id = $2) as register,
+                  (select count(*)::int from esig.content_change where aggregate_ref = $1) as change`,
+          [`esig_stub:${stub}`, signed.manifestation.signatureId],
+        )
+      ).rows[0];
+    expect(await stubRows(gmp.db.admin)).toEqual({ seal: 1, register: 1, change: 1 });
+    await expect(stubRows(gmp.db.app)).rejects.toThrow(/permission denied/);
+    expect((await gmp.db.app.query('select signature_id::text as id, valid from tab.signatures_of($1, $2)', ['esig_stub', stub])).rows).toEqual([{ id: signed.manifestation.signatureId, valid: true }]);
     // The policies name both application roles (GMP and sandbox).
     const { rows: policies } = await gmp.db.admin.query<{ t: string; roles: string[] }>(
       `select tablename as t, roles::text[] as roles from pg_policies where schemaname = 'esig' and policyname = 'app_reads_record_class'
@@ -619,7 +623,7 @@ describe('HIGH-WATER: the authority evaluations of the investigation and hold co
     }
   });
 
-  it('[DI-17][DI-50] without a session the application role reads no authority evaluation, so neither when nor how many investigations were opened, linked, refreshed and closed and legal holds placed and released, nor who acted, on either installation; the commands still run, the application role still evaluates, and the owner reads every evaluation', async () => {
+  it('[DI-17][DI-50] without a session the application role reads no authority evaluation, so the evaluations tell it neither when nor how many investigations were opened, linked, refreshed and closed and legal holds placed and released, nor who acted (what else told or tells it: default HW.1), on either installation; the commands still run, the application role still evaluates, and the owner reads every evaluation', async () => {
     for (const server of [gmp, sbx]) {
       const { lead, approver, investigation } = acted.get(server) ?? { lead: qa, approver: qa, investigation: '' };
       // The commands ran (the investigation is closed) and stored their evaluations, which the owner reads.
@@ -651,6 +655,132 @@ describe('HIGH-WATER: the authority evaluations of the investigation and hold co
       )).rows[0]?.e;
       expect(own?.allowed, server.kind).toBe(true);
       expect((await server.db.admin.query('select permission_code from iam.authority_evaluation where id = $1', [own?.evaluation_id])).rows, server.kind).toEqual([{ permission_code: 'VALIDATION.MANAGE' }]);
+    }
+  });
+});
+
+/**
+ * Round 5 of HIGH-WATER (the verifier of lane round 3): since tablets 0410 and 0430 the application roles kept SELECT on
+ * the signing requests, the signatures and their side tables (esig.challenge, signature, signature_seal,
+ * signature_id_register, content_change, signature_invalidation, signing_failure) under row-level security that showed
+ * them RECORD-class rows only. Row-level security hides the rows, not the planner's view of them: EXPLAIN ANALYZE reported
+ * how many rows the policy removed ("Rows Removed by Filter"), narrowed to investigations by a range on the indexed
+ * aggregate reference (text comparison is leakproof, so it runs before the policy); plain EXPLAIN gave the planner's row
+ * estimate, scaled by the table's current size; the row positions (ctid) and the shared id sequences of the visible rows
+ * skipped the hidden ones; and pg_class's reltuples and relpages, which every role reads, counted every row. Polled, they
+ * told when and how many investigations' closures were requested and signed. Tablets 0610 takes the seven tables away from
+ * the application role (the server reads its own signing requests through the session-checked tab.session_challenge, and
+ * signatures through the readers of 0410) and the planner's estimates in pg_class from every role but the owner.
+ */
+describe('HIGH-WATER: the planner\'s view of the signing requests and signatures (tablets 0610)', () => {
+  const TABLES = ['challenge', 'signature', 'signature_seal', 'signature_id_register', 'content_change', 'signature_invalidation', 'signing_failure'] as const;
+  const closed = new Map<TestServer, { challengeId: string; approver: GrantedPerson }>();
+
+  /** On each installation a CSV/DI lead opens an investigation; a QA reviewer requests and signs its closure, and a second request of it is refused and logged. */
+  beforeAll(async () => {
+    for (const server of [gmp, sbx]) {
+      const label = (name: string): string => (server === sbx ? `TEST-${name}` : name);
+      const fp = terminalOf(server.seed, server === gmp ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+      const subject = await grantedPerson(server, 'QA_REVIEWER', label('Ritu Menon QA reviewer'));
+      const lead = await passwordActor(server.db, await grantedPerson(server, 'CSV_DI_LEAD', label('Sanjay Bose CSV-DI lead')), fp);
+      const approver = await grantedPerson(server, 'QA_REVIEWER', label('Leela Nair QA reviewer'));
+      const approverActor = await passwordActor(server.db, approver, fp);
+      const investigation = await withCommand(server.db.app, reason(lead), (c) =>
+        records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a QA reviewer password' }),
+      );
+      await withCommand(server.db.app, reason(approverActor), (c) => identity.acknowledgeEsigPolicy(c));
+      const content = await esig.contentForSigning(server.db.admin, 'di_investigation', investigation);
+      const request = () =>
+        withCommand(server.db.app, reason(approverActor), (c) =>
+          esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: investigation, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' }),
+        );
+      const challenge = await request();
+      const ev = await identity.authenticate(server.db.authn, { method: 'PASSWORD', identifier: approver.loginName, secret: approver.password, deviceFingerprint: fp, purpose: 'SIGNATURE', challengeId: challenge.challengeId });
+      const sealKey = server.built.ctx.sealKey;
+      if (!sealKey) throw new Error('the signing server has no seal key');
+      await withCommand(server.db.app, reason({ ...approverActor, authEventId: ev.authEventId }), (c) => esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: 'OPEN' }, sealKey));
+      await server.db.app.query('select esig.record_signing_failure($1, null, $2, $3)', [(await request()).challengeId, 'EBMR-IAM-020', 'HIGH-WATER test set-up: the password was wrong']);
+      closed.set(server, { challengeId: challenge.challengeId, approver });
+    }
+  });
+
+  it('[DI-17][DI-50] without a session the application role learns from the planner neither how many GOVERNANCE-class signing requests, signatures, seals, register entries, content changes, invalidations and signing failures there are nor of which records: no plan, no row estimate, no row position, no statistics and no estimate in pg_class, on either installation; the owner still reads them', async () => {
+    for (const server of [gmp, sbx]) {
+      const app = server.db.app;
+      // The owner: the closure's signing requests, signature, seal, register entry and refused attempt are there.
+      const owner = (await server.db.admin.query<Record<string, number>>(
+        `select (select count(*)::int from esig.challenge where aggregate_type = 'di_investigation') > 1 as challenges,
+                (select count(*)::int from esig.signature where aggregate_type = 'di_investigation') > 0 as signatures,
+                (select count(*)::int from esig.signature_seal where aggregate_ref like 'di_investigation:%') > 0 as seals,
+                (select count(*)::int from esig.signature_id_register r join esig.signature s on s.id = r.signature_id where s.aggregate_type = 'di_investigation') > 0 as register,
+                (select count(*)::int from esig.signing_failure where aggregate_ref like 'di_investigation:%') > 0 as failures`,
+      )).rows[0];
+      expect(owner, server.kind).toEqual({ challenges: true, signatures: true, seals: true, register: true, failures: true });
+      expect((await server.db.admin.query('explain (analyze, costs off, timing off, summary off) select * from esig.challenge')).rows.length, server.kind).toBeGreaterThan(0);
+      // The application role (GMP; the sandbox role through the mirror): no plan, no estimate, no row of them.
+      for (const t of TABLES) {
+        for (const sqlText of [
+          `explain (analyze, costs off, timing off, summary off) select * from esig.${t}`,
+          `explain (format json) select * from esig.${t}`,
+          `select ctid, xmin from esig.${t} limit 1`,
+          `select count(*) from esig.${t}`,
+        ]) {
+          await expect(app.query(sqlText), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+        }
+        expect((await app.query("select pg_catalog.has_any_column_privilege(current_user, $1, 'SELECT') as v", [`esig.${t}`])).rows, `${server.kind}: ${t}`).toEqual([{ v: false }]);
+      }
+      // Nor narrowed to investigations through the aggregate index (a range on the reference is leakproof).
+      for (const t of ['challenge', 'signature']) {
+        const sqlText = `explain (analyze, costs off, timing off, summary off) select 1 from esig.${t} where aggregate_ref >= 'di_investigation:' and aggregate_ref < 'di_investigation;'`;
+        await expect(app.query(sqlText), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+      }
+      // No column statistics of them.
+      expect((await app.query("select count(*)::int as n from pg_catalog.pg_stats where schemaname = 'esig' and tablename = any ($1)", [[...TABLES]])).rows, server.kind).toEqual([{ n: 0 }]);
+      // No planner estimate in pg_class, of the signature tables, their indexes or the investigation tables.
+      for (const rel of ['esig.challenge', 'esig.challenge_aggregate', 'esig.signature', 'esig.signature_aggregate', 'esig.signing_failure', 'records.di_investigation', 'records.di_investigation_closure']) {
+        for (const column of ['reltuples', 'relpages', 'relallvisible']) {
+          const sqlText = `select ${column} from pg_catalog.pg_class where oid = $1::regclass`;
+          await expect(app.query(sqlText, [rel]), `${server.kind}: ${rel} ${column}`).rejects.toThrow(/permission denied/);
+        }
+      }
+      // What the application role and the kernel's own checks read of pg_class still answers; the owner reads the estimates.
+      expect((await app.query("select relname, relkind::text as relkind, relrowsecurity from pg_catalog.pg_class where oid = 'esig.challenge'::regclass")).rows, server.kind).toEqual([
+        { relname: 'challenge', relkind: 'r', relrowsecurity: true },
+      ]);
+      expect((await server.db.admin.query("select reltuples is not null as v from pg_catalog.pg_class where oid = 'esig.challenge'::regclass")).rows, server.kind).toEqual([{ v: true }]);
+    }
+  });
+
+  it('[DI-17][DI-50][DI-38] the server reads a signing request only for the session that made it (tab.session_challenge): another session, an unknown token, a locked session or the application role alone read nothing of it, on either installation; the ceremony still signs', async () => {
+    for (const server of [gmp, sbx]) {
+      const key = server === gmp ? 'author' : 'operator1';
+      const b = await server.asPersona(key);
+      const stub = await createStub(server, b, key);
+      const { r } = await challengeFor(server, b, key, stub, server === gmp ? 'PREPARED' : 'PERFORMED');
+      const challengeId = valueOf(r).challengeId;
+      const { challengeId: governance, approver } = closed.get(server) ?? { challengeId: '', approver: qa };
+      const own = hashOf(server, b);
+      const other = hashOf(server, await loginOf(server, approver));
+      const sessionId = (await server.db.admin.query<{ s: string }>('select session_id::text as s from esig.challenge where id = $1', [challengeId])).rows[0]?.s;
+      const read = async (token: string, id: string) =>
+        (await server.db.app.query<{ id: string; aggregate: string; meaning: string; session: string; signature: string | null }>(
+          `select challenge_id::text as id, aggregate_type || ':' || aggregate_id as aggregate, meaning_code as meaning, session_id::text as session,
+                  signature_id::text as signature
+             from tab.session_challenge($1, $2)`,
+          [token, id],
+        )).rows;
+      expect(await read(own, challengeId), server.kind).toEqual([{ id: challengeId, aggregate: `esig_stub:${stub}`, meaning: server === gmp ? 'PREPARED' : 'PERFORMED', session: sessionId, signature: null }]);
+      expect(await read(other, challengeId), server.kind).toEqual([]);
+      expect(await read('0'.repeat(64), challengeId), server.kind).toEqual([]);
+      expect(await read(own, randomUUID()), server.kind).toEqual([]);
+      expect(await read(other, governance), server.kind).toEqual([]);
+      await expect(server.db.app.query('select id from esig.challenge where id = $1', [challengeId]), server.kind).rejects.toThrow(/permission denied/);
+      // The ceremony reads it back and signs; the reader then names the signature made for it.
+      const signed = valueOf(await sign(b, challengeId, stub, server === gmp ? passwordOf(server, key) : { kind: 'PIN', pin: personaOf(server.seed, key).pin ?? '' }));
+      expect((await read(own, challengeId))[0]?.signature, server.kind).toBe(signed.manifestation.signatureId);
+      // A locked session reads nothing of it.
+      expect(outcome(await b.call(routes.access.lock, { body: {} })), server.kind).toBe('ok');
+      expect(await read(own, challengeId), server.kind).toEqual([]);
     }
   });
 });
