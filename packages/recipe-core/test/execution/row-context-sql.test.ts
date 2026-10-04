@@ -376,6 +376,42 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
   }, 60_000);
 });
 
+describe('F12 round 9: an accepted deviation link or hold release names a record of the state and changes it (DI-05, DI-30, PR-49, PR-45; sql 0343)', () => {
+  it('[DI-05][DI-30][PR-49][PR-45] round 9 (self-review, sql 0343): an accepted ATTACH_DEVIATION names an open exception without a deviation that its row links, an accepted RELEASE_HOLD a hold not yet released that its row releases; L2409-0017, a closed or linked exception, a released hold, a row that changes nothing and a name that is no text are refused', async () => {
+    const open = { 'EX-1': { id: 'EX-1', status: 'OPEN' } };
+    const linked = { 'EX-1': { id: 'EX-1', status: 'OPEN', deviation: { ref: 'DEV-1', linkedBy: 'p', at: 1 } } };
+    const active = { 'HOLD-1': { id: 'HOLD-1', type: 'SUPERVISOR' } };
+    const released = { 'HOLD-1': { id: 'HOLD-1', type: 'SUPERVISOR', released: { by: 'p', reason: 'r', at: 1 } } };
+    const att = (exception: unknown): Json => ({ type: 'ATTACH_DEVIATION', exception, deviationRef: 'DEV-1' });
+    const rel = (h: unknown): Json => ({ type: 'RELEASE_HOLD', hold: h, reason: 'r' });
+    const noEx = (k: string) => `command.exception "${k}" is not an exception of the state before the row, open and without a deviation, that the row links to one`;
+    const noHold = (k: string) => `command.hold "${k}" is not a hold of the state before the row, not yet released, that the row releases`;
+    const cases: Record<string, readonly [Json, Json, Json, string | null]> = {
+      attach: [{ exceptions: open }, { exceptions: linked }, att('EX-1'), null],
+      attachLot: [{ exceptions: open }, { exceptions: linked }, att(LOT), noEx(LOT)],
+      attachUnchanged: [{ exceptions: open }, { exceptions: open }, att('EX-1'), noEx('EX-1')],
+      attachLinkedBefore: [{ exceptions: linked }, { exceptions: linked }, att('EX-1'), noEx('EX-1')],
+      attachClosed: [{ exceptions: { 'EX-1': { id: 'EX-1', status: 'DISPOSITIONED' } } }, { exceptions: linked }, att('EX-1'), noEx('EX-1')],
+      attachNoText: [{ exceptions: open }, { exceptions: linked }, att(1), noEx('none')],
+      attachNoState: [{}, { exceptions: linked }, att('EX-1'), noEx('EX-1')],
+      release: [{ holds: active }, { holds: released }, rel('HOLD-1'), null],
+      releaseLot: [{ holds: active }, { holds: released }, rel(LOT), noHold(LOT)],
+      releaseUnchanged: [{ holds: active }, { holds: active }, rel('HOLD-1'), noHold('HOLD-1')],
+      releaseReleasedBefore: [{ holds: released }, { holds: released }, rel('HOLD-1'), noHold('HOLD-1')],
+      releaseNoText: [{ holds: active }, { holds: released }, rel(['HOLD-1']), noHold('none')],
+      otherType: [{}, {}, { type: 'HOLD_BATCH', holdType: 'QA', reason: 'r' }, null],
+      noCommand: [{}, {}, ['ATTACH_DEVIATION'] as unknown as Json, null],
+    };
+    const names = Object.keys(cases);
+    const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+      'select array_agg(recipe.act_target_problem(x.v -> 0, x.v -> 1, x.v -> 2) order by x.i) as p from jsonb_array_elements($1::jsonb) with ordinality x (v, i)',
+      [JSON.stringify(names.map((n) => (cases[n] as (typeof cases)[string]).slice(0, 3)))],
+    );
+    const out = rows[0]?.p ?? [];
+    expect(Object.fromEntries(names.map((n, i) => [n, out[i]]))).toEqual(Object.fromEntries(names.map((n) => [n, (cases[n] as (typeof cases)[string])[3]])));
+  }, 60_000);
+});
+
 describe('F12 round 9: an approval names the engine roles its approver holds (DI-05, DI-30, INV-26; sql 0340)', () => {
   /** recipe.approval_roles_problem of each [command, accepted]. */
   async function approvalProblems(cases: readonly (readonly [Json, boolean])[]): Promise<(string | null)[]> {

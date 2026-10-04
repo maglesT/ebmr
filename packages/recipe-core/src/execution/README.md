@@ -465,7 +465,9 @@ that another command holds is skipped.
     roles (sql 0340, constraint trigger `zz_execution_row_shape_approver`, `approval_roles_problem`; Phase 2 exit review
     F12, the lane's round-2 verification; decision F12.7), and its approver is a person of this installation on every
     row, accepted or refused (sql 0342, constraint trigger `zz_execution_row_shape_approver_person`,
-    `approval_person_problem`). Free text a type declares (a reason,
+    `approval_person_problem`); and an accepted ATTACH_DEVIATION names an open exception of the state without a
+    deviation that its row links, an accepted RELEASE_HOLD a hold not yet released that its row releases (sql 0343,
+    trigger `zzk_execution_act_target`, `act_target_problem`). Free text a type declares (a reason,
     a description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
@@ -873,7 +875,8 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   row's approval, and each of an abort's approvals, naming L2409-0017 or a role in lower case is refused, every engine
   role passes; an accepted row's approval under a signature id the kernel does not have, or the dry run's placeholder,
   backs no role; an approver named L2409-0017, by an upper-case id or by an id the installation does not have is
-  refused (sql 0342, `approval_person_problem`).
+  refused (sql 0342, `approval_person_problem`). An accepted deviation link or hold release naming L2409-0017, a closed
+  or linked exception, a released hold, or changing nothing is refused (sql 0343, `act_target_problem`).
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -1069,6 +1072,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   state's, superseded by the honest one, is reported by the replay with the row that superseded it; a challenge for a
   PERFORMED signature of a step instance the run does not have is answered 404 and stores no preparation; the honest
   rows are recorded.
+- `db-guards-act-targets.test.ts` (Phase 2 exit review F12, round 9, self-review; sql 0343): through the application
+  role, an accepted ATTACH_DEVIATION of exception L2409-0017 and an accepted RELEASE_HOLD of hold L2409-0017, stored
+  with the state the engine gives, and an accepted link or release naming the real exception or hold but leaving it
+  unchanged, are refused (EBMR-EXE-126) and no row holds L2409-0017; the honest link and release are recorded.
 - `db-guards-approver-roles.test.ts` (Phase 2 exit review F12, round 9; sql 0340): through the application role, on
   the honest store and engine path, an accepted correction approved by qa1 as QA and L2409-0017 (the lane's round-2
   verification's probe, which the engine accepts) or as PRODUCTION_SUPERVISOR, which qa1 does not hold, and a refused
