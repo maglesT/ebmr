@@ -130,6 +130,13 @@ Fixed:
   the cluster lacks made `sandbox.segregation_problems()` fail with "role does not exist" instead of reporting the
   problem, because PostgreSQL evaluated the privilege test before the existence test; rows also came out in join
   order. Fixed in kernel 1100: roles are read from the catalogue and asked about by oid, in role order.
+- **D15. Connection roles: an unknown grantee broke the connect policy's statement.** When a backend-signal function's
+  privileges named a role oid the cluster does not know (a direct catalogue write by a superuser), the policy built a
+  revoke with an empty grantee and failed with a syntax error instead of a coded refusal (fail closed, wrong message).
+  Fixed in kernel 1111: `sandbox.apply_connect_policy()` first looks for such entries and refuses with EBMR-SBX-038,
+  naming each function and unknown oid, before it applies anything; the sandbox README lists the code. Tests:
+  `packages/kernel/test/security/backend-signals.test.ts` ([DI-17][DI-30], the refusal, nothing applied, the
+  installation still reported as not holding the policy); the connection-roles kill test now asserts the coded message.
 
 Open (the lead takes these next):
 
@@ -178,9 +185,6 @@ Open (the lead takes these next):
 - **D14. Sandbox and import: a misleading family-code reason.** When a test package's family code is not text, the
   refusal (EBMR-EXE-134, correct) names the same value on both sides; reachable through the application role. Message
   wording only.
-- **D15. Connection roles: an unknown grantee breaks the connect policy's statement.** When a backend-signal function's
-  privileges name a role oid the cluster does not know (a direct catalogue write by a superuser), the policy fails
-  with a syntax error instead of a coded refusal. It fails closed; only the message is wrong.
 
 Notes from the reviews that are not defects:
 

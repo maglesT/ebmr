@@ -124,4 +124,59 @@ describe('backend signals (kernel 0970)', () => {
       c.release();
     }
   });
+
+  /**
+   * Defect D15 of the Phase 2 exit (SQL mutation kill work, group connection-roles): an EXECUTE entry on a backend-signal
+   * function that names a role oid the cluster does not know (only a direct write into pg_proc by a superuser makes one)
+   * gave a grantee of NULL, so the policy built 'revoke execute on function ... from ' and failed with a syntax error.
+   * It failed closed, but said nothing of why. Kernel 1111 refuses it with a coded reason before it applies anything.
+   * Everything happens in a transaction that is rolled back (the catalogue entry included).
+   */
+  it('[DI-17][DI-30] a backend-signal grant to a role the cluster does not know is refused by the policy with EBMR-SBX-038, naming the function and the unknown role oid; nothing is applied, and the installation is reported as not holding the policy', async () => {
+    const c = await db.admin.connect();
+    const unknown = 4_294_967_000;
+    const acls = async () =>
+      (
+        await c.query<{ fn: string; acl: string[] | null }>(
+          "select p.oid::regprocedure::text as fn, p.proacl::text[] as acl from pg_proc p where p.pronamespace = 'pg_catalog'::regnamespace and p.proname in ('pg_cancel_backend', 'pg_terminate_backend') order by 1",
+        )
+      ).rows;
+    const connectApp = async () =>
+      (await c.query<{ ok: boolean }>("select has_database_privilege('ebmr_app', current_database(), 'CONNECT') as ok")).rows[0]?.ok;
+    try {
+      await c.query('begin');
+      expect((await c.query('select 1 from pg_catalog.pg_authid where oid = $1', [unknown])).rows).toEqual([]);
+      await c.query(
+        `update pg_catalog.pg_proc set proacl = array_append(coalesce(proacl, acldefault('f', proowner)), makeaclitem($1::oid, proowner, 'EXECUTE', false))
+          where oid in ('pg_catalog.pg_cancel_backend(integer)'::regprocedure, 'pg_catalog.pg_terminate_backend(integer, bigint)'::regprocedure)`,
+        [unknown],
+      );
+      // Beside it, what the policy would change if it ran: a grant to PUBLIC, and the application role's CONNECT taken.
+      await c.query('grant execute on function pg_catalog.pg_terminate_backend(integer, bigint) to public');
+      await c.query(`revoke connect on database ${db.name} from ebmr_app`);
+      const before = await acls();
+      expect(await restricted(c)).toBe(false);
+      await c.query('savepoint policy');
+      const outcome = await c.query('select sandbox.apply_connect_policy()').then(
+        () => ({ code: 'ok', message: '' }),
+        (error: unknown) => ({ code: (error as { code?: string }).code, message: (error as Error).message }),
+      );
+      await c.query('rollback to savepoint policy');
+      expect(outcome).toEqual({
+        code: 'P0001',
+        message:
+          'Backend signals cannot be taken away from a role the cluster does not know: EXECUTE on pg_cancel_backend(integer) is granted to role oid 4294967000, ' +
+          'EXECUTE on pg_terminate_backend(integer,bigint) is granted to role oid 4294967000 (an entry written into the catalogue directly, which no REVOKE can name). ' +
+          "Nothing was applied: a superuser removes those entries from the functions' privileges and applies the policy again (DI-17, DI-30). [EBMR-SBX-038]",
+      });
+      expect(await acls()).toEqual(before);
+      expect(await connectApp()).toBe(false);
+      expect(await restricted(c)).toBe(false);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+    // Rolled back: the database holds the policy as before.
+    expect(await restricted()).toBe(true);
+  });
 });

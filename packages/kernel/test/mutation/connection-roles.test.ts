@@ -193,7 +193,11 @@ describe('the backend-signal policy (kernel 0970, 0980)', () => {
       await c.query(`grant execute on function ${TERMINATE} to public`);
       const before = await acls(c);
       expect(before).toEqual({ cancel: [`${owner}=X/${owner}`, `${String(unknown)}=X/${owner}`], terminate: [`${owner}=X/${owner}`, `=X/${owner}`] });
-      expect(await outcome(c, 'select sandbox.apply_connect_policy()')).not.toBe('ok');
+      // Refused with a coded reason before anything is applied (kernel 1111, D15; before it, a syntax error).
+      expect(await outcome(c, 'select sandbox.apply_connect_policy()')).toBe(
+        `Backend signals cannot be taken away from a role the cluster does not know: EXECUTE on pg_cancel_backend(integer) is granted to role oid ${String(unknown)} ` +
+          "(an entry written into the catalogue directly, which no REVOKE can name). Nothing was applied: a superuser removes those entries from the functions' privileges and applies the policy again (DI-17, DI-30). [EBMR-SBX-038]",
+      );
       expect(await acls(c)).toEqual(before);
       expect(await restricted(c)).toBe(false);
     });
