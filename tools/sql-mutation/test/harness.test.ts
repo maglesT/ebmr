@@ -1,8 +1,9 @@
 /**
  * The SQL mutation harness beyond its mutators: where the definitions come from (every SQL directory, in the order the
  * test set-ups apply them), that every target function resolves to a live definition in a database its tests use, that
- * a mutant is applied as CREATE OR REPLACE keeping everything but the body, and that the server tests' set-up takes
- * prepared templates only when EBMR_SERVER_TEMPLATES names them.
+ * a mutant is applied as CREATE OR REPLACE keeping everything but the body, that the server tests' set-up takes
+ * prepared templates only when EBMR_SERVER_TEMPLATES names them, and the check run the weekly workflow publishes for a
+ * group.
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -17,6 +18,7 @@ import {
   type ServerTemplates,
 } from '../../../apps/tablets-server/test/support/global-setup.ts';
 import { ADMIN_URL, urlFor } from '../../../packages/kernel/test/support/db.ts';
+import { checkRunPayload, TEXT_LIMIT } from '../src/check-run.ts';
 import { mutantsOf } from '../src/mutators.ts';
 import {
   checkDefinition,
@@ -32,6 +34,7 @@ import {
   testsByProject,
   testsFor,
   writeServerTemplates,
+  type Result,
 } from '../src/run.ts';
 import { TARGETS } from '../src/targets.ts';
 
@@ -276,5 +279,53 @@ describe('prepared server templates (EBMR_SERVER_TEMPLATES)', () => {
     expect(() => readPreparedTemplates(write({ gmp: built.gmp, sandbox: { ...built.sandbox, seed: built.gmp.seed } }))).toThrow(/SANDBOX installation/);
     expect(() => readPreparedTemplates(write({ gmp: { ...built.gmp, template: 'ebmr_sandbox_tpl1' }, sandbox: built.sandbox }))).toThrow(/is not a GMP database name/);
     expect(() => readPreparedTemplates(write({ gmp: built.gmp, sandbox: { ...built.sandbox, template: 'ebmr_stpl_2' } }))).toThrow(/is not a SANDBOX database name/);
+  });
+});
+
+describe('the check run a group\'s report is published as (.github/workflows/mutation.yml, job sql)', () => {
+  const mutant = (n: number, status: Result['status'], group = 'weighing'): Result => ({
+    id: `recipe.weighing_net_problem#${n}`, function: 'recipe.weighing_net_problem', file: 'packages/recipe-core/sql/0321_weighing_net_resolution.sql',
+    line: 10 + n, operator: 'RELATIONAL', original: '=', replacement: '<>', group, status, ms: 1000, ...(status === 'KILLED' ? { detail: 'server: FAIL x' } : {}),
+  });
+  const summary = ['# SQL mutation report', '', '| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |',
+    '|---|---|---|---|---|---|---|---|---|---|', '| weighing | server 20 | server 240 | 6 | 1 | 1 | 3 | 1 | 75.0 % | 90 % |', '', '## Surviving mutants', ''].join('\n');
+
+  it('[meta] names the group, is success only at the group\'s threshold and neutral below it, never failure; its title is the score line, its summary the group\'s row and the counts, its text every mutant not killed, survivors first', () => {
+    const report = [mutant(1, 'KILLED'), mutant(2, 'INVALID'), mutant(3, 'SURVIVED'), mutant(4, 'EQUIVALENT'), mutant(5, 'TIMEOUT'), mutant(6, 'KILLED'), mutant(7, 'KILLED', 'signing')];
+    const p = checkRunPayload('weighing', 'abc123', report, summary);
+    expect(p).toMatchObject({ name: 'SQL mutation report (weighing)', head_sha: 'abc123', status: 'completed', conclusion: 'neutral' });
+    expect(p.output.title).toBe('weighing: 75.0 % (3/4 detected, 1 invalid)');
+    expect(p.output.summary).toContain('| weighing | server 20 | server 240 | 6 | 1 | 1 | 3 | 1 | 75.0 % | 90 % |');
+    expect(p.output.summary).toContain('6 mutants: KILLED 2, SURVIVED 1, TIMEOUT 1, INVALID 1, EQUIVALENT 1.');
+    const lines = (p.output.text ?? '').trim().split('\n').map((l) => JSON.parse(l) as Record<string, unknown>);
+    expect(lines.map((l) => [l['id'], l['status']])).toEqual([
+      ['recipe.weighing_net_problem#3', 'SURVIVED'], ['recipe.weighing_net_problem#5', 'TIMEOUT'],
+      ['recipe.weighing_net_problem#2', 'INVALID'], ['recipe.weighing_net_problem#4', 'EQUIVALENT'],
+    ]);
+    expect(Object.keys(lines[0] ?? {})).toEqual(['id', 'status', 'function', 'file', 'line', 'operator', 'original', 'replacement']);
+    // At the threshold: success, and no text when every mutant was killed.
+    const killed = Array.from({ length: 10 }, (_, i) => mutant(i + 1, i === 0 ? 'SURVIVED' : 'KILLED'));
+    expect(checkRunPayload('weighing', 'abc123', killed, summary).conclusion).toBe('success');
+    const all = checkRunPayload('weighing', 'abc123', killed.slice(1), summary);
+    expect(all.conclusion).toBe('success');
+    expect(all.output.text).toBeUndefined();
+    expect(() => checkRunPayload('no-such-group', 'abc123', report, summary)).toThrow(/unknown group/);
+  });
+
+  it('[meta] a text over the limit keeps the survivors first and says what was cut; a missing or empty report is still a (neutral) check run', () => {
+    const many = Array.from({ length: 600 }, (_, i) => ({ ...mutant(i + 1, i < 300 ? 'INVALID' : 'SURVIVED'), original: 'x'.repeat(80) }));
+    const p = checkRunPayload('weighing', 'abc123', many, undefined);
+    const text = p.output.text ?? '';
+    expect(text.length).toBeLessThanOrEqual(TEXT_LIMIT);
+    const kept = text.trim().split('\n').map((l) => JSON.parse(l) as { status: string });
+    expect(kept.length).toBeLessThan(600);
+    expect(kept.slice(0, 300).every((l) => l.status === 'SURVIVED')).toBe(true);
+    expect(p.output.summary).toContain(`The text lists ${kept.length} of the 600 mutants not killed`);
+    expect(p.output.summary).toContain(`the other ${600 - kept.length} were cut at ${TEXT_LIMIT} characters`);
+    expect(p.output.summary).toContain('summary.md has no row for this group');
+    const missing = checkRunPayload('weighing', 'abc123', undefined, undefined, 'report.json is missing');
+    expect(missing).toMatchObject({ conclusion: 'neutral', output: { title: 'weighing: no report' } });
+    expect(missing.output.summary).toMatch(/^report\.json is missing: the mutation run ended before the group finished/);
+    expect(checkRunPayload('weighing', 'abc123', [mutant(1, 'KILLED', 'signing')], summary).output.summary).toMatch(/^report\.json holds no result of weighing/);
   });
 });

@@ -72,8 +72,8 @@ export function sqlSources(): SqlSource[] {
   return edition;
 }
 
-type Status = 'KILLED' | 'SURVIVED' | 'TIMEOUT' | 'INVALID' | 'EQUIVALENT';
-interface Result extends Omit<Mutant, 'statement'> {
+export type Status = 'KILLED' | 'SURVIVED' | 'TIMEOUT' | 'INVALID' | 'EQUIVALENT';
+export interface Result extends Omit<Mutant, 'statement'> {
   group: string;
   status: Status;
   detail?: string;
@@ -584,7 +584,7 @@ async function pool<T, R>(items: T[], workers: number, work: (t: T, i: number) =
   return results;
 }
 
-function score(rs: Result[]): { valid: number; detected: number; survived: number; invalid: number; score: number } {
+export function score(rs: Result[]): { valid: number; detected: number; survived: number; invalid: number; score: number } {
   // Invalid (rejected by PostgreSQL) and reviewed-equivalent mutants are excluded from the score.
   const valid = rs.filter((r) => r.status !== 'INVALID' && r.status !== 'EQUIVALENT').length;
   const detected = rs.filter((r) => r.status === 'KILLED' || r.status === 'TIMEOUT').length;

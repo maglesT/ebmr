@@ -64,6 +64,11 @@ jobs:
     name: SQL guards (${{ matrix.group }})
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    # checks: write for the check run each group's report is published as (readable through the API, unlike the
+    # artifact, whose download redirects to a blob host).
+    permissions:
+      contents: read
+      checks: write
     strategy:
       fail-fast: false
       matrix:
@@ -100,8 +105,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # A run started by hand with a list of groups runs only those; the other jobs end at once.
       - name: Mutation run
+        id: mut
         if: inputs.groups == '' || inputs.groups == null || contains(format(',{0},', inputs.groups), format(',{0},', matrix.group))
         run: pnpm mutation:sql --group ${{ matrix.group }} --workers 2 --own-cluster --out .reports/sql-mutation/${{ matrix.group }}
+      # The group's score, its row of summary.md and every mutant not killed, as a check run on the commit
+      # (tools/sql-mutation/src/check-run.ts): success when the group met its threshold, neutral otherwise or without a
+      # report, never failure; the job's own result stays the run's.
+      - name: Publish the report as a check run
+        if: always() && steps.mut.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pnpm -s exec tsx tools/sql-mutation/src/check-run.ts ${{ matrix.group }} .reports/sql-mutation/${{ matrix.group }} ${{ github.sha }} > "$RUNNER_TEMP/payload.json"
+          gh api repos/${{ github.repository }}/check-runs --input "$RUNNER_TEMP/payload.json"
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
