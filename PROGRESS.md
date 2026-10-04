@@ -1932,3 +1932,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   does not activate mutants under happy-dom): 191 of 205 killed, the 14 left equivalent or redundant with the count.
   Also fixed: a race in web access/ports.test (the switch request was read before it was sent; it failed about one
   run in ten before and after this change).
+- 2026-10-04: OWNER CONTEXT (no plan change): products the owner plans later, separate from this build: e-logbooks,
+  e-qualification protocols, engineering work orders, investigation management, eQMS, material management,
+  productivity, hiring, and training modules for SME development (the owner's list starts at 2 = eBMR; item 1 is not
+  named). The owner's instruction: build the BMR only for now; the others can come later. Nothing in the phase plan
+  changes for them.
+- 2026-10-04: PHASE 2 EXIT, review backlog (docs/build-plan/phase-2-exit/review-backlog.md): what the exit review did
+  not cover and what its follow-ups left open on purpose: the critic's uncovered areas, checked against rounds 4 to 6
+  (closed items listed with what closed them); the areas no reviewer has checked yet, by the phase that takes them;
+  the residuals that owner decisions accept (REPLAY-GATE.1, F34.2, HW.1-HW.3, F12.5 onwards, T5.1); and the defects
+  the SQL mutation kill agents reported. Each later phase's exit review starts from the items that name it.
