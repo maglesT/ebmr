@@ -112,7 +112,8 @@ sandbox that claims to be GMP unless the database is also renamed.
 Inventory taken on 4 October 2026 from the catalogue of a sandbox migrated to kernel 1030, recipe-core 0345 and
 tablets 0630 (decision F12.8 in `docs/decisions/phase-2-open-questions.md`), and taken again after kernel 1040 and
 recipe-core 0346 and 0347 (decision F12.9), after recipe-core 0348 and tablets 0640 (decision F12.10) and after kernel
-1050 and recipe-core 0349 (decision F12.11) and after kernel 1070 and 1080 (decision F12.12): the write surface is the same (no
+1050 and recipe-core 0349 (decision F12.11), after kernel 1070 and 1080 (decision F12.12) and after kernel 1090 and 1100
+(decision F12.13): the write surface is the same (no
 new writer; recipe.engine_name and sandbox.look_alike are written by their migrations only, and the application roles have no right on the first and may
 only read the second); what reads it changed as A, C and D say. Correction (F12.10, the lane's round-12 verification): the
 inventory of F12.8 and F12.9 filed `tab.manual_weighing_basis` in D and said no entry quotes a reading's serial; the
@@ -151,11 +152,22 @@ LOTー2409ー0017, LOT⎯2409⎯0017, B─24─0001, Ŀ2409-0017 and L2409-0017 
 reads by name, such as Cyrillic в and Greek κ), one character drawn as a letter with a dot or an apostrophe (Ŀ), the
 dashes, solidi and (kernel 1080) full stops named so in the Unicode Character Database or drawn so by Chromium 141
 (U+1680 OGHAM SPACE MARK included), and the compatibility forms PostgreSQL 16's NFKC does not know; a space narrower than the thin space (the
-hair space, the six-per-em space) shows no gap and is read as nothing. Still not read (residual, F12.12 (5)): digits
-only; an identifier broken by a gap at least as wide as the thin space (which separates a number from its unit), or by
-a visible character that neither UTS #39, its Unicode name nor Chromium 141's drawing makes a look-alike of the
-alphabet (a separate middle dot, #); a character another font draws as a dash or a slash; one spelled out in words or
-drawn in an image; one whose letter is drawn with a punctuation mark; a word equal to an allowed name. A copy into
+hair space, the six-per-em space) shows no gap and is read as nothing. Correction (F12.13, the verification of the lane's
+round 7, lane round 2): "as it shows" kept U+FFFC and the spacing combining marks, which Chromium 141 lays out with no
+room, and the drawing was used for the look-alikes of the separators only, so L2409-0017 with U+FFFC or U+1031 after the
+L, and written with U+053C or U+14AB for the L, was recorded over HTTP. Since kernel 1090 every spacing combining mark
+and the characters a DOM-layout scan of Chromium 141 found laid out with no advance (U+FFFC among them; kernel 1100 adds
+U+1D1A0) are read as nothing, and since kernel 1100 letters and digits are read as Chromium 141 draws them (a drawing
+scan against the ASCII letters and digits, alone and with a combining mark: U+053C and U+14AB as L). Which spaces are read
+as no gap (hair, six-per-em) and which stay gaps (thin, narrow no-break, which separate a number from its unit) is an
+honest-text default, not a measure of the screen (in Chromium 141 the six-per-em space is as wide as the thin space).
+kernel.is_blank, the audit trail's blank-reason test, is not changed (decision F12.13 (2)). Still not read (residual,
+F12.13 (6)): digits only; an identifier broken by a gap at least as wide as the thin space, or by a visible character
+that neither UTS #39, its Unicode name nor Chromium 141's drawing makes a look-alike of the alphabet (a separate middle
+dot, #); a character drawn near a letter but no closer than two letters of the alphabet are to each other, or drawn as
+two letters UTS #39 does not list; a character another renderer or font lays out with no room or draws as the alphabet,
+a dash or a slash; one spelled out in words or drawn in an image; one whose letter is drawn with a punctuation mark; a
+word equal to an allowed name. A copy into
 the record from anywhere else is read where it lands, so this does not depend on tracing where a text comes from. The
 words allowed there are bound to the run, none by its form: the imported package (the MBR), the batch number and the
 site and room of the session that issued it or writes a row, the names of the engine's registers (`recipe.engine_name`:
