@@ -2,7 +2,7 @@
  * Plain words for members of MBR content in the document view (module C2; review F44). Every value is shown as the
  * content holds it (decimal text as written, never rounded); codes are shown in lower case with their meaning.
  */
-import { flow } from '@ebmr/recipe-core/pure';
+import { blocks, flow } from '@ebmr/recipe-core/pure';
 
 type Content = flow.MbrContent;
 
@@ -74,12 +74,18 @@ export function samplingWords(x: { point: string; purpose: string; units: number
  * How the second person's check of phase `n` runs in this release, when that differs from the check the MBR names (Phase
  * 2 exit follow-up T12.DOC; DI-30, PR-14, DI-35): a later review of a critical value typed by hand from a printout or
  * photo runs as a timed witness, because no printout or photo can be attached in this release (the validator warns,
- * GMP-WITNESS-NO-ATTACHMENT). Null when the check runs as the MBR names it.
+ * GMP-WITNESS-NO-ATTACHMENT). Whatever capture the MBR names (device, scan, LIMS, automation), every value a step records
+ * is typed by hand in this release, which the words then say (round 2). Null when the check runs as the MBR names it.
  */
 export function checkInThisRelease(c: Content, n: flow.PhaseNode): string | null {
-  const items = flow.checkRunsAsWitness((id) => c.parameters.find((p) => p.id === id), n);
+  const parameter = (id: string) => c.parameters.find((p) => p.id === id);
+  // Round 2: whatever capture the MBR names, a value is typed by hand in this release; a quantity the block computes from
+  // its weighings is not typed at all (blocks computedItemsOf, as the validator reads it).
+  const items = flow.checkRunsAsWitness(parameter, n, blocks.computedItemsOf(n, c));
   if (items.length === 0) return null;
-  return `In this release this check runs as a witness (witnessed): no printout or photo can be attached to ${items.map((id) => itemLabel(c, id)).join(', ')}, so the second person watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`;
+  const otherwise = flow.capturedOtherwise(parameter, items);
+  const typed = otherwise.length === 0 ? '' : `every value is typed by hand on the step screen, whatever capture the MBR names (${otherwise.map((x) => `${itemLabel(c, x.id)}: ${flow.CAPTURE_WORDS[x.capture]}`).join('; ')}), and `;
+  return `In this release this check runs as a witness (witnessed): ${typed}no printout or photo can be attached to ${items.map((id) => itemLabel(c, id)).join(', ')}, so the second person watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`;
 }
 
 /** The "Checked by" cell of a phase's row: the role and the check the MBR names, and how it runs in this release. */

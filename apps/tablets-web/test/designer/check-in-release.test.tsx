@@ -33,12 +33,18 @@ function blendReviewedLater(): flow.MbrContent {
   return c;
 }
 
-async function blendRow(content: flow.MbrContent): Promise<string> {
+async function blendRow(content: flow.MbrContent, step = 'p-blend'): Promise<string> {
   const r = renderRouted(() => (
     <DocumentView content={content} version={fixtureVersion({ state: 'IN_VERIFICATION' })} palette={PALETTE} selected={null} onSelect={() => undefined} dispatch={() => false} readOnly findingsByNode={new Map()} />
   ));
   await waitFor(() => expect(r.container.querySelector('table[aria-label="Procedure"]')).not.toBeNull(), { timeout: 10000 });
-  return text(r.container.querySelector('[id="mbr-node-p-blend"]'));
+  return text(r.container.querySelector(`[id="mbr-node-${step}"]`));
+}
+
+function parameter(c: flow.MbrContent, id: string): flow.MbrContent['parameters'][number] {
+  const p = c.parameters.find((x) => x.id === id);
+  if (!p) throw new Error(`no parameter ${id}`);
+  return p;
 }
 
 const RUNS_AS_WITNESS =
@@ -51,6 +57,26 @@ describe('the document says how a step\'s check runs in this release (T12.DOC)',
     const template = await blendRow(parsed(dcMini));
     expect(template).toContain('Production verifier (witnessed)');
     expect(template).not.toContain('In this release this check runs as a witness');
+  });
+
+  it('[DI-30][PR-14][DI-35] T12.DOC round 2: whatever capture the MBR names (device, scan, LIMS, automation), the row says the value is typed by hand in this release and that the check runs as a witness; a weighing step\'s quantity, which its block computes, keeps the check the MBR names', async () => {
+    const HOW = { DEVICE: 'from a device', SCAN: 'by scanning', LIMS: 'from LIMS', AUTOMATION: 'from the automation system' } as const;
+    for (const [capture, how] of Object.entries(HOW) as [keyof typeof HOW, string][]) {
+      const c = blendReviewedLater();
+      parameter(c, 'blendTime').capture = capture;
+      expect(await blendRow(c), capture).toContain(
+        `Production verifier (verified). In this release this check runs as a witness (witnessed): every value is typed by hand on the step screen, whatever capture the MBR names (Blend time (blendTime): ${how}), and no printout or photo can be attached to Blend time (blendTime), Blender speed (blenderSpeed), so the second person watches the entry within 5 minutes of the performed signature and before the run moves on; after that, the later review completes the step and records an exception for QA (GMP-WITNESS-NO-ATTACHMENT).`,
+      );
+      cleanup();
+    }
+    const weighed = parsed(dcMini);
+    for (const id of ['pcmDispensed', 'blendNet']) parameter(weighed, id).evidence = 'PRINTOUT';
+    for (const step of ['p-disp-pcm', 'p-blend-out']) {
+      const row = await blendRow(weighed, step);
+      expect(row, step).toContain('Production verifier (verified)');
+      expect(row, step).not.toContain('In this release this check runs as a witness');
+      cleanup();
+    }
   });
 
   it('[DI-30][PR-14][DI-35] the step\'s properties say the same next to the check the author chooses', async () => {
