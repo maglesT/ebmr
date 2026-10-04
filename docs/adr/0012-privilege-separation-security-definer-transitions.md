@@ -33,14 +33,15 @@
    named) need a governance or audit role and are never shown to the person an investigation is about. Content to be
    signed and signature lists are served only through such token-checked SECURITY DEFINER functions; the application
    role keeps token-free readers for RECORD-class records only and sees only RECORD-class rows of `esig.signature` and
-   `esig.challenge` (row-level security). The audit trail is read the same way (tablets 0420, review F35): the viewer's
+   `esig.challenge` (row-level security; since tablets 0610 none, see below). The audit trail is read the same way (tablets 0420, review F35): the viewer's
    chains, events, person filter and verification go through token-checked functions that apply the same classes to
    chains (account, person, investigation and the other governance chains need a governance or audit role), and the
    application role has no SELECT on `kernel.audit_event` and `kernel.audit_chain_head`. Review round 2 closed the
    kernel's other doors to the same data. Tablets 0430: the application role no longer executes the evidence package,
    the chain extract, an investigation's scoping report, a person's activity or the chain lists, no longer selects the
    anchors, checkpoints, verification runs or retention holds, and sees only RECORD-class rows of the signature seals,
-   the signature-ID register, the content changes, the invalidations and the signing failures. Tablets 0450: it no
+   the signature-ID register, the content changes, the invalidations and the signing failures (none since 0610).
+   Tablets 0450: it no
    longer selects the disposal approvals, tombstones, restores and restore approvals nor lists signatures through the
    integrity jobs, so it finds no id of a GOVERNANCE-class signature to ask `esig.signature_state` about. Tablets 0440:
    the person an investigation is about, whatever their role, is also refused the hold chains it creates, the hold
@@ -69,7 +70,16 @@
    authority evaluations (`iam.authority_evaluation`), where the checks of the permissions only the investigation and
    legal-hold commands use told when and how many investigations were opened, linked, refreshed and closed and holds
    placed and released, and which lead or QA reviewer acted; every reader of the table is SECURITY DEFINER, and the
-   application role still evaluates (default HW.2). Not closed in Phase 2: the application role still selects the
+   application role still evaluates (default HW.2). Tablets 0610 (round 5, correcting 0580, which said that nothing
+   else changed with those commands but the closure signing's authentication and installation-wide counters):
+   row-level security hides rows, not the planner's view of them, so the plans, row estimates, row positions and id
+   gaps of the signing requests, signatures and their side tables, and pg_class's estimates, told when and how many
+   investigations' closures were requested and signed; the application role now selects none of those seven tables
+   (the server reads its own requests through the session-checked `tab.session_challenge`), and no role but the owner
+   and the superusers selects the estimates in `pg_class`. Tablets 0620: the kernel's signing-failure log, given a
+   request id the role reads in `iam.auth_event` and another person's authentication, raised an alert naming the
+   request's record; the server now logs failures only through the session-checked `tab.record_signing_failure`
+   (default HW.3). Not closed in Phase 2: the application role still selects the
    identity tables other than the authority evaluations, and the incident, retention and continuity tables, directly
    (owner residual F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server
    read several of them as that role; moving those reads behind session-checked functions is a kernel change for both
