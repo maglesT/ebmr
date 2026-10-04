@@ -156,14 +156,21 @@ Fixed:
   `packages/kernel/test/mutation/signature-invalidation.test.ts` ([INV-10][DI-37], the forged rows refused, a row
   backed by its challenge and a consumed event taken); the recipe-core approval tests now forge their CHECKED and
   APPROVED rows the way 1112 leaves possible (the signer authenticated, the event consumed) and first show the
-  marker-alone forgery refused; their machine guards are proved as before.
+  marker-alone forgery refused; their machine guards are proved as before. Harness: state-engine-rows 112 of 112
+  detected, `recipe.guard_in_flight_dispositioned#3` still detected, `esig.signature_guard` 32 of 32 detected.
 - **D13. Evidence listener: the hold ended before the time it was announced.** The tick prune deleted by tick time,
   but the hold by another key's run is measured from the time the tick was closed, so a late-closed tick was pruned
   early, the hold ended early, and the `heldUntilUs` the database had already returned was too late. Fixed in tablets
   0715 (decision D13.1, the proposed default): a tick prunes only rows whose tick and close are both over an hour old
   (an open row by its tick, as before); X43, X40 and X37 now say the hour runs from the close. Test:
   `apps/tablets-server/test/mutation/evidence-listener.test.ts` ([DI-30][PR-20][DI-17], a run of another key that
-  ticked 61 minutes ago and closed 59 minutes ago holds until its close plus one hour, then is pruned).
+  ticked 61 minutes ago and closed 59 minutes ago holds until its close plus one hour, then is pruned). Harness on the
+  new body (18 mutants): 15 detected, #12 and #14 invalid, #19 recorded as equivalent (its entry in equivalent.json
+  still cites tablets 0350:351; the line is now 0715:63). #22, the new close condition `closed_at < clock_timestamp() -
+  interval '1 hour'` turned into `<=`, survives (a first run counted it killed through an unrelated listener-watch
+  failure; run alone it survives) and is equivalent for the reason #19 is: closed_at is the clock reading of an update on
+  an owner-only table and the reading inside the prune cannot be pinned, so no input reaches the exact microsecond. Not
+  recorded in equivalent.json (the lead's call).
 - **D15. Connection roles: an unknown grantee broke the connect policy's statement.** When a backend-signal function's
   privileges named a role oid the cluster does not know (a direct catalogue write by a superuser), the policy built a
   revoke with an empty grantee and failed with a syntax error instead of a coded refusal (fail closed, wrong message).
@@ -171,6 +178,11 @@ Fixed:
   naming each function and unknown oid, before it applies anything; the sandbox README lists the code. Tests:
   `packages/kernel/test/security/backend-signals.test.ts` ([DI-17][DI-30], the refusal, nothing applied, the
   installation still reported as not holding the policy); the connection-roles kill test now asserts the coded message.
+  Harness on the new body: 22 of 23 mutants detected. #24 (in the revoke loop, `not coalesce(r.rolsuper, false)` with
+  `true` for `false`) survives and is now equivalent: `r` is null in that loop only for a grantee oid that names no
+  role, and every such entry other than PUBLIC (oid 0, taken by the first disjunct) is refused by the new check just
+  before, over the same rows; only a superuser writing such an entry into `pg_proc` between the two statements could
+  tell them apart. Not recorded in equivalent.json (the lead's call).
 
 Open (the lead takes these next):
 

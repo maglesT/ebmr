@@ -2065,3 +2065,22 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   state history forged with the session flag, nested loops on one endpoint, the listener hold measured from the
   close, and two refusal messages) are in docs/build-plan/phase-2-exit/sql-mutation-kill-results.md. Harness smoke on
   this tree: site-zone 25/33 before the kill tests, 33/33 after.
+- 2026-10-04: PHASE 2 EXIT, SQL mutation defects, what the kernel and the listener refuse (D11, D13, D15) (branch
+  phase-2/defects-kernel from 9307dd2). D11: only the table owner and superusers can write the state tables or the
+  signature tables (the application, authentication, listener and sandbox roles hold no INSERT; checked on a migrated
+  database), so the flag forged by owner-level code was the hole. Kernel 1110: a state history row must now be a
+  published transition the state row records, in sequence (EBMR-PLAT-077), and a state row commits only with its
+  history row (EBMR-PLAT-078); decision D11.1. The same fault was in the e-signature module: a signature row was taken
+  on the signing marker alone. Kernel 1112 holds it to its challenge (EBMR-ESIG-065) and to an authentication of the
+  signer consumed for it in the same transaction (EBMR-ESIG-066); decision D11.2. Left for both: owner-level code can
+  still write rows that agree, skipping the engine's or esig.sign's checks. D13: tablets 0715, a listener tick is kept
+  until its tick and its close are both over an hour old, so the X43 hold lasts until the close plus one hour (D13.1;
+  X43, X40, X37 reworded). D15: kernel 1111, the connect policy refuses a backend-signal grant to an unknown role oid
+  with EBMR-SBX-038 and applies nothing. Each fix has a test that failed before it. The kill test for
+  guard_in_flight_dispositioned#3 and the recipe-core approval tests were adapted to forgeries the guards still allow,
+  and still prove their guards. Harness: state-engine-rows 112/112, signature_guard 32/32, apply_connect_policy 22/23,
+  record_listener_tick 15/18 (2 invalid, #19 recorded). apply_connect_policy#24 and record_listener_tick#22 are now
+  equivalent; they are reported in the kill-results page and not recorded in equivalent.json. The controls list the
+  new tests (DI-17, DI-30, DI-34, DI-37, PR-20). The other session settings the database reads were checked:
+  ebmr.ctx is validated against the command marker; a forged esig.unsealed gains nothing, since every committed
+  signature already has its one seal; esig.stub_completing guards the test stub only.
