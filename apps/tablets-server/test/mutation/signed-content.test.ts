@@ -11,17 +11,20 @@
  *   - recipe.check_signatures (0297): a command type that is not signed carries no signature or approval, a signed type
  *     the release cannot check is refused, the signature reference is a well-formed id of this system, names the person
  *     who uses it and was made by that person; the signer's own signature is checked by its own SIGNATURE use in this
- *     transaction, whatever badge tap attributes the command;
+ *     transaction, whatever badge tap attributes the command; a VERIFY is signed with the check its step requires when
+ *     the row is recorded: a block check meaning a release commits while the VERIFY waits between its two reads of the
+ *     step's meanings is caught by the second guard (P37), which names the check now required;
  *   - recipe.step_signature_meanings (0296): a decision is signed only on a hold point, and only one it lists;
  *   - recipe.step_check_meanings (0333): the trusted time of a witness is the marker of the batch it checks, never
  *     another batch's in the same transaction.
  *
- * Controls: DI-35, DI-36, DI-37, INV-10, PR-14, PR-45, PR-49, IN-15, PR-16, DI-20, INV-40. The application role
+ * Controls: DI-35, DI-36, DI-37, INV-10, PR-14, PR-20, PR-45, PR-49, IN-15, PR-16, DI-20, INV-40. The application role
  * (ebmr_sandbox; ADR 0012) is the writer: the kernel signs, the store appends, the server's own checks are bypassed where a
  * case needs a row the ceremony would never write. The private derivations are called as the superuser, as the module
  * tests do, with the arguments their callers pass.
  */
 import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { esig, withCommand } from '@ebmr/kernel';
 import { engine, execution, type flow } from '@ebmr/recipe-core';
@@ -76,6 +79,21 @@ async function driver(content: flow.MbrContent = dcMini(), personas: string[] = 
 async function startClearance(d: RunDriver): Promise<void> {
   await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
   for (const c of clearance) await d.ok('operator1', c);
+}
+
+/**
+ * In the open transaction of `c` (the superuser's), acts as a software release does: as the owner, attributed to the
+ * system's SOFTWARE_RELEASE context (the release tables are audited).
+ */
+async function asSoftwareRelease(c: pg.PoolClient, purpose: string): Promise<void> {
+  await c.query('set local role ebmr_owner');
+  await c.query(
+    `select kernel.set_actor_context(jsonb_build_object(
+       'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+       'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+       'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', $1::text))`,
+    [`Software release (test: ${purpose})`],
+  );
 }
 
 /** The kernel's content of a record as the application reads it (tab.record_content_for_signing, tablets 0410). */
@@ -243,13 +261,7 @@ describe('a stage sign-off is read as signed off, on the text with its summary (
     };
     try {
       await c.query('begin');
-      await c.query('set local role ebmr_owner');
-      await c.query(
-        `select kernel.set_actor_context(jsonb_build_object(
-           'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
-           'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
-           'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test: sign-offs made before 0319)'))`,
-      );
+      await asSoftwareRelease(c, 'sign-offs made before 0319');
       const outcomes = {
         anotherFrame: await listed('S-BLEND@', randomUUID()),
         anEarlierSignOffOfThisFrame: await listed('S-DISP@', randomUUID()),
@@ -461,13 +473,7 @@ describe('a signed command type the release cannot check (recipe-core 0297)', ()
     const c = await sbx.db.admin.connect();
     try {
       await c.query('begin');
-      await c.query('set local role ebmr_owner');
-      await c.query(
-        `select kernel.set_actor_context(jsonb_build_object(
-           'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
-           'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
-           'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test: a later signed command type)'))`,
-      );
+      await asSoftwareRelease(c, 'a later signed command type');
       await c.query("insert into recipe.execution_command_permission (command_type, permissions, signed) values ('ABORT_BATCH', array['STEP.SUPERVISE'], true)");
       await c.query('commit');
     } catch (e) {
@@ -484,4 +490,88 @@ describe('a signed command type the release cannot check (recipe-core 0297)', ()
     expect(outcome).toBe('ABORT_BATCH is a signed act whose signature test runs cannot check in this release (DI-35). [EBMR-EXE-050]');
     expect((await rowsOf(sbx, d.runId)).filter((r) => r.kind === 'COMMAND')).toEqual([]);
   }, 240_000);
+});
+
+describe('a verifier signs the check its step requires when the row is recorded (recipe-core 0297, P37)', () => {
+  /** dc-mini with the SOP reading first (block G-03 1, which has no check meaning of its own), checked by a verifier with the MBR's VERIFIED. */
+  const checkedSopFirst = (): flow.MbrContent =>
+    dcMiniVariant((prep) => {
+      const sop = prep.find((n) => n['id'] === 'p-disp-sop');
+      if (!sop) throw new Error('SETUP: dc-mini has no p-disp-sop');
+      const checked = { ...sop, signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } };
+      return [checked, ...prep.filter((n) => n !== sop)];
+    });
+
+  /** Whether a backend of this test database waits for a lock on recipe.block_signature_meaning. */
+  const waitsOnBlockMeanings = async (): Promise<boolean> => {
+    const { rows } = await sbx.db.admin.query<{ n: number }>(
+      `select count(*)::int as n from pg_locks l
+        where l.database = (select oid from pg_database where datname = current_database())
+          and l.relation = 'recipe.block_signature_meaning'::regclass and not l.granted`,
+    );
+    return (rows[0]?.n ?? 0) > 0;
+  };
+
+  it('[DI-35][PR-14][PR-20][INV-10] a block check meaning a release commits while a VERIFY waits to read its step\'s meanings: the VERIFY signed with the check the step no longer requires is refused by the second check, which names the check now required (EBMR-EXE-051); nothing is recorded or signed', async () => {
+    const SOP = 'p-disp-sop@';
+    const d = await driver(checkedSopFirst(), ['operator1', 'verifier1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: SOP });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: SOP, entry: { kind: 'ACKNOWLEDGE', mode: 'READ' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: SOP });
+    const agg = `${d.runId}:${SOP}`;
+    const ver1 = personaIn(sbx, 'verifier1');
+    const run = await runContext(sbx.db.admin, d.runId);
+    // SETUP: G-03 1 has no check meaning of its own, so the step requires the MBR's VERIFIED.
+    const { rows: own } = await sbx.db.admin.query<{ n: number }>("select count(*)::int as n from recipe.block_signature_meaning where block_type = 'G-03' and part = 'check'");
+    expect(own[0]?.n).toBe(0);
+    const p = await prepareSignature(sbx, d.browser('verifier1'), 'verifier1', 'batch_step', agg, 'VERIFIED');
+    const actor = await p.actor();
+
+    // A release adds G-03 1's check CONTAINER_CHECKED as a migration adds it (the table is insert-only), holding the
+    // table until verifier1's VERIFY, signed VERIFIED in the transaction that records it (the application role), waits
+    // to read the step's meanings: recipe.check_signatures then reads the meanings the engine accepts on the step
+    // before the release commits and the check the step requires after it.
+    const release = await sbx.db.admin.connect();
+    const verifying = { settled: false };
+    let waited = false;
+    let outcome: string;
+    try {
+      await release.query('begin');
+      await asSoftwareRelease(release, 'a block check meaning added while a VERIFY is recorded');
+      await release.query('lock table recipe.block_signature_meaning in access exclusive mode');
+      await release.query("insert into recipe.block_signature_meaning (block_type, block_version, part, meaning_code) values ('G-03', '1', 'check', 'CONTAINER_CHECKED')");
+      const verify = messageOf(
+        withCommand(sbx.db.app, actor, async (c) => {
+          const id = await p.sign(c);
+          const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+          const roles = await engineRoles(c);
+          const command: engine.Command = { type: 'VERIFY', commandId: randomUUID(), actor: engineActor(ver1.personId, roles), step: 'p-disp-sop', context: [], signature: { id, meaning: 'VERIFIED', signer: ver1.personId } };
+          return appendAs(tx, command, engineResult(tx, command), roles);
+        }),
+      ).then((m) => {
+        verifying.settled = true;
+        return m;
+      });
+      for (let i = 0; i < 1200 && !verifying.settled && !waited; i += 1) {
+        waited = await waitsOnBlockMeanings();
+        if (!waited) await new Promise((res) => setTimeout(res, 25));
+      }
+      await release.query('commit');
+      outcome = await verify;
+    } catch (e) {
+      await release.query('rollback');
+      throw e;
+    } finally {
+      release.release();
+    }
+    // SETUP: the VERIFY waited for the release's lock.
+    expect(waited).toBe(true);
+    expect(outcome).toBe(
+      'Step p-disp-sop requires the check CONTAINER_CHECKED, not VERIFIED: a verifier signs the check the step requires (its re-verification, the MBR\'s witness, or its block\'s own check), never another in its place (DI-35, PR-14, PR-20). [EBMR-EXE-051]',
+    );
+    expect((await rowsOf(sbx, d.runId)).filter((r) => r.command_type === 'VERIFY')).toEqual([]);
+    const { rows: signed } = await sbx.db.admin.query<{ n: number }>("select count(*)::int as n from esig.signature where aggregate_id = $1 and meaning_code = 'VERIFIED'", [agg]);
+    expect(signed[0]?.n).toBe(0);
+    expect((await execution.loadState(sbx.db.admin, d.runId))?.state.steps[SOP]?.status).toBe('AWAITING_VERIFICATION');
+  }, 300_000);
 });
