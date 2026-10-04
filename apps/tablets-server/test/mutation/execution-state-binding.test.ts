@@ -28,8 +28,8 @@ import { withCommand } from '@ebmr/kernel';
 import { engine, execution, type flow } from '@ebmr/recipe-core';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { actorOf, appendAs, engineResult, interceptSigned, messageOf } from '../execution/db-guards-support.ts';
-import { dcMiniVariant, importAndIssue, personaIn, rowsOf, RunDriver, startExecServer, valueOf, withEarlyParameter, writePackage, type ExecServer } from '../execution/support.ts';
+import { actorOf, appendAs, engineResult, interceptSigned, messageOf, prepareSignature } from '../execution/db-guards-support.ts';
+import { dcMini, dcMiniVariant, importAndIssue, personaIn, rowsOf, RunDriver, startExecServer, valueOf, withEarlyParameter, writePackage, type ExecServer } from '../execution/support.ts';
 
 let server: ExecServer;
 beforeAll(async () => {
@@ -384,6 +384,137 @@ describe('D8: a recorded signature keeps its validity (recipe-core 0381 recipe.s
     // The honest exception keeps the signature as recorded.
     expect(await forged(d, 'operator1', exceptionWith(() => undefined))).toBe('ok');
     expect(only(stepOf(await stateOf(d), KEY).signatures, 'signature')).toEqual(signature);
+  }, 240_000);
+});
+
+describe('D9: a row makes a recorded signature invalid only where the engine does (recipe-core 0382 zzm_execution_signature_invalidation; decision D9.1; EBMR-EXE-128)', () => {
+  const CLEAR = 'p-disp-clear@';
+  const invalidates = (row: string, step: string, what: string) =>
+    `This ${row} row changes the signatures of step ${step} otherwise than the engine does: ${what}. The engine makes a recorded signature invalid only when the data it covers changes on a step left in progress (a PERFORMED signature, whose signer signs again) and, in a correction or a result invalidation, on a step it sends back for re-verification or reopens (DI-35, INV-10, PR-14). [EBMR-EXE-128]`;
+
+  it('[DI-35][INV-10][PR-14][INV-03] an exception whose state makes another step\'s PERFORMED signature (the step waiting for its check, nothing of it changed) or CHECKED signature (the step completed) invalid is refused; nothing is written and both stay valid', async () => {
+    const d = await driver(withEarlyParameter(), ['verifier1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    valueOf(await d.command('operator1', { type: 'RECORD_DATA', stepKey: KEY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } }));
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: KEY });
+    const performed = only(stepOf(await stateOf(d), KEY).signatures, 'signature');
+    expect(stepOf(await stateOf(d), KEY).status, 'SETUP: the step waits for its check').toBe('AWAITING_VERIFICATION');
+    const invalid = (id: string) => (s: engine.BatchState): void => {
+      const g = stepOf(s, KEY).signatures.find((x) => x.id === id);
+      if (!g) throw new Error(`SETUP: no signature ${id}`);
+      g.valid = false;
+    };
+    const waiting = {
+      performed: await forged(d, 'operator1', exceptionWith(invalid(performed.id))),
+      performedAndSigner: await forged(d, 'operator1', exceptionWith((s) => {
+        invalid(performed.id)(s);
+        stepOf(s, KEY).performedSigners = [];
+      })),
+    };
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: KEY, meaning: 'VERIFIED' });
+    const done = stepOf(await stateOf(d), KEY);
+    const checked = only(done.signatures.filter((g) => g.role === 'CHECKED'), 'check');
+    expect(done.status, 'SETUP: the check completes the step').toBe('COMPLETED');
+    const completed = { checked: await forged(d, 'operator1', exceptionWith(invalid(checked.id))) };
+    expect({ ...waiting, ...completed }).toEqual({
+      performed: invalidates('accepted RAISE_EXCEPTION', KEY, `its PERFORMED signature ${performed.id} is made invalid with the step left AWAITING_VERIFICATION and none of its data changed`),
+      performedAndSigner: invalidates('accepted RAISE_EXCEPTION', KEY, `its PERFORMED signature ${performed.id} is made invalid with the step left AWAITING_VERIFICATION and none of its data changed`),
+      checked: invalidates('accepted RAISE_EXCEPTION', KEY, `its CHECKED signature ${checked.id} is made invalid with the step left COMPLETED and none of its data changed`),
+    });
+    expect((await rowsOf(server, d.runId)).filter((r) => r.command_type === 'RAISE_EXCEPTION'), 'nothing was written').toEqual([]);
+    expect(stepOf(await stateOf(d), KEY).signatures.map((g) => [g.role, g.valid])).toEqual([['PERFORMED', true], ['CHECKED', true]]);
+    expect(await forged(d, 'operator1', exceptionWith(() => undefined))).toBe('ok');
+  }, 240_000);
+
+  it('[DI-35][INV-10][PR-14][INV-03] on the clearance two operators fill: another person\'s entry that makes operator1\'s PERFORMED signature invalid keeps the engine\'s rule (its signer drops out) or is refused; an operator\'s exception at the step, an act and not data of the step, makes no signature invalid; the engine\'s own entry is recorded', async () => {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, dcMini()));
+    const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1'), operator2: await server.asPersona('operator2', 'TEST-KIOSK-DISP-1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    const answers = ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const }));
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers } });
+    await d.ok('operator2', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9991' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR });
+    const op1 = personaIn(server, 'operator1').personId;
+    const s0 = stepOf(await stateOf(d), CLEAR);
+    expect({ status: s0.status, signers: s0.performedSigners }, 'SETUP: operator2 has not signed, so the clearance stays in progress').toEqual({ status: 'IN_PROGRESS', signers: [op1] });
+    const performed = only(s0.signatures, 'signature');
+    const entry = (me: engine.Actor): engine.Command => ({
+      type: 'RECORD_ENTRY', commandId: randomUUID(), actor: me, step: 'p-disp-clear', context: [], entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-Y', batchNumber: 'TEST-B26-9992' },
+    });
+    /** operator2's entry as the engine computes it (operator1's PERFORMED signature made invalid), changed by `edit`. */
+    const entryWith = (edit: (state: engine.BatchState) => void) => (tx: execution.ExecutionTx, me: engine.Actor): Forged => {
+      const command = entry(me);
+      const r = engineResult(tx, command);
+      expect(stepOf(r.state, CLEAR).signatures.map((g) => g.valid), 'SETUP: the engine makes operator1\'s signature invalid').toEqual([false]);
+      const state = structuredClone(r.state);
+      edit(state);
+      return { command, state, events: r.events };
+    };
+    const atTheStep = (me: engine.Actor): engine.Command => ({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: me, step: 'p-disp-clear', context: [], description: 'Booth door left open for a minute', severity: 'ALERT' });
+    const outcomes = {
+      signerStays: await forged(d, 'operator2', entryWith((s) => void (stepOf(s, CLEAR).performedSigners = [op1]))),
+      byAnException: await forged(d, 'operator2', (tx, me) => {
+        const command = atTheStep(me);
+        const r = engineResult(tx, command);
+        const state = structuredClone(r.state);
+        const g = only(stepOf(state, CLEAR).signatures, 'signature');
+        g.valid = false;
+        stepOf(state, CLEAR).performedSigners = [];
+        return { command, state, events: r.events };
+      }),
+    };
+    const RE = 'RECORD_ENTRY';
+    expect(outcomes).toEqual({
+      signerStays: invalidates(`accepted ${RE}`, CLEAR, `the PERFORMED signature of ${op1} is made invalid, and ${op1} stays a PERFORMED signer of it`),
+      byAnException: invalidates('accepted RAISE_EXCEPTION', CLEAR, `its PERFORMED signature ${performed.id} is made invalid with the step left IN_PROGRESS and none of its data changed`),
+    });
+    expect(stepOf(await stateOf(d), CLEAR).signatures.map((g) => g.valid), 'nothing was written').toEqual([true]);
+    // The engine's own rows: the exception changes no signature; operator2's entry makes operator1's invalid, and
+    // operator1 is no longer a PERFORMED signer.
+    expect(await honest(d, 'operator2', atTheStep)).toBe('ok');
+    expect(stepOf(await stateOf(d), CLEAR).signatures.map((g) => g.valid)).toEqual([true]);
+    expect(await honest(d, 'operator2', entry)).toBe('ok');
+    const s1 = stepOf(await stateOf(d), CLEAR);
+    expect({ valid: s1.signatures.map((g) => g.valid), signers: s1.performedSigners }).toEqual({ valid: [false], signers: [] });
+  }, 240_000);
+
+  it('[DI-35][INV-10][DI-24][PR-14] a correction of a verified value sends its step back for re-verification: the engine\'s own row, which makes the step\'s PERFORMED and CHECKED signatures invalid and keeps its PERFORMED signer, is recorded', async () => {
+    const content = JSON.parse(JSON.stringify(withEarlyParameter())) as Json;
+    for (const p of content['parameters'] as Json[]) if (p['id'] === 'blendTime') p['criticality'] = 'NON_CRITICAL';
+    const d = await driver(content as unknown as flow.MbrContent, ['verifier1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    valueOf(await d.command('operator1', { type: 'RECORD_DATA', stepKey: KEY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } }));
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: KEY });
+    await d.signed('verifier1', { type: 'VERIFY', stepKey: KEY, meaning: 'VERIFIED' });
+    const done = stepOf(await stateOf(d), KEY);
+    expect({ status: done.status, valid: done.signatures.map((g) => [g.role, g.valid]) }, 'SETUP: the step is verified').toEqual({ status: 'COMPLETED', valid: [['PERFORMED', true], ['CHECKED', true]] });
+    const point = only(Object.values((await stateOf(d)).points).filter((x) => x.item === 'blendTime' && x.status === 'VALID'), 'value').id;
+    // operator1 corrects the blend time without an approval (declared NON_CRITICAL), signing CORRECTED in the command.
+    const run = await runContext(server.db.admin, d.runId);
+    const me = personaIn(server, 'operator1');
+    const p = await prepareSignature(server, d.browser('operator1'), 'operator1', 'batch_point', `${d.runId}:${point}`, 'CORRECTED');
+    const corrected = await messageOf(
+      withCommand(server.db.app, await p.actor(), async (c) => {
+        const id = await p.sign(c);
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const r = await tx.command(
+          { type: 'CORRECT_ENTRY', commandId: randomUUID(), actor: engineActor(me.personId, roles), point, value: { kind: 'DECIMAL', value: '16', unit: 'min' }, reason: 'Transcription error: the timer read 16 min', signature: { id, meaning: 'CORRECTED', signer: me.personId } },
+          roles,
+        );
+        if (!r.accepted) throw new Error(`SETUP: the engine refused the correction: ${JSON.stringify(r.refusal)}`);
+      }),
+    );
+    expect(corrected).toBe('ok');
+    const back = stepOf(await stateOf(d), KEY);
+    expect({ status: back.status, reverification: back.reverification, valid: back.signatures.map((g) => [g.role, g.valid]), signers: back.performedSigners }).toEqual({
+      status: 'AWAITING_VERIFICATION',
+      reverification: true,
+      valid: [['PERFORMED', false], ['CHECKED', false]],
+      signers: [me.personId],
+    });
   }, 240_000);
 });
 

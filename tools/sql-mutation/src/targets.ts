@@ -159,7 +159,9 @@ export const TARGETS: Target[] = [
     group: 'execution-state-binding',
     functions: ['recipe.execution_state_binding_check', 'recipe.new_instance_problem', 'recipe.signature_change_problem',
                 'recipe.row_step_key', 'recipe.execution_recorded_state_check', 'recipe.sweep_state_problem',
-                'recipe.kept_records_problem', 'recipe.members_changed'],
+                'recipe.kept_records_problem', 'recipe.members_changed',
+                // recipe-core 0382 (defect D9): a recorded signature made invalid only where the engine does.
+                'recipe.step_facts_changed', 'recipe.signature_invalidation_problem', 'recipe.execution_signature_invalidation_check'],
     tests: [r('execution/kept-records-sql.test.ts'), s('execution/evidence-source.test.ts'), r('execution/exception-source-sql.test.ts')],
     threshold: 90,
   },

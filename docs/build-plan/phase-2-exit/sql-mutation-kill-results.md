@@ -151,6 +151,20 @@ Fixed:
   its validity ..." (packages/recipe-core/test/mutation/execution-state-binding.test.ts) and "[DI-35][INV-10][PR-14] an
   exception whose state drops the validity ..." (apps/tablets-server/test/mutation/execution-state-binding.test.ts),
   both failing before 0381.
+- **D9. Execution state binding: any row could invalidate another step's signature.** The binding check let any row turn
+  any recorded signature of another step from valid to not valid, with no data changed, and left its signer among the
+  performers; the engine invalidates only on a change of signed content or through a correction or result
+  invalidation. Fixed in recipe-core 0382 (decision D9.1, EBMR-EXE-128): a row, whatever its kind, makes a recorded
+  signature of any step instance invalid only as the engine does: a PERFORMED signature of a step it leaves
+  IN_PROGRESS whose data (values, computed values, entries, exceptions that are data of the step) it changes, the
+  signer then no longer a PERFORMED signer; in a CORRECT_ENTRY or INVALIDATE_RESULT, the PERFORMED and CHECKED
+  signatures of a step COMPLETED or AWAITING_VERIFICATION before the row that it sends back for re-verification or
+  reopens. Tests: "[DI-35][INV-10][PR-14][INV-03] the engine's
+  three paths are accepted ..." and "... the data a step's signature covers changes ..."
+  (packages/recipe-core/test/mutation/execution-state-binding.test.ts), and "... an exception whose state makes another
+  step's PERFORMED signature ... invalid is refused ..." and "... on the clearance two operators fill ..."
+  (apps/tablets-server/test/mutation/execution-state-binding.test.ts), the two store-level tests failing before 0382.
+  The golden replays and the execution SQL and store tests pass with it.
 
 Open (the lead takes these next):
 
@@ -160,10 +174,6 @@ Open (the lead takes these next):
   a validated MBR thus fails INV-20 in the engine while the database accepts it. Needs a decision: the validator
   refuses such a minimum, or the engine and database flag the early start. Leaves
   `recipe.minimum_duration_problem#15`.
-- **D9. Execution state binding: any row may invalidate another step's signature.** The binding check lets any row
-  turn any recorded signature of another step from valid to not valid, with no data changed, and leaves its signer
-  among the performers; the engine invalidates only on a change of signed content or through a correction or result
-  invalidation. Needs a design decision on which rows may invalidate which signatures.
 - **D10. Market authorisation: activation and cells written around the command.** The activation table has only a
   stamp trigger and the cell guard does not check the version's state, so owner-level code can write an activation
   and a CURRENT cell for a version that is only CHECKED, skipping every check of the activation command, and the
