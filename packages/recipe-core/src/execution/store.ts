@@ -289,6 +289,29 @@ export async function loadContentHeads(db: Queryable, batchId: string): Promise<
   return new Map(rows.map((r) => [`${r.type}:${r.key}`, { version: r.version, hash: r.hash }]));
 }
 
+/** One stored content version of a signable aggregate: the row that stored it and its hash. */
+export interface ContentVersionRecord {
+  type: AggregateType;
+  key: string;
+  version: number;
+  hash: string;
+  rowSeq: bigint;
+}
+
+/** Every stored content version of every signable aggregate of a batch, in the order of the rows that stored them. */
+export async function loadContentVersions(db: Queryable, batchId: string): Promise<ContentVersionRecord[]> {
+  const { rows } = await db.query<{ type: AggregateType; key: string; version: number; hash: string; row_seq: string }>(
+    `select type, key, version, hash, row_seq::text as row_seq from (
+       select 'batch_step' as type, aggregate_key as key, content_version as version, content_hash as hash, row_seq from recipe.execution_step_content where batch_id = $1
+       union all select 'batch_stage', aggregate_key, content_version, content_hash, row_seq from recipe.execution_stage_content where batch_id = $1
+       union all select 'batch_exception', aggregate_key, content_version, content_hash, row_seq from recipe.execution_exception_content where batch_id = $1
+       union all select 'batch_point', aggregate_key, content_version, content_hash, row_seq from recipe.execution_point_content where batch_id = $1) x
+     order by row_seq, type, key, version`,
+    [batchId],
+  );
+  return rows.map((r) => ({ type: r.type, key: r.key, version: r.version, hash: r.hash, rowSeq: BigInt(r.row_seq) }));
+}
+
 const CONTENT_TABLES: Readonly<Record<AggregateType, string>> = {
   batch_step: 'recipe.execution_step_content',
   batch_stage: 'recipe.execution_stage_content',

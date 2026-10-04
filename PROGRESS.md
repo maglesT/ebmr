@@ -1840,6 +1840,18 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   - a member of its own in the state or an event (REPLAY-GATE.1 covers it);
   - a signable content version superseded before the replay, which nothing reads;
   - the origin of an imported test package, which is the package's own claim.
+  - Lane round 2 (F12 round 8): recipe-core 0338 holds a command's context to the frames of a step instance, stage
+    frame or decision of the state (no context for a step-less RAISE_EXCEPTION), a preparation's target to a signed
+    command type and a step instance of the state, every content version to an aggregate of its row's state under its
+    own key with exactly its kind's members, a hand-keyed value to its parameter's form, and an engine version to
+    major.minor.patch matching the batch's state. recipe-core 0339 names what a row brings into the state as the engine
+    names it (EX/EN/DP/DV/HOLD ids, stage frames, decisions, sub-lots). The replay now reads every stored content
+    version (F12.5 and REPLAY-GATE.1 corrected; decision F12.6). The challenge answers 404 for a step that is not
+    started. Tests: apps/tablets-server/test/execution/db-guards-row-context.test.ts (7) and
+    packages/recipe-core/test/execution/row-context-sql.test.ts (7), each failing with its migration moved aside.
+    Still open (F12.6): free text F12.5 names; tab.sandbox_lot material code and name and tab.reading_use purpose; the
+    kernel sandbox stub lot code and batch number (a DI-05 kernel item for the lead). The E2E fcv journey failed on a
+    client-side badge tap this lane does not touch.
 - 2026-10-03: SQL MUTATION HARNESS FOR THE PHASE 2 GUARDS (branch phase-2/sql-mutation from 979e747; the full run and
   the kill tests are the next step). tools/sql-mutation knew only the Phase 1 kernel. Definitions now come from every
   SQL directory in migration order (kernel, site services, recipe-core, tablets), a function identified as PostgreSQL

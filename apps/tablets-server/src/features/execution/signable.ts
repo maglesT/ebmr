@@ -729,6 +729,9 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
     async prepareForChallenge(client, ctx, a) {
       const o = await open(client, ctx, a);
       if (o.problem) throw new HttpRefusal(422, o.problem);
+      // A PERFORMED signature is prepared only for a step instance of the run (recipe-core 0338 refuses a preparation that
+      // names another; F12 round 8, DI-05): a step key the run does not have is not found, before anything is written.
+      if (o.subject.target.type === 'SIGN_PERFORMED' && !o.tx.state.steps[o.subject.key]) throw notFound('record to be signed');
       // A step is signed as performed or verified only from a terminal of its room (DI-20; the database refuses the
       // signed row from anywhere else, recipe-core 0285 and 0300): said here, before the challenge and the PIN.
       const room = a.intent.type === 'SIGN_PERFORMED' || a.intent.type === 'VERIFY' ? stepRoomRefusal(o.run.def, stepTarget(o.tx.state, a.intent.stepKey).step, ctx.room) : null;

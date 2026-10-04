@@ -77,8 +77,11 @@ export function applyRow(def: BatchDefinition, state: BatchState | undefined, ki
   return { state: r.state, events: r.events, accepted: r.accepted };
 }
 
-/** Replays stored rows (in `seq` order) and compares every row with what the engine produces now. */
-export function replay(def: BatchDefinition, rows: readonly ExecutionRow[]): ReplayResult {
+/**
+ * Replays stored rows (in `seq` order) and compares every row with what the engine produces now. `observe`, when given,
+ * sees every row that replayed identically, with the state before it (undefined for the issue) and after it.
+ */
+export function replay(def: BatchDefinition, rows: readonly ExecutionRow[], observe?: (row: ExecutionRow, before: BatchState | undefined, after: BatchState) => void): ReplayResult {
   let state: BatchState | undefined;
   const violations: string[] = [];
   let expectedSeq = 1n;
@@ -98,6 +101,7 @@ export function replay(def: BatchDefinition, rows: readonly ExecutionRow[]): Rep
     if (eh !== row.eventsHash) return diff('eventsHash', row.eventsHash, eh);
     const sh = stateHash(r.state);
     if (sh !== row.stateHash) return diff('stateHash', row.stateHash, sh);
+    observe?.(row, state, r.state);
     state = r.state;
     const v = checkInvariants(def, state);
     if (v.length > 0) {
