@@ -1983,3 +1983,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   identifier-words (2 more); each fails with its migration moved aside. Decision F12.9; F12.5, F12.8 and sandbox.md
   section 7 corrected. A request naming a record the run does not have is now refused and not recorded.
   Reported: a G-12 plan given only as a number of locations names points L1 to Ln that the reading refuses.
+  Round 3 of the lane (round 12 of F12): the verification found the basis of a hand-keyed weighing
+  (tab.manual_weighing_basis), keyed to a run's row, read by nothing: a fake gateway's not-ready text or serial
+  L2409-0017 was recorded there over HTTP. A number in a compound also passed by its form (BATCH/2409/0017, QA/2409/0017
+  recorded). Now tablets 0640 reads the basis at commit with the identifier rule, allowing the installation's own error
+  codes (EBMR-DEV-048). In a sandbox a weighing whose basis would quote such a word is refused, an honest serial like
+  SIM-9999 included (default F12.10). Recipe-core 0348 lets a compound pass by its parts only when each part holds a
+  letter, and allows a number only in the engine's shapes (context fragments within the section's maximum, held ids).
+  Tests: server db-guards-free-text-weighing-basis (2) and -compounds (2), recipe-core engine-names-sql (golden runs);
+  each fails with its migration moved aside. Decision F12.10; F12.8, F12.9 and sandbox.md section 7 corrected.
