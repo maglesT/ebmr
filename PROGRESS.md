@@ -1788,3 +1788,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (BADGE-AUTOFILL.1 corrected). Tests: recipe-core execution/step-times-sql (new), validator/content; server
   execution/witness-without-printout, refusals-and-room-views; web designer/check-in-release; ui-kit
   identity/badge-autofill. E2E floor and esig pass.
+  Lane round 3 (T12.DOC, BADGE-AUTOFILL): a phase whose MBR names no check gave no warning and showed "—" as its check,
+  while the engine checks a critical value typed by hand from its printout by a timed witness (fallback verifier
+  roles), then by the later review with WITNESS_LATE; the validator now warns for it with any capture and the
+  document and step properties say how it is checked (T12.3 corrected; the MANUAL_ENTRY_FALLBACK review of a value
+  whose MBR names another capture is left to the owner there). The kiosk new-PIN fields took a trusted insertion with
+  no key before it (document.execCommand) and a value set with no event; every noAutofill field now takes only what
+  trusted keys brought and checks the length they left (BADGE-AUTOFILL.1 corrected; checked in real Chromium). Tests:
+  recipe-core validator/content, web designer/check-in-release, ui-kit identity/badge-autofill, web
+  session/badge-autofill and sign-in-screens (F05 reaches its digits check by typing). E2E access passes.
