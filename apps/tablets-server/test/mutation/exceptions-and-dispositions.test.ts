@@ -26,7 +26,7 @@ import { esig, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { engine, execution, type flow } from '@ebmr/recipe-core';
 import { terminalOf } from '@ebmr/test-kit';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
-import { runContext } from '../../src/features/execution/runs.ts';
+import { defineForSandbox, runContext } from '../../src/features/execution/runs.ts';
 import { actorOf, appendAs, engineResult, messageOf, nextState, prepareSignature } from '../execution/db-guards-support.ts';
 import { dcMini, dcMiniVariant, importAndIssue, personaIn, rowsOf, RunDriver, startExecServer, violations, withEarlyParameter, writePackage, type ExecServer } from '../execution/support.ts';
 
@@ -93,15 +93,15 @@ async function atHoldPoint(content: flow.MbrContent = withConditionalRelease()):
 }
 
 /** `persona` runs `work` in a command of their own, through the application role: 'ok' or the refusal's message. */
-async function asApp(d: RunDriver, persona: string, work: (c: Client) => Promise<unknown>): Promise<string> {
-  return messageOf(withCommand(sbx.db.app, await actorOf(sbx, d.browser(persona), persona), work));
+async function asApp(persona: string, work: (c: Client) => Promise<unknown>): Promise<string> {
+  return messageOf(withCommand(sbx.db.app, await actorOf(sbx, await browserOf(persona), persona), work));
 }
 
 const proposeDisposition = (d: RunDriver, exception: string, proposal: unknown): Promise<string> =>
-  asApp(d, 'qa1', (c) => c.query('select recipe.propose_disposition($1, $2, $3::jsonb)', [d.runId, exception, JSON.stringify(proposal)]));
+  asApp('qa1', (c) => c.query('select recipe.propose_disposition($1, $2, $3::jsonb)', [d.runId, exception, JSON.stringify(proposal)]));
 
 const proposeDecision = (d: RunDriver, stepKey: string, proposal: unknown): Promise<string> =>
-  asApp(d, 'qa1', (c) => c.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [d.runId, stepKey, JSON.stringify(proposal)]));
+  asApp('qa1', (c) => c.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [d.runId, stepKey, JSON.stringify(proposal)]));
 
 async function dispositionProposals(runId: string): Promise<Json[]> {
   const { rows } = await sbx.db.admin.query<{ p: Json }>('select proposal as p from recipe.execution_disposition_proposal where batch_id = $1 order by id', [runId]);
@@ -340,6 +340,48 @@ describe('recipe.propose_hold_point_decision: what a proposed decision is, and o
       notApplicable: 'Hold point H-ALT@ is not waiting for a decision (PR-45). [EBMR-EXE-084]',
     });
     expect(await decisionProposals(d.runId)).toEqual([]);
+  }, 300_000);
+
+  it('[PR-45][DI-37] a hold point whose MBR content offers no list of decisions takes no proposed decision: a package imported and a batch issued past the server, through the application role, with the hold point\'s dispositions left out', async () => {
+    // The hold point first, so it waits for its decision from the issue on; the package's content leaves its list out.
+    const offered = dcMiniVariant((prep) => [{ kind: 'holdPoint', id: 'H-TEST', name: 'QA release of the dispensing booth', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] }, ...prep]);
+    const stored = JSON.parse(JSON.stringify(offered)) as Json;
+    const stage = ((((stored['procedure'] as Json)['body'] as Json)['children'] as Json[])[0] as Json)['body'] as Json;
+    const prep = ((stage['children'] as Json[])[0] as Json)['body'] as Json;
+    const hold = (prep['children'] as Json[])[0] as Json;
+    expect(hold['id']).toBe('H-TEST');
+    delete hold['dispositions'];
+    const pkg = writePackage(sbx, stored as unknown as flow.MbrContent);
+    expect(await asApp('issuer', (c) => execution.importTestPackage(c, pkg, `${pkg.packageHash}.json`))).toBe('ok');
+    // The application issues it with the engine's initial state of the content that offers the decisions.
+    const def = defineForSandbox(`${pkg.packageHash}:offered`, offered, []);
+    const who = personaIn(sbx, 'issuer');
+    const batchId = randomUUID();
+    const issued = await asApp('issuer', async (c) => {
+      const begun = await execution.beginIssue(c, batchId);
+      const request: engine.IssueRequest = {
+        batchId, batchNumber: begun.batchNumber, batchSize: offered.header.batchSizes[0]?.id ?? '', marketSet: ['IN'], purpose: 'VALIDATION', variants: {},
+        inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'mutation kill test' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles: [] },
+      };
+      const r = engine.issue(def, request, { nowUs: begun.nowUs });
+      const state = { ...r.state, mbrHash: pkg.contentHash };
+      const events = r.events.map((e) => (e.type === 'BATCH_ISSUED' ? { ...e, mbrHash: pkg.contentHash } : e));
+      await execution.issueExecution(c, {
+        batchId, packageHash: pkg.packageHash, batchNumber: begun.batchNumber, request: engine.encode(request), policy: execution.pinnedPolicy(def.policy),
+        registryFingerprint: def.registry.fingerprint(), engineVersion: engine.ENGINE_VERSION, nowUs: begun.nowUs, state, events, contents: engine.changedContents(def, undefined, state),
+      });
+    });
+    expect(issued).toBe('ok');
+    expect((await execution.loadState(sbx.db.admin, batchId))?.state.steps[HOLD]).toMatchObject({ kind: 'HOLD', status: 'ENABLED' });
+    const d = new RunDriver(sbx, batchId, { qa1: await browserOf('qa1') });
+    expect({
+      approved: await proposeDecision(d, HOLD, { disposition: 'APPROVED', comment: null }),
+      notApproved: await proposeDecision(d, HOLD, { disposition: 'NOT_APPROVED', comment: 'Residue behind the grille' }),
+    }).toEqual({
+      approved: 'APPROVED is not a decision hold point H-TEST@ offers (PR-45). [EBMR-EXE-084]',
+      notApproved: 'NOT_APPROVED is not a decision hold point H-TEST@ offers (PR-45). [EBMR-EXE-084]',
+    });
+    expect(await decisionProposals(batchId)).toEqual([]);
   }, 300_000);
 
   it('[DI-37][PR-45] a decision proposed on a hold point whose signable content is missing (a record restored without it) is refused, and nothing is stored', async () => {
