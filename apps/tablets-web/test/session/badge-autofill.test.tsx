@@ -8,7 +8,7 @@
  * fields ask browsers and password managers to leave them alone, and what reached them otherwise than typed key by key
  * is never sent: the screen says why and waits for the reader's tap or the typed PIN.
  */
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
@@ -219,5 +219,87 @@ describe('BADGE-AUTOFILL: the kiosk sends no secret a browser or password manage
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByText('Tap your badge to confirm your new PIN.')).toBeTruthy();
     expect(server.changes).toEqual([]);
+  });
+
+  it('[DI-15][DI-19][DI-38] BADGE-AUTOFILL round 4: kiosk first-login change: a new PIN mostly set with no event and finished by a real key, a real Backspace or a deletion no key brought is not taken (no badge is asked for, nothing is sent); typed key by key it is, and the change sends the typed PIN', async () => {
+    const server = kioskServer();
+    setTransport(server.fetch);
+    render(
+      <BootProvider>
+        <Gate />
+      </BootProvider>,
+    );
+    await userEvent.type(await screen.findByLabelText<HTMLInputElement>('Badge'), `${UID}{Enter}`);
+    await screen.findByRole('group', { name: 'Enter your PIN' });
+    for (const d of '482913') await userEvent.click(screen.getByRole('button', { name: d }));
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByRole('heading', { name: 'Choose a new PIN' })).toBeTruthy();
+    const first = screen.getByLabelText<HTMLInputElement>('New PIN');
+    const second = screen.getByLabelText<HTMLInputElement>('Repeat the new PIN');
+    const setNatively = (el: HTMLInputElement, value: string) => Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(el, value);
+    // A value a script or password manager sets with no event; the browser puts the caret at its end.
+    const setSilently = (el: HTMLInputElement, value: string) => {
+      el.focus();
+      setNatively(el, value);
+      el.setSelectionRange(value.length, value.length);
+    };
+    // A real key as the browser handles it (userEvent keeps its own copy of the value, which a silent set does not
+    // reach): keydown, its character or Backspace's deletion at the caret, one input event, keyup.
+    const press = (el: HTMLInputElement, key: string) => {
+      fireEvent.keyDown(el, { key });
+      const at = el.selectionStart ?? el.value.length;
+      if (key === 'Backspace') {
+        setNatively(el, el.value.slice(0, at - 1) + el.value.slice(at));
+        el.setSelectionRange(at - 1, at - 1);
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
+      } else {
+        setNatively(el, el.value.slice(0, at) + key + el.value.slice(at));
+        el.setSelectionRange(at + 1, at + 1);
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: key }));
+      }
+      fireEvent.keyUp(el, { key });
+    };
+    // What document.execCommand('delete') does in Chromium: one character less and a trusted deletion, no key.
+    const execDelete = (el: HTMLInputElement) => {
+      setNatively(el, el.value.slice(0, -1));
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
+    };
+    const attempts: Record<string, (el: HTMLInputElement) => void> = {
+      // The lane verifier's probe: '73190' set with no event in each field and '4' typed after it.
+      'set with no event, then a real key': (el) => {
+        setSilently(el, '73190');
+        press(el, '4');
+      },
+      'set with no event, then a real Backspace': (el) => {
+        setSilently(el, '7319045');
+        press(el, 'Backspace');
+      },
+      'set with no event, then a deletion no key brought': (el) => {
+        setSilently(el, '7319045');
+        execDelete(el);
+      },
+    };
+    for (const [name, attempt] of Object.entries(attempts)) {
+      attempt(first);
+      attempt(second);
+      expect([first.value, second.value], `${name}: the PIN reached both fields`).toEqual(['731904', '731904']);
+      await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      expect(screen.getByText(PIN_TYPED), name).toBeTruthy();
+      expect(screen.queryByText('Tap your badge to confirm your new PIN.'), name).toBeNull();
+      expect([first.value, second.value], `${name}: both fields are emptied`).toEqual(['', '']);
+    }
+    expect(server.changes).toEqual([]);
+    // Typed key by key (a typing slip deleted with a real Backspace included): the badge is asked for, and the change
+    // sends what was typed.
+    for (const ch of '7319045') press(first, ch);
+    press(first, 'Backspace');
+    for (const ch of '731904') press(second, ch);
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByText('Tap your badge to confirm your new PIN.')).toBeTruthy();
+    expect(screen.queryByText(PIN_TYPED)).toBeNull();
+    await userEvent.type(screen.getByLabelText<HTMLInputElement>('Badge'), `${UID}{Enter}`);
+    expect(await screen.findByText('Your new PIN is set. Sign in with it now.')).toBeTruthy();
+    expect(server.changes).toHaveLength(1);
+    expect(server.changes[0]).toMatchObject({ identifier: UID, changeTicket: TICKET, newSecret: '731904' });
   });
 });

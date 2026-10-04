@@ -21,14 +21,25 @@
  * Round 3 (the keyed detection the badge prompt has, for every `noAutofill` field, the kiosk's new-PIN fields
  * included): an insertion counts as typed only when a trusted key brought it. A script's document.execCommand
  * ('insertText') makes an input event the browser marks as trusted, with the type of a typed character but no key before
- * it, so an insertion no trusted key preceded is a fill; and the field keeps the length its typed keys and deletions
- * left (`KEYED`), so text set with no event at all (the value changed by a script) is a fill when it is read. A key
- * that brings text is a printable key without a shortcut modifier (its insertion is one character), or a key a touch
- * keyboard or input method reports without naming it ("Unidentified", "Process"), as tablet keyboards do. Kept per
- * field outside React, and never a character: whether such a key is pending (until its insertion or its release) and a
- * length. What remains: text set silently to exactly the length the typed keys left is not told apart (the field keeps
- * no copy of the secret to compare with), and while a key is held a script's insertion in that moment is taken as its
- * own (one character for a printable key, any text for a touch keyboard's unnamed key).
+ * it, so an insertion no trusted key preceded is a fill. A key that brings text is a printable key without a shortcut
+ * modifier (its insertion is one character), or a key a touch keyboard or input method reports without naming it
+ * ("Unidentified", "Process"), as tablet keyboards do.
+ *
+ * Round 4 (the lane verifier's real-browser probes): round 3 kept the length of the field, but took it back from the
+ * field's text at every input event and let any deletion through without a key, so text set with no event stopped
+ * showing once one real key, one Backspace or a script's document.execCommand('delete') followed it ('73190' set
+ * silently and a typed '4' sent '731904' as a new PIN). Now the field never takes its count from the text it holds
+ * (`KEYED`): it adds what an accepted key brought (one character, or what a touch keyboard composed) and takes away what
+ * an accepted deletion removed, each in place of the selection the key went down on. A deletion counts only when a
+ * trusted key brought it too (Backspace or Delete, a word with a modifier, or a touch keyboard's unnamed key), and only
+ * as much as that key may remove (one character, the selection, or for a word or a touch keyboard at most what lies on
+ * the caret's side); a deletion no such key preceded is a fill. Every trusted key first compares the field's length with
+ * the count, so text set with no event before the key is a fill at once; the count is compared again whenever the field
+ * is read. Kept per field outside React, and never a character: the pending key's kind and the selection it went down
+ * on, and a count. What remains: text set silently to exactly the count is not told apart (the field keeps no copy of
+ * the secret to compare with), and while a key is held a script's change in that moment is taken as the key's own if it
+ * leaves the field as long as that key would have (one character in or out for a printable key or Backspace, the span
+ * the key may remove for a word or a touch keyboard).
  */
 import { useId, useImperativeHandle, useLayoutEffect, useRef, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type Ref, type RefObject } from 'react';
 import { cls } from './classes.ts';
@@ -56,53 +67,99 @@ export interface SecretInputProps {
 }
 
 /**
- * The input events a person typing (or a keyboard-wedge reader) makes; any other insertion counts as filled in. They
- * count only when trusted: the browser made them from a real key (see `scripted`). The insertions among them count only
- * when a trusted key brought them (`KEYED_INSERT`, round 3); a deletion takes text away and brings none.
+ * The input events a person typing (or a keyboard-wedge reader) makes; any other change counts as filled in. They count
+ * only when trusted: the browser made them from a real key (see `scripted`), and only when a trusted key brought them
+ * (round 3 for insertions, round 4 for deletions too: document.execCommand('delete') makes a trusted deletion with no key).
  */
 const TYPED_INPUT = new Set(['insertText', 'insertCompositionText', 'deleteContentBackward', 'deleteContentForward', 'deleteWordBackward', 'deleteWordForward', 'deleteCompositionText']);
 
-/** The typed input events that insert text: each needs a trusted key before it (round 3). */
+/** The typed input events that insert text. */
 const KEYED_INSERT = new Set(['insertText', 'insertCompositionText']);
 
+/** The typed deletions that take text after the caret (the others take it before). */
+const FORWARD = new Set(['deleteContentForward', 'deleteWordForward']);
+
 /**
- * What a `noAutofill` field knows of its typed keys (round 3), per input element and never in React: whether a trusted
- * key that brings text is pending (pressed, its insertion not yet seen), and the length the accepted keys and deletions
- * left in the field. Counts only, never a character.
+ * A trusted key that may change the field, until its change is seen or it is released: what it may do and the selection
+ * it went down on (an insertion replaces the selection, a deletion removes it). ONE: a printable key, which inserts one
+ * character; ANY: a key a touch keyboard or input method sends without naming it, which inserts what the keyboard
+ * composes or deletes; DELETE: Backspace or Delete, one character or the selection; WORD: Backspace or Delete with a
+ * modifier, a word. Never the character itself.
+ */
+interface PendingKey {
+  kind: 'ONE' | 'ANY' | 'DELETE' | 'WORD';
+  start: number;
+  end: number;
+}
+
+/**
+ * What a `noAutofill` field knows of its typed keys (rounds 3 and 4), per input element and never in React: the pending
+ * key, the count of characters the accepted keys left in the field (added by their insertions, taken away by their
+ * deletions, never read back from the field's text), and how much of that count the current composition of an input
+ * method holds (its next update replaces it). Counts only, never a character.
  */
 interface Keyed {
-  /**
-   * The pending key: ONE for a printable key (its insertion is one character), ANY for a key a touch keyboard or input
-   * method does not name (its insertion is what the keyboard composes), false for none. Never the character itself.
-   */
-  pending: 'ONE' | 'ANY' | false;
+  pending: PendingKey | null;
   length: number;
+  composed: number;
 }
 const KEYED = new WeakMap<HTMLInputElement, Keyed>();
 
 /**
- * What a trusted key brings into the field: one character for a printable key without a shortcut modifier (ONE); what a
- * touch keyboard or an input method composes for a key it sends without naming it (key "Unidentified" or "Process", key
- * code 229: ANY); nothing for any other key (Enter, Backspace, a shortcut: false).
+ * What a trusted key may change in field `el` (rounds 3 and 4), with the selection it goes down on: ONE for a printable
+ * key without a shortcut modifier; ANY for a key a touch keyboard or an input method sends without naming it (key
+ * "Unidentified" or "Process", key code 229); DELETE for Backspace or Delete, WORD for either with a modifier (a word);
+ * null for any other key (Enter, Tab, a shortcut).
  */
-function bringsText(e: KeyboardEvent): Keyed['pending'] {
-  if (e.ctrlKey || e.metaKey || e.altKey) return false;
-  if (e.key.length === 1) return 'ONE';
-  return e.key === 'Unidentified' || e.key === 'Process' ? 'ANY' : false;
+function keyChange(e: KeyboardEvent, el: HTMLInputElement): PendingKey | null {
+  const start = el.selectionStart ?? el.value.length;
+  const end = Math.max(start, el.selectionEnd ?? start);
+  const modified = e.ctrlKey || e.metaKey || e.altKey;
+  if (e.key === 'Backspace' || e.key === 'Delete') return { kind: modified ? 'WORD' : 'DELETE', start, end };
+  if (modified) return null;
+  if ([...e.key].length === 1) return { kind: 'ONE', start, end };
+  return e.key === 'Unidentified' || e.key === 'Process' ? { kind: 'ANY', start, end } : null;
 }
 
-/** Whether the insertion of input event `n` is the one the pending key brings. */
-function broughtBy(pending: Keyed['pending'] | undefined, n: InputEvent): boolean {
-  if (pending === 'ANY') return true;
-  return pending === 'ONE' && n.data !== null && [...n.data].length === 1;
+/**
+ * Accepts the typed input event `n` of field `el` against the pending key and moves the count by what the key brought or
+ * removed (round 4): true when a trusted key brought this change and the field is now as long as the count says; false
+ * (a fill) otherwise. The count is never set from the field's text: an insertion adds the characters of its own data in
+ * place of the selection (or of the composition it updates); a deletion takes away the selection, else one character
+ * for Backspace or Delete, else what a word deletion or a touch keyboard took on the caret's side, no more.
+ */
+function acceptKeyed(k: Keyed, n: InputEvent, el: HTMLInputElement): boolean {
+  const p = k.pending;
+  if (p === null) return false;
+  const selected = p.end - p.start;
+  if (KEYED_INSERT.has(n.inputType)) {
+    if (p.kind === 'DELETE' || p.kind === 'WORD') return false;
+    const brought = n.data === null ? 0 : [...n.data].length;
+    if (brought === 0 || (p.kind === 'ONE' && brought !== 1)) return false;
+    const replaced = n.inputType === 'insertCompositionText' && k.composed > 0 ? k.composed : selected;
+    k.length += brought - replaced;
+    k.composed = n.inputType === 'insertCompositionText' ? brought : 0;
+    return el.value.length === k.length;
+  }
+  if (p.kind === 'ONE') return false;
+  const before = k.length;
+  const removed = before - el.value.length;
+  const most =
+    n.inputType === 'deleteCompositionText' ? k.composed : selected > 0 ? selected : p.kind === 'DELETE' ? 1 : FORWARD.has(n.inputType) ? before - p.end : p.start;
+  const exact = n.inputType === 'deleteCompositionText' || selected > 0 || p.kind === 'DELETE';
+  if (removed < 1 || removed > most || (exact && removed !== most)) return false;
+  k.length = before - removed;
+  k.composed = 0;
+  return true;
 }
 
 /** Forgets the keys of a field when it is read or cleared: it holds nothing typed any more. */
 function resetKeyed(el: HTMLInputElement): void {
   const k = KEYED.get(el);
   if (k) {
-    k.pending = false;
+    k.pending = null;
     k.length = 0;
+    k.composed = 0;
   }
 }
 
@@ -145,7 +202,7 @@ export function wasFilled(ref: RefObject<HTMLInputElement | null>): boolean {
   const el = ref.current;
   if (el === null) return false;
   if (el.dataset['filled'] === 'true' || autofilledNow(el)) return true;
-  // Round 3: text set with no event changed the length the typed keys left.
+  // Rounds 3 and 4: text set with no event left the field otherwise than the typed keys' count says.
   const k = KEYED.get(el);
   return k !== undefined && el.value.length !== k.length;
 }
@@ -180,41 +237,47 @@ export function SecretInput({ label, name, inputRef, description, errorMessage, 
       if (el) el.value = '';
     };
   }, []);
-  // A kiosk field knows what its typed keys left (round 3): text that appears with no key is a fill.
+  // A kiosk field knows what its typed keys left (rounds 3 and 4): nothing when it appears, whatever it then holds.
   useLayoutEffect(() => {
     const el = own.current;
     if (!el || !noAutofill) return;
-    KEYED.set(el, { pending: false, length: el.value.length });
+    KEYED.set(el, { pending: null, length: 0, composed: 0 });
     return () => {
       KEYED.delete(el);
     };
   }, [noAutofill]);
-  // Anything but a key typed (or deleted) marks the field as filled in until it is read or cleared; a scripted
-  // insertText is not a key typed, nor is an insertion no trusted key brought (round 3: document.execCommand).
+  // Anything but a change a trusted key brought marks the field as filled in until it is read or cleared: a scripted
+  // event, an insertion or a deletion no trusted key preceded (document.execCommand), or one beyond what its key may do.
   const onInput = (e: FormEvent<HTMLInputElement>) => {
     const n = e.nativeEvent;
     const el = e.currentTarget;
     const k = KEYED.get(el);
     const typed = !scripted(n) && typeof InputEvent !== 'undefined' && n instanceof InputEvent && TYPED_INPUT.has(n.inputType);
-    const keyed = typed && (!KEYED_INSERT.has(n.inputType) || broughtBy(k?.pending, n));
-    if (k) {
-      k.pending = false;
-      k.length = el.value.length;
-    }
+    const keyed = typed && k !== undefined && acceptKeyed(k, n, el);
+    if (k) k.pending = null;
     if (!keyed) el.dataset['filled'] = 'true';
   };
-  // A trusted key that brings text may bring one insertion; a scripted key is a fill (round 2). Released, it brings none.
+  // A scripted key is a fill (round 2). A trusted key first finds the field as long as the count says, else text was set
+  // with no event before it (round 4); then it may make one change. Released, it makes none.
   const onKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
-    const k = KEYED.get(e.currentTarget);
+    const el = e.currentTarget;
+    const k = KEYED.get(el);
     if (scripted(e.nativeEvent)) {
-      e.currentTarget.dataset['filled'] = 'true';
+      el.dataset['filled'] = 'true';
       return;
     }
-    if (k) k.pending = bringsText(e.nativeEvent);
+    if (!k) return;
+    if (el.value.length !== k.length) el.dataset['filled'] = 'true';
+    k.pending = keyChange(e.nativeEvent, el);
   };
   const onKeyUp = (e: ReactKeyboardEvent<HTMLInputElement>) => {
     const k = KEYED.get(e.currentTarget);
-    if (k) k.pending = false;
+    if (k) k.pending = null;
+  };
+  // An input method's composition ends: its next update starts a new one.
+  const onCompositionEnd = (e: { currentTarget: HTMLInputElement }) => {
+    const k = KEYED.get(e.currentTarget);
+    if (k) k.composed = 0;
   };
   const describedBy = [description ? `${id}-description` : null, errorMessage !== undefined ? `${id}-error` : null].filter((x) => x !== null).join(' ');
   return (
@@ -237,7 +300,7 @@ export function SecretInput({ label, name, inputRef, description, errorMessage, 
         autoFocus={autoFocus}
         {...(inputMode ? { inputMode } : {})}
         {...(maxLength !== undefined ? { maxLength } : {})}
-        {...(noAutofill ? { ...MANAGER_OPT_OUT, onInput, onKeyDown, onKeyUp } : {})}
+        {...(noAutofill ? { ...MANAGER_OPT_OUT, onInput, onKeyDown, onKeyUp, onCompositionEnd } : {})}
         {...(describedBy ? { 'aria-describedby': describedBy } : {})}
         {...(errorMessage !== undefined ? { 'aria-invalid': true, 'data-invalid': 'true' } : {})}
       />

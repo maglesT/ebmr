@@ -87,6 +87,7 @@ tests:
   - "packages/test-kit/test/seed.test.ts > test-kit installations > [DI-15][DI-20] personas log in with their changed secrets: password in the office, badge and PIN on the kiosk; a kiosk command needs a fresh tap"
   - "apps/tablets-web/test/session/badge-autofill.test.tsx > BADGE-AUTOFILL: the kiosk sends no secret a browser or password manager filled in > [DI-15][DI-19][DI-38] kiosk first-login change: a new PIN filled in or pasted is not taken (no badge is asked for, nothing is sent); typed key by key it is"
   - "apps/tablets-web/test/session/badge-autofill.test.tsx > BADGE-AUTOFILL: the kiosk sends no secret a browser or password manager filled in > [DI-15][DI-19][DI-38] BADGE-AUTOFILL round 3: kiosk first-login change: a new PIN inserted with no key before it (the trusted insertText Chromium makes for document.execCommand('insertText')) or set with no event at all is not taken (no badge is asked for, nothing is sent); typed key by key it is"
+  - "apps/tablets-web/test/session/badge-autofill.test.tsx > BADGE-AUTOFILL: the kiosk sends no secret a browser or password manager filled in > [DI-15][DI-19][DI-38] BADGE-AUTOFILL round 4: kiosk first-login change: a new PIN mostly set with no event and finished by a real key, a real Backspace or a deletion no key brought is not taken (no badge is asked for, nothing is sent); typed key by key it is, and the change sends the typed PIN"
 clauses:
   - clause: "Create an account with a deactivated user's ID. Blocked."
     tests:
