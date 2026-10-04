@@ -30,6 +30,8 @@
  * authorisation). Every entry of every block's golden fixture, of both golden runs and of runs made for the kinds they
  * leave out passes, and every kind the blocks of this release record is among them.
  */
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { BlockVersion } from '../../src/blocks/contract.ts';
@@ -42,7 +44,7 @@ import type { Frame } from '../../src/flow/tokens.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import { fixtureMbr } from '../blocks/support.ts';
 import { mbrWith, phase, type FixtureName } from '../flow/support.ts';
-import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP2, PACKAGING_SCENARIO, Run, SUP1, T0 } from '../engine/support.ts';
+import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP1, OP2, PACKAGING_SCENARIO, Run, sig, SUP1, T0 } from '../engine/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -1831,5 +1833,75 @@ describe('F12 round 7: a row records the engine command of its type with exactly
       readingDevice: sandboxDevice('evidence.namedReadings[1].deviceCode'),
       scaleDevice: sandboxDevice('evidence.manual.scales[0].deviceCode'),
     });
+  }, 120_000);
+
+  it('[DI-05][DI-30][DI-34] a refused row records the engine\'s refusal as the engine builds it ({code, message, controls}) and an accepted row none: the refusals of commands the engine and a block refuse, and every rule code and control the engine\'s and the blocks\' sources name, meet the database\'s rule; a member of its own, a code or a control of another form, controls as a text and a refusal on an accepted row are refused', async () => {
+    const problems = async (cases: readonly (readonly [boolean, unknown])[]): Promise<(string | null)[]> => {
+      const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+        "select coalesce(array_agg(recipe.refusal_problem((x.c ->> 0)::boolean, case when jsonb_typeof(x.c -> 1) = 'null' then null else x.c -> 1 end) order by x.i), '{}') as p from jsonb_array_elements($1::jsonb) with ordinality x (c, i)",
+        [JSON.stringify(cases)],
+      );
+      return rows[0]?.p ?? [];
+    };
+    // Refusals the engine and a block give.
+    const run = Run.issue(fixtureDefinition('tablet-granulation-compression'), { inputs: FIXTURE_INPUTS['tablet-granulation-compression'] });
+    const first = Object.values(run.state.steps).find((i) => i.status === 'ENABLED');
+    if (!first) throw new Error('SETUP: no enabled step');
+    const clr = Run.issue(define(mbrWith(seqOf('ops', phase('clr', { block: G('G-10'), config: { checklist: [{ id: 'AREA', text: 'Area clean', expected: 'CONFIRMED' }, { id: 'DOCS', text: 'No documents', expected: 'CONFIRMED' }] } })))));
+    clr.start('clr');
+    const refused = [
+      run.exec({ type: 'START_STEP', actor: OP2, step: 'no-such-step', context: [] }),
+      run.exec({ type: 'START_STEP', actor: OP2, step: first.step, context: [], expectedVersion: 999 }),
+      run.exec({ type: 'VERIFY', actor: OP2, step: first.step, context: [], signature: sig('VERIFIED', OP2) }),
+      run.exec({ type: 'RELEASE_HOLD', actor: SUP1, hold: 'H-9', reason: 'no such hold' }),
+      run.exec({ type: 'ATTACH_DEVIATION', actor: SUP1, exception: 'EX-9', deviationRef: 'TEST-DEV-9' }),
+      clr.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'clr', context: [], entry: { kind: 'CLEARANCE_CHECK', answers: [{ id: 'AREA', answer: 'CONFIRMED' }] } }),
+      clr.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'clr', context: [], entry: { kind: 'CLEARANCE_CHECK', answers: 'L2409-0017' } }),
+    ].map((r) => {
+      if (r.accepted || !r.refusal) throw new Error('SETUP: a command was not refused');
+      return JSON.parse(JSON.stringify(r.refusal)) as Json;
+    });
+    expect(sorted(new Set(refused.map((r) => String(r['code']).split('-')[0] ?? '')))).toEqual(['ENG', 'G10']);
+    expect(await problems(refused.map((r) => [false, r] as const))).toEqual(refused.map(() => null));
+    // Every rule code and control named in the engine's and the blocks' sources.
+    const root = new URL('../../src/', import.meta.url).pathname;
+    const files = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : e.name.endsWith('.ts') ? [join(dir, e.name)] : []));
+    const codes = new Set<string>();
+    const controls = new Set<string>();
+    for (const f of [...files(join(root, 'engine')), ...files(join(root, 'blocks'))]) {
+      const text = readFileSync(f, 'utf8');
+      for (const m of text.matchAll(/(?:refuse\(|code:|Problems\()\s*'([A-Z][A-Z0-9-]*)'/g)) if (m[1]) codes.add(m[1]);
+      for (const m of text.matchAll(/controls:\s*\[([^\]]*)\]|refuse\([^;]*?,\s*\[([^\]]*)\]\s*\)/g)) for (const q of (m[1] ?? m[2] ?? '').matchAll(/'([^']+)'/g)) if (q[1]) controls.add(q[1]);
+    }
+    expect(codes.size).toBeGreaterThan(80);
+    expect(controls.size).toBeGreaterThan(40);
+    const named = [...codes].map((code) => [false, { code, message: 'm', controls: ['DI-34'] }] as const);
+    const ctl = [...controls].map((c) => [false, { code: 'ENG-X', message: 'm', controls: [c] }] as const);
+    const got = await problems([...named, ...ctl]);
+    const odd = [...[...codes].map((c) => `code ${c}`), ...[...controls].map((c) => `control ${c}`)].filter((_, i) => got[i] !== null);
+    expect(odd).toEqual([]);
+    // Forged.
+    const own = refused[0] ?? {};
+    expect(
+      await problems([
+        [false, { ...own, lotNumber: 'L2409-0017' }],
+        [false, { ...own, code: 'L2409-0017' }],
+        [false, { ...own, controls: ['DI-30', 'L2409-0017'] }],
+        [false, { ...own, controls: 'L2409-0017' }],
+        [false, { code: own['code'], message: own['message'] }],
+        [false, null],
+        [true, own],
+        [true, null],
+      ]),
+    ).toEqual([
+      "refusal.lotNumber is a member the engine's refusal does not declare",
+      'refusal.code has an invalid format',
+      'refusal.controls[1] has an invalid format',
+      'refusal.controls must be a list',
+      'refusal.controls is missing',
+      'refusal must be an object',
+      'an accepted row records no refusal',
+      null,
+    ]);
   }, 120_000);
 });

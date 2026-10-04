@@ -299,4 +299,56 @@ describe('F12 round 7: a row records its command and evidence as the server does
     expect(held.rows[0]?.n).toBe('0');
     expect(await issueAs()).toBe('ok');
   }, 300_000);
+
+  /**
+   * operator1's `intent` at run `d`, resolved as the server resolves it and run through the engine at the trusted time,
+   * stored through the application role with the verdict `accepted` and the refusal `refusal` gives from the engine's
+   * own. 'ok' or the refusal's message.
+   */
+  async function storedWith(d: RunDriver, intent: Intent, accepted: boolean, refusal: (own: Json | undefined) => unknown): Promise<string> {
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    return messageOf(
+      withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: sbx.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          intent,
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (r.accepted !== accepted) throw new Error(`SETUP: the engine ${r.accepted ? 'accepted' : 'refused'} the command`);
+        return execution.appendExecution(tx.client, {
+          batchId: tx.locked.batch.id, expectedSeq: tx.lastSeq, kind: 'COMMAND', command: engine.encodeCommand(resolved.command), commandId: resolved.command.commandId, nowUs: tx.nowUs,
+          accepted, refusal: refusal(r.refusal as Json | undefined) as engine.Refusal | undefined, state: r.state, events: r.events, roles, contents: engine.changedContents(tx.def, tx.state, r.state), evidence: resolved.evidence as engine.JsonValue,
+        });
+      }),
+    );
+  }
+
+  it('[DI-05][DI-30][DI-34] round 7: a refused row records the engine\'s refusal as the engine builds it, and an accepted row none: a member of its own, a code or a control that is no rule code or control id, controls as a text, and a refusal beside an accepted row are refused (EBMR-EXE-126) and nothing holds L2409-0017; the engine\'s own refusal is recorded', async () => {
+    const d = await startedRun();
+    const answeredNo: Intent = { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: CHECKED.map((id, i) => ({ id, answer: (i === 0 ? 'NO' : 'CONFIRMED') as 'CONFIRMED' })) } };
+    const record: Intent = { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: CHECKED.map((id) => ({ id, answer: 'CONFIRMED' as const })) } };
+    const outcomes = {
+      member: await storedWith(d, answeredNo, false, (own) => ({ ...own, lotNumber: 'L2409-0017' })),
+      code: await storedWith(d, answeredNo, false, (own) => ({ ...own, code: 'L2409-0017' })),
+      control: await storedWith(d, answeredNo, false, (own) => ({ ...own, controls: ['DI-30', 'L2409-0017'] })),
+      controlsText: await storedWith(d, answeredNo, false, (own) => ({ ...own, controls: 'L2409-0017' })),
+      besideAccepted: await storedWith(d, record, true, () => ({ code: 'ENG-STALE', message: 'L2409-0017', controls: ['DI-34'] })),
+    };
+    const REFUSAL = String.raw`\. A refused row records the engine's refusal as the engine builds it, \{code, message, controls\}, and an accepted row none, so nothing sits in the record unread \(DI-05, DI-30, DI-34\)\. \[EBMR-EXE-126\]$`;
+    expect(unmatched(outcomes, {
+      member: new RegExp(String.raw`^This refused RECORD_ENTRY row cannot be recorded: refusal\.lotNumber is a member the engine's refusal does not declare` + REFUSAL),
+      code: new RegExp(String.raw`^This refused RECORD_ENTRY row cannot be recorded: refusal\.code has an invalid format` + REFUSAL),
+      control: new RegExp(String.raw`^This refused RECORD_ENTRY row cannot be recorded: refusal\.controls\[1\] has an invalid format` + REFUSAL),
+      controlsText: new RegExp(String.raw`^This refused RECORD_ENTRY row cannot be recorded: refusal\.controls must be a list` + REFUSAL),
+      besideAccepted: new RegExp(String.raw`^This accepted RECORD_ENTRY row cannot be recorded: an accepted row records no refusal` + REFUSAL),
+    })).toEqual({});
+    const { rows } = await sbx.db.admin.query<{ n: string }>("select count(*)::text as n from recipe.execution_command where batch_id = $1 and refusal::text like '%L2409-0017%'", [d.runId]);
+    expect(rows[0]?.n).toBe('0');
+    // The engine's own refusal is recorded, as it built it.
+    expect(await storedWith(d, answeredNo, false, (own) => own)).toBe('ok');
+    expect((await lastRows(d.runId, 1))[0]).toEqual({ type: 'RECORD_ENTRY', accepted: false, code: 'ENG-ENTRY-SCHEMA' });
+  }, 300_000);
 });
