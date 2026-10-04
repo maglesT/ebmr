@@ -30,6 +30,7 @@ export { evaluateTimeConstraint, TimeConstraintError, type TimeConstraintEvaluat
 export { diffMbr, structureHash, type Change, type ChangeClass, type MbrDiff } from './diff.ts';
 export { numberMbr, numberFlow, instanceNumber, NumberingError, type InstanceNumber, type MbrNumbering, type NumberedKind, type NumberedNode } from './numbering.ts';
 export { checkRunsAsWitness, handEntriesNamingAttachment } from './check-in-release.ts';
+export { databaseMassClass, type DatabaseMassClass } from './weighed-units.ts';
 export type {
   BoundaryVector,
   BoundComparison,

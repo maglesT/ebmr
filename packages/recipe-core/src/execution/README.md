@@ -807,6 +807,13 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   quantity, an output container into none, the second or another quantity, or after a quantity whose unit the database
   cannot read, a weighing at another block's step (a dispensed container is G-07's, an output container G-22's), and
   a weight in a unit not counted into its quantity, are refused, each with its reason.
+- `test/execution/weighed-units-sql.test.ts` (Phase 2 exit follow-up COMPOUND-UNIT; INV-25, PR-19, DI-30; sql 0323):
+  the validator's reading of a unit (recipe-core flow `databaseMassClass`) is `mass_unit_class`'s, unit for unit
+  (prefixes, exponents, annotations, compound units, two annotations, lengths at 120 characters counted as code points,
+  values that are no text); and the validator's warning DATA-WEIGHED-UNITS is given at a G-22 or G-07 step exactly
+  where `weighing_item_problem` refuses the weighing the engine would store there (a compound unit before the net or
+  with no plain mass quantity, the net itself or the dispensed mass written so), and nowhere it accepts it (after the
+  net, a plain unit, several readings, a count, the shipped master).
 - `test/execution/step-acts-sql.test.ts` (Phase 2 exit review F67; sql 0308): every accepted act of both golden
   runs and of runs with an operator's action exception, its deviation and QA decision, a hold point released after
   it, and minimum durations kept passes the minimum, block and hold-release checks; each act the engine refuses as
