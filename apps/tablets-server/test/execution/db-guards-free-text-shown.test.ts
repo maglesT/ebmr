@@ -12,6 +12,12 @@
  * (what shows nothing and the combining marks removed), with its look-alikes read (UTS #39 confusables.txt, decimal
  * digits of any script, dashes), and a text that can display in another order in every arrangement of its runs.
  *
+ * Kernel 1070 (the verification of the lane's round 7): the look-alikes of the separators are read as a class. UTS #39
+ * gives the em dash and the fullwidth hyphen-minus, which 1050 reads as '-', the prototype U+30FC, shared with the
+ * box-drawing horizontals, the prolonged sound mark and CJK one; those, the dashes and solidi Unicode names or Chromium
+ * draws as such, a letter drawn with a dot (U+013F), a space narrower than the thin space and the Ogham space mark
+ * (drawn as a dash) hid L2409-0017 or B24-0001 in records the honest server kept.
+ *
  * The writer is the application role, through the honest server (HTTP) or with the application's own credentials (a
  * business entry of the audit trail), as in the other db-guards files. Characters that show nothing are written by
  * number. Own file and server: the kiosk's device nonces are rate-limited per terminal and minute.
@@ -57,6 +63,23 @@ const PROBES: Record<string, string> = {
   devanagariDigits: 'L२४०९-००१७',
   arabicIndicDigits: 'L٢٤٠٩-٠٠١٧',
   hebrewLetter: `L${ch(0x5d0)}2409-0017`,
+};
+
+/** Kernel 1070: separators written with look-alikes, a letter drawn with a dot, a space that shows no gap (header). */
+const SEPARATOR_PROBES: Record<string, string> = {
+  'U+2500': 'LOT─2409─0017',
+  'U+2501': 'LOT━2409━0017',
+  'U+30FC': 'LOTー2409ー0017',
+  'U+31D0': 'LOT㇐2409㇐0017',
+  'U+23AF': 'LOT⎯2409⎯0017',
+  'U+2504': 'LOT┄2409┄0017',
+  'U+2500 batch': 'B─24─0001',
+  'U+1F67C': `BATCH${ch(0x1f67c)}2409${ch(0x1f67c)}0017`,
+  'U+013F': `${ch(0x13f)}2409-0017`,
+  'U+14B7': `${ch(0x14b7)}2409-0017`,
+  'U+0432': `${ch(0x432)}24-0001`,
+  'U+200A': `L${ch(0x200a)}2409-0017`,
+  'U+1680': `L${ch(0x1680)}2409${ch(0x1680)}0017`,
 };
 
 /** A run of dc-mini issued by the issuer, with the kiosks of operator1 and supervisor1. */
@@ -146,4 +169,44 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
     expect(await recordHolding(d.runId, 'TEST-L26-0101 moved')).toMatchObject({ audit: 1 });
   }, 300_000);
+
+  it('[DI-05][DI-30][INV-18] kernel 1070: over HTTP LOT─2409─0017, LOT━2409━0017, LOTー2409ー0017, LOT㇐2409㇐0017, LOT⎯2409⎯0017, LOT┄2409┄0017, B─24─0001, BATCH🙼2409🙼0017, Ŀ2409-0017, the syllabic L with a dot, в24-0001, L2409-0017 with a hair space after the L, or with Ogham space marks, in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Japanese prose with the prolonged sound mark, Chinese prose with the ideograph one, Korean prose with the letter eu and a number with its unit after a thin space are recorded', async () => {
+    const d = await issued();
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const chain = `batch:${d.runId}`;
+    const AUDIT = String.raw`, a word of the form of a batch or lot number that is not a test one\. .*\[EBMR-EXE-147\]$`;
+    const raised: Record<string, string> = {};
+    const held: Record<string, string> = {};
+    const entries: Record<string, { message: string; details: string }> = {};
+    for (const [name, word] of Object.entries(SEPARATOR_PROBES)) {
+      raised[name] = outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum of ${word} set aside`, severity: 'ALERT' }));
+      held[name] = outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: drum of ${word} found in the booth` }));
+      entries[name] = {
+        message: await businessEntry(d, chain, `Drum of ${word} moved to the booth`),
+        details: await businessEntry(d, chain, 'Drum moved to the booth', { drum: { of: { lot: `lot ${word}` } } }),
+      };
+    }
+    const names = Object.keys(SEPARATOR_PROBES);
+    expect({ raised, held }).toEqual({ raised: Object.fromEntries(names.map((n) => [n, REFUSED])), held: Object.fromEntries(names.map((n) => [n, REFUSED])) });
+    for (const [name, o] of Object.entries(entries)) {
+      expect(o.message, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.message` + AUDIT));
+      expect(o.details, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.details\.drum\.of\.lot` + AUDIT));
+      // The run's id (a UUID) is cut out first: its hex digits could hold 2409 by chance. The refusal's own example,
+      // TEST-L24-0001, is not the probe B─24─0001.
+      for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, ''), name).not.toMatch(/2409|0017|B\W?24\W?0001/u);
+    }
+    const honest = {
+      japanese: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ローラーを清掃し、データ 3 件を記録しました。', severity: 'ALERT' })),
+      chinese: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '一号滚筒已称重，共 3 桶。', severity: 'ALERT' })),
+      korean: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '드럼 3개 확인 ㅡ 이상 없음', severity: 'ALERT' })),
+      hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: 250${ch(0x2009)}mg of TEST-L26-0101 ー checked` })),
+      entry: await businessEntry(d, chain, 'Drum TEST-L26-0101 ー データ 3 件', { drum: { note: { text: '一号滚筒 3 桶' } } }),
+    };
+    expect(honest).toEqual({ japanese: 'ok', chinese: 'ok', korean: 'ok', hold: 'ok', entry: 'ok' });
+    for (const [name, word] of Object.entries(SEPARATOR_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, 'データ 3 件を記録')).toMatchObject({ rows: 1 });
+    expect(await recordHolding(d.runId, '一号滚筒 3 桶')).toMatchObject({ audit: 1 });
+    expect(await violations(sbx)).toEqual([]);
+  }, 600_000);
 });
