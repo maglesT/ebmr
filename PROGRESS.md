@@ -1936,4 +1936,5 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   variant gave p-disp-clear's check to the performing role, which the T12.5 gate now refuses (GMP-CHECK-PERMISSION). The
   test-kit now seeds one kiosk persona holding OPERATOR and VERIFIER (TEST-Deepa Pillai, two approved grants); on the
   standard dc-mini record it performs the clearance as OPERATOR, signs in again as VERIFIER (one role per session) and is
-  refused Verify by the segregation rule (ENG-SEGREGATION; INV-03), not by the role rule.
+  refused Verify by the segregation rule (ENG-SEGREGATION; INV-03), not by the role rule. Also: every E2E badge tap now
+  stamps the reader's keys 5 ms apart (readerTap), so a loaded machine no longer splits a tap and sends the UID's tail.
