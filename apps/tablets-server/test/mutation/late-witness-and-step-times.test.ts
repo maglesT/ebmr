@@ -5,8 +5,8 @@
  * recipe.execution_state, refused rows included, and their refusals name the row as the database recorded it.
  *
  * The application role (ebmr_sandbox here; ADR 0012) is the writer: it holds the same database rights as the server.
- * - The late check reads the batch's own MBR content and pinned policy: in a database that holds this one batch with the
- *   late step, the honest late review records WITNESS_LATE and is accepted.
+ * - The late check reads the batch's own MBR content and pinned policy: in a database that holds another batch, and in which
+ *   this batch's MBR is the only one with the late step, the honest late review records WITNESS_LATE and is accepted.
  * - The late check is the accepted review's alone: a refused VERIFY on a step whose witness is no longer possible
  *   records no exception and is recorded as the engine refused it; a refused VERIFY that adds the WITNESS_LATE a late
  *   review would raise is refused, and the refusal calls the row refused.
@@ -119,11 +119,16 @@ describe('T12.LATE: the late check is the accepted review\'s, read from the batc
     await d.ok('operator1', { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: EARLY });
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
-    const { rows: others } = await server.db.admin.query<{ n: string }>(
-      "select count(*)::text as n from recipe.batch_execution b join recipe.test_package pk on pk.package_hash = b.package_hash where b.id <> $1 and pk.content::text not like '%p-early-time%'",
+    // This batch is the only one, and its package the only one, whose MBR has the step p-early-time.
+    const { rows: stored } = await server.db.admin.query<{ batches: string; others: string; packages: string }>(
+      `select (select count(*) from recipe.batch_execution b join recipe.test_package pk on pk.package_hash = b.package_hash
+                where b.id <> $1 and pk.content::text like '%p-early-time%')::text as batches,
+              (select count(*) from recipe.batch_execution b where b.id <> $1)::text as others,
+              (select count(*) from recipe.test_package pk where pk.content::text like '%p-early-time%')::text as packages`,
       [runId],
     );
-    expect(Number(others[0]?.n)).toBeGreaterThan(0);
+    expect(stored[0]).toMatchObject({ batches: '0', packages: '1' });
+    expect(Number(stored[0]?.others)).toBeGreaterThan(0);
 
     // The engine refuses the witness (the step's check is now its later review): the refused row adds no exception.
     const before = (await rowsOf(server, runId)).length;
