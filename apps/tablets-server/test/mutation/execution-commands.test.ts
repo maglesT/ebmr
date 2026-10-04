@@ -357,8 +357,14 @@ describe('recipe.lock_execution and the trusted time of a transaction (INV-16)',
   it('[DI-34] the database itself refuses to lock a batch that does not exist; the sweeper\'s skip-locked lock answers the batch asked for, or nothing while another command holds it', async () => {
     const d = await newRun(['operator1']);
     const issuer = d.browser('issuer');
+    // A lock never waits on another command here: a wait would be a fault, so it fails within seconds (lock_timeout).
     const lock = async (id: string, skip: boolean) =>
-      (await withCommand(sbx.db.app, await actorOfBrowser(sbx, issuer, 'issuer'), (c) => c.query<{ r: Json | null }>('select recipe.lock_execution($1, $2) as r', [id, skip]))).rows[0]?.r ?? null;
+      (
+        await withCommand(sbx.db.app, await actorOfBrowser(sbx, issuer, 'issuer'), async (c) => {
+          await c.query("set local lock_timeout = '5s'");
+          return c.query<{ r: Json | null }>('select recipe.lock_execution($1, $2) as r', [id, skip]);
+        })
+      ).rows[0]?.r ?? null;
     expect(await messageOf(lock(randomUUID(), false))).toBe('There is no test batch with this id (DI-34). [EBMR-EXE-010]');
     expect(await lock(randomUUID(), true)).toBeNull();
     // Another run exists, so a lock of any batch but the one asked for would be told apart.
