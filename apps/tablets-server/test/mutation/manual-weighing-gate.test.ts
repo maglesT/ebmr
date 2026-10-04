@@ -20,13 +20,15 @@
  *   - tab.manual_path_verdict, tab.scale_offline_reason_at and tab.chain_refusal_held: each reason at its boundary
  *     (the window's start, the report's change, the refusal's time), and the reason that names what was refused;
  *   - tab.manual_weighing_check: outside READ COMMITTED, while other roles may signal backends, while the room's row is
- *     held, for a room with no row yet, and beside a scale whose heartbeats arrive but are not recorded.
+ *     held, for a room with no row yet, beside a scale whose heartbeats arrive but are not recorded, and the scale it
+ *     names when the monitor's report is committed while it reads the room's scales (shown ONLINE first).
  * Heartbeats, receipts, answers and reports go through the functions the server and the listener call, with their own
  * roles (the gateway session's actor on the application role, the listener's login, the monitor's session); weighings
  * are written past the server with the application role, as the review reproducers do. Where only a state no product
  * path produces on demand reaches a rule (a report, a receipt or a refusal at the very microsecond of a boundary, an
  * earlier heartbeat of another key), the rows are written by the superuser in a transaction rolled back, and the
- * comment says so; the private functions are called as the superuser, as the module tests do.
+ * comment says so; where a commit must land between two reads of the gate, the superuser holds a table the gate reads
+ * in between until it has; the private functions are called as the superuser, as the module tests do.
  *
  * Controls: DI-17, DI-20, DI-30, DI-31, DI-32, PR-20.
  */
@@ -713,6 +715,26 @@ async function whileRoomHeld<T>(room: string, work: () => Promise<T>): Promise<T
 }
 
 /**
+ * Waits until the application role's write of an execution row (recipe.append_execution, where the gate runs) waits for
+ * a lock on `relation`; fails when `settled` says the write ended first, or after 30 seconds.
+ */
+async function untilGateWaitsOn(relation: string, settled: () => boolean): Promise<void> {
+  const deadline = Date.now() + 30_000;
+  for (;;) {
+    const { rows } = await rig.server.db.admin.query<{ n: number }>(
+      `select count(*)::int as n from pg_catalog.pg_locks l join pg_catalog.pg_stat_activity a on a.pid = l.pid
+        where a.datname = current_database() and a.query like 'select recipe.append_execution(%'
+          and l.locktype = 'relation' and l.relation = $1::regclass and not l.granted`,
+      [relation],
+    );
+    if ((rows[0]?.n ?? 0) > 0) return;
+    if (settled()) throw new Error(`SETUP: the weighing ended before it waited on ${relation}`);
+    if (Date.now() > deadline) throw new Error(`SETUP: the weighing never waited on ${relation}`);
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}
+
+/**
  * The scales of DISP-1 as recorded, written by hand as the gateway's heartbeats would have left them: TEST-BAL-00
  * OFFLINE for a minute and reported now (it counts as unusable), TEST-BAL-01 ONLINE with its serial and last reported
  * `bal01AgoS` seconds ago; no receipt and no API report of TEST-GW-01 left.
@@ -804,6 +826,51 @@ describe('the gate of hand-keyed weighings (tab.manual_weighing_check, tablets 0
       expect((await rowsOf(rig.server, run.runId)).length).toBe(before);
     } finally {
       await rig.server.db.admin.query('delete from tab.gateway_api_answer where gateway_key_id = $1', [key1]);
+      await rig.server.db.admin.query('delete from tab.gateway_api_contact where gateway_key_id = $1', [key1]);
+    }
+  });
+
+  it('[DI-30][PR-20] a scale shown ONLINE when the gate read it is named online first, also when the report that the gateway API cannot be reached was committed while the gate read the room\'s scales (EBMR-EXE-074); once the report stands for both, a scale is named with it (YOUNG); nothing is recorded', async () => {
+    const before = (await rowsOf(rig.server, run.runId)).length;
+    const basisBefore = (await basis()).length;
+    // Both scales of DISP-1 reported ONLINE with their registered serials a moment ago, by the gateway's heartbeat; no
+    // receipt, answer or report of TEST-GW-01's API.
+    await craftDisp1(1);
+    await heartbeat([online('TEST-BAL-00', 'SIM-0000'), online('TEST-BAL-01', 'SIM-0001')]);
+    // tab.manual_weighing_scales reads, for each scale of the room in turn, what tab.scale_status shows (shownReason) and
+    // then the verdict (why), each statement as committed when it runs (READ COMMITTED). It reads the bindings in their
+    // physical order (a bitmap scan of those not ended): TEST-BAL-01's first, as TEST-BAL-00 was bound again in
+    // beforeAll. The superuser holds tab.device_reading, which the shown status reads after the API report
+    // (tab.chain_refusal_held), so the gate waits there for TEST-BAL-01 once it has read no report; the monitor's report
+    // is committed meanwhile, then the table is let go. TEST-BAL-01 is then shown ONLINE (no shownReason) while its
+    // verdict finds the report young (why YOUNG); TEST-BAL-00, read after, shows the report and finds it young.
+    const lock = await rig.server.db.admin.connect();
+    let settled = false;
+    let weighing: Promise<string> | undefined;
+    try {
+      await lock.query('begin');
+      await lock.query('lock table tab.device_reading in access exclusive mode');
+      weighing = messageOf(forgedWeighingRow(rig, run)).finally(() => {
+        settled = true;
+      });
+      await untilGateWaitsOn('tab.device_reading', () => settled);
+      expect(await contact(false, 'test: no answer')).toBe(true);
+    } finally {
+      await lock.query('rollback');
+      lock.release();
+    }
+    try {
+      expect(await weighing).toMatch(/^Scale TEST-BAL-01 of room DISP-1 is online: the weight is captured from it, never keyed by hand \(DI-30, PR-20\)\. \[EBMR-EXE-074\]$/);
+      // The same weighing now, the report standing for both scales and seen for less than 10 seconds: TEST-BAL-00 is
+      // named, with the report that does not count yet.
+      expect(await messageOf(forgedWeighingRow(rig, run))).toMatch(
+        new RegExp(
+          `^Scale TEST-BAL-00 of room DISP-1 is online by its heartbeat\\. The report that it cannot be used \\(${API_REASON.replace(/[()]/g, '\\$&')}\\) was made in this transaction, or had been seen by other transactions for less than 10 seconds when it began, so it does not open the manual path yet: capture the weight from the scale, or key it by hand once the report has stood for 10 seconds \\(DI-30, PR-20\\)\\. \\[EBMR-EXE-074\\]$`,
+        ),
+      );
+      expect((await rowsOf(rig.server, run.runId)).length).toBe(before);
+      expect((await basis()).length).toBe(basisBefore);
+    } finally {
       await rig.server.db.admin.query('delete from tab.gateway_api_contact where gateway_key_id = $1', [key1]);
     }
   });
