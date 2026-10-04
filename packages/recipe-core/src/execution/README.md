@@ -473,7 +473,9 @@ that another command holds is skipped.
     constraint trigger `zz_execution_row_start_data`, `start_data_problem`; trigger `zzl_execution_status_equipment`,
     `status_equipment_problem`; the lane's round-3 verification, needs A and B). Since sql 0344 (Phase 2 exit review
     F12 closed for the class; decision F12.8) every text the record holds is read with the kernel's identifier rule
-    (kernel migrations 1030 and 1040: the text as written and with its escapes read), whatever member holds it: the
+    (kernel migrations 1030 and 1040: the text as written and with its escapes read; since kernel 1050 and sql 0349 also
+    as stored, as it shows, with its look-alikes read, and a text that can display in another order in every
+    arrangement of its runs, decision F12.11), whatever member holds it: the
     batch's columns and issue request, every text, text[] and jsonb column of the command rows (command, evidence,
     refusal, roles and, since sql 0346, the actor's name), the state, the events, the four content stores, the
     proposals, the clock and the legacy stage summaries, at any depth and in member names, since tablets sql 0640 the

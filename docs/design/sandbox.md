@@ -111,9 +111,10 @@ sandbox that claims to be GMP unless the database is also renamed.
 
 Inventory taken on 4 October 2026 from the catalogue of a sandbox migrated to kernel 1030, recipe-core 0345 and
 tablets 0630 (decision F12.8 in `docs/decisions/phase-2-open-questions.md`), and taken again after kernel 1040 and
-recipe-core 0346 and 0347 (decision F12.9) and after recipe-core 0348 and tablets 0640 (decision F12.10): the write
-surface is the same (no new writer; recipe.engine_name is written by its migration only and the application roles have
-no right on it); what reads it changed as A, C and D say. Correction (F12.10, the lane's round-12 verification): the
+recipe-core 0346 and 0347 (decision F12.9), after recipe-core 0348 and tablets 0640 (decision F12.10) and after kernel
+1050 and recipe-core 0349 (decision F12.11): the write surface is the same (no new writer; recipe.engine_name and
+sandbox.look_alike are written by their migrations only, and the application roles have no right on the first and may
+only read the second); what reads it changed as A, C and D say. Correction (F12.10, the lane's round-12 verification): the
 inventory of F12.8 and F12.9 filed `tab.manual_weighing_basis` in D and said no entry quotes a reading's serial; the
 basis is keyed to a run's row and its reasons quote a heartbeat's serial and not-ready text, the registered serial, the
 server's API detail and a refused reading's alarm code. It is in A since tablets 0640. The
@@ -133,7 +134,19 @@ enumerated types.
 a refused reading's alarm code); in `kernel.audit_event`, on a run's chains and their signing chains the chain key
 after the run's id, the reason code and text, the actor's name and every business entry, and on a scale reading's chain
 the same for every entry (the gateway's, the claims' and any the application role appends). Every string and member
-name of a JSON value is read, at any depth, at commit, as written and with its escapes read (kernel 1040). A copy into
+name of a JSON value is read, at any depth, at commit, as written and with its escapes read (kernel 1040), and since
+kernel 1050 also as stored, each of these also as it shows (the combining marks and the characters that show nothing removed,
+white space kept as a separator) and with its look-alikes read (letters of other scripts, digits of any script by
+value, dashes, slashes and full stops: `sandbox.look_alike`, from UTS #39 confusables.txt and the Unicode Character
+Database 18.0.0); a text that can display in another order than it is stored (a right-to-left letter, an Arabic-Indic
+digit, a bidi control or mark) is read in every arrangement of its runs, so in a test run such a text holding a letter
+and a digit is refused (decision F12.11). The same reading guards B and C's person register, a test lot's material name
+and the basis. Correction (F12.11): kernel 1040's "as written" was the text as stored in NFKC, not as it shows; a soft
+hyphen, a zero-width character, a variation selector, a word joiner or a right-to-left override inside L2409-0017, and a
+division or fraction slash in BATCH/2409/0017, hid the identifier from it. Still not read (residual, F12.11 (5)):
+digits only; an identifier broken by a space of any width or by a visible character that is neither in the identifier
+alphabet nor a look-alike of it; one spelled out in words or drawn in an image; one whose letter is drawn with a
+punctuation mark; a word equal to an allowed name. A copy into
 the record from anywhere else is read where it lands, so this does not depend on tracing where a text comes from. The
 words allowed there are bound to the run, none by its form: the imported package (the MBR), the batch number and the
 site and room of the session that issued it or writes a row, the names of the engine's registers (`recipe.engine_name`:
