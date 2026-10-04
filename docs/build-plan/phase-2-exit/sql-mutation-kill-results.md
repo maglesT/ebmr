@@ -146,6 +146,13 @@ Fixed:
   state-engine-rows (`packages/kernel/test/mutation/state-engine-rows.test.ts`). The kill test for
   `recipe.guard_in_flight_dispositioned#3` now shows the owner-level forged row refused and arranges it as the
   superuser with triggers off, taking it away before the approval; it still kills the mutant.
+- **D13. Evidence listener: the hold ended before the time it was announced.** The tick prune deleted by tick time,
+  but the hold by another key's run is measured from the time the tick was closed, so a late-closed tick was pruned
+  early, the hold ended early, and the `heldUntilUs` the database had already returned was too late. Fixed in tablets
+  0715 (decision D13.1, the proposed default): a tick prunes only rows whose tick and close are both over an hour old
+  (an open row by its tick, as before); X43, X40 and X37 now say the hour runs from the close. Test:
+  `apps/tablets-server/test/mutation/evidence-listener.test.ts` ([DI-30][PR-20][DI-17], a run of another key that
+  ticked 61 minutes ago and closed 59 minutes ago holds until its close plus one hour, then is pruned).
 - **D15. Connection roles: an unknown grantee broke the connect policy's statement.** When a backend-signal function's
   privileges named a role oid the cluster does not know (a direct catalogue write by a superuser), the policy built a
   revoke with an empty grantee and failed with a syntax error instead of a coded refusal (fail closed, wrong message).
@@ -189,11 +196,6 @@ Open (the lead takes these next):
   second limit breach. The database refuses that outer exit row (fail-closed: the batch is stuck, nothing wrong is
   stored). Needs a decision; the skeptic favours the engine or validator side (two critical breaches for one reading
   look wrong on their own).
-- **D13. Evidence listener: the hold ends before the time it was announced.** The tick prune deletes by tick time, but
-  the hold by another key's run is measured from the time the tick was closed, so a late-closed tick is pruned early,
-  the hold ends early, and the `heldUntilUs` the database already returned is too late. A one-condition fix (prune
-  only rows whose tick and close are both over an hour old) is proposed; decision X43 words the rule both ways, so
-  the owner or lead picks it.
 - **D14. Sandbox and import: a misleading family-code reason.** When a test package's family code is not text, the
   refusal (EBMR-EXE-134, correct) names the same value on both sides; reachable through the application role. Message
   wording only.
