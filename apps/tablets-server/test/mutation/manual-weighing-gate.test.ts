@@ -820,7 +820,7 @@ describe('the gate of hand-keyed weighings (tab.manual_weighing_check, tablets 0
     try {
       expect(await messageOf(forgedWeighingRow(rig, run))).toMatch(
         new RegExp(
-          `Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\\. The report that it cannot be used \\(${API_REASON.replace(/[()]/g, '\\$&')}\\) is answered: the gateway's API answered the server after that report was made, so it does not open the manual path; capture the weight from the scale \\(DI-30, PR-20\\)\\. \\[EBMR-EXE-074\\]$`,
+          `Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\\. The report that it cannot be used \\(${API_REASON.replace(/[()]/g, '\\$&')}\\) is answered: the gateway's API answered the server at or after the moment that report was made, so it does not open the manual path; capture the weight from the scale \\(DI-30, PR-20\\)\\. \\[EBMR-EXE-074\\]$`,
         ),
       );
       expect((await rowsOf(rig.server, run.runId)).length).toBe(before);

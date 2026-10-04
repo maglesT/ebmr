@@ -358,7 +358,7 @@ describe('review P51, server side: a scale is ONLINE only while a capture on it 
       expect((await bal01()).status).toBe('OFFLINE');
       const keyed = await d.command('operator1', handKeyed);
       expect(outcomeOf(keyed)).toBe('422:EBMR-EXE-074');
-      expect(refusalOf(keyed).why).toMatch(/^Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \(.+\) is answered: the gateway's API answered the server after that report was made/);
+      expect(refusalOf(keyed).why).toMatch(/^Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \(.+\) is answered: the gateway's API answered the server at or after the moment that report was made/);
     } finally {
       await holder.query('rollback').catch(() => undefined);
       holder.release();

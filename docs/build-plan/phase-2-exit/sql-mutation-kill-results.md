@@ -120,8 +120,12 @@ Fixed:
   INV-17 invariant report such a record.
 - **D3. Manual-weighing gate: an API answer at the report's own instant.** An answer recorded in the same
   microsecond as the monitor's "unreachable" report did not count as answering it, so after 10 s a hand-keyed weight
-  was accepted beside a gateway that had answered. Fixed in tablets 0700 (`>` becomes `>=`). Still open, wording
-  only: the ANSWERED refusal still says the API answered "after" the report.
+  was accepted beside a gateway that had answered. Fixed in tablets 0700 (`>` becomes `>=`). The wording followed in
+  tablets 0710: the ANSWERED refusal of `tab.manual_weighing_check` says the API answered at or after the moment of
+  the report (it said "after"), and 0710's header corrects 0350's description of ANSWERED and 0700's name for itself
+  ("tablets 0640"). Test: "[DI-30][PR-20] beside a scale whose heartbeat is ONLINE ... at the very instant the report
+  was made ..." (apps/tablets-server/test/mutation/manual-weighing-gate.test.ts), failing before 0710; the device
+  tests that quote the message follow it.
 - **D4. Sandbox and import: a test lot without its identity-test flag.** The register's check gave NULL for a missing
   flag, so the lot was refused by the table's NOT NULL constraint with a bare database error instead of EBMR-EXE-070.
   Fixed in tablets 0701. The wording followed in tablets 0711: the message names only what the function checks (a lot
