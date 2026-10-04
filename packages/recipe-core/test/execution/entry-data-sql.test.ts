@@ -1292,6 +1292,32 @@ describe('F12 round 6: an entry and a step\'s start data meet the data schema of
     }
     expect(unbuilt).toEqual([]);
   }, 300_000);
+  it('[INV-25][PR-19][DI-30] T2 round 4: a weighing is taken only under the kind its step\'s block records, a dispensed container at a G-07 step and an output container at a G-22 step; renamed, which the weighing checks (0321-0323) and 0330 do not read, each is refused, and the honest ones pass', async () => {
+    const weighing = row('CONTAINER_WEIGHING');
+    const output = row('OUTPUT_CONTAINER');
+    const renamedAs = (kind: string) => (x: { e: Json; command: Json }): void => {
+      x.e['kind'] = kind;
+      (x.command['entry'] as Json)['kind'] = kind;
+    };
+    const forged = { weighing2: forge(weighing, renamedAs('CONTAINER_WEIGHING_2')), output2: forge(output, renamedAs('OUTPUT_CONTAINER_2')) };
+    // What the weighing checks read of each entry (0323 reads the kinds CONTAINER_WEIGHING and OUTPUT_CONTAINER only;
+    // 0321 and 0322 likewise) and 0330's rules: nothing.
+    const weighingProblem = async (r: MRow): Promise<string | null> =>
+      (await db.admin.query<{ p: string | null }>('select recipe.weighing_item_problem($1::jsonb, $2::jsonb) as p', [JSON.stringify(added(r)[1]), JSON.stringify(r.mbr)])).rows[0]?.p ?? null;
+    for (const r of Object.values(forged)) {
+      expect(await weighingProblem(r)).toBeNull();
+      expect(await blockProblem(r)).toBeNull();
+    }
+    expect({ weighing2: await schemaProblem(forged.weighing2), output2: await schemaProblem(forged.output2), weighing: await schemaProblem(weighing), output: await schemaProblem(output) }).toEqual({
+      weighing2: `records an entry of kind CONTAINER_WEIGHING_2 at step ${stepOfCommand(weighing)}, whose block G-07@1 does not record that kind (ENG-ENTRY-KIND)`,
+      output2: `records an entry of kind OUTPUT_CONTAINER_2 at step ${stepOfCommand(output)}, whose block G-22@1 does not record that kind (ENG-ENTRY-KIND)`,
+      weighing: null,
+      output: null,
+    });
+    // The kinds the database takes at each block are the registry's: G-07 a dispensed container, G-22 an output container.
+    const { rows } = await db.admin.query<{ b: string; k: string[] }>("select block_type as b, array_agg(entry_kind order by entry_kind) as k from recipe.block_data_schema where block_type in ('G-07', 'G-22') group by 1 order by 1");
+    expect(rows).toEqual([{ b: 'G-07', k: ['CONTAINER_WEIGHING'] }, { b: 'G-22', k: ['OUTPUT_CONTAINER'] }]);
+  }, 300_000);
   it('[DI-05][DI-30] a refused row keeps what was sent, which the engine refused, but never a member no block version declares for its kind of entry or for start data, at any depth', async () => {
     const weighing = row('CONTAINER_WEIGHING');
     const clearance = row('CLEARANCE_CHECK');
