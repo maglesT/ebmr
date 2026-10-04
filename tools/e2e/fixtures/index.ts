@@ -5,7 +5,8 @@
  *  - `officePage(installation, terminal?)` and `kioskPage(terminal)`: a new browser context at office
  *    (1440x900) or kiosk (1280x800) size that has picked a demo terminal on the device picker (recording a video
  *    into the test's output when the `video` option is 'on', e.g. EBMR_E2E_VIDEO=1);
- *  - `signIn`: office (user ID and password) and kiosk (badge tap as keyboard-wedge input, PIN on the keypad);
+ *  - `signIn`: office (user ID and password) and kiosk (badge tap as keyboard-wedge input, PIN on the keypad, and the
+ *    role choice for a persona holding several roles);
  *  - `badge.tap(page, persona)`, `pin.enter(page, pin)`;
  *  - `api(installation)`: the typed contract client against the running server (same-origin headers);
  *  - `axe.check(page)`: WCAG 2.2 AA, zero serious or critical findings;
@@ -118,10 +119,24 @@ export const signIn = {
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
   },
-  async kiosk(page: Page, persona: SeededPersona): Promise<void> {
+  /**
+   * Badge and PIN; the home screen follows. A persona that holds several roles (`alsoRoles`) passes the role it works in:
+   * the role choice lists every role it holds, the session then acts in the one chosen, which the identity banner names
+   * (C0-4), and the page shows what its address names (the home screen after the device picker).
+   */
+  async kiosk(page: Page, persona: SeededPersona, role?: string): Promise<void> {
     await badge.tap(page, persona);
     await pin.enter(page, persona.pin ?? '');
-    await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+    if (role === undefined) {
+      await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+      return;
+    }
+    const choice = page.getByRole('heading', { name: 'Choose the role you are working in' });
+    await expect(choice).toBeVisible();
+    for (const held of [persona.roleCode, ...(persona.alsoRoles ?? [])]) await expect(page.getByRole('button', { name: held, exact: true })).toBeVisible();
+    await page.getByRole('button', { name: role, exact: true }).click();
+    await expect(choice).toHaveCount(0);
+    await expect(page.getByTestId('identity')).toHaveText(`Signed in as ${persona.legalName} (${persona.loginName}), ${role}`);
   },
 };
 

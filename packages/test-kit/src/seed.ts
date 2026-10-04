@@ -51,6 +51,8 @@ export interface SeededPersona {
   legalName: string;
   loginName: string;
   roleCode: string;
+  /** The persona's further roles (PersonaSpec.alsoRoles), each granted and approved as `roleCode` is; absent when it has one role. */
+  alsoRoles?: string[];
   title: string;
   kiosk: boolean;
   homeTerminal: string;
@@ -291,15 +293,21 @@ async function seedPersona(
     const { secret: initial } = await identity.issueInitialSecret(c, accountId, 'PASSWORD');
     const pin = p.kiosk ? await identity.issueInitialSecret(c, accountId, 'PIN') : undefined;
     await identity.activateAccount(c, accountId);
-    const grantId = await identity.requestRoleGrant(c, { accountId, roleCode: p.roleCode, reason: `demo persona: ${p.title}` });
+    // One grant per role, each requested by the administrator here and approved by the process owner below.
+    const grantIds: string[] = [];
+    for (const roleCode of [p.roleCode, ...(p.alsoRoles ?? [])]) {
+      grantIds.push(await identity.requestRoleGrant(c, { accountId, roleCode, reason: `demo persona: ${p.title}` }));
+    }
     if (p.kiosk && p.demo.badgeUid) {
       const badgeId = await identity.issueBadge(c, { accountId, uid: p.demo.badgeUid, technology: 'ISO14443_DESFIRE_EV3', label: `B-${p.loginName}`, identityVerificationId: ivId });
       await identity.recordBadgeTest(c, badgeId, 'AT_ISSUE', 'PASS');
       await identity.activateBadge(c, badgeId);
     }
-    return { personId, accountId, initial, pinInitial: pin?.secret, grantId };
+    return { personId, accountId, initial, pinInitial: pin?.secret, grantIds };
   });
-  await withCommand(db.app, withReason(ownerCtx), (c) => identity.decideRoleGrant(c, created.grantId, true, 'approved for the demo installation'));
+  for (const grantId of created.grantIds) {
+    await withCommand(db.app, withReason(ownerCtx), (c) => identity.decideRoleGrant(c, grantId, true, 'approved for the demo installation'));
+  }
 
   await changeInitialPassword(authn, p.loginName, created.initial, home.fingerprint, p.demo.password);
   if (created.pinInitial && p.demo.badgeUid && p.demo.pin) {
@@ -319,7 +327,8 @@ async function seedPersona(
   await identity.endSession(db.app, ctx.sessionId);
 
   return {
-    key: p.key, set, legalName: p.legalName, loginName: p.loginName, roleCode: p.roleCode, title: p.title, kiosk: p.kiosk, homeTerminal: p.homeTerminal,
+    key: p.key, set, legalName: p.legalName, loginName: p.loginName, roleCode: p.roleCode, ...(p.alsoRoles?.length ? { alsoRoles: [...p.alsoRoles] } : {}),
+    title: p.title, kiosk: p.kiosk, homeTerminal: p.homeTerminal,
     personId: created.personId, accountId: created.accountId, password: p.demo.password, pin: p.demo.pin ?? null, badgeUid: p.demo.badgeUid ?? null,
   };
 }

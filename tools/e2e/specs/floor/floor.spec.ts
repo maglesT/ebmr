@@ -301,17 +301,6 @@ async function recordClearanceEntries(page: Page, who: SeededPersona): Promise<v
   }
 }
 
-/**
- * INV-03 variant: the booth clearance names the performing role for its check too. Every seeded persona holds one
- * role and no role may both execute and verify, so on the standard record the performer's own verification is
- * refused by the role rule before the segregation rule is reached; here the role rule passes and only INV-03 can
- * refuse it.
- */
-function withCheckByPerformingRole(content: Json): void {
-  const signatures = phaseOf(content, 'p-disp-clear')['signatures'] as { perform: { role: string }; check: { meaning: string; role: string } };
-  signatures.check = { ...signatures.check, role: signatures.perform.role };
-}
-
 test.describe('floor screens against the live sandbox (after checkpoint D5)', () => {
   test('[DI-05][INV-18][DI-34] every floor screen carries TEST, NOT GMP and TEST- numbers; a later step is shown unavailable with the engine\'s reason', { tag: '@office' }, async ({ officePage, persona, e2e, evidence, dcMiniPackage }) => {
     const { packageHash } = await dcMiniPackage.get();
@@ -500,48 +489,74 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     expect(await cspViolations(page)).toEqual([]);
   });
 
-  test('[INV-03] after performing a step, the performer\'s own verification is refused by the segregation rule, even when the performer holds the role the step names for its check', { tag: '@kiosk' }, async ({ officePage, kioskPage, persona, e2e, evidence }, testInfo) => {
-    const author = await officePage('GMP', 'PC-DESIGN-01');
-    await signIn.office(author, persona('GMP', 'author'));
-    const packageHash = await exportDcMiniVariant(author, e2e.url('GMP'), testInfo.parallelIndex + 1, withCheckByPerformingRole, 'E2E: the booth clearance is checked by the performing role (INV-03)');
+  /*
+   * INV-03 through the real product: a person who legitimately holds both a role that performs (OPERATOR) and one that
+   * verifies (VERIFIER) performs the booth clearance of the standard dc-mini record, whose check is a verification by a
+   * production verifier (the role VERIFIER carries). A session acts in the one role chosen at sign-in, so to verify, the
+   * person signs in again in VERIFIER: the role rule then lets them verify, and only the segregation rule refuses.
+   */
+  test('[INV-03] after performing a step, the performer\'s own verification is refused by the segregation rule, even when the performer holds the role the step names for its check', { tag: '@kiosk' }, async ({ officePage, kioskPage, persona, e2e, evidence, dcMiniPackage }) => {
+    const { packageHash } = await dcMiniPackage.get();
     const office = await officePage('SANDBOX', 'TEST-PC-01');
     await signIn.office(office, persona('SANDBOX', 'issuer'));
     const base = e2e.url('SANDBOX');
     const runId = await issueTestBatch(office, base, packageHash);
+    const stepUrl = `/runs/${runId}/steps/${encodeURIComponent('p-disp-clear@')}`;
 
-    const operator = persona('SANDBOX', 'operator1');
+    const both = persona('SANDBOX', 'operatorVerifier1');
+    expect([both.roleCode, ...(both.alsoRoles ?? [])]).toEqual(['OPERATOR', 'VERIFIER']);
     const page = await kioskPage('TEST-KIOSK-DISP-1');
-    await signIn.kiosk(page, operator);
-    await open(page, base, `/runs/${runId}/steps/${encodeURIComponent('p-disp-clear@')}`);
-    await startWithTap(page, operator);
 
-    await evidence.step('The operator records every entry of the clearance (G-10) with a tap each', 'Every entry saved', async () => {
-      await recordClearanceEntries(page, operator);
+    await evidence.step('The person, who holds OPERATOR and VERIFIER, signs in on the kiosk with badge and PIN and chooses OPERATOR for this session', 'The role choice offers both roles; the identity banner names the person in OPERATOR', async () => {
+      await signIn.kiosk(page, both, 'OPERATOR');
+      await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
     }, page);
 
-    await evidence.step('The operator signs the step as performed through the ceremony (tap, then PIN)', 'The signature dialog is axe clean; the signature appears on the step', async () => {
+    await open(page, base, stepUrl);
+    await startWithTap(page, both);
+
+    await evidence.step('The person records every entry of the clearance (G-10) with a tap each', 'Every entry saved', async () => {
+      await recordClearanceEntries(page, both);
+    }, page);
+
+    await evidence.step('The person signs the step as performed through the ceremony (tap, then PIN)', 'The signature dialog is axe clean; the signature appears on the step', async () => {
       await expect(page.getByTestId('primary-action')).toHaveText('Sign as performed');
       await page.getByTestId('primary-action').click();
       await expect(page.getByRole('dialog').getByRole('button', { name: 'Sign', exact: true })).toBeVisible();
       await axe.check(page);
-      await signWithCeremony(page, operator);
+      await signWithCeremony(page, both);
       await expect(page.locator('[data-testid^="signature-"]').first()).toBeVisible();
     }, page);
 
-    await evidence.step('The same person may not verify, although their role is the checking role; the step card names who can verify', 'Verify is greyed with the engine\'s INV-03 reason (performed or entered data, so cannot verify), not a role refusal, and says who may verify: not the performer, and here no role at all, since the role this variant names for the check may not verify on this installation', async () => {
+    await evidence.step('In the OPERATOR session, Verify is refused by the role rule, before the segregation rule is reached', 'Verify is greyed with the engine\'s role refusal (ENG-ROLE), not INV-03', async () => {
+      await expect(page.getByTestId('primary-action')).toHaveText('Verify');
+      await expect(page.getByTestId('primary-action')).toBeDisabled();
+      await expect(page.getByTestId('primary-reason')).toContainText('(ENG-ROLE;');
+      await expect(page.getByTestId('primary-reason')).not.toContainText('ENG-SEGREGATION');
+    }, page);
+
+    await evidence.step('To verify, the same person signs out and signs in again, choosing VERIFIER: a session keeps the role chosen at sign-in', 'The identity banner names the same person in VERIFIER', async () => {
+      await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+      await signIn.kiosk(page, both, 'VERIFIER');
+    }, page);
+
+    await evidence.step('The same person may not verify, although they now act in the role the step names for its check; the step card names who can verify', 'Verify is greyed with the engine\'s INV-03 reason (performed or entered data, so cannot verify), not a role or permission refusal, and says who may verify: the verifier role, and not the person who performed the step', async () => {
+      await open(page, base, stepUrl);
       await expect(page.getByTestId('primary-action')).toHaveText('Verify');
       await expect(page.getByTestId('primary-action')).toBeDisabled();
       const reason = page.getByTestId('primary-reason');
       // The step is named by its number and name, not by its key (lead TODO T4).
-      await expect(reason).toContainText(new RegExp(`${operator.legalName} performed, entered data in or corrected step [0-9.]+ Dispensing booth clearance and so cannot verify or witness it`));
+      await expect(reason).toContainText(new RegExp(`${both.legalName} performed, entered data in or corrected step [0-9.]+ Dispensing booth clearance and so cannot verify or witness it`));
       await expect(reason).toContainText('(ENG-SEGREGATION; INV-03');
+      await expect(reason).not.toContainText('ENG-ROLE');
       await expect(reason).not.toContainText('does not hold a role');
       await expect(reason).not.toContainText('does not hold the permission');
-      // Who can verify (P46): the check role of this variant is the performing role, which carries no permission to
-      // verify here, so no role may; and never the person who performed, entered data in or corrected the step.
-      const who = page.getByTestId('primary-who');
-      await expect(who).toContainText('Who can do it: No role of this installation may give this check: none that carries PRODUCTION_OPERATOR holds STEP.VERIFY');
-      await expect(who).toContainText(`Not ${operator.legalName}: a person who performed, entered data in or corrected the step never checks it (INV-03)`);
+      // Who can verify (P46): the role of this installation that may give the check, which this person holds too, and
+      // never the person who performed, entered data in or corrected the step.
+      await expect(page.getByTestId('primary-who')).toHaveText(
+        `Who can do it: Verifier / checker (VERIFIER); Not ${both.legalName}: a person who performed, entered data in or corrected the step never checks it (INV-03)`,
+      );
     }, page);
     await axe.check(page);
     expect(await cspViolations(page)).toEqual([]);

@@ -1932,3 +1932,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   does not activate mutants under happy-dom): 191 of 205 killed, the 14 left equivalent or redundant with the count.
   Also fixed: a race in web access/ports.test (the switch request was read before it was sent; it failed about one
   run in ten before and after this change).
+- 2026-10-04: E2E INV-03 rebuilt (branch phase-2/e2e-inv03). The floor spec's [INV-03] test broke at f04ef7b: its MBR
+  variant gave p-disp-clear's check to the performing role, which the T12.5 gate now refuses (GMP-CHECK-PERMISSION). The
+  test-kit now seeds one kiosk persona holding OPERATOR and VERIFIER (TEST-Deepa Pillai, two approved grants); on the
+  standard dc-mini record it performs the clearance as OPERATOR, signs in again as VERIFIER (one role per session) and is
+  refused Verify by the segregation rule (ENG-SEGREGATION; INV-03), not by the role rule.

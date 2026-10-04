@@ -41,7 +41,14 @@ export interface PersonaSpec {
   installation: InstallationKind;
   legalName: string;
   loginName: string;
+  /** The persona's role; with `alsoRoles`, the first of its roles and the one the test-kit's own sessions declare. */
   roleCode: string;
+  /**
+   * Further roles, granted exactly as `roleCode` is (requested by the administrator, approved by the process owner).
+   * A person who holds several roles chooses one at each sign-in, and the session acts in that role only: it cannot
+   * change it, the person signs in again to act in another (tablets 0001 tab.set_session_role, EBMR-TAB-015).
+   */
+  alsoRoles?: readonly string[];
   /** Kiosk personas log in with badge and PIN; the others with user ID and password. */
   kiosk: boolean;
   /** The terminal the persona uses in the demo. */
@@ -67,6 +74,9 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'verifier2', installation: 'SANDBOX', legalName: 'TEST-Imran Khan', loginName: 'test-verifier-2', roleCode: 'VERIFIER', kiosk: true, homeTerminal: 'TEST-KIOSK-BLEND-1', title: 'Verifier', demo: { password: 'Demo-Verifier2-2026!', pin: '715926', badgeUid: '04A10000000012' } },
   { key: 'supervisor1', installation: 'SANDBOX', legalName: 'TEST-Sanjay Kulkarni', loginName: 'test-supervisor-1', roleCode: 'SHIFT_SUPERVISOR', kiosk: true, homeTerminal: 'TEST-KIOSK-BLEND-1', title: 'Shift supervisor', demo: { password: 'Demo-Supervisor1-2026!', pin: '846201', badgeUid: '04A10000000021' } },
   { key: 'qa1', installation: 'SANDBOX', legalName: 'TEST-Fatima Sheikh', loginName: 'test-qa-1', roleCode: 'QA_SHOP_FLOOR', kiosk: true, homeTerminal: 'TEST-KIOSK-BLEND-1', title: 'QA (shop floor)', demo: { password: 'Demo-QaFloor1-2026!', pin: '935172', badgeUid: '04A10000000031' } },
+  // The one person with two roles: OPERATOR to perform a step and VERIFIER to verify one. The role rule lets them verify,
+  // so only the segregation rule keeps them from verifying a step they performed (INV-03; E2E floor spec).
+  { key: 'operatorVerifier1', installation: 'SANDBOX', legalName: 'TEST-Deepa Pillai', loginName: 'test-operator-verifier-1', roleCode: 'OPERATOR', alsoRoles: ['VERIFIER'], kiosk: true, homeTerminal: 'TEST-KIOSK-DISP-1', title: 'Operator and verifier (two roles)', demo: { password: 'Demo-OpVerifier1-2026!', pin: '358264', badgeUid: '04A10000000041' } },
 ];
 
 /** The sandbox's service identities (SERVICES). */
