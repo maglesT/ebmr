@@ -17,7 +17,7 @@ import type { BatchDefinition } from '../../src/engine/definition.ts';
 import { step } from '../../src/engine/engine.ts';
 import type { BatchState, Command } from '../../src/engine/types.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
-import { endpoint, mbrWith, phase } from '../flow/support.ts';
+import { endpoint, errors, mbrWith, phase, validate } from '../flow/support.ts';
 import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP1, OP2, param, QA1, Run, sig, SUP1 } from '../engine/support.ts';
 
 let db: TestDatabase;
@@ -388,6 +388,44 @@ describe('F67 rounds 2 and 3: the starts and ends the acts and the token record 
     delete noDecisions['decisions'];
     expect(await nodeEventProblem(mbr, { kind: 'COMMAND', accepted: true, command, before: noDecisions, after: noEnd })).toBe('ends loop L (EXIT) but records no END event of it (L|END|)');
     expect(await nodeEventProblem(mbr, { kind: 'COMMAND', accepted: true, command, before, after })).toBeNull();
+  }, 120_000);
+
+  it('[INV-20][DI-27][DI-34][INV-19] only an iteration of a loop ends the loop: a branch of an alternative inside it may be named EXIT, and choosing that branch records no END of the loop or of the alternative', async () => {
+    // A validated MBR: the operator's choice inside the mixing loop names its branches as the author chose, here EXIT
+    // (discharge through the exit chute) and RECYCLE. The choice is a decision of the alternative in the iteration's
+    // frames; the loop's END comes with the COMPLETE_LOOP_ITERATION whose exit condition holds (0312 header item 5).
+    const pinned = mbrWith(seq('none')).references;
+    const mbr = mbrWith(
+      seq('ops', {
+        kind: 'loop', id: 'L', name: 'Mix until uniform', maxIterations: 3, exit: { condition: 'ep <= 1 [%]', endpoint: 'ep' },
+        body: seq('body', phase('mix'), {
+          kind: 'alternative', id: 'ROUTE', decision: { mode: 'OPERATOR_CHOICE', roles: ['PRODUCTION_SUPERVISOR'], reasonRequired: true },
+          branches: [{ id: 'EXIT', name: 'Discharge through the exit chute', body: phase('chute') }, { id: 'RECYCLE', name: 'Back to the mixer', body: phase('recycle') }],
+        }, phase('test', { records: ['ep'], system: { kind: 'OTHER', ref: 'SYS-LOD' } })),
+      }, phase('after')),
+      {
+        parameters: [endpoint('ep')],
+        references: [...pinned, { id: 'VR', kind: 'VALIDATION_REPORT', code: 'VR-MIX', version: '1', hash: 'b'.repeat(64) }, { id: 'SYS-LOD', kind: 'COMPUTERISED_SYSTEM', code: 'CS-LOD', version: '1', hash: 'c'.repeat(64) }],
+      },
+    );
+    expect(errors(validate(mbr)), 'SETUP: the validator passes the MBR').toEqual([]);
+    const run = Run.issue(define(mbr));
+    const start = run.state;
+    const f = [{ construct: 'L', index: 1 }];
+    done(run, 'mix', {}, f);
+    run.ok({ type: 'CHOOSE_ALTERNATIVE', actor: SUP1, construct: 'ROUTE', context: f, branch: 'EXIT', reason: 'Granules discharged through the exit chute' });
+    expect(decisionsOf(enc(run.state))['ROUTE@L=1']?.['outcome'], 'SETUP: the branch named EXIT is taken').toBe('EXIT');
+    expect(Object.keys(run.state.nodeEvents).filter((k) => k.startsWith('L|') || k.startsWith('ROUTE|')), 'the choice ends nothing').toEqual(['L|START|', 'ROUTE|START|L=1']);
+    done(run, 'chute', {}, f);
+    run.start('test', f);
+    run.record('test', 'ep', { kind: 'DECIMAL', value: '0.8', unit: '%' }, { frames: f });
+    run.perform('test', f);
+    run.verify('test', f);
+    run.ok({ type: 'COMPLETE_LOOP_ITERATION', actor: OP1, construct: 'L', context: f });
+    expect(decisionsOf(enc(run.state))['L@L=1']?.['outcome'], 'SETUP: the loop exits').toBe('EXIT');
+    done(run, 'after');
+    expect(run.state.nodeEvents['L|END|']).toBeDefined();
+    expect(await nodeEventObjections(mbr, rowsOf(run, start))).toEqual({});
   }, 120_000);
 
   it('[INV-20][DI-27][DI-34] inside a sub-lot, a step brought in after an operation needs the END of every construct the token went through inside it (0314)', async () => {
