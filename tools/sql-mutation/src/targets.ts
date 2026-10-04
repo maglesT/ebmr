@@ -434,4 +434,13 @@ export const TARGETS: Target[] = [
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts')],
     threshold: 90,
   },
+  // ---- Phase 2 exit, SQL mutation defects (D11): the state engine's rows, whoever writes them: a history row is a
+  //      published transition its state row records, and a state row commits only with its history row (kernel 0550,
+  //      1110; EBMR-PLAT-072, 077, 078). Not in the Phase 1 run. -----------------------------------------------------
+  {
+    group: 'state-engine-rows',
+    functions: ['platform.guard_state_row', 'platform.state_row_history_check'],
+    tests: [k('platform/state-machine.test.ts')],
+    threshold: 90,
+  },
 ];

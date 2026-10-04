@@ -2,7 +2,8 @@
 
 Build outline 5.2 (introduction), 4.4 "Privileges"; ADR 0012 decision 2; ADR 0010 (pinning).
 Schema `platform`, migrations `0550` (engine), `0551` (sample record), `0552` (generated seed of the
-sample machine). Tests: `test/platform/{state-machine,machine-consistency}.test.ts`.
+sample machine), `1110` (state and history rows checked whoever writes them). Tests:
+`test/platform/{state-machine,machine-consistency}.test.ts`, `test/mutation/state-engine-rows.test.ts`.
 
 ## One definition, two enforcements
 
@@ -85,10 +86,29 @@ sample machine). Tests: `test/platform/{state-machine,machine-consistency}.test.
   transition, it has refused any blank half with the same test on the same context, so the engine writes no
   part of that reason and the audit entry records the person's own.
 - **Bypass protection.**
-  - The application role has only SELECT on state and history.
-  - The trigger `platform.guard_state_row` refuses any write that does not come from the engine, and
-    any state change that is not a published transition, even from owner-level code (EBMR-PLAT-072).
-  - `platform.state_violations()` detects a superuser rewrite (the state row differs from the history).
+  - The application role has only SELECT on state and history (the sandbox role mirrors it). Only the
+    table owner and superusers may write either table, and the only owner-level code that does is the
+    engine (`create_aggregate_state_at`, `transition`), which computes every value it writes.
+  - The trigger `platform.guard_state_row` refuses a write made without the engine flag (EBMR-PLAT-072).
+    The flag is a session setting any role can set, so it is not enough on its own (kernel 1110, defect
+    D11 of the Phase 2 exit), and whoever writes:
+    - a state row starts at version 1 in the initial state of a published machine version that governs
+      its aggregate type, and changes only along a published transition, one version at a time
+      (EBMR-PLAT-072);
+    - a history row is a published transition of the pinned version (from, event, to), records the
+      permission and signature meaning that transition publishes and a signature id exactly when it needs
+      one, continues the aggregate's latest history row, and is what the aggregate's state row records;
+      a creation row starts a published version, records its create permission and is the first row
+      (EBMR-PLAT-077);
+    - at commit, every state row written equals its latest history row (EBMR-PLAT-078, a deferred
+      constraint trigger: a transaction that sets its constraints IMMEDIATE before a transition has it
+      refused).
+  - What remains: owner-level code that forges the flag can still make a published transition the engine
+    would make, with both rows agreeing, without the engine's permission, signature and guard checks (the
+    guard sees rows, not the code that wrote them); a signature id on such a row is not verified by the
+    guard.
+  - `platform.state_violations()` detects a superuser rewrite with triggers disabled (the state row
+    differs from the history).
 - **Hooks** (`platform.register_hook`). AUTHORITY and SIGNATURE are provided by the identity and
   e-signature modules. Without a registered provider, a transition that needs one is refused
   (fail closed).

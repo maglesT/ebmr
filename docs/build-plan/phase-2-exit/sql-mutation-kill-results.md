@@ -130,6 +130,22 @@ Fixed:
   the cluster lacks made `sandbox.segregation_problems()` fail with "role does not exist" instead of reporting the
   problem, because PostgreSQL evaluated the privilege test before the existence test; rows also came out in join
   order. Fixed in kernel 1100: roles are read from the catalogue and asked about by oid, in role order.
+- **D11. Kernel state engine: a history row forged with the session flag.** For an insert into
+  `platform.state_history` the guard checked only the engine flag, a session setting any role can set, so owner-level
+  code could write an arbitrary transition (for example a version approved at version 100) and
+  `platform.state_violations()` found it only afterwards. Only the table owner and superusers can write the state
+  tables (the application role holds SELECT, the sandbox role mirrors it, and the engine functions they may call write
+  every value themselves). Fixed in kernel 1110 (decision D11.1): whatever the flag says, a history row must be a
+  published transition of the pinned machine version, record that transition's permission and signature meaning (and
+  a signature id exactly when one is needed), continue the latest history row and be what the state row records
+  (EBMR-PLAT-077); a creation row starts a published version; a state row starts only for the aggregate type its
+  machine governs (EBMR-PLAT-072), and commits only with its history row (EBMR-PLAT-078, deferred to the commit). Left:
+  owner-level code that forges the flag can still make a published transition, both rows agreeing, without the
+  engine's permission, signature and guard checks. Tests: `packages/kernel/test/platform/state-machine.test.ts` (three
+  [DI-34][DI-17] tests: the forged rows refused, the honest transitions unchanged) and the new mutation group
+  state-engine-rows (`packages/kernel/test/mutation/state-engine-rows.test.ts`). The kill test for
+  `recipe.guard_in_flight_dispositioned#3` now shows the owner-level forged row refused and arranges it as the
+  superuser with triggers off, taking it away before the approval; it still kills the mutant.
 - **D15. Connection roles: an unknown grantee broke the connect policy's statement.** When a backend-signal function's
   privileges named a role oid the cluster does not know (a direct catalogue write by a superuser), the policy built a
   revoke with an empty grantee and failed with a syntax error instead of a coded refusal (fail closed, wrong message).
@@ -168,10 +184,6 @@ Open (the lead takes these next):
   in the table guards) change semantics the lead should choose. The kill test for
   `recipe.guard_in_flight_dispositioned#3` uses this arrangement; once D10 and D11 are closed that mutant becomes
   equivalent and the test needs revisiting.
-- **D11. Kernel state engine: a history row forged with the session flag.** For an insert into
-  `platform.state_history` the guard checks only a session setting any role can set, so owner-level code can write
-  an arbitrary transition (for example a version approved at version 100); `platform.state_violations()` finds it only
-  afterwards. The kernel's own tests treat a forged flag as an attack the guards must withstand.
 - **D12. Limit exceptions: nested loops on the same endpoint.** The validator and the engine accept two nested loops
   that exit on the same endpoint; at the outer exit the engine judges the point again and, on a breach, raises a
   second limit breach. The database refuses that outer exit row (fail-closed: the batch is stuck, nothing wrong is

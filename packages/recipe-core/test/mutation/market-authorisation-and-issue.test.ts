@@ -1126,11 +1126,15 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
 
   /**
    * The guard counts the batches of EARLIER versions only. The product never pins a batch to a version before its
-   * approval, but owner-level code can, every trigger on: it sets the engine flag and writes an APPROVED history row for
-   * the CHECKED version (platform.guard_state_row checks no more than the flag on a history insert; the kernel's state
-   * query finds the row), then records a market authorisation for that version, its activation and its cell directly,
-   * and the issue command then pins a batch to that version. A batch of the version itself is no batch of an earlier
-   * version: no in-flight disposition can be recorded for it (EBMR-RCP-070), and the approval does not wait for one.
+   * approval. Until kernel 1110 owner-level code could, every trigger on: it set the engine flag and wrote an APPROVED
+   * history row for the CHECKED version (platform.guard_state_row checked no more than the flag on a history insert).
+   * Since kernel 1110 (defect D11) that row is refused (EBMR-PLAT-077, shown first), so the test arranges it as the
+   * superuser with every trigger off (asTimeTraveller), the only writer left who can. Owner-level code then records a
+   * market authorisation for that version, its activation and its cell directly (defect D10), the issue command pins a
+   * batch to that version, and the superuser takes the arranged row away again (triggers off), so that the version is
+   * CHECKED in its history as in its state row and the engine can approve it (kernel 1110 refuses a history row that
+   * does not continue the latest one). A batch of the version itself is no batch of an earlier version: no in-flight
+   * disposition can be recorded for it (EBMR-RCP-070), and the approval does not wait for one.
    */
   it('[PR-05][INV-01] a batch pinned to the version under approval is not a batch of an earlier version: it takes no in-flight disposition and the approval does not wait for one', async () => {
     const content = uniqueContent();
@@ -1143,14 +1147,23 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
     const checked = await w.state(v.versionId);
     expect(checked.state).toBe('CHECKED');
     const FROM = '2026-01-02T00:00:00.000000Z';
+    const APPROVED_AT_100 = `insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, from_state, event, to_state, from_version,
+                                                                  to_version, permission_code, signature_meaning, signature_id, person_id, account_id, role_code, correlation_id)
+                             values ('mbr_version', $1, 'mbr_version', 1, 'CHECKED', 'APPROVE', 'APPROVED', 99, 100, 'mbr.approve', 'APPROVED', gen_random_uuid(),
+                                     'p', 'a', 'r', gen_random_uuid())`;
+    // Owner-level code with the engine flag forged can no longer write it (kernel 1110, D11).
+    await refused(
+      asOwner(w.cast.qa, async (c) => {
+        await c.query("select set_config('platform.state_engine', 'on', true)");
+        await c.query(APPROVED_AT_100, [v.versionId]);
+      }),
+      'EBMR-PLAT-077',
+      exactly(
+        `EBMR-PLAT-077 the history row of mbr_version:${v.versionId} CHECKED -APPROVE-> APPROVED at version 100 does not continue its latest history row (CHECKED at version ${checked.version})`,
+      ),
+    );
+    await asTimeTraveller(db, APPROVED_AT_100, [v.versionId]);
     const record = await asOwner(w.cast.qa, async (c) => {
-      await c.query("select set_config('platform.state_engine', 'on', true)");
-      await c.query(
-        `insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, from_state, event, to_state, from_version, to_version,
-                                             person_id, account_id, role_code, correlation_id)
-         values ('mbr_version', $1, 'mbr_version', 1, 'CHECKED', 'APPROVE', 'APPROVED', 99, 100, 'p', 'a', 'r', gen_random_uuid())`,
-        [v.versionId],
-      );
       const { rows } = await c.query<{ id: string }>(
         `insert into recipe.market_authorisation (family_id, version_id, market, kind, cells, regulatory_basis, proposed_by_person, proposed_by_account)
          values ($1, $2, 'IN', 'CURRENT', $3::jsonb, 'IN: registration on file', $4, $4) returning id`,
@@ -1174,16 +1187,18 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
     const own = await w.issue(v.familyId, ['IN'], S1);
     expect(own.versionId).toBe(v.versionId);
     expect(await statusOf(own.batchId)).toBe('ISSUED');
+    // The arranged row found by the kernel's state query, then taken away again.
+    expect((await q<{ problem: string }>('select problem from platform.state_violations() where aggregate_id = $1 order by problem', [v.versionId])).map((x) => x.problem)).toEqual([
+      'history version 100 has no predecessor',
+      `state row (CHECKED, version ${checked.version}) differs from the latest history row (APPROVED, version 100)`,
+    ]);
+    await asTimeTraveller(db, "delete from platform.state_history where aggregate_type = 'mbr_version' and aggregate_id = $1 and to_version = 100", [v.versionId]);
     await refused(dispose(v.versionId, own.batchId), 'EBMR-RCP-070', EARLIER);
     const sig = await w.signVersion(w.cast.qa, v.versionId, 'APPROVED', 'CHECKED');
     await w.run(w.cast.qa, (c) => lc.approveVersion(c, v.versionId, checked.version, sig));
     expect(await w.state(v.versionId)).toEqual({ state: 'APPROVED', version: checked.version + 1 });
     expect(await dispositions([own.batchId])).toBe(0);
-    // The forged history row is found by the kernel's state query.
-    expect((await q<{ problem: string }>('select problem from platform.state_violations() where aggregate_id = $1 order by problem', [v.versionId])).map((x) => x.problem)).toEqual([
-      'history version 100 has no predecessor',
-      `state row (APPROVED, version ${checked.version + 1}) differs from the latest history row (APPROVED, version 100)`,
-    ]);
+    expect(await q('select problem from platform.state_violations() where aggregate_id = $1', [v.versionId])).toEqual([]);
   }, LONG);
 });
 

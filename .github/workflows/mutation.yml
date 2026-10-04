@@ -81,7 +81,7 @@ jobs:
                 device-readings, evidence-listener, manual-weighing-gate, read-authorisation, tablets-sessions,
                 designer-guards, site-zone, signing-failure-and-reasons, connection-roles, batch-number-register,
                 stale-commands-and-readings, exception-source, entry-references-and-schema, late-witness-and-step-times,
-                execution-row-shape]
+                execution-row-shape, state-engine-rows]
     services:
       postgres:
         image: postgres:16
