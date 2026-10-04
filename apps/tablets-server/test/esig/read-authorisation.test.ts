@@ -568,3 +568,89 @@ describe('HIGH-WATER: the statistics of the investigation and hold tables (table
     }
   });
 });
+
+/**
+ * Lane round 3 of round 4 (the verifier of HIGH-WATER): tablets 0540 and 0570 took the sequence marks and the table
+ * statistics away from the application role, but kernel 0130 also granted it SELECT on iam.authority_evaluation, where
+ * every permission check is stored with its time, person, account, role and outcome. VALIDATION.MANAGE is checked only
+ * by the opening, linking and scope refresh of a data-integrity investigation, DI_INVESTIGATION.APPROVE_CLOSURE only by
+ * its closure and the signing of it, and RECORD.LEGAL_HOLD only by placing and releasing a legal hold: read now and again
+ * later, the table told when and how many investigations were opened, linked, refreshed and closed and holds placed and
+ * released, and which lead or QA reviewer acted (not whom the investigation is about). Every reader of the table in the
+ * kernel and recipe-core is SECURITY DEFINER (the evaluation itself, the signing flow's checks, the evidence package, the
+ * engine's role checks) and the server reads it nowhere, so tablets 0580 takes the SELECT away; the application role
+ * still evaluates (iam.evaluate_authority answers its own call) and the commands still run.
+ */
+describe('HIGH-WATER: the authority evaluations of the investigation and hold commands (tablets 0580)', () => {
+  const PERMISSIONS = ['DI_INVESTIGATION.APPROVE_CLOSURE', 'RECORD.LEGAL_HOLD', 'VALIDATION.MANAGE'];
+  const acted = new Map<TestServer, { lead: GrantedPerson; approver: GrantedPerson; investigation: string }>();
+
+  /** On each installation a CSV/DI lead opens, links and refreshes an investigation; a QA reviewer signs and closes it, then places and releases a legal hold. */
+  beforeAll(async () => {
+    for (const server of [gmp, sbx]) {
+      const label = (name: string): string => (server === sbx ? `TEST-${name}` : name);
+      const fp = terminalOf(server.seed, server === gmp ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+      const subject = await grantedPerson(server, 'QA_REVIEWER', label('Nisha Rao QA reviewer'));
+      const lead = await grantedPerson(server, 'CSV_DI_LEAD', label('Vikram Sen CSV-DI lead'));
+      const approver = await grantedPerson(server, 'QA_REVIEWER', label('Farah Khan QA reviewer'));
+      const leadActor = await passwordActor(server.db, lead, fp);
+      const approverActor = await passwordActor(server.db, approver, fp);
+      const investigation = await withCommand(server.db.app, reason(leadActor), (c) =>
+        records.openDiInvestigation(c, { subjectPersonId: subject.personId, windowFrom: new Date(Date.UTC(2000, 0, 1)), windowTo: new Date(Date.UTC(2100, 0, 1)), concern: 'Suspected sharing of a QA reviewer password' }),
+      );
+      await withCommand(server.db.app, reason(leadActor), (c) => records.linkDiInvestigation(c, investigation, 'sample_record', randomUUID(), 'HIGH-WATER test set-up: a linked record'));
+      await withCommand(server.db.app, reason(leadActor), (c) => records.refreshDiInvestigationScope(c, investigation));
+      // The closure, signed through the kernel (no signing flow of this installation serves an investigation's content).
+      await withCommand(server.db.app, reason(approverActor), (c) => identity.acknowledgeEsigPolicy(c));
+      const content = await esig.contentForSigning(server.db.admin, 'di_investigation', investigation);
+      const challenge = await withCommand(server.db.app, reason(approverActor), (c) =>
+        esig.createChallenge(c, { aggregateType: 'di_investigation', aggregateId: investigation, contentVersion: content.contentVersion ?? '1', meaning: 'DI_INVESTIGATION_CLOSED', clientContentHash: content.contentHash ?? '' }),
+      );
+      const ev = await identity.authenticate(server.db.authn, { method: 'PASSWORD', identifier: approver.loginName, secret: approver.password, deviceFingerprint: fp, purpose: 'SIGNATURE', challengeId: challenge.challengeId });
+      const sealKey = server.built.ctx.sealKey;
+      if (!sealKey) throw new Error('the signing server has no seal key');
+      const signed = await withCommand(server.db.app, reason(approverActor), (c) => esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: 'OPEN' }, sealKey));
+      await withCommand(server.db.app, reason(approverActor), (c) =>
+        records.closeDiInvestigation(c, investigation, { conclusion: 'No sharing found', remediation: 'None required', approvalSignatureId: signed.signatureId }),
+      );
+      const hold = await withCommand(server.db.app, reason(approverActor), (c) => records.placeLegalHold(c, 'sample_record', randomUUID(), 'HIGH-WATER test set-up: a legal hold', 'LEGAL-HW-1'));
+      await withCommand(server.db.app, reason(approverActor), (c) => records.releaseLegalHold(c, hold, 'HIGH-WATER test set-up: released'));
+      acted.set(server, { lead, approver, investigation });
+    }
+  });
+
+  it('[DI-17][DI-50] without a session the application role reads no authority evaluation, so neither when nor how many investigations were opened, linked, refreshed and closed and legal holds placed and released, nor who acted, on either installation; the commands still run, the application role still evaluates, and the owner reads every evaluation', async () => {
+    for (const server of [gmp, sbx]) {
+      const { lead, approver, investigation } = acted.get(server) ?? { lead: qa, approver: qa, investigation: '' };
+      // The commands ran (the investigation is closed) and stored their evaluations, which the owner reads.
+      expect((await server.db.admin.query('select approved_by_person::text as by from records.di_investigation_closure where investigation_id = $1', [investigation])).rows, server.kind).toEqual([{ by: approver.personId }]);
+      const stored = (await server.db.admin.query<{ permission_code: string; n: number; allowed: boolean }>(
+        'select permission_code, count(*)::int as n, bool_and(allowed) as allowed from iam.authority_evaluation where person_id = any ($1) and permission_code = any ($2) group by 1 order by 1',
+        [[lead.personId, approver.personId], PERMISSIONS],
+      )).rows;
+      expect(stored, server.kind).toEqual([
+        { permission_code: 'DI_INVESTIGATION.APPROVE_CLOSURE', n: 2, allowed: true },
+        { permission_code: 'RECORD.LEGAL_HOLD', n: 2, allowed: true },
+        { permission_code: 'VALIDATION.MANAGE', n: 3, allowed: true },
+      ]);
+      // The application role, without a session: no row and no column of them, on GMP or in the sandbox
+      // (sandbox.mirror_application_privileges).
+      const app = server.db.app;
+      for (const [sqlText, args] of [
+        ['select * from iam.authority_evaluation', []],
+        ['select count(*) from iam.authority_evaluation', []],
+        ["select evaluated_at from iam.authority_evaluation where permission_code = 'VALIDATION.MANAGE'", []],
+        ['select permission_code, evaluated_at from iam.authority_evaluation where person_id = $1', [lead.personId]],
+      ] as const) {
+        await expect(app.query(sqlText, [...args]), `${server.kind}: ${sqlText}`).rejects.toThrow(/permission denied/);
+      }
+      expect((await app.query("select pg_catalog.has_any_column_privilege(current_user, 'iam.authority_evaluation', 'SELECT') as v")).rows, server.kind).toEqual([{ v: false }]);
+      // The application role still evaluates (the kernel's authorisation and the signing flow call it); the evaluation is stored.
+      const own = (await app.query<{ e: { evaluation_id: string; allowed: boolean } }>(
+        "select iam.evaluate_authority($1::uuid, $2::uuid, 'VALIDATION.MANAGE', '{}'::jsonb, null, 'CSV_DI_LEAD') as e", [lead.personId, lead.accountId],
+      )).rows[0]?.e;
+      expect(own?.allowed, server.kind).toBe(true);
+      expect((await server.db.admin.query('select permission_code from iam.authority_evaluation where id = $1', [own?.evaluation_id])).rows, server.kind).toEqual([{ permission_code: 'VALIDATION.MANAGE' }]);
+    }
+  });
+});

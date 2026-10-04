@@ -64,11 +64,16 @@
    PostgreSQL's per-table, per-index, per-sequence and per-function statistics and the relation sizes, which every role
    reads out of the box and which counted the same inserts (rows inserted and live in the investigation and hold
    tables); they are taken from PUBLIC in each installation's database. What the server and the kernel still read
-   (`pg_stat_ssl`, `pg_locks`, `pg_stat_activity`) and the planner's estimates in `pg_class` are default HW.1. Not
-   closed in Phase 2: the application role still selects
-   the identity, incident, retention and continuity tables directly (owner residual F34.2 in
-   docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server read several of them as that
-   role; moving those reads behind session-checked functions is a kernel change for both editions.
+   (`pg_stat_ssl`, `pg_locks`, `pg_stat_activity`) and the planner's estimates in `pg_class` are default HW.1. Tablets
+   0580 (correcting 0540 and 0570, which each implied that nothing else told when and how many): nor the stored
+   authority evaluations (`iam.authority_evaluation`), where the checks of the permissions only the investigation and
+   legal-hold commands use told when and how many investigations were opened, linked, refreshed and closed and holds
+   placed and released, and which lead or QA reviewer acted; every reader of the table is SECURITY DEFINER, and the
+   application role still evaluates (default HW.2). Not closed in Phase 2: the application role still selects the
+   identity tables other than the authority evaluations, and the incident, retention and continuity tables, directly
+   (owner residual F34.2 in docs/decisions/phase-2-open-questions.md), because the kernel's own code and the server
+   read several of them as that role; moving those reads behind session-checked functions is a kernel change for both
+   editions.
 
 ## Consequences
 
