@@ -106,3 +106,75 @@ sandbox that claims to be GMP unless the database is also renamed.
 - Recipe core: the simulator's report is stamped with `watermarkFor('SIMULATION')`; batch issue (Phase 3) calls
   `sandbox.assert_batch_issue_allowed` after `recipe.select_version_for_issue`.
 - Continuity: the restore procedure re-applies `sandbox.apply_connect_policy()` after a restore.
+
+## 7. What the application role writes in a sandbox, and what reads it for the identifier rule (F12.8)
+
+Inventory taken on 4 October 2026 from the catalogue of a sandbox migrated to kernel 1030, recipe-core 0345 and
+tablets 0630 (decision F12.8 in `docs/decisions/phase-2-open-questions.md`). The application's credential in a sandbox
+is `ebmr_sandbox`, which holds exactly `ebmr_app`'s privileges. It writes 185 tables: 15 by its own grants (the
+kernel's stub tables) and 170 through the SECURITY DEFINER functions it may execute, followed through the functions and
+triggers they call, plus the four content stores, which recipe-core 0210, 0280 and 0299 write by dynamic SQL (the
+only dynamic writes a function the role may execute makes), and the legacy stage summary. Only
+text, text[] and jsonb columns can hold a word; the other columns are ids, numbers, times, booleans, intervals and
+enumerated types.
+
+**A. A test run's record: every text read (recipe-core 0344, EBMR-EXE-147).** `recipe.batch_execution`,
+`execution_command` (all but `actor_legal_name`, see C), `execution_state`, `execution_event`, `execution_clock`,
+`execution_step_content`, `execution_stage_content`, `execution_exception_content`, `execution_point_content`,
+`execution_disposition_proposal`, `execution_decision_proposal`, `execution_stage_summary_legacy`; in
+`kernel.audit_event`, the reason code and text and every business entry of a run's chains and their signing chains,
+and the reason of a scale reading's chain. Every string and member name of a JSON value is read, at any depth, at
+commit. A copy into the record from anywhere else is read where it lands, so this does not depend on tracing where a
+text comes from. The words allowed there come from bound sources only: the imported package (the MBR), the batch number
+and the site and room of the session that issued it or writes a row, compounds of these the engine builds, the engine's
+own names, and in an audit entry the names and logins of the person register and the run's hash prefixes.
+
+**B. The kernel's stub tables (kernel 1030).** Identifier rule: `market.stub_batch.batch_number`,
+`market.stub_material_lot.code`, `market.stub_pack.code` (EBMR-SBX-022). Read for the rule (EBMR-SBX-024):
+`market.stub_site.predicates`, `market.stub_product.predicates`, `market.stub_mbr_limit.value` and `.predicates`,
+`esig.stub_signable.title`, `.value`, `.unit`, `platform.stub_record.title`, `.body`, `platform.stub_step_entry.late_reason_text`,
+`.unit`. Not read, codes of master data or values the database sets: the `code` of `market.stub_site`, `stub_product`,
+`stub_line`, `stub_room` and `stub_equipment`; `market.stub_mbr_limit.mbr_code` and `.key`; the `markets` lists;
+`market.stub_pack.destination` (a market, by key); `esig.stub_signable.site`, `.area`, `.product`;
+`platform.stub_step_entry.late_reason_code` (the kernel's list), `.entered_by`, `.site_zone`, `.review_flags` (set by
+the database). `platform.stub_step`, `market.stub_product_qualification` and `market.stub_person_qualification` hold
+no free text.
+
+**C. Registers a test run reads, bound when it reads them.** `tab.sandbox_lot`: lot code under the rule (tablets 0200),
+material code bound at use to the batch's MBR (0600), material name read (0630). `tab.reading_use`: purpose TARE or
+GROSS (0600), room bound to the session. `tab.device_reading`: a reading's value and device label enter the record
+only as evidence, bound by 0335 and read by 0344; its serial and gateway code are not read. `iam.person`,
+`iam.person_name_event`, `iam.issued_identifier`: names and labels under the PERSON_LABEL rule (TEST- in front); what
+follows the prefix of a legal name is not read, and `execution_command.actor_legal_name` and the kernel's audit
+messages copy it (kernel 0190 binds the former to the register). `iam.device` and `iam.session`: a device's label is
+under the DEVICE_LABEL rule, its site, room and line codes and description are not read; a session takes the site and
+room of its device, and they are allowed words of a run (A). `recipe.test_package`: the imported MBR, hash-consistent
+and allowed in a run (A). `recipe.stub_batch`: number under the rule (0341); site, line and batch size not read.
+`site.batch_number_allocation`: number under the rule; product name and external reference not read.
+
+**D. Free text nothing reads for the rule, outside every test run's record (residual, for the owner and the lead).**
+Set-up and administration of the sandbox, logs that keep what was presented, and values the kernel derives:
+- `iam` (29): access_recertification (comment); account (status_reason); account_lock_event (reason); account_status_event (status, reason); auth_event (device_class, components); authn_attempt (method, purpose, device_fingerprint, reason); authority_evaluation (permission_code, role_filter, scope, reasons, role_code, inputs); badge (label, status_reason); badge_test (notes); break_glass_window (reason, review_comment); credential (end_reason); credential_secret (verifier); delegation (scope_site, scope_area, scope_product, markets, meanings, sop_ref, reason, decision_reason, revocation_reason); esig_acknowledgement (manifestation_name); identity_verification (document_type, evidence_ref); person_qualification (source_ref, withdrawal_reason); person_status_event (status); policy_value (value, reason); qualification_requirement (scope_site, scope_area, scope_product, reason); qualification_type (name, description); reserved_identifier (reason); role (catalogue_ref, name, description, account_kinds); role_grant (scope_site, scope_area, scope_product, reason, decision_reason, revocation_reason); role_permission_request (reason, decision_reason); security_alert (details); security_alert_action (comment); segregation_evaluation (rule_code, subject); session_event (reason); us_esig_certification (legal_entity, letter_ref, fda_acknowledgement_ref).
+- `esig` (10): challenge (aggregate_type, aggregate_id, aggregate_ref, client_content_hash, preview); content_change (aggregate_type, aggregate_id, aggregate_ref, table_name); meaning_type (title, meaning_text, permissions, independent_of, sources); policy_value (value, reason, change_ref); seal_key (public_key, description); seal_key_retirement (reason); signature (aggregate_type, aggregate_id, aggregate_ref, meaning_title, meaning_text, signer_login, signer_legal_name, signer_role_code, signer_role_name, auth_method, components_used, site_zone, witness, manifestation, manifestation_text, record_state); signature_invalidation (aggregate_ref, previous_content_hash, current_content_hash); signature_seal (aggregate_ref); signing_failure (code, message, misuse_code, misuse_detail, aggregate_ref, meaning_code).
+- `kernel` (5): audit_anchor (heads); audit_chain_head (chain_key); audit_checkpoint (chain_key, reason); audit_verification_run (problems, run_by); ddl_log (session_user_name, command_tag, object_identity).
+- `market` (9): batch_policy_pin (reason); change_impact (ref_label, key, market_set, pinned_value, required_value, governing_markets, problem, note); evaluation (key, table_code, market_set, market_derivation, predicates, stated, method, unit, resolved_value, governing_markets, predicate_branch, floor_type, hard_floor, effective_value, resolution, inputs); policy (title, controls, positions, default_position); policy_version (position, change_ref, reason); rule_key (key, title, unit, ordered_values, stated_method, predicate_domain, catalog_refs, description); rule_row (row_ref, predicate, value, unit, hard_floor, source, note); rule_table_version (change_description, citation, vendor_notice_ref, loosening, source_file, source_sha256); site_value (key, value, unit, market_set, predicates, resolution, justification_ref).
+- `platform` (15): aggregate_clock (aggregate_type, aggregate_id); aggregate_state (state); alarm (subject, details, raised_by_person); alarm_clearance (subject, note); drift_sample (node, error); idempotency_key (person_id, account_id, result_json); machine_version (initial_state, states, final_states); outbox (aggregate_id, payload, person_id, source); outbox_attempt (relay, error); outbox_state (aggregate_type, aggregate_id, claimed_by, delivered_by, last_error); setting_value (value, set_by_person, reason_code, reason_text); state_history (aggregate_type, machine_code, from_state, event, to_state, guard_results, permission_code, signature_meaning, payload, person_id, account_id, role_code, reason_code, reason_text); time_anomaly (aggregate_type, aggregate_id); time_source (endpoint, reference, validation_ref, registered_by); time_source_registration (endpoint, reference, validation_ref, registered_by).
+- `records` (18): blocker_epoch (record_key); di_investigation (concern, qms_reference); di_investigation_closure (conclusion, remediation); di_investigation_link (record_key, aggregate_type, aggregate_id, note); incident (title, description); incident_assessment (aggregate_type, aggregate_id, deviation_ref, rationale); incident_event (note, root_cause, capa_ref, closure_summary, report_reference); incident_link (aggregate_id, step_ref); purge_approval (record_key, reason); record_type (title, description, original_and_copies, hybrid_linkage, storage_location, owning_module, owner_role, review_rule, retained_metadata); retention_dependency (supporting_record_key, dependant_record_key, link_kind); retention_evaluation (record_key, own, effective); retention_hold (record_key, aggregate_type, aggregate_id, reason, reference); retention_hold_release (record_key, reason); retention_input (record_key, inputs, change_reason); retention_schedule (record_key, aggregate_id, site_zone); tombstone (record_key, aggregate_type, aggregate_id, record_type_code, retention_key, rule_set_version, effective_retention, site_zone, true_copy_manifest_sha256, executed_by_source, reason_code, reason_text, purged_tables, chain_key); true_copy (record_key, bundle_format, tables, purpose).
+- `continuity` (15): backup_job_run (error_text); alarm (subject, details); alarm_acknowledgement (comment); backup_catalogue (database_name, storage_uri, encryption_key_ref, tool_version); ceiling_reservation (ledger_receipt, incarnation); counter (ceiling_incarnation); database_incarnation (incarnation); device_hardening_attestation (os_build, evidence_ref); device_hardening_revocation (reason); protected_sequence (description); restore_completion (incarnation, bumps); restore_drill (source_database, restored_database, report_uri); restore_event (reason, change_reference, operator_role_code, new_incarnation, anchor_comparison, affected_chains, affected_chain_keys); restore_event_approval (approver_role_code); sequence_bump (sequence_key).
+- `site` (3): batch_number_rule (site_zone, counter_key, reason); batch_number_serial_skip (site_code, rendered_number); batch_number_void (site_code, reason_text).
+- `recipe` (17): authorisation_cell (market, site, line, batch_size); batch_mbr_pin (markets, scope, selection, rule_table_versions); change_record (title, qms_reference); change_record_regulatory (reporting_category, regulatory_reference); change_record_validation (validation_ref, description); control_recipe (snapshot); in_flight_disposition (reason); market_authorisation (cells, regulatory_basis); market_authorisation_withdrawal (reason); mbr_content (content, reason); mbr_draft_entry (from_state, reason_code, reason_text); mbr_evidence (tool_version, report, reference, problems); mbr_family (title, product_code, product_name, strength, dosage_form, batch_sizes); mbr_risk_link (subjects); mbr_version_log (detail); periodic_review (summary); risk_assessment (code, version, title, risk_class, rationale_ref).
+- `tab` (13): attribution_method (reason); designer_justification (text, role_code); device_alarm (code, gateway_code, device_code, reading_id, message, details); gateway_api_contact (detail); gateway_instrument (device_code, resolution, ended_reason); gateway_key (gateway_code, revoked_reason); instrument_heartbeat (serial, not_ready); manual_weighing_basis (room_code, scales); mbr_test_package_export (role_code); reference_document (title, content, recorded_role); reference_document_retirement (reason, recorded_role); scale_room_lock (room_code); session_binding (role_code).
+
+None of these is part of a test run's record, and a copy of any of them into the record is read there (A). Text
+that reaches a run unread only through the bound sources of A: an imported package (a writer holding the
+application's credentials can import an MBR text of its own, decision F12.5; a signed export would close it), the
+device register's site and room codes, and the person register's names. Logs keep what was presented on purpose
+(DI-19: every failed attempt is logged as made).
+
+**E. No free text.** No text column: `kernel.command_marker`, `iam.command_log`, `iam.badge_secret`,
+`iam.session_activity`, `esig.signature_id_register`, `recipe.mbr_version`, `recipe.mbr_evidence_void`,
+`recipe.market_authorisation_activation`, `tab.ingest_challenge`, `tab.reading_claim_mark`. Every text column an
+enumeration, a pattern or a key of another table: `iam.role_permission`, `iam.mirror_heartbeat`, `iam.auth_event_use`,
+`records.record_type_approval`, `platform.consumed_message`, `tab.device_nonce`, `tab.gateway_session`.
+
+Counted: A 8 tables of the 185 (and the 5 stores outside them), B 15, C 11, D 134, E 17.
