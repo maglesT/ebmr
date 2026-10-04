@@ -39,7 +39,7 @@ import {
 import type { FlowNode, MbrContent, Parameter } from '../../src/flow/model.ts';
 import type { Frame } from '../../src/flow/tokens.ts';
 import type { LimitRange, LimitSpec } from '../../src/limits/model.ts';
-import { define, done, OP1, param, QA1, Run, sig } from '../engine/support.ts';
+import { define, done, omit, OP1, param, QA1, Run, sig } from '../engine/support.ts';
 import { endpoint, mbrWith, phase } from '../flow/support.ts';
 
 let db: TestDatabase;
@@ -436,6 +436,44 @@ describe('the verdict at a loop\'s exit (recipe.limit_verdicts, recipe.loop_exit
     });
   });
 
+  it('[PR-08][INV-19] an endpoint that holds no number to judge (a category or a yes/no answer, though its parameter has limits) is left waiting at the exit, as the engine leaves it: the exit is recorded, and a waiting number is not', async () => {
+    const outcomes: Record<string, unknown> = {};
+    for (const [kind, condition, answer] of [
+      ['CATEGORY', 'ep == "DRY"', { kind: 'CATEGORY', value: 'DRY' }],
+      ['BOOLEAN', 'ep', { kind: 'BOOLEAN', value: true }],
+    ] as const) {
+      const ep: Parameter = { ...omit(omit(endpoint('ep'), 'unit'), 'precision'), valueType: kind, ...(kind === 'CATEGORY' ? { categories: ['DRY', 'WET'] } : {}) };
+      const content = mbrWith(seq('ops', { kind: 'loop', id: 'L', name: 'Dry', maxIterations: 2, exit: { condition, endpoint: 'ep' }, body: seq('body', phase('test', { records: ['ep'] })) }, phase('after')), { parameters: [ep] });
+      const run = Run.issue(define(content));
+      const start = run.state;
+      run.start('test', L1);
+      run.record('test', 'ep', answer, { frames: L1 });
+      run.perform('test', L1);
+      run.verify('test', L1);
+      run.ok({ type: 'COMPLETE_LOOP_ITERATION', actor: OP1, construct: 'L', context: L1 });
+      done(run, 'after');
+      const rows = rowsOf(run, start);
+      const exit = rowWith(rows, 'COMPLETE_LOOP_ITERATION');
+      // The same exit with a number waiting in its place: the exit must give it a verdict.
+      const before = encodeState(exit.before) as Json;
+      const after = encodeState(exit.after) as Json;
+      for (const s of [before, after]) for (const p of Object.values(pointsOf(s))) p['value'] = decimal('0.5', '%');
+      outcomes[kind] = {
+        differences: await differences(content, rows),
+        evaluations: Object.values(run.state.points).map((p) => p.evaluation?.requirement),
+        decisions: Object.values(run.state.decisions).map((d) => `${d.key} ${String(d.outcome)}`),
+        aNumberLeftWaiting: await limitProblem(content, before, after),
+      };
+    }
+    const expected = {
+      differences: {},
+      evaluations: ['ENDPOINT_IN_PROGRESS'],
+      decisions: ['L@L=1 EXIT'],
+      aNumberLeftWaiting: 'the exit of loop L (L@L=1) is not recorded with the verdict the engine gives it: it judges the endpoint ep of that iteration against its limits, and the state gives none of its values that verdict',
+    };
+    expect(outcomes).toEqual({ CATEGORY: expected, BOOLEAN: expected });
+  });
+
   it('[PR-08][INV-19] an endpoint whose verdict changes at an exit, without limits or without its step instance, is refused as such (not judged as if it had them)', async () => {
     const { content, exit } = singleLoop();
     const dp = pointId(exit.after, 'ep', 'test@L=1');
@@ -581,3 +619,4 @@ describe('the helpers\' own contracts where the guard never reaches a branch (NU
     ]);
   });
 });
+
