@@ -440,8 +440,21 @@ that another command holds is skipped.
     none (sql 0336, constraint trigger `zz_execution_row_refusal`, `refusal_problem`); and a batch is issued only with
     a request its MBR accepts, as the engine checks it at issue: an approved batch size, approved markets with IN,
     every variant one of its values, every input given with a source and of its declared type, nothing else (sql
-    0337, trigger `ae_execution_issue_request`, `issue_request_problem`). Free text a type declares (a reason, a
-    description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
+    0337, trigger `ae_execution_issue_request`, `issue_request_problem`). What names a place names a place the record
+    has (sql 0338, Phase 2 exit review F12, the round-7 verification; decision F12.6): an accepted command's context is
+    the frames of the step instance, stage frame or decision of the state it acts on, in the MBR's loops and replicate
+    sections, a choice names an alternative and branch of the MBR, and an exception raised at no step carries no
+    context; a preparation names a command the server prepares a signature for and, for PERFORMED, a step instance of
+    the state (trigger `zzh_execution_row_context`, `row_context_problem`); a value keyed by hand is one its parameter
+    takes (`point_value_problem`); a content version is of a record of the state its row produced, with exactly its
+    kind's members, the batch's header and the record's identity (trigger `ab_content_version` on the four content
+    tables, `content_version_problem`); and a batch's engine version is major.minor.patch, its state naming the same
+    (triggers `af_execution_engine_version`, `zzi_execution_state_engine_version`); and a record the state brings in
+    is named as the engine names it: exceptions, entries, data points, computed values and holds by their own
+    `<prefix>-<n>` id within the state's counter, stage frames and decisions by their construct and frames in the MBR,
+    sub-lots from the batch number, the section's prefix and its indexes (sql 0339, trigger
+    `zzj_execution_state_records`, `state_record_problem`). Free text a type declares (a reason,
+    a description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -588,6 +601,10 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
     hash.
   - The stored state must be the last row's.
   - The latest stored content of every aggregate must be the content of that state.
+  - Every stored content version must be the content of the replayed state at the row that stored it, and that row
+    must bring its record in or change it (or be a person's accepted command first working on a phase,
+    `touchedAggregates`), so a version superseded before the replay is read too (Phase 2 exit review F12, round 8;
+    decisions REPLAY-GATE.1 and F12.6).
 
 ## Signing content: what is and is not hashed
 
@@ -830,6 +847,17 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   and control the engine's and the blocks' sources name meets the rule, and an accepted row records none (sql 0336);
   the issue requests of both golden fixtures pass and a size, market, variant, choice or input the MBR does not hold,
   one left out, a blank source or another input type is refused (sql 0337).
+- `test/execution/row-context-sql.test.ts` (Phase 2 exit review F12, round 8; DI-05, DI-30, DI-37, DI-10; sql 0338):
+  every accepted command of both golden runs (steps in loops and replicate sections, choices, loop iterations, stage
+  sign-offs) and the preparation for each of their signatures passes `row_context_problem`, and every content version
+  they store passes `content_version_problem`; a frame, construct or branch the MBR does not have, frames that are not
+  the state's, a context on an exception raised at no step, a preparation for a command that is never signed or
+  naming a step instance the state does not have, a content version of a record the state does not have or with a
+  member of its own, another schema, header or identity, a value keyed by hand of another kind or form than its
+  parameter takes, and an engine version that is not major.minor.patch are refused, each with its reason. Every
+  record the golden runs bring into the state passes `state_record_problem` (sql 0339), and one renamed L2409-0017,
+  numbered outside its counter, keyed otherwise than by its id, naming a construct, frames, branch or outcome the MBR
+  does not have, or a sub-lot otherwise named, is refused.
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -1014,6 +1042,17 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   row (sql 0336), and an issue request naming L2409-0017 as its batch size, a market, a variant or an input, or an
   input of another type (sql 0337), are refused (EBMR-EXE-126) and nothing holds L2409-0017; the honest rows are
   recorded.
+- `db-guards-row-context.test.ts` (Phase 2 exit review F12, round 8; sql 0338): through the application role, the
+  round-7 verification's probes (an exception raised at no step with L2409-0017 as its context's construct, a
+  preparation naming it as its step or frame for SIGN_PERFORMED and VERIFY, a content version of its own, with a
+  member of its own or of another header, and the engine version L2409-0017), an exception at the clearance in a frame
+  the MBR does not have, a preparation for START_STEP or a disposition naming a step, a step content in a frame of its
+  own, a state naming another engine version, a decimal or a category keyed by hand that its parameter does not
+  take, and an exception, entry or hold whose engine id is renamed L2409-0017 (sql 0339) are refused (EBMR-EXE-126)
+  and nothing holds L2409-0017; a content version the database cannot tell from the
+  state's, superseded by the honest one, is reported by the replay with the row that superseded it; a challenge for a
+  PERFORMED signature of a step instance the run does not have is answered 404 and stores no preparation; the honest
+  rows are recorded.
 - `db-guards-used-readings.test.ts` (Phase 2 exit review F12, round 7; tablets sql 0590): a device weighing whose used
   readings carry a raw line L2409-0017, another device, time, trust or value than the stored reading, a member of its
   own or the gross first is refused (EBMR-EXE-124) and uses no reading; the honest weighing uses its readings.
