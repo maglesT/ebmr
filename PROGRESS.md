@@ -1932,3 +1932,42 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   does not activate mutants under happy-dom): 191 of 205 killed, the 14 left equivalent or redundant with the count.
   Also fixed: a race in web access/ports.test (the switch request was read before it was sent; it failed about one
   run in ten before and after this change).
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 6 (F12 closed structurally) (branch
+  phase-2/recipe-core; F12 and F12.KERNEL; DI-05, DI-30, INV-18, PR-47, PR-23, DI-32). What was wrong: each round of
+  F12 bound the members a verification found, and the next one found another. Through the application role the
+  round-10 verification stored the real-format lot number L2409-0017, accepted with an identical replay, as the
+  authoriser of a reprocessing's start data (G-24 authorisedBy) and, over HTTP, as the equipment of an equipment status
+  at a step listing no equipment. Decision F12.5 let every free-text member (comment, reason, answer, deviation
+  reference, refusal message, what a refused row sent) hold it. In the kernel, the market stubs took real batch and lot
+  numbers in a sandbox, nothing read the identifier rule inside a text, and a test lot's material name was read by
+  nothing. What changed:
+  - kernel 1030: the identifier rule read in text (sandbox.identifier_words, real_identifier_parts,
+    real_identifiers): words of the identifier alphabet with a letter and a digit (NFKC, percent and backslash escapes
+    read, longer words read part by part) that 0810's rule accepts with TEST- in front and refuses as they stand; no
+    second definition. Trigger function sandbox.guard_free_text (EBMR-SBX-024, names the column, never the word).
+    guard_identifier on market.stub_batch, stub_material_lot and stub_pack; guard_free_text on the stubs' free text
+    (F12.KERNEL).
+  - tablets 0630: a test lot's material name is read (EBMR-SBX-024).
+  - recipe-core 0344: deferred constraint triggers on every execution table the application role writes and on the
+    run's audit chains read every text, text[] and jsonb column, every string and member name at any depth, at commit
+    (EBMR-EXE-147). Words are allowed only from bound sources (the imported MBR, the batch number, site and room, the
+    engine's names and compounds). The refusal names the column and JSON path, never the word. Server guidance for
+    EBMR-EXE-147 (422).
+  - recipe-core 0345: an accepted START_STEP records no start data, and on every row a start-data authoriser is a
+    person of the installation; an equipment status at a step listing no equipment names equipment the MBR binds where
+    the step runs (EBMR-EXE-126).
+  - Defaults (decision F12.8): the reading is the strict side. A test run refuses code-like words that are not
+    identifiers (QA1, LBL-1, E2E, DEV-TEST-0001): a test run names a deviation, label or lot by a TEST- number. Test
+    fixtures, two E2E specs (floor, journey) and the owner's demo script now use TEST- numbers. The reading cannot see
+    digits-only identifiers, ones broken by spaces or written in words, or non-ASCII digits. F12.1, F12.5, F12.6 and
+    F12.7 corrected. Inventory of the 185 tables the application role writes in a sandbox, each text column classed
+    (docs/design/sandbox.md section 7). 134 tables of sandbox administration, logs and derived values hold free text
+    nothing reads for the rule; none is part of a test run's record. Reported to the owner and the lead.
+  Tests (each fails with its migration moved aside): server execution/db-guards-free-text-identifiers (3: the round-10
+  probes, L2409-0017 in every member over HTTP and on the store path, every real format), db-guards-kernel-stubs (2,
+  both installations), db-guards-sandbox-registers and db-guards-row-context (round 10), devices/claim (round 10);
+  kernel sandbox/identifier-words (4). Fixtures that wrote code-like words (LBL-1, P25 sources, DEV refs, QA1) now
+  write TEST- numbers or prose. E2E: floor PR-08 and PR-13 (deviation links with TEST- numbers), esig and devices
+  pass. The journey spec failed in four runs at a badge switch of user under the machine's load (at a different step
+  each time, never at a refusal of this lane). Floor INV-03 fails at the designer gate (GMP-CHECK-PERMISSION, since
+  T12.DOC round 4; not this lane).
