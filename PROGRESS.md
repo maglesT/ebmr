@@ -1971,3 +1971,15 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   pass. The journey spec failed in four runs at a badge switch of user under the machine's load (at a different step
   each time, never at a refusal of this lane). Floor INV-03 fails at the designer gate (GMP-CHECK-PERMISSION, since
   T12.DOC round 4; not this lane).
+  Round 2 of the lane (round 11 of F12): the verification found the class still open. Engine-name words passed by
+  their form (S24090017, EX-24090017, G24-LOT, E2409/0017 recorded over HTTP), a person's name was read nowhere (a
+  rename to TEST-Priya L2409-0017 reached the run's rows, signature and audit), an escape hid the identifier after it
+  (50%B24-0001), a reading's chain was read only in its reason, and a refusal repeated a member name holding a
+  real-format word. Now kernel 1040 reads text as written too and guards the sandbox's person names, references and
+  logins; recipe-core 0346 and 0347 allow such words only as the run has them (its MBR, batch number and location, the
+  engine's registers in the new table recipe.engine_name, the record ids its state holds, its flow's edges, compounds,
+  held sample and container ids), read the actor's name, chain keys and a reading's chain in full, and never repeat the
+  word in a refusal. Tests: server db-guards-free-text-bound-names (5), recipe-core engine-names-sql (3), kernel
+  identifier-words (2 more); each fails with its migration moved aside. Decision F12.9; F12.5, F12.8 and sandbox.md
+  section 7 corrected. A request naming a record the run does not have is now refused and not recorded.
+  Reported: a G-12 plan given only as a number of locations names points L1 to Ln that the reading refuses.
