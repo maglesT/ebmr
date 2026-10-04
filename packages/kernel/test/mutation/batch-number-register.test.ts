@@ -235,6 +235,59 @@ describe('numbering rules, rendering, allocation, registration and voids (IN-18,
     await expect(define(recent)).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  /**
+   * Runs `work` as the steward's command (application role) in a transaction of this test's own database in which
+   * pg_catalog.clock_timestamp() is a test double returning the transaction start, now(); the transaction is always
+   * rolled back, so the stub and anything written are gone afterwards. The guard reads the clock itself (pg_catalog is
+   * first in its search_path), so the one-minute edge can only be reached deterministically on a held clock.
+   */
+  async function atHeldClock<T>(work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("create or replace function pg_catalog.clock_timestamp() returns timestamptz language sql volatile as 'select pg_catalog.now()'");
+      const held = await c.query<{ held: boolean }>('select clock_timestamp() = now() as held');
+      expect(held.rows[0]?.held).toBe(true);
+      await c.query('set local role ebmr_app');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(steward))]);
+      return await work(c);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  }
+  const defineAgoSql = "select site.define_batch_number_rule($1::jsonb || jsonb_build_object('effective_from', now() - $2::interval))::text as id";
+
+  it('[IN-18][INV-27] the past-date tolerance is one minute inclusive: a rule dated exactly one minute before the clock is accepted with that date, one microsecond older is refused (EBMR-SITE-010)', async () => {
+    const edge = rule({ product_code: 'KIL5' });
+    const accepted = await atHeldClock(async (c) => {
+      const id = (await c.query<{ id: string }>(defineAgoSql, [json(edge), '1 minute'])).rows[0]?.id;
+      await c.query('reset role');
+      const { rows } = await c.query<{ exact: boolean; counters: string }>(
+        `select r.effective_from = now() - interval '1 minute' as exact,
+                (select count(*) from continuity.protected_sequence s where s.sequence_key = r.counter_key)::text as counters
+           from site.batch_number_rule r where r.id = $1 and r.rule_code = $2`,
+        [id, edge.rule_code],
+      );
+      return { id, row: rows[0] };
+    });
+    expect(accepted.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(accepted.row).toEqual({ exact: true, counters: '1' });
+
+    const older = rule({ product_code: 'KIL5' });
+    await expect(atHeldClock((c) => c.query(defineAgoSql, [json(older), '1 minute 1 microsecond']))).rejects.toThrow(
+      'EBMR-SITE-010 a numbering rule cannot take effect in the past',
+    );
+
+    // The held clock was a rolled-back test double: the live clock is back and neither rule exists.
+    const { rows } = await db.admin.query<{ lang: string }>(
+      "select l.lanname as lang from pg_proc p join pg_language l on l.oid = p.prolang where p.oid = 'pg_catalog.clock_timestamp()'::regprocedure",
+    );
+    expect(rows[0]?.lang).toBe('internal');
+    expect(await nothingDefined(edge.rule_code)).toEqual({ rules: 0, counters: 0 });
+    expect(await nothingDefined(older.rule_code)).toEqual({ rules: 0, counters: 0 });
+  });
+
   it('[IN-18] a rule the table refuses (rule code, kind, reason, a second rule with the same code) is refused as an invalid numbering rule (EBMR-SITE-010), with no counter registered', async () => {
     const taken = rule();
     await define(taken);
