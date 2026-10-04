@@ -159,12 +159,29 @@ Fixed:
   IN_PROGRESS whose data (values, computed values, entries, exceptions that are data of the step) it changes, the
   signer then no longer a PERFORMED signer; in a CORRECT_ENTRY or INVALIDATE_RESULT, the PERFORMED and CHECKED
   signatures of a step COMPLETED or AWAITING_VERIFICATION before the row that it sends back for re-verification or
-  reopens. Tests: "[DI-35][INV-10][PR-14][INV-03] the engine's
-  three paths are accepted ..." and "... the data a step's signature covers changes ..."
-  (packages/recipe-core/test/mutation/execution-state-binding.test.ts), and "... an exception whose state makes another
-  step's PERFORMED signature ... invalid is refused ..." and "... on the clearance two operators fill ..."
-  (apps/tablets-server/test/mutation/execution-state-binding.test.ts), the two store-level tests failing before 0382.
-  The golden replays and the execution SQL and store tests pass with it.
+  reopens. Tests: "[DI-35][INV-10][PR-14][INV-03] the engine's three paths are accepted ..." and "... the data a
+  step's signature covers changes ..." (packages/recipe-core/test/mutation/execution-state-binding.test.ts), and "...
+  an exception whose state makes another step's PERFORMED signature ... invalid is refused ...", "... on the clearance
+  two operators fill ..." and "... a correction of a verified value sends its step back for re-verification ..."
+  (apps/tablets-server/test/mutation/execution-state-binding.test.ts), the first two store-level tests failing before
+  0382 (the third shows the engine's own correction recorded). The golden replays and the execution SQL and store tests
+  pass with it.
+- **D10. Market authorisation: activation and cells written around the command.** The activation table had only a
+  stamp trigger and the cell guard did not check the version's state, so owner-level code could write an activation
+  and a CURRENT cell for a version only CHECKED, skipping every check of the activation command, and the issue command
+  then pinned batches to it. Fixed in recipe-core 0383 (decision D10.1): the table guards re-check the command's
+  conditions (no marker: owner-level code could write a marker as easily as the row); a cell needs the version's state
+  row APPROVED, an active record, a predecessor that is the CURRENT cell of an earlier version ending where it begins,
+  and is superseded only by a cell written after it. Tests: "[INV-17][PR-02][DI-04][DI-37][PR-04] an activation row is
+  refused unless the command would have written it ..." and "[INV-17][PR-05][PR-04] a cell is refused for a version
+  that is not APPROVED ..." (packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts), both failing
+  before 0383. The kill test of `recipe.guard_in_flight_dispositioned#3` used this arrangement: adapted, it shows each
+  step of it refused (it fails before 0383), and keeps the guard's rule (`<`, earlier versions only) on the state the
+  superuser plants with every trigger off, so the mutant stays killed. For writers with the triggers on that mutant is
+  equivalent since 0383: a pin needs a valid cell, a cell needs the version's state row APPROVED when it is written, and
+  the version machine has no way from APPROVED back to CHECKED, so when the approval's guard runs no batch is pinned to
+  the version itself. Not closed here: a cell's end and a withdrawal row written around their commands (they only take
+  an authorisation away), and D11 (the state row moved under the engine flag).
 
 Open (the lead takes these next):
 
@@ -174,13 +191,6 @@ Open (the lead takes these next):
   a validated MBR thus fails INV-20 in the engine while the database accepts it. Needs a decision: the validator
   refuses such a minimum, or the engine and database flag the early start. Leaves
   `recipe.minimum_duration_problem#15`.
-- **D10. Market authorisation: activation and cells written around the command.** The activation table has only a
-  stamp trigger and the cell guard does not check the version's state, so owner-level code can write an activation
-  and a CURRENT cell for a version that is only CHECKED, skipping every check of the activation command, and the
-  issue command then pins batches to it. Fix options (accept rows only from the command, or re-check its conditions
-  in the table guards) change semantics the lead should choose. The kill test for
-  `recipe.guard_in_flight_dispositioned#3` uses this arrangement; once D10 and D11 are closed that mutant becomes
-  equivalent and the test needs revisiting.
 - **D11. Kernel state engine: a history row forged with the session flag.** For an insert into
   `platform.state_history` the guard checks only a session setting any role can set, so owner-level code can write
   an arbitrary transition (for example a version approved at version 100); `platform.state_violations()` finds it only

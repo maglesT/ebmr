@@ -76,7 +76,18 @@ supersedes the signatures in the same transaction (INV-09).
    open CURRENT cell of the same family, market and scope in the same transaction (valid until the
    successor takes effect); an older version never supersedes a newer one; partial scope leaves the
    predecessor CURRENT elsewhere; BRIDGING only for cells where the named successor superseded this
-   version, time-limited.
+   version, time-limited. Whoever writes them, the tables accept an activation and its cells only as this
+   command writes them (migration 0383, decision D10.1): the activation's guard re-checks every condition
+   above (the QA permission and the person's own reason, a PROPOSED record, both signatures valid, the QA
+   signer activating, two persons, an APPROVED version with complete evidence, the effective date the command
+   computes, an open bridging window; EBMR-RCP-082 to 087, 095, EBMR-ESIG-070), and the cell's guard refuses a
+   cell of a version that is not APPROVED (EBMR-RCP-086) or of a withdrawn record (EBMR-RCP-092), a cell that
+   supersedes anything but the CURRENT cell of an earlier version of its family, market and scope ending where
+   it begins (EBMR-RCP-089), and a BRIDGING the successor did not supersede (EBMR-RCP-090); a cell is superseded
+   only by a cell written after it in the same transaction, which is then judged against it (EBMR-RCP-089). So a
+   batch is pinned only to a version whose state row is APPROVED. Not changed by 0383: a cell's end and a withdrawal
+   row are still accepted from owner-level code around `withdrawMarketAuthorisation` and `retireVersion` (they only
+   take an authorisation away), and the state row itself is guarded by the kernel's state engine (D11).
 4. `withdrawMarketAuthorisation`, `retireVersion` end open cells (WITHDRAWN).
 
 Steps 3 and 4 are decisions of the QA person, so each command carries that person's own reason, a reason

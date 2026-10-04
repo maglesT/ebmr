@@ -136,7 +136,10 @@ export const TARGETS: Target[] = [
                 'recipe.batch_mbr_pin_guard', 'recipe.build_control_recipe', 'recipe.control_recipe_guard',
                 'recipe.in_flight_disposition_guard', 'recipe.create_stub_batch', 'recipe.issue_stub_batch', 'recipe.set_stub_batch_status',
                 'recipe.record_in_flight_disposition', 'recipe.verify_control_recipe', 'recipe.record_periodic_review', 'recipe.review_due',
-                'recipe.overdue_reviews', 'recipe.inv01_violations', 'recipe.inv02_violations', 'recipe.inv17_violations'],
+                'recipe.overdue_reviews', 'recipe.inv01_violations', 'recipe.inv02_violations', 'recipe.inv17_violations',
+                // recipe-core 0383 (defect D10): the activation and its cells only as the activation command writes them.
+                'recipe.market_authorisation_activation_guard', 'recipe.authorisation_cell_activation_guard',
+                'recipe.authorisation_cell_supersession_guard'],
     tests: [r('lifecycle/market.test.ts'), r('lifecycle/issue.test.ts'), r('lifecycle/selection.property.test.ts'),
             r('lifecycle/review-inventory.test.ts'), r('lifecycle/audit-reason.test.ts'), r('lifecycle/concurrency.test.ts'),
             r('lifecycle/authorization.test.ts')],
