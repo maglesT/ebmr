@@ -167,6 +167,23 @@ describe('the signatures a step recorded (recipe.signature_change_problem, 0300)
     });
   });
 
+  it('[DI-35][INV-10][PR-14] D8: a recorded signature stored without its validity, or a validity recorded nowhere then given one, is refused as changed (fail closed, as the stage sign-off rule of 0307); a signature recorded without one and kept so is kept', async () => {
+    const without = (extra: Json = {}): Json => {
+      const g = sig(S1, extra);
+      delete g['valid'];
+      return g;
+    };
+    const outcomes = {
+      validityDropped: await signatures(step([sig(S1)]), step([without()])),
+      invalidValidityDropped: await signatures(step([sig(S1, { valid: false })]), step([without()])),
+      noValidityMadeInvalid: await signatures(step([without()]), step([sig(S1, { valid: false })])),
+      noValidityMadeValid: await signatures(step([without()]), step([sig(S1)])),
+      noValidityKept: await signatures(step([without()]), step([without()])),
+    };
+    const changed = `signature ${S1} it recorded is changed, or made valid again`;
+    expect(outcomes).toEqual({ validityDropped: changed, invalidValidityDropped: changed, noValidityMadeInvalid: changed, noValidityMadeValid: changed, noValidityKept: null });
+  });
+
   it('[DI-35][INV-10] a new signature is one of the e-signatures the row carries; one without an id, or not carried, is refused', async () => {
     const outcomes = {
       carried: await signatures(step([sig(S1)]), step([sig(S1), sig(S2)]), [S2]),

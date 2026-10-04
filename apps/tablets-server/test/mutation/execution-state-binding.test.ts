@@ -362,6 +362,31 @@ describe('a row changes the step it acts on and, besides, only what the system d
   }, 240_000);
 });
 
+describe('D8: a recorded signature keeps its validity (recipe-core 0381 recipe.signature_change_problem; EBMR-EXE-128)', () => {
+  it('[DI-35][INV-10][PR-14] an exception whose state drops the validity of another step\'s recorded signature, and a verification whose state drops it from its own step\'s, are refused as changing that signature; nothing is written and the signature stays valid', async () => {
+    const d = await driver(withEarlyParameter(), ['verifier1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: KEY });
+    valueOf(await d.command('operator1', { type: 'RECORD_DATA', stepKey: KEY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } }));
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: KEY });
+    const signature = only(stepOf(await stateOf(d), KEY).signatures, 'signature');
+    expect({ role: signature.role, valid: signature.valid }, 'SETUP: operator1\'s PERFORMED signature is recorded valid').toEqual({ role: 'PERFORMED', valid: true });
+    const dropValidity = (s: engine.BatchState): void => void delete (only(stepOf(s, KEY).signatures.filter((g) => g.id === signature.id), 'signature') as Partial<engine.SignatureUse>).valid;
+    const outcomes = {
+      byAnException: await forged(d, 'operator1', exceptionWith(dropValidity)),
+      byItsVerification: await signedWith(d, 'verifier1', { type: 'VERIFY', stepKey: KEY, meaning: 'VERIFIED' }, 'VERIFY', dropValidity),
+    };
+    expect(outcomes).toEqual({
+      byAnException: `This RAISE_EXCEPTION row acts on no step, yet the state changes step ${KEY} (signature ${signature.id} it recorded is changed, or made valid again): a row changes the step it acts on, and otherwise only what the system does on its own (DI-20, DI-34, INV-03). [EBMR-EXE-128]`,
+      byItsVerification: `The state of step ${KEY} after this VERIFY row does not follow from it: signature ${signature.id} it recorded is changed, or made valid again (DI-35, INV-10, PR-14). [EBMR-EXE-128]`,
+    });
+    expect((await rowsOf(server, d.runId)).filter((r) => r.command_type === 'RAISE_EXCEPTION' || r.command_type === 'VERIFY'), 'nothing was written').toEqual([]);
+    expect(only(stepOf(await stateOf(d), KEY).signatures, 'signature')).toEqual(signature);
+    // The honest exception keeps the signature as recorded.
+    expect(await forged(d, 'operator1', exceptionWith(() => undefined))).toBe('ok');
+    expect(only(stepOf(await stateOf(d), KEY).signatures, 'signature')).toEqual(signature);
+  }, 240_000);
+});
+
 describe('a row leaves the step it acts on as its act does (0300 EBMR-EXE-128)', () => {
   it('[DI-34][PR-14][DI-35][INV-10] a start that leaves its step enabled, a refused entry that completes it, an entry that adds its own person as a PERFORMED signer, and a verification that leaves the step waiting are refused with the status the act leaves; the honest acts are recorded', async () => {
     const d = await driver(withEarlyParameter(), ['verifier1']);

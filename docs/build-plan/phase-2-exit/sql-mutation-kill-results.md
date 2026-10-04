@@ -142,6 +142,15 @@ Fixed:
   an empty context, its decision refiled without frames and no END, is refused as a context that is not the loop's
   (EBMR-EXE-126); nothing is written. It is the kill test for `recipe.own_node_event_problem#39` (KILLED: under the
   mutant the own-node-event check, which runs first, refuses that row with another message).
+- **D8. Execution state binding: a signature's validity failed open when missing.** `recipe.signature_change_problem`
+  compared a stored signature with the recorded one; when the stored one had lost its `valid` member (or the recorded one
+  had none) the comparison was NULL and nothing was refused, so through the application role an exception whose state
+  dropped the validity of another step's recorded signature was stored. Fixed in recipe-core 0381: a validity that is
+  not exactly true before and false after is no permitted invalidation (coalesce, as the stage sign-off rule of 0307
+  does), so the row is refused (EBMR-EXE-128). Tests: "[DI-35][INV-10][PR-14] D8: a recorded signature stored without
+  its validity ..." (packages/recipe-core/test/mutation/execution-state-binding.test.ts) and "[DI-35][INV-10][PR-14] an
+  exception whose state drops the validity ..." (apps/tablets-server/test/mutation/execution-state-binding.test.ts),
+  both failing before 0381.
 
 Open (the lead takes these next):
 
@@ -151,11 +160,6 @@ Open (the lead takes these next):
   a validated MBR thus fails INV-20 in the engine while the database accepts it. Needs a decision: the validator
   refuses such a minimum, or the engine and database flag the early start. Leaves
   `recipe.minimum_duration_problem#15`.
-- **D8. Execution state binding: a signature's validity fails open when missing.** `recipe.signature_change_problem`
-  compares a stored signature with the recorded one; when the stored one has lost its `valid` member the comparison
-  is NULL and nothing is refused, so a forged row that strips the validity is accepted. A one-line fix (treat the
-  missing value as a change) is suggested; the sibling sign-off rule already does so. Impact is limited: the engine
-  reads a missing validity as not valid.
 - **D9. Execution state binding: any row may invalidate another step's signature.** The binding check lets any row
   turn any recorded signature of another step from valid to not valid, with no data changed, and leaves its signer
   among the performers; the engine invalidates only on a change of signed content or through a correction or result
