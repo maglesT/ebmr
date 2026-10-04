@@ -2008,3 +2008,34 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   letter, and allows a number only in the engine's shapes (context fragments within the section's maximum, held ids).
   Tests: server db-guards-free-text-weighing-basis (2) and -compounds (2), recipe-core engine-names-sql (golden runs);
   each fails with its migration moved aside. Decision F12.10; F12.8, F12.9 and sandbox.md section 7 corrected.
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 7 (F12: what a text shows is what the rule
+  reads) (branch phase-2/recipe-core; F12; DI-05, DI-30, INV-18). What was wrong: the identifier reading (kernel 1030
+  and 1040) took the words of a text from its stored NFKC form, where a character that shows nothing, a look-alike
+  letter, digit or slash, and a bidi control were all separators. Over HTTP the honest server recorded L2409-0017 with a
+  soft hyphen, a zero-width space or joiner, a combining grapheme joiner, a variation selector or a word joiner after
+  the L, L 7100-9042 under a right-to-left override (shown as L2409-0017), and BATCH/2409/0017 with a division or
+  fraction slash, in exception descriptions, hold reasons and business entries. Our own attack found the same with no
+  control at all: a Hebrew letter between L and 2409-0017 shows L2409-0017 in a left-to-right line (Chromium 141), and
+  Cyrillic or Greek letters and Devanagari or Arabic-Indic digits were read as nothing. What changed:
+  - kernel 1050: every text, as stored, as written and with its escapes read, is also read as it shows (the combining
+    marks and what kernel.is_blank counts as showing nothing removed, spaces kept) and with its look-alikes read (new
+    table sandbox.look_alike, data from Unicode's confusables.txt and character database 18.0.0: digits of every script
+    by value, look-alike letters, dashes, slashes and full stops). A text that can display in another order (a
+    right-to-left letter, an Arabic digit, a bidi control or mark) is read in every arrangement of its runs. The stored
+    text never changes. Every user of the reading is covered at once: a test run's record, the kernel's stubs, the
+    person register, a test lot's material name and the weighing basis.
+  - recipe-core 0349: the run's bound words and a refusal's path read the same forms, so the run's own words still
+    match (also written with a non-ASCII hyphen).
+  - Defaults (decision F12.11): Urdu, Arabic or Hebrew text with a number is refused in a test run (the display order
+    cannot be read; refusing only the override controls would leave the implicit reordering open); digits of any script
+    are read by value; punctuation stays a separator (the Hindi danda passes); a symbol that looks like a letter (the
+    multiplication sign, a slashed O) counts as that letter. Still not read: digits only, an identifier broken by a
+    space or a visible non-look-alike character, spelled out in words, or drawn in an image. F12.8, F12.9, F12.10,
+    kernel 1040's header and sandbox.md section 7 A corrected.
+  Tests (each fails with kernel 1050 and recipe-core 0349 moved aside): kernel sandbox/identifier-words (5 new: what
+  shows nothing, look-alikes and reordered text read; every look-alike folded; the person register; honest emoji,
+  soft hyphen, Hindi, Tamil, Greek, Japanese and Korean prose not read); server execution/db-guards-free-text-shown (2:
+  the probes over HTTP and in business entries three levels down refused with nothing stored, honest texts recorded);
+  db-guards-kernel-stubs (1 new). Regressions run: free-text identifiers, bound names, compounds, weighing basis,
+  golden, free text, kernel stubs, sandbox registers, device claim, recipe-core engine-names-sql, test-kit, and the
+  sandbox set-up with three persona sets.
