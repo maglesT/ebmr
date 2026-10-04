@@ -15,7 +15,8 @@
  * Every read is the database's for the request's session (tablets 0420, review F35; DI-17, DI-50): only the chains its
  * role may read are listed or shown, a person filter names the session's own person unless its role is a governance or
  * audit one, and a chain it may not read is refused (EBMR-TAB-020), verification included. What is withheld from the
- * person a data-integrity investigation is about is answered as what is not there (tablets 0530, default F35.3).
+ * person a data-integrity investigation is about is answered as what is not there (tablets 0530, default F35.3), and a
+ * chain that person reads is counted, dated and ordered by the entries shown to them (tablets 0560, default F35.4).
  */
 import { routes } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
@@ -83,8 +84,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const s = requireSession();
       const events = await chainLength(db, s.tokenHash, params.chainKey);
       // Null for a chain with neither a head nor an entry, and for a chain withheld from the session's person, which is
-      // answered as one with no entry (tablets 0530, default F35.3); a chain whose head row is missing is verified, and
-      // the kernel names the tamper (F06).
+      // answered as one with no entry (tablets 0530, default F35.3); on a chain carrying entries withheld from that person,
+      // the entries shown (tablets 0560, default F35.4). A chain whose head row is missing is verified, and the kernel
+      // names the tamper (F06).
       if (events === null) {
         throw refusal(404, {
           code: 'AUDIT_CHAIN_NOT_FOUND',

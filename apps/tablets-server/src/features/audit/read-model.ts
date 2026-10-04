@@ -216,6 +216,8 @@ export function chainLabel(chainKey: string): string {
  * head's last_event pointer is never used, because verification does not cover it: a pointer moved to an earlier entry
  * would otherwise show a smaller count and an older time while "Verify chain" answers intact. When no entry matches the
  * head (verification then names the chain), the head's own count is shown with no time. The prefix is taken literally.
+ * For the person a data-integrity investigation is about, a chain carrying entries withheld from them is counted, dated
+ * and ordered by the entries shown to them, and one on which none is shown is not listed (tablets 0560, default F35.4).
  */
 export async function readChains(db: AuditDb, tokenHash: string, prefix: string | undefined, limit = 500): Promise<{ chain_key: string; last_seq: string; us: string | null }[]> {
   const { rows } = await sql<{ chain_key: string; last_seq: string; us: string | null }>`
@@ -249,7 +251,9 @@ export async function verifyChainFor(db: AuditDb, tokenHash: string, chainKey: s
 
 /**
  * The number of entries of a chain the session may read (its head's count, or the entries found when its head row is
- * missing: tablets 0490, F06); null only when the chain has neither a head nor an entry.
+ * missing: tablets 0490, F06); null when the chain has neither a head nor an entry. For the person a data-integrity
+ * investigation is about, the entries shown to them: null for a chain withheld from them (tablets 0530) or on which
+ * nothing is shown, the count less the entries withheld on a chain carrying some (tablets 0560, default F35.4).
  */
 export async function chainLength(db: AuditDb, tokenHash: string, chainKey: string): Promise<number | null> {
   const { rows } = await sql<{ n: string | null }>`select tab.audit_chain_length(${tokenHash}, ${chainKey})::text as n`.execute(db);

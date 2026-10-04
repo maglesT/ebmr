@@ -45,6 +45,7 @@ implemented_by:
     - "packages/ui-kit/src/audit/AuditEventList.tsx"
     - "packages/ui-kit/src/audit/ChainVerifyBadge.tsx"
     - "apps/tablets-server/sql/0530_chain_verification_and_subject_answers.sql (session-checked chain verification)"
+    - "apps/tablets-server/sql/0560_subject_counts_shown_entries.sql (what the person an investigation is about is counted on a chain)"
   invariants:
     - INV-07
   db_constraints:
@@ -182,6 +183,10 @@ tests:
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > [DI-17][DI-22][DI-23] the audit viewer verifies a chain only through the session-checked tab.audit_verify_chain: no session (EBMR-TAB-018), a chain the role may not read (EBMR-TAB-020); a chain it may read is verified with its registry chains, and the route still verifies"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > [DI-17][DI-22][DI-23][DI-50] a withheld chain that does not verify still reads to the subject as a chain with no entries, as the colleague's own reads; the opener's verification names the tamper"
   - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > [DI-17][DI-22][DI-23][DI-50] the verification of a chain the subject reads checks no registry chain withheld from them: a tampered account chain of the opener is named to a colleague, not to the subject"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > the subject's own account chain (tablets 0560) > [DI-17][DI-22][DI-50] through the routes, the subject's own account chain lists, dates, orders and verifies as many entries as its events show, as a colleague's own does, on either installation"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > the subject's own account chain (tablets 0560) > [DI-17][DI-22][DI-50] the database counts for the subject's session only the entries shown on its own account chain (tab.audit_chains, tab.audit_chain_length), also after a later entry, as for a colleague's; the colleague still counts the subject's hold, on either installation"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > the subject's own account chain (tablets 0560) > [DI-17][DI-22][DI-50] a chain on which every entry is withheld from the subject (the hold on a record linked to the investigation that has no other entry) answers the subject as a chain that is not there answers a colleague (list, events, verification, length); the colleague reads its hold, on either installation"
+  - "apps/tablets-server/test/audit/read-authorisation.test.ts > F34, F35: the person a DI investigation is about, and whether a chain exists (tablets 0530) > the subject's own account chain (tablets 0560) > [DI-17][DI-22][DI-23][DI-50] a chain whose head row is missing counts for the subject only the entries shown (tab.audit_headless_chains, tab.audit_chain_length), and is not listed when none is, as for a colleague; the colleague counts the hold"
 clauses:
   - clause: "As each role, create, modify and void a value. Every entry carries all fields."
     tests:

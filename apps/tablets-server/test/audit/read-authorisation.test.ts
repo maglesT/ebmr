@@ -653,4 +653,167 @@ describe('F34, F35: the person a DI investigation is about, and whether a chain 
     }
     expect(await verify(p.controlBrowser)).toEqual([]);
   });
+
+  /**
+   * Lane round 2 of round 4 (the verifier of F35): every investigation notes the hold it places on the subject's own
+   * account on that account's chain (records.add_hold: "di investigation hold placed", on account:<subject>), an entry
+   * withheld from the subject. The chain list still counted it (9 entries where a colleague's own account chain has 8),
+   * showed its time as the chain's last activity and put the chain first by it, and "Verify chain" said 9 entries were
+   * verified, while the chain's events showed 8: with one request any subject in a governance role saw that an entry on
+   * their own account was hidden from them. Since tablets 0560 the database counts for the session's person only the
+   * entries shown to them (tab.audit_chains, tab.audit_chain_length, tab.audit_headless_chains), dates and orders the
+   * chain by the last of them. Known limit (default F35.3): the sequence numbers and event ids shown are the hashed ones,
+   * so once a later entry is written on that chain the number of the withheld one is skipped.
+   */
+  describe('the subject\'s own account chain (tablets 0560)', () => {
+    const accountChain = (account: string): string => `account:${account}`;
+    /** What the person is told of their own account chain: the chain list, its events and its verification. */
+    const ownChain = async (b: TestBrowser, own: GrantedPerson) => {
+      const key = accountChain(own.accountId);
+      const listed = await b.call(routes.audit.chains, { query: { prefix: key } });
+      const shown = await events(b, { chainKey: key, limit: '200' });
+      const verified = await b.call(routes.audit.verifyChain, { params: { chainKey: key } });
+      const all = await b.call(routes.audit.chains, { query: { prefix: 'account:' } });
+      if (!listed.ok || !shown.ok || !verified.ok || !all.ok) throw new Error(JSON.stringify([listed, shown, verified, all].filter((r) => !r.ok)));
+      const chain = listed.value.chains[0];
+      return {
+        listedEvents: chain?.events,
+        seqs: shown.value.events.map((e) => Number(e.seq)),
+        verifiedEvents: verified.value.events,
+        ok: verified.value.ok,
+        // The chain's last activity is that of the last entry the person is shown, and the list of account chains is
+        // ordered by what it shows (newest first), so the chain's place tells nothing either.
+        lastAtIsLastShown: chain?.lastAt?.us === shown.value.events.at(-1)?.at.us,
+        listOrderedByShown: all.value.chains.every((c, i, list) => i === 0 || BigInt(list[i - 1]?.lastAt?.us ?? '0') >= BigInt(c.lastAt?.us ?? '0')),
+      };
+    };
+    /** The owner's view: the entries on the chain, the last one the hold this investigation placed. */
+    const ownerEntries = async (p: Pair, account: string) =>
+      (await p.server.db.admin.query<{ seq: string; message: string | null; hold: string | null }>(
+        "select seq::text, payload -> 'body' ->> 'message' as message, payload -> 'body' -> 'details' ->> 'hold_id' as hold from kernel.audit_event where chain_key = $1 order by seq",
+        [accountChain(account)],
+      )).rows;
+
+    it('[DI-17][DI-22][DI-50] through the routes, the subject\'s own account chain lists, dates, orders and verifies as many entries as its events show, as a colleague\'s own does, on either installation', async () => {
+      for (const p of pairs) {
+        const held = await ownerEntries(p, p.subject.accountId);
+        const free = await ownerEntries(p, p.control.accountId);
+        // The set-up: the subject's chain holds one entry more than the colleague's, the hold of the investigation.
+        expect(held.length, p.kind).toBe(free.length + 1);
+        expect(held.at(-1), p.kind).toMatchObject({ message: expect.stringMatching(/^di investigation hold placed: /) as string, hold: expect.any(String) as string });
+        const subject = await ownChain(p.subjectBrowser, p.subject);
+        const control = await ownChain(p.controlBrowser, p.control);
+        expect(subject, p.kind).toEqual(control);
+        expect(subject, p.kind).toEqual({
+          listedEvents: free.length, seqs: free.map((e) => Number(e.seq)), verifiedEvents: free.length, ok: true, lastAtIsLastShown: true, listOrderedByShown: true,
+        });
+      }
+    });
+
+    it('[DI-17][DI-22][DI-50] the database counts for the subject\'s session only the entries shown on its own account chain (tab.audit_chains, tab.audit_chain_length), also after a later entry, as for a colleague\'s; the colleague still counts the subject\'s hold, on either installation', async () => {
+      for (const p of pairs) {
+        const q = <T extends Record<string, unknown>>(sqlText: string, args: unknown[]) => p.server.db.app.query<T>(sqlText, args);
+        const count = async (b: TestBrowser, account: string) => {
+          const h = hashOf(p.server, b);
+          const key = accountChain(account);
+          const listed = (await q<{ last_seq: string; us: string | null }>('select last_seq, us from tab.audit_chains($1, $2, 500)', [h, key])).rows;
+          const length = (await q<{ n: string | null }>('select tab.audit_chain_length($1, $2)::text as n', [h, key])).rows[0]?.n ?? null;
+          const shown = (await q<{ seq: string; us: string }>('select seq, us from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [h, key])).rows;
+          return { listed: listed.map((r) => r.last_seq), length, shown: shown.length, lastShown: listed[0]?.us === shown.at(-1)?.us };
+        };
+        const before = { subject: await count(p.subjectBrowser, p.subject.accountId), control: await count(p.controlBrowser, p.control.accountId) };
+        expect(before.subject, p.kind).toEqual(before.control);
+        expect(before.subject, p.kind).toEqual({ listed: [String(before.subject.shown)], length: String(before.subject.shown), shown: before.subject.shown, lastShown: true });
+        // The colleague reads the subject's account chain whole: the hold is counted, and its time is the chain's last.
+        const all = (await ownerEntries(p, p.subject.accountId)).length;
+        expect(await count(p.controlBrowser, p.subject.accountId), p.kind).toEqual({ listed: [String(all)], length: String(all), shown: all, lastShown: true });
+        // A later entry on both accounts (the administrator requests another role for each): still as many as shown.
+        const admin = await passwordActor(p.server.db, p.server.seed.bootstrap.admin, p.server.seed.bootstrap.admin.fingerprint);
+        for (const who of [p.subject, p.control]) {
+          await withCommand(p.server.db.app, reason(admin), (c) => identity.requestRoleGrant(c, { accountId: who.accountId, roleCode: 'AUDITOR_READONLY', reason: 'review F35 test set-up: a later entry' }));
+        }
+        const after = { subject: await count(p.subjectBrowser, p.subject.accountId), control: await count(p.controlBrowser, p.control.accountId) };
+        expect(after.subject, p.kind).toEqual(after.control);
+        expect(after.subject, p.kind).toEqual({ listed: [String(before.subject.shown + 1)], length: String(before.subject.shown + 1), shown: before.subject.shown + 1, lastShown: true });
+        // The known limit of default F35.3: the hashed sequence numbers shown skip the withheld entry.
+        const seqs = async (b: TestBrowser, account: string) =>
+          (await q<{ seq: string }>('select seq from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [hashOf(p.server, b), accountChain(account)])).rows.map((r) => Number(r.seq));
+        const n = before.subject.shown;
+        expect(await seqs(p.subjectBrowser, p.subject.accountId), p.kind).toEqual([...Array.from({ length: n }, (_, i) => i + 1), n + 2]);
+        expect(await seqs(p.controlBrowser, p.control.accountId), p.kind).toEqual(Array.from({ length: n + 1 }, (_, i) => i + 1));
+      }
+    });
+
+    it('[DI-17][DI-22][DI-50] a chain on which every entry is withheld from the subject (the hold on a record linked to the investigation that has no other entry) answers the subject as a chain that is not there answers a colleague (list, events, verification, length); the colleague reads its hold, on either installation', async () => {
+      for (const p of pairs) {
+        const linked = randomUUID();
+        const absent = randomUUID();
+        const fp = terminalOf(p.server.seed, p.kind === 'GMP' ? 'PC-QA-01' : 'TEST-PC-01').fingerprint;
+        await withCommand(p.server.db.app, reason(await passwordActor(p.server.db, p.opener, fp)), (c) =>
+          records.linkDiInvestigation(c, p.investigation, 'sample_record', linked, 'review F35 test set-up: a record with no other entry'));
+        const key = `sample_record:${linked}`;
+        expect((await p.server.db.admin.query<{ message: string }>("select payload -> 'body' ->> 'message' as message from kernel.audit_event where chain_key = $1", [key])).rows, p.kind)
+          .toEqual([{ message: expect.stringMatching(/^di investigation hold placed: /) as string }]);
+        const answers = async (b: TestBrowser, id: string) => {
+          const k = `sample_record:${id}`;
+          const h = hashOf(p.server, b);
+          return {
+            listed: same(await b.call(routes.audit.chains, { query: { prefix: k } }), id),
+            events: same(await events(b, { chainKey: k }), id),
+            verify: same(await b.call(routes.audit.verifyChain, { params: { chainKey: k } }), id),
+            length: (await p.server.db.app.query('select tab.audit_chain_length($1, $2) as n', [h, k])).rows,
+            chains: (await p.server.db.app.query('select * from tab.audit_chains($1, $2, 500)', [h, k])).rows,
+          };
+        };
+        const subject = await answers(p.subjectBrowser, linked);
+        expect(subject, p.kind).toEqual(await answers(p.controlBrowser, absent));
+        expect(subject, p.kind).toMatchObject({ listed: JSON.stringify({ ok: true, status: 200, value: { chains: [] } }), length: [{ n: null }], chains: [] });
+        expect(subject.verify, p.kind).toMatch(/"status":404[^]*"code":"AUDIT_CHAIN_NOT_FOUND"/);
+        // The colleague reads the linked record's chain: one entry, the hold.
+        const colleague = await p.controlBrowser.call(routes.audit.chains, { query: { prefix: key } });
+        expect(colleague.ok && colleague.value.chains.map((c) => [c.chainKey, c.events]), p.kind).toEqual([[key, 1]]);
+      }
+    });
+
+    it('[DI-17][DI-22][DI-23][DI-50] a chain whose head row is missing counts for the subject only the entries shown (tab.audit_headless_chains, tab.audit_chain_length), and is not listed when none is, as for a colleague; the colleague counts the hold', async () => {
+      const p = pairs.find((x) => x.kind === 'GMP');
+      if (!p) throw new Error('SETUP: no GMP pair');
+      const key = accountChain(p.subject.accountId);
+      // A record linked to the investigation with no other entry: its chain holds the hold only.
+      const linked = `sample_record:${randomUUID()}`;
+      await withCommand(p.server.db.app, reason(await passwordActor(p.server.db, p.opener, terminalOf(p.server.seed, 'PC-QA-01').fingerprint)), (c) =>
+        records.linkDiInvestigation(c, p.investigation, 'sample_record', linked.slice('sample_record:'.length), 'review F35 test set-up: a record with no other entry'));
+      const owner = await p.server.db.admin.connect();
+      const tamper = async (sqlText: string) => {
+        await owner.query('begin');
+        await owner.query('set local session_replication_role = replica');
+        await owner.query(sqlText, [[key, linked]]);
+        await owner.query('commit');
+      };
+      await owner.query('create temporary table kept_head as select * from kernel.audit_chain_head where chain_key = any ($1)', [[key, linked]]);
+      expect((await owner.query('select 1 from kept_head')).rows).toHaveLength(2);
+      await tamper('delete from kernel.audit_chain_head where chain_key = any ($1)');
+      try {
+        const asks = async (b: TestBrowser, chain: string) => {
+          const h = hashOf(p.server, b);
+          return {
+            headless: (await p.server.db.app.query<{ entries: string }>('select entries::text from tab.audit_headless_chains($1, $2)', [h, chain])).rows.map((r) => r.entries),
+            length: (await p.server.db.app.query<{ n: string | null }>('select tab.audit_chain_length($1, $2)::text as n', [h, chain])).rows[0]?.n,
+          };
+        };
+        const all = (await ownerEntries(p, p.subject.accountId)).length;
+        const shown = (await p.server.db.app.query('select 1 from tab.audit_events($1, $2, null, null, null, null, null, null, 200)', [hashOf(p.server, p.subjectBrowser), key])).rows.length;
+        expect(shown).toBe(all - 1);
+        expect(await asks(p.subjectBrowser, key)).toEqual({ headless: [String(shown)], length: String(shown) });
+        expect(await asks(p.controlBrowser, key)).toEqual({ headless: [String(all)], length: String(all) });
+        expect(await asks(p.subjectBrowser, linked)).toEqual({ headless: [], length: null });
+        expect(await asks(p.controlBrowser, linked)).toEqual({ headless: ['1'], length: '1' });
+      } finally {
+        await tamper('insert into kernel.audit_chain_head select * from kept_head where chain_key = any ($1)');
+        await owner.query('drop table kept_head');
+        owner.release();
+      }
+      for (const chain of [key, linked]) expect((await p.server.db.admin.query('select * from kernel.verify_chain($1)', [chain])).rows, chain).toEqual([]);
+    });
+  });
 });
