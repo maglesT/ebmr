@@ -105,6 +105,26 @@ describe('DeviceReadingPort.claim', () => {
     await expect(claimAs({ readingIds: [id], purpose: 'TARE' })).resolves.toHaveLength(1);
   });
 
+  it('[DI-05][DI-32] F12 round 9 (tablets 0600): a reading is claimed only as TARE or GROSS, the purposes the server claims: a claim as L2409-0017, as CHECK or as a purpose in lower case is refused (EBMR-DEV-106) and records no use, so no use row or audit entry holds L2409-0017; the reading is then claimed as GROSS', async () => {
+    const id = await ingest();
+    // A reading the gateway took as a check weight: before 0600 it could be claimed as CHECK, which no flow claims.
+    const check = await ingest({ purpose: 'CHECK' });
+    const outcome = (p: Promise<unknown>) => p.then(() => 'ok', (e: unknown) => String(e));
+    const refused = {
+      lot: await outcome(claimAs({ readingIds: [id], purpose: 'L2409-0017' })),
+      check: await outcome(claimAs({ readingIds: [check], purpose: 'CHECK' })),
+      lower: await outcome(claimAs({ readingIds: [id], purpose: 'gross' })),
+    };
+    expect(refused.lot).toMatch(/EBMR-DEV-106 DI-32: reading [0-9a-f-]+ cannot be claimed as "L2409-0017": a scale reading is claimed only as the TARE or the GROSS of a weighing/);
+    expect(refused.check).toMatch(/EBMR-DEV-106 DI-32: reading [0-9a-f-]+ cannot be claimed as "CHECK"/);
+    expect(refused.lower).toMatch(/EBMR-DEV-106 DI-32: reading [0-9a-f-]+ cannot be claimed as "gross"/);
+    expect((await server.db.app.query('select 1 from tab.reading_use where reading_id = any ($1::uuid[])', [[id, check]])).rowCount).toBe(0);
+    const audit = await server.db.admin.query<{ n: string }>(`select count(*)::text as n from kernel.audit_event where chain_key = $1 and payload::text like '%L2409-0017%'`, [`device_reading:${id}`]);
+    expect(audit.rows[0]?.n).toBe('0');
+    await expect(claimAs({ readingIds: [id], purpose: 'GROSS' })).resolves.toHaveLength(1);
+    expect((await server.db.app.query<{ purpose: string }>('select purpose from tab.reading_use where reading_id = $1', [id])).rows).toEqual([{ purpose: 'GROSS' }]);
+  });
+
   it('[DI-32] an unknown or malformed reading id is refused', async () => {
     await expect(claimAs({ readingIds: ['0b4f3c1e-1111-4222-8333-444455556666'] })).rejects.toThrow(/EBMR-DEV-101/);
     await expect(claimAs({ readingIds: ['not-a-uuid'] })).rejects.toThrow(/EBMR-DEV-101/);

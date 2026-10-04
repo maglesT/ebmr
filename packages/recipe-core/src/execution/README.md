@@ -380,7 +380,13 @@ that another command holds is skipped.
     command sent: the blocks take members over under the same name and add others under names of their own
     (EBMR-EXE-126). The tablets edition reads what a new state entry names as identifiers too (tablets sql 0380,
     trigger `zi_tab_state_entry_identifiers`, EBMR-EXE-078): only test identifiers and registered test lots, the
-    output container id the block builds from the batch's own number excepted. A container a row registers (sql 0317,
+    output container id the block builds from the batch's own number excepted; and a lot a weighing or a lot charge
+    names, accepted or refused, is of a material the batch's MBR names, a material of its bill of materials or the
+    code of the reference a line names, as the engine compares them (tablets sql 0600, trigger
+    `ad_tab_entry_lot_material`, `entry_lot_material_problem`, EBMR-EXE-078; Phase 2 exit review F12, round 9;
+    decision F12.7), so a test lot registered with a material code such as L2409-0017 never reaches the record; a
+    scale reading is claimed only as TARE or GROSS (tablets sql 0600, trigger `aa_tab_reading_use_purpose`,
+    EBMR-DEV-106). A container a row registers (sql 0317,
     trigger `zj_execution_container_entry`, `new_container_problem`; Phase 2 exit review F12, round 3) is exactly the
     one the one entry the row adds registers: a dispensing weighing's (G-07, CONTAINER_WEIGHING, holding its BOM
     line) or an output weighing's (G-22, OUTPUT_CONTAINER, holding its intermediate), under the id the entry names or,
@@ -577,7 +583,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 040-049 | attribution: the badge tap (040); exceptions and hold-point decisions kept as raised or decided, a limit exception as its verdict raises it, an exception at the step the engine raises it at (044; sql 0270, 0295, 0298, 0305, 0327); the raiser of a new exception, time facts and the events that tell of them (045-047; sql 0280, 0299); a step instance told by its event (048; sql 0299) |
 | 050-059 | signatures (050-052) and signable content (055-057) |
 | 060-064 | definition fit (TypeScript) |
-| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, or a container the state registers, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it; tablets sql 0370, 0380, 0390), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
+| 070-089 | tablets lots (tablets sql 0200), intents, signing and proposals (server). The database raises some of them too: 074 (the manual weighing gate, tablets sql 0310, 0320), 078 (an entry, as its command sends it or as the state stores it, or a container the state registers, naming an identifier that is not a test identifier, or a lot other than a registered test lot as the register holds it, or a lot of a material the batch's MBR does not name; tablets sql 0370, 0380, 0390, 0600), 084 (a proposal it cannot record), 086 (a disposition or hold-point decision other than the signed one; sql 0270, 0295, 0301) and 087 (a disposition by a person involved in the step that raised the exception; sql 0306, 0310, 0315) |
 | 121-128 | evidence source, room and the state a person's row stores (sql 0285, 0300); what every row and a sweep keep as recorded (sql 0303) |
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316); a stage sign-off other than the engine's (135; sql 0319, 0320); a weighing entry whose net is not gross minus tare at the resolution of the weighings (136; sql 0321); a container label other than the one its weighing and the batch give (137; sql 0322); a quantity counted from weighings that is not the sum of all their nets at the resolution they were weighed at (138; sql 0322); a weighing entry that does not count into the quantity its phase records in the MBR (139; sql 0323) |
 | 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
@@ -1065,6 +1071,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   verification's probe, which the engine accepts) or as PRODUCTION_SUPERVISOR, which qa1 does not hold, and a refused
   correction approved as QA and L2409-0017, are refused (EBMR-EXE-126) and no row holds L2409-0017; the honest refused
   and accepted corrections approved as QA are recorded.
+- `db-guards-sandbox-registers.test.ts` (Phase 2 exit review F12, round 9; tablets sql 0600, sql 0341): a weighing of a
+  test lot registered with the material L2409-0017, which the engine refuses as the wrong material, is refused
+  (EBMR-EXE-078) and nothing in the record holds L2409-0017, while a cellulose lot at the paracetamol line is still
+  recorded refused (G07-WRONG-MATERIAL) and a lot whose material name is L2409-0017 leaves that name out of the record;
+  a stub batch planned in the sandbox with the batch number L2409-0017 is refused (EBMR-SBX-022), a TEST- number is
+  planned. The purpose of a scale-reading claim (tablets sql 0600) is tested in `test/devices/claim.test.ts`.
 - `db-guards-used-readings.test.ts` (Phase 2 exit review F12, round 7; tablets sql 0590): a device weighing whose used
   readings carry a raw line L2409-0017, another device, time, trust or value than the stored reading, a member of its
   own or the gross first is refused (EBMR-EXE-124) and uses no reading; the honest weighing uses its readings.

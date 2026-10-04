@@ -30,7 +30,7 @@ designer and are proven equal to them by tests.
 | Change control | `recipe.change_record`, `change_record_validation`, `change_record_regulatory` | QMS stand-in: number, class, the owner's process-impact classification, validation links, regulatory assessment per market (reporting category, e.g. the ICH Q12 or market category, and the variation/supplement reference) |
 | Risk assessment | `recipe.risk_assessment`, `mbr_risk_link` | QRM stand-in (id, risk class, rationale reference) and links per critical element or for the whole master |
 | Market authorisation | `recipe.market_authorisation`, `_activation`, `_withdrawal`, `authorisation_cell` | the signed record per version, market, kind and scope cells; one cell per (site, line, batch size) with status CURRENT, BRIDGING, SUPERSEDED or WITHDRAWN and a validity interval |
-| Stub batch | `recipe.stub_batch` | Phase 3 stand-in: batch number, family, markets, site, line, batch size, status |
+| Stub batch | `recipe.stub_batch` | Phase 3 stand-in: batch number, family, markets, site, line, batch size, status; the batch number follows the sandbox identifier rule (TEST- only in a sandbox, never TEST- in a GMP installation; migration 0341, EBMR-SBX-021/022) |
 | Pin | `recipe.batch_mbr_pin` | exactly one per batch: version, content hash, markets, scope, the selection as computed at the issue instant, rule-table versions |
 | Control recipe | `recipe.control_recipe` | the issued snapshot built by the database, its SHA-256; insert-only for everyone |
 | In-flight disposition | `recipe.in_flight_disposition` | CONTINUE, HOLD_FOR_ASSESSMENT or CANCEL_UNSTARTED per issued or running batch of an earlier version |
