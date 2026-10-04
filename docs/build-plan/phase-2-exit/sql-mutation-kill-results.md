@@ -130,6 +130,18 @@ Fixed:
   the cluster lacks made `sandbox.segregation_problems()` fail with "role does not exist" instead of reporting the
   problem, because PostgreSQL evaluated the privilege test before the existence test; rows also came out in join
   order. Fixed in kernel 1100: roles are read from the catalogue and asked about by oid, in role order.
+- **D7. Execution steps: a loop exit recorded without its loop context.** The rule that a loop's exit needs the loop's
+  END (recipe-core 0312, 0314, 0316) applies only when the iteration's context is not empty, so through the
+  application role a loop could be left before its minimum duration with no END recorded. Closed by recipe-core 0338
+  (on this tree), as the kill agent read: an accepted COMPLETE_LOOP_ITERATION names a decision of the state in its
+  loop's own frame, or it is refused (EBMR-EXE-126); a command without its context is refused by its shape (0335,
+  EBMR-EXE-126). No migration was needed. The test "[INV-20][PR-30][DI-27][DI-30] an iteration that ends the loop
+  before its minimum is refused ..." (apps/tablets-server/test/mutation/execution-steps-and-order.test.ts) shows it
+  on dc-mini with a mixing loop and a 1 h minimum: the engine refuses the honest iteration (ENG-MIN-DURATION), the
+  iteration with its own frame stored past it is refused for the minimum (EBMR-EXE-130), and the same iteration with
+  an empty context, its decision refiled without frames and no END, is refused as a context that is not the loop's
+  (EBMR-EXE-126); nothing is written. It is the kill test for `recipe.own_node_event_problem#39` (KILLED: under the
+  mutant the own-node-event check, which runs first, refuses that row with another message).
 
 Open (the lead takes these next):
 
@@ -139,12 +151,6 @@ Open (the lead takes these next):
   a validated MBR thus fails INV-20 in the engine while the database accepts it. Needs a decision: the validator
   refuses such a minimum, or the engine and database flag the early start. Leaves
   `recipe.minimum_duration_problem#15`.
-- **D7. Execution steps: a loop exit recorded without its loop context.** The rule that a loop's exit needs the loop's
-  END (recipe-core 0312, 0314, 0316) applies only when the iteration's context is not empty, so through the
-  application role a loop could be left before its minimum duration with no END recorded. The kill agent read that
-  recipe-core 0338 (on this tree) refuses an iteration whose context does not end with the loop's own frame
-  (EBMR-EXE-126), which would close it, but did not run it there. Open until a test on the integrated tree shows it
-  (the kill test for `recipe.own_node_event_problem#39`).
 - **D8. Execution state binding: a signature's validity fails open when missing.** `recipe.signature_change_problem`
   compares a stored signature with the recorded one; when the stored one has lost its `valid` member the comparison
   is NULL and nothing is refused, so a forged row that strips the validity is accepted. A one-line fix (treat the
