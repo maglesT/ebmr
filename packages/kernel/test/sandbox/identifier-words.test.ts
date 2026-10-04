@@ -415,6 +415,8 @@ const DASHES = [
 ];
 /** Kernel 1070: the solidi read by name or as Chromium 141 draws them (a stroke along the rising diagonal). */
 const SOLIDI = [0x0f3c, 0x2e4a, 0xa6f3, 0xa937, 0x10462, 0x1aff0, 0x1bc4f, 0x1f67c];
+/** Kernel 1080: the full stops read as Chromium 141 draws them (one dot on the baseline) or by name (U+2E3C). */
+const FULL_STOPS = [0x1390, 0x2e3c, 0x10100, 0x1bc94, 0x1d085, 0x1d147];
 const HAIR_SPACE = ch(0x200a);
 const SIX_PER_EM_SPACE = ch(0x2006);
 const THIN_SPACE = ch(0x2009);
@@ -498,7 +500,8 @@ describe('the identifier rule reads the look-alikes of the separators as a class
     );
     expect(counts).toEqual([
       { basis: 'LETTER_WITH_SIGN', n: 27, unread: 0 },
-      { basis: 'SEPARATOR_SHAPE', n: 49, unread: 0 },
+      // 49 of kernel 1070 and the 6 full stops of kernel 1080.
+      { basis: 'SEPARATOR_SHAPE', n: 55, unread: 0 },
       { basis: 'UCD_COMPATIBILITY', n: 34, unread: 0 },
       { basis: 'UTS39_PROTOTYPE_CLASS', n: 69, unread: 0 },
     ]);
@@ -566,5 +569,20 @@ describe('the identifier rule reads the look-alikes of the separators as a class
       await c.query('rollback');
       c.release();
     }
+  });
+  it('[DI-05][DI-30][INV-18] kernel 1080: the look-alikes of the full stop are read as a class too: L.2409-0017 written with a glyph Chromium 141 draws as one dot on the baseline (U+1390, U+10100, U+1BC94, U+1D085, U+1D147) or with U+2E3C STENOGRAPHIC FULL STOP is read; a Braille dot, drawn with the gap of its cell, and the ypogegrammeni, drawn below the line like a comma, stay separators', async () => {
+    const unread: string[] = [];
+    for (const cp of FULL_STOPS) {
+      const t = `Drum of lot L${ch(cp)}2409-0017`;
+      if (!((await readText([t]))[t] ?? []).includes('L.2409-0017')) unread.push(`U+${cp.toString(16).toUpperCase()}`);
+    }
+    expect(unread).toEqual([]);
+    const separators = [`L${ch(0x2840)}2409-0017`, `L${ch(0x37a)}2409-0017`];
+    expect(await readText(separators)).toEqual(Object.fromEntries(separators.map((t) => [t, []])));
+    const { rows } = await gmp.app.query<{ code_point: number; reads_as: string; basis: string }>(
+      'select code_point, reads_as, basis from sandbox.look_alike where code_point = any ($1::int[]) order by 1',
+      [FULL_STOPS],
+    );
+    expect(rows).toEqual(FULL_STOPS.map((cp) => ({ code_point: cp, reads_as: '.', basis: 'SEPARATOR_SHAPE' })));
   });
 });
