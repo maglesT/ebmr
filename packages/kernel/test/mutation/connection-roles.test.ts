@@ -14,7 +14,7 @@
  *    membership, a privilege on a column or a type, a GMP role or PUBLIC able to connect to a sandbox, and nothing
  *    in a database that is as provisioned. In a sandbox it failed outright ('role "..." does not exist') when a GMP
  *    login role was missing, because PostgreSQL evaluated has_database_privilege() before the EXISTS meant to guard
- *    it; kernel 1030 asks only about roles that exist, in role order (the tests marked kernel 1030 failed before it);
+ *    it; kernel 1100 asks only about roles that exist, in role order (the tests marked kernel 1100 failed before it);
  *  - the listener's share accepts exactly one listener's 8 and a share that leaves the application role one slot, and
  *    levels each pair from that pair's own roles.
  *
@@ -354,7 +354,7 @@ describe('the invariant query in a sandbox (kernel 0820, 0980)', () => {
     ]);
   });
 
-  it('[DI-05][INV-18] CONNECT for PUBLIC on the sandbox is reported, with each GMP role it lets in (in role order, kernel 1030); TEMPORARY for PUBLIC is not a way in', async () => {
+  it('[DI-05][INV-18] CONNECT for PUBLIC on the sandbox is reported, with each GMP role it lets in (in role order, kernel 1100); TEMPORARY for PUBLIC is not a way in', async () => {
     await rolledBack(sbx.admin, async (c) => {
       await c.query(`grant temporary on database "${sbx.name}" to public`);
       expect(await problemsAs(c, 'ebmr_sandbox')).toEqual([]);
@@ -384,7 +384,7 @@ describe('the invariant query in a sandbox (kernel 0820, 0980)', () => {
     });
   });
 
-  it('[DI-05][INV-18][DI-17] without the GMP listener role the query says that it does not exist, and nothing of what the sandbox listener holds beyond it (kernel 1030)', async () => {
+  it('[DI-05][INV-18][DI-17] without the GMP listener role the query says that it does not exist, and nothing of what the sandbox listener holds beyond it (kernel 1100)', async () => {
     await rolledBack(sbx.admin, async (c) => {
       await c.query('grant usage on schema testgmp to ebmr_listener, ebmr_sandbox_listener');
       expect(await problemsAs(c, 'ebmr_sandbox')).toEqual([]);
@@ -393,7 +393,7 @@ describe('the invariant query in a sandbox (kernel 0820, 0980)', () => {
     });
   });
 
-  it('[DI-05][INV-18][DI-17] a GMP role the cluster does not have is passed over, and a GMP role that can connect is still reported (kernel 1030)', async () => {
+  it('[DI-05][INV-18][DI-17] a GMP role the cluster does not have is passed over, and a GMP role that can connect is still reported (kernel 1100)', async () => {
     await rolledBack(sbx.admin, async (c) => {
       await c.query(`grant connect on database "${sbx.name}" to ebmr_authn`);
       await renameAside(c, 'ebmr_listener');

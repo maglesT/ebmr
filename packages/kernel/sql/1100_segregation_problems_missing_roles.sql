@@ -98,7 +98,7 @@ begin
       end loop;
     end if;
   else
-    -- 1030: only roles the cluster has, asked about by oid (has_database_privilege by name fails for a missing role).
+    -- 1100: only roles the cluster has, asked about by oid (has_database_privilege by name fails for a missing role).
     for r in select p.rolname from pg_catalog.pg_roles p
               where p.rolname in ('ebmr_app', 'ebmr_authn', 'ebmr_listener')
                 and has_database_privilege(p.oid, v_db, 'CONNECT')
