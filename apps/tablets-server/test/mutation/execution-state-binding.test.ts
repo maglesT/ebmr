@@ -11,11 +11,16 @@
  *     parameter, a fallback stored without its flags, an entry of another kind, step or person, two entries or none, a
  *     weighing stored with other facts than it sent, a step instance removed, another step changed, a step brought in
  *     started or under another key, a status the act does not leave, a PERFORMED signer added, a step that needs its
- *     check completed by its PERFORMED signature, a state without one of its parts, a state naming no row.
+ *     check completed by its PERFORMED signature, a state without one of its parts, a state naming no row;
+ *   - the scope of the person's-row rules (a COMMAND or PREPARE row, source UI or API, header 3 of 0300): a projection
+ *     that names the ISSUE row (source UI) is judged by the rules every row is held to (0311 EBMR-EXE-132, 0334
+ *     EBMR-EXE-145), not by the person's-row rules.
  * Every forgery is written past the server with the application role's own credentials (ADR 0012), as the review
- * reproducers do; the projection naming no row is written by the superuser, in a transaction rolled back.
+ * reproducers do; the projections naming no row and naming the issue row are written by the superuser (the
+ * application role has no UPDATE on recipe.execution_state), each in a transaction rolled back.
  *
- * Controls: DI-05, DI-14, DI-20, DI-30, DI-32, DI-33, DI-34, DI-35, PR-14, PR-20, PR-47; invariants INV-03, INV-10, INV-25.
+ * Controls: DI-05, DI-14, DI-20, DI-27, DI-30, DI-32, DI-33, DI-34, DI-35, PR-13, PR-14, PR-20, PR-47; invariants INV-03,
+ * INV-10, INV-16, INV-25.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -696,5 +701,36 @@ describe('the state names the row that produced it (0300 EBMR-EXE-030)', () => {
         "Data point DP-99 is recorded with a SCAN source, which no device, scan or system attests for a person's row in this release: a value a person records is a hand entry (DI-30, DI-32). [EBMR-EXE-126]",
     });
     expect((await stateOf(d)).points).toEqual({});
+  }, 240_000);
+});
+
+describe('the person\'s-row rules judge a person\'s row; the issue row is left to the rules every row is held to (0300 header 3, 0311 EBMR-EXE-132)', () => {
+  it('[DI-34][PR-13][DI-27][INV-16][DI-30] a projection written behind the store that still names the ISSUE row (kind ISSUE, source UI) and completes a step, or adds a scanned value, is refused by the rule every row is held to, naming the issue row, not by a rule of a person\'s row; the issued state is unchanged', async () => {
+    const d = await driver(withEarlyParameter());
+    const { rows } = await server.db.admin.query<{ seq: string; kind: string; source: string }>(
+      'select c.seq::text as seq, c.kind, c.source from recipe.execution_command c where c.batch_id = $1 order by c.seq',
+      [d.runId],
+    );
+    expect(rows).toEqual([{ seq: '1', kind: 'ISSUE', source: 'UI' }]);
+    const before = await stateOf(d);
+    expect({ status: stepOf(before, KEY).status, points: before.points }).toEqual({ status: 'ENABLED', points: {} });
+    const scan = { id: 'DP-99', item: 'blendTime', stepKey: KEY, step: 'p-early-time', frames: [], attempt: 1, version: 1, kind: 'VALUE', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'SCAN', code: 'FORGED' }, flags: [], exceptions: [], failed: false, status: 'VALID' };
+    /** The superuser's UPDATE of the projection's state at `path`, the row it names left as it is (rolled back): 'ok' or its refusal. */
+    const update = async (path: string[], value: unknown): Promise<string> => {
+      const c = await server.db.admin.connect();
+      try {
+        await c.query('begin');
+        return await messageOf(c.query('update recipe.execution_state set state = jsonb_set(state, $2::text[], $3::jsonb) where batch_id = $1', [d.runId, path, JSON.stringify(value)]));
+      } finally {
+        await c.query('rollback');
+        c.release();
+      }
+    };
+    expect({ completed: await update(['steps', KEY, 'status'], 'COMPLETED'), scanned: await update(['points', 'DP-99'], scan) }).toEqual({
+      completed:
+        'This issue ISSUE row moves step instance p-early-time@ from enabled to completed; the engine moves a step only along its life cycle, by the act that moves it (DI-34, PR-13). [EBMR-EXE-132]',
+      scanned: `This issue ISSUE row records value DP-99 (blendTime at p-early-time@) at null, not at the row's trusted time ${String(before.lastRecordedUs)}: a value is recorded at the time the database gave its row, never earlier or later; whether the run moved on after an act is read from it (DI-27, INV-16, DI-35). [EBMR-EXE-145]`,
+    });
+    expect(await stateOf(d)).toEqual(before);
   }, 240_000);
 });
