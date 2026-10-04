@@ -265,7 +265,10 @@ async function twoRevisions(familyCode: string, quantity: string): Promise<{ v1:
 }
 
 describe('warning justifications are recorded for the version and content they name (IN-02, DI-04)', () => {
-  it('[IN-02][DI-04] a justification of an unknown version is refused as such (EBMR-RCP-020), whichever form of the writer is called', async () => {
+  it('[IN-02][DI-04] a justification of an unknown version is refused as such (EBMR-RCP-020), whichever form of the writer is called, while other versions exist', async () => {
+    // The version named is checked, not whether any version exists: one is created first.
+    await createFamily(author, { familyCode: 'PCM500-KT-OTHER', batchSizes: [{ quantity: '60.500', unit: 'kg' }] });
+    expect(await countOf('select 1 from recipe.mbr_version', [])).toBeGreaterThan(0);
     const unknown = randomUUID();
     const message = `Unknown MBR version ${unknown} (EBMR-RCP-020)`;
     expect(await outcomeOf(justify(unknown, KEY, 'for no version', 'a'.repeat(64)))).toEqual(refused(message));
