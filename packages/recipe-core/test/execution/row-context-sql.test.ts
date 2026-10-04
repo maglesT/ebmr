@@ -23,7 +23,7 @@ import type { BatchDefinition } from '../../src/engine/definition.ts';
 import { changedContents, type AggregateContent } from '../../src/engine/signing-content.ts';
 import type { BatchState, Command } from '../../src/engine/types.ts';
 import type { FixtureName } from '../flow/support.ts';
-import { autopilot, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, PACKAGING_SCENARIO, Run } from '../engine/support.ts';
+import { autopilot, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, PACKAGING_SCENARIO, Run, SUP1 } from '../engine/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -292,6 +292,76 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
     const names = Object.keys(cases);
     const out = await problems(names.map((n) => [cases[n]?.[0], cases[n]?.[1]] as const));
     expect(Object.fromEntries(names.map((n, i) => [n, out[i]]))).toEqual(Object.fromEntries(names.map((n) => [n, cases[n]?.[2]])));
+  }, 300_000);
+
+  it('[DI-05][DI-30] round 8 (self-review, sql 0339): every record the golden runs bring into the state is named as the engine names it (numbered exceptions, entries, data points, computed values and holds, stage frames, decisions and sub-lots); one renamed L2409-0017, numbered outside its counter, keyed otherwise than by its id, or naming a construct, frames, branch or outcome the MBR does not have, and a sub-lot named otherwise than from the batch number, the section\'s prefix and its indexes, is refused', async () => {
+    const problems = async (cases: readonly (readonly [unknown, Json, Json])[]): Promise<(string | null)[]> => {
+      const { rows } = await db.admin.query<{ p: (string | null)[] }>(
+        "select coalesce(array_agg(recipe.state_record_problem(x.c -> 0, x.c -> 1, x.c -> 2) order by x.i), '{}') as p from jsonb_array_elements($1::jsonb) with ordinality x (c, i)",
+        [JSON.stringify(cases)],
+      );
+      return rows[0]?.p ?? [];
+    };
+    // A hold the engine places (no golden run places one by hand).
+    const holdRun = Run.issue(fixtureDefinition('tablet-granulation-compression'), { inputs: FIXTURE_INPUTS['tablet-granulation-compression'] });
+    const beforeHold = holdRun.state;
+    holdRun.ok({ type: 'HOLD_BATCH', actor: SUP1, holdType: 'SUPERVISOR', reason: 'Room check' });
+    const held = { mbr: holdRun.def.mbr, before: enc(beforeHold), after: enc(holdRun.state) };
+    const rows = [...golden().flatMap((g) => [{ label: 'issue', mbr: g.def.mbr, before: {}, after: enc(g.start) }, ...g.rows.map((r) => ({ label: r.label, mbr: r.def.mbr, before: enc(r.before), after: enc(r.after) }))]), { label: 'hold', ...held }];
+    const got = await problems(rows.map((r) => [r.mbr, r.before, r.after] as const));
+    expect(Object.fromEntries(rows.map((r, i) => [r.label, got[i]]).filter(([, p]) => p !== null))).toEqual({});
+    // What the runs bring in: every kind of record.
+    const last = golden().map((g) => enc(g.rows[g.rows.length - 1]?.after ?? g.start));
+    for (const m of ['exceptions', 'entries', 'points', 'derived', 'stages', 'decisions', 'subLots']) expect(last.some((st) => Object.keys((st[m] as Json | undefined) ?? {}).length > 0), m).toBe(true);
+    expect(Object.keys((held.after['holds'] as Json | undefined) ?? {})).toEqual(['HOLD-1']);
+    /** The first row of the runs that brings a record into map `m`, with that record renamed or changed by `change`. */
+    const renamed = (m: string, change: (key: string, rec: Json, after: Json) => void): readonly [unknown, Json, Json] => {
+      const all = [...rows];
+      const r = all.find((x) => Object.keys((x.after[m] as Json | undefined) ?? {}).some((k) => !(k in ((x.before[m] as Json | undefined) ?? {}))));
+      if (!r) throw new Error(`SETUP: no row adds to ${m}`);
+      const after = structuredClone(r.after);
+      const map = after[m] as Record<string, Json>;
+      const key = Object.keys(map).find((k) => !(k in ((r.before[m] as Json | undefined) ?? {}))) ?? '';
+      change(key, map[key] as Json, after);
+      return [r.mbr, r.before, after];
+    };
+    const rekey = (m: string, to: string, withId = true) =>
+      renamed(m, (key, rec, after) => {
+        const map = after[m] as Record<string, Json>;
+        delete map[key];
+        map[to] = withId ? { ...rec, id: to } : rec;
+      });
+    const cases: Record<string, readonly [readonly [unknown, Json, Json], string]> = {
+      exception: [rekey('exceptions', LOT), `exception ${LOT}, which the engine numbers EX-<n>`],
+      entry: [rekey('entries', LOT), `entry ${LOT}, which the engine numbers EN-<n>`],
+      point: [rekey('points', LOT), `data point ${LOT}, which the engine numbers DP-<n>`],
+      derived: [rekey('derived', LOT), `computed value ${LOT}, which the engine numbers DV-<n>`],
+      hold: [((): readonly [unknown, Json, Json] => {
+        const after = structuredClone(held.after);
+        const holds = after['holds'] as Record<string, Json>;
+        holds[LOT] = { ...(holds['HOLD-1'] as Json), id: LOT };
+        delete holds['HOLD-1'];
+        return [held.mbr, held.before, after];
+      })(), `hold ${LOT}, which the engine numbers HOLD-<n>`],
+      idNotKey: [renamed('entries', (_k, rec) => void (rec['id'] = LOT)), 'entry EN-'],
+      beyondCounter: [rekey('exceptions', 'EX-999'), 'exception EX-999, which is not numbered after the EX counter before the row and within it after the row'],
+      stage: [renamed('stages', (_k, rec) => void (rec['stage'] = LOT)), 'stage frame '],
+      stageFrames: [renamed('stages', (_k, rec) => void (rec['frames'] = [{ construct: LOT, index: 1 }])), 'stage frame '],
+      decision: [renamed('decisions', (_k, rec) => void (rec['construct'] = LOT)), 'decision '],
+      decisionOutcome: [renamed('decisions', (_k, rec) => void (rec['outcome'] = LOT)), 'decision '],
+      subLotId: [renamed('subLots', (_k, rec) => void (rec['id'] = LOT)), 'sub-lot '],
+      subLotFrames: [renamed('subLots', (_k, rec) => void (rec['frames'] = [{ construct: LOT, index: 1 }])), 'sub-lot '],
+    };
+    const names = Object.keys(cases);
+    const out = await problems(names.map((n) => (cases[n] as (typeof cases)[string])[0]));
+    const mismatched: Record<string, string | null | undefined> = {};
+    names.forEach((n, i) => {
+      const p = out[i];
+      if (typeof p !== 'string' || !p.startsWith(cases[n]?.[1] ?? '?')) mismatched[n] = p;
+    });
+    expect(mismatched).toEqual({});
+    expect(out[names.indexOf('subLotId')]).toMatch(/whose id is not the one the engine gives it/);
+    expect(out[names.indexOf('decisionOutcome')]).toMatch(/whose outcome is not one its (alternative|replicate|loop) gives$/);
   }, 300_000);
 
   it('[DI-05][DI-10][DI-30] an engine version is major.minor.patch, whole numbers: the engine\'s own and earlier versions pass; L2409-0017 and every other text is refused', async () => {

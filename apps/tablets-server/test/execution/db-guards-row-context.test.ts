@@ -275,6 +275,48 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
     expect(await keyed('roomState', { kind: 'CATEGORY', value: 'DRY' })).toBe('ok');
   }, 300_000);
 
+  it('[DI-05][DI-30] round 8 (self-review, sql 0339): a record a row brings into the state is named as the engine numbers it: an operator\'s exception, a previous-batch entry and a supervisor\'s hold whose engine id is renamed L2409-0017 in the state and its event are refused (EBMR-EXE-126) and nothing holds L2409-0017; the honest records are recorded', async () => {
+    const d = await startedRun();
+    const supervisor = await sbx.asPersona('supervisor1');
+    const runD = new RunDriver(sbx, d.runId, { ...d.browsers, supervisor1: supervisor });
+    /** `persona`'s `command` with the engine's result, the record it brings into map `m` renamed `to` (key, id, event). */
+    const renamed = (persona: string, make: (w: Writer) => engine.Command, m: 'exceptions' | 'entries' | 'holds', to?: string): Promise<string> =>
+      writtenAs(runD, persona, async (w) => {
+        const command = make(w);
+        const r = engineResult(w.tx, command);
+        if (to === undefined) return appendAs(w.tx, command, r, w.roles);
+        const state = structuredClone(r.state);
+        const map = state[m] as Record<string, { id: string }>;
+        const key = Object.keys(map).find((k) => (w.tx.state[m] as Record<string, unknown>)[k] === undefined);
+        if (key === undefined) throw new Error(`SETUP: the engine brought nothing into ${m}`);
+        map[to] = { ...(map[key] as { id: string }), id: to };
+        delete map[key];
+        const events = engine.decodeEvents(JSON.parse(JSON.stringify(engine.encodeEvents(r.events)).replaceAll(`"${key}"`, `"${to}"`)));
+        return appendAs(w.tx, command, { state, events }, w.roles, engine.encodeCommand(command), engine.changedContents(w.tx.def, w.tx.state, state));
+      });
+    const entry = (w: Writer): engine.Command => ({ type: 'RECORD_ENTRY', commandId: randomUUID(), actor: w.actor, expectedVersion: w.tx.state.version, step: 'p-disp-clear', context: [], entry: { kind: 'PREVIOUS_BATCH', product: 'TEST-PRODUCT-X', batchNumber: 'TEST-B26-9999' } });
+    const hold = (w: Writer): engine.Command => ({ type: 'HOLD_BATCH', commandId: randomUUID(), actor: w.actor, expectedVersion: w.tx.state.version, holdType: 'SUPERVISOR', reason: 'Room check' });
+    const outcomes = {
+      exception: await renamed('operator1', (w) => raiseCommand(w), 'exceptions', LOT),
+      entry: await renamed('operator1', entry, 'entries', LOT),
+      hold: await renamed('supervisor1', hold, 'holds', LOT),
+    };
+    const NAMES = String.raw`\. A record the state brings in is named as the engine names it, in the frames of the batch's MBR, so nothing sits in the record unread \(DI-05, DI-30\)\. \[EBMR-EXE-126\]$`;
+    expect(unmatched(outcomes, {
+      exception: new RegExp(String.raw`^The state of test batch TEST-B\d{2}-\d{4} adds exception L2409-0017, which the engine numbers EX-<n>` + NAMES),
+      entry: new RegExp(String.raw`^The state of test batch TEST-B\d{2}-\d{4} adds entry L2409-0017, which the engine numbers EN-<n>` + NAMES),
+      hold: new RegExp(String.raw`^The state of test batch TEST-B\d{2}-\d{4} adds hold L2409-0017, which the engine numbers HOLD-<n>` + NAMES),
+    })).toEqual({});
+    expect(await rowsWith(d.runId, LOT)).toBe(0);
+    expect(await stateHolding(d.runId, LOT)).toBe(0);
+    expect(await contentsWith(d.runId, LOT)).toBe(0);
+    expect(await renamed('operator1', (w) => raiseCommand(w), 'exceptions')).toBe('ok');
+    expect(await renamed('operator1', entry, 'entries')).toBe('ok');
+    expect(await renamed('supervisor1', hold, 'holds')).toBe('ok');
+    const st = (await execution.loadState(sbx.db.admin, d.runId))?.state;
+    expect({ exceptions: Object.keys(st?.exceptions ?? {}), entries: Object.keys(st?.entries ?? {}), holds: Object.keys(st?.holds ?? {}) }).toEqual({ exceptions: ['EX-1'], entries: ['EN-1'], holds: ['HOLD-1'] });
+  }, 300_000);
+
   it('[DI-05][DI-30][DI-37] round 8: a row stores a content version only of a step instance, stage frame, exception or data point of the state it produced, with exactly the members of its kind\'s content, its batch\'s header and the identity of that record: the round-7 verification\'s aggregate of its own under L2409-0017@, an exception\'s content with a member of its own, another batch\'s header and a step\'s content in a frame L2409-0017 are refused (EBMR-EXE-126); a version that is not the content of the state at its row, superseded by the honest one, is stored, and the replay now reads it and the row that superseded it', async () => {
     const d = await startedRun();
     /** operator1's exception at no step, its content versions changed by `forge`. */
