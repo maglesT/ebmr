@@ -3,8 +3,9 @@
  *
  * Every credential here is DEMO-ONLY: it exists in demo and E2E databases (and the test templates), never in
  * a real installation. Sandbox identifiers start with TEST- (DI-05). Persona set N (N >= 1) adds the suffix
- * -wN to names, login names and badge identifiers, so each Playwright worker has its own persons (the kernel
- * allows one shop-floor session per person).
+ * -wN to keys, login names and badge identifiers, and -wA, -wB, ... to names, so each Playwright worker has its own
+ * persons (the kernel allows one shop-floor session per person). A name never carries a digit: in the sandbox a word
+ * that joins letters and digits reads as a batch or lot number (EBMR-SBX-024, kernel 1040).
  */
 import type { InstallationKind } from './db.ts';
 
@@ -119,7 +120,15 @@ export const BOOTSTRAP_NAMES: Readonly<Record<InstallationKind, { admin: [string
   SANDBOX: { admin: ['TEST-Administrator', 'test-admin'], owner: ['TEST-Process Owner', 'test-owner'] },
 };
 
-/** The persona of set `n` (0 = the demo set): suffix -wN on names, logins and badges. */
+/** The letters of persona set `n` in a name: 1 = A, 26 = Z, 27 = AA (no digits; see the header). */
+export function setLetters(n: number): string {
+  if (!Number.isInteger(n) || n < 1) throw new Error(`a persona set with letters is 1 or more, not ${String(n)}`);
+  let out = '';
+  for (let k = n; k > 0; k = Math.floor((k - 1) / 26)) out = String.fromCharCode(65 + ((k - 1) % 26)) + out;
+  return out;
+}
+
+/** The persona of set `n` (0 = the demo set): suffix -wN on keys, logins, passwords and badges, -w<letters> on names. */
 export function personaForSet(p: PersonaSpec, set: number): PersonaSpec {
   if (set === 0) return p;
   const suffix = `-w${set}`;
@@ -128,7 +137,7 @@ export function personaForSet(p: PersonaSpec, set: number): PersonaSpec {
   return {
     ...p,
     key: `${p.key}${suffix}`,
-    legalName: `${p.legalName}${suffix}`,
+    legalName: `${p.legalName}-w${setLetters(set)}`,
     loginName: `${p.loginName}${suffix}`,
     demo: { password: `${p.demo.password}${suffix}`, ...(p.demo.pin ? { pin: p.demo.pin } : {}), ...(badge ? { badgeUid: badge } : {}) },
   };

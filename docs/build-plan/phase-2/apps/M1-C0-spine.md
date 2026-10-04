@@ -98,7 +98,7 @@ Depends on: none
      | Sandbox | TEST-qa-1 | QA_SHOP_FLOOR |
 
      Sandbox devices: TEST-PC-01; kiosks TEST-KIOSK-DISP-1 and TEST-KIOSK-BLEND-1; the INSTRUMENT TEST-BAL-01 in DISP-1.
-   - Persona set N adds a suffix `-wN` for E2E workers.
+   - Persona set N adds a suffix `-wN` for E2E workers (to keys, logins and badges; names get `-wA`, `-wB`, ..., since a name may hold no digit in the sandbox).
 6. **Server skeleton.**
    - Zod env config and start-up guards:
      - `assertInstallationKind`;
