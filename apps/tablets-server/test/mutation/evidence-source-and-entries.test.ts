@@ -19,6 +19,7 @@
  * The pure checks of recipe-core in the group are in packages/recipe-core/test/mutation/evidence-source-and-entries.test.ts.
  */
 import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { identity, toDbContext, withCommand, type ActorContext } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
@@ -26,7 +27,7 @@ import { generateDeviceKey, passwordActor } from '@ebmr/test-kit';
 import { resolveClientIntent } from '../../src/features/execution/intents.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { roomFreeDispensing, startRig, stopRig, type Rig } from '../devices/room-scales-support.ts';
+import { lastEvidence, roomFreeDispensing, startRig, stopRig, type Rig } from '../devices/room-scales-support.ts';
 import { adminActor } from '../devices/support.ts';
 import { claim, named, staleRowHelpers, weighing, type ReadingPair } from '../execution/db-guards-stale-support.ts';
 import { actorOf, appendAs, engineResult, messageOf, nextState, unmatched } from '../execution/db-guards-support.ts';
@@ -515,5 +516,116 @@ describe('the scale readings a device weighing stands on (tablets 0510)', () => 
     expect(outcome).toMatch(/^A weighing captured from a device uses exactly its tare and its gross reading, in that order, each as stored, and nothing else: it names \[.*\] \(DI-31, DI-32\)\. \[EBMR-EXE-124\]$/);
     expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore);
     expect(await usesOf([pair.tare, pair.gross])).toBe(0);
+  }, 300_000);
+
+
+  // ---------------------------------------------------------------------------------------------
+  // The instant the command's transaction began (tablets 0510 L89 for a stale row, L124 for a weighing from the current
+  // screen). A claim is the command's own when it was made no earlier than the command's transaction began (0300
+  // item 2, "since this transaction began"): a claim whose recorded time equals the transaction's start to the
+  // microsecond is the command's own, not an earlier command's. Such a tie is reachable only through a claim made by a
+  // concurrent transaction that began at that microsecond (verified by a probe against the mutants; it is a clock
+  // coincidence, not an input, so it is not reproduced by racing here). It is reproduced deterministically: the pair is
+  // claimed for real, through the product, by a command of the same kiosk session and correlation id, and the two
+  // claims' recorded times are then set to the writer transaction's start (the tare) and one microsecond after it (the
+  // gross) — the exact state the race leaves. Only the owner writes tab.reading_use, so the set-up reaches past the
+  // insert-only guard with the superuser; nothing else of the row changes.
+
+  /**
+   * operator1's pair claimed through the product under one correlation id and kiosk session, then a writer transaction B
+   * opened on the same session and correlation id, with the tare's recorded time set to B's start and the gross's to one
+   * microsecond after. `write` runs on B (open, its context installed) and returns the database's message for the row it
+   * writes; B is rolled back unless `write` commits it.
+   */
+  async function withTiedClaim(d: RunDriver, write: (ctx: { b: pg.PoolClient; tx: execution.ExecutionTx; roles: readonly execution.RoleEvidence[]; me: engine.Actor; claimed: ReadingPair }) => Promise<string>): Promise<{ message: string; claimed: ReadingPair }> {
+    const server = rig.server;
+    const run = await runContext(server.db.admin, d.runId);
+    const who = personaIn(server, 'operator1');
+    const correlationId = randomUUID();
+    const claimed = await readings();
+    // The real claim, committed first, so its command's begin_command releases the session before B takes it.
+    expect(await messageOf(withCommand(server.db.app, await actorOf(server, d.browser('operator1'), 'operator1', { correlationId }), (c) => claim(c, claimed)))).toBe('ok');
+    const b = await server.db.app.connect();
+    let committed = false;
+    try {
+      await b.query('begin');
+      await b.query("set local statement_timeout = '30s'");
+      await beginAs(b, await actorOf(server, d.browser('operator1'), 'operator1', { correlationId }));
+      const pid = (await b.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]?.pid;
+      const adm = await server.db.admin.connect();
+      try {
+        await adm.query("set session_replication_role = 'replica'");
+        await adm.query('update tab.reading_use u set claimed_at = s.xact_start from pg_catalog.pg_stat_activity s where s.pid = $1 and u.reading_id = $2', [pid, claimed.tare]);
+        await adm.query("update tab.reading_use u set claimed_at = s.xact_start + interval '1 microsecond' from pg_catalog.pg_stat_activity s where s.pid = $1 and u.reading_id = $2", [pid, claimed.gross]);
+      } finally {
+        await adm.query("set session_replication_role = 'origin'").catch(() => undefined);
+        adm.release();
+      }
+      const tx = await execution.ExecutionTx.open(b, run.def, d.runId);
+      const roles = await engineRoles(b);
+      const me = engineActor(who.personId, roles);
+      const message = await write({ b, tx, roles, me, claimed });
+      if (message === 'ok') {
+        await b.query('commit');
+        committed = true;
+      }
+      return { message, claimed };
+    } finally {
+      if (!committed) await b.query('rollback').catch(() => undefined);
+      b.release();
+    }
+  }
+
+  it('[DI-32][DI-34] a reading claimed under its correlation id at the microsecond the stale row\'s transaction began is a claim since that transaction began: the stale row is refused as having claimed it (EBMR-EXE-124, tablets 0510)', async () => {
+    const d = await preparedRun();
+    const rowsBefore = (await rowsOf(rig.server, d.runId)).length;
+    // The stale weighing names a different, unclaimed pair (its named readings pass; the claim check refuses it first).
+    const other = await readings();
+    const { message, claimed } = await withTiedClaim(d, async ({ b, tx, roles, me }) => {
+      const resolved = await resolveClientIntent(
+        { client: b, app: rig.server.built.ctx, def: tx.def, state: tx.state, room: 'DISP-1', actor: me, commandId: randomUUID(), expectedVersion: tx.state.version - 1, useReadings: false },
+        weighing(other.tare, other.gross),
+      );
+      return messageOf(tx.command(resolved.command, roles, resolved.evidence as engine.JsonValue));
+    });
+    // Original (claimed_at >= transaction_timestamp): the tare, at the transaction's start, is named first. The mutant
+    // (> instead of >=) skips it and names the gross, one microsecond later, instead.
+    expect(message).toBe(
+      `This row is the refusal ENG-STALE of a command from a screen that showed an older version of the run, which uses no scale reading, but it claimed reading ${claimed.tare} as tare (DI-32). [EBMR-EXE-124]`,
+    );
+    expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore);
+    expect(await usesOf([claimed.tare, claimed.gross, other.tare, other.gross])).toBe(2);
+  }, 300_000);
+
+  it('[DI-31][DI-32] a weighing from the current screen stands on a reading claimed at the microsecond its transaction began: the claim is the command\'s own and the weighing is recorded (EBMR-EXE-124, tablets 0510)', async () => {
+    const d = await preparedRun();
+    const rowsBefore = (await rowsOf(rig.server, d.runId)).length;
+    // A spare pair of the same weights, to shape the resolved command and evidence; its reading ids are swapped for the
+    // claimed pair's (the spare is only peeked, so it stays unclaimed).
+    const spare = await readings();
+    const { message, claimed } = await withTiedClaim(d, async ({ b, tx, roles, me, claimed: pair }) => {
+      const resolved = await resolveClientIntent(
+        { client: b, app: rig.server.built.ctx, def: tx.def, state: tx.state, room: 'DISP-1', actor: me, commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: false },
+        weighing(spare.tare, spare.gross),
+      );
+      const evidence = resolved.evidence;
+      asUsed({}, evidence);
+      for (const r of evidence['readings'] as Json[]) r['readingId'] = r['purpose'] === 'TARE' ? pair.tare : pair.gross;
+      return messageOf(tx.command(resolved.command, roles, evidence as engine.JsonValue));
+    });
+    // Original (claimed_at < transaction_timestamp marks an earlier command's claim): the tare, exactly at the
+    // transaction's start, is not earlier, so it is this command's own and the weighing is recorded. The mutant
+    // (<= instead of <) treats the tie as an earlier command's claim and refuses it.
+    expect(message).toBe('ok');
+    const rows = await rowsOf(rig.server, d.runId);
+    expect(rows.length).toBe(rowsBefore + 1);
+    expect(rows.at(-1)).toMatchObject({ kind: 'COMMAND', command_type: 'RECORD_ENTRY', accepted: true });
+    const ev = await lastEvidence(rig, d.runId);
+    expect((ev['readings'] as Json[]).map((r) => [r['purpose'], r['readingId']])).toEqual([
+      ['TARE', claimed.tare],
+      ['GROSS', claimed.gross],
+    ]);
+    expect(await usesOf([claimed.tare, claimed.gross])).toBe(2);
+    expect(await violations(rig.server)).toEqual([]);
   }, 300_000);
 });
