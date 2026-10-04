@@ -484,11 +484,14 @@ that another command holds is skipped.
     batch number, site and room (`run_bound_words`), a name of the engine's registers (table `recipe.engine_name`:
     block rule codes, block types, the controls of the register and the invariants, the engine's schema tag), a record
     id its state holds (`state_record_ids`: EX-, EN-, DP-, DV-, HOLD-<n> up to the number of records of its kind), an
-    edge of its MBR's flow (`flow_edge_count`), or a compound of these, a compound of the run's batch number (a sample's
-    or an output container's id) only as its state holds it (`run_word_bound`, `state_compound_ids`, sql 0347); on a
-    reading's chain the site and room of the writing session
-    (`session_bound_words`). No word passes by its form alone (0344's `engine_word` and the person register's names in
-    an audit entry no longer do). A refusal names the column and the JSON path, a member name in it only when it holds
+    edge of its MBR's flow (`flow_edge_count`), or a compound of these whose every part holds a letter, a compound of
+    the run's batch number (a sample's or an output container's id) only as its state holds it (`run_word_bound`,
+    `state_compound_ids`, sql 0347); a number in a compound only in the shapes the engine builds, as a whole word: a
+    fragment `<n>/<section>` of a context key, n at most the maximum of the loop or replicate section enclosing that
+    section (`frame_fragments`), a compound the MBR, its expanded ids or a held container or sample holds
+    (`content_bound_words`, sql 0348, the lane's round-12 verification, gap G2); on a reading's chain the site and room
+    of the writing session (`session_bound_words`). No word passes by its form alone (0344's `engine_word`, the person
+    register's names in an audit entry and, since sql 0348, a number in a compound no longer do). A refusal names the column and the JSON path, a member name in it only when it holds
     no unbound word (else `<member>`), and an audit chain only up to the id it names (`chain_shown`): never the word.
     Free text a type declares (a reason, a description, a TEXT value, what a refused row sent) is therefore held to
     that rule too; decision F12.5's default no longer applies in a test run, and a refused row that names a record the
@@ -617,7 +620,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
 | 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
 | 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
-| 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347; kernel migrations 1030, 1040): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them, in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
+| 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347, 0348; kernel migrations 1030, 1040): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them (a number in a compound only in the engine's shapes), in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
 
 ## TypeScript
 
@@ -886,12 +889,15 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   and control the engine's and the blocks' sources name meets the rule, and an accepted row records none (sql 0336);
   the issue requests of both golden fixtures pass and a size, market, variant, choice or input the MBR does not hold,
   one left out, a blank source or another input type is refused (sql 0337).
-- `test/execution/engine-names-sql.test.ts` (Phase 2 exit follow-up F12, round 11; DI-05, DI-30; sql 0346, 0347):
-  `recipe.engine_name` holds exactly the block rule codes of the engine's sources, the block types of the registry,
-  the controls of compliance/controls and the invariants INV-01 to INV-48, the schema tag and member name the engine
-  writes, insert-only and unreadable by the application role; `flow_edge_count` equals the compiler's edge count for
-  dc-mini, both golden fixtures and flows of every construct, and is never below it; `state_record_ids`,
-  `state_compound_ids`, `run_word_bound`, `word_path` and `chain_shown` bind and show words as the migrations say.
+- `test/execution/engine-names-sql.test.ts` (Phase 2 exit follow-up F12, rounds 11 and 12; DI-05, DI-30; sql 0346,
+  0347, 0348): `recipe.engine_name` holds exactly the block rule codes of the engine's sources, the block types of the
+  registry, the controls of compliance/controls and the invariants INV-01 to INV-48, the schema tag and member name the
+  engine writes, insert-only and unreadable by the application role; `flow_edge_count` equals the compiler's edge count
+  for dc-mini, both golden fixtures and flows of every construct, and is never below it; `state_record_ids`,
+  `state_compound_ids`, `run_word_bound`, `word_path` and `chain_shown` bind and show words as the migrations say; a
+  number in a compound is bound only as a context fragment within the enclosing section's maximum
+  (`frame_fragments`) or a whole compound of the MBR, its expanded ids or a held container or sample
+  (`content_bound_words`), and every compound of the golden runs of both fixtures is bound where it first appears.
 - `test/execution/row-context-sql.test.ts` (Phase 2 exit review F12, round 8; DI-05, DI-30, DI-37, DI-10; sql 0338):
   every accepted command of both golden runs (steps in loops and replicate sections, choices, loop iterations, stage
   sign-offs) and the preparation for each of their signatures passes `row_context_problem`, and every content version
@@ -1144,6 +1150,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   on a scale reading's chain naming L2409-0017 in its message or details, or on a chain whose key holds it, is refused
   without the word in the message, and an entry naming the writing session's room is recorded; business details
   {"Z2409-0018": {"x": "L2409-0017"}} are refused at `$.body.details.<member>.x`.
+- `db-guards-free-text-compounds.test.ts` (Phase 2 exit follow-up F12, round 12; sql 0348): over HTTP, BATCH/2409/0017,
+  D/2409/0017, H/24/0017, QA/2409/0017, TABLET/2409/0017, SITE-1/2409/0017, MG/24/017, BAL/2409/0017,
+  DISP-1/2409/0017, SOP/2409/0017 and EX-1/2409/0017 (a word of the run, its site or a record id it holds, then
+  numbers) in an exception's description and in a hold reason, and BATCH/2409/0017 in a business entry the application
+  role appends on the run's chain (its message, a member three levels down), are refused (EBMR-EXE-147) and nothing
+  holds them; compounds of the run's words, a ratio, a date and prose are recorded.
 - `db-guards-kernel-stubs.test.ts` (Phase 2 exit follow-up F12.KERNEL; kernel migration 1030): through the application role,
   in the sandbox a stub material lot, stub batch or stub pack with a real-format identifier is refused (EBMR-SBX-022)
   and the stubs' free text (predicates, a stub MBR limit's value, a stub signable's title, value and unit, a sample
