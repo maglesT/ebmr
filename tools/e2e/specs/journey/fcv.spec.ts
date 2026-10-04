@@ -374,17 +374,17 @@ test.describe('first clickable version (journey)', () => {
       }, blend);
       await shots.shot(blend, 'kiosk-limit-breaches');
 
-      await evidence.step('The action-limit breach blocks the step until the supervisor links a deviation (PR-08)', 'The supervisor switches in, links DEV-TEST-0001 with a badge tap; the step can then be performed and witnessed (its blend time and speed are typed by hand with no printout attached, so the MBR asks the second person to witness them: engine 1.4.0, T12.1, T12.3)', async () => {
+      await evidence.step('The action-limit breach blocks the step until the supervisor links a deviation (PR-08)', 'The supervisor switches in, links TEST-DEV-0001 with a badge tap; the step can then be performed and witnessed (its blend time and speed are typed by hand with no printout attached, so the MBR asks the second person to witness them: engine 1.4.0, T12.1, T12.3)', async () => {
         await switchUser(blend, supervisor);
         const action = card(blend).locator('[data-testid^="exception-"]').filter({ hasText: 'Blocks the next steps until it is resolved' });
         await action.getByRole('button', { name: 'Link a deviation' }).click();
         const dialog = blend.getByRole('dialog', { name: /^Link a deviation to: / });
-        await dialog.getByRole('textbox', { name: 'Deviation number' }).fill('DEV-TEST-0001');
+        await dialog.getByRole('textbox', { name: 'Deviation number' }).fill('TEST-DEV-0001');
         await dialog.getByRole('button', { name: 'Send' }).click();
         await tap(blend, supervisor);
         await expect(dialog.getByText(/^Saved: /)).toBeVisible();
         await dialog.getByRole('button', { name: 'Close' }).click();
-        await expect(card(blend).getByText('Deviation DEV-TEST-0001')).toBeVisible();
+        await expect(card(blend).getByText('Deviation TEST-DEV-0001')).toBeVisible();
         await switchUser(blend, operator2);
         await signPrimary(blend, 'Sign as performed', operator2);
         await switchUser(blend, verifier2);
@@ -412,7 +412,7 @@ test.describe('first clickable version (journey)', () => {
         await (await primary(blend, 'Decide the hold point')).click();
         const dialog = blend.getByRole('dialog', { name: 'Decide the hold point' });
         await choose(dialog.getByRole('radio', { name: 'Approved (released)' }));
-        await dialog.getByRole('textbox', { name: 'Comment (optional)' }).fill('Blend time deviation DEV-TEST-0001 assessed; release for discharge.');
+        await dialog.getByRole('textbox', { name: 'Comment (optional)' }).fill('Blend time deviation TEST-DEV-0001 assessed; release for discharge.');
         await dialog.getByRole('button', { name: 'Continue to signature' }).click();
         await sign(blend, qa);
         await expect(card(blend)).toContainText('Completed');
@@ -454,7 +454,7 @@ test.describe('first clickable version (journey)', () => {
         await (await primary(blend, 'Sign off the stage')).click();
         const dialog = blend.getByRole('dialog', { name: /Sign off stage 2/ });
         await expect(dialog.getByTestId('stage-summary')).toContainText('Completed with deviations');
-        await expect(dialog.getByTestId('stage-summary')).toContainText('DEV-TEST-0001');
+        await expect(dialog.getByTestId('stage-summary')).toContainText('TEST-DEV-0001');
         await dialog.getByRole('button', { name: 'Continue to signature' }).click();
         await sign(blend, supervisor);
         await blend.goto(`${sbx}/runs/${runId}`);
@@ -539,7 +539,7 @@ async function dispositionOpenExceptions(page: Page, base: string, runId: string
     await choose(dialog.getByRole('radio', { name: deviation ? 'Deviation raised' : 'No impact' }));
     await dialog
       .getByRole('textbox', { name: 'Justification' })
-      .fill(deviation ? 'Blend time over the internal action limit; handled under the linked deviation (E2E demo).' : 'Reviewed on the floor with the operator; no impact on the batch (E2E demo).');
+      .fill(deviation ? 'Blend time over the internal action limit; handled under the linked deviation (end-to-end demo).' : 'Reviewed on the floor with the operator; no impact on the batch (end-to-end demo).');
     await dialog.getByRole('button', { name: 'Continue to signature' }).click();
     await sign(page, qa);
     done += 1;

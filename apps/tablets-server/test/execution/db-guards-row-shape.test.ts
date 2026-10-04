@@ -266,7 +266,7 @@ describe('F12 round 7: a row records its command and evidence as the server does
     const d = await startedRun();
     const run = await runContext(sbx.db.admin, d.runId);
     const issuer = personaIn(sbx, 'issuer');
-    const request = { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION' as const, variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT' as const, value: '100000' }, source: 'F12 round 7' } }, issuedBy: { id: issuer.personId, kind: 'PERSON' as const, roles: [] } };
+    const request = { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION' as const, variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT' as const, value: '100000' }, source: 'Keyed at issue for this regression test' } }, issuedBy: { id: issuer.personId, kind: 'PERSON' as const, roles: [] } };
     const issueAs = async (forge: { request?: Json; policy?: Json; evidence?: engine.JsonValue } = {}): Promise<string> =>
       messageOf(
         withCommand(sbx.db.app, await actorOf(sbx, d.browser('issuer'), 'issuer'), (c) =>
@@ -282,7 +282,7 @@ describe('F12 round 7: a row records its command and evidence as the server does
     const before = await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from recipe.batch_execution');
     const outcomes = {
       requestMember: await issueAs({ request: { lotNumber: 'L2409-0017' } }),
-      inputMember: await issueAs({ request: { inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'F12 round 7', lot: 'L2409-0017' } } } }),
+      inputMember: await issueAs({ request: { inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test', lot: 'L2409-0017' } } } }),
       policyMember: await issueAs({ policy: { lotNumber: 'L2409-0017' } }),
       policyRole: await issueAs({ policy: { qaRoles: ['L2409-0017'] } }),
       otherPackage: await issueAs({ evidence: { packageHash: 'f'.repeat(64) } }),
@@ -363,7 +363,7 @@ describe('F12 round 7: a row records its command and evidence as the server does
           const begun = await execution.beginIssue(c, batchId);
           const request: engine.IssueRequest = {
             batchId, batchNumber: begun.batchNumber, batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {},
-            inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'F12 round 7' } }, issuedBy: { id: issuer.personId, kind: 'PERSON', roles: [] },
+            inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test' } }, issuedBy: { id: issuer.personId, kind: 'PERSON', roles: [] },
           };
           const r = engine.issue(run.def, request, { nowUs: begun.nowUs });
           const recorded = engine.encode(request) as Json;
@@ -380,8 +380,8 @@ describe('F12 round 7: a row records its command and evidence as the server does
       batchSize: await issueAs((q) => void (q['batchSize'] = 'L2409-0017')),
       market: await issueAs((q) => void (q['marketSet'] = ['IN', 'L2409-0017'])),
       variant: await issueAs((q) => void (q['variants'] = { 'L2409-0017': 'X' })),
-      input: await issueAs((q) => void (inputs(q)['L2409-0017'] = { value: { kind: 'TEXT', value: 'X' }, source: 'F12 round 7' })),
-      inputType: await issueAs((q) => void (inputs(q)['tabletsPerBatch'] = { value: { kind: 'TEXT', value: 'L2409-0017' }, source: 'F12 round 7' })),
+      input: await issueAs((q) => void (inputs(q)['L2409-0017'] = { value: { kind: 'TEXT', value: 'X' }, source: 'Keyed at issue for this regression test' })),
+      inputType: await issueAs((q) => void (inputs(q)['tabletsPerBatch'] = { value: { kind: 'TEXT', value: 'L2409-0017' }, source: 'Keyed at issue for this regression test' })),
     };
     const ISSUE = String.raw`\. A batch is issued only with a request its MBR accepts, as the engine checks it at issue, so nothing sits in the record unread \(DI-05, DI-10, DI-34\)\. \[EBMR-EXE-126\]$`;
     const head = String.raw`^The issue request of test batch TEST-B\d{2}-\d{4} cannot be recorded: `;

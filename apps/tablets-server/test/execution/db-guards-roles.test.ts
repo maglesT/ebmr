@@ -124,7 +124,7 @@ describe('P22: engine roles only from the declared kernel role, at the actor\'s 
         const real = await engineRoles(c);
         if (real.map((e) => `${e.role}/${e.permission}`).join() !== 'STAGE_RESPONSIBLE/RECORD.PRODUCTION_APPROVE') throw new Error(`SETUP: unexpected evidence ${JSON.stringify(real)}`);
         const evidence = forge ? [...real, ...real.map((e) => ({ ...e, role: 'HEAD_OF_PRODUCTION' }))] : real;
-        return tx.command({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: engineActor(steward.personId, evidence), description: 'P22: tablet press noise', severity: 'ALERT' }, evidence);
+        return tx.command({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: engineActor(steward.personId, evidence), description: 'Tablet press noise heard during the regression test', severity: 'ALERT' }, evidence);
       });
     const controlA = await outcomeOf(() => raise(false));
     const forgedA = await outcomeOf(() => raise(true));
@@ -345,7 +345,7 @@ describe('P22: engine roles only from the declared kernel role, at the actor\'s 
             def: run.def,
             batchId,
             packageHash: run.batch.packageHash,
-            request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'P22 regression' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles } },
+            request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles } },
           });
         });
         return batchId;

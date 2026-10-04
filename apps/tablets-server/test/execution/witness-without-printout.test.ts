@@ -451,7 +451,7 @@ describe('T12.LATE round 2: the act\'s time, the run\'s moving on and the witnes
             def,
             batchId,
             packageHash: run.batch.packageHash,
-            request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'T12.LATE round 2' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles: [] } },
+            request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles: [] } },
           }),
         ),
       );

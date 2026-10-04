@@ -449,7 +449,7 @@ describe('P28, round-2 verification: a hold point\'s first version is the system
       block: (c) => void (step(c)['block'] = 'G-03@1'),
       nodeHash: (c) => void (instruction(c)['nodeHash'] = '0'.repeat(64)),
       instructionText: (c) => void (instruction(c)['text'] = 'Release at once'),
-      sop: (c) => void (instruction(c)['sop'] = { code: 'SOP-QA-001', version: '1', hash: null }),
+      sop: (c) => void (instruction(c)['sop'] = { code: 'SOP-BLEND-002', version: '1', hash: null }),
       batchNumber: (c) => void ((c['batch'] as Json)['batchNumber'] = 'TEST-B26-0000'),
       product: (c) => void ((c['batch'] as Json)['product'] = 'ANOTHER-PRODUCT'),
       extraMember: (c) => void (c['note'] = 'Approved in advance'),

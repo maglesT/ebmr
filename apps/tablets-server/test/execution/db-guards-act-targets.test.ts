@@ -69,7 +69,7 @@ async function as(d: RunDriver, persona: string, build: (a: engine.Actor) => eng
 }
 
 const raise = (a: engine.Actor): engine.Command => ({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: a, step: 'p-disp-clear', context: [], description: 'The label of the booth door is torn', severity: 'ALERT' });
-const attach = (exception: string) => (a: engine.Actor): engine.Command => ({ type: 'ATTACH_DEVIATION', commandId: randomUUID(), actor: a, exception, deviationRef: 'DEV-2026-001' });
+const attach = (exception: string) => (a: engine.Actor): engine.Command => ({ type: 'ATTACH_DEVIATION', commandId: randomUUID(), actor: a, exception, deviationRef: 'TEST-DEV-2026-001' });
 const hold = (a: engine.Actor): engine.Command => ({ type: 'HOLD_BATCH', commandId: randomUUID(), actor: a, holdType: 'SUPERVISOR', reason: 'Booth door label torn' });
 const release = (h: string) => (a: engine.Actor): engine.Command => ({ type: 'RELEASE_HOLD', commandId: randomUUID(), actor: a, hold: h, reason: 'Label replaced' });
 

@@ -467,8 +467,21 @@ that another command holds is skipped.
     row, accepted or refused (sql 0342, constraint trigger `zz_execution_row_shape_approver_person`,
     `approval_person_problem`); and an accepted ATTACH_DEVIATION names an open exception of the state without a
     deviation that its row links, an accepted RELEASE_HOLD a hold not yet released that its row releases (sql 0343,
-    trigger `zzk_execution_act_target`, `act_target_problem`). Free text a type declares (a reason,
-    a description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
+    trigger `zzk_execution_act_target`, `act_target_problem`); and an accepted START_STEP records no start data,
+    a start-data authoriser is the id of a person of this installation on every row, and an equipment status at a
+    step that lists no equipment for a status check names equipment the MBR binds where the step runs (sql 0345,
+    constraint trigger `zz_execution_row_start_data`, `start_data_problem`; trigger `zzl_execution_status_equipment`,
+    `status_equipment_problem`; the lane's round-3 verification, needs A and B). Since sql 0344 (Phase 2 exit review
+    F12 closed for the class; decision F12.8) every text the record holds is read with the kernel's identifier rule
+    (kernel sql 1030), whatever member holds it: the batch's columns and issue request, every text, text[] and jsonb
+    column of the command rows (command, evidence, refusal, roles), the state, the events, the four content stores, the
+    proposals, the clock and the legacy stage summaries, at any depth and in member names, and the reason and business
+    entries of the run's audit chains (deferred constraint triggers `zzz_sandbox_free_text`, `execution_free_text_check`,
+    `audit_free_text_check`; EBMR-EXE-147). A word the rule reads as a real batch or lot number is refused unless the
+    run's record has it from a bound source: its MBR (`batch_bound_words`), its batch number, site and room, the
+    engine's own names (`engine_word`), or a compound of these the engine builds (`bound_word`). A refusal names the
+    column and the JSON path, never the word. Free text a type declares (a reason, a description, a TEXT value, what a
+    refused row sent) is therefore held to that rule too; decision F12.5's default no longer applies in a test run;
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -1069,7 +1082,8 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   own, a state naming another engine version, a decimal or a category keyed by hand that its parameter does not
   take, and an exception, entry or hold whose engine id is renamed L2409-0017 (sql 0339) are refused (EBMR-EXE-126)
   and nothing holds L2409-0017; a content version the database cannot tell from the
-  state's, superseded by the honest one, is reported by the replay with the row that superseded it; a challenge for a
+  state's, superseded by the honest one, is reported by the replay with the row that superseded it (since round 10 its
+  forged title is prose: one holding L2409-0017 is refused, sql 0344); a challenge for a
   PERFORMED signature of a step instance the run does not have is answered 404 and stores no preparation; the honest
   rows are recorded.
 - `db-guards-act-targets.test.ts` (Phase 2 exit review F12, round 9, self-review; sql 0343): through the application
@@ -1085,9 +1099,26 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `db-guards-sandbox-registers.test.ts` (Phase 2 exit review F12, round 9; tablets sql 0600, sql 0341): a weighing of a
   test lot registered with the material L2409-0017, which the engine refuses as the wrong material, is refused
   (EBMR-EXE-078) and nothing in the record holds L2409-0017, while a cellulose lot at the paracetamol line is still
-  recorded refused (G07-WRONG-MATERIAL) and a lot whose material name is L2409-0017 leaves that name out of the record;
+  recorded refused (G07-WRONG-MATERIAL); since round 10 a lot whose material name is L2409-0017 is not registered
+  (tablets sql 0630, EBMR-SBX-024), and a lot's material name, the register's, is in no row of the record;
   a stub batch planned in the sandbox with the batch number L2409-0017 is refused (EBMR-SBX-022), a TEST- number is
   planned. The purpose of a scale-reading claim (tablets sql 0600) is tested in `test/devices/claim.test.ts`.
+- `db-guards-free-text-identifiers.test.ts` (Phase 2 exit review F12, round 10; sql 0344, 0345, kernel sql 1030):
+  through the application role, the lane's round-3 verification's probes, an accepted START_STEP of a recovery with
+  start data authorised by L2409-0017 (or by a person: no accepted start data at all) and an equipment status naming
+  L2409-0017 or another stage's equipment at a status step that lists none (over HTTP), and a refused start authorised
+  by L2409-0017 or by a person id the installation does not have, are refused (EBMR-EXE-126); L2409-0017 in a comment,
+  a reason, a free-text answer, a deviation reference and a check id of a refused entry (over HTTP), in a refusal's
+  message, the evidence, start data, the actor context's reason and a business entry of the run's audit chain (its
+  message, a member three levels down, a member name), and every real format the rule knows (B24-0001, L24-0001,
+  SCALE-01, TRAINEE-01, in lower case, full-width, escaped, glued into a longer word, joined by a slash) is refused
+  (EBMR-EXE-147) and nothing holds it; prose, numbers, dates, ranges, ordinals, TEST- identifiers, the MBR's codes and
+  the engine's names are recorded.
+- `db-guards-kernel-stubs.test.ts` (Phase 2 exit follow-up F12.KERNEL; kernel sql 1030): through the application role,
+  in the sandbox a stub material lot, stub batch or stub pack with a real-format identifier is refused (EBMR-SBX-022)
+  and the stubs' free text (predicates, a stub MBR limit's value, a stub signable's title, value and unit, a sample
+  record's body) holding one is refused (EBMR-SBX-024); a GMP installation keeps the real ones and refuses TEST- ones
+  (EBMR-SBX-021).
 - `db-guards-used-readings.test.ts` (Phase 2 exit review F12, round 7; tablets sql 0590): a device weighing whose used
   readings carry a raw line L2409-0017, another device, time, trust or value than the stored reading, a member of its
   own or the gross first is refused (EBMR-EXE-124) and uses no reading; the honest weighing uses its readings.

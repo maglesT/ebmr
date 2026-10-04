@@ -199,7 +199,8 @@ stage 2.
    (PR-08). **Sign as performed** is greyed with the reason. **Link a deviation** is greyed for the operator,
    because only a supervisor or QA may link one.
 5. **Deviation link.** TEST-Sanjay Kulkarni switches in, clicks **Link a deviation** on the exception, enters
-   `DEV-TEST-0001`, clicks **Send** and taps. The block is lifted. The operator switches back and signs as
+   `TEST-DEV-0001` (in a sandbox a text names a deviation, batch or lot only by a TEST- number; `DEV-TEST-0001` is
+   refused, EBMR-EXE-147), clicks **Send** and taps. The block is lifted. The operator switches back and signs as
    performed, and the verifier signs as witness (**Witness**): the blend time and speed were typed by hand and the
    printout the MBR names cannot be attached in this release, so the second person witnesses them instead of
    reviewing them later (engine 1.4.0, default T12.1; the dc-mini template asks for the witness itself since
@@ -218,7 +219,7 @@ stage 2.
    alert, which QA dispositions as above.
 8. **2.2.3 Blend yield (G-20)**: computed. Performed and verified.
 9. **Stage sign-off.** TEST-Sanjay Kulkarni opens 2.2.3 and clicks **Sign off the stage**. The summary reads
-   "Completed with deviations", with the exceptions and DEV-TEST-0001. Sign. The batch is **Execution complete**.
+   "Completed with deviations", with the exceptions and TEST-DEV-0001. Sign. The batch is **Execution complete**.
 
 ### 5. Replay and audit trails
 

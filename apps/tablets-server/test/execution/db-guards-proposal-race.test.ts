@@ -54,8 +54,8 @@ afterAll(async () => {
   await sbx?.close();
 });
 
-const A = { outcome: 'NO_IMPACT' as const, justification: 'Reprint reconciled by QA1; no impact on the batch.' };
-const B = { outcome: 'NO_IMPACT' as const, justification: 'QA2: a different justification proposed during the signing.' };
+const A = { outcome: 'NO_IMPACT' as const, justification: 'Reprint reconciled by the first QA reviewer; no impact on the batch.' };
+const B = { outcome: 'NO_IMPACT' as const, justification: 'Second QA reviewer: a different justification proposed during the signing.' };
 
 /** `key` also holds `roleCode` (requested by the administrator, approved by the owner). */
 async function grantRole(key: string, roleCode: string): Promise<void> {
@@ -205,7 +205,7 @@ describe('F37: a proposed decision never lands on a signed content version (INV-
 
     const actor = await qa2Actor();
     const race = duringSigning(() =>
-      withCommand(sbx.db.app, actor, (c) => c.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [runId, HOLD, JSON.stringify({ disposition: 'NOT_APPROVED', comment: 'QA2: booth not released' })])),
+      withCommand(sbx.db.app, actor, (c) => c.query('select recipe.propose_hold_point_decision($1, $2, $3::jsonb)', [runId, HOLD, JSON.stringify({ disposition: 'NOT_APPROVED', comment: 'Second QA reviewer: booth not released' })])),
     );
     let r;
     try {
@@ -300,7 +300,7 @@ describe('F37: a proposed decision never lands on a signed content version (INV-
     let second: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
     await withCommand(sbx.db.app, await signing.actor(), async (c) => {
       await signing.sign(c);
-      second = await waitingOrDone(withCommand(sbx.db.app, qa2, (c2) => proposeOn(c2, 'NOT_APPROVED', 'QA2: booth not released')));
+      second = await waitingOrDone(withCommand(sbx.db.app, qa2, (c2) => proposeOn(c2, 'NOT_APPROVED', 'Second QA reviewer: booth not released')));
     });
     await second?.done;
     expect({ waited: second?.waited, state: second?.state() }).toEqual({
@@ -403,7 +403,7 @@ describe('F37: a proposed decision never lands on a signed content version (INV-
       let proposal: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
       await withCommand(sbx.db.app, await release.actor(), async (c) => {
         await release.sign(c);
-        proposal = await waitingOrDone(withCommandAt(qa2, level, (c2) => proposeOn(first.runId, c2, 'NOT_APPROVED', 'QA2: booth not released')));
+        proposal = await waitingOrDone(withCommandAt(qa2, level, (c2) => proposeOn(first.runId, c2, 'NOT_APPROVED', 'Second QA reviewer: booth not released')));
       });
       await proposal?.done;
       const content = await esig.contentForSigning(sbx.db.admin, 'batch_step', agg1);
@@ -415,7 +415,7 @@ describe('F37: a proposed decision never lands on a signed content version (INV-
       const signer = await release2.actor();
       let signing: Awaited<ReturnType<typeof waitingOrDone>> | undefined;
       await withCommand(sbx.db.app, await qa2Actor(), async (c2) => {
-        await proposeOn(second.runId, c2, 'NOT_APPROVED', 'QA2: booth not released');
+        await proposeOn(second.runId, c2, 'NOT_APPROVED', 'Second QA reviewer: booth not released');
         signing = await waitingOrDone(withCommandAt(signer, level, (c) => release2.sign(c)));
       });
       await signing?.done;

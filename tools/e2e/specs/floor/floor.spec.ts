@@ -387,11 +387,11 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
       const exception = sup.locator('[data-testid^="exception-"]').filter({ hasText: 'Blocks the next steps until it is resolved' });
       await exception.getByRole('button', { name: 'Link a deviation' }).click();
       const dialog = sup.getByRole('dialog', { name: /Link a deviation to/ });
-      await dialog.getByRole('textbox', { name: 'Deviation number' }).fill('DEV-E2E-0001');
+      await dialog.getByRole('textbox', { name: 'Deviation number' }).fill('TEST-DEV-E2E-0001');
       await dialog.getByRole('button', { name: 'Send' }).click();
       await expect(dialog.getByText(/Saved:/)).toBeVisible();
       await dialog.getByRole('button', { name: 'Close' }).click();
-      await expect(sup.getByTestId('step-card')).toContainText('Deviation DEV-E2E-0001');
+      await expect(sup.getByTestId('step-card')).toContainText('Deviation TEST-DEV-E2E-0001');
       await expect(sup.getByTestId('step-card').locator('[data-testid^="exception-"]').filter({ hasText: 'Blocks the next steps until it is resolved' })).toHaveCount(0);
     }, sup);
 
@@ -418,7 +418,7 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
     const runId = await issueTestBatch(office, base, packageHash);
     const clearanceUrl = `/runs/${runId}/steps/${encodeURIComponent('p-disp-clear@')}`;
     const nextUrl = `/runs/${runId}/steps/${encodeURIComponent('p-disp-bal@')}`;
-    const description = 'Booth door found open after the clearance (E2E)';
+    const description = 'Booth door found open after the clearance (end-to-end test)';
 
     const operator = persona('SANDBOX', 'operator1');
     const verifier = persona('SANDBOX', 'verifier1');
@@ -483,11 +483,11 @@ test.describe('floor screens against the live sandbox (after checkpoint D5)', ()
       const exception = sup.getByTestId('step-card').locator('[data-testid^="exception-"]').filter({ hasText: description });
       await exception.getByRole('button', { name: 'Link a deviation' }).click();
       const dialog = sup.getByRole('dialog', { name: /Link a deviation to/ });
-      await dialog.getByRole('textbox', { name: 'Deviation number' }).fill('DEV-E2E-0002');
+      await dialog.getByRole('textbox', { name: 'Deviation number' }).fill('TEST-DEV-E2E-0002');
       await dialog.getByRole('button', { name: 'Send' }).click();
       await expect(dialog.getByText(/Saved:/)).toBeVisible();
       await dialog.getByRole('button', { name: 'Close' }).click();
-      await expect(exception).toContainText('Deviation DEV-E2E-0002');
+      await expect(exception).toContainText('Deviation TEST-DEV-E2E-0002');
       await expect(exception).not.toContainText('Blocks the next steps until it is resolved');
     }, sup);
 

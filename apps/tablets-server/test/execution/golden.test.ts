@@ -210,7 +210,7 @@ describe('REPLAY-GATE: the replay of the stored rows finds what the database doe
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: clear });
     await d.signed('verifier1', { type: 'VERIFY', stepKey: clear, meaning: 'VERIFIED' });
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-bal@' });
-    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-bal@', entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'LBL-1', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-bal@', entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: 'BAL', labelId: 'TEST-LBL-1', answers: ['CALIBRATED', 'DAILY_CHECK', 'CLEAN'].map((id) => ({ id, answer: 'YES' as const })) } });
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-disp-bal@' });
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-sop@' });
     await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-disp-sop@', entry: { kind: 'ACKNOWLEDGE', mode: 'READ' } });

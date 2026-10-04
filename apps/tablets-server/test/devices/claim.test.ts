@@ -178,6 +178,20 @@ describe('DeviceReadingPort.claim', () => {
     ).rejects.toThrow(/EBMR-IAM-120/);
   });
 
+  it('[DI-05][DI-32] F12 round 10 (recipe-core 0344): a reading claimed in a command whose actor context gives a reason naming L2409-0017 is refused at commit (EBMR-EXE-147): no use is recorded and no audit entry of the reading holds it; a reason in prose is recorded', async () => {
+    const id = await ingest();
+    const reasoned = async (reasonText: string) => {
+      const actor = { ...(await operatorActor(server, 'operator1')), reasonCode: 'RECOUNT', reasonText };
+      return withActorCommand(server.db.app, actor, (client) => server.built.ctx.deviceReadings.claim(client, { readingIds: [id], room: 'DISP-1', maxAgeUs: MAX_AGE, purpose: 'GROSS' }));
+    };
+    await expect(reasoned('recount of drum L2409-0017')).rejects.toThrow(
+      /This insert entry of audit chain device_reading:[0-9a-f-]{36} cannot be recorded: it holds, at \$\.reason_text, a word of the form of a batch or lot number that is not a test one\..*\[EBMR-EXE-147\]$/,
+    );
+    expect((await server.db.admin.query('select 1 from tab.reading_use where reading_id = $1', [id])).rowCount).toBe(0);
+    expect((await server.db.admin.query("select 1 from kernel.audit_event where chain_key = $1 and payload::text like '%2409-0017%'", [`device_reading:${id}`])).rowCount).toBe(0);
+    await expect(reasoned('recount of drum TEST-L26-0101 on the 2nd shift')).resolves.toHaveLength(1);
+  });
+
   it('[DI-32] the application role can neither write readings nor uses directly (only the checked functions can)', async () => {
     const id = await ingest();
     // server.db.app is this installation's application role (ebmr_sandbox, mirroring ebmr_app).

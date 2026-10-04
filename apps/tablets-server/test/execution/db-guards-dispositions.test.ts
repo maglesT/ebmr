@@ -432,7 +432,7 @@ describe('P25 follow-up: a test batch is issued from the engine\'s initial state
             marketSet: ['IN'],
             purpose: 'VALIDATION',
             variants: {},
-            inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'P25 regression' } },
+            inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test' } },
             issuedBy: { id: who.personId, kind: 'PERSON', roles: [] },
           };
           const r = engine.issue(run.def, request, { nowUs: begun.nowUs });

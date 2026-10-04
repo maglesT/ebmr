@@ -360,7 +360,13 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
     expect(await execution.replayExecution(sbx.db.admin, run.def, d.runId)).toMatchObject({ identical: true, contentProblems: [] });
 
     // A version the database cannot tell from the content of the state (its title is text the engine composes), superseded
-    // by the honest one in the next row: both are stored, and the replay names both.
+    // by the honest one in the next row: both are stored, and the replay names both. Since recipe-core 0344 (F12 round 10)
+    // such a title never holds a real-format lot number (EBMR-EXE-147), so the forged title here is prose.
+    expect(
+      await raisedWith((cs) => cs.map((c) => (c.type === 'batch_exception' ? changed(c, (x) => void ((x['exception'] as Json)['title'] = `${LOT}: the label of the booth door is torn`)) : c))),
+    ).toMatch(/^This execution_exception_content row of test batch [0-9a-f-]{36} cannot be recorded: content holds, at \$\.exception\.title, a word of the form of a batch or lot number that is not a test one\..*\[EBMR-EXE-147\]$/);
+    expect(await contentsWith(d.runId, LOT)).toBe(0);
+    const FORGED = 'Forged title: the label of the booth door is torn';
     let forgedRow = '';
     let forgedKey = '';
     expect(
@@ -368,7 +374,7 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
         const honest = exceptionOf(cs);
         forgedKey = honest.key;
         forgedRow = String(w.tx.lastSeq + 1n);
-        return cs.map((c) => (c === honest ? changed(c, (x) => void ((x['exception'] as Json)['title'] = `${LOT}: the label of the booth door is torn`)) : c));
+        return cs.map((c) => (c === honest ? changed(c, (x) => void ((x['exception'] as Json)['title'] = FORGED)) : c));
       }),
     ).toBe('ok');
     let honestRow = '';
@@ -380,7 +386,7 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
         return [...cs, first];
       }),
     ).toBe('ok');
-    expect(await contentsWith(d.runId, LOT)).toBe(1);
+    expect(await contentsWith(d.runId, FORGED)).toBe(1);
     const report = await execution.replayExecution(sbx.db.admin, run.def, d.runId);
     expect(report).toMatchObject({ identical: false, firstDifference: null, invariantViolations: [] });
     expect(report.contentProblems).toEqual([
@@ -400,7 +406,7 @@ describe('F12 round 8: a command\'s context, a preparation\'s target, a content 
           const begun = await execution.beginIssue(c, batchId);
           const request: engine.IssueRequest = {
             batchId, batchNumber: begun.batchNumber, batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {},
-            inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'F12 round 8' } }, issuedBy: { id: issuer.personId, kind: 'PERSON', roles: [] },
+            inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test' } }, issuedBy: { id: issuer.personId, kind: 'PERSON', roles: [] },
           };
           const r = engine.issue(run.def, request, { nowUs: begun.nowUs });
           const state: engine.BatchState = { ...r.state, engineVersion: stateVersion };

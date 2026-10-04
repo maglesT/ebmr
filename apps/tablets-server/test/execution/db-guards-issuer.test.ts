@@ -68,7 +68,7 @@ describe('P22: the issuer\'s engine roles come from the evaluations of the issui
           def: run.def,
           batchId,
           packageHash: run.batch.packageHash,
-          request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'P22 regression' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles } },
+          request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles } },
         });
       });
       return { batchId, correlationId: actor.correlationId ?? '' };

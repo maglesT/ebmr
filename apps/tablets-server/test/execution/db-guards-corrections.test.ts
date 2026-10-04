@@ -185,7 +185,7 @@ describe('P24: a correction carries its own signature and the approval of anothe
         def: waived,
         batchId,
         packageHash: run.batch.packageHash,
-        request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'P24 regression' } }, issuedBy: { id: issuer.personId, kind: 'PERSON', roles: [] } },
+        request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'Keyed at issue for this regression test' } }, issuedBy: { id: issuer.personId, kind: 'PERSON', roles: [] } },
       }),
     );
     const { rows } = await sbx.db.admin.query<{ waived: unknown }>("select policy -> 'criticalCorrectionNeedsApproval' as waived from recipe.batch_execution where id = $1", [batchId]);

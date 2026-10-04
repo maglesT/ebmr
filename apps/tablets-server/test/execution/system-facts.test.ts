@@ -135,7 +135,7 @@ describe('P28/P35: what the system finds or creates inside a person\'s call is t
     expect(audited).toEqual([{ person: SYSTEM_PERSON, role: SYSTEM_ROLE, source: 'SYSTEM', rowKind: 'PREPARE', rowPerson: qa1 }]);
 
     // A supervisor links the deviation the breach requires; qa1 entered nothing in the breach.
-    await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: breach.id, deviationRef: 'DEV-TEST-0028' });
+    await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: breach.id, deviationRef: 'TEST-DEV-0028' });
     expect(await changedBy(ref)).toEqual([SYSTEM_PERSON, supervisor1]);
     const { rows: provided } = await server.db.admin.query<{ c: { entered_by: string[]; content: { exception: { raisedBy: string } } } }>('select recipe.batch_exception_content($1) as c', [`${d.runId}:${breach.id}`]);
     expect({ signedRaisedBy: provided[0]?.c.content.exception.raisedBy, enteredBy: provided[0]?.c.entered_by }).toEqual({ signedRaisedBy: 'SYSTEM', enteredBy: [supervisor1] });
@@ -174,7 +174,7 @@ describe('P28/P35: what the system finds or creates inside a person\'s call is t
     // The breach's first version is the system's creation; the exception qa1 raised is qa1's change.
     expect({ breach: await changedBy(`batch_exception:${d.runId}:${breach.id}`), own: await changedBy(`batch_exception:${d.runId}:${own.id}`) }).toEqual({ breach: [SYSTEM_PERSON], own: [qa1] });
 
-    await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: breach.id, deviationRef: 'DEV-TEST-0035' });
+    await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: breach.id, deviationRef: 'TEST-DEV-0035' });
     const r = await d.sign('qa1', { type: 'DISPOSITION_EXCEPTION', exception: breach.id, outcome: 'DEVIATION_RAISED', justification: 'Window overrun assessed under the linked deviation.' });
     expect(outcomeOf(r.result), r.result.ok ? '' : JSON.stringify(r.result.error)).toBe('ok');
     expect((await stateOf(d.runId)).exceptions[breach.id]?.status).toBe('DISPOSITIONED');
