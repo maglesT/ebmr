@@ -171,7 +171,7 @@ describe('tab.mbr_content_saved_role (tablets 0420): the role of the revision\'s
     const content = (await gmp.db.app.query<{ id: string }>('select id::text from recipe.mbr_content where version_id = $1', [v.versionId])).rows;
     expect(content).toHaveLength(1);
     const id = content[0]?.id ?? '';
-    // The owner's view: the version's chain carries the version's own INSERT before the content's, both by the author.
+    // The owner's view: the version's chain carries other entries (the version's own INSERT) before the content's INSERT.
     const chain = (await gmp.db.admin.query<{ t: string; r: string }>(
       "select payload ->> 'table' as t, payload ->> 'record_id' as r from kernel.audit_event where chain_key = $1 order by seq", [`mbr_version:${v.versionId}`],
     )).rows;
