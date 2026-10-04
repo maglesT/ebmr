@@ -1864,3 +1864,35 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
     F12.7; F12.6 corrected. Still open: the lot register may hold such a material code (owner: set-up order), the
     kernel stub tables and the sandbox's MBR life-cycle writers (reported to the lead), F12.5's free text and refused
     rows as sent, the imported test package.
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Read authorisation, round 5 (HIGH-WATER) (branch phase-2/recipe-core; the
+  verification of lane round 3; DI-17, DI-50, DI-38, DI-19). What was wrong: since tablets 0410 and 0430 the application
+  roles kept SELECT on the signing requests, the signatures and their side tables (esig.challenge, signature,
+  signature_seal, signature_id_register, content_change, signature_invalidation, signing_failure) under row-level
+  security that hid the GOVERNANCE-class rows. The planner did not hide them: EXPLAIN ANALYZE reported how many rows the
+  policy removed ("Rows Removed by Filter: 2" after one closure was requested twice and signed once), narrowed to
+  investigations by a range on the indexed aggregate reference; the row estimates, the row positions and id gaps of
+  the visible rows, and pg_class's reltuples and relpages, which every role reads, told the same. Polled, they told when
+  and how many investigations' closures were requested and signed. Looking for the same defect elsewhere: the kernel's
+  signing-failure log, which the application role ran without a session, given a request id it reads in
+  iam.auth_event and another person's authentication, raised an alert naming the request's record and meaning
+  (di_investigation:<id>, DI_INVESTIGATION_CLOSED). Tablets 0580's test title and header, HW.1 and the DI-17/DI-50
+  guard of 0580 said or implied otherwise. What changed:
+  - tablets 0610: the application roles select none of the seven tables (the server reads its own requests through the
+    session-checked tab.session_challenge: ceremony read-back, F40 resend check, hold-point decision correlation), and
+    no role but the owner and the superusers selects pg_class's reltuples, relpages and relallvisible (EBMR-TAB-024,
+    EBMR-TAB-025 self-checks);
+  - tablets 0620: the application role no longer runs esig.record_signing_failure; the server logs every failure
+    through the session-checked tab.record_signing_failure (a request of the session the token is or was bound to, so
+    a failure after a sign-out is still logged), and the kernel's logSigningFailure takes that recorder (EBMR-TAB-026);
+  - 0610's header corrects 0580's; the 0580 test title now says the evaluations, not the role, tell neither when nor
+    how many; HW.1 (correction, (3) closed, (2), (4) and (5) rewritten), F34.2, ADR 0012 item 9 and the DI-17/DI-50
+    guards corrected; new default HW.3; DI-38 and DI-19 list the new guards and tests.
+  Still read by the application roles (HW.1): its own connections' statements, the locks of any signing, the
+  installation-wide counters, the signing authentications and their uses (a person authenticated to sign something,
+  and when; not which record or kind), the session activity and the audit horizon. Tests (each fails with its
+  migration moved aside or the old source): esig/read-authorisation.test.ts "HIGH-WATER: the planner's view of the
+  signing requests and signatures (tablets 0610)" (2 tests, GMP and sandbox) and "HIGH-WATER: the signing-failure log
+  of a signing request (tablets 0620)" (GMP and sandbox), the 0410 and 0430 tests made strict (refusal instead of
+  RECORD-class rows), and the kernel's signing-failure-own-command.test.ts recorder test. Hand-run mutants of both
+  migrations' self-checks and of both functions' conditions are killed. Server esig, execution signing and access
+  regression files and the E2E esig spec pass.
