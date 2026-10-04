@@ -108,9 +108,9 @@ describe('the command shape reader (recipe.command_member_problem, 0335)', () =>
     ]);
   });
 
-  it('[DI-05][DI-30] a microsecond count is exactly the codec\'s {"$u": "<digits>"}: digits with a letter, a fraction, a sign other than minus, a blank, a space, a leading zero or an exponent are refused, as the codec refuses them', async () => {
+  it('[DI-05][DI-30] a microsecond count is exactly the codec\'s {"$u": "<digits>"}: digits with a letter, a fraction, a plus sign, a space, a leading zero or an exponent, a lone sign and a blank are refused, as the codec refuses them', async () => {
     const recorded = (us: unknown) => ({ ...base, type: 'RECORD_DATA', step: 's', context: [], item: 'x', value: { kind: 'TEXT', value: 't' }, source: { mode: 'MANUAL' }, occurredAt: { us, trust: 'DEVICE_SYNCED' } });
-    const texts = ['1800000000000000', '0', '-5', '-0', '12a', '1.5', '+1', '', '007', ' 1', '1e3', '0x10'];
+    const texts = ['1800000000000000', '0', '12a', '1.5', '+1', '-', '', '007', ' 1', '1e3', '0x10'];
     const codec = (t: string): string | null => {
       try {
         decode({ $u: t });
@@ -126,7 +126,7 @@ describe('the command shape reader (recipe.command_member_problem, 0335)', () =>
       want[t] = codec(t) === null ? null : 'command.occurredAt.us must be a microsecond count ({"$u": "<digits>"})';
     }
     expect(got).toEqual(want);
-    expect(Object.values(want).filter((p) => p === null)).toHaveLength(4);
+    expect(Object.values(want).filter((p) => p === null)).toHaveLength(2);
   });
 
   it('[DI-05][DI-30] a value names one of the engine\'s value kinds and a source one of its modes; a value or a source naming none, another one or one that is no text is refused with the kinds or modes it may name, accepted or refused, in a correction and in an issue request\'s input as well', async () => {
