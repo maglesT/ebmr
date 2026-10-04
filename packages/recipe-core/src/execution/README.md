@@ -437,8 +437,11 @@ that another command holds is skipped.
     test device labels), and a weighing's used readings are its tare and gross as stored (tablets sql 0590); a batch
     pins exactly the engine policy's members, with engine roles (trigger `ad_execution_policy_shape`,
     `engine_policy_problem`); and a refused row records the engine's refusal as the engine builds it, an accepted row
-    none (sql 0336, constraint trigger `zz_execution_row_refusal`, `refusal_problem`). Free text a type declares (a
-    reason, a description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
+    none (sql 0336, constraint trigger `zz_execution_row_refusal`, `refusal_problem`); and a batch is issued only with
+    a request its MBR accepts, as the engine checks it at issue: an approved batch size, approved markets with IN,
+    every variant one of its values, every input given with a source and of its declared type, nothing else (sql
+    0337, trigger `ae_execution_issue_request`, `issue_request_problem`). Free text a type declares (a reason, a
+    description, a TEXT value, what a refused row sent) is not read as an identifier (decision F12.5);
   - a critical value or a manual fallback keyed by hand leaves its step needing the second person, nothing
     clears that need, and a PERFORMED signature never completes a step that needs its check (EBMR-EXE-127);
   - a row changes only the step instance it acts on (a step command's step, a hold point's decision, a PREPARE
@@ -824,7 +827,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   among them; a refused entry's objects, lists and single values keep their declared JSON types, a single value of
   another kind is recorded as sent; a preparation, a sweep, an issue request and the pinned policy hold exactly their
   members; command ids, signatures and every evidence member are bound; a refusal is the engine's, every rule code
-  and control the engine's and the blocks' sources name meets the rule, and an accepted row records none.
+  and control the engine's and the blocks' sources name meets the rule, and an accepted row records none (sql 0336);
+  the issue requests of both golden fixtures pass and a size, market, variant, choice or input the MBR does not hold,
+  one left out, a blank source or another input type is refused (sql 0337).
 - `test/execution/exception-source-sql.test.ts` (Phase 2 exit review F11, round 4; INV-03, PR-13, PR-49; sql 0327): every
   exception of the engine's own runs passes `exception_source_problem` (both golden fixtures; a recalculation that
   fails and a computed value withdrawn in a later step after a correction or an invalidation; an executed target that
@@ -1005,8 +1010,10 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   data on the entry, a refused START_STEP with start data as a text or a list or an entry), a member of the actor or a
   frame, an idempotency key that is no UUID, a weighing's evidence naming another lot, room or scale or with a member
   of its own, a preparation's own members and meaning, an issue request's, an input's and the pinned policy's own
-  members, a policy role that is no engine role, another package, and a refusal of another shape or beside an accepted
-  row are refused (EBMR-EXE-126) and nothing holds L2409-0017; the honest rows are recorded.
+  members, a policy role that is no engine role, another package, a refusal of another shape or beside an accepted
+  row (sql 0336), and an issue request naming L2409-0017 as its batch size, a market, a variant or an input, or an
+  input of another type (sql 0337), are refused (EBMR-EXE-126) and nothing holds L2409-0017; the honest rows are
+  recorded.
 - `db-guards-used-readings.test.ts` (Phase 2 exit review F12, round 7; tablets sql 0590): a device weighing whose used
   readings carry a raw line L2409-0017, another device, time, trust or value than the stored reading, a member of its
   own or the gross first is refused (EBMR-EXE-124) and uses no reading; the honest weighing uses its readings.
