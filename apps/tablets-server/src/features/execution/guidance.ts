@@ -266,6 +266,51 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [ADMIN, QA],
     controls: ['DI-30', 'DI-35', 'PR-14'],
   },
+  // The times the late check is measured from, and its window, held by the database (recipe-core 0334, T12.LATE round 2):
+  // a step's start and end and a value's time are the row's trusted time and kept as recorded, and a batch is pinned
+  // with a witness window no shorter than the site's. The server records the engine's own result and pins the engine's
+  // default window, so only a defect, a site setting the engine does not follow, or a writer that skips the server gets
+  // here.
+  'EBMR-EXE-142': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The action the system was about to record would change the start or end time already recorded for a step. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and try again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'DI-35', 'INV-20'],
+  },
+  'EBMR-EXE-143': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The action the system was about to record gives a step a start time other than the time this start was recorded at. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and start it again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'INV-16', 'DI-35'],
+  },
+  'EBMR-EXE-144': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The signature the system was about to record ends a step at another time than the time it was signed. Nothing was signed.',
+    whatYouCanDo: ['Reload the step and sign it again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'INV-16', 'DI-35', 'PR-14'],
+  },
+  'EBMR-EXE-145': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The value the system was about to record carries another time than the time it was entered. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and enter the value again; if it happens again, stop and report it.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-27', 'INV-16', 'DI-35'],
+  },
+  'EBMR-EXE-146': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The test batch was not issued: the witness window it would run with is shorter than this site\'s witness window, or longer than the system allows.',
+    whatYouCanDo: ['Ask the system administrator to check the site\'s witness window (e-signature policy) against this release, which pins 5 minutes; then issue the batch again.'],
+    whoCanHelp: [ADMIN, QA],
+    controls: ['DI-35', 'PR-14', 'INV-26'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   // A command from a screen that shows another version of the run: recorded as a refused row, with no scale reading
   // used (the readings it names stay usable; Phase 2 exit review F58, F58.1). The signing dry run adds that nothing was

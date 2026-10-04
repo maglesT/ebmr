@@ -323,3 +323,142 @@ describe('T12.LATE: once a witness is no longer possible, the step is completed 
     expect([ended, ended + window, ended + window + 1n].map((now) => engine.checkMeaning(run.def, inst, 'p-early-time', stored, now))).toEqual(['WITNESSED', 'WITNESSED', 'VERIFIED']);
   }, 240_000);
 });
+
+/**
+ * T12.LATE round 2 (recipe-core 0334): 0333 decides that a witness is no longer possible from the step's end time, the
+ * start times of the other steps, the times their data was recorded and the batch's pinned witness window, and the
+ * application role wrote each of them unbound. The lane verifier stored operator1's PERFORMED signature with the act 400 s
+ * in the past (PROBE A) and issued a batch pinned with a 1 µs window (PROBE B): either way the later review with
+ * WITNESS_LATE replaced the witness right after the act, and the invariant query reported nothing.
+ */
+describe('T12.LATE round 2: the act\'s time, the run\'s moving on and the witness window are the record\'s, not the writer\'s (recipe-core 0334)', () => {
+  /** The early step started and its blend time typed by hand, not yet signed performed (run `withEarlyBesideClearance`). */
+  async function recorded(): Promise<RunDriver> {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, withEarlyBesideClearance()));
+    const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1'), verifier1: await server.asPersona('verifier1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: EARLY });
+    await d.ok('operator1', { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
+    return d;
+  }
+
+  /** operator1's `intent`, resolved and run as the server does, stored through the application role with its state changed by `forge`. */
+  async function storedAs(d: RunDriver, intent: Parameters<typeof resolveClientIntent>[1], forge: (state: engine.BatchState, prior: engine.BatchState, nowUs: bigint) => void): Promise<string> {
+    const run = await runContext(server.db.admin, d.runId);
+    const who = personaIn(server, 'operator1');
+    return messageOf(
+      withCommand(server.db.app, await actorOf(server, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const resolved = await resolveClientIntent(
+          { client: c, app: server.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: engineActor(who.personId, roles), commandId: randomUUID(), expectedVersion: tx.state.version, useReadings: true },
+          intent,
+        );
+        const r = engine.step(tx.def, tx.state, resolved.command, { nowUs: tx.nowUs });
+        if (!r.accepted) throw new Error(`SETUP: the engine refused ${intent.type}: ${JSON.stringify(r.refusal)}`);
+        const state = structuredClone(r.state);
+        forge(state, tx.state, tx.nowUs);
+        return appendAs(tx, resolved.command, { state, events: r.events }, roles, engine.encodeCommand(resolved.command), engine.changedContents(tx.def, tx.state, state), resolved.evidence as engine.JsonValue);
+      }),
+    );
+  }
+
+  const YEAR = 365n * 24n * 3600n * 1_000_000n;
+
+  it('[DI-35][PR-14][DI-27][INV-16] written past the server, operator1\'s PERFORMED signature stored with the act 400 s in the past (the verifier\'s PROBE A) is refused (EBMR-EXE-144) and nothing is signed performed; signed honestly, the step asks for the witness', async () => {
+    const d = await recorded();
+    const forged = await interceptSigned(
+      'SIGN_PERFORMED',
+      async (tx, command, roles) => {
+        const res = engineResult(tx, command);
+        const state = structuredClone(res.state);
+        const inst = state.steps[EARLY];
+        if (inst?.endedAt !== tx.nowUs) throw new Error('SETUP: the engine did not end the step at the transaction\'s time');
+        inst.endedAt = tx.nowUs - 400_000_000n;
+        await appendAs(tx, command, { state, events: res.events }, roles);
+        return res;
+      },
+      () => d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: EARLY }),
+    );
+    expect(forged.calls).toBe(1);
+    expect(forged.error instanceof Error ? forged.error.message : String(forged.error)).toMatch(
+      /^This accepted SIGN_PERFORMED row records the end of step p-early-time@ at \d+, not at the row's trusted database time \d+: .*\[EBMR-EXE-144\]$/,
+    );
+    expect((await execution.loadState(server.db.admin, d.runId))?.state.steps[EARLY]?.status).toBe('IN_PROGRESS');
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: EARLY });
+    const view = await d.stepView('verifier1', EARLY);
+    expect(view.actions.filter((a) => a.action === 'VERIFY' || a.action === 'WITNESS').map((a) => `${a.action}:${a.meaning}`)).toEqual(['WITNESS:WITNESSED']);
+    expect(await violations(server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-35][PR-14][DI-27][INV-20] written past the server, a start of another step dated a year ahead (EBMR-EXE-143), a value recorded a year ahead (EBMR-EXE-145) and a step\'s start moved back by a later row of that step (EBMR-EXE-142) are refused; the run moves on only when it does', async () => {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, withEarlyBesideClearance()));
+    const d = new RunDriver(server, runId, { issuer, operator1: await server.asPersona('operator1'), verifier1: await server.asPersona('verifier1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    // A start of the booth clearance dated a year ahead would make every later act look moved on at once.
+    const aheadStart = await storedAs(d, { type: 'START_STEP', stepKey: CLEAR }, (state, _prior, now) => {
+      const inst = state.steps[CLEAR];
+      if (inst?.startedAt !== now) throw new Error('SETUP: the engine did not start the clearance at the transaction\'s time');
+      inst.startedAt = now + YEAR;
+    });
+    await d.ok('operator1', { type: 'START_STEP', stepKey: EARLY });
+    // So would a value of another step recorded a year ahead; here the blend time itself.
+    const aheadValue = await storedAs(d, { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } }, (state, prior) => {
+      const added = Object.values(state.points).find((p) => !(p.id in prior.points));
+      if (!added) throw new Error('SETUP: the engine recorded no value');
+      added.recordedAt += YEAR;
+    });
+    // The blend time recorded honestly, its row moving the step's own start back by 400 s (a row that changes another
+    // step's times is refused before, as a change of a step it does not act on: EBMR-EXE-128).
+    const movedBack = await storedAs(d, { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } }, (state) => {
+      const inst = state.steps[EARLY];
+      if (inst?.startedAt === undefined) throw new Error('SETUP: the early step has not started');
+      inst.startedAt -= 400_000_000n;
+    });
+    await d.ok('operator1', { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: EARLY });
+    expect(unmatched({ aheadStart, aheadValue, movedBack }, {
+      aheadStart: /^This accepted START_STEP row records the start of step p-disp-clear@ at \d+, not at the row's trusted database time \d+: .*\[EBMR-EXE-143\]$/,
+      aheadValue: /^This accepted RECORD_DATA row records value DP-\d+ \(blendTime at p-early-time@\) at \d+, not at the row's trusted time \d+: .*\[EBMR-EXE-145\]$/,
+      movedBack: /^This accepted RECORD_DATA row changes the start time recorded for step p-early-time@ \(\d+ to \d+\): .*\[EBMR-EXE-142\]$/,
+    })).toEqual({});
+    // Until the clearance really starts, the witness is due; after it, the later review.
+    expect((await d.stepView('verifier1', EARLY)).actions.filter((a) => a.action === 'VERIFY' || a.action === 'WITNESS').map((a) => `${a.action}:${a.meaning}`)).toEqual(['WITNESS:WITNESSED']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    expect((await d.stepView('verifier1', EARLY)).actions.filter((a) => a.action === 'VERIFY' || a.action === 'WITNESS').map((a) => `${a.action}:${a.meaning}`)).toEqual(['VERIFY:VERIFIED']);
+    expect(await violations(server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-35][PR-14][INV-26] a batch issued through the application role with a pinned witness window shorter than the site\'s (1 microsecond: the verifier\'s PROBE B; 299.999999 s) or longer than the kernel allows (1800.000001 s) is refused (EBMR-EXE-146) and nothing is issued; the site\'s own window and the longest one are issued', async () => {
+    const issuer = await server.asPersona('issuer');
+    const runId = await importAndIssue(server, issuer, writePackage(server, withEarlyParameter()));
+    const run = await runContext(server.db.admin, runId);
+    const who = personaIn(server, 'issuer');
+    const { rows: site } = await server.db.admin.query<{ s: string }>("select esig.policy_int('esig.witness_window_seconds')::text as s");
+    expect(site[0]?.s).toBe('300');
+    expect(run.def.policy.witnessWindowUs).toBe(300_000_000n);
+    const issued = async (windowUs: bigint): Promise<{ answer: string; stored: number }> => {
+      const batchId = randomUUID();
+      const def: engine.BatchDefinition = { ...run.def, policy: { ...run.def.policy, witnessWindowUs: windowUs } };
+      const answer = await messageOf(
+        withCommand(server.db.app, await actorOf(server, issuer, 'issuer'), (c) =>
+          execution.issueBatch(c, {
+            def,
+            batchId,
+            packageHash: run.batch.packageHash,
+            request: { batchSize: run.batch.batchSize, marketSet: ['IN'], purpose: 'VALIDATION', variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'T12.LATE round 2' } }, issuedBy: { id: who.personId, kind: 'PERSON', roles: [] } },
+          }),
+        ),
+      );
+      const { rows } = await server.db.admin.query('select 1 from recipe.batch_execution where id = $1', [batchId]);
+      return { answer, stored: rows.length };
+    };
+    const refused = /^The pinned engine policy's witness window .*\[EBMR-EXE-146\]$/;
+    const outcomes = { probeB: await issued(1n), justShort: await issued(299_999_999n), tooLong: await issued(1_800_000_001n), site: await issued(300_000_000n), longest: await issued(1_800_000_000n) };
+    expect(unmatched(Object.fromEntries(Object.entries(outcomes).map(([k, v]) => [k, v.answer])), { probeB: refused, justShort: refused, tooLong: refused, site: 'ok', longest: 'ok' })).toEqual({});
+    expect(Object.fromEntries(Object.entries(outcomes).map(([k, v]) => [k, v.stored]))).toEqual({ probeB: 0, justShort: 0, tooLong: 0, site: 1, longest: 1 });
+    expect(await violations(server)).toEqual([]);
+  }, 300_000);
+});

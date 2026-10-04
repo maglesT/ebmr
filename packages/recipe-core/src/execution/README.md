@@ -121,7 +121,8 @@ that another command holds is skipped.
       typed by hand without the photo or printout its MBR names (`hand_entries_without_declared_evidence`, sql 0325,
       engine 1.4.0 `handEntriesWithoutDeclaredEvidence`; lead TODO T12), while a witness is still possible at the
       command's trusted time (`witness_possible`, sql 0333, engine 1.5.0 `witnessPossible`: the pinned policy's witness
-      window after the act has not passed and the run has not moved on; T12.LATE); else the block's own check meaning
+      window after the act has not passed and the run has not moved on; T12.LATE; the times it reads and the window are
+      bound by sql 0334, `step_time_problem` and `witness_window_problem`); else the block's own check meaning
       (CONTAINER_CHECKED, LINE_CLEARANCE_VERIFIED, ...) where it has one; else VERIFIED. A witness, a generic
       VERIFIED or another block's check never replaces the check the step requires (P37); a later review never
       replaces a witness that is still possible, and a late signature never counts as a witness;
@@ -545,6 +546,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 129-139 | the order of the steps: a step instance the token cannot have reached, a completion mark or stage sign-off written by the wrong row (129; sql 0307); an act before its minimum duration (130) or on a step an open exception blocks, a hold point released while an exception is open (131; sql 0308); an act on a step in a status the engine does not take it in, or a status change the engine never makes or another row makes (132; sql 0311); a row whose state leaves out a start or end its act or the token's arrival records, or the end of a construct whose content it finished (133; sql 0312, 0314, 0316); a stage sign-off other than the engine's (135; sql 0319, 0320); a weighing entry whose net is not gross minus tare at the resolution of the weighings (136; sql 0321); a container label other than the one its weighing and the batch give (137; sql 0322); a quantity counted from weighings that is not the sum of all their nets at the resolution they were weighed at (138; sql 0322); a weighing entry that does not count into the quantity its phase records in the MBR (139; sql 0323) |
 | 140-140 | the engine's version check: a command from a screen that showed another version recorded otherwise than as the refusal ENG-STALE, that refusal recorded for a command that names the run's own version or none, or a stale refusal whose state changes anything the time sweep does not (sql 0326) |
 | 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
+| 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
 
 ## TypeScript
 
@@ -751,6 +753,16 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   exception the engine raises for a late review, member for member (a value typed by hand without its printout after
   the window and after the run moved on, two such values, the MBR's witness), and none where the engine raises none
   (within the window, a plain step, a re-verification).
+- `test/execution/step-times-sql.test.ts` (Phase 2 exit follow-up T12.LATE, round 2; sql 0334): every row of the
+  engine's own runs (both golden fixtures with their loops, sub-lots, hold points, preparations for a PERFORMED
+  signature and refused commands; a hold point released; two data enterers signing in turn; a clock that went back
+  before the PERFORMED signature) passes `step_time_problem`; a step's end recorded 400 s back or ahead of the row's
+  trusted time (the lane verifier's PROBE A), or by another act, step, a refused row or a preparation (EBMR-EXE-144), a
+  start a year ahead or back, or by another act or for another step (EBMR-EXE-143), a recorded start or end moved or
+  removed by a later row (EBMR-EXE-142), and a value recorded at another time than its row's, in an accepted, refused
+  or preparation row (EBMR-EXE-145), are refused with their reasons; `witness_window_problem` passes the engine's
+  default (300 s) and windows up to the kernel's maximum, and refuses one shorter than the site's (1 microsecond: the
+  verifier's PROBE B), longer than the kernel allows, or not a whole number of microseconds (EBMR-EXE-146).
 - `test/execution/own-node-events-sql.test.ts` (Phase 2 exit review F67, rounds 2 and 3; sql 0312, 0314, 0316): every row of the
   engine's own runs, the issue included (both golden fixtures, loops that exit or are exhausted, a step reopened for a
   re-test and signed performed again, a hold point released) passes `own_node_event_problem`; the same rows with a
@@ -1019,7 +1031,13 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (VERIFIED), which completes the step and records WITNESS_LATE that only QA dispositions; written past the server, the
   late review without that exception, with it not QA-only or with another title is refused (EBMR-EXE-141), and so is a
   WITNESS_LATE raised by any other row; the database asks for the witness up to the window's last microsecond after the
-  act and for the later review after it, at the command's trusted time (its marker), and for the witness without one.
+  act and for the later review after it, at the command's trusted time (its marker), and for the witness without one. Round 2
+  (sql 0334): written past the server, operator1's PERFORMED signature with the act 400 s in the past (the lane
+  verifier's PROBE A) is refused (EBMR-EXE-144) and, signed honestly, the step asks for the witness; a start of another
+  step dated a year ahead (EBMR-EXE-143), a value recorded a year ahead (EBMR-EXE-145) and a step's start moved back
+  by a later row of that step (EBMR-EXE-142) are refused, and the run moves on only when the clearance really starts; a batch issued
+  through the application role with a pinned witness window of 1 microsecond (PROBE B), 299.999999 s or 1800.000001 s
+  is refused with nothing issued (EBMR-EXE-146), and 300 s and 1800 s are issued.
 - `db-guards-weighing-net.test.ts` (lead TODO T2 of the Phase 2 exit; INV-25, PR-19; sql 0321): a weighing row whose
   net is not gross minus tare at the resolution of the weighings ("50" for 51.250 - 1.250, or another value) is refused
   (EBMR-EXE-136); the engine's own net ("50.000") is recorded; the database's reading of both weighing kinds.
