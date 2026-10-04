@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Locator, Page, TestInfo } from '@playwright/test';
 import type { SeededPersona } from '@ebmr/test-kit';
-import { expect, pin } from '../../fixtures/index.ts';
+import { expect, pin, readerTap } from '../../fixtures/index.ts';
 
 /** A badge tap into the badge prompt that is open now (entry, challenge or switch). */
 export async function tap(page: Page, who: SeededPersona): Promise<void> {
@@ -15,8 +15,7 @@ export async function tap(page: Page, who: SeededPersona): Promise<void> {
   const field = page.getByLabel('Badge', { exact: true }).last();
   await expect(field).toBeVisible();
   await field.focus();
-  await page.keyboard.type(who.badgeUid, { delay: 5 });
-  await page.keyboard.press('Enter');
+  await readerTap(page, who.badgeUid);
 }
 
 /** Chooses a react-aria radio the way a person does: its label covers the input, so the label is tapped. */

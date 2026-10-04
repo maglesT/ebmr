@@ -1971,3 +1971,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   pass. The journey spec failed in four runs at a badge switch of user under the machine's load (at a different step
   each time, never at a refusal of this lane). Floor INV-03 fails at the designer gate (GMP-CHECK-PERMISSION, since
   T12.DOC round 4; not this lane).
+- 2026-10-04: E2E INV-03 rebuilt (branch phase-2/e2e-inv03). The floor spec's [INV-03] test broke at f04ef7b: its MBR
+  variant gave p-disp-clear's check to the performing role, which the T12.5 gate now refuses (GMP-CHECK-PERMISSION). The
+  test-kit now seeds one kiosk persona holding OPERATOR and VERIFIER (TEST-Deepa Pillai, two approved grants); on the
+  standard dc-mini record it performs the clearance as OPERATOR, signs in again as VERIFIER (one role per session) and is
+  refused Verify by the segregation rule (ENG-SEGREGATION; INV-03), not by the role rule. Also: every E2E badge tap now
+  stamps the reader's keys 5 ms apart (readerTap), so a loaded machine no longer splits a tap and sends the UID's tail.

@@ -219,8 +219,10 @@ describe('who may verify a step (P46; INV-03)', () => {
       whoCanHelp: ['QA operations (shop floor) (QA_SHOP_FLOOR)', notThePerformer],
     });
 
-    // The check role is the performing role (the INV-03 E2E variant): the performer passes the role rule and is refused
-    // by INV-03, and no role of the installation that carries the check role may verify.
+    // The check role is the performing role (a record the designer's gate refuses since T12.5, GMP-CHECK-PERMISSION; the
+    // run is built here without the gate, and the INV-03 E2E uses a person who holds OPERATOR and VERIFIER instead): the
+    // performer passes the role rule and is refused by INV-03, and no role of the installation that carries the check
+    // role may verify.
     const s = await newRun(clearanceCheckedBy({ meaning: 'VERIFIED', role: 'PRODUCTION_OPERATOR' }));
     await performClearance(s);
     const seg = (await s.stepView('operator1', CLEAR)).actions.find((a) => a.action === 'VERIFY');

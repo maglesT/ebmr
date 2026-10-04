@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import type pg from 'pg';
 import { openDatabase, openPersonaSession, type SiteSeed } from '@ebmr/test-kit';
+import { readerTap } from '../../fixtures/index.ts';
 import type { E2eState } from '../../fixtures/state.ts';
 
 type Installation = 'GMP' | 'SANDBOX';
@@ -121,6 +122,5 @@ export async function enterPinOn(page: Page, padName: string, value: string): Pr
 export async function tapInto(page: Page, badgeUid: string): Promise<void> {
   const field = page.getByRole('textbox', { name: 'Badge', exact: true });
   await field.focus();
-  await page.keyboard.type(badgeUid, { delay: 5 });
-  await page.keyboard.press('Enter');
+  await readerTap(page, badgeUid);
 }

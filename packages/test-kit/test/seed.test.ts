@@ -105,17 +105,42 @@ describe('test-kit installations', () => {
     expect(order).toEqual([{ kernel_1000: true, all_before_bootstrap: true }]);
   });
 
-  it('[DI-14] seeds the persona catalogue, one set per E2E worker plus the demo set', () => {
+  it('[DI-14] seeds the persona catalogue, one set per E2E worker plus the demo set', async () => {
     expect(gmpSeed.personas.map((p) => `${p.legalName}:${p.roleCode}`)).toEqual([
       'Asha Rao:MBR_AUTHOR', 'Vikram Shah:MBR_CHECKER', 'Meera Iyer:QA_MBR_APPROVER', 'Rahul Menon:REGULATORY_SIGNER', 'Neha Joshi:MASTER_DATA_STEWARD',
     ]);
     const roles = sbxSeed.personas.filter((p) => p.set === 0).map((p) => `${p.loginName}:${p.roleCode}`);
     expect(roles).toEqual([
       'test-issuer:BATCH_ISSUER', 'test-steward:MASTER_DATA_STEWARD', 'test-operator-1:OPERATOR', 'test-operator-2:OPERATOR', 'test-verifier-1:VERIFIER',
-      'test-verifier-2:VERIFIER', 'test-supervisor-1:SHIFT_SUPERVISOR', 'test-qa-1:QA_SHOP_FLOOR',
+      'test-verifier-2:VERIFIER', 'test-supervisor-1:SHIFT_SUPERVISOR', 'test-qa-1:QA_SHOP_FLOOR', 'test-operator-verifier-1:OPERATOR',
     ]);
     expect(sbxSeed.personas.filter((p) => p.set === 1).map((p) => p.loginName)).toContain('test-operator-1-w1');
     expect(new Set(sbxSeed.personas.map((p) => p.badgeUid).filter(Boolean)).size).toBe(sbxSeed.personas.filter((p) => p.badgeUid).length);
+    // One persona of each set holds two roles (INV-03 E2E): OPERATOR and VERIFIER. Every other persona holds one.
+    const rolesOf = (p: SiteSeed['personas'][number]) => [p.roleCode, ...(p.alsoRoles ?? [])];
+    expect(sbxSeed.personas.filter((p) => p.alsoRoles).map((p) => `${p.loginName}:${rolesOf(p).join('+')}`)).toEqual([
+      'test-operator-verifier-1:OPERATOR+VERIFIER', 'test-operator-verifier-1-w1:OPERATOR+VERIFIER',
+    ]);
+    expect(gmpSeed.personas.filter((p) => p.alsoRoles)).toEqual([]);
+    // Each persona holds exactly its roles, each through its own live grant, requested by the administrator and approved
+    // by the process owner (three different persons; kernel 0120), as every grant of the seed is; no other grant exists.
+    for (const [db, seed] of [[gmp, gmpSeed], [sbx, sbxSeed]] as const) {
+      const { rows } = await db.admin.query<{ account_id: string; role_code: string; live: boolean; requested_by: string; decided_by: string }>(
+        `select g.account_id, g.role_code, iam.grant_is_live(g.status, g.valid_to, g.revoked_at) as live,
+                g.requested_by_person as requested_by, g.decided_by_person as decided_by
+           from iam.role_grant g
+          where g.account_id = any($1::uuid[])
+          order by g.account_id, g.role_code`,
+        [seed.personas.map((p) => p.accountId)],
+      );
+      for (const p of seed.personas) {
+        expect(rows.filter((r) => r.account_id === p.accountId).map((r) => [r.role_code, r.live, r.requested_by, r.decided_by])).toEqual(
+          rolesOf(p)
+            .sort((a, b) => a.localeCompare(b))
+            .map((role) => [role, true, seed.bootstrap.admin.personId, seed.bootstrap.owner.personId]),
+        );
+      }
+    }
     expect(sbxSeed.terminals.map((t) => t.code)).toEqual(['TEST-PC-01', 'TEST-KIOSK-DISP-1', 'TEST-KIOSK-BLEND-1', 'TEST-BAL-01', 'TEST-BAL-02', 'TEST-SRV-SWEEPER', 'TEST-SRV-MONITOR', 'TEST-GW-01']);
   });
 
@@ -129,6 +154,16 @@ describe('test-kit installations', () => {
     expect(await freshTap(sbx, sbxSeed, 'operator1')).toMatch(/^[0-9a-f-]{36}$/);
     const w1 = await openPersonaSession(sbx, sbxSeed, 'operator1-w1');
     expect(w1.personId).not.toBe(op.personId);
+    // The person with two roles signs in on the kiosk once; the kernel accepts a command declaring either role, with a
+    // fresh tap each, and refuses a role the person does not hold.
+    const both = await openPersonaSession(sbx, sbxSeed, 'operatorVerifier1');
+    expect(both.roleCode).toBe('OPERATOR');
+    for (const roleCode of ['OPERATOR', 'VERIFIER']) {
+      await withCommand(sbx.app, { ...both, roleCode, authEventId: await freshTap(sbx, sbxSeed, 'operatorVerifier1'), correlationId: randomUUID() }, () => Promise.resolve());
+    }
+    await expect(
+      withCommand(sbx.app, { ...both, roleCode: 'SHIFT_SUPERVISOR', authEventId: await freshTap(sbx, sbxSeed, 'operatorVerifier1'), correlationId: randomUUID() }, () => Promise.resolve()),
+    ).rejects.toThrow(/EBMR-IAM-108 the account does not hold role SHIFT_SUPERVISOR now/);
   });
 
   it('[DI-27] seeds and sessions declare the site policy site.zone, also on a site outside the default zone', async () => {
