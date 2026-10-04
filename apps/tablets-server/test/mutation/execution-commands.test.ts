@@ -865,7 +865,7 @@ describe('one evaluation backs one engine role, under any role map a release shi
           const [second] = oneForBoth ? [first] : await engineRoles(c);
           if (!first || !second || first.role !== 'STAGE_RESPONSIBLE') throw new Error(`SETUP: unexpected evidence ${JSON.stringify([first, second])}`);
           const evidence: execution.RoleEvidence[] = [first, { role: 'HEAD_OF_PRODUCTION', permission: 'RECORD.PRODUCTION_APPROVE', evaluationId: second.evaluationId }];
-          return tx.command({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: engineActor(steward.personId, evidence), description: 'D4 kill test: tablet press noise', severity: 'ALERT' }, evidence);
+          return tx.command({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: engineActor(steward.personId, evidence), description: 'Role map kill test: tablet press noise', severity: 'ALERT' }, evidence);
         }),
       );
     expect(await attempt(true)).toMatch(/^REFUSED: The role evidence names engine role HEAD_OF_PRODUCTION or evaluation [0-9a-f-]{36} twice; one evaluation backs one role \(INV-26\)\. \[EBMR-EXE-035\]$/);
