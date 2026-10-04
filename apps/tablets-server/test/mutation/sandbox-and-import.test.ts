@@ -3,7 +3,7 @@
  * "sandbox-and-import", the functions that need a provisioned sandbox or the tablets schema: kernel 0800
  * sandbox.assert_gmp_installation and sandbox.guard_installation in a sandbox, recipe-core 0240 recipe.begin_issue,
  * 0318 recipe.package_header_problem, tablets 0001 tab.mark_demo_installation and tab.is_demo_installation, 0150
- * tab.mbr_test_package_export_guard and tab.record_test_package_export, 0650 tab.register_sandbox_lot). The scenario
+ * tab.mbr_test_package_export_guard and tab.record_test_package_export, 0701 tab.register_sandbox_lot). The scenario
  * tests go through the server, whose TypeScript checks most inputs before the database sees them; these tests call
  * the database functions with the application role inside properly attributed commands (or, where a migration says a
  * rule holds whoever inserts, as the table owner would), so each refusal is proven where it is enforced, with its own
@@ -99,7 +99,7 @@ describe('the installation kind in a sandbox (kernel 0800)', () => {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-describe('test lots (tablets 0200, 0650)', () => {
+describe('test lots (tablets 0200, 0701)', () => {
   let steward: ActorContext | undefined;
   const register = async (lot: unknown): Promise<string> => {
     steward ??= await openPersonaSession(sbx.db, sbx.seed, 'steward');
