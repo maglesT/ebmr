@@ -112,8 +112,8 @@ sandbox that claims to be GMP unless the database is also renamed.
 Inventory taken on 4 October 2026 from the catalogue of a sandbox migrated to kernel 1030, recipe-core 0345 and
 tablets 0630 (decision F12.8 in `docs/decisions/phase-2-open-questions.md`), and taken again after kernel 1040 and
 recipe-core 0346 and 0347 (decision F12.9), after recipe-core 0348 and tablets 0640 (decision F12.10) and after kernel
-1050 and recipe-core 0349 (decision F12.11): the write surface is the same (no new writer; recipe.engine_name and
-sandbox.look_alike are written by their migrations only, and the application roles have no right on the first and may
+1050 and recipe-core 0349 (decision F12.11) and after kernel 1070 and 1080 (decision F12.12): the write surface is the same (no
+new writer; recipe.engine_name and sandbox.look_alike are written by their migrations only, and the application roles have no right on the first and may
 only read the second); what reads it changed as A, C and D say. Correction (F12.10, the lane's round-12 verification): the
 inventory of F12.8 and F12.9 filed `tab.manual_weighing_basis` in D and said no entry quotes a reading's serial; the
 basis is keyed to a run's row and its reasons quote a heartbeat's serial and not-ready text, the registered serial, the
@@ -143,10 +143,19 @@ digit, a bidi control or mark) is read in every arrangement of its runs, so in a
 and a digit is refused (decision F12.11). The same reading guards B and C's person register, a test lot's material name
 and the basis. Correction (F12.11): kernel 1040's "as written" was the text as stored in NFKC, not as it shows; a soft
 hyphen, a zero-width character, a variation selector, a word joiner or a right-to-left override inside L2409-0017, and a
-division or fraction slash in BATCH/2409/0017, hid the identifier from it. Still not read (residual, F12.11 (5)):
-digits only; an identifier broken by a space of any width or by a visible character that is neither in the identifier
-alphabet nor a look-alike of it; one spelled out in words or drawn in an image; one whose letter is drawn with a
-punctuation mark; a word equal to an allowed name. A copy into
+division or fraction slash in BATCH/2409/0017, hid the identifier from it. Correction (F12.12, the verification of the
+lane's round 7): "white space kept as a separator" and "look-alikes" as 1050 read them left LOT─2409─0017,
+LOTー2409ー0017, LOT⎯2409⎯0017, B─24─0001, Ŀ2409-0017 and L2409-0017 with a hair space recorded over HTTP. Since kernel
+1070 the look-alikes are read as a class: every member of a UTS #39 class another member of which is read by its look
+(the class of U+30FC, which holds the em dash, as '-'; the classes of the small capitals and hooked letters kernel 1060
+reads by name, such as Cyrillic в and Greek κ), one character drawn as a letter with a dot or an apostrophe (Ŀ), the
+dashes, solidi and (kernel 1080) full stops named so in the Unicode Character Database or drawn so by Chromium 141
+(U+1680 OGHAM SPACE MARK included), and the compatibility forms PostgreSQL 16's NFKC does not know; a space narrower than the thin space (the
+hair space, the six-per-em space) shows no gap and is read as nothing. Still not read (residual, F12.12 (5)): digits
+only; an identifier broken by a gap at least as wide as the thin space (which separates a number from its unit), or by
+a visible character that neither UTS #39, its Unicode name nor Chromium 141's drawing makes a look-alike of the
+alphabet (a separate middle dot, #); a character another font draws as a dash or a slash; one spelled out in words or
+drawn in an image; one whose letter is drawn with a punctuation mark; a word equal to an allowed name. A copy into
 the record from anywhere else is read where it lands, so this does not depend on tracing where a text comes from. The
 words allowed there are bound to the run, none by its form: the imported package (the MBR), the batch number and the
 site and room of the session that issued it or writes a row, the names of the engine's registers (`recipe.engine_name`:
