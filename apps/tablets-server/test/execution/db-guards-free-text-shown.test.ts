@@ -49,6 +49,10 @@ const PROBES: Record<string, string> = {
   'U+2044': `BATCH${ch(0x2044)}2409${ch(0x2044)}0017`,
   cyrillic: 'ВАТСН/2409/0017',
   greek: 'ΒΑΤϹΗ/2409/0017',
+  // The batch number B24-0001 with a Cyrillic or a Greek capital B, L2409-0017 with a Cyrillic palochka for the L.
+  cyrillicB: 'В24-0001',
+  greekB: 'Β24-0001',
+  cyrillicL: 'Ӏ2409-0017',
   cherokee: 'Ꮮ2409-0017',
   devanagariDigits: 'L२४०९-००१७',
   arabicIndicDigits: 'L٢٤٠٩-٠٠١٧',
@@ -91,7 +95,7 @@ async function recordHolding(runId: string, text: string): Promise<Record<string
 const NOTHING = { rows: 0, events: 0, state: 0, contents: 0, audit: 0 };
 
 describe('F12, round 6 lane round 3: what a test run\'s record shows is what the identifier rule reads (DI-05, DI-30, INV-18)', () => {
-  it('[DI-05][DI-30][INV-18] kernel 1050: over HTTP L2409-0017 with U+00AD, U+200B, U+200D, U+034F, U+FE0F or U+2060 after the L, L 7100-9042 under the right-to-left override U+202E, BATCH/2409/0017 with U+2215 or U+2044, in Cyrillic or Greek capitals, L2409-0017 with a Cherokee L, in Devanagari or Arabic-Indic digits, or with a Hebrew letter that reorders the line, in an exception\'s description and in a hold reason, are refused (EBMR-EXE-147) and nothing holds them; prose with an emoji, a soft hyphen in a long word, Hindi prose with digits and the danda, TEST- identifiers and the run\'s own words written with non-ASCII hyphens are recorded', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1050: over HTTP L2409-0017 with U+00AD, U+200B, U+200D, U+034F, U+FE0F or U+2060 after the L, L 7100-9042 under the right-to-left override U+202E, BATCH/2409/0017 with U+2215 or U+2044, in Cyrillic or Greek capitals, B24-0001 with a Cyrillic or Greek B, L2409-0017 with a Cyrillic palochka or a Cherokee L, in Devanagari or Arabic-Indic digits, or with a Hebrew letter that reorders the line, in an exception\'s description and in a hold reason, are refused (EBMR-EXE-147) and nothing holds them; prose with an emoji, a soft hyphen in a long word, Hindi prose with digits and the danda, TEST- identifiers and the run\'s own words written with non-ASCII hyphens are recorded', async () => {
     const d = await issued();
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
     const raised: Record<string, string> = {};
