@@ -1971,6 +1971,22 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   pass. The journey spec failed in four runs at a badge switch of user under the machine's load (at a different step
   each time, never at a refusal of this lane). Floor INV-03 fails at the designer gate (GMP-CHECK-PERMISSION, since
   T12.DOC round 4; not this lane).
+- 2026-10-04: E2E INV-03 rebuilt (branch phase-2/e2e-inv03). The floor spec's [INV-03] test broke at f04ef7b: its MBR
+  variant gave p-disp-clear's check to the performing role, which the T12.5 gate now refuses (GMP-CHECK-PERMISSION). The
+  test-kit now seeds one kiosk persona holding OPERATOR and VERIFIER (TEST-Deepa Pillai, two approved grants); on the
+  standard dc-mini record it performs the clearance as OPERATOR, signs in again as VERIFIER (one role per session) and is
+  refused Verify by the segregation rule (ENG-SEGREGATION; INV-03), not by the role rule. Also: every E2E badge tap now
+  stamps the reader's keys 5 ms apart (readerTap), so a loaded machine no longer splits a tap and sends the UID's tail.
+- 2026-10-04: OWNER CONTEXT (no plan change): products the owner plans later, separate from this build: e-logbooks,
+  e-qualification protocols, engineering work orders, investigation management, eQMS, material management,
+  productivity, hiring, and training modules for SME development (the owner's list starts at 2 = eBMR; item 1 is not
+  named). The owner's instruction: build the BMR only for now; the others can come later. Nothing in the phase plan
+  changes for them.
+- 2026-10-04: PHASE 2 EXIT, review backlog (docs/build-plan/phase-2-exit/review-backlog.md): what the exit review did
+  not cover and what its follow-ups left open on purpose: the critic's uncovered areas, checked against rounds 4 to 6
+  (closed items listed with what closed them); the areas no reviewer has checked yet, by the phase that takes them;
+  the residuals that owner decisions accept (REPLAY-GATE.1, F34.2, HW.1-HW.3, F12.5 onwards, T5.1); and the defects
+  the SQL mutation kill agents reported. Each later phase's exit review starts from the items that name it.
   Round 2 of the lane (round 11 of F12): the verification found the class still open. Engine-name words passed by
   their form (S24090017, EX-24090017, G24-LOT, E2409/0017 recorded over HTTP), a person's name was read nowhere (a
   rename to TEST-Priya L2409-0017 reached the run's rows, signature and audit), an escape hid the identifier after it

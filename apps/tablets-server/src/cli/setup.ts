@@ -79,7 +79,7 @@ export function demoDevicesOf(seed: SiteSeed): { installation: 'GMP' | 'SANDBOX'
         description: t.description,
         privateKeyPkcs8: t.key?.privateKeyPkcs8 ?? '',
         publicKeySpki: t.key?.publicKeySpki ?? '',
-        personas: seed.personas.filter((p) => p.homeTerminal === t.code && p.set === 0).map((p) => ({ legalName: p.legalName, loginName: p.loginName, role: p.roleCode, badgeUid: p.badgeUid })),
+        personas: seed.personas.filter((p) => p.homeTerminal === t.code && p.set === 0).map((p) => ({ legalName: p.legalName, loginName: p.loginName, role: [p.roleCode, ...(p.alsoRoles ?? [])].join(', '), badgeUid: p.badgeUid })),
       })),
   };
 }

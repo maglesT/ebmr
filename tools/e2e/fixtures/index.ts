@@ -5,7 +5,8 @@
  *  - `officePage(installation, terminal?)` and `kioskPage(terminal)`: a new browser context at office
  *    (1440x900) or kiosk (1280x800) size that has picked a demo terminal on the device picker (recording a video
  *    into the test's output when the `video` option is 'on', e.g. EBMR_E2E_VIDEO=1);
- *  - `signIn`: office (user ID and password) and kiosk (badge tap as keyboard-wedge input, PIN on the keypad);
+ *  - `signIn`: office (user ID and password) and kiosk (badge tap as keyboard-wedge input, PIN on the keypad, and the
+ *    role choice for a persona holding several roles);
  *  - `badge.tap(page, persona)`, `pin.enter(page, pin)`;
  *  - `api(installation)`: the typed contract client against the running server (same-origin headers);
  *  - `axe.check(page)`: WCAG 2.2 AA, zero serious or critical findings;
@@ -90,15 +91,45 @@ export async function withSimulator<T>(state: E2eState, work: () => Promise<T>, 
   }
 }
 
+/** How far apart a keyboard-wedge reader types the keys of one tap: a few milliseconds (the prompt allows BURST_GAP_MS, 100). */
+const READER_KEY_GAP_SECONDS = 0.005;
+
+/**
+ * A badge reader's tap into the focused badge field: the UID as one burst of keys, then Enter.
+ *
+ * The keys go through the browser's own input path (trusted key events, the field's real handling), each stamped
+ * READER_KEY_GAP_SECONDS after the one before (CDP Input.dispatchKeyEvent `timestamp`). The badge prompt measures the
+ * gaps of a burst by the events' time stamps, and a real reader's keys carry the time the operating system received them,
+ * not the time the page got round to them. Without the stamps, each key was stamped when the test process delivered it:
+ * on a loaded machine two keys arrived more than 100 ms apart now and then, the prompt rightly began a new burst, and
+ * the tail of the UID was sent (seen: 0002000041 for 04A10002000041, refused EBMR-IAM-140).
+ */
+export async function readerTap(page: Page, badgeUid: string): Promise<void> {
+  if (!/^[0-9A-Fa-f]+$/.test(badgeUid)) throw new Error(`a badge UID is hexadecimal digits, not ${badgeUid}`);
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    const start = Date.now() / 1000;
+    for (const [i, ch] of [...badgeUid].entries()) {
+      const upper = ch.toUpperCase();
+      const key = { key: ch, code: /\d/.test(ch) ? `Digit${ch}` : `Key${upper}`, windowsVirtualKeyCode: upper.charCodeAt(0), nativeVirtualKeyCode: upper.charCodeAt(0) };
+      const at = start + i * READER_KEY_GAP_SECONDS;
+      await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...key, text: ch, unmodifiedText: ch, timestamp: at });
+      await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...key, timestamp: at + READER_KEY_GAP_SECONDS / 2 });
+    }
+  } finally {
+    await cdp.detach();
+  }
+  await page.keyboard.press('Enter');
+}
+
 export const badge = {
-  /** A badge tap as the keyboard-wedge reader sends it: the UID as a burst of keys, then Enter. */
+  /** A badge tap as the keyboard-wedge reader sends it: the UID as a burst of keys, then Enter (readerTap). */
   async tap(page: Page, persona: SeededPersona): Promise<void> {
     if (!persona.badgeUid) throw new Error(`${persona.key} has no badge`);
     // By label: the sign-in field is a textbox, the badge prompt of the tap and signing dialogs a password input.
     const field = page.getByLabel('Badge', { exact: true });
     await field.focus();
-    await page.keyboard.type(persona.badgeUid, { delay: 5 });
-    await page.keyboard.press('Enter');
+    await readerTap(page, persona.badgeUid);
   },
 };
 
@@ -118,10 +149,24 @@ export const signIn = {
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
   },
-  async kiosk(page: Page, persona: SeededPersona): Promise<void> {
+  /**
+   * Badge and PIN; the home screen follows. A persona that holds several roles (`alsoRoles`) passes the role it works in:
+   * the role choice lists every role it holds, the session then acts in the one chosen, which the identity banner names
+   * (C0-4), and the page shows what its address names (the home screen after the device picker).
+   */
+  async kiosk(page: Page, persona: SeededPersona, role?: string): Promise<void> {
     await badge.tap(page, persona);
     await pin.enter(page, persona.pin ?? '');
-    await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+    if (role === undefined) {
+      await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
+      return;
+    }
+    const choice = page.getByRole('heading', { name: 'Choose the role you are working in' });
+    await expect(choice).toBeVisible();
+    for (const held of [persona.roleCode, ...(persona.alsoRoles ?? [])]) await expect(page.getByRole('button', { name: held, exact: true })).toBeVisible();
+    await page.getByRole('button', { name: role, exact: true }).click();
+    await expect(choice).toHaveCount(0);
+    await expect(page.getByTestId('identity')).toHaveText(`Signed in as ${persona.legalName} (${persona.loginName}), ${role}`);
   },
 };
 

@@ -55,11 +55,16 @@ Sandbox (`ebmr_sandbox_tablets_demo`), every name starts with TEST-:
 | TEST-Imran Khan | Verifier | badge `04A10000000012`, PIN `715926` | TEST-KIOSK-BLEND-1 |
 | TEST-Sanjay Kulkarni | Shift supervisor | badge `04A10000000021`, PIN `846201` | TEST-KIOSK-BLEND-1 (any kiosk) |
 | TEST-Fatima Sheikh | QA (shop floor) | badge `04A10000000031`, PIN `935172` | TEST-KIOSK-BLEND-1 (any kiosk) |
+| TEST-Deepa Pillai | Operator and verifier (two roles) | badge `04A10000000041`, PIN `358264` | TEST-KIOSK-DISP-1 |
 
 The kiosk people also have a password, which they use only on an office PC. Their user IDs are
-`test-operator-1`, `test-operator-2`, `test-verifier-1`, `test-verifier-2`, `test-supervisor-1` and `test-qa-1`.
-The passwords are `Demo-Operator1-2026!`, `Demo-Operator2-2026!`, `Demo-Verifier1-2026!`, `Demo-Verifier2-2026!`,
-`Demo-Supervisor1-2026!` and `Demo-QaFloor1-2026!`.
+`test-operator-1`, `test-operator-2`, `test-verifier-1`, `test-verifier-2`, `test-supervisor-1`, `test-qa-1` and
+`test-operator-verifier-1`. The passwords are `Demo-Operator1-2026!`, `Demo-Operator2-2026!`, `Demo-Verifier1-2026!`,
+`Demo-Verifier2-2026!`, `Demo-Supervisor1-2026!`, `Demo-QaFloor1-2026!` and `Demo-OpVerifier1-2026!`.
+
+TEST-Deepa Pillai holds two roles, OPERATOR and VERIFIER. After the PIN the kiosk asks which role she works in; the
+session keeps that role, so she signs out and in again to act in the other. She can verify other people's steps, but
+a step she performed, entered data in or corrected is refused to her by the segregation rule (INV-03).
 
 These values come from the test-kit persona catalogue (`packages/test-kit/src/personas.ts`, persona set 0).
 `pnpm demo` prints the same card. The set-up has already replaced each person's initial secret (the kernel's

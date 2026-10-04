@@ -3,8 +3,9 @@
  *
  * Every credential here is DEMO-ONLY: it exists in demo and E2E databases (and the test templates), never in
  * a real installation. Sandbox identifiers start with TEST- (DI-05). Persona set N (N >= 1) adds the suffix
- * -wN to names, login names and badge identifiers, so each Playwright worker has its own persons (the kernel
- * allows one shop-floor session per person).
+ * -wN to keys, login names and badge identifiers, and -wA, -wB, ... to names, so each Playwright worker has its own
+ * persons (the kernel allows one shop-floor session per person). A name never carries a digit: in the sandbox a word
+ * that joins letters and digits reads as a batch or lot number (EBMR-SBX-024, kernel 1040).
  */
 import type { InstallationKind } from './db.ts';
 
@@ -41,7 +42,14 @@ export interface PersonaSpec {
   installation: InstallationKind;
   legalName: string;
   loginName: string;
+  /** The persona's role; with `alsoRoles`, the first of its roles and the one the test-kit's own sessions declare. */
   roleCode: string;
+  /**
+   * Further roles, granted exactly as `roleCode` is (requested by the administrator, approved by the process owner).
+   * A person who holds several roles chooses one at each sign-in, and the session acts in that role only: it cannot
+   * change it, the person signs in again to act in another (tablets 0001 tab.set_session_role, EBMR-TAB-015).
+   */
+  alsoRoles?: readonly string[];
   /** Kiosk personas log in with badge and PIN; the others with user ID and password. */
   kiosk: boolean;
   /** The terminal the persona uses in the demo. */
@@ -67,6 +75,9 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'verifier2', installation: 'SANDBOX', legalName: 'TEST-Imran Khan', loginName: 'test-verifier-2', roleCode: 'VERIFIER', kiosk: true, homeTerminal: 'TEST-KIOSK-BLEND-1', title: 'Verifier', demo: { password: 'Demo-Verifier2-2026!', pin: '715926', badgeUid: '04A10000000012' } },
   { key: 'supervisor1', installation: 'SANDBOX', legalName: 'TEST-Sanjay Kulkarni', loginName: 'test-supervisor-1', roleCode: 'SHIFT_SUPERVISOR', kiosk: true, homeTerminal: 'TEST-KIOSK-BLEND-1', title: 'Shift supervisor', demo: { password: 'Demo-Supervisor1-2026!', pin: '846201', badgeUid: '04A10000000021' } },
   { key: 'qa1', installation: 'SANDBOX', legalName: 'TEST-Fatima Sheikh', loginName: 'test-qa-1', roleCode: 'QA_SHOP_FLOOR', kiosk: true, homeTerminal: 'TEST-KIOSK-BLEND-1', title: 'QA (shop floor)', demo: { password: 'Demo-QaFloor1-2026!', pin: '935172', badgeUid: '04A10000000031' } },
+  // The one person with two roles: OPERATOR to perform a step and VERIFIER to verify one. The role rule lets them verify,
+  // so only the segregation rule keeps them from verifying a step they performed (INV-03; E2E floor spec).
+  { key: 'operatorVerifier1', installation: 'SANDBOX', legalName: 'TEST-Deepa Pillai', loginName: 'test-operator-verifier-1', roleCode: 'OPERATOR', alsoRoles: ['VERIFIER'], kiosk: true, homeTerminal: 'TEST-KIOSK-DISP-1', title: 'Operator and verifier (two roles)', demo: { password: 'Demo-OpVerifier1-2026!', pin: '358264', badgeUid: '04A10000000041' } },
 ];
 
 /** The sandbox's service identities (SERVICES). */
@@ -109,7 +120,15 @@ export const BOOTSTRAP_NAMES: Readonly<Record<InstallationKind, { admin: [string
   SANDBOX: { admin: ['TEST-Administrator', 'test-admin'], owner: ['TEST-Process Owner', 'test-owner'] },
 };
 
-/** The persona of set `n` (0 = the demo set): suffix -wN on names, logins and badges. */
+/** The letters of persona set `n` in a name: 1 = A, 26 = Z, 27 = AA (no digits; see the header). */
+export function setLetters(n: number): string {
+  if (!Number.isInteger(n) || n < 1) throw new Error(`a persona set with letters is 1 or more, not ${String(n)}`);
+  let out = '';
+  for (let k = n; k > 0; k = Math.floor((k - 1) / 26)) out = String.fromCharCode(65 + ((k - 1) % 26)) + out;
+  return out;
+}
+
+/** The persona of set `n` (0 = the demo set): suffix -wN on keys, logins, passwords and badges, -w<letters> on names. */
 export function personaForSet(p: PersonaSpec, set: number): PersonaSpec {
   if (set === 0) return p;
   const suffix = `-w${set}`;
@@ -118,7 +137,7 @@ export function personaForSet(p: PersonaSpec, set: number): PersonaSpec {
   return {
     ...p,
     key: `${p.key}${suffix}`,
-    legalName: `${p.legalName}${suffix}`,
+    legalName: `${p.legalName}-w${setLetters(set)}`,
     loginName: `${p.loginName}${suffix}`,
     demo: { password: `${p.demo.password}${suffix}`, ...(p.demo.pin ? { pin: p.demo.pin } : {}), ...(badge ? { badgeUid: badge } : {}) },
   };

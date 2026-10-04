@@ -216,7 +216,7 @@ export function credentialCard(keysDir: string): string {
     lines.push('', `${seed.installation} (${seed.database})`);
     for (const p of seed.personas.filter((x) => x.set === 0)) {
       const how = p.kiosk ? `badge ${p.badgeUid ?? '?'}  PIN ${p.pin ?? '?'}   (kiosk ${p.homeTerminal})` : `user ID ${p.loginName}  password ${p.password}   (${p.homeTerminal})`;
-      lines.push(`  ${p.legalName.padEnd(26)} ${p.roleCode.padEnd(20)} ${how}`);
+      lines.push(`  ${p.legalName.padEnd(26)} ${[p.roleCode, ...(p.alsoRoles ?? [])].join('+').padEnd(20)} ${how}`);
     }
   }
   return lines.join('\n');
