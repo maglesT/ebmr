@@ -20,13 +20,16 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { withCommand } from '@ebmr/kernel';
+import { identity, toDbContext, withCommand, type ActorContext } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
+import { generateDeviceKey, passwordActor } from '@ebmr/test-kit';
 import { resolveClientIntent } from '../../src/features/execution/intents.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { roomFreeDispensing } from '../devices/room-scales-support.ts';
-import { actorOf, appendAs, engineResult, messageOf, nextState } from '../execution/db-guards-support.ts';
+import { roomFreeDispensing, startRig, stopRig, type Rig } from '../devices/room-scales-support.ts';
+import { adminActor } from '../devices/support.ts';
+import { claim, named, staleRowHelpers, weighing, type ReadingPair } from '../execution/db-guards-stale-support.ts';
+import { actorOf, appendAs, engineResult, messageOf, nextState, unmatched } from '../execution/db-guards-support.ts';
 import { dcMini, dcMiniVariant, importAndIssue, personaIn, rowsOf, RunDriver, startExecServer, violations, writePackage, type ExecServer } from '../execution/support.ts';
 
 type Json = Record<string, unknown>;
@@ -279,5 +282,238 @@ describe('the command row and the identifiers of a test run (recipe-core 0300, t
       expect(await problem(out('TEST-L26-0101'), command, 'TEST-B26-0001'), command.type).toBe('container TEST-L26-0101 is neither one the command named nor the id the system builds from the batch number TEST-B26-0001');
       expect(await problem(out('TEST-B26-0001/INT-BLEND/0/1'), command, 'TEST-B26-0001'), command.type).toBeNull();
     }
+  }, 300_000);
+});
+
+describe('the scale readings a device weighing stands on (tablets 0510)', () => {
+  let rig: Rig;
+  beforeAll(async () => {
+    rig = await startRig();
+  }, 180_000);
+  afterAll(async () => {
+    await stopRig(rig);
+  });
+
+  const { readings, usesOf, claimAlone, preparedRun } = staleRowHelpers(() => rig);
+
+  interface RowOptions {
+    /** The version the screen showed (default: one before the run's, a stale screen). */
+    seen?: (version: number) => number;
+    /** Whether the resolution uses (claims) the readings, as for a current screen (default false: named, not used). */
+    useReadings?: boolean;
+    /** Changes the resolved command and evidence before the engine runs and the row is written. */
+    edit?: (command: Json & { entry: Json }, evidence: Json) => void;
+    /** The command's correlation id (default: a new one). */
+    correlationId?: string;
+    /** Readings claimed in the command's transaction, before the row, under another command's correlation id. */
+    claimedByAnotherCommand?: ReadingPair;
+    /** Readings this command claims itself before the row (the tare as TARE, the gross as GROSS). */
+    claimedInCommand?: ReadingPair;
+    /** Readings claimed in this command (its transaction and correlation id) by the same person's other session. */
+    claimedInOtherSession?: { session: ActorContext; ids: ReadingPair };
+    /** Rows of the same command written before the weighing (on its transaction). */
+    first?: (tx: execution.ExecutionTx, roles: readonly execution.RoleEvidence[], me: engine.Actor) => Promise<unknown>;
+    /** How many times the weighing is written in the command (default 1). */
+    times?: number;
+  }
+
+  const beginAs = (c: { query: (sql: string, values: unknown[]) => Promise<unknown> }, actor: ActorContext) => c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(actor))]);
+
+  /**
+   * operator1's weighing of `ids` written past the server on DISP-1's kiosk, as db-guards-stale-support.ts weighingPast
+   * writes it (the intent resolved as the server resolves it: the readings named, or used with `useReadings`; the screen
+   * one version behind unless `seen`), and 'ok' or the database's refusal itself.
+   */
+  async function weighingRow(d: RunDriver, ids: ReadingPair, opts: RowOptions = {}): Promise<string> {
+    const run = await runContext(rig.server.db.admin, d.runId);
+    const who = personaIn(rig.server, 'operator1');
+    const correlationId = opts.correlationId ?? randomUUID();
+    const actor = await actorOf(rig.server, d.browser('operator1'), 'operator1', { correlationId });
+    const other = opts.claimedByAnotherCommand ? await actorOf(rig.server, d.browser('operator1'), 'operator1', { correlationId: randomUUID() }) : undefined;
+    return messageOf(
+      withCommand(rig.server.db.app, actor, async (c) => {
+        await c.query("set local statement_timeout = '30s'");
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const me = engineActor(who.personId, roles);
+        await opts.first?.(tx, roles, me);
+        for (let i = 0; i < (opts.times ?? 1); i += 1) {
+          const resolved = await resolveClientIntent(
+            { client: c, app: rig.server.built.ctx, def: run.def, state: tx.state, room: 'DISP-1', actor: me, commandId: randomUUID(), expectedVersion: (opts.seen ?? ((v) => v - 1))(tx.state.version), useReadings: opts.useReadings ?? false },
+            weighing(ids.tare, ids.gross),
+          );
+          if (opts.claimedInCommand) await claim(c, opts.claimedInCommand);
+          if (other && opts.claimedByAnotherCommand) {
+            // Another command of the same session (its own badge tap and correlation id) claims them in this transaction,
+            // then this command's context is installed again (kernel.begin_command), as forgedWeighingRow does.
+            await beginAs(c, other);
+            await claim(c, opts.claimedByAnotherCommand);
+            await beginAs(c, actor);
+          }
+          if (opts.claimedInOtherSession) {
+            await beginAs(c, { ...opts.claimedInOtherSession.session, correlationId });
+            await claim(c, opts.claimedInOtherSession.ids);
+            await beginAs(c, actor);
+          }
+          const command = structuredClone(resolved.command) as unknown as Json & { entry: Json };
+          const evidence = structuredClone(resolved.evidence);
+          opts.edit?.(command, evidence);
+          await tx.command(command as unknown as engine.Command, roles, evidence as engine.JsonValue);
+        }
+      }),
+    );
+  }
+
+  const current = (v: number) => v;
+  /** The readings a weighing names, listed as used (evidence.readings) as for a weighing from the current screen. */
+  const asUsed = (_: Json, ev: Json) => {
+    ev['readings'] = named(ev);
+    delete ev['namedReadings'];
+  };
+  const fresh = (msg: string) => `A weighing is recorded as captured from a device only on the scale readings claimed for it: ${msg} (DI-31, DI-32). [EBMR-EXE-124]`;
+  const stale = (msg: string) => `A weighing refused as stale names the scale readings its screen captured, as they are stored and as the claims of its command would accept them now, and uses none: ${msg} (DI-31, DI-32). [EBMR-EXE-124]`;
+
+  it('[DI-31][DI-32][PR-19] a weighing from the current screen stands only on readings its own command claimed, each named once for its purpose; each refusal says what is wrong, nothing is written and the readings stay unused; a reading backs one entry of its command, which may record other rows', async () => {
+    const d = await preparedRun();
+    const rowsBefore = (await rowsOf(rig.server, d.runId)).length;
+    const listed = (ev: Json): Json[] => ev['readings'] as Json[];
+    const unclaimed = await readings();
+    // Two readings taken for no stated purpose (a claim then takes them as either), claimed as the other purpose.
+    const one = rig.gw.next({ value: '1.250', purpose: null });
+    const two = rig.gw.next({ value: '26.250', purpose: null });
+    expect((await rig.gw.uplink([{ reading: one }, { reading: two }])).body.refused).toBeNull();
+    const byAnother = await readings();
+    const outcomes = {
+      noTare: await weighingRow(d, await readings(), { seen: current, useReadings: true, edit: (_, ev) => (ev['readings'] = listed(ev).filter((r) => r['purpose'] !== 'TARE')) }),
+      malformedTare: await weighingRow(d, await readings(), {
+        seen: current,
+        useReadings: true,
+        edit: (_, ev) => {
+          for (const r of listed(ev)) if (r['purpose'] === 'TARE') r['readingId'] = 'not-a-reading';
+        },
+      }),
+      neverClaimed: await weighingRow(d, unclaimed, { seen: current, edit: asUsed }),
+      claimedAsTheOtherPurpose: await weighingRow(d, { tare: one.readingId, gross: two.readingId }, { seen: current, claimedInCommand: { tare: two.readingId, gross: one.readingId }, edit: asUsed }),
+      claimedByAnotherCommand: await weighingRow(d, byAnother, { seen: current, claimedByAnotherCommand: byAnother, edit: asUsed }),
+    };
+    const notClaimedAs = (id: string) => fresh(`the tare reading ${id} was not claimed as tare by this person's session, in this command, for room DISP-1`);
+    expect(unmatched(outcomes, {
+      noTare: fresh('it names no tare reading'),
+      malformedTare: fresh('it names no single, well-formed tare reading'),
+      neverClaimed: fresh(`the tare reading ${unclaimed.tare} was never claimed`),
+      claimedAsTheOtherPurpose: notClaimedAs(one.readingId),
+      claimedByAnotherCommand: notClaimedAs(byAnother.tare),
+    })).toEqual({});
+    expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore);
+    expect(await usesOf([unclaimed.tare, unclaimed.gross, one.readingId, two.readingId, byAnother.tare, byAnother.gross])).toBe(0);
+
+    // The honest weighing, in a command that first records an exception about the step (another row of the same
+    // command, under the same correlation id, naming no reading): recorded, its readings used once.
+    const honest = await readings();
+    const raise = (tx: execution.ExecutionTx, roles: readonly execution.RoleEvidence[], me: engine.Actor) =>
+      tx.command({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: me, step: 'p-disp-pcm', context: [], description: 'Label of the drum torn', severity: 'ALERT' }, roles);
+    expect(await weighingRow(d, honest, { seen: current, useReadings: true, first: raise })).toBe('ok');
+    expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore + 2);
+    expect(await usesOf([honest.tare, honest.gross])).toBe(2);
+    expect(await violations(rig.server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-31][DI-32][DI-14] readings the same person claimed in their other session in the room (a personal terminal of DISP-1), in this command\'s transaction and under its correlation id, do not back the weighing of the kiosk session: a weighing stands on its own session\'s claims', async () => {
+    const d = await preparedRun();
+    // operator1's second session: a personal terminal registered to DISP-1, signed in with the password. A personal
+    // terminal's session does not end the shop-floor session of the kiosk (kernel 0160), so both are open.
+    const key = generateDeviceKey();
+    const site = (await rig.server.db.admin.query<{ s: string }>("select site_code as s from iam.device where code = 'TEST-BAL-01'")).rows[0]?.s ?? '';
+    await withCommand(rig.server.db.app, await adminActor(rig.server, 'A personal terminal in DISP-1 (kill test)'), (c) =>
+      identity.registerDevice(c, { code: 'TEST-TAB-DISP-1', deviceClass: 'PERSONAL', site, room: 'DISP-1', fingerprint: key.fingerprint, description: 'Personal tablet in DISP-1' }),
+    );
+    const tablet = await passwordActor(rig.server.db, personaIn(rig.server, 'operator1'), key.fingerprint);
+    const pair = await readings();
+    const rowsBefore = (await rowsOf(rig.server, d.runId)).length;
+    const outcome = await weighingRow(d, pair, { seen: current, claimedInOtherSession: { session: tablet, ids: pair }, edit: asUsed });
+    expect(outcome).toBe(fresh(`the tare reading ${pair.tare} was not claimed as tare by this person's session, in this command, for room DISP-1`));
+    expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore);
+    expect(await usesOf([pair.tare, pair.gross])).toBe(0);
+    // Claimed by the kiosk session itself, in the command, the same readings are its weighing's.
+    expect(await weighingRow(d, pair, { seen: current, claimedInCommand: pair, edit: asUsed })).toBe('ok');
+    expect(await usesOf([pair.tare, pair.gross])).toBe(2);
+    expect(await violations(rig.server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-32][DI-34][PR-19] a weighing refused as stale uses no reading and names its readings once each: each refusal says what is wrong; readings claimed under its correlation id in an earlier command are refused at commit; another command\'s claims in the same transaction are not its own, and the stale row is recorded', async () => {
+    const d = await preparedRun();
+    const pair = await readings();
+    const rowsBefore = (await rowsOf(rig.server, d.runId)).length;
+    const earlier = await readings();
+    const correlation = randomUUID();
+    expect(await claimAlone(d, earlier, correlation)).toBe('ok');
+    const outcomes = {
+      claimed: await weighingRow(d, pair, { useReadings: true }),
+      listedAsUsed: await weighingRow(d, pair, { edit: asUsed }),
+      noTare: await weighingRow(d, pair, { edit: (_, ev) => (ev['namedReadings'] = named(ev).filter((r) => r['purpose'] !== 'TARE')) }),
+      malformedTare: await weighingRow(d, pair, {
+        edit: (_, ev) => {
+          for (const r of named(ev)) if (r['purpose'] === 'TARE') r['readingId'] = 'not-a-reading';
+        },
+      }),
+      namedTwiceInCommand: await weighingRow(d, pair, { times: 2 }),
+      claimedEarlierUnderItsCorrelation: await weighingRow(d, pair, { correlationId: correlation }),
+    };
+    const usesNone = (what: string) => `This row is the refusal ENG-STALE of a command from a screen that showed an older version of the run, which uses no scale reading, but ${what}`;
+    expect(unmatched(outcomes, {
+      claimed: `${usesNone(`it claimed reading ${pair.tare} as tare`)} (DI-32). [EBMR-EXE-124]`,
+      listedAsUsed: `${usesNone('it lists scale readings as used (evidence.readings)')} (DI-32). [EBMR-EXE-124]`,
+      noTare: stale('it names no tare reading'),
+      malformedTare: stale('it names no single, well-formed tare reading'),
+      namedTwiceInCommand: stale(`the tare reading ${pair.tare} is named by another row of this command`),
+      claimedEarlierUnderItsCorrelation: `${usesNone(`a scale reading is claimed under its correlation id ${correlation}`)} (checked at commit; DI-32). [EBMR-EXE-124]`,
+    })).toEqual({});
+    expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore);
+    expect(await usesOf([pair.tare, pair.gross])).toBe(0);
+
+    // Another command of the same session claims two other readings in the same transaction, before the stale row:
+    // those claims are its own (its correlation id), the stale row uses none and is recorded, naming its pair unused.
+    const others = await readings();
+    expect(await weighingRow(d, pair, { claimedByAnotherCommand: others })).toBe('ok');
+    expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore + 1);
+    expect(await usesOf([others.tare, others.gross])).toBe(2);
+    expect(await usesOf([pair.tare, pair.gross])).toBe(0);
+    expect(await violations(rig.server)).toEqual([]);
+  }, 300_000);
+
+  it('[DI-32][DI-34] only a device weighing lists scale readings: a preparation recorded as the refusal ENG-STALE listing one as used is refused as a weighing\'s readings would be (EBMR-EXE-124), nothing written', async () => {
+    const d = await preparedRun();
+    const pair = await readings();
+    const rowsBefore = (await rowsOf(rig.server, d.runId)).length;
+    const run = await runContext(rig.server.db.admin, d.runId);
+    const who = personaIn(rig.server, 'operator1');
+    const outcome = await messageOf(
+      withCommand(rig.server.db.app, await actorOf(rig.server, d.browser('operator1'), 'operator1'), async (c) => {
+        const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+        const roles = await engineRoles(c);
+        const me = engineActor(who.personId, roles);
+        // The state the engine stores beside a refusal from an older screen at this moment (the time bookkeeping moved).
+        const refused = engine.step(tx.def, tx.state, { type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor: me, expectedVersion: tx.state.version - 1, step: 'p-disp-pcm', context: [], description: 'x', severity: 'ALERT' }, { nowUs: tx.nowUs });
+        if (refused.accepted || !refused.refusal) throw new Error('SETUP: the engine did not refuse the stale command');
+        return execution.appendExecution(tx.client, {
+          batchId: tx.locked.batch.id,
+          expectedSeq: tx.lastSeq,
+          kind: 'PREPARE',
+          command: engine.encode({ type: 'PREPARE', target: { type: 'SIGN_PERFORMED', step: 'p-disp-pcm', context: [] }, actor: me, expectedVersion: tx.state.version - 1 }),
+          commandId: `PREPARE:${randomUUID()}`,
+          nowUs: tx.nowUs,
+          accepted: false,
+          refusal: refused.refusal,
+          state: refused.state,
+          events: refused.events,
+          roles,
+          contents: [],
+          evidence: { readings: [{ purpose: 'TARE', readingId: pair.tare }] },
+        });
+      }),
+    );
+    expect(outcome).toMatch(/^A weighing captured from a device uses exactly its tare and its gross reading, in that order, each as stored, and nothing else: it names \[.*\] \(DI-31, DI-32\)\. \[EBMR-EXE-124\]$/);
+    expect((await rowsOf(rig.server, d.runId)).length).toBe(rowsBefore);
+    expect(await usesOf([pair.tare, pair.gross])).toBe(0);
   }, 300_000);
 });
