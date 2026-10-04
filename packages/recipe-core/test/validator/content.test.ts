@@ -303,6 +303,75 @@ describe('GMP content gates', () => {
     expect(['p-disp-pcm', 'p-disp-exc', 'p-blend-out'].map((s) => [...(def.steps.get(s)?.computedItems ?? [])])).toEqual([['pcmDispensed'], ['excDispensed'], ['blendNet']]);
   });
 
+  it('[PR-03][DI-30][PR-14][DI-35] T12.DOC round 3: a phase whose MBR names no check is checked all the same where it records a critical value whose MBR names a printout or photo, whatever its capture: the validator warns (GMP-WITNESS-NO-ATTACHMENT) and says how, as the engine runs it (a witness while possible, then the later review with WITNESS_LATE), exactly as for a phase whose check is a later review', () => {
+    const RUNS_NO_CHECK =
+      'In this release no printout or photo can be attached to a value typed by hand, so the step is checked all the same, as a witness (WITNESSED): a second person holding PRODUCTION_VERIFIER, PRODUCTION_SUPERVISOR or QA (the verifier roles where the MBR names no check) watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
+    const RUNS_REVIEW =
+      'In this release no printout or photo can be attached to a value typed by hand, so this check runs as a witness (WITNESSED): the second person watches the entry within the witness window, 5 minutes after the step is signed performed, and before the run moves on. Once no witness is possible, the later review completes the step and records an exception (WITNESS_LATE) that QA must disposition (GMP-WITNESS-NO-ATTACHMENT; PR-03, DI-30, PR-14, DI-35)';
+    const HOW = { MANUAL: undefined, DEVICE: 'from a device', SCAN: 'by scanning', LIMS: 'from LIMS', AUTOMATION: 'from the automation system' } as const;
+    const CHECKS = { 'no check': undefined, 'a later review': { meaning: 'VERIFIED', role: 'VERIFIER' } } as const;
+    for (const [capture, how] of Object.entries(HOW) as [keyof typeof HOW, string | undefined][]) {
+      for (const [named, check] of Object.entries(CHECKS) as [keyof typeof CHECKS, (typeof CHECKS)[keyof typeof CHECKS]][]) {
+        const mbr = mbrWith({ kind: 'sequence', id: 'ops', children: [mbrPhase('p', { records: ['t'], signatures: { perform: { role: 'OPERATOR' }, ...(check ? { check } : {}) } }), mbrPhase('after')] }, {
+          parameters: [engineParam('t', { unit: 'min', capture, evidence: 'PRINTOUT', accuracyCheck: 'SECOND_PERSON' })],
+        });
+        const captured = how === undefined ? '' : ` The MBR captures t ${how}, but in this release every value of a step is typed by hand on the step screen (a scanned code is recorded as typed by hand).`;
+        const warned = validate(mbr)
+          .findings.filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT')
+          .map((f) => ({ severity: f.severity, subject: f.subject, message: f.message }));
+        // The engine, as the floor runs it: the value typed by hand, the step signed performed; a witness while one is
+        // possible, then the later review, which records WITNESS_LATE for QA.
+        const run = Run.issue(define(mbr), {}, T0);
+        run.start('p');
+        run.record('p', 't', { kind: 'DECIMAL', value: '15', unit: 'min' }, { source: { mode: 'MANUAL' } });
+        run.perform('p');
+        const awaiting = run.status('p');
+        const atOnce = checkMeaning(run.def, run.inst('p'), 'p', run.state, run.nowUs);
+        run.advance(400_000_000n);
+        const later = checkMeaning(run.def, run.inst('p'), 'p', run.state, run.nowUs);
+        run.verify('p');
+        expect({ capture, named, warned, engine: { awaiting, atOnce, later, completed: run.status('p'), late: run.exceptions('WITNESS_LATE').map((e) => e.source.stepKey) } }).toEqual({
+          capture,
+          named,
+          warned: [
+            {
+              severity: 'WARNING',
+              subject: 'p',
+              message:
+                check === undefined
+                  ? `"Step p" (p) records t by hand from the printout or photo the MBR names as its evidence, and the MBR names no check for it.${captured} ${RUNS_NO_CHECK}`
+                  : `"Step p" (p) records t by hand from the printout or photo the MBR names as its evidence, and its check is a later review (VERIFIED).${captured} ${RUNS_REVIEW}`,
+            },
+          ],
+          engine: { awaiting: 'AWAITING_VERIFICATION', atOnce: 'WITNESSED', later: 'VERIFIED', completed: 'COMPLETED', late: ['p@'] },
+        });
+      }
+    }
+    // Where the MBR asks for the witness, or the value is not critical, nothing to warn about: the witness the MBR names
+    // runs as named, and an uncritical value the MBR has typed by hand needs no check at all (the step completes on its
+    // performed signature). (A value whose MBR names another capture, typed by hand, raises MANUAL_ENTRY_FALLBACK and is
+    // reviewed later, never witnessed: outside this rule, decision T12.3.)
+    for (const variant of ['witnessed', 'uncritical'] as const) {
+      const mbr = mbrWith(
+        {
+          kind: 'sequence',
+          id: 'ops',
+          children: [mbrPhase('p', { records: ['t'], signatures: variant === 'witnessed' ? { perform: { role: 'OPERATOR' }, check: { meaning: 'WITNESSED', role: 'VERIFIER' } } : { perform: { role: 'OPERATOR' } } }), mbrPhase('after')],
+        },
+        { parameters: [engineParam('t', { unit: 'min', capture: variant === 'uncritical' ? 'MANUAL' : 'DEVICE', evidence: 'PRINTOUT', ...(variant === 'uncritical' ? { criticality: 'NON_CRITICAL' as const } : {}) })] },
+      );
+      const run = Run.issue(define(mbr), {}, T0);
+      run.start('p');
+      run.record('p', 't', { kind: 'DECIMAL', value: '15', unit: 'min' }, { source: { mode: 'MANUAL' } });
+      run.perform('p');
+      expect({ variant, warned: validate(mbr).findings.filter((f) => f.rule === 'GMP-WITNESS-NO-ATTACHMENT').length, status: run.status('p') }).toEqual({
+        variant,
+        warned: 0,
+        status: variant === 'witnessed' ? 'AWAITING_VERIFICATION' : 'COMPLETED',
+      });
+    }
+  });
+
   it('[PR-03] nothing that processes material may run after a stage yield', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
     const seq = m.procedure.body.kind === 'sequence' ? m.procedure.body.children.find((c) => c.id === 'S-BLEND') : undefined;

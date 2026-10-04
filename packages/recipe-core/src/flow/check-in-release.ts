@@ -14,6 +14,13 @@
  * automation value reaches a step), and the engine decides from how the value was entered, not from the MBR's capture
  * (guards.ts handEntriesWithoutDeclaredEvidence). So every such item counts, whatever its capture, except the items the
  * step's block computes from its entries (a weighing step's mass totals), which are never typed.
+ *
+ * Round 3 (T12.DOC): a phase whose MBR names no check at all is checked all the same. The engine asks for a second
+ * person whenever a critical value is typed by hand (data.ts storePoint sets verificationRequired; a value whose MBR names
+ * another capture, typed by hand, also raises MANUAL_ENTRY_FALLBACK), and for such a value whose MBR names a printout or
+ * photo that check is the timed witness, then the later review with WITNESS_LATE (guards.ts checkMeanings), by a person
+ * in the fallback verifier roles (steps.ts verify). So the reading covers a phase with no check as it covers a later
+ * review, and the callers say which of the two the MBR names.
  */
 import type { CaptureMode, Parameter, PhaseNode } from './model.ts';
 
@@ -31,12 +38,14 @@ export function handEntriesNamingAttachment(parameter: (id: string) => Parameter
 }
 
 /**
- * The items for which phase `p`'s check, a later review in the MBR (any check but WITNESSED), runs as a witness in this
- * release; empty when the phase has no check, the MBR already asks for the witness, or no such item is recorded.
- * `computed`: the items the phase's block computes from its entries (blocks `computedItemsOf`), never typed by hand.
+ * The items for which phase `p` is checked by a witness in this release although its MBR does not ask for one: its check
+ * is a later review (VERIFIED), or the MBR names no check at all (round 3: the engine asks for a second person for every
+ * critical value typed by hand, and for these items that check is the witness); empty when the MBR already asks for the
+ * witness or no such item is recorded. `p.signatures.check` says which of the two the MBR names. `computed`: the items the
+ * phase's block computes from its entries (blocks `computedItemsOf`), never typed by hand.
  */
 export function checkRunsAsWitness(parameter: (id: string) => Parameter | undefined, p: Pick<PhaseNode, 'records' | 'signatures'>, computed: readonly string[] = []): string[] {
-  if (!p.signatures.check || p.signatures.check.meaning === 'WITNESSED') return [];
+  if (p.signatures.check?.meaning === 'WITNESSED') return [];
   return handEntriesNamingAttachment(parameter, p, computed);
 }
 
