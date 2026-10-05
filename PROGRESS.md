@@ -2107,3 +2107,10 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   free-text-identifiers, bound names, compounds, weighing basis, kernel stubs, sandbox registers, entry identifiers,
   golden, people text, disposition, header limit, device claim, refusals and room views, row context; the sandbox
   set-up with three persona sets (27 personas, none of its 33 persons read; the -wA and -wB names pass).
+  Lane round 2 (2026-10-05, kernel 1130, decision F12.15): the verification found a reordered line still hid such a
+  word: a right-to-left mark or letter between a Cyrillic omega and a space made 'बैच Ѡ 24-0001' show as Ѡ24-0001, and
+  round 7's arrangement joined only ASCII letters to the digits, so a hold reason and a business entry kept it. Now a
+  text that can display in another order also joins every run of other characters to every run of digits, so the
+  rule refuses it in a sandbox (cost: Urdu, Arabic or Hebrew prose with a number, or a text with a direction mark and a
+  number; the refusal says to write the number in words). Tests: kernel identifier-words (3 new) and server
+  db-guards-free-text-shown (1 new), each failing with 1130 moved aside; F12.14 (1), (2), (6) and (7) corrected.
