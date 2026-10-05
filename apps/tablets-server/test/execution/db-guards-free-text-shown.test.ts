@@ -600,3 +600,95 @@ describe('F12, round 8 lane round 2: in a test run a word that holds a digit is 
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
 });
+
+/**
+ * Kernel 1140 (the verification of the lane's round 8, lane round 2): kernel 1050's class of the characters that can
+ * make a line display in another order was built from Unicode 18.0.0, while the product's browser, Chromium 141, ships
+ * ICU 74 (Unicode 15.1). Code points Unicode 16 to 18 assigned as marks or neutrals inside the right-to-left blocks are
+ * unassigned there and take their block's default class, R or AL: 'Drum of L<U+05C8> 2409-0017 set aside' is drawn as
+ * 'Drum of L2409-0017 <U+05C8> set aside', and with an AL one (U+FBC3, U+10ED0) the digit runs swap, so 0017-2409 shows
+ * as 2409-0017. Since kernel 1140 the class is every code point of the ranges reserved for right-to-left scripts.
+ */
+const RESERVED_RTL_PROBES: Record<string, string> = {
+  'U+05C8': `L${ch(0x5c8)} 2409-0017`,
+  'U+05C9': `B${ch(0x5c9)} 24-0001`,
+  'U+0460 U+10D69': `${ch(0x460)}${ch(0x10d69)} 24-0001`,
+  'U+FBC3': `L${ch(0xfbc3)} 0017-2409`,
+  'U+10ED0': `L${ch(0x10ed0)} 0017-2409`,
+};
+
+describe('F12, round 8 lane round 3: the characters that can make a line display in another order are those of every browser\'s bidirectional data (DI-05, DI-30, INV-18)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1140: over HTTP L<U+05C8> 2409-0017, B<U+05C9> 24-0001, <U+0460><U+10D69> 24-0001, L<U+FBC3> 0017-2409 and L<U+10ED0> 0017-2409 (drawn by Chromium 141 as L2409-0017, B24-0001 and Ѡ24-0001) in an exception\'s description, a hold reason, a business entry the application role appends on the run\'s chain (its message, and three levels down in its details) and a disposition\'s justification are refused (EBMR-EXE-147), the refusal naming the member and never the word, and nothing holds them; the honest text of decisions F12.14 and F12.15 is recorded (Hindi, Tamil, Japanese, Korean and Greek prose with ASCII digits apart from its words, an emoji, a soft hyphen, TEST- identifiers, the run\'s own codes, ASCII dates and quantities, Hebrew and Urdu prose without a number)', async () => {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const d = new RunDriver(sbx, runId, {
+      issuer,
+      operator1: await sbx.asPersona('operator1'),
+      supervisor1: await sbx.asPersona('supervisor1'),
+      qa1: await sbx.asPersona('qa1'),
+    });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const chain = `batch:${d.runId}`;
+    const raised: Record<string, string> = {};
+    const held: Record<string, string> = {};
+    const entries: Record<string, { message: string; details: string }> = {};
+    const whys: string[] = [];
+    for (const [name, probe] of Object.entries(RESERVED_RTL_PROBES)) {
+      const r = await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum of ${probe} set aside`, severity: 'ALERT' });
+      raised[name] = outcomeOf(r);
+      if (!r.ok && r.error.kind === 'REFUSAL') whys.push(`${r.error.envelope.refusal.why} ${r.error.envelope.refusal.whatYouCanDo.join(' ')}`);
+      held[name] = outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: drum of ${probe} found in the booth` }));
+      entries[name] = {
+        message: await businessEntry(d, chain, `Drum of ${probe} moved to the booth`),
+        details: await businessEntry(d, chain, 'Drum moved to the booth', { drum: { of: { lot: `lot ${probe}` } } }),
+      };
+    }
+    const names = Object.keys(RESERVED_RTL_PROBES);
+    expect({ raised, held }).toEqual({ raised: Object.fromEntries(names.map((n) => [n, REFUSED])), held: Object.fromEntries(names.map((n) => [n, REFUSED])) });
+    for (const [name, o] of Object.entries(entries)) {
+      expect(o.message, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.message, a word .*\[EBMR-EXE-147\]$`));
+      expect(o.details, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.details\.drum\.of\.lot, a word .*\[EBMR-EXE-147\]$`));
+      for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', ''), name).not.toMatch(/2409|0017|24-0001/u);
+    }
+    // The refusal over HTTP names the member, says what to write and that a mark or sign of a right-to-left script counts.
+    expect(whys).toHaveLength(names.length);
+    for (const w of whys) {
+      expect(w).toMatch(/holds, at \$\.description, a word /);
+      expect(w).toMatch(/a right-to-left letter \(Urdu, Arabic, Hebrew\), a mark or sign of those scripts .* write the number in words/);
+      expect(w.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', '')).not.toMatch(/2409|0017|24-0001/u);
+    }
+    // A disposition's justification: qa1 is offered nothing to sign holding it.
+    await d.ok('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Drum set aside for a re-check', severity: 'ALERT' });
+    const exception = (await d.runView('qa1')).exceptions[0]?.exceptionId ?? '';
+    expect(exception).not.toBe('');
+    const dispositions: Record<string, string> = {};
+    for (const [name, probe] of Object.entries(RESERVED_RTL_PROBES)) {
+      dispositions[name] = outcomeOf((await d.sign('qa1', { type: 'DISPOSITION_EXCEPTION', exception, outcome: 'NO_IMPACT', justification: `Drum ${probe} re-checked; no impact.` })).result);
+    }
+    expect(dispositions).toEqual(Object.fromEntries(names.map((n) => [n, REFUSED])));
+    expect(d.signatures).toBe(0);
+    // Honest text (decisions F12.14 and F12.15).
+    const honest = {
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'बैच 24 का वज़न 12.5 kg', severity: 'ALERT' })),
+      tamil: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'டிரம் 3 எடை பார்க்கப்பட்டது', severity: 'ALERT' })),
+      japanese: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ドラム 3 本を計量しました', severity: 'ALERT' })),
+      korean: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '드럼 3 개 확인', severity: 'ALERT' })),
+      greek: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Το δοχείο 3 ζυγίστηκε στις 10:15', severity: 'ALERT' })),
+      emojiSoftHyphen: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)}, pharma${ch(0xad)}ceutical grade, 2 of 3 drums`, severity: 'ALERT' })),
+      runWords: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Drum TEST-L26-0101 of TEST-B26-0001 moved from DISP-1 to BLEND-1 per SOP-DISP-001 on 2026-10-05, 12.5 kg', severity: 'ALERT' })),
+      hebrew: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'התוף נשקל ונבדק' })),
+      urdu: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'ڈرم کا وزن کیا گیا' })),
+      entry: await businessEntry(d, chain, 'बैच 24 का वज़न 12.5 kg', { drum: { note: { text: 'Το δοχείο 3, TEST-L26-0101, 2026-10-05' } } }),
+    };
+    expect(honest).toEqual({ hindi: 'ok', tamil: 'ok', japanese: 'ok', korean: 'ok', greek: 'ok', emojiSoftHyphen: 'ok', runWords: 'ok', hebrew: 'ok', urdu: 'ok', entry: 'ok' });
+    for (const [name, probe] of Object.entries(RESERVED_RTL_PROBES)) expect(await recordHolding(d.runId, probe), name).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
+    const proposals = await sbx.db.admin.query("select 1 from recipe.execution_disposition_proposal where batch_id = $1 and proposal::text ~ '2409|24-0001'", [d.runId]);
+    expect(proposals.rowCount).toBe(0);
+    expect(await recordHolding(d.runId, 'बैच 24 का वज़न 12.5 kg')).toMatchObject({ rows: 1, audit: 1 });
+    expect(await recordHolding(d.runId, 'DISP-1 to BLEND-1 per SOP-DISP-001')).toMatchObject({ rows: 1 });
+    expect(await recordHolding(d.runId, 'התוף נשקל ונבדק')).toMatchObject({ rows: 1 });
+    expect(await violations(sbx)).toEqual([]);
+  }, 600_000);
+});

@@ -1172,3 +1172,138 @@ describe('in a sandbox a word that holds a digit is plain ASCII also as a line t
     expect(await asRelease(gmp, 'Asha Rao', `${ch(0x460)}${HEBREW_ALEF} 24-0001`)).toBe('ok');
   });
 });
+
+/**
+ * Kernel 1140 (the verification of the lane's round 8, lane round 2): kernel 1050's sandbox.reordering_class held the
+ * characters Unicode 18.0.0 gives bidirectional class R, AL or AN. The product's browser, Chromium 141, ships ICU 74
+ * (Unicode 15.1): code points that Unicode 16 to 18 assigned as marks or neutrals inside the right-to-left blocks are
+ * unassigned there and take the default class of their block, R or AL, so they reorder the line while the class left
+ * them out. These are the 61 such code points, whose class the development machine's ICU 74.2 (u_charDirection, the
+ * same Unicode 15.1 data) gives as R or AL and Unicode 18.0.0 as NSM or ON; the verification measured each in the E2E
+ * Chromium: 'Drum of L<X> 2409-0017 set aside' (R) or 'Drum of L<X> 0017-2409 set aside' (AL, the digit runs in reverse
+ * order) is drawn as 'Drum of L2409-0017 <X> set aside'.
+ */
+const span = (from: number, to: number): number[] => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+const REORDERING_R = [0x05c8, 0x05c9, ...span(0x10d69, 0x10d6e)];
+const REORDERING_AL = [0x0897, ...span(0xfbc3, 0xfbd2), 0xfd90, 0xfd91, ...span(0xfdc8, 0xfdce), ...span(0x10ecb, 0x10ed8), ...span(0x10ef0, 0x10efc)];
+/** The probe that Chromium 141 draws as 'Drum of L2409-0017 <X> set aside'. */
+const shownJoined = (cp: number): string => (REORDERING_R.includes(cp) ? `Drum of L${ch(cp)} 2409-0017 set aside` : `Drum of L${ch(cp)} 0017-2409 set aside`);
+
+describe('the characters that can make a line display in another order are those of every browser\'s bidirectional data (kernel 1140)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1140: the 61 code points that Chromium 141 (ICU 74, Unicode 15.1) treats as right-to-left (R: U+05C8, U+05C9, U+10D69 to U+10D6E) or as Arabic letters (AL: U+0897, U+FBC3 to U+FBD2, U+FD90, U+FD91, U+FDC8 to U+FDCE, U+10ECB to U+10ED8, U+10EF0 to U+10EFC) although Unicode 18.0.0 assigned them as marks or neutrals are read in every arrangement: Drum of L<X> 2409-0017 set aside (R) and Drum of L<X> 0017-2409 set aside (AL), drawn as L2409-0017, are read as L2409 and L<X>2409; the same with a space and no such character is not', async () => {
+    expect([REORDERING_R.length, REORDERING_AL.length]).toEqual([8, 53]);
+    const read: Record<string, string[]> = {};
+    const expected: Record<string, string[]> = {};
+    const all = [...REORDERING_R, ...REORDERING_AL];
+    const got = await readWhole(all.map(shownJoined));
+    for (const cp of all) {
+      const words = got[shownJoined(cp)] ?? [];
+      read[hexOf(cp)] = words.filter((w) => w === 'L2409' || w === `L${ch(cp)}2409`);
+      expected[hexOf(cp)] = ['L2409', `L${ch(cp)}2409`].sort();
+    }
+    expect(read).toEqual(expected);
+    // With U+0460 (no table reads it) before the mark, the word the line shows is read whole too.
+    const omega = `${ch(0x460)}${ch(0x10d69)} 24-0001`;
+    expect((await readWhole([omega]))[omega]).toEqual(expect.arrayContaining([`${ch(0x460)}${ch(0x10d69)}24`]));
+    // Without such a character the text displays as stored: the space keeps the letter apart.
+    const apart = ['Drum of L 2409-0017 set aside', `Drum of L${ch(0x307)} 2409-0017 set aside`, `Drum of ${ch(0x460)} 24-0001 set aside`];
+    expect(await readWhole(apart)).toEqual(Object.fromEntries(apart.map((t) => [t, []])));
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1140: sandbox.reordering_class() holds every code point of the ranges DerivedBidiClass.txt reserves for right-to-left scripts (U+0590 to U+08FF, U+FB1D to U+FDCF, U+FDF0 to U+FDFF, U+FE70 to U+FEFE, U+10800 to U+10FFF, U+1E800 to U+1EFFF), whatever a Unicode version assigns there, and the explicit embedding, override and isolate controls and the marks U+200E and U+200F: 5837 code points, nothing else (not U+FDD0 to U+FDEF, U+FEFF or the code points next to each range)', async () => {
+    const { rows } = await gmp.app.query<{ n: number; outside: number[]; edges: number[] }>(String.raw`
+      with c as (select g as cp from generate_series(1, 1114111) g where g not between 55296 and 57343),
+           m as (select cp from c where chr(cp) ~ sandbox.reordering_class())
+      select (select count(*)::int from m) as n,
+             (select coalesce(array_agg(cp order by cp), '{}') from m
+               where not (cp between x'0590'::int and x'08ff'::int or cp between x'fb1d'::int and x'fdcf'::int
+                          or cp between x'fdf0'::int and x'fdff'::int or cp between x'fe70'::int and x'fefe'::int
+                          or cp between x'10800'::int and x'10fff'::int or cp between x'1e800'::int and x'1efff'::int)) as outside,
+             (select coalesce(array_agg(e order by e), '{}') from unnest(array[x'058f'::int, x'0900'::int, x'fb1c'::int, x'fdd0'::int, x'fdef'::int,
+                     x'fe6f'::int, x'feff'::int, x'107ff'::int, x'11000'::int, x'1e7ff'::int, x'1f000'::int, x'200d'::int, x'2029'::int,
+                     x'202f'::int, x'2065'::int, x'206a'::int]) e where chr(e) ~ sandbox.reordering_class()) as edges`);
+    expect(rows[0]).toEqual({
+      n: 5837,
+      outside: [0x200e, 0x200f, 0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066, 0x2067, 0x2068, 0x2069],
+      edges: [],
+    });
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1140: honest text is still not read: Hindi prose with ASCII digits apart from its words, Tamil, Japanese, Korean and Greek prose, an emoji with its variation selector, a soft hyphen in a long word without digits, TEST- identifiers, ASCII dates and quantities, Hebrew and Urdu prose without a number; the accepted cost of decision F12.16 is read: a sign or mark of a right-to-left script with a number (U+FDFD, U+05C8)', async () => {
+    const honest = [
+      'बैच 24 का वज़न 12.5 kg',
+      'டிரம் 3 எடை பார்க்கப்பட்டது',
+      'ドラム 3 本を計量しました',
+      '드럼 3 개 확인',
+      'Το δοχείο 3 ζυγίστηκε στις 10:15',
+      `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)}, pharma${SOFT_HYPHEN}ceutical grade, 2 of 3 drums weighed`,
+      'Drum TEST-L26-0101 of batch TEST-B26-0001 on 2026-10-05, 12.5 kg',
+      'התוף נשקל ונבדק',
+      'ڈرم کا وزن کیا گیا',
+    ];
+    expect(await readWhole(honest)).toEqual(Object.fromEntries(honest.map((t) => [t, []])));
+    const cost = [`Booth blessed ${ch(0xfdfd)}, 2 of 3 drums weighed`, `Drum 3 weighed ${ch(0x5c8)}`];
+    const read = await readWhole(cost);
+    for (const t of cost) expect(read[t]?.length ?? 0, t).toBeGreaterThan(0);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1140: in a sandbox sandbox.guard_free_text refuses a row whose text holds L<U+05C8> 2409-0017, B<U+05C9> 24-0001, <U+0460><U+10D69> 24-0001, L<U+FBC3> 0017-2409 or L<U+10ED0> 0017-2409 (EBMR-SBX-024), naming the column, never the word; an employee reference L<U+05C8> 2409-0017 is refused (EBMR-SBX-024); a GMP installation keeps them; honest prose is stored', async () => {
+    const table = `
+      create schema a4_bidi;
+      create table a4_bidi.note (id serial primary key, title text);
+      create trigger ac_sandbox_free_text before insert on a4_bidi.note for each row execute function sandbox.guard_free_text('title');
+      grant usage on schema a4_bidi to ebmr_app;
+      grant select, insert on a4_bidi.note to ebmr_app;
+      grant usage on all sequences in schema a4_bidi to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const outcome = async (db: { query: (q: string, v: unknown[]) => Promise<unknown> }, title: string): Promise<string> => {
+      try {
+        await db.query('insert into a4_bidi.note (title) values ($1)', [title]);
+        return 'ok';
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const probes = [`L${ch(0x5c8)} 2409-0017`, `B${ch(0x5c9)} 24-0001`, `${ch(0x460)}${ch(0x10d69)} 24-0001`, `L${ch(0xfbc3)} 0017-2409`, `L${ch(0x10ed0)} 0017-2409`].map(
+      (p) => `Drum of ${p} set aside`,
+    );
+    for (const title of probes) {
+      const m = await outcome(sbx.sandbox, title);
+      expect(m, title).toMatch(/^a4_bidi\.note title holds a word .*\[EBMR-SBX-024\]$/);
+      // The refusal's own example, TEST-L24-0001, is cut out first.
+      expect(m.replaceAll('TEST-L24-0001', ''), title).not.toMatch(/2409|0017|24-0001/);
+    }
+    expect((await sbx.admin.query("select 1 from a4_bidi.note where title ~ '2409|24-0001'")).rowCount).toBe(0);
+    expect(await outcome(sbx.sandbox, 'बैच 24 का वज़न 12.5 kg, TEST-L26-0101')).toBe('ok');
+    expect(await outcome(sbx.sandbox, 'התוף נשקל ונבדק')).toBe('ok');
+    for (const title of probes) expect(await outcome(gmp.app, title), title).toBe('ok');
+    const asRelease = async (db: { admin: { connect: () => Promise<pg.PoolClient> } }, name: string, ref: string): Promise<string> => {
+      const c = await db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query(`select kernel.set_actor_context(jsonb_build_object(
+          'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+          'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+          'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+          'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1140 test'))`);
+        await c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', $1, $2)", [name, ref]);
+        await c.query('commit');
+        return 'ok';
+      } catch (error) {
+        await c.query('rollback');
+        return (error as Error).message;
+      } finally {
+        c.release();
+      }
+    };
+    const employeeRef = await asRelease(sbx, 'TEST-Asha Rao', `L${ch(0x5c8)} 2409-0017`);
+    expect(employeeRef).toMatch(/^iam\.person employee_ref holds a word .*\[EBMR-SBX-024\]$/);
+    expect(employeeRef).not.toMatch(/2409|0017/);
+    // Earlier tests of this file store other employee references with 2409 in the same sandbox: the probe's mark is looked for.
+    expect((await sbx.admin.query('select 1 from iam.person where position($1 in employee_ref) > 0', [ch(0x5c8)])).rowCount).toBe(0);
+    expect(await asRelease(sbx, 'TEST-Asha Rao', 'EMP L 2409 stores')).toBe('ok');
+    expect(await asRelease(gmp, 'Asha Rao', `L${ch(0x5c8)} 2409-0017`)).toBe('ok');
+  });
+});

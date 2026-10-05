@@ -315,7 +315,8 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   // (recipe-core 0344, Phase 2 exit review F12 closed for the class; DI-05, DI-30), or a word that holds a digit and a
   // character other than an ASCII letter, digit, '/', '.' or '-' (kernel 1120, recipe-core 0350, decision F12.14), also as
   // a text that can be shown in another order (a right-to-left letter or a direction mark) could show it (kernel 1130,
-  // decision F12.15). The database's message names the member, never the word, so this answer does not repeat it either.
+  // decision F12.15; since kernel 1140 any code point of the ranges reserved for right-to-left scripts, a mark or sign
+  // of those scripts included, decision F12.16). The database's message names the member, never the word, so this answer does not repeat it either.
   'EBMR-EXE-147': {
     status: 422,
     kind: 'INVALID_INPUT',
@@ -324,7 +325,7 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whatYouCanDo: [
       'Write the identifier as its TEST- one, or describe it in words, and send it again.',
       'In a test run, write a number with the digits 0 to 9 and put a space between it and a word of another script or a sign (24 kg, 25 °C), then send it again.',
-      'A text with a right-to-left letter (Urdu, Arabic, Hebrew) or a direction mark can be shown in another order, so in a test run it holds no number in digits: write the number in words, then send it again.',
+      'A text with a right-to-left letter (Urdu, Arabic, Hebrew), a mark or sign of those scripts or a direction mark can be shown in another order, so in a test run it holds no number in digits: write the number in words, then send it again.',
     ],
     whoCanHelp: [SUPERVISOR],
     controls: ['DI-05', 'DI-30'],
