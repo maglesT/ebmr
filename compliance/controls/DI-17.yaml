@@ -316,6 +316,7 @@ tests:
   - "packages/kernel/test/platform/state-machine.test.ts > the engine cannot be bypassed > [DI-34][DI-17] with the engine flag forged, a transition that needs a signature cannot be written without one, even as a state row and history row that agree (EBMR-PLAT-077); the engine still makes it with a valid signature"
   - "packages/kernel/test/platform/state-machine.test.ts > the engine cannot be bypassed > [DI-34][DI-17] with the engine flag forged, a state row that changes without its history row is refused when the transaction commits (EBMR-PLAT-078), and a state row starts only for the aggregate type its machine governs (EBMR-PLAT-072); the state and the history still agree"
   - "packages/kernel/test/security/backend-signals.test.ts > backend signals (kernel 0970) > [DI-17][DI-30] a backend-signal grant to a role the cluster does not know is refused by the policy with EBMR-SBX-038, naming the function and the unknown role oid; nothing is applied, and the installation is reported as not holding the policy"
+  - "packages/kernel/test/security/backend-signals.test.ts > backend signals (kernel 0970) > [DI-17][DI-30] a role that holds EXECUTE on a backend-signal function cannot be dropped (the grant is recorded as a dependency of the role) and, once the grant is revoked, drops leaving no entry; only a direct catalogue write makes the grant to an unknown role oid that EBMR-SBX-038 refuses"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:
