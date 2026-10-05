@@ -2114,3 +2114,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   rule refuses it in a sandbox (cost: Urdu, Arabic or Hebrew prose with a number, or a text with a direction mark and a
   number; the refusal says to write the number in words). Tests: kernel identifier-words (3 new) and server
   db-guards-free-text-shown (1 new), each failing with 1130 moved aside; F12.14 (1), (2), (6) and (7) corrected.
+  Lane round 3 (2026-10-05, kernel 1140, decision F12.16): the verification found the class of characters that can
+  reorder a line was Unicode 18's, while the E2E browser (Chromium 141, ICU 74, Unicode 15.1) treats 61 more code points
+  as right-to-left letters (a Hebrew point, Garay marks, Arabic ligature signs that later Unicode versions made marks or
+  symbols), so 'Drum of L<U+05C8> 2409-0017 set aside', shown as L2409-0017, was kept over HTTP, also in a signed
+  disposition. Now the class is every code point of the ranges reserved for right-to-left scripts plus the bidi controls
+  and marks (checked against ICU 74, Unicode 14 and 18 over every code point); cost: a number next to a mark or sign of a
+  right-to-left script is refused in a test run. Tests: kernel identifier-words (4 new) and server
+  db-guards-free-text-shown (1 new), each failing with 1140 moved aside; F12.14 (7), F12.15 (1), (4), (6) corrected.
