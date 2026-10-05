@@ -113,8 +113,8 @@ Inventory taken on 4 October 2026 from the catalogue of a sandbox migrated to ke
 tablets 0630 (decision F12.8 in `docs/decisions/phase-2-open-questions.md`), and taken again after kernel 1040 and
 recipe-core 0346 and 0347 (decision F12.9), after recipe-core 0348 and tablets 0640 (decision F12.10) and after kernel
 1050 and recipe-core 0349 (decision F12.11), after kernel 1070 and 1080 (decision F12.12) and after kernel 1090, 1100
-and 1110 (decision F12.13); kernel 1120 and recipe-core 0350 (decision F12.14) add no table and no writer (only functions
-that read): the write surface is the same (no
+and 1110 (decision F12.13); kernel 1120 and recipe-core 0350 (decision F12.14) and kernel 1130 (decision F12.15) add no
+table and no writer (only functions that read): the write surface is the same (no
 new writer; recipe.engine_name and sandbox.look_alike are written by their migrations only, and the application roles have no right on the first and may
 only read the second); what reads it changed as A, C and D say. Correction (F12.10, the lane's round-12 verification): the
 inventory of F12.8 and F12.9 filed `tab.manual_weighing_basis` in D and said no entry quotes a reading's serial; the
@@ -186,7 +186,17 @@ or to a sign (२४किलो, 25वां, 3개, 25°C, ±0.1), a vulgar fra
 words holding a letter a table reads as a digit (Russian б) are refused in a test run (the accepted cost, decision
 F12.14 (6)). The residual above is replaced by F12.14 (7): digits only; a break by a space or an ASCII punctuation mark,
 also one drawn like a letter ('|'); an identifier every digit of which is drawn with a character no table reads as a
-digit; words and images; an allowed name or a word the run has whole from its MBR. A copy into
+digit; words and images; an allowed name or a word the run has whole from its MBR. Correction (F12.15, the
+verification of the lane's round 8, lane round 2): kernel 1050's arrangement of a text that can display in another
+order joined only runs of ASCII letters to runs of digits, so a word a reordered line shows joined with a letter outside
+ASCII was not read ('बैच <U+0460><U+200F> 24-0001 मिला', drawn by Chromium 141 as Ѡ24-0001, was recorded over HTTP in a
+hold reason and a business entry). Since kernel 1130 such a text (a right-to-left letter, an Arabic-Indic digit, a bidi
+control or a direction mark) is also read with each run of non-digit characters inside a word that holds a character
+outside ASCII joined to each run of digits, whatever lies between them, so A, B and C refuse it. Urdu, Arabic or Hebrew
+prose with a number, and any text with a direction mark or a bidi control and a number, are refused in a test run (the
+accepted cost, F12.15 (3)); such prose without a number passes. The residual's break "by a space or an ASCII
+punctuation mark" holds only for a text that displays in the order it is stored, and each text is read on its own (what
+two texts drawn on one line show together is not read: F12.15 (6)). A copy into
 the record from anywhere else is read where it lands, so this does not depend on tracing where a text comes from. The
 words allowed there are bound to the run, none by its form: the imported package (the MBR), the batch number and the
 site and room of the session that issued it or writes a row, the names of the engine's registers (`recipe.engine_name`:
