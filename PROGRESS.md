@@ -2008,6 +2008,63 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   letter, and allows a number only in the engine's shapes (context fragments within the section's maximum, held ids).
   Tests: server db-guards-free-text-weighing-basis (2) and -compounds (2), recipe-core engine-names-sql (golden runs);
   each fails with its migration moved aside. Decision F12.10; F12.8, F12.9 and sandbox.md section 7 corrected.
+- 2026-10-03: SQL MUTATION HARNESS FOR THE PHASE 2 GUARDS (branch phase-2/sql-mutation from 979e747; the full run and
+  the kill tests are the next step). tools/sql-mutation knew only the Phase 1 kernel. Definitions now come from every
+  SQL directory in migration order (kernel, site services, recipe-core, tablets), a function identified as PostgreSQL
+  does (name and input argument types), DROP FUNCTION followed (tab.chain_readable and the old signatures of
+  recipe.end_open_cells and tab.ingest_reading were stale). Templates are built by the set-ups' own builders: the
+  kernel set-up's (with recipe-core) for the db project, the server set-up's GMP and sandbox pair (seeded) for the
+  server project, which now also takes prepared templates from EBMR_SERVER_TEMPLATES (a JSON file of templates and
+  seeds, used as is and kept; unset, nothing changes). Per mutant the harness copies each template the group's tests
+  use, with the template's database privileges (a plain CREATE DATABASE ... TEMPLATE copy is open to PUBLIC, and
+  kernel sandbox/installation.test.ts reads the template's own privileges: the first smoke run "killed" two mutants
+  that way), applies the mutant where the function exists, as its owner, and runs each Vitest project with its own
+  files (a failure in either kills). The prepared-templates file holds the seeds' DEMO-ONLY keys: mode 0600, in a
+  mkdtemp directory removed at the end. Before the first mutant every target function is placed and re-applied
+  unmutated in a rolled-back transaction: its pg_proc row must not change (all 408: owner ebmr_owner everywhere, so
+  `set local role ebmr_owner` was right). Timeouts per group and project: max(240 s, 3 x baseline). Databases the
+  tests leave behind when --bail cancels a file in its set-up are dropped between groups. Mutators: the last
+  character of ->> #>> @> => and the first of <@ (2,727 mutants over all definitions; in PL/pgSQL an operator that
+  does not exist fails only at run time, so any test calling the function "killed" it: 251 of the Phase 1 groups'
+  1,714, and five Phase 1 functions had no other mutant) and the = of a RAISE ... USING option (always INVALID) are
+  no longer mutated; ids are kept, so equivalent.json still names the same 17 mutants. Targets: 23 new groups,
+  5,898 mutants in 32 groups (Phase 1's nine now 1,038): mbr-lifecycle 384, market-authorisation-and-issue 493,
+  execution-commands 209, execution-state-binding 333, evidence-source-and-entries 191, execution-steps-and-order
+  461, system-facts-and-time 333, exceptions-and-dispositions 234, limit-exceptions 223, involvement-and-independence
+  128, weighing 156, signed-content 222, sandbox-and-import 113, device-readings 375, evidence-listener 87,
+  manual-weighing-gate 256, read-authorisation 134, tablets-sessions 114, designer-guards 94, site-zone 33,
+  signing-failure-and-reasons 43, connection-roles 91, batch-number-register 153 (site-services 0600, never in a
+  run). Baselines 3-51 s per project, manual-weighing-gate 99 s; devices/manual-weighing-interference.test.ts (330 s
+  alone) is left out of the per-mutant runs. Smoke run on the spare cluster (--workers 1, 70 mutants, 3 per new
+  group plus tab.record_signatures#2): 58 killed, 12 survived, mean 17 s per mutant; every guard removal killed but
+  tab.content_for_signing#8 (TAB-020 tested only through the server, which refuses first). Estimate of the full run:
+  about 21 h with 2 workers on 4 shared CPUs. Weekly workflow lists every group.
+- 2026-10-04: PHASE 2 EXIT, SQL mutation kill tests integrated (24 groups): branch phase-2/kill-integration from
+  093ee58 merges phase-2/sql-mutation (the harness; PROGRESS kept from both sides, the test set-ups take the harness's
+  template support unchanged) and kill/<group> for mbr-lifecycle, market-authorisation-and-issue,
+  execution-state-binding, system-facts-and-time, execution-steps-and-order, manual-weighing-gate,
+  batch-number-register, limit-exceptions, sandbox-and-import, connection-roles, designer-guards, tablets-sessions,
+  evidence-listener, signing-failure-and-reasons, site-zone, exceptions-and-dispositions, execution-row-shape,
+  execution-commands, weighing, involvement-and-independence, read-authorisation, exception-source,
+  late-witness-and-step-times and stale-commands-and-readings (device-readings, evidence-source-and-entries,
+  entry-references-and-schema and signed-content are still being worked on). The five kill fix migrations moved into
+  ranges kept for the kill work, in their branches' order: recipe-core 0344 loop-exit limit verdicts -> 0370, 0345
+  market-authorisation family -> 0371, tablets 0640 API answer at the report's instant -> 0700, 0650 sandbox lot
+  identity test -> 0701, kernel 1030 segregation query with missing roles -> 1100; none of their functions is
+  redefined on the PR branch after the body each fix was built on. 445 kill tests in 33 files (271 db, 174 server) pass
+  on the integrated tree, and register sync-tests from that run lists them under the 54 controls they are tagged with
+  (726 entries). Two were adapted, nothing loosened: the execution-state-binding start-data test (recipe-core
+  0345 now refuses every accepted start carrying start data; the test asserts that refusal and reaches the 0300 entry
+  rule the two ways left, keeping execution_state_binding_check#98 killed, checked with the harness) and the
+  execution-commands role-map test (an exception description "D4 kill test" read as a lot number by EBMR-EXE-147; now
+  prose). equivalent.json records the 94 equivalence claims the skeptics upheld, under their current ids (17 -> 111
+  entries); activate_market_authorisation#56 was claimed only after the skeptic's review and is not recorded. Batch
+  scores, kills, equivalents and the 15 defects the kill agents reported (5 fixed by the migrations above, 10 open for
+  the lead: start of a minimum at a token arrival, a loop exit without its context, a signature's missing validity,
+  signatures of other steps invalidated by any row, market activation rows written around the command, the kernel
+  state history forged with the session flag, nested loops on one endpoint, the listener hold measured from the
+  close, and two refusal messages) are in docs/build-plan/phase-2-exit/sql-mutation-kill-results.md. Harness smoke on
+  this tree: site-zone 25/33 before the kill tests, 33/33 after.
 - 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 7 (F12: what a text shows is what the rule
   reads) (branch phase-2/recipe-core; F12; DI-05, DI-30, INV-18). What was wrong: the identifier reading (kernel 1030
   and 1040) took the words of a text from its stored NFKC form, where a character that shows nothing, a look-alike

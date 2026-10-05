@@ -187,7 +187,8 @@ that another command holds is skipped.
   reconciliation) is added only as the verdict on a value the row judges raises it (PR-08; sql 0305,
   `limit_verdicts`, `limit_exception_record`, `limit_exceptions_problem`): the database judges, as the engine does,
   a new data point of a parameter with limits (unless it is the endpoint of a loop whose iteration is undecided,
-  which must then stay waiting), the endpoint a loop's exit judges (the exit must give it its verdict), and a new
+  which must then stay waiting), the endpoint a loop's exit judges (the exit must give it its verdict, also on a row
+  that changes nothing but the decision: sql 0370), and a new
   computed value against its calculation's limits and every yield checkpoint on it: each reading against each tier,
   rounded as the tier's rule says (USP to the limit's decimals, Ph. Eur. to its significant figures), the worst
   reading governing. Each verdict's exception is derived member for member: type, category, controls, tier,

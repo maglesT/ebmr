@@ -48,7 +48,7 @@ const sorted = (xs: Iterable<string>): string[] => [...new Set(xs)].sort();
 const n = (x: object): FlowNode => x as FlowNode;
 
 describe('the names a test run may hold beside TEST- identifiers (recipe-core 0346)', () => {
-  it('[DI-05][DI-30] recipe.engine_name holds exactly the block rule codes the engine\'s blocks give, the block types of the registry, the controls of the register (compliance/controls) and the invariants INV-01 to INV-48, the engine\'s schema tag and the member name sha256; every control the engine\'s sources cite is among them; it is insert-only, audited, and the application role has no right on it', async () => {
+  it('[DI-05][DI-30] recipe.engine_name holds exactly the block rule codes the engine\'s blocks give, the block types of the registry, the controls of the register (compliance/controls) and the invariants INV-01 to INV-48, the engine\'s schema tag and the member name sha256; every control the engine\'s sources cite is among them; it is insert-only, audited, and the application role reads it and writes nothing (recipe-core 0380)', async () => {
     const src = sources();
     expect(await names('RULE_CODE')).toEqual(sorted([...src.matchAll(/['"`](G\d{2}(?:-[A-Z0-9]+)+)['"`]/g)].map((m) => m[1] ?? '')));
     expect(await names('BLOCK_TYPE')).toEqual(sorted(GENERIC_BLOCK_VERSIONS.map((b) => b.type)));
@@ -66,8 +66,11 @@ describe('the names a test run may hold beside TEST- identifiers (recipe-core 03
     expect(await names('MEMBER')).toEqual(['SHA256']);
     await expect(db.admin.query("update recipe.engine_name set name = 'L2409-0017' where name = 'DI-05'")).rejects.toThrow(/EBMR-AUDIT-004 recipe\.engine_name is insert-only/);
     await expect(db.admin.query("delete from recipe.engine_name where name = 'DI-05'")).rejects.toThrow(/EBMR-AUDIT-004/);
-    await expect(db.app.query('select name from recipe.engine_name')).rejects.toThrow(/permission denied/);
+    // The application role reads the names, as it reads every recipe table (0380; ADR 0012), and writes none of them.
+    expect(Number((await db.app.query<{ n: string }>('select count(*)::text as n from recipe.engine_name')).rows[0]?.n)).toBeGreaterThan(0);
     await expect(db.app.query("insert into recipe.engine_name (name, kind) values ('L2409-0017', 'CONTROL')")).rejects.toThrow(/permission denied/);
+    await expect(db.app.query("update recipe.engine_name set kind = 'CONTROL' where name = 'DI-05'")).rejects.toThrow(/permission denied/);
+    await expect(db.app.query("delete from recipe.engine_name where name = 'DI-05'")).rejects.toThrow(/permission denied/);
   });
 
   it('[DI-05] recipe.flow_edge_count equals the number of edges the compiler gives (compileMbr): dc-mini, both golden fixtures (a library call included), and flows of every construct: parallel branches, an alternative with an empty branch, a loop, a replicate section, a nested library call, an empty sequence; never below it when a library call cannot be expanded', async () => {

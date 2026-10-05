@@ -23,6 +23,8 @@ implemented_by:
 tests:
   - "packages/recipe-core/test/engine/stage.test.ts > G-17 QA hold point > [PR-45][IN-37] everything after a hold point waits for the QA disposition; only the hold point role signs it"
   - "packages/recipe-core/test/execution/step-acts-sql.test.ts > F67: minimum durations and blocks at the database agree with the engine (INV-20, PR-08, PR-45) > [PR-08][PR-13][PR-45][IN-37] a step the engine refuses as blocked is reported by the database on the same state, and accepted once the block is lifted; a hold point is not released while an exception that is not an alert is open"
+  - "apps/tablets-server/test/mutation/execution-steps-and-order.test.ts > F67: a hold point is released only with no open exception (0308 recipe.execution_step_acts_check; PR-45, IN-37, PR-08) > [PR-45][IN-37][PR-08] the honest release of a hold point with no exception open is recorded"
+  - "apps/tablets-server/test/mutation/execution-steps-and-order.test.ts > F67: a hold point is released only with no open exception (0308 recipe.execution_step_acts_check; PR-45, IN-37, PR-08) > [PR-45][IN-37][PR-08][PR-13] while an operator's ACTION exception is open: the clearance's own entries are recorded, a release stored with the engine result computed as if it were closed is refused, and QA's decision not to release is recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

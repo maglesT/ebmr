@@ -34,6 +34,7 @@ tests:
   - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] every state of the golden runs of both fixtures: the database's summary member of every stage frame is the engine's, before and after its sign-off"
   - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] states changed in every fact the summary reads: the database follows each change as the engine does"
   - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] every sign-off of the golden runs of both fixtures has exactly the engine's shape; each member, time or signer of its own is a problem (F01 round 2)"
+  - "apps/tablets-server/test/mutation/execution-steps-and-order.test.ts > F67 and F01: a stage sign-off keeps its minimum and records the summary its signature covers (0308, 0320; INV-20, PR-30, DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a refused sign-off is recorded as the refusal it is; a sign-off recording another statement, stage or start than the summary its signature covers is refused (EBMR-EXE-135); the engine's own is accepted"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
