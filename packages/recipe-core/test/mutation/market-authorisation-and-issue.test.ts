@@ -931,6 +931,111 @@ describe('D10: an activation and its cells are written only as the activation co
     const ofG = (await q<{ id: string }>('select id::text as id from recipe.authorisation_cell where family_id = $1', [g.familyId])).map((x) => x.id);
     expect((await w.violations()).filter((x) => x.invariant === 'INV-17' && ofG.includes(x.subject))).toEqual([]);
   }, LONG);
+
+  it('[INV-17][PR-02] an activation takes effect no earlier than the instant its transaction began: a row from that very instant is accepted, one a microsecond before it is refused', async () => {
+    const a = await familyA();
+    const id = await propose(current(a.v1, 'IN', [cell('S2', 'L7', BS)]));
+    const sg = await signRecord(id);
+    // The owner-level writer names the start of its own transaction (now()), or a microsecond before it.
+    const insertAt = async (from: string): Promise<{ at_start: boolean }[]> =>
+      withCommand(db.admin, await cmd(db, w.cast.qa, reason('owner-level activation under test')), async (c) =>
+        (
+          await c.query<{ at_start: boolean }>(
+            `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
+             values ($1, $2, $3, ${from}, $4, $4) returning effective_from = now() as at_start`,
+            [id, sg.qaSig, sg.regSig, NIL],
+          )
+        ).rows,
+      );
+    await refused(
+      insertAt("now() - interval '1 microsecond'"),
+      'EBMR-RCP-095',
+      /^An activation takes effect at the latest of the requested date \(none\), the version's effective date \(\S+\) and the moment it is activated, not at \S+ \(PR-02; INV-17; EBMR-RCP-095\)$/,
+    );
+    expect(await activationsOf(id)).toBe(0);
+    expect(await insertAt('now()')).toEqual([{ at_start: true }]);
+    expect(await recordState(id)).toBe('ACTIVE');
+  }, LONG);
+
+  it('[INV-17][PR-05][PR-04] a cell supersedes only the CURRENT cell of an earlier version of its own family, market, site, line and batch size, and only as a CURRENT cell: a predecessor of another family, market, line or batch size, one of its own version, and a BRIDGING written as the successor are each refused; the predecessor the command supersedes is accepted', async () => {
+    const PO40 = 'PO-40K';
+    // K: v1, v2 and v3 approved, with two batch sizes; another family X, CURRENT for IN at S1/L1 with PO-20K too.
+    const content = uniqueContent();
+    content.header.batchSizes = [...content.header.batchSizes, { id: PO40, quantity: { value: '40000', unit: '{tbl}' } }];
+    const k1 = await w.approvedVersion(content);
+    const k2 = await w.approvedSuccessor(k1.versionId, (m) => (m.header.title = `${m.header.title} v2`));
+    const k3 = await w.approvedSuccessor(k2.versionId, (m) => (m.header.title = `${m.header.title} v3`));
+    const x = await oneVersion();
+    const cellOf = (r: lc.ActivationResult, site: string, line: string, bs = BS): string =>
+      r.cells.find((c) => c.site === site && c.line === line && c.batch_size === bs)?.cell_id ?? '';
+    // Through the command: K's v1 CURRENT for IN at S1/L1, S1/L2 and S1/L1 with PO-40K, and for US at S1/L1; X's v1 for IN at S1/L1.
+    const k1In = await w.authorise(current(k1.versionId, 'IN', [cell('S1', 'L1', BS), cell('S1', 'L2', BS), cell('S1', 'L1', PO40)]));
+    const k1Us = await w.authorise(current(k1.versionId, 'US', [cell('S1', 'L1', BS)]));
+    const xIn = await w.authorise(current(x.v1, 'IN', [cell('S1', 'L1', BS)]));
+    const predecessor = cellOf(k1In, 'S1', 'L1');
+
+    interface Row {
+      id: string;
+      authorisation_id: string;
+      version_id: string;
+      site: string;
+      kind: 'CURRENT' | 'BRIDGING';
+      effective_from: string;
+      valid_until: string | null;
+      successor_version_id: string | null;
+    }
+    // An owner-level writer supersedes `pred` until `until` by the cell `row` (family K, market IN, line L1, PO-20K), then inserts that cell.
+    const supersededBy = (pred: string, until: string, row: Row) =>
+      asOwner(w.cast.qa, async (c) => {
+        await c.query("update recipe.authorisation_cell set status = 'SUPERSEDED', valid_until = $2, superseded_by = $3 where id = $1", [pred, until, row.id]);
+        await c.query(
+          `insert into recipe.authorisation_cell (id, authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind, status, effective_from, valid_until, successor_version_id)
+           values ($1, $2, $3, $4, 0, 'IN', $5, 'L1', $6, $7, $7, $8, $9, $10)`,
+          [row.id, row.authorisation_id, k1.familyId, row.version_id, row.site, BS, row.kind, row.effective_from, row.valid_until, row.successor_version_id],
+        );
+      });
+    const SUPERSEDES = (cellId: string, n: number) =>
+      exactly(`A cell supersedes only the CURRENT cell of an earlier version of the same family, market and scope, which ends where it begins: not cell ${cellId} of version ${n} (PR-05; INV-17; EBMR-RCP-089)`);
+    const cellStatuses = async (ids: string[]): Promise<string[]> =>
+      (await q<{ status: string }>('select status from recipe.authorisation_cell where id = any($1::uuid[])', [ids])).map((r) => r.status);
+
+    // v2's record for IN at S1/L1 with PO-20K, activated by an owner-level writer as the command would; its cell not written yet.
+    const r2 = await propose(current(k2.versionId, 'IN', [cell('S1', 'L1', BS)]));
+    await insertActivation(r2, await signRecord(r2), null);
+    const from2 = await activationFrom(r2);
+    const successor: Row = { id: randomUUID(), authorisation_id: r2, version_id: k2.versionId, site: 'S1', kind: 'CURRENT', effective_from: from2, valid_until: null, successor_version_id: null };
+    // A predecessor that differs from v2's cell in one thing only, each ending where v2's cell begins: another family,
+    // another market, another line, another batch size.
+    const others = [cellOf(xIn, 'S1', 'L1'), cellOf(k1Us, 'S1', 'L1'), cellOf(k1In, 'S1', 'L2'), cellOf(k1In, 'S1', 'L1', PO40)];
+    for (const other of others) await refused(supersededBy(other, from2, successor), 'EBMR-RCP-089', SUPERSEDES(other, 1));
+    // A cell of v1 itself (a second record of v1 for the same scope, activated as the command would) superseding v1's cell.
+    const again = await propose(current(k1.versionId, 'IN', [cell('S1', 'L1', BS)]));
+    await insertActivation(again, await signRecord(again), null);
+    const fromAgain = await activationFrom(again);
+    const sameVersion: Row = { id: randomUUID(), authorisation_id: again, version_id: k1.versionId, site: 'S1', kind: 'CURRENT', effective_from: fromAgain, valid_until: null, successor_version_id: null };
+    await refused(supersededBy(predecessor, fromAgain, sameVersion), 'EBMR-RCP-089', SUPERSEDES(predecessor, 1));
+    // A BRIDGING as the successor of a CURRENT cell. At S3/L1: v2 CURRENT, superseded by v3, v3 withdrawn, then v1 CURRENT
+    // (all through the command); a BRIDGING of v2 with successor v3 (v3 did supersede v2 there), activated as the command
+    // would, written as the successor of v1's cell.
+    await w.authorise(current(k2.versionId, 'IN', [cell('S3', 'L1', BS)]));
+    const k3At3 = await w.authorise(current(k3.versionId, 'IN', [cell('S3', 'L1', BS)]));
+    await withdraw(k3At3.authorisationId, 'registration of the third version withdrawn at S3');
+    const k1At3 = cellOf(await w.authorise(current(k1.versionId, 'IN', [cell('S3', 'L1', BS)])), 'S3', 'L1');
+    const br = await propose(bridging(k2.versionId, k3.versionId, [cell('S3', 'L1', BS)], E));
+    await insertActivation(br, await signRecord(br), null);
+    const fromBr = await activationFrom(br);
+    const asBridging: Row = { id: randomUUID(), authorisation_id: br, version_id: k2.versionId, site: 'S3', kind: 'BRIDGING', effective_from: fromBr, valid_until: E, successor_version_id: k3.versionId };
+    await refused(supersededBy(k1At3, fromBr, asBridging), 'EBMR-RCP-089', SUPERSEDES(k1At3, 1));
+    // Nothing was written: every predecessor is still CURRENT, and no record under test has a cell.
+    expect(await cellStatuses([...others, predecessor, k1At3])).toEqual(Array(6).fill('CURRENT'));
+    expect([await cellsOfRecord(r2), await cellsOfRecord(again), await cellsOfRecord(br)]).toEqual([[], [], []]);
+    // The predecessor the command supersedes, superseded as the command does it: accepted.
+    await supersededBy(predecessor, from2, successor);
+    expect(await cellsOfRecord(r2)).toEqual([expect.objectContaining({ id: successor.id, status: 'CURRENT', effective_from: from2 })]);
+    expect(await cellStatuses([predecessor])).toEqual(['SUPERSEDED']);
+    const ofK = (await q<{ id: string }>('select id::text as id from recipe.authorisation_cell where family_id = $1', [k1.familyId])).map((r) => r.id);
+    expect((await w.violations()).filter((v) => v.invariant === 'INV-17' && ofK.includes(v.subject))).toEqual([]);
+  }, LONG);
 });
 
 interface CellRowD10 {

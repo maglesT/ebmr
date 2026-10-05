@@ -69,8 +69,9 @@ Notes:
   decides whether to record it.
 - (b) The batch counted the two overloads of `recipe.row_step_key` under shared ids; the agent ran every current id
   of both, 121 in all.
-- (c) `recipe.minimum_duration_problem#15` and `recipe.own_node_event_problem#39`, each tied to an open defect below
-  (D6, D7). A test for either would have to fix in place behaviour the lead has not decided yet.
+- (c) `recipe.minimum_duration_problem#15` and `recipe.own_node_event_problem#39`, each tied to a defect below (D6,
+  D7). A test for either would have had to fix in place behaviour the lead had not decided yet. #39 is killed since by
+  D7's test (D7, fixed); #15 stays with D6, open.
 - (d) Counted on the kill branch's base, which had 44 survivors (functions redefined after batch 1).
 - (e) The fix migration (kernel 1100) replaced the function, so the agent killed every mutant of the new definition.
 - (f) `tab.resolve_session` was redefined (tablets 0550) after batch 1; the agent counted 45 survivors on its base.
@@ -132,7 +133,8 @@ Fixed:
   code and a yes or no for the identity test); a lot without a material or a status is refused by the table's NOT NULL
   constraints, as a new test shows. Tests: "[PR-18][DI-05] a test lot without a lot code, or without a yes-or-no
   identity test ..." (failing before 0711) and "[PR-18][DI-05] D4: the register's own refusal names what it checks
-  ..." (apps/tablets-server/test/mutation/sandbox-and-import.test.ts).
+  ..." (apps/tablets-server/test/mutation/sandbox-and-import.test.ts). Harness on `tab.register_sandbox_lot` (0711): 11
+  mutants, all killed.
 - **D5. Connection roles: the sandbox segregation query failed on a missing role.** In a sandbox, a GMP login role
   the cluster lacks made `sandbox.segregation_problems()` fail with "role does not exist" instead of reporting the
   problem, because PostgreSQL evaluated the privilege test before the existence test; rows also came out in join
@@ -157,7 +159,9 @@ Fixed:
   does), so the row is refused (EBMR-EXE-128). Tests: "[DI-35][INV-10][PR-14] D8: a recorded signature stored without
   its validity ..." (packages/recipe-core/test/mutation/execution-state-binding.test.ts) and "[DI-35][INV-10][PR-14] an
   exception whose state drops the validity ..." (apps/tablets-server/test/mutation/execution-state-binding.test.ts),
-  both failing before 0381.
+  both failing before 0381. Harness on `recipe.signature_change_problem`: 14 mutants, all killed. The other tests of a
+  stored validity already fail closed (0307's stage sign-off rule, 0320's sign-off shape, 0382); the kernel's read
+  `esig.signature_state`, which computes the validity and is never written by a writer.
 - **D9. Execution state binding: any row could invalidate another step's signature.** The binding check let any row turn
   any recorded signature of another step from valid to not valid, with no data changed, and left its signer among the
   performers; the engine invalidates only on a change of signed content or through a correction or result
@@ -192,7 +196,20 @@ Fixed:
   superuser plants with every trigger off, so the mutant stays killed. For writers with the triggers on that mutant is
   equivalent since 0383: a pin needs a valid cell, a cell needs the version's state row APPROVED when it is written, and
   the version machine has no way from APPROVED back to CHECKED, so when the approval's guard runs no batch is pinned to
-  the version itself. Not closed here: a cell's end and a withdrawal row written around their commands (they only take
+  the version itself. Harness on the three guards: 70 mutants, 68 killed, after two more tests for the first run's
+  survivors, both failing before 0383: "[INV-17][PR-02] an activation takes effect no earlier than the instant its
+  transaction began ..." (a row from that very instant accepted, one a microsecond before refused) and
+  "[INV-17][PR-05][PR-04] a cell supersedes only the CURRENT cell of an earlier version of its own family, market, site,
+  line and batch size ..." (a predecessor of another family, market, line or batch size, one of the cell's own version,
+  and a BRIDGING written as the successor, each refused). The two left are equivalent (reported, not recorded in
+  equivalent.json): `recipe.market_authorisation_activation_guard#27` makes the default of
+  `coalesce((v_ev ->> 'complete')::boolean, false)` true, and `recipe.evidence_status` (0120, never redefined) always
+  gives `complete` as a boolean (whether its list of missing items is empty), so the default is never read; `#36` makes
+  `effective_from > clock_timestamp()` `>=`, which differs only when the row's date equals, to the microsecond, the clock
+  the guard reads after its permission and signature checks, a clock boundary no writer can aim at. In the cell guard,
+  the test of the predecessor's kind can never be true (a cell with a successor is SUPERSEDED, which the table allows
+  only for a CURRENT cell); it is kept as written. `recipe.guard_in_flight_dispositioned`: 13 mutants, all killed with
+  the adapted test. Not closed here: a cell's end and a withdrawal row written around their commands (they only take
   an authorisation away), and D11 (the state row moved under the engine flag).
 - **D14. Sandbox and import: a misleading family-code reason.** When a test package's family code was not text, the
   refusal (EBMR-EXE-134, correct) named the same value on both sides, and when only the stored family code or product
@@ -201,7 +218,8 @@ Fixed:
   value that differs is named on the side that differs, the package's or the stored one. Tests: "[DI-04][DI-37] a
   family code or product that is not the content's is named on the side that differs ..."
   (packages/kernel/test/mutation/sandbox-and-import.test.ts) and the two family-code tests of
-  apps/tablets-server/test/mutation/sandbox-and-import.test.ts, failing before 0384.
+  apps/tablets-server/test/mutation/sandbox-and-import.test.ts, failing before 0384. Harness on
+  `recipe.package_header_problem` and `recipe.json_value_described`: 6 mutants, all killed.
 
 Open (the lead takes these next):
 
