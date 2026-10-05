@@ -3,7 +3,7 @@
 -- verification's own structural alternative, decision F12.14; control DI-05, invariant INV-18; ADR 0012: the rules hold
 -- when the application's own database credentials are used directly).
 --
--- What was wrong. Kernels 1050 to 1110 read a character outside ASCII as the identifier alphabet only when a table lists
+-- What was wrong. Kernels 1050 to 1102 read a character outside ASCII as the identifier alphabet only when a table lists
 -- it: UTS #39 confusables, Unicode names, and two drawing scans of Chromium 141 with the product's sans-serif face at the
 -- weights 400, 600 and 700. Every round found characters no table listed. The verification of round 7, with the scan's
 -- own data and criterion, found eleven more that the sans-serif face draws as a Latin letter: U+0460 as W and U+A646 as
@@ -33,7 +33,7 @@
 --      an ASCII letter, an ASCII digit, '/', '.' or '-' (trimmed of '/', '.' and '-' at either end, as kernel 1030 trims
 --      a word). A word holds a digit when it holds an ASCII digit or a character sandbox.look_alike reads as a string
 --      with a digit: every decimal digit of Unicode 18.0.0 (general category Nd, kernel 1050), the numeral digits kernel
---      1060 reads by name, the letters and signs UTS #39 and the drawing scans of kernels 1100 and 1110 read as a digit
+--      1060 reads by name, the letters and signs UTS #39 and the drawing scans of kernels 1101 and 1102 read as a digit
 --      (Cyrillic З, Э and б, Armenian Յ and Ց, the Odia visarga, N'Ko CHA, Ol Chiki AT), the vulgar fractions. An
 --      invisible character, a bidirectional control or mark, a combining or spacing mark, a letter or a digit of another
 --      script inside such a word makes it one of them: nothing is removed before the check.
@@ -74,16 +74,16 @@
 -- English, Hindi or the outline's regional languages with the digits 0 to 9.
 --
 -- Corrections of earlier claims (applied migrations are never edited):
---   * Kernels 1100 and 1110 (headers) and decision F12.13 (3) and (6) say a character is read as a letter only when it
+--   * Kernels 1101 and 1102 (headers) and decision F12.13 (3) and (6) say a character is read as a letter only when it
 --     is drawn closer to it than any two different ASCII letters or digits are to each other (5 and S at 1.41 px), and
 --     leave out "a character drawn near a letter but no closer than two letters of the alphabet are to each other". The
 --     scans cut at a 95th percentile of at most 1 px, so eleven characters strictly closer than 1.41 px stayed unread
 --     (U+0460 at 1.27 px to W in bold, U+A646 at 1.06 px to I); F12.13 (3)'s example U+0492 is at 1.33 px at the regular
---     weight. 1110's "every weight the product draws free text in" left out the monospace face of the signed text.
+--     weight. 1102's "every weight the product draws free text in" left out the monospace face of the signed text.
 --     From here on a word with a digit does not depend on any drawing; the tables still read the words without one.
 --   * Kernels 1050 and 1090 list among the honest text that passes Hindi prose with Devanagari digits, a number written
 --     against a Devanagari word (25वां), a vulgar fraction and the run's own words with a hyphen look-alike, and the tests
---     of 1050 to 1110 used them and Korean 3개 as honest text; in a test run they are refused from here on (above).
+--     of 1050 to 1102 used them and Korean 3개 as honest text; in a test run they are refused from here on (above).
 --
 -- What the rule still cannot see (residual, never weaker than the regulation, which asks that test data never be
 -- confused with GMP data, not that every way of drawing an identifier be read): an identifier of digits and separators

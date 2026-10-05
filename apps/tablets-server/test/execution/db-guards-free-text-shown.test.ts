@@ -22,11 +22,11 @@
  * advance hides nothing. U+FFFC OBJECT REPLACEMENT CHARACTER (no advance, no ink) and the spacing combining marks
  * (U+1031 and U+102B drawn before the L, U+0C03 on it) hid L2409-0017 and B24-0001 in records the honest server kept.
  *
- * Kernel 1100 (the same verification): letters UTS #39 does not list but Chromium draws as the alphabet, U+053C
+ * Kernel 1101 (the same verification): letters UTS #39 does not list but Chromium draws as the alphabet, U+053C
  * ARMENIAN CAPITAL LETTER LIWN (drawn as L) and U+14AB CANADIAN SYLLABICS MAA (drawn as L with a dot), hid L2409-0017 and
  * L24-0001; our attack on kernel 1090 found U+1D1A0 laid out with no room between digits.
  *
- * Kernel 1110 (our attack on kernel 1100): its scan drew at the regular weight only, while the product draws free text
+ * Kernel 1102 (our attack on kernel 1101): its scan drew at the regular weight only, while the product draws free text
  * in bold too (an exception banner's title, an audit entry's summary), and its first cut skipped some references; the
  * Masaram Gondi letter E and the Mro letter YO (drawn as L in bold) and the Old Italic HE (drawn as B) hid L2409-0017,
  * L24-0001 and B24-0001.
@@ -118,7 +118,7 @@ const NO_ADVANCE_PROBES: Record<string, string> = {
   'U+0C03': `L${ch(0xc03)}2409-0017`,
 };
 
-/** Kernel 1100: a letter drawn as L, and a character laid out with no room between digits. */
+/** Kernel 1101: a letter drawn as L, and a character laid out with no room between digits. */
 const DRAWN_PROBES: Record<string, string> = {
   'U+053C': `${ch(0x53c)}2409-0017`,
   'U+053C batch': `${ch(0x53c)}24-0001`,
@@ -126,7 +126,7 @@ const DRAWN_PROBES: Record<string, string> = {
   'U+1D1A0': `L${ch(0x1d1a0)}2409-0017`,
 };
 
-/** Kernel 1110: letters drawn as the alphabet in bold, or that kernel 1100's first cut missed. */
+/** Kernel 1102: letters drawn as the alphabet in bold, or that kernel 1101's first cut missed. */
 const WEIGHT_PROBES: Record<string, string> = {
   'U+11D06': `${ch(0x11d06)}2409-0017`,
   'U+16A42': `${ch(0x16a42)}24-0001`,
@@ -319,7 +319,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
 
-  it('[DI-05][DI-30][INV-18] kernel 1100: over HTTP L2409-0017 and L24-0001 with the Armenian capital LIWN for the L, L2409-0017 with the Canadian syllabic MAA for the L, and L2409-0017 with U+1D1A0 after the L, in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi, Greek and Japanese prose with numbers are recorded', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1101: over HTTP L2409-0017 and L24-0001 with the Armenian capital LIWN for the L, L2409-0017 with the Canadian syllabic MAA for the L, and L2409-0017 with U+1D1A0 after the L, in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi, Greek and Japanese prose with numbers are recorded', async () => {
     const d = await issued();
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
     const chain = `batch:${d.runId}`;
@@ -359,7 +359,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
 
-  it('[DI-05][DI-30][INV-18] kernel 1110: over HTTP L2409-0017 written with the Masaram Gondi letter E, L24-0001 with the Mro letter YO (both drawn as L in bold) and B24-0001 with the Old Italic HE (drawn as B), in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi and Greek prose with numbers are recorded', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1102: over HTTP L2409-0017 written with the Masaram Gondi letter E, L24-0001 with the Mro letter YO (both drawn as L in bold) and B24-0001 with the Old Italic HE (drawn as B), in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi and Greek prose with numbers are recorded', async () => {
     const d = await issued();
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
     const chain = `batch:${d.runId}`;

@@ -1,9 +1,9 @@
 -- Sandbox, training and simulation store (module A4), part 13: letters and digits are read as the E2E browser draws
 -- them at every weight the product draws free text in, with a complete comparison (Phase 2 exit follow-up F12, the
--- attack on kernel 1100 in the lane's own round 3; control DI-05, invariant INV-18; ADR 0012: the rules hold when the
+-- attack on kernel 1101 in the lane's own round 3; control DI-05, invariant INV-18; ADR 0012: the rules hold when the
 -- application's own database credentials are used directly).
 --
--- What was wrong. Kernel 1100 read the characters Chromium 141 draws as an ASCII letter or digit, but our attack on it
+-- What was wrong. Kernel 1101 read the characters Chromium 141 draws as an ASCII letter or digit, but our attack on it
 -- found two gaps in its scan:
 --   * it drew at the regular weight only, while the product draws free text of a test run's record in bold too: the
 --     exception banner's title and an audit entry's summary at 700, a typed value's echo at 600 (ui-kit floor, audit and
@@ -15,13 +15,13 @@
 --     regular weight: U+0265 (turned h, drawn as u with a hook), U+047A (Cyrillic round omega, as O with a mark), U+10307
 --     (Old Italic HE, as B) and U+1092F (Lydian T, as i with a mark).
 --
--- Correction of an earlier claim (applied migrations are never edited): kernel 1100's header (item 1) says every one
+-- Correction of an earlier claim (applied migrations are never edited): kernel 1101's header (item 1) says every one
 -- of the 172,350 characters was compared with every reference; it was compared at the regular weight only and with the
 -- references its first cut kept, and its residual "a character drawn no closer to a letter than two letters of the
 -- alphabet are to each other (U+0259 ə and a, U+0492 Ғ and F)" named two characters that are that close at 700.
 --
--- What changed. sandbox.look_alike takes 84 more rows, basis LETTER_SHAPE (kernel 1100), read by every user of the
--- reading. The scan of kernel 1100 is repeated on the same 172,350 characters and the same 62 letters and digits with
+-- What changed. sandbox.look_alike takes 84 more rows, basis LETTER_SHAPE (kernel 1101), read by every user of the
+-- reading. The scan of kernel 1101 is repeated on the same 172,350 characters and the same 62 letters and digits with
 -- each of 297 combining marks, drawn at weights 400, 600 and 700 (Noto Sans Variable and the machine's fonts at those
 -- weights), with the same criterion (aligned on the baseline and the centre of their ink, a search of one pixel either
 -- way, 95 % of each drawing's ink within one pixel of the other's) and a first cut that the criterion implies: a
@@ -31,7 +31,7 @@
 -- different ASCII letters or digits are drawn that close (the closest are 5 and S, and D and O at 700, at 1.41 px), so
 -- the line still reads a character as a letter only when it is drawn closer to it than any two letters are to each
 -- other. Matched, punctuation aside: 68 characters at 400, 88 at 600 and 102 at 700, 142 in all, of which kernel
--- 1100 lists 58; 8 punctuation marks matched too and are left out, as kernel 1100 leaves them out. A character matched
+-- 1101 lists 58; 8 punctuation marks matched too and are left out, as kernel 1101 leaves them out. A character matched
 -- at several weights is read as its closest drawing (the lowest 95th percentile, then the lowest mean, the regular
 -- weight first). Among the 84: Cyrillic Э as 3 and є as c, Greek Γ as l, Thai ก as n, Ol Chiki AT as 0, Armenian Ա
 -- as U and Ց as 8; Russian, Greek, Thai and Santali prose is read more where such a letter meets a digit (none is a
@@ -42,7 +42,7 @@
 -- Honest text passes as before (tested): Hindi, Tamil and Telugu prose (no letter of their scripts is drawn as the
 -- alphabet at these weights), Greek, Japanese, Chinese and Korean prose, an emoji, TEST- identifiers. Stricter only.
 --
--- What the reading still cannot see: kernel 1100's residual, the drawing as the regular, semibold and bold weights of
+-- What the reading still cannot see: kernel 1101's residual, the drawing as the regular, semibold and bold weights of
 -- the E2E machine's fonts give it (another weight or font may draw a character otherwise).
 --
 -- The table keeps its owner, privileges and basis check. Applied as a new migration because applied migrations are
@@ -51,7 +51,7 @@
 set local role ebmr_owner;
 
 -- Chromium 141's drawing at weights 400, 600 and 700 (header): letters, symbols and digits drawn as an ASCII letter or
--- digit that kernel 1100 does not list.
+-- digit that kernel 1101 does not list.
 insert into sandbox.look_alike (code_point, reads_as, basis)
 select c, r, 'LETTER_SHAPE' from (values
   (0x014A, 'N'), (0x01DD, 'a'), (0x0250, 'e'), (0x0259, 'a'), (0x0265, 'u'), (0x0283, 'j'), (0x02AF, 'u'),

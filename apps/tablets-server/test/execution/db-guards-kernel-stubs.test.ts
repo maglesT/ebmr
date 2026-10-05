@@ -203,7 +203,7 @@ describe('F12.KERNEL: the kernel\'s stub tables under the sandbox identifier rul
     expect(holding.rowCount).toBe(0);
   }, 180_000);
 
-  it('[DI-05][DI-30][INV-18] kernel 1100: in the sandbox the stubs\' free text holding L2409-0017 or L24-0001 written with the Armenian capital LIWN or the Canadian syllabic MAA for the L (letters the E2E browser draws as L), or L2409-0017 with U+1D1A0 after the L, is refused (EBMR-SBX-024) and nothing holds it; Hindi and Greek prose are stored; a GMP installation keeps the same texts', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1101: in the sandbox the stubs\' free text holding L2409-0017 or L24-0001 written with the Armenian capital LIWN or the Canadian syllabic MAA for the L (letters the E2E browser draws as L), or L2409-0017 with U+1D1A0 after the L, is refused (EBMR-SBX-024) and nothing holds it; Hindi and Greek prose are stored; a GMP installation keeps the same texts', async () => {
     const ch = (cp: number): string => String.fromCodePoint(cp);
     const drawn = {
       armenianLiwn: `Drum of lot ${ch(0x53c)}2409-0017 checked`,
@@ -233,7 +233,7 @@ describe('F12.KERNEL: the kernel\'s stub tables under the sandbox identifier rul
     expect(holding.rowCount).toBe(0);
   }, 180_000);
 
-  it('[DI-05][DI-30][INV-18] kernel 1110: in the sandbox the stubs\' free text holding L2409-0017 written with the Masaram Gondi letter E or B24-0001 written with the Old Italic HE (drawn as L in bold and as B) is refused (EBMR-SBX-024) and nothing holds it; Hindi and Greek prose are stored; a GMP installation keeps the same texts', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1102: in the sandbox the stubs\' free text holding L2409-0017 written with the Masaram Gondi letter E or B24-0001 written with the Old Italic HE (drawn as L in bold and as B) is refused (EBMR-SBX-024) and nothing holds it; Hindi and Greek prose are stored; a GMP installation keeps the same texts', async () => {
     const ch = (cp: number): string => String.fromCodePoint(cp);
     const drawn = {
       masaramGondiE: `Drum of lot ${ch(0x11d06)}2409-0017 checked`,

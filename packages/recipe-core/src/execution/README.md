@@ -476,7 +476,7 @@ that another command holds is skipped.
     (kernel migrations 1030 and 1040: the text as written and with its escapes read; since kernel 1050 and sql 0349 also
     as stored, as it shows, with its look-alikes read, and a text that can display in another order in every
     arrangement of its runs, decision F12.11; since kernel 1070 and 1080 the look-alikes of the separators as a class,
-    decision F12.12; since kernel 1090, 1100 and 1110 without what the E2E browser lays out with no room and with letters and
+    decision F12.12; since kernel 1090, 1101 and 1102 without what the E2E browser lays out with no room and with letters and
     digits read as it draws them, decision F12.13; since kernel 1120 a word that holds a digit and a character other than
     an ASCII letter, digit, '/', '.' or '-' is read whole and refused, bound only as the run's MBR or header holds it
     whole (sql 0350, `content_bound_words`), decision F12.14; since kernel 1130 also as a line that can display in another

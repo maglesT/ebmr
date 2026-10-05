@@ -54,7 +54,7 @@
 -- What still is not read (residual, never weaker than the regulation, which asks that test data never be confused with
 -- GMP data and not that every way of drawing an identifier be read): a character that another renderer or another font
 -- lays out with no advance (a floor terminal with other fonts may lay out a rare character differently); and decision
--- F12.12 (5) as kernel 1100's header corrects it.
+-- F12.12 (5) as kernel 1101's header corrects it.
 --
 -- sandbox.shown_text keeps its signature, owner and privileges. The new function is owned by ebmr_owner, pins its
 -- search_path with pg_temp last and may be executed by the application role, as 1050's classes. Applied as a new

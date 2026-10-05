@@ -27,7 +27,7 @@ afterAll(async () => {
 });
 
 /**
- * What the readings of kernels 1030 to 1110 read in each text as a real batch or lot number: the words of the identifier
+ * What the readings of kernels 1030 to 1102 read in each text as a real batch or lot number: the words of the identifier
  * alphabet that sandbox.real_identifiers returns, as the application role asks. Since kernel 1120 it also returns, whole,
  * every word that holds a digit and a character outside the alphabet (readWhole, below); the tests of the earlier
  * kernels' readings leave those out, and the kernel 1120 tests read them.
@@ -605,7 +605,7 @@ const NO_ADVANCE = [0xa717, 0xa718, 0xa719, 0xa71a, 0xa8fa, 0xfffc, 0x1193f, 0x1
 const SPACING_MARKS: number[] = [];
 for (let cp = 0x80; cp <= 0x10ffff; cp++) if ((cp < 0xd800 || cp > 0xdfff) && /\p{Mc}/u.test(String.fromCodePoint(cp))) SPACING_MARKS.push(cp);
 const OBJECT_REPLACEMENT = ch(0xfffc);
-/** Kernel 1100: U+1D1A0 MUSICAL SYMBOL ORNAMENT STROKE-6, laid out with an advance of at most a pixel between digits. */
+/** Kernel 1101: U+1D1A0 MUSICAL SYMBOL ORNAMENT STROKE-6, laid out with an advance of at most a pixel between digits. */
 const ORNAMENT_STROKE_6 = 0x1d1a0;
 
 describe('the identifier rule reads what takes no room in the E2E browser as nothing (kernel 1090)', () => {
@@ -638,7 +638,7 @@ describe('the identifier rule reads what takes no room in the E2E browser as not
          from generate_series(128, 1114111) g where (g < 55296 or g > 57343) and chr(g) ~ sandbox.no_advance_class()`,
       [[...NO_ADVANCE, ORNAMENT_STROKE_6]],
     );
-    // Kernel 1100 adds U+1D1A0 to the class (its own test reads it).
+    // Kernel 1101 adds U+1D1A0 to the class (its own test reads it).
     expect(count).toEqual([{ n: 492, fffc: true, mc: 477 }]);
   });
 
@@ -702,11 +702,11 @@ describe('the identifier rule reads what takes no room in the E2E browser as not
   });
 });
 
-/** Kernel 1100: punctuation drawn close to a letter with a mark, left out (a separator, as the danda). */
+/** Kernel 1101: punctuation drawn close to a letter with a mark, left out (a separator, as the danda). */
 const PUNCTUATION_DRAWN_AS_LETTERS = [0x230a, 0x230b, 0xff3b];
 
-describe('the identifier rule reads letters and digits as the E2E browser draws them (kernel 1100)', () => {
-  it('[DI-05][DI-30][INV-18] kernel 1100: letters UTS #39 does not list but Chromium 141 draws as the alphabet are read: U+053C ARMENIAN CAPITAL LETTER LIWN as L in L2409-0017 and L24-0001, U+14AB CANADIAN SYLLABICS MAA as L with a dot; sandbox.look_alike holds 58 such characters (LETTER_SHAPE), each read alone and between a letter and digits; punctuation drawn close to a letter stays a separator; U+1D1A0, laid out with no room between digits, is read as nothing', async () => {
+describe('the identifier rule reads letters and digits as the E2E browser draws them (kernel 1101)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1101: letters UTS #39 does not list but Chromium 141 draws as the alphabet are read: U+053C ARMENIAN CAPITAL LETTER LIWN as L in L2409-0017 and L24-0001, U+14AB CANADIAN SYLLABICS MAA as L with a dot; sandbox.look_alike holds 58 such characters (LETTER_SHAPE), each read alone and between a letter and digits; punctuation drawn close to a letter stays a separator; U+1D1A0, laid out with no room between digits, is read as nothing', async () => {
     const probes = {
       armenianLiwn: `${ch(0x53c)}2409-0017`,
       armenianLiwnBatch: `after lot ${ch(0x53c)}24-0001`,
@@ -730,7 +730,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
                                   or not exists (select 1 from sandbox.real_identifiers('Q' || chr(l.code_point) || '24')))::int as unread
          from sandbox.look_alike l where l.basis = 'LETTER_SHAPE'`,
     );
-    // Kernel 1100's 58 and the 84 kernel 1110 adds (its own test reads them).
+    // Kernel 1101's 58 and the 84 kernel 1102 adds (its own test reads them).
     expect(counts).toEqual([{ n: 58 + 84, unread: 0 }]);
     const { rows: samples } = await gmp.app.query<{ code_point: number; reads_as: string }>(
       "select code_point, reads_as from sandbox.look_alike where basis = 'LETTER_SHAPE' and code_point = any ($1::int[]) order by 1",
@@ -743,7 +743,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
     await expect(gmp.app.query("insert into sandbox.look_alike (code_point, reads_as, basis) values (1329, 'A', 'LETTER_SHAPE')")).rejects.toThrow(/permission denied/);
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1100: honest text is still not read as the identifier alphabet: Hindi, Tamil and Telugu prose with numbers (no letter of their scripts is drawn as the alphabet), Greek, Japanese, Chinese and Korean prose, an emoji, TEST- identifiers; Japanese prose that joins a Latin letter to a number with the prolonged sound mark (ラインAー1) is read as A-1 and so refused in a test run (decision F12.12 (4) corrected) (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1101: honest text is still not read as the identifier alphabet: Hindi, Tamil and Telugu prose with numbers (no letter of their scripts is drawn as the alphabet), Greek, Japanese, Chinese and Korean prose, an emoji, TEST- identifiers; Japanese prose that joins a Latin letter to a number with the prolonged sound mark (ラインAー1) is read as A-1 and so refused in a test run (decision F12.12 (4) corrected) (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
     const texts = [
       'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
       'டிரம் 3 எடை பார்க்கப்பட்டது',
@@ -758,7 +758,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
     expect(await readText(['ラインAー1を清掃しました'])).toEqual({ 'ラインAー1を清掃しました': ['A-1'] });
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1100: in a sandbox sandbox.guard_free_text refuses a row whose text holds U+053C 2409-0017 or U+14AB 2409-0017 (EBMR-SBX-024) without the word in the refusal, and a person whose employee reference holds U+053C 2409-0017; a GMP installation keeps them; honest text is stored', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1101: in a sandbox sandbox.guard_free_text refuses a row whose text holds U+053C 2409-0017 or U+14AB 2409-0017 (EBMR-SBX-024) without the word in the refusal, and a person whose employee reference holds U+053C 2409-0017; a GMP installation keeps them; honest text is stored', async () => {
     const table = `
       create schema a4_drawn;
       create table a4_drawn.note (id serial primary key, title text);
@@ -794,7 +794,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
         'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
         'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
         'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
-        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1100 test'))`);
+        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1101 test'))`);
       await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref ${ch(0x53c)}2409-0017`])).rejects.toThrow(
         /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
       );
@@ -805,8 +805,8 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
   });
 });
 
-describe('the identifier rule reads letters and digits as the E2E browser draws them at every weight of free text, compared in full (kernel 1110)', () => {
-  it('[DI-05][DI-30][INV-18] kernel 1110: letters Chromium 141 draws as the alphabet at the regular weight that kernel 1100\'s first cut missed (Old Italic HE as B, the turned h as u, the Old Polish O as O) and those it draws so at the semibold and bold weights the product shows free text in (the schwa as a, Cyrillic Ғ as F, the Masaram Gondi letter E and the Mro letter YO as L) are read; sandbox.look_alike holds 84 more LETTER_SHAPE rows, each read alone and between a letter and digits; the punctuation and kernel 1100\'s rows are not listed again', async () => {
+describe('the identifier rule reads letters and digits as the E2E browser draws them at every weight of free text, compared in full (kernel 1102)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1102: letters Chromium 141 draws as the alphabet at the regular weight that kernel 1101\'s first cut missed (Old Italic HE as B, the turned h as u, the Old Polish O as O) and those it draws so at the semibold and bold weights the product shows free text in (the schwa as a, Cyrillic Ғ as F, the Masaram Gondi letter E and the Mro letter YO as L) are read; sandbox.look_alike holds 84 more LETTER_SHAPE rows, each read alone and between a letter and digits; the punctuation and kernel 1101\'s rows are not listed again', async () => {
     const probes = {
       oldItalicHe: `after batch ${ch(0x10307)}24-0001`,
       turnedH: `Drum ${ch(0x265)}24-0001`,
@@ -832,7 +832,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
                                   or not exists (select 1 from sandbox.real_identifiers('Q' || chr(l.code_point) || '24')))::int as unread
          from sandbox.look_alike l where l.basis = 'LETTER_SHAPE'`,
     );
-    // Kernel 1100's 58 and kernel 1110's 84.
+    // Kernel 1101's 58 and kernel 1102's 84.
     expect(counts).toEqual([{ n: 58 + 84, unread: 0 }]);
     const { rows: added } = await gmp.app.query<{ code_point: number; reads_as: string }>(
       "select code_point, reads_as from sandbox.look_alike where basis = 'LETTER_SHAPE' and code_point = any ($1::int[]) order by 1",
@@ -844,7 +844,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
     expect((await gmp.app.query('select 1 from sandbox.look_alike where code_point = any ($1::int[])', [[...PUNCTUATION_DRAWN_AS_LETTERS, 0x11a9b]])).rowCount).toBe(0);
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1110: honest text is still not read as the identifier alphabet: Hindi, Tamil, Telugu, Greek, Japanese, Chinese and Korean prose with numbers, an emoji, TEST- identifiers (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1102: honest text is still not read as the identifier alphabet: Hindi, Tamil, Telugu, Greek, Japanese, Chinese and Korean prose with numbers, an emoji, TEST- identifiers (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
     const texts = [
       'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
       'ड्रम को साफ़ किया गया और 3 नमूने लिए गए।',
@@ -859,7 +859,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
     expect(await readText(texts)).toEqual(Object.fromEntries(texts.map((t) => [t, []])));
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1110: in a sandbox sandbox.guard_free_text refuses a row whose text holds B24-0001 written with the Old Italic HE or L2409-0017 written with the Masaram Gondi letter E (EBMR-SBX-024) without the word in the refusal, and a person whose employee reference holds the latter; a GMP installation keeps them', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1102: in a sandbox sandbox.guard_free_text refuses a row whose text holds B24-0001 written with the Old Italic HE or L2409-0017 written with the Masaram Gondi letter E (EBMR-SBX-024) without the word in the refusal, and a person whose employee reference holds the latter; a GMP installation keeps them', async () => {
     const table = `
       create schema a4_weights;
       create table a4_weights.note (id serial primary key, title text);
@@ -895,7 +895,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
         'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
         'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
         'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
-        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1110 test'))`);
+        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1102 test'))`);
       await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref ${ch(0x11d06)}2409-0017`])).rejects.toThrow(
         /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
       );

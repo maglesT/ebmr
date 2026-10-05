@@ -2056,8 +2056,8 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Indian and other scripts) and letters it draws as the alphabet that Unicode's confusables data does not list (an
   Armenian and a Canadian letter drawn as L) still hid L2409-0017 over HTTP. Kernel 1090 reads every spacing mark and
   the characters a scan of the browser's layout found with no advance as nothing (the audit trail's blank-reason test
-  is kept as it is, and why is recorded); kernel 1100 reads the letters and digits the browser draws closer to an ASCII
-  letter or digit than any two of those are drawn, and kernel 1110, from our own attack on 1100, does the same in the
+  is kept as it is, and why is recorded); kernel 1101 reads the letters and digits the browser draws closer to an ASCII
+  letter or digit than any two of those are drawn, and kernel 1102, from our own attack on 1101, does the same in the
   semibold and bold the product shows free text in, with a complete comparison. Our attack also found a test that
   failed by chance when an id held 2409; it now ignores numbers inside hex ids. Decision F12.13 states the defaults and
   what remains; F12.8, F12.10, F12.12 (wrong space widths, a Japanese sentence that is refused, the drawing used for
@@ -2092,7 +2092,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
     number joined to a word of another script or a sign (२४किलो, 25वां, 3개, 25°C, ±0.1), a vulgar fraction, a keycap
     emoji, Russian or Armenian words with a letter a table reads as a digit. Still not read: digits only, an
     identifier broken by a space or by an ASCII mark, one whose every digit is drawn with a character no table reads as
-    a digit, words, images. F12.13 (3), (4) and (6), the 1050 to 1110 headers (in 1120's), 0349 (in 0350's) and
+    a digit, words, images. F12.13 (3), (4) and (6), the 1050 to 1102 headers (in 1120's), 0349 (in 0350's) and
     sandbox.md section 7 corrected.
   Tests (each fails with kernel 1120 moved aside; the MBR one also with recipe-core 0350 moved aside): kernel
   identifier-words (3 new: the 18 characters read as nothing alone and whole when glued to digits, invisible, bidi and
