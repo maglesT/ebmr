@@ -2052,3 +2052,16 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   each group left out and the residual; F12.8, F12.10, F12.11 and sandbox.md corrected. Tests: kernel identifier-words
   (5 new, each fails with 1070 or 1080 moved aside), server db-guards-free-text-shown (1 new: 13 probes over HTTP and in
   business entries refused, honest Japanese, Chinese and Korean prose recorded).
+  Round 3 (verification of round 7, lane round 2): what Chromium lays out with no room (U+FFFC, the spacing marks of
+  Indian and other scripts) and letters it draws as the alphabet that Unicode's confusables data does not list (an
+  Armenian and a Canadian letter drawn as L) still hid L2409-0017 over HTTP. Kernel 1090 reads every spacing mark and
+  the characters a scan of the browser's layout found with no advance as nothing (the audit trail's blank-reason test
+  is kept as it is, and why is recorded); kernel 1100 reads the letters and digits the browser draws closer to an ASCII
+  letter or digit than any two of those are drawn, and kernel 1110, from our own attack on 1100, does the same in the
+  semibold and bold the product shows free text in, with a complete comparison. Our attack also found a test that
+  failed by chance when an id held 2409; it now ignores numbers inside hex ids. Decision F12.13 states the defaults and
+  what remains; F12.8, F12.10, F12.12 (wrong space widths, a Japanese sentence that is refused, the drawing used for
+  separators only) and sandbox.md corrected. Tests: kernel identifier-words (9 new), server db-guards-free-text-shown
+  (3 new) and db-guards-kernel-stubs (3 new), each failing with its migration moved aside; honest Hindi, Tamil, Telugu,
+  Greek, Japanese, Chinese and Korean prose recorded; the sandbox set-up with three persona sets reads none of its 33
+  persons.
