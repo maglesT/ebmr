@@ -478,6 +478,71 @@ describe('the engine cannot be bypassed', () => {
     expect(await rows('select * from platform.state_violations()')).toEqual([]);
   });
 
+  /**
+   * D11, the first question of the defect: who can reach an insert of a history row with the flag forged? Not the
+   * application role: it sets the engine flag and the signing marker (set_config is open to every role) and is still
+   * refused by the table privileges, before any trigger runs. Only the table owner (and superusers) hold INSERT or
+   * UPDATE on the state and signature tables; the sandbox role mirrors the application role (sandbox/bypass.test.ts).
+   */
+  it('[DI-34][DI-17] with the engine flag and the signing marker forged, the application role still cannot write a history row, a state row or a signature: only the table owner holds INSERT or UPDATE on those tables (D11)', async () => {
+    const id = await newRecord();
+    const c = await db.app.connect();
+    // Both settings are open to the application role, as to every role.
+    const withFlags = async (work: (client: pg.PoolClient) => Promise<unknown>): Promise<string> => {
+      await c.query('begin');
+      try {
+        const set = await c.query<{ flag: string; marker: string }>(
+          "select set_config('platform.state_engine', 'on', true) as flag, set_config('esig.signing_challenge', $1, true) as marker",
+          [randomUUID()],
+        );
+        expect(set.rows[0]?.flag).toBe('on');
+        return await work(c).then(
+          () => 'accepted',
+          (error: unknown) => `${(error as { code?: string }).code} ${(error as Error).message}`,
+        );
+      } finally {
+        await c.query('rollback');
+      }
+    };
+    try {
+      const submit: ForgedHistory = { from: 'DRAFT', event: 'SUBMIT', to: 'SUBMITTED', fromVersion: 1, toVersion: 2, permission: 'sample_record.submit' };
+      expect(await withFlags((client) => insertHistory(client, id, submit))).toBe('42501 permission denied for table state_history');
+      expect(
+        await withFlags((client) =>
+          client.query("update platform.aggregate_state set state = 'SUBMITTED', version = version + 1 where aggregate_id = $1", [id]),
+        ),
+      ).toBe('42501 permission denied for table aggregate_state');
+      expect(
+        await withFlags((client) =>
+          client.query(
+            "insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('sample_record', gen_random_uuid(), 'sample_record', 1, 'DRAFT', 1)",
+          ),
+        ),
+      ).toBe('42501 permission denied for table aggregate_state');
+      expect(await withFlags((client) => client.query('insert into esig.signature default values'))).toBe('42501 permission denied for table signature');
+    } finally {
+      c.release();
+    }
+    const { rows: writers } = await db.admin.query<{ tbl: string; writers: string[] }>(
+      `select t.tbl,
+              array(select r.rolname::text from pg_roles r
+                     where r.rolname in ('ebmr_owner', 'ebmr_app', 'ebmr_authn', 'ebmr_listener', 'ebmr_sandbox', 'ebmr_sandbox_listener')
+                       and (has_table_privilege(r.oid, t.tbl, 'INSERT') or has_table_privilege(r.oid, t.tbl, 'UPDATE'))
+                     order by 1)
+              || array(select 'PUBLIC' from pg_class k cross join lateral aclexplode(k.relacl) a
+                        where k.oid = t.tbl::regclass and a.grantee = 0 and a.privilege_type in ('INSERT', 'UPDATE') limit 1) as writers
+         from unnest(array['esig.signature', 'esig.signature_seal', 'platform.aggregate_state', 'platform.state_history']) t(tbl) order by 1`,
+    );
+    expect(writers).toEqual([
+      { tbl: 'esig.signature', writers: ['ebmr_owner'] },
+      { tbl: 'esig.signature_seal', writers: ['ebmr_owner'] },
+      { tbl: 'platform.aggregate_state', writers: ['ebmr_owner'] },
+      { tbl: 'platform.state_history', writers: ['ebmr_owner'] },
+    ]);
+    expect(await historyOf(id)).toEqual([{ row: 'DRAFT 1' }]);
+    expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'DRAFT', version: 1 });
+  });
+
   it('temporary objects of the application role cannot hijack the catalog lookups of the engine', async () => {
     const id = await newRecord('   ');
     const [guard] = await rows<{ oid: string }>("select function_oid::oid::text as oid from platform.state_guard where code = 'sample_record.has_body'");

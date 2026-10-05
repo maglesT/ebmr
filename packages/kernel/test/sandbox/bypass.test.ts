@@ -218,6 +218,65 @@ describe('the sandbox store', () => {
     expect(used[0]?.perms).toBeGreaterThan(10);
   });
 
+  /**
+   * D11 of the Phase 2 exit: the engine flag (platform.state_engine) and the signing marker (esig.signing_challenge) are
+   * session settings any role can set. Inside its own sandbox the sandbox role sets both and still cannot write a history
+   * row, a state row or a signature: it mirrors the application role, which may neither insert nor update those tables,
+   * so the table privileges refuse it before any trigger runs (kernel 1110 and 1112 guard what owner-level code writes).
+   */
+  it('[INV-18][DI-34][DI-17] inside its sandbox the sandbox role, with the engine flag and the signing marker forged, cannot write a history row, a state row or a signature (only the table owner may insert or update them; the sandbox role mirrors the application role)', async () => {
+    const c = await sbx.sandbox.connect();
+    const withFlags = async (sql: string): Promise<string> => {
+      await c.query('begin');
+      try {
+        const set = await c.query<{ flag: string }>(
+          "select set_config('platform.state_engine', 'on', true) as flag, set_config('esig.signing_challenge', gen_random_uuid()::text, true) as marker",
+        );
+        expect(set.rows[0]?.flag).toBe('on');
+        return await c.query(sql).then(
+          () => 'accepted',
+          (error: unknown) => `${(error as { code?: string }).code} ${(error as Error).message}`,
+        );
+      } finally {
+        await c.query('rollback');
+      }
+    };
+    try {
+      expect(
+        await withFlags(
+          `insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, from_state, event, to_state, from_version, to_version,
+                                               person_id, account_id, role_code, correlation_id)
+           values ('mbr_version', gen_random_uuid(), 'mbr_version', 1, 'CHECKED', 'APPROVE', 'APPROVED', 99, 100, 'p', 'a', 'r', gen_random_uuid())`,
+        ),
+      ).toBe('42501 permission denied for table state_history');
+      expect(
+        await withFlags(
+          "insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('mbr_version', gen_random_uuid(), 'mbr_version', 1, 'APPROVED', 1)",
+        ),
+      ).toBe('42501 permission denied for table aggregate_state');
+      expect(await withFlags("update platform.aggregate_state set state = 'APPROVED'")).toBe('42501 permission denied for table aggregate_state');
+      expect(await withFlags('insert into esig.signature default values')).toBe('42501 permission denied for table signature');
+    } finally {
+      c.release();
+    }
+    // Neither the sandbox role nor the application role it mirrors may insert or update any of them (whether either may
+    // read esig.signature depends on the edition: the tablets edition takes that SELECT away).
+    const { rows } = await sbx.admin.query<{ tbl: string; writers: string[] }>(
+      `select t.tbl,
+              array(select r.rolname::text from pg_roles r
+                     where r.rolname in ('ebmr_sandbox', 'ebmr_sandbox_listener', 'ebmr_app', 'ebmr_authn', 'ebmr_listener', 'ebmr_owner')
+                       and (has_table_privilege(r.oid, t.tbl, 'INSERT') or has_table_privilege(r.oid, t.tbl, 'UPDATE'))
+                     order by 1) as writers
+         from unnest(array['esig.signature', 'platform.aggregate_state', 'platform.state_history']) t(tbl) order by 1`,
+    );
+    expect(rows).toEqual([
+      { tbl: 'esig.signature', writers: ['ebmr_owner'] },
+      { tbl: 'platform.aggregate_state', writers: ['ebmr_owner'] },
+      { tbl: 'platform.state_history', writers: ['ebmr_owner'] },
+    ]);
+    expect((await sbx.admin.query('select * from sandbox.mirror_differences()')).rows).toEqual([]);
+  });
+
   it('[DI-05] sandbox output is stamped TEST, NOT GMP and is refused as GMP input', async () => {
     const stamp = await readInstallationStamp(sbx.sandbox);
     expect(stamp).toEqual({ installationKind: 'SANDBOX', watermark: WATERMARK_TEXT });
