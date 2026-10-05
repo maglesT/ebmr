@@ -123,20 +123,26 @@ async function businessEntry(d: RunDriver, chainKey: string, message: string, de
   );
 }
 
-/** Where the record of run `runId` holds `text`: rows, events, state, content versions and its audit chains. */
-async function recordHolding(runId: string, text: string): Promise<Record<string, number>> {
-  const like = `%${text}%`;
-  const count = async (sql: string) => Number((await sbx.db.admin.query<{ n: string }>(sql, [runId, like])).rows[0]?.n ?? '0');
+/**
+ * Where the record of run `runId` holds `text`: rows, events, state, content versions and its audit chains. With
+ * `standalone`, only where `text` stands outside a run of hexadecimal digits: the record holds ids and digests whose hex
+ * digits can hold a short number such as 2409 by chance (an audit payload of the kernel 1070 test did so once, which
+ * failed the check although no probe was stored), while every probe puts a letter, a separator or a look-alike beside
+ * its digits.
+ */
+async function recordHolding(runId: string, text: string, standalone = false): Promise<Record<string, number>> {
+  const [op, pattern] = standalone ? ['~', `(^|[^0-9A-Fa-f])${text}($|[^0-9A-Fa-f])`] : ['like', `%${text}%`];
+  const count = async (sql: string) => Number((await sbx.db.admin.query<{ n: string }>(sql, [runId, pattern])).rows[0]?.n ?? '0');
   return {
-    rows: await count(`select count(*)::text as n from recipe.execution_command where batch_id = $1 and (command::text like $2 or evidence::text like $2 or coalesce(refusal::text, '') like $2)`),
-    events: await count('select count(*)::text as n from recipe.execution_event where batch_id = $1 and event::text like $2'),
-    state: await count('select count(*)::text as n from recipe.execution_state where batch_id = $1 and state::text like $2'),
+    rows: await count(`select count(*)::text as n from recipe.execution_command where batch_id = $1 and (command::text ${op} $2 or evidence::text ${op} $2 or coalesce(refusal::text, '') ${op} $2)`),
+    events: await count(`select count(*)::text as n from recipe.execution_event where batch_id = $1 and event::text ${op} $2`),
+    state: await count(`select count(*)::text as n from recipe.execution_state where batch_id = $1 and state::text ${op} $2`),
     contents: await count(`select count(*)::text as n from (
        select content from recipe.execution_step_content where batch_id = $1 union all select content from recipe.execution_stage_content where batch_id = $1
        union all select content from recipe.execution_exception_content where batch_id = $1 union all select content from recipe.execution_point_content where batch_id = $1) x
-      where x.content::text like $2`),
+      where x.content::text ${op} $2`),
     audit: await count(`select count(*)::text as n from kernel.audit_event e
-      where (e.chain_key = 'batch:' || $1 or e.chain_key ~ ('^(esig_challenge:|esig_signature:)?batch_(step|stage|exception|point):' || $1 || ':')) and (e.payload::text like $2 or e.chain_key like $2)`),
+      where (e.chain_key = 'batch:' || $1 or e.chain_key ~ ('^(esig_challenge:|esig_signature:)?batch_(step|stage|exception|point):' || $1 || ':')) and (e.payload::text ${op} $2 or e.chain_key ${op} $2)`),
   };
 }
 
@@ -166,7 +172,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     };
     expect(honest).toEqual({ emoji: 'ok', softHyphen: 'ok', hindi: 'ok', runWords: 'ok', hold: 'ok' });
     for (const [name, word] of Object.entries(PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
-    expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
     expect(await recordHolding(d.runId, `DISP${ch(0x2010)}1 to BLEND${ch(0x2011)}1`)).toMatchObject({ rows: 1 });
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
@@ -191,7 +197,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     const honest = await businessEntry(d, chain, `Drum TEST-L26-0101 moved ${ch(0x2714)}${ch(0xfe0f)}`, { drum: { note: { text: `pharma${ch(0xad)}ceutical ingre${ch(0xad)}dients` } } });
     expect(honest).toBe('ok');
     for (const name of Object.keys(outcomes)) expect(await recordHolding(d.runId, PROBES[name] ?? ''), name).toEqual(NOTHING);
-    expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
     expect(await recordHolding(d.runId, 'TEST-L26-0101 moved')).toMatchObject({ audit: 1 });
   }, 300_000);
 
@@ -229,7 +235,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     };
     expect(honest).toEqual({ japanese: 'ok', chinese: 'ok', korean: 'ok', hold: 'ok', entry: 'ok' });
     for (const [name, word] of Object.entries(SEPARATOR_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
-    expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
     expect(await recordHolding(d.runId, 'データ 3 件を記録')).toMatchObject({ rows: 1 });
     expect(await recordHolding(d.runId, '一号滚筒 3 桶')).toMatchObject({ audit: 1 });
     expect(await violations(sbx)).toEqual([]);
@@ -268,7 +274,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     };
     expect(honest).toEqual({ hindi: 'ok', tamil: 'ok', hold: 'ok', entry: 'ok' });
     for (const [name, word] of Object.entries(NO_ADVANCE_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
-    expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
     expect(await recordHolding(d.runId, 'यह 25वां बैच है')).toMatchObject({ rows: 1 });
     expect(await recordHolding(d.runId, 'कुल वज़न 250 किलो')).toMatchObject({ audit: 1 });
     expect(await violations(sbx)).toEqual([]);
@@ -307,7 +313,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     };
     expect(honest).toEqual({ hindi: 'ok', greek: 'ok', hold: 'ok', entry: 'ok' });
     for (const [name, word] of Object.entries(DRAWN_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
-    expect(await recordHolding(d.runId, '2409')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
     expect(await recordHolding(d.runId, 'कुल वज़न 250 किलो')).toMatchObject({ rows: 1 });
     expect(await recordHolding(d.runId, 'डिब्बा 3 तौला गया')).toMatchObject({ audit: 1 });
     expect(await violations(sbx)).toEqual([]);
