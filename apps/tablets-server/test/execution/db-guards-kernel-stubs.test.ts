@@ -184,7 +184,8 @@ describe('F12.KERNEL: the kernel\'s stub tables under the sandbox identifier rul
     const gmpOutcomes: Record<string, string> = {};
     for (const [name, write] of Object.entries(STUB_TEXTS)) {
       for (const [variant, v] of Object.entries(shown)) sandboxOutcomes[`${name}.${variant}`] = await asSteward(sbx, write(v));
-      sandboxOutcomes[`${name}.prose`] = await asSteward(sbx, write('ड्रम को साफ़ किया गया, 25वां बैच, TEST-L26-0101 अलग रखा गया'));
+      // The number apart from the word: 25वां is refused in the sandbox since kernel 1120 (decision F12.14).
+      sandboxOutcomes[`${name}.prose`] = await asSteward(sbx, write('ड्रम को साफ़ किया गया, बैच 25, TEST-L26-0101 अलग रखा गया'));
       gmpOutcomes[`${name}.objectReplacement`] = await asSteward(gmp, write(shown.objectReplacement));
     }
     const expected: Record<string, string> = {};

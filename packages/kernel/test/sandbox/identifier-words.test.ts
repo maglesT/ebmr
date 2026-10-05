@@ -26,8 +26,20 @@ afterAll(async () => {
   await Promise.all([gmp?.drop(), sbx?.drop()]);
 });
 
-/** What sandbox.real_identifiers reads in each text, as the application role asks. */
+/**
+ * What the readings of kernels 1030 to 1110 read in each text as a real batch or lot number: the words of the identifier
+ * alphabet that sandbox.real_identifiers returns, as the application role asks. Since kernel 1120 it also returns, whole,
+ * every word that holds a digit and a character outside the alphabet (readWhole, below); the tests of the earlier
+ * kernels' readings leave those out, and the kernel 1120 tests read them.
+ */
 async function readText(texts: readonly string[]): Promise<Record<string, string[]>> {
+  const out = await readWhole(texts);
+  for (const t of texts) out[t] = (out[t] ?? []).filter((w) => /^[A-Za-z0-9/.-]+$/.test(w));
+  return out;
+}
+
+/** Everything sandbox.real_identifiers returns for each text, as the application role asks (kernel 1120 included). */
+async function readWhole(texts: readonly string[]): Promise<Record<string, string[]>> {
   const out: Record<string, string[]> = {};
   for (const t of texts) {
     const { rows } = await gmp.app.query<{ w: string }>('select w from sandbox.real_identifiers($1::text) w', [t]);
@@ -267,7 +279,7 @@ describe('the identifier rule reads a text as it shows (kernel 1050)', () => {
     });
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1050: honest text is still not read: prose with an emoji and its variation selector, a soft hyphen in a long word without digits, Hindi prose with Devanagari and ASCII digits and the danda, Tamil, Greek, Japanese and Korean prose with a number, a fraction and a date, TEST- identifiers', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1050: honest text is still not read as the identifier alphabet: prose with an emoji and its variation selector, a soft hyphen in a long word without digits, Hindi prose with Devanagari and ASCII digits and the danda, Tamil, Greek, Japanese and Korean prose with a number, a fraction and a date, TEST- identifiers (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
     const texts = [
       `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)} by the operator ${ch(0x1f44d)}${ch(0x1f3fd)}, 2 of 3 drums weighed`,
       `pharma${SOFT_HYPHEN}ceutical ingre${SOFT_HYPHEN}dients weighed${SOFT_HYPHEN}`,
@@ -509,7 +521,7 @@ describe('the identifier rule reads the look-alikes of the separators as a class
     await expect(gmp.app.query("delete from sandbox.look_alike where code_point = 12540")).rejects.toThrow(/permission denied/);
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1070: honest text is still not read: Japanese prose with the prolonged sound mark, Chinese prose with the ideograph one, Korean prose with the letter eu, Greek prose with kappa and tau, a number and its unit written with a thin space or a narrow no-break space, an emoji, TEST- identifiers; the same texts naming LOTー2409ー0017 or L─24─0001 are read', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1070: honest text is still not read as the identifier alphabet: Japanese prose with the prolonged sound mark, Chinese prose with the ideograph one, Korean prose with the letter eu, Greek prose with kappa and tau, a number and its unit written with a thin space or a narrow no-break space, an emoji, TEST- identifiers; the same texts naming LOTー2409ー0017 or L─24─0001 are read (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
     const texts = [
       'ローラーを清掃し、データ 3 件を記録しました。',
       '一号滚筒已称重，共 3 桶。',
@@ -630,7 +642,7 @@ describe('the identifier rule reads what takes no room in the E2E browser as not
     expect(count).toEqual([{ n: 492, fffc: true, mc: 477 }]);
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1090: honest text is still not read: Hindi prose with its vowel signs, Devanagari and ASCII digits and a number written against a word (25वां), Tamil and Telugu prose with a number, an emoji and its variation selector, a soft hyphen in a long word, TEST- identifiers', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1090: honest text is still not read as the identifier alphabet: Hindi prose with its vowel signs, Devanagari and ASCII digits and a number written against a word (25वां), Tamil and Telugu prose with a number, an emoji and its variation selector, a soft hyphen in a long word, TEST- identifiers (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
     const texts = [
       'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
       'ड्रम को साफ़ किया गया और 3 नमूने लिए गए।',
@@ -667,7 +679,9 @@ describe('the identifier rule reads what takes no room in the E2E browser as not
       expect(m, title).toMatch(FREE_TEXT);
       expect(m, title).not.toMatch(/2409/);
     }
-    expect(await outcome(sbx.sandbox, 'ड्रम TEST-L26-0101 को साफ़ किया गया, 25वां बैच')).toBe('ok');
+    // A number joined to a Devanagari word (25वां) is refused in a sandbox since kernel 1120 (decision F12.14): the number
+    // stands apart here.
+    expect(await outcome(sbx.sandbox, 'ड्रम TEST-L26-0101 को साफ़ किया गया, बैच 25')).toBe('ok');
     expect((await sbx.admin.query("select 1 from a4_room.note where title like '%2409%'")).rowCount).toBe(0);
     for (const title of probes) expect(await outcome(gmp.app, title)).toBe('ok');
     const c = await sbx.admin.connect();
@@ -729,7 +743,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
     await expect(gmp.app.query("insert into sandbox.look_alike (code_point, reads_as, basis) values (1329, 'A', 'LETTER_SHAPE')")).rejects.toThrow(/permission denied/);
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1100: honest text is still not read: Hindi, Tamil and Telugu prose with numbers (no letter of their scripts is drawn as the alphabet), Greek, Japanese, Chinese and Korean prose, an emoji, TEST- identifiers; Japanese prose that joins a Latin letter to a number with the prolonged sound mark (ラインAー1) is read as A-1 and so refused in a test run (decision F12.12 (4) corrected)', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1100: honest text is still not read as the identifier alphabet: Hindi, Tamil and Telugu prose with numbers (no letter of their scripts is drawn as the alphabet), Greek, Japanese, Chinese and Korean prose, an emoji, TEST- identifiers; Japanese prose that joins a Latin letter to a number with the prolonged sound mark (ラインAー1) is read as A-1 and so refused in a test run (decision F12.12 (4) corrected) (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
     const texts = [
       'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
       'டிரம் 3 எடை பார்க்கப்பட்டது',
@@ -830,7 +844,7 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
     expect((await gmp.app.query('select 1 from sandbox.look_alike where code_point = any ($1::int[])', [[...PUNCTUATION_DRAWN_AS_LETTERS, 0x11a9b]])).rowCount).toBe(0);
   });
 
-  it('[DI-05][DI-30][INV-18] kernel 1110: honest text is still not read: Hindi, Tamil, Telugu, Greek, Japanese, Chinese and Korean prose with numbers, an emoji, TEST- identifiers', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1110: honest text is still not read as the identifier alphabet: Hindi, Tamil, Telugu, Greek, Japanese, Chinese and Korean prose with numbers, an emoji, TEST- identifiers (kernel 1120 also reads, whole, a word among them that joins a digit to a character outside the alphabet: decision F12.14)', async () => {
     const texts = [
       'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
       'ड्रम को साफ़ किया गया और 3 नमूने लिए गए।',
@@ -889,5 +903,151 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
       await c.query('rollback');
       c.release();
     }
+  });
+});
+
+/**
+ * Kernel 1120 (the verification of the lane's round 7, lane round 3, closed with its structural alternative, decision
+ * F12.14): the characters it found drawn as a Latin letter or digit that no table lists. In the product's sans-serif face
+ * at 400 to 700: U+0460 (W), U+A646 (I), U+056A (d), U+104FB (z), U+2AEE (l), U+04FD, U+13A6, U+1456, U+1D03, U+28B8 and
+ * U+A666; in the monospace face of the signed text: U+03D8 (Q), U+053A and U+10EB (d), U+0252 (o), U+057F (m), U+10DC and
+ * U+1E9F (6). From kernel 1120 on, in a sandbox, a word that holds a digit is written with ASCII letters, ASCII digits,
+ * '/', '.' and '-' only, whatever a table lists.
+ */
+const UNLISTED_DRAWN = [0x0460, 0xa646, 0x056a, 0x104fb, 0x2aee, 0x04fd, 0x13a6, 0x1456, 0x1d03, 0x28b8, 0xa666, 0x03d8, 0x053a, 0x10eb, 0x0252, 0x057f, 0x10dc, 0x1e9f];
+const hexOf = (cp: number): string => `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`;
+
+describe('in a sandbox a word that holds a digit is plain ASCII (kernel 1120)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1120: a word ends only at Unicode White_Space or ASCII punctuation other than / . - (sandbox.text_words); each character the verification of round 7 found drawn as a Latin letter or digit and listed by no table (U+0460, U+A646, U+056A, U+104FB, U+2AEE, U+04FD, U+13A6, U+1456, U+1D03, U+28B8, U+A666; in the monospace face U+03D8, U+053A, U+10EB, U+0252, U+057F, U+10DC, U+1E9F) is read as nothing alone, and a word that glues it to digits, before or after, is read whole; so is a word with a digit that holds an invisible character, a bidirectional control, a mark or a digit of another script', async () => {
+    // Alone: no table reads them, and a word without a digit is not held to ASCII.
+    expect(Object.values(await readWhole(UNLISTED_DRAWN.map(ch))).flat()).toEqual([]);
+    const glued: Record<string, string[]> = {};
+    const expected: Record<string, string[]> = {};
+    for (const cp of UNLISTED_DRAWN) {
+      const c = ch(cp);
+      const texts = [`Drum of ${c}24-0001 set aside`, `lot ${c}2409-0017.`, `drum 2409-0017${c} found`];
+      const read = await readWhole(texts);
+      glued[hexOf(cp)] = texts.flatMap((t) => read[t] ?? []);
+      expected[hexOf(cp)] = [`${c}24-0001`, `${c}2409-0017`, `2409-0017${c}`];
+    }
+    expect(glued).toEqual(expected);
+    // Inside a word with a digit, what kernels 1050 to 1090 read as nothing or as the alphabet makes the word read whole,
+    // besides what those readings read.
+    const inside = {
+      invisible: `L${ch(0x200b)}2409-0017`,
+      bidi: `L${ch(0x202e)}7100-9042${ch(0x202c)}`,
+      combiningMark: `L${ch(0x301)}2409-0017`,
+      spacingMark: `L${ch(0x1031)}2409-0017`,
+      devanagariDigits: 'L२४०९-००१७',
+    };
+    const read = await readWhole(Object.values(inside).map((w) => `Drum of ${w} set aside`));
+    for (const [name, w] of Object.entries(inside)) expect(read[`Drum of ${w} set aside`], name).toContain(w);
+    expect(read[`Drum of ${inside.invisible} set aside`]).toEqual(['L2409-0017', inside.invisible].sort());
+    // The one boundary of a word: White_Space and ASCII punctuation other than '/', '.' and '-'; a zero-width space, a soft
+    // hyphen, the danda and a hyphen look-alike stay inside the word.
+    const boundary = `a!b"c#d$e%f&g'h(i)j*k+l,m-n.o/p:q;r<s=t>u?v@w[x\\y]z^A_B\`C{D|E}F~G H\tI${ch(0xa0)}J${ch(0x2009)}K${ch(0x3000)}L${ch(0x200b)}M${SOFT_HYPHEN}N${ch(0x964)}O${ch(0x2010)}P`;
+    const { rows: words } = await gmp.app.query<{ w: string }>('select w from sandbox.text_words($1) w', [boundary]);
+    expect(words.map((r) => r.w)).toEqual([...'abcdefghijkl', 'm-n.o/p', ...'qrstuvwxyzABCDEFGHIJK', `L${ch(0x200b)}M${SOFT_HYPHEN}N${ch(0x964)}O${ch(0x2010)}P`]);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1120: honest text is still not read: Hindi prose with ASCII digits apart from its words (बैच 24 का वज़न 12.5 kg), Tamil, Japanese, Korean and Greek prose with a number apart, an emoji with its variation selector next to a word, a soft hyphen in a long word without digits, TEST- identifiers, dates and quantities in ASCII; the accepted cost of decision F12.14 is read whole: digits of another script, a number joined to a word of another script or to a sign, a vulgar fraction, a keycap, a hyphen look-alike in a word with a digit, a word with a letter a table reads as a digit', async () => {
+    const honest = [
+      'बैच 24 का वज़न 12.5 kg',
+      'ड्रम को साफ़ किया गया और 3 नमूने लिए गए। कुल वज़न 250 किलो है।',
+      'டிரம் 3 எடை பார்க்கப்பட்டது',
+      'ドラム 3 本を計量しました',
+      '드럼 3 개 확인',
+      'Το δοχείο 3 ζυγίστηκε στις 10:15',
+      `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)} by the operator ${ch(0x1f44d)}${ch(0x1f3fd)}, 2 of 3 drums weighed`,
+      `Booth${ch(0x2714)}${ch(0xfe0f)}cleaned, 2 of 3 drums weighed`,
+      `pharma${SOFT_HYPHEN}ceutical ingre${SOFT_HYPHEN}dients weighed`,
+      'Drum TEST-L26-0101 of batch TEST-B26-0001',
+      'Weighed on 2026-10-05 at 10:15: 12.5 kg, then 250 mg',
+      `250${THIN_SPACE}mg and 12${ch(0x202f)}kg weighed`,
+    ];
+    expect(await readWhole(honest)).toEqual(Object.fromEntries(honest.map((t) => [t, []])));
+    // Refused in a test run from kernel 1120 on although honest (decision F12.14): the refusal says to write the number
+    // with the digits 0 to 9 and a space.
+    const cost: Record<string, string> = {
+      'बैच के २५ ड्रम तौले गए': '२५',
+      'कुल वज़न २४किलो': '२४किलो',
+      'यह 25वां बैच है': '25वां',
+      'दिनांक 04/10/2026।': '04/10/2026।',
+      '드럼 3개 확인': '3개',
+      'ドラム3本を計量しました': 'ドラム3本を計量しました',
+      'Store below 25°C': '25°C',
+      '12.5 g ±0.1 g': '±0.1',
+      'range 2–8 °C': '2–8',
+      [`${ch(0xbd)} of a drum`]: ch(0xbd),
+      [`keycap 3${ch(0xfe0f)}${ch(0x20e3)}`]: `3${ch(0xfe0f)}${ch(0x20e3)}`,
+      [`moved to DISP${ch(0x2010)}1`]: `DISP${ch(0x2010)}1`,
+      'бутылка': 'бутылка',
+    };
+    const read = await readWhole(Object.keys(cost));
+    for (const [t, w] of Object.entries(cost)) expect(read[t], t).toContain(w);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1120: in a sandbox sandbox.guard_free_text refuses a row whose text holds <U+0460>24-0001, <U+A646>2409-0017, <U+10EB>2409-0017, <U+03D8>2409-0017, <U+056A>2409-0017 or Devanagari digits joined to a word (EBMR-SBX-024), naming the column and saying to write ASCII digits, never the word; a person label holding one is refused (EBMR-SBX-022), an employee reference holding one too (EBMR-SBX-024); a GMP installation keeps them; honest text is stored', async () => {
+    const table = `
+      create schema a4_digits;
+      create table a4_digits.note (id serial primary key, title text);
+      create trigger ac_sandbox_free_text before insert on a4_digits.note for each row execute function sandbox.guard_free_text('title');
+      grant usage on schema a4_digits to ebmr_app;
+      grant select, insert on a4_digits.note to ebmr_app;
+      grant usage on all sequences in schema a4_digits to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const outcome = async (db: { query: (q: string, v: unknown[]) => Promise<unknown> }, title: string): Promise<string> => {
+      try {
+        await db.query('insert into a4_digits.note (title) values ($1)', [title]);
+        return 'ok';
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const ASCII_ONLY = /^a4_digits\.note title holds a word that holds a digit and a character other than an ASCII letter, an ASCII digit, '\/', '\.' or '-': .*Write a number with the digits 0 to 9, and put a space between a number and a word of another script or a sign \(DI-05, INV-18\)\. \[EBMR-SBX-024\]$/;
+    const probes = [
+      `Drum of ${ch(0x460)}24-0001 set aside`,
+      `Drum of ${ch(0xa646)}2409-0017 set aside`,
+      `Drum ${ch(0x10eb)}2409-0017 re-checked; no impact.`,
+      `Drum ${ch(0x3d8)}2409-0017 re-checked`,
+      `Drum ${ch(0x56a)}2409-0017 re-checked`,
+      'कुल वज़न २४०९किलो',
+    ];
+    for (const title of probes) {
+      const m = await outcome(sbx.sandbox, title);
+      expect(m, title).toMatch(ASCII_ONLY);
+      expect(m, title).not.toMatch(/2409|24-0001|२४०९/);
+    }
+    expect((await sbx.admin.query("select 1 from a4_digits.note where title ~ '2409|24-0001|२४०९'")).rowCount).toBe(0);
+    expect(await outcome(sbx.sandbox, 'बैच 24 का वज़न 12.5 kg, TEST-L26-0101')).toBe('ok');
+    for (const title of probes) expect(await outcome(gmp.app, title), title).toBe('ok');
+    const asRelease = async (db: { admin: { connect: () => Promise<pg.PoolClient> } }, name: string, ref: string): Promise<string> => {
+      const c = await db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query(`select kernel.set_actor_context(jsonb_build_object(
+          'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+          'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+          'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+          'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1120 test'))`);
+        await c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', $1, $2)", [name, ref]);
+        await c.query('commit');
+        return 'ok';
+      } catch (error) {
+        await c.query('rollback');
+        return (error as Error).message;
+      } finally {
+        c.release();
+      }
+    };
+    expect(await asRelease(sbx, `TEST-Asha ${ch(0x460)}24-0001`, 'EMP 7')).toMatch(/is not a test person label: .*\[EBMR-SBX-022\]$/);
+    const employeeRef = await asRelease(sbx, 'TEST-Asha Rao', `ref ${ch(0x10eb)}2409-0017`);
+    expect(employeeRef).toMatch(/^iam\.person employee_ref holds a word that holds a digit and a character other than an ASCII letter, .*\[EBMR-SBX-024\]$/);
+    expect(employeeRef).not.toMatch(/2409/);
+    expect((await sbx.admin.query("select 1 from iam.person where employee_ref like '%2409%' or legal_name like '%24-0001%'")).rowCount).toBe(0);
+    expect(await asRelease(sbx, 'TEST-Asha Rao', 'EMP 2409 stores')).toBe('ok');
+    expect(await asRelease(gmp, `Asha ${ch(0x460)}24-0001`, `ref ${ch(0x10eb)}2409-0017`)).toBe('ok');
   });
 });

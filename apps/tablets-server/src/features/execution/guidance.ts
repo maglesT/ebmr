@@ -312,13 +312,18 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     controls: ['DI-35', 'PR-14', 'INV-26'],
   },
   // A text of the test run holds a word of the form of a batch or lot number that is not a TEST- one, in whatever member
-  // (recipe-core 0344, Phase 2 exit review F12 closed for the class; DI-05, DI-30). The database's message names the
-  // member, never the word, so this answer does not repeat it either.
+  // (recipe-core 0344, Phase 2 exit review F12 closed for the class; DI-05, DI-30), or a word that holds a digit and a
+  // character other than an ASCII letter, digit, '/', '.' or '-' (kernel 1120, recipe-core 0350, decision F12.14). The
+  // database's message names the member, never the word, so this answer does not repeat it either.
   'EBMR-EXE-147': {
     status: 422,
     kind: 'INVALID_INPUT',
-    whatHappened: 'Something entered names a batch, lot or container by an identifier that is not a test one (it does not start with TEST-). A test run never records a real identifier. Nothing was saved.',
-    whatYouCanDo: ['Write the identifier as its TEST- one, or describe it in words, and send it again.'],
+    whatHappened:
+      'Something entered names a batch, lot or container by an identifier that is not a test one (it does not start with TEST-), or writes a number with other digits than 0 to 9 or joined to a word of another script or a sign. A test run never records a real identifier, nor anything that could show one. Nothing was saved.',
+    whatYouCanDo: [
+      'Write the identifier as its TEST- one, or describe it in words, and send it again.',
+      'In a test run, write a number with the digits 0 to 9 and put a space between it and a word of another script or a sign (24 kg, 25 °C), then send it again.',
+    ],
     whoCanHelp: [SUPERVISOR],
     controls: ['DI-05', 'DI-30'],
   },

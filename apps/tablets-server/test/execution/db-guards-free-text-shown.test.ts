@@ -31,6 +31,14 @@
  * Masaram Gondi letter E and the Mro letter YO (drawn as L in bold) and the Old Italic HE (drawn as B) hid L2409-0017,
  * L24-0001 and B24-0001.
  *
+ * Kernel 1120 (the verification of the lane's round 7, lane round 3, closed with its structural alternative, decision
+ * F12.14): characters no table lists that the product's faces draw as Latin letters, U+0460 (W) and U+A646 (I) in bold,
+ * U+056A (d), and in the monospace face of the signed text U+03D8 (Q) and U+10EB (d), hid W24-0001, I2409-0017,
+ * d2409-0017 and Q2409-0017 in an exception's description, a hold reason, a business entry three levels down and a
+ * signed disposition's justification. Since kernel 1120 a word that holds a digit is written in ASCII letters, digits,
+ * '/', '.' and '-' only in a test run, whatever a table lists; recipe-core 0350 binds such a word only as the run's MBR
+ * holds it, whole (the server copies the MBR's names verbatim into the signed content).
+ *
  * The writer is the application role, through the honest server (HTTP) or with the application's own credentials (a
  * business entry of the audit trail), as in the other db-guards files. Characters that show nothing are written by
  * number. Own file and server: the kiosk's device nonces are rate-limited per terminal and minute.
@@ -38,7 +46,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
 import { actorOf, messageOf } from './db-guards-support.ts';
-import { dcMini, importAndIssue, outcomeOf, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
+import { dcMini, dcMiniVariant, importAndIssue, outcomeOf, refusalOf, RunDriver, startExecServer, violations, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
 beforeAll(async () => {
@@ -119,6 +127,15 @@ const WEIGHT_PROBES: Record<string, string> = {
   'U+10307': `${ch(0x10307)}24-0001`,
 };
 
+/** Kernel 1120: characters no table lists that the product's faces draw as a Latin letter, glued to digits. */
+const ASCII_PROBES: Record<string, string> = {
+  'U+0460': `${ch(0x460)}24-0001`,
+  'U+A646': `${ch(0xa646)}2409-0017`,
+  'U+10EB': `${ch(0x10eb)}2409-0017`,
+  'U+03D8': `${ch(0x3d8)}2409-0017`,
+  'U+056A': `${ch(0x56a)}2409-0017`,
+};
+
 /** A run of dc-mini issued by the issuer, with the kiosks of operator1 and supervisor1. */
 async function issued(): Promise<RunDriver> {
   const issuer = await sbx.asPersona('issuer');
@@ -161,7 +178,7 @@ async function recordHolding(runId: string, text: string, standalone = false): P
 const NOTHING = { rows: 0, events: 0, state: 0, contents: 0, audit: 0 };
 
 describe('F12, round 6 lane round 3: what a test run\'s record shows is what the identifier rule reads (DI-05, DI-30, INV-18)', () => {
-  it('[DI-05][DI-30][INV-18] kernel 1050: over HTTP L2409-0017 with U+00AD, U+200B, U+200D, U+034F, U+FE0F or U+2060 after the L, L 7100-9042 under the right-to-left override U+202E, BATCH/2409/0017 with U+2215 or U+2044, in Cyrillic or Greek capitals, B24-0001 with a Cyrillic or Greek B, L2409-0017 with a Cyrillic palochka or a Cherokee L, in Devanagari or Arabic-Indic digits, or with a Hebrew letter that reorders the line, in an exception\'s description and in a hold reason, are refused (EBMR-EXE-147) and nothing holds them; prose with an emoji, a soft hyphen in a long word, Hindi prose with digits and the danda, TEST- identifiers and the run\'s own words written with non-ASCII hyphens are recorded', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1050: over HTTP L2409-0017 with U+00AD, U+200B, U+200D, U+034F, U+FE0F or U+2060 after the L, L 7100-9042 under the right-to-left override U+202E, BATCH/2409/0017 with U+2215 or U+2044, in Cyrillic or Greek capitals, B24-0001 with a Cyrillic or Greek B, L2409-0017 with a Cyrillic palochka or a Cherokee L, in Devanagari or Arabic-Indic digits, or with a Hebrew letter that reorders the line, in an exception\'s description and in a hold reason, are refused (EBMR-EXE-147) and nothing holds them; prose with an emoji, a soft hyphen in a long word, Hindi prose with digits and the danda, TEST- identifiers and the run\'s own words in ASCII are recorded (written with non-ASCII hyphens, refused since kernel 1120: decision F12.14)', async () => {
     const d = await issued();
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
     const raised: Record<string, string> = {};
@@ -175,17 +192,19 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     const honest = {
       emoji: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)} by the operator ${ch(0x1f44d)}${ch(0x1f3fd)}, 2 of 3 drums weighed`, severity: 'ALERT' })),
       softHyphen: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `pharma${ch(0xad)}ceutical ingre${ch(0xad)}dients spilled near the booth`, severity: 'ALERT' })),
-      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो।', severity: 'ALERT' })),
-      // The run's own words (dc-mini's DISP-1, BLEND-1 and SOP-DISP-001) with U+2010 HYPHEN and U+2011 NON-BREAKING HYPHEN:
-      // read with the look-alikes, they are the run's words. (As stored, a hyphen look-alike is a separator, so a compound
-      // DISP-1/BLEND-1 written with one holds the fragment 1/BLEND, which no source binds: refused, as before kernel 1050.)
-      runWords: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum TEST-L26-0101 moved from DISP${ch(0x2010)}1 to BLEND${ch(0x2011)}1 per SOP${ch(0x2011)}DISP${ch(0x2011)}001`, severity: 'ALERT' })),
-      hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: drum TEST-L26-0101 ${ch(0x2714)}${ch(0xfe0f)} moved from DISP${ch(0x2010)}1 to BLEND-1` })),
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'बैच के 25 ड्रम तौले गए। कुल वज़न 250 किलो।', severity: 'ALERT' })),
+      // The run's own words (dc-mini's DISP-1, BLEND-1 and SOP-DISP-001), in ASCII as the screens send them. Written with
+      // U+2010 HYPHEN or U+2011 NON-BREAKING HYPHEN, which kernel 1050 read as the run's words, a word that holds a digit
+      // and a character outside the identifier alphabet is refused in a test run since kernel 1120 (decision F12.14).
+      runWords: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Drum TEST-L26-0101 moved from DISP-1 to BLEND-1 per SOP-DISP-001', severity: 'ALERT' })),
+      runWordsLookAlike: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum TEST-L26-0101 moved from DISP${ch(0x2010)}1 to BLEND${ch(0x2011)}1 per SOP${ch(0x2011)}DISP${ch(0x2011)}001`, severity: 'ALERT' })),
+      hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: drum TEST-L26-0101 ${ch(0x2714)}${ch(0xfe0f)} moved from DISP-1 to BLEND-1` })),
     };
-    expect(honest).toEqual({ emoji: 'ok', softHyphen: 'ok', hindi: 'ok', runWords: 'ok', hold: 'ok' });
+    expect(honest).toEqual({ emoji: 'ok', softHyphen: 'ok', hindi: 'ok', runWords: 'ok', runWordsLookAlike: REFUSED, hold: 'ok' });
     for (const [name, word] of Object.entries(PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
     expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
-    expect(await recordHolding(d.runId, `DISP${ch(0x2010)}1 to BLEND${ch(0x2011)}1`)).toMatchObject({ rows: 1 });
+    expect(await recordHolding(d.runId, 'DISP-1 to BLEND-1 per SOP-DISP-001')).toMatchObject({ rows: 1 });
+    expect(await recordHolding(d.runId, `DISP${ch(0x2010)}1`)).toEqual(NOTHING);
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
 
@@ -241,7 +260,8 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     const honest = {
       japanese: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ローラーを清掃し、データ 3 件を記録しました。', severity: 'ALERT' })),
       chinese: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '一号滚筒已称重，共 3 桶。', severity: 'ALERT' })),
-      korean: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '드럼 3개 확인 ㅡ 이상 없음', severity: 'ALERT' })),
+      // The counter apart from the number: 3개 is refused in a test run since kernel 1120 (decision F12.14).
+      korean: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '드럼 3 개 확인 ㅡ 이상 없음', severity: 'ALERT' })),
       hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: 250${ch(0x2009)}mg of TEST-L26-0101 ー checked` })),
       entry: await businessEntry(d, chain, 'Drum TEST-L26-0101 ー データ 3 件', { drum: { note: { text: '一号滚筒 3 桶' } } }),
     };
@@ -253,7 +273,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
 
-  it('[DI-05][DI-30][INV-18] kernel 1090: over HTTP L2409-0017 with U+FFFC after the L, B24-0001 with U+FFFC after the B, and L2409-0017 with the spacing marks U+1031, U+102B or U+0C03 after the L, in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi prose with its vowel signs and a number written against a word, Tamil and Telugu prose are recorded', async () => {
+  it('[DI-05][DI-30][INV-18] kernel 1090: over HTTP L2409-0017 with U+FFFC after the L, B24-0001 with U+FFFC after the B, and L2409-0017 with the spacing marks U+1031, U+102B or U+0C03 after the L, in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi prose with its vowel signs and a number apart from its words, Tamil and Telugu prose are recorded (a number written against a word is refused since kernel 1120: decision F12.14)', async () => {
     const d = await issued();
     await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
     const chain = `batch:${d.runId}`;
@@ -279,7 +299,8 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
       for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, ''), name).not.toMatch(/2409|0017|B\W?24\W?0001/u);
     }
     const honest = {
-      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ड्रम को साफ़ किया गया और 3 नमूने लिए गए। यह 25वां बैच है।', severity: 'ALERT' })),
+      // A number joined to a Devanagari word (25वां) is refused in a test run since kernel 1120 (decision F12.14).
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ड्रम को साफ़ किया गया और 3 नमूने लिए गए। यह बैच 25 है।', severity: 'ALERT' })),
       tamil: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'டிரம் 3 எடை பார்க்கப்பட்டது', severity: 'ALERT' })),
       hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'Hold: ड्रम TEST-L26-0101 की जाँच बाकी है' })),
       entry: await businessEntry(d, chain, 'డ్రమ్ 3 బరువు చూశారు', { drum: { note: { text: 'कुल वज़न 250 किलो' } } }),
@@ -287,7 +308,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(honest).toEqual({ hindi: 'ok', tamil: 'ok', hold: 'ok', entry: 'ok' });
     for (const [name, word] of Object.entries(NO_ADVANCE_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
     expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
-    expect(await recordHolding(d.runId, 'यह 25वां बैच है')).toMatchObject({ rows: 1 });
+    expect(await recordHolding(d.runId, 'यह बैच 25 है')).toMatchObject({ rows: 1 });
     expect(await recordHolding(d.runId, 'कुल वज़न 250 किलो')).toMatchObject({ audit: 1 });
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
@@ -318,7 +339,8 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
       for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', ''), name).not.toMatch(/2409|0017|24-0001/u);
     }
     const honest = {
-      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है।', severity: 'ALERT' })),
+      // ASCII digits: Devanagari digits are refused in a test run since kernel 1120 (decision F12.14).
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'बैच के 25 ड्रम तौले गए। कुल वज़न 250 किलो है।', severity: 'ALERT' })),
       greek: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Το δοχείο 3 ζυγίστηκε στις 10:15', severity: 'ALERT' })),
       hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'Hold: ドラム 3 本を計量しました, TEST-L26-0101' })),
       entry: await businessEntry(d, chain, 'Drum TEST-L26-0101 weighed', { drum: { note: { text: 'डिब्बा 3 तौला गया' } } }),
@@ -358,7 +380,7 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     const honest = {
       hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ड्रम को साफ़ किया गया और 3 नमूने लिए गए।', severity: 'ALERT' })),
       greek: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Το δοχείο 3 ζυγίστηκε στις 10:15', severity: 'ALERT' })),
-      hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'Hold: बैच के २५ ड्रम, TEST-L26-0101' })),
+      hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'Hold: बैच के 25 ड्रम, TEST-L26-0101' })),
     };
     expect(honest).toEqual({ hindi: 'ok', greek: 'ok', hold: 'ok' });
     for (const [name, word] of Object.entries(WEIGHT_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
@@ -366,4 +388,111 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(await recordHolding(d.runId, 'और 3 नमूने लिए गए')).toMatchObject({ rows: 1 });
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
+});
+
+describe('F12, round 7 lane round 3, closed by structure: in a test run a word that holds a digit is plain ASCII (DI-05, DI-30, INV-18)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1120: over HTTP <U+0460>24-0001, <U+A646>2409-0017, <U+10EB>2409-0017, <U+03D8>2409-0017 and <U+056A>2409-0017 in an exception\'s description, a hold reason, a business entry the application role appends on the run\'s chain (its message, and three levels down in its details) and a disposition\'s justification are refused (EBMR-EXE-147), the refusal naming the member, saying to write ASCII digits and never repeating the word, and nothing holds them; honest Hindi, Tamil, Japanese, Korean and Greek prose with ASCII digits apart from its words, an emoji, a soft hyphen, TEST- identifiers, the run\'s own codes and ASCII dates and quantities are recorded; Devanagari digits joined to a word, 25°C and the run\'s code written with U+2010 are refused (decision F12.14)', async () => {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const d = new RunDriver(sbx, runId, {
+      issuer,
+      operator1: await sbx.asPersona('operator1'),
+      supervisor1: await sbx.asPersona('supervisor1'),
+      qa1: await sbx.asPersona('qa1'),
+    });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const chain = `batch:${d.runId}`;
+    const AUDIT = String.raw`, a word that holds a digit and a character other than an ASCII letter, an ASCII digit, '/', '\.' or '-'\. In a test run a word with a digit in it is written in ASCII only, .*write a number with the digits 0 to 9, .*\[EBMR-EXE-147\]$`;
+    const raised: Record<string, string> = {};
+    const held: Record<string, string> = {};
+    const entries: Record<string, { message: string; details: string }> = {};
+    const whys: string[] = [];
+    for (const [name, word] of Object.entries(ASCII_PROBES)) {
+      const r = await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum of ${word} set aside`, severity: 'ALERT' });
+      raised[name] = outcomeOf(r);
+      if (!r.ok && r.error.kind === 'REFUSAL') whys.push(`${r.error.envelope.refusal.why} ${r.error.envelope.refusal.whatYouCanDo.join(' ')}`);
+      held[name] = outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: drum of ${word} found in the booth` }));
+      entries[name] = {
+        message: await businessEntry(d, chain, `Drum of ${word} moved to the booth`),
+        details: await businessEntry(d, chain, 'Drum moved to the booth', { drum: { of: { lot: `lot ${word}` } } }),
+      };
+    }
+    const names = Object.keys(ASCII_PROBES);
+    expect({ raised, held }).toEqual({ raised: Object.fromEntries(names.map((n) => [n, REFUSED])), held: Object.fromEntries(names.map((n) => [n, REFUSED])) });
+    for (const [name, o] of Object.entries(entries)) {
+      expect(o.message, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.message` + AUDIT));
+      expect(o.details, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.details\.drum\.of\.lot` + AUDIT));
+      for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', ''), name).not.toMatch(/2409|0017|24-0001/u);
+    }
+    // The refusal over HTTP names the member and says what to write, never the word.
+    expect(whys).toHaveLength(names.length);
+    for (const w of whys) {
+      expect(w).toMatch(/holds, at \$\.description, a word that holds a digit and a character other than an ASCII letter/);
+      expect(w).toMatch(/write a number with the digits 0 to 9/);
+      expect(w.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', '')).not.toMatch(/2409|0017|24-0001/u);
+    }
+    // A disposition's justification: qa1 is offered nothing to sign holding it.
+    await d.ok('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Drum set aside for a re-check', severity: 'ALERT' });
+    const exception = (await d.runView('qa1')).exceptions[0]?.exceptionId ?? '';
+    expect(exception).not.toBe('');
+    const dispositions: Record<string, string> = {};
+    for (const [name, word] of Object.entries(ASCII_PROBES)) {
+      dispositions[name] = outcomeOf((await d.sign('qa1', { type: 'DISPOSITION_EXCEPTION', exception, outcome: 'NO_IMPACT', justification: `Drum ${word} re-checked; no impact.` })).result);
+    }
+    expect(dispositions).toEqual(Object.fromEntries(names.map((n) => [n, REFUSED])));
+    expect(d.signatures).toBe(0);
+    // Honest text (decision F12.14), and the accepted cost: refused, with the advice to write ASCII digits apart.
+    const honest = {
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'बैच 24 का वज़न 12.5 kg', severity: 'ALERT' })),
+      tamil: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'டிரம் 3 எடை பார்க்கப்பட்டது', severity: 'ALERT' })),
+      japanese: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ドラム 3 本を計量しました', severity: 'ALERT' })),
+      korean: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '드럼 3 개 확인', severity: 'ALERT' })),
+      greek: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Το δοχείο 3 ζυγίστηκε στις 10:15', severity: 'ALERT' })),
+      emojiSoftHyphen: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)}, pharma${ch(0xad)}ceutical grade, 2 of 3 drums`, severity: 'ALERT' })),
+      runWords: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Drum TEST-L26-0101 of TEST-B26-0001 moved from DISP-1 to BLEND-1 per SOP-DISP-001 on 2026-10-05, 12.5 kg', severity: 'ALERT' })),
+      entry: await businessEntry(d, chain, 'बैच 24 का वज़न 12.5 kg', { drum: { note: { text: 'Το δοχείο 3, TEST-L26-0101, 2026-10-05' } } }),
+    };
+    expect(honest).toEqual({ hindi: 'ok', tamil: 'ok', japanese: 'ok', korean: 'ok', greek: 'ok', emojiSoftHyphen: 'ok', runWords: 'ok', entry: 'ok' });
+    const cost = {
+      devanagari: await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'कुल वज़न २४किलो', severity: 'ALERT' }),
+      degrees: await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Booth at 25°C', severity: 'ALERT' }),
+      runWordLookAlike: await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum moved to DISP${ch(0x2010)}1`, severity: 'ALERT' }),
+    };
+    for (const [name, r] of Object.entries(cost)) {
+      expect(outcomeOf(r), name).toBe(REFUSED);
+      expect(refusalOf(r).whatYouCanDo.join(' '), name).toMatch(/write a number with the digits 0 to 9 and put a space between it and a word of another script or a sign/);
+    }
+    expect(outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'Hold: बैच 24 का वज़न 12.5 kg, TEST-L26-0101' }))).toBe('ok');
+    for (const [name, word] of Object.entries(ASCII_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
+    for (const t of ['२४किलो', '25°C', `DISP${ch(0x2010)}1`]) expect(await recordHolding(d.runId, t), t).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
+    const proposals = await sbx.db.admin.query("select 1 from recipe.execution_disposition_proposal where batch_id = $1 and proposal::text ~ '2409|24-0001'", [d.runId]);
+    expect(proposals.rowCount).toBe(0);
+    // The description and the hold reason, and the business entry.
+    expect(await recordHolding(d.runId, 'बैच 24 का वज़न 12.5 kg')).toMatchObject({ rows: 2, audit: 1 });
+    expect(await recordHolding(d.runId, 'DISP-1 to BLEND-1 per SOP-DISP-001')).toMatchObject({ rows: 1 });
+    expect(await violations(sbx)).toEqual([]);
+  }, 600_000);
+
+  it('[DI-05][DI-30][INV-18] recipe-core 0350: a word with a digit and a character outside the identifier alphabet that the run\'s MBR holds whole (a step named "Booth clearance at 22°C, ±2") is copied by the honest server into the signed content and recorded, and the same word in a description is the run\'s own; written otherwise (23°C) it is refused (EBMR-EXE-147)', async () => {
+    const NAME = 'Booth clearance at 22°C, ±2';
+    const content = dcMiniVariant(([clear, ...rest]) => [{ ...(clear as Record<string, unknown>), name: NAME }, ...rest]);
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, content));
+    const d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1'), supervisor1: await sbx.asPersona('supervisor1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'CLEARANCE_CHECK', answers: ['NO_PREVIOUS_MATERIAL', 'NO_PREVIOUS_DOCUMENTS', 'EQUIPMENT_CLEAN_LABEL'].map((id) => ({ id, answer: 'CONFIRMED' as const })) } });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: CLEAR, entry: { kind: 'PREVIOUS_BATCH', product: 'Paracetamol 500 mg tablets', batchNumber: 'TEST-B26-9999' } });
+    const outcomes = {
+      signed: outcomeOf((await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: CLEAR })).result),
+      bound: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Booth was at 22°C, ±2 as the MBR asks', severity: 'ALERT' })),
+      other: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Booth was at 23°C', severity: 'ALERT' })),
+    };
+    expect(outcomes).toEqual({ signed: 'ok', bound: 'ok', other: REFUSED });
+    expect((await recordHolding(d.runId, NAME))['contents']).toBeGreaterThan(0);
+    expect(await recordHolding(d.runId, '23°C')).toEqual(NOTHING);
+    expect(await violations(sbx)).toEqual([]);
+  }, 300_000);
 });
