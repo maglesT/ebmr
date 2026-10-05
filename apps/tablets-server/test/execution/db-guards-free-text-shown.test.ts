@@ -26,6 +26,11 @@
  * ARMENIAN CAPITAL LETTER LIWN (drawn as L) and U+14AB CANADIAN SYLLABICS MAA (drawn as L with a dot), hid L2409-0017 and
  * L24-0001; our attack on kernel 1090 found U+1D1A0 laid out with no room between digits.
  *
+ * Kernel 1110 (our attack on kernel 1100): its scan drew at the regular weight only, while the product draws free text
+ * in bold too (an exception banner's title, an audit entry's summary), and its first cut skipped some references; the
+ * Masaram Gondi letter E and the Mro letter YO (drawn as L in bold) and the Old Italic HE (drawn as B) hid L2409-0017,
+ * L24-0001 and B24-0001.
+ *
  * The writer is the application role, through the honest server (HTTP) or with the application's own credentials (a
  * business entry of the audit trail), as in the other db-guards files. Characters that show nothing are written by
  * number. Own file and server: the kiosk's device nonces are rate-limited per terminal and minute.
@@ -105,6 +110,13 @@ const DRAWN_PROBES: Record<string, string> = {
   'U+053C batch': `${ch(0x53c)}24-0001`,
   'U+14AB': `${ch(0x14ab)}2409-0017`,
   'U+1D1A0': `L${ch(0x1d1a0)}2409-0017`,
+};
+
+/** Kernel 1110: letters drawn as the alphabet in bold, or that kernel 1100's first cut missed. */
+const WEIGHT_PROBES: Record<string, string> = {
+  'U+11D06': `${ch(0x11d06)}2409-0017`,
+  'U+16A42': `${ch(0x16a42)}24-0001`,
+  'U+10307': `${ch(0x10307)}24-0001`,
 };
 
 /** A run of dc-mini issued by the issuer, with the kiosks of operator1 and supervisor1. */
@@ -316,6 +328,42 @@ describe('F12, round 6 lane round 3: what a test run\'s record shows is what the
     expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
     expect(await recordHolding(d.runId, 'कुल वज़न 250 किलो')).toMatchObject({ rows: 1 });
     expect(await recordHolding(d.runId, 'डिब्बा 3 तौला गया')).toMatchObject({ audit: 1 });
+    expect(await violations(sbx)).toEqual([]);
+  }, 600_000);
+
+  it('[DI-05][DI-30][INV-18] kernel 1110: over HTTP L2409-0017 written with the Masaram Gondi letter E, L24-0001 with the Mro letter YO (both drawn as L in bold) and B24-0001 with the Old Italic HE (drawn as B), in an exception\'s description and in a hold reason, and in a business entry the application role appends on the run\'s chain in its message or three levels down in its details, are refused (EBMR-EXE-147) without the word in the refusal, and nothing holds them; Hindi and Greek prose with numbers are recorded', async () => {
+    const d = await issued();
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const chain = `batch:${d.runId}`;
+    const AUDIT = String.raw`, a word of the form of a batch or lot number that is not a test one\. .*\[EBMR-EXE-147\]$`;
+    const raised: Record<string, string> = {};
+    const held: Record<string, string> = {};
+    const entries: Record<string, { message: string; details: string }> = {};
+    for (const [name, word] of Object.entries(WEIGHT_PROBES)) {
+      raised[name] = outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `Drum of ${word} set aside`, severity: 'ALERT' }));
+      held[name] = outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `Hold: drum of ${word} found in the booth` }));
+      entries[name] = {
+        message: await businessEntry(d, chain, `Drum of ${word} moved to the booth`),
+        details: await businessEntry(d, chain, 'Drum moved to the booth', { drum: { of: { lot: `lot ${word}` } } }),
+      };
+    }
+    const names = Object.keys(WEIGHT_PROBES);
+    expect({ raised, held }).toEqual({ raised: Object.fromEntries(names.map((n) => [n, REFUSED])), held: Object.fromEntries(names.map((n) => [n, REFUSED])) });
+    for (const [name, o] of Object.entries(entries)) {
+      expect(o.message, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.message` + AUDIT));
+      expect(o.details, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.details\.drum\.of\.lot` + AUDIT));
+      // The run's id (a UUID) and the refusal's own example, TEST-L24-0001, are cut out first.
+      for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', ''), name).not.toMatch(/2409|0017|24-0001/u);
+    }
+    const honest = {
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ड्रम को साफ़ किया गया और 3 नमूने लिए गए।', severity: 'ALERT' })),
+      greek: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Το δοχείο 3 ζυγίστηκε στις 10:15', severity: 'ALERT' })),
+      hold: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'Hold: बैच के २५ ड्रम, TEST-L26-0101' })),
+    };
+    expect(honest).toEqual({ hindi: 'ok', greek: 'ok', hold: 'ok' });
+    for (const [name, word] of Object.entries(WEIGHT_PROBES)) expect(await recordHolding(d.runId, word), name).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, 'और 3 नमूने लिए गए')).toMatchObject({ rows: 1 });
     expect(await violations(sbx)).toEqual([]);
   }, 600_000);
 });

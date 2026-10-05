@@ -716,7 +716,8 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
                                   or not exists (select 1 from sandbox.real_identifiers('Q' || chr(l.code_point) || '24')))::int as unread
          from sandbox.look_alike l where l.basis = 'LETTER_SHAPE'`,
     );
-    expect(counts).toEqual([{ n: 58, unread: 0 }]);
+    // Kernel 1100's 58 and the 84 kernel 1110 adds (its own test reads them).
+    expect(counts).toEqual([{ n: 58 + 84, unread: 0 }]);
     const { rows: samples } = await gmp.app.query<{ code_point: number; reads_as: string }>(
       "select code_point, reads_as from sandbox.look_alike where basis = 'LETTER_SHAPE' and code_point = any ($1::int[]) order by 1",
       [[0x43f, 0x53c, 0x5d7, 0x7d7, 0x14ab, 0x18ba, 0x2758, 0x4e28, 0x10337]],
@@ -781,6 +782,107 @@ describe('the identifier rule reads letters and digits as the E2E browser draws 
         'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
         'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1100 test'))`);
       await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref ${ch(0x53c)}2409-0017`])).rejects.toThrow(
+        /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
+      );
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+});
+
+describe('the identifier rule reads letters and digits as the E2E browser draws them at every weight of free text, compared in full (kernel 1110)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1110: letters Chromium 141 draws as the alphabet at the regular weight that kernel 1100\'s first cut missed (Old Italic HE as B, the turned h as u, the Old Polish O as O) and those it draws so at the semibold and bold weights the product shows free text in (the schwa as a, Cyrillic Ғ as F, the Masaram Gondi letter E and the Mro letter YO as L) are read; sandbox.look_alike holds 84 more LETTER_SHAPE rows, each read alone and between a letter and digits; the punctuation and kernel 1100\'s rows are not listed again', async () => {
+    const probes = {
+      oldItalicHe: `after batch ${ch(0x10307)}24-0001`,
+      turnedH: `Drum ${ch(0x265)}24-0001`,
+      oldPolishO: `L${ch(0xa7c0)}409-0017`,
+      schwa: `Drum ${ch(0x259)}24-0001`,
+      gheWithStroke: `Drum ${ch(0x492)}24-0001`,
+      masaramGondiE: `${ch(0x11d06)}2409-0017`,
+      mroYo: `after lot ${ch(0x16a42)}24-0001`,
+    };
+    const read = await readText(Object.values(probes));
+    expect(Object.fromEntries(Object.entries(probes).map(([k, t]) => [k, read[t]]))).toEqual({
+      oldItalicHe: ['B24-0001'],
+      turnedH: ['u24-0001'],
+      oldPolishO: ['LO409-0017'],
+      schwa: ['a24-0001'],
+      gheWithStroke: ['F24-0001'],
+      masaramGondiE: ['L2409-0017'],
+      mroYo: ['L24-0001'],
+    });
+    const { rows: counts } = await gmp.app.query<{ n: number; unread: number }>(
+      `select count(*)::int as n,
+              count(*) filter (where sandbox.look_alikes_read(chr(l.code_point)) <> l.reads_as
+                                  or not exists (select 1 from sandbox.real_identifiers('Q' || chr(l.code_point) || '24')))::int as unread
+         from sandbox.look_alike l where l.basis = 'LETTER_SHAPE'`,
+    );
+    // Kernel 1100's 58 and kernel 1110's 84.
+    expect(counts).toEqual([{ n: 58 + 84, unread: 0 }]);
+    const { rows: added } = await gmp.app.query<{ code_point: number; reads_as: string }>(
+      "select code_point, reads_as from sandbox.look_alike where basis = 'LETTER_SHAPE' and code_point = any ($1::int[]) order by 1",
+      [[0x259, 0x265, 0x393, 0x42d, 0x492, 0xe01, 0x10307, 0x11d06, 0x16a42]],
+    );
+    expect(Object.fromEntries(added.map((r) => [r.code_point, r.reads_as]))).toEqual({
+      [0x259]: 'a', [0x265]: 'u', [0x393]: 'l', [0x42d]: '3', [0x492]: 'F', [0xe01]: 'n', [0x10307]: 'B', [0x11d06]: 'L', [0x16a42]: 'L',
+    });
+    expect((await gmp.app.query('select 1 from sandbox.look_alike where code_point = any ($1::int[])', [[...PUNCTUATION_DRAWN_AS_LETTERS, 0x11a9b]])).rowCount).toBe(0);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1110: honest text is still not read: Hindi, Tamil, Telugu, Greek, Japanese, Chinese and Korean prose with numbers, an emoji, TEST- identifiers', async () => {
+    const texts = [
+      'बैच के २५ ड्रम तौले गए। कुल वज़न 250 किलो है। यह 25वां बैच है।',
+      'ड्रम को साफ़ किया गया और 3 नमूने लिए गए।',
+      'டிரம் 3 எடை பார்க்கப்பட்டது',
+      'డ్రమ్ 3 బరువు చూశారు',
+      'Το δοχείο 3 ζυγίστηκε στις 10:15',
+      'ドラム 3 本を計量しました',
+      '一号滚筒已称重，共 3 桶。',
+      '드럼 3개 확인',
+      `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)}, TEST-L26-0101 and TEST-B26-0001`,
+    ];
+    expect(await readText(texts)).toEqual(Object.fromEntries(texts.map((t) => [t, []])));
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1110: in a sandbox sandbox.guard_free_text refuses a row whose text holds B24-0001 written with the Old Italic HE or L2409-0017 written with the Masaram Gondi letter E (EBMR-SBX-024) without the word in the refusal, and a person whose employee reference holds the latter; a GMP installation keeps them', async () => {
+    const table = `
+      create schema a4_weights;
+      create table a4_weights.note (id serial primary key, title text);
+      create trigger ac_sandbox_free_text before insert on a4_weights.note for each row execute function sandbox.guard_free_text('title');
+      grant usage on schema a4_weights to ebmr_app;
+      grant select, insert on a4_weights.note to ebmr_app;
+      grant usage on all sequences in schema a4_weights to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const outcome = async (db: { query: (q: string, v: unknown[]) => Promise<unknown> }, title: string): Promise<string> => {
+      try {
+        await db.query('insert into a4_weights.note (title) values ($1)', [title]);
+        return 'ok';
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const FREE_TEXT = /^a4_weights\.note title holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/;
+    const probes = [`after batch ${ch(0x10307)}24-0001`, `Drum of ${ch(0x11d06)}2409-0017`];
+    for (const title of probes) {
+      const m = await outcome(sbx.sandbox, title);
+      expect(m, title).toMatch(FREE_TEXT);
+      // The refusal's own example, TEST-L24-0001, is not the probe.
+      expect(m.replaceAll('TEST-L24-0001', ''), title).not.toMatch(/2409|24-0001/);
+    }
+    expect((await sbx.admin.query("select 1 from a4_weights.note where title like '%2409%' or title like '%24-0001%'")).rowCount).toBe(0);
+    for (const title of probes) expect(await outcome(gmp.app, title)).toBe('ok');
+    const c = await sbx.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query(`select kernel.set_actor_context(jsonb_build_object(
+        'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+        'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+        'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+        'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1110 test'))`);
+      await expect(c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', 'TEST-Asha Rao', $1)", [`ref ${ch(0x11d06)}2409-0017`])).rejects.toThrow(
         /^iam\.person employee_ref holds a word of the form of a batch or lot number that is not a test one: .*\[EBMR-SBX-024\]$/,
       );
     } finally {
