@@ -1051,3 +1051,124 @@ describe('in a sandbox a word that holds a digit is plain ASCII (kernel 1120)', 
     expect(await asRelease(gmp, `Asha ${ch(0x460)}24-0001`, `ref ${ch(0x10eb)}2409-0017`)).toBe('ok');
   });
 });
+
+/**
+ * Kernel 1130 (the verification of the lane's round 8): a text that can display in another order is read in every
+ * arrangement of its runs, the runs of characters outside ASCII included. Kernel 1050's arrangement joined only runs of
+ * ASCII letters to runs of digits, so kernel 1120 never saw a word a line displays joined although it is stored apart:
+ * 'बैच <U+0460><U+200F> 24-0001 मिला' (a right-to-left mark after the letter, then a space) is drawn by Chromium 141 as
+ * 'बैच Ѡ24-0001  मिला', the space moved after the digits, and the U+05D0 form as 'Ѡ24-0001 א'. Each character of
+ * UNLISTED_DRAWN is probed so; the prose is Hindi or Tamil, so that no ASCII word is read by kernel 1050's arrangement.
+ */
+const RIGHT_TO_LEFT_MARK = ch(0x200f);
+const HEBREW_ALEF = ch(0x5d0);
+const reorderedProbes = (c: string): Record<string, string> => ({
+  [`बैच ${c}${RIGHT_TO_LEFT_MARK} 24-0001 मिला`]: `${c}24`,
+  [`बैच ${c}${HEBREW_ALEF} 24-0001 मिला`]: `${c}${HEBREW_ALEF}24`,
+  [`டிரம் ${c}${RIGHT_TO_LEFT_MARK} 2409-0017 கிடைத்தது`]: `${c}2409`,
+  // A comma between the mark and the digits takes the right-to-left direction too (UAX #9, N1) and is drawn after them.
+  [`बैच ${c}${RIGHT_TO_LEFT_MARK}, 24-0001 मिला`]: `${c}24`,
+});
+
+describe('in a sandbox a word that holds a digit is plain ASCII also as a line that can display in another order shows it (kernel 1130)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1130: a text that holds a right-to-left mark or letter is read in every arrangement of its runs, the runs of characters outside ASCII joined to every run of digits: बैच <c><U+200F> 24-0001 मिला, बैच <c><U+05D0> 24-0001 मिला, the same with a comma after the mark, and Tamil prose with <c><U+200F> 2409-0017 (drawn as <c>24-0001 and <c>2409-0017) are read for each of the 18 characters the verification of round 7 listed; the same prose without the mark or the letter, which displays as it is stored, is not', async () => {
+    const read: Record<string, string[]> = {};
+    const expected: Record<string, string[]> = {};
+    for (const cp of UNLISTED_DRAWN) {
+      const c = ch(cp);
+      const probes = reorderedProbes(c);
+      const got = await readWhole(Object.keys(probes));
+      for (const [t, w] of Object.entries(probes)) {
+        read[`${hexOf(cp)} ${t}`] = (got[t] ?? []).filter((x) => x === w);
+        expected[`${hexOf(cp)} ${t}`] = [w];
+      }
+    }
+    expect(read).toEqual(expected);
+    // What a probe is read as: the letter with the mark (as stored) and without it (as it shows), each joined to each run
+    // of digits; the Hindi words joined to them too (the accepted cost of decision F12.15).
+    const omega = `बैच ${ch(0x460)}${RIGHT_TO_LEFT_MARK} 24-0001 मिला`;
+    expect((await readWhole([omega]))[omega]).toEqual(
+      expect.arrayContaining([`${ch(0x460)}24`, `${ch(0x460)}0001`, `${ch(0x460)}${RIGHT_TO_LEFT_MARK}24`, `${ch(0x460)}${RIGHT_TO_LEFT_MARK}0001`, 'बैच24', 'मिला0001']),
+    );
+    // Without a character that can reorder the line, the text displays as stored: a space keeps the letter apart.
+    const apart = UNLISTED_DRAWN.flatMap((cp) => [`बैच ${ch(cp)} 24-0001 मिला`, `டிரம் ${ch(cp)} 2409-0017 கிடைத்தது`]);
+    expect(Object.values(await readWhole(apart)).flat()).toEqual([]);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1130: honest text is still not read: Hindi, Tamil, Japanese, Korean and Greek prose with ASCII digits apart from its words, an emoji with its variation selector, TEST- identifiers, Hebrew and Urdu prose without a number; the accepted cost of decision F12.15 is read: Urdu or Hebrew prose with a number, and any text with a direction mark and a number', async () => {
+    const honest = [
+      'बैच 24 का वज़न 12.5 kg',
+      'டிரம் 3 எடை பார்க்கப்பட்டது',
+      'ドラム 3 本を計量しました',
+      '드럼 3 개 확인',
+      'Το δοχείο 3 ζυγίστηκε στις 10:15',
+      `Booth cleaned ${ch(0x2714)}${ch(0xfe0f)}, 2 of 3 drums weighed`,
+      'Drum TEST-L26-0101 of batch TEST-B26-0001 on 2026-10-05, 12.5 kg',
+      'התוף נשקל ונבדק',
+      'ڈرم کا وزن کیا گیا',
+    ];
+    expect(await readWhole(honest)).toEqual(Object.fromEntries(honest.map((t) => [t, []])));
+    // Hindi prose with a number apart and a right-to-left mark anywhere: read since kernel 1130 only (its words are joined to
+    // the number, as a reordered line could show them); the others were read by kernel 1050's arrangement already.
+    const cost = [`बैच 24 का वज़न${RIGHT_TO_LEFT_MARK}`, 'התוף 3 נשקל', 'ڈرم 24 کا وزن', `Weighed${ch(0x200e)} 12.5 kg`, `${ch(0x2067)}Drum${ch(0x2069)} weighed, 12.5 kg`];
+    const read = await readWhole(cost);
+    for (const t of cost) expect(read[t]?.length ?? 0, t).toBeGreaterThan(0);
+  });
+
+  it('[DI-05][DI-30][INV-18] kernel 1130: in a sandbox sandbox.guard_free_text refuses a row whose text holds <U+0460>, <U+A646>, <U+10EB>, <U+03D8> or <U+056A> before a right-to-left mark or a Hebrew letter and, after a space, 24-0001 or 2409-0017 (EBMR-SBX-024), naming the column, never the word; an employee reference <U+0460><U+05D0> 24-0001 is refused (EBMR-SBX-024); a GMP installation keeps them; honest prose is stored', async () => {
+    const table = `
+      create schema a4_order;
+      create table a4_order.note (id serial primary key, title text);
+      create trigger ac_sandbox_free_text before insert on a4_order.note for each row execute function sandbox.guard_free_text('title');
+      grant usage on schema a4_order to ebmr_app;
+      grant select, insert on a4_order.note to ebmr_app;
+      grant usage on all sequences in schema a4_order to ebmr_app;`;
+    await gmp.admin.query(table);
+    await sbx.admin.query(table);
+    await sbx.admin.query('select sandbox.mirror_application_privileges()');
+    const outcome = async (db: { query: (q: string, v: unknown[]) => Promise<unknown> }, title: string): Promise<string> => {
+      try {
+        await db.query('insert into a4_order.note (title) values ($1)', [title]);
+        return 'ok';
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const ASCII_ONLY = /^a4_order\.note title holds a word that holds a digit and a character other than an ASCII letter, an ASCII digit, '\/', '\.' or '-': .*\[EBMR-SBX-024\]$/;
+    const probes = [0x460, 0xa646, 0x10eb, 0x3d8, 0x56a].flatMap((cp) => Object.keys(reorderedProbes(ch(cp))));
+    for (const title of probes) {
+      const m = await outcome(sbx.sandbox, title);
+      expect(m, title).toMatch(ASCII_ONLY);
+      expect(m, title).not.toMatch(/2409|0017|24-0001/);
+    }
+    expect((await sbx.admin.query("select 1 from a4_order.note where title ~ '2409|24-0001'")).rowCount).toBe(0);
+    expect(await outcome(sbx.sandbox, 'बैच 24 का वज़न 12.5 kg, TEST-L26-0101')).toBe('ok');
+    expect(await outcome(sbx.sandbox, 'התוף נשקל ונבדק')).toBe('ok');
+    for (const title of probes) expect(await outcome(gmp.app, title), title).toBe('ok');
+    const asRelease = async (db: { admin: { connect: () => Promise<pg.PoolClient> } }, name: string, ref: string): Promise<string> => {
+      const c = await db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query(`select kernel.set_actor_context(jsonb_build_object(
+          'person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+          'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM',
+          'site_zone', 'UTC', 'correlation_id', gen_random_uuid(), 'legal_name', 'Software release (test fixture)',
+          'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'kernel 1130 test'))`);
+        await c.query("insert into iam.person (kind, legal_name, employee_ref) values ('NATURAL', $1, $2)", [name, ref]);
+        await c.query('commit');
+        return 'ok';
+      } catch (error) {
+        await c.query('rollback');
+        return (error as Error).message;
+      } finally {
+        c.release();
+      }
+    };
+    const employeeRef = await asRelease(sbx, 'TEST-Asha Rao', `${ch(0x460)}${HEBREW_ALEF} 24-0001`);
+    expect(employeeRef).toMatch(/^iam\.person employee_ref holds a word that holds a digit and a character other than an ASCII letter, .*\[EBMR-SBX-024\]$/);
+    expect(employeeRef).not.toMatch(/24-0001/);
+    expect((await sbx.admin.query("select 1 from iam.person where employee_ref like '%24-0001%'")).rowCount).toBe(0);
+    expect(await asRelease(sbx, 'TEST-Asha Rao', `${ch(0x460)} 24-0001`)).toBe('ok');
+    expect(await asRelease(gmp, 'Asha Rao', `${ch(0x460)}${HEBREW_ALEF} 24-0001`)).toBe('ok');
+  });
+});

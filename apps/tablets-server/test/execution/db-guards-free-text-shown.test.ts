@@ -39,6 +39,12 @@
  * '/', '.' and '-' only in a test run, whatever a table lists; recipe-core 0350 binds such a word only as the run's MBR
  * holds it, whole (the server copies the MBR's names verbatim into the signed content).
  *
+ * Kernel 1130 (the verification of the lane's round 8): a right-to-left mark or letter between such a letter and a space
+ * reorders the line, so 'बैच <U+0460><U+200F> 24-0001 मिला' showed W24-0001 while kernel 1050's arrangement joined only
+ * runs of ASCII letters to the digits; a hold reason and a business entry three levels down kept it. Since kernel 1130 a
+ * text that can display in another order is read with every run of characters outside ASCII joined to every run of
+ * digits too (decision F12.15).
+ *
  * The writer is the application role, through the honest server (HTTP) or with the application's own credentials (a
  * business entry of the audit trail), as in the other db-guards files. Characters that show nothing are written by
  * number. Own file and server: the kiosk's device nonces are rate-limited per terminal and minute.
@@ -495,4 +501,102 @@ describe('F12, round 7 lane round 3, closed by structure: in a test run a word t
     expect(await recordHolding(d.runId, '23°C')).toEqual(NOTHING);
     expect(await violations(sbx)).toEqual([]);
   }, 300_000);
+});
+
+/**
+ * Kernel 1130 (the verification of the lane's round 8): kernel 1050's arrangement of a text that can display in another
+ * order joined only runs of ASCII letters to runs of digits, so kernel 1120 never saw a word the line displays joined
+ * although it is stored apart. A right-to-left mark (or a right-to-left letter) between the letter and a space reorders
+ * the line: 'बैच <U+0460><U+200F> 24-0001 मिला' is drawn by Chromium 141 as 'बैच Ѡ24-0001  मिला'. The prose is Hindi or
+ * Tamil, so that no ASCII word is read by kernel 1050's arrangement.
+ */
+const REORDERED_PROBES: Record<string, string> = Object.fromEntries(
+  Object.entries(ASCII_PROBES).flatMap(([name, word]) => {
+    const letter = String.fromCodePoint(word.codePointAt(0) ?? 0);
+    const digits = word.slice(letter.length);
+    return [
+      [`${name} U+200F`, `${letter}${ch(0x200f)} ${digits}`],
+      [`${name} U+05D0`, `${letter}${ch(0x5d0)} ${digits}`],
+    ];
+  }),
+);
+
+describe('F12, round 8 lane round 2: in a test run a word that holds a digit is plain ASCII also as a line that can display in another order shows it (DI-05, DI-30, INV-18)', () => {
+  it('[DI-05][DI-30][INV-18] kernel 1130: over HTTP Hindi and Tamil prose holding <U+0460>, <U+A646>, <U+10EB>, <U+03D8> or <U+056A>, a right-to-left mark or a Hebrew letter, a space and 24-0001 or 2409-0017 (drawn joined, as W24-0001 or I2409-0017) in an exception\'s description, a hold reason, a business entry the application role appends on the run\'s chain (its message, and three levels down in its details) and a disposition\'s justification are refused (EBMR-EXE-147), the refusal naming the member and never the word, and nothing holds them; honest Hindi, Tamil, Japanese, Korean and Greek prose with ASCII digits apart from its words, TEST- identifiers and Hebrew and Urdu prose without a number are recorded; Urdu prose with a number is refused with the advice to write the number in words (decision F12.15)', async () => {
+    const issuer = await sbx.asPersona('issuer');
+    const runId = await importAndIssue(sbx, issuer, writePackage(sbx, dcMini()));
+    const d = new RunDriver(sbx, runId, {
+      issuer,
+      operator1: await sbx.asPersona('operator1'),
+      supervisor1: await sbx.asPersona('supervisor1'),
+      qa1: await sbx.asPersona('qa1'),
+    });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: CLEAR });
+    const chain = `batch:${d.runId}`;
+    const AUDIT = String.raw`, a word that holds a digit and a character other than an ASCII letter, an ASCII digit, '/', '\.' or '-'\. In a test run a word with a digit in it is written in ASCII only, .*\[EBMR-EXE-147\]$`;
+    const raised: Record<string, string> = {};
+    const held: Record<string, string> = {};
+    const entries: Record<string, { message: string; details: string }> = {};
+    const whys: string[] = [];
+    for (const [name, probe] of Object.entries(REORDERED_PROBES)) {
+      const r = await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: `டிரம் ${probe} ஒதுக்கி வைக்கப்பட்டது`, severity: 'ALERT' });
+      raised[name] = outcomeOf(r);
+      const h = await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: `बैच ${probe} मिला` });
+      held[name] = outcomeOf(h);
+      if (!h.ok && h.error.kind === 'REFUSAL') whys.push(`${h.error.envelope.refusal.why} ${h.error.envelope.refusal.whatYouCanDo.join(' ')}`);
+      entries[name] = {
+        message: await businessEntry(d, chain, `ड्रम ${probe} बूथ में रखा`),
+        details: await businessEntry(d, chain, 'ड्रम बूथ में रखा', { drum: { of: { lot: `लॉट ${probe}` } } }),
+      };
+    }
+    const names = Object.keys(REORDERED_PROBES);
+    expect({ raised, held }).toEqual({ raised: Object.fromEntries(names.map((n) => [n, REFUSED])), held: Object.fromEntries(names.map((n) => [n, REFUSED])) });
+    for (const [name, o] of Object.entries(entries)) {
+      expect(o.message, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.message` + AUDIT));
+      expect(o.details, name).toMatch(new RegExp(String.raw`^This business entry of audit chain batch:${d.runId} of test batch ${d.runId} cannot be recorded: it holds, at \$\.body\.details\.drum\.of\.lot` + AUDIT));
+      for (const m of [o.message, o.details]) expect(m.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', ''), name).not.toMatch(/2409|0017|24-0001/u);
+    }
+    // The refusal of a hold over HTTP names the member and says what to write, never the word.
+    expect(whys).toHaveLength(names.length);
+    for (const w of whys) {
+      expect(w).toMatch(/holds, at \$\.reason, a word that holds a digit and a character other than an ASCII letter/);
+      expect(w).toMatch(/a right-to-left letter .* write the number in words/);
+      expect(w.replaceAll(d.runId, '').replaceAll('TEST-L24-0001', '')).not.toMatch(/2409|0017|24-0001/u);
+    }
+    // A disposition's justification: qa1 is offered nothing to sign holding it.
+    await d.ok('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ड्रम दोबारा जाँच के लिए अलग रखा', severity: 'ALERT' });
+    const exception = (await d.runView('qa1')).exceptions[0]?.exceptionId ?? '';
+    expect(exception).not.toBe('');
+    const dispositions: Record<string, string> = {};
+    for (const [name, probe] of Object.entries(REORDERED_PROBES)) {
+      dispositions[name] = outcomeOf((await d.sign('qa1', { type: 'DISPOSITION_EXCEPTION', exception, outcome: 'NO_IMPACT', justification: `ड्रम ${probe} की जाँच हुई; कोई असर नहीं।` })).result);
+    }
+    expect(dispositions).toEqual(Object.fromEntries(names.map((n) => [n, REFUSED])));
+    expect(d.signatures).toBe(0);
+    // Honest text (decisions F12.14 and F12.15), and the accepted cost: refused, with the advice to write the number in words.
+    const honest = {
+      hindi: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'बैच 24 का वज़न 12.5 kg', severity: 'ALERT' })),
+      tamil: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'டிரம் 3 எடை பார்க்கப்பட்டது', severity: 'ALERT' })),
+      japanese: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'ドラム 3 本を計量しました', severity: 'ALERT' })),
+      korean: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: '드럼 3 개 확인', severity: 'ALERT' })),
+      greek: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Το δοχείο 3 ζυγίστηκε στις 10:15', severity: 'ALERT' })),
+      testIds: outcomeOf(await d.command('operator1', { type: 'RAISE_EXCEPTION', stepKey: CLEAR, description: 'Drum TEST-L26-0101 of TEST-B26-0001 moved from DISP-1 to BLEND-1 on 2026-10-05, 12.5 kg', severity: 'ALERT' })),
+      hebrew: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'התוף נשקל ונבדק' })),
+      urdu: outcomeOf(await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'ڈرم کا وزن کیا گیا' })),
+      entry: await businessEntry(d, chain, 'बैच 24 का वज़न 12.5 kg', { drum: { note: { text: 'டிரம் 3, TEST-L26-0101, 2026-10-05' } } }),
+    };
+    expect(honest).toEqual({ hindi: 'ok', tamil: 'ok', japanese: 'ok', korean: 'ok', greek: 'ok', testIds: 'ok', hebrew: 'ok', urdu: 'ok', entry: 'ok' });
+    const urduNumber = await d.command('supervisor1', { type: 'HOLD_BATCH', holdType: 'SUPERVISOR', reason: 'ڈرم 24 کا وزن' });
+    expect(outcomeOf(urduNumber)).toBe(REFUSED);
+    expect(refusalOf(urduNumber).whatYouCanDo.join(' ')).toMatch(/a right-to-left letter .* write the number in words/);
+    for (const [name, probe] of Object.entries(REORDERED_PROBES)) expect(await recordHolding(d.runId, probe), name).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, 'ڈرم 24')).toEqual(NOTHING);
+    expect(await recordHolding(d.runId, '2409', true)).toEqual(NOTHING);
+    const proposals = await sbx.db.admin.query("select 1 from recipe.execution_disposition_proposal where batch_id = $1 and proposal::text ~ '2409|24-0001'", [d.runId]);
+    expect(proposals.rowCount).toBe(0);
+    expect(await recordHolding(d.runId, 'התוף נשקל ונבדק')).toMatchObject({ rows: 1 });
+    expect(await recordHolding(d.runId, 'बैच 24 का वज़न 12.5 kg')).toMatchObject({ rows: 1, audit: 1 });
+    expect(await violations(sbx)).toEqual([]);
+  }, 600_000);
 });
