@@ -2181,15 +2181,17 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   db-guards-free-text-shown (1 new), each failing with 1140 moved aside; F12.14 (7), F12.15 (1), (4), (6) corrected.
 - 2026-10-05: PHASE 2 EXIT, SQL mutation kill tests of the last four groups integrated: branch
   phase-2/kill-integration-2b from 1cb8c6f (phase-2/recipe-core with the first 24 groups) merges kill/device-readings,
-  kill/evidence-source-and-entries, kill/entry-references-and-schema and kill/signed-content. One fix migration, kept
-  as recipe-core 0372 (free on the branch): recipe.lot_usability_problem, built on 0330 (no later definition), compares a
+  kill/evidence-source-and-entries, kill/entry-references-and-schema and kill/signed-content. One fix migration, kept as
+  recipe-core 0372 (free on the branch): recipe.lot_usability_problem, built on 0330 (no later definition), compares a
   weighed or charged lot with its BOM line's material also where the line names null, as the engine does (D17; PR-18,
-  IN-23, PR-21). 118 kill tests in 7 files (26 db, 92 server) and the 5 execution README tests pass as written; register
-  sync-tests lists the kill tests under the 30 controls they are tagged with (211 entries). equivalent.json records the
-  38 equivalence claims the skeptics upheld, under their current ids (111 -> 149 entries); every refuted claim was killed
+  IN-23, PR-21). 118 kill tests in 7 files (26 db, 92 server) and the 5 execution README tests pass as written, also
+  after the branch merged the PR head 51b3fc8 (F12 rounds 7 and 8, the stricter identifier rule); register sync-tests
+  lists the kill tests under the 30 controls they are tagged with (211 entries). equivalent.json records the 38
+  equivalence claims the skeptics upheld, under their current ids (111 -> 149 entries); every refuted claim was killed
   in round 2, and the 12 signed-content kills round 2 could not re-run (the cluster's disk was full) were confirmed
-  KILLED with the harness on this branch. One survivor stays: tab.ed25519_verify#13 (device-readings), not equivalent but out of reach of any test
-  (the outputs differ only when k = SHA-512(R||A||M) mod L lies in [2^252, L) with S < 2^252, about 2^-126 per try);
-  equivalent.json cannot mark an entry as practically unkillable, so it is not recorded there. Open for the lead: D16,
-  enrolment accepts a gateway key of small order, under which anyone can build a reading signature the check accepts
-  (needs a decision). Scores, kills and defects in docs/build-plan/phase-2-exit/sql-mutation-kill-results.md.
+  KILLED with the harness on this branch. One survivor stays: tab.ed25519_verify#13 (device-readings), not equivalent
+  but out of reach of any test (the outputs differ only when k = SHA-512(R||A||M) mod L lies in [2^252, L) with S <
+  2^252, about 2^-126 per try); equivalent.json cannot mark an entry as practically unkillable, so it is not recorded
+  there. Open for the lead: D16, enrolment accepts a gateway key of small order, under which anyone can build a reading
+  signature the check accepts (needs a decision). Scores, kills and defects in
+  docs/build-plan/phase-2-exit/sql-mutation-kill-results.md.

@@ -131,7 +131,8 @@ The kill agents fixed six defects with new migrations. The numbers of the first 
 since, so each moved into a range kept for the kill work (recipe-core 0370-0379, tablets 0700-0709, kernel
 1100-1109), in the kill branches' order; the sixth (kill/entry-references-and-schema) was already written as 0372,
 free on phase-2/kill-integration-2b, and keeps it. No PR-branch migration redefines any of these functions after the
-definition each fix was built on, so every body stands as the kill agent wrote it.
+definition each fix was built on (checked again at 51b3fc8, merged into phase-2/kill-integration-2b), so every body
+stands as the kill agent wrote it.
 
 | Written as | Now | Function |
 |---|---|---|
@@ -252,7 +253,9 @@ Notes from the reviews that are not defects:
   that refusal and reaches the entry rule by the two paths left), and the execution-commands role-map test (its
   exception description named a review item in a form the sandbox identifier rule reads as a lot number; it is now
   prose).
-- The last four groups' kill tests pass on phase-2/kill-integration-2b as written; none needed adapting.
+- The last four groups' kill tests pass on phase-2/kill-integration-2b as written, before and after the branch merged
+  the PR head 51b3fc8 (F12 rounds 7 and 8, whose identifier rule reads a test run's text as it shows and refuses a
+  word with a digit that is not plain ASCII); none needed adapting.
 - device-readings: `tab.alert_claim_refusal` (tablets 0250) is dead code (the application role lost EXECUTE in 0320
   and nothing calls it); its kill tests call it as superuser. A later migration could drop it.
 - evidence-source-and-entries: several kills call owner-private pure functions as owner with inputs their triggers
