@@ -480,7 +480,9 @@ that another command holds is skipped.
     digits read as it draws them, decision F12.13; since kernel 1120 a word that holds a digit and a character other than
     an ASCII letter, digit, '/', '.' or '-' is read whole and refused, bound only as the run's MBR or header holds it
     whole (sql 0350, `content_bound_words`), decision F12.14; since kernel 1130 also as a line that can display in another
-    order shows it, every run of non-digit characters outside ASCII joined to every run of digits, decision F12.15),
+    order shows it, every run of non-digit characters outside ASCII joined to every run of digits, decision F12.15;
+    since kernel 1140 a text can display in another order when it holds any code point of the ranges reserved for
+    right-to-left scripts or a bidi control or mark, as the E2E browser's own bidirectional data does, decision F12.16),
     whatever member holds it: the
     batch's columns and issue request, every text, text[] and jsonb column of the command rows (command, evidence,
     refusal, roles and, since sql 0346, the actor's name), the state, the events, the four content stores, the
@@ -1173,14 +1175,15 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   standing for the gate's window, make the hand-keyed weighing refused (EBMR-EXE-147) and no basis row of the run holds
   them; an honest serial quoted in a mismatch is refused too (decision F12.10); the gate's own reasons and a refused
   reading's code the installation raises (EBMR-DEV-048) are recorded.
-- `db-guards-free-text-shown.test.ts` (Phase 2 exit follow-up F12, rounds 6 to 8; kernel migrations 1050 to 1130, sql
+- `db-guards-free-text-shown.test.ts` (Phase 2 exit follow-up F12, rounds 6 to 8; kernel migrations 1050 to 1140, sql
   0349 and 0350): over HTTP, in an exception's description, a hold reason, a business entry the application role
   appends on the run's chain (its message and three levels down in its details) and a disposition's justification,
   identifiers that show as a real-format one are refused (EBMR-EXE-147) and nothing holds them: with what shows nothing
   or takes no room after the letter, under a right-to-left override or beside a right-to-left letter, written with
   look-alikes of letters, digits or separators (by UTS #39, by name, as Chromium 141 draws them), with a letter no table
   lists glued to the digits (a word with a digit is plain ASCII since kernel 1120) or kept apart from them by a
-  right-to-left mark or letter that reorders the line (kernel 1130); honest Hindi, Tamil, Telugu, Japanese, Korean,
+  right-to-left mark or letter that reorders the line (kernel 1130), also a Hebrew point, a Garay mark or an Arabic
+  ligature sign that Chromium 141 reorders as a right-to-left letter (kernel 1140); honest Hindi, Tamil, Telugu, Japanese, Korean,
   Chinese, Greek, Hebrew and Urdu prose, an emoji, a soft hyphen, TEST- identifiers and the run's own codes are
   recorded; a word the run's MBR holds whole is bound (sql 0350).
 - `db-guards-kernel-stubs.test.ts` (Phase 2 exit follow-up F12.KERNEL; kernel migration 1030): through the application role,

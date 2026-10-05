@@ -196,7 +196,20 @@ outside ASCII joined to each run of digits, whatever lies between them, so A, B 
 prose with a number, and any text with a direction mark or a bidi control and a number, are refused in a test run (the
 accepted cost, F12.15 (3)); such prose without a number passes. The residual's break "by a space or an ASCII
 punctuation mark" holds only for a text that displays in the order it is stored, and each text is read on its own (what
-two texts drawn on one line show together is not read: F12.15 (6)). A copy into
+two texts drawn on one line show together is not read: F12.15 (6)). Correction (F12.16, the
+verification of the lane's round 8, lane round 2, of kernel 1130): which texts can display in another order was decided
+by kernel 1050's class, built from Unicode 18.0.0, so "a text with none of these characters displays in the order it is
+stored" held for a renderer with Unicode 18.0.0 data only. Chromium 141, the E2E browser, ships ICU 74 (Unicode 15.1), in
+which 61 code points that Unicode 16 to 18 assigned as marks or neutrals inside the right-to-left blocks (a Hebrew point,
+Garay marks, Arabic honorific ligatures) are unassigned and reorder a line as right-to-left letters, so 'Drum of
+L<U+05C8> 2409-0017 set aside', drawn as L2409-0017, was recorded over HTTP. Since kernel 1140 the class is every code
+point of the ranges reserved for right-to-left scripts (U+0590-08FF, U+FB1D-FDCF, U+FDF0-FDFF, U+FE70-FEFE,
+U+10800-10FFF, U+1E800-1EFFF), whatever a Unicode version assigns there, and the bidi controls and direction marks; it
+holds every code point that ICU 74 (Chromium 141), Unicode 14.0 and Unicode 18.0.0 class R, AL or AN, so a text with
+none of them displays in the order it is stored in each of these. A number with a mark or sign of a right-to-left
+script is refused in a test run too (F12.16 (3)); a renderer whose bidi data gives R, AL or AN outside these ranges, or
+a page that sets a right-to-left paragraph direction (the product's screens set none), is the residual (F12.16 (5)).
+A copy into
 the record from anywhere else is read where it lands, so this does not depend on tracing where a text comes from. The
 words allowed there are bound to the run, none by its form: the imported package (the MBR), the batch number and the
 site and room of the session that issued it or writes a row, the names of the engine's registers (`recipe.engine_name`:
