@@ -2065,3 +2065,45 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (3 new) and db-guards-kernel-stubs (3 new), each failing with its migration moved aside; honest Hindi, Tamil, Telugu,
   Greek, Japanese, Chinese and Korean prose recorded; the sandbox set-up with three persona sets reads none of its 33
   persons.
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 8 (F12: a word that holds a digit is plain
+  ASCII) (branch phase-2/recipe-core; F12; DI-05, DI-30, INV-18). What was wrong: round 7 read a character outside ASCII
+  as a letter or digit only when a table listed it (Unicode's confusables data, character names, two drawing scans of
+  the product's sans-serif face). The verification found 18 more characters no table lists that the product draws as
+  Latin letters or digits, among them a Cyrillic omega drawn as W and a Cyrillic iota as I in bold, and, in the
+  monospace face the signature dialog shows the signed text in (never scanned), a Georgian letter drawn as d and an
+  archaic koppa as Q. Over HTTP the honest server kept W24-0001 and I2409-0017 written with them in an exception's
+  description, a hold reason and a business entry three levels down, and qa1 signed a disposition whose justification
+  held d2409-0017. It also showed that the drawing line the docs stated was not the one the scans drew. Chasing glyphs
+  has no end, so the class is closed by structure (decision F12.14, the verification's own alternative). What changed:
+  - kernel 1120: in a sandbox a word that holds a digit (an ASCII digit or any character the look-alike table reads as
+    one) is written with ASCII letters, ASCII digits, '/', '.' and '-' only, as stored and in every reading of round 7.
+    A word ends only at a space of any kind or at ASCII punctuation other than '/', '.' and '-', so an invisible
+    character, a mark, a bidi control or a letter or digit of another script inside it makes it such a word. The
+    reading gives that word whole and reads it as a real identifier, so every guard of the rule refuses it with no
+    change of its own: a test run's record and its audit chains (EBMR-EXE-147), the kernel's stubs, a person's employee
+    reference and a test lot's material name (EBMR-SBX-024, with a message that says to write the digits 0 to 9 and a
+    space); person and device labels were already ASCII only after TEST-. A GMP installation is unchanged.
+  - recipe-core 0350: such a word is allowed in a test run's record only as its MBR or header holds it, whole (the
+    server copies the MBR's step names into the signed content, so an MBR with a step named "at 22°C, ±2" still runs);
+    a real-format identifier is named first; the refusal says what to write. The server's guidance for EBMR-EXE-147
+    says the same.
+  - Defaults (F12.14): the run's own codes written with a hyphen look-alike (DISP‐1) are refused; the honest screens
+    never write them. Accepted cost, refused in a test run although honest: digits of other scripts (Hindi २५), a
+    number joined to a word of another script or a sign (२४किलो, 25वां, 3개, 25°C, ±0.1), a vulgar fraction, a keycap
+    emoji, Russian or Armenian words with a letter a table reads as a digit. Still not read: digits only, an
+    identifier broken by a space or by an ASCII mark, one whose every digit is drawn with a character no table reads as
+    a digit, words, images. F12.13 (3), (4) and (6), the 1050 to 1110 headers (in 1120's), 0349 (in 0350's) and
+    sandbox.md section 7 corrected.
+  Tests (each fails with kernel 1120 moved aside; the MBR one also with recipe-core 0350 moved aside): kernel
+  identifier-words (3 new: the 18 characters read as nothing alone and whole when glued to digits, invisible, bidi and
+  mark characters inside a word with a digit, the word boundary; honest prose not read and the accepted cost read;
+  guard_free_text, a person label and an employee reference refused, GMP keeps them), server
+  db-guards-free-text-shown (2 new: the five probes over HTTP in a description, a hold reason, a business entry three
+  levels down and a disposition's justification refused with nothing stored and the advice to use ASCII digits; honest
+  Hindi, Tamil, Japanese, Korean and Greek prose, emoji, soft hyphen, TEST- identifiers, the run's codes, dates and
+  quantities recorded; an MBR step name holding 22°C signed and kept, 23°C refused). Round-7 tests whose honest text
+  joined digits to another script now write the numbers apart, or assert the refusal (their titles and the controls'
+  lists updated). Regressions: kernel sandbox tests, test-kit, recipe-core engine-names-sql, server free-text,
+  free-text-identifiers, bound names, compounds, weighing basis, kernel stubs, sandbox registers, entry identifiers,
+  golden, people text, disposition, header limit, device claim, refusals and room views, row context; the sandbox
+  set-up with three persona sets (27 personas, none of its 33 persons read; the -wA and -wB names pass).
