@@ -158,6 +158,16 @@ Fixed:
   APPROVED rows the way 1112 leaves possible (the signer authenticated, the event consumed) and first show the
   marker-alone forgery refused; their machine guards are proved as before. Harness: state-engine-rows 112 of 112
   detected, `recipe.guard_in_flight_dispositioned#3` still detected, `esig.signature_guard` 32 of 32 detected.
+  Round 2 (the lane's verification could not run its checks): on a GMP database and a sandbox migrated with the
+  tablets edition, only `ebmr_owner` (and superusers) may insert into or update `platform.state_history`,
+  `platform.aggregate_state`, `esig.signature` and `esig.signature_seal`; `ebmr_app`, `ebmr_authn` and `ebmr_sandbox`,
+  each with the engine flag and the signing marker set, are refused 42501 before any trigger runs, and the only writers
+  of those tables they may call are `platform.transition`, `platform.create_aggregate_state` and `esig.sign`. Tests:
+  `state-machine.test.ts` ([DI-34][DI-17], the application role) and `sandbox/bypass.test.ts` ([INV-18][DI-34][DI-17],
+  the sandbox role); they pin the answer and pass before 1110 too. The fix's tests fail with 1110 (or 1112) moved out
+  of the sql directory and pass with it; the kernel platform, esig, recipe lifecycle and golden replay tests pass.
+  Harness re-run: state-engine-rows 112 of 112 detected, `esig.signature_guard` 32 of 32 detected,
+  `recipe.guard_in_flight_dispositioned#3` still detected.
 - **D13. Evidence listener: the hold ended before the time it was announced.** The tick prune deleted by tick time,
   but the hold by another key's run is measured from the time the tick was closed, so a late-closed tick was pruned
   early, the hold ended early, and the `heldUntilUs` the database had already returned was too late. Fixed in tablets
@@ -171,6 +181,11 @@ Fixed:
   failure; run alone it survives) and is equivalent for the reason #19 is: closed_at is the clock reading of an update on
   an owner-only table and the reading inside the prune cannot be pinned, so no input reaches the exact microsecond. Not
   recorded in equivalent.json (the lead's call).
+  Round 2: X43's own consequences, X37 and X39 still measured the hold from the tick in four phrases; they now say it
+  runs from the close (D13.1 names X39 too). The test fails with 0715 moved out of the sql directory (the other key's
+  row is pruned at the first tick) and passes with it; the listener tests and the server golden replay pass. Harness
+  re-run on the 18 mutants of `tab.record_listener_tick`: 14 of the 15 counted detected, #12 and #14 invalid, #19
+  recorded as equivalent, #22 survives (equivalent, the close's clock boundary, as above).
 - **D15. Connection roles: an unknown grantee broke the connect policy's statement.** When a backend-signal function's
   privileges named a role oid the cluster does not know (a direct catalogue write by a superuser), the policy built a
   revoke with an empty grantee and failed with a syntax error instead of a coded refusal (fail closed, wrong message).
@@ -183,6 +198,16 @@ Fixed:
   role, and every such entry other than PUBLIC (oid 0, taken by the first disjunct) is refused by the new check just
   before, over the same rows; only a superuser writing such an entry into `pg_proc` between the two statements could
   tell them apart. Not recorded in equivalent.json (the lead's call).
+  Round 2: the premise of that reason is now a test (`backend-signals.test.ts`, [DI-17][DI-30]): PostgreSQL records a
+  grant on these functions as a dependency of the role and refuses to drop a role that still holds it (2BP01), and a
+  role dropped after its grant is revoked leaves no entry, so only a direct write into `pg_proc` makes one. 1111's
+  header gives a wrong ground for the same conclusion (that PostgreSQL removes a role's entries when the role is
+  dropped; it refuses the drop instead); 1111 is not edited. Within one call only a superuser's catalogue write
+  committed between the policy's two statements could make the loop meet such an entry, and then both versions fail
+  closed (the original with the old syntax error, the mutant by completing while `kernel.backend_signals_restricted()`
+  still answers false). The D15 test fails with 1111 moved out (42601) and passes with it; the refusal names the
+  function and the oid, changes no privilege and leaves the installation reported as not holding the policy. Harness
+  re-run with the new test: 22 of 23 detected, #24 survives (equivalent, as above).
 
 Open (the lead takes these next):
 

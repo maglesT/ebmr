@@ -102,8 +102,9 @@ look-alikes), `identifier-words.test.ts` (1030: what the reading reads and does 
 installations; 1040: an escape hides nothing, the person register in both installations), `watermark.test.ts`, `installation.test.ts` (GMP marker, identifier guard, connect policy,
 copy under a sandbox name), `bypass.test.ts` (INV-18 bypass attempts through the sandbox role; DI-05 catalog
 test), `provision.test.ts` (provisioning, upgrade re-levelling, no half-built sandbox, kind/name mismatch);
-`test/security/backend-signals.test.ts` (the backend-signal policy, kept by a copy, repaired by the connect policy, and a
-grant to a role the cluster does not know refused with `EBMR-SBX-038`, kernel 1111);
+`test/security/backend-signals.test.ts` (the backend-signal policy, kept by a copy, repaired by the connect policy, a
+grant to a role the cluster does not know refused with `EBMR-SBX-038`, kernel 1111, and why only a catalogue write makes
+such a grant: PostgreSQL refuses to drop a role that still holds one);
 `test/security/listener-roles.test.ts` (the listener roles, their segregation and mirror, the listener roles' and the
 application roles' connection limits, `kernel.apply_listener_share`, and 0980 applying the share itself: run on a fresh
 cluster's roles in a transaction rolled back at the end it must give exactly 8 and the slots less 8, and a database

@@ -2084,3 +2084,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   new tests (DI-17, DI-30, DI-34, DI-37, PR-20). The other session settings the database reads were checked:
   ebmr.ctx is validated against the command marker; a forged esig.unsealed gains nothing, since every committed
   signature already has its one seal; esig.stub_completing guards the test stub only.
+- 2026-10-05: PHASE 2 EXIT, SQL mutation defects, what the kernel and the listener refuse (D11, D13, D15), round 2: the
+  verification could not run its checks, so they were run here. Each fix's test fails with its migration (1110, 1112,
+  0715, 1111) moved out of the sql directory and passes with it. New tests show the application and sandbox roles
+  refused (42501) on state, history and signature rows with the flag and the marker forged, and pin why D15's
+  apply_connect_policy#24 is equivalent: PostgreSQL refuses to drop a role that still holds the grant. X43, X37 and X39
+  now measure the listener hold from the close in every phrase. Harness re-run: state-engine-rows 112/112,
+  signature_guard 32/32, guard_in_flight_dispositioned#3 detected, record_listener_tick 14/15 (2 invalid, #19 recorded,
+  #22 equivalent), apply_connect_policy 22/23 (#24 equivalent). The 5434 cluster had filled the disk: a replication
+  slot left by a killed f55 run (4 Oct) held 15 GB of WAL; it was dropped (lead TODO T13 still applies).
