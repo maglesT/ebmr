@@ -477,7 +477,9 @@ that another command holds is skipped.
     as stored, as it shows, with its look-alikes read, and a text that can display in another order in every
     arrangement of its runs, decision F12.11; since kernel 1070 and 1080 the look-alikes of the separators as a class,
     decision F12.12; since kernel 1090, 1100 and 1110 without what the E2E browser lays out with no room and with letters and
-    digits read as it draws them, decision F12.13), whatever member holds it: the
+    digits read as it draws them, decision F12.13; since kernel 1120 a word that holds a digit and a character other than
+    an ASCII letter, digit, '/', '.' or '-' is read whole and refused, bound only as the run's MBR or header holds it
+    whole (sql 0350, `content_bound_words`), decision F12.14), whatever member holds it: the
     batch's columns and issue request, every text, text[] and jsonb column of the command rows (command, evidence,
     refusal, roles and, since sql 0346, the actor's name), the state, the events, the four content stores, the
     proposals, the clock and the legacy stage summaries, at any depth and in member names, since tablets sql 0640 the
