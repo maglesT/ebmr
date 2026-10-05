@@ -18,10 +18,12 @@ Hard rules:
 - No `Date.now()` or JavaScript `number` for GMP values in domain code.
 - Paraphrase regulations in docs and code comments; never paste more than a short phrase of regulation text.
 - Run `pnpm run ci` before pushing. Work on a branch; update `PROGRESS.md` at each milestone.
-- Cadence and depth follow owner decision 0008: tests with every feature and green CI always; one review pass per
-  feature; a quick review at the Phase 3 exit; the heavy check (adversarial review, mutation targets, golden batches,
-  browser suite) at the Phase 4 exit for Phases 2 to 4; at most 2 fix rounds per finding, then a residual for the
-  owner; database enforcement for the regulation-required core (decision 0008 section 2); 2 to 3 agents at a time.
+- Cadence and depth follow owner decision 0008: the goal here is software that works properly with no major
+  defects; validation-grade testing (mutation targets, multi-round adversarial review) belongs to deployment. Tests
+  with every feature and green CI always; one review pass per feature; a quick review at the Phase 3 exit; at the
+  Phase 4 exit one review pass, the full suite, golden batches and the browser suite; at most 2 fix rounds per finding,
+  then a residual for the owner; database enforcement for the regulation-required core (decision 0008 section 2); 2 to
+  3 agents at a time.
 
 ## Skills and tools
 

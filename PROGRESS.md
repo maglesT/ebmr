@@ -2187,3 +2187,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   regulation-required core; mutation at least 90 % for high-risk groups and 70 % elsewhere, measured at the Phase 4
   exit. No control removed, no expert_decision changed. CLAUDE.md and the review backlog follow it. The Phase 2 exit
   finishes with the defect lanes, the last four kill groups and D16 already running; no full mutation re-run.
+- 2026-10-05: Decision 0008 amended by the owner the same day: the build aims at software that works properly with no
+  major defects; the Phase 4 exit is a robustness check (one review pass, full suite, golden batches, browser suite);
+  validation-grade testing (mutation targets, multi-round adversarial review, IQ/OQ/PQ) is done by the developers who
+  deploy.
