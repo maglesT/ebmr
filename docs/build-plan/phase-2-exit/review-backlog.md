@@ -4,8 +4,9 @@ What the Phase 2 exit review did not cover, and what its follow-ups left open on
 of uncovered areas (wf_b8ba0432-87c, written at ffd0c27 on phase-2/recipe-core), checked against the follow-up
 rounds that ran after it (rounds 4 to 6, up to f04ef7b and the round-6 F12 lane). None of these items is a known
 defect in a shipped control that the exit leaves unfixed: each is an area no reviewer has checked yet, a residual an
-owner decision accepts, or work the build outline gives to a later phase. Each later phase's exit review starts
-from the items that name it.
+owner decision accepts, or work the build outline gives to a later phase. Under owner decision 0008 the Phase 3 exit
+has a quick review only, so the heavy check at the Phase 4 exit starts from every item below, except those the build
+outline gives to a later phase.
 
 The numbers in brackets are the critic's area numbers. "Decision X" means the row X in
 [phase-2-open-questions.md](../../decisions/phase-2-open-questions.md).
@@ -32,8 +33,9 @@ decision F12.5 accepts are in PROGRESS.md and decisions F12.2 onwards.
 
 ## 2. Areas no reviewer has checked yet
 
-Phase 3 builds the Tablets edition end to end on these screens and tables, so its exit review takes every item
-below that is not given to another phase.
+Phase 3 builds the Tablets edition end to end on these screens and tables. Its quick exit review looks at the
+items Phase 3 builds on (sections 4 and 18 first); the Phase 4 heavy check takes every item below that is not given
+to another phase (decision 0008).
 
 **[3] Rules still held only by the engine.**
 - The loop maximum (INV-19): no SQL reads maxIterations.

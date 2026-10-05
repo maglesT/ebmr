@@ -2179,3 +2179,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   and marks (checked against ICU 74, Unicode 14 and 18 over every code point); cost: a number next to a mark or sign of a
   right-to-left script is refused in a test run. Tests: kernel identifier-words (4 new) and server
   db-guards-free-text-shown (1 new), each failing with 1140 moved aside; F12.14 (7), F12.15 (1), (4), (6) corrected.
+- 2026-10-05: OWNER DECISION 0008, faster delivery (docs/decisions/0008-faster-delivery-testing-cadence-and-depth.md).
+  Tests with every feature and green CI stay; one review pass per feature; a quick review at the Phase 3 exit; the heavy
+  check (adversarial review, mutation targets, golden batches, browser suite) once, at the Phase 4 exit, for Phases 2 to
+  4; at most 2 fix rounds per finding; 2 to 3 agents at a time. Depth beyond the regulations is relaxed: the F12
+  sandbox identifier rule is frozen at kernel 1140 and recipe-core 0350; database enforcement is required for the
+  regulation-required core; mutation at least 90 % for high-risk groups and 70 % elsewhere, measured at the Phase 4
+  exit. No control removed, no expert_decision changed. CLAUDE.md and the review backlog follow it. The Phase 2 exit
+  finishes with the defect lanes, the last four kill groups and D16 already running; no full mutation re-run.

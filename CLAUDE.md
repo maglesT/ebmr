@@ -18,6 +18,10 @@ Hard rules:
 - No `Date.now()` or JavaScript `number` for GMP values in domain code.
 - Paraphrase regulations in docs and code comments; never paste more than a short phrase of regulation text.
 - Run `pnpm run ci` before pushing. Work on a branch; update `PROGRESS.md` at each milestone.
+- Cadence and depth follow owner decision 0008: tests with every feature and green CI always; one review pass per
+  feature; a quick review at the Phase 3 exit; the heavy check (adversarial review, mutation targets, golden batches,
+  browser suite) at the Phase 4 exit for Phases 2 to 4; at most 2 fix rounds per finding, then a residual for the
+  owner; database enforcement for the regulation-required core (decision 0008 section 2); 2 to 3 agents at a time.
 
 ## Skills and tools
 
@@ -32,5 +36,5 @@ Project skills in `.claude/skills/`:
 The rules above and the controls win over any tool or skill. Do not add a tool, plugin or skill whose rules
 cut testing (fewer tests, "one check is enough", coverage or mutation targets as optional); Ponytail was
 rejected for this reason. No tool or skill reduces tests named with control IDs, mutation targets, database
-enforcement, audit trail, e-signature or access checks. A graph answer is never evidence; the code and the
-tests are.
+enforcement, audit trail, e-signature or access checks; only an owner decision sets when they run and how deep
+(decision 0008). A graph answer is never evidence; the code and the tests are.
