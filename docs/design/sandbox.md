@@ -111,9 +111,12 @@ sandbox that claims to be GMP unless the database is also renamed.
 
 Inventory taken on 4 October 2026 from the catalogue of a sandbox migrated to kernel 1030, recipe-core 0345 and
 tablets 0630 (decision F12.8 in `docs/decisions/phase-2-open-questions.md`), and taken again after kernel 1040 and
-recipe-core 0346 and 0347 (decision F12.9) and after recipe-core 0348 and tablets 0640 (decision F12.10): the write
-surface is the same (no new writer; recipe.engine_name is written by its migration only and the application roles have
-no right on it); what reads it changed as A, C and D say. Correction (F12.10, the lane's round-12 verification): the
+recipe-core 0346 and 0347 (decision F12.9), after recipe-core 0348 and tablets 0640 (decision F12.10) and after kernel
+1050 and recipe-core 0349 (decision F12.11), after kernel 1070 and 1080 (decision F12.12) and after kernel 1090, 1101
+and 1102 (decision F12.13); kernel 1120 and recipe-core 0350 (decision F12.14) and kernel 1130 (decision F12.15) add no
+table and no writer (only functions that read): the write surface is the same (no
+new writer; recipe.engine_name and sandbox.look_alike are written by their migrations only, and the application roles have no right on the first and may
+only read the second); what reads it changed as A, C and D say. Correction (F12.10, the lane's round-12 verification): the
 inventory of F12.8 and F12.9 filed `tab.manual_weighing_basis` in D and said no entry quotes a reading's serial; the
 basis is keyed to a run's row and its reasons quote a heartbeat's serial and not-ready text, the registered serial, the
 server's API detail and a refused reading's alarm code. It is in A since tablets 0640. The
@@ -133,7 +136,80 @@ enumerated types.
 a refused reading's alarm code); in `kernel.audit_event`, on a run's chains and their signing chains the chain key
 after the run's id, the reason code and text, the actor's name and every business entry, and on a scale reading's chain
 the same for every entry (the gateway's, the claims' and any the application role appends). Every string and member
-name of a JSON value is read, at any depth, at commit, as written and with its escapes read (kernel 1040). A copy into
+name of a JSON value is read, at any depth, at commit, as written and with its escapes read (kernel 1040), and since
+kernel 1050 also as stored, each of these also as it shows (the combining marks and the characters that show nothing removed,
+white space kept as a separator) and with its look-alikes read (letters of other scripts, digits of any script by
+value, dashes, slashes and full stops: `sandbox.look_alike`, from UTS #39 confusables.txt and the Unicode Character
+Database 18.0.0); a text that can display in another order than it is stored (a right-to-left letter, an Arabic-Indic
+digit, a bidi control or mark) is read in every arrangement of its runs, so in a test run such a text holding a letter
+and a digit is refused (decision F12.11). The same reading guards B and C's person register, a test lot's material name
+and the basis. Correction (F12.11): kernel 1040's "as written" was the text as stored in NFKC, not as it shows; a soft
+hyphen, a zero-width character, a variation selector, a word joiner or a right-to-left override inside L2409-0017, and a
+division or fraction slash in BATCH/2409/0017, hid the identifier from it. Correction (F12.12, the verification of the
+lane's round 7): "white space kept as a separator" and "look-alikes" as 1050 read them left LOT─2409─0017,
+LOTー2409ー0017, LOT⎯2409⎯0017, B─24─0001, Ŀ2409-0017 and L2409-0017 with a hair space recorded over HTTP. Since kernel
+1070 the look-alikes are read as a class: every member of a UTS #39 class another member of which is read by its look
+(the class of U+30FC, which holds the em dash, as '-'; the classes of the small capitals and hooked letters kernel 1060
+reads by name, such as Cyrillic в and Greek κ), one character drawn as a letter with a dot or an apostrophe (Ŀ), the
+dashes, solidi and (kernel 1080) full stops named so in the Unicode Character Database or drawn so by Chromium 141
+(U+1680 OGHAM SPACE MARK included), and the compatibility forms PostgreSQL 16's NFKC does not know; a space narrower than the thin space (the
+hair space, the six-per-em space) shows no gap and is read as nothing. Correction (F12.13, the verification of the lane's
+round 7, lane round 2): "as it shows" kept U+FFFC and the spacing combining marks, which Chromium 141 lays out with no
+room, and the drawing was used for the look-alikes of the separators only, so L2409-0017 with U+FFFC or U+1031 after the
+L, and written with U+053C or U+14AB for the L, was recorded over HTTP. Since kernel 1090 every spacing combining mark
+and the characters a DOM-layout scan of Chromium 141 found laid out with no advance (U+FFFC among them; kernel 1101 adds
+U+1D1A0) are read as nothing, and since kernels 1101 and 1102 letters and digits are read as Chromium 141 draws them at
+the weights the product draws free text in, 400, 600 and 700 (a drawing scan against the ASCII letters and digits, alone
+and with a combining mark: U+053C and U+14AB as L, in bold the Masaram Gondi letter E as L). Which spaces are read
+as no gap (hair, six-per-em) and which stay gaps (thin, narrow no-break, which separate a number from its unit) is an
+honest-text default, not a measure of the screen (in Chromium 141 the six-per-em space is as wide as the thin space).
+kernel.is_blank, the audit trail's blank-reason test, is not changed (decision F12.13 (2)). Still not read (residual,
+F12.13 (6)): digits only; an identifier broken by a gap at least as wide as the thin space, or by a visible character
+that neither UTS #39, its Unicode name nor Chromium 141's drawing makes a look-alike of the alphabet (a separate middle
+dot, #); a character drawn near a letter but no closer than two letters of the alphabet are to each other, or drawn as
+two letters UTS #39 does not list; a character another renderer, font or weight lays out with no room or draws as the alphabet,
+a dash or a slash; one spelled out in words or drawn in an image; one whose letter is drawn with a punctuation mark; a
+word equal to an allowed name. Correction (F12.14, the verification of the lane's round 7, lane round 3): the drawing
+line of kernels 1101 and 1102 left unread eleven characters drawn closer to a letter than 5 and S are (U+0460 as W and
+U+A646 as I in bold among them), and no scan drew the monospace face in which the signature dialog shows the exact text
+that is signed (U+10EB as d, U+03D8 as Q), so 'Drum of <U+0460>24-0001 set aside' and a disposition's justification
+holding <U+10EB>2409-0017 were recorded over HTTP. Since kernel 1120 a word that holds a digit (an ASCII digit or any
+character `sandbox.look_alike` reads as one) is written with ASCII letters, ASCII digits, '/', '.' and '-' only, as
+stored and in every reading above, whatever a table lists. A word ends only at Unicode White_Space or ASCII punctuation
+other than '/', '.' and '-' (`sandbox.text_words`), so an invisible character, a mark, a bidi control or a letter or digit
+of another script inside it makes it such a word. `sandbox.identifier_words` gives it whole and
+`sandbox.real_identifier_parts` reads it as a real identifier, so A, B and C refuse it (EBMR-EXE-147, EBMR-SBX-024,
+naming the member and saying to write the digits 0 to 9 and a space); a test run's record holds it only as its MBR or
+header holds it whole (recipe-core 0350: the server copies the MBR's names verbatim into the signed content). Honest
+text with ASCII digits apart from its words passes; digits of another script, a number joined to a word of another script
+or to a sign (२४किलो, 25वां, 3개, 25°C, ±0.1), a vulgar fraction, the run's codes written with a hyphen look-alike and
+words holding a letter a table reads as a digit (Russian б) are refused in a test run (the accepted cost, decision
+F12.14 (6)). The residual above is replaced by F12.14 (7): digits only; a break by a space or an ASCII punctuation mark,
+also one drawn like a letter ('|'); an identifier every digit of which is drawn with a character no table reads as a
+digit; words and images; an allowed name or a word the run has whole from its MBR. Correction (F12.15, the
+verification of the lane's round 8, lane round 2): kernel 1050's arrangement of a text that can display in another
+order joined only runs of ASCII letters to runs of digits, so a word a reordered line shows joined with a letter outside
+ASCII was not read ('बैच <U+0460><U+200F> 24-0001 मिला', drawn by Chromium 141 as Ѡ24-0001, was recorded over HTTP in a
+hold reason and a business entry). Since kernel 1130 such a text (a right-to-left letter, an Arabic-Indic digit, a bidi
+control or a direction mark) is also read with each run of non-digit characters inside a word that holds a character
+outside ASCII joined to each run of digits, whatever lies between them, so A, B and C refuse it. Urdu, Arabic or Hebrew
+prose with a number, and any text with a direction mark or a bidi control and a number, are refused in a test run (the
+accepted cost, F12.15 (3)); such prose without a number passes. The residual's break "by a space or an ASCII
+punctuation mark" holds only for a text that displays in the order it is stored, and each text is read on its own (what
+two texts drawn on one line show together is not read: F12.15 (6)). Correction (F12.16, the
+verification of the lane's round 8, lane round 2, of kernel 1130): which texts can display in another order was decided
+by kernel 1050's class, built from Unicode 18.0.0, so "a text with none of these characters displays in the order it is
+stored" held for a renderer with Unicode 18.0.0 data only. Chromium 141, the E2E browser, ships ICU 74 (Unicode 15.1), in
+which 61 code points that Unicode 16 to 18 assigned as marks or neutrals inside the right-to-left blocks (a Hebrew point,
+Garay marks, Arabic honorific ligatures) are unassigned and reorder a line as right-to-left letters, so 'Drum of
+L<U+05C8> 2409-0017 set aside', drawn as L2409-0017, was recorded over HTTP. Since kernel 1140 the class is every code
+point of the ranges reserved for right-to-left scripts (U+0590-08FF, U+FB1D-FDCF, U+FDF0-FDFF, U+FE70-FEFE,
+U+10800-10FFF, U+1E800-1EFFF), whatever a Unicode version assigns there, and the bidi controls and direction marks; it
+holds every code point that ICU 74 (Chromium 141), Unicode 14.0 and Unicode 18.0.0 class R, AL or AN, so a text with
+none of them displays in the order it is stored in each of these. A number with a mark or sign of a right-to-left
+script is refused in a test run too (F12.16 (3)); a renderer whose bidi data gives R, AL or AN outside these ranges, or
+a page that sets a right-to-left paragraph direction (the product's screens set none), is the residual (F12.16 (5)).
+A copy into
 the record from anywhere else is read where it lands, so this does not depend on tracing where a text comes from. The
 words allowed there are bound to the run, none by its form: the imported package (the MBR), the batch number and the
 site and room of the session that issued it or writes a row, the names of the engine's registers (`recipe.engine_name`:

@@ -2065,6 +2065,120 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   state history forged with the session flag, nested loops on one endpoint, the listener hold measured from the
   close, and two refusal messages) are in docs/build-plan/phase-2-exit/sql-mutation-kill-results.md. Harness smoke on
   this tree: site-zone 25/33 before the kill tests, 33/33 after.
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 7 (F12: what a text shows is what the rule
+  reads) (branch phase-2/recipe-core; F12; DI-05, DI-30, INV-18). What was wrong: the identifier reading (kernel 1030
+  and 1040) took the words of a text from its stored NFKC form, where a character that shows nothing, a look-alike
+  letter, digit or slash, and a bidi control were all separators. Over HTTP the honest server recorded L2409-0017 with a
+  soft hyphen, a zero-width space or joiner, a combining grapheme joiner, a variation selector or a word joiner after
+  the L, L 7100-9042 under a right-to-left override (shown as L2409-0017), and BATCH/2409/0017 with a division or
+  fraction slash, in exception descriptions, hold reasons and business entries. Our own attack found the same with no
+  control at all: a Hebrew letter between L and 2409-0017 shows L2409-0017 in a left-to-right line (Chromium 141), and
+  Cyrillic or Greek letters and Devanagari or Arabic-Indic digits were read as nothing. What changed:
+  - kernel 1050: every text, as stored, as written and with its escapes read, is also read as it shows (the combining
+    marks and what kernel.is_blank counts as showing nothing removed, spaces kept) and with its look-alikes read (new
+    table sandbox.look_alike, data from Unicode's confusables.txt and character database 18.0.0: digits of every script
+    by value, look-alike letters, dashes, slashes and full stops). A text that can display in another order (a
+    right-to-left letter, an Arabic digit, a bidi control or mark) is read in every arrangement of its runs. The stored
+    text never changes. Every user of the reading is covered at once: a test run's record, the kernel's stubs, the
+    person register, a test lot's material name and the weighing basis.
+  - recipe-core 0349: the run's bound words and a refusal's path read the same forms, so the run's own words still
+    match (also written with a non-ASCII hyphen).
+  - Defaults (decision F12.11): Urdu, Arabic or Hebrew text with a number is refused in a test run (the display order
+    cannot be read; refusing only the override controls would leave the implicit reordering open); digits of any script
+    are read by value; punctuation stays a separator (the Hindi danda passes); a symbol that looks like a letter (the
+    multiplication sign, a slashed O) counts as that letter. Still not read: digits only, an identifier broken by a
+    space or a visible non-look-alike character, spelled out in words, or drawn in an image. F12.8, F12.9, F12.10,
+    kernel 1040's header and sandbox.md section 7 A corrected.
+  Tests (each fails with kernel 1050 and recipe-core 0349 moved aside): kernel sandbox/identifier-words (5 new: what
+  shows nothing, look-alikes and reordered text read; every look-alike folded; the person register; honest emoji,
+  soft hyphen, Hindi, Tamil, Greek, Japanese and Korean prose not read); server execution/db-guards-free-text-shown (2:
+  the probes over HTTP and in business entries three levels down refused with nothing stored, honest texts recorded);
+  db-guards-kernel-stubs (1 new). Regressions run: free-text identifiers, bound names, compounds, weighing basis,
+  golden, free text, kernel stubs, sandbox registers, device claim, recipe-core engine-names-sql, test-kit, and the
+  sandbox set-up with three persona sets.
+  Attacking 1050 ourselves found letters and digits no table read (a small capital L, a regional indicator or negative
+  squared L, dingbat circled digits): kernel 1060 reads the 372 characters with no decomposition whose Unicode names
+  make them a Latin letter or a digit as named (kernel identifier-words test, fails with 1060 moved aside).
+  Round 2 (verification of round 7): the em dash's own look-alikes were not read (Unicode's confusables data gives the
+  box-drawing line, the Japanese prolonged sound mark and CJK one the em dash's prototype), nor dashes and slashes drawn
+  as such, an L with a middle dot inside it, or a hair space: LOT─2409─0017, LOTー2409ー0017, LOT⎯2409⎯0017,
+  B─24─0001 and Ŀ2409-0017 were recorded over HTTP. Kernel 1070 reads the look-alikes as a class (every member of a
+  confusables class another member of which is read by its look, a letter drawn with a dot, dashes and solidi by name or
+  as Chromium draws them, the Ogham space mark, compatibility forms PostgreSQL 16 does not know) and a space narrower
+  than the thin space as nothing; kernel 1080, from our own attack, the full stops drawn as such. Decision F12.12 states
+  each group left out and the residual; F12.8, F12.10, F12.11 and sandbox.md corrected. Tests: kernel identifier-words
+  (5 new, each fails with 1070 or 1080 moved aside), server db-guards-free-text-shown (1 new: 13 probes over HTTP and in
+  business entries refused, honest Japanese, Chinese and Korean prose recorded).
+  Round 3 (verification of round 7, lane round 2): what Chromium lays out with no room (U+FFFC, the spacing marks of
+  Indian and other scripts) and letters it draws as the alphabet that Unicode's confusables data does not list (an
+  Armenian and a Canadian letter drawn as L) still hid L2409-0017 over HTTP. Kernel 1090 reads every spacing mark and
+  the characters a scan of the browser's layout found with no advance as nothing (the audit trail's blank-reason test
+  is kept as it is, and why is recorded); kernel 1101 reads the letters and digits the browser draws closer to an ASCII
+  letter or digit than any two of those are drawn, and kernel 1102, from our own attack on 1101, does the same in the
+  semibold and bold the product shows free text in, with a complete comparison. Our attack also found a test that
+  failed by chance when an id held 2409; it now ignores numbers inside hex ids. Decision F12.13 states the defaults and
+  what remains; F12.8, F12.10, F12.12 (wrong space widths, a Japanese sentence that is refused, the drawing used for
+  separators only) and sandbox.md corrected. Tests: kernel identifier-words (9 new), server db-guards-free-text-shown
+  (3 new) and db-guards-kernel-stubs (3 new), each failing with its migration moved aside; honest Hindi, Tamil, Telugu,
+  Greek, Japanese, Chinese and Korean prose recorded; the sandbox set-up with three persona sets reads none of its 33
+  persons.
+- 2026-10-04: PHASE 2 EXIT FOLLOW-UP, Rules the database must enforce, round 8 (F12: a word that holds a digit is plain
+  ASCII) (branch phase-2/recipe-core; F12; DI-05, DI-30, INV-18). What was wrong: round 7 read a character outside ASCII
+  as a letter or digit only when a table listed it (Unicode's confusables data, character names, two drawing scans of
+  the product's sans-serif face). The verification found 18 more characters no table lists that the product draws as
+  Latin letters or digits, among them a Cyrillic omega drawn as W and a Cyrillic iota as I in bold, and, in the
+  monospace face the signature dialog shows the signed text in (never scanned), a Georgian letter drawn as d and an
+  archaic koppa as Q. Over HTTP the honest server kept W24-0001 and I2409-0017 written with them in an exception's
+  description, a hold reason and a business entry three levels down, and qa1 signed a disposition whose justification
+  held d2409-0017. It also showed that the drawing line the docs stated was not the one the scans drew. Chasing glyphs
+  has no end, so the class is closed by structure (decision F12.14, the verification's own alternative). What changed:
+  - kernel 1120: in a sandbox a word that holds a digit (an ASCII digit or any character the look-alike table reads as
+    one) is written with ASCII letters, ASCII digits, '/', '.' and '-' only, as stored and in every reading of round 7.
+    A word ends only at a space of any kind or at ASCII punctuation other than '/', '.' and '-', so an invisible
+    character, a mark, a bidi control or a letter or digit of another script inside it makes it such a word. The
+    reading gives that word whole and reads it as a real identifier, so every guard of the rule refuses it with no
+    change of its own: a test run's record and its audit chains (EBMR-EXE-147), the kernel's stubs, a person's employee
+    reference and a test lot's material name (EBMR-SBX-024, with a message that says to write the digits 0 to 9 and a
+    space); person and device labels were already ASCII only after TEST-. A GMP installation is unchanged.
+  - recipe-core 0350: such a word is allowed in a test run's record only as its MBR or header holds it, whole (the
+    server copies the MBR's step names into the signed content, so an MBR with a step named "at 22°C, ±2" still runs);
+    a real-format identifier is named first; the refusal says what to write. The server's guidance for EBMR-EXE-147
+    says the same.
+  - Defaults (F12.14): the run's own codes written with a hyphen look-alike (DISP‐1) are refused; the honest screens
+    never write them. Accepted cost, refused in a test run although honest: digits of other scripts (Hindi २५), a
+    number joined to a word of another script or a sign (२४किलो, 25वां, 3개, 25°C, ±0.1), a vulgar fraction, a keycap
+    emoji, Russian or Armenian words with a letter a table reads as a digit. Still not read: digits only, an
+    identifier broken by a space or by an ASCII mark, one whose every digit is drawn with a character no table reads as
+    a digit, words, images. F12.13 (3), (4) and (6), the 1050 to 1102 headers (in 1120's), 0349 (in 0350's) and
+    sandbox.md section 7 corrected.
+  Tests (each fails with kernel 1120 moved aside; the MBR one also with recipe-core 0350 moved aside): kernel
+  identifier-words (3 new: the 18 characters read as nothing alone and whole when glued to digits, invisible, bidi and
+  mark characters inside a word with a digit, the word boundary; honest prose not read and the accepted cost read;
+  guard_free_text, a person label and an employee reference refused, GMP keeps them), server
+  db-guards-free-text-shown (2 new: the five probes over HTTP in a description, a hold reason, a business entry three
+  levels down and a disposition's justification refused with nothing stored and the advice to use ASCII digits; honest
+  Hindi, Tamil, Japanese, Korean and Greek prose, emoji, soft hyphen, TEST- identifiers, the run's codes, dates and
+  quantities recorded; an MBR step name holding 22°C signed and kept, 23°C refused). Round-7 tests whose honest text
+  joined digits to another script now write the numbers apart, or assert the refusal (their titles and the controls'
+  lists updated). Regressions: kernel sandbox tests, test-kit, recipe-core engine-names-sql, server free-text,
+  free-text-identifiers, bound names, compounds, weighing basis, kernel stubs, sandbox registers, entry identifiers,
+  golden, people text, disposition, header limit, device claim, refusals and room views, row context; the sandbox
+  set-up with three persona sets (27 personas, none of its 33 persons read; the -wA and -wB names pass).
+  Lane round 2 (2026-10-05, kernel 1130, decision F12.15): the verification found a reordered line still hid such a
+  word: a right-to-left mark or letter between a Cyrillic omega and a space made 'बैच Ѡ 24-0001' show as Ѡ24-0001, and
+  round 7's arrangement joined only ASCII letters to the digits, so a hold reason and a business entry kept it. Now a
+  text that can display in another order also joins every run of other characters to every run of digits, so the
+  rule refuses it in a sandbox (cost: Urdu, Arabic or Hebrew prose with a number, or a text with a direction mark and a
+  number; the refusal says to write the number in words). Tests: kernel identifier-words (3 new) and server
+  db-guards-free-text-shown (1 new), each failing with 1130 moved aside; F12.14 (1), (2), (6) and (7) corrected.
+  Lane round 3 (2026-10-05, kernel 1140, decision F12.16): the verification found the class of characters that can
+  reorder a line was Unicode 18's, while the E2E browser (Chromium 141, ICU 74, Unicode 15.1) treats 61 more code points
+  as right-to-left letters (a Hebrew point, Garay marks, Arabic ligature signs that later Unicode versions made marks or
+  symbols), so 'Drum of L<U+05C8> 2409-0017 set aside', shown as L2409-0017, was kept over HTTP, also in a signed
+  disposition. Now the class is every code point of the ranges reserved for right-to-left scripts plus the bidi controls
+  and marks (checked against ICU 74, Unicode 14 and 18 over every code point); cost: a number next to a mark or sign of a
+  right-to-left script is refused in a test run. Tests: kernel identifier-words (4 new) and server
+  db-guards-free-text-shown (1 new), each failing with 1140 moved aside; F12.14 (7), F12.15 (1), (4), (6) corrected.
 - 2026-10-05: PHASE 2 EXIT, SQL mutation kill tests of the last four groups integrated: branch
   phase-2/kill-integration-2b from 1cb8c6f (phase-2/recipe-core with the first 24 groups) merges kill/device-readings,
   kill/evidence-source-and-entries, kill/entry-references-and-schema and kill/signed-content. One fix migration, kept
