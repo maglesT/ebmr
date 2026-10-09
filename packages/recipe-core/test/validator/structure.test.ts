@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { compileMbr } from '../../src/flow/compile.ts';
 import type { ExecutionGraph, GraphNode } from '../../src/flow/graph.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
+import type { Frame } from '../../src/flow/tokens.ts';
 import { STRUCTURE_RULES } from '../../src/validator/rules-structure.ts';
 import { validateGraph } from '../../src/validator/validate.ts';
+import { define, OP1, Run } from '../engine/support.ts';
 import { clone, endpoint, errors, loadFixture, mbrWith, phase, registryOf, rulesOf, validate } from '../flow/support.ts';
 
 const structureOnly = registryOf(STRUCTURE_RULES);
@@ -196,5 +198,89 @@ describe('structure gates on the compiled graph', () => {
     const h = clone(fixture);
     node(h, 'and-join:P-MIX').join = 'ANY';
     expect(validateGraph(h).map((f) => f.message).join(' ')).toMatch(/join rule ANY; it must be ALL/);
+  });
+});
+
+/**
+ * SQL mutation defect D12 (Phase 2 exit, limit exceptions; decision D12.1): two loops, one inside the other, that exit
+ * on the same endpoint. The inner loop's exit judges the last reading of the endpoint against its limits; the outer
+ * loop's exit judges that same reading again (engine data.ts raiseForEvaluationAtExit), raising a second limit breach
+ * for it when it is outside them, and the database refuses that outer exit row whether the reading passes or not
+ * (recipe-core 0303 lets only a waiting endpoint take a verdict; 0305 finds no verdict behind the second breach), so the
+ * batch stops there. The validator passed such an MBR. It now refuses it (FLOW-LOOPS); the database's refusal stays.
+ */
+describe('D12: nested loops never exit on the same endpoint (FLOW-LOOPS; INV-19, DI-34, PR-08)', () => {
+  const pinned = mbrWith(seq('none', [])).references;
+  const references: MbrContent['references'] = [
+    ...pinned,
+    { id: 'VR', kind: 'VALIDATION_REPORT', code: 'VR-1', version: '1', hash: 'b'.repeat(64) },
+    { id: 'SYS-LOD', kind: 'COMPUTERISED_SYSTEM', code: 'CS-LOD', version: '1', hash: 'c'.repeat(64) },
+  ];
+  const loop = (id: string, name: string, endpointId: string, body: FlowNode): FlowNode => ({
+    kind: 'loop',
+    id,
+    name,
+    maxIterations: 1,
+    exit: { condition: `${endpointId} <= 1 [%]`, endpoint: endpointId },
+    body,
+  });
+  const test = (records: string[]): FlowNode => phase('test', { records, system: { kind: 'OTHER', ref: 'SYS-LOD' } });
+  const nested = (outerEndpoint: string, inner: FlowNode): MbrContent =>
+    mbrWith(seq('ops', [loop('OL', 'Outer', outerEndpoint, inner), phase('after')]), { parameters: [endpoint('ep'), endpoint('ep2')], references });
+  const sameEndpoint = nested('ep', loop('IL', 'Inner', 'ep', test(['ep'])));
+  const refusal = (inner: string, outer: string): string =>
+    `Loop ${inner} lies inside loop ${outer}, and both exit on "Endpoint ep" (ep). The inner loop's exit judges the last reading of "Endpoint ep" (ep) against its limits; the outer loop's exit would judge that same reading again, and raise a second limit breach for it when it is outside them, which the database refuses, so the batch would stop at the outer loop's exit. Give the outer loop an endpoint of its own, recorded inside it, or keep only one of the two loops (FLOW-LOOPS; DI-34, INV-19)`;
+
+  it('[INV-19][DI-34][PR-08] a loop inside a loop that exits on the same endpoint is refused, in plain words; the engine would judge the one reading twice and raise two limit breaches for it', () => {
+    const refused = errors(validate(sameEndpoint));
+    expect(refused.map((f) => f.key)).toEqual(['FLOW-LOOPS@IL']);
+    expect(refused[0]?.message).toBe(refusal('"Inner" (IL)', '"Outer" (OL)'));
+    // Why: one reading outside its limits, two LIMIT_BREACH exceptions (the second at the outer exit).
+    const run = Run.issue(define(sameEndpoint));
+    const f: Frame[] = [{ construct: 'OL', index: 1 }, { construct: 'IL', index: 1 }];
+    run.start('test', f);
+    run.record('test', 'ep', { kind: 'DECIMAL', value: '7.0', unit: '%' }, { frames: f });
+    run.perform('test', f);
+    run.verify('test', f);
+    run.ok({ type: 'COMPLETE_LOOP_ITERATION', actor: OP1, construct: 'IL', context: f });
+    run.ok({ type: 'COMPLETE_LOOP_ITERATION', actor: OP1, construct: 'OL', context: [{ construct: 'OL', index: 1 }] });
+    expect(Object.values(run.state.points).filter((p) => p.item === 'ep')).toHaveLength(1);
+    expect(run.exceptions('LIMIT_BREACH').map((e) => e.title)).toEqual([
+      expect.stringMatching(/^Endpoint ep \(ep\) at the exit of Inner 7\.0 % is outside/),
+      expect.stringMatching(/^Endpoint ep \(ep\) at the exit of Outer 7\.0 % is outside/),
+    ]);
+  });
+
+  it('[INV-19][DI-34][PR-08] at any depth: the innermost of three loops on one endpoint is refused against each loop around it, the middle one against the outer one', () => {
+    const m = nested('ep', loop('ML', 'Middle', 'ep', loop('IL', 'Inner', 'ep', test(['ep']))));
+    const refused = errors(validate(m));
+    expect(refused.map((f) => f.message)).toEqual([refusal('"Inner" (IL)', '"Middle" (ML)'), refusal('"Inner" (IL)', '"Outer" (OL)'), refusal('"Middle" (ML)', '"Outer" (OL)')]);
+  });
+
+  it('[INV-19][DI-34][PR-08] nested loops with endpoints of their own pass, the outer endpoint recorded inside the inner loop too; so do two loops on one endpoint in two branches of an alternative, which never both run', () => {
+    expect(errors(validate(nested('ep2', loop('IL', 'Inner', 'ep', test(['ep', 'ep2'])))))).toEqual([]);
+    expect(errors(validate(nested('ep2', seq('ob', [loop('IL', 'Inner', 'ep', test(['ep'])), phase('measure', { records: ['ep2'], system: { kind: 'OTHER', ref: 'SYS-LOD' } })]))))).toEqual([]);
+    const branches = mbrWith(
+      seq('ops', [
+        {
+          kind: 'alternative',
+          id: 'ROUTE',
+          decision: { mode: 'OPERATOR_CHOICE', roles: ['PRODUCTION_SUPERVISOR'], reasonRequired: true },
+          branches: [
+            { id: 'A', name: 'Tray dryer', body: loop('LA', 'Tray drying', 'ep', phase('tray', { records: ['ep'], system: { kind: 'OTHER', ref: 'SYS-LOD' } })) },
+            { id: 'B', name: 'Fluid bed', body: loop('LB', 'Fluid-bed drying', 'ep', phase('bed', { records: ['ep'], system: { kind: 'OTHER', ref: 'SYS-LOD' } })) },
+          ],
+        },
+        phase('after'),
+      ]),
+      { parameters: [endpoint('ep')], references },
+    );
+    expect(errors(validate(branches))).toEqual([]);
+  });
+
+  it('[INV-19][DI-34] the shipped and seeded MBRs hold no such loops', () => {
+    for (const name of ['tablet-granulation-compression', 'tablet-blister-packaging'] as const) {
+      expect(validate(loadFixture(name)).findings.filter((f) => f.rule === 'FLOW-LOOPS')).toEqual([]);
+    }
   });
 });

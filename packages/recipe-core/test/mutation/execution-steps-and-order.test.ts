@@ -18,7 +18,7 @@ import { step } from '../../src/engine/engine.ts';
 import type { BatchState, Command } from '../../src/engine/types.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import { endpoint, errors, mbrWith, phase, validate } from '../flow/support.ts';
-import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, OP1, OP2, param, QA1, Run, sig, SUP1 } from '../engine/support.ts';
+import { autopilot, define, done, FIXTURE_INPUTS, fixtureDefinition, GRANULATION_SCENARIO, HEAD1, OP1, OP2, param, QA1, Run, sig, SUP1 } from '../engine/support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -284,6 +284,76 @@ describe('F67: minimum durations measured within the constraint instance (0308 r
     expect(await shared('p-not-in-the-mbr', 'p-drycycle')).toBeNull();
     expect(await shared('p-drycycle', 'p-not-in-the-mbr')).toBeNull();
   }, 300_000);
+});
+
+describe('D6: a start the token\'s arrival records is never measured against a minimum (0308 recipe.minimum_duration_problem item 1; INV-20, PR-30)', () => {
+  // Decision D6.1 (SQL mutation defect D6): the engine records the START of a stage, an operation, a parallel section, an
+  // alternative, a replicate section, a loop and a hold point by itself when the token arrives, and neither refuses nor
+  // flags it before a minimum ending there; the validator refuses such a minimum (TIME-MIN-AT-ARRIVAL), so no approved
+  // MBR holds one, and the database, like the engine, does not measure that start (0308 header item 1). The MBRs below
+  // are the ones the validator refuses: the database does not run the validator, so a content that reached it without
+  // the gate could still hold such a minimum; its rows are then accepted exactly as the engine writes them.
+  const op = (id: string, ...children: FlowNode[]): FlowNode => ({ kind: 'operation', id, name: `Operation ${id}`, body: seq(`${id}-seq`, ...children) });
+  const stage = (id: string, ...children: FlowNode[]): FlowNode => ({
+    kind: 'stage', id, name: `Stage ${id}`, binding: { rooms: [], equipment: [] }, purpose: 'NON_MATERIAL', responsibleRole: 'HEAD_OF_PRODUCTION', body: seq(`${id}-seq`, ...children),
+  });
+  const base = mbrWith(seq('none'));
+  const content = (stages: FlowNode[], to: string, extra: Partial<MbrContent> = {}): MbrContent => ({
+    ...base,
+    references: [
+      ...base.references,
+      { id: 'V-1', kind: 'VALIDATION_REPORT', code: 'VR-1', version: '1', hash: 'b'.repeat(64) },
+      { id: 'VR', kind: 'VALIDATION_REPORT', code: 'VR-2', version: '1', hash: 'd'.repeat(64) },
+      { id: 'SYS-LOD', kind: 'COMPUTERISED_SYSTEM', code: 'CS-LOD', version: '1', hash: 'c'.repeat(64) }],
+    procedure: { id: 'PROC', name: 'Procedure', body: seq('proc-seq', ...stages) },
+    timeConstraints: [{ id: 'TC', name: 'Rest after a', kind: 'TIMER', from: { node: 'a', event: 'END' }, to: { node: to, event: 'START' }, min: { value: '10', unit: 'min' }, source, breach: 'EXCEPTION', pauses: 'INCLUDED' }],
+    ...extra,
+  });
+  const arrivals: [string, MbrContent, (run: Run) => void][] = [
+    ['O2', content([stage('S1', op('O1', phase('a')), op('O2', phase('b')))], 'O2'), () => undefined],
+    ['PAR', content([stage('S1', op('O1', phase('a'), { kind: 'parallel', id: 'PAR', branches: [{ id: 'B1', name: 'One', body: phase('p1') }, { id: 'B2', name: 'Two', body: phase('p2') }] }, phase('b')))], 'PAR'), () => undefined],
+    [
+      'ALT',
+      content([stage('S1', op('O1', phase('a'), { kind: 'alternative', id: 'ALT', decision: { mode: 'OPERATOR_CHOICE', roles: ['PRODUCTION_SUPERVISOR'], reasonRequired: true }, branches: [{ id: 'B1', name: 'One', body: phase('x1') }, { id: 'B2', name: 'Two', body: phase('x2') }] }, phase('b')))], 'ALT'),
+      (run) => void run.ok({ type: 'CHOOSE_ALTERNATIVE', actor: SUP1, construct: 'ALT', context: [], branch: 'B1', reason: 'Route one' }),
+    ],
+    [
+      'REP',
+      content([stage('S1', op('O1', phase('a'), { kind: 'replicate', id: 'REP', name: 'Loads', count: { mode: 'RUNTIME', min: 1, max: 2, reasonRequired: true }, instances: 'SEQUENTIAL', subLotPrefix: 'LD', body: phase('r') }, phase('b')))], 'REP'),
+      (run) => void run.ok({ type: 'CHOOSE_REPLICATE_COUNT', actor: SUP1, construct: 'REP', context: [], count: 1, reason: 'One load' }),
+    ],
+    ['S2', content([stage('S1', op('O1', phase('a'))), stage('S2', op('O2', phase('b')))], 'S2'), (run) => void run.ok({ type: 'SIGN_OFF_STAGE', actor: HEAD1, stage: 'S1', signature: sig('STAGE_SIGNED_OFF', HEAD1) })],
+    ['H', content([stage('S1', op('O1', phase('a'), hold('H'), phase('b')))], 'H'), () => undefined],
+    [
+      'L',
+      content([stage('S1', op('O1', phase('a'), { kind: 'loop', id: 'L', name: 'Dry', maxIterations: 3, exit: { condition: 'ep <= 1 [%]', endpoint: 'ep' }, body: phase('l', { records: ['ep'], system: { kind: 'OTHER', ref: 'SYS-LOD' } }) }, phase('b')))], 'L', { parameters: [endpoint('ep')] }),
+      () => undefined,
+    ],
+  ];
+
+  it('[INV-20][PR-30] the row whose token arrives at an operation, a parallel section, an alternative, a replicate section, a stage, a hold point or a loop before the minimum is accepted without a TIME_MIN_BREACH, as the engine writes it; the validator refuses each such minimum', async () => {
+    const found: Record<string, unknown> = {};
+    for (const [node, mbr, arrive] of arrivals) {
+      expect(errors(validate(mbr)).map((f) => f.key), `${node}: the gate refuses this MBR`).toEqual(['TIME-MIN-AT-ARRIVAL@TC']);
+      // The engine's own rows, its INV-20 check set aside: it would count the early start as a violation (D6).
+      const run = Run.issue(define(mbr), {}, undefined, { checkInvariants: false });
+      const states = [run.state];
+      done(run, 'a');
+      arrive(run);
+      states.push(...run.log.map((e) => e.result.state));
+      const at = states.findIndex((s) => s.nodeEvents[`${node}|START|`] !== undefined);
+      const before = states[at - 1] as BatchState;
+      const after = states[at] as BatchState;
+      const early = (after.nodeEvents[`${node}|START|`]?.at ?? 0n) - (after.nodeEvents['a|END|']?.at ?? 0n);
+      found[node] = {
+        early: early < 10n * 60_000_000n,
+        breaches: Object.values(after.exceptions).filter((e) => e.type === 'TIME_MIN_BREACH').length,
+        database: await minimumProblem(mbr, enc(before), enc(after)),
+      };
+    }
+    const accepted = { early: true, breaches: 0, database: null };
+    expect(found).toEqual({ O2: accepted, PAR: accepted, ALT: accepted, REP: accepted, S2: accepted, H: accepted, L: accepted });
+  }, 120_000);
 });
 
 describe('F67: blocks reach what the execution graph reaches (0308 recipe.flow_reaches, recipe.blocking_exceptions_problem; PR-08, PR-13)', () => {

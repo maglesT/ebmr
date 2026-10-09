@@ -16,8 +16,12 @@ import { graphRuleFor, STRUCTURE_RULES } from './rules-structure.ts';
 import { TIME_RULES } from './rules-time.ts';
 import type { Finding, GateResult, RuleFinding, ValidationContext, ValidationReport, WarningJustification } from './types.ts';
 
-/** 1.1.0: FLOW-ROLES (every role the master names is an engine role of the installation; review F49). */
-export const VALIDATOR_VERSION = '1.1.0';
+/**
+ * 1.1.0: FLOW-ROLES (every role the master names is an engine role of the installation; review F49).
+ * 1.2.0: TIME-MIN-AT-ARRIVAL (a minimum never ends at a start the run records by itself; SQL mutation defect D6) and
+ * FLOW-LOOPS refuses a loop inside a loop on the same endpoint (D12). A report of an earlier version checked neither.
+ */
+export const VALIDATOR_VERSION = '1.2.0';
 
 /** Rules registered per edition. Editions add theirs with `withEditionRules`; generic rules always run. */
 export class RuleRegistry {

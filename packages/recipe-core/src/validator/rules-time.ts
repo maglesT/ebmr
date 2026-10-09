@@ -2,7 +2,7 @@
  * Time-constraint gates (ADR 0004 decision 3; outline 6.2, 6.3 "time constraints consistent"; INV-20).
  */
 import { compareDecimal, durationToMicros, isTimeUnit } from '../flow/decimal.ts';
-import { isNodeEvent, type NodeEvent, type Quantity } from '../flow/model.ts';
+import { childrenOf, isNodeEvent, type FlowNode, type NodeEvent, type Quantity } from '../flow/model.ts';
 import type { Analysis } from './analysis.ts';
 import { defineRule, error, label, warning, type Rule } from './rule-kit.ts';
 import { checkTemporalNetwork, type NetConstraint } from './time-network.ts';
@@ -68,6 +68,78 @@ const neverApplies = defineRule('TIME-NEVER-APPLIES', 'Time constraints can appl
   return out;
 });
 
+/**
+ * The starts the engine records by itself when the token arrives (engine advance.ts: tryFire records a hold point's
+ * START with the token, afterFire the START of a stage or an operation at its scope start, of a parallel section at its
+ * split, of an alternative once its branch is decided, of a loop at its first entry and of a replicate section at its
+ * split). The engine neither refuses nor flags such a start before a minimum ending at it (flagEarlyAutomaticEvent is
+ * called for ends only; recipe-core 0308 skips these starts the same way), while its INV-20 check (invariants.ts
+ * checkTime) counts it as a violation. Every other node event that can end a minimum is a person's act the engine
+ * refuses before the minimum (a phase's start or end; the end of a hold point, a stage or a loop) or an automatic end it
+ * flags with a TIME_MIN_BREACH (the end of an operation, a parallel or alternative section, a replicate section).
+ */
+const ARRIVAL_STARTS: Readonly<Partial<Record<FlowNode['kind'], string>>> = {
+  stage: 'stage',
+  operation: 'operation',
+  parallel: 'parallel section',
+  alternative: 'alternative',
+  replicate: 'replicate section',
+  loop: 'loop',
+  holdPoint: 'hold point',
+};
+
+/**
+ * The first acts of a person on every path into `node`, where the run holds the act back until a minimum ending there has
+ * passed: the start of the first phase, or the release (end) of the first hold point; for a parallel section or an
+ * alternative, the first act of each branch.
+ */
+function firstActs(a: Analysis, node: FlowNode): string[] {
+  switch (node.kind) {
+    case 'phase':
+      return [`the start of ${label(a, node.id)}`];
+    case 'holdPoint':
+      return [`the release of hold point ${label(a, node.id)} (its end)`];
+    case 'sequence': {
+      for (const child of node.children) {
+        const acts = firstActs(a, child);
+        if (acts.length > 0) return acts;
+      }
+      return [];
+    }
+    default:
+      return childrenOf(node).flatMap((child) => firstActs(a, child));
+  }
+}
+
+/**
+ * D6 (Phase 2 exit, SQL mutation defects; decision D6.1): a minimum may end only where the run can hold the event back or
+ * flag it, never at a start the engine records by itself when the token arrives (ARRIVAL_STARTS). The author is told to
+ * end it at the first act of a person inside instead.
+ */
+const minimumAtArrival = defineRule('TIME-MIN-AT-ARRIVAL', 'A minimum never ends at a start the run records by itself', ['INV-20', 'PR-30'], (a) => {
+  const out: RuleFinding[] = [];
+  for (const t of a.mbr.timeConstraints) {
+    if (!t.min || !isNodeEvent(t.to) || t.to.event !== 'START') continue;
+    const node = a.nodes.get(t.to.node)?.node;
+    const kind = node ? ARRIVAL_STARTS[node.kind] : undefined;
+    if (!node || kind === undefined) continue;
+    const acts = firstActs(a, node);
+    const instead =
+      node.kind === 'holdPoint'
+        ? 'End the minimum at the release of the hold point instead (its end): the run holds the release back until the minimum has passed'
+        : acts.length === 0
+          ? 'End the minimum at the start of a step instead, where a person acts and the run holds the act back until the minimum has passed'
+          : `End the minimum at the first step inside instead, where a person acts and the run holds the act back until the minimum has passed: ${acts.join(' and ')}${acts.length > 1 ? ' (one time constraint for each)' : ''}`;
+    out.push(
+      error(
+        t.id,
+        `Time constraint ${label(a, t.id)} has a minimum of ${t.min.value} ${t.min.unit} that ends at the start of ${kind} ${label(a, node.id)}. The run starts it by itself as soon as what comes before it is done, so nothing holds that start back until the minimum has passed, and the run would break the minimum without a refusal or an exception. ${instead}`,
+      ),
+    );
+  }
+  return out;
+});
+
 /** Declared constraints plus the implied ones: intermediate hold times and loop maximum durations. */
 export function networkConstraints(a: Analysis): NetConstraint[] {
   const out: NetConstraint[] = [];
@@ -115,4 +187,4 @@ const consistent = defineRule('TIME-CONSISTENT', 'Time constraints can all be me
   return out;
 });
 
-export const TIME_RULES: readonly Rule[] = [bounds, neverApplies, consistent];
+export const TIME_RULES: readonly Rule[] = [bounds, neverApplies, minimumAtArrival, consistent];
