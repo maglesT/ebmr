@@ -147,6 +147,11 @@ tests:
   - "packages/ui-kit/test/floor/pending-entry.test.ts > pendingEntry machine (kiosk: a badge tap per send) > [DI-28][INV-40] on every path a resend uses the same idempotency key and the same body as the lost send, and needs a fresh tap"
   - "packages/ui-kit/test/floor/pending-entry.test.ts > pendingEntry machine (kiosk: a badge tap per send) > [DI-28] NOT SAVED is reached only when the answer was lost, and can only be left by a resend, a discard or a session change"
   - "packages/ui-kit/test/floor/pending-entry.test.ts > pendingEntry machine (office PC: no tap) > [DI-28] a resend goes out at once with the same key and body; the shortest path to every state exists"
+  - "apps/tablets-server/test/mutation/device-readings.test.ts > ingestion: tab.ingest_reading's own refusals and the stored proof > [DI-28][DI-31] a wait signature in non-canonical base64 (the same 64 bytes) is refused (EBMR-DEV-055); its canonical text is accepted"
+  - "apps/tablets-server/test/mutation/device-readings.test.ts > the proof functions on their own (superuser) > [DI-28][DI-31] tab.upload_wait_signature_valid is false for a negative wait, a signature text that is not canonical, an SPKI that is not base64 or not an Ed25519 SPKI, even with a genuine signature"
+  - "apps/tablets-server/test/mutation/device-readings.test.ts > claims: who may claim, the claim's own arguments, and readings that reached the table without ingestion > [DI-28] the maximum age a claim asks for is from 1 microsecond to 1 hour, never missing (EBMR-DEV-108); nothing used"
+  - "apps/tablets-server/test/mutation/device-readings.test.ts > claims: who may claim, the claim's own arguments, and readings that reached the table without ingestion > [DI-28] a reading exactly as old as the maximum age is not too old: at that microsecond only the signed capture time refuses (EBMR-DEV-104), and nothing is used"
+  - "apps/tablets-server/test/devices/gateway-key-order.test.ts > D16: a key of small order enrolled before tablets 0702 is never trusted > [DI-32][DI-30][DI-28] an upload wait \"signed\" under it without a private key is refused (EBMR-DEV-055), nothing stored"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -4,15 +4,16 @@ The SQL mutation harness (`tools/sql-mutation`, branch phase-2/sql-mutation) mut
 Phase 2 guards in two batches. For every group below its target, a kill agent wrote tests that detect the surviving
 mutants, or argued that a survivor is equivalent (no input can tell it from the original). A second agent, the
 skeptic, then tried to break each equivalence claim and each reported defect; a claim it broke went back for a test
-(round 2). This page records the outcome of the 24 groups merged on branch phase-2/kill-integration. Four groups
-were still being worked on and are not part of it: device-readings, evidence-source-and-entries,
-entry-references-and-schema and signed-content.
+(round 2). This page records the outcome of all 28 groups: 24 merged on branch phase-2/kill-integration, and the last
+four (device-readings, evidence-source-and-entries, entry-references-and-schema and signed-content) merged on branch
+phase-2/kill-integration-2b, which starts from phase-2/recipe-core with the first 24 already in it.
 
 How to read the table:
 
 - **Before**: the group's batch score, detected over valid mutants (invalid and equivalent ones left out). Batch 1
   ran locally (its summary); batch 2 ran on GitHub, one "SQL mutation report (group)" check run per group on the
-  harness commit e236af3.
+  harness commit e236af3. The last four groups' survivors are those of the batch 2b report (the same commit); their
+  totals come from the same check runs.
 - **Killed**: survivors the group's new kill tests detect, as the kill agent's final harness run on its own branch
   reported them. Where a function had been redefined between the batch run and the kill branch's base, the agent
   counted the mutants of the current definition, so this number can differ from the batch's survivors (noted per
@@ -22,7 +23,8 @@ How to read the table:
 - **Left**: survivors neither killed nor accepted as equivalent.
 - **Tests**: the kill tests in the group's files (`packages/kernel/test/mutation`, `packages/recipe-core/test/mutation`,
   `apps/tablets-server/test/mutation`), all passing on the integrated tree: 445 in 33 files (271 in the db project,
-  174 in the server project). Each control a kill test is tagged with lists it.
+  174 in the server project) for the first 24 groups, and 118 in 7 files (26 db, 92 server) for the last four, on
+  phase-2/kill-integration-2b. Each control a kill test is tagged with lists it.
 
 ## Results per group
 
@@ -60,6 +62,15 @@ How to read the table:
 | late-witness-and-step-times | 80/97, 82.5 % | 17 | 15 | 2 | 0 | 6 + 2 |
 | stale-commands-and-readings | 51/59, 86.4 % | 8 | 7 | 1 | 0 | 3 (server) |
 
+### Batch 2, the last four groups (phase-2/kill-integration-2b)
+
+| Group | Before | Survived | Killed | Equivalent | Left | Tests (db + server) |
+|---|---|---|---|---|---|---|
+| device-readings | 231/367, 62.9 % | 136 | 124 | 11 | 1 (h) | 69 (server) |
+| evidence-source-and-entries | 155/213, 72.8 % | 58 | 46 | 12 | 0 | 5 + 12 |
+| entry-references-and-schema | 284/342, 83.0 % | 58 | 44 (i) | 14 | 0 | 16 + 1 |
+| signed-content | 189/230, 82.2 % | 41 | 40 (j) | 1 | 0 | 5 + 10 |
+
 Notes:
 
 - (a) `recipe.activate_market_authorisation#56` (a version-number comparison, `>` becoming `>=`). Round 2 claims it
@@ -78,27 +89,53 @@ Notes:
 - (e) The fix migration (kernel 1100) replaced the function, so the agent killed every mutant of the new definition.
 - (f) `tab.resolve_session` was redefined (tablets 0550) after batch 1; the agent counted 45 survivors on its base.
 - (g) Includes the mutants of the fix migration's new condition (recipe-core 0370).
+- (h) `tab.ed25519_verify#13` (tablets 0270:222: in the loop that finds the top bit, `v_kb[i] = 1` becomes `<>`). It
+  is not equivalent, but no test can find an input that tells it apart: the outputs differ only when
+  k = SHA-512(R||A||M) mod L lies in [2^252, L) while S < 2^252, about 2^-126 per try, and a caller chooses R, A and M
+  but not k (for a key of small order, where k would not matter, bit 252 does not matter either, since 8 divides
+  2^252). The skeptic agreed. `equivalent.json` maps an id to a reason and the harness counts every id it lists as
+  equivalent, so the file cannot mark an entry as practically unkillable; the mutant is not recorded there and stays
+  the group's one survivor (355 of 356 detected, 99.7 %, with the 11 equivalents left out).
+- (i) Includes `recipe.lot_usability_problem#6`, removed by the fix (recipe-core 0372, D17), which rewrote its line.
+  Replacing the function renumbered its mutants (the batch's #11, #26 and #30 are now #9, #24 and #28, all killed), and
+  the kill agent's harness run killed all 20 mutants of the new definition. The group has 340 mutants on this tree
+  (342 at e236af3).
+- (j) Includes `recipe.check_signatures#121` and `#125`, claimed equivalent in round 1 and killed in round 2 by a
+  two-connection test (a block's check meaning released while a VERIFY waits to read its step's meanings). The
+  round-2 confirmation run over all 41 ids stopped when the 5433 cluster ran out of disk, before 12 ids
+  (`recipe.check_signatures#37`, `#42`, `#48`, `#90`, `#111`, `recipe.step_instance_number#1`, `#4` to `#7`,
+  `recipe.flow_numbering_visit#20` and `#22`) had a result. On phase-2/kill-integration-2b the harness (`--only`,
+  `--workers 1`) gave all 12 KILLED by the group's kill tests: the first eight in a run that a pause for disk space then
+  stopped, the last four (`step_instance_number#6`, `#7`, `flow_numbering_visit#20`, `#22`) in a second run.
 
 Every refuted equivalence claim was killed in round 2: `recipe.guard_in_flight_dispositioned#3`,
 `recipe.registered_changes#33`, `recipe.execution_state_binding_check#8`, `tab.manual_weighing_check#44` and `#50`,
-and `site.define_batch_number_rule#44`.
+and `site.define_batch_number_rule#44`; in the last four groups `tab.resolve_gateway_session#6` and `#9`,
+`tab.claim_readings#90`, `tab.device_entry_readings_check#12` and `#41`, and `recipe.check_signatures#121` and `#125`.
 
-Equivalents recorded per group (94 in all): market-authorisation-and-issue 2, mbr-lifecycle 2, execution-state-binding
+Equivalents recorded per group (132 in all): market-authorisation-and-issue 2, mbr-lifecycle 2, execution-state-binding
 2, system-facts-and-time 8, execution-steps-and-order 12, manual-weighing-gate 5, batch-number-register 1,
 limit-exceptions 1, sandbox-and-import 2, designer-guards 4, tablets-sessions 10, evidence-listener 7,
 signing-failure-and-reasons 1, exceptions-and-dispositions 3, execution-row-shape 7, execution-commands 8, weighing
-14, read-authorisation 1, exception-source 1, late-witness-and-step-times 2, stale-commands-and-readings 1. Most are
+14, read-authorisation 1, exception-source 1, late-witness-and-step-times 2, stale-commands-and-readings 1,
+device-readings 11, evidence-source-and-entries 12, entry-references-and-schema 14, signed-content 1. Most are
 clock boundaries (a comparison against a clock reading taken inside it, which no input can hit to the microsecond)
 or tests that an earlier trigger or check already decides. Two carry a condition: `recipe.command_member_problem#49`
 holds only while no block version's entry or start schema declares a top-level member called kind, and
-`recipe.role_evaluation_problem#13` is equivalent for every input value but not for every clock schedule.
+`recipe.role_evaluation_problem#13` is equivalent for every input value but not for every clock schedule. In the
+last four groups most are a skip test or a message word that matters only on rows an earlier trigger already refuses,
+NULL arguments that the signature check turns into false anyway, or defaults of a value that is never NULL; one is a
+clock boundary (`tab.bind_gateway_session#7`). `recipe.check_signatures#33` holds within the trust boundary only: a
+superuser writing the signed-type list with triggers off could tell it apart (as for `esig.content_changed#10`).
 
 ## Fix migrations
 
-The kill agents fixed four defects with new migrations. Their numbers had been taken on the PR branch since, so
-each moved into a range kept for the kill work (recipe-core 0370-0379, tablets 0700-0709, kernel 1100-1109), in the
-kill branches' order. No PR-branch migration redefines any of these functions after the definition each fix was
-built on, so every body stands as the kill agent wrote it.
+The kill agents fixed six defects with new migrations. The numbers of the first five had been taken on the PR branch
+since, so each moved into a range kept for the kill work (recipe-core 0370-0379, tablets 0700-0709, kernel
+1100-1109), in the kill branches' order; the sixth (kill/entry-references-and-schema) was already written as 0372,
+free on phase-2/kill-integration-2b, and keeps it. No PR-branch migration redefines any of these functions after the
+definition each fix was built on (checked again at 51b3fc8, merged into phase-2/kill-integration-2b), so every body
+stands as the kill agent wrote it.
 
 | Written as | Now | Function |
 |---|---|---|
@@ -107,6 +144,11 @@ built on, so every body stands as the kill agent wrote it.
 | tablets 0640_api_answer_at_report_instant (first 0600) | tablets 0700_api_answer_at_report_instant | `tab.manual_path_verdict` (on 0350) |
 | tablets 0650_sandbox_lot_identity_test (first 0610) | tablets 0701_sandbox_lot_identity_test | `tab.register_sandbox_lot` (on 0200) |
 | kernel 1030_segregation_problems_missing_roles | kernel 1100_segregation_problems_missing_roles | `sandbox.segregation_problems` (on 0980) |
+| recipe-core 0372_lot_material_null_line | recipe-core 0372_lot_material_null_line (kept) | `recipe.lot_usability_problem` (on 0330) |
+| tablets 0702_gateway_key_large_order (D16, fixed after the kill work) | tablets 0702_gateway_key_large_order | `tab.enrol_gateway_key` and `tab.bind_gateway_session` (on 0250), `tab.reading_signature_valid` (on 0270), `tab.upload_wait_signature_valid` (on 0330); new `tab.gateway_key_problem`, `tab.ed25519_small_order` |
+
+D16 was fixed after the kill work, on phase-2/kill-integration-2b, in tablets 0702 (the next number of the kill
+work's tablets range); see D16 below.
 
 ## Defects the kill agents reported
 
@@ -315,6 +357,39 @@ Fixed:
   still answers false). The D15 test fails with 1111 moved out (42601) and passes with it; the refusal names the
   function and the oid, changes no privilege and leaves the installation reported as not holding the policy. Harness
   re-run with the new test: 22 of 23 detected, #24 survives (equivalent, as above).
+- **D17. Entry references: a lot of any material at a BOM line that names null.** `recipe.lot_usability_problem`
+  (recipe-core 0330) compared a lot's material with its BOM line's only when the line's material was neither absent
+  nor JSON null; the engine (blocks/generic/material.ts) compares whenever the line has a material, so it refuses
+  that lot (G07-WRONG-MATERIAL) and the database was the weaker of the two, against decision F12.3. The MBR parser
+  never defines such a line, but a test package imported through the application role (`recipe.import_test_package`
+  does not parse content) can hold one, and a lot of any material was then weighed or charged at that line (PR-18,
+  IN-23, PR-21). Low severity. Fixed in recipe-core 0372: the line is compared whenever it has a material member, and
+  the refusal names null as the engine does. The decisions document has no correction line for F12.3 yet; the kill
+  agent left that to the lead.
+
+- **D16. Device readings: a gateway key of small order was enrolled.** `tab.enrol_gateway_key` (tablets 0250) checked
+  only that the key was base64 and that its SHA-256 was the fingerprint registered for the SERVER device, not the
+  Ed25519 SPKI header and length nor the decoded point. Under a key of small order (for example the neutral point) the
+  cofactorless check `tab.ed25519_verify` (as OpenSSL's) accepts a signature anyone can build for any content, so
+  EBMR-DEV-061, EBMR-DEV-055 and the listener's login proof proved nothing for that chain, and anyone who reached
+  ingestion could forge readings without a private key (DI-32, DI-30, DI-31, DI-20). Fixed in tablets 0702
+  (security default, no owner decision needed): `tab.gateway_key_problem` refuses at enrolment an SPKI that is not the
+  44-byte Ed25519 SubjectPublicKeyInfo (EBMR-DEV-016), a key that is not the canonical encoding of a curve point
+  (EBMR-DEV-017) and a key of small order, [8]A the neutral point (EBMR-DEV-018, `tab.ed25519_small_order`); a key of
+  small order enrolled before is never trusted: no session binds under it (EBMR-DEV-025, also the listener's login),
+  `tab.reading_signature_valid` and `tab.upload_wait_signature_valid` are false under it, so ingestion refuses its
+  readings (EBMR-DEV-061) and waits (EBMR-DEV-055) and a claim refuses a reading stored under it (EBMR-DEV-110).
+  `tab.ed25519_verify` stays the plain RFC 8032 check (the kill tests reach S's own rules through the neutral point).
+  No other Ed25519 public key needs the rule: the kernel's seal keys are verified against the verifier's own key ring,
+  not a key read from the database; browser terminals prove with ECDSA P-256; a SERVICE_KEY is a secret. Tests:
+  `apps/tablets-server/test/devices/gateway-key-order.test.ts` (21 refusal tests fail with 0702 moved aside: the eight
+  points of orders 1, 2, 4 and 8, three encodings of no point, four SPKIs of the wrong form and a missing one at
+  enrolment; the binding, the listener's login, ingestion, the upload wait and a claim under a key written as enrolled
+  before 0702; the honest key's enrolment, binding and accepted reading, and the check that each key tested is what it
+  is named, pass either way), now also a test file of the device-readings group. The SQL mutation harness on the
+  six functions 0702 defines: 76 mutants, 70 detected, 6 equivalent (the existing entries of
+  `tab.reading_signature_valid`, `tab.upload_wait_signature_valid` and `tab.bind_gateway_session`, whose guards 0702
+  copies unchanged; their texts now name 0702), none survive.
 
 Open (the lead takes these next):
 
@@ -331,3 +406,19 @@ Notes from the reviews that are not defects:
   that refusal and reaches the entry rule by the two paths left), and the execution-commands role-map test (its
   exception description named a review item in a form the sandbox identifier rule reads as a lot number; it is now
   prose).
+- The last four groups' kill tests pass on phase-2/kill-integration-2b as written, before and after the branch merged
+  the PR head 51b3fc8 (F12 rounds 7 and 8, whose identifier rule reads a test run's text as it shows and refuses a
+  word with a digit that is not plain ASCII); none needed adapting.
+- device-readings: `tab.alert_claim_refusal` (tablets 0250) is dead code (the application role lost EXECUTE in 0320
+  and nothing calls it); its kill tests call it as superuser. A later migration could drop it.
+- evidence-source-and-entries: several kills call owner-private pure functions as owner with inputs their triggers
+  cannot pass (zb 0300 and zc 0303 refuse them first), the pattern the group's own tests already use. The round-2 tests
+  for `tab.device_entry_readings_check#12` and `#41` reach a claim made in the very microsecond its command's
+  transaction began by claiming through the product and then setting the two claims' recorded times as superuser with
+  session_replication_role = replica (`tab.reading_use` is insert-only), the state such a race leaves; the lead decides
+  whether that is acceptable, as for the clock stub above. The kill of `tab.state_entry_identifiers_check#8` records a
+  container named without the batch-number prefix, which the server refuses (EBMR-EXE-077) and the database does not
+  check; if PR-21 moves that prefix into the database, that test must change.
+- signed-content: the kill file forges `recipe.test_package` with triggers off for a derivation test (a decision
+  signed on a hold point). If that technique is accepted for guards, a forged signed-type list would tell
+  `recipe.check_signatures#33` apart and the equivalence would need revisiting.

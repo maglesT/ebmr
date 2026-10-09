@@ -281,18 +281,21 @@ export const TARGETS: Target[] = [
             s('designer/package-publish.test.ts')],
     threshold: 90,
   },
-  // ---- Phase 2: tablets, gateway keys, instruments and readings: ingest, proof, age, claim (sql 0250-0330, 0360) ----
+  // ---- Phase 2: tablets, gateway keys, instruments and readings: ingest, proof, age, claim (sql 0250-0330, 0360; 0702:
+  //      a gateway key of small order is neither enrolled nor trusted, D16) ----------------------------------------------
   {
     group: 'device-readings',
     functions: ['tab.gateway_key_guard', 'tab.gateway_instrument_guard', 'tab.enrol_gateway_key', 'tab.revoke_gateway_key',
                 'tab.bind_instrument', 'tab.end_instrument_binding', 'tab.with_reason_context', 'tab.bind_gateway_session',
                 'tab.resolve_gateway_session', 'tab.actor_gateway_key', 'tab.record_gateway_refusal', 'tab.ed25519_pow',
-                'tab.ed25519_decode', 'tab.ed25519_verify', 'tab.reading_signature_valid', 'tab.upload_wait_signature_valid',
+                'tab.ed25519_decode', 'tab.ed25519_verify', 'tab.ed25519_small_order', 'tab.gateway_key_problem',
+                'tab.reading_signature_valid', 'tab.upload_wait_signature_valid',
                 'tab.reading_canonical_text', 'tab.raw_weight_interpretation', 'tab.device_reading_problem', 'tab.device_reading_proof',
                 'tab.ingest_reading', 'tab.claim_readings', 'tab.alert_claim_refusal', 'tab.alert_refused_claim'],
     tests: [s('devices/ingest.test.ts'), s('devices/reading-proof.test.ts'), s('devices/reading-age.test.ts'),
             s('devices/reading-age-policy.test.ts'), s('devices/claim.test.ts'), s('devices/claim-room.test.ts'),
-            s('devices/gateway-role.test.ts'), s('devices/refused-weighing-readings.test.ts'), s('devices/stale-weighing-readings.test.ts')],
+            s('devices/gateway-role.test.ts'), s('devices/refused-weighing-readings.test.ts'), s('devices/stale-weighing-readings.test.ts'),
+            s('devices/gateway-key-order.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: tablets, the evidence listener's runs and ticks and what they vouch for (sql 0350) -------------------

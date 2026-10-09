@@ -9,7 +9,9 @@ Depends on: C0-spine
 - `apps/tablets-server/`:
   - `src/features/devices/**` (`index.ts` replaces the stub and exports `plugin`, `deviceReadingPort`, `seed`, and a `gatewayListener` started by C0's `main.ts` when `EBMR_GATEWAY_LISTEN` is set);
   - `sql/0250-0299`:
-    - `tab.gateway_key` (enrolled Ed25519 public keys);
+    - `tab.gateway_key` (enrolled Ed25519 public keys; since tablets 0702 only the 44-byte Ed25519 SPKI of a point of
+      large order: EBMR-DEV-016 another form, 017 no curve point, 018 small order at enrolment, and EBMR-DEV-025 for a
+      session under a key of small order enrolled before, whose readings and waits never verify either; D16);
     - `tab.device_reading` (insert-only, audited, per-gateway hash chain);
     - `tab.reading_use` (unique reading id);
     - definers `tab.ingest_reading` and `tab.claim_readings`;
