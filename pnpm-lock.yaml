@@ -342,6 +342,9 @@ importers:
       '@ebmr/kernel':
         specifier: workspace:0.1.0
         version: link:../kernel
+      xstate:
+        specifier: 5.33.2
+        version: 5.33.2
 
   packages/test-kit:
     dependencies:
