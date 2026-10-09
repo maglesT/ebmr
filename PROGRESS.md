@@ -2065,3 +2065,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   state history forged with the session flag, nested loops on one endpoint, the listener hold measured from the
   close, and two refusal messages) are in docs/build-plan/phase-2-exit/sql-mutation-kill-results.md. Harness smoke on
   this tree: site-zone 25/33 before the kill tests, 33/33 after.
+- 2026-10-09: PHASE 2 EXIT, SQL mutation defects, recipe lane: seven of the defects the SQL mutation kill agents
+  reported are fixed and each has its test. D7 (a loop left without its own frame) needed no migration, recipe-core
+  0338 already refuses it, and a kill test now shows that. D8 (a recorded signature's missing validity went
+  unnoticed) is fixed in recipe-core 0381, D9 (any row could invalidate another step's signature) in 0382, D10
+  (market authorisation activation and cells written around the command) in 0383, and D14 (the family-code refusal
+  named the wrong value) in 0384. D3 (the manual-weighing gate's wording for an API answer at the report's instant)
+  is fixed in tablets 0710 and D4 (the test lot's refusal named what the register does not check) in tablets 0711.
+  The harness on the changed functions killed every mutant except three equivalent ones, reported in
+  docs/build-plan/phase-2-exit/sql-mutation-kill-results.md, which lists all seven under Fixed with their migration
+  and test. Still open for the lead: D6, D11, D12, D13 and D15.
