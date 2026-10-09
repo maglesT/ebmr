@@ -34,11 +34,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0008).
   (`docs/build-plan/phase-2-exit/`). Review backlog for later phases: `docs/build-plan/phase-2-exit/review-backlog.md`.
 - `compliance/phase.yaml` is at 2: CI needs a passing test for every Phase 1 and Phase 2 control. It goes to 3 with the
   slice that completes Phase 3.
-- Phase 3 slice 1 is built on `phase-3/slice-1` (plan and defaults D-S1-1 to D-S1-6:
+- Phase 3 slice 1 is merged (PR #7, 9 October 2026; plan and defaults D-S1-1 to D-S1-6:
   `docs/build-plan/phase-3/slice-1-plan.md`): material lots with release routes, reservations and guarded consumption
   (site-services 0710 to 0712, recipe-core 0430); equipment kinds, cleaning, campaigns, rooms and lines, clearance types
   (recipe-core 0400 to 0405, schema `plant`); output containers with the IPC hold window (recipe-core 0420 to 0422).
   One quick review: 2 high and 2 medium fixed, the rest in `docs/build-plan/phase-3/review-backlog.md`.
+- Phase 3 slice 2 (execution paths) is in progress on `phase-3/slice-2` (plan: `docs/build-plan/phase-3/slice-2-plan.md`).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
