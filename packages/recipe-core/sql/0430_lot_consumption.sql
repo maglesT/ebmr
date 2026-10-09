@@ -20,6 +20,9 @@ begin
       message = 'No validated command: material is consumed inside a command started with kernel.begin_command (INV-07; EBMR-RCP-430)';
   end if;
   perform iam.assert_not_administrator();
+  -- Dispensing against a batch (DI-17), at the actor's location like the execution writers; the site checks it again
+  -- in the lot's site.
+  perform iam.require_permission('DISPENSE.EXECUTE', iam.actor_location_scope());
   select * into b from recipe.batch_execution where id = p_batch for share;
   if not found then
     raise exception using errcode = 'P0001', message = format('Unknown batch %s: material is consumed only into an issued batch (INV-14; EBMR-RCP-431)', p_batch);

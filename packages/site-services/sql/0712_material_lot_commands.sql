@@ -39,17 +39,21 @@ begin
 end
 $$;
 
--- Revokes every open reservation of the lot (the lot left a usable status). Returns how many.
-create function site.revoke_open_reservations(p_lot uuid, p_reason text) returns integer
+-- Revokes every not yet revoked reservation of the lot (the lot left a usable status): one revocation row each,
+-- naming the transition and carrying the reason the deciding person gave for it, as given (none for consumption to
+-- zero). Returns how many.
+create function site.revoke_open_reservations(p_lot uuid, p_cause text) returns integer
 language plpgsql volatile security definer set search_path = pg_catalog, site, pg_temp as $$
 declare
-  v_ctx jsonb := site.push_reason('RESERVATION_REVOKED', p_reason);
+  v_ctx jsonb := site.require_actor();
   v_n   integer;
 begin
-  update site.lot_reservation r set revoked_at = clock_timestamp(), revoked_by_person = (v_ctx ->> 'person_id')::uuid, revoked_reason = p_reason
-   where r.lot_id = p_lot and r.revoked_at is null;
+  insert into site.lot_reservation_revocation (reservation_id, kind, cause, reason_code, reason_text, revoked_by_person, revoked_by_account)
+  select r.id, 'STATUS_CHANGE', p_cause, nullif(btrim(coalesce(v_ctx ->> 'reason_code', '')), ''), nullif(btrim(coalesce(v_ctx ->> 'reason_text', '')), ''),
+         (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid
+    from site.lot_reservation r
+   where r.lot_id = p_lot and not exists (select 1 from site.lot_reservation_revocation x where x.reservation_id = r.id);
   get diagnostics v_n = row_count;
-  perform site.restore_actor(v_ctx);
   return v_n;
 end
 $$;
@@ -91,9 +95,9 @@ begin
       message = format('EBMR-SITE-105 material %s is already known at site %s as another kind than %s', p ->> 'materialCode', v_site, coalesce(v_kind, 'NULL'));
   end if;
   insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, supplier, supplier_lot, received_quantity,
-                                 quantity, unit, retest_at, expires_at, received_by_person, received_by_account, correlation_id)
+                                 unit, retest_at, expires_at, received_by_person, received_by_account, correlation_id)
   values (v_id, v_site, p ->> 'lotCode', p ->> 'materialCode', p ->> 'materialName', v_kind, p ->> 'supplier', p ->> 'supplierLot', v_qty,
-          v_qty, p ->> 'unit', (p ->> 'retestAt')::timestamptz, (p ->> 'expiresAt')::timestamptz, (v_ctx ->> 'person_id')::uuid,
+          p ->> 'unit', (p ->> 'retestAt')::timestamptz, (p ->> 'expiresAt')::timestamptz, (v_ctx ->> 'person_id')::uuid,
           (v_ctx ->> 'account_id')::uuid, (v_ctx ->> 'correlation_id')::uuid);
   v_state := platform.create_aggregate_state('material_lot', 'material_lot', v_id);
   return jsonb_build_object('lot_id', v_id, 'site_code', v_site, 'state', v_state ->> 'state', 'state_version', (v_state ->> 'version')::bigint);
@@ -159,12 +163,14 @@ declare
   v_prob text;
 begin
   perform iam.assert_not_administrator();
-  select * into v from site.vendor_route where id = p_route for update;
+  select * into v from site.vendor_route where id = p_route;
   if not found then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-133 unknown vendor-history route %s', p_route);
   end if;
   perform iam.require_permission('MATERIAL.QA_DISPOSITION', jsonb_build_object('site', v.site_code));
-  if v.enabled_at is not null or v.disabled_at is not null then
+  -- Every route of the material at the site is locked, so two enablements never overlap.
+  perform 1 from site.vendor_route x where x.site_code = v.site_code and x.material_code = v.material_code for update;
+  if exists (select 1 from site.vendor_route_enablement e where e.route_id = v.id) then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-133 the vendor-history route of %s was already enabled or disabled; propose a new one', v.material_code);
   end if;
   v_sig := esig.assert_signature(p_signature, 'VENDOR_ROUTE_ENABLED', 'vendor_route', p_route::text);
@@ -175,10 +181,12 @@ begin
   if (select s.signer_person from esig.signature s where s.id = p_signature)::text is distinct from v_ctx ->> 'person_id' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-134 the route is enabled by the QA person who signed it';
   end if;
-  v_ctx := site.push_reason('VENDOR_ROUTE_ENABLED', 'QA enabled the vendor-history release route with a signed statistical justification');
-  update site.vendor_route set signature_id = p_signature, enabled_at = clock_timestamp(), enabled_by_person = (v_ctx ->> 'person_id')::uuid
-   where id = p_route;
-  perform site.restore_actor(v_ctx);
+  if site.vendor_route_enabled(v.site_code, v.material_code) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-SITE-133 a vendor-history route of %s is already enabled at site %s; disable it first', v.material_code, v.site_code);
+  end if;
+  insert into site.vendor_route_enablement (route_id, signature_id, enabled_by_person, enabled_by_account)
+  values (p_route, p_signature, (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid);
 end
 $$;
 
@@ -194,16 +202,15 @@ begin
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-133 unknown vendor-history route %s', p_route);
   end if;
   perform iam.require_permission('MATERIAL.QA_DISPOSITION', jsonb_build_object('site', v.site_code));
-  if v.disabled_at is not null then
-    raise exception using errcode = 'P0001', message = format('EBMR-SITE-133 the vendor-history route of %s is already disabled', v.material_code);
+  if not exists (select 1 from site.vendor_route_enablement e where e.route_id = v.id)
+     or exists (select 1 from site.vendor_route_disablement d where d.route_id = v.id) then
+    raise exception using errcode = 'P0001', message = format('EBMR-SITE-133 the vendor-history route of %s is not enabled', v.material_code);
   end if;
   if btrim(coalesce(p_reason, '')) = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-135 disabling a vendor-history route states the reason';
   end if;
-  v_ctx := site.push_reason('VENDOR_ROUTE_DISABLED', p_reason);
-  update site.vendor_route set disabled_at = clock_timestamp(), disabled_by_person = (v_ctx ->> 'person_id')::uuid, disabled_reason = p_reason
-   where id = p_route;
-  perform site.restore_actor(v_ctx);
+  insert into site.vendor_route_disablement (route_id, reason, disabled_by_person, disabled_by_account)
+  values (p_route, p_reason, (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid);
 end
 $$;
 
@@ -211,13 +218,12 @@ $$;
 -- Status changes
 -- ---------------------------------------------------------------------------------------------
 
--- Records the command, then fires the transition (the engine checks permission, signature and guards). RELEASE
--- records its route on the lot. Leaving a usable status revokes every open reservation of the lot.
+-- Records the command (a RELEASE records its route there), then fires the transition (the engine checks permission,
+-- signature and guards). Leaving a usable status revokes every open reservation of the lot.
 create function site.lot_transition(l site.material_lot, p_event text, p_expected_version bigint, p_signature uuid, p_route text) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, site, platform, pg_temp as $$
 declare
   v_from text := site.lot_state(l.id);
-  v_ctx  jsonb;
   r      jsonb;
   v_n    integer := 0;
 begin
@@ -227,11 +233,6 @@ begin
                            jsonb_strip_nulls(jsonb_build_object('signature_id', p_signature, 'release_route', p_route)));
   insert into site.lot_state_entry (lot_id, state, state_version, history_id)
   values (l.id, r ->> 'to', (r ->> 'new_version')::bigint, (r ->> 'history_id')::bigint);
-  if p_event = 'RELEASE' then
-    v_ctx := site.push_reason('LOT_RELEASED', format('release route %s recorded with the release', p_route));
-    update site.material_lot set release_route = p_route, released_at = clock_timestamp() where id = l.id;
-    perform site.restore_actor(v_ctx);
-  end if;
   if not ((r ->> 'to') = any (site.usable_lot_states())) then
     v_n := site.revoke_open_reservations(l.id, format('lot %s: %s -> %s', l.lot_code, v_from, r ->> 'to'));
   end if;
@@ -289,7 +290,7 @@ begin
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-150 the destruction of lot %s is already recorded', l.lot_code);
   end if;
   insert into site.lot_destruction (lot_id, method, reason, quantity, unit, performed_by_person, performed_by_account)
-  values (l.id, p_method, p_reason, l.quantity, l.unit, (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid)
+  values (l.id, p_method, p_reason, site.lot_quantity(l.id), l.unit, (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid)
   returning id into v_id;
   return v_id;
 end
@@ -379,17 +380,15 @@ begin
   end if;
   l := site.lock_lot(r.lot_id);
   perform iam.require_permission('MATERIAL.HANDLE', jsonb_build_object('site', l.site_code));
-  select * into r from site.lot_reservation where id = p_reservation for update;
-  if r.revoked_at is not null then
+  if exists (select 1 from site.lot_reservation_revocation x where x.reservation_id = r.id) then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-146 the reservation is already revoked';
   end if;
   if btrim(coalesce(p_reason, '')) = '' then
-    raise exception using errcode = 'P0001', message = 'EBMR-SITE-146 cancelling a reservation states the reason';
+    raise exception using errcode = 'P0001', message = 'EBMR-SITE-146 cancelling a reservation states the person''s own reason (DI-22)';
   end if;
-  v_ctx := site.push_reason('RESERVATION_CANCELLED', p_reason);
-  update site.lot_reservation set revoked_at = clock_timestamp(), revoked_by_person = (v_ctx ->> 'person_id')::uuid, revoked_reason = p_reason
-   where id = p_reservation;
-  perform site.restore_actor(v_ctx);
+  insert into site.lot_reservation_revocation (reservation_id, kind, cause, reason_code, reason_text, revoked_by_person, revoked_by_account)
+  values (r.id, 'CANCELLED', 'reservation cancelled', nullif(btrim(coalesce(v_ctx ->> 'reason_code', '')), ''), p_reason,
+          (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid);
 end
 $$;
 
@@ -402,7 +401,7 @@ $$;
 -- expected material; its status is usable and unchanged since the reservation; it is before its retest and
 -- expiry instants at database time; the reservation is for this batch, not revoked, not expired and covers the
 -- quantity; the lot holds it; and the release route satisfies the batch's identity-test rule (D-S1-2). Writes
--- the consumption (genealogy) row and the new lot quantity in this transaction; at zero the lot is CONSUMED and
+-- the consumption (genealogy) row, from which the lot quantity is derived, in this transaction; at zero the lot is CONSUMED and
 -- any other open reservation of it is revoked.
 create function site.consume_reservation(p_reservation uuid, p_batch_id uuid, p_batch_number text, p_market_set text[],
                                          p_material_code text, p_quantity numeric, p_unit text) returns jsonb
@@ -416,7 +415,7 @@ declare
   v_basis  text;
   v_left   numeric;
   v_id     uuid;
-  v_push   jsonb;
+  v_qty    numeric;
   v_tr     jsonb;
 begin
   perform iam.assert_not_administrator();
@@ -435,8 +434,9 @@ begin
     raise exception using errcode = 'P0001',
       message = format('EBMR-SITE-162 the reservation is for batch %s, not batch %s (INV-13)', r.batch_number, coalesce(p_batch_number, 'NULL'));
   end if;
-  if r.revoked_at is not null then
-    raise exception using errcode = 'P0001', message = format('EBMR-SITE-163 the reservation was revoked: %s (INV-13)', r.revoked_reason);
+  if exists (select 1 from site.lot_reservation_revocation x where x.reservation_id = r.id) then
+    raise exception using errcode = 'P0001', message = format('EBMR-SITE-163 the reservation was revoked: %s (INV-13)',
+      (select concat_ws(': ', x.cause, x.reason_text) from site.lot_reservation_revocation x where x.reservation_id = r.id));
   end if;
   if clock_timestamp() >= r.expires_at then
     raise exception using errcode = 'P0001', message = format('EBMR-SITE-164 the reservation expired at %s (INV-13)', site.utc_text(r.expires_at));
@@ -461,9 +461,10 @@ begin
     raise exception using errcode = 'P0001',
       message = format('EBMR-SITE-168 the reservation has %s %s left; %s %s cannot be consumed (INV-13)', v_left, l.unit, p_quantity, p_unit);
   end if;
-  if p_quantity > l.quantity then
+  v_qty := site.lot_quantity(l.id);
+  if p_quantity > v_qty then
     raise exception using errcode = 'P0001',
-      message = format('EBMR-SITE-168 lot %s holds %s %s; %s %s cannot be consumed: a lot quantity is never negative (INV-13)', l.lot_code, l.quantity, l.unit,
+      message = format('EBMR-SITE-168 lot %s holds %s %s; %s %s cannot be consumed: a lot quantity is never negative (INV-13)', l.lot_code, v_qty, l.unit,
                        p_quantity, p_unit);
   end if;
   select x.p_problem, x.p_basis into v_prob, v_basis from site.identity_rule_problem(l, p_market_set) x;
@@ -473,16 +474,13 @@ begin
 
   insert into site.lot_consumption (lot_id, reservation_id, batch_id, batch_number, edition, material_code, quantity, unit, quantity_before,
                                     quantity_after, market_set, release_route, identity_basis, consumed_by_person, consumed_by_account, xact_id)
-  values (l.id, r.id, p_batch_id, p_batch_number, r.edition, l.material_code, p_quantity, p_unit, l.quantity, l.quantity - p_quantity, p_market_set,
-          l.release_route, v_basis, '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0)
+  values (l.id, r.id, p_batch_id, p_batch_number, r.edition, l.material_code, p_quantity, p_unit, v_qty, v_qty - p_quantity, p_market_set,
+          site.lot_release_route(l.id), v_basis, '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 0)
   returning id into v_id;
-  v_push := site.push_reason('MATERIAL_CONSUMED', format('%s %s of lot %s consumed into batch %s', p_quantity, p_unit, l.lot_code, p_batch_number));
-  update site.material_lot set quantity = l.quantity - p_quantity where id = l.id;
-  perform site.restore_actor(v_push);
-  if l.quantity - p_quantity = 0 then
+  if v_qty - p_quantity = 0 then
     v_tr := site.lot_transition(site.lock_lot(l.id), 'CONSUME', v_state.version, null, null);
   end if;
-  return jsonb_build_object('consumption_id', v_id, 'lot_id', l.id, 'quantity_after', (l.quantity - p_quantity)::text, 'identity_basis', v_basis,
+  return jsonb_build_object('consumption_id', v_id, 'lot_id', l.id, 'quantity_after', (v_qty - p_quantity)::text, 'identity_basis', v_basis,
                             'lot_state', coalesce(v_tr ->> 'to', v_state.state));
 end
 $$;
@@ -497,7 +495,8 @@ create view site.material_lot_usage as
               when clock_timestamp() >= l.expires_at then 'EXPIRED'
               when l.retest_at is not null and clock_timestamp() >= l.retest_at then 'RETEST_DUE'
               else s.state end as usage_status,
-         l.quantity, l.unit, site.lot_available(l.id) as available, l.retest_at, l.expires_at, l.release_route, l.released_at
+         site.lot_quantity(l.id) as quantity, l.unit, site.lot_available(l.id) as available, l.retest_at, l.expires_at,
+         site.lot_release_route(l.id) as release_route
   from site.material_lot l
   join platform.aggregate_state s on s.aggregate_type = 'material_lot' and s.aggregate_id = l.id;
 
@@ -506,14 +505,14 @@ create view site.material_lot_usage as
 -- ---------------------------------------------------------------------------------------------
 
 revoke all on site.material_lot, site.lot_status_command, site.lot_state_entry, site.lot_identity_result, site.vendor_route, site.lot_destruction,
-              site.lot_reservation, site.lot_consumption, site.material_lot_usage from ebmr_app;
+              site.lot_reservation, site.lot_reservation_revocation, site.vendor_route_enablement, site.vendor_route_disablement, site.lot_consumption, site.material_lot_usage from ebmr_app;
 grant select on site.material_lot, site.lot_status_command, site.lot_state_entry, site.lot_identity_result, site.vendor_route, site.lot_destruction,
-                site.lot_reservation, site.lot_consumption, site.material_lot_usage to ebmr_app;
+                site.lot_reservation, site.lot_reservation_revocation, site.vendor_route_enablement, site.vendor_route_disablement, site.lot_consumption, site.material_lot_usage to ebmr_app;
 grant execute on function site.receive_lot(jsonb), site.record_identity_result(uuid, text, text, text),
                           site.propose_vendor_route(text, text, text, text), site.enable_vendor_route(uuid, uuid), site.disable_vendor_route(uuid, text),
                           site.change_lot_status(uuid, text, bigint, uuid, text), site.record_lot_destruction(uuid, text, text),
                           site.destroy_lot(uuid, bigint, uuid), site.reserve_lot(uuid, uuid, text, text, numeric, text, timestamptz),
-                          site.cancel_reservation(uuid, text), site.lot_available(uuid), site.reservation_remaining(uuid),
+                          site.cancel_reservation(uuid, text), site.lot_available(uuid), site.reservation_remaining(uuid), site.lot_quantity(uuid), site.lot_release_route(uuid),
                           site.usable_lot_states() to ebmr_app;
 -- site.consume_reservation, the guards, the content providers and the helpers stay private to the owner: the
 -- application consumes only through the edition's batch-side definer (recipe.consume_lot).

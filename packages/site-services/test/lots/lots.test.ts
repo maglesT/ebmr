@@ -18,8 +18,9 @@ import {
   recordLotDestruction,
   reserveLot,
 } from '../../src/index.ts';
+import { withCommand } from '../../../kernel/src/db/command.ts';
 import { createTestDatabase, signerActor, signFor, type TestDatabase } from '../helpers.ts';
-import { refusal, seedCast, unique, withSecondRole, World } from './support.ts';
+import { as, refusal, seedCast, unique, withSecondRole, World } from './support.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -65,8 +66,7 @@ describe('receipt and release', () => {
     );
     const r = await w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), sig2, 'IDENTITY_TESTED'));
     expect(r).toMatchObject({ from: 'QUARANTINE', to: 'RELEASED' });
-    const { rows } = await db.app.query("select release_route, released_at is not null as at from site.material_lot where id = $1", [lot.lotId]);
-    expect(rows[0]).toEqual({ release_route: 'IDENTITY_TESTED', at: true });
+    expect((await w.run(w.cast.warehouse, (c) => lotUsage(c, lot.lotId)))?.releaseRoute).toBe('IDENTITY_TESTED');
     // The signature was used once; a release signature cannot be reused for another transition.
     expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'HOLD', await w.version(lot.lotId), sig2), 'test'))).toMatch(/EBMR-PLAT-0(75|08)|means MATERIAL_LOT_RELEASED/);
   });
@@ -222,7 +222,7 @@ describe('consumption guard (INV-13, INV-14, PR-18)', () => {
     expect(await w.run(w.cast.warehouse, (c) => lotUsage(c, lot.lotId))).toMatchObject({ state: 'CONSUMED', usageStatus: 'CONSUMED', quantity: '0.000', available: '0.000' });
     // Every consumed quantity is accounted for: received = remaining + consumed (INV-13).
     const { rows: sum } = await db.app.query<{ ok: boolean }>(
-      'select l.received_quantity = l.quantity + (select sum(c.quantity) from site.lot_consumption c where c.lot_id = l.id) as ok from site.material_lot l where l.id = $1',
+      'select site.lot_quantity(l.id) = 0 and l.received_quantity = (select sum(c.quantity) from site.lot_consumption c where c.lot_id = l.id) as ok from site.material_lot l where l.id = $1',
       [lot.lotId],
     );
     expect(sum[0]?.ok).toBe(true);
@@ -245,7 +245,7 @@ describe('consumption guard (INV-13, INV-14, PR-18)', () => {
     expect((await w.run(w.cast.warehouse, (c) => lotUsage(c, lot.lotId)))?.available).toBe('5.000');
     // A cancelled reservation is refused.
     await w.run(w.cast.warehouse, (c) => cancelReservation(c, res, 'batch rescheduled'));
-    expect(await refusal(w.consume(batch, res, lot.materialCode, '1'))).toMatch(/EBMR-SITE-163 the reservation was revoked: batch rescheduled/);
+    expect(await refusal(w.consume(batch, res, lot.materialCode, '1'))).toMatch(/EBMR-SITE-163 the reservation was revoked: reservation cancelled: batch rescheduled/);
     // An unknown batch: nothing is consumed into a batch the edition does not hold.
     expect(await refusal(w.consume({ id: '00000000-0000-4000-8000-000000000003', number: 'NOPE', markets: ['IN'] }, res, lot.materialCode, '1'))).toMatch(/EBMR-RCP-431/);
   });
@@ -276,9 +276,13 @@ describe('consumption guard (INV-13, INV-14, PR-18)', () => {
     expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'HOLD', await w.version(lot.lotId), sig)))).toMatch(/platform\.reason_given/);
     const hold = await w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'HOLD', await w.version(lot.lotId), sig), 'supplier complaint under investigation');
     expect(hold).toMatchObject({ to: 'ON_HOLD', revokedReservations: 1 });
-    const { rows } = await db.app.query<{ revoked: boolean; reason: string }>('select revoked_at is not null as revoked, revoked_reason as reason from site.lot_reservation where id = $1', [res]);
-    expect(rows[0]?.revoked).toBe(true);
-    expect(rows[0]?.reason).toMatch(/RELEASED -> ON_HOLD/);
+    const { rows } = await db.app.query<{ kind: string; cause: string; reason: string }>(
+      'select kind, cause, reason_text as reason from site.lot_reservation_revocation where reservation_id = $1',
+      [res],
+    );
+    // The revocation names the transition and carries QA's own reason for it; the system writes no reason.
+    expect(rows.map((r) => [r.kind, r.reason])).toEqual([['STATUS_CHANGE', 'supplier complaint under investigation']]);
+    expect(rows[0]?.cause).toMatch(/RELEASED -> ON_HOLD/);
     expect(await refusal(w.consume(batch, res, lot.materialCode, '1'))).toMatch(/EBMR-SITE-163 the reservation was revoked/);
     expect(await refusal(w.reserve(lot.lotId, batch, '1'))).toMatch(/EBMR-SITE-141 .*ON_HOLD/);
     sig = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'ON_HOLD');
@@ -317,8 +321,9 @@ describe('no bypass (INV-13; ADR 0012)', () => {
     const batch = await w.batch(['IN']);
     const res = await w.reserve(lot.lotId, batch, '2');
     for (const sql of [
-      "update site.material_lot set quantity = 0 where id = $1",
-      "update site.material_lot set quantity = quantity + 1 where id = $1",
+      "update site.material_lot set received_quantity = 100 where id = $1",
+      "update site.lot_reservation set quantity = 100 where lot_id = $1",
+      "insert into site.lot_reservation_revocation (reservation_id, kind, cause, revoked_by_person, revoked_by_account) select id, 'STATUS_CHANGE', 'x', lot_id, lot_id from site.lot_reservation where lot_id = $1",
       "insert into site.lot_consumption (lot_id, reservation_id, batch_id, batch_number, edition, material_code, quantity, unit, quantity_before, quantity_after, market_set, identity_basis, consumed_by_person, consumed_by_account, xact_id) select id, id, id, 'X', 'TABLETS', material_code, 1, unit, 1, 0, '{IN}', 'IDENTITY_RESULT', id, id, 0 from site.material_lot where id = $1",
       "insert into site.lot_reservation (lot_id, batch_id, batch_number, edition, quantity, unit, expires_at, lot_state_version, reserved_by_person, reserved_by_account) select id, id, 'X', 'TABLETS', 1, unit, now(), 1, id, id from site.material_lot where id = $1",
       "insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'm', 't', $1, $1)",
@@ -335,11 +340,22 @@ describe('no bypass (INV-13; ADR 0012)', () => {
     expect(await refusal(w.run(w.cast.qa, async (c) => c.query("select platform.transition('material_lot', 'material_lot', $1, 'HOLD', $2::bigint, jsonb_build_object('signature_id', $3::text))", [lot.lotId, await w.version(lot.lotId), sig]), 'bypass'))).toMatch(
       /EBMR-PLAT-068 .*command_recorded/,
     );
-    // Owner-level code cannot change a quantity without its consumption row either (the row rule holds for every role).
-    expect(await refusal(db.admin.query('update site.material_lot set quantity = 1 where id = $1', [lot.lotId]))).toMatch(/EBMR-SITE-121/);
-    expect(await refusal(db.admin.query("update site.material_lot set expires_at = '2031-01-01' where id = $1", [lot.lotId]))).toMatch(/EBMR-SITE-120/);
-    // The quantity check itself: never negative, even for the superuser with triggers off.
-    expect(await refusal(w.timeTravel('update site.material_lot set quantity = -1 where id = $1', [lot.lotId]))).toMatch(/check constraint/);
+    // The rules hold for owner-level code too: lots and reservations are insert-only, and a consumption must start from
+    // the lot's current (derived) quantity.
+    expect(await refusal(db.admin.query("update site.material_lot set expires_at = '2031-01-01' where id = $1", [lot.lotId]))).toMatch(/EBMR-AUDIT-004 .*insert-only/);
+    expect(await refusal(db.admin.query('update site.lot_reservation set quantity = 100 where id = $1', [res]))).toMatch(/EBMR-AUDIT-004/);
+    const forged = (before: string, after: string) =>
+      withCommand(db.admin, as(w.cast.dispenser), (c) =>
+        c.query(
+          `insert into site.lot_consumption (lot_id, reservation_id, batch_id, batch_number, edition, material_code, quantity, unit, quantity_before, quantity_after,
+                                             market_set, identity_basis, consumed_by_person, consumed_by_account, xact_id)
+           select l.id, $2, $3, $4, 'TABLETS', l.material_code, $5::numeric - $6::numeric, l.unit, $5, $6, '{IN}', 'IDENTITY_RESULT', l.id, l.id, 0 from site.material_lot l where l.id = $1`,
+          [lot.lotId, res, batch.id, batch.number, before, after],
+        ),
+      );
+    expect(await refusal(forged('99', '98'))).toMatch(/EBMR-SITE-121 a consumption starts from the lot's current quantity 10\.000/);
+    // Never negative, even for a forged row that starts from the right quantity.
+    expect(await refusal(forged('10.000', '-1'))).toMatch(/check constraint/);
     expect((await w.run(w.cast.warehouse, (c) => lotUsage(c, lot.lotId)))?.quantity).toBe('10.000');
   });
 
@@ -359,8 +375,8 @@ describe('invariants after every scenario above', () => {
   it('[INV-13][INV-14] no lot quantity is negative, every lot\'s received quantity equals its quantity plus its consumptions, every consumption has its reservation and batch, and lot states follow the published machine', async () => {
     const { rows: bad } = await db.app.query(
       `select l.lot_code from site.material_lot l
-        where l.quantity < 0
-           or l.received_quantity <> l.quantity + coalesce((select sum(c.quantity) from site.lot_consumption c where c.lot_id = l.id), 0)
+        where site.lot_quantity(l.id) < 0
+           or exists (select 1 from site.lot_consumption c where c.lot_id = l.id and c.quantity_after < 0)
        union all
        select c.id::text from site.lot_consumption c join site.lot_reservation r on r.id = c.reservation_id
         where r.lot_id <> c.lot_id or r.batch_id <> c.batch_id or r.batch_number <> c.batch_number

@@ -3,10 +3,12 @@
 -- reservations live at the site; Phase 3 slice 1 plan, defaults D-S1-1 and D-S1-2). Controls INV-13,
 -- INV-14 (input side), IN-24 (a)(c), PR-18.
 --
---   material_lot          one received lot: material, kind, quantity (numeric, never negative), unit, retest and
+--   material_lot          one received lot (insert-only): material, kind, received quantity, unit, retest and
 --                         expiry instants, the recorded release route. Its usage status is the state of the
 --                         material_lot machine (generated seed 0711); RETEST_DUE and EXPIRED are computed from the
---                         dates at database time (view site.material_lot_usage, 0712), never stored.
+--                         dates at database time (view site.material_lot_usage, 0712), never stored. Its current
+--                         quantity is derived (received minus consumed) and its release route is the one its RELEASE
+--                         command recorded, so no lot row is ever updated.
 --   lot_status_command    every status change, written by the command functions in the transaction of the
 --                         transition (the guard material_lot.command_recorded refuses a transition without it, so a
 --                         direct platform.transition by the application is refused). A RELEASE row records the route.
@@ -18,11 +20,14 @@
 --   lot_destruction       the destruction record (performer, method, quantity); a witness other than the performer
 --                         signs MATERIAL_DESTRUCTION_WITNESSED before DESTROY.
 --   lot_reservation       a quantity of a lot reserved for one batch (id, number, edition) until an expiry instant.
---                         Open while not revoked, not expired and not used up; revoked when the lot leaves a usable
+--                         Open while not revoked (lot_reservation_revocation), not expired and not used up; revoked when the lot leaves a usable
 --                         status; valid only while the lot's state version is the one it was granted at.
 --   lot_consumption       each consumption against a reservation: the genealogy link lot -> batch (INV-14), with the
 --                         lot quantity before and after, the batch's market set and the identity rule applied.
 --
+-- Every table is insert-only: each act is a new row, so no audited row is ever updated and the system never writes a
+-- reason for a person (DI-22, DI-24); decisions that need a reason take the person's own (guard platform.reason_given,
+-- or the reason argument of a cancellation or withdrawal).
 -- Privileges: ebmr_app reads; every write is a SECURITY DEFINER function of 0712 (DI-17, DI-18; ADR 0012, 0016).
 -- Messages: plain language, rule or control, code EBMR-SITE-1NN.
 
@@ -31,37 +36,6 @@ set local role ebmr_owner;
 -- ---------------------------------------------------------------------------------------------
 -- Helpers
 -- ---------------------------------------------------------------------------------------------
-
--- The audit trigger needs a reason code and text for every UPDATE of an audited row. Updates made by the lot
--- functions carry the command's own reason, completed with a fixed one naming the act. Returns the original
--- context for site.restore_actor.
-create function site.push_reason(p_code text, p_text text) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
-declare
-  v   jsonb := site.require_actor();
-  v_n jsonb := v;
-begin
-  if kernel.is_blank(v ->> 'reason_code') then
-    v_n := v_n || jsonb_build_object('reason_code', p_code);
-  end if;
-  if kernel.is_blank(v ->> 'reason_text') then
-    v_n := v_n || jsonb_build_object('reason_text', p_text);
-  end if;
-  if v_n is distinct from v then
-    perform kernel.set_actor_context(v_n);
-  end if;
-  return v;
-end
-$$;
-
-create function site.restore_actor(p_ctx jsonb) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, site, kernel, pg_temp as $$
-begin
-  if p_ctx is distinct from kernel.current_actor() then
-    perform kernel.set_actor_context(p_ctx);
-  end if;
-end
-$$;
 
 create function site.utc_text(p timestamptz) returns text
 language sql immutable set search_path = pg_catalog, pg_temp as $$
@@ -95,21 +69,15 @@ create table site.material_lot (
   supplier             text check (supplier is null or btrim(supplier) <> ''),
   supplier_lot         text check (supplier_lot is null or btrim(supplier_lot) <> ''),
   received_quantity    numeric not null check (received_quantity > 0),
-  quantity             numeric not null check (quantity >= 0),
   unit                 text not null check (unit ~ '^[!-~]{1,32}$'),   -- UCUM code
   retest_at            timestamptz,
   expires_at           timestamptz not null,
-  release_route        text check (release_route in ('IDENTITY_TESTED', 'VENDOR_HISTORY')),
-  released_at          timestamptz,
   received_by_person   uuid not null,
   received_by_account  uuid not null,
   received_at          timestamptz not null default clock_timestamp(),
   correlation_id       uuid not null,
   unique (site_code, lot_code),
-  check (quantity <= received_quantity),
-  check (retest_at is null or retest_at <= expires_at),
-  check ((release_route is null) = (released_at is null)),
-  check (release_route is distinct from 'VENDOR_HISTORY' or material_kind = 'EXCIPIENT')
+  check (retest_at is null or retest_at <= expires_at)
 );
 create index material_lot_material on site.material_lot (site_code, material_code);
 revoke all on site.material_lot from public;
@@ -171,20 +139,30 @@ create table site.vendor_route (
   statistical_reference  text not null check (btrim(statistical_reference) <> ''),
   proposed_by_person     uuid not null,
   proposed_by_account    uuid not null,
-  proposed_at            timestamptz not null default clock_timestamp(),
-  signature_id           uuid unique,
-  enabled_by_person      uuid,
-  enabled_at             timestamptz,
-  disabled_by_person     uuid,
-  disabled_at            timestamptz,
-  disabled_reason        text,
-  check ((signature_id is null) = (enabled_at is null) and (enabled_at is null) = (enabled_by_person is null)),
-  check ((disabled_at is null) = (disabled_by_person is null) and (disabled_at is null) = (disabled_reason is null)),
-  check (disabled_reason is null or btrim(disabled_reason) <> '')
+  proposed_at            timestamptz not null default clock_timestamp()
 );
--- One enabled route per material and site at a time.
-create unique index vendor_route_enabled on site.vendor_route (site_code, material_code) where enabled_at is not null and disabled_at is null;
+create index vendor_route_material on site.vendor_route (site_code, material_code);
 revoke all on site.vendor_route from public;
+
+-- QA's signed enablement of a proposed route, and its later withdrawal with the person's own reason: one row each,
+-- insert-only. One enabled route per material and site at a time (site.enable_vendor_route, under a lock).
+create table site.vendor_route_enablement (
+  route_id             uuid primary key references site.vendor_route (id),
+  signature_id         uuid not null unique,
+  enabled_by_person    uuid not null,
+  enabled_by_account   uuid not null,
+  enabled_at           timestamptz not null default clock_timestamp()
+);
+revoke all on site.vendor_route_enablement from public;
+
+create table site.vendor_route_disablement (
+  route_id             uuid primary key references site.vendor_route_enablement (route_id),
+  reason               text not null check (btrim(reason) <> ''),
+  disabled_by_person   uuid not null,
+  disabled_by_account  uuid not null,
+  disabled_at          timestamptz not null default clock_timestamp()
+);
+revoke all on site.vendor_route_disablement from public;
 
 create table site.lot_destruction (
   id                   uuid primary key default gen_random_uuid(),
@@ -211,15 +189,27 @@ create table site.lot_reservation (
   lot_state_version   bigint not null check (lot_state_version >= 1),
   reserved_by_person  uuid not null,
   reserved_by_account uuid not null,
-  reserved_at         timestamptz not null default clock_timestamp(),
-  revoked_at          timestamptz,
-  revoked_by_person   uuid,
-  revoked_reason      text,
-  check ((revoked_at is null) = (revoked_reason is null)),
-  check (revoked_reason is null or btrim(revoked_reason) <> '')
+  reserved_at         timestamptz not null default clock_timestamp()
 );
-create index lot_reservation_lot on site.lot_reservation (lot_id) where revoked_at is null;
+create index lot_reservation_lot on site.lot_reservation (lot_id);
 revoke all on site.lot_reservation from public;
+
+-- The end of a reservation before its expiry, one row each (insert-only: nothing is updated, so no reason is ever
+-- written for the person). STATUS_CHANGE: the lot left a usable status; the row names the transition and carries
+-- the reason the deciding person gave for it (none for consumption to zero). CANCELLED: the person's own reason.
+create table site.lot_reservation_revocation (
+  id                  uuid primary key default gen_random_uuid(),
+  reservation_id      uuid not null unique references site.lot_reservation (id),
+  kind                text not null check (kind in ('STATUS_CHANGE', 'CANCELLED')),
+  cause               text not null check (btrim(cause) <> ''),
+  reason_code         text,
+  reason_text         text,
+  revoked_by_person   uuid not null,
+  revoked_by_account  uuid not null,
+  revoked_at          timestamptz not null default clock_timestamp(),
+  check (kind <> 'CANCELLED' or btrim(coalesce(reason_text, '')) <> '')
+);
+revoke all on site.lot_reservation_revocation from public;
 
 create table site.lot_consumption (
   id                  uuid primary key default gen_random_uuid(),
@@ -251,49 +241,18 @@ revoke all on site.lot_consumption from public;
 -- Row rules (they hold even against owner-level code)
 -- ---------------------------------------------------------------------------------------------
 
--- A lot's identity, material, dates and received quantity never change. Its quantity only goes down, and only
--- with the consumption row of this transaction that records exactly that change (INV-13, INV-14). Its release
--- route is written once, with the RELEASE command of this transaction that recorded it.
-create function site.material_lot_update_guard() returns trigger
-language plpgsql security definer set search_path = pg_catalog, site, pg_temp as $$
-begin
-  if tg_op = 'DELETE' then
-    raise exception using errcode = 'P0001', message = 'EBMR-SITE-120 material lots are never deleted';
-  end if;
-  if (new.id, new.site_code, new.lot_code, new.material_code, new.material_name, new.material_kind, new.supplier, new.supplier_lot,
-      new.received_quantity, new.unit, new.retest_at, new.expires_at, new.received_by_person, new.received_by_account, new.received_at,
-      new.correlation_id)
-     is distinct from
-     (old.id, old.site_code, old.lot_code, old.material_code, old.material_name, old.material_kind, old.supplier, old.supplier_lot,
-      old.received_quantity, old.unit, old.retest_at, old.expires_at, old.received_by_person, old.received_by_account, old.received_at,
-      old.correlation_id) then
-    raise exception using errcode = 'P0001', message = format('EBMR-SITE-120 lot %s: only its quantity and release route change after receipt', old.lot_code);
-  end if;
-  if new.quantity is distinct from old.quantity then
-    if new.quantity > old.quantity then
-      raise exception using errcode = 'P0001', message = format('EBMR-SITE-121 lot %s: the quantity of a lot never increases after receipt (INV-13)', old.lot_code);
-    end if;
-    if not exists (select 1 from site.lot_consumption c
-                   where c.lot_id = old.id and c.xact_id = txid_current() and c.quantity_before = old.quantity and c.quantity_after = new.quantity) then
-      raise exception using errcode = 'P0001',
-        message = format('EBMR-SITE-121 lot %s: the quantity changes only with its consumption record in the same transaction (INV-13, INV-14)', old.lot_code);
-    end if;
-  end if;
-  if (new.release_route, new.released_at) is distinct from (old.release_route, old.released_at) then
-    if old.release_route is not null or new.release_route is null
-       or not exists (select 1 from site.lot_status_command c
-                      where c.lot_id = old.id and c.xact_id = txid_current() and c.event = 'RELEASE' and c.release_route = new.release_route) then
-      raise exception using errcode = 'P0001',
-        message = format('EBMR-SITE-122 lot %s: the release route is recorded once, by the RELEASE of this transaction', old.lot_code);
-    end if;
-  end if;
-  return new;
-end
+-- The lot's quantity now: received minus everything consumed (INV-13).
+create function site.lot_quantity(p_lot uuid) returns numeric
+language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
+  select l.received_quantity - coalesce((select sum(c.quantity) from site.lot_consumption c where c.lot_id = l.id), 0)
+  from site.material_lot l where l.id = p_lot
 $$;
-create trigger a1_update_guard before update or delete on site.material_lot
-  for each row execute function site.material_lot_update_guard();
-create trigger aa_no_truncate before truncate on site.material_lot
-  for each statement execute function platform.reject_change();
+
+-- The route the lot was released on: recorded by its (only) RELEASE command; NULL when never released.
+create function site.lot_release_route(p_lot uuid) returns text
+language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
+  select c.release_route from site.lot_status_command c where c.lot_id = p_lot and c.event = 'RELEASE'
+$$;
 
 -- A command row is stamped with the person, account and transaction of the command; nothing else may be given.
 create function site.lot_status_command_stamp() returns trigger
@@ -320,58 +279,18 @@ begin
   new.consumed_by_person := (v ->> 'person_id')::uuid;
   new.consumed_by_account := (v ->> 'account_id')::uuid;
   new.xact_id := txid_current();
+  -- The lot's quantity is never stored, only derived (received minus consumed), so it never needs an UPDATE. Each
+  -- consumption starts from exactly the quantity the earlier ones left and its after-quantity is >= 0 (CHECK), so
+  -- the quantity is never negative (INV-13).
+  if new.quantity_before is distinct from site.lot_quantity(new.lot_id) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-SITE-121 a consumption starts from the lot''s current quantity %s, not %s (INV-13, INV-14)', site.lot_quantity(new.lot_id), new.quantity_before);
+  end if;
   return new;
 end
 $$;
 create trigger a1_stamp before insert on site.lot_consumption
   for each row execute function site.lot_consumption_stamp();
-
--- A reservation's terms never change; it can only be revoked, once.
-create function site.lot_reservation_update_guard() returns trigger
-language plpgsql security definer set search_path = pg_catalog, site, pg_temp as $$
-begin
-  if tg_op = 'DELETE' then
-    raise exception using errcode = 'P0001', message = 'EBMR-SITE-140 reservations are never deleted; revoke them';
-  end if;
-  if (new.id, new.lot_id, new.batch_id, new.batch_number, new.edition, new.quantity, new.unit, new.expires_at, new.lot_state_version,
-      new.reserved_by_person, new.reserved_by_account, new.reserved_at)
-     is distinct from
-     (old.id, old.lot_id, old.batch_id, old.batch_number, old.edition, old.quantity, old.unit, old.expires_at, old.lot_state_version,
-      old.reserved_by_person, old.reserved_by_account, old.reserved_at)
-     or old.revoked_at is not null then
-    raise exception using errcode = 'P0001', message = 'EBMR-SITE-140 a reservation''s terms never change; it can only be revoked, once';
-  end if;
-  return new;
-end
-$$;
-create trigger a1_update_guard before update or delete on site.lot_reservation
-  for each row execute function site.lot_reservation_update_guard();
-create trigger aa_no_truncate before truncate on site.lot_reservation
-  for each statement execute function platform.reject_change();
-
--- A vendor-history route's content never changes; it is enabled once (signed) and disabled once.
-create function site.vendor_route_update_guard() returns trigger
-language plpgsql security definer set search_path = pg_catalog, site, pg_temp as $$
-begin
-  if tg_op = 'DELETE' then
-    raise exception using errcode = 'P0001', message = 'EBMR-SITE-130 vendor-history routes are never deleted; disable them';
-  end if;
-  if (new.id, new.site_code, new.material_code, new.material_kind, new.justification, new.statistical_reference, new.proposed_by_person,
-      new.proposed_by_account, new.proposed_at)
-     is distinct from
-     (old.id, old.site_code, old.material_code, old.material_kind, old.justification, old.statistical_reference, old.proposed_by_person,
-      old.proposed_by_account, old.proposed_at)
-     or (old.enabled_at is not null and (new.signature_id, new.enabled_at, new.enabled_by_person) is distinct from (old.signature_id, old.enabled_at, old.enabled_by_person))
-     or old.disabled_at is not null then
-    raise exception using errcode = 'P0001', message = 'EBMR-SITE-130 a vendor-history route''s justification never changes; it is enabled once and disabled once';
-  end if;
-  return new;
-end
-$$;
-create trigger a1_update_guard before update or delete on site.vendor_route
-  for each row execute function site.vendor_route_update_guard();
-create trigger aa_no_truncate before truncate on site.vendor_route
-  for each statement execute function platform.reject_change();
 
 select platform.enforce_db_time('site.material_lot', array['received_at']);
 select platform.enforce_db_time('site.lot_status_command', array['recorded_at']);
@@ -381,15 +300,21 @@ select platform.enforce_db_time('site.vendor_route', array['proposed_at']);
 select platform.enforce_db_time('site.lot_destruction', array['recorded_at']);
 select platform.enforce_db_time('site.lot_reservation', array['reserved_at']);
 select platform.enforce_db_time('site.lot_consumption', array['consumed_at']);
+select platform.enforce_db_time('site.lot_reservation_revocation', array['revoked_at']);
+select platform.enforce_db_time('site.vendor_route_enablement', array['enabled_at']);
+select platform.enforce_db_time('site.vendor_route_disablement', array['disabled_at']);
 
-select kernel.register_audited_table('site.material_lot', 'material_lot', 'id', false);
+select kernel.register_audited_table('site.material_lot', 'material_lot', 'id', true);
 select kernel.register_audited_table('site.lot_status_command', 'material_lot', 'lot_id', true);
 select kernel.register_audited_table('site.lot_identity_result', 'material_lot', 'lot_id', true);
 select kernel.register_audited_table('site.lot_state_entry', 'material_lot', 'lot_id', true);
 select kernel.register_audited_table('site.lot_destruction', 'material_lot', 'lot_id', true);
-select kernel.register_audited_table('site.lot_reservation', 'material_lot', 'lot_id', false);
+select kernel.register_audited_table('site.lot_reservation', 'material_lot', 'lot_id', true);
+select kernel.register_audited_table('site.lot_reservation_revocation', 'lot_reservation', 'reservation_id', true);
 select kernel.register_audited_table('site.lot_consumption', 'material_lot', 'lot_id', true);
-select kernel.register_audited_table('site.vendor_route', 'vendor_route', 'id', false);
+select kernel.register_audited_table('site.vendor_route', 'vendor_route', 'id', true);
+select kernel.register_audited_table('site.vendor_route_enablement', 'vendor_route', 'route_id', true);
+select kernel.register_audited_table('site.vendor_route_disablement', 'vendor_route', 'route_id', true);
 
 -- ---------------------------------------------------------------------------------------------
 -- Reading the lot
@@ -411,13 +336,14 @@ $$;
 -- nothing; the clock is read per call, and every guarded command re-checks expiry itself.)
 create function site.reservation_is_open(r site.lot_reservation) returns boolean
 language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
-  select r.revoked_at is null and clock_timestamp() < r.expires_at and site.reservation_remaining(r.id) > 0
+  select not exists (select 1 from site.lot_reservation_revocation x where x.reservation_id = r.id)
+         and clock_timestamp() < r.expires_at and site.reservation_remaining(r.id) > 0
 $$;
 
 -- The lot's quantity not covered by open reservations.
 create function site.lot_available(p_lot uuid) returns numeric
 language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
-  select l.quantity - coalesce((select sum(site.reservation_remaining(r.id)) from site.lot_reservation r
+  select site.lot_quantity(l.id) - coalesce((select sum(site.reservation_remaining(r.id)) from site.lot_reservation r
                                 where r.lot_id = l.id and site.reservation_is_open(r)), 0)
   from site.material_lot l where l.id = p_lot
 $$;
@@ -425,8 +351,9 @@ $$;
 -- Whether QA's vendor-history route is enabled (signed, not disabled) for the material at the site now.
 create function site.vendor_route_enabled(p_site text, p_material text) returns boolean
 language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
-  select exists (select 1 from site.vendor_route v
-                 where v.site_code = p_site and v.material_code = p_material and v.enabled_at is not null and v.disabled_at is null)
+  select exists (select 1 from site.vendor_route v join site.vendor_route_enablement e on e.route_id = v.id
+                 where v.site_code = p_site and v.material_code = p_material
+                   and not exists (select 1 from site.vendor_route_disablement d where d.route_id = v.id))
 $$;
 
 -- NULL when the lot is within its retest and expiry instants at database time, else why not (PR-18).
@@ -460,7 +387,7 @@ begin
     p_basis := 'IDENTITY_RESULT';
     return;
   end if;
-  if l.release_route = 'VENDOR_HISTORY' and cardinality(p_markets) >= 1 and p_markets <@ array['IN']::text[] then
+  if site.lot_release_route(l.id) = 'VENDOR_HISTORY' and cardinality(p_markets) >= 1 and p_markets <@ array['IN']::text[] then
     if site.vendor_route_enabled(l.site_code, l.material_code) then
       p_basis := 'VENDOR_HISTORY_INDIA_ONLY';
       return;
@@ -471,7 +398,7 @@ begin
   end if;
   p_problem := format('lot %s has no identity result: a batch for markets {%s} needs an identity test of every lot%s (IN-24 (c); D-S1-2)',
                       l.lot_code, array_to_string(p_markets, ', '),
-                      case when l.release_route = 'VENDOR_HISTORY' then '; the vendor-history route serves India-only batches' else '' end);
+                      case when site.lot_release_route(l.id) = 'VENDOR_HISTORY' then '; the vendor-history route serves India-only batches' else '' end);
 end
 $$;
 
@@ -548,7 +475,8 @@ begin
     'content', jsonb_build_object('site_code', v.site_code, 'material_code', v.material_code, 'material_kind', v.material_kind,
                                   'justification', v.justification, 'statistical_reference', v.statistical_reference,
                                   'proposed_by', v.proposed_by_person, 'proposed_at', site.utc_text(v.proposed_at)),
-    'state', case when v.disabled_at is not null then 'DISABLED' when v.enabled_at is not null then 'ENABLED' else 'PROPOSED' end,
+    'state', case when exists (select 1 from site.vendor_route_disablement d where d.route_id = v.id) then 'DISABLED'
+                  when exists (select 1 from site.vendor_route_enablement e where e.route_id = v.id) then 'ENABLED' else 'PROPOSED' end,
     'scope', jsonb_build_object('site', v.site_code));
 end
 $$;
@@ -652,7 +580,8 @@ $$;
 create function site.guard_quantity_zero(p_type text, p_id uuid, p_transition jsonb, p_payload jsonb, p_actor jsonb) returns text
 language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
   select case when l.id is null then 'the lot does not exist'
-              when l.quantity <> 0 then format('lot %s still holds %s %s; it is CONSUMED only at zero', l.lot_code, l.quantity, l.unit)
+              when site.lot_quantity(l.id) <> 0
+                then format('lot %s still holds %s %s; it is CONSUMED only at zero', l.lot_code, site.lot_quantity(l.id), l.unit)
          end
   from (select 1) d left join site.material_lot l on l.id = p_id
 $$;
