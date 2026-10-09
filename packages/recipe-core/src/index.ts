@@ -33,3 +33,9 @@ export * as blocks from './blocks/index.ts';
 
 // ---- Phase 2 apps, module C3: database-backed execution store (node-only; stub until C3 lands) -----
 export * as execution from './execution/index.ts';
+
+// ---- Phase 3 slice 1: output containers (schema plant, sql/0420-0422; node-only) ------------------
+export * as containers from './containers/index.ts';
+
+// ---- Phase 3 slice 1: equipment, rooms and lines, campaigns, clearances (schema plant, sql/0400-0405; node-only) --
+export * as plant from './plant/index.ts';
