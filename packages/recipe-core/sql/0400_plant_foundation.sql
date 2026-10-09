@@ -82,6 +82,9 @@ create table plant.equipment_class (
   dirty_hold            interval,
   calibration_required  boolean not null,
   check_regime          text check (check_regime in ('PER_USE', 'DAILY')),
+  -- S22: a class whose clean-in-place program is validated cites that validation; only then may one verifier sign a
+  -- CIP cleaning of its units. Without it every cleaning is MANUAL (performer and a different verifier).
+  cip_validation_ref    text check (cip_validation_ref is null or (kind = 'PROCESS' and btrim(cip_validation_ref) <> '')),
   recorded_by           uuid not null,
   recorded_at           timestamptz not null default clock_timestamp(),
   unique (code, kind),
@@ -159,18 +162,21 @@ create table plant.instrument_check (
   equipment_id  uuid not null references plant.equipment (id),
   regime        text not null check (regime in ('PER_USE', 'DAILY')),
   result        text not null check (result in ('PASS', 'FAIL')),
+  batch_id      uuid references recipe.batch_execution (id),
   batch_ref     text,
   reference     text not null check (btrim(reference) <> ''),
   person_id     uuid not null,
   account_id    uuid not null,
   recorded_at   timestamptz not null default clock_timestamp(),
-  check (regime = 'DAILY' or btrim(coalesce(batch_ref, '')) <> '')
+  check (regime = 'DAILY' or batch_id is not null),
+  check ((batch_id is null) = (batch_ref is null))
 );
 create index instrument_check_by_equipment on plant.instrument_check (equipment_id, recorded_at);
 
 create table plant.instrument_use (
   id            uuid primary key default gen_random_uuid(),
   equipment_id  uuid not null references plant.equipment (id),
+  batch_id      uuid not null references recipe.batch_execution (id),
   batch_ref     text not null check (btrim(batch_ref) <> ''),
   product_code  text not null references plant.product (code),
   regime        text not null check (regime in ('PER_USE', 'DAILY')),
@@ -266,14 +272,18 @@ create table plant.equipment_use (
   id                uuid primary key default gen_random_uuid(),
   equipment_id      uuid not null references plant.equipment (id),
   previous_use_id   uuid references plant.equipment_use (id),
+  batch_id          uuid not null references recipe.batch_execution (id),
   batch_ref         text not null check (btrim(batch_ref) <> ''),
   product_code      text not null references plant.product (code),
   planned_end       timestamptz not null,
   cleaning_id       uuid not null references plant.cleaning_verification (cleaning_id),
   campaign_id       uuid references plant.campaign (id),
+  -- The end of the campaign window the use runs in (first batch of the run + the campaign's maximum days).
+  campaign_window_end  timestamptz,
   started_by        uuid not null,
   started_at        timestamptz not null default clock_timestamp(),
   check (planned_end > started_at),
+  check ((campaign_id is null) = (campaign_window_end is null)),
   unique nulls not distinct (equipment_id, previous_use_id)
 );
 
@@ -283,8 +293,12 @@ create table plant.equipment_use_end (
   started_at           timestamptz not null,
   ended_by             uuid not null,
   ended_at             timestamptz not null default clock_timestamp(),
+  -- D-S1-5, against the actual end: the clean-hold, the calibration due instant or the campaign window passed during
+  -- the use, and whether the use ran past its planned end.
   clean_hold_crossed   boolean not null,
   calibration_crossed  boolean not null,
+  campaign_crossed     boolean not null,
+  overran_plan         boolean not null,
   period               tstzrange generated always as (tstzrange(started_at, ended_at, '[)')) stored,
   check (ended_at >= started_at),
   -- INV-12: closed occupancies of one PROCESS unit never overlap (instrument uses are a separate table).
@@ -300,6 +314,7 @@ create table plant.clearance (
   previous_batch          text,
   previous_order          text,
   previous_artwork_set    text,
+  next_batch_id           uuid not null references recipe.batch_execution (id),
   next_product            text not null references plant.product (code),
   next_batch              text not null check (btrim(next_batch) <> ''),
   next_order              text,
@@ -307,6 +322,8 @@ create table plant.clearance (
   performed_by            uuid not null,
   performed_account       uuid not null,
   performed_at            timestamptz not null default clock_timestamp(),
+  -- The performer's finding, part of the signed content: the verifier's signature confirms exactly this result.
+  recorded_result         text not null check (recorded_result in ('PASSED', 'FAILED')),
   -- L-29: a packaging-order clearance is keyed on the order and the artwork set.
   check ((clearance_type = 'PACKAGING_ORDER') = (next_order is not null)
          and (next_order is null or (btrim(next_order) <> '' and btrim(coalesce(next_artwork_set, '')) <> ''))
@@ -316,7 +333,6 @@ create index clearance_by_area on plant.clearance (area_id, performed_at);
 
 create table plant.clearance_verification (
   clearance_id  uuid primary key references plant.clearance (id),
-  result        text not null check (result in ('PASSED', 'FAILED')),
   verified_by   uuid not null,
   signature_id  uuid not null unique,
   verified_at   timestamptz not null default clock_timestamp()
@@ -330,6 +346,7 @@ create table plant.area_occupancy (
   area_id                uuid not null references plant.area (id),
   exclusive              boolean not null,
   previous_occupancy_id  uuid references plant.area_occupancy (id),
+  batch_id               uuid not null references recipe.batch_execution (id),
   batch_ref              text not null check (btrim(batch_ref) <> ''),
   product_code           text not null references plant.product (code),
   stage                  text not null check (btrim(stage) <> ''),
@@ -359,11 +376,11 @@ create view plant.cleaning_status as
   left join plant.cleaning_abandonment x on x.cleaning_id = c.id;
 
 create view plant.equipment_use_status as
-  select u.*, e.ended_by, e.ended_at, e.clean_hold_crossed, e.calibration_crossed
+  select u.*, e.ended_by, e.ended_at, e.clean_hold_crossed, e.calibration_crossed, e.campaign_crossed, e.overran_plan
   from plant.equipment_use u left join plant.equipment_use_end e on e.use_id = u.id;
 
 create view plant.clearance_status as
-  select c.*, v.result, v.verified_by, v.signature_id, v.verified_at
+  select c.*, case when v.clearance_id is not null then c.recorded_result end as result, v.verified_by, v.signature_id, v.verified_at
   from plant.clearance c left join plant.clearance_verification v on v.clearance_id = c.id;
 
 create view plant.area_occupancy_status as
@@ -407,6 +424,20 @@ begin
 end
 $$;
 create trigger a1_guard before insert on plant.cleaning_abandonment for each row execute function plant.cleaning_abandonment_guard();
+
+-- S22: CIP only on a unit whose class has a validated CIP program.
+create function plant.cleaning_method_guard() returns trigger
+language plpgsql security definer set search_path = pg_catalog, plant, pg_temp as $$
+begin
+  if new.method = 'CIP' and not exists (select 1 from plant.equipment e join plant.equipment_class k on k.code = e.class_code
+                                        where e.id = new.equipment_id and k.cip_validation_ref is not null) then
+    raise exception using errcode = 'P0001',
+      message = 'The class of this unit has no validated CIP program: it is cleaned manually, with a performer and a different verifier (S22; EBMR-PLANT-050)';
+  end if;
+  return new;
+end
+$$;
+create trigger a1_guard before insert on plant.cleaning for each row execute function plant.cleaning_method_guard();
 
 -- S23, S24: a clearance is verified by a person other than its performer.
 create function plant.clearance_verification_guard() returns trigger

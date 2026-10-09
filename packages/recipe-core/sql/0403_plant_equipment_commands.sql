@@ -51,14 +51,6 @@ language sql stable security definer set search_path = pg_catalog, platform, pg_
   select state from platform.aggregate_state where aggregate_type = p_aggregate_type and aggregate_id = p_id
 $$;
 
--- When the aggregate last entered its current state (state history, database clock).
-create function plant.state_since(p_aggregate_type text, p_id uuid) returns timestamptz
-language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
-  select h.recorded_at from platform.state_history h join platform.aggregate_state s
-    on s.aggregate_type = h.aggregate_type and s.aggregate_id = h.aggregate_id and s.version = h.to_version
-  where h.aggregate_type = p_aggregate_type and h.aggregate_id = p_id
-$$;
-
 create function plant.equipment_by_code(p_code text, p_lock boolean default false) returns plant.equipment
 language plpgsql volatile security definer set search_path = pg_catalog, plant, pg_temp as $$
 declare
@@ -106,6 +98,35 @@ begin
 end
 $$;
 
+-- What a guard needs to know about a batch, read from the batch record, never from the caller: its number, its product
+-- (the same source as plant.batch_scope, sql/0422: the product of the batch's package) and its market set. The
+-- product must be in the plant product list (its highly potent flag decides room eligibility, IN-26 (c)).
+create function plant.batch_facts(p_batch uuid) returns jsonb
+language plpgsql stable security definer set search_path = pg_catalog, plant, recipe, pg_temp as $$
+declare
+  v jsonb;
+begin
+  select jsonb_build_object('batch_id', b.id, 'batch_number', b.batch_number, 'product', p.product ->> 'code', 'market_set', to_jsonb(b.market_set))
+    into v
+  from recipe.batch_execution b join recipe.test_package p on p.package_hash = b.package_hash where b.id = p_batch;
+  if v is null then
+    perform plant.fail(format('Unknown batch %s (EBMR-PLANT-014)', coalesce(p_batch::text, 'NULL')));
+  end if;
+  perform plant.require_product(v ->> 'product');
+  return v;
+end
+$$;
+
+-- When the unit became dirty: the first entry into DIRTY since it was last verified clean (or since it was defined).
+-- An abandoned cleaning returns the unit to DIRTY without restarting this clock (IN-25 (c)).
+create function plant.dirty_since(p_equipment uuid) returns timestamptz
+language sql stable security definer set search_path = pg_catalog, platform, pg_temp as $$
+  select min(h.recorded_at) from platform.state_history h
+  where h.aggregate_type = 'plant_equipment' and h.aggregate_id = p_equipment and h.to_state = 'DIRTY'
+    and h.to_version > coalesce((select max(v.to_version) from platform.state_history v
+                                 where v.aggregate_type = 'plant_equipment' and v.aggregate_id = p_equipment and v.event = 'VERIFY_CLEANING'), 0)
+$$;
+
 -- ---------------------------------------------------------------------------------------------
 -- Master data (MASTERDATA.CHANGE)
 -- ---------------------------------------------------------------------------------------------
@@ -125,15 +146,17 @@ begin
 end
 $$;
 
--- p_def: {code, kind, description, cleanHold, dirtyHold (interval text, PROCESS), calibrationRequired, checkRegime (INSTRUMENT)}
+-- p_def: {code, kind, description, cleanHold, dirtyHold (interval text, PROCESS), calibrationRequired, checkRegime (INSTRUMENT),
+--        cipValidationRef (PROCESS with a validated CIP program)}
 create function plant.define_equipment_class(p_def jsonb) returns text
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 begin
   perform iam.assert_not_administrator();
   perform iam.require_permission('MASTERDATA.CHANGE', '{}'::jsonb);
-  insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, check_regime, recorded_by)
+  insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, check_regime, cip_validation_ref, recorded_by)
   values (p_def ->> 'code', p_def ->> 'kind', p_def ->> 'description', (p_def ->> 'cleanHold')::interval, (p_def ->> 'dirtyHold')::interval,
-          coalesce((p_def ->> 'calibrationRequired')::boolean, p_def ->> 'kind' = 'INSTRUMENT'), p_def ->> 'checkRegime', plant.actor_person());
+          coalesce((p_def ->> 'calibrationRequired')::boolean, p_def ->> 'kind' = 'INSTRUMENT'), p_def ->> 'checkRegime',
+          p_def ->> 'cipValidationRef', plant.actor_person());
   return p_def ->> 'code';
 end
 $$;
@@ -343,11 +366,13 @@ $$;
 -- Instruments: calibration plus a passing check; no occupancy (one tester serves two presses)
 -- ---------------------------------------------------------------------------------------------
 
-create function plant.record_instrument_check(p_equipment_code text, p_result text, p_reference text, p_batch_ref text default null) returns uuid
+-- A per-use check names the batch it is made for (p_batch); a daily check names none.
+create function plant.record_instrument_check(p_equipment_code text, p_result text, p_reference text, p_batch uuid default null) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 declare
   e        plant.equipment;
   v_regime text;
+  v_b      jsonb;
   v_id     uuid;
 begin
   perform iam.assert_not_administrator();
@@ -357,15 +382,18 @@ begin
     perform plant.fail(format('%s is %s equipment; checks are recorded for instruments (EBMR-PLANT-025)', e.code, e.kind));
   end if;
   select check_regime into v_regime from plant.equipment_class where code = e.class_code;
-  insert into plant.instrument_check (equipment_id, regime, result, batch_ref, reference, person_id, account_id)
-  values (e.id, v_regime, p_result, nullif(btrim(p_batch_ref), ''), p_reference, plant.actor_person(), plant.actor_account())
+  if p_batch is not null then
+    v_b := plant.batch_facts(p_batch);
+  end if;
+  insert into plant.instrument_check (equipment_id, regime, result, batch_id, batch_ref, reference, person_id, account_id)
+  values (e.id, v_regime, p_result, p_batch, v_b ->> 'batch_number', p_reference, plant.actor_person(), plant.actor_account())
   returning id into v_id;
   return v_id;
 end
 $$;
 
 -- What a use of the instrument for the batch until p_planned_end would rest on: {problems[], check_id, regime}.
-create function plant.instrument_use_assessment(p_equipment uuid, p_batch_ref text, p_planned_end timestamptz) returns jsonb
+create function plant.instrument_use_assessment(p_equipment uuid, p_batch uuid, p_planned_end timestamptz) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, plant, recipe, pg_temp as $$
 declare
   v_regime   text;
@@ -388,11 +416,11 @@ begin
     end if;
   else
     select * into v_check from plant.instrument_check c
-    where c.equipment_id = p_equipment and c.regime = 'PER_USE' and c.batch_ref = p_batch_ref
+    where c.equipment_id = p_equipment and c.regime = 'PER_USE' and c.batch_id = p_batch
       and not exists (select 1 from plant.instrument_use u where u.check_id = c.id)
     order by c.recorded_at desc, c.id desc limit 1;
     if v_check.id is null or v_check.result <> 'PASS' then
-      v_problems := v_problems || format('it has no unused passing check for batch %s', p_batch_ref);
+      v_problems := v_problems || format('it has no unused passing check for batch %s', (select batch_number from recipe.batch_execution where id = p_batch));
     end if;
   end if;
   return jsonb_build_object('problems', to_jsonb(v_problems), 'regime', v_regime,
@@ -400,30 +428,32 @@ begin
 end
 $$;
 
-create function plant.record_instrument_use(p_equipment_code text, p_batch_ref text, p_product text, p_planned_end timestamptz) returns uuid
+create function plant.record_instrument_use(p_equipment_code text, p_batch uuid, p_planned_end timestamptz) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 declare
   e    plant.equipment;
+  v_b  jsonb;
   v_a  jsonb;
   v_id uuid;
 begin
   perform iam.assert_not_administrator();
-  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', p_product));
+  v_b := plant.batch_facts(p_batch);
+  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', v_b ->> 'product'));
   e := plant.equipment_by_code(p_equipment_code, true);
   if e.kind <> 'INSTRUMENT' then
     perform plant.fail(format('%s is %s equipment, not an instrument (EBMR-PLANT-025)', e.code, e.kind));
   end if;
-  perform plant.require_product(p_product);
   if p_planned_end is null or p_planned_end <= clock_timestamp() then
     perform plant.fail('A use states its planned end, in the future (EBMR-PLANT-060)');
   end if;
-  v_a := plant.instrument_use_assessment(e.id, p_batch_ref, p_planned_end);
+  v_a := plant.instrument_use_assessment(e.id, p_batch, p_planned_end);
   if jsonb_array_length(v_a -> 'problems') > 0 then
-    perform plant.fail(format('%s cannot be used for batch %s: %s (IN-25 (b), PR-23; EBMR-PLANT-061)', e.code, p_batch_ref,
+    perform plant.fail(format('%s cannot be used for batch %s: %s (IN-25 (b), PR-23; EBMR-PLANT-061)', e.code, v_b ->> 'batch_number',
                               (select string_agg(x, '; ') from jsonb_array_elements_text(v_a -> 'problems') x)));
   end if;
-  insert into plant.instrument_use (equipment_id, batch_ref, product_code, regime, check_id, planned_end, person_id, account_id)
-  values (e.id, p_batch_ref, p_product, v_a ->> 'regime', (v_a ->> 'check_id')::uuid, p_planned_end, plant.actor_person(), plant.actor_account())
+  insert into plant.instrument_use (equipment_id, batch_id, batch_ref, product_code, regime, check_id, planned_end, person_id, account_id)
+  values (e.id, p_batch, v_b ->> 'batch_number', v_b ->> 'product', v_a ->> 'regime', (v_a ->> 'check_id')::uuid, p_planned_end,
+          plant.actor_person(), plant.actor_account())
   returning id into v_id;
   return v_id;
 end
@@ -543,8 +573,10 @@ $$;
 
 -- Whether one more batch of p_product on the unit or room may follow a MINOR cleaning: an open campaign of that
 -- product, opened before the run began, and the run (batches since the last verified MAJOR cleaning) within the
--- campaign's maximum batches and days (counted from the run's first batch to p_planned_end). {ok, campaign_id, reason}.
-create function plant.campaign_check(p_equipment uuid, p_area uuid, p_product text, p_planned_end timestamptz) returns jsonb
+-- campaign's maximum batches and days. The days are a window from the run's first batch (now, for the first): a batch
+-- may start only inside it, whatever end the caller plans; a use that runs past it is recorded when it ends.
+-- {ok, campaign_id, reason, window_end}.
+create function plant.campaign_check(p_equipment uuid, p_area uuid, p_product text) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, plant, pg_temp as $$
 declare
   c        plant.campaign_status;
@@ -576,11 +608,12 @@ begin
     return jsonb_build_object('ok', false, 'reason',
       format('the campaign allows %s batches between MAJOR cleanings; this would be batch %s', c.max_batches, v_n + 1));
   end if;
-  if coalesce(p_planned_end, clock_timestamp()) > coalesce(v_first, clock_timestamp()) + make_interval(days => c.max_days) then
+  if clock_timestamp() >= coalesce(v_first, clock_timestamp()) + make_interval(days => c.max_days) then
     return jsonb_build_object('ok', false, 'reason',
       format('the campaign allows %s days from its first batch at %s', c.max_days, recipe.utc_text(coalesce(v_first, clock_timestamp()))));
   end if;
-  return jsonb_build_object('ok', true, 'campaign_id', c.id, 'batch_number', v_n + 1);
+  return jsonb_build_object('ok', true, 'campaign_id', c.id, 'batch_number', v_n + 1,
+                            'window_end', coalesce(v_first, clock_timestamp()) + make_interval(days => c.max_days));
 end
 $$;
 
@@ -629,15 +662,19 @@ begin
     if v_state not in ('DIRTY', 'CLEAN') then
       perform plant.fail(format('%s is %s; a cleaning starts from DIRTY or CLEAN (EBMR-PLANT-042)', e.code, v_state));
     end if;
-    -- The dirty-hold clock runs from the moment the unit became DIRTY; past it only a MAJOR cleaning is accepted.
+    -- The dirty-hold clock runs from the moment the unit became dirty (plant.dirty_since); past it only a MAJOR
+    -- cleaning is accepted.
     if v_state = 'DIRTY' then
       select dirty_hold into v_hold from plant.equipment_class where code = e.class_code;
-      v_since := plant.state_since('plant_equipment', e.id);
+      v_since := plant.dirty_since(e.id);
       v_over := clock_timestamp() > v_since + v_hold;
       if v_over and p_level <> 'MAJOR' then
         perform plant.fail(format('%s has been DIRTY since %s, past its dirty-hold of %s: only a MAJOR cleaning is accepted (IN-25 (c); EBMR-PLANT-043)',
                                   e.code, recipe.utc_text(v_since), v_hold));
       end if;
+    end if;
+    if p_method = 'CIP' and (select cip_validation_ref from plant.equipment_class where code = e.class_code) is null then
+      perform plant.fail(format('%s has no validated CIP program: it is cleaned manually, with a performer and a different verifier (S22; EBMR-PLANT-050)', e.code));
     end if;
     insert into plant.cleaning (equipment_id, level, method, dirty_hold_exceeded, started_by)
     values (e.id, p_level, p_method, v_over, plant.actor_person()) returning id into v_id;
@@ -810,7 +847,7 @@ begin
     end if;
   end if;
   select * into v_prev from plant.equipment_use where equipment_id = p_equipment order by started_at desc, id desc limit 1;
-  v_camp := plant.campaign_check(p_equipment, null, p_product, p_planned_end);
+  v_camp := plant.campaign_check(p_equipment, null, p_product);
   if v_prev.id is null then
     v_why := 'first use';
   elsif v_prev.product_code <> p_product then
@@ -826,48 +863,50 @@ begin
   end if;
   return jsonb_build_object('problems', to_jsonb(v_problems), 'state', v_state, 'cleaning_id', c.id, 'previous_use_id', v_prev.id, 'clean_hold_until', recipe.utc_text(v_until),
                             'required_level', v_required, 'level_reason', v_why,
-                            'campaign_id', case when (v_camp ->> 'ok')::boolean then v_camp ->> 'campaign_id' end);
+                            'campaign_id', case when (v_camp ->> 'ok')::boolean then v_camp ->> 'campaign_id' end,
+                            'campaign_window_end', case when (v_camp ->> 'ok')::boolean then v_camp ->> 'window_end' end);
 end
 $$;
 
--- Starts the use of a PROCESS unit by a batch; refused with every problem found. The unit then is IN_PRODUCT.
-create function plant.start_equipment_use(p_equipment_code text, p_batch_ref text, p_product text, p_planned_end timestamptz) returns uuid
+-- Starts the use of a PROCESS unit by a batch; refused with every problem found. The batch number and product come
+-- from the batch record (plant.batch_facts), never from the caller. The unit then is IN_PRODUCT.
+create function plant.start_equipment_use(p_equipment_code text, p_batch uuid, p_planned_end timestamptz) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 declare
   e    plant.equipment;
+  v_b  jsonb;
   v_a  jsonb;
   v_id uuid;
 begin
   perform iam.assert_not_administrator();
-  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', p_product));
+  v_b := plant.batch_facts(p_batch);
+  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', v_b ->> 'product'));
   e := plant.equipment_by_code(p_equipment_code, true);
   if e.kind <> 'PROCESS' then
     perform plant.fail(format('%s is %s equipment, which has no occupancy; record its use with the instrument or utility check (L-27; EBMR-PLANT-062)',
                               e.code, e.kind));
   end if;
-  perform plant.require_product(p_product);
-  if plant.is_blank(p_batch_ref) then
-    perform plant.fail('A use names its batch (EBMR-PLANT-060)');
-  end if;
   if p_planned_end is null or p_planned_end <= clock_timestamp() then
     perform plant.fail('A use states its planned end, in the future (EBMR-PLANT-060)');
   end if;
-  v_a := plant.equipment_use_assessment(e.id, p_product, p_planned_end);
+  v_a := plant.equipment_use_assessment(e.id, v_b ->> 'product', p_planned_end);
   if jsonb_array_length(v_a -> 'problems') > 0 then
-    perform plant.fail(format('%s cannot be used for batch %s: %s (INV-12, IN-25, PR-23; EBMR-PLANT-061)', e.code, p_batch_ref,
+    perform plant.fail(format('%s cannot be used for batch %s: %s (INV-12, IN-25, PR-23; EBMR-PLANT-061)', e.code, v_b ->> 'batch_number',
                               (select string_agg(x, '; ') from jsonb_array_elements_text(v_a -> 'problems') x)));
   end if;
-  insert into plant.equipment_use (equipment_id, previous_use_id, batch_ref, product_code, planned_end, cleaning_id, campaign_id, started_by)
-  values (e.id, (v_a ->> 'previous_use_id')::uuid, p_batch_ref, p_product, p_planned_end, (v_a ->> 'cleaning_id')::uuid,
-          (v_a ->> 'campaign_id')::uuid, plant.actor_person())
+  insert into plant.equipment_use (equipment_id, previous_use_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, campaign_id,
+                                   campaign_window_end, started_by)
+  values (e.id, (v_a ->> 'previous_use_id')::uuid, p_batch, v_b ->> 'batch_number', v_b ->> 'product', p_planned_end, (v_a ->> 'cleaning_id')::uuid,
+          (v_a ->> 'campaign_id')::uuid, (v_a ->> 'campaign_window_end')::timestamptz, plant.actor_person())
   returning id into v_id;
   perform plant.move('equipment_cleanliness', 'plant_equipment', e.id, 'START_USE');
   return v_id;
 end
 $$;
 
--- Ends a use: the unit becomes DIRTY (its dirty-hold clock starts) and the row records whether the clean-hold or the
--- calibration due instant passed during the use (D-S1-5; raised as an exception from slice 2).
+-- Ends a use: the unit becomes DIRTY (its dirty-hold clock starts) and the end row records, against the actual end,
+-- whether the clean-hold, the calibration due instant or the campaign window passed during the use and whether the
+-- use overran its planned end (D-S1-5; raised as an exception from slice 2).
 create function plant.end_equipment_use(p_use uuid) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 declare
@@ -877,6 +916,8 @@ declare
   v_now    timestamptz := clock_timestamp();
   v_ch     boolean;
   v_cc     boolean;
+  v_kc     boolean;
+  v_ov     boolean;
 begin
   perform iam.assert_not_administrator();
   select * into u from plant.equipment_use_status where id = p_use;
@@ -896,24 +937,28 @@ begin
   where c.equipment_id = u.equipment_id and c.recorded_at <= u.started_at order by c.recorded_at desc, c.id desc limit 1;
   v_ch := v_hold is not null and v_hold <= v_now;
   v_cc := v_cal is not null and v_cal <= v_now;
-  insert into plant.equipment_use_end (use_id, equipment_id, started_at, ended_by, ended_at, clean_hold_crossed, calibration_crossed)
-  values (p_use, u.equipment_id, u.started_at, plant.actor_person(), v_now, v_ch, v_cc);
+  v_kc := u.campaign_window_end is not null and u.campaign_window_end <= v_now;
+  v_ov := u.planned_end < v_now;
+  insert into plant.equipment_use_end (use_id, equipment_id, started_at, ended_by, ended_at, clean_hold_crossed, calibration_crossed,
+                                       campaign_crossed, overran_plan)
+  values (p_use, u.equipment_id, u.started_at, plant.actor_person(), v_now, v_ch, v_cc, v_kc, v_ov);
   perform plant.move('equipment_cleanliness', 'plant_equipment', u.equipment_id, 'END_USE');
-  return jsonb_build_object('use_id', p_use, 'clean_hold_crossed', v_ch, 'calibration_crossed', v_cc);
+  return jsonb_build_object('use_id', p_use, 'clean_hold_crossed', v_ch, 'calibration_crossed', v_cc, 'campaign_crossed', v_kc,
+                            'overran_plan', v_ov);
 end
 $$;
 
 grant execute on function
   plant.define_product(jsonb), plant.define_equipment_class(jsonb), plant.define_area(jsonb), plant.define_equipment(jsonb),
   plant.record_equipment_event(text, text, text, text, text), plant.record_calibration(text, timestamptz, text, text, text),
-  plant.record_instrument_check(text, text, text, text), plant.record_instrument_use(text, text, text, timestamptz),
+  plant.record_instrument_check(text, text, text, uuid), plant.record_instrument_use(text, uuid, timestamptz),
   plant.record_utility_reading(text, text, text, timestamptz), plant.open_campaign(jsonb), plant.close_campaign(uuid, text),
   plant.start_cleaning(text, text, text, text), plant.complete_cleaning(uuid, text), plant.verify_cleaning(uuid, uuid),
-  plant.abandon_cleaning(uuid), plant.start_equipment_use(text, text, text, timestamptz), plant.end_equipment_use(uuid),
+  plant.abandon_cleaning(uuid), plant.start_equipment_use(text, uuid, timestamptz), plant.end_equipment_use(uuid),
   -- readers
   plant.equipment_fitness(uuid), plant.calibration_valid_until(uuid), plant.calibration_affected_batches(uuid),
   plant.utility_problem(text), plant.assert_utility_usable(text), plant.equipment_use_assessment(uuid, text, timestamptz),
-  plant.instrument_use_assessment(uuid, text, timestamptz), plant.campaign_check(uuid, uuid, text, timestamptz), plant.state_of(text, uuid)
+  plant.instrument_use_assessment(uuid, uuid, timestamptz), plant.campaign_check(uuid, uuid, text), plant.batch_facts(uuid), plant.state_of(text, uuid)
 to ebmr_app;
 
 reset role;

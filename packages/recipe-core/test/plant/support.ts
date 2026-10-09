@@ -6,7 +6,8 @@
 import { randomBytes } from 'node:crypto';
 import type pg from 'pg';
 import type { ActorContext } from '../../../kernel/src/db/command.ts';
-import { challengeFor, run, signatureAuth, signWith } from '../../../kernel/test/esig/helpers.ts';
+import { createHash, randomUUID } from 'node:crypto';
+import { asTimeTraveller, challengeFor, run, signatureAuth, signWith } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import type { TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
@@ -68,11 +69,52 @@ export async function sleep(db: TestDatabase, seconds: number): Promise<void> {
 
 export const DAY = 86_400;
 
+export interface Batch {
+  id: string;
+  number: string;
+  product: string;
+}
+
 export class PlantWorld {
+  private readonly batches = new Map<string, Batch>();
+
   constructor(
     readonly db: TestDatabase,
     readonly cast: PlantCast,
   ) {}
+
+  /**
+   * The batch of `product` known in the test by `label` (created on first use). Batch records are arranged by the
+   * superuser with triggers off, as test setup only (as the container tests do); nothing about batch issue is tested.
+   */
+  async batch(label: string, product: string): Promise<Batch> {
+    const key = `${label}|${product}`;
+    const known = this.batches.get(key);
+    if (known) return known;
+    const id = randomUUID();
+    const number = `TEST-${label}-${tag()}`;
+    const hash = createHash('sha256').update(id).digest('hex');
+    await asTimeTraveller(
+      this.db,
+      `insert into recipe.test_package (package_hash, file_name, package, content, content_hash, family_id, family_code, product, version_id, version_number,
+                                        revision, version_state, exporter, exported_at_us, source, imported_by_person, imported_by_account, correlation_id)
+       values ($1, $1 || '.json', '{}', '{}', $1, gen_random_uuid(), 'FAM', $2::jsonb, gen_random_uuid(), '1', 1, 'APPROVED', '{}', 0, '{}',
+               gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      [hash, JSON.stringify({ code: product, name: `Product ${product}`, strength: '10 mg' })],
+    );
+    await asTimeTraveller(
+      this.db,
+      `insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint, policy,
+                                           policy_hash, issue_request, market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person,
+                                           issued_by_account, correlation_id)
+       values ($1, $2, $3, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', '1', $3, '{}', $3, '{}', '{IN}', 'BS', 'SITE-1', 'Asia/Kolkata', 0, gen_random_uuid(),
+               gen_random_uuid(), gen_random_uuid())`,
+      [id, number, hash],
+    );
+    const b = { id, number, product };
+    this.batches.set(key, b);
+    return b;
+  }
 
   run<T>(actor: SeededActor, work: (c: pg.PoolClient) => Promise<T>, extra: Partial<ActorContext> = {}): Promise<T> {
     return run(this.db, actor, work, extra);
@@ -136,6 +178,7 @@ export class PlantWorld {
       dirtyHold?: string;
       calibrationRequired?: boolean;
       calibratedForSeconds?: number | null;
+      cipValidationRef?: string;
     } = {},
   ) {
     return this.equipment(
@@ -144,6 +187,7 @@ export class PlantWorld {
         cleanHold: opts.cleanHold ?? '72 hours',
         dirtyHold: opts.dirtyHold ?? '48 hours',
         calibrationRequired: opts.calibrationRequired ?? false,
+        ...(opts.cipValidationRef ? { cipValidationRef: opts.cipValidationRef } : {}),
       },
       { calibratedForSeconds: opts.calibratedForSeconds },
     );
@@ -163,9 +207,41 @@ export class PlantWorld {
     return id;
   }
 
-  async startUse(code: string, batch: string, product: string, plannedInSeconds = 8 * 3600): Promise<string> {
+  async startUse(code: string, label: string, product: string, plannedInSeconds = 8 * 3600): Promise<string> {
     const end = await dbIn(this.db, plannedInSeconds);
-    return this.run(this.cast.operator, (c) => plant.startEquipmentUse(c, code, batch, product, end));
+    const b = await this.batch(label, product);
+    return this.run(this.cast.operator, (c) => plant.startEquipmentUse(c, code, b.id, end));
+  }
+
+  /** Records a clearance for the batch `label` of `product` (performer: operator). */
+  async recordClearance(
+    areaCode: string,
+    type: plant.ClearanceType,
+    next: { batch: string; product: string; order?: string; artworkSet?: string },
+    result: 'PASSED' | 'FAILED' = 'PASSED',
+  ): Promise<string> {
+    const b = await this.batch(next.batch, next.product);
+    return this.run(this.cast.operator, (c) =>
+      plant.recordClearance(c, areaCode, type, {
+        batchId: b.id,
+        result,
+        ...(next.order ? { order: next.order } : {}),
+        ...(next.artworkSet ? { artworkSet: next.artworkSet } : {}),
+      }),
+    );
+  }
+
+  /** Starts the batch `label` of `product` in the room or line (operator). */
+  async startIn(areaCode: string, s: { batch: string; product: string; stage?: string; order?: string; artworkSet?: string }): Promise<string> {
+    const b = await this.batch(s.batch, s.product);
+    return this.run(this.cast.operator, (c) =>
+      plant.startAreaOccupancy(c, areaCode, {
+        batchId: b.id,
+        stage: s.stage ?? 'COMPRESSION',
+        ...(s.order ? { order: s.order } : {}),
+        ...(s.artworkSet ? { artworkSet: s.artworkSet } : {}),
+      }),
+    );
   }
 
   async room(opts: Partial<Omit<plant.AreaDefinition, 'code' | 'name'>> = {}): Promise<{ id: string; code: string }> {
@@ -193,9 +269,9 @@ export class PlantWorld {
     },
     result: 'PASSED' | 'FAILED' = 'PASSED',
   ): Promise<string> {
-    const id = await this.run(this.cast.operator, (c) => plant.recordClearance(c, areaCode, type, next));
+    const id = await this.recordClearance(areaCode, type, next, result);
     const sig = await this.sign(this.cast.verifier, 'plant_clearance', id, 'VERIFIED', 'PERFORMED');
-    await this.run(this.cast.verifier, (c) => plant.verifyClearance(c, id, result, sig));
+    await this.run(this.cast.verifier, (c) => plant.verifyClearance(c, id, sig));
     return id;
   }
 

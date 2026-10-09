@@ -8,6 +8,7 @@ import { seedAdministration } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
 import { dbIn, DAY, PlantWorld, seedPlantCast, sleep, tag } from './support.ts';
+import { asTimeTraveller } from '../../../kernel/test/esig/helpers.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
@@ -32,7 +33,7 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     const use = await w.startUse(press.code, 'B-1', product);
     expect(await w.state('equipment', press.id)).toBe('IN_PRODUCT');
     // INV-12: idle is required; a second batch is refused while the first one occupies the press.
-    await expect(w.startUse(press.code, 'B-2', product)).rejects.toThrow(/in use by batch B-1 \(INV-12\)/);
+    await expect(w.startUse(press.code, 'B-2', product)).rejects.toThrow(/in use by batch TEST-B-1-\w+ \(INV-12\)/);
     const ended = await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, use));
     expect(ended).toMatchObject({
       clean_hold_crossed: false,
@@ -47,23 +48,25 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     const product = await w.product();
     const cleaning = await w.clean('EQUIPMENT', press.code, 'MAJOR');
     const use = await w.startUse(press.code, 'B-X', product);
-    const ins = `insert into plant.equipment_use (equipment_id, previous_use_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
-                 values ($1, $2, 'B-Y', $3, clock_timestamp() + interval '1 day', $4, gen_random_uuid())`;
+    const y = (await w.batch('B-Y', product)).id;
+    const ins = `insert into plant.equipment_use (equipment_id, previous_use_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
+                 values ($1, $2, $5, 'B-Y', $3, clock_timestamp() + interval '1 day', $4, gen_random_uuid())`;
     // A second use naming no predecessor, or the open use as its predecessor: both refused.
-    await expect(db.admin.query(ins, [press.id, null, product, cleaning])).rejects.toThrow(/EBMR-PLANT-064|equipment_use_equipment_id_previous_use_id_key/);
-    await expect(db.admin.query(ins, [press.id, use, product, cleaning])).rejects.toThrow(/open use: PROCESS occupancy never overlaps.*EBMR-PLANT-064/);
+    await expect(db.admin.query(ins, [press.id, null, product, cleaning, y])).rejects.toThrow(/EBMR-PLANT-064|equipment_use_equipment_id_previous_use_id_key/);
+    await expect(db.admin.query(ins, [press.id, use, product, cleaning, y])).rejects.toThrow(/open use: PROCESS occupancy never overlaps.*EBMR-PLANT-064/);
     const c = await db.admin.connect();
     try {
       await c.query('begin');
       await c.query("set local session_replication_role = 'replica'");
-      const end = `insert into plant.equipment_use_end (use_id, equipment_id, started_at, ended_by, ended_at, clean_hold_crossed, calibration_crossed)
-                   values ($1, $2, $3::timestamptz, gen_random_uuid(), $4::timestamptz, false, false)`;
+      const end = `insert into plant.equipment_use_end (use_id, equipment_id, started_at, ended_by, ended_at, clean_hold_crossed, calibration_crossed,
+                                                        campaign_crossed, overran_plan)
+                   values ($1, $2, $3::timestamptz, gen_random_uuid(), $4::timestamptz, false, false, false, false)`;
       await c.query(end, [use, press.id, '2026-10-01T08:00:00Z', '2026-10-01T12:00:00Z']);
       const other = (
         await c.query<{ id: string }>(
-          `insert into plant.equipment_use (equipment_id, previous_use_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
-        values ($1, $2, 'B-Y', $3, clock_timestamp() + interval '1 day', $4, gen_random_uuid()) returning id`,
-          [press.id, use, product, cleaning],
+          `insert into plant.equipment_use (equipment_id, previous_use_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
+        values ($1, $2, $5, 'B-Y', $3, clock_timestamp() + interval '1 day', $4, gen_random_uuid()) returning id`,
+          [press.id, use, product, cleaning, y],
         )
       ).rows[0]?.id;
       await expect(c.query(end, [other, press.id, '2026-10-01T11:00:00Z', '2026-10-01T13:00:00Z'])).rejects.toThrow(/equipment_use_no_overlap/);
@@ -96,9 +99,12 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     const use = await w.startUse(press.code, 'B-C1', product, 1);
     await sleep(db, 2.2);
     const ended = await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, use));
+    // Evaluated against the actual end, which passed the planned end too.
     expect(ended).toMatchObject({
       clean_hold_crossed: true,
       calibration_crossed: true,
+      overran_plan: true,
+      campaign_crossed: false,
     });
   });
 
@@ -111,6 +117,17 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     const id = await w.clean('EQUIPMENT', press.code, 'MAJOR');
     const { rows } = await db.app.query<{ x: boolean }>('select dirty_hold_exceeded as x from plant.cleaning where id = $1', [id]);
     expect(rows[0]?.x).toBe(true);
+  });
+
+  it('[IN-25] abandoning a cleaning does not restart the dirty-hold clock: past the dirty-hold, a MAJOR cleaning abandoned leaves MINOR refused', async () => {
+    const press = await w.press({ dirtyHold: '1 second' });
+    await sleep(db, 1.2);
+    const id = await w.run(w.cast.tech, (c) => plant.startCleaning(c, 'EQUIPMENT', press.code, 'MAJOR'));
+    await w.run(w.cast.tech, (c) => plant.abandonCleaning(c, id), { reasonCode: 'EQUIPMENT_FAULT', reasonText: 'washer pump failed' });
+    expect(await w.state('equipment', press.id)).toBe('DIRTY');
+    await expect(w.run(w.cast.tech, (c) => plant.startCleaning(c, 'EQUIPMENT', press.code, 'MINOR'))).rejects.toThrow(
+      /past its dirty-hold.*only a MAJOR cleaning.*EBMR-PLANT-043/,
+    );
   });
 
   it('[IN-25] the same person cannot clean and verify: refused in the command, by the signature service and by the table', async () => {
@@ -133,8 +150,23 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     expect(await w.state('equipment', press.id)).toBe('CLEAN');
   });
 
-  it('[IN-25] a validated CIP cleaning cites its cycle record and needs one verifier', async () => {
+  it('[IN-25] CIP is accepted only on a unit whose class has a validated CIP program: one person cannot CIP-clean a unit of any other class', async () => {
     const press = await w.press();
+    await expect(w.run(w.cast.tech, (c) => plant.startCleaning(c, 'EQUIPMENT', press.code, 'MAJOR', 'CIP'))).rejects.toThrow(
+      /no validated CIP program.*S22.*EBMR-PLANT-050/,
+    );
+    // Not even an owner-level insert: the table refuses it.
+    await expect(
+      db.admin.query(
+        "insert into plant.cleaning (equipment_id, level, method, dirty_hold_exceeded, started_by) values ($1, 'MAJOR', 'CIP', false, gen_random_uuid())",
+        [press.id],
+      ),
+    ).rejects.toThrow(/EBMR-PLANT-050/);
+    expect(await w.state('equipment', press.id)).toBe('DIRTY');
+  });
+
+  it('[IN-25] a validated CIP cleaning cites its cycle record and needs one verifier', async () => {
+    const press = await w.press({ cipValidationRef: 'CIP-VAL-2026-03' });
     const id = await w.run(w.cast.tech, (c) => plant.startCleaning(c, 'EQUIPMENT', press.code, 'MAJOR', 'CIP'));
     await expect(w.run(w.cast.tech, (c) => plant.completeCleaning(c, id))).rejects.toThrow(/EBMR-PLANT-045/);
     await w.run(w.cast.tech, (c) => plant.completeCleaning(c, id, 'CIP-RUN-0042'));
@@ -163,7 +195,8 @@ describe('product change and campaigns (IN-26 (a), PR-27)', () => {
     const a = await w.product();
     const b = await w.product();
     await w.clean('EQUIPMENT', press.code, 'MAJOR');
-    await w.run(w.cast.operator, async (c) => plant.endEquipmentUse(c, await plant.startEquipmentUse(c, press.code, 'A-1', a, await dbIn(db, 3600))));
+    const u1 = await w.startUse(press.code, 'A-1', a, 3600);
+    await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, u1));
     // Same product, no campaign: MINOR is not enough.
     await w.clean('EQUIPMENT', press.code, 'MINOR');
     await expect(w.startUse(press.code, 'A-2', a)).rejects.toThrow(/MAJOR cleaning is required \(no campaign of .* is open\)/);
@@ -207,24 +240,80 @@ describe('product change and campaigns (IN-26 (a), PR-27)', () => {
     await expect(w.startUse(press.code, 'B-1', b)).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it("[IN-26][PR-27] beyond the campaign's maximum days a MAJOR cleaning is required", async () => {
+  /** Moves the run's first use, its MAJOR cleaning and the campaign back in time (test setup, triggers off). */
+  async function backdate(pressId: string, campaignId: string, by: string): Promise<void> {
+    await asTimeTraveller(
+      db,
+      `update plant.equipment_use set started_at = started_at - $2::interval, planned_end = planned_end - $2::interval where equipment_id = $1`,
+      [pressId, by],
+    );
+    await asTimeTraveller(
+      db,
+      `update plant.equipment_use_end set started_at = started_at - $2::interval, ended_at = ended_at - $2::interval where equipment_id = $1`,
+      [pressId, by],
+    );
+    await asTimeTraveller(
+      db,
+      `update plant.cleaning_verification set verified_at = verified_at - $2::interval
+        where cleaning_id in (select id from plant.cleaning where equipment_id = $1 and level = 'MAJOR')`,
+      [pressId, by],
+    );
+    await asTimeTraveller(db, `update plant.campaign set opened_at = opened_at - $2::interval where id = $1`, [campaignId, by]);
+  }
+
+  async function campaignRun(maxDays: number) {
     const press = await w.press();
     const a = await w.product();
-    await w.run(w.cast.steward, (c) =>
-      plant.openCampaign(c, {
-        equipmentCode: press.code,
-        product: a,
-        maxBatches: 10,
-        maxDays: 2,
-        validationRef: 'CV-2',
-      }),
+    const campaign = await w.run(w.cast.steward, (c) =>
+      plant.openCampaign(c, { equipmentCode: press.code, product: a, maxBatches: 10, maxDays, validationRef: 'CV-2' }),
     );
     await w.clean('EQUIPMENT', press.code, 'MAJOR');
     const u1 = await w.startUse(press.code, 'A-1', a);
     await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, u1));
+    return { press, a, campaign };
+  }
+
+  it("[IN-26][PR-27] outside the campaign's maximum days from its first batch a MAJOR cleaning is required, however short the planned end", async () => {
+    const { press, a, campaign } = await campaignRun(2);
+    await backdate(press.id, campaign, '3 days');
     await w.clean('EQUIPMENT', press.code, 'MINOR');
-    await expect(w.startUse(press.code, 'A-2', a, 3 * DAY)).rejects.toThrow(/allows 2 days from its first batch/);
-    await expect(w.startUse(press.code, 'A-2', a, DAY)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+    await expect(w.startUse(press.code, 'A-2', a, 60)).rejects.toThrow(/allows 2 days from its first batch/);
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    await expect(w.startUse(press.code, 'A-2', a, 60)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[IN-26][PR-27] a campaign batch that runs past the campaign window and its planned end is recorded as crossing both when it ends (D-S1-5)', async () => {
+    const { press, a, campaign } = await campaignRun(1);
+    // The run's first batch started 1 day less 6 seconds ago: the window closes in 6 seconds.
+    await backdate(press.id, campaign, '86394 seconds');
+    await w.clean('EQUIPMENT', press.code, 'MINOR');
+    const u2 = await w.startUse(press.code, 'A-2', a, 1);
+    await sleep(db, 6.5);
+    const ended = await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, u2));
+    expect(ended).toMatchObject({ campaign_crossed: true, overran_plan: true });
+  });
+});
+
+describe('the batch, not the caller, names the product (IN-26, PR-27)', () => {
+  it('[IN-26][PR-27] a unit last used for product X refuses a batch of product Y after a MINOR cleaning, whatever product the caller has in mind: the product is read from the batch record', async () => {
+    const press = await w.press();
+    const x = await w.product();
+    const y = await w.product();
+    await w.run(w.cast.steward, (c) => plant.openCampaign(c, { equipmentCode: press.code, product: x, maxBatches: 5, maxDays: 5, validationRef: 'CV-X' }));
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    const u1 = await w.startUse(press.code, 'X-1', x);
+    await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, u1));
+    await w.clean('EQUIPMENT', press.code, 'MINOR');
+    await expect(w.startUse(press.code, 'Y-1', y)).rejects.toThrow(new RegExp(`MAJOR cleaning is required \\(product change from ${x}\\)`));
+    const { rows } = await db.app.query<{ product_code: string; batch_ref: string }>('select product_code, batch_ref from plant.equipment_use where id = $1', [
+      u1,
+    ]);
+    expect(rows[0]).toEqual({ product_code: x, batch_ref: (await w.batch('X-1', x)).number });
+    // A batch whose product the plant does not know, or an unknown batch, is refused.
+    await expect(w.startUse(press.code, 'Z-1', 'NOT-IN-PLANT')).rejects.toThrow(/Unknown product NOT-IN-PLANT.*EBMR-PLANT-012/);
+    await expect(
+      w.run(w.cast.operator, async (c) => plant.startEquipmentUse(c, press.code, '00000000-0000-4000-8000-000000000000', await dbIn(db, 60))),
+    ).rejects.toThrow(/Unknown batch.*EBMR-PLANT-014/);
   });
 });
 
@@ -232,18 +321,19 @@ describe('fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d
   it('[IN-25][PR-23] a balance with calibration past due is blocked; a calibration that does not cover the planned end is blocked too', async () => {
     const balance = await w.equipment({ kind: 'INSTRUMENT', checkRegime: 'DAILY' }, { calibratedForSeconds: 1 });
     const product = await w.product();
+    const ids: Record<string, string> = { 'B-W1': (await w.batch('B-W1', product)).id };
     await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, balance.code, 'PASS', 'DAILY-CHECK-1'));
     // Planned end after the due instant.
-    await expect(w.run(w.cast.operator, async (c) => plant.recordInstrumentUse(c, balance.code, 'B-W1', product, await dbIn(db, 3600)))).rejects.toThrow(
+    await expect(w.run(w.cast.operator, async (c) => plant.recordInstrumentUse(c, balance.code, ids['B-W1'] ?? '', await dbIn(db, 3600)))).rejects.toThrow(
       /calibration is due at .* before the planned end.*EBMR-PLANT-061/,
     );
     await sleep(db, 1.2);
     expect(await plant.equipmentFitness(db.app, balance.id)).toBe('CALIBRATION_OVERDUE');
-    await expect(w.run(w.cast.operator, async (c) => plant.recordInstrumentUse(c, balance.code, 'B-W1', product, await dbIn(db, 60)))).rejects.toThrow(
+    await expect(w.run(w.cast.operator, async (c) => plant.recordInstrumentUse(c, balance.code, ids['B-W1'] ?? '', await dbIn(db, 60)))).rejects.toThrow(
       /the unit is CALIBRATION_OVERDUE.*IN-25/,
     );
     await w.calibrate(balance.code, 90 * DAY);
-    await expect(w.run(w.cast.operator, async (c) => plant.recordInstrumentUse(c, balance.code, 'B-W1', product, await dbIn(db, 60)))).resolves.toMatch(
+    await expect(w.run(w.cast.operator, async (c) => plant.recordInstrumentUse(c, balance.code, ids['B-W1'] ?? '', await dbIn(db, 60)))).resolves.toMatch(
       /^[0-9a-f-]{36}$/,
     );
   });
@@ -254,18 +344,20 @@ describe('fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d
       checkRegime: 'PER_USE',
     });
     const product = await w.product();
-    await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, tester.code, 'PASS', 'STD-WT-1', 'B-P1'));
-    await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, tester.code, 'PASS', 'STD-WT-2', 'B-P2'));
+    const ids: Record<string, string> = {};
+    for (const l of ['B-P1', 'B-P2', 'B-P3']) ids[l] = (await w.batch(l, product)).id;
+    await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, tester.code, 'PASS', 'STD-WT-1', ids['B-P1']));
+    await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, tester.code, 'PASS', 'STD-WT-2', ids['B-P2']));
     const end = await dbIn(db, 3600);
-    await w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, tester.code, 'B-P1', product, end));
-    await w.run(w.cast.operator2, (c) => plant.recordInstrumentUse(c, tester.code, 'B-P2', product, end));
+    await w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, tester.code, ids['B-P1'] ?? '', end));
+    await w.run(w.cast.operator2, (c) => plant.recordInstrumentUse(c, tester.code, ids['B-P2'] ?? '', end));
     // The check of B-P1 is used up.
-    await expect(w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, tester.code, 'B-P1', product, end))).rejects.toThrow(
-      /no unused passing check for batch B-P1/,
+    await expect(w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, tester.code, ids['B-P1'] ?? '', end))).rejects.toThrow(
+      /no unused passing check for batch TEST-B-P1-/,
     );
     // A failed check blocks every use until a passing one is recorded.
-    await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, tester.code, 'FAIL', 'STD-WT-3', 'B-P3'));
-    await expect(w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, tester.code, 'B-P3', product, end))).rejects.toThrow(
+    await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, tester.code, 'FAIL', 'STD-WT-3', ids['B-P3']));
+    await expect(w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, tester.code, ids['B-P3'] ?? '', end))).rejects.toThrow(
       /latest check \(STD-WT-3\) failed/,
     );
   });
@@ -301,10 +393,13 @@ describe('fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d
     const product = await w.product();
     await w.run(w.cast.operator, (c) => plant.recordInstrumentCheck(c, balance.code, 'PASS', 'DAILY'));
     const end = await dbIn(db, 600);
-    for (const b of ['B-A1', 'B-A2']) await w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, balance.code, b, product, end));
+    for (const b of ['B-A1', 'B-A2']) {
+      const id = (await w.batch(b, product)).id;
+      await w.run(w.cast.operator, (c) => plant.recordInstrumentUse(c, balance.code, id, end));
+    }
     const cal = await w.calibrate(balance.code, 90 * DAY, 'FAIL', 'PASS');
     const { rows } = await db.app.query<{ batch_ref: string }>('select batch_ref from plant.calibration_affected_batches($1)', [cal]);
-    expect(rows.map((r) => r.batch_ref)).toEqual(['B-A1', 'B-A2']);
+    expect(rows.map((r) => r.batch_ref)).toEqual([(await w.batch('B-A1', product)).number, (await w.batch('B-A2', product)).number]);
   });
 
   it('[IN-25] a failure signalled from a step removes the unit from use until it is repaired', async () => {
@@ -351,7 +446,7 @@ describe('only the plant commands write (bypass attempts)', () => {
     await expect(
       w.run(w.cast.operator, (c) =>
         c.query(
-          "insert into plant.equipment_use (equipment_id, batch_ref, product_code, planned_end, cleaning_id, started_by) values ($1, 'B-Z', $2, clock_timestamp() + interval '1 hour', $3, gen_random_uuid())",
+          "insert into plant.equipment_use (equipment_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by) values ($1, gen_random_uuid(), 'B-Z', $2, clock_timestamp() + interval '1 hour', $3, gen_random_uuid())",
           [press.id, product, cleaning],
         ),
       ),
@@ -414,8 +509,9 @@ describe('only the plant commands write (bypass attempts)', () => {
       ),
     ).rejects.toThrow(/EBMR-IAM-040/);
     const press = await w.press();
+    const batch = await w.batch('B', await w.product());
     await expect(w.run(w.cast.operator, (c) => plant.startCleaning(c, 'EQUIPMENT', press.code, 'MAJOR'))).rejects.toThrow(/EBMR-IAM-040/);
-    await expect(w.run(w.cast.tech, (c) => plant.startEquipmentUse(c, press.code, 'B', 'P', '2099-01-01T00:00:00Z'))).rejects.toThrow(/EBMR-IAM-040/);
+    await expect(w.run(w.cast.tech, (c) => plant.startEquipmentUse(c, press.code, batch.id, '2099-01-01T00:00:00Z'))).rejects.toThrow(/EBMR-IAM-040/);
   });
 
   it('[DI-17][DI-18] every app-callable plant function that can write refuses administrators first, then checks a catalogued permission', async () => {
@@ -429,7 +525,7 @@ describe('only the plant commands write (bypass attempts)', () => {
       where n.nspname = 'plant' and p.prokind = 'f' and has_function_privilege('ebmr_app', p.oid, 'EXECUTE')
       order by 1`);
     // Volatile only because they read the clock or the site calendar; they write nothing.
-    const readers = new Set(['plant.instrument_use_assessment(uuid,text,timestamp with time zone)']);
+    const readers = new Set(['plant.instrument_use_assessment(uuid,uuid,timestamp with time zone)']);
     const writers = rows.filter((r) => r.volatile && !readers.has(r.fn));
     expect(writers.length).toBeGreaterThanOrEqual(20);
     // Thin wrappers that delegate to a gated helper of the schema (the output containers of sql/0422); the helper itself

@@ -21,16 +21,7 @@ afterAll(async () => {
   await db.drop();
 });
 
-const start = (
-  areaCode: string,
-  s: {
-    batch: string;
-    product: string;
-    stage?: string;
-    order?: string;
-    artworkSet?: string;
-  },
-) => w.run(w.cast.operator, (c) => plant.startAreaOccupancy(c, areaCode, { stage: 'COMPRESSION', ...s }));
+const start = (areaCode: string, s: { batch: string; product: string; stage?: string; order?: string; artworkSet?: string }) => w.startIn(areaCode, s);
 const end = (occupancy: string) => w.run(w.cast.operator, (c) => plant.endAreaOccupancy(c, occupancy));
 
 describe('starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26)', () => {
@@ -55,7 +46,7 @@ describe('starting in a room needs a passed clearance of the required type (INV-
       product: a,
     });
     expect(await w.state('area', room.id)).toBe('CLEARED_FOR_BATCH');
-    await expect(start(room.code, { batch: 'B-1', product: a })).rejects.toThrow(/no passed PRODUCT_CHANGE clearance for batch B-1.*EBMR-PLANT-127/);
+    await expect(start(room.code, { batch: 'B-1', product: a })).rejects.toThrow(/no passed PRODUCT_CHANGE clearance for batch TEST-B-1-.*EBMR-PLANT-127/);
     await w.clear(room.code, 'PRODUCT_CHANGE', { batch: 'B-1', product: a });
     const o1 = await start(room.code, { batch: 'B-1', product: a });
     expect(await w.state('area', room.id)).toBe('IN_USE');
@@ -76,8 +67,8 @@ describe('starting in a room needs a passed clearance of the required type (INV-
       result: string;
     }>('select id, previous_product, previous_batch, result from plant.clearance_status where id = any($1) order by performed_at', [[failed, passed]]);
     expect(rows.map((r) => [r.previous_product, r.previous_batch, r.result])).toEqual([
-      [a, 'B-1', 'FAILED'],
-      [a, 'B-1', 'PASSED'],
+      [a, (await w.batch('B-1', a)).number, 'FAILED'],
+      [a, (await w.batch('B-1', a)).number, 'PASSED'],
     ]);
     await expect(start(room.code, { batch: 'B-2', product: b })).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
@@ -86,25 +77,23 @@ describe('starting in a room needs a passed clearance of the required type (INV-
     const room = await w.room();
     const product = await w.product();
     await w.clean('AREA', room.code, 'MAJOR');
-    const id = await w.run(w.cast.operator, (c) =>
-      plant.recordClearance(c, room.code, 'PRODUCT_CHANGE', {
-        batch: 'B-S',
-        product,
-      }),
-    );
+    const id = await w.recordClearance(room.code, 'PRODUCT_CHANGE', {
+      batch: 'B-S',
+      product,
+    });
     // The performer's own verification signature is refused by the signature service (they entered the record) ...
     await expect(w.sign(w.cast.operator, 'plant_clearance', id, 'VERIFIED', 'PERFORMED')).rejects.toThrow(/EBMR-ESIG/);
     // ... a signature of someone else presented by the performer is refused by the command ...
     const sig = await w.sign(w.cast.verifier, 'plant_clearance', id, 'VERIFIED', 'PERFORMED');
-    await expect(w.run(w.cast.operator, (c) => plant.verifyClearance(c, id, 'PASSED', sig))).rejects.toThrow(/EBMR-IAM-040|EBMR-PLANT-104/);
+    await expect(w.run(w.cast.operator, (c) => plant.verifyClearance(c, id, sig))).rejects.toThrow(/EBMR-IAM-040|EBMR-PLANT-104/);
     // ... and a verification row naming the performer is refused by the table, whoever writes it.
     await expect(
-      db.admin.query(
-        "insert into plant.clearance_verification (clearance_id, result, verified_by, signature_id) values ($1, 'PASSED', $2, gen_random_uuid())",
-        [id, w.cast.operator.personId],
-      ),
+      db.admin.query('insert into plant.clearance_verification (clearance_id, verified_by, signature_id) values ($1, $2, gen_random_uuid())', [
+        id,
+        w.cast.operator.personId,
+      ]),
     ).rejects.toThrow(/EBMR-PLANT-104/);
-    await w.run(w.cast.verifier, (c) => plant.verifyClearance(c, id, 'PASSED', sig));
+    await w.run(w.cast.verifier, (c) => plant.verifyClearance(c, id, sig));
     expect(await w.state('area', room.id)).toBe('CLEARED_FOR_BATCH');
   });
 
@@ -147,7 +136,41 @@ describe('starting in a room needs a passed clearance of the required type (INV-
     // Product B: a CAMPAIGN clearance is not of the required type.
     await w.clean('AREA', room.code, 'MAJOR');
     await w.clear(room.code, 'CAMPAIGN', { batch: 'B-1', product: b });
-    await expect(start(room.code, { batch: 'B-1', product: b })).rejects.toThrow(/no passed PRODUCT_CHANGE clearance for batch B-1.*product change from/);
+    await expect(start(room.code, { batch: 'B-1', product: b })).rejects.toThrow(/no passed PRODUCT_CHANGE clearance for batch TEST-B-1-.*product change from/);
+  });
+});
+
+describe('the verifier signs the recorded finding (S23, S24)', () => {
+  it("[IN-21][INV-15] the verifier's signature covers the performer's finding: a FAILED clearance cannot be verified as PASSED, and a signature of one clearance verifies no other", async () => {
+    const room = await w.room();
+    const product = await w.product();
+    await w.clean('AREA', room.code, 'MAJOR');
+    const failed = await w.recordClearance(room.code, 'PRODUCT_CHANGE', { batch: 'B-F', product }, 'FAILED');
+    const { rows } = await db.admin.query<{ c: { content: { result: string } } }>("select esig.provide('plant_clearance', $1) as c", [failed]);
+    expect(rows[0]?.c.content.result).toBe('FAILED');
+    const sig = await w.sign(w.cast.verifier, 'plant_clearance', failed, 'VERIFIED', 'PERFORMED');
+    // The signature over the FAILED clearance does not verify a PASSED one.
+    const passed = await w.recordClearance(room.code, 'PRODUCT_CHANGE', { batch: 'B-F', product }, 'PASSED');
+    await expect(w.run(w.cast.verifier, (c) => plant.verifyClearance(c, passed, sig))).rejects.toThrow(/EBMR-PLAT-008/);
+    // Verifying the FAILED one records FAILED: the area stays CLEAN and cannot be started.
+    await w.run(w.cast.verifier, (c) => plant.verifyClearance(c, failed, sig));
+    const { rows: v } = await db.app.query<{ result: string }>('select result from plant.clearance_status where id = $1', [failed]);
+    expect(v[0]?.result).toBe('FAILED');
+    expect(await w.state('area', room.id)).toBe('CLEAN');
+    await expect(start(room.code, { batch: 'B-F', product })).rejects.toThrow(/EBMR-PLANT-126/);
+  });
+
+  it("[IN-26] the product a start is checked against is the batch's own: a batch of a highly potent product cannot be started in a positive-pressure room under any name", async () => {
+    const potent = await w.product({ highlyPotent: true });
+    const room = await w.room({ negativePressure: false });
+    await w.clean('AREA', room.code, 'MAJOR');
+    await w.clear(room.code, 'PRODUCT_CHANGE', { batch: 'HP-9', product: potent });
+    const b = await w.batch('HP-9', potent);
+    // The start takes only the batch; there is no product argument to claim another product with.
+    await expect(w.run(w.cast.operator, (c) => plant.startAreaOccupancy(c, room.code, { batchId: b.id, stage: 'COMPRESSION' }))).rejects.toThrow(
+      new RegExp(`${potent} is highly potent.*EBMR-PLANT-122`),
+    );
+    await expect(db.app.query("select plant.start_area_occupancy($1, $2, 'COMPRESSION', 'NOT-POTENT')", [room.code, b.id])).rejects.toThrow();
   });
 });
 
@@ -156,7 +179,7 @@ describe('a clearance follows the cleaning it checks (INV-15)', () => {
     const room = await w.room();
     const product = await w.product();
     await w.clean('AREA', room.code, 'MAJOR');
-    const early = await w.run(w.cast.operator, (c) => plant.recordClearance(c, room.code, 'PRODUCT_CHANGE', { batch: 'B-E', product }));
+    const early = await w.recordClearance(room.code, 'PRODUCT_CHANGE', { batch: 'B-E', product });
     await w.run(
       w.cast.tech,
       (c) =>
@@ -168,7 +191,7 @@ describe('a clearance follows the cleaning it checks (INV-15)', () => {
     );
     await w.clean('AREA', room.code, 'MAJOR');
     const sig = await w.sign(w.cast.verifier, 'plant_clearance', early, 'VERIFIED', 'PERFORMED');
-    await expect(w.run(w.cast.verifier, (c) => plant.verifyClearance(c, early, 'PASSED', sig))).rejects.toThrow(/record a new clearance.*EBMR-PLANT-106/);
+    await expect(w.run(w.cast.verifier, (c) => plant.verifyClearance(c, early, sig))).rejects.toThrow(/record a new clearance.*EBMR-PLANT-106/);
     expect(await w.state('area', room.id)).toBe('CLEAN');
     await w.clear(room.code, 'PRODUCT_CHANGE', { batch: 'B-E', product });
     await expect(start(room.code, { batch: 'B-E', product })).resolves.toMatch(/^[0-9a-f-]{36}$/);
@@ -180,21 +203,17 @@ describe('lines: a clearance for every packaging order (L-29, PR-34, PR-35)', ()
     const line = await w.room({ kind: 'LINE' });
     const product = await w.product();
     await expect(
-      w.run(w.cast.operator, (c) =>
-        plant.recordClearance(c, line.code, 'PRODUCT_CHANGE', {
-          batch: 'BULK-1',
-          product,
-        }),
-      ),
+      w.recordClearance(line.code, 'PRODUCT_CHANGE', {
+        batch: 'BULK-1',
+        product,
+      }),
     ).rejects.toThrow(/DIRTY/);
     await w.clean('AREA', line.code, 'MAJOR');
     await expect(
-      w.run(w.cast.operator, (c) =>
-        plant.recordClearance(c, line.code, 'PRODUCT_CHANGE', {
-          batch: 'BULK-1',
-          product,
-        }),
-      ),
+      w.recordClearance(line.code, 'PRODUCT_CHANGE', {
+        batch: 'BULK-1',
+        product,
+      }),
     ).rejects.toThrow(/PACKAGING_ORDER clearance naming the packaging order and the artwork set.*EBMR-PLANT-101/);
     await w.clear(line.code, 'PACKAGING_ORDER', {
       batch: 'BULK-1',
@@ -261,9 +280,9 @@ describe('lines: a clearance for every packaging order (L-29, PR-34, PR-35)', ()
     const clearance = (await db.app.query<{ id: string }>("select id from plant.clearance where area_id = $1 and next_order = 'PO-2'", [line.id])).rows[0]?.id;
     await expect(
       db.admin.query(
-        `insert into plant.area_occupancy (area_id, exclusive, previous_occupancy_id, batch_ref, product_code, stage, packaging_order, artwork_set, clearance_id, started_by)
-      values ($1, true, (select id from plant.area_occupancy where area_id = $1 order by started_at desc limit 1), 'BULK-1', $2, 'PACKAGING', 'PO-3', 'A', $3, gen_random_uuid())`,
-        [line.id, product, clearance],
+        `insert into plant.area_occupancy (area_id, exclusive, previous_occupancy_id, batch_id, batch_ref, product_code, stage, packaging_order, artwork_set, clearance_id, started_by)
+      values ($1, true, (select id from plant.area_occupancy where area_id = $1 order by started_at desc limit 1), $4, 'BULK-1', $2, 'PACKAGING', 'PO-3', 'A', $3, gen_random_uuid())`,
+        [line.id, product, clearance, (await w.batch('BULK-1', product)).id],
       ),
     ).rejects.toThrow(/EBMR-PLANT-130|area_occupancy_clearance_id_key/);
   });
@@ -309,7 +328,7 @@ describe('room eligibility (IN-26 (b)(c), PR-25)', () => {
     await w.clear(seg.code, 'PRODUCT_CHANGE', { batch: 'X-2', product: x });
     await start(seg.code, { batch: 'X-2', product: x });
     // The second batch still needs its own clearance, recorded after the first started.
-    await expect(start(seg.code, { batch: 'Y-2', product: y })).rejects.toThrow(/no passed PRODUCT_CHANGE clearance for batch Y-2/);
+    await expect(start(seg.code, { batch: 'Y-2', product: y })).rejects.toThrow(/no passed PRODUCT_CHANGE clearance for batch TEST-Y-2-/);
     await w.clear(seg.code, 'PRODUCT_CHANGE', { batch: 'Y-2', product: y });
     await expect(start(seg.code, { batch: 'Y-2', product: y })).resolves.toMatch(/^[0-9a-f-]{36}$/);
     expect(await w.state('area', seg.id)).toBe('IN_USE');
@@ -382,7 +401,8 @@ describe('out of service, bypass attempts and the logbook', () => {
     ]);
     expect(roomLog.find((r) => r.entry === 'CLEARANCE_PASSED')?.person_id).toBe(w.cast.verifier.personId);
     const pressLog = await entries(press.code);
+    const lNumber = (await w.batch('L-1', product)).number;
     expect(pressLog.map((r) => r.entry)).toEqual(['QUALIFIED', 'CLEANING_STARTED', 'CLEANING_COMPLETED', 'CLEANING_VERIFIED', 'USE_STARTED', 'USE_ENDED']);
-    expect(pressLog.filter((r) => r.batch_ref === 'L-1').length).toBe(2);
+    expect(pressLog.filter((r) => r.batch_ref === lNumber).length).toBe(2);
   });
 });

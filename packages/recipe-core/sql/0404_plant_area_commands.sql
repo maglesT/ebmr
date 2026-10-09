@@ -46,7 +46,7 @@ begin
   if v_prev.product_code <> p_product then
     return jsonb_build_object('type', 'PRODUCT_CHANGE', 'reason', format('product change from %s', v_prev.product_code));
   end if;
-  v_camp := plant.campaign_check(null, p_area, p_product, null);
+  v_camp := plant.campaign_check(null, p_area, p_product);
   if (v_camp ->> 'ok')::boolean then
     return jsonb_build_object('type', 'CAMPAIGN', 'reason', 'same product inside the open campaign', 'campaign_id', v_camp ->> 'campaign_id');
   end if;
@@ -54,21 +54,26 @@ begin
 end
 $$;
 
--- The performer records the clearance done before the next batch (or order) in the room or line. The previous
--- product, batch, order and artwork set come from the area's latest occupancy.
-create function plant.record_clearance(p_area_code text, p_type text, p_next_batch text, p_next_product text,
+-- The performer records the clearance done before the next batch (or order) in the room or line, with its finding
+-- (PASSED or FAILED), which the verifier's signature then covers. The next batch's number and product come from the
+-- batch record; the previous product, batch, order and artwork set from the area's latest occupancy.
+create function plant.record_clearance(p_area_code text, p_type text, p_next_batch uuid, p_result text,
                                        p_next_order text default null, p_next_artwork_set text default null) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 declare
   a       plant.area;
+  v_b     jsonb;
   v_state text;
   v_prev  plant.area_occupancy;
   v_id    uuid;
 begin
   perform iam.assert_not_administrator();
-  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', p_next_product));
+  v_b := plant.batch_facts(p_next_batch);
+  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', v_b ->> 'product'));
   a := plant.area_by_code(p_area_code, true);
-  perform plant.require_product(p_next_product);
+  if p_result is null or p_result not in ('PASSED', 'FAILED') then
+    perform plant.fail('A clearance records its finding, PASSED or FAILED (EBMR-PLANT-103)');
+  end if;
   v_state := plant.state_of('plant_area', a.id);
   if not (v_state in ('CLEAN', 'CLEARED_FOR_BATCH') or (v_state = 'IN_USE' and a.segregated)) then
     perform plant.fail(format('%s is %s: a clearance is recorded in a CLEAN area (or alongside a batch in a segregated room) (IN-21; EBMR-PLANT-100)',
@@ -82,18 +87,21 @@ begin
   end if;
   v_prev := plant.latest_occupancy(a.id);
   insert into plant.clearance (area_id, clearance_type, previous_occupancy_id, previous_product, previous_batch, previous_order, previous_artwork_set,
-                               next_product, next_batch, next_order, next_artwork_set, performed_by, performed_account)
+                               next_batch_id, next_product, next_batch, next_order, next_artwork_set, performed_by, performed_account,
+                               recorded_result)
   values (a.id, p_type, v_prev.id, v_prev.product_code, v_prev.batch_ref, v_prev.packaging_order, v_prev.artwork_set,
-          p_next_product, p_next_batch, nullif(btrim(p_next_order), ''), nullif(btrim(p_next_artwork_set), ''),
-          plant.actor_person(), plant.actor_account())
+          p_next_batch, v_b ->> 'product', v_b ->> 'batch_number', nullif(btrim(p_next_order), ''), nullif(btrim(p_next_artwork_set), ''),
+          plant.actor_person(), plant.actor_account(), p_result)
   returning id into v_id;
   return v_id;
 end
 $$;
 
--- The verifier signs VERIFIED on the clearance (aggregate plant_clearance) and records the result here in their own
--- command; they are not the performer (S23, S24). A PASSED clearance of a CLEAN area moves it to CLEARED_FOR_BATCH.
-create function plant.verify_clearance(p_clearance uuid, p_result text, p_signature uuid) returns void
+-- The verifier signs VERIFIED on the clearance (aggregate plant_clearance), whose signed content includes the
+-- performer's finding, and records the verification here in their own command; they are not the performer (S23, S24).
+-- The verification confirms exactly the signed finding: no result is chosen at this call. A verifier who disagrees does
+-- not verify; a new clearance is recorded. A PASSED clearance of a CLEAN area moves it to CLEARED_FOR_BATCH.
+create function plant.verify_clearance(p_clearance uuid, p_signature uuid) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, platform, pg_temp as $$
 declare
   c        plant.clearance_status;
@@ -112,9 +120,6 @@ begin
   if c.result is not null then
     perform plant.fail(format('Clearance %s is already verified (EBMR-PLANT-102)', p_clearance));
   end if;
-  if p_result not in ('PASSED', 'FAILED') then
-    perform plant.fail('A clearance is verified as PASSED or FAILED (EBMR-PLANT-103)');
-  end if;
   if v_person = c.performed_by then
     perform plant.fail('A clearance is verified by a person other than the one who performed it (S23, S24; EBMR-PLANT-104)');
   end if;
@@ -126,8 +131,8 @@ begin
   if c.performed_at <= coalesce(plant.area_last_occupancy_event(c.area_id), '-infinity'::timestamptz) then
     perform plant.fail('A batch started or ended, or a cleaning was verified, in the area after this clearance was performed: record a new clearance (INV-15; EBMR-PLANT-106)');
   end if;
-  insert into plant.clearance_verification (clearance_id, result, verified_by, signature_id) values (p_clearance, p_result, v_person, p_signature);
-  if p_result = 'PASSED' and plant.state_of('plant_area', c.area_id) = 'CLEAN' then
+  insert into plant.clearance_verification (clearance_id, verified_by, signature_id) values (p_clearance, v_person, p_signature);
+  if c.recorded_result = 'PASSED' and plant.state_of('plant_area', c.area_id) = 'CLEAN' then
     perform plant.move('area_status', 'plant_area', c.area_id, 'CLEAR');
   end if;
 end
@@ -144,9 +149,11 @@ language sql stable security definer set search_path = pg_catalog, plant, recipe
         'area', a.code, 'area_kind', a.kind, 'type', c.clearance_type,
         'previous', jsonb_build_object('product', c.previous_product, 'batch', c.previous_batch, 'order', c.previous_order,
                                        'artwork_set', c.previous_artwork_set, 'occupancy_id', c.previous_occupancy_id),
-        'next', jsonb_build_object('product', c.next_product, 'batch', c.next_batch, 'order', c.next_order, 'artwork_set', c.next_artwork_set),
+        'next', jsonb_build_object('batch_id', c.next_batch_id, 'product', c.next_product, 'batch', c.next_batch, 'order', c.next_order,
+                                   'artwork_set', c.next_artwork_set),
+        'result', c.recorded_result,
         'performed_by', c.performed_by, 'performed_at', recipe.utc_text(c.performed_at)),
-      'state', coalesce((select v.result from plant.clearance_verification v where v.clearance_id = c.id), 'PERFORMED'),
+      'state', case when exists (select 1 from plant.clearance_verification v where v.clearance_id = c.id) then 'VERIFIED' else 'PERFORMED' end,
       'scope', jsonb_build_object('product', c.next_product),
       'entered_by', jsonb_build_array(c.performed_by))
     from plant.clearance c join plant.area a on a.id = c.area_id where c.id::text = p_id), '{"exists": false}'::jsonb)
@@ -156,15 +163,18 @@ select esig.register_content_provider('plant_clearance', 'plant.clearance_conten
   'A clearance of a room or line: type, previous and next product, batch, order and artwork set, performer (outline 5.2.8; S23, S24)');
 select esig.register_signed_table('plant.clearance', 'plant_clearance', 'id',
   array['area_id', 'clearance_type', 'previous_occupancy_id', 'previous_product', 'previous_batch', 'previous_order', 'previous_artwork_set',
-        'next_product', 'next_batch', 'next_order', 'next_artwork_set', 'performed_by', 'performed_at']);
+        'next_batch_id', 'next_product', 'next_batch', 'next_order', 'next_artwork_set', 'performed_by', 'performed_at', 'recorded_result']);
 
 -- Starts a batch stage in a room or a packaging order on a line. Refused unless the area is cleared for it by a passed,
 -- verified, unused clearance of the required type recorded after the previous occupancy, for this batch and product
 -- (and on a line this order and artwork set); IN-26 room eligibility applies.
-create function plant.start_area_occupancy(p_area_code text, p_batch_ref text, p_product text, p_stage text,
+create function plant.start_area_occupancy(p_area_code text, p_batch uuid, p_stage text,
                                            p_order text default null, p_artwork_set text default null) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 declare
+  v_b         jsonb;
+  v_batch_ref text;
+  v_product   text;
   a        plant.area;
   p        plant.product;
   v_state  text;
@@ -177,10 +187,14 @@ declare
   v_id     uuid;
 begin
   perform iam.assert_not_administrator();
-  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', p_product));
+  -- The batch number and product come from the batch record, never from the caller (IN-26 (c) rests on the product).
+  v_b := plant.batch_facts(p_batch);
+  v_batch_ref := v_b ->> 'batch_number';
+  v_product := v_b ->> 'product';
+  perform iam.require_permission('STEP.EXECUTE', jsonb_build_object('product', v_product));
   a := plant.area_by_code(p_area_code, true);
-  p := plant.require_product(p_product);
-  if plant.is_blank(p_batch_ref) or plant.is_blank(p_stage) then
+  p := plant.require_product(v_product);
+  if plant.is_blank(v_batch_ref) or plant.is_blank(p_stage) then
     perform plant.fail('A start in a room or line names the batch and the stage (EBMR-PLANT-120)');
   end if;
   if a.kind = 'LINE' and (plant.is_blank(p_order) or plant.is_blank(p_artwork_set)) then
@@ -201,7 +215,7 @@ begin
       perform plant.fail(format('%s already runs packaging order %s: one active packaging order per line (PR-35; EBMR-PLANT-123)', a.code, v_other.packaging_order));
     end if;
     if not a.segregated then
-      if exists (select 1 from plant.area_occupancy_status where area_id = a.id and ended_at is null and product_code <> p_product) then
+      if exists (select 1 from plant.area_occupancy_status where area_id = a.id and ended_at is null and product_code <> v_product) then
         perform plant.fail(format('%s holds open batch %s of %s: a second batch of another product is allowed only in a segregated room (IN-26 (b), PR-25; EBMR-PLANT-124)',
                                   a.code, v_other.batch_ref, v_other.product_code));
       end if;
@@ -212,18 +226,18 @@ begin
                               case v_state when 'DIRTY' then ' (to be cleaned)' when 'CLEANING' then ' (cleaning not verified)'
                                            when 'CLEAN' then ' (no passed clearance)' else '' end));
   end if;
-  v_req := plant.required_clearance(a.id, p_product);
+  v_req := plant.required_clearance(a.id, v_product);
   v_after := coalesce(plant.area_last_occupancy_event(a.id), '-infinity'::timestamptz);
   select * into c from plant.clearance_status x
   where x.area_id = a.id and x.result = 'PASSED' and x.performed_at > v_after
     and not exists (select 1 from plant.area_occupancy o where o.clearance_id = x.id)
-    and x.next_batch = p_batch_ref and x.next_product = p_product
+    and x.next_batch_id = p_batch and x.next_product = v_product
     and x.next_order is not distinct from nullif(btrim(p_order), '') and x.next_artwork_set is not distinct from nullif(btrim(p_artwork_set), '')
     and (x.clearance_type = v_req ->> 'type' or (v_req ->> 'type' = 'CAMPAIGN' and x.clearance_type = 'PRODUCT_CHANGE'))
   order by x.verified_at desc, x.id desc limit 1;
   if c.id is null then
     perform plant.fail(format('%s has no passed %s clearance for batch %s of %s%s recorded and verified since its last occupancy or cleaning (%s) (INV-15, PR-26, PR-34; EBMR-PLANT-127)',
-                              a.code, v_req ->> 'type', p_batch_ref, p_product,
+                              a.code, v_req ->> 'type', v_batch_ref, v_product,
                               case when p_order is not null then format(', order %s, artwork set %s', p_order, p_artwork_set) else '' end,
                               v_req ->> 'reason'));
   end if;
@@ -236,10 +250,10 @@ begin
     end if;
   end if;
   v_prev := plant.latest_occupancy(a.id);
-  insert into plant.area_occupancy (area_id, exclusive, previous_occupancy_id, batch_ref, product_code, stage, packaging_order, artwork_set,
+  insert into plant.area_occupancy (area_id, exclusive, previous_occupancy_id, batch_id, batch_ref, product_code, stage, packaging_order, artwork_set,
                                     clearance_id, started_by)
   values (a.id, not a.segregated, case when not a.segregated then v_prev.id end,
-          p_batch_ref, p_product, p_stage, nullif(btrim(p_order), ''), nullif(btrim(p_artwork_set), ''), c.id, plant.actor_person())
+          p_batch, v_batch_ref, v_product, p_stage, nullif(btrim(p_order), ''), nullif(btrim(p_artwork_set), ''), c.id, plant.actor_person())
   returning id into v_id;
   if v_state = 'CLEARED_FOR_BATCH' then
     perform plant.move('area_status', 'plant_area', a.id, 'START');
@@ -273,8 +287,8 @@ end
 $$;
 
 grant execute on function
-  plant.record_clearance(text, text, text, text, text, text), plant.verify_clearance(uuid, text, uuid),
-  plant.start_area_occupancy(text, text, text, text, text, text), plant.end_area_occupancy(uuid),
+  plant.record_clearance(text, text, uuid, text, text, text), plant.verify_clearance(uuid, uuid),
+  plant.start_area_occupancy(text, uuid, text, text, text), plant.end_area_occupancy(uuid),
   plant.required_clearance(uuid, text)
 to ebmr_app;
 

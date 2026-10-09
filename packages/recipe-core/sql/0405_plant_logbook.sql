@@ -11,7 +11,8 @@ create view plant.logbook with (security_barrier) as
   from plant.equipment_use_status u join plant.equipment e on e.id = u.equipment_id
   union all
   select 'EQUIPMENT', e.code, 'USE_ENDED', u.ended_at, u.batch_ref, u.product_code, u.ended_by,
-         jsonb_build_object('use_id', u.id, 'clean_hold_crossed', u.clean_hold_crossed, 'calibration_crossed', u.calibration_crossed)
+         jsonb_build_object('use_id', u.id, 'clean_hold_crossed', u.clean_hold_crossed, 'calibration_crossed', u.calibration_crossed,
+                            'campaign_crossed', u.campaign_crossed, 'overran_plan', u.overran_plan)
   from plant.equipment_use_status u join plant.equipment e on e.id = u.equipment_id where u.ended_at is not null
   union all
   select case when c.equipment_id is not null then 'EQUIPMENT' else 'AREA' end, coalesce(e.code, a.code), x.entry, x.at, null, null, x.person,

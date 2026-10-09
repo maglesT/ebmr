@@ -40,6 +40,8 @@ export interface EquipmentClassDefinition {
   calibrationRequired?: boolean;
   /** INSTRUMENT only. */
   checkRegime?: 'PER_USE' | 'DAILY';
+  /** PROCESS only: the validation of the class's CIP program; without it every cleaning is MANUAL (two persons). */
+  cipValidationRef?: string;
 }
 
 export interface AreaDefinition {
@@ -107,11 +109,13 @@ export const recordCalibration = (
   reference: string,
 ): Promise<string> => one(db, 'select plant.record_calibration($1, $2::timestamptz, $3, $4, $5) as r', [equipmentCode, dueAt, asFound, asLeft, reference]);
 
-export const recordInstrumentCheck = (db: Db, equipmentCode: string, result: 'PASS' | 'FAIL', reference: string, batchRef?: string): Promise<string> =>
-  one(db, 'select plant.record_instrument_check($1, $2, $3, $4) as r', [equipmentCode, result, reference, batchRef ?? null]);
+/** A per-use check names the batch (id) it is made for; a daily check names none. */
+export const recordInstrumentCheck = (db: Db, equipmentCode: string, result: 'PASS' | 'FAIL', reference: string, batchId?: string): Promise<string> =>
+  one(db, 'select plant.record_instrument_check($1, $2, $3, $4) as r', [equipmentCode, result, reference, batchId ?? null]);
 
-export const recordInstrumentUse = (db: Db, equipmentCode: string, batchRef: string, product: string, plannedEnd: string): Promise<string> =>
-  one(db, 'select plant.record_instrument_use($1, $2, $3, $4::timestamptz) as r', [equipmentCode, batchRef, product, plannedEnd]);
+/** The batch number and product are read from the batch record. */
+export const recordInstrumentUse = (db: Db, equipmentCode: string, batchId: string, plannedEnd: string): Promise<string> =>
+  one(db, 'select plant.record_instrument_use($1, $2, $3::timestamptz) as r', [equipmentCode, batchId, plannedEnd]);
 
 export const recordUtilityReading = (
   db: Db,
@@ -142,55 +146,41 @@ export const abandonCleaning = async (db: Db, cleaningId: string): Promise<void>
   await one(db, 'select plant.abandon_cleaning($1) as r', [cleaningId]);
 };
 
-export const startEquipmentUse = (db: Db, equipmentCode: string, batchRef: string, product: string, plannedEnd: string): Promise<string> =>
-  one(db, 'select plant.start_equipment_use($1, $2, $3, $4::timestamptz) as r', [equipmentCode, batchRef, product, plannedEnd]);
-export const endEquipmentUse = (
-  db: Db,
-  useId: string,
-): Promise<{
+/** The batch number and product are read from the batch record; the planned end bounds the calibration check. */
+export const startEquipmentUse = (db: Db, equipmentCode: string, batchId: string, plannedEnd: string): Promise<string> =>
+  one(db, 'select plant.start_equipment_use($1, $2, $3::timestamptz) as r', [equipmentCode, batchId, plannedEnd]);
+
+export interface UseEnd {
   use_id: string;
   clean_hold_crossed: boolean;
   calibration_crossed: boolean;
-}> => one(db, 'select plant.end_equipment_use($1) as r', [useId]);
+  campaign_crossed: boolean;
+  overran_plan: boolean;
+}
+export const endEquipmentUse = (db: Db, useId: string): Promise<UseEnd> => one(db, 'select plant.end_equipment_use($1) as r', [useId]);
 
+/** The performer records the clearance and its finding; the next batch's number and product are read from the batch. */
 export const recordClearance = (
   db: Db,
   areaCode: string,
   type: ClearanceType,
-  next: { batch: string; product: string; order?: string; artworkSet?: string },
+  next: { batchId: string; result: 'PASSED' | 'FAILED'; order?: string; artworkSet?: string },
 ): Promise<string> =>
   one(db, 'select plant.record_clearance($1, $2, $3, $4, $5, $6) as r', [
     areaCode,
     type,
-    next.batch,
-    next.product,
+    next.batchId,
+    next.result,
     next.order ?? null,
     next.artworkSet ?? null,
   ]);
-/** The verifier's signature VERIFIED on aggregate plant_clearance, applied in their own session first. */
-export const verifyClearance = async (db: Db, clearanceId: string, result: 'PASSED' | 'FAILED', signatureId: string): Promise<void> => {
-  await one(db, 'select plant.verify_clearance($1, $2, $3) as r', [clearanceId, result, signatureId]);
+/** The verifier's signature VERIFIED on aggregate plant_clearance (covering the recorded finding), applied in their own session first. */
+export const verifyClearance = async (db: Db, clearanceId: string, signatureId: string): Promise<void> => {
+  await one(db, 'select plant.verify_clearance($1, $2) as r', [clearanceId, signatureId]);
 };
 
-export const startAreaOccupancy = (
-  db: Db,
-  areaCode: string,
-  start: {
-    batch: string;
-    product: string;
-    stage: string;
-    order?: string;
-    artworkSet?: string;
-  },
-): Promise<string> =>
-  one(db, 'select plant.start_area_occupancy($1, $2, $3, $4, $5, $6) as r', [
-    areaCode,
-    start.batch,
-    start.product,
-    start.stage,
-    start.order ?? null,
-    start.artworkSet ?? null,
-  ]);
+export const startAreaOccupancy = (db: Db, areaCode: string, start: { batchId: string; stage: string; order?: string; artworkSet?: string }): Promise<string> =>
+  one(db, 'select plant.start_area_occupancy($1, $2, $3, $4, $5) as r', [areaCode, start.batchId, start.stage, start.order ?? null, start.artworkSet ?? null]);
 export const endAreaOccupancy = async (db: Db, occupancyId: string): Promise<void> => {
   await one(db, 'select plant.end_area_occupancy($1) as r', [occupancyId]);
 };
