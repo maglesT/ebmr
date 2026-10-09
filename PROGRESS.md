@@ -34,8 +34,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0008).
   - the SQL mutation run on the Phase 2 guards (28 groups, kill tests, 149 recorded equivalents);
   - the defects found by that run: D1 to D17, all fixed (`docs/build-plan/phase-2-exit/sql-mutation-kill-results.md`);
   - the review backlog for later phases: `docs/build-plan/phase-2-exit/review-backlog.md`.
-- Left to close Phase 2: raise `compliance/phase.yaml` to 2 (CI then needs a passing test for every Phase 2
-  control), final CI and E2E, a summary to the owner, merge PR #4.
+- `compliance/phase.yaml` is at 2: CI needs a passing test for every Phase 1 and Phase 2 control (the trace gate
+  passes locally). Left to close Phase 2: CI green on PR #4, a summary to the owner, merge PR #4.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 
