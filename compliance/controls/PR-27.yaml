@@ -36,7 +36,12 @@ behaviour: |-
   - Non-medicinal products cannot be scheduled on medicinal equipment without a recorded justification.
 catalog_test: A potent product on non-dedicated equipment outside its allowed list is blocked. A penicillin component in a non-penicillin facility is blocked. A spill event sets the room to "cleaning required".
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [INV-15][IN-26][PR-27] a product change in a room needs a MAJOR cleaning and a PRODUCT_CHANGE clearance; the same product inside an open room campaign takes a CAMPAIGN clearance"
+  - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] a product change needs a MAJOR cleaning; the same product follows a MINOR cleaning only inside an open, validated campaign within its maximum batches"
+  - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] outside the campaign's maximum days from its first batch a MAJOR cleaning is required, however short the planned end"
+  - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] a campaign batch that runs past the campaign window and its planned end is recorded as crossing both when it ends (D-S1-5)"
+  - "packages/recipe-core/test/plant/equipment.test.ts > the batch, not the caller, names the product (IN-26, PR-27) > [IN-26][PR-27] a unit last used for product X refuses a batch of product Y after a MINOR cleaning, whatever product the caller has in mind: the product is read from the batch record"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

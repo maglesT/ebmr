@@ -17,3 +17,4 @@ playwright-report/
 
 # graphify code map (built per session by the SessionStart hook in .claude/settings.json)
 graphify-out/
+.vitest-blobs/

@@ -96,6 +96,9 @@ tests:
   - "packages/kernel/test/review/f70.test.ts > F70: one administrator alone cannot rewrite the permission-to-role map > [DI-18][DI-17][INV-11] a lone administrator cannot give operators a GMP permission, nor give their own role new authority"
   - "packages/recipe-core/test/lifecycle/authorization.test.ts > authority on every writer (DI-17, DI-18) > [DI-17][DI-18] every app-callable recipe function that can write refuses administrators, then checks a catalogued permission"
   - "packages/recipe-core/test/lifecycle/authorization.test.ts > authority on every writer (DI-17, DI-18) > [DI-18] an administrator never creates or changes MBR data; a person without the permission is refused"
+  - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [DI-17][DI-18] an administrator never writes plant data; a person without the permission is refused"
+  - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [DI-17][DI-18] every app-callable plant function that can write refuses administrators first, then checks a catalogued permission"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [DI-18][DI-17] an administrator never receives, releases, reserves or decides on a lot; an operator cannot receive one"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

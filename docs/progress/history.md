@@ -2269,3 +2269,15 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   not the 44-byte Ed25519 SPKI (EBMR-DEV-016), no curve point (017) or of small order (018); a key of small order
   enrolled before binds no session (025) and its readings, waits and stored readings never verify (DI-32, DI-30,
   DI-20). Tests: devices/gateway-key-order (23; 21 fail with 0702 moved aside), listed under DI-20/28/30/31/32.
+- 2026-10-09: PHASE 3 SLICE 1 (branch phase-3/slice-1). Plan and controls sorted into core and other first
+  (docs/build-plan/phase-3/slice-1-plan.md, defaults D-S1-1..6). Built by three builders in parallel: lots, release
+  routes (identity-tested or QA-enabled vendor history), reservations and consumption (site-services 0710-0712,
+  recipe-core 0430; all lot tables insert-only, quantity derived, reasons always the person's own); plant equipment kinds,
+  cleaning with clean/dirty-hold clocks, campaigns, rooms and lines, clearance types (recipe-core 0400-0405); output
+  containers with the IPC hold window (recipe-core 0420-0422). Existing guard sweeps caught two regressions in the lot
+  work (a system-written reason helper; consume_lot without the administrator and permission gates), fixed. One quick
+  review: findings 1-4 fixed (plant guards trusted caller-supplied product and batch; CIP skipped the two-person check;
+  an abandoned cleaning reset the dirty-hold clock; the clearance signature did not bind its result); 5-10 and the
+  builders' open items in docs/build-plan/phase-3/review-backlog.md. 73 tagged tests synced (IN-21, IN-24 to IN-26,
+  PR-18, PR-23 to PR-27, PR-34, PR-35, DI-17, DI-18). CI split into four test shards with merged reports (the single
+  job had reached 58 of 60 minutes on main, run 37980059094).

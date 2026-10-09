@@ -25,7 +25,8 @@ behaviour: |-
   - Design choice for the route check: scan the source, route components and destination and compare them with the master route. A mismatch blocks the transfer.
 catalog_test: Starting compounding while the prior batch is not cleared is blocked. Scanning a hose to the wrong destination blocks the transfer.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [INV-15][PR-26][IN-21] clean, clear, start, end: the next batch needs a new clearance recorded after the previous occupancy; the clearance records the previous product and batch"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

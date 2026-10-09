@@ -29,13 +29,17 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0008).
 ## Where things stand
 
 - Phase 0 (repo, CI, register) and Phase 1 (compliance kernel) are done.
-- Phase 2 (recipe engine and designer) is built. Its exit work is merged on `phase-2/recipe-core` (PR #4):
-  - the exit review's findings and follow-ups, F12 included (rounds 1 to 8, frozen by decision 0008);
-  - the SQL mutation run on the Phase 2 guards (28 groups, kill tests, 149 recorded equivalents);
-  - the defects found by that run: D1 to D17, all fixed (`docs/build-plan/phase-2-exit/sql-mutation-kill-results.md`);
-  - the review backlog for later phases: `docs/build-plan/phase-2-exit/review-backlog.md`.
-- `compliance/phase.yaml` is at 2: CI needs a passing test for every Phase 1 and Phase 2 control (the trace gate
-  passes locally). Left to close Phase 2: CI green on PR #4, a summary to the owner, merge PR #4.
+- Phase 2 (recipe engine and designer) is done: PR #4 (`phase-2/recipe-core`) merged on 9 October 2026 with the exit
+  review's findings, the SQL mutation run on the Phase 2 guards and defects D1 to D17 fixed
+  (`docs/build-plan/phase-2-exit/`). Review backlog for later phases: `docs/build-plan/phase-2-exit/review-backlog.md`.
+- `compliance/phase.yaml` is at 2: CI needs a passing test for every Phase 1 and Phase 2 control. It goes to 3 with the
+  slice that completes Phase 3.
+- Phase 3 slice 1 is built on `phase-3/slice-1` (plan and defaults D-S1-1 to D-S1-6:
+  `docs/build-plan/phase-3/slice-1-plan.md`): material lots with release routes, reservations and guarded consumption
+  (site-services 0710 to 0712, recipe-core 0430); equipment kinds, cleaning, campaigns, rooms and lines, clearance types
+  (recipe-core 0400 to 0405, schema `plant`); output containers with the IPC hold window (recipe-core 0420 to 0422).
+  One quick review: 2 high and 2 medium fixed, the rest in `docs/build-plan/phase-3/review-backlog.md`.
+- CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 

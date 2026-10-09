@@ -14,8 +14,24 @@ requirement_rows:
 sources: Schedule M Part I 18.2.5, 18.4.1-18.4.2 (identification; checks before processing), 18.5.2-18.5.3 (packaging line clearance by checklist; line identification).
 behaviour: Rooms, lines and major equipment carry a status (in use for product/strength/batch/stage; cleaned; to be cleaned; out of service) shown on screen and on printable labels; containers of materials and bulk carry product, strength, batch and stage. An electronic line-clearance checklist, recording the previous product, is a gating step before (and, for packaging, after) each operation; its signer and time appear in the batch record. Each packaging line displays the product and batch in the line status. Required environmental readings for the step are captured into the batch record.
 catalog_test: start compression on a room with status "to be cleaned"; refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0402_machine_area_status_v1.sql"
+    - "packages/recipe-core/sql/0400_plant_foundation.sql"
+    - "packages/recipe-core/sql/0404_plant_area_commands.sql"
+    - "packages/recipe-core/src/plant"
+    - "packages/recipe-core/sql/0420_output_containers.sql"
+    - "packages/recipe-core/sql/0422_output_container_commands.sql"
+    - "packages/recipe-core/src/containers"
+tests:
+  - "packages/recipe-core/test/containers/containers.test.ts > identification > [IN-21] a container carries product, strength, batch and stage from the batch, under a generated unique label"
+  - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [IN-21][INV-15] start compression on a room with status \"to be cleaned\": refused"
+  - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [INV-15][PR-26][IN-21] clean, clear, start, end: the next batch needs a new clearance recorded after the previous occupancy; the clearance records the previous product and batch"
+  - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [INV-15][IN-21] the same person cannot perform and verify a clearance: refused in the command, by the signature service and by the table"
+  - "packages/recipe-core/test/plant/area.test.ts > the verifier signs the recorded finding (S23, S24) > [IN-21][INV-15] the verifier's signature covers the performer's finding: a FAILED clearance cannot be verified as PASSED, and a signature of one clearance verifies no other"
+  - "packages/recipe-core/test/plant/area.test.ts > a clearance follows the cleaning it checks (INV-15) > [INV-15][IN-21] a clearance recorded before the area was dirtied and cleaned again does not clear it"
+  - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-21][INV-15] an area out of service is never started; a direct transition to CLEARED_FOR_BATCH or IN_USE without the command's rows is refused; direct writes are refused"
+  - "packages/recipe-core/test/plant/machine.test.ts > the generated plant machine seeds > [IN-21][INV-15] the machines have the states of outline 5.2.8: cleanliness CLEAN -> IN_PRODUCT -> DIRTY -> CLEANING -> CLEAN; rooms DIRTY -> CLEANING -> CLEAN -> CLEARED_FOR_BATCH -> IN_USE -> DIRTY and OUT_OF_SERVICE"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

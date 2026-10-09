@@ -16,8 +16,33 @@ requirement_rows:
 sources: Schedule M Part I 17.3.10.5 and 17.3.10.16-17.3.10.17 (equipment SOPs near the equipment; logs), 18.4.3 and 18.4.9 (failures, calibration), 18.4.4 (data-based time limits for cleaned equipment and process materials), 18.4.5 and 18.2.8.
 behaviour: (a) Equipment and room logbooks are written automatically from execution (who, product, batch, start/end, cleaning, maintenance), chronological, correctable only through audited corrections. (b) Before a step can use equipment, the system checks qualified, calibrated (not past due), cleaned and not-out-of-service status; balances need a daily/before-use check record. (c) Each equipment class has a validated clean-hold time (and dirty-hold time where defined); the system computes "clean until" and blocks use after it, forcing re-cleaning. (d) Equipment or utility failure can be signalled from the step and removes the item from use until repaired.
 catalog_test: use a balance with calibration past due; the weighing step is blocked. Wait past a press's clean-hold time; the next batch cannot use it.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0401_machine_equipment_cleanliness_v1.sql"
+    - "packages/recipe-core/sql/0400_plant_foundation.sql"
+    - "packages/recipe-core/sql/0403_plant_equipment_commands.sql"
+    - "packages/recipe-core/sql/0404_plant_area_commands.sql"
+    - "packages/recipe-core/src/plant"
+    - "packages/recipe-core/sql/0405_plant_logbook.sql"
+tests:
+  - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-25][PR-24] the logbook of a room and of a press is written from the recorded acts, with persons and batches"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23][INV-12] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23] wait past a press's clean-hold: the next batch cannot use it until it is cleaned again"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25] a use that outlasts the clean-hold or the calibration is recorded as having crossed them when it ends (D-S1-5)"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25] a press dirty for longer than its dirty-hold accepts only a MAJOR cleaning"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25] abandoning a cleaning does not restart the dirty-hold clock: past the dirty-hold, a MAJOR cleaning abandoned leaves MINOR refused"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25] the same person cannot clean and verify: refused in the command, by the signature service and by the table"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25] CIP is accepted only on a unit whose class has a validated CIP program: one person cannot CIP-clean a unit of any other class"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25] a validated CIP cleaning cites its cycle record and needs one verifier"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25] an abandoned cleaning returns the unit to DIRTY with its reason"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] a balance with calibration past due is blocked; a calibration that does not cover the planned end is blocked too"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] one hardness tester serves two presses at once (no occupancy); each use needs its own passing per-use check"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] an unqualified unit, a unit in maintenance and a unit out of tolerance are blocked"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] an as-found calibration failure lists every batch since the last good calibration"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25] a failure signalled from a step removes the unit from use until it is repaired"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25] a utility is usable only while the latest feed status is OK"
+  - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [INV-12][IN-25] direct writes as the application role are refused, and a direct transition without the command's rows is refused by the guards"
+  - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [IN-25] every plant table is audited and its event times come from the database clock"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

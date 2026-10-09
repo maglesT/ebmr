@@ -64,6 +64,9 @@ tests:
   - "packages/recipe-core/test/mutation/entry-references-and-schema.test.ts > recipe-core 0328: an entry names only what its step's node in the MBR names (DI-05, DI-30, PR-18, PR-21, PR-23) > [DI-05][DI-30][PR-18] an output names an intermediate its step produces: one that names none is refused, as one that names another"
   - "packages/recipe-core/test/mutation/entry-references-and-schema.test.ts > recipe-core 0330: the checklists, the lot and the entry its block builds (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-47) > [PR-18] a lot is usable only when it is of the line's material or its code, released, before its retest date (that instant included), and identity-tested for a batch for a market other than India"
   - "packages/recipe-core/test/mutation/entry-references-and-schema.test.ts > recipe-core 0330: the checklists, the lot and the entry its block builds (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-47) > [PR-18][IN-23][PR-21] a lot is of the material its BOM line names even where the line names null (sql 0372): the engine refuses that lot (G07-WRONG-MATERIAL), and so does the database, for the lot and for the row that stores its charge"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [IN-24][PR-18][INV-13] a received lot is in QUARANTINE: it cannot be reserved, so nothing can be consumed from it"
+  - "packages/site-services/test/lots/lots.test.ts > consumption guard (INV-13, INV-14, PR-18) > [INV-13][PR-18] the guard: right material, the reservation's own batch, not revoked, not expired, the dispenser's permission"
+  - "packages/site-services/test/lots/lots.test.ts > consumption guard (INV-13, INV-14, PR-18) > [PR-18] a lot past its retest instant, or past expiry, is blocked at reservation and at consumption; the usage status shows RETEST_DUE / EXPIRED"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

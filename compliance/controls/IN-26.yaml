@@ -15,8 +15,25 @@ requirement_rows:
 sources: Schedule M Part I 18.2.4, 18.2.7, 18.3.1-18.3.5, 18.5.1; Part VIII 1.1, 1.6-1.10, 3.1-3.2.
 behaviour: "(a) Product-to-room and product-to-equipment restrictions (dedicated, campaign-only, segregated) are master data; campaign length and changeover cleaning-validation references are stored; residue (swab/rinse) results gate the changeover. (b) The system refuses a second open batch of a different product in the same room unless the room is configured as segregated with a recorded risk justification. (c) Tablets: each press sits in its own cubicle unless the same product runs on all presses there or the press is self-enclosed; hoppers, containers and presses carry identity labels verified by scan at charging; highly potent products may only be scheduled in rooms flagged with a negative pressure cascade; corridors are at higher pressure than cubicles and cubicles above atmospheric; pre-use checks include nozzles clean and no lubricant leakage."
 catalog_test: schedule a highly potent product in a positive-pressure cubicle; blocked. Charge granules from a container labelled for another batch; the scan is refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0400_plant_foundation.sql"
+    - "packages/recipe-core/sql/0403_plant_equipment_commands.sql"
+    - "packages/recipe-core/sql/0404_plant_area_commands.sql"
+    - "packages/recipe-core/src/plant"
+    - "packages/recipe-core/sql/0420_output_containers.sql"
+    - "packages/recipe-core/sql/0422_output_container_commands.sql"
+    - "packages/recipe-core/src/containers"
+tests:
+  - "packages/recipe-core/test/containers/containers.test.ts > held containers are never merged, charged or packed > [IN-26] the charge scan of a container labelled for another batch is refused, and an unknown label too"
+  - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [INV-15][IN-26][PR-27] a product change in a room needs a MAJOR cleaning and a PRODUCT_CHANGE clearance; the same product inside an open room campaign takes a CAMPAIGN clearance"
+  - "packages/recipe-core/test/plant/area.test.ts > the verifier signs the recorded finding (S23, S24) > [IN-26] the product a start is checked against is the batch's own: a batch of a highly potent product cannot be started in a positive-pressure room under any name"
+  - "packages/recipe-core/test/plant/area.test.ts > room eligibility (IN-26 (b)(c), PR-25) > [IN-26] schedule a highly potent product in a positive-pressure cubicle: blocked; a negative-pressure room accepts it"
+  - "packages/recipe-core/test/plant/area.test.ts > room eligibility (IN-26 (b)(c), PR-25) > [IN-26][PR-25] starting product Y in a room occupied by product X is blocked unless the room is segregated with a recorded risk justification"
+  - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] a product change needs a MAJOR cleaning; the same product follows a MINOR cleaning only inside an open, validated campaign within its maximum batches"
+  - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] outside the campaign's maximum days from its first batch a MAJOR cleaning is required, however short the planned end"
+  - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] a campaign batch that runs past the campaign window and its planned end is recorded as crossing both when it ends (D-S1-5)"
+  - "packages/recipe-core/test/plant/equipment.test.ts > the batch, not the caller, names the product (IN-26, PR-27) > [IN-26][PR-27] a unit last used for product X refuses a batch of product Y after a MINOR cleaning, whatever product the caller has in mind: the product is read from the batch record"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

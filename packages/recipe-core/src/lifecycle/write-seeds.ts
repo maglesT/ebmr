@@ -12,6 +12,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { state } from '@ebmr/kernel';
+import { OUTPUT_CONTAINER_V1 } from '../containers/machine.ts';
 import { MBR_VERSION_V1 } from './machine.ts';
 
 export interface RecipeMachine {
@@ -21,7 +22,10 @@ export interface RecipeMachine {
 }
 
 /** Every published machine version of recipe-core. Add entries; never edit a published one. */
-export const RECIPE_MACHINES: readonly RecipeMachine[] = [{ descriptor: MBR_VERSION_V1, source: 'packages/recipe-core/src/lifecycle/machine.ts' }];
+export const RECIPE_MACHINES: readonly RecipeMachine[] = [
+  { descriptor: MBR_VERSION_V1, source: 'packages/recipe-core/src/lifecycle/machine.ts' },
+  { descriptor: OUTPUT_CONTAINER_V1, source: 'packages/recipe-core/src/containers/machine.ts' },
+];
 
 export const RECIPE_SQL_DIR = new URL('../../sql', import.meta.url).pathname;
 
