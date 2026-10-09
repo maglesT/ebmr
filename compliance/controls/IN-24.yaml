@@ -20,10 +20,27 @@ catalog_test: release an excipient lot on vendor history and try to dispense it 
 implemented_by:
   modules:
     - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
+    - "packages/site-services/sql/0710_material_lots.sql"
+    - "packages/site-services/sql/0711_machine_material_lot_v1.sql"
+    - "packages/site-services/sql/0712_material_lot_commands.sql"
+    - "packages/site-services/src/lots"
+    - "packages/recipe-core/sql/0430_lot_consumption.sql"
   guards:
     - "G-07: for a batch with a US or EU market a lot without an identity-test result is blocked (G07-LOT-IDENTITY)"
 tests:
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [IN-24] for a batch with a US market, a lot without an identity-test result is blocked"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [IN-24][PR-18][INV-13] a received lot is in QUARANTINE: it cannot be reserved, so nothing can be consumed from it"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [IN-24] a release on the identity-tested route needs a passing identity result and the QC releaser's own signature; the route is recorded"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [IN-24][DI-17] segregation: the analyst who recorded the identity result cannot sign the lot's release, and the warehouse that received it cannot either"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [IN-24] a finished-product lot never leaves quarantine through this path; an intermediate is released for further processing by QA only"
+  - "packages/site-services/test/lots/lots.test.ts > vendor-history release route (IN-24 (c), D-S1-2) > [IN-24][INV-13] release an excipient lot on vendor history and try to dispense it into a batch with markets {India, US}; blocked until an identity result exists"
+  - "packages/site-services/test/lots/lots.test.ts > vendor-history release route (IN-24 (c), D-S1-2) > [IN-24] the vendor-history route is only for excipients, needs a stored justification and QA's signature, and its withdrawal blocks India-only use of lots without an identity result"
+  - "packages/site-services/test/lots/lots.test.ts > vendor-history release route (IN-24 (c), D-S1-2) > [IN-24] a failing identity result blocks release and use whatever the route or markets"
+  - "packages/site-services/test/lots/lots.test.ts > consumption guard (INV-13, INV-14, PR-18) > [INV-13][IN-24] putting a lot ON_HOLD revokes its open reservations; consumption against them stays refused after UNHOLD"
+  - "packages/site-services/test/lots/lots.test.ts > witnessed destruction (IN-24 (a)) > [IN-24] DESTROYED only with a destruction record and a witness other than its performer"
+  - "packages/site-services/test/lots/machine.test.ts > the material lot machine > [IN-24][INV-13] the committed seed equals the generator output"
+  - "packages/site-services/test/lots/machine.test.ts > the material lot machine > [IN-24] the states and signatures of outline 5.2.9: every status decision is signed, a finished lot cannot leave quarantine, RETEST_DUE and EXPIRED are not stored"
+  - "packages/site-services/test/lots/machine.test.ts > the material lot machine > [IN-24] the transition table holds exactly the XState transitions, with the same sealed hash, and XState's next state equals the table's for every pair"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

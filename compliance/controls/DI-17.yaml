@@ -322,6 +322,10 @@ tests:
   - "apps/tablets-server/test/mutation/device-readings.test.ts > gateway sessions: binding, resolution, the session of a reading command, refusals on record > [DI-31][DI-17] a SERVICE identity on its own SERVER device (the sweeper) cannot open a gateway session (EBMR-DEV-023)"
   - "apps/tablets-server/test/mutation/device-readings.test.ts > gateway sessions: binding, resolution, the session of a reading command, refusals on record > [DI-31][DI-17] a bound token resolves to its own session, account, enrolment and the roles the account holds now"
   - "apps/tablets-server/test/mutation/device-readings.test.ts > claims: who may claim, the claim's own arguments, and readings that reached the table without ingestion > [DI-17][INV-40] a person who can neither execute steps nor dispense (a verifier at the DISP-1 kiosk) neither claims nor alerts"
+  - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [DI-17][DI-18] an administrator never writes plant data; a person without the permission is refused"
+  - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [DI-17][DI-18] every app-callable plant function that can write refuses administrators first, then checks a catalogued permission"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [IN-24][DI-17] segregation: the analyst who recorded the identity result cannot sign the lot's release, and the warehouse that received it cannot either"
+  - "packages/site-services/test/lots/lots.test.ts > receipt and release > [DI-18][DI-17] an administrator never receives, releases, reserves or decides on a lot; an operator cannot receive one"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

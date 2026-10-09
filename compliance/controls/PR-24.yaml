@@ -26,7 +26,8 @@ behaviour: |-
   - US dedicated-equipment option: dedicated equipment may skip an individual log only when EU is not in the market set. In that case its cleaning, maintenance and use records are embedded in each batch record, and the lot-number sequence is checked.
 catalog_test: Each batch appears in the logbook with its date, time, product and lot, consistent with the batch records. The same user performing and verifying a manual cleaning is blocked. A room logbook shows use and cleaning.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-25][PR-24] the logbook of a room and of a press is written from the recorded acts, with persons and batches"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
