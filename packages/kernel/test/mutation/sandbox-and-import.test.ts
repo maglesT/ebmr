@@ -146,3 +146,59 @@ describe('a database without its installation marker (kernel 0800)', () => {
     expect(await refusal(db.admin.query("insert into sandbox.installation (kind, database_name) values ('GMP', 'x')"))).toMatch(/EBMR-SBX-003\]$/);
   });
 });
+
+describe('D14: the reason a test package\'s header is refused names the side that differs and its value (recipe-core 0384 recipe.package_header_problem)', () => {
+  type Json = Record<string, unknown>;
+  const product = { code: 'PCM500', name: 'Paracetamol tablets', strength: '500 mg' };
+  /** A package whose family member and content header are as given (each defaulting to dc-mini's), stored with `stored`. */
+  const problem = async (o: { familyCode?: unknown; header?: unknown; product?: Json; headerProduct?: Json; storedCode?: string | null; storedProduct?: Json } = {}): Promise<string | null> => {
+    const family: Json = { familyId: '00000000-0000-0000-0000-000000000001', product: o.product ?? product };
+    if (!('familyCode' in o)) family['familyCode'] = 'PCM500-DC';
+    else if (o.familyCode !== undefined) family['familyCode'] = o.familyCode;
+    const header: Json = { product: o.headerProduct ?? product };
+    if (!('header' in o)) header['family'] = 'PCM500-DC';
+    else if (o.header !== undefined) header['family'] = o.header;
+    const pkg = { family, content: { header } };
+    const { rows } = await db.admin.query<{ p: string | null }>('select recipe.package_header_problem($1::jsonb, $2, $3::jsonb) as p', [
+      JSON.stringify(pkg),
+      'storedCode' in o ? o.storedCode : typeof family['familyCode'] === 'string' ? family['familyCode'] : family['familyCode'] === undefined ? null : JSON.stringify(family['familyCode']),
+      JSON.stringify(o.storedProduct ?? o.product ?? product),
+    ]);
+    return rows[0]?.p ?? null;
+  };
+
+  it('[DI-04][DI-37] a family code or product that is not the content\'s is named on the side that differs, the package\'s or the stored one, and a family code that is not text is named with its JSON type; the honest header has none', async () => {
+    const outcomes = {
+      honest: await problem(),
+      packageFamily: await problem({ familyCode: 'IBU400-DC', storedCode: 'IBU400-DC' }),
+      storedFamily: await problem({ storedCode: 'IBU400-DC' }),
+      storedFamilyMissing: await problem({ storedCode: null }),
+      numberOnBothSides: await problem({ familyCode: 500, header: 500 }),
+      booleanOnBothSides: await problem({ familyCode: true, header: true }),
+      nullOnBothSides: await problem({ familyCode: null, header: null }),
+      packageWithoutCode: await problem({ familyCode: undefined, storedCode: null }),
+      headerNumber: await problem({ header: 500 }),
+      packageName: await problem({ product: { ...product, name: 'Ibuprofen tablets' } }),
+      storedName: await problem({ storedProduct: { ...product, name: 'Ibuprofen tablets' } }),
+      packageStrengthNumber: await problem({ product: { ...product, strength: 500 } }),
+      storedStrengthMissing: await problem({ storedProduct: { code: product.code, name: product.name } }),
+      headerCodeMissing: await problem({ headerProduct: { name: product.name, strength: product.strength } }),
+    };
+    expect(outcomes).toEqual({
+      honest: null,
+      packageFamily: 'the family code IBU400-DC is not the family of the MBR content (PCM500-DC)',
+      storedFamily: 'the stored family code IBU400-DC is not the family of the MBR content (PCM500-DC)',
+      storedFamilyMissing: 'the stored family code none is not the family of the MBR content (PCM500-DC)',
+      numberOnBothSides: 'the family code must be text: the package gives 500 (a JSON number) and the MBR content 500 (a JSON number)',
+      booleanOnBothSides: 'the family code must be text: the package gives true (a JSON boolean) and the MBR content true (a JSON boolean)',
+      nullOnBothSides: 'the family code must be text: the package gives null (a JSON null) and the MBR content null (a JSON null)',
+      packageWithoutCode: 'the family code must be text: the package gives none and the MBR content PCM500-DC',
+      headerNumber: 'the family code must be text: the package gives PCM500-DC and the MBR content 500 (a JSON number)',
+      packageName: 'the product name Ibuprofen tablets is not the name of the MBR content (Paracetamol tablets)',
+      storedName: 'the stored product name Ibuprofen tablets is not the name of the MBR content (Paracetamol tablets)',
+      packageStrengthNumber: 'the product strength 500 (a JSON number) is not the strength of the MBR content (500 mg)',
+      storedStrengthMissing: 'the stored product strength none is not the strength of the MBR content (500 mg)',
+      headerCodeMissing: 'the product code PCM500 is not the code of the MBR content (none)',
+    });
+  });
+});

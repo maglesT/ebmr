@@ -690,7 +690,7 @@ describe('review P50, round 4: the application role\'s credentials cannot make a
     await report(rig, BESIDE);
     expect(await statuses(rig)).toEqual([['TEST-BAL-00', 'OFFLINE'], ['TEST-BAL-01', 'OFFLINE']]);
     expect(await messageOf(forgedWeighingRow(rig, d))).toMatch(
-      /^Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \(the server cannot reach the site gateway's API \(test: reported while the API answers\)\) is answered: the gateway's API answered the server after that report was made.*\[EBMR-EXE-074\]$/,
+      /^Scale TEST-BAL-01 of room DISP-1 is online by its heartbeat\. The report that it cannot be used \(the server cannot reach the site gateway's API \(test: reported while the API answers\)\) is answered: the gateway's API answered the server at or after the moment that report was made.*\[EBMR-EXE-074\]$/,
     );
     expect(await counts(d.runId)).toEqual(before);
     expect(await recordContact(rig, true, 'test: the API answers', monitor)).toBe(true);

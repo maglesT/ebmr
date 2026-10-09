@@ -69,12 +69,11 @@ Notes:
   decides whether to record it.
 - (b) The batch counted the two overloads of `recipe.row_step_key` under shared ids; the agent ran every current id
   of both, 121 in all.
-- (c) `recipe.minimum_duration_problem#15` and `recipe.own_node_event_problem#39` were left, each tied to an open
-  defect below (D6, D7): a test for either would have fixed in place behaviour the lead had not decided yet. D6 is
-  decided (D6.1) and `#15` is killed by the D6 test in `packages/recipe-core/test/mutation/execution-steps-and-order.test.ts`
-  (harness run on branch phase-2/defects-validator: KILLED; that test is not counted in the Tests column, which
-  counts the kill agents' tests); it is not equivalent, because the database does not run the validator and can be
-  handed content holding such a minimum. `#39` stays tied to D7.
+- (c) `recipe.minimum_duration_problem#15` and `recipe.own_node_event_problem#39` were left, each tied to a defect
+  below (D6, D7): a test for either would have fixed in place behaviour the lead had not decided yet. Both are killed
+  since: `#15` by the D6 test in `packages/recipe-core/test/mutation/execution-steps-and-order.test.ts` (decision D6.1;
+  not counted in the Tests column, which counts the kill agents' tests; not equivalent, because the database does not
+  run the validator), and `#39` by D7's test (D7, fixed).
 - (d) Counted on the kill branch's base, which had 44 survivors (functions redefined after batch 1).
 - (e) The fix migration (kernel 1100) replaced the function, so the agent killed every mutant of the new definition.
 - (f) `tab.resolve_session` was redefined (tablets 0550) after batch 1; the agent counted 45 survivors on its base.
@@ -124,12 +123,20 @@ Fixed:
   INV-17 invariant report such a record.
 - **D3. Manual-weighing gate: an API answer at the report's own instant.** An answer recorded in the same
   microsecond as the monitor's "unreachable" report did not count as answering it, so after 10 s a hand-keyed weight
-  was accepted beside a gateway that had answered. Fixed in tablets 0700 (`>` becomes `>=`). Still open, wording
-  only: the ANSWERED refusal still says the API answered "after" the report.
+  was accepted beside a gateway that had answered. Fixed in tablets 0700 (`>` becomes `>=`). The wording followed in
+  tablets 0710: the ANSWERED refusal of `tab.manual_weighing_check` says the API answered at or after the moment of
+  the report (it said "after"), and 0710's header corrects 0350's description of ANSWERED and 0700's name for itself
+  ("tablets 0640"). Test: "[DI-30][PR-20] beside a scale whose heartbeat is ONLINE ... at the very instant the report
+  was made ..." (apps/tablets-server/test/mutation/manual-weighing-gate.test.ts), failing before 0710; the device
+  tests that quote the message follow it.
 - **D4. Sandbox and import: a test lot without its identity-test flag.** The register's check gave NULL for a missing
   flag, so the lot was refused by the table's NOT NULL constraint with a bare database error instead of EBMR-EXE-070.
-  Fixed in tablets 0701. Still open, wording only: the message names a material and a status the function itself
-  does not check (the table's constraints refuse such a lot).
+  Fixed in tablets 0701. The wording followed in tablets 0711: the message names only what the function checks (a lot
+  code and a yes or no for the identity test); a lot without a material or a status is refused by the table's NOT NULL
+  constraints, as a new test shows. Tests: "[PR-18][DI-05] a test lot without a lot code, or without a yes-or-no
+  identity test ..." (failing before 0711) and "[PR-18][DI-05] D4: the register's own refusal names what it checks
+  ..." (apps/tablets-server/test/mutation/sandbox-and-import.test.ts). Harness on `tab.register_sandbox_lot` (0711): 11
+  mutants, all killed.
 - **D5. Connection roles: the sandbox segregation query failed on a missing role.** In a sandbox, a GMP login role
   the cluster lacks made `sandbox.segregation_problems()` fail with "role does not exist" instead of reporting the
   problem, because PostgreSQL evaluated the privilege test before the existence test; rows also came out in join
@@ -149,31 +156,90 @@ Fixed:
   outer exit stays and is pinned. Tests: `packages/recipe-core/test/validator/structure.test.ts`,
   `apps/tablets-server/test/designer/arrival-minimum-and-nested-loops.test.ts`,
   `packages/recipe-core/test/mutation/limit-exceptions.test.ts` (D12).
+- **D7. Execution steps: a loop exit recorded without its loop context.** The rule that a loop's exit needs the loop's
+  END (recipe-core 0312, 0314, 0316) applies only when the iteration's context is not empty, so through the
+  application role a loop could be left before its minimum duration with no END recorded. Closed by recipe-core 0338
+  (on this tree), as the kill agent read: an accepted COMPLETE_LOOP_ITERATION names a decision of the state in its
+  loop's own frame, or it is refused (EBMR-EXE-126); a command without its context is refused by its shape (0335,
+  EBMR-EXE-126). No migration was needed. The test "[INV-20][PR-30][DI-27][DI-30] an iteration that ends the loop
+  before its minimum is refused ..." (apps/tablets-server/test/mutation/execution-steps-and-order.test.ts) shows it
+  on dc-mini with a mixing loop and a 1 h minimum: the engine refuses the honest iteration (ENG-MIN-DURATION), the
+  iteration with its own frame stored past it is refused for the minimum (EBMR-EXE-130), and the same iteration with
+  an empty context, its decision refiled without frames and no END, is refused as a context that is not the loop's
+  (EBMR-EXE-126); nothing is written. It is the kill test for `recipe.own_node_event_problem#39` (KILLED: under the
+  mutant the own-node-event check, which runs first, refuses that row with another message).
+- **D8. Execution state binding: a signature's validity failed open when missing.** `recipe.signature_change_problem`
+  compared a stored signature with the recorded one; when the stored one had lost its `valid` member (or the recorded one
+  had none) the comparison was NULL and nothing was refused, so through the application role an exception whose state
+  dropped the validity of another step's recorded signature was stored. Fixed in recipe-core 0381: a validity that is
+  not exactly true before and false after is no permitted invalidation (coalesce, as the stage sign-off rule of 0307
+  does), so the row is refused (EBMR-EXE-128). Tests: "[DI-35][INV-10][PR-14] D8: a recorded signature stored without
+  its validity ..." (packages/recipe-core/test/mutation/execution-state-binding.test.ts) and "[DI-35][INV-10][PR-14] an
+  exception whose state drops the validity ..." (apps/tablets-server/test/mutation/execution-state-binding.test.ts),
+  both failing before 0381. Harness on `recipe.signature_change_problem`: 14 mutants, all killed. The other tests of a
+  stored validity already fail closed (0307's stage sign-off rule, 0320's sign-off shape, 0382); the kernel's read
+  `esig.signature_state`, which computes the validity and is never written by a writer.
+- **D9. Execution state binding: any row could invalidate another step's signature.** The binding check let any row turn
+  any recorded signature of another step from valid to not valid, with no data changed, and left its signer among the
+  performers; the engine invalidates only on a change of signed content or through a correction or result
+  invalidation. Fixed in recipe-core 0382 (decision D9.1, EBMR-EXE-128): a row, whatever its kind, makes a recorded
+  signature of any step instance invalid only as the engine does: a PERFORMED signature of a step it leaves
+  IN_PROGRESS whose data (values, computed values, entries, exceptions that are data of the step) it changes, the
+  signer then no longer a PERFORMED signer; in a CORRECT_ENTRY or INVALIDATE_RESULT, the PERFORMED and CHECKED
+  signatures of a step COMPLETED or AWAITING_VERIFICATION before the row that it sends back for re-verification or
+  reopens. Tests: "[DI-35][INV-10][PR-14][INV-03] the engine's three paths are accepted ..." and "... the data a
+  step's signature covers changes ..." (packages/recipe-core/test/mutation/execution-state-binding.test.ts), and "...
+  an exception whose state makes another step's PERFORMED signature ... invalid is refused ...", "... on the clearance
+  two operators fill ..." and "... a correction of a verified value sends its step back for re-verification ..."
+  (apps/tablets-server/test/mutation/execution-state-binding.test.ts), the first two store-level tests failing before
+  0382 (the third shows the engine's own correction recorded). The golden replays and the execution SQL and store tests
+  pass with it. Harness on the three new functions: 76 mutants, 75 killed (two more server tests, a refused value and a
+  refused correction on a step already marked for re-verification, and two unit cases were added for the first run's
+  survivors); `recipe.signature_invalidation_problem#43` is equivalent: it makes the default of
+  `coalesce(role = 'PERFORMED' and status = 'IN_PROGRESS', false)` true, and that line is reached only after the check
+  above it accepted the invalidation, which needs a role of PERFORMED or CHECKED and a status, so the expression is
+  never NULL.
+- **D10. Market authorisation: activation and cells written around the command.** The activation table had only a
+  stamp trigger and the cell guard did not check the version's state, so owner-level code could write an activation
+  and a CURRENT cell for a version only CHECKED, skipping every check of the activation command, and the issue command
+  then pinned batches to it. Fixed in recipe-core 0383 (decision D10.1): the table guards re-check the command's
+  conditions (no marker: owner-level code could write a marker as easily as the row); a cell needs the version's state
+  row APPROVED, an active record, a predecessor that is the CURRENT cell of an earlier version ending where it begins,
+  and is superseded only by a cell written after it. Tests: "[INV-17][PR-02][DI-04][DI-37][PR-04] an activation row is
+  refused unless the command would have written it ..." and "[INV-17][PR-05][PR-04] a cell is refused for a version
+  that is not APPROVED ..." (packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts), both failing
+  before 0383. The kill test of `recipe.guard_in_flight_dispositioned#3` used this arrangement: adapted, it shows each
+  step of it refused (it fails before 0383), and keeps the guard's rule (`<`, earlier versions only) on the state the
+  superuser plants with every trigger off, so the mutant stays killed. For writers with the triggers on that mutant is
+  equivalent since 0383: a pin needs a valid cell, a cell needs the version's state row APPROVED when it is written, and
+  the version machine has no way from APPROVED back to CHECKED, so when the approval's guard runs no batch is pinned to
+  the version itself. Harness on the three guards: 70 mutants, 68 killed, after two more tests for the first run's
+  survivors, both failing before 0383: "[INV-17][PR-02] an activation takes effect no earlier than the instant its
+  transaction began ..." (a row from that very instant accepted, one a microsecond before refused) and
+  "[INV-17][PR-05][PR-04] a cell supersedes only the CURRENT cell of an earlier version of its own family, market, site,
+  line and batch size ..." (a predecessor of another family, market, line or batch size, one of the cell's own version,
+  and a BRIDGING written as the successor, each refused). The two left are equivalent (reported, not recorded in
+  equivalent.json): `recipe.market_authorisation_activation_guard#27` makes the default of
+  `coalesce((v_ev ->> 'complete')::boolean, false)` true, and `recipe.evidence_status` (0120, never redefined) always
+  gives `complete` as a boolean (whether its list of missing items is empty), so the default is never read; `#36` makes
+  `effective_from > clock_timestamp()` `>=`, which differs only when the row's date equals, to the microsecond, the clock
+  the guard reads after its permission and signature checks, a clock boundary no writer can aim at. In the cell guard,
+  the test of the predecessor's kind can never be true (a cell with a successor is SUPERSEDED, which the table allows
+  only for a CURRENT cell); it is kept as written. `recipe.guard_in_flight_dispositioned`: 13 mutants, all killed with
+  the adapted test. Not closed here: a cell's end and a withdrawal row written around their commands (they only take
+  an authorisation away), and D11 (the state row moved under the engine flag).
+- **D14. Sandbox and import: a misleading family-code reason.** When a test package's family code was not text, the
+  refusal (EBMR-EXE-134, correct) named the same value on both sides, and when only the stored family code or product
+  differed it named the package's value, which is the content's own. Fixed in recipe-core 0384 (wording only, what is
+  refused is unchanged): a family code that is not text is named as such with both values and their JSON type; a
+  value that differs is named on the side that differs, the package's or the stored one. Tests: "[DI-04][DI-37] a
+  family code or product that is not the content's is named on the side that differs ..."
+  (packages/kernel/test/mutation/sandbox-and-import.test.ts) and the two family-code tests of
+  apps/tablets-server/test/mutation/sandbox-and-import.test.ts, failing before 0384. Harness on
+  `recipe.package_header_problem` and `recipe.json_value_described`: 6 mutants, all killed.
 
 Open (the lead takes these next):
 
-- **D7. Execution steps: a loop exit recorded without its loop context.** The rule that a loop's exit needs the loop's
-  END (recipe-core 0312, 0314, 0316) applies only when the iteration's context is not empty, so through the
-  application role a loop could be left before its minimum duration with no END recorded. The kill agent read that
-  recipe-core 0338 (on this tree) refuses an iteration whose context does not end with the loop's own frame
-  (EBMR-EXE-126), which would close it, but did not run it there. Open until a test on the integrated tree shows it
-  (the kill test for `recipe.own_node_event_problem#39`).
-- **D8. Execution state binding: a signature's validity fails open when missing.** `recipe.signature_change_problem`
-  compares a stored signature with the recorded one; when the stored one has lost its `valid` member the comparison
-  is NULL and nothing is refused, so a forged row that strips the validity is accepted. A one-line fix (treat the
-  missing value as a change) is suggested; the sibling sign-off rule already does so. Impact is limited: the engine
-  reads a missing validity as not valid.
-- **D9. Execution state binding: any row may invalidate another step's signature.** The binding check lets any row
-  turn any recorded signature of another step from valid to not valid, with no data changed, and leaves its signer
-  among the performers; the engine invalidates only on a change of signed content or through a correction or result
-  invalidation. Needs a design decision on which rows may invalidate which signatures.
-- **D10. Market authorisation: activation and cells written around the command.** The activation table has only a
-  stamp trigger and the cell guard does not check the version's state, so owner-level code can write an activation
-  and a CURRENT cell for a version that is only CHECKED, skipping every check of the activation command, and the
-  issue command then pins batches to it. Fix options (accept rows only from the command, or re-check its conditions
-  in the table guards) change semantics the lead should choose. The kill test for
-  `recipe.guard_in_flight_dispositioned#3` uses this arrangement; once D10 and D11 are closed that mutant becomes
-  equivalent and the test needs revisiting.
 - **D11. Kernel state engine: a history row forged with the session flag.** For an insert into
   `platform.state_history` the guard checks only a session setting any role can set, so owner-level code can write
   an arbitrary transition (for example a version approved at version 100); `platform.state_violations()` finds it only
@@ -183,9 +249,6 @@ Open (the lead takes these next):
   the hold ends early, and the `heldUntilUs` the database already returned is too late. A one-condition fix (prune
   only rows whose tick and close are both over an hour old) is proposed; decision X43 words the rule both ways, so
   the owner or lead picks it.
-- **D14. Sandbox and import: a misleading family-code reason.** When a test package's family code is not text, the
-  refusal (EBMR-EXE-134, correct) names the same value on both sides; reachable through the application role. Message
-  wording only.
 - **D15. Connection roles: an unknown grantee breaks the connect policy's statement.** When a backend-signal function's
   privileges name a role oid the cluster does not know (a direct catalogue write by a superuser), the policy fails
   with a syntax error instead of a coded refusal. It fails closed; only the message is wrong.

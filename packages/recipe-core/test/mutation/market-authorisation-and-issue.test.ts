@@ -28,10 +28,10 @@ import { errorCode } from '../../../kernel/src/commands/errors.ts';
 import { toDbContext, withCommand, type ActorContext } from '../../../kernel/src/db/command.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { asTimeTraveller, pause } from '../../../kernel/test/identity/helpers.ts';
-import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedAdministration, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as lc from '../../src/lifecycle/index.ts';
-import { cell, reason, scope, seedCast, uniqueContent, World, type PrepareOptions } from '../lifecycle/support.ts';
+import { cell, reason, scope, seedCast, uniqueContent, withSecondRole, World, type PrepareOptions } from '../lifecycle/support.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -579,21 +579,27 @@ describe('authorisation cells, whoever writes them (recipe.authorisation_cell_in
     });
 
   /**
-   * A record of A's v1 for IN at one scope cell, its activation recorded by an owner-level writer from T with the
-   * signatures asked for, and the cell that repeats it exactly.
+   * A record of A's v1 for IN at one scope cell, its activation from T with the signatures asked for, and the cell that
+   * repeats it exactly. Since recipe-core 0383 (D10) no writer with the triggers on records an activation the command
+   * would not (from T, or with a signature that is not valid), so the superuser arranges it with every trigger off, the
+   * cell guards under test then judging the cell with every trigger on; for a BRIDGING, v2 has superseded v1 at that
+   * scope first, through the command (where a BRIDGING is given at all).
    */
   async function forged(kind: 'CURRENT' | 'BRIDGING', site: string, line: string, signatures: 'valid' | 'qa-invalid' | 'regulatory-invalid' | 'none' = 'valid'): Promise<{ id: string; exact: CellRow }> {
     const a = await familyA();
     const cells = [cell(site, line, BS)];
+    if (kind === 'BRIDGING') {
+      await w.authorise(current(a.v1, 'IN', cells));
+      await w.authorise(current(a.v2, 'IN', cells));
+    }
     const id = await propose(kind === 'CURRENT' ? current(a.v1, 'IN', cells) : bridging(a.v1, a.v2, cells, E));
     if (signatures !== 'none') {
       const s = await signRecord(id);
-      await asOwner(w.cast.qa, (c) =>
-        c.query(
-          `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
-           values ($1, $2, $3, $4, $5, $5)`,
-          [id, signatures === 'qa-invalid' ? randomUUID() : s.qaSig, signatures === 'regulatory-invalid' ? randomUUID() : s.regSig, T, NIL],
-        ),
+      await asTimeTraveller(
+        db,
+        `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
+         values ($1, $2, $3, $4, $5, $5)`,
+        [id, signatures === 'qa-invalid' ? randomUUID() : s.qaSig, signatures === 'regulatory-invalid' ? randomUUID() : s.regSig, T, NIL],
       );
     }
     return {
@@ -729,6 +735,321 @@ describe('authorisation cells, whoever writes them (recipe.authorisation_cell_in
     expect(await cellsOfRecord(cur.id)).toEqual([expect.objectContaining({ id: x, status: 'WITHDRAWN', valid_until: '2032-06-01T00:00:00.000000Z' })]);
   }, LONG);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D10: the activation and its cells, whoever writes them (recipe-core 0383; decision D10.1)
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe('D10: an activation and its cells are written only as the activation command writes them, whoever writes them (recipe.market_authorisation_activation_guard, recipe.authorisation_cell_activation_guard)', () => {
+  const T = '2032-01-01T00:00:00.000000Z';
+  const E = '2033-06-30T00:00:00.000000Z';
+  const ACTIVATION_INSERT = `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
+                             values ($1, $2, $3, coalesce($4::timestamptz, clock_timestamp()), $5, $5)`;
+  /**
+   * An owner-level writer (the superuser inside a validated command of `actor`, every trigger on) inserts the activation
+   * of record `id`: from `from`, or (null) from the database clock as the row is written; with a reason, or (null) none.
+   */
+  async function insertActivation(id: string, sg: Signatures, from: string | null, actor: SeededActor = w.cast.qa, why: string | null = 'owner-level activation under test'): Promise<unknown> {
+    return withCommand(db.admin, await cmd(db, actor, why === null ? {} : reason(why)), (c) => c.query(ACTIVATION_INSERT, [id, sg.qaSig, sg.regSig, from, NIL]));
+  }
+  const activationsOf = async (id: string): Promise<number> =>
+    Number((await one<{ n: string }>('select count(*)::text as n from recipe.market_authorisation_activation where authorisation_id = $1', [id])).n);
+  const activationFrom = async (id: string): Promise<string> =>
+    (await one<{ t: string }>('select recipe.utc_text(effective_from) as t from recipe.market_authorisation_activation where authorisation_id = $1', [id])).t;
+
+  /** A version of a new family taken to CHECKED, and a record of it for IN at S1/L1 an owner-level writer files, signed by QA and the regulatory signer. */
+  async function checkedRecord(): Promise<{ versionId: string; familyId: string; record: string; sg: Signatures }> {
+    const content = uniqueContent();
+    const v = await w.newVersion(content);
+    await w.prepare(v.versionId, content);
+    await w.startVerification(v.versionId);
+    await w.submit(v.versionId);
+    await w.check(v.versionId);
+    await w.regulatoryConfirm(v.versionId);
+    expect((await w.state(v.versionId)).state, 'SETUP: the version waits for its approval').toBe('CHECKED');
+    const record = await asOwner(w.cast.qa, async (c) => {
+      const { rows } = await c.query<{ id: string }>(
+        `insert into recipe.market_authorisation (family_id, version_id, market, kind, cells, regulatory_basis, proposed_by_person, proposed_by_account)
+         values ($1, $2, 'IN', 'CURRENT', $3::jsonb, 'IN: registration on file', $4, $4) returning id`,
+        [v.familyId, v.versionId, JSON.stringify([cell('S1', 'L1', BS)]), NIL],
+      );
+      return rows[0]?.id ?? '';
+    });
+    return { versionId: v.versionId, familyId: v.familyId, record, sg: await signRecord(record) };
+  }
+
+  it('[INV-17][PR-02][DI-04][DI-37][PR-04] an activation row is refused unless the command would have written it: a known PROPOSED record, an approver with the QA permission and a reason of their own, both signatures valid, the QA signer activating, two persons, an APPROVED version with a complete verification record, the effective date the command computes and a bridging window still open; such a row is accepted', async () => {
+    const a = await familyA();
+    const f = await familyF();
+    // A record of A's v1 for IN at S2/L6 with both signatures: every condition of the command holds for it.
+    const id = await propose(current(a.v1, 'IN', [cell('S2', 'L6', BS)]));
+    const sg = await signRecord(id);
+    const unknown = randomUUID();
+    await refused(insertActivation(unknown, sg, null), 'EBMR-RCP-083', exactly(`Unknown market authorisation ${unknown} (EBMR-RCP-083)`));
+    const { admin } = await seedAdministration(db);
+    await refused(insertActivation(id, sg, null, admin), 'EBMR-IAM-042', /^EBMR-IAM-042 DI-18: administrator role \S+ never creates or changes GMP data$/);
+    await refused(insertActivation(id, sg, null, w.cast.author), 'EBMR-IAM-040', /^EBMR-IAM-040 .* lacks permission MBR\.APPROVE /);
+    await refused(
+      insertActivation(id, sg, null, w.cast.qa, null),
+      'EBMR-AUDIT-002',
+      exactly('EBMR-AUDIT-002 the activation of a market authorisation needs the reason of the person who gives it: a reason code and a reason text, neither blank. The system writes no part of it (DI-22, DI-24)'),
+    );
+    await refused(insertActivation(id, { qaSig: randomUUID(), regSig: sg.regSig }, null), 'EBMR-ESIG-070', /^EBMR-ESIG-070 /);
+    await refused(insertActivation(id, { qaSig: sg.qaSig, regSig: sg.qaSig }, null), 'EBMR-ESIG-070', /^EBMR-ESIG-070 /);
+    await refused(insertActivation(id, sg, null, w.cast.qa2), 'EBMR-RCP-085', exactly('The QA person who signed the authorisation activates it (DI-37; EBMR-RCP-085)'));
+    // The effective date: before the activation, later than now without being the record's or the version's date.
+    await refused(insertActivation(id, sg, '2026-01-01T00:00:00Z'), 'EBMR-RCP-095', /^An activation takes effect at the latest of the requested date \(none\), the version's effective date \(\S+\) and the moment it is activated, not at 2026-01-01T00:00:00\.000000Z \(PR-02; INV-17; EBMR-RCP-095\)$/);
+    await refused(insertActivation(id, sg, T), 'EBMR-RCP-095', /not at 2032-01-01T00:00:00\.000000Z \(PR-02; INV-17; EBMR-RCP-095\)$/);
+    expect(await activationsOf(id)).toBe(0);
+    // QA signs as the regulatory signer too (a second role of the same person).
+    const same = await propose(current(a.v1, 'IN', [cell('S2', 'L5', BS)]), w.cast.qa2);
+    const qa2AsRegulatory = await withSecondRole(db, w.cast.qa2, 'REGULATORY_SIGNER');
+    const selfSigned = {
+      qaSig: await w.sign(w.cast.qa2, lc.MARKET_AUTHORISATION_AGGREGATE, same, 'MBR_MARKET_AUTHORISED', 'PROPOSED'),
+      regSig: await w.sign(qa2AsRegulatory, lc.MARKET_AUTHORISATION_AGGREGATE, same, 'REGULATORY_CONFIRMED', 'PROPOSED'),
+    };
+    await refused(insertActivation(same, selfSigned, null, w.cast.qa2), 'EBMR-RCP-085', exactly('QA and the regulatory-conformity signer are two different persons (ADR 0014; EBMR-RCP-085)'));
+    // A version only CHECKED.
+    const checked = await checkedRecord();
+    await refused(insertActivation(checked.record, checked.sg, null), 'EBMR-RCP-086', exactly('Version 1 is CHECKED: only an APPROVED version becomes CURRENT or BRIDGING (ADR 0014; EBMR-RCP-086)'));
+    // An approved version whose verification record an owner-level writer voided.
+    const o = await oneVersion();
+    const oid = await propose(current(o.v1, 'IN', [cell('S1', 'L1', BS)]));
+    const osg = await signRecord(oid);
+    await asOwner(w.cast.qa, (c) =>
+      c.query(
+        `insert into recipe.mbr_evidence_void (evidence_id, version_id, content_id, person_id, account_id)
+         select e.id, e.version_id, (select x.id from recipe.mbr_content x where x.version_id = e.version_id order by x.revision desc limit 1), $2, $2
+           from recipe.mbr_evidence e where e.version_id = $1 and e.kind = 'VALIDATOR'`,
+        [o.v1, NIL],
+      ),
+    );
+    await refused(
+      insertActivation(oid, osg, null),
+      'EBMR-RCP-087',
+      exactly('The version has no complete verification record for its content (a passing static validation (VALIDATOR)); it cannot become effective for a market (DI-04; EBMR-RCP-087)'),
+    );
+    // F's v1 takes effect from 2030-01-01: not from now; a BRIDGING ending then is over before it starts.
+    const fid = await propose(current(f.v1, 'IN', [cell('S5', 'L5', BS)]));
+    const fsg = await signRecord(fid);
+    await refused(insertActivation(fid, fsg, null), 'EBMR-RCP-095', /the version's effective date \(2030-01-01T00:00:00\.000000Z\) and the moment it is activated, not at \S+ \(PR-02; INV-17; EBMR-RCP-095\)$/);
+    const fbr = await propose(bridging(f.v1, f.v2, [cell('S5', 'L6', BS)], '2030-01-01T00:00:00Z'));
+    await refused(insertActivation(fbr, await signRecord(fbr), '2030-01-01T00:00:00Z'), 'EBMR-RCP-082', exactly('The bridging window has already ended (INV-17; EBMR-RCP-082)'));
+    expect([await activationsOf(same), await activationsOf(checked.record), await activationsOf(oid), await activationsOf(fid), await activationsOf(fbr)]).toEqual([0, 0, 0, 0, 0]);
+    // Rows the command would write: from the moment of the activation, and from exactly the version's date.
+    await insertActivation(id, sg, null);
+    await insertActivation(fid, fsg, '2030-01-01T00:00:00Z');
+    expect([await recordState(id), await recordState(fid), await activationFrom(fid)]).toEqual(['ACTIVE', 'ACTIVE', '2030-01-01T00:00:00.000000Z']);
+    expect((await one<{ p: string }>('select person_id::text as p from recipe.market_authorisation_activation where authorisation_id = $1', [id])).p).toBe(w.cast.qa.personId);
+    // A record activated, or withdrawn, is no longer PROPOSED.
+    await refused(insertActivation(id, sg, null), 'EBMR-RCP-083', exactly('This authorisation is ACTIVE; only a PROPOSED record is activated (EBMR-RCP-083)'));
+    const gone = await propose(current(a.v1, 'IN', [cell('S2', 'L4', BS)]));
+    const gsg = await signRecord(gone);
+    await withdraw(gone, 'registration lapsed before activation');
+    await refused(insertActivation(gone, gsg, null), 'EBMR-RCP-083', exactly('This authorisation is WITHDRAWN; only a PROPOSED record is activated (EBMR-RCP-083)'));
+  }, LONG);
+
+  it('[INV-17][PR-05][PR-04] a cell is refused for a version that is not APPROVED, for a withdrawn record, when it supersedes anything but its predecessor ending where it begins, when its predecessor names a cell written before it, and for a BRIDGING the successor did not supersede; the command\'s own supersession, written by an owner-level writer, is accepted', async () => {
+    type Row = Omit<CellRowD10, 'id'> & { id?: string };
+    const insert = (c: pg.PoolClient, r: Row) =>
+      c.query(
+        `insert into recipe.authorisation_cell (id, authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind, status, effective_from, valid_until, successor_version_id)
+         values (coalesce($1::uuid, gen_random_uuid()), $2, $3, $4, 0, 'IN', $5, $6, $7, $8, $8, $9, $10, $11)`,
+        [r.id ?? null, r.authorisation_id, r.family_id, r.version_id, r.site, r.line, BS, r.kind, r.effective_from, r.valid_until, r.successor_version_id],
+      );
+    // A cell of a CHECKED version, for a record whose activation the superuser slipped in with every trigger off.
+    const checked = await checkedRecord();
+    await asTimeTraveller(db, ACTIVATION_INSERT.replace('coalesce($4::timestamptz, clock_timestamp())', '$4::timestamptz'), [checked.record, checked.sg.qaSig, checked.sg.regSig, T, NIL]);
+    const ofChecked: Row = { authorisation_id: checked.record, family_id: checked.familyId, version_id: checked.versionId, site: 'S1', line: 'L1', kind: 'CURRENT', effective_from: T, valid_until: null, successor_version_id: null };
+    await refused(asOwner(w.cast.qa, (c) => insert(c, ofChecked)), 'EBMR-RCP-086', exactly('Version 1 is CHECKED: only an APPROVED version becomes CURRENT or BRIDGING (ADR 0014; EBMR-RCP-086)'));
+    // G: v1 CURRENT for IN at S1/L1 and S2/L1 through the command; v2's record for S1/L1 activated by an owner-level writer
+    // as the command would, its cell not written yet.
+    const g = await twoVersions();
+    const c1 = (await w.authorise(current(g.v1, 'IN', [cell('S1', 'L1', BS), cell('S2', 'L1', BS)]))).cells;
+    const [atS1, atS2] = [c1.find((x) => x.site === 'S1')?.cell_id ?? '', c1.find((x) => x.site === 'S2')?.cell_id ?? ''];
+    const r2 = await propose(current(g.v2, 'IN', [cell('S1', 'L1', BS)]));
+    await insertActivation(r2, await signRecord(r2), null);
+    const from2 = await activationFrom(r2);
+    const v1From = (await one<{ t: string }>('select recipe.utc_text(effective_from) as t from recipe.authorisation_cell where id = $1', [atS1])).t;
+    const successor: Row = { id: randomUUID(), authorisation_id: r2, family_id: g.familyId, version_id: g.v2, site: 'S1', line: 'L1', kind: 'CURRENT', effective_from: from2, valid_until: null, successor_version_id: null };
+    const supersede = (cellId: string, until: string) => (c: pg.PoolClient) =>
+      c.query("update recipe.authorisation_cell set status = 'SUPERSEDED', valid_until = $2, superseded_by = $3 where id = $1", [cellId, until, successor.id]);
+    const SUPERSEDES = (cellId: string, n: number) =>
+      exactly(`A cell supersedes only the CURRENT cell of an earlier version of the same family, market and scope, which ends where it begins: not cell ${cellId} of version ${n} (PR-05; INV-17; EBMR-RCP-089)`);
+    // The predecessor ended elsewhere than where its successor begins; a cell of another scope superseded.
+    await refused(asOwner(w.cast.qa, async (c) => (await supersede(atS1, v1From)(c), await insert(c, successor))), 'EBMR-RCP-089', SUPERSEDES(atS1, 1));
+    await refused(asOwner(w.cast.qa, async (c) => (await supersede(atS2, from2)(c), await insert(c, successor))), 'EBMR-RCP-089', SUPERSEDES(atS2, 1));
+    // The predecessor superseded by a cell written before it (S2/L1's), so that the successor's insert finds no predecessor.
+    await refused(
+      asOwner(w.cast.qa, async (c) => (
+        await c.query("update recipe.authorisation_cell set status = 'SUPERSEDED', valid_until = $2, superseded_by = $3 where id = $1", [atS1, from2, atS2]),
+        await insert(c, successor)
+      )),
+      'EBMR-RCP-089',
+      exactly(`A cell is superseded only by its successor written after it in the same transaction, not by cell ${atS2}, which exists already (PR-05; INV-17; EBMR-RCP-089)`),
+    );
+    expect((await q<{ status: string }>('select status from recipe.authorisation_cell where id = any($1::uuid[]) order by site', [[atS1, atS2]])).map((x) => x.status)).toEqual(['CURRENT', 'CURRENT']);
+    // Superseded exactly as the command does it: accepted.
+    await asOwner(w.cast.qa, async (c) => (await supersede(atS1, from2)(c), await insert(c, successor)));
+    expect(await cellsOfRecord(r2)).toEqual([expect.objectContaining({ id: successor.id, status: 'CURRENT', effective_from: from2 })]);
+    // An older version does not supersede a newer one: v1's record for S1/L1 again, activated as the command would.
+    const back = await propose(current(g.v1, 'IN', [cell('S1', 'L1', BS)]));
+    await insertActivation(back, await signRecord(back), null);
+    const fromBack = await activationFrom(back);
+    const older: Row = { id: randomUUID(), authorisation_id: back, family_id: g.familyId, version_id: g.v1, site: 'S1', line: 'L1', kind: 'CURRENT', effective_from: fromBack, valid_until: null, successor_version_id: null };
+    await refused(
+      asOwner(w.cast.qa, async (c) => (
+        await c.query("update recipe.authorisation_cell set status = 'SUPERSEDED', valid_until = $2, superseded_by = $3 where id = $1", [successor.id, fromBack, older.id]),
+        await insert(c, older)
+      )),
+      'EBMR-RCP-089',
+      SUPERSEDES(successor.id ?? '', 2),
+    );
+    // A BRIDGING where the successor superseded nothing (S2/L1 is still v1's CURRENT), and where it did (S1/L1).
+    const nowhere = await propose(bridging(g.v1, g.v2, [cell('S2', 'L1', BS)], E));
+    await insertActivation(nowhere, await signRecord(nowhere), null);
+    const bridge = (record: string, site: string, from: string): Row => ({ authorisation_id: record, family_id: g.familyId, version_id: g.v1, site, line: 'L1', kind: 'BRIDGING', effective_from: from, valid_until: E, successor_version_id: g.v2 });
+    await refused(
+      asOwner(w.cast.qa, async (c) => insert(c, bridge(nowhere, 'S2', await activationFrom(nowhere)))),
+      'EBMR-RCP-090',
+      exactly('BRIDGING is given only where the named successor superseded this version: not the case for IN at {"line": "L1", "site": "S2", "batch_size": "PO-20K"} (ADR 0014; EBMR-RCP-090)'),
+    );
+    const there = await propose(bridging(g.v1, g.v2, [cell('S1', 'L1', BS)], E));
+    await insertActivation(there, await signRecord(there), null);
+    await asOwner(w.cast.qa, async (c) => insert(c, bridge(there, 'S1', await activationFrom(there))));
+    expect(await cellsOfRecord(there)).toEqual([expect.objectContaining({ status: 'BRIDGING', valid_until: E })]);
+    // A withdrawn record gives no cell, even one that would repeat it.
+    const w3 = await w.authorise(current(g.v2, 'IN', [cell('S3', 'L1', BS)]));
+    await withdraw(w3.authorisationId, 'registration withdrawn');
+    const again: Row = { authorisation_id: w3.authorisationId, family_id: g.familyId, version_id: g.v2, site: 'S3', line: 'L1', kind: 'CURRENT', effective_from: w3.effectiveFrom, valid_until: null, successor_version_id: null };
+    await refused(
+      asOwner(w.cast.qa, (c) => insert(c, again)),
+      'EBMR-RCP-092',
+      exactly('A version becomes CURRENT or BRIDGING for a market only through an activated authorisation record with valid QA and regulatory signatures (INV-17; EBMR-RCP-092)'),
+    );
+    expect((await cellsOfRecord(w3.authorisationId)).map((x) => x.status)).toEqual(['WITHDRAWN']);
+    const ofG = (await q<{ id: string }>('select id::text as id from recipe.authorisation_cell where family_id = $1', [g.familyId])).map((x) => x.id);
+    expect((await w.violations()).filter((x) => x.invariant === 'INV-17' && ofG.includes(x.subject))).toEqual([]);
+  }, LONG);
+
+  it('[INV-17][PR-02] an activation takes effect no earlier than the instant its transaction began: a row from that very instant is accepted, one a microsecond before it is refused', async () => {
+    const a = await familyA();
+    const id = await propose(current(a.v1, 'IN', [cell('S2', 'L7', BS)]));
+    const sg = await signRecord(id);
+    // The owner-level writer names the start of its own transaction (now()), or a microsecond before it.
+    const insertAt = async (from: string): Promise<{ at_start: boolean }[]> =>
+      withCommand(db.admin, await cmd(db, w.cast.qa, reason('owner-level activation under test')), async (c) =>
+        (
+          await c.query<{ at_start: boolean }>(
+            `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
+             values ($1, $2, $3, ${from}, $4, $4) returning effective_from = now() as at_start`,
+            [id, sg.qaSig, sg.regSig, NIL],
+          )
+        ).rows,
+      );
+    await refused(
+      insertAt("now() - interval '1 microsecond'"),
+      'EBMR-RCP-095',
+      /^An activation takes effect at the latest of the requested date \(none\), the version's effective date \(\S+\) and the moment it is activated, not at \S+ \(PR-02; INV-17; EBMR-RCP-095\)$/,
+    );
+    expect(await activationsOf(id)).toBe(0);
+    expect(await insertAt('now()')).toEqual([{ at_start: true }]);
+    expect(await recordState(id)).toBe('ACTIVE');
+  }, LONG);
+
+  it('[INV-17][PR-05][PR-04] a cell supersedes only the CURRENT cell of an earlier version of its own family, market, site, line and batch size, and only as a CURRENT cell: a predecessor of another family, market, line or batch size, one of its own version, and a BRIDGING written as the successor are each refused; the predecessor the command supersedes is accepted', async () => {
+    const PO40 = 'PO-40K';
+    // K: v1, v2 and v3 approved, with two batch sizes; another family X, CURRENT for IN at S1/L1 with PO-20K too.
+    const content = uniqueContent();
+    content.header.batchSizes = [...content.header.batchSizes, { id: PO40, quantity: { value: '40000', unit: '{tbl}' } }];
+    const k1 = await w.approvedVersion(content);
+    const k2 = await w.approvedSuccessor(k1.versionId, (m) => (m.header.title = `${m.header.title} v2`));
+    const k3 = await w.approvedSuccessor(k2.versionId, (m) => (m.header.title = `${m.header.title} v3`));
+    const x = await oneVersion();
+    const cellOf = (r: lc.ActivationResult, site: string, line: string, bs = BS): string =>
+      r.cells.find((c) => c.site === site && c.line === line && c.batch_size === bs)?.cell_id ?? '';
+    // Through the command: K's v1 CURRENT for IN at S1/L1, S1/L2 and S1/L1 with PO-40K, and for US at S1/L1; X's v1 for IN at S1/L1.
+    const k1In = await w.authorise(current(k1.versionId, 'IN', [cell('S1', 'L1', BS), cell('S1', 'L2', BS), cell('S1', 'L1', PO40)]));
+    const k1Us = await w.authorise(current(k1.versionId, 'US', [cell('S1', 'L1', BS)]));
+    const xIn = await w.authorise(current(x.v1, 'IN', [cell('S1', 'L1', BS)]));
+    const predecessor = cellOf(k1In, 'S1', 'L1');
+
+    interface Row {
+      id: string;
+      authorisation_id: string;
+      version_id: string;
+      site: string;
+      kind: 'CURRENT' | 'BRIDGING';
+      effective_from: string;
+      valid_until: string | null;
+      successor_version_id: string | null;
+    }
+    // An owner-level writer supersedes `pred` until `until` by the cell `row` (family K, market IN, line L1, PO-20K), then inserts that cell.
+    const supersededBy = (pred: string, until: string, row: Row) =>
+      asOwner(w.cast.qa, async (c) => {
+        await c.query("update recipe.authorisation_cell set status = 'SUPERSEDED', valid_until = $2, superseded_by = $3 where id = $1", [pred, until, row.id]);
+        await c.query(
+          `insert into recipe.authorisation_cell (id, authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind, status, effective_from, valid_until, successor_version_id)
+           values ($1, $2, $3, $4, 0, 'IN', $5, 'L1', $6, $7, $7, $8, $9, $10)`,
+          [row.id, row.authorisation_id, k1.familyId, row.version_id, row.site, BS, row.kind, row.effective_from, row.valid_until, row.successor_version_id],
+        );
+      });
+    const SUPERSEDES = (cellId: string, n: number) =>
+      exactly(`A cell supersedes only the CURRENT cell of an earlier version of the same family, market and scope, which ends where it begins: not cell ${cellId} of version ${n} (PR-05; INV-17; EBMR-RCP-089)`);
+    const cellStatuses = async (ids: string[]): Promise<string[]> =>
+      (await q<{ status: string }>('select status from recipe.authorisation_cell where id = any($1::uuid[])', [ids])).map((r) => r.status);
+
+    // v2's record for IN at S1/L1 with PO-20K, activated by an owner-level writer as the command would; its cell not written yet.
+    const r2 = await propose(current(k2.versionId, 'IN', [cell('S1', 'L1', BS)]));
+    await insertActivation(r2, await signRecord(r2), null);
+    const from2 = await activationFrom(r2);
+    const successor: Row = { id: randomUUID(), authorisation_id: r2, version_id: k2.versionId, site: 'S1', kind: 'CURRENT', effective_from: from2, valid_until: null, successor_version_id: null };
+    // A predecessor that differs from v2's cell in one thing only, each ending where v2's cell begins: another family,
+    // another market, another line, another batch size.
+    const others = [cellOf(xIn, 'S1', 'L1'), cellOf(k1Us, 'S1', 'L1'), cellOf(k1In, 'S1', 'L2'), cellOf(k1In, 'S1', 'L1', PO40)];
+    for (const other of others) await refused(supersededBy(other, from2, successor), 'EBMR-RCP-089', SUPERSEDES(other, 1));
+    // A cell of v1 itself (a second record of v1 for the same scope, activated as the command would) superseding v1's cell.
+    const again = await propose(current(k1.versionId, 'IN', [cell('S1', 'L1', BS)]));
+    await insertActivation(again, await signRecord(again), null);
+    const fromAgain = await activationFrom(again);
+    const sameVersion: Row = { id: randomUUID(), authorisation_id: again, version_id: k1.versionId, site: 'S1', kind: 'CURRENT', effective_from: fromAgain, valid_until: null, successor_version_id: null };
+    await refused(supersededBy(predecessor, fromAgain, sameVersion), 'EBMR-RCP-089', SUPERSEDES(predecessor, 1));
+    // A BRIDGING as the successor of a CURRENT cell. At S3/L1: v2 CURRENT, superseded by v3, v3 withdrawn, then v1 CURRENT
+    // (all through the command); a BRIDGING of v2 with successor v3 (v3 did supersede v2 there), activated as the command
+    // would, written as the successor of v1's cell.
+    await w.authorise(current(k2.versionId, 'IN', [cell('S3', 'L1', BS)]));
+    const k3At3 = await w.authorise(current(k3.versionId, 'IN', [cell('S3', 'L1', BS)]));
+    await withdraw(k3At3.authorisationId, 'registration of the third version withdrawn at S3');
+    const k1At3 = cellOf(await w.authorise(current(k1.versionId, 'IN', [cell('S3', 'L1', BS)])), 'S3', 'L1');
+    const br = await propose(bridging(k2.versionId, k3.versionId, [cell('S3', 'L1', BS)], E));
+    await insertActivation(br, await signRecord(br), null);
+    const fromBr = await activationFrom(br);
+    const asBridging: Row = { id: randomUUID(), authorisation_id: br, version_id: k2.versionId, site: 'S3', kind: 'BRIDGING', effective_from: fromBr, valid_until: E, successor_version_id: k3.versionId };
+    await refused(supersededBy(k1At3, fromBr, asBridging), 'EBMR-RCP-089', SUPERSEDES(k1At3, 1));
+    // Nothing was written: every predecessor is still CURRENT, and no record under test has a cell.
+    expect(await cellStatuses([...others, predecessor, k1At3])).toEqual(Array(6).fill('CURRENT'));
+    expect([await cellsOfRecord(r2), await cellsOfRecord(again), await cellsOfRecord(br)]).toEqual([[], [], []]);
+    // The predecessor the command supersedes, superseded as the command does it: accepted.
+    await supersededBy(predecessor, from2, successor);
+    expect(await cellsOfRecord(r2)).toEqual([expect.objectContaining({ id: successor.id, status: 'CURRENT', effective_from: from2 })]);
+    expect(await cellStatuses([predecessor])).toEqual(['SUPERSEDED']);
+    const ofK = (await q<{ id: string }>('select id::text as id from recipe.authorisation_cell where family_id = $1', [k1.familyId])).map((r) => r.id);
+    expect((await w.violations()).filter((v) => v.invariant === 'INV-17' && ofK.includes(v.subject))).toEqual([]);
+  }, LONG);
+});
+
+interface CellRowD10 {
+  id: string;
+  authorisation_id: string;
+  family_id: string;
+  version_id: string;
+  site: string;
+  line: string;
+  kind: 'CURRENT' | 'BRIDGING';
+  effective_from: string;
+  valid_until: string | null;
+  successor_version_id: string | null;
+}
 
 describe('the INV-17 query (recipe.inv17_violations)', () => {
   it('[INV-17] open CURRENT cells of one family and market at other sites or batch sizes are neither "more than one open CURRENT" nor overlapping', async () => {
@@ -1125,14 +1446,20 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
   }, LONG);
 
   /**
-   * The guard counts the batches of EARLIER versions only. The product never pins a batch to a version before its
-   * approval, but owner-level code can, every trigger on: it sets the engine flag and writes an APPROVED history row for
-   * the CHECKED version (platform.guard_state_row checks no more than the flag on a history insert; the kernel's state
-   * query finds the row), then records a market authorisation for that version, its activation and its cell directly,
-   * and the issue command then pins a batch to that version. A batch of the version itself is no batch of an earlier
-   * version: no in-flight disposition can be recorded for it (EBMR-RCP-070), and the approval does not wait for one.
+   * The guard counts the batches of EARLIER versions only, and no batch of the version under approval can exist. Before
+   * recipe-core 0383 (D10) owner-level code could pin one, every trigger on: it set the engine flag and wrote an APPROVED
+   * history row for the CHECKED version (platform.guard_state_row checks no more than the flag on a history insert, D11),
+   * recorded a market authorisation for that version, its activation and its cell directly, and the issue command then
+   * pinned a batch to the version; that batch took no in-flight disposition (EBMR-RCP-070) and the approval did not wait
+   * for one. This test is the kill test of recipe.guard_in_flight_dispositioned#3 (`<` made `<=`). Adapted for 0383
+   * (decision D10.1): the same arrangement is made, and each step that would pin a batch to the version is now refused (the
+   * activation and the cell read the version's own state row, which the forged history row does not change), so the issue
+   * finds no version. The guard's rule is then still proven on the state the superuser plants with every trigger off (the
+   * activation and the cell), the issue command pinning the batch: the batch of the version under approval takes no
+   * in-flight disposition and the approval does not wait for one. No writer with the triggers on reaches that state since
+   * 0383, so the mutant is equivalent for them (the kill-results page, D10); the test keeps the rule all the same.
    */
-  it('[PR-05][INV-01] a batch pinned to the version under approval is not a batch of an earlier version: it takes no in-flight disposition and the approval does not wait for one', async () => {
+  it('[PR-05][INV-01][INV-17] no batch is pinned to the version under approval: with a forged APPROVED history row, the activation and the cell written around the command for it are refused and the issue finds no version; a batch of that version, on the state planted with every trigger off, is no batch of an earlier version: it takes no in-flight disposition and the approval does not wait for one', async () => {
     const content = uniqueContent();
     const v = await w.newVersion(content);
     await w.prepare(v.versionId, content);
@@ -1159,18 +1486,49 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
       return rows[0]?.id ?? '';
     });
     const s = await signRecord(record);
-    await asOwner(w.cast.qa, async (c) => {
-      await c.query(
-        `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
-         values ($1, $2, $3, $4, $5, $5)`,
-        [record, s.qaSig, s.regSig, FROM, NIL],
-      );
-      await c.query(
-        `insert into recipe.authorisation_cell (authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind, status, effective_from)
-         values ($1, $2, $3, 0, 'IN', 'S1', 'L1', $4, 'CURRENT', 'CURRENT', $5)`,
-        [record, v.familyId, v.versionId, BS, FROM],
-      );
-    });
+    await refused(
+      asOwner(w.cast.qa, (c) =>
+        c.query(
+          `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
+           values ($1, $2, $3, $4, $5, $5)`,
+          [record, s.qaSig, s.regSig, FROM, NIL],
+        ),
+      ),
+      'EBMR-RCP-086',
+      exactly('Version 1 is CHECKED: only an APPROVED version becomes CURRENT or BRIDGING (ADR 0014; EBMR-RCP-086)'),
+    );
+    await refused(
+      asOwner(w.cast.qa, (c) =>
+        c.query(
+          `insert into recipe.authorisation_cell (authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind, status, effective_from)
+           values ($1, $2, $3, 0, 'IN', 'S1', 'L1', $4, 'CURRENT', 'CURRENT', $5)`,
+          [record, v.familyId, v.versionId, BS, FROM],
+        ),
+      ),
+      'EBMR-RCP-092',
+      exactly('A version becomes CURRENT or BRIDGING for a market only through an activated authorisation record with valid QA and regulatory signatures (INV-17; EBMR-RCP-092)'),
+    );
+    expect(await cellsOfRecord(record)).toEqual([]);
+    await refused(
+      w.issue(v.familyId, ['IN'], S1),
+      'EBMR-RCP-100',
+      new RegExp(`^Batch B[0-9A-F]{8} cannot be issued\\. .*batch size ${BS}: IN: no version is CURRENT or BRIDGING for this market and scope \\(INV-01; PR-04\\) \\(EBMR-RCP-100\\)$`),
+    );
+    expect(Number((await one<{ n: string }>('select count(*)::text as n from recipe.batch_mbr_pin where version_id = $1', [v.versionId])).n)).toBe(0);
+    // The guard's own rule, on the state no writer reaches since 0383: the superuser, every trigger off, plants the
+    // activation and the cell, and the issue command (every trigger on) pins a batch to the CHECKED version.
+    await asTimeTraveller(
+      db,
+      `insert into recipe.market_authorisation_activation (authorisation_id, qa_signature_id, regulatory_signature_id, effective_from, person_id, account_id)
+       values ($1, $2, $3, $4, $5, $5)`,
+      [record, s.qaSig, s.regSig, FROM, w.cast.qa.personId],
+    );
+    await asTimeTraveller(
+      db,
+      `insert into recipe.authorisation_cell (authorisation_id, family_id, version_id, version_number, market, site, line, batch_size, kind, status, effective_from)
+       select $1, $2, v.id, v.version_number, 'IN', 'S1', 'L1', $4, 'CURRENT', 'CURRENT', $5 from recipe.mbr_version v where v.id = $3`,
+      [record, v.familyId, v.versionId, BS, FROM],
+    );
     const own = await w.issue(v.familyId, ['IN'], S1);
     expect(own.versionId).toBe(v.versionId);
     expect(await statusOf(own.batchId)).toBe('ISSUED');

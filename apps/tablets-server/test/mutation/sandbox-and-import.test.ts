@@ -110,7 +110,7 @@ describe('test lots (tablets 0200, 0701)', () => {
 
   it('[PR-18][DI-05] a test lot without a lot code, or without a yes-or-no identity test, is refused (EBMR-EXE-070) and nothing is registered', async () => {
     const before = await lots();
-    const incomplete = 'A test lot needs a lot code, a material, a status and whether it is identity-tested (PR-18). [EBMR-EXE-070]';
+    const incomplete = 'A test lot needs a lot code and whether it is identity-tested, yes or no (PR-18). [EBMR-EXE-070]';
     const noIdentityTest: Record<string, unknown> = lot('TEST-L26-0901');
     delete noIdentityTest['identityTested'];
     for (const [what, l] of [
@@ -124,6 +124,20 @@ describe('test lots (tablets 0200, 0701)', () => {
     ] as const) {
       expect([what, await register(l)]).toEqual([what, incomplete]);
     }
+    expect(await lots()).toEqual(before);
+  });
+
+  it('[PR-18][DI-05] D4: the register\'s own refusal names what it checks; a lot without a material or a status is refused by the register\'s table (its NOT NULL constraints), and nothing is registered', async () => {
+    const before = await lots();
+    const without = (member: string): Record<string, unknown> => {
+      const l: Record<string, unknown> = lot('TEST-L26-0906');
+      delete l[member];
+      return l;
+    };
+    expect({ material: await register(without('materialCode')), status: await register(without('status')) }).toEqual({
+      material: 'null value in column "material_code" of relation "sandbox_lot" violates not-null constraint',
+      status: 'null value in column "status" of relation "sandbox_lot" violates not-null constraint',
+    });
     expect(await lots()).toEqual(before);
   });
 
@@ -259,12 +273,13 @@ describe('a test package names the family and product of its MBR content (recipe
     };
     const pkg = pkgWith(() => undefined);
     const own = { ...pkg.family.product } as Json;
-    const familyRefusal = await insert(pkg, 'IBU400-DC', own);
-    expect(familyRefusal).toMatch(/^Test package [0-9a-f]{12} is refused: the family code .* is not the family of the MBR content \(PCM500-DC\)\. .*\(DI-04, DI-37\)\. \[EBMR-EXE-134\]$/);
+    const refusedFor = (why: string) =>
+      `Test package ${pkg.packageHash.slice(0, 12)} is refused: ${why}. The family and product a test run shows are those of the MBR content its signatures bind (DI-04, DI-37). [EBMR-EXE-134]`;
+    // D14 (recipe-core 0384): the reason names the stored value that differs, not the package's, which is the content's own.
+    expect(await insert(pkg, 'IBU400-DC', own)).toBe(refusedFor('the stored family code IBU400-DC is not the family of the MBR content (PCM500-DC)'));
     for (const [k, v] of [['code', 'IBU400'], ['name', 'Ibuprofen tablets'], ['strength', '400 mg']] as const) {
-      // The message names the package's value, not the stored one that differs (reported to the lead); the reason is asserted.
       const m = await insert(pkg, pkg.family.familyCode, { ...own, [k]: v });
-      expect([k, m]).toEqual([k, expect.stringMatching(new RegExp(`^Test package ${pkg.packageHash.slice(0, 12)} is refused: the product ${k} .* is not the ${k} of the MBR content \\(.*\\)\\. .*\\[EBMR-EXE-134\\]$`))]);
+      expect([k, m]).toEqual([k, refusedFor(`the stored product ${k} ${v} is not the ${k} of the MBR content (${String(own[k])})`)]);
     }
     expect(await stored(pkg.packageHash)).toBe(0);
     expect(await insert(pkg, pkg.family.familyCode, own)).toBe('ok');
@@ -272,15 +287,18 @@ describe('a test package names the family and product of its MBR content (recipe
   });
 
   it('[DI-04][DI-37] a family code that is not text is refused through the application role (EBMR-EXE-134), even when the package\'s family member and the content header agree, and nothing is stored', async () => {
-    // recipe.import_test_package stores the family code as text, which is never the header's number, boolean or null.
-    // The reason's wording for this case is reported to the lead (it names the same value on both sides); the refusal is asserted.
-    for (const odd of [500, true, null]) {
+    // recipe.import_test_package stores the family code as text, which is never the header's number, boolean or null. The
+    // reason (D14, recipe-core 0384) says a family code must be text and names both values with their JSON type.
+    for (const [odd, named] of [[500, '500 (a JSON number)'], [true, 'true (a JSON boolean)'], [null, 'null (a JSON null)']] as const) {
       const pkg = pkgWith((f, c) => {
         f['familyCode'] = odd;
         (c['header'] as Json)['family'] = odd;
       });
       const m = await importDirect(pkg);
-      expect([odd, m]).toEqual([odd, expect.stringMatching(new RegExp(`^Test package ${pkg.packageHash.slice(0, 12)} is refused: the family code .* is not the family of the MBR content \\(.*\\)\\. .*\\(DI-04, DI-37\\)\\. \\[EBMR-EXE-134\\]$`))]);
+      expect([odd, m]).toEqual([
+        odd,
+        `Test package ${pkg.packageHash.slice(0, 12)} is refused: the family code must be text: the package gives ${named} and the MBR content ${named}. The family and product a test run shows are those of the MBR content its signatures bind (DI-04, DI-37). [EBMR-EXE-134]`,
+      ]);
       expect([odd, await stored(pkg.packageHash)]).toEqual([odd, 0]);
     }
   });

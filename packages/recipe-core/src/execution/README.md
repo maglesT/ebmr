@@ -516,9 +516,21 @@ that another command holds is skipped.
     row's target) and otherwise what the system does by itself: step instances the token enables or sets not
     applicable with nobody in them, and PERFORMED signatures made invalid. On its own step, START_STEP starts it,
     RECORD_DATA and RECORD_ENTRY and every refused or PREPARE row leave its status, VERIFY completes it; a
-    signature it records stays (only made invalid), a new one is an e-signature of the row, a PERFORMED signer is
-    added only by that person's accepted SIGN_PERFORMED; a new entry is the accepted RECORD_ENTRY's own
-    (EBMR-EXE-128). An accepted CORRECT_ENTRY may re-open the steps depending on the corrected value.
+    signature it records stays (only made invalid, its validity recorded true then stored false: a validity dropped
+    or given where none was recorded is a change, sql 0381, defect D8), a new one is an e-signature of the row, a
+    PERFORMED signer is added only by that person's accepted SIGN_PERFORMED; a new entry is the accepted
+    RECORD_ENTRY's own (EBMR-EXE-128). An accepted CORRECT_ENTRY may re-open the steps depending on the corrected value.
+  - a recorded signature of any step instance, the row's own or another, is made invalid only where the engine makes
+    it invalid (sql 0382, trigger `zzm_execution_signature_invalidation`, `signature_invalidation_problem`; defect
+    D9, decision D9.1; DI-35, INV-10, PR-14): a PERFORMED signature of a step the row leaves IN_PROGRESS whose data
+    the row changes (`step_facts_changed`: a data point, computed value or entry of the step, or an exception raised
+    at it that is not an act; engine.ts resignAfterChange), its signer then no longer a PERFORMED signer unless the row
+    adds a new PERFORMED signature of that person; and, in an accepted CORRECT_ENTRY or INVALIDATE_RESULT, the
+    PERFORMED and CHECKED signatures of a step COMPLETED or AWAITING_VERIFICATION before the row that is sent back for
+    re-verification (AWAITING_VERIFICATION, marked for it) or, in an INVALIDATE_RESULT, reopened (IN_PROGRESS, its data
+    changed, its PERFORMED signers then none). A PERFORMED signer leaves only with the signature the row makes
+    invalid. 0300 had accepted any signature going from valid to not valid in any row (EBMR-EXE-128). Whether the
+    step's signing content really changed is the replay's to judge.
 - every later row keeps what the state has recorded, and a time sweep changes nothing else (sql 0303; trigger
   `zc_execution_recorded_state`, after `zb_execution_state_binding`; review P34, P58, P36, round-2 verification;
   DI-24, DI-29, DI-30, DI-32, DI-33, DI-27, INV-20, INV-41). 0300 compared only what a person's row adds and let a

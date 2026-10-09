@@ -167,6 +167,23 @@ describe('the signatures a step recorded (recipe.signature_change_problem, 0300)
     });
   });
 
+  it('[DI-35][INV-10][PR-14] D8: a recorded signature stored without its validity, or a validity recorded nowhere then given one, is refused as changed (fail closed, as the stage sign-off rule of 0307); a signature recorded without one and kept so is kept', async () => {
+    const without = (extra: Json = {}): Json => {
+      const g = sig(S1, extra);
+      delete g['valid'];
+      return g;
+    };
+    const outcomes = {
+      validityDropped: await signatures(step([sig(S1)]), step([without()])),
+      invalidValidityDropped: await signatures(step([sig(S1, { valid: false })]), step([without()])),
+      noValidityMadeInvalid: await signatures(step([without()]), step([sig(S1, { valid: false })])),
+      noValidityMadeValid: await signatures(step([without()]), step([sig(S1)])),
+      noValidityKept: await signatures(step([without()]), step([without()])),
+    };
+    const changed = `signature ${S1} it recorded is changed, or made valid again`;
+    expect(outcomes).toEqual({ validityDropped: changed, invalidValidityDropped: changed, noValidityMadeInvalid: changed, noValidityMadeValid: changed, noValidityKept: null });
+  });
+
   it('[DI-35][INV-10] a new signature is one of the e-signatures the row carries; one without an id, or not carried, is refused', async () => {
     const outcomes = {
       carried: await signatures(step([sig(S1)]), step([sig(S1), sig(S2)]), [S2]),
@@ -181,6 +198,159 @@ describe('the signatures a step recorded (recipe.signature_change_problem, 0300)
       notCarried: `signature ${S2} is not an e-signature this row carries`,
       otherCarried: `signature ${S2} is not an e-signature this row carries`,
       noId: 'signature (no id) is not an e-signature this row carries',
+    });
+  });
+});
+
+describe('D9: a recorded signature is made invalid only where the engine makes it invalid (recipe-core 0382 recipe.step_facts_changed, recipe.signature_invalidation_problem)', () => {
+  const K = 's@';
+  const S1 = '6f0d1f9e-3c1b-4d3a-9a51-0b6f4f3f2a11';
+  const S2 = '0c7f8e2d-55a4-4b4e-8d0e-7a2b9c1d3e42';
+  const S3 = '9b1e2c3d-4f50-4a61-8b72-c3d4e5f60718';
+  const changed = (s0: unknown, s1: unknown, key = K) =>
+    value<boolean>('select recipe.step_facts_changed($1::jsonb, $2::jsonb, $3) as p', [JSON.stringify(s0), JSON.stringify(s1), key]);
+  const problem = (old: unknown, now: unknown, s0: unknown, s1: unknown, type: string | null = null, key = K) =>
+    value<string>('select recipe.signature_invalidation_problem($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6) as p', [
+      key, JSON.stringify(old), JSON.stringify(now), JSON.stringify(s0), JSON.stringify(s1), type,
+    ]);
+  const point = (stepKey: string, extra: Json = {}): Json => ({ id: 'DP-1', stepKey, item: 'x', status: 'VALID', value: { kind: 'DECIMAL', value: '1', unit: 'g' }, ...extra });
+  const exception = (type: string, stepKey: string, extra: Json = {}): Json => ({ id: 'EX-1', type, source: { stepKey, frames: [] }, status: 'OPEN', ...extra });
+  const facts = (m: Json = {}): Json => ({ points: {}, derived: {}, entries: {}, exceptions: {}, ...m });
+  const sig = (id: string, role: string, signer: string, valid = true): Json => ({ id, meaning: role === 'CHECKED' ? 'VERIFIED' : 'PERFORMED', signer, role, at: { $u: '1790000000000000' }, valid });
+  const inst = (status: string, sigs: Json[], signers: string[], extra: Json = {}): Json => ({ key: K, status, signatures: sigs, performedSigners: signers, reverification: false, ...extra });
+
+  it('[DI-35][INV-10] the data a step\'s signature covers changes with a value, computed value or entry of that step, or an exception raised at it that is data, read as raised; not with another step\'s, an act\'s exception or a disposition', async () => {
+    const before = facts({ points: { 'DP-1': point(K) }, exceptions: { 'EX-1': exception('LIMIT_BREACH', K) } });
+    const acts: Record<string, boolean | null> = Object.fromEntries(
+      await Promise.all(
+        ['WITNESS_LATE', 'OPERATOR_RAISED', 'HOLD_POINT_NOT_APPROVED', 'STEP_SKIPPED', 'EXECUTED_TARGET_CHANGED'].map(async (t) => [`act ${t}`, await changed(facts(), facts({ exceptions: { 'EX-1': exception(t, K) } }))] as const),
+      ),
+    );
+    const outcomes = {
+      nothing: await changed(before, before),
+      pointAdded: await changed(facts(), facts({ points: { 'DP-1': point(K) } })),
+      pointChanged: await changed(before, { ...before, points: { 'DP-1': point(K, { status: 'SUPERSEDED' }) } }),
+      pointOfAnotherStep: await changed(facts(), facts({ points: { 'DP-1': point('t@') } })),
+      pointMovedHere: await changed(facts({ points: { 'DP-1': point('t@') } }), facts({ points: { 'DP-1': point(K) } })),
+      derivedAdded: await changed(facts(), facts({ derived: { 'DV-1': { id: 'DV-1', stepKey: K } } })),
+      entryAdded: await changed(facts(), facts({ entries: { 'EN-1': { id: 'EN-1', stepKey: K } } })),
+      dataExceptionRaised: await changed(facts(), facts({ exceptions: { 'EX-1': exception('LIMIT_BREACH', K) } })),
+      timeExceptionRaised: await changed(facts(), facts({ exceptions: { 'EX-1': exception('TIME_MIN_BREACH', K) } })),
+      dataExceptionChanged: await changed(before, { ...before, exceptions: { 'EX-1': exception('LIMIT_BREACH', K, { title: 'other' }) } }),
+      dispositioned: await changed(before, { ...before, exceptions: { 'EX-1': exception('LIMIT_BREACH', K, { status: 'DISPOSITIONED', disposition: { outcome: 'NO_IMPACT' }, deviation: { ref: 'D-1' } }) } }),
+      exceptionOfAnotherStep: await changed(facts(), facts({ exceptions: { 'EX-1': exception('LIMIT_BREACH', 't@') } })),
+      exceptionAtNoStep: await changed(facts(), facts({ exceptions: { 'EX-1': { id: 'EX-1', type: 'LIMIT_BREACH', source: { frames: [] } } } })),
+      ...acts,
+      membersMalformed: await changed({ points: [], derived: 'x', entries: null, exceptions: 5 }, { points: [], derived: 'x', entries: null, exceptions: 5 }),
+      stepKeyMissing: await changed(facts(), facts({ points: { 'DP-1': point(K) } }), null as unknown as string),
+    };
+    expect(outcomes).toEqual({
+      nothing: false,
+      pointAdded: true,
+      pointChanged: true,
+      pointOfAnotherStep: false,
+      pointMovedHere: true,
+      derivedAdded: true,
+      entryAdded: true,
+      dataExceptionRaised: true,
+      timeExceptionRaised: true,
+      dataExceptionChanged: true,
+      dispositioned: false,
+      exceptionOfAnotherStep: false,
+      exceptionAtNoStep: false,
+      'act WITNESS_LATE': false,
+      'act OPERATOR_RAISED': false,
+      'act HOLD_POINT_NOT_APPROVED': false,
+      'act STEP_SKIPPED': false,
+      'act EXECUTED_TARGET_CHANGED': false,
+      membersMalformed: false,
+      stepKeyMissing: false,
+    });
+  });
+
+  it('[DI-35][INV-10][PR-14][INV-03] the engine\'s three paths are accepted: a PERFORMED signature of a step left in progress whose data changed (its signer no longer a PERFORMED signer), the signatures of a step COMPLETED or waiting for its check that a correction sends back for re-verification, and those of such a step a result invalidation reopens; nothing else', async () => {
+    const same = facts({ points: { 'DP-1': point(K) } });
+    const more = facts({ points: { 'DP-1': point(K), 'DP-2': point(K, { id: 'DP-2' }) } });
+    const performed = sig(S1, 'PERFORMED', 'OP1');
+    const checked = sig(S2, 'CHECKED', 'VER1');
+    const invalid = (g: Json): Json => ({ ...g, valid: false });
+    const outcomes = {
+      // resignAfterChange
+      resign: await problem(inst('IN_PROGRESS', [performed], ['OP1', 'OP2']), inst('IN_PROGRESS', [invalid(performed)], ['OP2']), same, more),
+      resignNoChange: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [invalid(performed)], []), same, same),
+      resignStepWaiting: await problem(inst('AWAITING_VERIFICATION', [performed], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed)], []), same, more),
+      resignCheck: await problem(inst('IN_PROGRESS', [performed, checked], ['OP1']), inst('IN_PROGRESS', [performed, invalid(checked)], ['OP1']), same, more),
+      resignSignerStays: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [invalid(performed)], ['OP1']), same, more),
+      resignSignerSignsAgain: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [invalid(performed), sig(S3, 'PERFORMED', 'OP1')], ['OP1']), same, more),
+      resignOtherSignsAgain: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [invalid(performed), sig(S3, 'PERFORMED', 'OP2')], ['OP1', 'OP2']), same, more),
+      resignStaleNewSignature: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [invalid(performed), sig(S3, 'PERFORMED', 'OP1', false)], ['OP1']), same, more),
+      resignInARefusedRow: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [invalid(performed)], []), same, more, null),
+      holdPoint: await problem(inst('IN_PROGRESS', [sig(S1, 'HOLD_POINT', 'QA1')], []), inst('IN_PROGRESS', [invalid(sig(S1, 'HOLD_POINT', 'QA1'))], []), same, more),
+      noRole: await problem(inst('IN_PROGRESS', [{ id: S1, signer: 'OP1', valid: true }], []), inst('IN_PROGRESS', [{ id: S1, signer: 'OP1', valid: false }], []), same, more),
+      // sendBackForReverification
+      sentBack: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed), invalid(checked)], ['OP1'], { reverification: true }), same, more, 'CORRECT_ENTRY'),
+      sentBackByInvalidation: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed), invalid(checked)], ['OP1'], { reverification: true }), same, more, 'INVALIDATE_RESULT'),
+      sentBackWithoutReverification: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed), invalid(checked)], ['OP1']), same, more, 'CORRECT_ENTRY'),
+      sentBackByAnException: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed), invalid(checked)], ['OP1'], { reverification: true }), same, more, 'RAISE_EXCEPTION'),
+      sentBackInARefusedRow: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed), invalid(checked)], ['OP1'], { reverification: true }), same, more, null),
+      sentBackLeftCompleted: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('COMPLETED', [performed, invalid(checked)], ['OP1'], { reverification: true }), same, more, 'CORRECT_ENTRY'),
+      sentBackHoldPoint: await problem(inst('COMPLETED', [sig(S1, 'HOLD_POINT', 'QA1')], []), inst('AWAITING_VERIFICATION', [invalid(sig(S1, 'HOLD_POINT', 'QA1'))], [], { reverification: true }), same, more, 'CORRECT_ENTRY'),
+      sentBackWhileWaiting: await problem(inst('AWAITING_VERIFICATION', [performed], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed)], ['OP1'], { reverification: true }), same, more, 'CORRECT_ENTRY'),
+      sentBackFromInProgress: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('AWAITING_VERIFICATION', [invalid(performed)], ['OP1'], { reverification: true }), same, more, 'CORRECT_ENTRY'),
+      sentBackFromNoStatus: await problem({ key: K, signatures: [performed], performedSigners: ['OP1'] }, inst('AWAITING_VERIFICATION', [invalid(performed)], ['OP1'], { reverification: true }), same, more, 'CORRECT_ENTRY'),
+      // invalidateResult, reopening
+      reopened: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('IN_PROGRESS', [invalid(performed), invalid(checked)], []), same, more, 'INVALIDATE_RESULT'),
+      reopenedSignersDropped: await problem(inst('AWAITING_VERIFICATION', [invalid(performed), checked], ['OP1']), inst('IN_PROGRESS', [invalid(performed), invalid(checked)], []), same, more, 'INVALIDATE_RESULT'),
+      reopenedNoChange: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('IN_PROGRESS', [invalid(performed), invalid(checked)], []), same, same, 'INVALIDATE_RESULT'),
+      reopenedByACorrection: await problem(inst('COMPLETED', [performed, checked], ['OP1']), inst('IN_PROGRESS', [invalid(performed), invalid(checked)], []), same, more, 'CORRECT_ENTRY'),
+      reopenedFromInProgress: await problem(inst('IN_PROGRESS', [performed, checked], ['OP1']), inst('IN_PROGRESS', [invalid(performed), invalid(checked)], []), same, more, 'INVALIDATE_RESULT'),
+      reopenedFromInProgressSignersDropped: await problem(inst('IN_PROGRESS', [performed], ['OP1', 'OP2']), inst('IN_PROGRESS', [invalid(performed)], []), same, more, 'INVALIDATE_RESULT'),
+      signersDroppedReopenedByAnotherRow: await problem(inst('AWAITING_VERIFICATION', [invalid(performed)], ['OP1']), inst('IN_PROGRESS', [invalid(performed)], []), same, more, null),
+      // PERFORMED signers
+      signerDropped: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [performed], []), same, more),
+      signerDroppedReopenedKeepsOne: await problem(inst('AWAITING_VERIFICATION', [invalid(performed), checked], ['OP1', 'OP2']), inst('IN_PROGRESS', [invalid(performed), invalid(checked)], ['OP2']), same, more, 'INVALIDATE_RESULT'),
+      kept: await problem(inst('IN_PROGRESS', [performed], ['OP1']), inst('IN_PROGRESS', [performed], ['OP1']), same, more),
+      // A validity dropped, or none recorded, is no invalidation here: 0300 and 0381 refuse it as a change.
+      validityDropped: await problem(inst('COMPLETED', [checked], ['OP1']), inst('COMPLETED', [{ ...checked, valid: undefined }], ['OP1']), same, more),
+      // Two PERFORMED signatures of one person: the engine makes both invalid; one kept valid is no new signature.
+      oneOfTwoKept: await problem(inst('IN_PROGRESS', [performed, sig(S3, 'PERFORMED', 'OP1')], ['OP1']), inst('IN_PROGRESS', [invalid(performed), sig(S3, 'PERFORMED', 'OP1')], ['OP1']), same, more),
+      malformed: await problem({ key: K, signatures: 'x', performedSigners: 5 }, { key: K, signatures: 'x', performedSigners: 5 }, same, more),
+    };
+    expect(outcomes).toEqual({
+      resign: null,
+      resignNoChange: `its PERFORMED signature ${S1} is made invalid with the step left IN_PROGRESS and none of its data changed`,
+      resignStepWaiting: `its PERFORMED signature ${S1} is made invalid with the step left AWAITING_VERIFICATION`,
+      resignCheck: `its CHECKED signature ${S2} is made invalid with the step left IN_PROGRESS`,
+      resignSignerStays: 'the PERFORMED signature of OP1 is made invalid, and OP1 stays a PERFORMED signer of it',
+      resignSignerSignsAgain: null,
+      resignOtherSignsAgain: 'the PERFORMED signature of OP1 is made invalid, and OP1 stays a PERFORMED signer of it',
+      resignStaleNewSignature: 'the PERFORMED signature of OP1 is made invalid, and OP1 stays a PERFORMED signer of it',
+      resignInARefusedRow: null,
+      holdPoint: `its HOLD_POINT signature ${S1} is made invalid with the step left IN_PROGRESS`,
+      noRole: `its (no role) signature ${S1} is made invalid with the step left IN_PROGRESS`,
+      sentBack: null,
+      sentBackByInvalidation: null,
+      sentBackWithoutReverification: `its PERFORMED signature ${S1} is made invalid with the step left AWAITING_VERIFICATION`,
+      sentBackByAnException: `its PERFORMED signature ${S1} is made invalid with the step left AWAITING_VERIFICATION`,
+      sentBackInARefusedRow: `its PERFORMED signature ${S1} is made invalid with the step left AWAITING_VERIFICATION`,
+      sentBackLeftCompleted: `its CHECKED signature ${S2} is made invalid with the step left COMPLETED`,
+      sentBackHoldPoint: `its HOLD_POINT signature ${S1} is made invalid with the step left AWAITING_VERIFICATION`,
+      sentBackWhileWaiting: null,
+      sentBackFromInProgress: `its PERFORMED signature ${S1} is made invalid with the step left AWAITING_VERIFICATION`,
+      sentBackFromNoStatus: `its PERFORMED signature ${S1} is made invalid with the step left AWAITING_VERIFICATION`,
+      reopened: null,
+      reopenedSignersDropped: null,
+      reopenedNoChange: `its PERFORMED signature ${S1} is made invalid with the step left IN_PROGRESS and none of its data changed`,
+      reopenedByACorrection: `its CHECKED signature ${S2} is made invalid with the step left IN_PROGRESS`,
+      reopenedFromInProgress: `its CHECKED signature ${S2} is made invalid with the step left IN_PROGRESS`,
+      reopenedFromInProgressSignersDropped: 'OP2 is no longer a PERFORMED signer of it, and no PERFORMED signature of OP2 is made invalid',
+      signersDroppedReopenedByAnotherRow: 'OP1 is no longer a PERFORMED signer of it, and no PERFORMED signature of OP1 is made invalid',
+      signerDropped: 'OP1 is no longer a PERFORMED signer of it, and no PERFORMED signature of OP1 is made invalid',
+      signerDroppedReopenedKeepsOne: 'OP1 is no longer a PERFORMED signer of it, and no PERFORMED signature of OP1 is made invalid',
+      kept: null,
+      validityDropped: null,
+      oneOfTwoKept: 'the PERFORMED signature of OP1 is made invalid, and OP1 stays a PERFORMED signer of it',
+      malformed: null,
     });
   });
 });

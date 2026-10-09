@@ -422,3 +422,99 @@ describe('F67 round 3: a recorded start stays as recorded, whatever the row ends
     expect((await violations(sbx)).filter((v) => v.batchId === d.runId)).toEqual([]);
   }, 300_000);
 });
+
+describe('D7: a loop is left only with its own frame and its END (0312 item 5, 0338 recipe.row_context_problem; INV-20, PR-30, DI-27, DI-30)', () => {
+  const LOOP = 'L-MIX';
+  const TC = 'TC-MIX';
+  const ROUND = `p-mix-round@${LOOP}=1`;
+
+  /**
+   * dc-mini whose dispensing stage holds only loop L-MIX (one phase p-mix-round recording mixRounds, a parameter
+   * without limits; the loop exits once mixRounds >= 1 min) and a minimum of 1 h from the loop's START to its END:
+   * the loop is the last thing of its stage, so nothing the token reaches after it asks for its END but the exit itself.
+   */
+  function loopStage(): flow.MbrContent {
+    const content = JSON.parse(JSON.stringify(dcMini())) as Json;
+    const blendTime = (content['parameters'] as Json[]).find((p) => p['id'] === 'blendTime') as Json;
+    const rounds: Json = { ...blendTime, id: 'mixRounds', name: 'Mixing time of the round', role: 'PROCESS_ENDPOINT', criticality: 'NON_CRITICAL', riskClass: 'LOW', evidence: 'NONE' };
+    delete rounds['limits'];
+    delete rounds['target'];
+    (content['parameters'] as Json[]).push(rounds);
+    const stages = (((content['procedure'] as Json)['body'] as Json)['children'] as Json[]);
+    const blend = ((((stages[1] as Json)['body'] as Json)['children'] as Json[])[0] as Json)['body'] as Json;
+    const p = (blend['children'] as Json[]).find((x) => x['id'] === 'p-blend') as Json;
+    const round = { ...p, id: 'p-mix-round', name: 'Mixing round', records: ['mixRounds'], equipment: [], signatures: { perform: { role: 'PRODUCTION_OPERATOR' } } };
+    const stage = (stages[0] as Json)['body'] as Json;
+    const prep = (stage['children'] as Json[])[0] as Json;
+    (prep['body'] as Json)['children'] = [{ kind: 'loop', id: LOOP, name: 'Mixing', maxIterations: 3, exit: { condition: 'mixRounds >= 1 [min]', endpoint: 'mixRounds' }, body: { kind: 'sequence', id: `${LOOP}-seq`, children: [round] } }];
+    stage['children'] = [prep];
+    content['timeConstraints'] = [{ id: TC, name: 'Mixing at least 1 h', kind: 'PROCESS_WINDOW', from: { node: LOOP, event: 'START' }, to: { node: LOOP, event: 'END' }, min: { value: '1', unit: 'h' }, source: { kind: 'VALIDATION_REPORT', ref: 'VR-BLEND-01' }, breach: 'EXCEPTION', pauses: 'INCLUDED' }];
+    const parsed = flow.parseMbr(content);
+    if (!parsed.ok) throw new Error(`SETUP: the variant does not parse: ${JSON.stringify(parsed.problems.slice(0, 3))}`);
+    return parsed.mbr;
+  }
+
+  it('[INV-20][PR-30][DI-27][DI-30] an iteration that ends the loop before its minimum is refused by the engine and, through the application role, by the database: with its own frame for the minimum (EBMR-EXE-130), and with its context empty (its decision refiled without frames, no END) as a context that is not the loop\'s, or left out as a command without its context (EBMR-EXE-126); nothing is written', async () => {
+    const d = await newRun(loopStage(), ['operator1']);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: ROUND });
+    await d.ok('operator1', { type: 'RECORD_DATA', stepKey: ROUND, item: 'mixRounds', value: { kind: 'DECIMAL', value: '1', unit: 'min' }, source: { mode: 'MANUAL' } });
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: ROUND });
+    const s0 = await stateOf(d);
+    expect({ round: s0.steps[ROUND]?.status, decisions: Object.keys(s0.decisions), start: s0.nodeEvents[`${LOOP}|START|`] !== undefined }, 'SETUP: the round is done, the loop waits for its iteration to be completed').toEqual({ round: 'COMPLETED', decisions: [], start: true });
+    const run = await runContext(sbx.db.admin, d.runId);
+    const who = personaIn(sbx, 'operator1');
+    const own = [{ construct: LOOP, index: 1 }];
+    let refusal = '';
+    /**
+     * operator1 completes the iteration through the store: the engine's result of a definition without the minimum,
+     * for the iteration's own context; `context` is what the command records (undefined: no context member), and
+     * without the loop's own frame the decision is refiled under those frames and the loop's END is left out.
+     */
+    const exit = async (context: { construct: string; index: number }[] | undefined): Promise<string> =>
+      messageOf(
+        withCommand(sbx.db.app, await actorOf(sbx, d.browser('operator1'), 'operator1'), async (c) => {
+          const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
+          const roles = await engineRoles(c);
+          const honest: engine.Command = { type: 'COMPLETE_LOOP_ITERATION', commandId: randomUUID(), actor: engineActor(who.personId, roles), construct: LOOP, context: own };
+          refusal = engine.step(tx.def, tx.state, honest, { nowUs: tx.nowUs }).refusal?.code ?? 'accepted';
+          const lax: engine.BatchDefinition = {
+            ...tx.def,
+            constraints: tx.def.constraints.map((rc) => {
+              if (rc.tc.id !== TC) return rc;
+              const tc = { ...rc.tc };
+              delete tc.min;
+              return { ...rc, tc };
+            }),
+          };
+          const r = engine.step(lax, tx.state, honest, { nowUs: tx.nowUs });
+          if (!r.accepted) throw new Error(`SETUP: the definition without the minimum refused the iteration: ${JSON.stringify(r.refusal)}`);
+          if (context === own) return appendAs(tx, honest, r, roles);
+          const ownKey = `${LOOP}@${LOOP}=1`;
+          const decision = r.state.decisions[ownKey];
+          if (decision?.outcome !== 'EXIT' || !r.state.nodeEvents[`${LOOP}|END|`]) throw new Error('SETUP: the iteration does not end the loop');
+          const state = structuredClone(r.state);
+          delete state.decisions[ownKey];
+          state.decisions[`${LOOP}@`] = { ...decision, key: `${LOOP}@`, frames: [] };
+          delete state.nodeEvents[`${LOOP}|END|`];
+          const events = r.events.filter((e) => !(e.type === 'NODE_FIRED' && e.node === LOOP));
+          const command = { ...honest, context: context ?? [] };
+          const recorded = engine.encodeCommand(command) as Record<string, engine.JsonValue>;
+          if (context === undefined) delete recorded['context'];
+          return appendAs(tx, command, { state, events }, roles, recorded);
+        }),
+      );
+    const outcomes = { ownFrame: await exit(own), emptyContext: await exit([]), noContext: await exit(undefined) };
+    expect(refusal, 'the engine refuses the iteration before the minimum').toBe('ENG-MIN-DURATION');
+    const notTheLoops = `This accepted COMPLETE_LOOP_ITERATION row cannot be recorded: command.context is not the frames of a decision of ${LOOP} the state records in the MBR's loops and replicate sections. A command's context names the step instance, stage frame or decision of the state it acts on, in the frames of the batch's MBR, and a preparation names a signed command and the step instance of the state it prepares, so nothing sits in the record unread (DI-05, DI-30). [EBMR-EXE-126]`;
+    expect(unmatched(outcomes, {
+      ownFrame: new RegExp(`^The end of ${LOOP}@ comes \\d+(\\.\\d+)? (s|min) after the start of ${LOOP}, before the minimum of 1 h of Mixing at least 1 h: no step starts or completes before its minimum duration \\(INV-20, PR-30\\)\\. \\[EBMR-EXE-130\\]$`),
+      emptyContext: notTheLoops,
+      // The command's shape (recipe-core 0335) refuses it before the state is read: a COMPLETE_LOOP_ITERATION declares its context.
+      noContext: 'This accepted COMPLETE_LOOP_ITERATION row cannot be recorded: command.context is missing. A row records the engine command of its type with exactly the members that type declares, each of the JSON type it declares, and with evidence of the shape the server records, so nothing sits in the record unread (DI-05, DI-30). [EBMR-EXE-126]',
+    })).toEqual({});
+    const s1 = await stateOf(d);
+    expect({ decisions: Object.keys(s1.decisions), end: s1.nodeEvents[`${LOOP}|END|`] }).toEqual({ decisions: [], end: undefined });
+    expect((await rowsOf(sbx, d.runId)).filter((r) => r.command_type === 'COMPLETE_LOOP_ITERATION')).toEqual([]);
+    expect((await violations(sbx)).filter((v) => v.batchId === d.runId)).toEqual([]);
+  }, 300_000);
+});

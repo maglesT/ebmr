@@ -136,7 +136,10 @@ export const TARGETS: Target[] = [
                 'recipe.batch_mbr_pin_guard', 'recipe.build_control_recipe', 'recipe.control_recipe_guard',
                 'recipe.in_flight_disposition_guard', 'recipe.create_stub_batch', 'recipe.issue_stub_batch', 'recipe.set_stub_batch_status',
                 'recipe.record_in_flight_disposition', 'recipe.verify_control_recipe', 'recipe.record_periodic_review', 'recipe.review_due',
-                'recipe.overdue_reviews', 'recipe.inv01_violations', 'recipe.inv02_violations', 'recipe.inv17_violations'],
+                'recipe.overdue_reviews', 'recipe.inv01_violations', 'recipe.inv02_violations', 'recipe.inv17_violations',
+                // recipe-core 0383 (defect D10): the activation and its cells only as the activation command writes them.
+                'recipe.market_authorisation_activation_guard', 'recipe.authorisation_cell_activation_guard',
+                'recipe.authorisation_cell_supersession_guard'],
     tests: [r('lifecycle/market.test.ts'), r('lifecycle/issue.test.ts'), r('lifecycle/selection.property.test.ts'),
             r('lifecycle/review-inventory.test.ts'), r('lifecycle/audit-reason.test.ts'), r('lifecycle/concurrency.test.ts'),
             r('lifecycle/authorization.test.ts')],
@@ -159,7 +162,9 @@ export const TARGETS: Target[] = [
     group: 'execution-state-binding',
     functions: ['recipe.execution_state_binding_check', 'recipe.new_instance_problem', 'recipe.signature_change_problem',
                 'recipe.row_step_key', 'recipe.execution_recorded_state_check', 'recipe.sweep_state_problem',
-                'recipe.kept_records_problem', 'recipe.members_changed'],
+                'recipe.kept_records_problem', 'recipe.members_changed',
+                // recipe-core 0382 (defect D9): a recorded signature made invalid only where the engine does.
+                'recipe.step_facts_changed', 'recipe.signature_invalidation_problem', 'recipe.execution_signature_invalidation_check'],
     tests: [r('execution/kept-records-sql.test.ts'), s('execution/evidence-source.test.ts'), r('execution/exception-source-sql.test.ts')],
     threshold: 90,
   },
@@ -267,7 +272,9 @@ export const TARGETS: Target[] = [
                 'sandbox.identifier_problem_for', 'sandbox.assert_identifier_allowed', 'sandbox.guard_identifier', 'sandbox.batch_issue_problem_for',
                 'sandbox.assert_batch_issue_allowed', 'sandbox.watermark', 'iam.bootstrap_installation', 'recipe.import_test_package',
                 'recipe.package_header_problem', 'recipe.test_package_header_check', 'recipe.begin_issue', 'tab.register_sandbox_lot',
-                'tab.mbr_test_package_export_guard', 'tab.record_test_package_export', 'tab.mark_demo_installation', 'tab.is_demo_installation'],
+                'tab.mbr_test_package_export_guard', 'tab.record_test_package_export', 'tab.mark_demo_installation', 'tab.is_demo_installation',
+                // recipe-core 0384 (defect D14): how a refusal of package_header_problem names a JSON value.
+                'recipe.json_value_described'],
     tests: [k('sandbox/installation.test.ts'), k('sandbox/identifiers.test.ts'), k('sandbox/bypass.test.ts'), k('sandbox/bootstrap.test.ts'),
             k('sandbox/provision.test.ts'), k('sandbox/watermark.test.ts'), s('execution/import-db-guard.test.ts'),
             s('execution/db-guards-package-header.test.ts'), s('execution/store.test.ts'), s('execution/commands.test.ts'),
