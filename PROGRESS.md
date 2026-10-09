@@ -29,13 +29,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0008).
 ## Where things stand
 
 - Phase 0 (repo, CI, register) and Phase 1 (compliance kernel) are done.
-- Phase 2 (recipe engine and designer) is built. Its exit work is merged on `phase-2/recipe-core` (PR #4):
-  - the exit review's findings and follow-ups, F12 included (rounds 1 to 8, frozen by decision 0008);
-  - the SQL mutation run on the Phase 2 guards (28 groups, kill tests, 149 recorded equivalents);
-  - the defects found by that run: D1 to D17, all fixed (`docs/build-plan/phase-2-exit/sql-mutation-kill-results.md`);
-  - the review backlog for later phases: `docs/build-plan/phase-2-exit/review-backlog.md`.
-- `compliance/phase.yaml` is at 2: CI needs a passing test for every Phase 1 and Phase 2 control (the trace gate
-  passes locally). Left to close Phase 2: CI green on PR #4, a summary to the owner, merge PR #4.
+- Phase 2 (recipe engine and designer) is done: PR #4 (`phase-2/recipe-core`) merged on 9 October 2026 with the exit
+  review's findings, the SQL mutation run on the Phase 2 guards and defects D1 to D17 fixed
+  (`docs/build-plan/phase-2-exit/`). Review backlog for later phases: `docs/build-plan/phase-2-exit/review-backlog.md`.
+- `compliance/phase.yaml` is at 2: CI needs a passing test for every Phase 1 and Phase 2 control. It goes to 3 with the
+  slice that completes Phase 3.
+- Phase 3 slice 1 is in progress on `phase-3/slice-1` (plan: `docs/build-plan/phase-3/slice-1-plan.md`).
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 
