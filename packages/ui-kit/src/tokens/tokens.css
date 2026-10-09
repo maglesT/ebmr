@@ -1,0 +1,83 @@
+/*
+ * Design tokens (mirrors tokens.ts). Density is chosen by the shell from the terminal class:
+ * <html data-density="office|floor">. The TEST, NOT GMP amber is reserved for the sandbox watermark.
+ */
+:root {
+  --ebmr-text: #202124;
+  --ebmr-background: #ffffff;
+  --ebmr-muted: #5f6368;
+  --ebmr-focus: #1a73e8;
+  --ebmr-surface-alt: #f8f9fa;
+  --ebmr-border: #dadce0;
+
+  --ebmr-ok-fg: #0b5d1e;
+  --ebmr-ok-bg: #e6f4ea;
+  --ebmr-ok-border: #1e8e3e;
+  --ebmr-warning-fg: #7a4100;
+  --ebmr-warning-bg: #fff4e0;
+  --ebmr-warning-border: #c26400;
+  --ebmr-error-fg: #a50e0e;
+  --ebmr-error-bg: #fce8e6;
+  --ebmr-error-border: #d93025;
+  --ebmr-info-fg: #0b4f9c;
+  --ebmr-info-bg: #e8f0fe;
+  --ebmr-info-border: #1a73e8;
+  --ebmr-neutral-fg: #3c4043;
+  --ebmr-neutral-bg: #f1f3f4;
+  --ebmr-neutral-border: #80868b;
+  --ebmr-pending-fg: #4a3a8c;
+  --ebmr-pending-bg: #efeafd;
+  --ebmr-pending-border: #6f58c9;
+  --ebmr-test-fg: #1f1300;
+  --ebmr-test-bg: #ffc107;
+  --ebmr-test-border: #a16d00;
+
+  --ebmr-font: 'Noto Sans Variable', 'Noto Sans', system-ui, sans-serif;
+  --ebmr-radius: 6px;
+
+  /* Office density (default). */
+  --ebmr-target-min: 44px;
+  --ebmr-primary-bar: 56px;
+  --ebmr-keypad-key: 56px;
+  --ebmr-font-base: 16px;
+  --ebmr-value-font: 20px;
+  --ebmr-gap: 12px;
+}
+
+:root[data-density='floor'] {
+  --ebmr-target-min: 56px;
+  --ebmr-primary-bar: 80px;
+  --ebmr-keypad-key: 72px;
+  --ebmr-font-base: 20px;
+  --ebmr-value-font: 32px;
+  --ebmr-gap: 16px;
+}
+
+html {
+  font-family: var(--ebmr-font);
+  font-size: var(--ebmr-font-base);
+  color: var(--ebmr-text);
+  background: var(--ebmr-background);
+}
+
+body {
+  margin: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ebmr-focus);
+  outline-offset: 2px;
+}
+
+/* react-aria's pressable rule, which it would otherwise inject as an inline <style> (blocked by the CSP). */
+@layer {
+  [data-react-aria-pressable] {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+}

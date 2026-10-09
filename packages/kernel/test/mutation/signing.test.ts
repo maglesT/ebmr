@@ -21,7 +21,7 @@
  * registered here as the owner, as a migration does.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
-import pg from 'pg';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext, withCommand } from '../../src/db/command.ts';
 import { addMeaningType, configureMeaningType } from '../../src/esig/catalogue.ts';
@@ -35,6 +35,7 @@ import { ebmrCode } from '../../src/identity/errors.ts';
 import { lockSession, openSession, unlockSession } from '../../src/identity/sessions.ts';
 import { createAggregateState, transition } from '../../src/state/engine.ts';
 import { seedAdministration, seedAuthn, withReason, type SeededActor } from '../identity/seed.ts';
+import { endPool, openPool } from '../harness/pools.ts';
 import { asOwner } from '../platform/helpers.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import {
@@ -606,7 +607,7 @@ describe('sign (esig.sign)', () => {
   });
 
   it('[INV-10] the signing marks end with the transaction: the pooled connection carries no signing challenge and no unsealed signature afterwards', async () => {
-    const single = new pg.Pool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 1 });
+    const single = openPool({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 1 });
     try {
       const marks = async () =>
         (await single.query<{ challenge: string; unsealed: string }>(
@@ -621,7 +622,7 @@ describe('sign (esig.sign)', () => {
       // The next command on this connection starts clean: nothing names the challenge or the signature.
       expect(await marks()).toEqual({ challenge: '', unsealed: '' });
     } finally {
-      await single.end();
+      await endPool(single);
     }
   });
 });

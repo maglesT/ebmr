@@ -36,8 +36,30 @@ behaviour: |-
   - calculations with units and conversion factors.
   - Where the SOP classes a shop-floor IPC as a laboratory test, second-person review of the original record is mandatory (211.194(a)(8)).
 catalog_test: Take three readings on one sample where the first two fail. All three are stored and flagged. Try to invalidate a value without an investigation link. Blocked. Abort a weighing. A reason is required and the attempt appears in review.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/data.ts (attempts, repeats, readings)"
+    - "packages/recipe-core/src/engine/corrections.ts (void, invalidation)"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-13)"
+  guards:
+    - "Every attempt and reading is stored and never replaced; repeats are flagged REPEAT or REPEAT_AFTER_FAIL; the first valid attempt governs until invalidated"
+    - "INVALIDATE_RESULT (path c) needs an investigation reference and QA approval (ENG-INVALIDATE-INVESTIGATION); the original stays"
+    - "A readings set must hold the planned number of readings (ENG-VALUE-READINGS)"
+  invariants:
+    - "INV-41"
+tests:
+  - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [PR-29][IN-20][DI-29] a failing categorical IPC stops the step until a deviation is linked, and a passing re-test never replaces it"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [IN-35][DI-29] a readings set with fewer values than the plan is refused (every reading is kept individually)"
+  - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-29] a device-captured value can never be corrected, only invalidated"
+  - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [INV-41][DI-29] a failing value corrected to a passing one needs objective evidence and QA approval"
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][INV-41] three readings where the first two fail: all kept and flagged; the first failing result governs until it is invalidated"
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][IN-20] invalidating a result needs an investigation and QA approval; the original stays, the next attempt governs"
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] an attempt is voided only before a result exists, with a reason and QA approval; the attempt stays in the record"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [DI-24][DI-29][DI-33][INV-20][PR-21] the golden runs of both fixtures: every row and every sweep passes; the rows include the verdict on a loop endpoint and charged containers"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [DI-29][IN-20][INV-41] the invalidation path and the void: an invalidated result, a re-test, a result invalidated after its step was signed (the step re-opened, the value re-computed); a voided attempt"
+  - "packages/recipe-core/test/execution/kept-records-sql.test.ts > a row that rewrites what the state recorded, or makes the engine's change in the wrong row, is refused (P34, P58, P36 round 2) > [DI-24][DI-29][DI-30][DI-32][DI-33][INV-41][PR-21] each rule of recipe.kept_records_problem refuses the forged row and names what it changes"
+  - "packages/recipe-core/test/mutation/execution-state-binding.test.ts > what the state recorded is kept, condition by condition (recipe.kept_records_problem, 0303) > [DI-24][DI-29][DI-30][DI-34] a state without one of the members the check reads, or with a record that is not an object, is refused as malformed"
+  - "packages/recipe-core/test/mutation/execution-state-binding.test.ts > what the state recorded is kept, condition by condition (recipe.kept_records_problem, 0303) > [DI-29][IN-20][INV-41] a value is invalidated only with the approval its INVALIDATE_RESULT carries, its signature and its approver both recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

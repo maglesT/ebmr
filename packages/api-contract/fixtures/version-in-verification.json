@@ -1,0 +1,1248 @@
+{
+  "versionId": "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+  "familyId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f7a",
+  "familyCode": "PCM500-DC",
+  "product": {
+    "code": "PCM500",
+    "name": "Paracetamol tablets",
+    "strength": "500 mg"
+  },
+  "number": "1",
+  "revision": 2,
+  "state": "IN_VERIFICATION",
+  "contentHash": "cb18a68e2b76788cf23ff7cee413489c5995cc7ae913644ac465581916a9b50e",
+  "content": {
+    "format": "ebmr.mbr-content",
+    "formatVersion": 1,
+    "bom": [
+      {
+        "id": "BOM-PCM",
+        "role": "ACTIVE",
+        "material": "MAT-PCM",
+        "quantity": {
+          "unit": "kg",
+          "value": "50.000"
+        }
+      },
+      {
+        "id": "BOM-MCC",
+        "role": "EXCIPIENT",
+        "material": "MAT-MCC",
+        "quantity": {
+          "unit": "kg",
+          "value": "9.400"
+        }
+      },
+      {
+        "id": "BOM-MGS",
+        "role": "EXCIPIENT",
+        "material": "MAT-MGS",
+        "quantity": {
+          "unit": "kg",
+          "value": "0.600"
+        }
+      }
+    ],
+    "header": {
+      "title": "Paracetamol tablets 500 mg: dispensing and blending",
+      "family": "PCM500-DC",
+      "edition": "tablets",
+      "product": {
+        "code": "PCM500",
+        "name": "Paracetamol tablets",
+        "strength": "500 mg",
+        "dosageForm": "Uncoated tablet (final blend for compression)"
+      },
+      "variants": [],
+      "marketSet": [
+        "IN"
+      ],
+      "batchSizes": [
+        {
+          "id": "BS-100K",
+          "quantity": {
+            "unit": "kg",
+            "value": "60.000"
+          }
+        },
+        {
+          "id": "BS-50K",
+          "quantity": {
+            "unit": "kg",
+            "value": "30.000"
+          }
+        }
+      ],
+      "predicates": {},
+      "recordKind": "PROCESSING"
+    },
+    "inputs": [
+      {
+        "id": "tabletsPerBatch",
+        "name": "Batch size in tablets",
+        "source": "BATCH_HEADER",
+        "valueType": "COUNT"
+      }
+    ],
+    "library": [],
+    "procedure": {
+      "id": "PROC-PCM500-DC",
+      "body": {
+        "id": "proc-seq",
+        "kind": "sequence",
+        "children": [
+          {
+            "id": "S-DISP",
+            "body": {
+              "id": "S-DISP-seq",
+              "kind": "sequence",
+              "children": [
+                {
+                  "id": "O-DISP-PREP",
+                  "body": {
+                    "id": "O-DISP-PREP-seq",
+                    "kind": "sequence",
+                    "children": [
+                      {
+                        "id": "p-disp-clear",
+                        "kind": "phase",
+                        "name": "Dispensing booth clearance",
+                        "uses": [],
+                        "block": {
+                          "type": "G-10",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [],
+                        "riskClass": "MEDIUM",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true
+                      },
+                      {
+                        "id": "p-disp-bal",
+                        "kind": "phase",
+                        "name": "Balance status and daily check",
+                        "uses": [],
+                        "block": {
+                          "type": "G-09",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [
+                          {
+                            "ref": "BAL",
+                            "use": "STATUS_CHECK"
+                          }
+                        ],
+                        "riskClass": "MEDIUM",
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": false
+                      },
+                      {
+                        "id": "p-disp-sop",
+                        "kind": "phase",
+                        "name": "Read the dispensing SOP",
+                        "uses": [],
+                        "block": {
+                          "type": "G-03",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {
+                          "sop": "SOP-DISP-001",
+                          "acknowledgement": "READ"
+                        },
+                        "records": [],
+                        "computes": [],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [],
+                        "riskClass": "LOW",
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": false
+                      },
+                      {
+                        "id": "p-disp-calc",
+                        "kind": "phase",
+                        "name": "Dispensing quantities",
+                        "uses": [],
+                        "block": {
+                          "type": "G-14",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [
+                          "pcmTarget",
+                          "excTarget",
+                          "dispTarget"
+                        ],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": false
+                      }
+                    ]
+                  },
+                  "kind": "operation",
+                  "name": "Preparation"
+                },
+                {
+                  "id": "O-DISP-WEIGH",
+                  "body": {
+                    "id": "O-DISP-WEIGH-seq",
+                    "kind": "sequence",
+                    "children": [
+                      {
+                        "id": "p-disp-pcm",
+                        "kind": "phase",
+                        "name": "Dispense paracetamol",
+                        "uses": [],
+                        "block": {
+                          "type": "G-07",
+                          "version": "1"
+                        },
+                        "reads": [
+                          "pcmTarget"
+                        ],
+                        "config": {
+                          "tolerance": {
+                            "percent": "0.5"
+                          }
+                        },
+                        "system": {
+                          "ref": "SYS-WEIGH-01",
+                          "kind": "WEIGHING"
+                        },
+                        "records": [
+                          "pcmDispensed"
+                        ],
+                        "computes": [],
+                        "consumes": [
+                          "BOM-PCM"
+                        ],
+                        "produces": [],
+                        "equipment": [
+                          {
+                            "ref": "BAL",
+                            "use": "USE"
+                          }
+                        ],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true
+                      },
+                      {
+                        "id": "p-disp-exc",
+                        "kind": "phase",
+                        "name": "Dispense excipients",
+                        "uses": [],
+                        "block": {
+                          "type": "G-07",
+                          "version": "1"
+                        },
+                        "reads": [
+                          "excTarget"
+                        ],
+                        "config": {},
+                        "system": {
+                          "ref": "SYS-WEIGH-01",
+                          "kind": "WEIGHING"
+                        },
+                        "records": [
+                          "excDispensed"
+                        ],
+                        "computes": [],
+                        "consumes": [
+                          "BOM-MCC",
+                          "BOM-MGS"
+                        ],
+                        "produces": [],
+                        "equipment": [
+                          {
+                            "ref": "BAL",
+                            "use": "USE"
+                          }
+                        ],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true
+                      }
+                    ]
+                  },
+                  "kind": "operation",
+                  "name": "Dispense"
+                },
+                {
+                  "id": "O-DISP-RECON",
+                  "body": {
+                    "id": "O-DISP-RECON-seq",
+                    "kind": "sequence",
+                    "children": [
+                      {
+                        "id": "p-disp-recon",
+                        "kind": "phase",
+                        "name": "Dispensing reconciliation",
+                        "uses": [],
+                        "block": {
+                          "type": "G-20",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [
+                          "dispRecon"
+                        ],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true,
+                        "yieldCheckpoint": "Y-DISP"
+                      }
+                    ]
+                  },
+                  "kind": "operation",
+                  "name": "Reconciliation"
+                }
+              ]
+            },
+            "kind": "stage",
+            "name": "Dispensing",
+            "binding": {
+              "rooms": [
+                "DISP-1"
+              ],
+              "equipment": [
+                {
+                  "ref": "BAL",
+                  "kind": "INSTRUMENT",
+                  "equipmentClass": "EQC-BAL"
+                }
+              ]
+            },
+            "purpose": "MATERIAL",
+            "responsibleRole": "PRODUCTION_SUPERVISOR"
+          },
+          {
+            "id": "S-BLEND",
+            "body": {
+              "id": "S-BLEND-seq",
+              "kind": "sequence",
+              "children": [
+                {
+                  "id": "O-BLEND-MIX",
+                  "body": {
+                    "id": "O-BLEND-MIX-seq",
+                    "kind": "sequence",
+                    "children": [
+                      {
+                        "id": "p-blend-clear",
+                        "kind": "phase",
+                        "name": "Blending room clearance",
+                        "uses": [],
+                        "block": {
+                          "type": "G-10",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [],
+                        "riskClass": "MEDIUM",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true
+                      },
+                      {
+                        "id": "p-blend-status",
+                        "kind": "phase",
+                        "name": "Blender and floor scale status",
+                        "uses": [],
+                        "block": {
+                          "type": "G-09",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [
+                          {
+                            "ref": "BLENDER",
+                            "use": "STATUS_CHECK"
+                          },
+                          {
+                            "ref": "SCALE",
+                            "use": "STATUS_CHECK"
+                          }
+                        ],
+                        "riskClass": "MEDIUM",
+                        "signatures": {
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": false
+                      },
+                      {
+                        "id": "p-blend-charge",
+                        "kind": "phase",
+                        "name": "Charge the dispensed materials",
+                        "uses": [],
+                        "block": {
+                          "type": "G-08",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [],
+                        "consumes": [
+                          "BOM-PCM",
+                          "BOM-MCC",
+                          "BOM-MGS"
+                        ],
+                        "produces": [],
+                        "equipment": [
+                          {
+                            "ref": "BLENDER",
+                            "use": "USE"
+                          }
+                        ],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true
+                      },
+                      {
+                        "id": "p-blend",
+                        "kind": "phase",
+                        "name": "Blend",
+                        "uses": [],
+                        "block": {
+                          "type": "G-04",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [
+                          "blendTime",
+                          "blenderSpeed"
+                        ],
+                        "computes": [],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [
+                          {
+                            "ref": "BLENDER",
+                            "use": "USE"
+                          }
+                        ],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "WITNESSED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true
+                      }
+                    ]
+                  },
+                  "kind": "operation",
+                  "name": "Blending"
+                },
+                {
+                  "id": "O-BLEND-OUT",
+                  "body": {
+                    "id": "O-BLEND-OUT-seq",
+                    "kind": "sequence",
+                    "children": [
+                      {
+                        "id": "H-BLEND",
+                        "kind": "holdPoint",
+                        "name": "QA release of the blend for discharge",
+                        "role": "QA",
+                        "dispositions": [
+                          "APPROVED",
+                          "NOT_APPROVED"
+                        ]
+                      },
+                      {
+                        "id": "p-blend-out",
+                        "kind": "phase",
+                        "name": "Discharge into output containers",
+                        "uses": [],
+                        "block": {
+                          "type": "G-22",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "system": {
+                          "ref": "SYS-WEIGH-01",
+                          "kind": "WEIGHING"
+                        },
+                        "records": [
+                          "blendNet"
+                        ],
+                        "computes": [],
+                        "consumes": [],
+                        "produces": [
+                          "I-BLEND"
+                        ],
+                        "equipment": [
+                          {
+                            "ref": "SCALE",
+                            "use": "USE"
+                          }
+                        ],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true
+                      },
+                      {
+                        "id": "p-blend-yield",
+                        "kind": "phase",
+                        "name": "Blend yield",
+                        "uses": [],
+                        "block": {
+                          "type": "G-20",
+                          "version": "1"
+                        },
+                        "reads": [],
+                        "config": {},
+                        "records": [],
+                        "computes": [
+                          "blendInput",
+                          "blendYield"
+                        ],
+                        "consumes": [],
+                        "produces": [],
+                        "equipment": [],
+                        "riskClass": "HIGH",
+                        "signatures": {
+                          "check": {
+                            "role": "PRODUCTION_VERIFIER",
+                            "meaning": "VERIFIED"
+                          },
+                          "perform": {
+                            "role": "PRODUCTION_OPERATOR"
+                          }
+                        },
+                        "significant": true,
+                        "yieldCheckpoint": "Y-BLEND"
+                      }
+                    ]
+                  },
+                  "kind": "operation",
+                  "name": "Release and discharge of the blend"
+                }
+              ]
+            },
+            "kind": "stage",
+            "name": "Blending",
+            "binding": {
+              "rooms": [
+                "BLEND-1"
+              ],
+              "equipment": [
+                {
+                  "ref": "BLENDER",
+                  "kind": "PROCESS",
+                  "equipmentClass": "EQC-BLENDER"
+                },
+                {
+                  "ref": "SCALE",
+                  "kind": "INSTRUMENT",
+                  "equipmentClass": "EQC-BAL"
+                }
+              ]
+            },
+            "purpose": "MATERIAL",
+            "responsibleRole": "PRODUCTION_SUPERVISOR"
+          }
+        ]
+      },
+      "name": "Paracetamol 500 mg tablets: dispensing and blending"
+    },
+    "riskScale": {
+      "ref": "QRM-SCALE",
+      "classes": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ]
+    },
+    "parameters": [
+      {
+        "id": "pcmDispensed",
+        "name": "Paracetamol dispensed (net)",
+        "role": "QUANTITY",
+        "unit": "kg",
+        "capture": "DEVICE",
+        "precision": {
+          "kind": "DECIMALS",
+          "digits": 3
+        },
+        "riskClass": "HIGH",
+        "valueType": "DECIMAL",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "excDispensed",
+        "name": "Excipients dispensed (net total)",
+        "role": "QUANTITY",
+        "unit": "kg",
+        "capture": "DEVICE",
+        "precision": {
+          "kind": "DECIMALS",
+          "digits": 3
+        },
+        "riskClass": "HIGH",
+        "valueType": "DECIMAL",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "blendTime",
+        "name": "Blend time",
+        "role": "PROCESS_PARAMETER",
+        "unit": "min",
+        "limits": {
+          "unit": "min",
+          "ranges": [
+            {
+              "low": {
+                "value": "10",
+                "inclusive": true
+              },
+              "high": {
+                "value": "20",
+                "inclusive": true
+              },
+              "tier": "REGISTERED",
+              "source": {
+                "ref": "REG-PCM500",
+                "kind": "REGISTRATION"
+              },
+              "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+            },
+            {
+              "low": {
+                "value": "12",
+                "inclusive": true
+              },
+              "high": {
+                "value": "18",
+                "inclusive": true
+              },
+              "tier": "INTERNAL_ACTION",
+              "source": {
+                "ref": "SOP-BLEND-002",
+                "kind": "COMPANY_STANDARD"
+              },
+              "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+            },
+            {
+              "low": {
+                "value": "14",
+                "inclusive": true
+              },
+              "high": {
+                "value": "16",
+                "inclusive": true
+              },
+              "tier": "ALERT",
+              "source": {
+                "ref": "SOP-BLEND-002",
+                "kind": "COMPANY_STANDARD"
+              },
+              "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+            }
+          ]
+        },
+        "target": "15",
+        "capture": "MANUAL",
+        "evidence": "PRINTOUT",
+        "precision": {
+          "kind": "DECIMALS",
+          "digits": 0
+        },
+        "riskClass": "HIGH",
+        "valueType": "DECIMAL",
+        "criticality": "CRITICAL",
+        "accuracyCheck": "SECOND_PERSON"
+      },
+      {
+        "id": "blenderSpeed",
+        "name": "Blender speed",
+        "role": "PROCESS_PARAMETER",
+        "unit": "/min",
+        "limits": {
+          "unit": "/min",
+          "ranges": [
+            {
+              "low": {
+                "value": "8",
+                "inclusive": true
+              },
+              "high": {
+                "value": "12",
+                "inclusive": true
+              },
+              "tier": "VALIDATED",
+              "source": {
+                "ref": "VR-BLEND-01",
+                "kind": "VALIDATION_REPORT"
+              },
+              "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+            },
+            {
+              "low": {
+                "value": "9",
+                "inclusive": true
+              },
+              "high": {
+                "value": "11",
+                "inclusive": true
+              },
+              "tier": "ALERT",
+              "source": {
+                "ref": "SOP-BLEND-002",
+                "kind": "COMPANY_STANDARD"
+              },
+              "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+            }
+          ]
+        },
+        "target": "10",
+        "capture": "MANUAL",
+        "evidence": "PRINTOUT",
+        "precision": {
+          "kind": "DECIMALS",
+          "digits": 0
+        },
+        "riskClass": "HIGH",
+        "valueType": "DECIMAL",
+        "criticality": "CRITICAL",
+        "accuracyCheck": "SECOND_PERSON"
+      },
+      {
+        "id": "blendNet",
+        "name": "Final blend discharged (net)",
+        "role": "QUANTITY",
+        "unit": "kg",
+        "capture": "DEVICE",
+        "precision": {
+          "kind": "DECIMALS",
+          "digits": 3
+        },
+        "riskClass": "HIGH",
+        "valueType": "DECIMAL",
+        "criticality": "CRITICAL"
+      }
+    ],
+    "references": [
+      {
+        "id": "SOP-DISP-001",
+        "code": "SOP-DISP-001",
+        "hash": "a10392006925d1f24c34701fcb7c0b1c5ce2793bd979c2fcececb826d4b41f8a",
+        "kind": "SOP",
+        "title": "Dispensing of raw materials",
+        "version": "1"
+      },
+      {
+        "id": "SOP-BLEND-002",
+        "code": "SOP-BLEND-002",
+        "hash": "9106ee448f158dad81b6638a027b42f9c479d9939840d8de7e3d1eddfe9f7299",
+        "kind": "SOP",
+        "title": "Blending in the octagonal blender",
+        "version": "1"
+      },
+      {
+        "id": "SOP-CLEAN-003",
+        "code": "SOP-CLEAN-003",
+        "hash": "ec88ec86896ccb82445f5cdd6b762cb1830e67b164120a200c4a306e60c49a41",
+        "kind": "SOP",
+        "title": "Room and line clearance",
+        "version": "1"
+      },
+      {
+        "id": "MAT-PCM",
+        "code": "MAT-PCM",
+        "hash": "67a4f7e187e35dc0ff14d6ada28bce9d754c920cb2fbbe69beff9b1fdc6258ca",
+        "kind": "MATERIAL",
+        "title": "Paracetamol, direct-compression grade",
+        "version": "1"
+      },
+      {
+        "id": "MAT-MCC",
+        "code": "MAT-MCC",
+        "hash": "33ba37522d8302ea6be5ad77dd944d58fe5002421b1ab32022d112583eadc518",
+        "kind": "MATERIAL",
+        "title": "Microcrystalline cellulose PH 102",
+        "version": "1"
+      },
+      {
+        "id": "MAT-MGS",
+        "code": "MAT-MGS",
+        "hash": "d8aefd87b0d08ae77fda996709255db92b7314f6fc324591ad9ce5812b339fd7",
+        "kind": "MATERIAL",
+        "title": "Magnesium stearate",
+        "version": "1"
+      },
+      {
+        "id": "SYS-WEIGH-01",
+        "code": "SYS-WEIGH-01",
+        "hash": "9a3402a4988d8a0d68dcdc8396b3ab6202ee050898e2139db4f7ab3deb79d65a",
+        "kind": "COMPUTERISED_SYSTEM",
+        "title": "Weighing system (balances, label printing)",
+        "version": "1"
+      },
+      {
+        "id": "REG-PCM500",
+        "code": "REG-PCM500",
+        "hash": "aa230de913c27cf022c16e83c46cf9e6ad327dec34c2201b0abd5ebb59af151b",
+        "kind": "REGISTRATION",
+        "title": "Paracetamol 500 mg tablets: registered process and specification",
+        "version": "1"
+      },
+      {
+        "id": "PH-EUR-11",
+        "code": "PH-EUR-11",
+        "hash": "1543f462752960fa80a21a1504e48f15f440d726221793235734a179bec58bc7",
+        "kind": "PHARMACOPOEIA",
+        "title": "European Pharmacopoeia, 11th edition",
+        "version": "11"
+      },
+      {
+        "id": "VR-BLEND-01",
+        "code": "VR-BLEND-01",
+        "hash": "23cdda221bf41154914c9f8c00f41cb85bdf40dfdbbfddcb6493aa4b0450b541",
+        "kind": "VALIDATION_REPORT",
+        "title": "Process validation report: blending",
+        "version": "1"
+      },
+      {
+        "id": "QRM-SCALE",
+        "code": "QRM-SCALE",
+        "hash": "73a7431b2c8b519198a7ca2d317cdbb08b0968ca012253adb8785e2ea9d1cea7",
+        "kind": "RISK_SCALE",
+        "title": "Controlled risk scale (LOW, MEDIUM, HIGH)",
+        "version": "1"
+      },
+      {
+        "id": "EQC-BAL",
+        "code": "EQC-BAL",
+        "hash": "f3bdd27bd072c26ec6b594cd7fb138a83645583e7dafa88c90906c85e7a7f387",
+        "kind": "EQUIPMENT_CLASS",
+        "title": "Balance, platform, calibrated",
+        "version": "1"
+      },
+      {
+        "id": "EQC-BLENDER",
+        "code": "EQC-BLENDER",
+        "hash": "1aed6e676ea28938d39b6e2d5025ab161718046d38210cb79811a6e6bea54d4f",
+        "kind": "EQUIPMENT_CLASS",
+        "title": "Octagonal blender",
+        "version": "1"
+      },
+      {
+        "id": "HS-PCM-01",
+        "code": "HS-PCM-01",
+        "hash": "cd0de171289d444d175675453547f2ef7a5ccbe61065b7a8360c5b4c5777b869",
+        "kind": "HOLD_STUDY",
+        "title": "Hold-time study: dispensed materials and final blend",
+        "version": "1"
+      }
+    ],
+    "goldenCases": [
+      {
+        "id": "G-TARGETS",
+        "inputs": {
+          "tabletsPerBatch": {
+            "value": "100000"
+          }
+        },
+        "expected": {
+          "excTarget": {
+            "unit": "kg",
+            "value": "10.000"
+          },
+          "pcmTarget": {
+            "unit": "kg",
+            "value": "50.000"
+          },
+          "dispTarget": {
+            "unit": "kg",
+            "value": "60.000"
+          }
+        },
+        "description": "Dispensing quantities for 1,00,000 tablets: 50.000 kg paracetamol, 10.000 kg excipients"
+      },
+      {
+        "id": "G-DISP-RECON",
+        "inputs": {
+          "dispTarget": {
+            "unit": "kg",
+            "value": "60.000"
+          },
+          "excDispensed": {
+            "unit": "kg",
+            "value": "10.010"
+          },
+          "pcmDispensed": {
+            "unit": "kg",
+            "value": "50.020"
+          }
+        },
+        "expected": {
+          "dispRecon": {
+            "unit": "%",
+            "value": "100.05"
+          }
+        },
+        "description": "Dispensing reconciliation: 50.020 kg and 10.010 kg dispensed against 60.000 kg"
+      },
+      {
+        "id": "G-BLEND-YIELD",
+        "inputs": {
+          "blendNet": {
+            "unit": "kg",
+            "value": "59.500"
+          },
+          "excDispensed": {
+            "unit": "kg",
+            "value": "10.010"
+          },
+          "pcmDispensed": {
+            "unit": "kg",
+            "value": "50.020"
+          }
+        },
+        "expected": {
+          "blendInput": {
+            "unit": "kg",
+            "value": "60.030"
+          },
+          "blendYield": {
+            "unit": "%",
+            "value": "99.12"
+          }
+        },
+        "description": "Blend yield: 59.500 kg discharged from 60.030 kg charged"
+      }
+    ],
+    "calculations": [
+      {
+        "id": "pcmTarget",
+        "name": "Paracetamol to dispense (500 mg per tablet)",
+        "output": {
+          "unit": "kg",
+          "valueType": "DECIMAL"
+        },
+        "riskClass": "HIGH",
+        "expression": "500 [mg] * tabletsPerBatch",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "excTarget",
+        "name": "Excipients to dispense (MCC 94 mg and magnesium stearate 6 mg per tablet)",
+        "output": {
+          "unit": "kg",
+          "valueType": "DECIMAL"
+        },
+        "riskClass": "HIGH",
+        "expression": "(94 [mg] + 6 [mg]) * tabletsPerBatch",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "dispTarget",
+        "name": "Total to dispense",
+        "output": {
+          "unit": "kg",
+          "valueType": "DECIMAL"
+        },
+        "riskClass": "HIGH",
+        "expression": "pcmTarget + excTarget",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "dispRecon",
+        "name": "Dispensing reconciliation",
+        "output": {
+          "unit": "%",
+          "valueType": "DECIMAL",
+          "semanticTag": "yield"
+        },
+        "riskClass": "HIGH",
+        "expression": "yield(pcmDispensed + excDispensed, dispTarget)",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "blendInput",
+        "name": "Materials charged to the blender",
+        "output": {
+          "unit": "kg",
+          "valueType": "DECIMAL"
+        },
+        "riskClass": "HIGH",
+        "expression": "pcmDispensed + excDispensed",
+        "criticality": "CRITICAL"
+      },
+      {
+        "id": "blendYield",
+        "name": "Blend yield",
+        "output": {
+          "unit": "%",
+          "valueType": "DECIMAL",
+          "semanticTag": "yield"
+        },
+        "riskClass": "HIGH",
+        "expression": "yield(blendNet, blendInput)",
+        "criticality": "CRITICAL"
+      }
+    ],
+    "intermediates": [
+      {
+        "id": "I-BLEND",
+        "name": "Final blend",
+        "holdTime": {
+          "max": {
+            "unit": "d",
+            "value": "30"
+          },
+          "source": {
+            "ref": "HS-PCM-01",
+            "kind": "HOLD_STUDY"
+          },
+          "storage": "Closed, labelled containers, 15-25 degC"
+        },
+        "finalOutput": true
+      }
+    ],
+    "riskReductions": [],
+    "timeConstraints": [
+      {
+        "id": "TC-DISP-HOLD",
+        "to": {
+          "node": "p-blend-charge",
+          "event": "START"
+        },
+        "max": {
+          "unit": "h",
+          "value": "72"
+        },
+        "from": {
+          "node": "p-disp-pcm",
+          "event": "END"
+        },
+        "kind": "HOLD",
+        "name": "Dispensed materials held before charging",
+        "breach": "EXCEPTION",
+        "pauses": "INCLUDED",
+        "source": {
+          "ref": "HS-PCM-01",
+          "kind": "HOLD_STUDY"
+        },
+        "warnBefore": {
+          "unit": "h",
+          "value": "4"
+        }
+      }
+    ],
+    "yieldCheckpoints": [
+      {
+        "id": "Y-DISP",
+        "kind": "RECONCILIATION",
+        "name": "Dispensing reconciliation",
+        "basis": "AS_IS",
+        "limits": {
+          "unit": "%",
+          "ranges": [
+            {
+              "low": {
+                "value": "99.0",
+                "inclusive": true
+              },
+              "high": {
+                "value": "101.0",
+                "inclusive": true
+              },
+              "tier": "INTERNAL_ACTION",
+              "source": {
+                "ref": "SOP-DISP-001",
+                "kind": "COMPANY_STANDARD"
+              },
+              "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+            }
+          ]
+        },
+        "result": "dispRecon",
+        "theoretical": "dispTarget"
+      },
+      {
+        "id": "Y-BLEND",
+        "kind": "YIELD",
+        "name": "Blend yield",
+        "basis": "AS_IS",
+        "limits": {
+          "unit": "%",
+          "ranges": [
+            {
+              "low": {
+                "value": "98.0",
+                "inclusive": true
+              },
+              "high": {
+                "value": "100.5",
+                "inclusive": true
+              },
+              "tier": "VALIDATED",
+              "source": {
+                "ref": "VR-BLEND-01",
+                "kind": "VALIDATION_REPORT"
+              },
+              "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+            }
+          ]
+        },
+        "result": "blendYield",
+        "theoretical": "blendInput"
+      }
+    ],
+    "acceptanceSchemes": []
+  },
+  "markets": [
+    "IN"
+  ],
+  "evidence": [
+    {
+      "kind": "VALIDATOR",
+      "contentHash": "cb18a68e2b76788cf23ff7cee413489c5995cc7ae913644ac465581916a9b50e",
+      "at": {
+        "us": "1790580903000000",
+        "text": "28-SEP-2026 13:05:03 +05:30 (Asia/Kolkata)"
+      },
+      "valid": true,
+      "summary": "Passed: 0 errors, 0 warnings (1 justifications recorded)"
+    }
+  ],
+  "justifications": [
+    {
+      "findingKey": "G07-TOLERANCE-MISSING@p-disp-exc",
+      "text": "Excipients are checked against the formula at the dispensing reconciliation (SOP-DISP-001).",
+      "by": {
+        "personId": "7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11",
+        "legalName": "Asha Rao",
+        "loginName": "asha.rao",
+        "role": "MBR_AUTHOR"
+      },
+      "at": {
+        "us": "1790580663000000",
+        "text": "28-SEP-2026 13:01:03 +05:30 (Asia/Kolkata)"
+      }
+    }
+  ],
+  "savedAt": {
+    "us": "1790580603000000",
+    "text": "28-SEP-2026 13:00:03 +05:30 (Asia/Kolkata)"
+  },
+  "savedBy": {
+    "personId": "7a1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e11",
+    "legalName": "Asha Rao",
+    "loginName": "asha.rao",
+    "role": "MBR_AUTHOR"
+  },
+  "auditChain": "mbr_version:c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f"
+}

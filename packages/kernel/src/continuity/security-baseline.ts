@@ -242,21 +242,128 @@ export function checkPgHba(text: string, path = 'pg_hba.conf', options: { knownR
   return findings;
 }
 
-function confValue(text: string, key: string): string | null {
-  let value: string | null = null;
-  for (const raw of text.split('\n')) {
-    const m = raw.replace(/#.*/, '').match(new RegExp(`^\\s*${key}\\s*=\\s*'?([^'\\s]*)'?\\s*$`));
-    if (m) value = m[1] ?? null;
+// The tokens of PostgreSQL's configuration file lexer (src/backend/utils/misc/guc-file.l). A byte of 0x80 or more is a
+// letter there; in the decoded text that is any character from U+0080 on. The longest match wins, and on a tie the
+// earlier kind (an identifier before an unquoted string). Every token is at least one character long.
+const CONF_LETTER = 'A-Za-z_\\u0080-\\uffff';
+const CONF_ID = `[${CONF_LETTER}][${CONF_LETTER}0-9]*`;
+type ConfToken = { kind: 'ID' | 'QUALIFIED_ID' | 'STRING' | 'UNQUOTED_STRING' | 'INTEGER' | 'REAL' | 'EQUALS'; text: string };
+const CONF_TOKENS: readonly (readonly [kind: ConfToken['kind'], pattern: RegExp])[] = [
+  ['ID', new RegExp(CONF_ID, 'y')],
+  ['QUALIFIED_ID', new RegExp(`${CONF_ID}\\.${CONF_ID}`, 'y')],
+  // Flex's '.' is any character but a newline; JavaScript's would also stop at \r, U+2028 and U+2029.
+  ['STRING', /'(?:[^'\\\n]|\\[^\n]|'')*'/y],
+  ['UNQUOTED_STRING', new RegExp(`[${CONF_LETTER}][${CONF_LETTER}0-9\\-.:/]*`, 'y')],
+  // Hexadecimal first: JavaScript takes the first alternative that matches, flex the longest.
+  ['INTEGER', /[-+]?(?:0x[0-9a-fA-F]+|[0-9]+)[a-zA-Z]*/y],
+  ['REAL', /[-+]?[0-9]*\.[0-9]*(?:[Ee][-+]?[0-9]+)?/y],
+  ['EQUALS', /=/y],
+];
+/** The escapes of a quoted value other than octal ones; any other escaped character stands for itself. */
+const CONF_ESCAPES = new Map([
+  ['b', '\b'],
+  ['f', '\f'],
+  ['n', '\n'],
+  ['r', '\r'],
+  ['t', '\t'],
+]);
+
+/** One line's tokens, or null when the server's lexer finds a character no token starts with. */
+function confTokens(line: string): ConfToken[] | null {
+  const tokens: ConfToken[] = [];
+  let at = 0;
+  while (at < line.length) {
+    const c = line.charAt(at);
+    if (c === ' ' || c === '\t' || c === '\r') {
+      at += 1;
+      continue;
+    }
+    if (c === '#') break;
+    let best: ConfToken | null = null;
+    for (const [kind, pattern] of CONF_TOKENS) {
+      pattern.lastIndex = at;
+      const m = pattern.exec(line);
+      if (m && (best === null || m[0].length > best.text.length)) best = { kind, text: m[0] };
+    }
+    if (best === null) return null;
+    tokens.push(best);
+    at += best.text.length;
   }
-  return value;
+  return tokens;
+}
+
+/**
+ * A quoted value as the server reads it (DeescapeQuotedString): a doubled quote is one quote, \b \f \n \r \t are
+ * control characters, one to three octal digits are one byte, any other escaped character stands for itself, and the
+ * value ends at a NUL byte. The server builds bytes: an octal escape of 0x80 or more is one byte of a UTF-8 sequence
+ * there and the character with that code (U+0080-U+00FF) here, never part of a value the check accepts.
+ */
+function confUnquote(quoted: string): string {
+  const out = quoted.slice(1, -1).replace(/\\([0-7]{1,3})|\\([^])|''/g, (_, octal: string | undefined, escaped: string | undefined) => {
+    if (octal !== undefined) return String.fromCharCode(parseInt(octal, 8) & 0xff);
+    if (escaped !== undefined) return CONF_ESCAPES.get(escaped) ?? escaped;
+    return "'";
+  });
+  const nul = out.indexOf('\0');
+  return nul === -1 ? out : out.slice(0, nul);
+}
+
+/** PostgreSQL compares setting names and enum values with ASCII case folding only (guc_name_compare, pg_strcasecmp). */
+const asciiLower = (s: string): string => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
+
+/**
+ * The settings of a postgresql.conf file as the server reads them (ParseConfigFp), by lower-case name, with the
+ * findings that make the file unfit for review. On each line: a setting name, an optional '=', one value and an
+ * optional comment. Names match without regard to ASCII case and the last setting of a name wins. A line the server
+ * cannot read makes it refuse the whole file at start-up (EBMR-SEC-054); an include directive brings in settings no
+ * review of this file sees (EBMR-SEC-053). Whether a value suits its setting is the server's to decide (it refuses to
+ * start on a value it cannot use) and the checks' below.
+ */
+export function readPostgresqlConf(text: string, path = 'postgresql.conf'): { settings: Map<string, string>; findings: Finding[] } {
+  const settings = new Map<string, string>();
+  const findings: Finding[] = [];
+  text.split('\n').forEach((line, i) => {
+    const at = `${path}:${i + 1}`;
+    const tokens = confTokens(line);
+    if (tokens === null) {
+      findings.push(error('EBMR-SEC-054', at, 'PostgreSQL cannot read this line (a character no setting, value or comment starts with) and would refuse the file'));
+      return;
+    }
+    if (tokens.length === 0) return;
+    if (!/^(ID|QUALIFIED_ID)( EQUALS)? (ID|STRING|UNQUOTED_STRING|INTEGER|REAL)$/.test(tokens.map((t) => t.kind).join(' '))) {
+      findings.push(error('EBMR-SEC-054', at, 'PostgreSQL cannot read this line (expected a setting name, an optional =, one value and nothing else) and would refuse the file'));
+      return;
+    }
+    const name = asciiLower((tokens[0] as ConfToken).text);
+    const value = tokens[tokens.length - 1] as ConfToken;
+    if (name === 'include' || name === 'include_if_exists' || name === 'include_dir') {
+      findings.push(error('EBMR-SEC-053', at, 'include directives bring in settings this check never sees; keep every setting in this file'));
+      return;
+    }
+    settings.set(name, value.kind === 'STRING' ? confUnquote(value.text) : value.text);
+  });
+  return { settings, findings };
+}
+
+/** Whether the server reads a Boolean setting as true (parse_bool: 1, on, and any prefix of true or yes, in any case). */
+function pgTrue(value: string | undefined): boolean {
+  if (value === undefined) return false;
+  const v = asciiLower(value);
+  return v === '1' || v === 'on' || (v !== '' && ('true'.startsWith(v) || 'yes'.startsWith(v)));
+}
+
+/** Whether an enum setting is set to one of the accepted values (the server matches them without regard to ASCII case). */
+function pgEnumIn(value: string | undefined, accepted: readonly string[]): boolean {
+  return value !== undefined && accepted.includes(asciiLower(value));
 }
 
 /** postgresql.conf fragment: TLS on, TLS 1.2 or later, SCRAM password hashing. */
 export function checkPostgresqlConf(text: string, path = 'postgresql.conf'): Finding[] {
-  const findings: Finding[] = [];
-  if (confValue(text, 'ssl') !== 'on') findings.push(error('EBMR-SEC-050', `${path}:ssl`, 'must be on'));
-  const min = confValue(text, 'ssl_min_protocol_version');
-  if (min !== 'TLSv1.2' && min !== 'TLSv1.3') findings.push(error('EBMR-SEC-051', `${path}:ssl_min_protocol_version`, 'must be TLSv1.2 or TLSv1.3'));
-  if (confValue(text, 'password_encryption') !== 'scram-sha-256') findings.push(error('EBMR-SEC-052', `${path}:password_encryption`, 'must be scram-sha-256'));
+  const { settings, findings } = readPostgresqlConf(text, path);
+  if (!pgTrue(settings.get('ssl'))) findings.push(error('EBMR-SEC-050', `${path}:ssl`, 'must be on'));
+  if (!pgEnumIn(settings.get('ssl_min_protocol_version'), ['tlsv1.2', 'tlsv1.3'])) {
+    findings.push(error('EBMR-SEC-051', `${path}:ssl_min_protocol_version`, 'must be TLSv1.2 or TLSv1.3'));
+  }
+  if (!pgEnumIn(settings.get('password_encryption'), ['scram-sha-256'])) findings.push(error('EBMR-SEC-052', `${path}:password_encryption`, 'must be scram-sha-256'));
   return findings;
 }

@@ -14,8 +14,17 @@ requirement_rows:
 sources: Schedule M Part VIII 3.3-3.8.
 behaviour: "(a) Calibrated balance status is checked at step start. (b) Start of each compression run: a sample from every station/compression point must be tested for the pharmacopoeial parameters (appearance, weight variation, disintegration, hardness, friability, thickness); the start check cannot be signed until each station has a result; on multi-point machines this station-wise check repeats at fixed intervals set in the MBR. (c) During compression an IPC timer forces a sample check against the in-process specification at intervals of at most 30 minutes; the interval may be configured shorter but never longer; a missed check raises an alarm and a deviation. (d) The same parameters plus lubricating-oil contamination are checked periodically at an MBR-defined frequency. (e) De-dusting and foreign-matter/defect checks are recorded; tablets are collected in clean, labelled containers. (f) Rejected or discarded tablets are held in identified containers and their quantity is recorded and fed into yield reconciliation."
 catalog_test: run 45 minutes without an IPC entry; the alarm fires at 30 minutes. On a 16-station press the start check cannot be signed with 15 results.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/data.ts (readings)"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-13)"
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-23)"
+  guards:
+    - "A readings set with fewer values than planned is refused (ENG-VALUE-READINGS); every reading is kept individually"
+    - "G-23: rejects are held in an identified container (G23-CONTAINER)"
+tests:
+  - "packages/recipe-core/test/blocks/material.test.ts > G-23 returns, rejects and destruction > [PR-46][IN-35] rejects are held in an identified container"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [IN-35][DI-29] a readings set with fewer values than the plan is refused (every reading is kept individually)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

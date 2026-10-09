@@ -15,8 +15,13 @@ requirement_rows:
 sources: Schedule M Part VIII 1.5, 1.14 (non-overlapping limits, 5-15 Pa vs 15-30 Pa example), 1.17, 1.25, 1.27-1.28.
 behaviour: Each step records room ID and captures differential pressure, temperature and RH at start and during long steps (manual entry or BMS/EMS import) against room-specific alert and action limits. The room master data validator refuses pressure ranges of adjacent rooms that overlap (e.g., 5-15 Pa next to 15-30 Pa is rejected). An excursion notifies Production and QA immediately and links to the batch as a deviation. Moisture-sensitive products may carry tighter product-specific RH limits.
 catalog_test: enter a differential pressure below the action limit at compression start; the step is blocked or a deviation opens and both departments are notified.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-11)"
+  guards:
+    - "G-11: a value outside its action limit raises LIMIT_BREACH and ENVIRONMENT_EXCURSION, stops the step until a deviation is linked, and notifies production and QA"
+tests:
+  - "packages/recipe-core/test/blocks/process.test.ts > G-11 environmental condition check > [IN-39][PR-25] a pressure difference below its action limit stops the step, links a deviation and notifies production and QA"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

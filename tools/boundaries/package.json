@@ -2,6 +2,6 @@
   "name": "@ebmr/tool-boundaries",
   "version": "0.1.0",
   "private": true,
-  "description": "Proves the architecture boundary rules in .dependency-cruiser.cjs fire",
+  "description": "Proves the architecture boundary rules in .dependency-cruiser.cjs, and the ESLint clock ban, fire",
   "type": "module"
 }

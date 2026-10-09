@@ -1,6 +1,6 @@
 /**
- * "At least as strict" for every comparison method (build outline 3.3.1), mirroring
- * market.at_least_as_strict, market.set_merge and market.binding_value in SQL.
+ * "At least as strict" and "the same value" for every comparison method (build outline 3.3.1), mirroring
+ * market.at_least_as_strict, market.same_value, market.set_merge and market.binding_value in SQL.
  */
 import { compareDecimal } from './decimal.ts';
 import { MarketRuleError } from './errors.ts';
@@ -11,16 +11,26 @@ export function byCode(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** JSON text with object keys sorted, for structural equality and hashing. */
+/**
+ * JSON text with object keys sorted, for structural equality and hashing. Only JSON data has a text: JSON.stringify
+ * would write NaN and the infinities as null, give no text for undefined, a function or a symbol, and write a Date,
+ * Map or Set as {} (or as some of its fields), so different values would compare equal.
+ */
 export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  // Array.from reads a hole as undefined, which is refused below.
+  if (Array.isArray(value)) return `[${Array.from(value, (v) => canonicalJson(v)).join(',')}]`;
   if (value !== null && typeof value === 'object') {
+    const proto: unknown = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) {
+      throw new MarketRuleError('EBMR-MKT-020', `a ${(proto as { constructor?: { name?: string } }).constructor?.name ?? 'object'} is not a JSON value`);
+    }
     const entries = Object.entries(value as Record<string, unknown>)
       .filter(([, v]) => v !== undefined)
       .sort(([a], [b]) => byCode(a, b));
     return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
   }
-  return JSON.stringify(value);
+  if (value === null || typeof value === 'string' || typeof value === 'boolean' || Number.isFinite(value)) return JSON.stringify(value);
+  throw new MarketRuleError('EBMR-MKT-020', `${typeof value === 'number' ? String(value) : `a ${typeof value}`} is not a JSON value`);
 }
 
 export function jsonEqual(a: unknown, b: unknown): boolean {
@@ -106,6 +116,19 @@ export function isAtLeastAsStrict(method: ComparisonMethod, ordered: readonly st
     case 'NOT_COMPARABLE':
       throw new MarketRuleError('EBMR-MKT-046', 'NOT_COMPARABLE values cannot be ranked');
   }
+}
+
+/**
+ * Are values a and b the same value under the key's method (market.same_value in SQL, kernel 1010; lead TODO T9)?
+ * A set (SET_UNION, ALL_APPLY) is the same when each side is at least as strict as the other: the same identifiers,
+ * or the same criteria each by its full definition, in any order (a value never repeats an element or a criterion
+ * id). Any other value is the same when it is the same JSON. A site value that is the same is EQUAL, not TIGHTER.
+ * Throws for NOT_COMPARABLE keys.
+ */
+export function isSameValue(method: ComparisonMethod, ordered: readonly string[] | null | undefined, a: RuleValue, b: RuleValue): boolean {
+  if (method === 'SET_UNION' || method === 'ALL_APPLY') return isAtLeastAsStrict(method, ordered, a, b) && isAtLeastAsStrict(method, ordered, b, a);
+  if (method === 'NOT_COMPARABLE') throw new MarketRuleError('EBMR-MKT-046', 'NOT_COMPARABLE values cannot be ranked');
+  return jsonEqual(a, b);
 }
 
 /** Union of two set-valued values, sorted (SET_UNION: strings; ALL_APPLY: criteria by id). */

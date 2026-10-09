@@ -14,6 +14,7 @@ import {
   burnVerification,
   generateSecret,
   hashSecret,
+  MAX_PIN_LENGTH,
   passwordProblems,
   pinProblems,
   readSecretPolicy,
@@ -165,6 +166,15 @@ describe('PIN rules', () => {
     expect(pinProblems('4829153', policy)).toEqual([]);
   });
 
+  it('[DI-19][DI-15] a PIN longer than the 12 digits every kiosk PIN pad takes is refused, 12 itself accepted (F05)', () => {
+    expect(MAX_PIN_LENGTH).toBe(12);
+    expect(pinProblems('739146285039', policy)).toEqual([]);
+    expect(pinProblems('7391462850391', policy)).toEqual(['longer than 12 digits']);
+    expect(pinProblems('73914628503917', policy)).toEqual(['longer than 12 digits']);
+    expect(pinProblems('7391462850391a', policy)).toEqual(['digits only', 'longer than 12 digits']);
+    expect(refusal(() => assertAcceptableSecret('PIN', '73914628503917', policy))).toBe('EBMR-IAM-055 the new pin is not acceptable: longer than 12 digits');
+  });
+
   it('[DI-19] a PIN of one repeated digit is refused', () => {
     expect(pinProblems('777777', policy)).toEqual(['a single repeated digit']);
     expect(pinProblems('000', withPolicy({ pinLength: 3 }))).toEqual(['a single repeated digit']);
@@ -197,7 +207,8 @@ describe('acceptable secrets (the check before hashing)', () => {
     expect(() => assertAcceptableSecret('PASSWORD', 'Another-Long-Secret-77', policy)).not.toThrow();
     expect(() => assertAcceptableSecret('PASSWORD', 'Another-Long-Secret-77', policy, 'operator7')).not.toThrow();
     expect(() => assertAcceptableSecret('PIN', '482915', policy)).not.toThrow();
-    expect(refusal(() => assertAcceptableSecret('PIN', 'Another-Long-Secret-77', policy))).toBe('EBMR-IAM-055 the new pin is not acceptable: digits only');
+    expect(refusal(() => assertAcceptableSecret('PIN', 'Another-Long-Secret-77', policy))).toBe('EBMR-IAM-055 the new pin is not acceptable: digits only; longer than 12 digits');
+    expect(refusal(() => assertAcceptableSecret('PIN', 'Another-77', policy))).toBe('EBMR-IAM-055 the new pin is not acceptable: digits only');
     expect(refusal(() => assertAcceptableSecret('PASSWORD', '482915', policy))).toBe('EBMR-IAM-055 the new password is not acceptable: shorter than 12 characters');
   });
 
@@ -234,6 +245,30 @@ describe('initial secrets (DI-15: delivered to the user, never chosen by the adm
       expect(pinProblems(pin, four)).toEqual([]);
     }
     expect(generateSecret('PIN', withPolicy({ pinLength: 8 }))).toMatch(/^\d{8}$/);
+  });
+
+  it('[DI-15] a policy length no generated secret can meet is refused (EBMR-IAM-110) instead of looping or giving an empty secret', () => {
+    for (const pinLength of [1, 0, -4, 4.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => generateSecret('PIN', withPolicy({ pinLength })), String(pinLength)).toThrow(
+        new IdentityError('EBMR-IAM-110', `credential.pin_length is ${pinLength}; a generated secret needs a whole number of at least 2`),
+      );
+    }
+    for (let i = 0; i < 200; i += 1) expect(generateSecret('PIN', withPolicy({ pinLength: 2 }))).toMatch(/^(?!(\d)\1)\d{2}$/);
+    // Longer than the pads take (F05): refused, never an endless search for an acceptable PIN; 12 itself is generated.
+    for (const pinLength of [13, 64]) {
+      expect(() => generateSecret('PIN', withPolicy({ pinLength })), String(pinLength)).toThrow(
+        new IdentityError('EBMR-IAM-110', `credential.pin_length is ${pinLength}; a PIN has at most 12 digits`),
+      );
+    }
+    expect(generateSecret('PIN', withPolicy({ pinLength: 12 }))).toMatch(/^\d{12}$/);
+    for (const passwordMinLength of [0, Number.NaN, 12.5]) {
+      expect(() => generateSecret('PASSWORD', withPolicy({ passwordMinLength })), String(passwordMinLength)).toThrow(
+        new IdentityError('EBMR-IAM-110', `credential.password_min_length is ${passwordMinLength}; a generated secret needs a whole number of at least 1`),
+      );
+    }
+    expect(generateSecret('PASSWORD', withPolicy({ passwordMinLength: 1 }))).toHaveLength(16);
+    // A service key does not depend on the lengths.
+    expect(generateSecret('SERVICE_KEY', withPolicy({ pinLength: 1, passwordMinLength: Number.NaN }))).toHaveLength(43);
   });
 
   it('[DI-15] an initial password has at least 16 characters, more when the policy asks, from an alphabet without look-alike characters', () => {

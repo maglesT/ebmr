@@ -1,0 +1,39 @@
+{
+  "packageId": "7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b",
+  "product": {
+    "code": "PCM500",
+    "name": "Paracetamol tablets",
+    "strength": "500 mg"
+  },
+  "batchSizes": [
+    {
+      "id": "BS-100K",
+      "quantity": "60.000",
+      "unit": "kg",
+      "label": "BS-100K: 60.000 kg"
+    },
+    {
+      "id": "BS-50K",
+      "quantity": "30.000",
+      "unit": "kg",
+      "label": "BS-50K: 30.000 kg"
+    }
+  ],
+  "markets": [
+    {
+      "code": "IN",
+      "locked": true
+    }
+  ],
+  "variants": [],
+  "inputs": [
+    {
+      "id": "tabletsPerBatch",
+      "name": "Batch size in tablets",
+      "valueType": "COUNT",
+      "unit": null,
+      "source": "BATCH_HEADER",
+      "required": true
+    }
+  ]
+}

@@ -45,7 +45,10 @@ let subjectAsDiLead: ActorContext;
 
 /** The approver's DI_INVESTIGATION_CLOSED signature of the investigation (DI-37). */
 const signClosure = (id: string) => signFor(db, approver, { type: 'di_investigation', id }, 'DI_INVESTIGATION_CLOSED', 'OPEN');
-const now = async (): Promise<Date> => (await db.app.query<{ t: Date }>('select clock_timestamp() as t')).rows[0]?.t as Date;
+// A window starts at a JavaScript Date (milliseconds) and the store compares recorded_at (microseconds) with >=: an
+// entry recorded in the same millisecond as the clock read falls inside a window that starts at the truncated value.
+// Wait 2 ms on the database clock first, so every entry made before the read is strictly before the window.
+const now = async (): Promise<Date> => (await db.app.query<{ t: Date }>('select clock_timestamp() as t from pg_sleep(0.002)')).rows[0]?.t as Date;
 const plusHours = (d: Date, h: number) => new Date(d.getTime() + h * 3_600_000);
 
 beforeAll(async () => {

@@ -39,6 +39,9 @@ export async function createTestDatabase(): Promise<TestDatabase> {
   await server.query(`revoke temporary on database ${name} from public`);
   await server.end();
   const admin = new pg.Pool({ connectionString: urlFor(name), max: 4 });
+  // Database-level CONNECT privileges are not copied from a template either (sandbox 0800, INV-18).
+  const { rows } = await admin.query<{ fn: string | null }>("select to_regprocedure('sandbox.apply_connect_policy()')::text as fn");
+  if (rows[0]?.fn) await admin.query('select sandbox.apply_connect_policy()');
   const app = new pg.Pool({ connectionString: urlFor(name, { name: 'ebmr_app', password: 'ebmr_app' }), max: 4 });
   return {
     name,

@@ -1,8 +1,8 @@
 /**
  * One-time (re-runnable) import of the control catalogs into compliance/controls/*.yaml.
  *
- * Re-running keeps any fields a person has since edited in the YAML (implemented_by, tests,
- * expert_decision, build_status, proposed_modify, target_phase when its source is not 'outline'),
+ * Re-running keeps any fields a person has since edited in the YAML (implemented_by, tests, clauses,
+ * deferred_scope, expert_decision, build_status, proposed_modify, target_phase when its source is not 'outline'),
  * so the import never overwrites decisions or build progress.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -26,7 +26,7 @@ const PROPOSED_MODIFY: Record<string, string> = {
   'DI-25': 'Widen the batch audit-trail review to audit events on records the batch relied on: lots, equipment, qualifications, EM results, cycles, rules (critique R-17 / L-10).',
 };
 
-const KEEP_FIELDS = ['implemented_by', 'tests', 'expert_decision', 'build_status', 'proposed_modify'] as const;
+const KEEP_FIELDS = ['implemented_by', 'tests', 'clauses', 'deferred_scope', 'expert_decision', 'build_status', 'proposed_modify'] as const;
 
 export function importCatalogs(): { written: number; ids: string[] } {
   const outline = readFileSync(join(ROOT, 'docs/outline/build-outline.md'), 'utf8');

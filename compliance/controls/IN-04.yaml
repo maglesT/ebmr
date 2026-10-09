@@ -18,7 +18,8 @@ sources: Schedule M Part I 11.3.1 (key personnel), 11.3.4-11.3.5 (heads independ
 behaviour: (a) Separate roles for head of production, head(s) of QA/QC, authorised person (AP) and designated production-record reviewer. (b) One user cannot hold both a production-head and a quality-head approval on the same batch. (c) The production-record review signature is distinct from, and must precede, the QA review. (d) An "approved technical staff" register stores, for each person approved for manufacture or testing, the licensing-authority approval reference and date; only these people can sign production-supervisor or QC-approval steps on batches made under an Indian licence. (e) Each MBR step type needs a current training record; the system refuses step sign-on by untrained users and stores the training status at the moment of signing. (f) Visual inspectors need a current eye-check record (see IN-50). (g) Visitor/contractor accounts are view-only or supervised.
 catalog_test: give one user production-head and QA-head roles on one batch; the conflict is refused. Remove a user from the approved-staff register; they can no longer sign as production supervisor.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/review/f79.test.ts > F79: site-scoped qualification requirements are skipped when the request has no site (INV-26, DI-21, IN-04) > [INV-26][IN-04] esig.sign: an unqualified verifier cannot sign VERIFIED on an entry whose provider returns no site"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

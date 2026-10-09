@@ -17,6 +17,25 @@ export const PHASE_FILE = join(ROOT, 'compliance/phase.yaml');
 
 export type ExpertStatus = 'PENDING' | 'FOLLOW' | 'DONT_FOLLOW' | 'MODIFY';
 
+/**
+ * One clause of a control's catalog test (review F14): its words, in order, and either the listed tests that prove
+ * it or the later phase it is deferred to, with the reason. The clauses of a control are its catalog_test, word for
+ * word (validate.ts), so no clause can be left out; the trace refuses a due control whose clause has no passing test
+ * and no deferral, and a deferral whose phase has started (trace.ts).
+ */
+export interface ClauseRecord {
+  clause: string;
+  tests?: string[];
+  deferred?: { phase: number; reason: string };
+}
+
+/** A part of a control's behaviour beyond its catalog test that a later phase builds (e.g. DI-33 reprocessing). */
+export interface DeferredScope {
+  scope: string;
+  phase: number;
+  reason: string;
+}
+
 export interface ControlRecord {
   id: string;
   title: string;
@@ -36,6 +55,8 @@ export interface ControlRecord {
   notes?: string;
   implemented_by: Record<string, string[]>;
   tests: string[];
+  clauses?: ClauseRecord[];
+  deferred_scope?: DeferredScope[];
   proposed_modify?: string;
   expert_decision: { status: ExpertStatus; pack_version: string; reviewer?: string; date?: string; comment?: string };
   build_status: 'SPECIFIED' | 'IMPLEMENTED' | 'VERIFIED';

@@ -77,7 +77,7 @@ component (see "Open points").
 | `signature_id_register` | Every signature ID ever issued (INV-27) | protected log |
 | `content_change` | Who changed which signed record (INV-03 involvement) | protected log |
 | `seal_key`, `seal_key_retirement` | Key registry and public-key archive | insert-only, audited |
-| `signing_failure` | Refused signings, logged after rollback: the reported code, and the misuse the database itself proves from the challenge and the authentication event (only that raises a security alert) | protected log |
+| `signing_failure` | Refused signings, logged after the rollback, or, for a refusal before signing that commits its own command, inside that command (0950): the reported code, and the misuse the database itself proves from the challenge and the authentication event (only that raises a security alert) | protected log |
 | `stub_signable` | Stub signed entries (step, cleaning-log entry, master document) with provider `esig_stub` | audited; state only through `esig.stub_complete` |
 
 ## What other modules call
@@ -116,13 +116,25 @@ TypeScript (`@ebmr/kernel` once `./esig/index.ts` is exported): `contentForSigni
 ## Invariants and how they are enforced
 
 - **INV-10**: the application role has no write privilege on any esig table; a guard trigger
-  accepts a signature row only from `esig.sign` (EBMR-ESIG-060, also against the table owner);
-  `auth_event_id` and `challenge_id` are unique; a deferred check refuses an unsealed commit.
-  Detected: `esig.verify_signatures`, `esig.invariant_violations`.
+  accepts a signature row only while the transaction-local signing marker that `esig.sign` sets
+  names its challenge (EBMR-ESIG-060). Any role can set that marker, so since kernel 1112 the guard
+  also holds the row, whoever inserts it, to its challenge (record, content, meaning and its wording,
+  signer, session, terminal: EBMR-ESIG-065) and to an authentication event of the signer made for
+  that challenge on its terminal and consumed for a signature in the same transaction
+  (EBMR-ESIG-066). `auth_event_id` and `challenge_id` are unique; a deferred check refuses an
+  unsealed commit. Owner-level code can still write every row a signature needs (it owns the
+  tables: challenge, authentication event and its use, signature, seal) and so skip the authority and
+  independence checks of `esig.sign`; the state machines' own guards check again what a transition
+  needs (INV-04 for an MBR version), and a seal written without the server's key is found by the seal
+  check of `verifySignatures` (TypeScript, with the trusted key ring). Detected:
+  `esig.verify_signatures`, `esig.invariant_violations`.
 - **INV-09**: every registered signed table has an AFTER ROW trigger that, in the changing
   transaction, compares each unsuperseded signature's hash with the record's current hash and
-  inserts SUPERSEDED_BY_CHANGE rows; signing and changing a record take the same transaction lock;
-  signing is refused while an invalidation trigger is missing or disabled (EBMR-ESIG-008).
+  inserts SUPERSEDED_BY_CHANGE rows; signing and changing a record take the same transaction lock
+  (`esig.aggregate_lock`), and take it only in a READ COMMITTED transaction (1020, EBMR-ESIG-015): under
+  REPEATABLE READ or SERIALIZABLE the statements after the lock would read the transaction's first snapshot, so a
+  signing could cover content changed meanwhile and a change could miss a signature made meanwhile (test
+  `isolation.test.ts`); signing is refused while an invalidation trigger is missing or disabled (EBMR-ESIG-008).
 - **INV-03**: types whose role class is VERIFIER or WITNESS must exclude performers (check
   constraint); the excluded set is every person in `content_change` for the record, the provider's
   `entered_by` and every signer of a PERFORMER-class meaning, superseded or not; evaluated on the
@@ -133,11 +145,27 @@ TypeScript (`@ebmr/kernel` once `./esig/index.ts` is exported): `contentForSigni
   afterwards (045). `esig.invariant_violations` reports these pairs whichever came first
   (INV-03, ESIG.INDEPENDENT, ESIG.INVOLVEMENT).
 - **DI-19**: a refused signing is logged by `esig.record_signing_failure(challenge, auth_event,
-  code, message)` after the rollback; the security alert is raised only on misuse the database
-  proves from committed rows (`esig.signing_misuse`), never on the reported code, and once per
-  authentication event. `esig.invariant_violations` reports (DI-19) an authentication event that
-  proves misuse (another person, account or terminal) and was never alerted, so an application
-  that skips the report is detected.
+  code, message)`: after the rollback, or inside the attempt's own command when a refusal before
+  signing commits that command on purpose (its refused record and stored answer). The security
+  alert is raised only on misuse the database proves from committed rows (`esig.signing_misuse`),
+  never on the reported code, and once per authentication event. `esig.signing_misuse` reads every
+  use of the event other than a signature as re-use by another command (EBMR-IAM-091), except one
+  (0950): the COMMAND use written in the current transaction by the validated command whose actor
+  context names this event, under that command's correlation id. That use is the attempt's own,
+  and the other attempted-misuse checks (another challenge, pre-signing, missing components) still
+  run on the event. The exception rests on the transaction and the validated context only: a
+  report after the commit, from another command, or from a second command of the same transaction
+  still finds the use and flags it. It also needs that context to still hold when the failure is
+  recorded, so code that switches the context inside the command restores it first (otherwise the
+  rightful signer is flagged and alerted). By design, any validated command that a SIGNATURE event
+  attributes may record a failure for that event inside itself without the IAM-091 flag, whatever
+  else the command does; only an application that chooses to report reaches this, and one that
+  does not report was never caught by the re-use check anyway (`esig.invariant_violations` runs
+  `esig.signing_misuse` without an attempt, so it checks only person, account and terminal). The
+  failure log keeps no transaction or correlation id, so that decision cannot be re-checked later.
+  `esig.invariant_violations` reports (DI-19) an authentication event that proves misuse (another
+  person, account or terminal) and was never alerted, so an application that skips the report is
+  detected.
 - **INV-27**: the signature ID is drawn by the insert guard from `gen_random_uuid()` (never a
   sequence, never caller-chosen) and entered in `signature_id_register`, which nobody can change or
   empty; the register outlives purged signature rows. After a restore to an earlier point the
@@ -150,8 +178,10 @@ record, version, displayed hash, canonical id); 020–026 catalogue; 030–041 s
 challenge, 035 zone, 036 event account/terminal/time, 037 type changed, 038 components, 039 state,
 040 authority, 041 delegation); 042–045 independence (042 duplicate, 043 independent-of, 044
 INV-03, 045 involvement; each in both signing orders); 050–053 witness (051 the record or the
-caller shows the next step started; 053 includes an unregistered act terminal); 060–064 insertion
-and seal; 070 signature not valid for
+caller shows the next step started; 053 includes an unregistered act terminal); 060–066 insertion
+and seal (060 not inserted by `esig.sign`; 061–064 seal; 065 a row that is not what its challenge
+names; 066 a row whose authentication event was not consumed for its challenge in its transaction,
+kernel 1112); 070 signature not valid for
 the use; 090–093 stub entries. Identity refusals keep their EBMR-IAM codes (for example 093 proxy
 signing, 091 event already used, 092 too old, 094 other challenge).
 

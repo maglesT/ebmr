@@ -171,6 +171,62 @@ describe('transitions through the engine', () => {
     ).rejects.toThrow('EBMR-PLAT-074');
   });
 
+  it('[DI-22][DI-24] a transition that needs a reason (platform.reason_given) needs the person\'s own reason code and reason text, neither blank nor made only of characters that show nothing: otherwise it is refused and nothing is written; with both, the state row\'s audit entry and the history row record exactly them, and the engine writes no part of the reason', async () => {
+    const id = await newRecord();
+    await fire(id, 'SUBMIT', 1, author);
+    // Written as code points, so the source holds no invisible character: zero-width space, interlinear annotation
+    // anchor, Egyptian hieroglyph format control, no-break and ideographic space, Arabic number sign, Braille blank.
+    const ZWSP = String.fromCodePoint(0x200b);
+    const ANNOTATION = String.fromCodePoint(0xfff9);
+    const HIEROGLYPH_FORMAT = String.fromCodePoint(0x13430);
+    const OTHERS = String.fromCodePoint(0xa0, 0x3000, 0x600, 0x2800);
+    const incomplete: [string, string][] = [
+      ['INCOMPLETE', ''], // a code alone: the engine used to write the text 'RETURN: SUBMITTED -> DRAFT'
+      ['INCOMPLETE', ' \t '],
+      ['', 'section 4 missing'],
+      ['INCOMPLETE', ZWSP],
+      ['INCOMPLETE', `${ANNOTATION}${HIEROGLYPH_FORMAT}`],
+      ['INCOMPLETE', OTHERS],
+      [ZWSP, 'section 4 missing'],
+      [ANNOTATION, 'section 4 missing'],
+    ];
+    for (const [reasonCode, reasonText] of incomplete) {
+      const ctx = { ...checker, correlationId: randomUUID(), reasonCode, reasonText };
+      await expect(fire(id, 'RETURN', 2, ctx), JSON.stringify([reasonCode, reasonText])).rejects.toThrow(
+        /^EBMR-PLAT-068 RETURN refused in state SUBMITTED: platform\.reason_given: a reason is required for this transition: the reason code and the reason text of the person who makes it, neither blank; the system writes no part of it \(DI-22, DI-24; EBMR-AUDIT-002\)$/,
+      );
+      expect(await rows('select id from kernel.audit_event where correlation_id = $1', [ctx.correlationId])).toEqual([]);
+      expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'SUBMITTED', version: 2 });
+    }
+
+    // A visible character among invisible ones is a reason, kept exactly as given.
+    const ctx = { ...checker, correlationId: randomUUID(), reasonCode: 'INCOMPLETE', reasonText: `${ZWSP}section 4 missing` };
+    await fire(id, 'RETURN', 2, ctx);
+    expect(
+      await rows(
+        `select table_name, payload ->> 'reason_code' as reason_code, payload ->> 'reason_text' as reason_text
+           from kernel.audit_event where correlation_id = $1 and action = 'UPDATE' order by id`,
+        [ctx.correlationId],
+      ),
+    ).toEqual([{ table_name: 'platform.aggregate_state', reason_code: 'INCOMPLETE', reason_text: `${ZWSP}section 4 missing` }]);
+    expect(await rows("select reason_code, reason_text from platform.state_history where aggregate_id = $1 and event = 'RETURN'", [id])).toEqual([
+      { reason_code: 'INCOMPLETE', reason_text: `${ZWSP}section 4 missing` },
+    ]);
+    // A transition that needs no reason (SUBMIT) is a new event: the engine still records it with its own description.
+    const submit = { ...author, correlationId: randomUUID() };
+    await fire(id, 'SUBMIT', 3, submit);
+    expect(
+      await rows("select payload ->> 'reason_code' as reason_code, payload ->> 'reason_text' as reason_text from kernel.audit_event where correlation_id = $1 and action = 'UPDATE'", [
+        submit.correlationId,
+      ]),
+    ).toEqual([{ reason_code: 'STATE_TRANSITION', reason_text: 'SUBMIT: DRAFT -> SUBMITTED' }]);
+    // The guard is registered again with a description of both halves; the machine's sealed hash is unchanged.
+    expect(await rows("select description from platform.state_guard where code = 'platform.reason_given'")).toEqual([
+      { description: 'The command states the reason of the person who makes the transition: a reason code and a reason text, neither blank (DI-22, DI-24)' },
+    ]);
+    expect(await rows('select * from platform.machine_integrity_violations()')).toEqual([]);
+  });
+
   it('the permission comes from the authority provider; without one every guarded transition is refused', async () => {
     const id = await newRecord();
     await expect(fire(id, 'SUBMIT', 1, checker)).rejects.toThrow('EBMR-PLAT-006 permission sample_record.submit denied: role MBR_CHECKER does not hold sample_record.submit');
@@ -201,7 +257,7 @@ describe('transitions through the engine', () => {
     const checkSig = await sign('CHECKED', id);
     await expect(fire(id, 'CHECK', 2, checker, { signature_id: checkSig })).resolves.toMatchObject({ to: 'CHECKED' });
     // A signature authorises one transition: after RETURN and a new SUBMIT, the old CHECKED signature cannot be replayed.
-    await fire(id, 'RETURN', 3, { ...qa, reasonCode: 'REWORK' });
+    await fire(id, 'RETURN', 3, { ...qa, reasonCode: 'REWORK', reasonText: 'checked content needs rework' });
     await fire(id, 'SUBMIT', 4, author);
     await expect(fire(id, 'CHECK', 5, checker, { signature_id: checkSig })).rejects.toThrow('EBMR-PLAT-075');
   });
@@ -211,7 +267,7 @@ describe('transitions through the engine', () => {
     await fire(id, 'SUBMIT', 1, author);
     await fire(id, 'CHECK', 2, checker, { signature_id: await sign('CHECKED', id) });
     await fire(id, 'APPROVE', 3, qa, { signature_id: await sign('APPROVED', id) });
-    await fire(id, 'RETIRE', 4, { ...qa, reasonCode: 'OBSOLETE' });
+    await fire(id, 'RETIRE', 4, { ...qa, reasonCode: 'OBSOLETE', reasonText: 'superseded by the new SOP' });
     for (const event of ['SUBMIT', 'RETURN', 'SUPERSEDE', 'RETIRE']) {
       await expect(fire(id, event, 5, { ...qa, reasonCode: 'X' })).rejects.toThrow('not allowed in state RETIRED');
     }
@@ -299,6 +355,192 @@ describe('the engine cannot be bypassed', () => {
     await expect(asSuperuser('delete from platform.aggregate_state where aggregate_id = $1', true)).rejects.toThrow('EBMR-PLAT-072');
     await expect(db.admin.query('truncate platform.aggregate_state')).rejects.toThrow('EBMR-PLAT-002');
     expect(await rows('select * from platform.state_violations()')).toEqual([]);
+  });
+
+  /**
+   * Defect D11 of the Phase 2 exit (SQL mutation kill work): for a history row the guard checked only the engine flag, a
+   * session setting any role can set, so owner-level code could write any history row (a record approved at version 100)
+   * and only platform.state_violations() found it afterwards. Only the table owner (owner-level code) and superusers may
+   * insert history rows at all: the application role and the sandbox role hold SELECT only, and the engine functions they
+   * may call write every value themselves (kernel 1110). Here the owner, every trigger on, forges the flag.
+   */
+  const forged = (work: (c: pg.PoolClient) => Promise<unknown>) =>
+    withCommand(db.admin, { ...author, reasonCode: 'BYPASS', reasonText: 'forged engine flag' }, async (c) => {
+      await c.query('set local role ebmr_owner');
+      await c.query("select set_config('platform.state_engine', 'on', true)");
+      await work(c);
+    });
+  interface ForgedHistory {
+    from: string | null;
+    event: string | null;
+    to: string;
+    fromVersion: number | null;
+    toVersion: number;
+    permission: string | null;
+    meaning?: string | null;
+    signatureId?: string | null;
+    aggregateType?: string;
+  }
+  const insertHistory = (c: pg.PoolClient, id: string, h: ForgedHistory) =>
+    c.query(
+      `insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, from_state, event, to_state, from_version, to_version,
+                                           permission_code, signature_meaning, signature_id, person_id, account_id, role_code, correlation_id)
+       values ($1, $2, 'sample_record', 1, $3, $4, $5, $6, $7, $8, $9, $10, 'p', 'a', 'r', gen_random_uuid())`,
+      [h.aggregateType ?? 'sample_record', id, h.from, h.event, h.to, h.fromVersion, h.toVersion, h.permission, h.meaning ?? null, h.signatureId ?? null],
+    );
+  const historyOf = (id: string) =>
+    rows<{ row: string }>(
+      "select concat_ws(' ', from_state, event, to_state, to_version) as row from platform.state_history where aggregate_type = 'sample_record' and aggregate_id = $1 order by to_version",
+      [id],
+    );
+
+  it('[DI-34][DI-17] owner-level code that forges the engine flag cannot write a history row of its own: an unpublished transition, a record approved at version 100 (D11), a from-state the record is not in, a permission or signature other than the published one, a transition the state row does not record, and the creation of a record with no state row or not in its initial state are each refused (EBMR-PLAT-077); the history stays as the engine wrote it', async () => {
+    const id = await newRecord();
+    const forge = (h: ForgedHistory, aggregateId = id) => forged((c) => insertHistory(c, aggregateId, h));
+    const row = (what: string, aggregateId = id) => `EBMR-PLAT-077 the history row of sample_record:${aggregateId} ${what}`;
+    const sig = randomUUID();
+    await expect(
+      forge({ from: 'DRAFT', event: 'APPROVE', to: 'APPROVED', fromVersion: 1, toVersion: 2, permission: 'sample_record.approve', meaning: 'APPROVED', signatureId: sig }),
+    ).rejects.toThrow(row('DRAFT -APPROVE-> APPROVED at version 2 is not a published transition of sample_record v1'));
+    // The defect's own example: a published transition, but at version 100 of a record whose history ends at version 1.
+    await expect(
+      forge({ from: 'CHECKED', event: 'APPROVE', to: 'APPROVED', fromVersion: 99, toVersion: 100, permission: 'sample_record.approve', meaning: 'APPROVED', signatureId: sig }),
+    ).rejects.toThrow(row('CHECKED -APPROVE-> APPROVED at version 100 does not continue its latest history row (DRAFT at version 1)'));
+    await expect(
+      forge({ from: 'SUBMITTED', event: 'CHECK', to: 'CHECKED', fromVersion: 1, toVersion: 2, permission: 'sample_record.check', meaning: 'CHECKED', signatureId: sig }),
+    ).rejects.toThrow(row('SUBMITTED -CHECK-> CHECKED at version 2 does not continue its latest history row (DRAFT at version 1)'));
+    // The published transition the record could make next, with what it records changed.
+    const submit: ForgedHistory = { from: 'DRAFT', event: 'SUBMIT', to: 'SUBMITTED', fromVersion: 1, toVersion: 2, permission: 'sample_record.submit' };
+    const notRecorded = row('DRAFT -SUBMIT-> SUBMITTED at version 2 does not record what the published transition requires (permission sample_record.submit, signature none)');
+    await expect(forge({ ...submit, permission: null })).rejects.toThrow(notRecorded);
+    await expect(forge({ ...submit, permission: 'sample_record.approve' })).rejects.toThrow(notRecorded);
+    await expect(forge({ ...submit, meaning: 'CHECKED', signatureId: sig })).rejects.toThrow(notRecorded);
+    // Exactly as the engine would write it, but the state row still records DRAFT at version 1.
+    await expect(forge(submit)).rejects.toThrow(row('DRAFT -SUBMIT-> SUBMITTED at version 2 differs from its state row (DRAFT at version 1, sample_record v1)'));
+    // A creation row: of a record that has no state row, and in a state other than the initial one.
+    const other = randomUUID();
+    const create: ForgedHistory = { from: null, event: null, to: 'DRAFT', fromVersion: null, toVersion: 1, permission: 'sample_record.submit' };
+    await expect(forge(create, other)).rejects.toThrow(row('that creates it in DRAFT at version 1 differs from its state row (none)', other));
+    await expect(forge({ ...create, to: 'SUBMITTED' }, other)).rejects.toThrow(
+      row('that creates it in SUBMITTED at version 1 does not start a published version of sample_record v1 (DRAFT at version 1)', other),
+    );
+    await expect(forge({ ...create, permission: 'sample_record.approve' }, other)).rejects.toThrow(
+      row('that creates it in DRAFT at version 1 does not record what the published transition requires (permission sample_record.submit, signature none)', other),
+    );
+    expect(await historyOf(id)).toEqual([{ row: 'DRAFT 1' }]);
+    expect(await historyOf(other)).toEqual([]);
+    expect(await rows('select * from platform.state_violations()')).toEqual([]);
+  });
+
+  it('[DI-34][DI-17] with the engine flag forged, a transition that needs a signature cannot be written without one, even as a state row and history row that agree (EBMR-PLAT-077); the engine still makes it with a valid signature', async () => {
+    const id = await newRecord();
+    await fire(id, 'SUBMIT', 1, author);
+    await fire(id, 'CHECK', 2, checker, { signature_id: await sign('CHECKED', id) });
+    const approve: ForgedHistory = { from: 'CHECKED', event: 'APPROVE', to: 'APPROVED', fromVersion: 3, toVersion: 4, permission: 'sample_record.approve', meaning: 'APPROVED' };
+    await expect(
+      forged(async (c) => {
+        await c.query("update platform.aggregate_state set state = 'APPROVED', version = 4 where aggregate_type = 'sample_record' and aggregate_id = $1", [id]);
+        await insertHistory(c, id, approve);
+      }),
+    ).rejects.toThrow(
+      `EBMR-PLAT-077 the history row of sample_record:${id} CHECKED -APPROVE-> APPROVED at version 4 does not record what the published transition requires (permission sample_record.approve, signature APPROVED)`,
+    );
+    expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'CHECKED', version: 3 });
+    await expect(fire(id, 'APPROVE', 3, qa, { signature_id: await sign('APPROVED', id) })).resolves.toMatchObject({ to: 'APPROVED', newVersion: 4 });
+    expect(await historyOf(id)).toEqual([{ row: 'DRAFT 1' }, { row: 'DRAFT SUBMIT SUBMITTED 2' }, { row: 'SUBMITTED CHECK CHECKED 3' }, { row: 'CHECKED APPROVE APPROVED 4' }]);
+    expect(await rows('select * from platform.state_violations()')).toEqual([]);
+  });
+
+  it('[DI-34][DI-17] with the engine flag forged, a state row that changes without its history row is refused when the transaction commits (EBMR-PLAT-078), and a state row starts only for the aggregate type its machine governs (EBMR-PLAT-072); the state and the history still agree', async () => {
+    const id = await newRecord();
+    await expect(
+      forged((c) => c.query("update platform.aggregate_state set state = 'SUBMITTED', version = 2 where aggregate_type = 'sample_record' and aggregate_id = $1", [id])),
+    ).rejects.toThrow(
+      `EBMR-PLAT-078 the state row of sample_record:${id} (SUBMITTED at version 2, sample_record v1) is not its latest history row (DRAFT at version 1, sample_record v1): a state changes only together with its history row, through platform.transition`,
+    );
+    const other = randomUUID();
+    const insertState = (aggregateType: string) =>
+      forged((c) =>
+        c.query(
+          "insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ($1, $2, 'sample_record', 1, 'DRAFT', 1)",
+          [aggregateType, other],
+        ),
+      );
+    await expect(insertState('sample_record')).rejects.toThrow(
+      `EBMR-PLAT-078 the state row of sample_record:${other} (DRAFT at version 1, sample_record v1) is not its latest history row (none): a state changes only together with its history row, through platform.transition`,
+    );
+    await expect(insertState('batch')).rejects.toThrow(
+      'EBMR-PLAT-072 a new aggregate starts at version 1 in the initial state of a published machine version that governs its aggregate type',
+    );
+    expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'DRAFT', version: 1 });
+    expect(await rows('select 1 from platform.aggregate_state where aggregate_id = $1', [other])).toEqual([]);
+    expect(await historyOf(id)).toEqual([{ row: 'DRAFT 1' }]);
+    expect(await rows('select * from platform.state_violations()')).toEqual([]);
+  });
+
+  /**
+   * D11, the first question of the defect: who can reach an insert of a history row with the flag forged? Not the
+   * application role: it sets the engine flag and the signing marker (set_config is open to every role) and is still
+   * refused by the table privileges, before any trigger runs. Only the table owner (and superusers) hold INSERT or
+   * UPDATE on the state and signature tables; the sandbox role mirrors the application role (sandbox/bypass.test.ts).
+   */
+  it('[DI-34][DI-17] with the engine flag and the signing marker forged, the application role still cannot write a history row, a state row or a signature: only the table owner holds INSERT or UPDATE on those tables (D11)', async () => {
+    const id = await newRecord();
+    const c = await db.app.connect();
+    // Both settings are open to the application role, as to every role.
+    const withFlags = async (work: (client: pg.PoolClient) => Promise<unknown>): Promise<string> => {
+      await c.query('begin');
+      try {
+        const set = await c.query<{ flag: string; marker: string }>(
+          "select set_config('platform.state_engine', 'on', true) as flag, set_config('esig.signing_challenge', $1, true) as marker",
+          [randomUUID()],
+        );
+        expect(set.rows[0]?.flag).toBe('on');
+        return await work(c).then(
+          () => 'accepted',
+          (error: unknown) => `${(error as { code?: string }).code} ${(error as Error).message}`,
+        );
+      } finally {
+        await c.query('rollback');
+      }
+    };
+    try {
+      const submit: ForgedHistory = { from: 'DRAFT', event: 'SUBMIT', to: 'SUBMITTED', fromVersion: 1, toVersion: 2, permission: 'sample_record.submit' };
+      expect(await withFlags((client) => insertHistory(client, id, submit))).toBe('42501 permission denied for table state_history');
+      expect(
+        await withFlags((client) =>
+          client.query("update platform.aggregate_state set state = 'SUBMITTED', version = version + 1 where aggregate_id = $1", [id]),
+        ),
+      ).toBe('42501 permission denied for table aggregate_state');
+      expect(
+        await withFlags((client) =>
+          client.query(
+            "insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('sample_record', gen_random_uuid(), 'sample_record', 1, 'DRAFT', 1)",
+          ),
+        ),
+      ).toBe('42501 permission denied for table aggregate_state');
+      expect(await withFlags((client) => client.query('insert into esig.signature default values'))).toBe('42501 permission denied for table signature');
+    } finally {
+      c.release();
+    }
+    const { rows: writers } = await db.admin.query<{ tbl: string; writers: string[] }>(
+      `select t.tbl,
+              array(select r.rolname::text from pg_roles r
+                     where r.rolname in ('ebmr_owner', 'ebmr_app', 'ebmr_authn', 'ebmr_listener', 'ebmr_sandbox', 'ebmr_sandbox_listener')
+                       and (has_table_privilege(r.oid, t.tbl, 'INSERT') or has_table_privilege(r.oid, t.tbl, 'UPDATE'))
+                     order by 1)
+              || array(select 'PUBLIC' from pg_class k cross join lateral aclexplode(k.relacl) a
+                        where k.oid = t.tbl::regclass and a.grantee = 0 and a.privilege_type in ('INSERT', 'UPDATE') limit 1) as writers
+         from unnest(array['esig.signature', 'esig.signature_seal', 'platform.aggregate_state', 'platform.state_history']) t(tbl) order by 1`,
+    );
+    expect(writers).toEqual([
+      { tbl: 'esig.signature', writers: ['ebmr_owner'] },
+      { tbl: 'esig.signature_seal', writers: ['ebmr_owner'] },
+      { tbl: 'platform.aggregate_state', writers: ['ebmr_owner'] },
+      { tbl: 'platform.state_history', writers: ['ebmr_owner'] },
+    ]);
+    expect(await historyOf(id)).toEqual([{ row: 'DRAFT 1' }]);
+    expect(await getAggregateState(db.app, { aggregateType: 'sample_record', aggregateId: id })).toMatchObject({ state: 'DRAFT', version: 1 });
   });
 
   it('temporary objects of the application role cannot hijack the catalog lookups of the engine', async () => {

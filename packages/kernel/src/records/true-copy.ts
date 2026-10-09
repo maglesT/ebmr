@@ -292,11 +292,14 @@ export function verifyTrueCopyBundleText(input: string | Uint8Array, expected?: 
     text = input;
   } else {
     try {
-      text = new TextDecoder('utf-8', { fatal: true }).decode(input);
+      // ignoreBOM keeps a leading byte order mark in the text: by default the decoder drops it, and a file with those
+      // three bytes added in front would verify.
+      text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(input);
     } catch {
       return { ok: false, problems: ['bundle is not valid UTF-8 (bytes altered)'], summary: empty };
     }
   }
+  if (text.startsWith('\uFEFF')) return { ok: false, problems: ['bundle starts with a byte order mark, which its serialisation never has (the file was altered)'], summary: empty };
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);

@@ -1,0 +1,56 @@
+{
+  "items": [
+    {
+      "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "batchNumber": "TEST-B26-0001",
+      "product": {
+        "code": "PCM500",
+        "name": "Paracetamol 500 mg tablets",
+        "strength": "500 mg"
+      },
+      "stepKey": "p-blend@",
+      "number": "2.1.4",
+      "title": "Blend",
+      "stage": "2 Blending",
+      "room": "BLEND-1",
+      "status": "AWAITING_VERIFICATION",
+      "statusText": "Performed, waiting for verification",
+      "action": {
+        "action": "VERIFY",
+        "available": true,
+        "primary": true,
+        "requires": "SIGNATURE",
+        "meaning": "VERIFIED",
+        "reason": null,
+        "target": null,
+        "whoCanHelp": []
+      }
+    },
+    {
+      "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "batchNumber": "TEST-B26-0001",
+      "product": {
+        "code": "PCM500",
+        "name": "Paracetamol 500 mg tablets",
+        "strength": "500 mg"
+      },
+      "stepKey": "p-blend-out@",
+      "number": "2.2.2",
+      "title": "Discharge the blend into containers",
+      "stage": "2 Blending",
+      "room": "BLEND-1",
+      "status": "PENDING",
+      "statusText": "Not yet available",
+      "action": {
+        "action": "START_STEP",
+        "available": false,
+        "primary": false,
+        "requires": "TAP",
+        "meaning": null,
+        "reason": "The QA hold point 2.2.1 must be released first (ENG-HOLD-POINT; PR-45)",
+        "target": null,
+        "whoCanHelp": []
+      }
+    }
+  ]
+}

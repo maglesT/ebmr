@@ -1,0 +1,389 @@
+{
+  "asOf": {
+    "us": "1790586483000000",
+    "text": "28-SEP-2026 14:38:03 +05:30 (Asia/Kolkata)"
+  },
+  "run": {
+    "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "batchNumber": "TEST-B26-0001",
+    "product": {
+      "code": "PCM500",
+      "name": "Paracetamol 500 mg tablets",
+      "strength": "500 mg"
+    },
+    "markets": [
+      "IN"
+    ],
+    "status": "IN_PROGRESS",
+    "statusText": "In progress",
+    "watermark": {
+      "text": "TEST, NOT GMP",
+      "source": "SANDBOX_TEST_RUN",
+      "notice": "Sandbox test run of an MBR version; not a GMP record.",
+      "control": "DI-05"
+    },
+    "version": 7,
+    "mbr": {
+      "familyCode": "PCM500-DC",
+      "versionNumber": "1",
+      "revision": 2,
+      "contentHash": "cb18a68e2b76788cf23ff7cee413489c5995cc7ae913644ac465581916a9b50e"
+    },
+    "stage": {
+      "stageKey": "S-BLEND@",
+      "number": "2",
+      "name": "Blending"
+    },
+    "room": "BLEND-1",
+    "equipment": [
+      {
+        "ref": "blender",
+        "code": "TEST-BLD-01",
+        "name": "Octagonal blender 200 L"
+      }
+    ],
+    "timers": [],
+    "scale": null,
+    "scales": [],
+    "identity": {
+      "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e61",
+      "legalName": "TEST-Kavya Reddy",
+      "loginName": "test-verifier-1",
+      "role": "VERIFIER"
+    },
+    "lastSavedAt": {
+      "us": "1790586423000000",
+      "text": "28-SEP-2026 14:37:03 +05:30 (Asia/Kolkata)"
+    }
+  },
+  "step": {
+    "stepKey": "p-blend@",
+    "stepId": "p-blend",
+    "number": "2.1.4",
+    "ordinal": 10,
+    "of": 13,
+    "title": "Blend",
+    "kind": "PHASE",
+    "block": "G-04@1",
+    "blockTitle": "Process parameter record",
+    "status": "AWAITING_VERIFICATION",
+    "statusText": "Performed, waiting for verification",
+    "instruction": {
+      "text": "Blend for 15 minutes at 10-14 rpm; record time and speed.",
+      "sop": {
+        "refId": "SOP-BLEND-002",
+        "code": "SOP-BLEND-002",
+        "title": "Operation of the octagonal blender",
+        "version": "2",
+        "hash": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+      }
+    },
+    "dispositions": []
+  },
+  "fields": [
+    {
+      "item": "blendTime",
+      "name": "Blend time",
+      "valueType": "DECIMAL",
+      "unit": "min",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "categories": null,
+      "capture": "MANUAL",
+      "target": {
+        "value": {
+          "kind": "DECIMAL",
+          "value": "15",
+          "unit": "min"
+        },
+        "source": "MBR parameter Blend time (blendTime)"
+      },
+      "limits": [
+        {
+          "tier": "REGISTERED",
+          "low": {
+            "value": "10",
+            "inclusive": true
+          },
+          "high": {
+            "value": "20",
+            "inclusive": true
+          },
+          "source": {
+            "kind": "REGISTRATION",
+            "ref": "REG-PCM500",
+            "text": "REG-PCM500 v1: Paracetamol 500 mg tablets: registered process and specification"
+          },
+          "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+        },
+        {
+          "tier": "INTERNAL_ACTION",
+          "low": {
+            "value": "12",
+            "inclusive": true
+          },
+          "high": {
+            "value": "18",
+            "inclusive": true
+          },
+          "source": {
+            "kind": "COMPANY_STANDARD",
+            "ref": "SOP-BLEND-002",
+            "text": "SOP-BLEND-002 v1: Blending in the octagonal blender"
+          },
+          "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+        },
+        {
+          "tier": "ALERT",
+          "low": {
+            "value": "14",
+            "inclusive": true
+          },
+          "high": {
+            "value": "16",
+            "inclusive": true
+          },
+          "source": {
+            "kind": "COMPANY_STANDARD",
+            "ref": "SOP-BLEND-002",
+            "text": "SOP-BLEND-002 v1: Blending in the octagonal blender"
+          },
+          "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+        }
+      ],
+      "attempts": [
+        {
+          "pointId": "D-5",
+          "attempt": 1,
+          "version": 1,
+          "value": {
+            "kind": "DECIMAL",
+            "value": "15",
+            "unit": "min"
+          },
+          "echo": "You entered 15 min",
+          "by": {
+            "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52",
+            "legalName": "TEST-Arjun Das",
+            "loginName": "test-operator-2",
+            "role": "OPERATOR"
+          },
+          "at": {
+            "us": "1790586303000000",
+            "text": "28-SEP-2026 14:35:03 +05:30 (Asia/Kolkata)"
+          },
+          "source": {
+            "mode": "MANUAL",
+            "deviceCode": null,
+            "raw": null,
+            "code": null
+          },
+          "verdict": {
+            "tier": null,
+            "failed": false,
+            "text": "Within limits (REGISTERED: pass low 15 high 15; INTERNAL_ACTION: pass low 15 high 15; ALERT: pass low 15 high 15)"
+          },
+          "flags": [],
+          "status": "VALID"
+        }
+      ],
+      "computed": false,
+      "required": true
+    },
+    {
+      "item": "blenderSpeed",
+      "name": "Blender speed",
+      "valueType": "DECIMAL",
+      "unit": "/min",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "categories": null,
+      "capture": "MANUAL",
+      "target": {
+        "value": {
+          "kind": "DECIMAL",
+          "value": "10",
+          "unit": "/min"
+        },
+        "source": "MBR parameter Blender speed (blenderSpeed)"
+      },
+      "limits": [
+        {
+          "tier": "VALIDATED",
+          "low": {
+            "value": "8",
+            "inclusive": true
+          },
+          "high": {
+            "value": "12",
+            "inclusive": true
+          },
+          "source": {
+            "kind": "VALIDATION_REPORT",
+            "ref": "VR-BLEND-01",
+            "text": "VR-BLEND-01 v1: Process validation report: blending"
+          },
+          "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+        },
+        {
+          "tier": "ALERT",
+          "low": {
+            "value": "9",
+            "inclusive": true
+          },
+          "high": {
+            "value": "11",
+            "inclusive": true
+          },
+          "source": {
+            "kind": "COMPANY_STANDARD",
+            "ref": "SOP-BLEND-002",
+            "text": "SOP-BLEND-002 v1: Blending in the octagonal blender"
+          },
+          "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS"
+        }
+      ],
+      "attempts": [
+        {
+          "pointId": "D-6",
+          "attempt": 1,
+          "version": 1,
+          "value": {
+            "kind": "DECIMAL",
+            "value": "12",
+            "unit": "/min"
+          },
+          "echo": "You entered 12 /min",
+          "by": {
+            "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52",
+            "legalName": "TEST-Arjun Das",
+            "loginName": "test-operator-2",
+            "role": "OPERATOR"
+          },
+          "at": {
+            "us": "1790586363000000",
+            "text": "28-SEP-2026 14:36:03 +05:30 (Asia/Kolkata)"
+          },
+          "source": {
+            "mode": "MANUAL",
+            "deviceCode": null,
+            "raw": null,
+            "code": null
+          },
+          "verdict": {
+            "tier": "ALERT",
+            "failed": false,
+            "text": "Outside the alert limit: VALIDATED: pass low 12 high 12; ALERT: FAIL low 12 high 12 (outside)"
+          },
+          "flags": [],
+          "status": "VALID"
+        }
+      ],
+      "computed": false,
+      "required": true
+    }
+  ],
+  "entries": [],
+  "entryForms": [],
+  "exceptions": [
+    {
+      "exceptionId": "X-3",
+      "type": "LIMIT_BREACH",
+      "title": "Blender speed (blenderSpeed) 12 /min is outside its alert limit (alert high limit): registered for review",
+      "category": "OUT_OF_LIMIT",
+      "severity": "ALERT",
+      "tier": "ALERT",
+      "expected": "9 - 11 /min",
+      "actual": "12 /min",
+      "blocking": false,
+      "whatToDo": "Continue; the supervisor reviews the alert. If the value is wrong, raise it with the supervisor.",
+      "routedTo": [
+        "PRODUCTION_SUPERVISOR",
+        "HEAD_OF_PRODUCTION"
+      ],
+      "status": "OPEN",
+      "deviationRef": null,
+      "raisedAt": {
+        "us": "1790586363000000",
+        "text": "28-SEP-2026 14:36:03 +05:30 (Asia/Kolkata)"
+      },
+      "raisedBy": null,
+      "controls": [
+        "PR-08"
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "signatureId": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70",
+      "signer": {
+        "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52",
+        "legalName": "TEST-Arjun Das",
+        "loginName": "test-operator-2",
+        "role": "OPERATOR"
+      },
+      "meaning": "PERFORMED",
+      "meaningText": "Performed by",
+      "signedAt": {
+        "us": "1790586423000000",
+        "text": "28-SEP-2026 14:37:03 +05:30 (Asia/Kolkata)"
+      },
+      "zone": "Asia/Kolkata",
+      "valid": true,
+      "aggregateType": "batch_step",
+      "aggregateId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:p-blend@",
+      "contentVersion": "3",
+      "contentHash": "9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f"
+    }
+  ],
+  "actions": [
+    {
+      "action": "WITNESS",
+      "available": true,
+      "primary": true,
+      "requires": "SIGNATURE",
+      "meaning": "WITNESSED",
+      "reason": null,
+      "target": null,
+      "whoCanHelp": []
+    },
+    {
+      "action": "ATTACH_DEVIATION",
+      "available": false,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": "Only a production supervisor may link a deviation",
+      "target": "X-3",
+      "whoCanHelp": []
+    },
+    {
+      "action": "RAISE_EXCEPTION",
+      "available": true,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": null,
+      "target": null,
+      "whoCanHelp": []
+    },
+    {
+      "action": "HOLD_BATCH",
+      "available": false,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": "Only a production supervisor or QA may hold the batch",
+      "target": null,
+      "whoCanHelp": []
+    }
+  ],
+  "signable": {
+    "aggregateType": "batch_step",
+    "aggregateId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:p-blend@"
+  }
+}

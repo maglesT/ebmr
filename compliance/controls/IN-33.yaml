@@ -16,7 +16,8 @@ sources: Schedule M Part I PQS resources list (Act, Rules, latest IP, official g
 behaviour: Each specification and each IPC limit in an MBR stores its source (IP, BP, Ph. Eur., USP, in-house) and edition as data. Marking a new edition effective (e.g., IP 2026 from 1 Jul 2026) lists every MBR whose limits cite the previous edition and opens a change-control task. For multi-market products, each limit shows its source and the narrower range is enforced (IN-34, IN-52). Reference standards record their source (IP reference standards from the Indian Pharmacopoeia Commission). The latest IP edition, the 1940 Act and the 1945 Rules are listed as controlled reference documents.
 catalog_test: mark IP 2026 effective; all MBRs citing IP 2022 appear on the review list.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-web/test/designer/document-complete.test.tsx > the read-only document shows the members of the saved content (review F44) > [PR-02][PR-03][IN-33] acceptance schemes are shown with their criteria, markets, pharmacopoeia, ranges in words and sampling"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

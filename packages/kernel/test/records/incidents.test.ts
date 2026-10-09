@@ -62,7 +62,7 @@ async function balanceInterfaceKilled(batchId: string, stepRef: string, lastHear
 }
 
 describe('DI-12 incident raised by an interface failure', () => {
-  it('[DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open on the disposition screen; closing it as critical without root cause and CAPA is blocked', async () => {
+  it('[DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open among the batch\'s disposition blockers (what the release module reads); closing it as critical without root cause and CAPA is blocked', async () => {
     const batch = randomUUID();
     await startWeighing(batch, 'DISPENSE-2');
     const heartbeat = (await db.app.query<{ t: Date }>("select clock_timestamp() - interval '30 seconds' as t")).rows[0]?.t as Date;
@@ -79,7 +79,8 @@ describe('DI-12 incident raised by an interface failure', () => {
     );
     expect(links.rows).toEqual([{ aggregate_type: 'batch', aggregate_id: batch, step_ref: 'DISPENSE-2' }]);
 
-    // Shown as open on the disposition screen (the release module reads records.open_blockers).
+    // Open among the batch's disposition blockers (records.open_blockers, which the release module reads; the
+    // disposition screen itself is Phase 4, DI-12.yaml clause 2).
     const blockers = await openBlockers(db.app, 'batch', batch);
     expect(blockers.map((b) => [b.kind, b.reference, b.status, b.blocksDisposition])).toEqual([['INCIDENT', rows[0]?.reference, 'OPEN', true]]);
     expect(await scalar<boolean>(db.app, "select records.has_disposition_blockers('batch', $1) as v", [batch])).toBe(true);

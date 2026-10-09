@@ -10,6 +10,9 @@ tools/regulatory/pdf/package-lock.json
 .reports/
 *.tsbuildinfo
 .turbo/
+var/
+test-results/
+playwright-report/
 .stryker-tmp/
 
 # graphify code map (built per session by the SessionStart hook in .claude/settings.json)

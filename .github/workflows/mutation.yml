@@ -8,6 +8,16 @@ on:
   schedule:
     - cron: '17 2 * * 0'
   workflow_dispatch:
+    inputs:
+      groups:
+        description: 'SQL groups to run, comma-separated (empty: every group)'
+        required: false
+        default: ''
+      typescript:
+        description: 'Also run StrykerJS on the kernel TypeScript'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -15,6 +25,8 @@ permissions:
 jobs:
   typescript:
     name: StrykerJS (kernel TypeScript)
+    # The weekly run always; a run started by hand only when asked for.
+    if: github.event_name == 'schedule' || inputs.typescript
     runs-on: ubuntu-latest
     timeout-minutes: 360
     services:
@@ -45,17 +57,31 @@ jobs:
         with:
           name: mutation-ts
           path: .reports/mutation/
+          include-hidden-files: true
           if-no-files-found: ignore
 
   sql:
     name: SQL guards (${{ matrix.group }})
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    # checks: write for the check run each group's report is published as (readable through the API, unlike the
+    # artifact, whose download redirects to a blob host).
+    permissions:
+      contents: read
+      checks: write
     strategy:
       fail-fast: false
       matrix:
+        # Every group of tools/sql-mutation/src/targets.ts (tools/sql-mutation/test/harness.test.ts checks the list).
         group: [audit-trail, actor-validation, signing, signature-invalidation, segregation-and-grants,
-                authentication-events, retention-and-purge, site-values-and-policies, protected-numbers]
+                authentication-events, retention-and-purge, site-values-and-policies, protected-numbers,
+                mbr-lifecycle, market-authorisation-and-issue, execution-commands, execution-state-binding,
+                evidence-source-and-entries, execution-steps-and-order, system-facts-and-time, exceptions-and-dispositions,
+                limit-exceptions, involvement-and-independence, weighing, signed-content, sandbox-and-import,
+                device-readings, evidence-listener, manual-weighing-gate, read-authorisation, tablets-sessions,
+                designer-guards, site-zone, signing-failure-and-reasons, connection-roles, batch-number-register,
+                stale-commands-and-readings, exception-source, entry-references-and-schema, late-witness-and-step-times,
+                execution-row-shape, state-engine-rows]
     services:
       postgres:
         image: postgres:16
@@ -77,11 +103,26 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm mutation:sql --group ${{ matrix.group }} --workers 2 --out .reports/sql-mutation/${{ matrix.group }}
+      # A run started by hand with a list of groups runs only those; the other jobs end at once.
+      - name: Mutation run
+        id: mut
+        if: inputs.groups == '' || inputs.groups == null || contains(format(',{0},', inputs.groups), format(',{0},', matrix.group))
+        run: pnpm mutation:sql --group ${{ matrix.group }} --workers 2 --own-cluster --out .reports/sql-mutation/${{ matrix.group }}
+      # The group's score, its row of summary.md and every mutant not killed, as a check run on the commit
+      # (tools/sql-mutation/src/check-run.ts): success when the group met its threshold, neutral otherwise or without a
+      # report, never failure; the job's own result stays the run's.
+      - name: Publish the report as a check run
+        if: always() && steps.mut.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pnpm -s exec tsx tools/sql-mutation/src/check-run.ts ${{ matrix.group }} .reports/sql-mutation/${{ matrix.group }} ${{ github.sha }} > "$RUNNER_TEMP/payload.json"
+          gh api repos/${{ github.repository }}/check-runs --input "$RUNNER_TEMP/payload.json"
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mutation-sql-${{ matrix.group }}
           path: .reports/sql-mutation/
+          include-hidden-files: true
           if-no-files-found: ignore

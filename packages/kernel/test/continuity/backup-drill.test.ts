@@ -12,6 +12,14 @@ import { ADMIN_URL, createTestDatabase, urlFor, type TestDatabase } from '../sup
 import { tempDir, tempLedger, testActor } from './helpers.ts';
 
 const REPO = new URL('../../../../', import.meta.url).pathname;
+/**
+ * Per-test budget for a restore drill (pg_dump, encrypt, pg_restore into a new database, per-table content
+ * hashing). Alone a drill takes a few seconds, but in the full three-project run it overlaps the server
+ * project's template builds and has gone past the default 30 s. Vitest does not cancel a timed-out test, so an
+ * abandoned drill keeps its child processes and database running and slows the next drill into a timeout too.
+ * Same budget as the other heavy database tests in the kernel (e.g. review/f55, mutation/protected-numbers).
+ */
+const DRILL_TIMEOUT_MS = 120_000;
 let db: TestDatabase;
 let ops: ActorContext;
 const dir = tempDir('drill');
@@ -113,7 +121,7 @@ describe('restore drill', () => {
     const id = await recordRestoreDrill({ pool: db.app, ctx: ops }, outcome);
     const { rows } = await db.app.query<{ result: string; report_sha256: string }>('select result, report_sha256 from continuity.restore_drill where id = $1', [id]);
     expect(rows).toEqual([{ result: 'PASS', report_sha256: await sha256File(outcome.jsonPath) }]);
-  });
+  }, DRILL_TIMEOUT_MS);
 
   it('[DI-45] while a drill copy exists, the application role cannot connect to it', async () => {
     const outcome = await runRestoreDrill({ sourceUrl: urlFor(db.name), adminUrl: ADMIN_URL, reportDir: join(dir.path, 'reports-keep'), keepRestoredDatabase: true, sampleSize: 1 });
@@ -126,7 +134,7 @@ describe('restore drill', () => {
     } finally {
       await db.admin.query(`drop database if exists "${name}" with (force)`);
     }
-  });
+  }, DRILL_TIMEOUT_MS);
 
   it('[DI-45] a drill detects a restored copy that differs from production, reports it and raises an alarm', async () => {
     const outcome = await runRestoreDrill({
@@ -162,7 +170,7 @@ describe('restore drill', () => {
       [drillRow],
     );
     expect(alarm.rows).toEqual([{ severity: 'HIGH' }]);
-  });
+  }, DRILL_TIMEOUT_MS);
 
   it('[DI-45][DI-23] a drill verifies every chain found in the audit trail: a chain whose head row was deleted is still verified and reported', async () => {
     const outcome = await runRestoreDrill({
@@ -190,7 +198,7 @@ describe('restore drill', () => {
     // The chain still counts: both sides verified the same chains.
     expect(restored?.chains).toBe(outcome.report.verification.source?.chains);
     expect(outcome.report.failures).toContainEqual(expect.stringMatching(/^restored: [1-9]\d* chain problem/));
-  });
+  }, DRILL_TIMEOUT_MS);
 
   it('[DI-45] the drill script runs end to end and exits 0 on PASS', async () => {
     const reportDir = join(dir.path, 'reports-cli');
@@ -199,7 +207,7 @@ describe('restore drill', () => {
     expect(r.code).toBe(0);
     const json = r.out.match(/report: (\S+\.json)/)?.[1] ?? '';
     expect(JSON.parse(readFileSync(json, 'utf8'))).toMatchObject({ result: 'PASS' });
-  }, 60_000);
+  }, DRILL_TIMEOUT_MS);
 });
 
 describe('backup jobs', () => {

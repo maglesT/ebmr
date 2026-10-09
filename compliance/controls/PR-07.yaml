@@ -25,8 +25,24 @@ behaviour: |-
   - Linked events raise a re-review task, and review-by-exception for the affected step pauses until QA confirms. Linked events are repeated deviations on a step, a PQR finding, or a change.
   - Reducing IPC frequency requires change control that cites trend data.
 catalog_test: Submitting a master with a critical parameter and no linked assessment is blocked. Three deviations on a low-risk step open a re-review task and pause review-by-exception for that step.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0110_mbr_family_version.sql (risk_assessment stub: id, risk class, rationale reference; mbr_risk_link per element or whole master)"
+    - "packages/recipe-core/sql/0130_mbr_guards.sql (guard critical_elements_risk_assessed)"
+  guards:
+    - "mbr_version.critical_elements_risk_assessed (IN_VERIFICATION -> SUBMITTED): every CRITICAL parameter and calculation is covered by a linked risk assessment"
+tests:
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-07] submitting a master with a critical parameter and no linked risk assessment is blocked"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > draft attributes, risk links and change records (PR-06, PR-07) > [PR-07] a risk link names a recorded assessment (EBMR-RCP-061) and subjects that are ids; only a linked assessment is unlinked; nothing is written by a refusal"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > a command on one version never waits for a command on another (decision 0003) > [PR-07][PR-06] a risk link of one version is recorded while another version's content revision is still open"
+clauses:
+  - clause: "Submitting a master with a critical parameter and no linked assessment is blocked."
+    tests:
+      - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-07] submitting a master with a critical parameter and no linked risk assessment is blocked"
+  - clause: "Three deviations on a low-risk step open a re-review task and pause review-by-exception for that step."
+    deferred:
+      phase: 4
+      reason: "Phase 2 records no deviations (a deviation is linked by its number only) and has no review by exception; re-review tasks raised by repeated deviations come with production and QA review and the deviation stand-in in Phase 4 (build outline 11; recipe-core lifecycle README, Later phases)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

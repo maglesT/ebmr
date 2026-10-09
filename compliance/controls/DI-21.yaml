@@ -43,6 +43,17 @@ tests:
   - "packages/kernel/test/identity/authority.test.ts > [DI-21] a new user cannot sign before acknowledging the e-signature accountability policy"
   - "packages/kernel/test/identity/authority.test.ts > [DI-21] an archived signer resolves to the name and role valid on the signing date"
   - "packages/kernel/test/identity/authority.test.ts > [DI-21][INV-26] expiring a user's SOP training blocks both execution and verification and names the missing item"
+  - "packages/kernel/test/review/f79.test.ts > F79: site-scoped qualification requirements are skipped when the request has no site (INV-26, DI-21, IN-04) > [INV-26][DI-21] iam.evaluate_authority: an installation-wide request does not skip the SITE-1 training requirement"
+clauses:
+  - clause: "Expire a user's SOP training. Execution and verification are both blocked."
+    tests:
+      - "packages/kernel/test/identity/authority.test.ts > [DI-21][INV-26] expiring a user's SOP training blocks both execution and verification and names the missing item"
+  - clause: "A new user tries to sign before acknowledging the policy. Blocked."
+    tests:
+      - "packages/kernel/test/identity/authority.test.ts > [DI-21] a new user cannot sign before acknowledging the e-signature accountability policy"
+  - clause: "An archived signer resolves to the name and role valid on the signing date."
+    tests:
+      - "packages/kernel/test/identity/authority.test.ts > [DI-21] an archived signer resolves to the name and role valid on the signing date"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

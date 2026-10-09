@@ -17,7 +17,7 @@ import { MarketRuleError } from '../../src/market/errors.ts';
 import { loadRuleTableVersion, resolveInDatabase } from '../../src/market/repository.ts';
 import { resolve } from '../../src/market/resolve.ts';
 import { snapshotFromDocument } from '../../src/market/snapshot.ts';
-import { isAtLeastAsStrict } from '../../src/market/strictness.ts';
+import { isAtLeastAsStrict, isSameValue } from '../../src/market/strictness.ts';
 import type { ComparisonMethod, Predicates, ResolveRequest, RuleKeyDoc, RuleRowDoc, RuleTableDocument, RuleTableSnapshot, RuleValue } from '../../src/market/types.ts';
 import { validateRuleTableDocument } from '../../src/market/validate.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
@@ -361,6 +361,73 @@ describe('the TypeScript engine and market.resolve agree', () => {
       }),
       { numRuns: 150 },
     );
+  });
+
+  it('[INV-28][IN-52] both engines decide "the same value" alike (isSameValue, market.same_value) and as the oracle: a set in any order, its criteria written with their members in any order, is the same set; a changed definition never is (lead TODO T9)', async () => {
+    /** Independent of the engines: sets by their elements, criteria by deep equality; anything else deep-equal. */
+    const oracleSame = (method: ComparisonMethod, a: RuleValue, b: RuleValue): boolean =>
+      method === 'SET_UNION' || method === 'ALL_APPLY'
+        ? oracleAtLeastAsStrict(method, ORDER, a, b) && oracleAtLeastAsStrict(method, ORDER, b, a)
+        : isDeepStrictEqual(a, b);
+    const check = async (method: ComparisonMethod, a: RuleValue, b: RuleValue, expected?: boolean): Promise<void> => {
+      const oracle = oracleSame(method, a, b);
+      if (expected !== undefined) expect(oracle).toBe(expected);
+      const { rows } = await db.admin.query<{ r: boolean }>('select market.same_value($1, $2::jsonb, $3::jsonb, $4::jsonb) as r', [
+        method,
+        JSON.stringify(ORDER),
+        JSON.stringify(a),
+        JSON.stringify(b),
+      ]);
+      expect({ method, a, b, ts: isSameValue(method, ORDER, a, b), sql: rows[0]?.r }).toEqual({ method, a, b, ts: oracle, sql: oracle });
+    };
+    const criteriaArb = fc
+      .uniqueArray(fc.constantFrom(...CRITERIA), { maxLength: 4 })
+      .chain((ids) => fc.tuple(...ids.map((id) => fc.nat({ max: DEFINITIONS.length - 1 }).map((d) => criterion(id, d)))))
+      .map((cs) => cs as RuleValue);
+    /** The same elements, shuffled, each criterion written with its members in reverse order. */
+    const rewritten = (v: RuleValue, seed: number): RuleValue => {
+      const list = [...(v as unknown[])];
+      for (let i = list.length - 1; i > 0; i -= 1) {
+        const j = (seed + i * 7) % (i + 1);
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list.map((e) => (e !== null && typeof e === 'object' ? Object.fromEntries(Object.entries(e).reverse()) : e)) as RuleValue;
+    };
+    // The same set written another way: always the same value.
+    const setArb = fc.oneof(
+      fc.record({ method: fc.constant<ComparisonMethod>('SET_UNION'), v: valueArb('SET_UNION') }),
+      fc.record({ method: fc.constant<ComparisonMethod>('ALL_APPLY'), v: criteriaArb }),
+    );
+    await fc.assert(
+      fc.asyncProperty(setArb, fc.nat(), async ({ method, v }, seed) => {
+        await check(method, v, rewritten(v, seed), true);
+      }),
+      { numRuns: 150 },
+    );
+    // Any two values of any method: the engines agree with the oracle.
+    const pairArb = fc.constantFrom(...METHODS).chain((method) => {
+      const v = method === 'ALL_APPLY' ? criteriaArb : valueArb(method);
+      return fc.record({ method: fc.constant(method), a: v, b: v });
+    });
+    await fc.assert(
+      fc.asyncProperty(pairArb, async ({ method, a, b }) => {
+        await check(method, a, b);
+      }),
+      { numRuns: 300 },
+    );
+    // Fixed cases: a reorder is the same; an added element, a dropped one or a changed definition is not.
+    await check('SET_UNION', ['S1', 'S2', 'S3'], ['S3', 'S1', 'S2'], true);
+    await check('SET_UNION', ['S1', 'S2', 'S3'], ['S1', 'S2'], false);
+    const criteria = (...cs: Record<string, unknown>[]): RuleValue => cs as RuleValue;
+    await check('ALL_APPLY', criteria(criterion('C1', 0), criterion('C2', 2)), criteria(criterion('C2', 2), criterion('C1', 0)), true);
+    await check('ALL_APPLY', criteria(criterion('C1', 0), criterion('C2', 2)), criteria(criterion('C2', 2), criterion('C1', 1)), false);
+    await check('ALL_APPLY', criteria(criterion('C1', 0)), criteria(criterion('C1', 0), criterion('C2', 2)), false);
+    await check('LARGER_STRICTER', '1.5', '1.5', true);
+    await check('LARGER_STRICTER', '1.5', '1.50', false);
+    // NOT_COMPARABLE has no order and no equality to rank by: TypeScript throws, SQL answers NULL.
+    expect(() => isSameValue('NOT_COMPARABLE', null, 'A', 'A')).toThrow('EBMR-MKT-046');
+    const { rows } = await db.admin.query<{ r: boolean | null }>("select market.same_value('NOT_COMPARABLE', null, '\"A\"', '\"A\"') as r");
+    expect(rows[0]?.r).toBeNull();
   });
 
   it('[INV-28][IN-52] on random generated tables published through the SQL gate', async () => {

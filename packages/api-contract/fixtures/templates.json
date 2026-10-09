@@ -1,0 +1,28 @@
+{
+  "templates": [
+    {
+      "templateId": "dc-mini",
+      "title": "Paracetamol 500 mg tablets, direct compression (mini)",
+      "description": "Two stages (dispensing, blending) and 14 steps: clearances, equipment status, SOP acknowledgement, dispensing quantities, weighing on the balance, charge-in, blend time and speed with alert, internal action and registered limits, QA hold point, output containers, reconciliation and yield. Reference batch 60.000 kg (1,00,000 tablets); also 30.000 kg.",
+      "product": {
+        "code": "PCM500",
+        "name": "Paracetamol tablets",
+        "strength": "500 mg"
+      },
+      "batchSizes": [
+        {
+          "quantity": "60.000",
+          "unit": "kg"
+        },
+        {
+          "quantity": "30.000",
+          "unit": "kg"
+        }
+      ],
+      "markets": [
+        "IN"
+      ],
+      "steps": 14
+    }
+  ]
+}

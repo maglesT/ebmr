@@ -18,7 +18,16 @@ behaviour: |-
   - Every limit is versioned. Each result, check and timer stores the limit version it was evaluated against.
 catalog_test: Configure a Grade B active-air action limit of 15 CFU/m³ → rejected. Configure a 7 Pa B/C differential → accepted only with a CCS reference and QA e-signature.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01][DI-35] the QA approval is a real e-signature of exactly that loosening: an unknown id, or the signature of another value, date or justification is refused"
+  - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01][DI-09] the person who sets the loosening cannot approve it, even holding a QA role"
+  - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01] an operator cannot sign a site-value loosening approval: only the quality unit can"
+  - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01] an approved loosening applies only while the resolution departs from the approved value; after a tightened table it is flagged, not applied, and listed on the impact list"
+  - "packages/kernel/test/review/f20.test.ts > F20: ALL_APPLY strictness must compare criterion content, not only ids > [IN-52][INV-28][IN-34][ST-01] a HARD India criterion cannot be weakened under the same id, by a site value or by an UPDATE"
+  - "packages/kernel/test/review/f21.test.ts > F21: the site applied to an evaluation is the scope's site, never the caller's choice > [IN-52][ST-01][INV-29] siteId null, a random siteId or another site's id cannot drop the site's tighter value or import another site's loosening"
+  - "packages/kernel/test/review/f24.test.ts > F24: approvals behind a loosening must be verified e-signatures, not free UUIDs > [IN-52][DI-35][DI-09][INV-47][ST-01] source correction, site-value loosening and policy loosening are refused without real signed approvals"
+  - "packages/kernel/test/review/f25.test.ts > F25 approved site loosening bound to the resolution it was approved against > [IN-52] [ST-01] an approved loosening is not re-applied after a new table version tightens the value it loosens, and it appears on the change-impact list"
+  - "packages/kernel/test/review/f76.test.ts > F76: market-engine loosening approvals must be real, verified approvals > [IN-52][ST-01] loosening a GUIDANCE site value is refused when its QA approval id is the UUID of nothing"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

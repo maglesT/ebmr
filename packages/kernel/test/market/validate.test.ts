@@ -543,6 +543,19 @@ describe('hard floors', () => {
     const rows = [row(), row({ ref: 'O.EU', key: O, market: 'EU', floor: 'DESIGN', value: '30', hardFloor: '20' })];
     expect(check(doc([key(), unknownMethod], rows))).toEqual([problem('EBMR-MKT-014', `key ${O}: unknown comparison method STRICTEST`)]);
   });
+
+  it('[IN-52] a key whose method does not fit its value type cannot rank a value against its hard floor: the misfit is reported, nothing is thrown', () => {
+    // SMALLER_STRICTER reads decimals; these values are well-formed Booleans, categories and sets.
+    for (const [valueType, value, hardFloor, misfit] of [
+      ['BOOLEAN', true, false, 'method SMALLER_STRICTER does not fit value type BOOLEAN'],
+      ['CATEGORY', 'HIGH', 'LOW', 'method SMALLER_STRICTER does not fit value type CATEGORY'],
+      ['SET', ['A'], ['B'], 'scalar method SMALLER_STRICTER on a multi-component key (value type SET)'],
+    ] as const) {
+      const misfitting = other({ valueType, orderedValues: valueType === 'CATEGORY' ? ['LOW', 'HIGH'] : undefined });
+      const rows = [row(), row({ ref: 'O.EU', key: O, market: 'EU', floor: 'DESIGN', value, hardFloor })];
+      expect(check(doc([key(), misfitting], rows)), valueType).toEqual([problem('EBMR-MKT-015', `key ${O}: ${misfit}`)]);
+    }
+  });
 });
 
 describe('effective windows and predicate branches across rows', () => {

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { compareDecimal, isCanonicalDecimal } from '../../src/market/decimal.ts';
 import { resolve } from '../../src/market/resolve.ts';
 import { snapshotFromDocument } from '../../src/market/snapshot.ts';
-import { isAtLeastAsStrict } from '../../src/market/strictness.ts';
+import { isAtLeastAsStrict, isSameValue } from '../../src/market/strictness.ts';
 import type { RuleKeyDoc, RuleRowDoc, RuleTableDocument, RuleTableSnapshot } from '../../src/market/types.ts';
 import { validateRuleTableDocument } from '../../src/market/validate.ts';
 import { seedDocument } from './helpers.ts';
@@ -97,6 +97,27 @@ describe('comparison methods', () => {
     expect(isAtLeastAsStrict('ALL_APPLY', null, [{ ...ip, bands: [{ deviationPercent: '1' }] }], [ip])).toBe(false);
     expect(isAtLeastAsStrict('ALL_APPLY', null, [usp], [ip])).toBe(false);
     expect(isAtLeastAsStrict('ALL_APPLY', null, [ip], [ip, usp])).toBe(false);
+  });
+
+  it('[IN-52][INV-28] the same value: a set (SET_UNION, ALL_APPLY) is the same in any order, criteria compared whole; any other value is the same JSON (isSameValue; lead TODO T9)', () => {
+    const ip = { id: 'IP_UNIFORMITY_OF_WEIGHT_BANDS', stage: 'IN_PROCESS', bands: [{ deviationPercent: '10' }, { deviationPercent: '7.5' }] };
+    const usp = { id: 'USP_905', plan: 'L1' };
+    const ipRewritten = { bands: ip.bands, stage: ip.stage, id: ip.id };
+    expect(isSameValue('ALL_APPLY', null, [ip, usp], [usp, ipRewritten])).toBe(true);
+    expect(isSameValue('ALL_APPLY', null, [ip, usp], [ip])).toBe(false);
+    expect(isSameValue('ALL_APPLY', null, [ip], [ip, usp])).toBe(false);
+    expect(isSameValue('ALL_APPLY', null, [{ ...ip, bands: [{ deviationPercent: '50' }] }], [ip])).toBe(false);
+    expect(isSameValue('SET_UNION', null, ['A', 'B'], ['B', 'A'])).toBe(true);
+    expect(isSameValue('SET_UNION', null, ['A', 'B'], ['A'])).toBe(false);
+    expect(isSameValue('SET_UNION', null, ['A'], ['A', 'B'])).toBe(false);
+    expect(isSameValue('SMALLER_STRICTER', null, '5', '5')).toBe(true);
+    expect(isSameValue('SMALLER_STRICTER', null, '5', '6')).toBe(false);
+    expect(isSameValue('LARGER_STRICTER', null, '6', '5')).toBe(false);
+    expect(isSameValue('ORDERED', ['LOW', 'HIGH'], 'HIGH', 'HIGH')).toBe(true);
+    expect(isSameValue('ORDERED', ['LOW', 'HIGH'], 'HIGH', 'LOW')).toBe(false);
+    expect(isSameValue('REQUIRED_IF_ANY', null, true, false)).toBe(false);
+    expect(isSameValue('REQUIRED_IF_ANY', null, false, false)).toBe(true);
+    expect(() => isSameValue('NOT_COMPARABLE', null, 'A', 'A')).toThrow(/^EBMR-MKT-046 NOT_COMPARABLE values cannot be ranked$/);
   });
 
   it('[IN-52] a NOT_COMPARABLE key is resolved only by its stated method (per destination, with a decision reference)', () => {

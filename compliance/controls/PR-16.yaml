@@ -18,8 +18,25 @@ behaviour: |-
   - Every applicable item of Section (a)-3 or (a)-4 is present. The items are: dates and times; equipment unit IDs; component lots and quantities; IPC and lab results; packaging-area checks before and after use; yields; labeling specimens; container/closure description; sampling; performer and checker IDs; investigations; 211.134 results; the responsible production person's approval.
   Category checks depend on step type; for example, packaging-area checks apply only to packaging orders.
 catalog_test: Removing one label specimen or one checker signature blocks completion, and the message names the gap.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/steps.ts (signPerformed, signOffStage)"
+    - "packages/recipe-core/src/engine/advance.ts (execution completion)"
+  guards:
+    - "PERFORMED only with mandatory data and calculations present (ENG-MANDATORY-DATA) and a signature from every person who entered data"
+    - "A stage closes only with the responsible person's sign-off; execution is complete only with every step terminal and verified and every stage signed off"
+tests:
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] a stage closes only with the sign-off of the person responsible; the next stage waits for it"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [IN-15][PR-16] the summary statement is derived: an exception in the stage makes it \"completed with deviations\""
+  - "apps/tablets-server/test/execution/signed-content-stage-summary.test.ts > F01: the stage summary is signed and shown (DI-37, DI-36, IN-15, PR-16) > [DI-37][IN-15][PR-16] reviewed with deviations, a QA disposition before the signature refuses it as changed content; nothing is recorded under it"
+  - "apps/tablets-server/test/execution/db-guards-stage-summary.test.ts > F01: the database binds a stage sign-off to its summary (DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a SIGN_OFF_STAGE row recording another summary than its signature covers is refused (EBMR-EXE-135); the honest row is accepted"
+  - "apps/tablets-server/test/execution/db-guards-stage-sign-off.test.ts > F01 round 2: a stage sign-off records exactly what the engine records (DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a SIGN_OFF_STAGE row whose sign-off holds a member, a time or a signer the engine does not record is refused (EBMR-EXE-135)"
+  - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] every state of the golden runs of both fixtures: the database's summary member of every stage frame is the engine's, before and after its sign-off"
+  - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] states changed in every fact the summary reads: the database follows each change as the engine does"
+  - "packages/recipe-core/test/execution/stage-summary-sql.test.ts > the database derives a stage summary as the engine does (F01; DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] every sign-off of the golden runs of both fixtures has exactly the engine's shape; each member, time or signer of its own is a problem (F01 round 2)"
+  - "apps/tablets-server/test/mutation/execution-steps-and-order.test.ts > F67 and F01: a stage sign-off keeps its minimum and records the summary its signature covers (0308, 0320; INV-20, PR-30, DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a refused sign-off is recorded as the refusal it is; a sign-off recording another statement, stage or start than the summary its signature covers is refused (EBMR-EXE-135); the engine's own is accepted"
+  - "apps/tablets-server/test/mutation/signed-content.test.ts > a stage sign-off is read as signed off, on the text with its summary (recipe-core 0319) > [DI-37][IN-15][PR-16][DI-23] once signed off, the stage reads SIGNED_OFF and its text keeps its summary, also when other sign-offs are listed as made before 0319; its signature stays VALID"
+  - "packages/recipe-core/test/mutation/signed-content.test.ts > the summary a stage sign-off signs (recipe-core 0319) > [DI-37][IN-15][PR-16] a stage frame that names no stage has no summary; an exception raised at a step instance of the stage, named by its key alone, is part of the stage's summary as the engine derives it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

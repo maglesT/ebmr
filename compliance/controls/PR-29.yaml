@@ -34,8 +34,33 @@ behaviour: |-
     - PAT or model results are accepted as IPC records carrying the model ID and version and the validity diagnostics.
     - A model output outside its validity domain requires a confirmatory test. This follows the FDA draft position (draft).
 catalog_test: Taking fewer units than the plan requires creates a deviation. Both results of a repeated IPC are visible. An expired pH buffer is blocked. [T] A skipped hardness check puts output since the last passing check on hold.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/process.ts (G-12)"
+    - "packages/recipe-core/src/blocks/generic/recording.ts (G-13)"
+  guards:
+    - "G-12: fewer units than the sampling plan requires raises SAMPLING_SHORTFALL; sample ids and labels are system-generated"
+    - "G-13: all readings kept with their statistics; a failing IPC and its re-test are both visible (IPC_RESULT_FAILED, REPEAT_AFTER_FAIL)"
+tests:
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-29] G-13 IPC with readings and statistics: Twenty tablet weights with their mean and RSD computed, all readings kept"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-29] G-12 Sampling: A plan of 2 locations x 3 units with one location short: a sampling-shortfall exception (PR-29 catalog test)"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [PR-29][IN-20][DI-29] a failing categorical IPC stops the step until a deviation is linked, and a passing re-test never replaces it"
+  - "packages/recipe-core/test/blocks/process.test.ts > G-12 sampling > [IN-20][PR-29] sample ids are system-generated and the label carries product, batch, sample, sampler and time; an unplanned point is refused"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: text the form does not take (\"12 \") is refused in words; the content keeps 10 and says so"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"1.5\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"05\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"1,000\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"0\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"501\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"-3\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"1e2\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] G-12 locations: \"99999999999999999999\" is refused with the schema's range, nothing is committed"
+  - "apps/tablets-web/test/designer/config-form.test.tsx > whole numbers (review F53) > [PR-03][PR-29] a whole number within the range is recorded and the message goes; an optional field emptied removes the member"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 5: an entry holds exactly what its block builds and accepts (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47) > [DI-05][DI-10][DI-30][PR-14][PR-18][PR-23][PR-29][PR-34][PR-40][PR-47] every entry of the engine's own runs passes: every block's golden fixture, both golden runs and runs of the kinds they leave out; every entry kind of this release's blocks is among them, and the database's default checklists are the blocks'"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 5: an entry holds exactly what its block builds and accepts (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47) > [DI-05][DI-30][PR-29] a sample whose id or label is not the one the block builds from the batch, the MBR's product, the step, its sub-lot, the person and the time, or that is not of the sampling plan, is refused"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 6: an entry and a step's start data meet the data schema of the step's block version and are of a kind it records (DI-05, DI-30, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47) > [DI-05][DI-30][PR-18][PR-23][PR-29][PR-34][PR-40][PR-47] every entry and start data of the engine's own runs meets its block's schema in the database: every block's golden fixture, both golden runs and the runs of the kinds they leave out, every kind among them"
+  - "packages/recipe-core/test/execution/entry-data-sql.test.ts > F12 round 6: an entry and a step's start data meet the data schema of the step's block version and are of a kind it records (DI-05, DI-30, PR-18, PR-23, PR-29, PR-34, PR-40, PR-47) > [PR-29][PR-40][PR-18][PR-14][DI-30] a sample of 0, too many or a fraction of units, a disposal of an unknown category with no method or batch-coded as text, a weighed lot dated by a number or identity-tested as text, a weighing keyed by hand as manual, a weight as a number and a paper original as text pass the earlier checks and are refused"
+  - "packages/recipe-core/test/mutation/entry-references-and-schema.test.ts > recipe-core 0330: the checklists, the lot and the entry its block builds (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-47) > [PR-29][DI-05][DI-30] a sample is of its step's sampling plan (the step's plan when it lists one, else its locations), numbered among the samples of its own step, of the sub-lot of its replicate frame only, and names a container only when one is named"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

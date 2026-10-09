@@ -22,8 +22,16 @@ behaviour: |-
   - Later master edits never change an issued record.
   - Test, simulation and training runs are segregated, watermarked and cannot become GMP records.
 catalog_test: An issued record matches the master hash and carries the issuance e-signature. A duplicate batch number is rejected. A record cannot be issued from a Draft master.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/engine/engine.ts issue(), packages/recipe-core/src/engine/batch.ts initialState()"
+  guards:
+    - "Issue pins the MBR content hash and requires every header and master-data input typed with its source, a batch number and the market set (ENG-ISSUE-INPUT, ENG-ISSUE-NUMBER, ENG-ISSUE-MARKETS)"
+tests:
+  - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [IN-52][PR-10] India is in every market set, and a batch cannot target a market the MBR is not approved for"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-10][DI-10] header and master-data inputs are typed at issue with their source; the MBR hash is pinned; nothing is issued without them"
+  - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [DI-05][PR-10][PR-01] issue: every header input is required (a count is positive); the TEST- number, the engine version, the block registry and the policy are pinned"
+  - "apps/tablets-server/test/execution/db-guards-values.test.ts > P33: TEST- batch numbers past serial 9999 > [INV-27][DI-05][PR-10] serials 10000 and 10001 are written in full and give two distinct TEST- numbers"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

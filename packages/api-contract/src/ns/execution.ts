@@ -1,0 +1,524 @@
+/**
+ * Namespace `execution` (C3, sandbox): test packages, test batches (TEST-), the step screen, the work queue,
+ * commands, replay and lots (Phase 2 apps plan sections 7 and 9).
+ *
+ * The browser never decides GMP outcomes: `actions` come from the server (availableActions by dry-run through
+ * the engine), limit verdicts appear only in the view after the server committed, and values are never
+ * pre-filled.
+ */
+import { z } from 'zod';
+import { DataValueWire, DecimalString, Empty, Instant, IntegerString, PersonRef, RunVersion, SignableRef, Uuid, Watermark, withAttribution } from '../common.ts';
+import { ClientIntent, StepKey } from '../intents.ts';
+import { defineRoute } from '../route.ts';
+import { ScaleStatusView } from './devices.ts';
+import { ManifestationView } from './esig.ts';
+import { ProductRef } from './designer.ts';
+
+export const BatchStatus = z.enum(['ISSUED', 'IN_PROGRESS', 'ON_HOLD', 'EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED']);
+export const StepStatus = z.enum(['PENDING', 'ENABLED', 'IN_PROGRESS', 'AWAITING_VERIFICATION', 'COMPLETED', 'NOT_APPLICABLE', 'SKIPPED']);
+export const LimitTierWire = z.enum(['REGISTERED', 'VALIDATED', 'INTERNAL_ACTION', 'ALERT']);
+
+/** What the person can do now, as the server's dry-run of the engine decided it. */
+export const ActionName = z.enum([
+  'START_STEP',
+  'RECORD_DATA',
+  'RECORD_ENTRY',
+  'SIGN_PERFORMED',
+  'VERIFY',
+  'WITNESS',
+  'DISPOSITION_HOLD_POINT',
+  'SIGN_OFF_STAGE',
+  'RAISE_EXCEPTION',
+  'ATTACH_DEVIATION',
+  'DISPOSITION_EXCEPTION',
+  'HOLD_BATCH',
+  'RELEASE_HOLD',
+  'COMPLETE_LOOP_ITERATION',
+]);
+export const ActionView = z.strictObject({
+  action: ActionName,
+  available: z.boolean(),
+  /** The one primary action of the step card. */
+  primary: z.boolean(),
+  requires: z.enum(['NONE', 'TAP', 'SIGNATURE']),
+  /** Signature meaning for SIGNATURE actions (PERFORMED, VERIFIED, ...). */
+  meaning: z.string().nullable(),
+  /** Why it is not available (the engine's own refusal), or a hint. */
+  reason: z.string().nullable(),
+  /** Target of the action when it is not the step itself (exception id, stage key, hold id). */
+  target: z.string().nullable(),
+  /**
+   * Who can do it when this viewer cannot, in words: for a verification or witness refused to a person who worked on
+   * the step, or whose role may not check it, the roles that may, and who may not (INV-03). Empty otherwise.
+   */
+  whoCanHelp: z.array(z.string()),
+});
+export type ActionView = z.infer<typeof ActionView>;
+
+export const TimerView = z.strictObject({
+  constraint: z.string(),
+  name: z.string(),
+  kind: z.enum(['TIMER', 'HOLD', 'PROCESS_WINDOW', 'USE_BY', 'EXPOSURE']),
+  status: z.enum(['RUNNING', 'WARNING', 'BREACHED', 'MET', 'VOIDED']),
+  startedAt: Instant.nullable(),
+  /** Minimum and maximum instants, when set; the browser counts down from the server offset. */
+  minAt: Instant.nullable(),
+  maxAt: Instant.nullable(),
+});
+
+export const LimitView = z.strictObject({
+  tier: LimitTierWire,
+  low: z.strictObject({ value: DecimalString, inclusive: z.boolean() }).nullable(),
+  high: z.strictObject({ value: DecimalString, inclusive: z.boolean() }).nullable(),
+  /** Source kind and reference, e.g. VALIDATION_REPORT VR-BLEND-01. */
+  source: z.strictObject({ kind: z.string(), ref: z.string(), text: z.string() }),
+  rounding: z.string(),
+});
+
+export const AttemptView = z.strictObject({
+  pointId: z.string(),
+  attempt: z.number().int().positive(),
+  version: z.number().int().positive(),
+  value: DataValueWire.nullable(),
+  /** "You entered 12.503 kg" style echo of the stored value with its unit. */
+  echo: z.string(),
+  by: PersonRef,
+  at: Instant,
+  source: z.strictObject({
+    mode: z.enum(['MANUAL', 'DEVICE', 'SCAN', 'AUTOMATION', 'LIMS', 'BLOCK']),
+    deviceCode: z.string().nullable(),
+    raw: z.string().nullable(),
+    code: z.string().nullable(),
+  }),
+  /** The server's limit evaluation after commit (never computed in the browser). */
+  verdict: z.strictObject({ tier: LimitTierWire.nullable(), failed: z.boolean(), text: z.string() }).nullable(),
+  flags: z.array(z.string()),
+  status: z.enum(['VALID', 'SUPERSEDED', 'INVALIDATED']),
+});
+
+export const FieldView = z.strictObject({
+  item: z.string(),
+  name: z.string(),
+  valueType: z.enum(['DECIMAL', 'COUNT', 'BOOLEAN', 'CATEGORY', 'TEXT', 'INSTANT']),
+  unit: z.string().nullable(),
+  precision: z.strictObject({ kind: z.enum(['DECIMALS', 'SIGNIFICANT_FIGURES']), digits: z.number().int().nonnegative() }).nullable(),
+  categories: z.array(z.string()).nullable(),
+  capture: z.enum(['MANUAL', 'DEVICE', 'AUTOMATION', 'SCAN', 'LIMS']),
+  target: z.strictObject({ value: DataValueWire, source: z.string() }).nullable(),
+  limits: z.array(LimitView),
+  attempts: z.array(AttemptView),
+  /** Computed by the block or a calculation: shown, never typed (INV-25). */
+  computed: z.boolean(),
+  required: z.boolean(),
+});
+export type FieldView = z.infer<typeof FieldView>;
+
+export const EntryView = z.strictObject({
+  entryId: z.string(),
+  kind: z.string(),
+  summary: z.string(),
+  data: z.record(z.string(), z.unknown()),
+  by: PersonRef,
+  at: Instant,
+});
+
+/** A form the renderer (or the schema-driven fallback) shows for one entry kind of the step's block. */
+export const EntryFormView = z.strictObject({
+  kind: z.string(),
+  title: z.string(),
+  description: z.string(),
+  fields: z.array(
+    z.strictObject({
+      name: z.string(),
+      label: z.string(),
+      type: z.enum(['decimal', 'integer', 'string', 'boolean', 'enum', 'reading', 'lot', 'container', 'checklist']),
+      unit: z.string().nullable(),
+      options: z.array(z.strictObject({ value: z.string(), label: z.string() })).nullable(),
+      required: z.boolean(),
+      description: z.string(),
+    }),
+  ),
+});
+
+export const ExceptionView = z.strictObject({
+  exceptionId: z.string(),
+  type: z.string(),
+  title: z.string(),
+  category: z.string(),
+  severity: z.enum(['ALERT', 'ACTION', 'CRITICAL']),
+  tier: LimitTierWire.nullable(),
+  expected: z.string().nullable(),
+  actual: z.string().nullable(),
+  /** It stops completion or downstream steps until a deviation is linked or it is dispositioned. */
+  blocking: z.boolean(),
+  whatToDo: z.string(),
+  /** Roles (and names, when known) the exception is routed to. */
+  routedTo: z.array(z.string()),
+  status: z.enum(['OPEN', 'DISPOSITIONED']),
+  deviationRef: z.string().nullable(),
+  raisedAt: Instant,
+  raisedBy: PersonRef.nullable(),
+  controls: z.array(z.string()),
+});
+export type ExceptionView = z.infer<typeof ExceptionView>;
+
+export const RunHeaderView = z.strictObject({
+  runId: Uuid,
+  batchNumber: z.string(),
+  product: ProductRef,
+  markets: z.array(z.string()),
+  status: BatchStatus,
+  statusText: z.string(),
+  /** Always TEST, NOT GMP in Phase 2 (sandbox test runs). */
+  watermark: Watermark,
+  /** Run version (optimistic locking: commands send it back as expectedVersion). */
+  version: z.number().int().nonnegative(),
+  mbr: z.strictObject({ familyCode: z.string(), versionNumber: z.string(), revision: z.number().int().nonnegative(), contentHash: z.string() }),
+  stage: z.strictObject({ stageKey: z.string(), number: z.string(), name: z.string() }).nullable(),
+  room: z.string().nullable(),
+  equipment: z.array(z.strictObject({ ref: z.string(), code: z.string(), name: z.string() })),
+  timers: z.array(TimerView),
+  /**
+   * The scale of the step's room (C5 via the device port), when the step weighs: an ONLINE one whenever one is, else the
+   * room's only scale. The step's room is the viewer's terminal room when it is one the stage names (or the stage names
+   * none), else the stage's first room.
+   */
+  scale: ScaleStatusView.nullable(),
+  /** Every scale of that room with its status, when the step weighs: each ONLINE one can be captured from; keying weights by hand is open only while none is online. */
+  scales: z.array(ScaleStatusView),
+  /** The person signed in on this terminal. */
+  identity: PersonRef.nullable(),
+  lastSavedAt: Instant.nullable(),
+});
+export type RunHeaderView = z.infer<typeof RunHeaderView>;
+
+export const StepScreenView = z.strictObject({
+  /** Server time of this view (display countdowns start from it). */
+  asOf: Instant,
+  run: RunHeaderView,
+  step: z.strictObject({
+    stepKey: StepKey,
+    stepId: z.string(),
+    /** `2.1.3`, with loop and sub-lot suffix when the step repeats (`2.1.3 (sub-lot 2)`). */
+    number: z.string(),
+    ordinal: z.number().int().positive(),
+    of: z.number().int().positive(),
+    title: z.string(),
+    kind: z.enum(['PHASE', 'HOLD']),
+    /** `G-04@1`; null for hold points. */
+    block: z.string().nullable(),
+    blockTitle: z.string().nullable(),
+    status: StepStatus,
+    statusText: z.string(),
+    instruction: z.strictObject({
+      text: z.string(),
+      sop: z.strictObject({ refId: z.string(), code: z.string(), title: z.string(), version: z.string(), hash: z.string() }).nullable(),
+    }),
+    /** Dispositions a hold point offers. */
+    dispositions: z.array(z.string()),
+  }),
+  fields: z.array(FieldView),
+  entries: z.array(EntryView),
+  entryForms: z.array(EntryFormView),
+  exceptions: z.array(ExceptionView),
+  signatures: z.array(ManifestationView),
+  actions: z.array(ActionView),
+  /** The signable aggregate of this step (batch_step), for the ceremony. */
+  signable: SignableRef.nullable(),
+});
+export type StepScreenView = z.infer<typeof StepScreenView>;
+
+export const StepSummaryView = z.strictObject({
+  stepKey: StepKey,
+  stepId: z.string(),
+  number: z.string(),
+  title: z.string(),
+  block: z.string().nullable(),
+  status: StepStatus,
+  statusText: z.string(),
+  openExceptions: z.number().int().nonnegative(),
+});
+
+export const StageView = z.strictObject({
+  stageKey: z.string(),
+  stageId: z.string(),
+  number: z.string(),
+  name: z.string(),
+  status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'AWAITING_SIGN_OFF', 'SIGNED_OFF']),
+  /** Derived, never typed (G-02): completed per MBR, or with deviations. */
+  summary: z.strictObject({ statement: z.enum(['COMPLETED_PER_MBR', 'COMPLETED_WITH_DEVIATIONS']), exceptions: z.array(z.string()), deviations: z.array(z.string()) }).nullable(),
+  signOff: ManifestationView.nullable(),
+  signable: SignableRef.nullable(),
+  steps: z.array(StepSummaryView),
+});
+
+export const HoldView = z.strictObject({
+  holdId: z.string(),
+  type: z.enum(['SUPERVISOR', 'QA']),
+  reason: z.string(),
+  placedBy: PersonRef.nullable(),
+  at: Instant,
+  automatic: z.boolean(),
+  released: z.strictObject({ by: PersonRef, reason: z.string(), at: Instant }).nullable(),
+});
+
+export const RunView = z.strictObject({
+  asOf: Instant,
+  header: RunHeaderView,
+  stages: z.array(StageView),
+  exceptions: z.array(ExceptionView),
+  holds: z.array(HoldView),
+  /** Run-level actions (hold, release). */
+  actions: z.array(ActionView),
+  /** Audit chain of the run, e.g. batch:<id>. */
+  auditChain: z.string(),
+});
+export type RunView = z.infer<typeof RunView>;
+
+export const RunSummaryView = z.strictObject({
+  runId: Uuid,
+  batchNumber: z.string(),
+  product: ProductRef,
+  markets: z.array(z.string()),
+  status: BatchStatus,
+  statusText: z.string(),
+  issuedAt: Instant,
+  version: z.number().int().nonnegative(),
+  openExceptions: z.number().int().nonnegative(),
+});
+
+export const WorkQueueItem = z.strictObject({
+  runId: Uuid,
+  batchNumber: z.string(),
+  product: ProductRef,
+  stepKey: StepKey,
+  number: z.string(),
+  title: z.string(),
+  stage: z.string(),
+  room: z.string().nullable(),
+  status: StepStatus,
+  statusText: z.string(),
+  /** Greyed with the server's reason when not available. */
+  action: ActionView,
+});
+export type WorkQueueItem = z.infer<typeof WorkQueueItem>;
+
+export const TestPackageView = z.strictObject({
+  packageId: z.string(),
+  packageHash: z.string(),
+  fileName: z.string(),
+  familyCode: z.string(),
+  product: ProductRef,
+  versionNumber: z.string(),
+  revision: z.number().int().nonnegative(),
+  state: z.string(),
+  contentHash: z.string(),
+  exportedAt: Instant,
+  exporter: z.string(),
+  /** The exporting installation (must be GMP to import). */
+  sourceInstallation: z.enum(['GMP', 'SANDBOX']),
+  imported: z.boolean(),
+  importedAt: Instant.nullable(),
+  /** Why the package cannot be imported (unexecutable record, wrong origin, hash mismatch). */
+  problem: z.string().nullable(),
+});
+export type TestPackageView = z.infer<typeof TestPackageView>;
+
+export const IssueFormView = z.strictObject({
+  packageId: z.string(),
+  product: ProductRef,
+  /** Approved discrete batch sizes only (PR-01). */
+  batchSizes: z.array(z.strictObject({ id: z.string(), quantity: DecimalString, unit: z.string(), label: z.string() })),
+  markets: z.array(z.strictObject({ code: z.string(), locked: z.boolean() })),
+  variants: z.array(z.strictObject({ id: z.string(), name: z.string(), options: z.array(z.string()) })),
+  inputs: z.array(
+    z.strictObject({ id: z.string(), name: z.string(), valueType: z.string(), unit: z.string().nullable(), source: z.string(), required: z.boolean() }),
+  ),
+});
+
+export const ReplayReportView = z.strictObject({
+  runId: Uuid,
+  identical: z.boolean(),
+  rows: z.number().int().nonnegative(),
+  firstDifference: z.strictObject({ seq: IntegerString, field: z.string(), expected: z.string(), actual: z.string() }).nullable(),
+  invariantViolations: z.array(z.string()),
+  checkedAt: Instant,
+});
+
+export const TimelineEntryView = z.strictObject({
+  seq: IntegerString,
+  kind: z.enum(['ISSUE', 'COMMAND', 'PREPARE', 'SWEEP']),
+  at: Instant,
+  actor: PersonRef.nullable(),
+  summary: z.string(),
+  accepted: z.boolean(),
+  refusal: z.string().nullable(),
+});
+
+export const LotView = z.strictObject({
+  lotCode: z.string(),
+  material: z.strictObject({ code: z.string(), name: z.string() }),
+  status: z.string(),
+  expiry: z.string().nullable(),
+  retest: z.string().nullable(),
+  identityTested: z.boolean(),
+});
+
+export const CommandResultView = z.strictObject({
+  /** The engine accepted the command (refusals are persisted and returned as a 422 refusal instead). */
+  accepted: z.literal(true),
+  version: z.number().int().nonnegative(),
+  /** The step the command targeted (or `viewStepKey`), as it is now. */
+  step: StepScreenView.nullable(),
+});
+
+const runIdParams = z.strictObject({ runId: Uuid });
+
+export const execution = {
+  testPackages: defineRoute({
+    id: 'execution.testPackages',
+    method: 'GET',
+    path: '/api/test-packages',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Test packages in the exchange inbox and those already imported',
+    response: z.strictObject({ packages: z.array(TestPackageView) }),
+  }),
+  importPackage: defineRoute({
+    id: 'execution.importPackage',
+    method: 'POST',
+    path: '/api/test-packages/:packageId/import',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Import a package: hashes recomputed, GMP origin required, parse and defineBatch(SANDBOX)',
+    params: z.strictObject({ packageId: z.string().min(1) }),
+    body: withAttribution({}),
+    response: TestPackageView,
+  }),
+  issueForm: defineRoute({
+    id: 'execution.issueForm',
+    method: 'GET',
+    path: '/api/test-packages/:packageId/issue-form',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'What a test batch of this package needs at issue',
+    params: z.strictObject({ packageId: z.string().min(1) }),
+    response: IssueFormView,
+  }),
+  issue: defineRoute({
+    id: 'execution.issue',
+    method: 'POST',
+    path: '/api/test-runs',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Issue a TEST- batch (number allocated by the server; policy, engine version and registry pinned)',
+    body: withAttribution({
+      packageId: z.string().min(1),
+      batchSize: z.string().min(1),
+      markets: z.array(z.string()).min(1),
+      variants: z.record(z.string(), z.string()),
+      inputs: z.record(z.string(), DataValueWire),
+    }),
+    response: RunView,
+  }),
+  runs: defineRoute({
+    id: 'execution.runs',
+    method: 'GET',
+    path: '/api/test-runs',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Test runs',
+    response: z.strictObject({ runs: z.array(RunSummaryView) }),
+  }),
+  run: defineRoute({
+    id: 'execution.run',
+    method: 'GET',
+    path: '/api/test-runs/:runId',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Run overview: stages, steps, exceptions, holds, timers',
+    params: runIdParams,
+    response: RunView,
+  }),
+  step: defineRoute({
+    id: 'execution.step',
+    method: 'GET',
+    path: '/api/test-runs/:runId/steps/:stepKey',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The step screen of one step instance',
+    params: z.strictObject({ runId: Uuid, stepKey: StepKey }),
+    response: StepScreenView,
+  }),
+  workQueue: defineRoute({
+    id: 'execution.workQueue',
+    method: 'GET',
+    path: '/api/work-queue',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: '"What you can do now" for this terminal\'s room',
+    response: z.strictObject({ items: z.array(WorkQueueItem) }),
+  }),
+  timeline: defineRoute({
+    id: 'execution.timeline',
+    method: 'GET',
+    path: '/api/test-runs/:runId/timeline',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Every engine call of the run (issue, commands, prepares, sweeps), refusals included',
+    params: runIdParams,
+    response: z.strictObject({ entries: z.array(TimelineEntryView) }),
+  }),
+  verifyReplay: defineRoute({
+    id: 'execution.verifyReplay',
+    method: 'POST',
+    path: '/api/test-runs/:runId/verify-replay',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Replay the stored rows and report identical or the first difference',
+    params: runIdParams,
+    body: Empty,
+    response: ReplayReportView,
+  }),
+  lot: defineRoute({
+    id: 'execution.lot',
+    method: 'GET',
+    path: '/api/lots/:code',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'A TEST- lot as the server knows it (status, expiry, retest, identity test)',
+    params: z.strictObject({ code: z.string().min(1) }),
+    response: LotView,
+  }),
+  command: defineRoute({
+    id: 'execution.command',
+    method: 'POST',
+    path: '/api/test-runs/:runId/commands',
+    installation: 'SANDBOX',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'One plain client intent (no signature), resolved by the server into an engine command',
+    params: runIdParams,
+    body: withAttribution({
+      expectedVersion: RunVersion,
+      intent: ClientIntent,
+      /** Step to return in the response when the intent is run-level (hold, deviation link). */
+      viewStepKey: StepKey.optional(),
+    }),
+    response: CommandResultView,
+  }),
+} as const;

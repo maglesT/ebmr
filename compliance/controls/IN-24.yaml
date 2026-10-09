@@ -17,8 +17,13 @@ requirement_rows:
 sources: Schedule M Part I 14.10-14.13 (receipt, labelling of stored materials, reduced label text with validated systems), 14.15 (non-API raw materials released without batch testing), 14.21-14.25 (packaging materials), 14.36 (returned goods), 19.7.1 (identity, strength, purity before release).
 behaviour: "(a) The system is the authority for material status (quarantine, under test, released, rejected, returned, recalled); status changes are e-signed and audit-trailed; with the validated system, labels may carry a barcode plus minimal text. (b) Each lot within a delivery is sampled, tested and released separately; every delivery of primary and printed packaging gets a unique reference. (c) Excipient release: Schedule M 14.15 lets QC release non-API raw materials without batch testing based on vendor approval and statistical analysis of past results. The system supports this route only when QA enables it, stores the statistical justification, and limits such lots to batches whose market profile is India-only. For any batch with a US or EU market, the dispensing check blocks a lot that has no identity test result. Default for new tenants: identity test required for every lot in every profile, because the Schedule M identity-test clause 19.7.2 is truncated in the uploaded copy and may restrict 14.15 (gap F-2). (d) Printed materials are issued only by a designated role against the packaging bill of materials with scan confirmation of artwork version; superseded artwork is blocked and its destruction recorded. (e) Returned goods cannot be made available again without a recorded QC assessment (nature, storage needs, condition, history, time since issue)."
 catalog_test: release an excipient lot on vendor history and try to dispense it into a batch with markets {India, US}; blocked until an identity result exists.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
+  guards:
+    - "G-07: for a batch with a US or EU market a lot without an identity-test result is blocked (G07-LOT-IDENTITY)"
+tests:
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [IN-24] for a batch with a US market, a lot without an identity-test result is blocked"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

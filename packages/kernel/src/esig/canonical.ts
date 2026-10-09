@@ -4,14 +4,34 @@
  * The same rules as esig.canonical_json in SQL: object keys sorted by Unicode code point (UTF-8
  * byte order), no insignificant white space, strings escaped as JSON requires. GMP decimals travel
  * as strings; only safe integers are accepted as numbers, so a client can never produce a
- * different text for the same value. The content hash is SHA-256 of the canonical envelope
- * {aggregate_type, aggregate_id, content_version, content}.
+ * different text for the same value. Text no record can hold (U+0000, or a UTF-16 surrogate
+ * without its other half), in a string or a member name, has no canonical form and is refused:
+ * esig.canonical_json can never receive it, because jsonb refuses both (review F31). The content
+ * hash is SHA-256 of the canonical envelope {aggregate_type, aggregate_id, content_version, content}.
  *
  * A client normally hashes the canonical text the server returned (esig.content_for_signing) and
  * that it rendered; canonicalJson lets modules and tests build the same text themselves.
  */
 import { createHash } from 'node:crypto';
 import { EsigError } from './errors.ts';
+
+/**
+ * U+0000, or a UTF-16 surrogate without its other half: PostgreSQL text and jsonb refuse U+0000, jsonb refuses the
+ * escape of a lone surrogate, and UTF-8 encoding silently writes U+FFFD in its place.
+ */
+// eslint-disable-next-line no-control-regex -- U+0000 is looked for on purpose.
+const UNSTORABLE = /\u0000|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+/** A string or member name as canonical JSON; EBMR-ESIG-004 names the first character no record can hold. */
+function jsonString(text: string): string {
+  const m = UNSTORABLE.exec(text);
+  if (m !== null) {
+    const unit = m[0].charCodeAt(m[0].length - 1);
+    const what = unit === 0 ? 'U+0000' : `an unpaired surrogate U+${unit.toString(16).toUpperCase()}`;
+    throw new EsigError('EBMR-ESIG-004', `text holding ${what} has no canonical JSON form: no record can hold it`);
+  }
+  return JSON.stringify(text);
+}
 
 /** Orders strings by Unicode code point, as PostgreSQL's COLLATE "C" orders UTF-8 text. */
 export function compareCodePoints(a: string, b: string): number {
@@ -22,11 +42,11 @@ export function compareCodePoints(a: string, b: string): number {
 export function canonicalJson(value: unknown): string {
   if (value === null) return 'null';
   switch (typeof value) {
-    // Stryker disable next-line ConditionalExpression: equivalent; without this case a boolean falls through to the string case, where JSON.stringify writes true and false exactly as this case does
+    // Stryker disable next-line ConditionalExpression: equivalent; without this case a boolean falls through to the string case, where jsonString finds nothing to refuse in its text and JSON.stringify writes true and false exactly as this case does
     case 'boolean':
       return value ? 'true' : 'false';
     case 'string':
-      return JSON.stringify(value);
+      return jsonString(value);
     case 'bigint':
       return value.toString();
     case 'number':
@@ -35,10 +55,17 @@ export function canonicalJson(value: unknown): string {
       }
       return String(value);
     case 'object': {
-      if (Array.isArray(value)) return `[${value.map((v) => canonicalJson(v)).join(',')}]`;
+      // Array.from reads a hole as undefined, which has no canonical form: [,1] is refused, never written "[,1]".
+      if (Array.isArray(value)) return `[${Array.from(value, (v) => canonicalJson(v)).join(',')}]`;
+      // Plain data only: a Date, Map, Set, typed array or class instance would be written as {} or as some of its
+      // fields, so two different values would have one text and one hash.
+      const proto: unknown = Object.getPrototypeOf(value);
+      if (proto !== Object.prototype && proto !== null) {
+        throw new EsigError('EBMR-ESIG-004', `a ${(proto as { constructor?: { name?: string } }).constructor?.name ?? 'object'} has no canonical JSON form`);
+      }
       const entries = Object.entries(value as Record<string, unknown>).filter(([, v]) => v !== undefined);
       entries.sort(([a], [b]) => compareCodePoints(a, b));
-      return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
+      return `{${entries.map(([k, v]) => `${jsonString(k)}:${canonicalJson(v)}`).join(',')}}`;
     }
     default:
       throw new EsigError('EBMR-ESIG-004', `a ${typeof value} has no canonical JSON form`);

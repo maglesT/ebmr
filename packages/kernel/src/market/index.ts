@@ -5,7 +5,7 @@
 export * from './types.ts';
 export { MarketRuleError, type RuleTableProblem } from './errors.ts';
 export { compareDecimal, isCanonicalDecimal } from './decimal.ts';
-export { bindingValue, canonicalJson, categoryRank, floorRank, isAtLeastAsStrict, jsonEqual, setMerge, siteLoosenable } from './strictness.ts';
+export { bindingValue, canonicalJson, categoryRank, floorRank, isAtLeastAsStrict, isSameValue, jsonEqual, setMerge, siteLoosenable } from './strictness.ts';
 export { checkedMarketSet, DEFAULT_MARKETS, isEffective, isIsoDate, resolve, selectRow, type ResolveOptions } from './resolve.ts';
 export { validateRuleTableDocument, valueProblem } from './validate.ts';
 export { snapshotFromDocument } from './snapshot.ts';

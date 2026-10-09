@@ -40,7 +40,7 @@ implemented_by:
     - "one CLOSED, one INVESTIGATION_STARTED and one CERT_IN_REPORTED event per incident (partial unique indexes)"
     - "records.cert_in_reporting_window(): 6 hours, from secondary sources (verify)"
 tests:
-  - "packages/kernel/test/records/incidents.test.ts > [DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open on the disposition screen; closing it as critical without root cause and CAPA is blocked"
+  - "packages/kernel/test/records/incidents.test.ts > [DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open among the batch's disposition blockers (what the release module reads); closing it as critical without root cause and CAPA is blocked"
   - "packages/kernel/test/records/incidents.test.ts > [DI-12] lowering the severity does not remove the root-cause and CAPA requirement of a critical incident"
   - "packages/kernel/test/records/incidents.test.ts > [DI-12] a minor incident closes with a summary, only from UNDER_INVESTIGATION and only by a person"
   - "packages/kernel/test/records/incidents.test.ts > [DI-12] a user raises an incident manually; an impact assessment lifts the disposition block for that batch only"
@@ -48,9 +48,23 @@ tests:
   - "packages/kernel/test/records/incidents.test.ts > [DI-12] incident input is validated; a claimed occurrence time needs a trust level and cannot lie in the future"
   - "packages/kernel/test/records/incidents.test.ts > [DI-12] a reportable security incident carries a 6-hour deadline and cannot be closed before the report is recorded"
   - "packages/kernel/test/records/incidents.test.ts > [DI-12] the application role cannot write incident rows directly, and incident rows are insert-only for everyone"
+  - "packages/kernel/test/records/investigations.test.ts > DI-50 data-integrity investigation > [DI-50][DI-12] the release lock links and holds a record the person investigated wrote to after opening, so the blocker epoch moves once (F35)"
+  - "packages/kernel/test/review/f35.test.ts > F35: an implicit DI-investigation blocker moves the blocker epoch > [DI-50][DI-12] a write by the person investigated inside the window, after opening, moves the epoch of the record it blocks"
+clauses:
+  - clause: "Kill the balance interface in the middle of a weighing. An incident is created, linked to the batch"
+    tests:
+      - "packages/kernel/test/records/incidents.test.ts > [DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open among the batch's disposition blockers (what the release module reads); closing it as critical without root cause and CAPA is blocked"
+  - clause: "and shown as open on the disposition screen."
+    deferred:
+      phase: 4
+      reason: "Phase 1 records the open incident among the batch's disposition blockers (records.open_blockers, which the release module reads; kernel records incidents test); the disposition screen comes with review and release in Phase 4 (build outline 11)."
+  - clause: "Try to close it as critical without a root cause and CAPA. Blocked."
+    tests:
+      - "packages/kernel/test/records/incidents.test.ts > [DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open among the batch's disposition blockers (what the release module reads); closing it as critical without root cause and CAPA is blocked"
+      - "packages/kernel/test/records/incidents.test.ts > [DI-12] lowering the severity does not remove the root-cause and CAPA requirement of a critical incident"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: IMPLEMENTED
+build_status: SPECIFIED
 jurisdiction: Only the EU text explicitly requires incident management for computerised systems. It is adopted for all markets.
 type_detail: 'ENFORCED for logging, batch linkage, and root cause plus CAPA on critical incidents. The disposition block is a DESIGN-CHOICE, engine-enforced by default: it puts the Ch.4 4.27 "special observations" indication into effect.'

@@ -215,6 +215,16 @@ staleness 60 s–7 days (1 day); US certification mode BLOCK/FLAG (BLOCK). No re
 numbers; they are design defaults. The training gate is always a hard block (every site is
 India-licensed, IN-04), so the DI-21 flag-and-review relaxation is not offered.
 
+`site.zone` (default `Asia/Kolkata`, DI-27) takes the IANA name of the site's place: a name
+`platform.is_valid_time_zone` accepts (EBMR-PLAT-017) that lies in a geographic area (Africa, America,
+Antarctica, Arctic, Asia, Atlantic, Australia, Europe, Indian, Pacific), or `UTC` / `Etc/UTC`
+(`iam.is_valid_site_zone`, kernel 0940). Abbreviations such as `IST`, bare offsets, unknown names and the
+rest of the `Etc` area (fixed offsets with inverted signs: `Etc/GMT+5` is UTC-05:00) are refused with
+EBMR-IAM-119, by `iam.set_policy` and by a row guard on `iam.policy_value` that refuses such a row
+whoever inserts it, the owner's SECURITY DEFINER code included.
+Which link names (such as `Asia/Calcutta`) are known depends on the time zone data installed with the
+database server, so use the canonical name.
+
 ## Error codes (EBMR-IAM-NNN)
 
 001–007 actor and generic (002 context not validated, 003 self-administration, 005/006 rows never
@@ -223,7 +233,7 @@ accounts and login names (021 never reused, also after a restore; 024 second GMP
 roles and grants (032 approver, 033 INV-11, 034/035 DI-14, 036 kind or break-glass, 039 a role's
 permissions change only by an approved request); 040–042 authority, segregation,
 administrator on GMP data; 043 platform authority adapter (actor or permission name not accepted); 050–055 credentials and signing readiness; 060–063 badges; 070–073
-devices; 080–084 sessions; 090–097 authentication events (097 the event's badge is no longer active); 100–117 actor context; 120–126 INV-40
+devices; 080–084 sessions; 090–097 authentication events (097 the event's badge is no longer active); 100–118 actor context (118 the site's zone); 119 site.zone value; 120–126 INV-40
 attribution; 130 break-glass; 140 authentication failed; 150 alerts; 160 qualifications; 170 US
 certification; 180–182 delegation; 190 bootstrap.
 

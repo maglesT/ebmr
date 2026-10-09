@@ -8,6 +8,27 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@ebmr/ui-kit": "workspace:0.1.0"
+    "@ebmr/api-contract": "workspace:0.1.0",
+    "@ebmr/expr": "workspace:0.1.0",
+    "@ebmr/recipe-core": "workspace:0.1.0",
+    "@ebmr/ui-kit": "workspace:0.1.0",
+    "@tanstack/react-query": "5.104.0",
+    "@tanstack/react-router": "1.170.40",
+    "@xstate/react": "6.1.0",
+    "react": "19.3.0",
+    "react-aria-components": "1.21.1",
+    "react-dom": "19.3.0",
+    "xstate": "5.33.2"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "vite": "8.3.1"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   }
 }

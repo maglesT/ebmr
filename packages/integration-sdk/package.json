@@ -5,9 +5,11 @@
   "description": "Adapter contracts for external systems (ERP, LIMS, QMS, LMS, EMS, scales, printers, OPC UA)",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./scale": "./src/scale/index.ts"
   },
   "dependencies": {
-    "@ebmr/kernel": "workspace:0.1.0"
+    "@ebmr/kernel": "workspace:0.1.0",
+    "zod": "4.6.5"
   }
 }

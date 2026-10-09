@@ -1,0 +1,1668 @@
+{
+  "format": "ebmr.mbr-content",
+  "formatVersion": 1,
+  "header": {
+    "family": "ATV40-BL10",
+    "title": "Atorvastatin 40 mg tablets: Alu-PVC blister 10 x 10, packaging order",
+    "edition": "tablets",
+    "recordKind": "PACKAGING",
+    "product": {
+      "code": "ATV-40-FCT",
+      "name": "Atorvastatin calcium tablets",
+      "strength": "40 mg",
+      "dosageForm": "Film-coated tablet"
+    },
+    "batchSizes": [
+      {
+        "id": "PO-20K",
+        "quantity": {
+          "value": "20000",
+          "unit": "{tbl}"
+        }
+      }
+    ],
+    "marketSet": [
+      "IN",
+      "US"
+    ],
+    "predicates": {},
+    "variants": [
+      {
+        "id": "packDestination",
+        "values": [
+          "IN-DOMESTIC",
+          "US-EXPORT"
+        ]
+      }
+    ]
+  },
+  "riskScale": {
+    "ref": "RSK-SCALE",
+    "classes": [
+      "LOW",
+      "MEDIUM",
+      "HIGH"
+    ]
+  },
+  "references": [
+    {
+      "id": "RSK-SCALE",
+      "kind": "RISK_SCALE",
+      "code": "QRM-SCALE",
+      "version": "2",
+      "hash": "95552c3fdb7bf22c3236a99d0889fb2d2811eb2ef0afac64df72964165a1c0ed",
+      "title": "Controlled risk scale"
+    },
+    {
+      "id": "RA-CART-01",
+      "kind": "RISK_ASSESSMENT",
+      "code": "RA-ATV-CARTON",
+      "version": "1",
+      "hash": "b85d33a3dbf85dcd48a2ace54e922b86c375c30e0f7c28b016a2c8803c5f5d6a",
+      "title": "Risk assessment: validated cartoner, one verifier"
+    },
+    {
+      "id": "VR-PACK",
+      "kind": "VALIDATION_REPORT",
+      "code": "PV-ATV-BL",
+      "version": "2",
+      "hash": "2e326c607da61c435e393d6bb7b52b0be50ee73446426b11ec7cc6bb96ada91b",
+      "title": "Packaging validation report"
+    },
+    {
+      "id": "HS-PACK",
+      "kind": "HOLD_STUDY",
+      "code": "HTS-ATV-BULK",
+      "version": "1",
+      "hash": "c8df32014be2209aa37adb68d6250a9bed3bce25bdd24d75853c8bbabde5acac",
+      "title": "Bulk exposure study"
+    },
+    {
+      "id": "SOP-PACK",
+      "kind": "SOP",
+      "code": "SOP-PK-012",
+      "version": "6",
+      "hash": "29f5801f5e5b721dc972b16fd301bc52c00f7d2024454ea351b29daa582debd7",
+      "title": "Packaging reconciliation SOP"
+    },
+    {
+      "id": "MAT-BULK",
+      "kind": "MATERIAL",
+      "code": "BULK-ATV-40",
+      "version": "1",
+      "hash": "61d9898a06e39d8345c7707841c715f7c1cc1fa157af58127021e41d5d6f961e",
+      "title": "Atorvastatin 40 mg film-coated tablets (bulk)"
+    },
+    {
+      "id": "MAT-PVC",
+      "kind": "MATERIAL",
+      "code": "PM-PVC-250",
+      "version": "1",
+      "hash": "6f0f057b135f1647cc5c4e4d24b23db4aca35d8e9a37d689b44ec431dcdb6d4d",
+      "title": "PVC film 250 micron"
+    },
+    {
+      "id": "MAT-FOIL",
+      "kind": "MATERIAL",
+      "code": "PM-ALU-FOIL-ATV",
+      "version": "4",
+      "hash": "e64f5f1ec082e59460b25d0a5099fb403ade396cacbc5cc7d3696c34fddfd12b",
+      "title": "Printed aluminium lidding foil"
+    },
+    {
+      "id": "MAT-CARTON",
+      "kind": "MATERIAL",
+      "code": "PM-CARTON-ATV",
+      "version": "5",
+      "hash": "17433c68d587cbd2473645d357c00b9cf5a37098cc90497e91b79c073cb442c9",
+      "title": "Printed carton"
+    },
+    {
+      "id": "MAT-LEAFLET",
+      "kind": "MATERIAL",
+      "code": "PM-LEAFLET-ATV",
+      "version": "3",
+      "hash": "0c6bc27635d883f33799daba82a78ccb7c1d66b7f1b63cf32e3481655a5f1c7e",
+      "title": "Package leaflet"
+    },
+    {
+      "id": "SPEC-FOIL",
+      "kind": "SPECIMEN",
+      "code": "ART-FOIL-ATV",
+      "version": "4",
+      "hash": "57973aeefe76c17d020205802b423b4279a2aa3009fd247d3f14101ac30c6d8a",
+      "title": "Approved specimen, lidding foil"
+    },
+    {
+      "id": "SPEC-CARTON",
+      "kind": "SPECIMEN",
+      "code": "ART-CARTON-ATV",
+      "version": "5",
+      "hash": "9a4d5bae2c23ba860f2c30f925e61d9b042e1d16d5607cbd27f881ab820081bf",
+      "title": "Approved specimen, carton"
+    },
+    {
+      "id": "SPEC-LEAFLET",
+      "kind": "SPECIMEN",
+      "code": "ART-LEAFLET-ATV",
+      "version": "3",
+      "hash": "ef4d1712131b1f60900f6d258fe5879c83e4803404ab03210d7fc0383c8e4ad2",
+      "title": "Approved specimen, leaflet"
+    },
+    {
+      "id": "EQC-BLM",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-BLISTER",
+      "version": "1",
+      "hash": "c4e425907ec3540917c56f39bb5bcdd32440f04d1b954335fa8994cd297d6f15",
+      "title": "Thermoform blister machine"
+    },
+    {
+      "id": "EQC-LEAK",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-LEAK-TEST",
+      "version": "1",
+      "hash": "c926f2e95e68a1f60aebc015bf483e0eafe0a77d12e0fc3d709a3fe1b9997307",
+      "title": "Vacuum leak tester"
+    },
+    {
+      "id": "EQC-SCALE",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-BALANCE-60KG",
+      "version": "1",
+      "hash": "92fe29b841f63f755583ac2abefdc4442640f3146e2347715d3569a10289d0df",
+      "title": "Floor balance"
+    },
+    {
+      "id": "EQC-CART",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-CARTONER",
+      "version": "1",
+      "hash": "aacea6e792f67a78abed0768cc869bf65e2ea5b13b8bf11b431151bc1f4727c4",
+      "title": "Cartoner"
+    },
+    {
+      "id": "EQC-CW",
+      "kind": "EQUIPMENT_CLASS",
+      "code": "EQC-CHECKWEIGHER",
+      "version": "1",
+      "hash": "599c29973c4901c475718e334527a3ee1ae631269accfde8cc7e9c6baedde702",
+      "title": "Checkweigher"
+    },
+    {
+      "id": "SYS-BLM",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-BLISTER-PLC",
+      "version": "2",
+      "hash": "d5d02a85a9c0e2c55f454ef5ba9c6b6e59a4fa5a455c6d8ebc8d25d3ade9f7a3",
+      "title": "Blister machine PLC"
+    },
+    {
+      "id": "SYS-LEAK",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-LEAK-IF",
+      "version": "1",
+      "hash": "880041bb53cbc6e4f9a6f838b1849d9fd8444fc2373563d2cd06226c022dea00",
+      "title": "Leak tester interface"
+    },
+    {
+      "id": "SYS-WEIGH",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-WEIGHING",
+      "version": "3",
+      "hash": "7146e29ef2c34f377e482dc58e8371c0df69e647b26ebb08677f2d9eb633c66c",
+      "title": "Weighing system"
+    },
+    {
+      "id": "SYS-CART",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-CARTONER-PLC",
+      "version": "1",
+      "hash": "5715f0136b31887c34cd2504906e0d103b08fa158305bcb9d08deb043e0e20a7",
+      "title": "Cartoner PLC"
+    },
+    {
+      "id": "SYS-CW",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-CHECKWEIGHER",
+      "version": "2",
+      "hash": "dc484cf92d2351813c4a3102029ac4760233a5d6dc0f67449bbb5f0464666b6e",
+      "title": "Checkweigher"
+    },
+    {
+      "id": "SYS-SER",
+      "kind": "COMPUTERISED_SYSTEM",
+      "code": "CS-SERIALISATION",
+      "version": "3",
+      "hash": "106e899a3e88cf88ceca5b0c72e3fa02cca98ef81219fc36fe90c8b35bf279a7",
+      "title": "Serialisation system"
+    }
+  ],
+  "library": [],
+  "inputs": [
+    {
+      "id": "avgTabletWeight",
+      "name": "Average tablet weight of the bulk lot",
+      "source": "MASTER_DATA",
+      "valueType": "DECIMAL",
+      "unit": "mg",
+      "ref": "MAT-BULK"
+    },
+    {
+      "id": "tabletsPerBlister",
+      "name": "Tablets per blister",
+      "source": "MASTER_DATA",
+      "valueType": "COUNT",
+      "ref": "MAT-BULK"
+    }
+  ],
+  "bom": [
+    {
+      "id": "BOM-BULK",
+      "material": "MAT-BULK",
+      "role": "OTHER",
+      "quantity": {
+        "value": "5.15",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-PVC",
+      "material": "MAT-PVC",
+      "role": "PRIMARY_PACKAGING",
+      "quantity": {
+        "value": "12.0",
+        "unit": "kg"
+      }
+    },
+    {
+      "id": "BOM-FOIL",
+      "material": "MAT-FOIL",
+      "role": "PRINTED_COMPONENT",
+      "quantity": {
+        "value": "3.2",
+        "unit": "kg"
+      },
+      "specimen": "SPEC-FOIL"
+    },
+    {
+      "id": "BOM-CARTON",
+      "material": "MAT-CARTON",
+      "role": "PRINTED_COMPONENT",
+      "quantity": {
+        "value": "200",
+        "unit": "{carton}"
+      },
+      "specimen": "SPEC-CARTON"
+    },
+    {
+      "id": "BOM-LEAFLET",
+      "material": "MAT-LEAFLET",
+      "role": "PRINTED_COMPONENT",
+      "quantity": {
+        "value": "200",
+        "unit": "{leaflet}"
+      },
+      "specimen": "SPEC-LEAFLET"
+    }
+  ],
+  "intermediates": [
+    {
+      "id": "I-BLISTERS",
+      "name": "Sealed blisters",
+      "holdTime": {
+        "max": {
+          "value": "48",
+          "unit": "h"
+        },
+        "source": {
+          "kind": "HOLD_STUDY",
+          "ref": "HS-PACK"
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "id": "lineCheckOk",
+      "name": "Independent line check: no remnants of the previous order",
+      "valueType": "CATEGORY",
+      "categories": [
+        "CONFIRMED",
+        "NOT_CONFIRMED"
+      ],
+      "role": "OBSERVATION",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "MANUAL",
+      "evidence": "NONE",
+      "accuracyCheck": "SECOND_PERSON"
+    },
+    {
+      "id": "bulkIssued",
+      "name": "Bulk tablets issued (net)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 3
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "sealTemp",
+      "name": "Sealing roller temperature",
+      "valueType": "DECIMAL",
+      "unit": "Cel",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "PROCESS_PARAMETER",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION",
+      "limits": {
+        "unit": "Cel",
+        "ranges": [
+          {
+            "tier": "VALIDATED",
+            "low": {
+              "value": "180",
+              "inclusive": true
+            },
+            "high": {
+              "value": "200",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "VALIDATION_REPORT",
+              "ref": "VR-PACK"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "leakResult",
+      "name": "Leak test (vacuum, methylene blue)",
+      "valueType": "CATEGORY",
+      "categories": [
+        "PASS",
+        "FAIL"
+      ],
+      "role": "IPC",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "blistersGood",
+      "name": "Good blisters",
+      "valueType": "COUNT",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION"
+    },
+    {
+      "id": "rejectBlisters",
+      "name": "Rejected blisters",
+      "valueType": "COUNT",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION"
+    },
+    {
+      "id": "bulkRemaining",
+      "name": "Bulk remaining after the run (net)",
+      "valueType": "DECIMAL",
+      "unit": "kg",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 3
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "cartonsIssued",
+      "name": "Cartons issued",
+      "valueType": "COUNT",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "SCAN"
+    },
+    {
+      "id": "cartonsPacked",
+      "name": "Cartons packed",
+      "valueType": "COUNT",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION"
+    },
+    {
+      "id": "cwChallenge",
+      "name": "Checkweigher challenge",
+      "valueType": "CATEGORY",
+      "categories": [
+        "PASS",
+        "FAIL"
+      ],
+      "role": "IPC",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "DEVICE"
+    },
+    {
+      "id": "serialsCommissioned",
+      "name": "Serial numbers commissioned",
+      "valueType": "COUNT",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "AUTOMATION"
+    },
+    {
+      "id": "indiaCodesOk",
+      "name": "Batch, mfg and expiry dates and MRP legible on India packs",
+      "valueType": "CATEGORY",
+      "categories": [
+        "CONFIRMED",
+        "NOT_CONFIRMED"
+      ],
+      "role": "OBSERVATION",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "MANUAL",
+      "evidence": "PHOTO",
+      "accuracyCheck": "SECOND_PERSON"
+    },
+    {
+      "id": "cartonsDamaged",
+      "name": "Cartons damaged or set-up waste (destroyed)",
+      "valueType": "COUNT",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "SCAN"
+    },
+    {
+      "id": "cartonsReturned",
+      "name": "Uncoded cartons returned",
+      "valueType": "COUNT",
+      "precision": {
+        "kind": "DECIMALS",
+        "digits": 0
+      },
+      "role": "QUANTITY",
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH",
+      "capture": "SCAN"
+    }
+  ],
+  "calculations": [
+    {
+      "id": "tabletsIssued",
+      "name": "Tablets issued (count by weight)",
+      "expression": "convert(bulkIssued / avgTabletWeight, [1])",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "1"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "packedTablets",
+      "name": "Tablets in good blisters",
+      "expression": "blistersGood * tabletsPerBlister",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "1"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "rejectTablets",
+      "name": "Tablets in rejected blisters",
+      "expression": "rejectBlisters * tabletsPerBlister",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "1"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "returnedTablets",
+      "name": "Tablets returned (count by weight)",
+      "expression": "convert(bulkRemaining / avgTabletWeight, [1])",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "1"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "bulkRecon",
+      "name": "Bulk tablet reconciliation",
+      "expression": "accountability(tabletsIssued, packedTablets, rejectTablets, returnedTablets)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    },
+    {
+      "id": "cartonRecon",
+      "name": "Carton reconciliation",
+      "expression": "accountability(cartonsIssued, cartonsPacked, cartonsDamaged, cartonsReturned)",
+      "output": {
+        "valueType": "DECIMAL",
+        "unit": "%"
+      },
+      "criticality": "CRITICAL",
+      "riskClass": "HIGH"
+    }
+  ],
+  "yieldCheckpoints": [
+    {
+      "id": "Y-BULK",
+      "name": "Bulk tablet reconciliation",
+      "kind": "RECONCILIATION",
+      "theoretical": "tabletsIssued",
+      "result": "bulkRecon",
+      "basis": "COUNT",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "INTERNAL_ACTION",
+            "low": {
+              "value": "99.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "100.5",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-PACK"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "Y-CARTON",
+      "name": "Printed carton reconciliation",
+      "kind": "RECONCILIATION",
+      "theoretical": "cartonsIssued",
+      "result": "cartonRecon",
+      "basis": "COUNT",
+      "limits": {
+        "unit": "%",
+        "ranges": [
+          {
+            "tier": "INTERNAL_ACTION",
+            "low": {
+              "value": "100.0",
+              "inclusive": true
+            },
+            "high": {
+              "value": "100.0",
+              "inclusive": true
+            },
+            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
+            "source": {
+              "kind": "COMPANY_STANDARD",
+              "ref": "SOP-PACK"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "acceptanceSchemes": [],
+  "timeConstraints": [
+    {
+      "id": "TC-BULK-EXPOSURE",
+      "name": "Bulk exposure on the line",
+      "kind": "EXPOSURE",
+      "from": {
+        "node": "p-bulk-issue",
+        "event": "END"
+      },
+      "to": {
+        "node": "p-blister",
+        "event": "END"
+      },
+      "max": {
+        "value": "8",
+        "unit": "h"
+      },
+      "source": {
+        "kind": "HOLD_STUDY",
+        "ref": "HS-PACK"
+      },
+      "breach": "EXCEPTION_AND_BLOCK",
+      "pauses": "INCLUDED"
+    }
+  ],
+  "riskReductions": [
+    {
+      "id": "RR-CART-1V",
+      "kind": "ONE_VERIFIER",
+      "subjects": [
+        "p-cartoning"
+      ],
+      "riskClass": "LOW",
+      "rationale": "RA-CART-01"
+    }
+  ],
+  "goldenCases": [
+    {
+      "id": "G-BULK-RECON",
+      "description": "5.150 kg issued at 257.5 mg (20,000 tablets); 1,990 good blisters, 6 rejected; 0.000 kg returned",
+      "inputs": {
+        "bulkIssued": {
+          "value": "5.150",
+          "unit": "kg"
+        },
+        "avgTabletWeight": {
+          "value": "257.5",
+          "unit": "mg"
+        },
+        "blistersGood": {
+          "value": "1990"
+        },
+        "rejectBlisters": {
+          "value": "6"
+        },
+        "tabletsPerBlister": {
+          "value": "10"
+        },
+        "bulkRemaining": {
+          "value": "0.000",
+          "unit": "kg"
+        }
+      },
+      "expected": {
+        "tabletsIssued": {
+          "value": "20000"
+        },
+        "packedTablets": {
+          "value": "19900"
+        },
+        "rejectTablets": {
+          "value": "60"
+        },
+        "returnedTablets": {
+          "value": "0"
+        },
+        "bulkRecon": {
+          "value": "99.80",
+          "unit": "%"
+        }
+      }
+    },
+    {
+      "id": "G-CARTON-RECON",
+      "description": "200 cartons issued; 199 packed, 1 destroyed, 0 returned",
+      "inputs": {
+        "cartonsIssued": {
+          "value": "200"
+        },
+        "cartonsPacked": {
+          "value": "199"
+        },
+        "cartonsDamaged": {
+          "value": "1"
+        },
+        "cartonsReturned": {
+          "value": "0"
+        }
+      },
+      "expected": {
+        "cartonRecon": {
+          "value": "100.0",
+          "unit": "%"
+        }
+      }
+    }
+  ],
+  "procedure": {
+    "id": "PROC-ATV40-BL10",
+    "name": "Blister packaging, 10 x 10",
+    "body": {
+      "kind": "sequence",
+      "id": "proc-seq",
+      "children": [
+        {
+          "kind": "stage",
+          "id": "S-PRIMARY",
+          "name": "Primary packaging (blister line BL-01)",
+          "binding": {
+            "rooms": [
+              "PACK-02"
+            ],
+            "line": "BL-01",
+            "equipment": [
+              {
+                "ref": "BLM",
+                "equipmentClass": "EQC-BLM",
+                "kind": "PROCESS"
+              },
+              {
+                "ref": "LEAK",
+                "equipmentClass": "EQC-LEAK",
+                "kind": "INSTRUMENT"
+              },
+              {
+                "ref": "SCALE",
+                "equipmentClass": "EQC-SCALE",
+                "kind": "INSTRUMENT"
+              }
+            ]
+          },
+          "purpose": "MATERIAL",
+          "responsibleRole": "PRODUCTION_SUPERVISOR",
+          "body": {
+            "kind": "sequence",
+            "id": "s-pri-seq",
+            "children": [
+              {
+                "kind": "operation",
+                "id": "O-PRI-CLEAR",
+                "name": "Line clearance and independent check",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-PRI-CLEAR-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-pri-clear",
+                      "name": "Packaging line clearance (checklist)",
+                      "block": {
+                        "type": "G-10",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": true,
+                      "riskClass": "MEDIUM"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-line-check",
+                      "name": "Independent check of the blister line",
+                      "block": {
+                        "type": "G-16",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "lineCheckOk"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_VERIFIER"
+                        },
+                        "check": {
+                          "meaning": "WITNESSED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-pri-status",
+                      "name": "Blister machine, leak tester and scale status",
+                      "block": {
+                        "type": "G-09",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BLM",
+                          "use": "STATUS_CHECK"
+                        },
+                        {
+                          "ref": "LEAK",
+                          "use": "STATUS_CHECK"
+                        },
+                        {
+                          "ref": "SCALE",
+                          "use": "STATUS_CHECK"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-PRI-ISSUE",
+                "name": "Issue materials",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-PRI-ISSUE-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-bulk-issue",
+                      "name": "Issue bulk tablets and primary materials",
+                      "block": {
+                        "type": "G-08",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "bulkIssued"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [
+                        "BOM-BULK",
+                        "BOM-PVC"
+                      ],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "SCALE",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-foil-issue",
+                      "name": "Issue printed lidding foil",
+                      "block": {
+                        "type": "G-21",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [
+                        "BOM-FOIL"
+                      ],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-PRI-RUN",
+                "name": "Blistering",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-PRI-RUN-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-blister",
+                      "name": "Form, fill and seal",
+                      "block": {
+                        "type": "G-06",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "sealTemp",
+                        "blistersGood",
+                        "rejectBlisters"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "BLM",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "system": {
+                        "kind": "PLC",
+                        "ref": "SYS-BLM",
+                        "recipe": "ATV-BL10",
+                        "recipeVersion": "2"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-leak",
+                      "name": "Leak test",
+                      "block": {
+                        "type": "G-13",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "leakResult"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "LEAK",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "system": {
+                        "kind": "OTHER",
+                        "ref": "SYS-LEAK"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-blister-out",
+                      "name": "Collect sealed blisters",
+                      "block": {
+                        "type": "G-22",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [
+                        "I-BLISTERS"
+                      ],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-PRI-CLOSE",
+                "name": "Bulk return and reconciliation",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-PRI-CLOSE-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-bulk-weigh",
+                      "name": "Weigh remaining bulk",
+                      "block": {
+                        "type": "G-04",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "bulkRemaining"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "SCALE",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "WEIGHING",
+                        "ref": "SYS-WEIGH"
+                      }
+                    },
+                    {
+                      "kind": "alternative",
+                      "id": "ALT-RETURN",
+                      "decision": {
+                        "mode": "DATA"
+                      },
+                      "branches": [
+                        {
+                          "id": "b-return",
+                          "name": "Return remaining bulk to the store",
+                          "guard": "bulkRemaining > 0 [kg]",
+                          "body": {
+                            "kind": "phase",
+                            "id": "p-bulk-return",
+                            "name": "Return remaining bulk",
+                            "block": {
+                              "type": "G-23",
+                              "version": "1"
+                            },
+                            "config": {},
+                            "records": [],
+                            "computes": [],
+                            "reads": [],
+                            "consumes": [],
+                            "produces": [],
+                            "uses": [],
+                            "equipment": [],
+                            "signatures": {
+                              "perform": {
+                                "role": "PRODUCTION_OPERATOR"
+                              },
+                              "check": {
+                                "meaning": "VERIFIED",
+                                "role": "PRODUCTION_VERIFIER"
+                              }
+                            },
+                            "significant": false,
+                            "riskClass": "MEDIUM"
+                          }
+                        },
+                        {
+                          "id": "b-nothing-left",
+                          "name": "Nothing left",
+                          "otherwise": true
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-bulk-recon",
+                      "name": "Bulk tablet reconciliation",
+                      "block": {
+                        "type": "G-20",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [
+                        "tabletsIssued",
+                        "packedTablets",
+                        "rejectTablets",
+                        "returnedTablets",
+                        "bulkRecon"
+                      ],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "yieldCheckpoint": "Y-BULK"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "stage",
+          "id": "S-SECONDARY",
+          "name": "Secondary packaging",
+          "binding": {
+            "rooms": [
+              "PACK-02"
+            ],
+            "line": "BL-01",
+            "equipment": [
+              {
+                "ref": "CARTONER",
+                "equipmentClass": "EQC-CART",
+                "kind": "PROCESS"
+              },
+              {
+                "ref": "CW",
+                "equipmentClass": "EQC-CW",
+                "kind": "INSTRUMENT"
+              }
+            ]
+          },
+          "purpose": "MATERIAL",
+          "responsibleRole": "PRODUCTION_SUPERVISOR",
+          "body": {
+            "kind": "sequence",
+            "id": "s-sec-seq",
+            "children": [
+              {
+                "kind": "operation",
+                "id": "O-SEC-PREP",
+                "name": "Clearance, status and printed-material issue",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-SEC-PREP-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-sec-clear",
+                      "name": "Cartoning section clearance",
+                      "block": {
+                        "type": "G-10",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": true,
+                      "riskClass": "MEDIUM"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-sec-status",
+                      "name": "Cartoner and checkweigher status",
+                      "block": {
+                        "type": "G-09",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "CARTONER",
+                          "use": "STATUS_CHECK"
+                        },
+                        {
+                          "ref": "CW",
+                          "use": "STATUS_CHECK"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-carton-issue",
+                      "name": "Issue cartons and leaflets",
+                      "block": {
+                        "type": "G-21",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "cartonsIssued"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH"
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-SEC-RUN",
+                "name": "Cartoning",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-SEC-RUN-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-cartoning",
+                      "name": "Cartoning with leaflet insertion",
+                      "block": {
+                        "type": "G-06",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "cartonsPacked"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [
+                        "BOM-CARTON",
+                        "BOM-LEAFLET"
+                      ],
+                      "produces": [],
+                      "uses": [
+                        "I-BLISTERS"
+                      ],
+                      "equipment": [
+                        {
+                          "ref": "CARTONER",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "MEDIUM",
+                      "system": {
+                        "kind": "PLC",
+                        "ref": "SYS-CART",
+                        "recipe": "ATV-CARTON-10X10",
+                        "recipeVersion": "1"
+                      }
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-cw-challenge",
+                      "name": "Checkweigher challenge",
+                      "block": {
+                        "type": "G-13",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "cwChallenge"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [
+                        {
+                          "ref": "CW",
+                          "use": "USE"
+                        }
+                      ],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "system": {
+                        "kind": "CHECKWEIGHER",
+                        "ref": "SYS-CW"
+                      }
+                    },
+                    {
+                      "kind": "alternative",
+                      "id": "ALT-DESTINATION",
+                      "decision": {
+                        "mode": "ISSUE_VARIANT",
+                        "variant": "packDestination"
+                      },
+                      "branches": [
+                        {
+                          "id": "b-us",
+                          "name": "US export: serialisation and aggregation",
+                          "variantValues": [
+                            "US-EXPORT"
+                          ],
+                          "body": {
+                            "kind": "phase",
+                            "id": "p-serialise",
+                            "name": "Serialise and aggregate",
+                            "block": {
+                              "type": "G-21",
+                              "version": "1"
+                            },
+                            "config": {},
+                            "records": [
+                              "serialsCommissioned"
+                            ],
+                            "computes": [],
+                            "reads": [],
+                            "consumes": [],
+                            "produces": [],
+                            "uses": [],
+                            "equipment": [],
+                            "signatures": {
+                              "perform": {
+                                "role": "PRODUCTION_OPERATOR"
+                              },
+                              "check": {
+                                "meaning": "VERIFIED",
+                                "role": "PRODUCTION_VERIFIER"
+                              }
+                            },
+                            "significant": false,
+                            "riskClass": "HIGH",
+                            "system": {
+                              "kind": "SERIALISATION",
+                              "ref": "SYS-SER"
+                            }
+                          }
+                        },
+                        {
+                          "id": "b-in",
+                          "name": "India domestic: pack coding check",
+                          "variantValues": [
+                            "IN-DOMESTIC"
+                          ],
+                          "body": {
+                            "kind": "phase",
+                            "id": "p-india-codes",
+                            "name": "Check dates, MRP and codes on India packs",
+                            "block": {
+                              "type": "G-21",
+                              "version": "1"
+                            },
+                            "config": {},
+                            "records": [
+                              "indiaCodesOk"
+                            ],
+                            "computes": [],
+                            "reads": [],
+                            "consumes": [],
+                            "produces": [],
+                            "uses": [],
+                            "equipment": [],
+                            "signatures": {
+                              "perform": {
+                                "role": "PRODUCTION_OPERATOR"
+                              },
+                              "check": {
+                                "meaning": "WITNESSED",
+                                "role": "PRODUCTION_VERIFIER"
+                              }
+                            },
+                            "significant": false,
+                            "riskClass": "HIGH"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "operation",
+                "id": "O-SEC-CLOSE",
+                "name": "Printed-material reconciliation",
+                "body": {
+                  "kind": "sequence",
+                  "id": "O-SEC-CLOSE-seq",
+                  "children": [
+                    {
+                      "kind": "phase",
+                      "id": "p-carton-destroy",
+                      "name": "Count, destroy coded and return uncoded cartons",
+                      "block": {
+                        "type": "G-23",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [
+                        "cartonsDamaged",
+                        "cartonsReturned"
+                      ],
+                      "computes": [],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "WITNESSED",
+                          "role": "QA"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH"
+                    },
+                    {
+                      "kind": "phase",
+                      "id": "p-carton-recon",
+                      "name": "Carton reconciliation",
+                      "block": {
+                        "type": "G-20",
+                        "version": "1"
+                      },
+                      "config": {},
+                      "records": [],
+                      "computes": [
+                        "cartonRecon"
+                      ],
+                      "reads": [],
+                      "consumes": [],
+                      "produces": [],
+                      "uses": [],
+                      "equipment": [],
+                      "signatures": {
+                        "perform": {
+                          "role": "PRODUCTION_OPERATOR"
+                        },
+                        "check": {
+                          "meaning": "VERIFIED",
+                          "role": "PRODUCTION_VERIFIER"
+                        }
+                      },
+                      "significant": false,
+                      "riskClass": "HIGH",
+                      "yieldCheckpoint": "Y-CARTON"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "holdPoint",
+          "id": "H-PACK",
+          "name": "Finished-pack examination by QA",
+          "role": "QA",
+          "dispositions": [
+            "APPROVED",
+            "NOT_APPROVED"
+          ]
+        }
+      ]
+    }
+  }
+}

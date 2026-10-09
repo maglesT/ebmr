@@ -87,10 +87,43 @@ beforeAll(async () => {
   await exportAnchor(db.app, ledger);
 }, 120_000);
 
-/** The backup's replication slot: unique per run, always dropped so it never holds WAL on the shared server. */
-const SLOT = `ebmr_f55_${process.pid}_${Math.floor(performance.now())}`;
+/**
+ * The backup's replication slot: unique per run (named after this test process), always dropped so it never holds WAL
+ * on the shared server. A slot is permanent (pg_basebackup streams through it from its own connection, so a temporary
+ * slot of this session cannot serve), so a run that ended without its afterAll (killed, crashed) left its slot behind,
+ * holding WAL without limit (max_slot_wal_keep_size is -1 by default) until the disk filled (lead TODO T13). Before it
+ * creates its own, each run drops the inactive slots of earlier runs whose process is gone on this host.
+ */
+const SLOT_PREFIX = 'ebmr_f55_';
+const SLOT = `${SLOT_PREFIX}${process.pid}_${Math.floor(performance.now())}`;
 async function dropSlot(): Promise<void> {
   await db.admin.query('select pg_drop_replication_slot(slot_name) from pg_replication_slots where slot_name = $1', [SLOT]).catch(() => undefined);
+}
+
+/** Whether a process with this id runs on this host (a process of another user counts as running). */
+function processRuns(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM';
+  }
+}
+
+/** Drops the inactive backup slots of earlier runs whose test process is gone; returns their names. */
+async function dropStaleSlots(): Promise<string[]> {
+  const { rows } = await db.admin.query<{ slot_name: string }>(
+    "select slot_name from pg_replication_slots where starts_with(slot_name, $1) and not active order by slot_name",
+    [SLOT_PREFIX],
+  );
+  const stale = rows
+    .map((r) => r.slot_name)
+    .filter((name) => {
+      const pid = Number(new RegExp(`^${SLOT_PREFIX}(\\d+)_`).exec(name)?.[1]);
+      return Number.isSafeInteger(pid) && pid > 0 && !processRuns(pid);
+    });
+  for (const name of stale) await db.admin.query('select pg_drop_replication_slot($1)', [name]).catch(() => undefined);
+  return stale;
 }
 
 afterAll(async () => {
@@ -118,6 +151,7 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
     // before the backup starts holds the WAL until the stream has it: under other load the server may otherwise
     // recycle a segment the stream still needs ("requested WAL segment has already been removed").
     // The slot reserves WAL from its creation (before the backup's start checkpoint); -C would create it later.
+    await dropStaleSlots();
     await db.admin.query('select pg_create_physical_replication_slot($1, true)', [SLOT]);
     execFileSync(join(BIN, 'pg_basebackup'), ['-d', ADMIN_URL, '-D', dataDir, '-X', 'stream', '-S', SLOT, '-c', 'fast', '--no-sync'], {
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -203,4 +237,23 @@ describe('F55 incarnation guard after a physical restore that ends with crash re
     const reissued = outcome.issued !== undefined && afterBackup.includes(outcome.issued);
     expect(reissued, `restored database reissued an already-issued protected number:\n${evidence}`).toBe(false);
   }, 600_000);
+});
+
+describe('the backup slot of the physical-copy reproducer (lead TODO T13)', () => {
+  it('[meta] a slot left by an earlier run whose process is gone is dropped before the next backup; the slot of a run still going is kept', async () => {
+    // A process id no process on this host has now.
+    let dead = 0;
+    for (let pid = 32_000; pid > 1_000 && dead === 0; pid -= 1) if (!processRuns(pid)) dead = pid;
+    expect(dead).toBeGreaterThan(0);
+    const left = `${SLOT_PREFIX}${dead}_1`;
+    const live = `${SLOT_PREFIX}${process.pid}_live`;
+    try {
+      await db.admin.query('select pg_create_physical_replication_slot($1, true), pg_create_physical_replication_slot($2, true)', [left, live]);
+      expect(await dropStaleSlots()).toEqual([left]);
+      const { rows } = await db.admin.query<{ slot_name: string }>('select slot_name from pg_replication_slots where slot_name = any($1::text[])', [[left, live]]);
+      expect(rows.map((r) => r.slot_name)).toEqual([live]);
+    } finally {
+      await db.admin.query('select pg_drop_replication_slot(slot_name) from pg_replication_slots where slot_name = any($1::text[])', [[left, live]]);
+    }
+  });
 });

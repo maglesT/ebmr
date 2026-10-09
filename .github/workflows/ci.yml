@@ -14,9 +14,12 @@ concurrency:
 
 jobs:
   checks:
-    name: Typecheck, lint, boundaries, register, tests, traceability
+    name: Typecheck, lint, boundaries, register, web build, tests, traceability
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Phase 2 adds the web build and the application suites to the Phase 1 checks. The suite (about 2,600 tests,
+    # mostly against PostgreSQL) takes about 13 minutes on 4 cores and about twice that on a 2-core runner; with
+    # typecheck and lint the job ran past 30 minutes, so it has 60.
+    timeout-minutes: 60
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
     steps:
@@ -39,6 +42,8 @@ jobs:
       - run: pnpm deps:check
       - run: pnpm pins:check
       - run: pnpm register:validate
+      # A node built-in in the browser bundle fails the build (plan section 3).
+      - run: pnpm build:web
       - run: pnpm test:json
       - name: Failed tests (summary)
         if: failure()
@@ -49,11 +54,89 @@ jobs:
               if (t.status === "failed") console.log(`FAILED ${f.name.replace(process.cwd() + "/", "")} > ${t.fullName}\n  ${(t.failureMessages || []).join("\n").split("\n").slice(0, 12).join("\n  ")}`);
             console.log(`${r.numFailedTests} failed, ${r.numPassedTests} passed, ${r.numTotalTests} total`);
           '
+      # The Vitest report alone: listed end-to-end tests are checked against a run in the traceability job below.
       - run: pnpm trace
-      - name: Upload traceability matrix
+      - name: OpenAPI document of the frozen contract
+        run: pnpm openapi
+      - name: Upload traceability matrix and OpenAPI
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trace-matrix
-          path: .reports/
+          # Named files, as the e2e job does: given the hidden directory itself (.reports/), upload-artifact v4 finds
+          # no files (hidden files are left out by default) and, with ignore, uploads nothing; the traceability job
+          # downloads this artifact for vitest.json.
+          path: |
+            .reports/vitest.json
+            .reports/trace-matrix.md
+            .reports/openapi.json
+          if-no-files-found: ignore
+
+  e2e:
+    name: End-to-end (Playwright, chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      # The runner's own PostgreSQL 16, as in the checks job (not a service container).
+      - name: Start PostgreSQL 16
+        run: |
+          sudo systemctl start postgresql.service
+          until pg_isready -h localhost -p 5432; do sleep 1; done
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "create role ebmr_dev superuser login password 'ebmr_dev'"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Playwright 1.56.1 installs chromium revision 1194, the one preinstalled on the development machine.
+      - run: pnpm --filter @ebmr/e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @ebmr/e2e test
+      - name: Upload end-to-end reports, evidence and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reports
+          path: |
+            .reports/playwright.json
+            .reports/e2e-evidence.json
+            .reports/playwright-output/
+          if-no-files-found: ignore
+
+  # The trace on both reports (review F15, round 2): every end-to-end test a control lists ran, and every passing
+  # end-to-end test tagged with a control is in its list. The Playwright report is required here.
+  traceability:
+    name: Traceability with the end-to-end results
+    needs: [checks, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Vitest report of the checks job
+        uses: actions/download-artifact@v4
+        with:
+          name: trace-matrix
+          path: .reports
+      - name: Playwright report of the e2e job
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-reports
+          path: .reports
+      - run: pnpm trace:e2e
+      - name: Upload the traceability matrix with the end-to-end results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trace-matrix-e2e
+          path: .reports/trace-matrix.md
           if-no-files-found: ignore

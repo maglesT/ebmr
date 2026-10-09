@@ -7,6 +7,15 @@
  *   LOGICAL         `and` <-> `or`
  *   NOT_REMOVED     a `not` is dropped (`not exists`, `if not found`, `is not null`, ...)
  *   BOOLEAN         `true` <-> `false`
+ *
+ * Two kinds of site are not mutated, as no mutant there is a change of behaviour:
+ *   - a `<` or `>` that is part of another operator (the last character of ->> #>> #> @> =>, the first of <@): the
+ *     change gives an operator that does not exist, which PL/pgSQL accepts at CREATE and fails on at run time (any test
+ *     that calls the function "kills" it);
+ *   - the `=` of a RAISE ... USING option (errcode =, message =, hint = ...): `<>` there is a syntax error at CREATE,
+ *     so the mutant could only ever be INVALID, at the cost of its database copies.
+ * Such a site keeps its number, so every other mutant keeps the id it had before these sites were left out
+ * (equivalent.json and earlier reports name ids).
  */
 import { segments, type FunctionDef } from './sql-scan.ts';
 
@@ -30,14 +39,21 @@ interface Edit {
   start: number;
   end: number;
   replacement: string;
+  /** Counted for the numbering of the mutants, never made (a character of another operator, a RAISE option's `=`). */
+  skip?: boolean;
 }
 
 const RELATIONAL: Record<string, string> = { '<': '<=', '<=': '<', '>': '>=', '>=': '>', '=': '<>', '<>': '=', '!=': '=' };
+
+/** A RAISE statement's USING option up to its `=`: `raise ... using errcode =`, `..., message =`, `hint =` and so on. */
+const RAISE_OPTION = /\braise\b[^;]*\busing\b[^;]*\b(errcode|message|detail|hint|column|constraint|datatype|table|schema)\s*$/i;
 
 function codeEdits(body: string): Edit[] {
   const edits: Edit[] = [];
   const segs = segments(body);
   const isCode = (pos: number) => segs.some((s) => s.code && pos >= s.start && pos < s.end);
+  // The body with every literal, comment and nested quote blanked out, so a ';' in a message does not end a statement.
+  const masked = segs.map((sg) => (sg.code ? body.slice(sg.start, sg.end) : ' '.repeat(sg.end - sg.start))).join('');
 
   for (const s of segs) {
     if (!s.code) continue;
@@ -53,8 +69,12 @@ function codeEdits(body: string): Edit[] {
       if (op === '=' && (before === ':' || after === '>' || before === '<' || before === '>' || before === '!')) continue;
       if ((op === '<' || op === '>') && (after === '=' || after === '>' || before === '<' || before === '-' || after === '-')) continue;
       if (op === '<' && after === '<') continue;
+      // The last character of another operator (->> #>> #> @> =>) or the first of <@, and the `=` of a RAISE option
+      // (see the header).
+      const partOfOperator = (op === '<' || op === '>') && (before === '>' || before === '#' || before === '@' || before === '=' || after === '@');
+      const raiseOption = op === '=' && RAISE_OPTION.test(masked.slice(0, at));
       const replacement = RELATIONAL[op];
-      if (replacement) edits.push({ operator: 'RELATIONAL', start: at, end: at + op.length, replacement });
+      if (replacement) edits.push({ operator: 'RELATIONAL', start: at, end: at + op.length, replacement, ...(partOfOperator || raiseOption ? { skip: true } : {}) });
     }
     const words = /\b(and|or|not|true|false)\b/gi;
     let w: RegExpExecArray | null;
@@ -107,6 +127,7 @@ export function mutantsOf(def: FunctionDef, operators?: ReadonlySet<Operator>): 
   const edits = codeEdits(body).filter((e) => !operators || operators.has(e.operator));
   edits.sort((a, b) => a.start - b.start);
   edits.forEach((e, i) => {
+    if (e.skip) return;
     const mutatedBody = body.slice(0, e.start) + e.replacement + body.slice(e.end);
     const bodyLineOffset = def.statement.slice(0, def.bodyStart).split('\n').length - 1;
     const line = def.line + bodyLineOffset + body.slice(0, e.start).split('\n').length - 1;

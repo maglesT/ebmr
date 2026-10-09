@@ -66,6 +66,8 @@ time comes from the database clock (`clock_timestamp()`).
 - `siteCalendarDay` and `platform.site_calendar_day` give the site-local day for "daily" rules.
 - A zone must be an IANA `Area/Location` name or `UTC` (`isValidTimeZone`, `platform.is_valid_time_zone`).
   `IST`, `EST` and bare offsets are refused.
+  The site policy `site.zone` is stricter (`iam.is_valid_site_zone`, EBMR-IAM-119): only names in a
+  geographic area, or `UTC` / `Etc/UTC`, so the `Etc` fixed offsets are refused; see the identity README.
 
 ## Drift monitor (`drift-monitor.ts`, migration 0520)
 

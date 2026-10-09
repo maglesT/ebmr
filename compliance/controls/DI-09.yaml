@@ -25,7 +25,16 @@ behaviour: |-
   - Software releases are tested in a non-production environment before production.
 catalog_test: Try to change a specification limit through the admin console. Impossible. Submit a configuration change without a change-record ID. Rejected. A configuration diff can be retrieved for any past date.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/market/policy.test.ts > approval of a policy version (DI-09) and the level of a switch > [INV-47][DI-09][DI-35] a loosening's approval is an approver's e-signature of exactly that version: an unknown id or the signature of another version or position is refused"
+  - "packages/kernel/test/market/policy.test.ts > approval of a policy version (DI-09) and the level of a switch > [INV-47][DI-09] the author of a loosening cannot approve it, and nobody outside the quality unit can sign the approval"
+  - "packages/kernel/test/market/policy.test.ts > approval of a policy version (DI-09) and the level of a switch > [INV-47][DI-09] a vendor-profile switch is neither defined nor changed through the tenant path, and a loosening that needs owner confirmation is refused there"
+  - "packages/kernel/test/market/site-values.test.ts > QA approval of a loosening (F24, F76) and what it covers (F25) > [IN-52][ST-01][DI-09] the person who sets the loosening cannot approve it, even holding a QA role"
+  - "packages/kernel/test/mutation/site-values-and-policies.test.ts > policy versions: every rule of the version guard > [DI-09][INV-47] a new version at the same position is UNCHANGED: it needs a change reference but no approval, and it is never counted as a tightening"
+  - "packages/kernel/test/mutation/site-values-and-policies.test.ts > policy versions: every rule of the version guard > [DI-09][INV-47] two scheduled versions may share an effective instant; the newer one is in force from then"
+  - "packages/kernel/test/mutation/site-values-and-policies.test.ts > boundaries at the database clock > [DI-09][INV-47][INV-16] a version may take effect at the very instant it is recorded, as one set for \"now\" does: that instant is not in the past"
+  - "packages/kernel/test/review/f24.test.ts > F24: approvals behind a loosening must be verified e-signatures, not free UUIDs > [IN-52][DI-35][DI-09][INV-47][ST-01] source correction, site-value loosening and policy loosening are refused without real signed approvals"
+  - "packages/kernel/test/review/f26.test.ts > F26 concurrent policy tightenings on one batch > [INV-47] [DI-09] two concurrent applications to one batch never leave it on a looser position than one it already applied"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

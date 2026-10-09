@@ -1,0 +1,171 @@
+{
+  "asOf": {
+    "us": "1790585763000000",
+    "text": "28-SEP-2026 14:26:03 +05:30 (Asia/Kolkata)"
+  },
+  "run": {
+    "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "batchNumber": "TEST-B26-0001",
+    "product": {
+      "code": "PCM500",
+      "name": "Paracetamol 500 mg tablets",
+      "strength": "500 mg"
+    },
+    "markets": [
+      "IN"
+    ],
+    "status": "IN_PROGRESS",
+    "statusText": "In progress",
+    "watermark": {
+      "text": "TEST, NOT GMP",
+      "source": "SANDBOX_TEST_RUN",
+      "notice": "Sandbox test run of an MBR version; not a GMP record.",
+      "control": "DI-05"
+    },
+    "version": 7,
+    "mbr": {
+      "familyCode": "PCM500-DC",
+      "versionNumber": "1",
+      "revision": 2,
+      "contentHash": "cb18a68e2b76788cf23ff7cee413489c5995cc7ae913644ac465581916a9b50e"
+    },
+    "stage": {
+      "stageKey": "S-BLEND@",
+      "number": "2",
+      "name": "Blending"
+    },
+    "room": "BLEND-1",
+    "equipment": [
+      {
+        "ref": "blender",
+        "code": "TEST-BLD-01",
+        "name": "Octagonal blender 200 L"
+      }
+    ],
+    "timers": [],
+    "scale": null,
+    "scales": [],
+    "identity": {
+      "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52",
+      "legalName": "TEST-Arjun Das",
+      "loginName": "test-operator-2",
+      "role": "OPERATOR"
+    },
+    "lastSavedAt": {
+      "us": "1790585703000000",
+      "text": "28-SEP-2026 14:25:03 +05:30 (Asia/Kolkata)"
+    }
+  },
+  "step": {
+    "stepKey": "p-charge@",
+    "stepId": "p-charge",
+    "number": "2.1.3",
+    "ordinal": 9,
+    "of": 13,
+    "title": "Charge the dispensed materials",
+    "kind": "PHASE",
+    "block": "G-08@1",
+    "blockTitle": "Identification and charge-in",
+    "status": "IN_PROGRESS",
+    "statusText": "In progress",
+    "instruction": {
+      "text": "Scan each dispensed container label and charge it into the blender.",
+      "sop": {
+        "refId": "SOP-BLEND-002",
+        "code": "SOP-BLEND-002",
+        "title": "Operation of the octagonal blender",
+        "version": "2",
+        "hash": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+      }
+    },
+    "dispositions": []
+  },
+  "fields": [],
+  "entries": [
+    {
+      "entryId": "E-7",
+      "kind": "CHARGE_CONTAINER",
+      "summary": "Charged TEST-B26-0001/C-1 (paracetamol, 12.503 kg)",
+      "data": {
+        "container": "TEST-B26-0001/C-1",
+        "scannedBatch": "TEST-B26-0001"
+      },
+      "by": {
+        "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e52",
+        "legalName": "TEST-Arjun Das",
+        "loginName": "test-operator-2",
+        "role": "OPERATOR"
+      },
+      "at": {
+        "us": "1790585703000000",
+        "text": "28-SEP-2026 14:25:03 +05:30 (Asia/Kolkata)"
+      }
+    }
+  ],
+  "entryForms": [
+    {
+      "kind": "CHARGE_CONTAINER",
+      "title": "Charge a container",
+      "description": "Only containers dispensed for this batch are accepted, once each.",
+      "fields": [
+        {
+          "name": "containerCode",
+          "label": "Container label",
+          "type": "container",
+          "unit": null,
+          "options": null,
+          "required": true,
+          "description": "Scan the container label"
+        }
+      ]
+    }
+  ],
+  "exceptions": [],
+  "signatures": [],
+  "actions": [
+    {
+      "action": "RECORD_ENTRY",
+      "available": true,
+      "primary": true,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": null,
+      "target": null,
+      "whoCanHelp": []
+    },
+    {
+      "action": "SIGN_PERFORMED",
+      "available": false,
+      "primary": false,
+      "requires": "SIGNATURE",
+      "meaning": "PERFORMED",
+      "reason": "2 planned containers are not charged yet (G08-NOT-ALL-CHARGED; PR-21)",
+      "target": null,
+      "whoCanHelp": []
+    },
+    {
+      "action": "RAISE_EXCEPTION",
+      "available": true,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": null,
+      "target": null,
+      "whoCanHelp": []
+    },
+    {
+      "action": "HOLD_BATCH",
+      "available": false,
+      "primary": false,
+      "requires": "TAP",
+      "meaning": null,
+      "reason": "Only a production supervisor or QA may hold the batch",
+      "target": null,
+      "whoCanHelp": []
+    }
+  ],
+  "signable": {
+    "aggregateType": "batch_step",
+    "aggregateId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:p-charge@"
+  }
+}

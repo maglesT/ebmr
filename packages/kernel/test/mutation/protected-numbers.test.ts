@@ -15,7 +15,7 @@
  * operator never approves their own restore).
  */
 import { randomBytes, randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, type TestContext } from 'vitest';
 import type { FileLedger } from '../../src/continuity/ledger.ts';
 import { reserveCounterBlock } from '../../src/continuity/numbers.ts';
 import { approveRestoreEvent, recordRestoreEvent } from '../../src/continuity/restore.ts';
@@ -339,6 +339,15 @@ describe('restore events', () => {
   let eb: string; // recorded by an operator who later moved to QA
   let e2: string; // approved by that former operator and by qa2
 
+  // These tests write one history in order: e1 recorded and approved, completions of it refused, eb and e2
+  // recorded, e1 completed, e2 approved, e2 completed. A test notes its step when it starts; a test whose earlier
+  // step did not run at all (a partial run, such as Stryker running only the tests that cover a mutant) is skipped
+  // instead of failing on state it never set up. In a full run every step runs first, and a step that fails makes
+  // the tests after it fail.
+  type Step = 'e1 approved' | 'eb and e2 recorded' | 'e1 completed' | 'e2 approved';
+  const started = new Set<Step>();
+  const needs = (ctx: TestContext, ...steps: Step[]): void => ctx.skip(steps.some((s) => !started.has(s)), `needs the earlier steps: ${steps.join(', ')}`);
+
   beforeAll(async () => {
     // K: a block reserved (ledger first) and two values issued; R: a block reserved, nothing issued.
     await reserveCounterBlock(db.app, ops, ledger, K);
@@ -354,6 +363,7 @@ describe('restore events', () => {
   });
 
   it('[DI-45][DI-37][INV-08] every named approver approves with their own RESTORE_APPROVED signature; one approval of two is not enough', async () => {
+    started.add('e1 approved');
     e1 = await recordEvent(operator, [qa1.personId, qa2.personId]);
     const s1 = await signRestore(qa1, e1);
     await approveRestoreEvent(db.app, qa1, e1, s1);
@@ -397,7 +407,8 @@ describe('restore events', () => {
     expect(await isApproved(e)).toBe(false);
   });
 
-  it('[DI-45][INV-27] completion refuses malformed high-water marks and a margin that is not positive (EBMR-CONT-022)', async () => {
+  it('[DI-45][INV-27] completion refuses malformed high-water marks and a margin that is not positive (EBMR-CONT-022)', async (ctx) => {
+    needs(ctx, 'e1 approved');
     const marks = await ledgerCeilings();
     for (const hw of [null, {}]) {
       await expect(complete(e1, hw), JSON.stringify(hw)).rejects.toThrow('EBMR-CONT-022 external high-water marks must be a JSON array');
@@ -409,7 +420,8 @@ describe('restore events', () => {
     expect(await counter(K)).toMatchObject({ last_value: '2', reserved_ceiling: '5' });
   });
 
-  it('[DI-45][INV-27] a counter the external ledger does not cover, or covers below its restored ceiling, stops the completion', async () => {
+  it('[DI-45][INV-27] a counter the external ledger does not cover, or covers below its restored ceiling, stops the completion', async (ctx) => {
+    needs(ctx, 'e1 approved');
     const marks = await ledgerCeilings();
     const without = (key: string) => marks.filter((m) => m.sequence_key !== key);
     // K has issued values; R has only a reserved block: either way the ledger is incomplete.
@@ -424,7 +436,8 @@ describe('restore events', () => {
     expect(await counter(R)).toMatchObject({ last_value: '0', reserved_ceiling: '5' });
   });
 
-  it('[DI-45][INV-27] completion never moves a sequence beyond its maximum, registered or not (EBMR-CONT-024), and a refused completion moves nothing', async () => {
+  it('[DI-45][INV-27] completion never moves a sequence beyond its maximum, registered or not (EBMR-CONT-024), and a refused completion moves nothing', async (ctx) => {
+    needs(ctx, 'e1 approved');
     const marks = await ledgerCeilings();
     // setval is not transactional: every check runs before the first move, so a refusal leaves every
     // protected source where it was (no move without its sequence_bump record).
@@ -447,6 +460,7 @@ describe('restore events', () => {
   });
 
   it('[DI-45][INV-03][INV-08] the operator of a restore never approves it, even after moving to an approver role; their approval of another restore leaves this one approved', async () => {
+    started.add('eb and e2 recorded');
     const former = await seedActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', legalName: 'Operator Later In QA' });
     eb = await recordEvent(former, [qa1.personId]);
     // The operator leaves IT for QA: the administrator grant is revoked, then QA_REVIEWER is granted.
@@ -468,7 +482,9 @@ describe('restore events', () => {
     expect(await status(eb)).toBe('APPROVED');
   });
 
-  it('[DI-45][INV-27] an approved restore completes: counters move to the ledger ceiling, sequences past their marks (up to their maximum), unregistered ones by the margin', async () => {
+  it('[DI-45][INV-27] an approved restore completes: counters move to the ledger ceiling, sequences past their marks (up to their maximum), unregistered ones by the margin', async (ctx) => {
+    needs(ctx, 'e1 approved');
+    started.add('e1 completed');
     await db.admin.query(`
       create sequence testgmp.pn_stray; alter sequence testgmp.pn_stray owner to ebmr_owner; select setval('testgmp.pn_stray', 41);
       create sequence testgmp.pn_edge maxvalue 100; alter sequence testgmp.pn_edge owner to ebmr_owner; select setval('testgmp.pn_edge', 99);`);
@@ -504,13 +520,16 @@ describe('restore events', () => {
     await db.admin.query('drop sequence testgmp.pn_edge; alter sequence testgmp.pn_small_seq maxvalue 1000000');
   });
 
-  it('[DI-45] a completed restore event takes no further approval; another pending event is still approved as usual', async () => {
+  it('[DI-45] a completed restore event takes no further approval; another pending event is still approved as usual', async (ctx) => {
+    needs(ctx, 'e1 completed', 'eb and e2 recorded');
+    started.add('e2 approved');
     await expect(approveWith(qa1, e1, null)).rejects.toThrow('EBMR-CONT-021 the restore event is already completed');
     await approveSigned(qa2, e2);
     expect(await status(e2)).toBe('APPROVED');
   });
 
-  it('[DI-45][INV-27] a restored copy refuses to complete an event recorded before the copy was made, and to acknowledge a ceiling reserved before it', async () => {
+  it('[DI-45][INV-27] a restored copy refuses to complete an event recorded before the copy was made, and to acknowledge a ceiling reserved before it', async (ctx) => {
+    needs(ctx, 'eb and e2 recorded', 'e1 completed');
     // A block reserved under this database's incarnation, then the database is backed up and restored.
     expect(await reserveCounterBlock(db.app, ops, ledger, K)).toBe(10n);
     const backup = await backupTestDatabase(db, dir.path);
@@ -533,7 +552,8 @@ describe('restore events', () => {
     }
   }, 60_000);
 
-  it('[DI-45][INV-27] completion refuses login names from the external ledger that are not a JSON array, before anything moves (EBMR-CONT-022)', async () => {
+  it('[DI-45][INV-27] completion refuses login names from the external ledger that are not a JSON array, before anything moves (EBMR-CONT-022)', async (ctx) => {
+    needs(ctx, 'e2 approved');
     const marks = await ledgerCeilings();
     const before = await sequencePositions();
     for (const names of [null, {}, 'user.one']) {
@@ -546,7 +566,8 @@ describe('restore events', () => {
     expect(await status(e2)).toBe('APPROVED');
   });
 
-  it('[DI-45][INV-27] where this database secured its identifiers, completion moves a sequence to the ledger mark plus its margin, not a margin beyond its own position', async () => {
+  it('[DI-45][INV-27] where this database secured its identifiers, completion moves a sequence to the ledger mark plus its margin, not a margin beyond its own position', async (ctx) => {
+    needs(ctx, 'e1 completed', 'e2 approved');
     // This database secured its identifiers when the first event was recorded. SMALL stands at 1000
     // (completion of e1); the ledger's mark is 995: 995 + margin 10 = 1005 is passed. Values above
     // the ledger mark were issued here after securing, not before a restore.

@@ -71,11 +71,19 @@ export function passwordProblems(password: string, policy: SecretPolicy, loginNa
   return problems;
 }
 
+/**
+ * The longest PIN: what every kiosk PIN pad takes (the sign-in pad and the ui-kit PinPad of unlock, switch and signing
+ * stop at 12 digits; the API contract's PIN_MAX_LENGTH is the same number). A longer PIN could be set but never typed,
+ * and each try would count toward the lockout (review F05). It matches the upper bound of credential.pin_length.
+ */
+export const MAX_PIN_LENGTH = 12;
+
 /** Problems with a proposed PIN; empty when acceptable. */
 export function pinProblems(pin: string, policy: SecretPolicy): string[] {
   const problems: string[] = [];
   if (!/^\d+$/.test(pin)) problems.push('digits only');
   if (pin.length < policy.pinLength) problems.push(`shorter than ${policy.pinLength} digits`);
+  if (pin.length > MAX_PIN_LENGTH) problems.push(`longer than ${MAX_PIN_LENGTH} digits`);
   if (/^(\d)\1*$/.test(pin)) problems.push('a single repeated digit');
   const digits = [...pin].map(Number);
   const step = digits.length > 1 ? (digits[1] ?? 0) - (digits[0] ?? 0) : 0;
@@ -91,17 +99,29 @@ export function assertAcceptableSecret(kind: SecretKind, secret: string, policy:
   if (problems.length > 0) throw new IdentityError('EBMR-IAM-055', `the new ${kind.toLowerCase().replace('_', ' ')} is not acceptable: ${problems.join('; ')}`);
 }
 
+/** A length the policy sets for a generated secret: a whole number of at least `min`, or the policy cannot be met. */
+function policyLength(name: string, value: number, min: number): number {
+  if (!Number.isSafeInteger(value) || value < min) throw new IdentityError('EBMR-IAM-110', `${name} is ${value}; a generated secret needs a whole number of at least ${min}`);
+  return value;
+}
+
 const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
 
 /** A random initial secret the service delivers to the user out of band (never to the administrator). */
 export function generateSecret(kind: SecretKind, policy: SecretPolicy): string {
   if (kind === 'PIN') {
+    // A one-digit PIN is always a single repeated digit, and a length that is not a whole number is never met: the
+    // loop would never end.
+    const length = policyLength('credential.pin_length', policy.pinLength, 2);
+    // A PIN longer than the pads take is never acceptable: the loop would never end.
+    if (length > MAX_PIN_LENGTH) throw new IdentityError('EBMR-IAM-110', `credential.pin_length is ${length}; a PIN has at most ${MAX_PIN_LENGTH} digits`);
     for (;;) {
-      const pin = Array.from({ length: policy.pinLength }, () => String(randomInt(10))).join('');
+      const pin = Array.from({ length }, () => String(randomInt(10))).join('');
       if (pinProblems(pin, policy).length === 0) return pin;
     }
   }
   if (kind === 'SERVICE_KEY') return randomBytes(32).toString('base64url');
-  const length = Math.max(policy.passwordMinLength, 16);
+  // NaN (a policy value that is not a number) would give an empty password.
+  const length = Math.max(policyLength('credential.password_min_length', policy.passwordMinLength, 1), 16);
   return Array.from({ length }, () => PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)]).join('');
 }

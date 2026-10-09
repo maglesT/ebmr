@@ -78,6 +78,28 @@ describe('canonical JSON: containers', () => {
     expect(canonicalJson({ a: '1', b: undefined })).toBe(canonicalJson({ a: '1' }));
   });
 
+  it('[DI-37] only plain data has a canonical form: a Date, Map, Set, typed array, boxed value or class instance is refused, not written as {}', () => {
+    expect(refusal(() => canonicalJson(new Date(0))).message).toBe('EBMR-ESIG-004 a Date has no canonical JSON form');
+    expect(refusal(() => canonicalJson({ at: new Map([['a', '1']]) })).message).toBe('EBMR-ESIG-004 a Map has no canonical JSON form');
+    expect(refusal(() => canonicalJson([new Set(['a'])])).message).toBe('EBMR-ESIG-004 a Set has no canonical JSON form');
+    expect(refusal(() => canonicalJson(new Uint8Array([1]))).message).toBe('EBMR-ESIG-004 a Uint8Array has no canonical JSON form');
+    expect(refusal(() => canonicalJson(Object('x'))).message).toBe('EBMR-ESIG-004 a String has no canonical JSON form');
+    class Quantity {
+      constructor(readonly value: string) {}
+    }
+    expect(refusal(() => canonicalJson(new Quantity('1.0'))).message).toBe('EBMR-ESIG-004 a Quantity has no canonical JSON form');
+    expect(refusal(() => canonicalJson(Object.create(Object.create(null) as object))).message).toBe('EBMR-ESIG-004 a object has no canonical JSON form');
+    // An object without a prototype (a parsed query string, a dictionary) is plain data.
+    expect(canonicalJson(Object.assign(Object.create(null) as object, { b: '2', a: '1' }))).toBe('{"a":"1","b":"2"}');
+  });
+
+  it('[DI-37] an array hole is refused as an undefined element is, never written as an empty position', () => {
+    const holey = ['a'];
+    holey[2] = 'c';
+    expect(refusal(() => canonicalJson(holey)).message).toBe('EBMR-ESIG-004 a undefined has no canonical JSON form');
+    expect(refusal(() => canonicalJson({ list: new Array<string>(1) })).message).toBe('EBMR-ESIG-004 a undefined has no canonical JSON form');
+  });
+
   it('[DI-37] keys are ordered by Unicode code point (UTF-8 byte order, as COLLATE "C"), not by UTF-16 code unit', () => {
     // U+1F600 is above U+FFFD as a code point, but its first UTF-16 code unit (0xD83D) is below 0xFFFD.
     expect(compareCodePoints('😀', '�')).toBeGreaterThan(0);
@@ -87,6 +109,41 @@ describe('canonical JSON: containers', () => {
     expect(compareCodePoints('ab', 'a')).toBeGreaterThan(0);
     expect(compareCodePoints('same', 'same')).toBe(0);
     expect(canonicalJson({ '😀': '2', '�': '1', z: '0', B: '-1' })).toBe('{"B":"-1","z":"0","�":"1","😀":"2"}');
+  });
+});
+
+describe('canonical JSON: text no record can hold (review F31)', () => {
+  const holding = (what: string): string => `EBMR-ESIG-004 text holding ${what} has no canonical JSON form: no record can hold it`;
+
+  it('[DI-37] U+0000 has no canonical form: refused in a string and in a member name, at any depth, never written as an escape', () => {
+    expect(refusal(() => canonicalJson('a\u0000b')).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalJson('\u0000')).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalJson({ ['k\u0000']: '1' })).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalJson({ a: [{ b: 'Booth door\u0000 found open' }] })).message).toBe(holding('U+0000'));
+    expect(refusal(() => canonicalEnvelope('t', 'i', '1', { justification: 'Reprinted\u0000 label checked' })).message).toBe(holding('U+0000'));
+    // Other control characters are text a record holds: written escaped, as before.
+    expect(canonicalJson('\u0001\u001f\u007f')).toBe('"\\u0001\\u001f\u007f"');
+  });
+
+  it('[DI-37] a surrogate without its other half has no canonical form and is named; a surrogate pair is one character and is kept', () => {
+    expect(refusal(() => canonicalJson('a\uD800b')).message).toBe(holding('an unpaired surrogate U+D800'));
+    expect(refusal(() => canonicalJson('Line stop \uDBFF')).message).toBe(holding('an unpaired surrogate U+DBFF'));
+    expect(refusal(() => canonicalJson('\uDC00 at the start')).message).toBe(holding('an unpaired surrogate U+DC00'));
+    expect(refusal(() => canonicalJson('a\uDFFFb')).message).toBe(holding('an unpaired surrogate U+DFFF'));
+    // A high surrogate followed by another high one, and a low one after a complete pair.
+    expect(refusal(() => canonicalJson('\uD83D\uD83D\uDE00')).message).toBe(holding('an unpaired surrogate U+D83D'));
+    expect(refusal(() => canonicalJson('\uD83D\uDE00\uDE00')).message).toBe(holding('an unpaired surrogate U+DE00'));
+    // Reversed halves are two lone surrogates; the first is named.
+    expect(refusal(() => canonicalJson('\uDE00\uD83D')).message).toBe(holding('an unpaired surrogate U+DE00'));
+    expect(refusal(() => canonicalJson({ ['\uD800']: 2, ['\uE000']: 1 })).message).toBe(holding('an unpaired surrogate U+D800'));
+    expect(refusal(() => canonicalJson(['ok', { k: ['x\uDBFF'] }])).message).toBe(holding('an unpaired surrogate U+DBFF'));
+    // The first character no record can hold is the one named.
+    expect(refusal(() => canonicalJson('a\uDC00\u0000')).message).toBe(holding('an unpaired surrogate U+DC00'));
+    expect(refusal(() => canonicalJson('a\u0000\uDC00')).message).toBe(holding('U+0000'));
+    // Well-formed text around the surrogate range, pairs, U+FFFD and the last code point are kept.
+    expect(canonicalJson('\uD7FF\uE000\uFFFD\uFFFF')).toBe('"\uD7FF\uE000\uFFFD\uFFFF"');
+    expect(canonicalJson({ ['\u{1F600}']: '\u{10FFFF}\u{10000}' })).toBe('{"\u{1F600}":"\u{10FFFF}\u{10000}"}');
+    expect(canonicalJson('\uD800\uDC00\uDBFF\uDFFF')).toBe('"\u{10000}\u{10FFFF}"');
   });
 });
 

@@ -1,0 +1,119 @@
+{
+  "contentHash": "a966a8739472021a9d4b0ed48026024d91d7c7e123dfe02d845321a9a6c77b4e",
+  "validatedAt": {
+    "us": "1790580783000000",
+    "text": "28-SEP-2026 13:03:03 +05:30 (Asia/Kolkata)"
+  },
+  "gate": {
+    "passed": false,
+    "errors": 1,
+    "warnings": 1,
+    "unjustifiedWarnings": 1
+  },
+  "findings": [
+    {
+      "key": "GMP-STAGE-CLEARANCE@S-BLEND",
+      "rule": "GMP-STAGE-CLEARANCE",
+      "severity": "ERROR",
+      "controls": [
+        "PR-03"
+      ],
+      "section": "8",
+      "subjectPath": [
+        "procedure",
+        "proc-seq",
+        "S-BLEND"
+      ],
+      "nodeId": "S-BLEND",
+      "message": "Stage \"Blending\" (S-BLEND) has no line or room clearance step; each stage starts with clearance (GMP-STAGE-CLEARANCE; PR-03)",
+      "justification": null
+    },
+    {
+      "key": "ENG-DEF-SANDBOX-ONLY@p-blend-status",
+      "rule": "ENG-DEF-SANDBOX-ONLY",
+      "severity": "INFO",
+      "controls": [
+        "DI-05",
+        "INV-18"
+      ],
+      "section": "8",
+      "subjectPath": [
+        "procedure",
+        "proc-seq",
+        "S-BLEND",
+        "S-BLEND-seq",
+        "O-BLEND-MIX",
+        "O-BLEND-MIX-seq",
+        "p-blend-status"
+      ],
+      "nodeId": "p-blend-status",
+      "message": "Step p-blend-status uses block G-09@1 (Equipment status (manual attestation)), which runs only in the sandbox: it records a person's attestation where GMP needs the equipment, room and cleaning status from site services, which arrives in Phase 3. A GMP batch can never run on it (ENG-DEF-SANDBOX-ONLY; DI-05, INV-18) (ENG-DEF-SANDBOX-ONLY; DI-05, INV-18)",
+      "justification": null
+    },
+    {
+      "key": "ENG-DEF-SANDBOX-ONLY@p-disp-bal",
+      "rule": "ENG-DEF-SANDBOX-ONLY",
+      "severity": "INFO",
+      "controls": [
+        "DI-05",
+        "INV-18"
+      ],
+      "section": "8",
+      "subjectPath": [
+        "procedure",
+        "proc-seq",
+        "S-DISP",
+        "S-DISP-seq",
+        "O-DISP-PREP",
+        "O-DISP-PREP-seq",
+        "p-disp-bal"
+      ],
+      "nodeId": "p-disp-bal",
+      "message": "Step p-disp-bal uses block G-09@1 (Equipment status (manual attestation)), which runs only in the sandbox: it records a person's attestation where GMP needs the equipment, room and cleaning status from site services, which arrives in Phase 3. A GMP batch can never run on it (ENG-DEF-SANDBOX-ONLY; DI-05, INV-18) (ENG-DEF-SANDBOX-ONLY; DI-05, INV-18)",
+      "justification": null
+    },
+    {
+      "key": "ENG-DEF-SANDBOX-ONLY@p-disp-clear",
+      "rule": "ENG-DEF-SANDBOX-ONLY",
+      "severity": "INFO",
+      "controls": [
+        "DI-05",
+        "INV-18"
+      ],
+      "section": "8",
+      "subjectPath": [
+        "procedure",
+        "proc-seq",
+        "S-DISP",
+        "S-DISP-seq",
+        "O-DISP-PREP",
+        "O-DISP-PREP-seq",
+        "p-disp-clear"
+      ],
+      "nodeId": "p-disp-clear",
+      "message": "Step p-disp-clear uses block G-10@1 (Clearance checklist), which runs only in the sandbox: it records a person's attestation where GMP needs the equipment, room and cleaning status from site services, which arrives in Phase 3. A GMP batch can never run on it (ENG-DEF-SANDBOX-ONLY; DI-05, INV-18) (ENG-DEF-SANDBOX-ONLY; DI-05, INV-18)",
+      "justification": null
+    },
+    {
+      "key": "G07-TOLERANCE-MISSING@p-disp-exc",
+      "rule": "G07-TOLERANCE-MISSING",
+      "severity": "WARNING",
+      "controls": [
+        "PR-19"
+      ],
+      "section": "8",
+      "subjectPath": [
+        "procedure",
+        "proc-seq",
+        "S-DISP",
+        "S-DISP-seq",
+        "O-DISP-WEIGH",
+        "O-DISP-WEIGH-seq",
+        "p-disp-exc"
+      ],
+      "nodeId": "p-disp-exc",
+      "message": "Dispensing step p-disp-exc reads a target but has no tolerance: the dispensed total is shown against the target but not checked (G07-TOLERANCE-MISSING; PR-19) (G07-TOLERANCE-MISSING; PR-19)",
+      "justification": null
+    }
+  ]
+}

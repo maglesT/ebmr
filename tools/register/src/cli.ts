@@ -1,14 +1,21 @@
 /**
  * Register CLI.
  *   import     catalogs -> compliance/controls/*.yaml (keeps decisions and build progress)
- *   validate   schema, IDs, requirement references
+ *   validate   schema, IDs, requirement references, listed tests exist, catalog-test clauses (reviews F14, F15)
  *   pins       exact workspace pins (ADR 0015)
- *   trace      traceability matrix from a Vitest JSON report (--results <file>)
+ *   trace      traceability matrix from a Vitest JSON report (--results <file>) and, when present, the
+ *              Playwright JSON report (--playwright <file>; --require-playwright fails without it): passing tests
+ *              per control, listed tests reported, every passing tagged test listed (review F15), each clause of a
+ *              due control tested or deferred to a later phase
+ *   sync-tests adds to each control's tests list the passing tests of the same reports tagged with it that the
+ *              list does not name yet (review F15, round 2)
  */
 import { importCatalogs } from './import.ts';
 import { checkPins, readManifests } from './pins.ts';
 import { currentPhase, loadControls } from './register.ts';
-import { buildTrace, readVitestResults, writeMatrix } from './trace.ts';
+import { existsSync } from 'node:fs';
+import { appendListedTests, testsToAdd } from './sync.ts';
+import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from './trace.ts';
 import { validateRegister } from './validate.ts';
 
 function fail(title: string, errors: string[]): never {
@@ -18,6 +25,24 @@ function fail(title: string, errors: string[]): never {
 }
 
 const [command, ...args] = process.argv.slice(2);
+
+const option = (name: string): string | undefined => {
+  const at = args.indexOf(name);
+  return at >= 0 ? args[at + 1] : undefined;
+};
+
+/** The run's results: the Vitest report and, when present (or required), the Playwright report. */
+function runResults(): { results: TestResult[]; e2e: boolean } {
+  const file = option('--results');
+  if (!file) fail(command ?? 'register', ['--results <vitest json> is required']);
+  // Optional end-to-end results (the e2e job writes them; the checks job does not have them).
+  const pwFile = option('--playwright');
+  const e2e = pwFile && existsSync(pwFile) ? readPlaywrightResults(pwFile) : [];
+  if (args.includes('--require-playwright') && e2e.length === 0) fail(command ?? 'register', [`--require-playwright: no end-to-end results in ${pwFile ?? '(no --playwright file given)'}`]);
+  if (pwFile && e2e.length) console.log(`including ${e2e.length} end-to-end results from ${pwFile}`);
+  return { results: [...readVitestResults(file), ...e2e], e2e: e2e.length > 0 };
+}
+
 switch (command) {
   case 'import': {
     const { written } = importCatalogs();
@@ -37,17 +62,27 @@ switch (command) {
     break;
   }
   case 'trace': {
-    const idx = args.indexOf('--results');
-    const file = idx >= 0 ? args[idx + 1] : undefined;
-    if (!file) fail('trace', ['--results <vitest json> is required']);
     const phase = currentPhase();
-    const report = buildTrace(loadControls(), readVitestResults(file), phase);
+    const { results, e2e } = runResults();
+    // Listed end-to-end tests are checked against the run only when the Playwright report is part of it.
+    const report = buildTrace(loadControls(), results, phase, { e2e });
     writeMatrix(report, phase, '.reports/trace-matrix.md');
+    if (report.skipped.length) {
+      console.log(`${report.skipped.length} listed test(s) skipped themselves in this run, as their source allows (they prove nothing here):`);
+      for (const s of report.skipped) console.log(`  - ${s}`);
+    }
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;
     console.log(`traceability ok for phase ${phase}: ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);
     break;
   }
+  case 'sync-tests': {
+    const additions = testsToAdd(loadControls(), runResults().results);
+    const added = appendListedTests(additions);
+    for (const [id, entries] of additions) console.log(`${id}: ${entries.length} test(s) added to its list`);
+    console.log(`added ${added} passing tagged test(s) to the controls' tests lists`);
+    break;
+  }
   default:
-    fail('usage', ['register <import|validate|pins|trace --results file>']);
+    fail('usage', ['register <import|validate|pins|trace --results file [--playwright file] [--require-playwright]|sync-tests --results file [--playwright file]>']);
 }

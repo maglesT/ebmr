@@ -1,8 +1,14 @@
 /**
- * Shared UI components: design system, signature dialog, audit viewer, review components, i18n.
- *
- * Phase 0 skeleton: exposes the package identity only. Real modules arrive in the phase
- * that owns them (see docs/outline/build-outline.md section 11).
+ * Shared UI components: design tokens, primitives, the typed English catalogue; identity, audit, floor and
+ * machine components arrive with modules C1 and C4. Browser-safe: React (peer), react-aria-components, the API
+ * contract and expr only (.dependency-cruiser.cjs ui-kit-allowed-deps).
  */
+export { PACKAGE } from './package.ts';
 
-export const PACKAGE = { name: '@ebmr/ui-kit', version: '0.1.0' } as const;
+export * from './tokens/index.ts';
+export * from './i18n/index.ts';
+export * from './primitives/index.ts';
+export * as identity from './identity/index.ts';
+export * as audit from './audit/index.ts';
+export * as floor from './floor/index.ts';
+export * as machines from './machines/index.ts';

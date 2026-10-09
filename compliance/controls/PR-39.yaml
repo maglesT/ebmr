@@ -29,7 +29,8 @@ behaviour: |-
     Reconciliation of bulk and batch-coded printed material is never waived when EU is in the set.
 catalog_test: 12 labels unaccounted for against a limit of 0 creates a deviation and blocks close and release. Enabling the waiver without a 211.122(g)(2) device is refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/mutation/limit-exceptions.test.ts > a computed value and the exception a value names (recipe.limit_verdicts, recipe.limit_exceptions_problem) > [PR-08][PR-31][PR-39][IN-17] a computed value outside the limits of its calculation and of its yield checkpoint is marked failed: one that is not is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

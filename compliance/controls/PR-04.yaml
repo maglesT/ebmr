@@ -24,11 +24,60 @@ behaviour: |-
   - The batch record shows the master version and the registration references used.
   - A change linked to a PACMP stays open until the protocol's acceptance criteria are met on the eBMR batches it names.
 catalog_test: Widening a registered CPP range with no variation reference is blocked. Creating a batch for a market not linked to the master is refused.
-implemented_by: {}
-tests: []
+implemented_by:
+  modules:
+    - "packages/recipe-core/sql/0130_mbr_guards.sql (recipe.registered_ranges, recipe.registered_changes, guard registered_ranges_kept)"
+    - "packages/recipe-core/sql/0110_mbr_family_version.sql (change_record_regulatory: reporting category and variation reference per market)"
+    - "packages/recipe-core/sql/0160_market_authorisation.sql (authorisation per market with regulatory basis, QA and regulatory signatures)"
+    - "packages/recipe-core/sql/0170_batch_issue.sql (recipe.select_version_for_issue)"
+    - "packages/recipe-core/src/lifecycle/change.ts (registeredChanges mirror), packages/recipe-core/src/lifecycle/selection.ts"
+  invariants:
+    - "INV-01"
+  guards:
+    - "mbr_version.regulatory_confirmed (CHECKED -> APPROVED): approval requires a valid regulatory-conformity sign-off (REGULATORY_CONFIRMED, permission MBR.REGULATORY_CONFIRM) of the version for the markets of its content"
+    - "mbr_version.registered_ranges_kept (CHECKED -> APPROVED): a changed registered element (REGISTERED-tier range or REGISTRATION reference) needs a regulatory assessment for every market of the version; a widened registered range also the variation, supplement or approval reference"
+    - "recipe.propose_market_authorisation refuses a market the master content does not list (EBMR-RCP-081)"
+    - "recipe.select_version_for_issue refuses a market set with a market no version is CURRENT or BRIDGING for, naming each market (the master is not linked to it)"
+  db_constraints:
+    - "market_authorisation.regulatory_basis is required; cells exist only for records signed MBR_MARKET_AUTHORISED (QA) and REGULATORY_CONFIRMED (regulatory)"
+    - "batch_mbr_pin trigger recomputes the selection at the issue instant"
+tests:
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-02][PR-04][INV-04] the author prepares, an independent checker checks, regulatory confirms and QA approves: distinct persons, valid signatures"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > [PR-04][PR-02] approval requires the regulatory-conformity sign-off for the markets of the version"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] widening a registered range with no variation reference is blocked; with the reference per market it is approved"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] narrowing a registered range needs a regulatory assessment for every market, not a variation reference"
+  - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] the database and the TypeScript mirror find the same registered changes (fast-check)"
+  - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-04] creating a batch for a market not linked to the master is refused, naming each market"
+  - "packages/recipe-core/test/lifecycle/market.test.ts > [INV-17][PR-04] an approved version becomes CURRENT for a market and scope only with the QA and regulatory signatures of two persons"
+  - "packages/recipe-core/test/lifecycle/market.test.ts > [PR-04] a master is authorised only for markets it is linked to, and only once approved"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > the scope cells of a proposal (recipe.canonical_cells through recipe.propose_market_authorisation) > [PR-04][INV-17] a proposal names at least one scope cell: no cells, an empty list or anything but a list is refused, and nothing is recorded"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > the scope cells of a proposal (recipe.canonical_cells through recipe.propose_market_authorisation) > [PR-04][INV-17][PR-01] every scope cell is exactly {site, line, batch_size}, none blank, with a batch size of the family, and no cell twice; the record keeps them in canonical order"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > the proposal of a market authorisation (recipe.propose_market_authorisation) > [PR-04] a proposal names a known version and a kind, CURRENT or BRIDGING; otherwise nothing is recorded"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > the proposal of a market authorisation (recipe.propose_market_authorisation) > [PR-04][INV-17] a BRIDGING names, as its successor, an approved later version of the same family"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > the activation and withdrawal of a market authorisation > [INV-17][PR-04] a BRIDGING serves only a market set with a market where its successor is not CURRENT; one that has run out is withdrawn as it ran out"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > the market-authorisation record, whoever writes it (recipe.market_authorisation_guard) > [INV-17][PR-04] a record is filed under its version's own family, and a BRIDGING names a successor of that family: whoever writes it, any other record is refused and nothing is recorded"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > batch issue and the stub batch (recipe.issue_stub_batch, recipe.set_stub_batch_status, recipe.stub_batch_guard, recipe.batch_mbr_pin_guard) > [INV-01][PR-04] whoever writes it, a pin is written only for a known batch that is still PLANNED, and only when the selection at that instant gives a version"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > the guards of the version machine, on the version they are asked about > [PR-04] a registered element that changed needs a regulatory assessment for each market of the version, for that market"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > the guards of the version machine, on the version they are asked about > [PR-04] a registered range whose unit alone changed is a widening: an assessment without a variation, supplement or approval reference does not let it through"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > the guards of the version machine, on the version they are asked about > [PR-04] a unit-only registered change is let through once the assessment for the market carries its reference"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > registered ranges and their changes (PR-04) > [PR-04] the registered ranges of parameters and acceptance criteria, a bound without \"inclusive\" being strict"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > registered ranges and their changes (PR-04) > [PR-04] a range added is a change, not a widening; a strict bound made inclusive at the same value is a widening"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > registered ranges and their changes (PR-04) > [PR-04] a registered range whose unit alone changed (same bounds, same inclusive flags) is a change and a widening"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > registered ranges and their changes (PR-04) > [PR-04] narrowing one bound while the other stays as it was is not a widening, whether that other bound is inclusive or strict"
+  - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > baselines and process impact (PR-06) > [PR-06][PR-04] a version derived from an older master is compared with it and with the newest approved master of its family"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > D10: an activation and its cells are written only as the activation command writes them, whoever writes them (recipe.market_authorisation_activation_guard, recipe.authorisation_cell_activation_guard) > [INV-17][PR-02][DI-04][DI-37][PR-04] an activation row is refused unless the command would have written it: a known PROPOSED record, an approver with the QA permission and a reason of their own, both signatures valid, the QA signer activating, two persons, an APPROVED version with a complete verification record, the effective date the command computes and a bridging window still open; such a row is accepted"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > D10: an activation and its cells are written only as the activation command writes them, whoever writes them (recipe.market_authorisation_activation_guard, recipe.authorisation_cell_activation_guard) > [INV-17][PR-05][PR-04] a cell is refused for a version that is not APPROVED, for a withdrawn record, when it supersedes anything but its predecessor ending where it begins, when its predecessor names a cell written before it, and for a BRIDGING the successor did not supersede; the command's own supersession, written by an owner-level writer, is accepted"
+  - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > D10: an activation and its cells are written only as the activation command writes them, whoever writes them (recipe.market_authorisation_activation_guard, recipe.authorisation_cell_activation_guard) > [INV-17][PR-05][PR-04] a cell supersedes only the CURRENT cell of an earlier version of its own family, market, site, line and batch size, and only as a CURRENT cell: a predecessor of another family, market, line or batch size, one of its own version, and a BRIDGING written as the successor are each refused; the predecessor the command supersedes is accepted"
+clauses:
+  - clause: "Widening a registered CPP range with no variation reference is blocked."
+    tests:
+      - "packages/recipe-core/test/lifecycle/change-control.test.ts > [PR-04] widening a registered range with no variation reference is blocked; with the reference per market it is approved"
+  - clause: "Creating a batch for a market not linked to the master is refused."
+    tests:
+      - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-04] creating a batch for a market not linked to the master is refused, naming each market"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
-build_status: SPECIFIED
+build_status: IMPLEMENTED
 jurisdiction: EU text links production directly to the MA (Ch.5 Principle, 4.2). US reaches the application through 211.100(a) and FD&C Act filing rules (s). For a multi-market batch, the stricter rule is that both registrations must be satisfied at once, i.e. the process must run inside the intersection of the registered ranges.
 type_detail: "CONFIGURABLE. Default: hard block when a registered-flagged limit is wider than the registered value, or when a registered element changes without a recorded regulatory action for that market. Allowed: warning only, for elements not flagged as registered or Established Condition."

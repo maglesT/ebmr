@@ -27,7 +27,8 @@ behaviour: |-
   - Tablets: blend uniformity, weight, hardness and similar IPCs are critical by default.
 catalog_test: Try to downgrade a field without QA approval. It is blocked. A change to a field classed "informational" still appears in the audit trail and in the batch audit-trail review list.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/mutation/exceptions-and-dispositions.test.ts > recipe.correction_needs_approval: a correction without an approval only for a value the batch's MBR declares non-critical (S25, DI-24, DI-07) > [S25][DI-24][DI-07] the blend time declared NON_CRITICAL by the batch's own MBR is corrected without an approval; with the blend time critical, another parameter declared NON_CRITICAL waives nothing"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

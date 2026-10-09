@@ -83,9 +83,17 @@ export function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') {
     if (typeof value === 'bigint') throw new TypeError('canonicalJson: bigint values must be written as strings');
     if (typeof value === 'number' && !Number.isFinite(value)) throw new TypeError('canonicalJson: non-finite number');
+    // JSON.stringify gives no text at all for these: an entry would lose the value without notice.
+    if (value === undefined || typeof value === 'function' || typeof value === 'symbol') throw new TypeError(`canonicalJson: a ${typeof value} has no JSON form`);
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) return `[${value.map((v) => canonicalJson(v)).join(',')}]`;
+  // Array.from reads a hole as undefined, which is refused above.
+  if (Array.isArray(value)) return `[${Array.from(value, (v) => canonicalJson(v)).join(',')}]`;
+  // Plain data only: a Date, Map, Set or class instance would be written as {} or as some of its fields.
+  const proto: unknown = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) {
+    throw new TypeError(`canonicalJson: a ${(proto as { constructor?: { name?: string } }).constructor?.name ?? 'object'} has no JSON form`);
+  }
   const obj = value as Record<string, unknown>;
   const keys = Object.keys(obj)
     .filter((k) => obj[k] !== undefined)
@@ -124,24 +132,29 @@ export class FileLedger implements ExternalLedger {
     if (entry.database !== this.database) {
       return Promise.reject(new Error(`ledger for ${this.database} cannot store an entry for ${entry.database}`));
     }
-    return Promise.resolve(
-      this.withLock(() => {
-        const records = this.readAll();
-        const last = records[records.length - 1];
-        const prev = last ? last.hash : GENESIS;
-        const seq = last ? last.seq + 1 : 1;
-        const hash = lineHash(prev, entry);
-        const record: LedgerRecord = { seq, prev, hash, entry };
-        const fd = openSync(this.path, 'a', 0o600);
-        try {
-          writeSync(fd, `${canonicalJson(record)}\n`);
-          fsyncSync(fd);
-        } finally {
-          closeSync(fd);
-        }
-        return { seq, hash, id: `ledger:${seq}:${hash.slice(0, 16)}` };
-      }),
-    );
+    try {
+      return Promise.resolve(this.withLock(() => this.appendLocked(entry)));
+    } catch (error) {
+      // An entry canonicalJson cannot write, a lock that is not granted or a failed write: a rejection, as entries() gives.
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  private appendLocked(entry: LedgerEntry): LedgerReceipt {
+    const records = this.readAll();
+    const last = records[records.length - 1];
+    const prev = last ? last.hash : GENESIS;
+    const seq = last ? last.seq + 1 : 1;
+    const hash = lineHash(prev, entry);
+    const record: LedgerRecord = { seq, prev, hash, entry };
+    const fd = openSync(this.path, 'a', 0o600);
+    try {
+      writeSync(fd, `${canonicalJson(record)}\n`);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    return { seq, hash, id: `ledger:${seq}:${hash.slice(0, 16)}` };
   }
 
   entries(): Promise<LedgerEntry[]> {

@@ -16,9 +16,21 @@ export function canonicalJson(value: JsonValue): string {
     if (!Number.isFinite(value)) throw new RangeError('canonical JSON cannot hold NaN or Infinity');
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) return `[${value.map((v) => canonicalJson(v)).join(',')}]`;
-  const keys = Object.keys(value).sort();
+  // The type admits JSON values only; what a cast lets through (undefined, a function, a Date, a Map, an array hole)
+  // is refused at run time, never hashed as the text "undefined" or as {}.
+  if (Array.isArray(value)) return `[${Array.from(value, (v) => canonicalJson(v)).join(',')}]`;
+  const proto: unknown = typeof value === 'object' ? Object.getPrototypeOf(value) : undefined;
+  if (proto !== Object.prototype && proto !== null) throw new TypeError(`canonical JSON cannot hold ${describeNonJson(value)}`);
+  // An undefined member is absent, as JSON.stringify and the other canonical forms treat it.
+  const keys = Object.keys(value)
+    .filter((k) => value[k] !== undefined)
+    .sort();
   return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k] as JsonValue)}`).join(',')}}`;
+}
+
+function describeNonJson(value: unknown): string {
+  if (typeof value !== 'object') return `a ${typeof value}`;
+  return `a ${(Object.getPrototypeOf(value) as { constructor?: { name?: string } }).constructor?.name ?? 'object'}`;
 }
 
 /** SHA-256 (lower-case hex) of the canonical JSON of a request, for idempotency checks. */
