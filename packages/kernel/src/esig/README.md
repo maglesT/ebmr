@@ -116,9 +116,18 @@ TypeScript (`@ebmr/kernel` once `./esig/index.ts` is exported): `contentForSigni
 ## Invariants and how they are enforced
 
 - **INV-10**: the application role has no write privilege on any esig table; a guard trigger
-  accepts a signature row only from `esig.sign` (EBMR-ESIG-060, also against the table owner);
-  `auth_event_id` and `challenge_id` are unique; a deferred check refuses an unsealed commit.
-  Detected: `esig.verify_signatures`, `esig.invariant_violations`.
+  accepts a signature row only while the transaction-local signing marker that `esig.sign` sets
+  names its challenge (EBMR-ESIG-060). Any role can set that marker, so since kernel 1112 the guard
+  also holds the row, whoever inserts it, to its challenge (record, content, meaning and its wording,
+  signer, session, terminal: EBMR-ESIG-065) and to an authentication event of the signer made for
+  that challenge on its terminal and consumed for a signature in the same transaction
+  (EBMR-ESIG-066). `auth_event_id` and `challenge_id` are unique; a deferred check refuses an
+  unsealed commit. Owner-level code can still write every row a signature needs (it owns the
+  tables: challenge, authentication event and its use, signature, seal) and so skip the authority and
+  independence checks of `esig.sign`; the state machines' own guards check again what a transition
+  needs (INV-04 for an MBR version), and a seal written without the server's key is found by the seal
+  check of `verifySignatures` (TypeScript, with the trusted key ring). Detected:
+  `esig.verify_signatures`, `esig.invariant_violations`.
 - **INV-09**: every registered signed table has an AFTER ROW trigger that, in the changing
   transaction, compares each unsuperseded signature's hash with the record's current hash and
   inserts SUPERSEDED_BY_CHANGE rows; signing and changing a record take the same transaction lock
@@ -169,8 +178,10 @@ record, version, displayed hash, canonical id); 020–026 catalogue; 030–041 s
 challenge, 035 zone, 036 event account/terminal/time, 037 type changed, 038 components, 039 state,
 040 authority, 041 delegation); 042–045 independence (042 duplicate, 043 independent-of, 044
 INV-03, 045 involvement; each in both signing orders); 050–053 witness (051 the record or the
-caller shows the next step started; 053 includes an unregistered act terminal); 060–064 insertion
-and seal; 070 signature not valid for
+caller shows the next step started; 053 includes an unregistered act terminal); 060–066 insertion
+and seal (060 not inserted by `esig.sign`; 061–064 seal; 065 a row that is not what its challenge
+names; 066 a row whose authentication event was not consumed for its challenge in its transaction,
+kernel 1112); 070 signature not valid for
 the use; 090–093 stub entries. Identity refusals keep their EBMR-IAM codes (for example 093 proxy
 signing, 091 event already used, 092 too old, 094 other challenge).
 

@@ -143,6 +143,7 @@ tests:
   - "packages/kernel/test/mutation/connection-roles.test.ts > the listener's share of the connections (kernel 0980) > [DI-17][DI-30][PR-20] a share of exactly one listener's 8 is accepted, and so is a share that leaves the application roles exactly one slot"
   - "packages/kernel/test/mutation/connection-roles.test.ts > the listener's share of the connections (kernel 0980) > [DI-17][DI-30][PR-20] each pair is levelled from its own roles: on a cluster without the sandbox role the GMP pair is levelled and the sandbox listener left as it was"
   - "packages/recipe-core/test/mutation/execution-row-shape.test.ts > the evidence a row records (recipe.row_evidence_problem, 0335) > [DI-05][DI-30][PR-18][PR-20] an entry is read only as the entry of a RECORD_ENTRY command, and only as an object: a weighing's evidence beside another command that carries a weighing, or beside an entry that is a text, is refused by what that command records"
+  - "apps/tablets-server/test/mutation/evidence-listener.test.ts > the limits against the database's clock, on either side of the limit > [DI-30][PR-20][DI-17] a run of another key whose last tick ticked 61 min ago and was closed 59 min ago keeps its hold until an hour after its close: a tick of any run keeps that row, a run that begins is told it is held until the close plus one hour, and no run vouches meanwhile; once the close is over an hour old the hold ends and the row is pruned (decision X43, D13)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

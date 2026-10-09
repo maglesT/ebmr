@@ -332,6 +332,44 @@ describe('the limits against the database\'s clock, on either side of the limit'
     await clear();
   });
 
+  /**
+   * Defect D13 of the Phase 2 exit (SQL mutation kill work): the tick prune deleted a row once its tick was an hour old,
+   * but the hold of a run of another key is measured from when the row was closed (tab.listener_attested_from, and the
+   * heldUntilUs tab.begin_listener_run answers). A run's last row is closed after its tick (by the run's end, or by a
+   * next tick that landed late), so any tick of any run cut that hold short of the time the database had already
+   * announced. Tablets 0715 prunes a row only once its tick and its close are both over an hour old (decision X43: the
+   * hour runs from the close).
+   */
+  it('[DI-30][PR-20][DI-17] a run of another key whose last tick ticked 61 min ago and was closed 59 min ago keeps its hold until an hour after its close: a tick of any run keeps that row, a run that begins is told it is held until the close plus one hour, and no run vouches meanwhile; once the close is over an hour old the hold ends and the row is pruned (decision X43, D13)', async () => {
+    await clear();
+    const foreign = randomUUID();
+    await keyRun(foreign, randomBytes(32));
+    const t = await clockNow();
+    await writeTick(t, foreign, 1, 61 * 60_000, 59 * 60_000);
+    const until = (await db.admin.query<{ u: string }>("select platform.epoch_micros(closed_at + interval '1 hour')::text as u from tab.listener_tick where watch_id = $1", [foreign])).rows[0]?.u;
+    const w = randomUUID();
+    expect(await begin(w, TEST_RUN_KEY)).toEqual({ heldUntilUs: until });
+    // The run ticks (each tick prunes): the other key's row stays, and the hold stands as announced.
+    await tick(w, true);
+    await tick(w, true);
+    expect((await ticks()).filter((r) => r.watch === foreign)).toEqual([{ watch: foreign, seq: 1, clean: true, closed: true }]);
+    expect(await begin(randomUUID(), TEST_RUN_KEY)).toEqual({ heldUntilUs: until });
+    // A run of the same key with 12 s of clean ticks (the ticking run's own rows taken away, so that only this run
+    // ticks in the window) is held by it: nothing is vouched for.
+    await db.admin.query('delete from tab.listener_tick where watch_id = $1', [w]);
+    const steady = randomUUID();
+    await keyRun(steady);
+    const now = await clockNow();
+    await writeSteady(now, steady, 12_000, 0);
+    expect(await attested()).toBeNull();
+    // Closed 60 min 1 s ago: the hold has ended, the run vouches, and the next tick prunes the row.
+    await db.admin.query("update tab.listener_tick set closed_at = clock_timestamp() - interval '3601 seconds' where watch_id = $1", [foreign]);
+    expect(await attested()).toBe(await before(now, 10_500));
+    await tick(w, true);
+    expect((await ticks()).filter((r) => r.watch === foreign)).toEqual([]);
+    await clear();
+  });
+
   it('[DI-17][DI-30] a tick prunes the ticks of every run ticked over an hour ago: one ticked 60 min 1 s ago goes, one ticked 59 min 59 s ago stays', async () => {
     await clear();
     const [older, younger] = [randomUUID(), randomUUID()];

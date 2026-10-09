@@ -27,6 +27,7 @@ import type { SeededActor } from '../identity/seed.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import {
   asSuperuserTransaction,
+  challengeFor,
   cmd,
   correctStub,
   createStub,
@@ -287,5 +288,65 @@ describe('esig.signature_guard: the signing marker (INV-10)', () => {
     } finally {
       await endPool(pool);
     }
+  });
+});
+
+describe('esig.signature_guard: the authentication a signature row names (INV-10, kernel 1112)', () => {
+  /** A signature row with exactly what the challenge names; the authentication event, method and components are the caller's. */
+  const FROM_CHALLENGE = `
+    insert into esig.signature (aggregate_type, aggregate_id, aggregate_ref, content_version, content_hash, meaning_code, meaning_version,
+                                meaning_title, meaning_text, signer_person, signer_account, signer_login, signer_legal_name, signer_role_code,
+                                signer_role_name, session_id, session_person, cosignature, device_id, auth_event_id, auth_method,
+                                components_used, components_required, authority_evaluation_id, challenge_id, correlation_id, site_zone,
+                                utc_offset, manifestation, manifestation_text)
+    select c.aggregate_type, c.aggregate_id, c.aggregate_ref, c.content_version, c.content_hash, c.meaning_code, c.meaning_version,
+           t.title, t.meaning_text, c.signer_person, c.signer_account, 'login', 'A. Name', 'ROLE', 'Role',
+           c.session_id, c.session_person, c.cosignature, c.device_id, e.id, coalesce($3, e.method), coalesce($4::text[], e.components),
+           'ALL', gen_random_uuid(), c.id, gen_random_uuid(), 'Asia/Kolkata', '+00:00', '{}'::jsonb, ''
+      from esig.challenge c join esig.meaning_type t on t.code = c.meaning_code and t.version = c.meaning_version
+      join iam.auth_event e on e.id = $2::uuid
+     where c.id = $1`;
+  const AUTHENTICATION =
+    'EBMR-ESIG-066 INV-10: a signature consumes, in its own transaction, an authentication event of its signer made for its challenge on its terminal';
+
+  it('[INV-10][DI-37] with the marker forged, a row naming its challenge exactly is taken only with the authentication event consumed for it in the same transaction, recorded with that event\'s method and components; an event consumed in an earlier transaction, or one not consumed while another was, is refused (EBMR-ESIG-066)', async () => {
+    const op = await testActor(db);
+    const id = await createStub(db, op);
+    const ch = await challengeFor(db, op, id, { meaning: 'PERFORMED' });
+    // Three authentications of the signer for this challenge on its terminal.
+    const consumedEarlier = await signatureAuth(db, op, op, ch.challengeId);
+    const notConsumed = await signatureAuth(db, op, op, ch.challengeId);
+    const consumedNow = await signatureAuth(db, op, op, ch.challengeId);
+    const CONSUME = "select iam.consume_auth_event($1, $2, $3, interval '5 minutes')";
+    // Owner-level code consumed one for a signature in an earlier transaction, which committed without a signature.
+    await withCommand(db.admin, await cmd(db, op), (c) => c.query(CONSUME, [consumedEarlier, op.personId, ch.challengeId]));
+    const ctx = toDbContext(await cmd(db, op));
+    await asSuperuserTransaction(db, async (c) => {
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(ctx)]);
+      await c.query('set local role ebmr_owner');
+      await c.query(CONSUME, [consumedNow, op.personId, ch.challengeId]);
+      const attempt = async (authEvent: string, method: string | null = null, components: string[] | null = null): Promise<string> => {
+        await c.query('savepoint a');
+        try {
+          await c.query("select set_config('esig.signing_challenge', $1, true)", [ch.challengeId]);
+          const { rowCount } = await c.query(FROM_CHALLENGE, [ch.challengeId, authEvent, method, components]);
+          return rowCount === 1 ? 'accepted' : `inserted ${rowCount ?? 0} rows`;
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        } finally {
+          await c.query('rollback to savepoint a');
+        }
+      };
+      // The event consumed now, recorded with another method or other components than it has.
+      expect(await attempt(consumedNow, 'BADGE_PIN')).toBe(AUTHENTICATION);
+      expect(await attempt(consumedNow, null, ['PASSWORD'])).toBe(AUTHENTICATION);
+      // An event made for the challenge but consumed in another transaction.
+      expect(await attempt(consumedEarlier)).toBe(AUTHENTICATION);
+      // An event made for the challenge and never consumed, while another one was consumed in this transaction.
+      expect(await attempt(notConsumed)).toBe(AUTHENTICATION);
+      // The event consumed now, recorded as it is: the row is taken (the seal check at the commit is not reached here).
+      expect(await attempt(consumedNow)).toBe('accepted');
+    });
+    expect(await dbCount(db, 'select 1 from esig.signature where challenge_id = $1', [ch.challengeId])).toBe(0);
   });
 });

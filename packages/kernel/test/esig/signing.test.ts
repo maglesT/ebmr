@@ -7,7 +7,7 @@
 import { randomUUID } from 'node:crypto';
 import fc from 'fast-check';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { withCommand } from '../../src/db/command.ts';
+import { toDbContext, withCommand } from '../../src/db/command.ts';
 import { canonicalEnvelope, canonicalJson, contentHash } from '../../src/esig/canonical.ts';
 import { contentForSigning, createChallenge, sign, signCommand } from '../../src/esig/signing.ts';
 import { freshAuthEvent } from '../identity/seed.ts';
@@ -319,6 +319,59 @@ describe('INV-10 bypass: signatures are inserted only by the signing function', 
       await c.query('rollback to savepoint a');
       await expectRefused(c.query('truncate esig.signature cascade'), 'EBMR-AUDIT-004');
     });
+  });
+
+  /**
+   * The same defect as D11 of the Phase 2 exit (the state history taken on a session setting any role can set): the
+   * signature guard took a row on the signing marker alone, and the table owner can set that marker to the id of an
+   * open challenge. Kernel 1112 holds the row to its challenge and to the authentication event esig.sign consumes.
+   */
+  it('[INV-10][DI-37] with the signing marker forged for an open challenge, even the table owner cannot insert a signature the challenge and its authentication do not back: other content, another signer or other meaning wording than the challenge names (EBMR-ESIG-065), or an authentication event not consumed for that challenge in the same transaction (EBMR-ESIG-066)', async () => {
+    const op = await testActor(db);
+    const other = await testActor(db);
+    const id = await createStub(db, op);
+    const ch = await challengeFor(db, op, id, { meaning: 'PERFORMED' });
+    // An authentication event made for the challenge on another connection, committed, never consumed.
+    const unconsumed = await signatureAuth(db, op, op, ch.challengeId);
+    const FROM_CHALLENGE = `
+      insert into esig.signature (aggregate_type, aggregate_id, aggregate_ref, content_version, content_hash, meaning_code, meaning_version,
+                                  meaning_title, meaning_text, signer_person, signer_account, signer_login, signer_legal_name, signer_role_code,
+                                  signer_role_name, session_id, session_person, cosignature, device_id, auth_event_id, auth_method,
+                                  components_used, components_required, authority_evaluation_id, challenge_id, correlation_id, site_zone,
+                                  utc_offset, manifestation, manifestation_text)
+      select c.aggregate_type, c.aggregate_id, c.aggregate_ref, c.content_version, coalesce($2, c.content_hash), c.meaning_code, c.meaning_version,
+             coalesce($4, t.title), t.meaning_text, c.signer_person, coalesce($3::uuid, c.signer_account), 'login', 'A. Name', 'ROLE', 'Role',
+             c.session_id, c.session_person, c.cosignature, c.device_id, coalesce($5::uuid, gen_random_uuid()), 'PASSWORD',
+             array['USER_ID', 'PASSWORD'], 'ALL', gen_random_uuid(), c.id, gen_random_uuid(), 'Asia/Kolkata', '+00:00', '{}'::jsonb, ''
+        from esig.challenge c join esig.meaning_type t on t.code = c.meaning_code and t.version = c.meaning_version
+       where c.id = $1`;
+    const CHALLENGE = 'EBMR-ESIG-065 INV-10: a signature names exactly the record, content, meaning, signer, session and terminal of its challenge';
+    const AUTHENTICATION =
+      'EBMR-ESIG-066 INV-10: a signature consumes, in its own transaction, an authentication event of its signer made for its challenge on its terminal';
+    const ctx = toDbContext(await cmd(db, op));
+    await asSuperuserTransaction(db, async (c) => {
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(ctx)]);
+      await c.query('set local role ebmr_owner');
+      const attempt = async (o: { hash?: string; account?: string; title?: string; authEvent?: string }): Promise<string> => {
+        await c.query('savepoint a');
+        try {
+          await c.query("select set_config('esig.signing_challenge', $1, true)", [ch.challengeId]);
+          await c.query(FROM_CHALLENGE, [ch.challengeId, o.hash ?? null, o.account ?? null, o.title ?? null, o.authEvent ?? null]);
+          return 'accepted';
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error);
+        } finally {
+          await c.query('rollback to savepoint a');
+        }
+      };
+      expect(await attempt({ hash: 'a'.repeat(64) })).toBe(CHALLENGE);
+      expect(await attempt({ account: other.accountId })).toBe(CHALLENGE);
+      expect(await attempt({ title: 'Approved by the quality unit' })).toBe(CHALLENGE);
+      // Exactly what the challenge names, with an authentication event no one made, or one made for it but not consumed.
+      expect(await attempt({})).toBe(AUTHENTICATION);
+      expect(await attempt({ authEvent: unconsumed })).toBe(AUTHENTICATION);
+    });
+    expect(await dbCount(db, 'select 1 from esig.signature where challenge_id = $1', [ch.challengeId])).toBe(0);
   });
 
   it('[INV-10] a forged authentication event with a single component cannot complete a signature (two distinct components)', async () => {

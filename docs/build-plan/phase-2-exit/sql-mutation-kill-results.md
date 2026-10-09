@@ -237,21 +237,87 @@ Fixed:
   (packages/kernel/test/mutation/sandbox-and-import.test.ts) and the two family-code tests of
   apps/tablets-server/test/mutation/sandbox-and-import.test.ts, failing before 0384. Harness on
   `recipe.package_header_problem` and `recipe.json_value_described`: 6 mutants, all killed.
+- **D11. Kernel state engine: a history row forged with the session flag.** For an insert into
+  `platform.state_history` the guard checked only the engine flag, a session setting any role can set, so owner-level
+  code could write an arbitrary transition (for example a version approved at version 100) and
+  `platform.state_violations()` found it only afterwards. Only the table owner and superusers can write the state
+  tables (the application role holds SELECT, the sandbox role mirrors it, and the engine functions they may call write
+  every value themselves). Fixed in kernel 1110 (decision D11.1): whatever the flag says, a history row must be a
+  published transition of the pinned machine version, record that transition's permission and signature meaning (and
+  a signature id exactly when one is needed), continue the latest history row and be what the state row records
+  (EBMR-PLAT-077); a creation row starts a published version; a state row starts only for the aggregate type its
+  machine governs (EBMR-PLAT-072), and commits only with its history row (EBMR-PLAT-078, deferred to the commit). Left:
+  owner-level code that forges the flag can still make a published transition, both rows agreeing, without the
+  engine's permission, signature and guard checks. Tests: `packages/kernel/test/platform/state-machine.test.ts` (three
+  [DI-34][DI-17] tests: the forged rows refused, the honest transitions unchanged) and the new mutation group
+  state-engine-rows (`packages/kernel/test/mutation/state-engine-rows.test.ts`). The kill test for
+  `recipe.guard_in_flight_dispositioned#3` now shows the owner-level forged row refused and arranges it as the
+  superuser with triggers off, taking it away before the approval; it still kills the mutant.
+  The same fault, found while looking for it elsewhere: `esig.signature_guard` took a signature row on the signing
+  marker alone (`esig.signing_challenge`, set by `esig.sign` and by any role with `set_config`), so owner-level code
+  could insert a signature for an open challenge naming another signer, content hash or meaning wording, with an
+  authentication event nobody made. Fixed in kernel 1112 (decision D11.2): whatever the marker says, the row names
+  exactly what its challenge names and that meaning type's wording (EBMR-ESIG-065), and its authentication event is the
+  signer's own, made for that challenge on its terminal, with the method and components the row records, consumed for
+  a signature in the same transaction (EBMR-ESIG-066). Tests: `packages/kernel/test/esig/signing.test.ts` and
+  `packages/kernel/test/mutation/signature-invalidation.test.ts` ([INV-10][DI-37], the forged rows refused, a row
+  backed by its challenge and a consumed event taken); the recipe-core approval tests now forge their CHECKED and
+  APPROVED rows the way 1112 leaves possible (the signer authenticated, the event consumed) and first show the
+  marker-alone forgery refused; their machine guards are proved as before. Harness: state-engine-rows 112 of 112
+  detected, `recipe.guard_in_flight_dispositioned#3` still detected, `esig.signature_guard` 32 of 32 detected.
+  Round 2 (the lane's verification could not run its checks): on a GMP database and a sandbox migrated with the
+  tablets edition, only `ebmr_owner` (and superusers) may insert into or update `platform.state_history`,
+  `platform.aggregate_state`, `esig.signature` and `esig.signature_seal`; `ebmr_app`, `ebmr_authn` and `ebmr_sandbox`,
+  each with the engine flag and the signing marker set, are refused 42501 before any trigger runs, and the only writers
+  of those tables they may call are `platform.transition`, `platform.create_aggregate_state` and `esig.sign`. Tests:
+  `state-machine.test.ts` ([DI-34][DI-17], the application role) and `sandbox/bypass.test.ts` ([INV-18][DI-34][DI-17],
+  the sandbox role); they pin the answer and pass before 1110 too. The fix's tests fail with 1110 (or 1112) moved out
+  of the sql directory and pass with it; the kernel platform, esig, recipe lifecycle and golden replay tests pass.
+  Harness re-run: state-engine-rows 112 of 112 detected, `esig.signature_guard` 32 of 32 detected,
+  `recipe.guard_in_flight_dispositioned#3` still detected.
+- **D13. Evidence listener: the hold ended before the time it was announced.** The tick prune deleted by tick time,
+  but the hold by another key's run is measured from the time the tick was closed, so a late-closed tick was pruned
+  early, the hold ended early, and the `heldUntilUs` the database had already returned was too late. Fixed in tablets
+  0715 (decision D13.1, the proposed default): a tick prunes only rows whose tick and close are both over an hour old
+  (an open row by its tick, as before); X43, X40 and X37 now say the hour runs from the close. Test:
+  `apps/tablets-server/test/mutation/evidence-listener.test.ts` ([DI-30][PR-20][DI-17], a run of another key that
+  ticked 61 minutes ago and closed 59 minutes ago holds until its close plus one hour, then is pruned). Harness on the
+  new body (18 mutants): 15 detected, #12 and #14 invalid, #19 recorded as equivalent (its entry in equivalent.json
+  still cites tablets 0350:351; the line is now 0715:63). #22, the new close condition `closed_at < clock_timestamp() -
+  interval '1 hour'` turned into `<=`, survives (a first run counted it killed through an unrelated listener-watch
+  failure; run alone it survives) and is equivalent for the reason #19 is: closed_at is the clock reading of an update on
+  an owner-only table and the reading inside the prune cannot be pinned, so no input reaches the exact microsecond. Not
+  recorded in equivalent.json (the lead's call).
+  Round 2: X43's own consequences, X37 and X39 still measured the hold from the tick in four phrases; they now say it
+  runs from the close (D13.1 names X39 too). The test fails with 0715 moved out of the sql directory (the other key's
+  row is pruned at the first tick) and passes with it; the listener tests and the server golden replay pass. Harness
+  re-run on the 18 mutants of `tab.record_listener_tick`: 14 of the 15 counted detected, #12 and #14 invalid, #19
+  recorded as equivalent, #22 survives (equivalent, the close's clock boundary, as above).
+- **D15. Connection roles: an unknown grantee broke the connect policy's statement.** When a backend-signal function's
+  privileges named a role oid the cluster does not know (a direct catalogue write by a superuser), the policy built a
+  revoke with an empty grantee and failed with a syntax error instead of a coded refusal (fail closed, wrong message).
+  Fixed in kernel 1111: `sandbox.apply_connect_policy()` first looks for such entries and refuses with EBMR-SBX-038,
+  naming each function and unknown oid, before it applies anything; the sandbox README lists the code. Tests:
+  `packages/kernel/test/security/backend-signals.test.ts` ([DI-17][DI-30], the refusal, nothing applied, the
+  installation still reported as not holding the policy); the connection-roles kill test now asserts the coded message.
+  Harness on the new body: 22 of 23 mutants detected. #24 (in the revoke loop, `not coalesce(r.rolsuper, false)` with
+  `true` for `false`) survives and is now equivalent: `r` is null in that loop only for a grantee oid that names no
+  role, and every such entry other than PUBLIC (oid 0, taken by the first disjunct) is refused by the new check just
+  before, over the same rows; only a superuser writing such an entry into `pg_proc` between the two statements could
+  tell them apart. Not recorded in equivalent.json (the lead's call).
+  Round 2: the premise of that reason is now a test (`backend-signals.test.ts`, [DI-17][DI-30]): PostgreSQL records a
+  grant on these functions as a dependency of the role and refuses to drop a role that still holds it (2BP01), and a
+  role dropped after its grant is revoked leaves no entry, so only a direct write into `pg_proc` makes one. 1111's
+  header gives a wrong ground for the same conclusion (that PostgreSQL removes a role's entries when the role is
+  dropped; it refuses the drop instead); 1111 is not edited. Within one call only a superuser's catalogue write
+  committed between the policy's two statements could make the loop meet such an entry, and then both versions fail
+  closed (the original with the old syntax error, the mutant by completing while `kernel.backend_signals_restricted()`
+  still answers false). The D15 test fails with 1111 moved out (42601) and passes with it; the refusal names the
+  function and the oid, changes no privilege and leaves the installation reported as not holding the policy. Harness
+  re-run with the new test: 22 of 23 detected, #24 survives (equivalent, as above).
 
 Open (the lead takes these next):
 
-- **D11. Kernel state engine: a history row forged with the session flag.** For an insert into
-  `platform.state_history` the guard checks only a session setting any role can set, so owner-level code can write
-  an arbitrary transition (for example a version approved at version 100); `platform.state_violations()` finds it only
-  afterwards. The kernel's own tests treat a forged flag as an attack the guards must withstand.
-- **D13. Evidence listener: the hold ends before the time it was announced.** The tick prune deletes by tick time, but
-  the hold by another key's run is measured from the time the tick was closed, so a late-closed tick is pruned early,
-  the hold ends early, and the `heldUntilUs` the database already returned is too late. A one-condition fix (prune
-  only rows whose tick and close are both over an hour old) is proposed; decision X43 words the rule both ways, so
-  the owner or lead picks it.
-- **D15. Connection roles: an unknown grantee breaks the connect policy's statement.** When a backend-signal function's
-  privileges name a role oid the cluster does not know (a direct catalogue write by a superuser), the policy fails
-  with a syntax error instead of a coded refusal. It fails closed; only the message is wrong.
 
 Notes from the reviews that are not defects:
 

@@ -1446,18 +1446,17 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
   }, LONG);
 
   /**
-   * The guard counts the batches of EARLIER versions only, and no batch of the version under approval can exist. Before
-   * recipe-core 0383 (D10) owner-level code could pin one, every trigger on: it set the engine flag and wrote an APPROVED
-   * history row for the CHECKED version (platform.guard_state_row checks no more than the flag on a history insert, D11),
-   * recorded a market authorisation for that version, its activation and its cell directly, and the issue command then
-   * pinned a batch to the version; that batch took no in-flight disposition (EBMR-RCP-070) and the approval did not wait
-   * for one. This test is the kill test of recipe.guard_in_flight_dispositioned#3 (`<` made `<=`). Adapted for 0383
-   * (decision D10.1): the same arrangement is made, and each step that would pin a batch to the version is now refused (the
-   * activation and the cell read the version's own state row, which the forged history row does not change), so the issue
-   * finds no version. The guard's rule is then still proven on the state the superuser plants with every trigger off (the
-   * activation and the cell), the issue command pinning the batch: the batch of the version under approval takes no
-   * in-flight disposition and the approval does not wait for one. No writer with the triggers on reaches that state since
-   * 0383, so the mutant is equivalent for them (the kill-results page, D10); the test keeps the rule all the same.
+   * The guard counts the batches of EARLIER versions only, and the product never pins a batch to a version before its
+   * approval. Owner-level code once could, every trigger on: it set the engine flag and wrote an APPROVED history row
+   * for the CHECKED version, recorded a market authorisation, its activation and its cell directly, and the issue command
+   * then pinned a batch to the version; that batch took no in-flight disposition (EBMR-RCP-070) and the approval did not
+   * wait for one. This test is the kill test of recipe.guard_in_flight_dispositioned#3 (`<` made `<=`). Now each step is
+   * refused: the forged history row since kernel 1110 (D11, EBMR-PLAT-077), and the activation and the cell since
+   * recipe-core 0383 (D10, decision D10.1: they read the version's own state row), so the issue finds no version. The
+   * guard's rule is then still proven on the state the superuser plants with every trigger off (the history row, the
+   * activation and the cell), the issue command pinning the batch; the arranged history row is taken away again so the
+   * engine can approve the version. No writer with the triggers on reaches that state, so the mutant is equivalent for
+   * them (the kill-results page, D10); the test keeps the rule all the same.
    */
   it('[PR-05][INV-01][INV-17] no batch is pinned to the version under approval: with a forged APPROVED history row, the activation and the cell written around the command for it are refused and the issue finds no version; a batch of that version, on the state planted with every trigger off, is no batch of an earlier version: it takes no in-flight disposition and the approval does not wait for one', async () => {
     const content = uniqueContent();
@@ -1470,14 +1469,23 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
     const checked = await w.state(v.versionId);
     expect(checked.state).toBe('CHECKED');
     const FROM = '2026-01-02T00:00:00.000000Z';
+    const APPROVED_AT_100 = `insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, from_state, event, to_state, from_version,
+                                                                  to_version, permission_code, signature_meaning, signature_id, person_id, account_id, role_code, correlation_id)
+                             values ('mbr_version', $1, 'mbr_version', 1, 'CHECKED', 'APPROVE', 'APPROVED', 99, 100, 'mbr.approve', 'APPROVED', gen_random_uuid(),
+                                     'p', 'a', 'r', gen_random_uuid())`;
+    // Owner-level code with the engine flag forged can no longer write it (kernel 1110, D11).
+    await refused(
+      asOwner(w.cast.qa, async (c) => {
+        await c.query("select set_config('platform.state_engine', 'on', true)");
+        await c.query(APPROVED_AT_100, [v.versionId]);
+      }),
+      'EBMR-PLAT-077',
+      exactly(
+        `EBMR-PLAT-077 the history row of mbr_version:${v.versionId} CHECKED -APPROVE-> APPROVED at version 100 does not continue its latest history row (CHECKED at version ${checked.version})`,
+      ),
+    );
+    await asTimeTraveller(db, APPROVED_AT_100, [v.versionId]);
     const record = await asOwner(w.cast.qa, async (c) => {
-      await c.query("select set_config('platform.state_engine', 'on', true)");
-      await c.query(
-        `insert into platform.state_history (aggregate_type, aggregate_id, machine_code, machine_version, from_state, event, to_state, from_version, to_version,
-                                             person_id, account_id, role_code, correlation_id)
-         values ('mbr_version', $1, 'mbr_version', 1, 'CHECKED', 'APPROVE', 'APPROVED', 99, 100, 'p', 'a', 'r', gen_random_uuid())`,
-        [v.versionId],
-      );
       const { rows } = await c.query<{ id: string }>(
         `insert into recipe.market_authorisation (family_id, version_id, market, kind, cells, regulatory_basis, proposed_by_person, proposed_by_account)
          values ($1, $2, 'IN', 'CURRENT', $3::jsonb, 'IN: registration on file', $4, $4) returning id`,
@@ -1532,16 +1540,18 @@ describe("in-flight dispositions of an earlier version's batches (recipe.record_
     const own = await w.issue(v.familyId, ['IN'], S1);
     expect(own.versionId).toBe(v.versionId);
     expect(await statusOf(own.batchId)).toBe('ISSUED');
+    // The arranged row found by the kernel's state query, then taken away again.
+    expect((await q<{ problem: string }>('select problem from platform.state_violations() where aggregate_id = $1 order by problem', [v.versionId])).map((x) => x.problem)).toEqual([
+      'history version 100 has no predecessor',
+      `state row (CHECKED, version ${checked.version}) differs from the latest history row (APPROVED, version 100)`,
+    ]);
+    await asTimeTraveller(db, "delete from platform.state_history where aggregate_type = 'mbr_version' and aggregate_id = $1 and to_version = 100", [v.versionId]);
     await refused(dispose(v.versionId, own.batchId), 'EBMR-RCP-070', EARLIER);
     const sig = await w.signVersion(w.cast.qa, v.versionId, 'APPROVED', 'CHECKED');
     await w.run(w.cast.qa, (c) => lc.approveVersion(c, v.versionId, checked.version, sig));
     expect(await w.state(v.versionId)).toEqual({ state: 'APPROVED', version: checked.version + 1 });
     expect(await dispositions([own.batchId])).toBe(0);
-    // The forged history row is found by the kernel's state query.
-    expect((await q<{ problem: string }>('select problem from platform.state_violations() where aggregate_id = $1 order by problem', [v.versionId])).map((x) => x.problem)).toEqual([
-      'history version 100 has no predecessor',
-      `state row (APPROVED, version ${checked.version + 1}) differs from the latest history row (APPROVED, version 100)`,
-    ]);
+    expect(await q('select problem from platform.state_violations() where aggregate_id = $1', [v.versionId])).toEqual([]);
   }, LONG);
 });
 
