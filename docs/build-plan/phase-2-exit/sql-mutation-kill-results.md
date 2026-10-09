@@ -391,8 +391,7 @@ Fixed:
   `tab.reading_signature_valid`, `tab.upload_wait_signature_valid` and `tab.bind_gateway_session`, whose guards 0702
   copies unchanged; their texts now name 0702), none survive.
 
-Open (the lead takes these next):
-
+Open: none of D1 to D17.
 
 Notes from the reviews that are not defects:
 

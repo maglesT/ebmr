@@ -5,7 +5,8 @@ edition and an Injectables edition for Indian manufacturers who export (India Re
 applies; US FDA and EU GMP per market; the stricter rule wins).
 
 Read before changing anything:
-- `PROGRESS.md`: current state, decisions and next steps.
+- `PROGRESS.md`: current state, rules in force and next steps (short; the history is `docs/progress/history.md`,
+  search it, do not read it whole).
 - `REPO-GUIDE.md`: layout, commands, CI rules, how-tos.
 - `docs/outline/build-outline.md`: the approved plan (v0.2). Section 11 is the phase plan.
 - `docs/decisions/`: owner decisions. `docs/adr/`: architecture decisions.
@@ -24,6 +25,16 @@ Hard rules:
   Phase 4 exit one review pass, the full suite, golden batches and the browser suite; at most 2 fix rounds per finding,
   then a residual for the owner; database enforcement for the regulation-required core (decision 0008 section 2); 2 to
   3 agents at a time.
+
+## Token economy (owner, 9 October 2026)
+
+- Read only what the task needs. The big documents (`docs/decisions/phase-2-open-questions.md`, the outline,
+  `docs/progress/history.md`) are searched for the section you need, never read whole.
+- Keep command output short: `| tail -n 20`, the dot or summary test reporter, `--stat` diffs; never dump logs.
+- Agents only for work across several files; an agent returns a short summary, not file contents.
+- Model by task: the top model builds features and makes design and security fixes; Sonnet does quick reviews; Haiku
+  does mechanical jobs (doc updates, test-list syncs, merges without logic conflicts).
+- Plan before a large task; ask the owner only when a decision is genuinely theirs (otherwise take the default).
 
 ## Skills and tools
 
