@@ -149,6 +149,7 @@ tests:
   - "apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts > the scale readings a device weighing stands on (tablets 0510) > [DI-31][DI-32][PR-19] a weighing from the current screen stands only on readings its own command claimed, each named once for its purpose; each refusal says what is wrong, nothing is written and the readings stay unused; a reading backs one entry of its command, which may record other rows"
   - "apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts > the scale readings a device weighing stands on (tablets 0510) > [DI-31][DI-32][DI-14] readings the same person claimed in their other session in the room (a personal terminal of DISP-1), in this command's transaction and under its correlation id, do not back the weighing of the kiosk session: a weighing stands on its own session's claims"
   - "apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts > the scale readings a device weighing stands on (tablets 0510) > [DI-31][DI-32] a weighing from the current screen stands on a reading claimed at the microsecond its transaction began: the claim is the command's own and the weighing is recorded (EBMR-EXE-124, tablets 0510)"
+  - "apps/tablets-server/test/devices/gateway-key-order.test.ts > D16: a key of small order enrolled before tablets 0702 is never trusted > [DI-32][DI-30][DI-31] a reading \"signed\" under it without a private key is refused at ingestion (EBMR-DEV-061), nothing stored"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -142,6 +142,10 @@ stands as the kill agent wrote it.
 | tablets 0650_sandbox_lot_identity_test (first 0610) | tablets 0701_sandbox_lot_identity_test | `tab.register_sandbox_lot` (on 0200) |
 | kernel 1030_segregation_problems_missing_roles | kernel 1100_segregation_problems_missing_roles | `sandbox.segregation_problems` (on 0980) |
 | recipe-core 0372_lot_material_null_line | recipe-core 0372_lot_material_null_line (kept) | `recipe.lot_usability_problem` (on 0330) |
+| tablets 0702_gateway_key_large_order (D16, fixed after the kill work) | tablets 0702_gateway_key_large_order | `tab.enrol_gateway_key` and `tab.bind_gateway_session` (on 0250), `tab.reading_signature_valid` (on 0270), `tab.upload_wait_signature_valid` (on 0330); new `tab.gateway_key_problem`, `tab.ed25519_small_order` |
+
+D16 was fixed after the kill work, on phase-2/kill-integration-2b, in tablets 0702 (the next number of the kill
+work's tablets range); see D16 below.
 
 ## Defects the kill agents reported
 
@@ -177,6 +181,30 @@ Fixed:
   IN-23, PR-21). Low severity. Fixed in recipe-core 0372: the line is compared whenever it has a material member, and
   the refusal names null as the engine does. The decisions document has no correction line for F12.3 yet; the kill
   agent left that to the lead.
+
+- **D16. Device readings: a gateway key of small order was enrolled.** `tab.enrol_gateway_key` (tablets 0250) checked
+  only that the key was base64 and that its SHA-256 was the fingerprint registered for the SERVER device, not the
+  Ed25519 SPKI header and length nor the decoded point. Under a key of small order (for example the neutral point) the
+  cofactorless check `tab.ed25519_verify` (as OpenSSL's) accepts a signature anyone can build for any content, so
+  EBMR-DEV-061, EBMR-DEV-055 and the listener's login proof proved nothing for that chain, and anyone who reached
+  ingestion could forge readings without a private key (DI-32, DI-30, DI-31, DI-20). Fixed in tablets 0702
+  (security default, no owner decision needed): `tab.gateway_key_problem` refuses at enrolment an SPKI that is not the
+  44-byte Ed25519 SubjectPublicKeyInfo (EBMR-DEV-016), a key that is not the canonical encoding of a curve point
+  (EBMR-DEV-017) and a key of small order, [8]A the neutral point (EBMR-DEV-018, `tab.ed25519_small_order`); a key of
+  small order enrolled before is never trusted: no session binds under it (EBMR-DEV-025, also the listener's login),
+  `tab.reading_signature_valid` and `tab.upload_wait_signature_valid` are false under it, so ingestion refuses its
+  readings (EBMR-DEV-061) and waits (EBMR-DEV-055) and a claim refuses a reading stored under it (EBMR-DEV-110).
+  `tab.ed25519_verify` stays the plain RFC 8032 check (the kill tests reach S's own rules through the neutral point).
+  No other Ed25519 public key needs the rule: the kernel's seal keys are verified against the verifier's own key ring,
+  not a key read from the database; browser terminals prove with ECDSA P-256; a SERVICE_KEY is a secret. Tests:
+  `apps/tablets-server/test/devices/gateway-key-order.test.ts` (21 refusal tests fail with 0702 moved aside: the eight
+  points of orders 1, 2, 4 and 8, three encodings of no point, four SPKIs of the wrong form and a missing one at
+  enrolment; the binding, the listener's login, ingestion, the upload wait and a claim under a key written as enrolled
+  before 0702; the honest key's enrolment, binding and accepted reading, and the check that each key tested is what it
+  is named, pass either way), now also a test file of the device-readings group. The SQL mutation harness on the
+  six functions 0702 defines: 76 mutants, 70 detected, 6 equivalent (the existing entries of
+  `tab.reading_signature_valid`, `tab.upload_wait_signature_valid` and `tab.bind_gateway_session`, whose guards 0702
+  copies unchanged; their texts now name 0702), none survive.
 
 Open (the lead takes these next):
 
@@ -228,18 +256,6 @@ Open (the lead takes these next):
 - **D15. Connection roles: an unknown grantee breaks the connect policy's statement.** When a backend-signal function's
   privileges name a role oid the cluster does not know (a direct catalogue write by a superuser), the policy fails
   with a syntax error instead of a coded refusal. It fails closed; only the message is wrong.
-- **D16. Device readings: a gateway key of small order is enrolled.** `tab.enrol_gateway_key` (tablets 0250) checks
-  only that the key is base64 and that its SHA-256 is the fingerprint registered for the SERVER device; it checks
-  neither the Ed25519 SPKI header and length nor the decoded point. A key of small order (for example the neutral
-  point) can therefore be enrolled, and under such a key the cofactorless check `tab.ed25519_verify` (as OpenSSL's)
-  accepts a signature anyone can build for any content: EBMR-DEV-061 (the reading was signed by the holder of the
-  enrolled key) then proves nothing for that chain, nor do EBMR-DEV-055 (the signed upload wait) and the listener's
-  login proof. Enrolling needs IAM.DEVICE_MANAGE, whose holder can already enrol a key whose private half they hold;
-  what a small-order key adds is that anyone who reaches ingestion can forge afterwards without a private key. The
-  skeptic confirmed it on a scratch copy (`tab.ed25519_verify` with the neutral point as key returns true for R = B,
-  S = 1 and for R = neutral, S = 0, as Node's verify does). No survivor shows it. Needs a decision; the agent proposes a
-  new tablets migration in which enrolment refuses a key that is not the 44-byte Ed25519 SPKI, does not decode, or
-  whose eightfold multiple is the neutral point.
 
 Notes from the reviews that are not defects:
 

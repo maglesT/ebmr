@@ -2195,3 +2195,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   there. Open for the lead: D16, enrolment accepts a gateway key of small order, under which anyone can build a reading
   signature the check accepts (needs a decision). Scores, kills and defects in
   docs/build-plan/phase-2-exit/sql-mutation-kill-results.md.
+- 2026-10-09: D16 fixed (security, no owner decision needed), tablets 0702: enrolment refuses a gateway key that is
+  not the 44-byte Ed25519 SPKI (EBMR-DEV-016), no curve point (017) or of small order (018); a key of small order
+  enrolled before binds no session (025) and its readings, waits and stored readings never verify (DI-32, DI-30,
+  DI-20). Tests: devices/gateway-key-order (23; 21 fail with 0702 moved aside), listed under DI-20/28/30/31/32.

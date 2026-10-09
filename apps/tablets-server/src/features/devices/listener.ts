@@ -6,7 +6,9 @@
  *                          terminal's device-proof nonce, nor is one of those a login nonce here (nonces.ts)
  *   POST /gw/v1/session    login: Ed25519 proof of possession of the enrolled key (its SHA-256 SPKI fingerprint is the
  *                          registered SERVER device), then kernel SERVICE_KEY authentication on that device and a
- *                          session bound to an opaque bearer token (tab.gateway_session, never a browser cookie)
+ *                          session bound to an opaque bearer token (tab.gateway_session, never a browser cookie); no
+ *                          session binds under a key of small order enrolled before tablets 0702, under which any
+ *                          proof verifies (EBMR-DEV-025, D16)
  *   POST /gw/v1/challenge  a challenge for one upload, issued by the database (tab.issue_ingest_challenge, in the
  *                          gateway's INTEGRATION command), which keeps when it issued it (DI-28; tablets 0330)
  *   POST /gw/v1/readings   readings in chain order, with the upload's challenge; each is checked here (schema, hash,

@@ -9,7 +9,8 @@
  * stored reading: hash, Ed25519 signature, raw line; claims take the room from the session); 0340 (whether the server
  * reaches a gateway's API is recorded by the server's gateway API monitor identity, runtime.ts); 0350 (the manual path
  * against the application role's credentials; the listener's own login and its ticks, watch.ts, without which the
- * database counts no scale silent). Controls DI-20, DI-28, DI-30, DI-31, DI-32.
+ * database counts no scale silent); 0702 (only an Ed25519 gateway key of large order is enrolled or trusted, D16).
+ * Controls DI-20, DI-28, DI-30, DI-31, DI-32.
  */
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';

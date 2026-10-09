@@ -2,6 +2,11 @@
  * Gateway enrolment (configuration by the system administrator, IAM.DEVICE_MANAGE): the gateway's Ed25519 key,
  * whose SHA-256 SPKI fingerprint is the registered fingerprint of its SERVER device, and the instruments it serves
  * with the serial it must read from each (DI-20). Used by the demo seed and the tests.
+ *
+ * The database takes only the 44-byte Ed25519 SubjectPublicKeyInfo of a curve point of large order (tablets 0702, D16):
+ * EBMR-DEV-016 another form, EBMR-DEV-017 no curve point, EBMR-DEV-018 a key of small order, under which anyone could
+ * build a signature that verifies. Each refusal's message says what to do; nothing here maps the codes, the set-up's
+ * seed fails with the database's message as it is.
  */
 import type pg from 'pg';
 import { identity, type ActorContext } from '@ebmr/kernel';
