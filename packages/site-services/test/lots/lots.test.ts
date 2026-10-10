@@ -293,6 +293,76 @@ describe('consumption guard (INV-13, INV-14, PR-18)', () => {
   });
 });
 
+describe('what the release signature covers (review backlog item 6; sql/0720)', () => {
+  const signedContent = async (lotId: string) =>
+    (await db.admin.query<{ c: { content: Record<string, unknown>; content_version: number } }>('select site.material_lot_content($1) as c', [lotId])).rows[0]?.c;
+  const SUPERSEDED = /EBMR-PLAT-0\d\d .*(superseded|signed again|SUPERSEDED)/i;
+
+  it('[IN-24][DI-37] the signed content shows the release route and the received quantity; a signature over IDENTITY_TESTED content cannot release on VENDOR_HISTORY', async () => {
+    const lot = await w.receive('EXCIPIENT');
+    await w.enableVendorHistory(lot.materialCode);
+    expect((await signedContent(lot.lotId))?.content).toMatchObject({ release_route: 'VENDOR_HISTORY', received_quantity: '10.000' });
+    await w.identity(lot.lotId);
+    expect((await signedContent(lot.lotId))?.content).toMatchObject({ release_route: 'IDENTITY_TESTED', received_quantity: '10.000' });
+    const sig = await w.sign(w.cast.qcHead, lot.lotId, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
+    // Every other condition of the vendor-history route holds (an enabled excipient, no failing result), yet the signature covers IDENTITY_TESTED.
+    expect(await refusal(w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), sig, 'VENDOR_HISTORY')))).toMatch(
+      /EBMR-PLAT-068 .*release_route_satisfied: the release signature covers lot .* with release route IDENTITY_TESTED .*EBMR-SITE-112/,
+    );
+    await w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), sig, 'IDENTITY_TESTED'));
+    expect((await w.run(w.cast.warehouse, (c) => lotUsage(c, lot.lotId)))?.releaseRoute).toBe('IDENTITY_TESTED');
+    expect((await signedContent(lot.lotId))?.content).toMatchObject({ release_route: 'IDENTITY_TESTED' });
+  });
+
+  it('[IN-24][DI-37] a signature over VENDOR_HISTORY content cannot release on IDENTITY_TESTED: the identity result that would allow it supersedes the signature', async () => {
+    const lot = await w.receive('EXCIPIENT');
+    await w.enableVendorHistory(lot.materialCode);
+    const sig = await w.sign(w.cast.qcHead, lot.lotId, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
+    // Without an identity result the identity-tested route is refused outright.
+    expect(await refusal(w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), sig, 'IDENTITY_TESTED')))).toMatch(
+      /has no passing identity result/,
+    );
+    // Once QC records one, the content (and the route it shows) changes, so the signature no longer authorises either route.
+    await w.identity(lot.lotId);
+    expect(await refusal(w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), sig, 'IDENTITY_TESTED')))).toMatch(SUPERSEDED);
+    expect(await refusal(w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), sig, 'VENDOR_HISTORY')))).toMatch(SUPERSEDED);
+    const { rows } = await db.app.query<{ status: string }>("select esig.signature_state($1) ->> 'status' as status", [sig]);
+    expect(rows[0]?.status).toBe('SUPERSEDED_BY_CHANGE');
+    // A new signature over the new content releases on the route it shows.
+    const fresh = await w.sign(w.cast.qcHead, lot.lotId, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
+    await w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), fresh, 'IDENTITY_TESTED'));
+  });
+
+  it('[IN-24][DI-37][INV-13] the release signature covers the received quantity; consuming from the released lot does not supersede it', async () => {
+    const lot = await w.receive('API');
+    await w.identity(lot.lotId);
+    expect((await signedContent(lot.lotId))?.content).toMatchObject({ received_quantity: '10.000', release_route: 'IDENTITY_TESTED' });
+    expect((await signedContent(lot.lotId))?.content).not.toHaveProperty('current_quantity');
+    const sig = await w.sign(w.cast.qcHead, lot.lotId, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
+    await w.run(w.cast.qcHead, async (c) => changeLotStatus(c, lot.lotId, 'RELEASE', await w.version(lot.lotId), sig, 'IDENTITY_TESTED'));
+    // After the release its own state entry is the last change the signature saw.
+    const status = async () => (await db.app.query<{ s: string }>("select esig.signature_state($1) ->> 'status' as s", [sig])).rows[0]?.s;
+    const statusAfterRelease = await status();
+    const before = await signedContent(lot.lotId);
+    const batch = await w.batch(['IN']);
+    const res = await w.reserve(lot.lotId, batch, '3');
+    await w.consume(batch, res, lot.materialCode, '1');
+    await w.consume(batch, res, lot.materialCode, '1');
+    // Consumption changes neither the signed content nor the signature's status, and leaves no change-log entry on the lot.
+    expect(await signedContent(lot.lotId)).toEqual(before);
+    expect(await status()).toBe(statusAfterRelease);
+    const { rows: changes } = await db.admin.query("select 1 from esig.content_change where aggregate_ref = $1 and table_name = 'site.lot_consumption'", [`material_lot:${lot.lotId}`]);
+    expect(changes).toEqual([]);
+    // A QA decision signed before a consumption still applies after it.
+    const hold = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
+    await w.consume(batch, res, lot.materialCode, '1');
+    expect(await w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'HOLD', await w.version(lot.lotId), hold), 'complaint')).toMatchObject({ to: 'ON_HOLD' });
+    const { rows } = await db.admin.query('select * from esig.verify_signatures() where signature_id = any($1::uuid[])', [[sig, hold]]);
+    expect(rows).toEqual([]);
+    expect((await db.admin.query("select 1 from esig.signed_table where table_name = 'site.lot_consumption'::regclass")).rows).toEqual([]);
+  });
+});
+
 describe('witnessed destruction (IN-24 (a))', () => {
   it('[IN-24] DESTROYED only with a destruction record and a witness other than its performer', async () => {
     const lot = await w.receive('API');
@@ -311,6 +381,23 @@ describe('witnessed destruction (IN-24 (a))', () => {
     const otherWarehouse = await signerActor(db, 'WAREHOUSE_LABELLING');
     expect(await refusal(w.run(otherWarehouse, async (c) => destroyLot(c, lot.lotId, await w.version(lot.lotId), sig)))).toMatch(/EBMR-SITE-151/);
     expect(await refusal(w.run(w.cast.witness, async (c) => destroyLot(c, lot.lotId, await w.version(lot.lotId), sig)))).toMatch(/EBMR-IAM-040 .*MATERIAL\.HANDLE/);
+    expect(await w.run(w.cast.warehouse, async (c) => destroyLot(c, lot.lotId, await w.version(lot.lotId), sig))).toMatchObject({ to: 'DESTROYED' });
+  });
+  it('[IN-24] a person who consumed from a lot does not witness its destruction (stricter default, sql/0721)', async () => {
+    const lot = await w.releasedLot('API');
+    const batch = await w.batch(['IN']);
+    const res = await w.reserve(lot.lotId, batch, '2');
+    await w.consume(batch, res, lot.materialCode, '1');
+    const recall = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
+    await w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'RECALL', await w.version(lot.lotId), recall), 'supplier recall notice');
+    await w.run(w.cast.warehouse, (c) => recordLotDestruction(c, lot.lotId, 'incineration by approved contractor', 'recalled lot'));
+    // The dispenser also holds the verifier role, so only the rule refuses him.
+    const consumerAsWitness = await withSecondRole(db, w.cast.dispenser, 'VERIFIER');
+    const bad = await w.sign(consumerAsWitness, lot.lotId, 'MATERIAL_DESTRUCTION_WITNESSED', 'RECALLED');
+    expect(await refusal(w.run(w.cast.warehouse, async (c) => destroyLot(c, lot.lotId, await w.version(lot.lotId), bad)))).toMatch(
+      /EBMR-PLAT-068 .*destruction_witnessed: the witness of a destruction did not consume from the lot \(EBMR-SITE-152\)/,
+    );
+    const sig = await w.sign(w.cast.witness, lot.lotId, 'MATERIAL_DESTRUCTION_WITNESSED', 'RECALLED');
     expect(await w.run(w.cast.warehouse, async (c) => destroyLot(c, lot.lotId, await w.version(lot.lotId), sig))).toMatchObject({ to: 'DESTROYED' });
   });
 });

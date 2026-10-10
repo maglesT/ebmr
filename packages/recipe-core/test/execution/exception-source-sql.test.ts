@@ -120,7 +120,7 @@ function invalidationRow(): Row {
   const run = ratioRun('DEVICE');
   const start = run.state;
   const n = run.log.length;
-  run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: pointOf(run, 't'), investigationRef: 'TEST-OOS-1', reason: 'the probe was outside its calibration', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
+  run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: pointOf(run, 't'), investigationRef: 'TEST-OOS-1', assignableCause: 'The investigation found an assignable cause', reason: 'the probe was outside its calibration', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
   const [row] = rowsOf(run, start).slice(n);
   if (!row) throw new Error('SETUP');
   return row;

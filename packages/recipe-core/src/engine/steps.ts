@@ -15,7 +15,12 @@ import { deriveStageSummary } from './stage-summary.ts';
 import {
   addUnique,
   checkMeanings,
+  excludedFromReview,
+  handedOverFrom,
   handEntriesWithoutDeclaredEvidence,
+  isBlankText,
+  qualityUnitRoles,
+  requireNotHandedOver,
   witnessPossible,
   hasRole,
   involvedIn,
@@ -39,6 +44,7 @@ import type {
   ChooseReplicateCountCommand,
   CompleteLoopIterationCommand,
   DispositionHoldPointCommand,
+  HandOverStepCommand,
   RecordDataCommand,
   RecordEntryCommand,
   RequestSkipCommand,
@@ -47,6 +53,7 @@ import type {
   StageSummary,
   StartStepCommand,
   StepInstance,
+  TakeOverStepCommand,
   VerifyCommand,
 } from './types.ts';
 import { validateSchema } from '../blocks/schema.ts';
@@ -148,6 +155,7 @@ export function recordData(tx: Tx, cmd: RecordDataCommand): void {
   if (!phase.records.includes(cmd.item)) refuse('ENG-NOT-RECORDED-HERE', `Step ${step.id} does not record ${cmd.item}`, ['DI-34', 'PR-13']);
   requireStepStatus(inst, ['IN_PROGRESS'], 'recording data');
   requirePerformer(tx, step, 'record data in');
+  requireNotHandedOver(inst, tx.actor?.id, 'recording data');
   if (tx.actor?.kind === 'SYSTEM' && cmd.source.mode === 'MANUAL') refuse('ENG-ACTOR', 'A system account cannot key a value by hand', ['DI-14']);
   const param = a.parameters.get(cmd.item);
   if (!param) refuse('ENG-NOT-RECORDED-HERE', `${cmd.item} is not a parameter`, ['DI-34']);
@@ -191,6 +199,7 @@ export function recordEntry(tx: Tx, cmd: RecordEntryCommand): void {
   const inst = requireInstance(tx, step, cmd.context ?? []);
   requireStepStatus(inst, ['IN_PROGRESS'], 'recording an entry');
   requirePerformer(tx, step, 'record entries in');
+  requireNotHandedOver(inst, tx.actor?.id, 'recording an entry');
   const block = step.block;
   const schema = block?.dataSchema?.entries[cmd.entry.kind];
   if (!block || !schema || !block.handler?.acceptEntry) refuse('ENG-ENTRY-KIND', `Block ${block?.type ?? '?'} does not take entries of kind ${cmd.entry.kind}`, ['DI-30']);
@@ -281,13 +290,16 @@ export function signPerformed(tx: Tx, cmd: SignPerformedCommand): void {
     if (!step.systemPerforms) refuse('ENG-ACTOR', `${step.id} needs a person's PERFORMED signature (two persons on every batch unless the one-verifier mode S5a is on)`, ['PR-14', 'INV-31']);
   } else {
     requireRole(a, step.performRoles, `sign ${step.id} as performed`);
+    requireNotHandedOver(inst, a.id, 'signing it as performed');
     // Exactly the step's own PERFORMED meaning: the block's (a line clearance, a sample taken), else PERFORMED (DI-35).
     requireSignature(tx, cmd.signature, a.id, performMeanings(step), `Step ${inst.key}`);
     signer = a.id;
   }
-  // The step moves on only when every person who entered data has signed for their own entries (L-67).
+  // The step moves on only when every person who entered data has signed for their own entries (L-67), except a
+  // performer who handed the step over (L-07): their entries stay theirs and valid, and the verifier covers them.
   const signedAfter = signer ? [...new Set([...inst.performedSigners, signer])] : inst.performedSigners;
-  const unsigned = inst.dataEnterers.filter((p) => !signedAfter.includes(p));
+  const gone = handedOverFrom(inst);
+  const unsigned = inst.dataEnterers.filter((p) => !signedAfter.includes(p) && !gone.has(p));
   const transition = unsigned.length === 0;
   const at = eventInstant(tx, cmd.occurredAt);
   if (transition) {
@@ -335,9 +347,10 @@ export function verify(tx: Tx, cmd: VerifyCommand): void {
   const unevidenced = handEntriesWithoutDeclaredEvidence(tx.def, tx.s, inst);
   const late = inst.reverification !== true && (step.checkMeaning === 'WITNESSED' || unevidenced.length > 0) && !witnessPossible(tx.def, tx.s, inst, tx.now);
   const meanings = checkMeanings(step, inst, unevidenced, !late);
-  // INV-03: the verifier or witness never performed, entered data in or corrected the step.
-  if (involvedIn(inst).has(a.id)) {
-    refuse('ENG-SEGREGATION', `${a.id} performed, entered data in or corrected step ${inst.key} and so cannot verify or witness it`, ['INV-03', 'PR-14', 'DI-30']);
+  // INV-03: the verifier or witness never performed, entered data in or corrected the step, nor took part in its
+  // hand-over (outgoing or incoming performer, the supervisor who signed it, QA who approved it; L-07).
+  if (excludedFromReview(inst).has(a.id)) {
+    refuse('ENG-SEGREGATION', `${a.id} performed, entered data in or corrected step ${inst.key}, or took part in its hand-over, and so cannot verify or witness it`, ['INV-03', 'PR-14', 'DI-30']);
   }
   const sig = requireSignature(tx, cmd.signature, a.id, meanings, `Verification of ${inst.key}`);
   requireNotBlocked(tx, inst, 'COMPLETE');
@@ -390,6 +403,79 @@ export function requestSkip(tx: Tx, cmd: RequestSkipCommand): void {
   setStatus(tx, inst, 'SKIPPED', reason);
   tx.emit({ type: 'INVOLVEMENT', stepKey: inst.key, person: approver.id, involvement: 'APPROVED_SKIP' });
   tx.raise(engineDraft('STEP_SKIPPED', `${inst.key} was skipped: ${reason} (requested by ${a.id}, approved by ${approver.id})`), { stepKey: inst.key, step: inst.step, frames: inst.frames });
+}
+
+/**
+ * Hand-over of a step in progress (outline 5.2.3, L-07): IN_PROGRESS -> ATTEMPT_HANDED_OVER, recorded and signed
+ * (HANDOVER_APPROVED) by a production supervisor and approved (HANDOVER_APPROVED) by QA, two different persons, neither
+ * of them the outgoing or the incoming performer nor involved in the step, with a reason. The outgoing performer's entries
+ * stay attributed and valid; they no longer act in the step and are not asked to sign it performed. The step now needs
+ * its check by a second person (the verifier covers every entry, INV-03), and the hand-over is an exception in the
+ * register (STEP_HANDED_OVER).
+ */
+export function handOverStep(tx: Tx, cmd: HandOverStepCommand): void {
+  requireBatchStatus(tx, ['IN_PROGRESS', 'ON_HOLD'], 'handing a step over');
+  const step = requireStep(tx, cmd.step);
+  phaseOf(step);
+  const inst = requireInstance(tx, step, cmd.context ?? []);
+  // A step waiting for its incoming performer is handed over again to another when they do not come (never frozen).
+  requireStepStatus(inst, ['IN_PROGRESS', 'ATTEMPT_HANDED_OVER'], 'handing it over');
+  const a = requirePerson(tx);
+  requireRole(a, tx.def.policy.supervisorRoles, `record the hand-over of ${step.id}`);
+  const reason = requireReason(cmd.reason, 'A hand-over');
+  const involved = involvedIn(inst);
+  const gone = handedOverFrom(inst);
+  const waiting = inst.status === 'ATTEMPT_HANDED_OVER' ? inst.handOvers?.[inst.handOvers.length - 1] : undefined;
+  if (waiting) {
+    if (cmd.outgoing !== waiting.incoming) {
+      refuse('ENG-HANDOVER-PERSON', `Step ${inst.key} waits for ${waiting.incoming}, who has not taken it over: a new hand-over hands it over from that person`, ['DI-14', 'PR-14']);
+    }
+  } else if (typeof cmd.outgoing !== 'string' || !involved.has(cmd.outgoing) || gone.has(cmd.outgoing)) {
+    refuse('ENG-HANDOVER-PERSON', `${String(cmd.outgoing)} is not a performer of step ${inst.key} who is still on it: only a person who started it, entered data in it or signed it hands it over`, ['DI-14', 'PR-14']);
+  }
+  const incoming = cmd.incoming;
+  if (incoming?.kind !== 'PERSON' || typeof incoming.id !== 'string' || isBlankText(incoming.id) || incoming.id === cmd.outgoing || gone.has(incoming.id)) {
+    refuse('ENG-HANDOVER-PERSON', `Step ${inst.key} is handed over to another person than the one who leaves it, and never back to one who handed it over`, ['DI-14', 'PR-14']);
+  }
+  requireRole(incoming, step.performRoles, `take over ${step.id} (the incoming performer holds one of its perform roles)`);
+  const ap = cmd.approval;
+  if (ap.approver.kind !== 'PERSON' || ap.approver.id === a.id) refuse('ENG-SEGREGATION', 'A hand-over is signed by a supervisor and approved by QA, two different persons', ['PR-14', 'DI-17']);
+  for (const p of [a.id, ap.approver.id]) {
+    if (p === cmd.outgoing || p === incoming.id || involved.has(p)) {
+      refuse('ENG-SEGREGATION', `${p} is a performer of step ${inst.key} or named in its hand-over, and so cannot sign or approve the hand-over`, ['PR-14', 'DI-17', 'INV-03']);
+    }
+  }
+  requireRole(ap.approver, qualityUnitRoles(tx.def.policy), 'approve a hand-over');
+  const sig = requireSignature(tx, cmd.signature, a.id, [MEANINGS.HANDOVER_APPROVED], `Hand-over of ${inst.key}`);
+  const qa = requireSignature(tx, ap.signature, ap.approver.id, [MEANINGS.HANDOVER_APPROVED], `Approval of the hand-over of ${inst.key}`);
+  useSignature(tx, sig, `hand-over of ${inst.key}`, inst.key);
+  useSignature(tx, qa, `approval of the hand-over of ${inst.key}`, inst.key);
+  (inst.handOvers ??= []).push({ outgoing: cmd.outgoing, incoming: incoming.id, reason, supervisor: a.id, supervisorSignature: sig.id, qaApprover: ap.approver.id, qaSignature: qa.id, at: tx.now });
+  inst.verificationRequired = true;
+  if (inst.status !== 'ATTEMPT_HANDED_OVER') setStatus(tx, inst, 'ATTEMPT_HANDED_OVER', reason);
+  tx.emit({ type: 'STEP_HANDED_OVER', stepKey: inst.key, outgoing: cmd.outgoing, incoming: incoming.id, by: a.id, approvedBy: ap.approver.id, reason });
+  tx.raise(engineDraft('STEP_HANDED_OVER', `${inst.key} was handed over by ${cmd.outgoing} to ${incoming.id}: ${reason} (signed by ${a.id}, approved by ${ap.approver.id}); the entries made before stay attributed and valid`), {
+    stepKey: inst.key,
+    step: inst.step,
+    frames: inst.frames,
+  });
+}
+
+/** The incoming performer named by the step's last hand-over takes it over (L-07): ATTEMPT_HANDED_OVER -> IN_PROGRESS. */
+export function takeOverStep(tx: Tx, cmd: TakeOverStepCommand): void {
+  requireBatchStatus(tx, ['IN_PROGRESS'], 'taking a step over');
+  const step = requireStep(tx, cmd.step);
+  phaseOf(step);
+  const inst = requireInstance(tx, step, cmd.context ?? []);
+  requireStepStatus(inst, ['ATTEMPT_HANDED_OVER'], 'taking it over');
+  const a = requirePerson(tx);
+  const last = inst.handOvers?.[inst.handOvers.length - 1];
+  if (!last || last.incoming !== a.id) refuse('ENG-HANDOVER-PERSON', `Step ${inst.key} was handed over to ${last?.incoming ?? 'nobody'}; only that performer takes it over`, ['DI-14', 'PR-14']);
+  requireRole(a, step.performRoles, `take over ${step.id}`);
+  last.takenOverAt = tx.now;
+  addUnique(inst.performers, a.id);
+  setStatus(tx, inst, 'IN_PROGRESS', `taken over from ${last.outgoing}`);
+  tx.emit({ type: 'INVOLVEMENT', stepKey: inst.key, person: a.id, involvement: 'TOOK_OVER' });
 }
 
 /** QA hold point (G-17): everything after it waits for the authorised disposition. */

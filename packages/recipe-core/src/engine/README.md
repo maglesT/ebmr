@@ -47,12 +47,14 @@ every loop's maximum duration.
   (verified or witnessed), CHOOSE_ALTERNATIVE, CHOOSE_REPLICATE_COUNT, COMPLETE_LOOP_ITERATION,
   REQUEST_SKIP (with approver), DISPOSITION_HOLD_POINT, SIGN_OFF_STAGE, RAISE_EXCEPTION,
   ATTACH_DEVIATION, DISPOSITION_EXCEPTION, HOLD_BATCH, RELEASE_HOLD, CORRECT_ENTRY (path a),
-  VOID_ATTEMPT (path b), INVALIDATE_RESULT (path c), ABORT_BATCH, CANCEL_BATCH. Each carries an
+  VOID_ATTEMPT (path b), INVALIDATE_RESULT (path c), ABORT_BATCH, CANCEL_BATCH, HAND_OVER_STEP and
+  TAKE_OVER_STEP (L-07, engine 1.6.0: a step in progress is handed over by a supervisor with QA's approval to a
+  named incoming performer, status ATTEMPT_HANDED_OVER until they take it over). Each carries an
   idempotency key and optionally the expected state version.
 - **Events**: state changes, decisions, data and entries, derived values with record hashes,
   exceptions, deviation links and dispositions, **INVOLVEMENT** facts (started, entered data,
   performed, corrected, voided, verified, witnessed, approved a skip, signed a hold point,
-  dispositioned an exception) for segregation, signatures applied and invalidated, stage sign-offs,
+  dispositioned an exception, took over a step) for segregation, signatures applied and invalidated, stage sign-offs,
   time warnings, notifications, clock regressions, refused commands.
 
 ## Rules the engine enforces
@@ -185,6 +187,6 @@ reports the first difference.
 
 Database-backed execution (SECURITY DEFINER transitions, locks, idempotency table, outbox), the
 kernel e-signature ceremony and qualification checks on fresh data, material and equipment status
-from site services, hand-over (ATTEMPT_HANDED_OVER), item-level N/A, pauses, the persisted involvement
+from site services, leaver processing around the hand-over (built in engine 1.6.0), item-level N/A, pauses, the persisted involvement
 set and its database check (INV-03 in SQL), production approval, review and release (G-25), and the
 edition blocks (TB-xx) arrive in Phase 3 and 4. The engine takes them as commands in and events out.

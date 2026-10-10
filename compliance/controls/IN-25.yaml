@@ -43,6 +43,8 @@ tests:
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25] a utility is usable only while the latest feed status is OK"
   - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [INV-12][IN-25] direct writes as the application role are refused, and a direct transition without the command's rows is refused by the guards"
   - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [IN-25] every plant table is audited and its event times come from the database clock"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] clearing a signalled failure needs a second person: the repairer and the person who signalled it cannot verify; a signed second person can"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25] a repair cannot be cleared around the commands: no direct writes by the application, and the table refuses a lone REPAIRED event or a verification by the repairer even for owner-level writes"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

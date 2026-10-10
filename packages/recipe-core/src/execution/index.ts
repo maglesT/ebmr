@@ -9,3 +9,4 @@ export * from './test-package.ts';
 export * from './store.ts';
 export * from './run.ts';
 export * from './verify.ts';
+export * from './register.ts';

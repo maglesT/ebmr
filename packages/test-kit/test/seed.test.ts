@@ -112,7 +112,8 @@ describe('test-kit installations', () => {
     const roles = sbxSeed.personas.filter((p) => p.set === 0).map((p) => `${p.loginName}:${p.roleCode}`);
     expect(roles).toEqual([
       'test-issuer:BATCH_ISSUER', 'test-steward:MASTER_DATA_STEWARD', 'test-operator-1:OPERATOR', 'test-operator-2:OPERATOR', 'test-verifier-1:VERIFIER',
-      'test-verifier-2:VERIFIER', 'test-supervisor-1:SHIFT_SUPERVISOR', 'test-qa-1:QA_SHOP_FLOOR', 'test-operator-verifier-1:OPERATOR',
+      'test-verifier-2:VERIFIER', 'test-supervisor-1:SHIFT_SUPERVISOR', 'test-qa-1:QA_SHOP_FLOOR', 'test-head-1:HEAD_OF_PRODUCTION',
+      'test-qa-reviewer-1:QA_REVIEWER', 'test-operator-verifier-1:OPERATOR',
     ]);
     expect(sbxSeed.personas.filter((p) => p.set === 1).map((p) => p.loginName)).toContain('test-operator-1-w1');
     expect(new Set(sbxSeed.personas.map((p) => p.badgeUid).filter(Boolean)).size).toBe(sbxSeed.personas.filter((p) => p.badgeUid).length);

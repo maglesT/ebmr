@@ -30,6 +30,12 @@ import { engineFingerprint, fingerprintDefinition } from './fingerprint.ts';
  * WITNESSED checked after another step started (the same). 1.4.0's is commit 4df68b0's answer to it (1.4.0 accepts both
  * late witnesses, the first with WITNESS_LATE, the second as if on time, and refuses both later reviews on the completed
  * steps; its answer to the run as it stood at 1.4.0 was e2d1b23079a62456482b39628efb3b01e7ada2bf1b0dabf0cb27d993b77e735c).
+ * 1.5.0 and later: the run with a fourth parallel step handed over by its performer and taken over by another, then an
+ * invalidation without and with its assignable cause and an abort without and with its checklist (added with 1.6.0).
+ * 1.5.0's is commit ce3ece8's answer to it (the last commit before the slice 2 change paths changed the engine's output:
+ * 1.5.0 accepts a hand-over and a take-over as commands that do nothing, lets the outgoing performer sign, accepts the
+ * invalidation without a cause and the abort without a checklist; its answer to the run as it stood at 1.5.0 was
+ * a21aca586a8adbb099f936141ff44eacd51e27c34969e7d6b5c2af3930fae3ef).
  */
 const RELEASED: Readonly<Record<string, string>> = {
   '1.0.0': 'b2ddd06e58a7779e0ffab4c8231db99d004475ca710dc40b056010ed30767ad2',
@@ -37,7 +43,8 @@ const RELEASED: Readonly<Record<string, string>> = {
   '1.2.0': '0d824c01c642c0e25597401e1434993a3b826b0cf51c01108300f0b4e5b0cfe9',
   '1.3.0': '34e37c7e7ab4852ad42334d5c372bf424fcf46d80524e43e59f324a4c56923d3',
   '1.4.0': 'bf2aa3e7849c405fa48059eb5b5e23d9093dbc8aba219df8c1244a9734837363',
-  '1.5.0': 'a21aca586a8adbb099f936141ff44eacd51e27c34969e7d6b5c2af3930fae3ef',
+  '1.5.0': 'eea923e3d57237ba9f84585835d1df1b37a2f2a0150152c09183ae67ccca68a1',
+  '1.6.0': 'b3851a555d82e4badfce19d628a866fb3e8efd76f8975891b0b6746d41423132',
 };
 
 describe('the engine version names its output (ADR 0010)', () => {
@@ -58,6 +65,8 @@ describe('the engine version names its output (ADR 0010)', () => {
     // (VERIFIED) is refused, the witness accepted (lead TODO T12).
     // 1.5.0: once no witness is possible (the window passed; the run moved on) a witness is refused and the later review
     // accepted, raising WITNESS_LATE for QA (T12.LATE).
+    // 1.6.0: a step handed over and taken over; the outgoing performer's PERFORMED is refused (L-07); an invalidation
+    // without its assignable cause and an abort without its checklist are refused.
     expect(rows.map((r) => `${r.what}:${r.answer}`)).toEqual([
       'ISSUE:ACCEPTED',
       'START_STEP:ACCEPTED',
@@ -99,10 +108,21 @@ describe('the engine version names its output (ADR 0010)', () => {
       'VERIFY:ENG-SIGNATURE-MEANING',
       'VERIFY:ACCEPTED',
       'SWEEP:ACCEPTED',
+      'START_STEP:ACCEPTED',
+      'RECORD_DATA:ACCEPTED',
+      'HAND_OVER_STEP:ACCEPTED',
+      'TAKE_OVER_STEP:ACCEPTED',
+      'SIGN_PERFORMED:ENG-HANDED-OVER',
+      'SIGN_PERFORMED:ACCEPTED',
+      'VERIFY:ACCEPTED',
+      'INVALIDATE_RESULT:ENG-INVALIDATE-INVESTIGATION',
+      'INVALIDATE_RESULT:ACCEPTED',
+      'ABORT_BATCH:ENG-ABORT-CHECKLIST',
+      'ABORT_BATCH:ACCEPTED',
     ]);
   });
 
-  it('[DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0, 1.2.0, 1.3.0 or 1.4.0 is never run or replayed by this engine (EBMR-EXE-061)', () => {
+  it('[DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0, 1.2.0, 1.3.0, 1.4.0 or 1.5.0 is never run or replayed by this engine (EBMR-EXE-061)', () => {
     expect(ENGINE_VERSION).not.toBe('1.0.0');
     const def = fingerprintDefinition();
     const batch = (engineVersion: string): BatchExecutionRecord =>
@@ -120,6 +140,7 @@ describe('the engine version names its output (ADR 0010)', () => {
     expect(refusal('1.2.0')).toBe('EBMR-EXE-061');
     expect(refusal('1.3.0')).toBe('EBMR-EXE-061');
     expect(refusal('1.4.0')).toBe('EBMR-EXE-061');
+    expect(refusal('1.5.0')).toBe('EBMR-EXE-061');
     expect(refusal(ENGINE_VERSION)).toBe('fits');
   });
 });

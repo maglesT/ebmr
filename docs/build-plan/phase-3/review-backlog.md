@@ -13,11 +13,11 @@ abandoning a cleaning reset the dirty-hold clock; the clearance signature did no
 | # | Severity | Finding | Where | For |
 |---|---|---|---|---|
 | 5 | Medium | No retest command: a lot past its retest date can never be used again (fails safe) | site-services 0710, 0712 | Slice 5 (LIMS-lite records the retest result) |
-| 6 | Medium | The release route and quantity are not in the content the release signature covers (the signer is the actor, so the effect is limited) | site-services 0710 material_lot_content | Slice 2 |
+| 6 | Medium | The release route and quantity are not in the content the release signature covers (the signer is the actor, so the effect is limited) | site-services 0710 material_lot_content | Fixed in slice 2 (site-services 0720) |
 | 7 | Medium | A lot received as INTERMEDIATE skips the identity rule; the material kind comes from the receiver and only QA's signature over content showing the kind stands in the way | site-services 0712 receive_lot | Slice 5 (ERP stub supplies the material master) |
 | 8 | Low | Close and IPC hold race: a container can stay CLOSED with a hold row (still unusable, but QA cannot sort or release it); a container opened during a failing check can miss the hold | recipe-core 0422 apply_hold | Slice 3 (press blocks) |
 | 9 | Low | Utility feed freshness is not checked: the latest OK reading counts however old | recipe-core 0403 | Slice 3 |
-| 10 | Low | Clearing a signalled equipment failure (REPAIRED) is a one-person step | recipe-core 0403 | Slice 2 |
+| 10 | Low | Clearing a signalled equipment failure (REPAIRED) is a one-person step | recipe-core 0403 | Fixed in slice 2 (recipe-core 0460) |
 
 ## Open items the builders left
 
@@ -34,3 +34,36 @@ abandoning a cleaning reset the dirty-hold clock; the clearance signature did no
   room the batch is in (slice 3).
 - Raising the D-S1-5 crossing flags as exceptions (slice 2).
 - Freshness-bounded mirrors of site data for a second edition database (D-S1-1, Phase 5).
+
+## Slice 2 notes
+
+- Slice 2 (0720, stricter default): a lot with a passing identity result can be released only on IDENTITY_TESTED, and a
+  person who consumed from a lot is a performer of it, so cannot witness its destruction. Existing lot signatures are
+  superseded by the new content and must be signed again (no effect on a fresh database).
+
+## Slice 2 quick review (10 October 2026)
+
+No critical or high findings. Fixed in slice 2 because they touch core rules (signatures bound to what they approve,
+segregation): 1 (skip, void and invalidation approvals not bound to the act they approve), 2 (VOID_ATTEMPT without
+`point` not refused after a result exists), 3 (QA-only disposition read QA roles from the batch's own policy), 4 (the
+abort requester could sign one of the two approvals), 5 (the QA approver of a fail-to-pass correction was not checked
+for involvement), 7 (every consumption superseded the lot release signature; the witness exclusion the 0720 header
+promised was not built).
+
+| # | Severity | Finding | Where | For |
+|---|---|---|---|---|
+| 1b | Medium | The deviation or investigation an invalidation cites is free text; the database does not check it exists (D-S2-2) | recipe-core 0452 | Slice 5 (deviation-lite) |
+| 6 | Low | The evidence of a fail-to-pass correction is not tied to a stored document | recipe-core 0452 | Slice 5 |
+| 8 | Low | `plant.equipment_repair` has no unique index on the failure event; only the repair matching the open failure can be verified | recipe-core 0460 | Slice 3 |
+
+## Slice 2 hand-over review (10 October 2026)
+
+No critical or high findings. Fixed in slice 2: 1 (a step stayed stuck in ATTEMPT_HANDED_OVER when the incoming person
+never came; the incoming person was not checked for being active and holding the performer role), 2 (the hand-over's
+supervisor, QA approver, outgoing and incoming persons could disposition its STEP_HANDED_OVER exception), 3 (the QA
+approval was not bound to the step, persons and reason; with review finding 1 above), 4 (the outgoing person could still
+correct entries), 6 (the hand-over's supervisor and QA approver could verify the step; stricter default: refused).
+
+Design note for the owner (5): the incoming performer's PERFORMED signature covers the step content including the
+outgoing performer's entries, which the outgoing person does not sign; the verifier covers them all. This follows the
+outline (5.2.3, L-07).

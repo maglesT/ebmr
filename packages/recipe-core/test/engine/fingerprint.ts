@@ -13,7 +13,9 @@
  * 1.3.0) the total of containers weighed in another unit (one in g, one in a unit the total cannot be counted in),
  * (since 1.4.0) the check of a step holding a critical value typed by hand without the printout its MBR names (a later
  * review, then a witness) and (since 1.5.0) the check of such a step once its witness window has passed, and of a step
- * the MBR declares WITNESSED once the run moved on (a witness, then a later review that raises WITNESS_LATE for QA).
+ * the MBR declares WITNESSED once the run moved on (a witness, then a later review that raises WITNESS_LATE for QA), and
+ * (since 1.6.0) the hand-over of a step in progress and its take-over (L-07), an invalidation without the assignable
+ * cause its investigation concluded, and an abort without its checklist confirmed.
  *
  * This module depends on `src` only (no test helper), with the MBR written out in full, so the fingerprint moves only
  * when the engine, its blocks or the expression language answer differently. It is also run against earlier commits
@@ -38,6 +40,7 @@ const VER1 = person('VER1', ['PRODUCTION_VERIFIER', 'VERIFIER']);
 const VER2 = person('VER2', ['PRODUCTION_VERIFIER', 'VERIFIER']);
 const SUP1 = person('SUP1', ['PRODUCTION_SUPERVISOR']);
 const QA1 = person('QA1', ['QA']);
+const HEAD1 = person('HEAD1', ['HEAD_OF_PRODUCTION']);
 
 function phaseNode(id: string, extra: Partial<PhaseNode> = {}): PhaseNode {
   return {
@@ -112,6 +115,8 @@ export function fingerprintMbr(): MbrContent {
         evidence: 'PRINTOUT',
         accuracyCheck: 'SECOND_PERSON',
       },
+      // Keyed by hand in a step that is handed over (1.6.0).
+      { id: 'handTime', name: 'Hand-over time', valueType: 'DECIMAL', unit: 'min', precision: { kind: 'DECIMALS', digits: 0 }, role: 'OBSERVATION', criticality: 'NON_CRITICAL', riskClass: 'LOW', capture: 'MANUAL' },
     ],
     calculations: [],
     yieldCheckpoints: [],
@@ -167,6 +172,8 @@ export function fingerprintMbr(): MbrContent {
                       { id: 'b-late', name: 'Late', body: phaseNode('late', { records: ['lateTime'] }) },
                       { id: 'b-wit', name: 'Witnessed', body: phaseNode('wit', { signatures: { perform: { role: 'OPERATOR' }, check: { meaning: 'WITNESSED', role: 'VERIFIER' } } }) },
                       { id: 'b-side', name: 'Side', body: phaseNode('side') },
+                      // A step handed over by its performer to another (1.6.0).
+                      { id: 'b-hand', name: 'Hand-over', body: phaseNode('hand', { records: ['handTime'] }) },
                     ],
                   },
                 ],
@@ -249,6 +256,21 @@ function rows(): Row[] {
     c(53, { type: 'VERIFY', actor: VER2, step: 'wit', context: [], signature: signed('FP-S17', 'WITNESSED', VER2) }, 33),
     c(53, { type: 'VERIFY', actor: VER2, step: 'wit', context: [], signature: signed('FP-S18', 'VERIFIED', VER2) }, 34),
     { kind: 'SWEEP', at: at(54) },
+    // A step in progress handed over by its performer to another, signed by a supervisor and approved by QA; the
+    // outgoing performer no longer signs it, the incoming one takes it over and signs, a third person verifies (1.6.0).
+    c(55, { type: 'START_STEP', actor: OP1, step: 'hand', context: [] }, 35),
+    c(56, { type: 'RECORD_DATA', actor: OP1, step: 'hand', context: [], item: 'handTime', value: { kind: 'DECIMAL', value: '56', unit: 'min' }, source: { mode: 'MANUAL' } }, 36),
+    c(57, { type: 'HAND_OVER_STEP', actor: SUP1, step: 'hand', context: [], outgoing: OP1.id, incoming: OP2, reason: 'end of shift', signature: signed('FP-S19', 'HANDOVER_APPROVED', SUP1), approval: { approver: QA1, signature: signed('FP-S20', 'HANDOVER_APPROVED', QA1) } }, 37),
+    c(58, { type: 'TAKE_OVER_STEP', actor: OP2, step: 'hand', context: [] }, 38),
+    c(59, { type: 'SIGN_PERFORMED', actor: OP1, step: 'hand', context: [], signature: signed('FP-S21', 'PERFORMED', OP1) }, 39),
+    c(59, { type: 'SIGN_PERFORMED', actor: OP2, step: 'hand', context: [], signature: signed('FP-S22', 'PERFORMED', OP2) }, 40),
+    c(60, { type: 'VERIFY', actor: VER1, step: 'hand', context: [], signature: signed('FP-S23', 'VERIFIED', VER1) }, 41),
+    // An invalidation without the assignable cause its investigation concluded, then with it (1.6.0).
+    c(61, { type: 'INVALIDATE_RESULT', actor: SUP1, point: 'DP-3', investigationRef: 'TEST-OOS-1', reason: 'printout misread', approval: { approver: QA1, signature: signed('FP-S24', 'INVALIDATION_APPROVED', QA1) } } as unknown as CommandInput, 42),
+    c(62, { type: 'INVALIDATE_RESULT', actor: SUP1, point: 'DP-3', investigationRef: 'TEST-OOS-1', assignableCause: 'printer clock fault', reason: 'printout misread', approval: { approver: QA1, signature: signed('FP-S25', 'INVALIDATION_APPROVED', QA1) } }, 43),
+    // An abort without its checklist confirmed, then with it (1.6.0).
+    c(63, { type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', approvals: [{ approver: HEAD1, signature: signed('FP-S26', 'BATCH_ABORT_APPROVED', HEAD1) }, { approver: QA1, signature: signed('FP-S27', 'BATCH_ABORT_APPROVED', QA1) }] } as unknown as CommandInput, 44),
+    c(64, { type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [{ approver: HEAD1, signature: signed('FP-S28', 'BATCH_ABORT_APPROVED', HEAD1) }, { approver: QA1, signature: signed('FP-S29', 'BATCH_ABORT_APPROVED', QA1) }] }, 45),
   ];
 }
 

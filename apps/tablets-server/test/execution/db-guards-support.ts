@@ -89,6 +89,20 @@ export async function signatureAlone(sbx: ExecServer, browser: TestBrowser, pers
   return withCommand(sbx.db.app, await p.actor(), (c) => p.sign(c));
 }
 
+/**
+ * The requester `persona` records the act `command` asks another person to approve (recipe-core 0470: the command as it
+ * will be recorded, without id, actor and signatures, with its requester), in a command of its own; returns the
+ * aggregate id the approver signs (`<batch>:act@<state version>:<hash>`). `command.actor.id` must be the persona's.
+ */
+export async function proposeAct(sbx: ExecServer, browser: TestBrowser, persona: string, batchId: string, command: engine.Command): Promise<string> {
+  return withCommand(sbx.db.app, await actorOf(sbx, browser, persona), async (c) => {
+    const { rows } = await c.query<{ r: { aggregate_id: string } }>('select recipe.propose_act($1, $2) as r', [batchId, engine.approvedAct(command)]);
+    const agg = rows[0]?.r.aggregate_id;
+    if (!agg) throw new Error('SETUP: no act recorded');
+    return agg;
+  });
+}
+
 /** The engine's result of `command` at the transaction's trusted time (it must accept it). */
 export function engineResult(tx: execution.ExecutionTx, command: engine.Command): engine.StepResult {
   const r = engine.step(tx.def, tx.state, command, { nowUs: tx.nowUs });

@@ -327,7 +327,7 @@ describe('a row\'s command, command id and signatures (recipe.execution_row_prob
 
   it('[DI-05][DI-30][DI-35][DI-37] every approval of an abort carries a signature id (or the dry run\'s placeholder), a meaning of the kernel and its approver as the signer, each read at its own place in the list', async () => {
     const approval = (who: typeof approver, id: string) => ({ approver: who, signature: { id, meaning: 'BATCH_ABORT_APPROVED', signer: who.id } });
-    const abort = (approvals: unknown[]) => ({ ...base, commandId: UUID(9), type: 'ABORT_BATCH', reason: 'equipment failure', approvals });
+    const abort = (approvals: unknown[]) => ({ ...base, commandId: UUID(9), type: 'ABORT_BATCH', reason: 'equipment failure', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals });
     const first = approval(approver, UUID(25));
     const second = approval(qa, UUID(26));
     const sigOf = (a: typeof first, change: Json) => ({ ...a, signature: { ...a.signature, ...change } });

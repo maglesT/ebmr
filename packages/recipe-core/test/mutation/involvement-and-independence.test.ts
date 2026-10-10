@@ -64,7 +64,7 @@ describe('recipe.command_step_key: the step instance a command acts on (INV-03, 
       { type: 'VOID_ATTEMPT', commandId: 'C-8', actor, ...at, item: 'lod', reason: 'Sample spilled' },
       { type: 'RAISE_EXCEPTION', commandId: 'C-9', actor, ...at, description: 'Dryer door ajar', severity: 'ALERT' },
       { type: 'CORRECT_ENTRY', commandId: 'C-10', actor, point: 'PT-1', value: { kind: 'DECIMAL', value: '2.2', unit: '%' }, reason: 'Typo', signature: signature('CORRECTED') },
-      { type: 'INVALIDATE_RESULT', commandId: 'C-11', actor, point: 'PT-1', investigationRef: 'TEST-INV-1', reason: 'Assignable cause', approval: { approver: actor, signature: signature('INVALIDATION_APPROVED') } },
+      { type: 'INVALIDATE_RESULT', commandId: 'C-11', actor, point: 'PT-1', investigationRef: 'TEST-INV-1', assignableCause: 'The investigation found an assignable cause', reason: 'Assignable cause', approval: { approver: actor, signature: signature('INVALIDATION_APPROVED') } },
       // Commands that act on no step.
       { type: 'RAISE_EXCEPTION', commandId: 'C-12', actor, description: 'Label printer jammed', severity: 'ALERT' },
       { type: 'CHOOSE_ALTERNATIVE', commandId: 'C-13', actor, construct: 'A-1', context: LOOP, branch: 'B-1', reason: 'Dry route' },

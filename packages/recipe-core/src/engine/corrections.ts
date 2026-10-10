@@ -23,7 +23,7 @@ import type { GraphNode } from '../flow/graph.ts';
 import { evaluateCondition } from './advance.ts';
 import { computeCalculations, evaluateValue, missingData, storePoint, validateValue } from './data.ts';
 import { engineDraft } from './exceptions.ts';
-import { addUnique, hasRole, MEANINGS, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, requireStep, requireInstance, requireStepStatus, useSignature } from './guards.ts';
+import { addUnique, isBlankText, requireNotHandedOver, hasRole, MEANINGS, qualityUnitRoles, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, requireStep, requireInstance, requireStepStatus, useSignature } from './guards.ts';
 import { ctxKey, refuse, type Tx } from './tx.ts';
 import type { CorrectEntryCommand, DataPoint, InvalidateResultCommand, StepInstance, VoidAttemptCommand } from './types.ts';
 import { makeView } from './view.ts';
@@ -35,6 +35,11 @@ function requirePoint(tx: Tx, id: string): DataPoint {
   const p = tx.s.points[id];
   if (!p) refuse('ENG-UNKNOWN-POINT', `There is no data point ${id} in this batch`, ['DI-24']);
   return p;
+}
+
+/** A step being handed over (L-07) waits for the incoming performer before its data is changed. */
+function requireNotBeingHandedOver(inst: StepInstance, action: string): void {
+  if (inst.status === 'ATTEMPT_HANDED_OVER') refuse('ENG-STEP-STATUS', `Step ${inst.key} is being handed over: ${action} waits until the incoming performer has taken it over`, ['DI-34', 'DI-24']);
 }
 
 /** A step that was signed must be re-verified by an uninvolved person; its stage sign-off becomes invalid. */
@@ -197,7 +202,9 @@ export function correctEntry(tx: Tx, cmd: CorrectEntryCommand): void {
   const step = tx.def.steps.get(old.step);
   const param = tx.def.analysis.parameters.get(old.item);
   if (!inst || !step || !param) refuse('ENG-UNKNOWN-POINT', `Data point ${old.id} has no step`, ['DI-24']);
+  requireNotBeingHandedOver(inst, 'correcting its data');
   const a = requirePerson(tx);
+  requireNotHandedOver(inst, a.id, 'correcting its data');
   requireRole(a, [...step.performRoles, ...tx.def.policy.supervisorRoles, ...tx.def.policy.qaRoles], `correct data of ${step.id}`);
   const reason = requireReason(cmd.reason, 'A correction');
   const sig = requireSignature(tx, cmd.signature, a.id, [MEANINGS.CORRECTED], `Correction of ${old.item}`);
@@ -252,8 +259,13 @@ export function voidAttempt(tx: Tx, cmd: VoidAttemptCommand): void {
   if (step.node.kind !== 'phase' || (!step.node.records.includes(cmd.item) && !step.computedItems.has(cmd.item))) refuse('ENG-NOT-RECORDED-HERE', `Step ${step.id} does not capture ${cmd.item}`, ['DI-29']);
   const inst = requireInstance(tx, step, cmd.context ?? []);
   requireStepStatus(inst, ['IN_PROGRESS'], 'voiding an attempt');
+  // Only before a result exists (outline 5.2.3 (b)): not once the item holds a valid result in this step instance,
+  // whether or not the command names it (slice 2 review 2).
+  const result = Object.values(tx.s.points).find((p) => p.stepKey === inst.key && p.item === cmd.item && p.kind === 'VALUE' && p.status === 'VALID');
+  if (result) refuse('ENG-VOID-RESULT', `${cmd.item} already has a result (${result.id}) in ${inst.key}; once a result exists it cannot be voided: correct an entry error (path a) or invalidate it with an investigation (path c)`, ['DI-29', 'DI-24', 'INV-41']);
   const a = requirePerson(tx);
   requireRole(a, step.performRoles, `void an attempt in ${step.id}`);
+  requireNotHandedOver(inst, a.id, 'voiding an attempt');
   const reason = requireReason(cmd.reason, 'A void');
   let approvedBy: string | undefined;
   if (tx.def.policy.voidNeedsQaApproval || cmd.approval) {
@@ -302,20 +314,25 @@ export function invalidateResult(tx: Tx, cmd: InvalidateResultCommand): void {
   const inst = tx.s.steps[p.stepKey];
   const step = tx.def.steps.get(p.step);
   if (!inst || !step) refuse('ENG-UNKNOWN-POINT', `Data point ${p.id} has no step`, ['DI-29']);
+  requireNotBeingHandedOver(inst, 'invalidating its result');
   const a = requirePerson(tx);
   const reason = requireReason(cmd.reason, 'An invalidation');
-  if (typeof cmd.investigationRef !== 'string' || cmd.investigationRef.trim().length === 0) {
+  if (typeof cmd.investigationRef !== 'string' || isBlankText(cmd.investigationRef)) {
     refuse('ENG-INVALIDATE-INVESTIGATION', 'A result is invalidated only with a linked OOS or deviation investigation that concluded an assignable cause', ['DI-29', 'IN-20', 'INV-41']);
   }
+  if (typeof cmd.assignableCause !== 'string' || isBlankText(cmd.assignableCause)) {
+    refuse('ENG-INVALIDATE-INVESTIGATION', `A result is invalidated only with the assignable cause its investigation ${cmd.investigationRef.trim()} concluded, recorded with the invalidation`, ['DI-29', 'IN-20', 'INV-41']);
+  }
+  const cause = cmd.assignableCause.trim();
   const ap = cmd.approval;
   if (ap.approver.kind !== 'PERSON' || ap.approver.id === a.id) refuse('ENG-SEGREGATION', 'An invalidation is approved by QA, a different person than the requester', ['DI-29', 'INV-41']);
-  requireRole(ap.approver, tx.def.policy.qaRoles, 'approve an invalidation');
+  requireRole(ap.approver, qualityUnitRoles(tx.def.policy), 'approve an invalidation');
   const sig = requireSignature(tx, ap.signature, ap.approver.id, [MEANINGS.INVALIDATION_APPROVED], `Invalidation of ${p.item}`);
   useSignature(tx, sig, `invalidation of ${p.id}`, inst.key);
   p.status = 'INVALIDATED';
-  p.invalidation = { investigationRef: cmd.investigationRef.trim(), reason, approvedBy: ap.approver.id, signature: sig.id, at: tx.now };
+  p.invalidation = { investigationRef: cmd.investigationRef.trim(), assignableCause: cause, reason, approvedBy: ap.approver.id, signature: sig.id, at: tx.now };
   tx.emit({ type: 'RESULT_INVALIDATED', point: p.id, by: ap.approver.id, investigationRef: cmd.investigationRef.trim() });
-  tx.raise(engineDraft('RESULT_INVALIDATED', `${p.item} attempt ${p.attempt} in ${inst.key} was invalidated with investigation ${cmd.investigationRef.trim()}: ${reason}; the original stays in the record`, { item: p.item }), {
+  tx.raise(engineDraft('RESULT_INVALIDATED', `${p.item} attempt ${p.attempt} in ${inst.key} was invalidated with investigation ${cmd.investigationRef.trim()} (assignable cause: ${cause}): ${reason}; the original stays in the record`, { item: p.item }), {
     stepKey: inst.key,
     step: inst.step,
     frames: inst.frames,

@@ -55,6 +55,7 @@ tests:
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] one hardness tester serves two presses at once (no occupancy); each use needs its own passing per-use check"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] an unqualified unit, a unit in maintenance and a unit out of tolerance are blocked"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] an as-found calibration failure lists every batch since the last good calibration"
+  - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] clearing a signalled failure needs a second person: the repairer and the person who signalled it cannot verify; a signed second person can"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

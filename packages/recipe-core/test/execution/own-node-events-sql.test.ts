@@ -146,7 +146,7 @@ describe('F67 round 2: an act records the start or end it makes, and the token\'
     let start = retest.state;
     done(retest, 't', { h: '5.00' });
     const only = Object.values(retest.state.points)[0]?.id ?? '';
-    retest.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: only, investigationRef: 'OOS-7', reason: 'balance out of calibration (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
+    retest.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: only, investigationRef: 'OOS-7', assignableCause: 'The investigation found an assignable cause', reason: 'balance out of calibration (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
     expect(retest.status('t')).toBe('IN_PROGRESS');
     done(retest, 't', { h: '5.10' });
     expect(await objections(retest.def.mbr, rowsOf(retest, start))).toEqual({});

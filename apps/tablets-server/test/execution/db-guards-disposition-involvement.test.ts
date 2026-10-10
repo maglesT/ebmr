@@ -198,7 +198,15 @@ async function unsourcedClearanceFailure(c: pg.PoolClient, runId: string, person
 async function landedUnsourcedClearanceFailure(d: RunDriver): Promise<string> {
   return withCommand(sbx.db.admin, await actorOf(sbx, d.browser('operator2'), 'operator2'), async (c) => {
     await c.query('set local session_replication_role = replica');
-    return unsourcedClearanceFailure(c, d.runId, 'operator2');
+    const id = await unsourcedClearanceFailure(c, d.runId, 'operator2');
+    // Landed with its exception register row too (recipe-core 0440), as a restore would bring it: otherwise the next row
+    // is refused first because the state holds an exception the register does not (EBMR-EXE-160).
+    await c.query(
+      `select recipe.register_exception(c, $2, s.state -> 'exceptions' -> $2)
+         from recipe.execution_state s join recipe.execution_command c on c.batch_id = s.batch_id and c.seq = s.last_seq where s.batch_id = $1`,
+      [d.runId, id],
+    );
+    return id;
   });
 }
 

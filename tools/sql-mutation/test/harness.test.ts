@@ -66,10 +66,10 @@ describe('the definitions the harness mutates', () => {
     expect(fileOf('recipe.execution_weighing_item_check()')).toBe('packages/recipe-core/sql/0323_weighing_counted_item.sql');
     expect(fileOf('tab.bind_session(uuid, text, text)')).toBe('apps/tablets-server/sql/0480_bind_session_needs_live_role.sql');
     // A function redefined later is taken from its last definition: kernel.is_blank from kernel 0960 (first 0010),
-    // recipe.check_signatures from recipe-core 0297 (four definitions), tab.record_heartbeat from tablets 0350.
+    // recipe.check_signatures from recipe-core 0471 (seven definitions), tab.record_heartbeat from tablets 0350.
     expect(fileOf('kernel.is_blank(text)')).toBe('packages/kernel/sql/0960_visible_reason_text.sql');
     expect([...defs.values()].filter((d) => d.name === 'recipe.check_signatures').map((d) => d.file)).toEqual([
-      'packages/recipe-core/sql/0297_signature_same_transaction.sql',
+      'packages/recipe-core/sql/0471_approved_act_signatures.sql',
     ]);
     expect([...defs.values()].filter((d) => d.name === 'tab.record_heartbeat').map((d) => d.file)).toEqual([
       'apps/tablets-server/sql/0350_scale_room_locks_and_report_evidence.sql',

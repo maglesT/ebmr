@@ -288,24 +288,24 @@ describe('recipe.append_execution: each refusal by its own message, and nothing 
     expect(await violations(sbx)).toEqual([]);
   }, 240_000);
 
-  it('[DI-34][DI-17] a command type the release does not offer is refused as not available, whoever gives it', async () => {
+  it('[DI-34][DI-17] a command type the release does not offer is refused as not available; a change path (Phase 3 slice 2) is refused to a person without its permission', async () => {
     const d = await newRun(['operator1']);
     const before = await stored(d.runId);
-    const outcome = await forged(d, 'operator1', (tx, me, roles) => {
-      const commandId = randomUUID();
+    const recorded = (command: Record<string, unknown>) => (tx: execution.ExecutionTx, me: engine.Actor, roles: execution.RoleEvidence[]): RawAppend => {
       const state = engine.encodeState(tx.state);
-      return {
-        ...honestRaw(tx, startStep(me), roles),
-        command: { type: 'ABORT_BATCH', commandId, actor: me, reason: 'Line stopped' },
-        commandId,
-        state,
-        stateHash: engine.hashJson(state),
-        events: [],
-        eventsHash: engine.hashJson([]),
-        contents: [],
-      };
-    });
-    expect(outcome).toBe('ABORT_BATCH is not available on test runs in this release; it arrives with the next increment (DI-34). [EBMR-EXE-003]');
+      return { ...honestRaw(tx, startStep(me), roles), command: { ...command, actor: me }, commandId: command['commandId'] as string, state, stateHash: engine.hashJson(state), events: [], eventsHash: engine.hashJson([]), contents: [] };
+    };
+    const unknown = randomUUID();
+    const abort = randomUUID();
+    const outcomes = {
+      // No permission row: the database does not know the command type.
+      unknown: await forged(d, 'operator1', recorded({ type: 'TELEPORT_BATCH', commandId: unknown, reason: 'Line stopped' })),
+      // ABORT_BATCH is catalogued since recipe-core 0450 (it was refused here as not available, EBMR-EXE-003, until
+      // then); an operator does not hold its permission in any form.
+      abort: await forged(d, 'operator1', recorded({ type: 'ABORT_BATCH', commandId: abort, reason: 'Line stopped', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [] })),
+    };
+    expect(outcomes.unknown).toBe('TELEPORT_BATCH is not available on test runs in this release; it arrives with the next increment (DI-34). [EBMR-EXE-003]');
+    expect(outcomes.abort).toMatch(/^EBMR-IAM-040 .* acting as OPERATOR lacks permission STEP\.SUPERVISE /);
     expect(await stored(d.runId)).toEqual(before);
   }, 240_000);
 });

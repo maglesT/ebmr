@@ -630,6 +630,49 @@ one plain-language business entry on the chain `batch:<id>`.
     it, measured from the events of its constraint instance recorded before it (INV-20, PR-30). A block cannot be
     re-judged from the stored rows (only the last state is kept); the write-time refusal is its enforcement.
 
+- The exception register (sql 0440; outline 5.2.4; DI-26, PR-08, PR-13, INV-41): `exception_register` holds one
+  insert-only row per exception (type, review category and its mandatory flag, severity, limit tier or none, raising
+  step, the raising row's database and engine time, the raiser, the QA-only, deviation and release flags, what lifts its
+  block, the record as raised), `exception_register_act` one row per act (DEVIATION_LINKED and DISPOSITIONED with the
+  engine row that does them; QUERIED, RESPONDED, ACCEPTED_BY_QA and ESCALATED through `review_exception`). The trigger
+  `zzr_exception_register` (`exception_register_sync`) writes them with the row and keeps the state and the register
+  together on every row (EBMR-EXE-160 to 163); `exception_register_review` is the read view for review by exception.
+  Every review category is mandatory (`exception_review_category`, insert-only). A review never closes an exception.
+- The change paths (sql 0450-0453; outline 5.2.2, 5.2.3; DI-24, DI-29, PR-12, PR-13, INV-41): REQUEST_SKIP,
+  VOID_ATTEMPT, INVALIDATE_RESULT, ABORT_BATCH and CANCEL_BATCH have their permission rows and signature meanings (no
+  longer EBMR-EXE-003). Approvals of a skip, a void and an abort and the cancellation are signed on the batch record at
+  one state version (`batch_record_content`, `<batch>:record@<version>`); `check_signatures` checks them and
+  `check_approver_roles` reads each approver's engine role from the authority behind their signature (EBMR-EXE-171).
+  `change_path_problem` (trigger `zzn_execution_change_paths`) holds what an accepted row may store: a skip only of a
+  phase the MBR declares skippable (`skip_problem`), a void only before a result exists and always QA-approved (S28), an
+  invalidation only with its investigation and assignable cause and the original kept, a correction from fail to pass
+  only with evidence and QA approval (INV-41), an abort with its checklist and two approvers, a cancellation only before
+  anything started, and no other row aborts, cancels or revives a batch (EBMR-EXE-172 to 178).
+  Since 0470-0472 (slice 2 review): an approval of a skip, a void, an invalidation or an abort, and both signatures of a
+  hand-over, sign the approved act (`batch_act`, `<batch>:act@<version>:<hash>`): the requester records the act first
+  (`propose_act`, table `execution_act_proposal`; content `batch_act_content`), and `check_signatures` takes the
+  aggregate from the row's own command (`approved_act_aggregate`), so an approval approves that act only; a void is
+  refused once the item holds a valid result, an abort's approvers are not its requester, and the QA approval of a
+  correction from fail to pass is independent of the original entry.
+- The hand-over of a step in progress (sql 0461-0463; outline 5.2.3, L-07; PR-14, INV-03, INV-31, DI-24, DI-26;
+  engine 1.6.0): HAND_OVER_STEP (STEP.SUPERVISE, signed HANDOVER_APPROVED by the recording supervisor and approved
+  HANDOVER_APPROVED by QA, both on the batch record) and TAKE_OVER_STEP (the named incoming performer, unsigned) have
+  their permission rows; `check_approver_roles` reads the supervisor's and QA's engine roles from their signatures
+  (EBMR-EXE-171). `hand_over_problem` (trigger `zzo_execution_hand_over`) holds what a row may store: a hand-over of a
+  step in progress from a person involved in it to another person, by a supervisor and QA neither of them nor involved,
+  with a reason, recorded exactly in the step's `handOvers`, with the second person's check required and exactly one
+  STEP_HANDED_OVER exception (the register entry); the take-over only by the incoming performer the last hand-over
+  names; no act of the outgoing performer in the step afterwards; no correction or invalidation while the step waits;
+  and no VERIFY by a person the accepted rows name as involved, outgoing or incoming performer included (EBMR-EXE-185).
+  `step_status_problem`, `command_step_key`, `execution_state_binding_check` and `signature_invalidation_problem` know
+  the status ATTEMPT_HANDED_OVER and the two commands.
+  The quick review fixes (sql 0480): the incoming performer is named as an actor with their engine roles, and the
+  database refuses one who is not active, has no active account or does not hold now (`person_engine_roles`) the roles
+  named, the step's perform role among them; a step waiting for its incoming performer is handed over again from that
+  person; the outgoing performer neither corrects nor raises an exception at the step; the hand-over's supervisor and
+  QA approver do not verify it; and `exception_step_involvement` holds every person a step's hand-overs name
+  (`hand_over_involvement`), so none of them dispositions its exceptions (EBMR-ESIG-044, EBMR-EXE-163).
+
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 
 | Codes | Area |
@@ -648,6 +691,9 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
 | 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
 | 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347, 0348; kernel migrations 1030, 1040; tablets sql 0640 for the manual-weighing basis): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them (a number in a compound only in the engine's shapes), in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
+| 160-165 | the exception register (sql 0440): the state's exceptions and the register disagree, an exception changed from as raised or removed (160); a deviation link or a closing other than the exception's own ATTACH_DEVIATION or signed DISPOSITION_EXCEPTION (161); a QA-only exception dispositioned without a QA role of the batch policy (162); a disposition by its raiser or a person involved in the raising step (163); a QA review act out of order or without its text or deviation reference (164), or by a person who took part in the exception (165) |
+| 170-179 | the change paths (sql 0450-0453, 0470-0472; Phase 3 slice 2): a frozen identity column of an issued batch changed (170); an approval signed by a person without the approving role, read from the authority behind the signature (171); a skip of a step the MBR does not allow to skip or that is never skipped (172); a void of an attempt that holds a result, or that stores another attempt (173); an invalidation without its investigation or assignable cause, or that does not keep the original (174); a correction from fail to pass without evidence or QA approval (175, INV-41); an abort without its reason, checklist or abort record (176); a cancellation after a step started (177); a batch aborted, cancelled or revived by any other row (178); an act asked for approval that is not one of these commands as it will be recorded, by its requester (179) |
+| 185-189 | the hand-over of a step in progress (sql 0461-0463; Phase 3 slice 2, L-07): a hand-over, take-over, act of an outgoing performer, change of a step waiting for its incoming performer, or verification by an involved person otherwise than the engine allows (185) |
 
 ## TypeScript
 
@@ -665,6 +711,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
   - `issueBatch` issues a batch.
   - `assertDefinitionFits` refuses a definition that is not the batch's own: content, engine version,
     block registry, pinned policy and installation (ADR 0010).
+- `register.ts`: `loadExceptionRegister` reads the register view, `reviewException` records a QA review act.
 - `verify.ts`: `replayExecution` replays the stored rows with the pure engine, at their stored clocks.
   - Row by row, the result must equal what is stored: the accepted flag, the events hash and the state
     hash.
@@ -1079,6 +1126,23 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
+- `db-guards-hand-over.test.ts` (Phase 3 slice 2; sql 0461-0463): the hand-over of a step in progress recorded with
+  a supervisor's signature and QA's approval and registered as STEP_HANDED_OVER, refused forged (without the approval,
+  from a person not on the step, approved by the incoming performer, without its exception, with another reason); the
+  take-over only by the named incoming performer; the outgoing performer's later act refused; the verifier none of the
+  persons involved (INV-31, PR-14); a direct write refused.
+- `db-guards-change-paths.test.ts` (Phase 3 slice 2; sql 0450-0453): each change path recorded when its conditions hold
+  and refused otherwise, honestly and forged through the store: a void only before a result and QA-approved, an
+  invalidation with its investigation and cause keeping the original and invalidating the step's signatures on the
+  engine's path, a correction from fail to pass only with evidence and QA approval (its exception stays open), a skip
+  only where the MBR allows it, an abort with two approvers and the checklist, a cancellation before anything started,
+  no other row aborting, cancelling or reviving a batch, and no direct write of the tables.
+- `db-guards-exception-register.test.ts` (Phase 3 slice 2; sql 0440): every exception is registered with the row that
+  raises it (tier, step, raiser, database time, mandatory flag) and the register and the state agree; the action tier
+  blocks until the deviation is linked; a correction never closes an exception; a registered-tier breach is
+  dispositioned only by a QA role of the batch policy (EBMR-EXE-162), never by a person involved in the raising step;
+  the QA review acts and their order; the application role writes nothing, and a register act removed behind the
+  triggers' back stops the next row (EBMR-EXE-161).
 - `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309, 0329, 0331): a second QA user's disposition, and a
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content

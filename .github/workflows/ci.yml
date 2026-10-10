@@ -76,7 +76,9 @@ jobs:
   report:
     name: Typecheck, lint, boundaries, register, web build, tests, traceability
     needs: [checks, tests]
-    if: always()
+    # Runs when a shard failed (to merge and summarise what did run) but not when the run was cancelled, for example by
+    # a newer push to the same branch: there is nothing to report then.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

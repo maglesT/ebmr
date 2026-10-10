@@ -36,6 +36,8 @@ export const MEANINGS = {
   /** NEW: a supervisor cancels an issued batch before anything started. */
   CANCELLED: 'BATCH_CANCELLED',
   REPROCESSING_AUTHORISED: 'DEVIATION_AUTHORISED',
+  /** NEW: a supervisor and QA approve the hand-over of a step in progress (L-07). */
+  HANDOVER_APPROVED: 'HANDOVER_APPROVED',
 } as const;
 
 /**
@@ -144,6 +146,18 @@ export function hasRole(actor: Actor, roles: readonly string[]): boolean {
   return actor.roles.some((r) => roles.includes(r));
 }
 
+/**
+ * The quality unit's roles that approve an invalidation of a result and an abort (outline 5.2.2, 5.2.3 (c)): the
+ * policy's QA roles and the QA reviewer, who alone holds the authority the kernel asks for those meanings
+ * (INVALIDATION_APPROVED: RECORD.QA_REVIEW; BATCH_ABORT_APPROVED for QA: RECORD.QA_REVIEW; kernel 0930). The database
+ * asks the same (recipe-core sql 0452).
+ */
+export const QA_REVIEWER_ROLE = 'QA_REVIEWER';
+
+export function qualityUnitRoles(policy: { readonly qaRoles: readonly string[] }): readonly string[] {
+  return policy.qaRoles.includes(QA_REVIEWER_ROLE) ? policy.qaRoles : [...policy.qaRoles, QA_REVIEWER_ROLE];
+}
+
 export function requireRole(actor: Actor, roles: readonly string[], action: string): void {
   if (roles.length === 0 || !hasRole(actor, roles)) refuse('ENG-ROLE', `${actor.id} does not hold a role that may ${action} (needs one of ${roles.join(', ') || 'no role is configured'})`, ['DI-17', 'PR-15']);
 }
@@ -228,6 +242,28 @@ export function requireNotBlocked(tx: Tx, inst: StepInstance, phase: 'START' | '
 /** Persons involved in a step (performed, entered data, corrected): never its verifier (INV-03). */
 export function involvedIn(inst: StepInstance): Set<string> {
   return new Set([...inst.performers, ...inst.dataEnterers, ...inst.correctors, ...inst.performedSigners]);
+}
+
+/** The performers who handed the step over and left it (L-07): their entries stay theirs; they no longer act in it. */
+export function handedOverFrom(inst: Pick<StepInstance, 'handOvers'>): Set<string> {
+  return new Set((inst.handOvers ?? []).map((h) => h.outgoing));
+}
+
+/**
+ * The persons who may not check a step or disposition an exception it raised: its involved persons (involvedIn) and
+ * every person its hand-overs name (outgoing, incoming, the supervisor who signed and QA who approved it; L-07).
+ */
+export function excludedFromReview(inst: StepInstance): Set<string> {
+  const out = involvedIn(inst);
+  for (const h of inst.handOvers ?? []) for (const p of [h.outgoing, h.incoming, h.supervisor, h.qaApprover]) out.add(p);
+  return out;
+}
+
+/** A performer who handed the step over does not act in it again (L-07; DI-14): the incoming performer completes it. */
+export function requireNotHandedOver(inst: StepInstance, person: string | undefined, action: string): void {
+  if (person !== undefined && handedOverFrom(inst).has(person)) {
+    refuse('ENG-HANDED-OVER', `${person} handed step ${inst.key} over and no longer acts in it: ${action} is for the performer who took it over`, ['DI-14', 'PR-14']);
+  }
 }
 
 export function addUnique(list: string[], value: string): void {

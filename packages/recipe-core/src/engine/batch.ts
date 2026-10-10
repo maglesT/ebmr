@@ -6,9 +6,10 @@ import { isDecimalLiteral } from '../flow/decimal.ts';
 import type { Frame } from '../flow/tokens.ts';
 import type { BatchDefinition } from './definition.ts';
 import { engineDraft } from './exceptions.ts';
-import { hasRole, MEANINGS, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, useSignature } from './guards.ts';
+import { excludedFromReview, hasRole, MEANINGS, requireNotHandedOver, qualityUnitRoles, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, useSignature } from './guards.ts';
 import { refuse, stepKey, type Tx } from './tx.ts';
 import {
+  ABORT_CHECKLIST_ITEMS,
   ENGINE_VERSION,
   STATE_SCHEMA,
   type AbortBatchCommand,
@@ -133,19 +134,21 @@ export function releaseHold(tx: Tx, cmd: ReleaseHoldCommand): void {
 
 export function abortBatch(tx: Tx, cmd: AbortBatchCommand): void {
   requireBatchStatus(tx, ['ISSUED', 'IN_PROGRESS', 'ON_HOLD', 'EXECUTION_COMPLETE'], 'aborting the batch');
-  requirePerson(tx);
+  const requester = requirePerson(tx);
   const reason = requireReason(cmd.reason, 'An abort');
   const persons = new Set(cmd.approvals.map((x) => x.approver.id));
   const head = cmd.approvals.find((x) => x.approver.kind === 'PERSON' && hasRole(x.approver, tx.def.policy.productionHeadRoles));
-  const qa = cmd.approvals.find((x) => x.approver.kind === 'PERSON' && hasRole(x.approver, tx.def.policy.qaRoles) && x !== head);
-  if (!head || !qa || persons.size < 2 || head.approver.id === qa.approver.id) {
-    refuse('ENG-ABORT-APPROVALS', 'An abort needs two signatures by different persons: the head of production and QA', ['DI-34', 'PR-13']);
+  const qa = cmd.approvals.find((x) => x.approver.kind === 'PERSON' && hasRole(x.approver, qualityUnitRoles(tx.def.policy)) && x !== head);
+  if (!head || !qa || persons.size < 2 || head.approver.id === qa.approver.id || cmd.approvals.length !== 2 || persons.has(requester.id)) {
+    refuse('ENG-ABORT-APPROVALS', 'An abort needs exactly two signatures by different persons, neither of them the one who records it: the head of production and QA', ['DI-34', 'PR-13']);
   }
+  const unconfirmed = ABORT_CHECKLIST_ITEMS.filter((k) => cmd.checklist?.[k] !== true);
+  if (unconfirmed.length > 0) refuse('ENG-ABORT-CHECKLIST', `An abort needs its checklist confirmed: ${unconfirmed.join(', ')} not confirmed`, ['DI-34', 'PR-13']);
   for (const ap of [head, qa]) requireSignature(tx, ap.signature, ap.approver.id, [MEANINGS.ABORT_APPROVED], 'The abort');
   for (const ap of [head, qa]) useSignature(tx, ap.signature, 'batch aborted');
   const from = tx.s.status;
   tx.s.status = 'ABORTED';
-  tx.s.abort = { reason, approvals: [head.approver.id, qa.approver.id], at: tx.now };
+  tx.s.abort = { reason, checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [head.approver.id, qa.approver.id], at: tx.now };
   tx.emit({ type: 'BATCH_STATUS_CHANGED', from, to: 'ABORTED', reason });
 }
 
@@ -175,6 +178,7 @@ export function raiseException(tx: Tx, cmd: RaiseExceptionCommand): void {
     const step = tx.def.steps.get(cmd.step);
     const key = stepKey(cmd.step, frames);
     if (!step || !tx.s.steps[key]) refuse('ENG-UNKNOWN-STEP', `Step ${key} has not been reached in this batch`, ['PR-13']);
+    requireNotHandedOver(tx.s.steps[key], a.id, 'raising an exception at it');
     source = { stepKey: key, step: cmd.step, frames: [...frames] };
     anchor = { node: step.graphNode, frames: [...frames] };
   }
@@ -209,8 +213,8 @@ export function dispositionException(tx: Tx, cmd: DispositionExceptionCommand): 
   const a = requirePerson(tx);
   requireRole(a, e.qaOnly ? tx.def.policy.qaRoles : [...tx.def.policy.supervisorRoles, ...tx.def.policy.qaRoles], `disposition exception ${e.id}${e.qaOnly ? ' (QA only)' : ''}`);
   const inst = e.source.stepKey !== undefined ? tx.s.steps[e.source.stepKey] : undefined;
-  if (inst && [...inst.performers, ...inst.dataEnterers, ...inst.correctors, ...inst.performedSigners].includes(a.id)) {
-    refuse('ENG-SEGREGATION', `${a.id} is involved in step ${inst.key}, which raised ${e.id}, and cannot disposition it`, ['PR-13', 'PR-49', 'INV-03']);
+  if (inst && excludedFromReview(inst).has(a.id)) {
+    refuse('ENG-SEGREGATION', `${a.id} is involved in step ${inst.key}, which raised ${e.id}, or took part in its hand-over, and cannot disposition it`, ['PR-13', 'PR-49', 'INV-03']);
   }
   const justification = requireReason(cmd.justification, 'A disposition');
   if (e.deviationRequired && cmd.outcome !== 'DEVIATION_RAISED') {

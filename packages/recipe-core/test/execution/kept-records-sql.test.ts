@@ -258,18 +258,19 @@ describe('every row of the engine keeps what the state recorded, as the database
     run.record('t', 'h', { kind: 'DECIMAL', value: '130', unit: 'N' });
     run.record('t', 'h', { kind: 'DECIMAL', value: '90', unit: 'N' });
     const first = Object.values(run.state.points)[0]?.id ?? '';
-    run.refused({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', reason: 'bad sample', approval: { approver: SUP1, signature: sig('INVALIDATION_APPROVED', SUP1) } }, 'ENG-ROLE');
-    run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', reason: 'tester jaw misaligned (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
+    run.refused({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', assignableCause: 'The investigation found an assignable cause', reason: 'bad sample', approval: { approver: SUP1, signature: sig('INVALIDATION_APPROVED', SUP1) } }, 'ENG-ROLE');
+    run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', assignableCause: 'The investigation found an assignable cause', reason: 'tester jaw misaligned (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
     // The failing result's exception stays open (INV-41); its deviation lets the step complete.
     for (const e of run.exceptions('LIMIT_BREACH')) run.ok({ type: 'ATTACH_DEVIATION', actor: QA1, exception: e.id, deviationRef: 'DEV-4' });
     run.perform('t');
     if (run.status('t') === 'AWAITING_VERIFICATION') run.verify('t', [], VER2);
     // The governing result invalidated after the step completed: the step re-opens for a re-test.
     const governing = Object.values(run.state.points).find((p) => p.status === 'VALID')?.id ?? '';
-    run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: governing, investigationRef: 'OOS-5', reason: 'sample mix-up (assignable cause)', approval: { approver: QA2, signature: sig('INVALIDATION_APPROVED', QA2) } });
+    run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: governing, investigationRef: 'OOS-5', assignableCause: 'The investigation found an assignable cause', reason: 'sample mix-up (assignable cause)', approval: { approver: QA2, signature: sig('INVALIDATION_APPROVED', QA2) } });
     expect(run.status('t')).toBe('IN_PROGRESS');
-    run.record('t', 'h', { kind: 'DECIMAL', value: '95', unit: 'N' });
+    // A re-test attempt abandoned before its reading (a void only before a result exists), then the re-test.
     run.ok({ type: 'VOID_ATTEMPT', actor: OP1, step: 't', item: 'h', reason: 'sample dropped before reading', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } });
+    run.record('t', 'h', { kind: 'DECIMAL', value: '95', unit: 'N' });
     const rows = rowsOf(run, start);
     expect(await objections(rows)).toEqual({});
     expect(rows.filter((r) => r.label.includes('INVALIDATE_RESULT') && r.accepted).map((r) => changed(r, 'points'))).toEqual([1, 1]);
@@ -288,7 +289,7 @@ describe('every row of the engine keeps what the state recorded, as the database
     if (yrun.status('out') === 'AWAITING_VERIFICATION') yrun.verify('out');
     done(yrun, 'y');
     const good = Object.values(yrun.state.points).find((p) => p.item === 'good' && p.attempt === 1)?.id ?? '';
-    yrun.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: good, investigationRef: 'DEV-7', reason: 'scale drift (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
+    yrun.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: good, investigationRef: 'DEV-7', assignableCause: 'The investigation found an assignable cause', reason: 'scale drift (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
     const yrows = rowsOf(yrun, ystart);
     expect(await objections(yrows)).toEqual({});
     expect(yrows.filter((r) => r.label.includes('INVALIDATE_RESULT')).map((r) => changed(r, 'derived'))).toEqual([1]);
@@ -345,7 +346,7 @@ describe('a row that rewrites what the state recorded, or makes the engine\'s ch
     const yld = Object.values(y.state.derived)[0]?.id ?? '';
     y.ok({ type: 'RAISE_EXCEPTION', actor: OP1, description: 'Label printer jammed once', severity: 'ALERT' });
     y.ok({ type: 'CORRECT_ENTRY', actor: corrector, point: charged, value: kg('10.20'), reason: 'keying error', signature: sig('CORRECTED', corrector), approval: { approver: SUP1, signature: sig('CORRECTION_APPROVED', SUP1) } });
-    y.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: good, investigationRef: 'DEV-7', reason: 'scale drift (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
+    y.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: good, investigationRef: 'DEV-7', assignableCause: 'The investigation found an assignable cause', reason: 'scale drift (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
     const yrows = rowsOf(y, ystart);
     const find = (rows: readonly Row[], part: string): Row => {
       const r = [...rows].reverse().find((x) => x.label.includes(part) && x.kind === 'COMMAND');
@@ -401,7 +402,7 @@ describe('a row that rewrites what the state recorded, or makes the engine\'s ch
       invalidatedByException: await forge(raise, (s) => {
         const p = s.points[good] as { status: string; invalidation?: unknown };
         p.status = 'INVALIDATED';
-        p.invalidation = { investigationRef: 'X', reason: 'x', approvedBy: 'QA1', signature: 'S', at: 0n };
+        p.invalidation = { investigationRef: 'X', assignableCause: 'x', reason: 'x', approvedBy: 'QA1', signature: 'S', at: 0n };
       }),
       // A correction that also supersedes another value, or names another new version.
       correctionSupersedesAnother: await forge(correct, (s) => {

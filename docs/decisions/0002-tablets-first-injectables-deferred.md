@@ -5,6 +5,10 @@
 - **Decision:** "drop injectables plan for now, we will go with tablets". The Injectables edition is deferred; the build
   continues with the Tablets edition only.
 
+> **Extended** by decision 0010 (10 October 2026): the Tablets edition goes through Phases 6 and 7 to v1.0 first;
+> Injectables (Phase 5) is built after that, as its own release. 0010 also records the trace-gate change needed before
+> `compliance/phase.yaml` passes 4.
+
 ## What changes
 
 | Item | Before | Now |
