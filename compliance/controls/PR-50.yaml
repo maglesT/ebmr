@@ -27,7 +27,9 @@ behaviour: |-
     - "Not determined" requires a most-probable cause and actions.
 catalog_test: An investigation cannot close without conclusions and follow-up. The impact query returns the expected batch set, checked against an independent query. "Human error" without the system-factor assessment is blocked.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/blocks/coating/blocks.test.ts > TB-20 inspection, sorting and AQL > [PR-50][PR-46] a foreign tablet found in sorting is critical: QA decides, release is blocked, a deviation is required"
+  - "apps/tablets-server/test/blocks/coating/db-guards.test.ts > the coating and finishing blocks in the database (tablets 0910 to 0912) > [PR-46][PR-47][PR-50][IN-35][PR-29][INV-41][DI-10] TB-20: the sort reconciled into reject containers of this batch, a foreign tablet only with its exception, the AQL plan and the severity of the switching rule decided by the database, a rejected lot never sampled again; reject containers never charged; the destruction step closes only with every reject container destroyed under witness"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

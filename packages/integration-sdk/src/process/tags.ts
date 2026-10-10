@@ -2,7 +2,8 @@
  * Process tags of the tablet press and the film coater (Phase 3 slice 3a, G-06; the tag names are the 3a interface
  * of docs/build-plan/phase-3/slice-3-plan.md and never change once released), and of the granulation-side equipment
  * the TB-04, TB-05 and TB-07 blocks run on (Phase 3 slice 3b: high-shear granulator, fluid-bed dryer, blender; no
- * simulator speaks them yet, the gateway forwards their readings like the press's).
+ * simulator speaks them yet, the gateway forwards their readings like the press's), of the roller compactor of TB-06 and
+ * the layer settings of a bilayer press of TB-16 (Phase 3 slice 3d; no simulator speaks them yet either).
  *
  * Each tag has its engineering unit, the number of fraction digits its values carry on the wire (a value with more
  * is refused, never rounded), whether it is a counter (whole and never negative) and whether the equipment takes a
@@ -17,8 +18,12 @@ export type EquipmentKind = (typeof EQUIPMENT_KINDS)[number];
 export const GRANULATION_EQUIPMENT_KINDS = ['GRANULATOR', 'DRYER', 'BLENDER'] as const;
 export type GranulationEquipmentKind = (typeof GRANULATION_EQUIPMENT_KINDS)[number];
 
+/** Dry-granulation process equipment (slice 3d, TB-06): the roller compactor with its integrated mill. */
+export const FORMING_EQUIPMENT_KINDS = ['ROLLER_COMPACTOR'] as const;
+export type FormingEquipmentKind = (typeof FORMING_EQUIPMENT_KINDS)[number];
+
 /** Every kind of process equipment whose readings the server takes (tab.process_tag, tab.process_device). */
-export const PROCESS_EQUIPMENT_KINDS = [...EQUIPMENT_KINDS, ...GRANULATION_EQUIPMENT_KINDS] as const;
+export const PROCESS_EQUIPMENT_KINDS = [...EQUIPMENT_KINDS, ...GRANULATION_EQUIPMENT_KINDS, ...FORMING_EQUIPMENT_KINDS] as const;
 export type ProcessEquipmentKind = (typeof PROCESS_EQUIPMENT_KINDS)[number];
 
 export interface TagSpec {
@@ -78,12 +83,38 @@ export const GRANULATION_TAGS = [
   spec('blender.revolutions', 'BLENDER', 'count', 0, false, true),
 ] as const satisfies readonly TagSpec[];
 
+/** Slice 3d (TB-06): the roller compactor's tags (tablets 0930 ships the same rows in tab.process_tag). */
+export const ROLLER_COMPACTOR_TAGS = [
+  spec('roller.force_kN', 'ROLLER_COMPACTOR', 'kN', 2, true),
+  spec('roller.gap_mm', 'ROLLER_COMPACTOR', 'mm', 2, true),
+  spec('roller.speed_rpm', 'ROLLER_COMPACTOR', 'rpm', 1, true),
+  spec('roller.feed_screw_rpm', 'ROLLER_COMPACTOR', 'rpm', 1, true),
+  spec('roller.vacuum_mbar', 'ROLLER_COMPACTOR', 'mbar', 0, true),
+  spec('roller.mill_rpm', 'ROLLER_COMPACTOR', 'rpm', 0, true),
+] as const satisfies readonly TagSpec[];
+
+/**
+ * Slice 3d (TB-16): the layer settings of a bilayer press, beside the press tags (the last layer's fill and the final
+ * compression keep fill.depth_mm, force.pre_kN and force.main_kN). Kept out of PRESS_TAGS, so the press simulator's
+ * tag set does not change; tablets 0930 ships the same rows in tab.process_tag.
+ */
+export const BILAYER_PRESS_TAGS = [
+  spec('layer1.fill_depth_mm', 'PRESS', 'mm', 2, true),
+  spec('layer1.tamp_kN', 'PRESS', 'kN', 2, true),
+  spec('layer2.fill_depth_mm', 'PRESS', 'mm', 2, true),
+  spec('layer2.tamp_kN', 'PRESS', 'kN', 2, true),
+] as const satisfies readonly TagSpec[];
+
 export type PressTag = (typeof PRESS_TAGS)[number]['tag'];
 export type CoaterTag = (typeof COATER_TAGS)[number]['tag'];
 export type GranulationTag = (typeof GRANULATION_TAGS)[number]['tag'];
-export type ProcessTag = PressTag | CoaterTag | GranulationTag;
+export type FormingTag = (typeof ROLLER_COMPACTOR_TAGS)[number]['tag'] | (typeof BILAYER_PRESS_TAGS)[number]['tag'];
+export type ProcessTag = PressTag | CoaterTag | GranulationTag | FormingTag;
 
-export const PROCESS_TAGS: readonly TagSpec[] = [...PRESS_TAGS, ...COATER_TAGS, ...GRANULATION_TAGS];
+/** Slice 3d: the tags of the forming blocks TB-06 and TB-16. */
+export const FORMING_TAGS: readonly TagSpec[] = [...ROLLER_COMPACTOR_TAGS, ...BILAYER_PRESS_TAGS];
+
+export const PROCESS_TAGS: readonly TagSpec[] = [...PRESS_TAGS, ...COATER_TAGS, ...GRANULATION_TAGS, ...FORMING_TAGS];
 export const PROCESS_TAG_NAMES = PROCESS_TAGS.map((t) => t.tag) as readonly ProcessTag[];
 
 const BY_TAG = new Map(PROCESS_TAGS.map((t) => [t.tag, t]));

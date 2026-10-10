@@ -101,6 +101,7 @@ tests:
   - "packages/site-services/test/lots/lots.test.ts > receipt and release > [DI-18][DI-17] an administrator never receives, releases, reserves or decides on a lot; an operator cannot receive one"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > writer authority on the GMP installation (DI-17, DI-18) > [DI-17][DI-18] the GMP writers refuse administrators and check the permission; the application role writes no batch, link or plan directly"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 in the database: registers and the lot assay register (tablets 0840, 0841) > [DI-17][DI-18] the new functions pin their search path with pg_temp last, are private to the owner, and the application role executes only the two register functions and the two readers the server needs"
+  - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [DI-17][DI-18] the new and replaced functions pin their search path with pg_temp last and belong to the owner; the application role executes only the two missed-check readers it executed before, and writes no forming row directly"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

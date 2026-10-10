@@ -59,8 +59,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   registry; the kernel SCOPE hook (kernel 1150, ADR 0018); merged (PR #10). 3b (TB-01 dispensing and the granulation
   blocks TB-02 to TB-05 and TB-07, tablets sql 0840 to 0852) merged (PR #11). 3c (compression: TB-09 tooling,
   TB-10 press set-up, TB-17 detectors, TB-11 IPC scheduler, TB-12 to TB-15 compendial checks; tablets sql 0870 to 0894,
-  recipe-core 0540, 0541) is built on `phase-3/slice-3c`. The compendial rule-set values await the expert's check
-  (review backlog). Next: 3d (coating and finishing).
+  recipe-core 0540, 0541) merged (PR #12). 3d (TB-18 coating, TB-19 printing with the QC gate, TB-20 AQL, TB-06 roller
+  compaction, TB-16 bilayer; tablets sql 0910 to 0913, 0930 to 0932) is built on `phase-3/slice-3d`. The compendial
+  rule-set values and the AQL tables await the expert's check (review backlog). Next: slice 4 (blister packaging).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)

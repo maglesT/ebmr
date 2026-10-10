@@ -153,3 +153,30 @@ first run's sets).
   rule set or records it as not applicable in `tab.compendial_not_applicable`. Likewise a sugar-coated batch that opts
   into the legacy in-house table is refused until its rule set is confirmed. Default until then: refused.
 - A missed check recorded by the sweeper makes closed containers unusable at once (under a hold), but their status moves to HELD only at the next person's check, because the HOLD transition needs STEP.EXECUTE, which the sweeper deliberately lacks (least privilege). Accepted: unusable is the safety property.
+
+## Slice 3d open items (builder reports, 10 October 2026)
+
+- **For the owner and the expert:** the AQL table values (TB-20, tablets 0911) have medium confidence and must be
+  checked against the current ISO 2859-1 text, especially the tightened-inspection table.
+- **For the owner:** the TB-19 print approval gate is signed by QA (the hold-point signature needs QA.FLOOR_APPROVE). A
+  QC-unit signature for this gate would need a new signature meaning in the kernel catalogue; default kept: QA.
+- TB-18 and TB-20 sample weights are keyed by hand with a second person; balance capture is not wired (slice 6).
+- A G-23 destruction entry in a test run cannot name a plant container label (sandbox identifier rule), so the
+  destroyed-for-every-reject rule is proven on a forged state only (revisit with the GMP demo in slice 6).
+- TB-06: ribbon checks keyed by hand (no instrument), FEED names no container charge, no stoppage handling (a long stop
+  shows as a missed check), no roller-compactor simulator (slice 6).
+- The new entry kinds of 3d are not in the api-contract (screens, slice 6).
+
+## Slice 3d quick review (10 October 2026)
+
+No critical or high findings. The replaced shared functions (ipc_pass_check, ipc_overdue_at, record_ipc_overdue,
+granulation_block_item) keep every slice 3c fix; the AQL tables were cross-checked by hand at AQL 1.0 to 4.0.
+Fixed in 3d: 1 (the out-of-limits and setpoint-mismatch exceptions of G-06 values were not required by the database for
+TB-18; now one shared check for every block with G-06 entries), 2 (the reject destruction step's order and completion
+are enforced), and the lows on yield rounding before the limit test, the constraint rebuild pattern and AQL severity
+under concurrent batches.
+
+| # | Severity | Finding | Where | For |
+|---|---|---|---|---|
+| 3 | Low | A lot with fewer than 2 accepted tablets gives no AQL plan (TB20-NO-PLAN) and can only leave through a deviation path | tablets 0911 | Slice 5 (deviation-lite) |
+| 4 | Low | Not verified: whether a container opened on the printer before PRINT_SETUP is gated (the gate keys on the setup's printer) | tablets 0912 | Slice 6 (GB-T-01 run) |

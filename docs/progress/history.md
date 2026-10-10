@@ -2328,3 +2328,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   limit and stroke undercount fixed; standalone and missed checks hold at once; the sweeper's MISSED hold through a narrow
   EXECUTION.SWEEP function (least privilege kept). Rule-set values and weight mode e left for the expert. Full suite
   (4,675 of 4,677; README row and register sync fixed), trace and E2E (23) green locally.
+- 2026-10-10: PHASE 3 SLICE 3D (branch phase-3/slice-3d, built on 3c). TB-18 coating to weight gain on the coater
+  (bounded loop, suspension from TB-03, exact weight gain), TB-19 printing with the QC hold point gating printed
+  containers, TB-20 inspection, sorting and AQL (plan by lot size from scheme data, normal or tightened decided by the
+  database, one result only, witnessed destruction of every reject), TB-06 roller compaction (ribbon checks, mill screen,
+  bounded fines recycle, exact yield) and TB-16 bilayer (per-layer IPC runs, hopper scans, layer separation)
+  (tablets 0910-0913, 0930-0932). Quick review: no critical or high; the G-06 out-of-limits and setpoint exceptions are
+  now required by the database for every process block (0913; they were required only for TB-06/TB-16), reject
+  destruction ordered and complete, AQL severity serialised per product, yield compared exactly. AQL tables and the QC
+  gate role left for the owner and expert. Full suite (4,731 of 4,733; README rows and register sync fixed), trace and
+  E2E (23) green locally. Slice 3 (TB-01 to TB-20 less TB-08) complete.
