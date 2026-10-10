@@ -67,3 +67,15 @@ correct entries), 6 (the hand-over's supervisor and QA approver could verify the
 Design note for the owner (5): the incoming performer's PERFORMED signature covers the step content including the
 outgoing performer's entries, which the outgoing person does not sign; the verifier covers them all. This follows the
 outline (5.2.3, L-07).
+
+## Slice 2b quick review (10 October 2026)
+
+No critical or high findings. The reviewer diffed all 30 re-created functions of 0502 against their previous
+definitions: only the content-source switch changed. Fixed in slice 2b: 1 (for a GMP batch plant.batch_scope returned no
+scope, so STEP.EXECUTE was checked with an empty scope in the IPC and container commands), 2 (plant.batch_facts,
+open_container and batch_scope still read the test package, so GMP batches were refused in the plant commands), 3 (GMP
+command evidence must not carry a package hash; the server sends none).
+
+| # | Severity | Finding | Where | For |
+|---|---|---|---|---|
+| 4 | Low | prepare_gmp_issue accepts an allocation made earlier by another person and checks only BATCH.ISSUE there; the TEST- check on the number runs at issue, not at planning (harmless: issue re-checks both) | recipe-core 0501 | Phase 4 (planning screens) |
