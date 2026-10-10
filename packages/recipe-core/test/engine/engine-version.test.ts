@@ -126,7 +126,7 @@ describe('the engine version names its output (ADR 0010)', () => {
     expect(ENGINE_VERSION).not.toBe('1.0.0');
     const def = fingerprintDefinition();
     const batch = (engineVersion: string): BatchExecutionRecord =>
-      ({ contentHash: def.contentHash, engineVersion, registryFingerprint: def.registry.fingerprint(), policyHash: policyHash(def.policy) }) as BatchExecutionRecord;
+      ({ installation: def.installation, contentHash: def.contentHash, engineVersion, registryFingerprint: def.registry.fingerprint(), policyHash: policyHash(def.policy) }) as BatchExecutionRecord;
     const refusal = (engineVersion: string): string => {
       try {
         assertDefinitionFits(def, { batch: batch(engineVersion) });

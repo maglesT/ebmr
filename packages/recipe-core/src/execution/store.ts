@@ -23,7 +23,12 @@ export interface RoleEvidence {
 export interface BatchExecutionRecord {
   id: string;
   batchNumber: string;
+  /** SANDBOX (a test run of a test package) or GMP (a batch of a control recipe; recipe-core 0500). */
+  installation: string;
+  /** The test package a sandbox test run executes ('' for a GMP batch). */
   packageHash: string;
+  /** The control recipe a GMP batch executes (null for a test run). */
+  controlRecipeId: string | null;
   contentHash: string;
   engineVersion: string;
   registryFingerprint: string;
@@ -79,7 +84,9 @@ export function batchRecord(row: Record<string, unknown>): BatchExecutionRecord 
   return {
     id: str(row['id']),
     batchNumber: str(row['batch_number']),
+    installation: str(row['installation']),
     packageHash: str(row['package_hash']),
+    controlRecipeId: optStr(row['control_recipe_id']),
     contentHash: str(row['content_hash']),
     engineVersion: str(row['engine_version']),
     registryFingerprint: str(row['registry_fingerprint']),
@@ -218,6 +225,121 @@ export async function issueExecution(client: Queryable, input: IssueInput): Prom
     [
       input.batchId,
       input.packageHash,
+      input.batchNumber,
+      JSON.stringify(input.request),
+      JSON.stringify(input.policy),
+      hashJson(input.policy),
+      input.registryFingerprint,
+      input.engineVersion,
+      input.nowUs.toString(),
+      JSON.stringify(state),
+      hashJson(state),
+      JSON.stringify(events),
+      hashJson(events),
+      contentsJson(input.contents),
+      JSON.stringify(input.evidence ?? {}),
+    ],
+  );
+  const r = rows[0]?.r ?? {};
+  return { seq: BigInt(str(r['seq'])), rowHash: str(r['row_hash']) };
+}
+
+/** What a GMP batch is planned with (recipe.prepare_gmp_issue): its MBR family, market set and scope. */
+export interface GmpBatchPlan {
+  familyId: string;
+  markets: readonly string[];
+  site: string;
+  line: string;
+  /** The id of one of the family's approved batch sizes. */
+  batchSize: string;
+  /** A number the site's register already holds for this batch (otherwise one is allocated now). */
+  allocationId?: string;
+}
+
+export interface PlannedGmpBatch {
+  batchId: string;
+  batchNumber: string;
+  allocationId: string;
+  pinId: string;
+  versionId: string;
+  versionNumber: number;
+  contentHash: string;
+  rule: string;
+  markets: string[];
+  controlRecipeId: string;
+  snapshotHash: string;
+}
+
+/**
+ * Plans a GMP batch from an effective MBR version (recipe-core 0501): selection, register number, pin and control
+ * recipe in this command. The issuer then signs aggregate `batch_issue` (id: the batch id) with the meaning ISSUED.
+ */
+export async function prepareGmpIssue(client: Queryable, batchId: string, plan: GmpBatchPlan): Promise<PlannedGmpBatch> {
+  const { rows } = await client.query<{ r: Record<string, unknown> }>('select recipe.prepare_gmp_issue($1, $2::jsonb) as r', [batchId, JSON.stringify(plan)]);
+  const r = rows[0]?.r ?? {};
+  return {
+    batchId: str(r['batch_id']),
+    batchNumber: str(r['batch_number']),
+    allocationId: str(r['allocation_id']),
+    pinId: str(r['pin_id']),
+    versionId: str(r['version_id']),
+    versionNumber: Number(str(r['version_number'])),
+    contentHash: str(r['content_hash']),
+    rule: str(r['rule']),
+    markets: Array.isArray(r['markets']) ? (r['markets'] as unknown[]).map(String) : [],
+    controlRecipeId: str(r['control_recipe_id']),
+    snapshotHash: str(r['snapshot_hash']),
+  };
+}
+
+export interface BegunGmpIssue {
+  nowUs: bigint;
+  batchNumber: string;
+  siteCode: string;
+  line: string;
+  roomCode: string | null;
+  marketSet: string[];
+  batchSize: string;
+  contentHash: string;
+  controlRecipeId: string;
+  snapshotHash: string;
+  /** The control recipe's snapshot; `snapshot.mbr.content` is the MBR content the engine issues the batch from. */
+  snapshot: JsonValue;
+}
+
+/** The trusted time of a GMP batch's issue and the control recipe it is issued from (recipe.begin_gmp_issue). */
+export async function beginGmpIssue(client: Queryable, batchId: string): Promise<BegunGmpIssue> {
+  const { rows } = await client.query<{ r: Record<string, unknown> }>('select recipe.begin_gmp_issue($1) as r', [batchId]);
+  const r = rows[0]?.r ?? {};
+  return {
+    nowUs: BigInt(str(r['now_us'])),
+    batchNumber: str(r['batch_number']),
+    siteCode: str(r['site_code']),
+    line: str(r['line']),
+    roomCode: optStr(r['room_code']),
+    marketSet: Array.isArray(r['market_set']) ? (r['market_set'] as unknown[]).map(String) : [],
+    batchSize: str(r['batch_size']),
+    contentHash: str(r['content_hash']),
+    controlRecipeId: str(r['control_recipe_id']),
+    snapshotHash: str(r['snapshot_hash']),
+    snapshot: r['snapshot'] as JsonValue,
+  };
+}
+
+export interface GmpIssueInput extends Omit<IssueInput, 'packageHash'> {
+  /** The issuer's ISSUED signature on aggregate `batch_issue` of this batch. */
+  signatureId: string;
+}
+
+/** Issues a planned GMP batch under the issuer's ISSUED signature (recipe.issue_gmp_execution). */
+export async function issueGmpExecution(client: Queryable, input: GmpIssueInput): Promise<{ seq: bigint; rowHash: string }> {
+  const state = encodeState(input.state);
+  const events = encodeEvents(input.events);
+  const { rows } = await client.query<{ r: Record<string, unknown> }>(
+    'select recipe.issue_gmp_execution($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7, $8, $9, $10::jsonb, $11, $12::jsonb, $13, $14::jsonb, $15::jsonb) as r',
+    [
+      input.batchId,
+      input.signatureId,
       input.batchNumber,
       JSON.stringify(input.request),
       JSON.stringify(input.policy),

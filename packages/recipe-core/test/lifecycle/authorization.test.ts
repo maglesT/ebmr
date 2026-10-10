@@ -31,7 +31,7 @@ const READ_ONLY: Record<string, string> = {
 
 /**
  * Execution writers (module C3) gate through two helpers, each proven below to contain the kernel check itself:
- * recipe.execution_actor refuses administrators (and anything off the sandbox), recipe.require_command_permission
+ * recipe.execution_actor refuses administrators (each writer checks its installation itself, recipe-core 0501), recipe.require_command_permission
  * requires the command's catalogued permission (recipe.execution_command_permission).
  */
 const ADMIN_GATES = ['iam.assert_not_administrator()', 'recipe.execution_actor('];
@@ -123,9 +123,13 @@ describe('privilege separation of the recipe schema (ADR 0012)', () => {
     expect(owner.rows[0]?.n).toBe('0');
   });
 
-  it('[DI-37][INV-09] every table holding signed content of an MBR version, market authorisation or test-run aggregate is registered with the e-signature module', async () => {
+  it('[DI-37][INV-09] every table holding signed content of an MBR version, market authorisation, GMP batch issue or test-run aggregate is registered with the e-signature module', async () => {
     const { rows } = await db.admin.query<{ t: string; type: string }>("select table_name::text as t, aggregate_type as type from esig.signed_table where table_name::text like 'recipe.%' order by 1");
     expect(rows).toEqual([
+      // The issue content of a GMP batch (meaning ISSUED; recipe-core 0500): its number's link, pin and control recipe.
+      { t: 'recipe.batch_allocation_link', type: 'batch_issue' },
+      { t: 'recipe.batch_mbr_pin', type: 'batch_issue' },
+      { t: 'recipe.control_recipe', type: 'batch_issue' },
       { t: 'recipe.execution_exception_content', type: 'batch_exception' },
       { t: 'recipe.execution_point_content', type: 'batch_point' },
       { t: 'recipe.execution_stage_content', type: 'batch_stage' },

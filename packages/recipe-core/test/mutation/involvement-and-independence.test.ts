@@ -10,8 +10,10 @@
  *     or a block entry or a data point of another instance was recorded, at or after the act's end; a tie counts as
  *     moved on (fail closed), the instance's own entries and points and anything recorded before the end never do
  *     (DI-35, PR-14: a witness can no longer watch the act, EBMR-ESIG-051);
- *   - recipe.execution_violations (0306): in a GMP database, a test package is reported with exactly the SANDBOX_ONLY
- *     block versions its content holds, never one it does not hold (DI-05, INV-18).
+ *   - recipe.execution_violations (0306, 0503): in a GMP database, a test package is reported with exactly the SANDBOX_ONLY
+ *     block versions its content holds, never one it does not hold (DI-05, INV-18); since slice 2b a GMP database issues
+ *     GMP batches, and the same reading (recipe.sandbox_only_blocks_in, 0500) keeps SANDBOX_ONLY blocks out of their
+ *     control recipes.
  *
  * The functions are private to the owner (the store's guards and the content provider call them); the tests call them
  * as the superuser, as the module tests do, with the commands and states the engine writes or a forgery of them (a row
@@ -164,7 +166,7 @@ describe('recipe.next_step_started: the run moved on after an act (DI-35, PR-14)
   });
 });
 
-describe('recipe.execution_violations in a GMP database: the SANDBOX_ONLY blocks a test package holds (DI-05, INV-18)', () => {
+describe('recipe.execution_violations in a GMP database: the SANDBOX_ONLY blocks a test package holds, kept out of GMP control recipes (DI-05, INV-18)', () => {
   /** A copy of `content` without the steps whose block is one of `types` (anywhere in the procedure). */
   function without(content: unknown, types: readonly string[]): unknown {
     if (Array.isArray(content)) {
@@ -228,5 +230,8 @@ describe('recipe.execution_violations in a GMP database: the SANDBOX_ONLY blocks
     expect(rows.filter((r) => r.problem.startsWith('test package')).map((r) => r.problem).sort()).toEqual(
       Object.keys(packages).map((h) => `test package ${h} exists in a GMP database (DI-05, INV-18)`),
     );
+    // The reading that keeps them out of a GMP batch's control recipe (recipe-core 0500) names exactly the same blocks.
+    const read = await db.admin.query<{ b: string[] }>('select recipe.sandbox_only_blocks_in(x) as b from unnest($1::jsonb[]) x', [Object.values(packages).map((c) => JSON.stringify(c))]);
+    expect(read.rows.map((r) => r.b)).toEqual([['G-09@1', 'G-10@1'], ['G-10@1'], []]);
   });
 });

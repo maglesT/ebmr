@@ -564,7 +564,29 @@ one plain-language business entry on the chain `batch:<id>`.
 **Other writers and checks**
 - The constraint trigger `zz_execution_attribution` (INV-40): a row written on a SHARED or GRADE_A_B
   terminal must carry the badge-tap event that this very command consumed.
-- `begin_issue`, `issue_execution` and `import_test_package` are sandbox only and require BATCH.ISSUE.
+- `begin_issue`, `issue_execution` and `import_test_package` are sandbox only and require BATCH.ISSUE. Since sql 0501
+  each says so itself (`sandbox.assert_sandbox_installation`, EBMR-SBX-011): `execution_actor` refuses administrators
+  but no longer a GMP database, so the writers that act on a stored batch run GMP batches too.
+- The GMP issue (sql 0500, 0501, 0502 and 0503; Phase 3 slice 2b), GMP installation only (`sandbox.assert_gmp_installation`,
+  EBMR-SBX-010), BATCH.ISSUE at the batch's site and product:
+  - `prepare_gmp_issue(batch, {familyId, markets, site, line, batchSize, allocationId?})`, in a command run with the
+    kernel's protected numbers: the version the selection gives now (sql 0170: INV-01, INV-28, PR-04, the
+    authorisation cells with the approved size; no effective version: EBMR-EXE-192), the number from the site's
+    register (`site.allocate_batch_number`, or a given allocation of this product, site and size never linked before;
+    EBMR-EXE-191), the planned batch (`recipe.stub_batch`, same id), `recipe.batch_allocation_link`, the pin and the
+    control recipe. A control recipe of such a batch holds no SANDBOX_ONLY block (EBMR-EXE-195).
+  - The issuer signs aggregate `batch_issue` (`batch_issue_content`: number, allocation, pinned version and hash,
+    markets, scope, control recipe and hash) with the meaning ISSUED.
+  - In one command with that signature and the issuer's own reason: `begin_gmp_issue(batch)` (the clock marker; the
+    selection must still give the pinned version, EBMR-EXE-196; issued once, EBMR-EXE-197) returns the control
+    recipe, the engine issues from its `snapshot.mbr.content`, and `issue_gmp_execution(batch, signature, ...)`
+    checks the signature (EBMR-EXE-193), the pinned market set, batch size and site (EBMR-EXE-194) and the initial
+    state as the sandbox issue does, writes the row (purpose GMP_BATCH, `control_recipe_id`, `issue_signature_id`,
+    no package) and the ISSUE row, and sets the planned batch ISSUED.
+  - The trigger `aa_execution_origin` (`batch_execution_origin_check`, `gmp_batch_problem`): a row is of this
+    database's installation (EBMR-EXE-190), and a GMP row is exactly its planned, pinned, allocated and signed batch.
+  - Every guard that reads a batch's MBR content reads it through `execution_mbr_content` (sql 0502), and
+    `execution_violations` reports a GMP batch only when something is wrong with it (sql 0503).
   - The TEST- number comes from a sequence and must be the one allocated in the issuing transaction.
   - The package hash, the content hash and the GMP origin are recomputed in SQL.
   - The package's family code and product (code, name, strength), in its `family` member and in the columns stored
@@ -694,6 +716,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 160-165 | the exception register (sql 0440): the state's exceptions and the register disagree, an exception changed from as raised or removed (160); a deviation link or a closing other than the exception's own ATTACH_DEVIATION or signed DISPOSITION_EXCEPTION (161); a QA-only exception dispositioned without a QA role of the batch policy (162); a disposition by its raiser or a person involved in the raising step (163); a QA review act out of order or without its text or deviation reference (164), or by a person who took part in the exception (165) |
 | 170-179 | the change paths (sql 0450-0453, 0470-0472; Phase 3 slice 2): a frozen identity column of an issued batch changed (170); an approval signed by a person without the approving role, read from the authority behind the signature (171); a skip of a step the MBR does not allow to skip or that is never skipped (172); a void of an attempt that holds a result, or that stores another attempt (173); an invalidation without its investigation or assignable cause, or that does not keep the original (174); a correction from fail to pass without evidence or QA approval (175, INV-41); an abort without its reason, checklist or abort record (176); a cancellation after a step started (177); a batch aborted, cancelled or revived by any other row (178); an act asked for approval that is not one of these commands as it will be recorded, by its requester (179) |
 | 185-189 | the hand-over of a step in progress (sql 0461-0463; Phase 3 slice 2, L-07): a hand-over, take-over, act of an outgoing performer, change of a step waiting for its incoming performer, or verification by an involved person otherwise than the engine allows (185) |
+| 190-199 | the GMP batch issue (sql 0500, 0501; Phase 3 slice 2b): a row of another installation than the database's (190); a batch number that is not the register's allocation for the batch, voided or used before (191); no effective MBR version, plan or verifying control recipe (192); no valid ISSUED signature of the issuer (193); a request or site other than the pinned batch's (194); a SANDBOX_ONLY block in a GMP control recipe (195); a planned version no longer the selection's (196); a batch planned or issued already (197) |
 
 ## TypeScript
 
