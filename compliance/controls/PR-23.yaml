@@ -56,6 +56,8 @@ tests:
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] an unqualified unit, a unit in maintenance and a unit out of tolerance are blocked"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] an as-found calibration failure lists every batch since the last good calibration"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] clearing a signalled failure needs a second person: the repairer and the person who signalled it cannot verify; a signed second person can"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-23] G-09 Equipment status and use (site services): The press whose use for the batch site services started (status guards passed) is recorded; the step completes"
+  - "packages/recipe-core/test/plant/status-blocks.test.ts > G-09@2: the equipment use an entry names is the plant record (recipe-core 0521, EBMR-EXE-210) > [INV-12][PR-23][IN-25] an EQUIPMENT_USE entry stands only on an open use of its unit for this batch, started by the person recording it; any other use is refused with the reason"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

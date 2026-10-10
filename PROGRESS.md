@@ -53,7 +53,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   and an ISSUED signature (recipe-core 0500 to 0504); the tablets server plans, signs, issues and runs GMP batches with
   site lots and no watermark (tablets 0800, 0801).
 - Phase 3 slice 3 (tablet blocks with the press and coater simulators) is split into 3a to 3d
-  (`docs/build-plan/phase-3/slice-3-plan.md`); 3a (equipment interface, G-06) is in progress on `phase-3/slice-3a`.
+  (`docs/build-plan/phase-3/slice-3-plan.md`); 3a (equipment interface) is built on `phase-3/slice-3a`: the integration-sdk process
+  module, press and coater simulators, the gateway's process driver and uplink; process readings, setpoint downloads and
+  alarms on the server (tablets 0820); G-06@1, G-09@2 and G-10@2 (recipe-core 0520 to 0523); the tablets block
+  registry; the kernel SCOPE hook (kernel 1150, ADR 0018). Next: 3b (granulation blocks).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)

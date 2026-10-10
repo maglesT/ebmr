@@ -286,10 +286,15 @@ describe('renderer registry', () => {
       'G-03@1': 'dedicated',
       'G-04@1': 'dedicated',
       'G-05@1': 'fallback',
+      // Phase 3 slice 3a: G-06@1 and the plant-backed G-09@2 and G-10@2 use the schema-driven fallback until their
+      // shop-floor screens (slice 6).
+      'G-06@1': 'fallback',
       'G-07@1': 'dedicated',
       'G-08@1': 'dedicated',
       'G-09@1': 'dedicated',
+      'G-09@2': 'fallback',
       'G-10@1': 'dedicated',
+      'G-10@2': 'fallback',
       'G-11@1': 'fallback',
       'G-12@1': 'fallback',
       'G-13@1': 'fallback',

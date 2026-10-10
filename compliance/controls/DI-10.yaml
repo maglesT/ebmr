@@ -35,7 +35,6 @@ implemented_by:
     - "Each data point stores its limit evaluation at recording, and each step instance the targets it showed, so later changes cannot alter them"
     - "G-03: the SOP code, version and hash pinned by the MBR are written into the acknowledgement entry; another version is refused (G03-SOP-VERSION); an SOP the MBR does not reference cannot be executed (G03-SOP-REF)"
 tests:
-  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-34][DI-10] the Phase 2 generic block versions are registered: G-01..G-05, G-07..G-20 (G-09@1 and G-10@1 sandbox only), G-22..G-24"
   - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-10] every version has every execution part of the contract; only the rendering parts (UI work) are still missing, and the report says so"
   - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-10] a version is registered once; a phase block without a handler, schemas, exception rules or simulator model is refused"
   - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-34][DI-10] an MBR using a block version the registry cannot execute, or a configuration outside its schema, cannot be defined for execution"
@@ -57,6 +56,7 @@ tests:
   - "packages/recipe-core/test/mutation/execution-row-shape.test.ts > an issue request its MBR accepts (recipe.issue_request_problem, 0337) > [DI-05][DI-10][DI-34] an input whose MBR declares a category without its list, or a type the engine has not, accepts no value, as the engine accepts none; a variant that declares no list of values accepts no choice"
   - "apps/tablets-server/test/mutation/entry-references-and-schema.test.ts > recipe-core 0330 through the application role: every entry a row adds is held to what its block builds from the batch's own MBR (DI-05, DI-10, DI-30) > [DI-30][DI-10][DI-05] the first entry of a batch is read like any other, against the MBR of the batch's own package: an acknowledgement naming the SOP another step of the MBR names is refused (EBMR-EXE-126) and nothing holds it; the acknowledgement of the SOP its own step names is recorded"
   - "packages/recipe-core/test/engine/engine-version.test.ts > the engine version names its output (ADR 0010) > [DI-10][DI-34] a batch stored under engine 1.0.0, 1.1.0, 1.2.0, 1.3.0, 1.4.0 or 1.5.0 is never run or replayed by this engine (EBMR-EXE-061)"
+  - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-34][DI-10] the generic block versions are registered: G-01..G-20 (G-09@1 and G-10@1 sandbox only, G-09@2 and G-10@2 from site services, G-06 since slice 3a), G-22..G-24"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
