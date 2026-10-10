@@ -13,11 +13,11 @@ abandoning a cleaning reset the dirty-hold clock; the clearance signature did no
 | # | Severity | Finding | Where | For |
 |---|---|---|---|---|
 | 5 | Medium | No retest command: a lot past its retest date can never be used again (fails safe) | site-services 0710, 0712 | Slice 5 (LIMS-lite records the retest result) |
-| 6 | Medium | The release route and quantity are not in the content the release signature covers (the signer is the actor, so the effect is limited) | site-services 0710 material_lot_content | Slice 2 |
+| 6 | Medium | The release route and quantity are not in the content the release signature covers (the signer is the actor, so the effect is limited) | site-services 0710 material_lot_content | Fixed in slice 2 (site-services 0720) |
 | 7 | Medium | A lot received as INTERMEDIATE skips the identity rule; the material kind comes from the receiver and only QA's signature over content showing the kind stands in the way | site-services 0712 receive_lot | Slice 5 (ERP stub supplies the material master) |
 | 8 | Low | Close and IPC hold race: a container can stay CLOSED with a hold row (still unusable, but QA cannot sort or release it); a container opened during a failing check can miss the hold | recipe-core 0422 apply_hold | Slice 3 (press blocks) |
 | 9 | Low | Utility feed freshness is not checked: the latest OK reading counts however old | recipe-core 0403 | Slice 3 |
-| 10 | Low | Clearing a signalled equipment failure (REPAIRED) is a one-person step | recipe-core 0403 | Slice 2 |
+| 10 | Low | Clearing a signalled equipment failure (REPAIRED) is a one-person step | recipe-core 0403 | Fixed in slice 2 (recipe-core 0460) |
 
 ## Open items the builders left
 
@@ -34,3 +34,9 @@ abandoning a cleaning reset the dirty-hold clock; the clearance signature did no
   room the batch is in (slice 3).
 - Raising the D-S1-5 crossing flags as exceptions (slice 2).
 - Freshness-bounded mirrors of site data for a second edition database (D-S1-1, Phase 5).
+
+## Slice 2 notes
+
+- Slice 2 (0720, stricter default): a lot with a passing identity result can be released only on IDENTITY_TESTED, and a
+  person who consumed from a lot is a performer of it, so cannot witness its destruction. Existing lot signatures are
+  superseded by the new content and must be signed again (no effect on a fresh database).
