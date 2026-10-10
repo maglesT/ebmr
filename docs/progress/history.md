@@ -2291,3 +2291,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   slice 1 backlog #6 (release signature covers route and received quantity; consumption no longer supersedes it) and
   #10 (two-person repair). Two quick reviews (no critical or high; mediums on approvals and hand-over fixed). Renamed
   tests replaced their stale register entries (DI-10, DI-17, DI-34, DI-35).
+- 2026-10-10: PHASE 3 SLICE 2B (branch phase-3/slice-2b). Batch execution opened to the GMP installation: a GMP batch is
+  issued only from an effective MBR through the 0170 selection (pin, control recipe, India in every market set,
+  authorisation cells), takes its number from the site register in the same transaction and needs the issuer's ISSUED
+  signature on the batch (recipe-core 0500-0503); every row must match its installation; sandbox writers and test
+  packages still refuse GMP and the GMP writers refuse the sandbox (DI-05 boundary unchanged; F12 rule untouched).
+  Quick review: no critical or high; the plant commands' product and site scope now come from the batch on both
+  installations and fail closed (0504). The tablets server plans, signs and issues GMP batches, reads site lots on GMP,
+  shows no watermark there (tablets 0800, 0801); new GMP personas issuer and operator1. Full suite, register and the
+  E2E suite (23) green locally.

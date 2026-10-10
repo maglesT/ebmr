@@ -1,6 +1,8 @@
 /**
- * Namespace `execution` (C3, sandbox): test packages, test batches (TEST-), the step screen, the work queue,
- * commands, replay and lots (Phase 2 apps plan sections 7 and 9).
+ * Namespace `execution` (C3): test packages and test batches (TEST-) in the sandbox, GMP batches planned from an effective
+ * MBR version in GMP (Phase 3 slice 2b), and on both installations the step screen, the work queue, commands, replay and
+ * lots (Phase 2 apps plan sections 7 and 9). The GMP batch is issued through the e-signature ceremony (signable action
+ * GMP_BATCH_ISSUE, meaning ISSUED); test packages stay sandbox-only and GMP batches GMP-only (DI-05, INV-18).
  *
  * The browser never decides GMP outcomes: `actions` come from the server (availableActions by dry-run through
  * the engine), limit verdicts appear only in the view after the server committed, and values are never
@@ -169,8 +171,8 @@ export const RunHeaderView = z.strictObject({
   markets: z.array(z.string()),
   status: BatchStatus,
   statusText: z.string(),
-  /** Always TEST, NOT GMP in Phase 2 (sandbox test runs). */
-  watermark: Watermark,
+  /** TEST, NOT GMP on a sandbox test run; null on a GMP batch (DI-05: the installation decides, never the run). */
+  watermark: Watermark.nullable(),
   /** Run version (optimistic locking: commands send it back as expectedVersion). */
   version: z.number().int().nonnegative(),
   mbr: z.strictObject({ familyCode: z.string(), versionNumber: z.string(), revision: z.number().int().nonnegative(), contentHash: z.string() }),
@@ -372,6 +374,28 @@ export const CommandResultView = z.strictObject({
   step: StepScreenView.nullable(),
 });
 
+/** A GMP batch planned from an effective MBR version (recipe-core 0501), waiting for the issuer's ISSUED signature. */
+export const PlannedBatchView = z.strictObject({
+  batchId: Uuid,
+  /** From the site's batch-number register (never reused). */
+  batchNumber: z.string(),
+  familyCode: z.string(),
+  product: ProductRef,
+  versionNumber: z.string(),
+  contentHash: z.string(),
+  markets: z.array(z.string()),
+  site: z.string(),
+  line: z.string(),
+  batchSize: z.string(),
+  controlRecipeId: Uuid,
+  /** What the issue needs (the issuer signs the batch's issue content with ISSUED, then the batch is issued). */
+  variants: z.array(z.strictObject({ id: z.string(), name: z.string(), options: z.array(z.string()) })),
+  inputs: z.array(
+    z.strictObject({ id: z.string(), name: z.string(), valueType: z.string(), unit: z.string().nullable(), source: z.string(), required: z.boolean() }),
+  ),
+});
+export type PlannedBatchView = z.infer<typeof PlannedBatchView>;
+
 const runIdParams = z.strictObject({ runId: Uuid });
 
 export const execution = {
@@ -427,11 +451,29 @@ export const execution = {
     }),
     response: RunView,
   }),
+  planBatch: defineRoute({
+    id: 'execution.planBatch',
+    method: 'POST',
+    path: '/api/batches',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Plan a GMP batch from the MBR version effective for its markets and scope: register number, pin and control recipe (issued once signed ISSUED)',
+    body: withAttribution({
+      familyId: Uuid,
+      markets: z.array(z.string().min(1)).min(1),
+      site: z.string().min(1),
+      line: z.string().min(1),
+      batchSize: z.string().min(1),
+    }),
+    response: PlannedBatchView,
+  }),
   runs: defineRoute({
     id: 'execution.runs',
     method: 'GET',
     path: '/api/test-runs',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'Test runs',
@@ -441,7 +483,7 @@ export const execution = {
     id: 'execution.run',
     method: 'GET',
     path: '/api/test-runs/:runId',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'Run overview: stages, steps, exceptions, holds, timers',
@@ -452,7 +494,7 @@ export const execution = {
     id: 'execution.step',
     method: 'GET',
     path: '/api/test-runs/:runId/steps/:stepKey',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'The step screen of one step instance',
@@ -463,7 +505,7 @@ export const execution = {
     id: 'execution.workQueue',
     method: 'GET',
     path: '/api/work-queue',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: '"What you can do now" for this terminal\'s room',
@@ -473,7 +515,7 @@ export const execution = {
     id: 'execution.timeline',
     method: 'GET',
     path: '/api/test-runs/:runId/timeline',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'Every engine call of the run (issue, commands, prepares, sweeps), refusals included',
@@ -484,7 +526,7 @@ export const execution = {
     id: 'execution.verifyReplay',
     method: 'POST',
     path: '/api/test-runs/:runId/verify-replay',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'Replay the stored rows and report identical or the first difference',
@@ -496,10 +538,10 @@ export const execution = {
     id: 'execution.lot',
     method: 'GET',
     path: '/api/lots/:code',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
-    summary: 'A TEST- lot as the server knows it (status, expiry, retest, identity test)',
+    summary: 'A lot as the server knows it (status, expiry, retest, identity test): a TEST- lot in the sandbox, a material lot of the site in GMP',
     params: z.strictObject({ code: z.string().min(1) }),
     response: LotView,
   }),
@@ -507,7 +549,7 @@ export const execution = {
     id: 'execution.command',
     method: 'POST',
     path: '/api/test-runs/:runId/commands',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',

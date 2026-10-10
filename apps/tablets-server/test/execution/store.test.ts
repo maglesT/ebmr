@@ -129,7 +129,7 @@ const involvedVerifier = (person: string, key: string): RegExp =>
   new RegExp(`${person} performed, entered data in or corrected step ${key}, so the verification is refused: the verifier is always another person \\(INV-03\\)\\. \\[EBMR-EXE-033\\]`);
 
 describe('installation (DI-05, INV-18)', () => {
-  it('[INV-18][DI-05] a GMP database refuses importing packages and issuing test batches; anything that lands there anyway is reported', async () => {
+  it('[INV-18][DI-05] a GMP database, which issues GMP batches (recipe-core 0501), still refuses importing test packages and issuing test batches; a test batch or package that lands there anyway is reported', async () => {
     const author = { ...(await openPersonaSession(gmp.db, gmp.seed, 'author')), correlationId: randomUUID() };
     const pkg = execution.buildTestPackage({
       source: { installationKind: 'GMP', watermark: null },
@@ -181,6 +181,30 @@ describe('installation (DI-05, INV-18)', () => {
       expect(reported).toContainEqual({ batchId: null, problem: `SANDBOX_ONLY block ${block} in package ${pkg.packageHash} held by a GMP database (DI-05, INV-18)` });
     }
     expect(reported.filter((v) => v.problem.includes('exists in a GMP database'))).toHaveLength(2);
+  }, 180_000);
+
+  it('[INV-18][DI-05] the sandbox never issues a GMP batch: the GMP issue path is refused there (a real batch number is never issued in the sandbox), and a row of GMP origin is never written there, whoever writes it', async () => {
+    const issuer = await sbx.asPersona('issuer');
+    const as = async () => ({ ...(await actorOfBrowser(sbx, issuer, 'issuer')), correlationId: randomUUID() });
+    const batchId = randomUUID();
+    const plan = { familyId: randomUUID(), markets: ['IN'], site: 'TEST-SITE', line: 'L1', batchSize: 'BS-100K' };
+    expect(await codeOf(withCommand(sbx.db.app, await as(), (c) => execution.prepareGmpIssue(c, batchId, plan)))).toBe('EBMR-SBX-010');
+    expect(await codeOf(withCommand(sbx.db.app, await as(), (c) => execution.beginGmpIssue(c, batchId)))).toBe('EBMR-SBX-010');
+    expect(await codeOf(withCommand(sbx.db.app, await as(), (c) => c.query('select recipe.issue_gmp_execution($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)', [batchId, randomUUID(), 'B26-0001', {}, {}, 'x', 'x', 'x', 0, {}, 'x', [], 'x', [], {}])))).toBe('EBMR-SBX-010');
+    // The owner's own insert of a GMP-origin row (no replica mode: every trigger runs), copied from a test batch.
+    const { runId } = await newRun();
+    const err = await codeOf(
+      sbx.db.admin.query(
+        `insert into recipe.batch_execution select (jsonb_populate_record(null::recipe.batch_execution,
+            to_jsonb(b) || jsonb_build_object('id', gen_random_uuid(), 'batch_number', 'TEST-B26-' || (1000000 + floor(random() * 1000000))::bigint::text,
+                                              'installation', 'GMP', 'purpose', 'GMP_BATCH', 'package_hash', null,
+                                              'control_recipe_id', gen_random_uuid(), 'issue_signature_id', gen_random_uuid()))).*
+           from recipe.batch_execution b where b.id = $1`,
+        [runId],
+      ),
+    );
+    expect(err).toBe('EBMR-EXE-190');
+    expect((await violations(sbx)).filter((v) => v.problem.includes('GMP batch'))).toEqual([]);
   }, 180_000);
 
   it('[INV-18][DI-05][DI-37] the import writer itself refuses a package not exported from GMP, changed after export, of another format, under another file name or imported already, and stores nothing', async () => {

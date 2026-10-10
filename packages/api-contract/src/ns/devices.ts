@@ -1,5 +1,5 @@
 /**
- * Namespace `devices` (C5, sandbox): scales behind the site gateway (Phase 2 apps plan section 10).
+ * Namespace `devices` (C5; both installations since Phase 3 slice 2b, each with its own gateways): scales behind the site gateway (Phase 2 apps plan section 10).
  * A capture is a trigger, not a user's GMP write: the gateway journals the reading, the server ingests it
  * under the integration identity, and the committing G-07 or G-22 entry claims it by id.
  */
@@ -50,7 +50,7 @@ export const devices = {
     id: 'devices.scales',
     method: 'GET',
     path: '/api/devices/scales',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     summary: 'Scales of a room with their status',
@@ -61,7 +61,7 @@ export const devices = {
     id: 'devices.capture',
     method: 'POST',
     path: '/api/devices/scales/:code/capture',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: true,
     idempotency: 'NONE',
@@ -74,7 +74,7 @@ export const devices = {
     id: 'devices.live',
     method: 'GET',
     path: '/api/devices/scales/:code/live',
-    installation: 'SANDBOX',
+    installation: 'ANY',
     auth: 'SESSION',
     mutating: false,
     stream: 'SSE',

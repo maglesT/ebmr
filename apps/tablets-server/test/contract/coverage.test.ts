@@ -41,15 +41,19 @@ describe('contract coverage', () => {
     expect([...union].sort()).toEqual(all.map((r) => r.id).sort());
   });
 
-  it('[DI-05] a route of the other installation does not exist there: designer routes are absent on the sandbox, execution and device routes on GMP', async () => {
-    for (const route of Object.values(routes.designer)) {
+  it('[DI-05][INV-18] a route of the other installation does not exist there: designer routes and the GMP batch plan are absent on the sandbox, test packages and test batches on GMP', async () => {
+    const sandboxOnly = [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue];
+    for (const route of [...Object.values(routes.designer), routes.execution.planBatch]) {
       const res = await sbx.app.inject({ method: route.method, url: samplePath(route), headers: { origin: sbx.config.publicOrigin, 'sec-fetch-site': 'same-origin' } });
       expect(res.statusCode, route.id).toBe(404);
     }
-    for (const route of [...Object.values(routes.execution), ...Object.values(routes.devices)]) {
+    for (const route of sandboxOnly) {
       const res = await gmp.app.inject({ method: route.method, url: samplePath(route), headers: { origin: gmp.config.publicOrigin, 'sec-fetch-site': 'same-origin' } });
       expect(res.statusCode, route.id).toBe(404);
     }
+    // The routes of a running batch and of the scales serve both installations (each its own batches and gateways).
+    expect(gmp.built.ctx.boundRoutes.has(routes.execution.command.id)).toBe(true);
+    expect(gmp.built.ctx.boundRoutes.has(routes.devices.scales.id)).toBe(true);
   });
 
   it('every GET route of the contract is implemented on its installation (no stub answers 501, none is missing)', async () => {

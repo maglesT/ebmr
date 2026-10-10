@@ -45,6 +45,7 @@ tests:
   - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [IN-25] every plant table is audited and its event times come from the database clock"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] clearing a signalled failure needs a second person: the repairer and the person who signalled it cannot verify; a signed second person can"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25] a repair cannot be cleared around the commands: no direct writes by the application, and the table refuses a lone REPAIRED event or a verification by the repairer even for owner-level writes"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > plant and output containers on a GMP batch (DI-17, IN-21, IN-25; slice 2b review findings 1 and 2) > [DI-17][IN-25][IN-21] a press is started and a container opened for a GMP batch, and an operator whose grant is limited to its product records an IPC check on it; one limited to another product, or to another site, is refused (the scope is the batch's product and site, never empty)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

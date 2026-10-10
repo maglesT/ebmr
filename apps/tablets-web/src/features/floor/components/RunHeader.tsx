@@ -52,7 +52,7 @@ export function RunHeader({ run, connected }: { run: RunHeaderView; connected: b
           <StatusChip key={m} tone="neutral" label={m} />
         ))}
         <StatusChip tone={floor.stepTone(run.status)} label={run.statusText} />
-        <StatusChip tone="test" label={run.watermark.text} />
+        {run.watermark ? <StatusChip tone="test" label={run.watermark.text} /> : null}
       </div>
       <div className={wcls('headerRow')}>
         {run.stage ? <span className={wcls('headerItem')}>{st('header.stage', { number: run.stage.number, name: run.stage.name })}</span> : null}

@@ -108,6 +108,7 @@ describe('test-kit installations', () => {
   it('[DI-14] seeds the persona catalogue, one set per E2E worker plus the demo set', async () => {
     expect(gmpSeed.personas.map((p) => `${p.legalName}:${p.roleCode}`)).toEqual([
       'Asha Rao:MBR_AUTHOR', 'Vikram Shah:MBR_CHECKER', 'Meera Iyer:QA_MBR_APPROVER', 'Rahul Menon:REGULATORY_SIGNER', 'Neha Joshi:MASTER_DATA_STEWARD',
+      'Rohan Gupta:BATCH_ISSUER', 'Priya Nair:OPERATOR',
     ]);
     const roles = sbxSeed.personas.filter((p) => p.set === 0).map((p) => `${p.loginName}:${p.roleCode}`);
     expect(roles).toEqual([

@@ -48,6 +48,12 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
   aggregateTypes: readonly string[];
   /** The aggregate, meaning and expected state the challenge names. */
   describe(action: A): { aggregateType: string; aggregateId: string; meaning: string; expectedState?: string };
+  /**
+   * The signer's own reason the sign command carries, both halves, for an action whose change needs one (the kernel
+   * refuses such a change without it, EBMR-AUDIT-002): taken from the action the person sent, never written by the
+   * system (DI-22, DI-24). Absent: the command carries no reason.
+   */
+  reasonOf?(action: A): { reasonCode: string; reasonText: string } | undefined;
   /** GET /api/esig/content: the exact text to sign (a pure preview for engine actions). */
   previewContent(ctx: SignableContext, query: { aggregateType: string; aggregateId: string; intent: string }): Promise<SignableContentView>;
   /** Inside the challenge command: prepare the record at database time (PREPARE row when it changed). */

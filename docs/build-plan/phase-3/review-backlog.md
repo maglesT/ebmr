@@ -67,3 +67,25 @@ correct entries), 6 (the hand-over's supervisor and QA approver could verify the
 Design note for the owner (5): the incoming performer's PERFORMED signature covers the step content including the
 outgoing performer's entries, which the outgoing person does not sign; the verifier covers them all. This follows the
 outline (5.2.3, L-07).
+
+## Slice 2b quick review (10 October 2026)
+
+No critical or high findings. The reviewer diffed all 30 re-created functions of 0502 against their previous
+definitions: only the content-source switch changed. Fixed in slice 2b: 1 (for a GMP batch plant.batch_scope returned no
+scope, so STEP.EXECUTE was checked with an empty scope in the IPC and container commands), 2 (plant.batch_facts,
+open_container and batch_scope still read the test package, so GMP batches were refused in the plant commands), 3 (GMP
+command evidence must not carry a package hash; the server sends none).
+
+| # | Severity | Finding | Where | For |
+|---|---|---|---|---|
+| 4 | Low | prepare_gmp_issue accepts an allocation made earlier by another person and checks only BATCH.ISSUE there; the TEST- check on the number runs at issue, not at planning (harmless: issue re-checks both) | recipe-core 0501 | Phase 4 (planning screens) |
+| 5 | Medium | An operator whose STEP.EXECUTE grant is limited to a product cannot start a press or open a container: the equipment and container state transitions check the permission at site scope only (fails closed). Default: those transitions also evaluate the batch's product scope | recipe-core 0403, 0422 transitions | Slice 3 (press blocks) |
+
+## Slice 2b open items (builder report, 10 October 2026)
+
+- A released site lot is not yet exercised on GMP: no seeded GMP persona receives or releases lots (slice 5, ERP stub
+  and LIMS-lite seed them).
+- Weighing on GMP (devices, readings) is not exercised end to end (slice 3, dispensing blocks).
+- The running-batch routes keep their `/api/test-runs/*` paths on GMP; renaming them is screen work (slice 6).
+- GMP batch planning needs `EBMR_NUMBER_LEDGER_FILE` for the protected number ledger; without it planning is refused
+  with NUMBERING_NOT_CONFIGURED (deployment configuration, documented with the server settings).

@@ -52,6 +52,7 @@ export {
   RunHeaderView,
   RunSummaryView,
   RunView,
+  PlannedBatchView,
   StageView,
   StepScreenView,
   StepStatus,

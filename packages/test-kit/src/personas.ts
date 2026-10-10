@@ -27,6 +27,8 @@ export interface TerminalSpec {
 export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'PC-DESIGN-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'MBR design office PC', key: 'BROWSER' },
   { code: 'PC-QA-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QA office PC', key: 'BROWSER' },
+  { code: 'PC-PLAN-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Production planning office PC (GMP batch issue)', key: 'BROWSER' },
+  { code: 'KIOSK-DISP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1 (GMP batches)', key: 'BROWSER' },
   { code: 'TEST-PC-01', installation: 'SANDBOX', deviceClass: 'PERSONAL', description: 'Sandbox office PC (batch issue, package import)', key: 'BROWSER' },
   { code: 'TEST-KIOSK-DISP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1', key: 'BROWSER' },
   { code: 'TEST-KIOSK-BLEND-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'BLEND-1', description: 'Shop-floor kiosk, blending room BLEND-1', key: 'BROWSER' },
@@ -66,6 +68,9 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'approver', installation: 'GMP', legalName: 'Meera Iyer', loginName: 'meera.iyer', roleCode: 'QA_MBR_APPROVER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'QA MBR approver', demo: { password: 'Demo-Approver-2026!' } },
   { key: 'regulatory', installation: 'GMP', legalName: 'Rahul Menon', loginName: 'rahul.menon', roleCode: 'REGULATORY_SIGNER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'Regulatory signer', demo: { password: 'Demo-Regulatory-2026!' } },
   { key: 'steward', installation: 'GMP', legalName: 'Neha Joshi', loginName: 'neha.joshi', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'PC-QA-01', title: 'Master-data steward (reference documents)', demo: { password: 'Demo-Steward-2026!' } },
+  // GMP (batch issue and execution; Phase 3 slice 2b)
+  { key: 'issuer', installation: 'GMP', legalName: 'Rohan Gupta', loginName: 'rohan.gupta', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Batch issuer', demo: { password: 'Demo-GmpIssuer-2026!' } },
+  { key: 'operator1', installation: 'GMP', legalName: 'Priya Nair', loginName: 'priya.nair', roleCode: 'OPERATOR', kiosk: true, homeTerminal: 'KIOSK-DISP-1', title: 'Operator', demo: { password: 'Demo-GmpOperator1-2026!', pin: '482917', badgeUid: '04B10000000001' } },
   // Sandbox (test runs on the shop floor)
   { key: 'issuer', installation: 'SANDBOX', legalName: 'TEST-Rohan Gupta', loginName: 'test-issuer', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Batch issuer', demo: { password: 'Demo-Issuer-2026!' } },
   { key: 'steward', installation: 'SANDBOX', legalName: 'TEST-Neha Joshi', loginName: 'test-steward', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Master-data steward (test lots)', demo: { password: 'Demo-Steward-2026!' } },

@@ -175,7 +175,7 @@ describe('golden run of dc-mini (TEST- batch, sandbox)', () => {
 
     const done = await d.runView('supervisor1');
     expect(done.header.status).toBe('EXECUTION_COMPLETE');
-    expect(done.header.watermark.text).toBe('TEST, NOT GMP');
+    expect(done.header.watermark?.text).toBe('TEST, NOT GMP');
     expect(done.stages.map((s) => s.status)).toEqual(['SIGNED_OFF', 'SIGNED_OFF']);
     const replay = valueOf(await d.browser('issuer').call(routes.execution.verifyReplay, { params: { runId }, body: {} }));
     expect(replay).toMatchObject({ identical: true, firstDifference: null, invariantViolations: [] });

@@ -244,6 +244,8 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-hand-over.test.ts > HAND_OVER_STEP: signed by a supervisor and approved by QA, neither of them a performer, with a reason > [PR-14][DI-24][DI-26][DI-35] the honest hand-over is recorded and registered; without QA's approval, from a person not on the step, approved by the incoming performer, without its exception or with another reason than given, it is refused"
   - "apps/tablets-server/test/mutation/signed-content.test.ts > a signed command type the release checks since Phase 3 slice 2 (recipe-core 0297, 0451) > [DI-35][INV-10] ABORT_BATCH, listed as signed by recipe-core 0450, is checked: recorded without its two approvals it is refused (EBMR-EXE-052), where 0297 refused it as a signed act it could not check (EBMR-EXE-050)"
   - "packages/recipe-core/test/engine/flow.test.ts > sequencing (DI-34) > [DI-34][DI-35] an abort needs every checklist item confirmed and exactly two approvals; the QA reviewer approves as QA"
+  - "apps/tablets-server/test/execution/gmp-batch.test.ts > GMP batches on the GMP installation (slice 2b) > [DI-35][INV-10] the issue needs the issuer's own reason and every header input; a refused dry run signs nothing and leaves the batch planned"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the ISSUED signature (DI-35, INV-10) > [DI-35][INV-10] a GMP batch is issued only under the issuer's own valid ISSUED signature on its issue content: none, another person's, or one of another batch is refused"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

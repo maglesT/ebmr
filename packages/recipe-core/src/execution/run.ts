@@ -8,10 +8,11 @@
 import { randomUUID } from 'node:crypto';
 import { encode, encodeCommand, hashJson, type JsonValue } from '../engine/codec.ts';
 import type { BatchDefinition } from '../engine/definition.ts';
+import type { MbrContent } from '../flow/model.ts';
 import { issue, prepareForSignature, step, sweep, type SignatureTarget } from '../engine/engine.ts';
 import { aggregateContent, changedContents, signingContents, touchedAggregates, type AggregateContent } from '../engine/signing-content.ts';
 import { ENGINE_VERSION, type Actor, type BatchState, type Command, type EngineEvent, type EnginePolicy, type IssueRequest, type StepResult } from '../engine/types.ts';
-import { appendExecution, beginIssue, ExecutionStoreError, issueExecution, loadContentHead, lockExecution, type LockedExecution, type Queryable, type RoleEvidence } from './store.ts';
+import { appendExecution, beginGmpIssue, beginIssue, ExecutionStoreError, issueExecution, issueGmpExecution, loadContentHead, lockExecution, type LockedExecution, type Queryable, type RoleEvidence } from './store.ts';
 
 /** The engine policy as pinned in a batch (JSON; bigint durations tagged by the codec). */
 export function pinnedPolicy(policy: EnginePolicy): JsonValue {
@@ -29,7 +30,7 @@ export function assertDefinitionFits(def: BatchDefinition, locked: Pick<LockedEx
   if (b.engineVersion !== ENGINE_VERSION) throw new ExecutionStoreError('EBMR-EXE-061', `The batch was issued with engine ${b.engineVersion}; this server runs engine ${ENGINE_VERSION} and never runs or replays it with another engine (ADR 0010)`);
   if (def.registry.fingerprint() !== b.registryFingerprint) throw new ExecutionStoreError('EBMR-EXE-062', 'The block versions of this server differ from those the batch was issued with (ADR 0010)');
   if (policyHash(def.policy) !== b.policyHash) throw new ExecutionStoreError('EBMR-EXE-063', 'The engine policy differs from the policy pinned at issue');
-  if (def.installation !== 'SANDBOX') throw new ExecutionStoreError('EBMR-EXE-064', 'Test runs execute only definitions made for the sandbox (DI-05, INV-18)');
+  if (def.installation !== b.installation) throw new ExecutionStoreError('EBMR-EXE-064', `A ${b.installation} batch executes only a definition made for that installation, not one for ${def.installation} (DI-05, INV-18)`);
 }
 
 export class ExecutionTx {
@@ -168,4 +169,47 @@ export async function issueBatch(client: Queryable, input: IssueBatchInput): Pro
     ...(input.evidence !== undefined ? { evidence: input.evidence } : {}),
   });
   return { batchNumber: begun.batchNumber, state: r.state, events: r.events, nowUs: begun.nowUs };
+}
+
+export interface IssueGmpBatchInput {
+  batchId: string;
+  /** The issuer's ISSUED signature on aggregate `batch_issue` of this batch, made in this command. */
+  signatureId: string;
+  /** The batch definition of the control recipe's MBR content, made for the GMP installation. */
+  define: (content: MbrContent) => BatchDefinition;
+  /** The request without batch id, number, market set and batch size (the database gives them: the pinned batch). */
+  request: Omit<IssueRequest, 'batchId' | 'batchNumber' | 'marketSet' | 'batchSize'>;
+  evidence?: JsonValue;
+}
+
+/**
+ * Issues a planned GMP batch (recipe-core 0501) in the command that signs it ISSUED: the database gives the trusted time,
+ * the register number, the pinned market set and batch size and the control recipe; the engine issues the batch from the
+ * control recipe's MBR content; the ISSUE row pins the control recipe, engine version, block registry and policy.
+ */
+export async function issueGmpBatch(client: Queryable, input: IssueGmpBatchInput): Promise<{ batchNumber: string; state: BatchState; events: EngineEvent[]; nowUs: bigint; def: BatchDefinition }> {
+  const begun = await beginGmpIssue(client, input.batchId);
+  const snapshot = begun.snapshot as { mbr?: { content?: MbrContent } } | null;
+  const content = snapshot?.mbr?.content;
+  if (!content) throw new ExecutionStoreError('EBMR-EXE-192', 'The control recipe holds no MBR content');
+  const def = input.define(content);
+  if (def.installation !== 'GMP') throw new ExecutionStoreError('EBMR-EXE-064', 'A GMP batch executes only a definition made for the GMP installation (DI-05, INV-18)');
+  if (def.contentHash !== begun.contentHash) throw new ExecutionStoreError('EBMR-EXE-060', `The definition runs MBR content ${def.contentHash.slice(0, 12)}, but the control recipe holds ${begun.contentHash.slice(0, 12)}`);
+  const request: IssueRequest = { ...input.request, batchId: input.batchId, batchNumber: begun.batchNumber, marketSet: begun.marketSet, batchSize: begun.batchSize };
+  const r = issue(def, request, { nowUs: begun.nowUs });
+  await issueGmpExecution(client, {
+    batchId: input.batchId,
+    signatureId: input.signatureId,
+    batchNumber: begun.batchNumber,
+    request: encode(request),
+    policy: pinnedPolicy(def.policy),
+    registryFingerprint: def.registry.fingerprint(),
+    engineVersion: ENGINE_VERSION,
+    nowUs: begun.nowUs,
+    state: r.state,
+    events: r.events,
+    contents: changedContents(def, undefined, r.state),
+    ...(input.evidence !== undefined ? { evidence: input.evidence } : {}),
+  });
+  return { batchNumber: begun.batchNumber, state: r.state, events: r.events, nowUs: begun.nowUs, def };
 }

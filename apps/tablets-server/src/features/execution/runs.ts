@@ -1,10 +1,15 @@
 /**
- * Runs of the sandbox (module C3; Phase 2 apps plan section 7): the imported test package and the engine
- * definition of a run, the facts the views need about the stored rows (who did what, when), and the run cache
- * that the signable handler's synchronous describe() reads.
+ * Runs (module C3; Phase 2 apps plan section 7; Phase 3 slice 2b): the MBR a run executes and its engine definition, the
+ * facts the views need about the stored rows (who did what, when), and the run cache that the signable handler's
+ * synchronous describe() reads.
  *
- * Definitions are defined for the SANDBOX installation only (G-09@1 and G-10@1 are SANDBOX_ONLY) with the
- * package's own justifications, and cached by package hash and block-registry fingerprint (LRU). The run
+ * A sandbox test run executes an imported test package, defined for the SANDBOX installation with the package's own
+ * justifications; a GMP batch executes the control recipe of the effective MBR version it was issued from (recipe-core
+ * 0500), defined for the GMP installation with the justifications in force for that version's content (the designer's
+ * rule: the latest per finding key recorded against exactly that revision and content hash). The installation of a
+ * definition is always the batch's own (recipe-core assertDefinitionFits; DI-05, INV-18): G-09@1 and G-10@1 stay
+ * SANDBOX_ONLY. Definitions are cached by their source (package hash or control recipe) and the block-registry
+ * fingerprint (LRU). The run
  * cache holds the latest state seen per run; it is a convenience for describe() only. Every command and
  * signature re-reads the locked state in its own transaction, and a run the cache does not know makes
  * describe() leave the meaning to be checked there (fail closed, never guessed).
@@ -42,9 +47,17 @@ export interface PackageRecord {
   justifications: { key: string; text: string; by: string }[];
 }
 
+/** The MBR version a run executes, as its views name it. */
+export interface RunMbr {
+  versionNumber: string;
+  revision: number;
+}
+
 export interface RunContext {
   batch: execution.BatchExecutionRecord;
-  pkg: PackageRecord;
+  /** The imported test package of a sandbox test run; null for a GMP batch. */
+  pkg: PackageRecord | null;
+  mbr: RunMbr;
   def: engine.BatchDefinition;
 }
 
@@ -136,12 +149,16 @@ const definitions = new Lru<string, engine.BatchDefinition>(32);
  * registry fingerprint). Throws engine.EngineDefinitionError when the content is not executable.
  */
 export function defineForSandbox(packageHash: string, content: unknown, justifications: readonly { key: string; text: string; by: string }[]): engine.BatchDefinition {
-  const key = `${packageHash}|${REGISTRY.fingerprint()}`;
+  return defineCached(`pkg:${packageHash}`, content, 'SANDBOX', justifications);
+}
+
+function defineCached(source: string, content: unknown, installation: 'GMP' | 'SANDBOX', justifications: readonly { key: string; text: string; by: string }[]): engine.BatchDefinition {
+  const key = `${installation}|${source}|${REGISTRY.fingerprint()}`;
   const hit = definitions.get(key);
   if (hit) return hit;
   const parsed = flow.parseMbr(content);
   if (!parsed.ok) throw new engine.EngineDefinitionError(parsed.problems.map((p) => ({ code: 'ENG-DEF-PARSE', severity: 'ERROR' as const, subject: p.path, message: `${p.path}: ${p.message}`, controls: ['DI-34'], key: `ENG-DEF-PARSE@${p.path}` })));
-  const def = engine.defineBatch(parsed.mbr, { registry: REGISTRY, installation: 'SANDBOX', justifications });
+  const def = engine.defineBatch(parsed.mbr, { registry: REGISTRY, installation, justifications });
   definitions.set(key, def);
   return def;
 }
@@ -157,14 +174,70 @@ export function notFound(what: string): Error {
   });
 }
 
-/** The package, definition and batch record of a run (404 when there is no such run). */
+/** What a GMP batch executes: its control recipe's MBR content, version and the justifications in force for it. */
+export interface ControlRecipeSource {
+  controlRecipeId: string;
+  versionId: string;
+  versionNumber: string;
+  revision: number;
+  contentHash: string;
+  content: unknown;
+  justifications: { key: string; text: string; by: string }[];
+}
+
+/**
+ * The control recipe of a GMP batch (planned or issued): the MBR content its snapshot holds (INV-02), the version and the
+ * revision of that content, and the warning justifications in force for exactly that revision and content hash.
+ */
+export async function loadControlRecipe(db: Db, controlRecipeId: string): Promise<ControlRecipeSource | undefined> {
+  const { rows } = await db.query<{ version_id: string; version_number: string; content_hash: string; content: unknown; revision: number | null }>(
+    `select cr.version_id, (cr.snapshot -> 'mbr' ->> 'version_number') as version_number, cr.mbr_content_hash as content_hash,
+            cr.snapshot -> 'mbr' -> 'content' as content,
+            (select max(c.revision) from recipe.mbr_content c where c.version_id = cr.version_id and c.content_hash = cr.mbr_content_hash) as revision
+       from recipe.control_recipe cr where cr.id = $1`,
+    [controlRecipeId],
+  );
+  const r = rows[0];
+  if (!r || r.revision === null) return undefined;
+  const { rows: js } = await db.query<{ finding_key: string; text: string; person_id: string }>(
+    `select distinct on (j.finding_key) j.finding_key, j.text, j.person_id
+       from tab.designer_justification j
+      where j.version_id = $1 and j.content_revision = $2 and j.content_hash = $3
+      order by j.finding_key, j.recorded_at desc, j.id desc`,
+    [r.version_id, r.revision, r.content_hash],
+  );
+  return {
+    controlRecipeId,
+    versionId: r.version_id,
+    versionNumber: str(r.version_number),
+    revision: r.revision,
+    contentHash: r.content_hash,
+    content: r.content,
+    justifications: js.map((j) => ({ key: j.finding_key, text: j.text, by: j.person_id })),
+  };
+}
+
+/**
+ * The GMP definition of a control recipe's MBR content (cached by control recipe and registry fingerprint). Throws
+ * engine.EngineDefinitionError when the content is not executable on GMP (a SANDBOX_ONLY block among them).
+ */
+export function defineForGmp(source: ControlRecipeSource): engine.BatchDefinition {
+  return defineCached(`cr:${source.controlRecipeId}`, source.content, 'GMP', source.justifications);
+}
+
+/** The run's MBR, definition and batch record (404 when there is no such run). */
 export async function runContext(db: Db, runId: string): Promise<RunContext> {
   const batch = await execution.loadBatch(db, runId);
-  if (!batch) throw notFound('test run');
+  if (!batch) throw notFound('batch');
+  if (batch.installation === 'GMP') {
+    const cr = batch.controlRecipeId ? await loadControlRecipe(db, batch.controlRecipeId) : undefined;
+    if (!cr) throw notFound('control recipe of this batch');
+    return { batch, pkg: null, mbr: { versionNumber: cr.versionNumber, revision: cr.revision }, def: defineForGmp(cr) };
+  }
   const pkg = await loadPackage(db, batch.packageHash);
   if (!pkg) throw notFound('test package of this run');
   const def = defineForSandbox(pkg.packageHash, pkg.content, pkg.justifications);
-  return { batch, pkg, def };
+  return { batch, pkg, mbr: { versionNumber: pkg.versionNumber, revision: pkg.revision }, def };
 }
 
 // ---------------------------------------------------------------------------------------------

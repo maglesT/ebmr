@@ -49,6 +49,12 @@ export const EnvSchema = z.object({
   /** Built SPA (vite build output), served from the same origin as the API. */
   EBMR_WEB_DIST: z.string().optional(),
   EBMR_EXCHANGE_DIR: z.string().default('var/exchange'),
+  /**
+   * GMP: the external ledger of protected numbers (kernel continuity, INV-27) that a batch-number counter writes its next
+   * block to before the database issues from it. DEMO-ONLY as a file (write-once storage in production); without it the
+   * GMP batch plan refuses once a counter needs a new block (NUMBERING_NOT_CONFIGURED).
+   */
+  EBMR_NUMBER_LEDGER_FILE: z.string().optional(),
   /** Sandbox: the gateway listener (host:port) for the site gateway's uplink (module C5). */
   EBMR_GATEWAY_LISTEN: z.string().regex(/^[^:]+:\d+$/).optional(),
   /** Sandbox: the site gateway's API. */
@@ -82,6 +88,7 @@ export interface EnvConfig {
   secrets: { csrfHmacKey: string; nonceKey: string };
   webDist: string | null;
   exchangeDir: string;
+  numberLedgerFile: string | null;
   gatewayListen: { host: string; port: number } | null;
   gatewayUrl: string;
   serviceKeysFile: string | null;
@@ -167,6 +174,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     secrets,
     webDist: e.EBMR_WEB_DIST ?? null,
     exchangeDir: e.EBMR_EXCHANGE_DIR,
+    numberLedgerFile: e.EBMR_NUMBER_LEDGER_FILE ?? null,
     gatewayListen,
     gatewayUrl: e.EBMR_GATEWAY_URL,
     serviceKeysFile: e.EBMR_SERVICE_KEYS_FILE ?? null,

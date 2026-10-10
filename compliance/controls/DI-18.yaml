@@ -99,6 +99,7 @@ tests:
   - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [DI-17][DI-18] an administrator never writes plant data; a person without the permission is refused"
   - "packages/recipe-core/test/plant/equipment.test.ts > only the plant commands write (bypass attempts) > [DI-17][DI-18] every app-callable plant function that can write refuses administrators first, then checks a catalogued permission"
   - "packages/site-services/test/lots/lots.test.ts > receipt and release > [DI-18][DI-17] an administrator never receives, releases, reserves or decides on a lot; an operator cannot receive one"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > writer authority on the GMP installation (DI-17, DI-18) > [DI-17][DI-18] the GMP writers refuse administrators and check the permission; the application role writes no batch, link or plan directly"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

@@ -412,7 +412,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           await logged(app, s.tokenHash, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev.authEventId);
           throw e;
         }
-        const a = { ...actor(), authEventId: ev.authEventId };
+        const a = { ...actor(handler.reasonOf?.(body.action)), authEventId: ev.authEventId };
         const ctx = signableContext(s, a, ch.meaning);
         const key = idempotencyKey ?? '';
         // The attempt, one command. A refusal before esig.sign is logged inside it, with this authentication, and

@@ -391,6 +391,10 @@ export function stepForSigning(
 export const MBR_VERSION_NOTE =
   "The version number and revision come from the test package's own metadata; the signature binds the master record content by its hash, not this label.";
 
+/** The same note for a GMP batch (its control recipe names the version; Phase 3 slice 2b). */
+export const MBR_VERSION_NOTE_GMP =
+  "The version number and revision are those of the effective MBR version the batch's control recipe was made from; the signature binds the master record content by its hash, not this label.";
+
 /** The note of a hold point previewed without the decision being signed (it cannot be signed as shown). */
 export const NO_DECISION_NOTE = 'The decision is part of the signed content: preview it with the intent <meaning>|<base64url JSON {disposition, comment}>.';
 
@@ -416,7 +420,7 @@ function rendering(
     meaning: meaning.code,
     meaningText: meaning.text,
   };
-  const pkgFacts = { mbrVersion: { number: run.pkg.versionNumber, revision: run.pkg.revision, note: MBR_VERSION_NOTE } };
+  const pkgFacts = { mbrVersion: { number: run.mbr.versionNumber, revision: run.mbr.revision, note: run.pkg ? MBR_VERSION_NOTE : MBR_VERSION_NOTE_GMP } };
   if (type === 'batch_step') {
     const inst = vc.state.steps[key];
     if (!inst) throw notFound('step');
