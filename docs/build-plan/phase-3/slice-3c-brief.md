@@ -1,6 +1,6 @@
 # Slice 3c builder brief (compression blocks)
 
-Branch phase-3/slice-3c (built on 3b). Read CLAUDE.md, docs/build-plan/phase-3/slice-3-plan.md (3b scope, classes,
+Branch phase-3/slice-3c (built on 3b). Read CLAUDE.md, docs/build-plan/phase-3/slice-3-plan.md (3c scope, classes,
 defaults D-S3-1..3) and the slice 1 and 2 briefs (rules: new migrations only; create-or-replace from the LATEST
 definition; definers hardened; tests as the app role with bypass attempts; control-id tags only where proven; existing
 sweeps and the block parity test must pass; one released block version never changes).
