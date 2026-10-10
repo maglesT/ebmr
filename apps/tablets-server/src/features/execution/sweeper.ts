@@ -27,6 +27,9 @@
  * sweeper holds none of its permissions (INTERFACE.WRITE and the other service rights). The site gateway acts in
  * its own role SITE_GATEWAY (tablets 0290), which is only for INTEGRATION accounts and never holds EXECUTION.SWEEP.
  *
+ * With each sweep the same identity records the interface losses of steps on process devices (recordInterfaceLosses,
+ * slice 3a review backlog #7).
+ *
  * Before every sweep the sweeper re-reads the site policy site.zone (AppContext.siteZone.check(), DI-27): after
  * a change while the server runs it sweeps nothing and opens no session until the server restarts (the guard
  * raises the operations alert once; the sweeper adds no warning of its own).
@@ -103,6 +106,26 @@ export async function sweepAll(app: AppContext, actor: ActorContext): Promise<Sw
   return result;
 }
 
+export interface InterfaceLoss {
+  batchId: string;
+  step: string;
+  lastReceivedUs: string | null;
+}
+
+/**
+ * Slice 3a review backlog #7 (DI-31, PR-14): records, as `actor` (the sweeper's SYSTEM service session, EXECUTION.SWEEP),
+ * an interface loss for every step bound to a process device whose instance is in progress and whose device has sent
+ * nothing for longer than the step's stale age, judged at database time (tablets 0870, tab.record_interface_losses); once
+ * per loss. A step on a process device then closes only after an INTERFACE_LOSS entry answers each loss (tablets 0874),
+ * which raises G-06's exception and two-person mode. Returns the losses recorded now.
+ */
+export async function recordInterfaceLosses(app: AppContext, actor: ActorContext): Promise<InterfaceLoss[]> {
+  return withActorCommand(app.pools.app, { ...actor, correlationId: randomUUID() }, async (client) => {
+    const { rows } = await client.query<{ r: { recorded: InterfaceLoss[] } }>('select tab.record_interface_losses() as r');
+    return rows[0]?.r.recorded ?? [];
+  });
+}
+
 /**
  * Opens a SERVICE_KEY session of the sweeper identity on its SERVER terminal and returns its SYSTEM actor in the
  * sweeper's own role (SWEEPER_ROLE; the kernel refuses the context unless the account holds it, EBMR-IAM-108). The
@@ -158,6 +181,8 @@ export function startSweeper(
         // DI-27: nothing is swept in the zone of before a change of the site policy (SITE_ZONE_CHANGED).
         await app.siteZone.check();
         const r = await sweepAll(app, await session());
+        const losses = await recordInterfaceLosses(app, await session());
+        if (losses.length > 0) log.warn({ losses: losses.length, first: losses[0] }, 'the link to a process device was lost; recorded as interface loss');
         if (r.failures.length > 0) {
           log.warn({ failures: r.failures.length, first: r.failures[0]?.error }, 'the sweeper could not sweep every test run');
           actor = null; // a lapsed session is reopened next time

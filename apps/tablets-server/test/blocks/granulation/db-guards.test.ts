@@ -16,6 +16,7 @@ import { codeOf } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { adminActor, enrol, fakeGateway, type FakeGateway } from '../../devices/support.ts';
 import { GRANULATION_BLOCK_VERSIONS } from '../../../src/blocks/granulation/index.ts';
+import { pressInUse } from '../compression/plant-support.ts';
 import { fakeTimers, granulationMbr, lastEntry, laxEntry, recorder, stateOf, type Entry } from './db-support.ts';
 
 type Json = Record<string, unknown>;
@@ -179,6 +180,8 @@ describe('the granulation blocks in the database (tablets 0850, 0851)', () => {
     advance();
     const op = async () => actorOfBrowser(sbx, d.browser('operator1'), 'operator1');
     expect(await codeOf(withCommand(sbx.db.app, await op(), (c) => c.query('select tab.bind_step_device($1, $2, $3)', [d.runId, 'p-tb03', device])))).toBe('EBMR-DEV-130');
+    // Slice 3c (tablets 0870): the granulator is the plant unit of the batch's open use, and the device is linked to it.
+    await pressInUse(sbx, async () => { advance(); return op(); }, d.runId, { deviceCode: device });
     advance();
     await withCommand(sbx.db.app, await op(), (c) => c.query('select tab.bind_step_device($1, $2, $3)', [d.runId, 'p-tb04g', device]));
     const session = randomUUID();
