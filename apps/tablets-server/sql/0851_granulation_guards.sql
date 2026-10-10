@@ -91,7 +91,8 @@ $$;
 -- differs).
 create function tab.gran_sum(p_list jsonb, p_member text, p_unit text) returns numeric
 language sql immutable set search_path = pg_catalog, pg_temp as $$
-  select case when bool_and(e -> 'data' -> p_member ->> 'unit' = p_unit) is false then null
+  -- Null-safe (review 3b finding 6): an entry without a unit, or no unit to compare with, gives NULL (refused).
+  select case when p_unit is null or not coalesce(bool_and(coalesce(e -> 'data' -> p_member ->> 'unit' = p_unit, false)), true) then null
               else coalesce(sum((e -> 'data' -> p_member ->> 'value')::numeric), 0) end
     from jsonb_array_elements(p_list) e
 $$;
@@ -378,6 +379,11 @@ begin
           if v_x is not null then
             return format('stores %s, a second check of the bag before use (TB05-BAG-TWICE)', v_what);
           end if;
+          -- Review 3b finding 4: the bag's history is stated (last product or a new bag) unless the MBR dedicates bags.
+          if (c ? 'lastProduct' and (c -> 'newBag') = 'true'::jsonb)
+             or (not (c ? 'lastProduct') and (c -> 'newBag') is distinct from 'true'::jsonb and (v_cfg -> 'dedicatedBags') is distinct from 'true'::jsonb) then
+            return format('stores %s for bag %s without its history: the product it was last used for, or that it is new (TB05-BAG-HISTORY)', v_what, c ->> 'bag');
+          end if;
           if c ? 'lastProduct' and (c -> 'lastProduct') is distinct from v_product and not (c ? 'washRecord') then
             return format('stores %s for bag %s last used for %s without its wash record (TB05-BAG-WASH)', v_what, c ->> 'bag', c ->> 'lastProduct');
           end if;
@@ -388,10 +394,10 @@ begin
             return format('stores %s for a damaged bag (TB05-BAG-DAMAGED)', v_what);
           end if;
           v_want := jsonb_build_object('bag', c -> 'bag', 'when', 'BEFORE', 'result', 'INTACT', 'checkedBy', v_by)
-                    || recipe.json_pick(c, array['lastProduct', 'washRecord', 'dedicatedTo']);
+                    || recipe.json_pick(c, array['newBag', 'lastProduct', 'washRecord', 'dedicatedTo']);
         else
           if v_x is null or v_y is not null or (v_x -> 'data' -> 'bag') is distinct from (c -> 'bag')
-             or c ? 'lastProduct' or c ? 'washRecord' or c ? 'dedicatedTo' then
+             or c ? 'lastProduct' or c ? 'newBag' or c ? 'washRecord' or c ? 'dedicatedTo' then
             return format('stores %s, which is not the one check after use of the bag checked before use, naming only the bag and the finding (TB05-BAG-ORDER)', v_what);
           end if;
           v_want := jsonb_build_object('bag', c -> 'bag', 'when', 'AFTER', 'result', c -> 'result', 'checkedBy', v_by);

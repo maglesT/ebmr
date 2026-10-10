@@ -75,6 +75,13 @@ function acceptBag(view: HandlerView, entry: Entry): EntryResult {
   if (when === 'BEFORE') {
     if (before) return refuse('TB05-BAG-TWICE', `${view.stepKey} already checked its filter bag before use`, ['IN-36']);
     const last = text(entry['lastProduct']);
+    const fresh = entry['newBag'] === true;
+    // Review 3b finding 4: the bag's history is always stated (the product it was last used for, or a new bag), unless
+    // the MBR asks for product-dedicated bags (then its dedication decides); an omitted history never skips the wash rule.
+    if (fresh && last !== undefined) return refuse('TB05-BAG-HISTORY', `Filter bag ${bag} is either new or was last used for a product, not both`, ['IN-36', 'PR-27']);
+    if (!fresh && last === undefined && !dedicated(view.config)) {
+      return refuse('TB05-BAG-HISTORY', `State the product filter bag ${bag} was last used for, or that it is new`, ['IN-36', 'PR-27']);
+    }
     const wash = text(entry['washRecord']);
     const dedicatedTo = text(entry['dedicatedTo']);
     if (last !== undefined && last !== product && wash === undefined) {
@@ -86,13 +93,13 @@ function acceptBag(view: HandlerView, entry: Entry): EntryResult {
     if (entry['result'] === 'DAMAGED') return refuse('TB05-BAG-DAMAGED', `Filter bag ${bag} is damaged; fit another bag`, ['IN-36']);
     return {
       ok: true,
-      data: { bag, when, result: 'INTACT', ...(last !== undefined ? { lastProduct: last } : {}), ...(wash !== undefined ? { washRecord: wash } : {}), ...(dedicatedTo !== undefined ? { dedicatedTo } : {}), checkedBy: view.actor.id },
+      data: { bag, when, result: 'INTACT', ...(entry['newBag'] !== undefined ? { newBag: entry['newBag'] } : {}), ...(last !== undefined ? { lastProduct: last } : {}), ...(wash !== undefined ? { washRecord: wash } : {}), ...(dedicatedTo !== undefined ? { dedicatedTo } : {}), checkedBy: view.actor.id },
     };
   }
   if (!before) return refuse('TB05-BAG-ORDER', `Check the filter bag of ${view.stepKey} before use first`, ['IN-36']);
   if (after) return refuse('TB05-BAG-TWICE', `${view.stepKey} already checked its filter bag after use`, ['IN-36']);
   if (before['bag'] !== bag) return refuse('TB05-BAG-ORDER', `The bag checked after use is the one checked before use (${String(before['bag'])})`, ['IN-36']);
-  if (entry['lastProduct'] !== undefined || entry['washRecord'] !== undefined || entry['dedicatedTo'] !== undefined) {
+  if (entry['lastProduct'] !== undefined || entry['newBag'] !== undefined || entry['washRecord'] !== undefined || entry['dedicatedTo'] !== undefined) {
     return refuse('TB05-BAG-ORDER', 'The check after use names only the bag and what was found', ['IN-36']);
   }
   const damaged = entry['result'] === 'DAMAGED';
@@ -213,7 +220,8 @@ export const TB05: BlockVersion = {
           bag: { type: 'string', pattern: CODE, description: 'Filter bag identification' },
           when: { type: 'string', enum: ['BEFORE', 'AFTER'], description: 'Before or after use' },
           result: { type: 'string', enum: ['INTACT', 'DAMAGED'], description: 'What the check found' },
-          lastProduct: { type: 'string', optional: true, description: 'Product the bag was last used for (BEFORE)' },
+          lastProduct: { type: 'string', optional: true, description: 'Product the bag was last used for (BEFORE; or newBag)' },
+          newBag: { type: 'boolean', optional: true, description: 'The bag has never been used (BEFORE; instead of lastProduct)' },
           washRecord: { type: 'string', optional: true, description: 'Its wash record (BEFORE)' },
           dedicatedTo: { type: 'string', optional: true, description: 'Product the bag is dedicated to (BEFORE)' },
         },
@@ -229,7 +237,7 @@ export const TB05: BlockVersion = {
   simulatorModel: {
     exceptionTypes: () => [...PROCESS_EXCEPTION_RULES.map((r) => r.type), 'FILTER_BAG_FAILED'],
     nominalEntries: (input) => {
-      const bag = fluidBed(input.config) ? [{ kind: 'BAG_CHECK', bag: 'BAG-1', when: 'BEFORE', result: 'INTACT', ...(dedicated(input.config) ? { dedicatedTo: 'PRODUCT' } : {}) }] : [];
+      const bag = fluidBed(input.config) ? [{ kind: 'BAG_CHECK', bag: 'BAG-1', when: 'BEFORE', result: 'INTACT', ...(dedicated(input.config) ? { dedicatedTo: 'PRODUCT' } : { newBag: true }) }] : [];
       const after = fluidBed(input.config) ? [{ kind: 'BAG_CHECK', bag: 'BAG-1', when: 'AFTER', result: 'INTACT' }] : [];
       return [...bag, ...processNominalEntries(input), { kind: 'DRYING_START' }, { kind: 'DRYING_END' }, { kind: 'LOD_SAMPLE', analyser: 'MA-1', sampleMass: { value: '5.000', unit: 'g' } }, ...after];
     },

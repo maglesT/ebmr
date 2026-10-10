@@ -196,6 +196,15 @@ describe('the granulation blocks in the database (tablets 0850, 0851)', () => {
     expect(await verdict('p-tb04g', { kind: 'END_POINT', actual: id })).toBe('ok');
   });
 
+  it('[IN-36][PR-30] review 3b finding 6: a quantity sum is null-safe: an entry without a unit, or no unit to compare with, gives no sum (the use-by and overuse checks then refuse)', async () => {
+    const q = (unit?: string) => ({ data: { quantity: { value: '1.000', ...(unit ? { unit } : {}) } } });
+    expect(await sql('select tab.gran_sum($1, $2, $3)::text as r', [JSON.stringify([q('kg'), q('kg')]), 'quantity', 'kg'])).toBe('2.000');
+    expect(await sql('select tab.gran_sum($1, $2, $3)::text as r', [JSON.stringify([q('kg'), q()]), 'quantity', 'kg'])).toBeNull();
+    expect(await sql('select tab.gran_sum($1, $2, $3)::text as r', [JSON.stringify([q()]), 'quantity', 'kg'])).toBeNull();
+    expect(await sql('select tab.gran_sum($1, $2, $3)::text as r', [JSON.stringify([q('kg')]), 'quantity', null])).toBeNull();
+    expect(await sql('select tab.gran_sum($1, $2, $3)::text as r', [JSON.stringify([q('kg'), q('g')]), 'quantity', 'kg'])).toBeNull();
+  });
+
   it('[IN-36][PR-27] TB-05: a filter bag last used for another product is refused without its wash record (IN-36 catalogue test), drying starts only after the bag check, the drying time is measured; the drying loop never runs beyond its maximum iterations', async () => {
     const key = 'p-tb05@L-DRY=1';
     const frames = [{ construct: 'L-DRY', index: 1 }];
@@ -203,6 +212,9 @@ describe('the granulation blocks in the database (tablets 0850, 0851)', () => {
     expect(await verdict('p-tb05', { kind: 'DRYING_START' }, { frames, tamper: laxEntry('p-tb05', { startedBy: me }) })).toBe('EBMR-EXE-250 TB05-BAG-UNCHECKED');
     const bag = { kind: 'BAG_CHECK', bag: 'TEST-BAG-07', when: 'BEFORE', result: 'INTACT', lastProduct: 'TEST-OTHER-PRODUCT' };
     expect(await verdict('p-tb05', bag, { frames, tamper: laxEntry('p-tb05', { bag: 'TEST-BAG-07', when: 'BEFORE', result: 'INTACT', lastProduct: 'TEST-OTHER-PRODUCT', checkedBy: me }) })).toBe('EBMR-EXE-250 TB05-BAG-WASH');
+    // Review 3b finding 4: the history left out (no last product, no new-bag statement) is refused too.
+    const silent = { kind: 'BAG_CHECK', bag: 'TEST-BAG-07', when: 'BEFORE', result: 'INTACT' };
+    expect(await verdict('p-tb05', silent, { frames, tamper: laxEntry('p-tb05', { bag: 'TEST-BAG-07', when: 'BEFORE', result: 'INTACT', checkedBy: me }) })).toBe('EBMR-EXE-250 TB05-BAG-HISTORY');
     expect(await verdict('p-tb05', { ...bag, washRecord: 'TEST-WASH-0007' }, { frames })).toBe('ok');
     expect(await verdict('p-tb05', { kind: 'DRYING_START' }, { frames })).toBe('ok');
     expect(await verdict('p-tb05', { kind: 'DRYING_END' }, { frames, tamper: laxEntry('p-tb05', { dryingSeconds: '1500.000000', endedBy: me }) })).toMatch(/^EBMR-EXE-250 .*dryingSeconds/s);

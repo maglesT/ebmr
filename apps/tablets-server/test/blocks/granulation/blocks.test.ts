@@ -201,7 +201,17 @@ describe('TB-04 wet granulation end point', () => {
 });
 
 describe('TB-05 drying with the LOD loop', () => {
-  const bagBefore = (extra: Json = {}): Entry => ({ kind: 'BAG_CHECK', bag: 'BAG-07', when: 'BEFORE', result: 'INTACT', ...extra });
+  it('[IN-36][PR-27] review 3b finding 4: a bag check before use states the bag\'s history (the product it was last used for, or a new bag): leaving it out never skips the wash rule; only product-dedicated bags need no history', () => {
+    const { run, frames } = startRun(TB05);
+    const at = (entry: Entry) => run.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'p', context: frames, entry }).refusal?.code;
+    expect(at({ kind: 'BAG_CHECK', bag: 'BAG-07', when: 'BEFORE', result: 'INTACT' })).toBe('TB05-BAG-HISTORY');
+    expect(at({ kind: 'BAG_CHECK', bag: 'BAG-07', when: 'BEFORE', result: 'INTACT', newBag: true, lastProduct: 'Q' })).toBe('TB05-BAG-HISTORY');
+    expect(at({ kind: 'BAG_CHECK', bag: 'BAG-07', when: 'BEFORE', result: 'INTACT', newBag: true })).toBeUndefined();
+    const dedicated = startRun(TB05, blockMbr(TB05, fixturePhase(TB05, { config: { dedicatedBags: true } })));
+    dedicated.run.entry('p', { kind: 'BAG_CHECK', bag: 'BAG-07', when: 'BEFORE', result: 'INTACT', dedicatedTo: 'P' }, dedicated.frames);
+  });
+
+  const bagBefore = (extra: Json = {}): Entry => ({ kind: 'BAG_CHECK', bag: 'BAG-07', when: 'BEFORE', result: 'INTACT', ...('lastProduct' in extra ? {} : { newBag: true }), ...extra });
 
   it('[IN-36][DI-34] the drying step sits in a bounded loop that exits on its LOD (a process end point with an upper limit), of at most 10 iterations', () => {
     expect(definitionCodes(blockMbr(TB05))).toEqual([]);
