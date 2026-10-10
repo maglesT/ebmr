@@ -14,7 +14,7 @@ import { actorOfBrowser } from '../../esig/support.ts';
 import { codeOf } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { adminActor, enrol, fakeGateway, type FakeGateway } from '../../devices/support.ts';
-import { fetchSerialReport, requestSerialPool, type L3Client } from '../../../src/features/execution/serialisation.ts';
+import { fetchSerialReport, requestSerialPool, sendSerialEvents, type L3Client, type SerialChange } from '../../../src/features/execution/serialisation.ts';
 import { fakeTimers, lastEntry, laxEntry, recorder, stateOf, type Entry } from '../granulation/db-support.ts';
 import { ARTWORK, ARTWORK_SET, CARTON_MATERIAL, GTIN, LINE_UNIT, lineUnit, occupyLine, packagingMbr, PRINTER_SERIAL, VISION_SERIAL } from './db-support.ts';
 
@@ -91,7 +91,7 @@ beforeAll(async () => {
   chainId = await enrol(sbx);
   const site = (await sbx.db.admin.query<{ s: string }>("select site_code as s from iam.device where code = 'TEST-BAL-01'")).rows[0]?.s ?? null;
   await identity.withGuardedCommand(sbx.db.app, await adminActor(sbx), async (c) => {
-    for (const [code, serial, kind] of [['TEST-PRN-01', PRINTER_SERIAL, 'PRINTER'], ['TEST-VIS-01', VISION_SERIAL, 'VISION']] as const) {
+    for (const [code, serial, kind] of [['TEST-PRN-01', PRINTER_SERIAL, 'PRINTER'], ['TEST-PRN-02', 'PRN-T2', 'PRINTER']] as const) {
       await c.query('select iam.register_device($1, $2, $3, $4, $5, $6, $7)', [code, 'INSTRUMENT', site, 'DISP-1', null, createHash('sha256').update(`${code}:${randomUUID()}`).digest('hex'), `${kind} (simulated)`]);
       await c.query('select tab.bind_print_device($1, $2, $3, $4)', [chainId, code, serial, kind]);
     }
@@ -190,6 +190,20 @@ describe('G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952)'
     expect(await sql<string>('select plant.container_state($1) as r', [box['container_id']])).toMatch(/^(OPEN|HELD)$/);
     expect(await sql<boolean>('select exists (select 1 from plant.container_hold where container_id = $1) as r', [box['container_id']])).toBe(true);
     expect(await sql<string>('select tab.print_job_state($1) as r', [job2['id']])).toBe('VOIDED');
+    // Review 4a MEDIUM 4: a job voided before the printer acknowledged it, then loaded late, holds the line's output too;
+    // the answer tells the gateway the job is VOIDED.
+    const job3 = await asP<Json>('operator1', 'select tab.release_print_job($1, $2, $3, $4) as r', [d.runId, 'p-g21@', 'CODER', 'LAYOUT-US-1']);
+    const box2 = await asP<Json>('operator1', 'select plant.open_container($1, $2, $3, $4) as r', [d.runId, 'PACKAGING', 'kg', LINE_UNIT]);
+    expect((await asP<Json>('operator1', 'select tab.record_packaging_batch_data($1, $2, null, $3) as r', [d.runId, 'p-g21@', 'Expiry rule corrected']))['voided']).toEqual([{ jobId: job3['id'], held: false }]);
+    expect(await sql<boolean>('select exists (select 1 from plant.container_hold where container_id = $1) as r', [box2['container_id']])).toBe(false);
+    const late = await gw.post(printJobAckPath(String(job3['id'])), { sessionId: RUN_SESSION, outcome: 'LOADED', echoedFields: job3['fields'], sourceTime: '1790584618000003', message: null });
+    expect((late.body as Json)['state']).toBe('VOIDED');
+    expect(await sql<boolean>('select exists (select 1 from plant.container_hold where container_id = $1) as r', [box2['container_id']])).toBe(true);
+    // Review 4a LOW 7: a device's first event is sequence 1; an event names a job of its own device.
+    const other = (jobId: string | null, sequence: string) => gw.post(PRINT_EVENTS_PATH, { sessionId: RUN_SESSION, events: [{ deviceSerial: 'PRN-T2', jobId, kind: jobId ? 'PRINTED_COUNT' : 'FAULT', value: jobId ? '0' : 'OFFLINE', sourceTime: '1790584618000000', sequence }] });
+    expect((await other(null, '5')).status).toBeGreaterThanOrEqual(400);
+    expect((await other(String(job3['id']), '1')).status).toBeGreaterThanOrEqual(400);
+    expect((await other(null, '1')).status).toBe(200);
     await expect(sbx.db.app.query('insert into tab.print_job_void (job_id, data_version, held, voided_by) values ($1, 9, false, $2)', [job['id'], randomUUID()])).rejects.toThrow(/permission denied/);
   });
 
@@ -199,11 +213,16 @@ describe('G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952)'
     expect(fail.status).toBe(200);
     const failId = String(((fail.body['events'] as Json[])[0] as Json)['eventId']);
     expect((await event('NOPE-1', 'CHALLENGE_RESULT', 'PASS', String(job['id']))).status).toBeGreaterThanOrEqual(400);
-    const ch = (result: string, ev: string): Entry => ({ kind: 'CHALLENGE', device: 'CAM', trigger: 'START', result, event: ev });
+    const ch = (result: string, ev: string, at = '1790584618000000'): Entry => ({ kind: 'CHALLENGE', device: 'CAM', trigger: 'START', result, event: ev, at });
     expect(await verdict(ch('PASS', failId))).toMatch(/^EBMR-EXE-296 /);
     const box = await asP<Json>('operator1', 'select plant.open_container($1, $2, $3, $4) as r', [d.runId, 'PACKAGING', 'kg', LINE_UNIT]);
     // A forged engine that drops the exception is refused.
-    expect(await verdict(ch('FAIL', failId), { tamper: laxEntry('p-g21', { device: 'CAM', trigger: 'START', result: 'FAIL', event: failId, missed: false, challengedBy: me() }) })).toMatch(/^EBMR-EXE-291 /);
+    expect(await verdict(ch('FAIL', failId), { tamper: laxEntry('p-g21', { device: 'CAM', trigger: 'START', result: 'FAIL', event: failId, at: '1790584618000000', missed: false, challengedBy: me() }) })).toMatch(/^EBMR-EXE-291 /);
+    // Review 4a HIGH 1: the result is timed by the device, and a later PASS is not recorded over the earlier FAIL.
+    const pass = await event(VISION_SERIAL, 'CHALLENGE_RESULT', 'PASS', String(job['id']));
+    const passId = String(((pass.body['events'] as Json[])[0] as Json)['eventId']);
+    expect(await verdict(ch('PASS', passId))).toMatch(/^EBMR-EXE-296 .*device's order/);
+    expect(await verdict(ch('FAIL', failId, '1790584618000001'))).toMatch(/^EBMR-EXE-296 .*states the time/);
     expect(await verdict(ch('FAIL', failId))).toBe('ok');
     const s = await stateOf(sbx, d.runId);
     expect(Object.values(s.exceptions).map((x) => x['type'])).toContain('CHALLENGE_FAILED');
@@ -215,6 +234,14 @@ describe('G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952)'
     const pool = (await sql<string>('select pool_id as r from tab.serial_pool where batch_id = $1', [d.runId])) ?? '';
     expect(await verdict({ kind: 'SERIAL_POOL', poolId: pool, market: 'US', gtin: GTIN, quantity: '11' }, { tamper: laxEntry('p-g21', { poolId: pool, market: 'US', gtin: GTIN, quantity: '11', recordedBy: 'x' }) })).toMatch(/^EBMR-EXE-297 /);
     expect(await verdict({ kind: 'SERIAL_POOL', poolId: pool, market: 'US', gtin: GTIN, quantity: '10' })).toBe('ok');
+    const change = (n: number, from: SerialChange['from'], state: SerialChange['state']): SerialChange[] => Array.from({ length: n }, (_, i) => ({ serial: `S${i}`, from, state, at: '1790584618000000' }));
+    const send = async (events: SerialChange[]): Promise<void> => withCommand(sbx.db.app, await as('operator1'), (c) => sendSerialEvents(c, l3, pool, events));
+    await send([...change(9, null, 'COMMISSIONED')]);
+    await send(change(1, 'COMMISSIONED', 'SAMPLE'));
+    expect(await codeOf(send(change(2, 'DECOMMISSIONED', 'DESTROYED')))).toBe('EBMR-EXE-297');
+    // Review 4a MEDIUM 3: a report other than the server's events leave is refused.
+    l3.next = report(pool, ['9', '0', '0', '1', '0'], '0');
+    expect(await codeOf(withCommand(sbx.db.app, await as('operator1'), (c) => fetchSerialReport(c, l3, pool)))).toBe('EBMR-EXE-297');
     l3.next = report(pool, ['8', '0', '0', '1', '0'], '1');
     const open = await withCommand(sbx.db.app, await as('operator1'), (c) => fetchSerialReport(c, l3, pool));
     expect(await verdict(open as Entry)).toBe('ok');
@@ -226,17 +253,25 @@ describe('G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952)'
     expect(await sql<string>('select recipe.g21_close_problem($1, $2, $3) as r', [c, st, closing])).toMatch(/G21-NOT-RECONCILED/);
     // The reconciliation: computed, judged, with its exception (a forged engine without it is refused).
     const recon: Entry = { kind: 'RECONCILIATION', item: 'CARTON', used: '990', setupWaste: '6', damaged: '2', codedDestroyed: '5', uncodedReturned: '0', specimens: '5' };
-        const honest = { item: 'CARTON', used: '990', setupWaste: '6', damaged: '2', codedDestroyed: '5', uncodedReturned: '0', specimens: '5', unit: '1', issued: '1020', unexplained: '12', withinLimits: false, reconciledBy: me() };
+        const honest = { item: 'CARTON', used: '990', setupWaste: '6', damaged: '2', codedDestroyed: '5', uncodedReturned: '0', specimens: '5', unit: '1', issued: '1020', unexplained: '12', withinLimits: false, counted: 'DEVICE', reconciledBy: me() };
+    // Review 4a MEDIUM 5: the coded counts are the printer's: 1001 printed is required before the honest entry stands.
+    expect(await verdict(recon)).toMatch(/^EBMR-EXE-296 .*printers printed 0/);
+    const lastJob = (await sql<string>("select id as r from tab.print_job where batch_id = $1 and tab.print_job_state(id) = 'RELEASED' order by released_at desc limit 1", [d.runId])) ?? '';
+    expect((await event(PRINTER_SERIAL, 'PRINTED_COUNT', '1001', lastJob)).status).toBe(200);
     expect(await verdict(recon, { tamper: laxEntry('p-g21', { ...honest, unexplained: '0', withinLimits: true }) })).toMatch(/^EBMR-[A-Z]+-\d{3} .*unexplained/s);
     expect(await verdict(recon, { tamper: laxEntry('p-g21', honest) })).toMatch(/^EBMR-EXE-291 /);
     expect(await verdict(recon)).toBe('ok');
-    expect(await dataOf('RECONCILIATION')).toMatchObject({ issued: '1020', unexplained: '12', withinLimits: false });
+    expect(await dataOf('RECONCILIATION')).toMatchObject({ issued: '1020', unexplained: '12', withinLimits: false, counted: 'DEVICE' });
     // Serials close: the gate then passes once the record holds the closed reconciliation of that report.
+    await send(change(1, null, 'DESTROYED'));
     l3.next = report(pool, ['8', '0', '1', '1', '0'], '0');
     const closed = await withCommand(sbx.db.app, await as('operator1'), (c2) => fetchSerialReport(c2, l3, pool));
     expect(await sql<string>('select tab.serialisation_release_problem($1) as r', [d.runId])).toMatch(/holds no closed reconciliation/);
     expect(await verdict(closed as Entry)).toBe('ok');
     expect(await sql<string>('select tab.serialisation_release_problem($1) as r', [d.runId])).toBeNull();
+    // An event after the report makes it stale: the gate fails closed until a newer report is fetched.
+    await send(change(1, 'COMMISSIONED', 'DECOMMISSIONED'));
+    expect(await sql<string>('select tab.serialisation_release_problem($1) as r', [d.runId])).toMatch(/zero unexplained/);
     // Coded surplus: a return to stores of the coded carton beyond the uncoded returned is refused; the destruction
     // step closes only on the coded quantity destroyed; neither step is ever skipped.
     const ret: Entry = { kind: 'DISPOSAL', category: 'RETURN_TO_STORES', material: CARTON_MATERIAL, batchCoded: false, quantity: { value: '5', unit: '1' } };

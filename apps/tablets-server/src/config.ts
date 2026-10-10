@@ -62,6 +62,8 @@ export const EnvSchema = z.object({
   /** DEMO-ONLY service secrets (sweeper, gateway) of the sandbox. */
   EBMR_SERVICE_KEYS_FILE: z.string().optional(),
   EBMR_OTHER_INSTALLATION_URL: z.string().optional(),
+  /** The site's serialisation L3 system (integration-sdk serialisation; G-21, PR-42). Unset: off, serial pool requests are refused. */
+  EBMR_L3_URL: z.url().optional(),
   EBMR_SITE_CODE: z.string().default('SITE-1'),
   /** Optional: the site time zone the operator expects; start-up refuses a site policy site.zone that differs (DI-27). */
   EBMR_SITE_ZONE: z.string().min(1).optional(),
@@ -93,6 +95,8 @@ export interface EnvConfig {
   gatewayUrl: string;
   serviceKeysFile: string | null;
   otherInstallationUrl: string | null;
+  /** EBMR_L3_URL without a trailing slash; null: no L3 system, every serialisation call fails closed (PR-42). */
+  l3Url: string | null;
   siteCode: string;
   /** EBMR_SITE_ZONE: the zone the site policy must hold for the server to start (null: not checked). */
   expectedSiteZone: string | null;
@@ -123,6 +127,16 @@ function devUrl(host: string, port: number, db: string, role: string): string {
 export function cookieNames(installation: 'GMP' | 'SANDBOX', https: boolean): { session: string; csrf: string } {
   const short = installation === 'GMP' ? 'gmp' : 'sbx';
   return https ? { session: `__Host-ebmr-${short}`, csrf: `__Host-ebmr-${short}-csrf` } : { session: `ebmr_${short}_sid`, csrf: `ebmr_${short}_csrf` };
+}
+
+/** The L3 base URL (no trailing slash, origin and path only); production refuses http (DI-13, as the public origin). */
+function l3UrlOf(raw: string | undefined, production: boolean): string | null {
+  if (raw === undefined || raw === '') return null;
+  const u = new URL(raw);
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new ConfigError('EBMR_L3_URL is an http(s) URL');
+  if (u.search || u.hash || u.username || u.password) throw new ConfigError('EBMR_L3_URL names the L3 system only (no query, fragment or credentials)');
+  if (production && u.protocol !== 'https:') throw new ConfigError('EBMR_ENV=production refuses an http EBMR_L3_URL: use https (DI-13)');
+  return u.toString().replace(/\/+$/, '');
 }
 
 export function parseConfig(env: Readonly<Record<string, string | undefined>>, randomKey: () => string): EnvConfig {
@@ -179,6 +193,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     gatewayUrl: e.EBMR_GATEWAY_URL,
     serviceKeysFile: e.EBMR_SERVICE_KEYS_FILE ?? null,
     otherInstallationUrl: e.EBMR_OTHER_INSTALLATION_URL ?? null,
+    l3Url: l3UrlOf(e.EBMR_L3_URL, production),
     siteCode: e.EBMR_SITE_CODE,
     expectedSiteZone: e.EBMR_SITE_ZONE ?? null,
     logLevel: e.EBMR_LOG_LEVEL,

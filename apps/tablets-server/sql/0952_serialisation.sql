@@ -66,6 +66,7 @@ create table tab.serial_event_upload (
 );
 revoke all on tab.serial_event_upload from public;
 create trigger aa_serial_event_upload_insert_only before update or delete on tab.serial_event_upload for each row execute function kernel.reject_mutation();
+select platform.enforce_db_time('tab.serial_event_upload', array['sent_at']);
 select kernel.register_audited_table('tab.serial_event_upload', 'serial_pool', 'pool_id', true);
 
 create table tab.serial_report (
@@ -83,10 +84,13 @@ create trigger aa_serial_report_no_truncate before truncate on tab.serial_report
 select platform.enforce_db_time('tab.serial_report', array['fetched_at']);
 select kernel.register_audited_table('tab.serial_report', 'serial_pool', 'pool_id', true);
 
--- The latest report of pool p_pool.
+-- The latest report of pool p_pool, when no serial event was recorded after it (review 4a MEDIUM 3: an event after a
+-- report makes it stale), else NULL.
 create function tab.latest_serial_report(p_pool text) returns tab.serial_report
 language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
-  select r from tab.serial_report r where r.pool_id = p_pool order by r.fetched_at desc, r.id desc limit 1
+  select r from tab.serial_report r where r.pool_id = p_pool
+     and not exists (select 1 from tab.serial_event_upload u where u.pool_id = p_pool and u.sent_at >= r.fetched_at)
+   order by r.fetched_at desc, r.id desc limit 1
 $$;
 
 -- The step's G-21 configuration and the L3 profile of market p_market, refusing a market the step does not serialise.
@@ -180,21 +184,46 @@ begin
 end
 $$;
 
--- PR-42 (header): the counts per state of a batch of serial events the L3 system took for pool p_pool.
+-- The serial state changes the L3 contract allows, as 'FROM>TO' (NONE: issued, no state yet).
+create function tab.serial_transitions() returns text[]
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select array['NONE>COMMISSIONED', 'NONE>UNUSED_RETURNED', 'NONE>DESTROYED', 'COMMISSIONED>DECOMMISSIONED', 'COMMISSIONED>DESTROYED',
+               'COMMISSIONED>SAMPLE', 'DECOMMISSIONED>DESTROYED']
+$$;
+
+-- PR-42 (header; review 4a MEDIUM 3): the counts per state change ('FROM>TO') of a batch of serial events the server
+-- sends the L3 system for pool p_pool; the states the pool's serials hold follow from them (tab.serial_states_of).
 create function tab.record_serial_events(p_pool text, p_counts jsonb) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, tab, kernel, pg_temp as $$
 declare
   p    tab.serial_pool := tab.acting_pool(p_pool);
   v_id uuid;
+  v_st jsonb;
 begin
-  if jsonb_typeof(p_counts) is distinct from 'object'
-     or exists (select 1 from jsonb_each(p_counts) x where x.key not in ('COMMISSIONED', 'DECOMMISSIONED', 'DESTROYED', 'SAMPLE', 'UNUSED_RETURNED')
-                                                         or jsonb_typeof(x.value) <> 'string' or (x.value #>> '{}') !~ '^(0|[1-9][0-9]{0,17})$') then
-    raise exception using errcode = 'P0001', message = 'Serial events are counted per end state as whole numbers (PR-42). [EBMR-EXE-297]';
+  if jsonb_typeof(p_counts) is distinct from 'object' or p_counts = '{}'::jsonb
+     or exists (select 1 from jsonb_each(p_counts) x where not (x.key = any (tab.serial_transitions()))
+                                                         or jsonb_typeof(x.value) <> 'string' or (x.value #>> '{}') !~ '^[1-9][0-9]{0,17}$') then
+    raise exception using errcode = 'P0001', message = 'Serial events are counted per allowed state change (FROM>TO) as whole numbers (PR-42). [EBMR-EXE-297]';
   end if;
+  perform 1 from tab.serial_pool where pool_id = p.pool_id for update;
   insert into tab.serial_event_upload (pool_id, counts, sent_by) values (p.pool_id, p_counts, (kernel.current_actor() ->> 'person_id')::uuid) returning id into v_id;
+  v_st := tab.serial_states_of(p.pool_id);
+  if exists (select 1 from jsonb_each_text(v_st) x where x.value::numeric < 0) then
+    raise exception using errcode = 'P0001', message = format('The serial events of pool %s move more serials out of a state than are in it (PR-42). [EBMR-EXE-297]', p.pool_id);
+  end if;
   return v_id;
 end
+$$;
+
+-- The serials of pool p_pool per state as the server's recorded events leave them: {NONE, COMMISSIONED, ...} (text).
+create function tab.serial_states_of(p_pool text) returns jsonb
+language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
+  with t as (
+    select split_part(x.key, '>', 1) as f, split_part(x.key, '>', 2) as t, (x.value #>> '{}')::numeric as n
+      from tab.serial_event_upload u, jsonb_each(u.counts) x where u.pool_id = p_pool)
+  select jsonb_object_agg(s, ((case when s = 'NONE' then (select quantity from tab.serial_pool where pool_id = p_pool) else 0 end)
+                              + coalesce((select sum(n) from t where t.t = s), 0) - coalesce((select sum(n) from t where t.f = s), 0))::text)
+    from unnest(array['NONE', 'COMMISSIONED', 'DECOMMISSIONED', 'DESTROYED', 'SAMPLE', 'UNUSED_RETURNED']) s
 $$;
 
 -- PR-42 (header): the L3 report p_report (integration-sdk PoolReport; its hash checked by the server) of pool p_pool.
@@ -203,7 +232,9 @@ language plpgsql volatile security definer set search_path = pg_catalog, tab, ke
 declare
   p    tab.serial_pool := tab.acting_pool(p_pool);
   v_c  jsonb := p_report -> 'counts';
+  v_st jsonb;
 begin
+  perform 1 from tab.serial_pool where pool_id = p.pool_id for update;
   if jsonb_typeof(p_report) is distinct from 'object' or p_report ->> 'poolId' is distinct from p.pool_id or jsonb_typeof(v_c) is distinct from 'object'
      or (select count(*) from jsonb_each(v_c)) <> 6
      or exists (select 1 from unnest(array['issued', 'COMMISSIONED', 'DECOMMISSIONED', 'DESTROYED', 'SAMPLE', 'UNUSED_RETURNED']) k
@@ -213,6 +244,14 @@ begin
   end if;
   if (v_c ->> 'issued')::numeric <> p.quantity then
     raise exception using errcode = 'P0001', message = format('The L3 report counts %s serials issued for pool %s, which the record holds as %s (PR-42). [EBMR-EXE-297]', v_c ->> 'issued', p.pool_id, p.quantity);
+  end if;
+  -- Review 4a MEDIUM 3: the report's counts are the states the server's own events leave, and its unexplained count is
+  -- the serials those events left without a state.
+  v_st := tab.serial_states_of(p.pool_id);
+  if exists (select 1 from unnest(array['COMMISSIONED', 'DECOMMISSIONED', 'DESTROYED', 'SAMPLE', 'UNUSED_RETURNED']) k where (v_c ->> k)::numeric <> (v_st ->> k)::numeric)
+     or (p_report ->> 'unexplained')::numeric <> (v_st ->> 'NONE')::numeric then
+    raise exception using errcode = 'P0001',
+      message = format('The L3 report of pool %s (%s, %s unexplained) is not what the server''s serial events leave (%s) (PR-42). [EBMR-EXE-297]', p.pool_id, v_c::text, p_report ->> 'unexplained', v_st::text);
   end if;
   insert into tab.serial_report (pool_id, counts, unexplained, report_hash, fetched_by)
   values (p.pool_id, v_c, (p_report ->> 'unexplained')::numeric, p_report ->> 'reportHash', (kernel.current_actor() ->> 'person_id')::uuid);
@@ -335,11 +374,11 @@ $$;
 
 create trigger zs_tab_serial_completion after update on recipe.execution_state for each row execute function tab.serial_completion_check();
 
-revoke all on function tab.l3_market(text), tab.serial_pool_request(uuid, text, text, text), tab.latest_serial_report(text), tab.serialised_market(jsonb, jsonb, text), tab.record_serial_pool(uuid, text, text, text, jsonb),
+revoke all on function tab.l3_market(text), tab.serial_transitions(), tab.serial_states_of(text), tab.serial_pool_request(uuid, text, text, text), tab.latest_serial_report(text), tab.serialised_market(jsonb, jsonb, text), tab.record_serial_pool(uuid, text, text, text, jsonb),
   tab.acting_pool(text), tab.record_serial_events(text, jsonb), tab.record_serial_report(text, jsonb), tab.serial_entry_of(text), tab.serialisation_release_problem(uuid),
   tab.g21_serial_entry_problem(recipe.execution_command), tab.g21_serial_entry_check(), tab.serial_completion_check() from public;
 grant execute on function tab.serial_pool_request(uuid, text, text, text), tab.record_serial_pool(uuid, text, text, text, jsonb), tab.record_serial_events(text, jsonb), tab.record_serial_report(text, jsonb),
-  tab.serial_entry_of(text), tab.serialisation_release_problem(uuid) to ebmr_app;
+  tab.serial_entry_of(text), tab.serial_states_of(text), tab.serialisation_release_problem(uuid) to ebmr_app;
 grant select on tab.serial_pool, tab.serial_event_upload, tab.serial_report to ebmr_app;
 
 reset role;

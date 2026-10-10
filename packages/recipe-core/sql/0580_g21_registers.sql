@@ -41,7 +41,7 @@ insert into recipe.block_data_schema (block_type, block_version, part, entry_kin
   ('G-21', '1', 'ENTRY', 'ISSUE', '{"type":"object","fields":{"item":{"type":"string"},"lot":{"type":"object","fields":{"id":{"type":"string"},"material":{"type":"string"},"status":{"type":"string","enum":["RELEASED","QUARANTINE","ON_TEST","REJECTED","ON_HOLD","RECALLED","RETURNED","EXPIRED"]},"artwork":{"type":"string"},"expiresAtUs":{"type":"string","pattern":"^[0-9]{1,20}$","optional":true}}},"scannedArtwork":{"type":"string"},"quantity":{"type":"object","fields":{"value":{"type":"decimal"},"unit":{"type":"string"}}}}}'),
   ('G-21', '1', 'ENTRY', 'RECONCILIATION', '{"type":"object","fields":{"item":{"type":"string"},"used":{"type":"decimal","min":"0"},"setupWaste":{"type":"decimal","min":"0"},"damaged":{"type":"decimal","min":"0"},"codedDestroyed":{"type":"decimal","min":"0"},"uncodedReturned":{"type":"decimal","min":"0"},"specimens":{"type":"decimal","min":"0"}}}'),
   ('G-21', '1', 'ENTRY', 'FIRST_PRINT', '{"type":"object","fields":{"device":{"type":"string"},"job":{"type":"string","pattern":"^[!-~]{1,64}$"},"approved":{"type":"boolean"},"specimen":{"type":"string","pattern":"^[0-9a-f]{64}$","optional":true}}}'),
-  ('G-21', '1', 'ENTRY', 'CHALLENGE', '{"type":"object","fields":{"device":{"type":"string"},"trigger":{"type":"string","enum":["START","INTERVAL","STOPPAGE","REEL_CHANGE","END"]},"result":{"type":"string","enum":["PASS","FAIL"]},"event":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$","optional":true}}}'),
+  ('G-21', '1', 'ENTRY', 'CHALLENGE', '{"type":"object","fields":{"device":{"type":"string"},"trigger":{"type":"string","enum":["START","INTERVAL","STOPPAGE","REEL_CHANGE","END"]},"result":{"type":"string","enum":["PASS","FAIL"]},"event":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$","optional":true},"at":{"type":"string","pattern":"^[0-9]{1,20}$","optional":true}}}'),
   ('G-21', '1', 'ENTRY', 'SERIAL_POOL', '{"type":"object","fields":{"poolId":{"type":"string","pattern":"^[!-~]{1,64}$"},"market":{"type":"string"},"gtin":{"type":"string","pattern":"^[0-9]{14}$"},"quantity":{"type":"string","pattern":"^(0|[1-9][0-9]{0,17})$"}}}'),
   ('G-21', '1', 'ENTRY', 'SERIAL_RECONCILIATION', '{"type":"object","fields":{"poolId":{"type":"string","pattern":"^[!-~]{1,64}$"},"commissioned":{"type":"string","pattern":"^(0|[1-9][0-9]{0,17})$"},"decommissioned":{"type":"string","pattern":"^(0|[1-9][0-9]{0,17})$"},"destroyed":{"type":"string","pattern":"^(0|[1-9][0-9]{0,17})$"},"samples":{"type":"string","pattern":"^(0|[1-9][0-9]{0,17})$"},"unusedReturned":{"type":"string","pattern":"^(0|[1-9][0-9]{0,17})$"},"unexplained":{"type":"string","pattern":"^(0|[1-9][0-9]{0,17})$"},"reportHash":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}');
 
@@ -57,6 +57,7 @@ insert into recipe.engine_name (name, kind) values
   ('G21-DUPLICATE', 'RULE_CODE'),
   ('G21-ENTRY', 'RULE_CODE'),
   ('G21-EVENT', 'RULE_CODE'),
+  ('G21-EVENT-ORDER', 'RULE_CODE'),
   ('G21-GTIN', 'RULE_CODE'),
   ('G21-GTIN-CHECK', 'RULE_CODE'),
   ('G21-INTERVAL', 'RULE_CODE'),
@@ -90,6 +91,13 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
   select case when jsonb_typeof(p) = 'string' and (p #>> '{}') ~ '^-?(0|[1-9][0-9]{0,30})(\.[0-9]{1,30})?$' then (p #>> '{}')::numeric end
 $$;
 
+-- When recorded challenge entry p_e was taken: the gateway result's source time (data.at), else when it was recorded.
+create function recipe.g21_challenge_time(p_e jsonb) returns numeric
+language sql immutable set search_path = pg_catalog, recipe, pg_temp as $$
+  select case when jsonb_typeof(p_e -> 'data' -> 'at') = 'string' and (p_e -> 'data' ->> 'at') ~ '^[0-9]{1,20}$' then (p_e -> 'data' ->> 'at')::numeric
+              else recipe.micros_of(p_e -> 'recordedAt') end
+$$;
+
 -- The element of configuration array p_cfg -> p_member whose id is p_id, or NULL.
 create function recipe.g21_cfg_member(p_cfg jsonb, p_member text, p_id jsonb) returns jsonb
 language sql immutable set search_path = pg_catalog, pg_temp as $$
@@ -115,6 +123,8 @@ declare
   v_scale   integer;
   v_u       numeric;
   v_ok      boolean;
+  v_ok2     boolean;
+  v_at      numeric;
   v_last    numeric;
   v_every   numeric;
   v_missed  boolean;
@@ -149,13 +159,10 @@ begin
       if (p_c -> 'scannedArtwork') is distinct from (v_lot -> 'artwork') then
         return jsonb_build_object('problem', format('scans artwork %s at the line for lot %s, which carries %s (G21-SCAN)', coalesce(p_c ->> 'scannedArtwork', '(none)'), v_lot ->> 'id', coalesce(v_lot ->> 'artwork', '(none)')));
       end if;
-      -- The pack's markets: those of the batch the master names an artwork for; each names the lot's.
-      if not exists (select 1 from jsonb_array_elements_text(v_mk) m where jsonb_typeof(v_item -> 'artwork') = 'object' and (v_item -> 'artwork') ? m) then
-        return jsonb_build_object('problem', format('issues %s, for whose markets the master names no artwork (G21-ARTWORK)', p_c ->> 'item'));
-      end if;
-      select string_agg(format('%s for %s', v_item -> 'artwork' ->> m.v, m.v), ', ' order by m.i) into v_wrong
+      -- Every market of the batch names the artwork of the pack, and each is the lot's (review 4a HIGH 2).
+      select string_agg(format('%s for %s', coalesce(v_item -> 'artwork' ->> m.v, 'none'), m.v), ', ' order by m.i) into v_wrong
         from jsonb_array_elements_text(v_mk) with ordinality m (v, i)
-       where (v_item -> 'artwork') ? m.v and (v_item -> 'artwork' -> m.v) is distinct from (v_lot -> 'artwork');
+       where (case when jsonb_typeof(v_item -> 'artwork') = 'object' then v_item -> 'artwork' -> m.v end) is distinct from (v_lot -> 'artwork');
       if v_wrong is not null then
         return jsonb_build_object('problem', format('issues lot %s with artwork %s, where the master names %s (G21-ARTWORK)', v_lot ->> 'id', coalesce(v_lot ->> 'artwork', '(none)'), v_wrong));
       end if;
@@ -207,9 +214,13 @@ begin
       foreach p in array array['used', 'setupWaste', 'damaged', 'codedDestroyed', 'uncodedReturned', 'specimens'] loop
         v_data := v_data || jsonb_build_object(p, p_c -> p);
       end loop;
+      -- Review 4a MEDIUM 5: a coded item printed by a gateway printer is counted by the device, else typed (two persons).
+      v_ok2 := (v_item -> 'coded') = 'true'::jsonb
+               and exists (select 1 from jsonb_array_elements(case when jsonb_typeof(p_cfg -> 'devices') = 'array' then p_cfg -> 'devices' else '[]'::jsonb end) x
+                            where x ->> 'kind' = 'PRINTER' and jsonb_typeof(x -> 'serial') = 'string');
       return jsonb_build_object('data', v_data || jsonb_build_object('unit', v_item -> 'unit', 'issued', v_issued::text, 'unexplained', v_u::text,
-                                                                      'withinLimits', v_ok, 'reconciledBy', p_by),
-                                'verify', false);
+                                                                      'withinLimits', v_ok, 'counted', case when v_ok2 then 'DEVICE' else 'TYPED' end, 'reconciledBy', p_by),
+                                'verify', not v_ok2);
     when 'FIRST_PRINT' then
       v_dev := recipe.g21_cfg_member(p_cfg, 'devices', p_c -> 'device');
       if v_dev is null or v_dev ->> 'kind' is distinct from 'PRINTER' then
@@ -224,17 +235,30 @@ begin
       if v_dev is null or v_dev ->> 'kind' = 'PRINTER' then
         return jsonb_build_object('problem', format('challenges %s, which is no inspection device of its step (G21-DEVICE)', coalesce(p_c ->> 'device', '(none)')));
       end if;
-      if coalesce(jsonb_typeof(v_dev -> 'serial') = 'string', false) <> coalesce(jsonb_typeof(p_c -> 'event') = 'string', false) then
+      if coalesce(jsonb_typeof(v_dev -> 'serial') = 'string', false) <> coalesce(jsonb_typeof(p_c -> 'event') = 'string', false)
+         or (jsonb_typeof(v_dev -> 'serial') is distinct from 'string' and p_c ? 'at') then
         return jsonb_build_object('problem', format('challenges %s %s the gateway''s result; a gateway device''s challenge names it and only such a device''s (G21-EVENT)', p_c ->> 'device',
                                                     case when jsonb_typeof(p_c -> 'event') = 'string' then 'naming' else 'without' end));
       end if;
-      select max(recipe.micros_of(e -> 'recordedAt')) into v_last
+      -- Review 4a HIGH 1: a gateway device's challenge is timed by the device's result (at), never later than now and in
+      -- the device's order; missed is read from those times.
+      v_at := case when jsonb_typeof(p_c -> 'at') = 'string' and (p_c ->> 'at') ~ '^[0-9]{1,20}$' then (p_c ->> 'at')::numeric end;
+      if jsonb_typeof(v_dev -> 'serial') = 'string' and (v_at is null or v_at > p_now_us) then
+        return jsonb_build_object('problem', format('challenges %s without the time the device took it, or later than now (G21-EVENT)', p_c ->> 'device'));
+      end if;
+      v_at := coalesce(v_at, p_now_us);
+      if exists (select 1 from jsonb_array_elements(v_prior) e
+                  where e ->> 'kind' = 'CHALLENGE' and e -> 'data' -> 'device' = p_c -> 'device' and recipe.g21_challenge_time(e) > v_at) then
+        return jsonb_build_object('problem', format('challenges %s out of the order the device took its challenges (G21-EVENT-ORDER)', p_c ->> 'device'));
+      end if;
+      select max(recipe.g21_challenge_time(e)) into v_last
         from jsonb_array_elements(v_prior) e
        where e ->> 'kind' = 'CHALLENGE' and e -> 'data' -> 'device' = p_c -> 'device' and e -> 'data' ->> 'result' = 'PASS';
       v_every := recipe.duration_us(v_dev -> 'every');
-      v_missed := v_last is not null and v_every is not null and p_now_us - v_last > v_every;
+      v_missed := v_last is not null and v_every is not null and v_at - v_last > v_every;
       return jsonb_build_object('data', jsonb_build_object('device', p_c -> 'device', 'trigger', p_c -> 'trigger', 'result', p_c -> 'result')
                                         || case when jsonb_typeof(p_c -> 'event') = 'string' then jsonb_build_object('event', p_c -> 'event') else '{}'::jsonb end
+                                        || case when p_c ? 'at' then jsonb_build_object('at', p_c -> 'at') else '{}'::jsonb end
                                         || jsonb_build_object('missed', v_missed, 'challengedBy', p_by),
                                 'verify', jsonb_typeof(v_dev -> 'serial') is distinct from 'string');
     when 'SERIAL_POOL' then
@@ -582,6 +606,6 @@ begin
 end
 $$;
 
-revoke all on function recipe.g21_dec(jsonb), recipe.g21_cfg_member(jsonb, text, jsonb), recipe.g21_entry_data(jsonb, jsonb, text, jsonb, jsonb, numeric, jsonb) from public;
+revoke all on function recipe.g21_dec(jsonb), recipe.g21_challenge_time(jsonb), recipe.g21_cfg_member(jsonb, text, jsonb), recipe.g21_entry_data(jsonb, jsonb, text, jsonb, jsonb, numeric, jsonb) from public;
 
 reset role;

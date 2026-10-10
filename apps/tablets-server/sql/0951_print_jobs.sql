@@ -170,6 +170,17 @@ create trigger aa_packaging_batch_data_no_truncate before truncate on tab.packag
 select platform.enforce_db_time('tab.packaging_batch_data', array['recorded_at']);
 select kernel.register_audited_table('tab.packaging_batch_data', 'batch', 'batch_id', true);
 
+-- Review 4a MEDIUM 6: the second person's check of a batch-data version that carries an MRP a person gave (IN-31).
+create table tab.packaging_batch_data_check (
+  data_id            uuid primary key references tab.packaging_batch_data (id),
+  checked_by_person  uuid not null,
+  checked_by_account uuid not null,
+  checked_at         timestamptz not null default clock_timestamp()
+);
+revoke all on tab.packaging_batch_data_check from public;
+create trigger aa_packaging_batch_data_check_insert_only before update or delete on tab.packaging_batch_data_check for each row execute function kernel.reject_mutation();
+select kernel.register_audited_table('tab.packaging_batch_data_check', 'batch', 'data_id', true);
+
 -- The current batch data of step p_key of batch p_batch, or NULL.
 create function tab.current_batch_data(p_batch uuid, p_key text) returns tab.packaging_batch_data
 language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
@@ -311,6 +322,27 @@ begin
 end
 $$;
 
+-- IN-31 (review 4a MEDIUM 6): STEP.VERIFY: a second person checks the MRP of the current batch data version p_version of
+-- step p_key of batch p_batch, never the person who gave it.
+create function tab.check_packaging_batch_data(p_batch uuid, p_key text, p_version integer) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, plant, pg_temp as $$
+declare
+  v_actor jsonb;
+  v_data  tab.packaging_batch_data;
+begin
+  perform iam.assert_not_administrator();
+  v_actor := iam.require_permission('STEP.VERIFY', plant.batch_scope(p_batch));
+  v_data := tab.current_batch_data(p_batch, p_key);
+  if v_data.id is null or v_data.version is distinct from p_version or not (v_data.fields ? 'mrp') then
+    raise exception using errcode = 'P0001', message = 'Only the current batch data version with an MRP is checked (IN-31). [EBMR-EXE-296]';
+  end if;
+  if v_data.recorded_by_person = (v_actor ->> 'person_id')::uuid then
+    raise exception using errcode = 'P0001', message = 'The MRP is checked by a second person, not the one who gave it (IN-31). [EBMR-EXE-296]';
+  end if;
+  insert into tab.packaging_batch_data_check (data_id, checked_by_person, checked_by_account) values (v_data.id, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid);
+end
+$$;
+
 -- PR-36, PR-35, L-29 (header): releases a print job for printer p_device (the step configuration's id) of G-21 step
 -- p_key of batch p_batch, with layout p_layout; its fields are the record's. Returns the job.
 create function tab.release_print_job(p_batch uuid, p_key text, p_device text, p_layout text) returns jsonb
@@ -345,9 +377,22 @@ begin
   if coalesce(p_layout, '') !~ '^[ -~]{1,64}$' then
     raise exception using errcode = 'P0001', message = 'A print job names its layout (PR-36). [EBMR-EXE-296]';
   end if;
+  if jsonb_typeof(v_cfg -> 'unit') is distinct from 'string' then
+    raise exception using errcode = 'P0001', message = 'The step names no plant unit of the line, so a batch-data change could hold nothing (L-29). [EBMR-EXE-296]';
+  end if;
   v_data := tab.current_batch_data(p_batch, p_key);
   if v_data.id is null then
     raise exception using errcode = 'P0001', message = 'The step has no batch data: a print job carries only the record''s data (PR-36). [EBMR-EXE-296]';
+  end if;
+  -- Review 4a MEDIUM 6: an MRP a person gave is checked by a second person before any job carries it, and the person who
+  -- gave it does not release the job.
+  if v_data.fields ? 'mrp' then
+    if not exists (select 1 from tab.packaging_batch_data_check c where c.data_id = v_data.id) then
+      raise exception using errcode = 'P0001', message = format('The MRP of batch data version %s is not checked by a second person yet (IN-31). [EBMR-EXE-296]', v_data.version);
+    end if;
+    if v_data.recorded_by_person = (v_actor ->> 'person_id')::uuid then
+      raise exception using errcode = 'P0001', message = 'The person who gave the MRP does not release the print job that carries it (IN-31). [EBMR-EXE-296]';
+    end if;
   end if;
   select * into b from recipe.batch_execution where id = p_batch;
   -- L-29, PR-35: the line runs this packaging order now, cleared for it and its artwork set.
@@ -404,7 +449,7 @@ $$;
 
 -- IN-31, PR-36, PR-42 (header): the gateway's acknowledgement p_ack (integration-sdk PrintJobAckRequest) of job p_id.
 create function tab.ack_print_job(p_id text, p_ack jsonb) returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, pg_temp as $$
+language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, recipe, plant, pg_temp as $$
 declare
   v_actor  jsonb;
   v_key    tab.gateway_key%rowtype;
@@ -439,6 +484,12 @@ begin
   v_result := case when v_out = 'LOADED' and v_echo = j.fields then 'LOADED' when v_out = 'LOADED' then 'REFUSED' else v_out end;
   insert into tab.print_job_ack (job_id, outcome, echoed_fields, source_time_us, message, result, session_id)
   values (j.id, v_out, v_echo, (p_ack ->> 'sourceTime')::bigint, v_msg, v_result, (v_actor ->> 'session_id')::uuid);
+  -- Review 4a MEDIUM 4 (L-29): a job voided before the printer loaded it holds the output on the line all the same; the
+  -- answer's state VOIDED tells the gateway to clear the printer.
+  if v_out = 'LOADED' and exists (select 1 from tab.print_job_void v where v.job_id = j.id) then
+    perform plant.ipc_check_record(j.batch_id, recipe.g21_cfg(recipe.step_node(recipe.batch_mbr_content(j.batch_id), j.step)) ->> 'unit', null, 'FAIL',
+                                   format('L-29: voided print job %s loaded by the printer', j.id), v_actor, false);
+  end if;
   perform kernel.audit_business_event('batch:' || j.batch_id,
     format('Print job %s on %s: %s%s', j.id, j.device_serial, v_result,
            case when v_result = 'REFUSED' then ' (the printer''s echo differs from the record''s data: the load is refused)' else '' end),
@@ -527,8 +578,9 @@ begin
     if not found then
       raise exception using errcode = 'P0001', message = format('EBMR-DEV-145 DI-20: %s names serial %s, which is no print device of gateway %s', v_where, left(r ->> 'deviceSerial', 32), v_key.gateway_code);
     end if;
-    if v_job is not null and not exists (select 1 from tab.print_job j where j.id = v_job and j.gateway_key_id = v_key.id) then
-      raise exception using errcode = 'P0001', message = format('EBMR-DEV-146 DI-31: %s names job %s, which is no print job of this gateway', v_where, left(v_job, 64));
+    -- Review 4a LOW 7: the job is the named device's (a printer's reader and vision results come under its serial).
+    if v_job is not null and not exists (select 1 from tab.print_job j where j.id = v_job and j.gateway_key_id = v_key.id and j.print_device_id = v_dev.id) then
+      raise exception using errcode = 'P0001', message = format('EBMR-DEV-146 DI-31: %s names job %s, which is no print job of device %s', v_where, left(v_job, 64), v_dev.serial);
     end if;
     select * into v_old from tab.print_event where gateway_key_id = v_key.id and serial = v_dev.serial and seq = v_seq;
     if found then
@@ -539,7 +591,7 @@ begin
       continue;
     end if;
     select coalesce(max(seq), 0) into v_head from tab.print_event where gateway_key_id = v_key.id and serial = v_dev.serial;
-    if v_head > 0 and v_seq <> v_head + 1 then
+    if v_seq <> v_head + 1 then
       raise exception using errcode = 'P0001', message = format('EBMR-DEV-148 DI-31: sequence break for %s: the server holds up to %s, the event is %s', v_dev.serial, v_head, v_seq);
     end if;
     insert into tab.print_event (print_device_id, gateway_key_id, serial, job_id, kind, value, source_time_us, seq, gateway_run_id, ingest_session_id, correlation_id)
@@ -557,6 +609,40 @@ $$;
 -- ---------------------------------------------------------------------------------------------
 -- Entries (header)
 
+-- The units the printers of G-21 step p_step of batch p_batch printed: for each of the step's jobs its last cumulative
+-- PRINTED_COUNT, summed.
+create function tab.g21_printed(p_batch uuid, p_step text) returns numeric
+language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
+  select coalesce(sum(c), 0) from (
+    select (select e.value::numeric from tab.print_event e where e.job_id = j.id and e.kind = 'PRINTED_COUNT' order by e.seq desc limit 1) c
+      from tab.print_job j where j.batch_id = p_batch and j.step = p_step) x
+$$;
+
+-- Review 4a MEDIUM 5: a reconciliation of a coded item at a step whose printer reports through the gateway counts, as used,
+-- set-up waste and coded destroyed, exactly what the printers printed (PR-39, IN-17).
+create function tab.g21_printed_count_problem(p_row recipe.execution_command, p_node jsonb) returns text
+language plpgsql stable security definer set search_path = pg_catalog, tab, recipe, pg_temp as $$
+declare
+  v_entry  jsonb := p_row.command -> 'entry';
+  v_cfg    jsonb := recipe.g21_cfg(p_node);
+  v_item   jsonb := recipe.g21_cfg_member(v_cfg, 'items', v_entry -> 'item');
+  v_coded  numeric;
+  v_print  numeric;
+begin
+  if v_item is null or (v_item -> 'coded') is distinct from 'true'::jsonb
+     or not exists (select 1 from jsonb_array_elements(case when jsonb_typeof(v_cfg -> 'devices') = 'array' then v_cfg -> 'devices' else '[]'::jsonb end) d
+                     where d ->> 'kind' = 'PRINTER' and jsonb_typeof(d -> 'serial') = 'string') then
+    return null;
+  end if;
+  v_coded := coalesce(recipe.g21_dec(v_entry -> 'used'), 0) + coalesce(recipe.g21_dec(v_entry -> 'setupWaste'), 0) + coalesce(recipe.g21_dec(v_entry -> 'codedDestroyed'), 0);
+  v_print := tab.g21_printed(p_row.batch_id, p_row.command ->> 'step');
+  if v_coded <> v_print then
+    return format('it counts %s coded units of %s (used, set-up waste, coded destroyed), where the step''s printers printed %s', v_coded, v_item ->> 'id', v_print);
+  end if;
+  return null;
+end
+$$;
+
 create function tab.g21_print_entry_problem(p_row recipe.execution_command) returns text
 language plpgsql stable security definer set search_path = pg_catalog, tab, recipe, pg_temp as $$
 declare
@@ -566,6 +652,9 @@ declare
   j       tab.print_job;
   ev      tab.print_event;
 begin
+  if v_node is not null and v_entry ->> 'kind' = 'RECONCILIATION' then
+    return tab.g21_printed_count_problem(p_row, v_node);
+  end if;
   if v_node is null or v_entry ->> 'kind' not in ('FIRST_PRINT', 'CHALLENGE') then
     return null;
   end if;
@@ -599,6 +688,17 @@ begin
   if exists (select 1 from tab.print_event_use u where u.event_id = ev.id) then
     return format('challenge result %s is recorded already', ev.id);
   end if;
+  -- Review 4a HIGH 1: the challenge is timed by the device's result, and the device's results are recorded in their order:
+  -- none is skipped (a FAIL dropped, a stale PASS reused).
+  if (v_entry ->> 'at') is distinct from ev.source_time_us::text then
+    return format('the challenge states the time %s, where result %s was taken at %s', coalesce(v_entry ->> 'at', '(none)'), ev.id, ev.source_time_us);
+  end if;
+  if exists (select 1 from tab.print_event o join tab.print_job x on x.id = o.job_id
+              where o.gateway_key_id = ev.gateway_key_id and o.serial = ev.serial and o.kind = 'CHALLENGE_RESULT' and o.seq < ev.seq
+                and x.batch_id = p_row.batch_id and x.step = (p_row.command ->> 'step')
+                and not exists (select 1 from tab.print_event_use u where u.event_id = o.id)) then
+    return format('an earlier challenge result of %s on this step is not recorded yet: results are recorded in the device''s order', ev.serial);
+  end if;
   return null;
 end
 $$;
@@ -614,7 +714,7 @@ begin
   v_problem := tab.g21_print_entry_problem(new);
   if v_problem is not null then
     raise exception using errcode = 'P0001',
-      message = format('The %s entry of this RECORD_ENTRY row is refused: %s; a first print and a gateway device''s challenge stand on the server''s jobs and the gateway''s results (PR-36, IN-22, DI-31). [EBMR-EXE-296]',
+      message = format('The %s entry of this RECORD_ENTRY row is refused: %s; a first print, a gateway device''s challenge and a printed item''s count stand on the server''s jobs and the gateway''s results (PR-36, PR-39, IN-22, DI-31). [EBMR-EXE-296]',
                        new.command -> 'entry' ->> 'kind', v_problem);
   end if;
   if new.accepted and new.command -> 'entry' ->> 'kind' = 'CHALLENGE' and jsonb_typeof(new.command -> 'entry' -> 'event') = 'string' and tab.g21_command_node(new.batch_id, new.command) is not null then
@@ -626,12 +726,43 @@ $$;
 
 create trigger ae_tab_g21_print_entries before insert on recipe.execution_command for each row execute function tab.g21_print_entry_check();
 
+-- Review 4a HIGH 1: a G-21 step that row p_new closes has no failed challenge result of its devices on its jobs left
+-- unrecorded (a FAIL becomes an entry, with its exception and its hold).
+create function tab.g21_unrecorded_fail_check() returns trigger
+language plpgsql security definer set search_path = pg_catalog, tab, recipe, pg_temp as $$
+declare
+  k text;
+  s jsonb;
+  v_content jsonb;
+  ev tab.print_event;
+begin
+  for k, s in select x.key, x.value from jsonb_each(case when jsonb_typeof(new.state -> 'steps') = 'object' then new.state -> 'steps' else '{}'::jsonb end) x
+               where x.value ->> 'status' in ('AWAITING_VERIFICATION', 'COMPLETED') and old.state -> 'steps' -> x.key ->> 'status' = 'IN_PROGRESS' order by x.key loop
+    v_content := coalesce(v_content, recipe.batch_mbr_content(new.batch_id));
+    continue when recipe.step_node(v_content, s ->> 'step') -> 'block' ->> 'type' is distinct from 'G-21';
+    select e.* into ev from tab.print_event e join tab.print_job j on j.id = e.job_id
+     where j.batch_id = new.batch_id and j.step = s ->> 'step' and e.kind = 'CHALLENGE_RESULT' and e.value = 'FAIL'
+       and not exists (select 1 from tab.print_event_use u where u.event_id = e.id)
+     order by e.seq limit 1;
+    if ev.id is not null then
+      raise exception using errcode = 'P0001',
+        message = format('This row closes step %s, but the failed challenge result %s of %s is not recorded: a failed challenge stops the step and holds the output (IN-22, PR-37). [EBMR-EXE-296]', k, ev.id, ev.serial);
+    end if;
+  end loop;
+  return null;
+end
+$$;
+
+create trigger zu_tab_g21_unrecorded_fail after update on recipe.execution_state for each row execute function tab.g21_unrecorded_fail_check();
+
 revoke all on function tab.print_device_guard(), tab.bind_print_device(uuid, text, text, text), tab.end_print_device(uuid, text, text), tab.g21_open_step(uuid, text),
   tab.g21_job_market(jsonb, jsonb), tab.current_batch_data(uuid, text), tab.g21_job_pool(uuid, text, text), tab.record_packaging_batch_data(uuid, text, text, text),
   tab.release_print_job(uuid, text, text, text), tab.print_job_state(text), tab.pending_print_jobs(), tab.ack_print_job(text, jsonb), tab.ingest_print_events(jsonb),
-  tab.g21_print_entry_problem(recipe.execution_command), tab.g21_print_entry_check() from public;
+  tab.g21_print_entry_problem(recipe.execution_command), tab.g21_print_entry_check(), tab.check_packaging_batch_data(uuid, text, integer), tab.g21_printed(uuid, text),
+  tab.g21_printed_count_problem(recipe.execution_command, jsonb), tab.g21_unrecorded_fail_check() from public;
 grant execute on function tab.bind_print_device(uuid, text, text, text), tab.end_print_device(uuid, text, text), tab.record_packaging_batch_data(uuid, text, text, text),
+  tab.check_packaging_batch_data(uuid, text, integer),
   tab.release_print_job(uuid, text, text, text), tab.print_job_state(text), tab.pending_print_jobs(), tab.ack_print_job(text, jsonb), tab.ingest_print_events(jsonb) to ebmr_app;
-grant select on tab.print_device, tab.packaging_batch_data, tab.print_job, tab.print_job_ack, tab.print_job_void, tab.print_event, tab.print_event_use to ebmr_app;
+grant select on tab.print_device, tab.packaging_batch_data, tab.packaging_batch_data_check, tab.print_job, tab.print_job_ack, tab.print_job_void, tab.print_event, tab.print_event_use to ebmr_app;
 
 reset role;

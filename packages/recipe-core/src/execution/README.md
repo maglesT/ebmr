@@ -952,6 +952,7 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   a replicate section or operation the step comes after), are refused, each with its reason. Round 3 (sql 0316): the
   row that finishes an operation in an alternative's branch, the last operation of a loop iteration or of a sub-lot,
   or the last operation of the final stage, without its END, is refused.
+- `test/execution/g21-sql.test.ts` (Phase 3 slice 4a review; sql 0580): what the database builds for a G-21 issue (every market of the batch names the lot's artwork) and a gateway device's challenge (missed by the device's times).
 - `test/execution/entry-data-sql.test.ts` (Phase 2 exit review F12, rounds 2 to 6; sql 0313, 0317, 0328, 0330, 0332): every entry of the engine's
   own runs (both golden fixtures: weighings, charges, outputs, samples, clearances, equipment checks, disposals; an
   acknowledgement of the MBR's own SOP version) passes `entry_data_problem`; an entry that holds another value than

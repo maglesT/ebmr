@@ -36,7 +36,8 @@ const issue = (over: Json = {}): Json & { kind: string } => ({ kind: 'ISSUE', it
 const recon = (item: string, over: Json = {}): Json & { kind: string } => ({ kind: 'RECONCILIATION', item, used: '1000', setupWaste: '10', damaged: '0', codedDestroyed: '10', uncodedReturned: '0', specimens: '0', ...over });
 let evt = 0;
 const event = (): string => `00000000-0000-4000-8000-${(evt += 1).toString(16).padStart(12, '0')}`;
-const challenge = (device: string, trigger: string, result = 'PASS'): Json & { kind: string } => ({ kind: 'CHALLENGE', device, trigger, result, ...(device === 'CW' ? {} : { event: event() }) });
+/** A challenge as recorded now; a gateway device's names its result and the device's time (`at`, default now). */
+const challenge = (run: Run, device: string, trigger: string, result = 'PASS', at: bigint = run.nowUs): Json & { kind: string } => ({ kind: 'CHALLENGE', device, trigger, result, ...(device === 'CW' ? {} : { event: event(), at: at.toString() }) });
 
 /** The rule code an entry is refused with, or 'ok'. */
 function verdict(run: Run, entry: Json & { kind: string }, who = OP1): string {
@@ -50,8 +51,8 @@ function complete(run: Run): void {
   run.entry('pk', issue());
   run.entry('pk', issue({ item: 'LEAFLET', lot: lot({ id: 'LFT-LOT-1', material: 'MAT-LFT-1', artwork: 'L-3' }), scannedArtwork: 'L-3', quantity: { value: '1000', unit: '1' } }));
   run.entry('pk', { kind: 'FIRST_PRINT', device: 'CODER', job: 'PJ-1', approved: true }, [], IPQA);
-  run.entry('pk', challenge('CAM', 'START'));
-  run.entry('pk', challenge('CW', 'START'));
+  run.entry('pk', challenge(run, 'CAM', 'START'));
+  run.entry('pk', challenge(run, 'CW', 'START'));
   run.entry('pk', { kind: 'SERIAL_POOL', poolId: 'POOL-1', market: 'IN', gtin: '08901234567890', quantity: '1000' });
 }
 
@@ -85,11 +86,11 @@ describe('G-21@1 printed materials (K-19)', () => {
   it('[PR-39][IN-17][INV-32] the reconciliation is computed from what was issued, judged against the item\'s limits (absolute or percent), raises a release-blocking exception that waits for a deviation when outside, runs once per item and always: the step is not performed without it', () => {
     const run = line();
     complete(run);
-    run.entry('pk', challenge('CAM', 'END'));
+    run.entry('pk', challenge(run, 'CAM', 'END'));
     expect(run.exec({ type: 'SIGN_PERFORMED', actor: OP1, step: 'pk', signature: { id: 'S', meaning: 'PERFORMED', signer: OP1.id } }).refusal?.message).toMatch(/G21-NOT-RECONCILED/);
     // 12 unaccounted against a limit of 0.
     run.entry('pk', recon('CARTON', { used: '990', setupWaste: '6', damaged: '2', codedDestroyed: '5', specimens: '5' }));
-    expect(last(run, 'RECONCILIATION')).toMatchObject({ issued: '1020', unexplained: '12', withinLimits: false, unit: '1' });
+    expect(last(run, 'RECONCILIATION')).toMatchObject({ issued: '1020', unexplained: '12', withinLimits: false, unit: '1', counted: 'DEVICE' });
     expect(types(run)).toEqual(['PRINTED_RECONCILIATION']);
     const ex = run.exceptions()[0];
     expect(ex).toMatchObject({ deviationRequired: true, releaseBlocking: true, severity: 'ACTION', block: { until: 'DEVIATION' } });
@@ -98,7 +99,7 @@ describe('G-21@1 printed materials (K-19)', () => {
     // 0.5 % of 1000 issued: 5 unexplained is within, scaled exactly; an uncoded item has no coded surplus.
     expect(verdict(run, recon('LEAFLET', { used: '995.0', setupWaste: '0', codedDestroyed: '1' }))).toBe('G21-NOT-CODED');
     run.entry('pk', recon('LEAFLET', { used: '995.0', setupWaste: '0', codedDestroyed: '0' }));
-    expect(last(run, 'RECONCILIATION')).toMatchObject({ issued: '1000', unexplained: '5.0', withinLimits: true });
+    expect(last(run, 'RECONCILIATION')).toMatchObject({ issued: '1000', unexplained: '5.0', withinLimits: true, counted: 'TYPED' });
     expect(types(run)).toEqual(['PRINTED_RECONCILIATION']);
   });
 
@@ -115,6 +116,16 @@ describe('G-21@1 printed materials (K-19)', () => {
     expect(problems({ items: [{ ...CARTON, limits: {} }], destructionStep: 'after' })).toEqual(['G21-NO-LIMITS']);
     expect(problems({ items: [{ ...CARTON, artwork: { US: 'ART-7' } }], destructionStep: 'after' })).toEqual(['G21-ARTWORK-MARKET']);
     expect(problems({ items: [{ ...CARTON, artwork: {} }], destructionStep: 'after' })).toEqual(['G21-ARTWORK-MARKET']);
+    // Review 4a HIGH 2: every market the pack covers names its artwork; an issue checks the lot against each.
+    const pack = (items: Json[]) => {
+      const m = mbrWith({ kind: 'sequence', id: 'ops', children: [phase('pk', { block: { type: 'G-21', version: '1' }, config: { items, destructionStep: 'after' } as never, signatures: { perform: { role: 'OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } }), phase('after')] });
+      m.header.marketSet = ['IN', 'US'];
+      return m;
+    };
+    expect(() => define(pack([CARTON]))).toThrow(/G21-ARTWORK-MARKET/);
+    const run2 = Run.issue(define(pack([{ ...CARTON, artwork: { IN: 'ART-7', US: 'ART-9' } }])), { markets: ['IN', 'US'] } as never, T0);
+    run2.start('pk');
+    expect(verdict(run2, issue())).toBe('G21-ARTWORK');
     expect(problems({ items: [CARTON] })).toEqual(['G21-DESTRUCTION-STEP']);
     expect(problems({ devices: [{ id: 'CAM', kind: 'VISION' }] })).toEqual(['G21-NO-UNIT']);
     expect(problems({ serialisation: { markets: ['IN'] } })).toEqual(['G21-SERIAL-GTIN']);
@@ -129,23 +140,42 @@ describe('G-21@1 printing and challenges (K-20)', () => {
     const run = line();
     expect(verdict(run, { kind: 'CHALLENGE', device: 'CAM', trigger: 'START', result: 'PASS' })).toBe('G21-EVENT');
     expect(verdict(run, { kind: 'CHALLENGE', device: 'CW', trigger: 'START', result: 'PASS', event: event() })).toBe('G21-EVENT');
-    expect(verdict(run, challenge('CODER', 'START'))).toBe('G21-DEVICE');
-    run.entry('pk', challenge('CAM', 'START'));
+    expect(verdict(run, challenge(run, 'CODER', 'START'))).toBe('G21-DEVICE');
+    run.entry('pk', challenge(run, 'CAM', 'START'));
     expect(last(run, 'CHALLENGE')).toMatchObject({ missed: false, result: 'PASS' });
     run.advance(31n * MIN);
-    run.entry('pk', challenge('CAM', 'INTERVAL', 'FAIL'));
+    run.entry('pk', challenge(run, 'CAM', 'INTERVAL', 'FAIL'));
     expect(last(run, 'CHALLENGE')).toMatchObject({ missed: true, result: 'FAIL' });
     expect(types(run)).toEqual(['CHALLENGE_FAILED', 'CHALLENGE_MISSED']);
     for (const x of run.exceptions()) expect(x).toMatchObject({ qaOnly: true, block: { until: 'DISPOSITION', steps: [run.inst('pk')?.key] } });
     expect(run.inst('pk')?.verificationRequired).toBe(false);
-    run.entry('pk', challenge('CW', 'START'));
+    run.entry('pk', challenge(run, 'CW', 'START'));
     expect(run.inst('pk')?.verificationRequired).toBe(true);
+  });
+
+  it('[IN-22][PR-37][DI-31] a gateway device\'s challenge is timed by the device\'s result, never later than now and never before its last challenge: a result taken in time but recorded late is not missed, one taken late is', () => {
+    const run = line();
+    const t0 = run.nowUs;
+    expect(verdict(run, { kind: 'CHALLENGE', device: 'CAM', trigger: 'START', result: 'PASS', event: event() })).toBe('G21-EVENT');
+    expect(verdict(run, challenge(run, 'CAM', 'START', 'PASS', t0 + 1n))).toBe('G21-EVENT');
+    run.entry('pk', challenge(run, 'CAM', 'START'));
+    run.advance(40n * MIN);
+    expect(verdict(run, challenge(run, 'CAM', 'INTERVAL', 'PASS', t0 - 1n))).toBe('G21-EVENT-ORDER');
+    run.entry('pk', challenge(run, 'CAM', 'INTERVAL', 'PASS', t0 + 29n * MIN));
+    expect(last(run, 'CHALLENGE')).toMatchObject({ missed: false, at: (t0 + 29n * MIN).toString() });
+    run.advance(40n * MIN);
+    run.entry('pk', challenge(run, 'CAM', 'INTERVAL', 'PASS', t0 + 59n * MIN));
+    expect(last(run, 'CHALLENGE')).toMatchObject({ missed: false });
+    expect(types(run)).toEqual([]);
+    run.advance(40n * MIN);
+    run.entry('pk', challenge(run, 'CAM', 'INTERVAL', 'PASS', run.nowUs));
+    expect(last(run, 'CHALLENGE')).toMatchObject({ missed: true });
   });
 
   it('[PR-36][IN-16][IN-22] the step is performed only with each printer\'s first print approved by its role, each inspection device passed at start and end and not due', () => {
     const run = line({ ...CONFIG, items: [], serialisation: undefined });
-    run.entry('pk', challenge('CAM', 'START'));
-    run.entry('pk', challenge('CW', 'START'));
+    run.entry('pk', challenge(run, 'CAM', 'START'));
+    run.entry('pk', challenge(run, 'CW', 'START'));
     const perform = () => run.exec({ type: 'SIGN_PERFORMED', actor: OP1, step: 'pk', signature: { id: `S${evt += 1}`, meaning: 'PERFORMED', signer: OP1.id } });
     expect(perform().refusal?.message).toMatch(/G21-NO-FIRST-PRINT/);
     expect(verdict(run, { kind: 'FIRST_PRINT', device: 'CODER', job: 'PJ-1', approved: true })).toBe('G21-APPROVER');
@@ -154,7 +184,7 @@ describe('G-21@1 printing and challenges (K-20)', () => {
     run.entry('pk', { kind: 'FIRST_PRINT', device: 'CODER', job: 'PJ-1', approved: true }, [], IPQA);
     expect(perform().refusal?.message).toMatch(/G21-CHALLENGE-DUE/);
     run.advance(31n * MIN);
-    run.entry('pk', challenge('CAM', 'END'));
+    run.entry('pk', challenge(run, 'CAM', 'END'));
     expect(types(run)).toEqual(['CHALLENGE_MISSED']);
   });
 });

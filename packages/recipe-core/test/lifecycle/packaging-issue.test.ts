@@ -119,7 +119,7 @@ describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
     expect(await q<Json>('select purpose, batch_number from recipe.batch_execution where id = $1', [order])).toEqual([{ purpose: 'GMP_BATCH', batch_number: planned.batchNumber }]);
   });
 
-  it('[INV-27][IN-18] a packaging order without its processing batch, of a batch not issued, of another product, or a processing batch naming a parent, is refused; a packaging number of another batch is never taken; the role cannot link a number directly', async () => {
+  it('[INV-27][IN-18] a packaging order without its processing batch, of a batch not issued or cancelled, of another product, or a processing batch naming a parent, is refused; a packaging number of another batch is never taken; the role cannot link a number directly', async () => {
     const proc = await master('tablet-granulation-compression');
     const pack = await master('tablet-blister-packaging', proc.product);
     const other = await master('tablet-granulation-compression');
@@ -153,6 +153,20 @@ describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
     const own = await ahead(pp.batchNumber);
     const order = randomUUID();
     expect((await plan(order, { familyId: pack.familyId, batchSize: packSize, parentBatch: parent, allocationId: own })).allocationId).toBe(own);
+    // Review 4a LOW 8: a cancelled processing batch is never packed (arranged: the batch's state set cancelled).
+    const cancelled = randomUUID();
+    await plan(cancelled, { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'] });
+    await issue(cancelled, 'tablet-granulation-compression');
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query("update recipe.execution_state set state = jsonb_set(state, '{status}', '\"CANCELLED\"') where batch_id = $1", [cancelled]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    expect(await codeOf(plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize, parentBatch: cancelled }))).toBe('EBMR-EXE-198');
     // Bypass: the application role cannot link a number itself.
     await expect(db.app.query('insert into recipe.batch_allocation_link (batch_id, allocation_id, batch_number, person_id, account_id, correlation_id) values ($1, $2, $3, $1, $1, $1)', [randomUUID(), wrongParent, 'X'])).rejects.toThrow(/permission denied/);
   });

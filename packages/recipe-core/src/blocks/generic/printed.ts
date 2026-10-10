@@ -175,6 +175,7 @@ const DATA_SCHEMA = {
         trigger: { type: 'string', enum: CHALLENGE_TRIGGERS, description: 'Why it is challenged now' },
         result: { type: 'string', enum: ['PASS', 'FAIL'], description: 'PASS: the device rejected the test unit as it must' },
         event: { type: 'string', pattern: UUID, optional: true, description: 'The gateway event with the result (a gateway device)' },
+        at: { ...EPOCH_MICROS, optional: true, description: 'When the device took the challenge: the gateway result\'s source time (a gateway device)' },
       },
     },
     SERIAL_POOL: {
@@ -311,9 +312,22 @@ export function withinLimits(item: PrintedItem, issued: Dec, unexplained: Dec): 
 }
 
 /** The last passing challenge of device `device` at the step (its recording instant), if any. */
+/** When a recorded challenge was taken: the gateway result's source time, else when it was recorded. */
+function challengeTime(e: { data: Record<string, unknown>; recordedAt: bigint }): bigint {
+  return micros(e.data['at']) ?? e.recordedAt;
+}
+
+/** The time of the last passing challenge of device `device` at the step, if any (HIGH 1: the device's time, not the entry's). */
 function lastPass(view: HandlerView, device: string): bigint | undefined {
   let at: bigint | undefined;
-  for (const e of view.entries('CHALLENGE')) if (e.data['device'] === device && e.data['result'] === 'PASS' && (at === undefined || e.recordedAt > at)) at = e.recordedAt;
+  for (const e of view.entries('CHALLENGE')) if (e.data['device'] === device && e.data['result'] === 'PASS' && (at === undefined || challengeTime(e) > at)) at = challengeTime(e);
+  return at;
+}
+
+/** The time of the last challenge of device `device` at the step, if any. */
+function lastChallenge(view: HandlerView, device: string): bigint | undefined {
+  let at: bigint | undefined;
+  for (const e of view.entries('CHALLENGE')) if (e.data['device'] === device && (at === undefined || challengeTime(e) > at)) at = challengeTime(e);
   return at;
 }
 
@@ -354,13 +368,9 @@ function acceptIssue(view: HandlerView, entry: Readonly<Record<string, unknown>>
   if (entry['scannedArtwork'] !== lot['artwork']) {
     out.push(problem('G21-SCAN', `The label scanned at the line reads artwork ${String(entry['scannedArtwork'])}, but lot ${String(lot['id'])} carries ${String(lot['artwork'])}`, ['PR-33']));
   }
-  // The pack's markets: those of the batch the master names an artwork for (India is in every market set, an export
-  // pack carries the destination's artwork); each names the lot's.
-  const named = view.batch.marketSet.filter((m) => item.artwork[m] !== undefined);
-  const wrong = named.filter((m) => item.artwork[m] !== lot['artwork']);
-  if (named.length === 0) {
-    out.push(problem('G21-ARTWORK', `The master names no artwork of ${id} for ${view.batch.marketSet.join(', ')}`, ['PR-32', 'PR-33']));
-  } else if (wrong.length > 0) {
+  // Every market of the batch names the artwork of the pack, and each is the lot's.
+  const wrong = view.batch.marketSet.filter((m) => item.artwork[m] !== lot['artwork']);
+  if (wrong.length > 0) {
     out.push(problem('G21-ARTWORK', `Lot ${String(lot['id'])} carries artwork ${String(lot['artwork'])}; the master names ${wrong.map((m) => `${item.artwork[m] ?? 'none'} for ${m}`).join(', ')}`, ['PR-32', 'PR-33']));
   }
   if (quantity['unit'] !== item.unit) out.push(problem('G21-UNIT', `${id} is issued in ${item.unit}, not ${String(quantity['unit'])}`, ['PR-33']));
@@ -396,7 +406,10 @@ function acceptReconciliation(view: HandlerView, entry: Readonly<Record<string, 
   const ok = withinLimits(item, issued.total, unexplained);
   const data: Record<string, unknown> = { item: id };
   for (const p of RECONCILIATION_PARTS) data[p] = entry[p];
-  Object.assign(data, { unit: item.unit, issued: issued.text, unexplained: atScale(unexplained, scale), withinLimits: ok, reconciledBy: view.actor.id });
+  // MEDIUM 5: a coded item printed by a gateway printer is counted by the device (the database compares used, set-up
+  // waste and coded destroyed with the printer's counts); otherwise the counts are typed, flagged, and two persons check.
+  const counted = item.coded && lineDevices(view.config).some((d) => d.kind === 'PRINTER' && d.serial !== undefined) ? 'DEVICE' : 'TYPED';
+  Object.assign(data, { unit: item.unit, issued: issued.text, unexplained: atScale(unexplained, scale), withinLimits: ok, counted, reconciledBy: view.actor.id });
   const exceptions: ExceptionDraft[] = ok
     ? []
     : [
@@ -413,7 +426,7 @@ function acceptReconciliation(view: HandlerView, entry: Readonly<Record<string, 
           item: id,
         },
       ];
-  return { ok: true, data, ...(exceptions.length > 0 ? { exceptions } : {}) };
+  return { ok: true, data, ...(counted === 'TYPED' ? { verificationRequired: true } : {}), ...(exceptions.length > 0 ? { exceptions } : {}) };
 }
 
 function acceptFirstPrint(view: HandlerView, entry: Readonly<Record<string, unknown>>): EntryResult {
@@ -435,18 +448,27 @@ function acceptChallenge(view: HandlerView, entry: Readonly<Record<string, unkno
   if (device.serial !== undefined && typeof entry['event'] !== 'string') {
     return { ok: false, problems: [problem('G21-EVENT', `${device.id} reports through the gateway: its challenge names the gateway's result`, ['IN-22', 'DI-31'])] };
   }
-  if (device.serial === undefined && typeof entry['event'] === 'string') {
+  if (device.serial === undefined && (typeof entry['event'] === 'string' || entry['at'] !== undefined)) {
     return { ok: false, problems: [problem('G21-EVENT', `${device.id} has no gateway link: its challenge names no gateway result`, ['IN-22', 'DI-31'])] };
+  }
+  const at = micros(entry['at']);
+  if (device.serial !== undefined && (at === undefined || at > view.nowUs)) {
+    return { ok: false, problems: [problem('G21-EVENT', `${device.id}'s challenge states when the device took it, never later than now`, ['IN-22', 'DI-31'])] };
+  }
+  const t = at ?? view.nowUs;
+  const prior = lastChallenge(view, device.id);
+  if (prior !== undefined && t < prior) {
+    return { ok: false, problems: [problem('G21-EVENT-ORDER', `${device.id}'s challenges are recorded in the order the device took them`, ['IN-22', 'DI-31'])] };
   }
   const last = lastPass(view, device.id);
   const every = device.every ? durationToMicros(device.every.value, device.every.unit) : undefined;
-  const missed = last !== undefined && every !== undefined && view.nowUs - last > every;
+  const missed = last !== undefined && every !== undefined && t - last > every;
   const exceptions: ExceptionDraft[] = [];
   if (missed) exceptions.push(challengeDraft(view, 'CHALLENGE_MISSED', device.id));
   if (entry['result'] === 'FAIL') exceptions.push(challengeDraft(view, 'CHALLENGE_FAILED', device.id));
   return {
     ok: true,
-    data: { device: device.id, trigger: entry['trigger'], result: entry['result'], ...(typeof entry['event'] === 'string' ? { event: entry['event'] } : {}), missed, challengedBy: view.actor.id },
+    data: { device: device.id, trigger: entry['trigger'], result: entry['result'], ...(typeof entry['event'] === 'string' ? { event: entry['event'] } : {}), ...(at !== undefined ? { at: entry['at'] } : {}), missed, challengedBy: view.actor.id },
     ...(device.serial === undefined ? { verificationRequired: true } : {}),
     ...(exceptions.length > 0 ? { exceptions } : {}),
   };
@@ -508,11 +530,8 @@ function checkConfig(phase: PhaseNode, config: Readonly<Record<string, JsonValue
     if (i.maxUnexplained === undefined && i.maxUnexplainedPercent === undefined) {
       err('G21-NO-LIMITS', `Printed item ${i.id} of ${phase.id} has no reconciliation limits: a packaging master is approved only with them`, ['PR-39', 'IN-17', 'INV-32']);
     }
-    const markets = Object.keys(i.artwork);
-    const foreign = markets.filter((m) => !mbr.header.marketSet.includes(m));
-    if (markets.length === 0 || foreign.length > 0) {
-      err('G21-ARTWORK-MARKET', `Printed item ${i.id} of ${phase.id} names ${markets.length === 0 ? 'no artwork version' : `artwork for ${foreign.join(', ')}, outside the master's markets`}`, ['PR-32', 'PR-33']);
-    }
+    const missing = mbr.header.marketSet.filter((m) => i.artwork[m] === undefined);
+    if (missing.length > 0) err('G21-ARTWORK-MARKET', `Printed item ${i.id} of ${phase.id} names no artwork version for ${missing.join(', ')}: every market the pack covers names its artwork`, ['PR-32', 'PR-33']);
   }
   if (items.some((i) => i.coded)) {
     const dest = str(config['destructionStep']);
@@ -523,8 +542,8 @@ function checkConfig(phase: PhaseNode, config: Readonly<Record<string, JsonValue
       err('G21-INTERVAL', `The challenge interval of ${d.id} is not a whole number of microseconds`, ['IN-22']);
     }
   }
-  if (devices.some((d) => d.kind !== 'PRINTER') && str(config['unit']) === undefined) {
-    err('G21-NO-UNIT', `${phase.id} challenges inspection devices but names no plant unit of the line, so a failed challenge could hold nothing`, ['IN-22', 'PR-37']);
+  if (devices.length > 0 && str(config['unit']) === undefined) {
+    err('G21-NO-UNIT', `${phase.id} has printers or inspection devices but names no plant unit of the line, so a failed challenge or a batch-data change could hold nothing`, ['IN-22', 'PR-37']);
   }
   for (const [m, codes] of Object.entries(obj(config['markets']))) {
     const gtin = obj(codes)['gtin'];
@@ -609,7 +628,7 @@ export const G21: BlockVersion = {
     // The nominal path: each item issued at its need from a released lot with the master's artwork and reconciled
     // exactly; each printer's first print approved; each inspection device challenged at start and end; each serialised
     // market's pool commissioned whole.
-    nominalEntries: ({ config, mbr }) => {
+    nominalEntries: ({ config, mbr, nowUs }) => {
       const out: (Record<string, unknown> & { kind: string })[] = [];
       const market = mbr.header.marketSet[0] ?? 'IN';
       const evt = (i: number): string => `00000000-0000-4000-8000-${(0x2100 + i).toString(16).padStart(12, '0')}`;
@@ -619,7 +638,7 @@ export const G21: BlockVersion = {
       }
       lineDevices(config).forEach((d, n) => {
         if (d.kind === 'PRINTER') out.push({ kind: 'FIRST_PRINT', device: d.id, job: `JOB-${d.id}`, approved: true });
-        else for (const t of ['START', 'END']) out.push({ kind: 'CHALLENGE', device: d.id, trigger: t, result: 'PASS', ...(d.serial ? { event: evt(n * 2 + (t === 'END' ? 1 : 0)) } : {}) });
+        else for (const t of ['START', 'END']) out.push({ kind: 'CHALLENGE', device: d.id, trigger: t, result: 'PASS', ...(d.serial ? { event: evt(n * 2 + (t === 'END' ? 1 : 0)), at: (nowUs ?? 0n).toString() } : {}) });
       });
       for (const i of printedItems(config)) out.push({ kind: 'RECONCILIATION', item: i.id, used: i.need, setupWaste: '0', damaged: '0', codedDestroyed: '0', uncodedReturned: '0', specimens: '0' });
       for (const m of serialisedMarkets(config).filter((x) => mbr.header.marketSet.includes(x))) {
@@ -652,9 +671,9 @@ export const G21: BlockVersion = {
     script: [
       { entry: { kind: 'ISSUE', item: 'CARTON', lot: { id: 'CTN-LOT-1', material: 'MAT-CTN-10', status: 'RELEASED', artwork: 'ART-7' }, scannedArtwork: 'ART-7', quantity: { value: '1020', unit: '1' } } },
       { entry: { kind: 'FIRST_PRINT', device: 'CODER', job: 'PJ-1', approved: true } },
-      { entry: { kind: 'CHALLENGE', device: 'CAM', trigger: 'START', result: 'PASS', event: '00000000-0000-4000-8000-000000002102' } },
+      { entry: { kind: 'CHALLENGE', device: 'CAM', trigger: 'START', result: 'PASS', event: '00000000-0000-4000-8000-000000002102', at: '1790582400000000' } },
       { entry: { kind: 'SERIAL_POOL', poolId: 'POOL-IN-1', market: 'IN', gtin: '08901234567890', quantity: '1000' } },
-      { entry: { kind: 'CHALLENGE', device: 'CAM', trigger: 'END', result: 'PASS', event: '00000000-0000-4000-8000-000000002103' } },
+      { entry: { kind: 'CHALLENGE', device: 'CAM', trigger: 'END', result: 'PASS', event: '00000000-0000-4000-8000-000000002103', at: '1790582400000000' } },
       { entry: { kind: 'RECONCILIATION', item: 'CARTON', used: '990', setupWaste: '6', damaged: '2', codedDestroyed: '5', uncodedReturned: '0', specimens: '5' } },
       { entry: { kind: 'SERIAL_RECONCILIATION', poolId: 'POOL-IN-1', commissioned: '990', decommissioned: '2', destroyed: '5', samples: '3', unusedReturned: '0', unexplained: '0', reportHash: 'a'.repeat(64) } },
     ],

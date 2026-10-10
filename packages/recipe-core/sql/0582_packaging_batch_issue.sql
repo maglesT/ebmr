@@ -6,7 +6,7 @@
 --
 --   * recipe.packaging_parent_problem(product, site, parent): why batch p_parent is not a processing batch a packaging
 --     order of product p_product at site p_site may pack: it is an issued GMP batch (recipe.batch_execution, purpose
---     GMP_BATCH) of an MBR of record kind PROCESSING, of the same product (stricter default: a pack carries the batch's
+--     GMP_BATCH), not aborted or cancelled, of an MBR of record kind PROCESSING, of the same product (stricter default: a pack carries the batch's
 --     product) and site, with its register number linked (0500).
 --   * recipe.prepare_gmp_issue, replaced from its latest definition (0501): a packaging order's definition names
 --     parentBatch, the issued processing batch it packs; the register then allocates its number as a PACKAGING number of
@@ -35,6 +35,11 @@ begin
     return format('batch %s is no issued GMP batch', coalesce(p_parent::text, '(none)'));
   end if;
   select * into sb from recipe.stub_batch where id = p_parent;
+  -- Review 4a LOW 8: an aborted or cancelled processing batch is never packed (rejection of a batch arrives in Phase 4
+  -- with release; the release gate holds it there).
+  if sb.status = 'CANCELLED' or (select st.state ->> 'status' from recipe.execution_state st where st.batch_id = p_parent) in ('ABORTED', 'CANCELLED') then
+    return format('batch %s is aborted or cancelled', x.batch_number);
+  end if;
   select * into f from recipe.mbr_family where id = sb.family_id;
   if f.record_kind is distinct from 'PROCESSING' then
     return format('batch %s is no processing batch', x.batch_number);

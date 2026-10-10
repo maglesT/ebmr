@@ -20,7 +20,9 @@ import {
   SERIAL_STATES,
   SerialEventsRequest,
   SerialEventsResponse,
+  serialTransitionAllowed,
   type SerialEvent,
+  type SerialState,
 } from '@ebmr/integration-sdk/serialisation';
 import type { z } from 'zod';
 
@@ -74,6 +76,17 @@ export function httpL3Client(baseUrl: string, opts: { timeoutMs?: number; fetchI
 }
 
 /**
+ * The L3 client of the configured base URL (config EBMR_L3_URL). Without one the serialisation is off and every call
+ * is refused (fails closed, PR-42): no pool is requested and nothing is recorded.
+ */
+export function configuredL3Client(l3Url: string | null, opts: { timeoutMs?: number; fetchImpl?: typeof fetch } = {}): L3Client {
+  if (l3Url !== null) return httpL3Client(l3Url, opts);
+  const off = (): Promise<never> =>
+    Promise.reject(new L3Error(503, 'NOT_CONFIGURED', 'no serialisation L3 system is configured for this server (EBMR_L3_URL), so no serial pool can be requested'));
+  return { requestPool: off, sendEvents: off, report: off };
+}
+
+/**
  * Requests the pool of G-21 step `stepKey` of batch `batchId` for `market` (a batch market: EU or US) and records it, in
  * the caller's command (`client`). The request's packaging order, L3 market and GTIN are the record's.
  */
@@ -86,16 +99,26 @@ export async function requestSerialPool(client: pg.ClientBase, l3: L3Client, p: 
   return { poolId: answer.poolId, quantity: issued };
 }
 
-/** Sends serial events of pool `poolId` to the L3 system and records their counts per state (taken whole by the L3 system). */
-export async function sendSerialEvents(client: pg.ClientBase, l3: L3Client, poolId: string, events: readonly SerialEvent[]): Promise<void> {
+/** A serial event as the server sends it, with the state the serial leaves (null: issued, no state yet). */
+export interface SerialChange extends SerialEvent {
+  from: SerialState | null;
+}
+
+/**
+ * Sends serial events of pool `poolId` to the L3 system and records their counts per state change (review 4a MEDIUM 3:
+ * the database derives the states the pool's serials hold from them and holds every report to them). A change the L3
+ * contract does not allow is refused before anything is sent.
+ */
+export async function sendSerialEvents(client: pg.ClientBase, l3: L3Client, poolId: string, events: readonly SerialChange[]): Promise<void> {
   const counts: Record<string, string> = {};
-  for (const s of SERIAL_STATES) {
-    const n = events.filter((e) => e.state === s).length;
-    if (n > 0) counts[s] = String(n);
+  for (const e of events) {
+    if (!serialTransitionAllowed(e.from, e.state)) throw new L3Error(400, 'TRANSITION', `${e.serial} cannot go from ${e.from ?? 'issued'} to ${e.state}`);
+    const k = `${e.from ?? 'NONE'}>${e.state}`;
+    counts[k] = (BigInt(counts[k] ?? '0') + 1n).toString();
   }
   // Recorded first, in the caller's command: a refusal by the L3 system rolls the record back with it.
   await client.query('select tab.record_serial_events($1, $2::jsonb)', [poolId, JSON.stringify(counts)]);
-  await l3.sendEvents(poolId, events);
+  await l3.sendEvents(poolId, events.map(({ serial, state, at }) => ({ serial, state, at })));
 }
 
 /** Fetches the L3 report of pool `poolId`, checks its consistency and records it; returns the SERIAL_RECONCILIATION entry it gives. */

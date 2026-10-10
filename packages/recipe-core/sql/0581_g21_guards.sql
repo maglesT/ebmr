@@ -187,7 +187,7 @@ begin
             return format('closes step %s, but %s has no passing %s challenge (G21-CHALLENGE-DUE; IN-22)', k, d ->> 'id', lower(t));
           end if;
         end loop;
-        select max(recipe.micros_of(e -> 'recordedAt')) into v_last from jsonb_array_elements(v_all) e
+        select max(recipe.g21_challenge_time(e)) into v_last from jsonb_array_elements(v_all) e
          where e ->> 'kind' = 'CHALLENGE' and e -> 'data' -> 'device' = d -> 'id' and e -> 'data' ->> 'result' = 'PASS';
         if v_last is not null and recipe.duration_us(d -> 'every') is not null and v_now - v_last > recipe.duration_us(d -> 'every') then
           return format('closes step %s, but %s is due for a challenge (G21-CHALLENGE-DUE; IN-22)', k, d ->> 'id');
