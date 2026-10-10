@@ -6,9 +6,9 @@ Keep this page short (under 150 lines): the current state, the rules in force an
 ## What this is
 
 An electronic Batch Manufacturing Record system for Indian pharma manufacturers who export. India Revised Schedule M
-always applies; US FDA and EU GMP apply per market; the stricter rule wins. Tablets edition first; Injectables is
-deferred to Phase 5 (decision 0002). The approved plan is `docs/outline/build-outline.md` (v0.2; section 11 is the phase
-plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0009).
+always applies; US FDA and EU GMP apply per market; the stricter rule wins. Tablets edition first, through Phases 6 and 7 to
+v1.0; Injectables (Phase 5) comes after that (decisions 0002, 0010). The approved plan is `docs/outline/build-outline.md` (v0.2; section 11 is the phase
+plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Rules in force (owner)
 
@@ -20,6 +20,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0009).
 - Decision 0009 (10 October, approved; amends 0008 for the Phase 3 exit): an Opus mutation run on all Phase 3 code and
   on Phase 1 and 2 code changed since their exit runs; one Opus review pass (design, serious defects); critical and high
   fixed, each with its own test; then one final run of the suite, E2E, trace and GB-T-01. The 0008 relief stands.
+- Decision 0010 (10 October): Tablets to v1.0 (Phases 3, 4, 6, 7) first, Injectables after. Shared-code changes keep
+  the injectables extension points open; the trace gate must leave injectables-only controls out before phase.yaml passes 4.
 - Token economy (owner, 9 October): see CLAUDE.md. Top model for building, design and security fixes; Sonnet for
   quick reviews; Haiku for mechanical jobs. Few agents (2 to 3 at a time), short reports, short command output.
 - Defaults: take the default for any open question (decision 0004) and record it.
