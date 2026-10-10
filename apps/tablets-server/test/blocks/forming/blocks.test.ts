@@ -183,6 +183,16 @@ describe('TB-06 roller compaction', () => {
     expect(refusal(run, { kind: 'GRANULE_OUTPUT', screen: 'RS-15', granules: kg('1.000'), fines: kg('0.000') })).toBe('TB06-AFTER-YIELD');
   });
 
+  it('[IN-36] review 3d: the yield is judged exactly against its limits, never on its rounded display value (94.996 % shows as 95.00 % and is below the 95.00 % minimum)', () => {
+    const run = started();
+    run.entry('p', { kind: 'FEED', quantity: kg('50.000') });
+    run.entry('p', { kind: 'GRANULE_OUTPUT', screen: 'RS-15', granules: kg('94.996'), fines: kg('0.000') });
+    run.entry('p', { kind: 'RUN_END' });
+    run.entry('p', { kind: 'YIELD' });
+    expect([last(run, 'YIELD')['yieldPercent'], last(run, 'YIELD')['withinLimits']]).toEqual(['95.00', false]);
+    expect(types(run)).toEqual(['COMPACTION_YIELD_OUT_OF_RANGE']);
+  });
+
   it('[PR-08] a roll gap outside its acceptance limits raises PROCESS_VALUE_OUT_OF_LIMITS through G-06 (the steps after it wait for a deviation)', () => {
     const run = startRun(TB06);
     run.entry('p', { kind: 'ACTUAL', tag: 'roller.gap_mm', value: '3.80', unit: 'mm', source: 'EQUIPMENT', readingId: U(77), quality: 'GOOD', receivedAtUs: run.nowUs.toString() });

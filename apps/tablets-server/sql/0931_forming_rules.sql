@@ -71,7 +71,7 @@ language sql immutable set search_path = pg_catalog, tab, pg_temp as $$
   select coalesce(sum((tab.ipc_d(x) -> p_member ->> 'value')::numeric), 0) from jsonb_array_elements(p_prior) x where x ->> 'kind' = p_kind
 $$;
 
--- A percentage of two decimals, half away from zero (calc.ts fixed(a x 100 / b, 2)).
+-- A percentage of two decimals, half away from zero (calc.ts fixed(a x 100 / b, 2)): for display only, never compared.
 create function tab.forming_percent(p_a numeric, p_b numeric) returns text
 language sql immutable set search_path = pg_catalog, pg_temp as $$
   select round(round(p_a * 100, 40) / p_b, 2)::text
@@ -240,8 +240,9 @@ begin
       v_data := jsonb_build_object('unit', v_unit, 'feed', trim_scale(v_feed)::text, 'granules', trim_scale(v_g)::text, 'fines', trim_scale(v_f)::text,
                                    'recycled', trim_scale(v_rec)::text, 'net', trim_scale(v_net)::text, 'yieldPercent', v_pct, 'recordedBy', p_by);
       if jsonb_typeof(p_cfg -> 'yield') = 'object' then
-        v_data := v_data || jsonb_build_object('withinLimits', not ((jsonb_typeof(p_cfg -> 'yield' -> 'min') = 'string' and v_pct::numeric < (p_cfg -> 'yield' ->> 'min')::numeric)
-                                                                  or (jsonb_typeof(p_cfg -> 'yield' -> 'max') = 'string' and v_pct::numeric > (p_cfg -> 'yield' ->> 'max')::numeric)));
+        -- Review 3d: the exact yield (net x 100 against limit x feed), never the rounded display value, against the limits.
+        v_data := v_data || jsonb_build_object('withinLimits', v_feed > 0 and not ((jsonb_typeof(p_cfg -> 'yield' -> 'min') = 'string' and v_net * 100 < (p_cfg -> 'yield' ->> 'min')::numeric * v_feed)
+                                                                  or (jsonb_typeof(p_cfg -> 'yield' -> 'max') = 'string' and v_net * 100 > (p_cfg -> 'yield' ->> 'max')::numeric * v_feed)));
         if (v_data -> 'withinLimits') = 'false'::jsonb then
           v_raise := v_raise || 'COMPACTION_YIELD_OUT_OF_RANGE'::text;
         end if;

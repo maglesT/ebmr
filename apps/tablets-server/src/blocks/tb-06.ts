@@ -237,8 +237,10 @@ function yieldOf(view: HandlerView): Record<string, unknown> {
     recordedBy: view.actor.id,
   };
   if (isRecord(limits)) {
-    const p = dec(percent);
-    out['withinLimits'] = !((typeof limits['min'] === 'string' && p.lt(dec(limits['min']))) || (typeof limits['max'] === 'string' && p.gt(dec(limits['max']))));
+    // Review 3d: the exact yield (net x 100 against limit x feed), never the rounded display value, against the limits.
+    const n = net.times(HUNDRED);
+    out['withinLimits'] =
+      !feed.isZero() && !((typeof limits['min'] === 'string' && n.lt(dec(limits['min']).times(feed))) || (typeof limits['max'] === 'string' && n.gt(dec(limits['max']).times(feed))));
   }
   return out;
 }

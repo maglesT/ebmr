@@ -90,22 +90,49 @@ select kernel.set_actor_context(null);
 -- ---------------------------------------------------------------------------------------------
 -- The roller compactor and the bilayer press settings (integration-sdk FORMING_EQUIPMENT_KINDS, FORMING_TAGS)
 
+-- The values a check constraint p_constraint of table p_table allows column p_column to take, read exactly (review 3d):
+-- the constraint is accepted only in the form PostgreSQL gives a list check (column = ANY (<constant text array>), from
+-- IN (...), ANY (ARRAY[...]) or ANY ('{...}'::text[])); the constant is evaluated as written, so every literal comes back
+-- whole (digits, hyphens and quotes included). Any other form, or a constant that is not a text array, fails loudly.
+create function tab.forming_constraint_values(p_table regclass, p_constraint text, p_column text) returns text[]
+language plpgsql volatile set search_path = pg_catalog, pg_temp as $$
+declare
+  v_def  text;
+  v_expr text;
+  v_vals text[];
+begin
+  select pg_get_constraintdef(c.oid) into v_def from pg_constraint c where c.conrelid = p_table and c.conname = p_constraint and c.contype = 'c';
+  if v_def is null then
+    raise exception 'SETUP: no check constraint % on %', p_constraint, p_table;
+  end if;
+  v_expr := (regexp_match(v_def, format('^CHECK \(\(\(?%s\)?(?:::text)? = ANY \((ARRAY\[.*\]|''(?:[^'']|'''')*''::text\[\])\)\)\)$', quote_ident(p_column))))[1];
+  if v_expr is null then
+    raise exception 'SETUP: constraint % on % is not a list of values of %: %', p_constraint, p_table, p_column, v_def;
+  end if;
+  begin
+    execute format('select (%s)::text[]', v_expr) into strict v_vals;
+  exception when others then
+    raise exception 'SETUP: the values of constraint % on % cannot be read (%): %', p_constraint, p_table, sqlerrm, v_def;
+  end;
+  if v_vals is null or cardinality(v_vals) = 0 or array_position(v_vals, null) is not null then
+    raise exception 'SETUP: constraint % on % lists no values, or a null one: %', p_constraint, p_table, v_def;
+  end if;
+  return v_vals;
+end
+$$;
+revoke all on function tab.forming_constraint_values(regclass, text, text) from public;
+
 -- Widens the check constraints of the equipment kinds (equipment_kind in (...)) and of the alarm's test (test in (...)),
 -- keeping every value each holds when this runs.
 do $$
 declare
   r      record;
-  v_def  text;
   v_vals text[];
 begin
   for r in select * from (values ('tab.process_tag'::regclass, 'process_tag_equipment_kind_check', 'equipment_kind', 'ROLLER_COMPACTOR'),
                                  ('tab.process_device'::regclass, 'process_device_equipment_kind_check', 'equipment_kind', 'ROLLER_COMPACTOR'),
                                  ('tab.ipc_overdue_alarm'::regclass, 'ipc_overdue_alarm_test_check', 'test', 'RIBBON')) x (tbl, con, col, addition) loop
-    select pg_get_constraintdef(c.oid) into v_def from pg_constraint c where c.conrelid = r.tbl and c.conname = r.con;
-    if v_def is null then
-      raise exception 'SETUP: no constraint % on %', r.con, r.tbl;
-    end if;
-    v_vals := array(select distinct x from unnest(array(select m[1] from regexp_matches(v_def, '''([A-Z_]+)''', 'g') m) || r.addition) x order by x);
+    v_vals := array(select distinct x from unnest(tab.forming_constraint_values(r.tbl, r.con, r.col) || r.addition) x order by x);
     execute format('alter table %s drop constraint %I', r.tbl, r.con);
     execute format('alter table %s add constraint %I check (%I = any (%L::text[]))', r.tbl, r.con, r.col, v_vals);
   end loop;

@@ -223,7 +223,7 @@ describe('the forming blocks in the database (tablets 0930 to 0932)', () => {
         where n.nspname = 'tab' and (p.proname ~ '^(forming|compaction|bilayer)_' or p.proname in ('ipc_pass_check', 'ipc_overdue_at', 'record_ipc_overdue'))
         order by 1`,
     );
-    expect(rows.length).toBe(19);
+    expect(rows.length).toBe(20);
     for (const r of rows) {
       expect(r.owner, r.f).toBe('ebmr_owner');
       expect(r.config?.find((c) => c.startsWith('search_path=')), r.f).toMatch(/, pg_temp$/);
@@ -231,6 +231,28 @@ describe('the forming blocks in the database (tablets 0930 to 0932)', () => {
     }
     expect(rows.filter((r) => r.app).map((r) => r.f)).toEqual(['tab.ipc_overdue_at(uuid,timestamp with time zone)', 'tab.record_ipc_overdue(uuid)']);
     await expect(sbx.db.app.query("insert into tab.process_block_type (block_type) values ('TB-99')")).rejects.toThrow(/permission denied/);
+  });
+
+  it('[IN-36] review 3d: the yield is judged exactly against its limits, never on its rounded display value (94.996 % is below a 95.00 % minimum although it shows as 95.00)', async () => {
+    const at = (n: number, kind: string, data: Json = {}) => ({ id: `EN-${n}`, kind, stepKey: 'x@', recordedSeq: n, recordedAt: { $u: String(1790582400000000 + n) }, data });
+    const prior = [at(1, 'RUN_START', { press: 'X' }), at(2, 'FEED', { quantity: kg('100.000') }), at(3, 'GRANULE_OUTPUT', { screen: 'S', granules: kg('94.996'), fines: kg('0.000') }), at(4, 'RUN_END')];
+    const cfg = { ribbon: { every: { value: '30', unit: 'min' }, grace: { value: '5', unit: 'min' } }, yield: { min: '95.00', max: '100.00' } };
+    const r = await sql<Json>("select tab.compaction_entry('YIELD', $1, $2, '{}'::jsonb, 1790582400000005, '\"me\"'::jsonb, '[]'::jsonb) as r", [cfg, JSON.stringify(prior)]);
+    expect([(r?.['data'] as Json)['yieldPercent'], (r?.['data'] as Json)['withinLimits'], r?.['raise']]).toEqual(['95.00', false, ['COMPACTION_YIELD_OUT_OF_RANGE']]);
+  });
+
+  it('[DI-30] review 3d: a list constraint is widened from its values read exactly (digits, hyphens and quotes kept, in either form PostgreSQL writes it); a constraint of another form fails loudly', async () => {
+    const c = await sbx.db.admin.connect();
+    try {
+      await c.query("create temp table forming_cv (a text check (a in ('A-1', 'B_2', 'O''K', 'X9')), b text constraint b_list check (b = any ('{P-1,Q}'::text[])), d text constraint d_like check (d like 'A%'))");
+      const values = async (con: string, col: string) => (await c.query<{ r: string[] }>('select tab.forming_constraint_values($1::regclass, $2, $3) as r', ['forming_cv', con, col])).rows[0]?.r;
+      expect(await values('forming_cv_a_check', 'a')).toEqual(['A-1', 'B_2', "O'K", 'X9']);
+      expect(await values('b_list', 'b')).toEqual(['P-1', 'Q']);
+      await expect(values('d_like', 'd')).rejects.toThrow(/SETUP: constraint d_like .* is not a list of values/);
+      await expect(values('b_list', 'a')).rejects.toThrow(/SETUP/);
+    } finally {
+      c.release();
+    }
   });
 
   it('[PR-08][PR-29] TB-06: the run starts on a plant PROCESS unit in use for the batch; a roll gap outside its limits is stored only with PROCESS_VALUE_OUT_OF_LIMITS; a ribbon check is judged by the database (a forged pass is refused), a failing one holds every container of the compactor since its last passing check, and a passing check is recorded only from the step', async () => {
