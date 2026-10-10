@@ -38,6 +38,8 @@ class PrintListener {
   jobs: unknown[] = [];
   eventsDown = false;
   acksDown = false;
+  /** Jobs the server voided (batch data changed after set-up): their acknowledgement is answered state VOIDED. */
+  readonly voided = new Set<string>();
 
   install(server: FakeServer): void {
     server.extra = (method, path, body, live, req) => {
@@ -60,7 +62,7 @@ class PrintListener {
         const id = decodeURIComponent(ack[1] ?? '');
         this.acks.push({ id, body: body as PrintJobAckRequest });
         this.jobs = this.jobs.filter((j) => (j as { id: string }).id !== id);
-        return { status: 200, body: {} };
+        return { status: 200, body: this.voided.has(id) ? { state: 'VOIDED' } : {} };
       }
       return null;
     };
@@ -216,6 +218,44 @@ describe('printer uplink (print jobs, POST /gw/v1/print-events) under the gatewa
     listener.acksDown = false;
     await pg.pollJobs();
     expect(listener.acks.map((a) => [a.id, a.body.outcome])).toEqual([['J-5', 'LOADED']]);
+    await gw.stop();
+    await server.stop();
+  });
+
+  it('[PR-36] a job the server voided is cleared from the printer and journalled, whether the ack answer says VOIDED or the job drops from the list unacknowledged', async () => {
+    const { server, listener, gw, pg } = await setUp();
+    // 1. The acknowledgement's answer says VOIDED: the printer is cleared at once.
+    listener.voided.add('J-10');
+    listener.jobs = [jobFor('J-10')];
+    await pg.pollJobs();
+    expect(listener.acks.map((a) => [a.id, a.body.outcome])).toEqual([['J-10', 'LOADED']]);
+    expect((await simState()).job).toBeNull();
+    expect(gw.alarms.map((a) => a.kind)).toContain('JOB_VOIDED');
+    // 2. The LOADED acknowledgement does not reach the server, which voids the job and drops it from the list.
+    listener.acksDown = true;
+    listener.jobs = [jobFor('J-11')];
+    await pg.pollJobs();
+    expect((await simState()).job).toMatchObject({ jobId: 'J-11' });
+    listener.jobs = [];
+    listener.acksDown = false;
+    await sim.control('start');
+    await pg.pollJobs();
+    expect((await simState()).job).toBeNull();
+    const printed = (await simState()).printed;
+    await new Promise((r) => setTimeout(r, 300));
+    expect((await simState()).printed).toBe(printed); // nothing prints under a voided job
+    await sim.control('stop');
+    // Relisted by mistake, a voided job is never loaded again.
+    listener.jobs = [jobFor('J-11')];
+    await pg.pollJobs();
+    expect((await simState()).job).toBeNull();
+    expect(listener.acks.map((a) => a.id)).toEqual(['J-10']);
+    await pg.flush();
+    const voids = listener.events().filter((e) => e.kind === 'FAULT' && e.value === 'JOB_VOIDED');
+    expect(voids.map((e) => [e.jobId, e.deviceSerial])).toEqual([
+      ['J-10', 'PRN-0001'],
+      ['J-11', 'PRN-0001'],
+    ]);
     await gw.stop();
     await server.stop();
   });

@@ -157,6 +157,15 @@ export type PrintEventsRequest = z.infer<typeof PrintEventsRequest>;
 /** Any 2xx answer means the server holds every event of the batch (taken whole or refused whole); the gateway reads none of its members. */
 export const PrintWireResponse = z.looseObject({});
 
+/**
+ * The server's answer to a job acknowledgement. `state` is optional (older servers send none): VOIDED means the job
+ * was voided before the acknowledgement arrived (batch data changed after set-up, L-29); the gateway then clears the
+ * job from the printer, journals it (FAULT JOB_VOIDED) and never prints under it. Other members are ignored.
+ */
+export const PrintJobAckResponse = z.looseObject({ state: z.string().min(1).max(32).optional() });
+export type PrintJobAckResponse = z.infer<typeof PrintJobAckResponse>;
+export const PRINT_JOB_VOIDED = 'VOIDED';
+
 /** The rules of one event a schema cannot say: the value's form for its kind, a job for everything but a FAULT. Pure; empty when sound. */
 export function printEventProblems(e: Pick<PrintEvent, 'kind' | 'value' | 'jobId'>): { field: 'value' | 'jobId'; message: string }[] {
   const out: { field: 'value' | 'jobId'; message: string }[] = [];

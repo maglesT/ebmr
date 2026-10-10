@@ -10,6 +10,11 @@
  * the outcome, the echoed fields and the gateway's clock when the echo arrived; an acknowledgement that does not reach
  * the server is sent again (the printer is not loaded twice for one job in this process).
  *
+ * Voided jobs (L-29: batch data changed after set-up): when the server answers an acknowledgement with state VOIDED,
+ * or a job loaded here disappears from the list before its LOADED acknowledgement was taken (the server drops voided
+ * jobs), the job is cleared from its printer if the printer still holds it and a FAULT JOB_VOIDED is journalled for
+ * it; a printer that cannot be cleared now is tried again at every job poll. A voided job is never loaded again.
+ *
  * Events: every poll reads each printer's status and the events it logged since the last one journalled (its boot
  * and event number, rebuilt from the journal at start, so none is taken twice or lost across a gateway restart), and
  * journals in one synced append: the printer's reader, vision and challenge results and its faults; a PRINTED_COUNT
@@ -29,7 +34,9 @@ import {
   PRINT_JOBS_PATH,
   PrintJob,
   PrintJobsResponse,
+  PrintJobAckResponse,
   PrintWireResponse,
+  PRINT_JOB_VOIDED,
   echoMismatches,
   printEventProblems,
   printJobAckPath,
@@ -45,7 +52,7 @@ import type { GatewaySession } from './process-uplink.ts';
 import { UplinkError } from './uplink.ts';
 
 export interface PrinterAlarm {
-  kind: 'EVENT_REFUSED' | 'PRINTER_STALE' | 'PRINTER_FRESH' | 'UPLINK_FAILED' | 'UPLINK_RESTORED' | 'EVENTS_REFUSED' | 'JOURNAL_FAILED' | 'JOB_FAILED' | 'JOB_MISMATCH' | 'ACK_FAILED';
+  kind: 'EVENT_REFUSED' | 'PRINTER_STALE' | 'PRINTER_FRESH' | 'UPLINK_FAILED' | 'UPLINK_RESTORED' | 'EVENTS_REFUSED' | 'JOURNAL_FAILED' | 'JOB_FAILED' | 'JOB_MISMATCH' | 'ACK_FAILED' | 'JOB_VOIDED';
   deviceCode: string | null;
   message: string;
   details: Record<string, string>;
@@ -95,7 +102,11 @@ export class PrinterGateway {
   uploadFailure: string | null = null;
   private refusedAtUs: bigint | null = null;
   /** Jobs handled in this process: the acknowledgement, and whether the server has it. */
-  private readonly acks = new Map<string, { body: PrintJobAckRequest; sent: boolean }>();
+  private readonly acks = new Map<string, { body: PrintJobAckRequest; sent: boolean; printerCode: string | null }>();
+  /** Voided jobs (job id -> printer code) not yet cleared from their printer and journalled. */
+  private readonly voidPending = new Map<string, string>();
+  /** Voided jobs cleared and journalled: never loaded or acknowledged again in this process. */
+  private readonly voidDone = new Set<string>();
   private flushing: Promise<void> | null = null;
   private flushAgain = false;
   private polling = false;
@@ -286,24 +297,77 @@ export class PrinterGateway {
     try {
       jobs = (await this.call('GET', PRINT_JOBS_PATH, null, PrintJobsResponse)).jobs;
     } catch {
+      await this.applyVoids(); // a void already known is still enforced while the server cannot be reached
       return; // the next poll asks again; an outage is alarmed by the events' upload
     }
+    // A job loaded here whose LOADED acknowledgement the server never took, gone from the list: the server dropped it
+    // as voided (an acknowledged job drops too, but its acknowledgement was answered).
+    const listed = new Set(jobs.map((j) => j.id));
+    for (const [id, ack] of this.acks) {
+      if (!ack.sent && ack.body.outcome === 'LOADED' && !listed.has(id) && ack.printerCode !== null) this.markVoided(id, ack.printerCode);
+    }
     for (const raw of jobs) {
+      if (this.voidPending.has(raw.id) || this.voidDone.has(raw.id)) continue;
       let ack = this.acks.get(raw.id);
       if (!ack) {
-        ack = { body: await this.load(raw), sent: false };
+        const loaded = await this.load(raw);
+        ack = { body: loaded.body, sent: false, printerCode: loaded.printerCode };
         this.acks.set(raw.id, ack);
       }
       try {
-        await this.call('POST', printJobAckPath(raw.id), ack.body, PrintWireResponse);
+        const answer = await this.call('POST', printJobAckPath(raw.id), ack.body, PrintJobAckResponse);
         ack.sent = true;
+        if (answer.state === PRINT_JOB_VOIDED && ack.printerCode !== null) this.markVoided(raw.id, ack.printerCode);
       } catch (error) {
         this.alarm({ kind: 'ACK_FAILED', deviceCode: null, message: `the acknowledgement of print job ${raw.id} did not reach the server (${error instanceof Error ? error.message : String(error)}); sent again later`, details: { id: raw.id } });
       }
     }
+    await this.applyVoids();
   }
 
-  private async load(raw: { id: string }): Promise<PrintJobAckRequest> {
+  private markVoided(jobId: string, printerCode: string): void {
+    if (this.voidDone.has(jobId) || this.voidPending.has(jobId)) return;
+    this.voidPending.set(jobId, printerCode);
+    this.alarm({ kind: 'JOB_VOIDED', deviceCode: printerCode, message: `print job ${jobId} was voided by the server (batch data changed after set-up); it is cleared from the printer`, details: { id: jobId } });
+  }
+
+  /**
+   * Clears each voided job from its printer (when the printer still holds it) and journals FAULT JOB_VOIDED; a printer
+   * that cannot be reached or cleared now is tried again at the next job poll. Runs only inside the job poll, so no
+   * load can come between the read and the clear.
+   */
+  private async applyVoids(): Promise<void> {
+    let journalled = false;
+    for (const [jobId, code] of this.voidPending) {
+      const p = this.printers.get(code);
+      if (!p) continue;
+      const r = await p.driver.read();
+      if (!r.ok) continue;
+      if (r.status.jobId === jobId) {
+        const c = await p.driver.clear();
+        if (!c.ok) continue;
+      }
+      try {
+        await this.journal.append(this.sessionId, [{ origin: null, event: { deviceSerial: r.serial, jobId, kind: 'FAULT', value: 'JOB_VOIDED', sourceTime: this.options.clock.wallUs().toString() } }]);
+      } catch {
+        continue; // alarmed by the journal
+      }
+      if (p.jobId === jobId) p.jobId = null;
+      this.voidPending.delete(jobId);
+      this.voidDone.add(jobId);
+      journalled = true;
+    }
+    if (journalled) await this.flush();
+  }
+
+  private async load(raw: { id: string }): Promise<{ body: PrintJobAckRequest; printerCode: string | null }> {
+    const out = await this.loadOnPrinter(raw);
+    const serial = (raw as { deviceSerial?: unknown }).deviceSerial;
+    const printer = [...this.printers.values()].find((p) => p.config.expectedSerial === serial);
+    return { body: out, printerCode: printer?.config.code ?? null };
+  }
+
+  private async loadOnPrinter(raw: { id: string }): Promise<PrintJobAckRequest> {
     const failed = (message: string, printer: Printer | null = null): PrintJobAckRequest => {
       this.alarm({ kind: 'JOB_FAILED', deviceCode: printer?.config.code ?? null, message: `print job ${raw.id} was not loaded: ${message}`, details: { id: raw.id } });
       return { sessionId: this.sessionId, outcome: 'FAILED', echoedFields: null, sourceTime: this.options.clock.wallUs().toString(), message: message.slice(0, 500) };
