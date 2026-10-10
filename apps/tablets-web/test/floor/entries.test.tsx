@@ -303,6 +303,8 @@ describe('renderer registry', () => {
       'G-16@1': 'fallback',
       'G-17@1': 'dedicated',
       'G-20@1': 'dedicated',
+      // Phase 3 slice 4a: G-21@1 uses the schema-driven fallback until its packaging screens (slice 6).
+      'G-21@1': 'fallback',
       'G-22@1': 'dedicated',
       'G-23@1': 'fallback',
       'G-24@1': 'fallback',

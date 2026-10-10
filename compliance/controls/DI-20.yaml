@@ -200,6 +200,7 @@ tests:
   - "apps/tablets-server/test/devices/gateway-key-order.test.ts > D16: an honest gateway key is enrolled and trusted as before > [DI-32][DI-30][DI-20] an honest key enrols, a session binds under it, and a reading and a wait signed with its private key are accepted"
   - "apps/tablets-server/test/devices/gateway-key-order.test.ts > D16: a key of small order enrolled before tablets 0702 is never trusted > [DI-32][DI-30][DI-20] no session binds under it: the gateway identity's fresh session on that device is refused (EBMR-DEV-025)"
   - "apps/tablets-server/test/devices/gateway-key-order.test.ts > D16: a key of small order enrolled before tablets 0702 is never trusted > [DI-32][DI-30][DI-20] the listener's login with a forged key proof is refused (401, EBMR-DEV-025), so its proof proves nothing for this chain"
+  - "apps/site-gateway/test/printer.test.ts > printer driver against the printer simulator (ebmr.sim-printer.v1) > [DI-20] refuses a printer that reports another serial (SERIAL_MISMATCH, alarmed), and reconnects after OFFLINE"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:
