@@ -444,7 +444,8 @@ create trigger zzg_tab_forming after update on recipe.execution_state
 -- ---------------------------------------------------------------------------------------------
 -- Replaced from tablets 0893 (header)
 
--- As 0893, with the passing entries of TB-06 and TB-16 steps beside TB-11's.
+-- As 0893, with the passing entries of TB-06 and TB-16 steps beside TB-11's, and a passing print check of a TB-19 printer
+-- (tablets 0912) accepted.
 create or replace function tab.ipc_pass_check() returns trigger
 language plpgsql security definer set search_path = pg_catalog, tab, recipe, plant, pg_temp as $$
 declare
@@ -462,6 +463,12 @@ begin
   v_content := recipe.batch_mbr_content(new.batch_id);
   if not exists (select 1 from jsonb_path_query(coalesce(v_content -> 'procedure', '{}'::jsonb), 'strict $.** ? (@.kind == "phase")') p
                   where p -> 'block' ->> 'type' in ('TB-11', 'TB-06', 'TB-16')) then
+    return new;
+  end if;
+  -- Slice 3d (builder A): a passing print check of a printer of the batch's TB-19 steps is held by tablets 0912
+  -- (tab.coat_print_pass, trigger aa_tab_coat_pass); such a check is not refused here.
+  if new.reference ~ '^TB19:' and (tab.coat_print_pass(new.batch_id, new.press_code, new.stream, new.reference) -> 'printer') = 'true'::jsonb
+     and tab.coat_print_pass(new.batch_id, new.press_code, new.stream, new.reference) ->> 'problem' is null then
     return new;
   end if;
   v_m := regexp_match(new.reference, '^(TB11|TB06|TB16):(.+):(EN-[1-9][0-9]{0,8})$');

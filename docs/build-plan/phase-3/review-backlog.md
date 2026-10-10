@@ -153,3 +153,16 @@ first run's sets).
   rule set or records it as not applicable in `tab.compendial_not_applicable`. Likewise a sugar-coated batch that opts
   into the legacy in-house table is refused until its rule set is confirmed. Default until then: refused.
 - A missed check recorded by the sweeper makes closed containers unusable at once (under a hold), but their status moves to HELD only at the next person's check, because the HOLD transition needs STEP.EXECUTE, which the sweeper deliberately lacks (least privilege). Accepted: unusable is the safety property.
+
+## Slice 3d open items (builder reports, 10 October 2026)
+
+- **For the owner and the expert:** the AQL table values (TB-20, tablets 0911) have medium confidence and must be
+  checked against the current ISO 2859-1 text, especially the tightened-inspection table.
+- **For the owner:** the TB-19 print approval gate is signed by QA (the hold-point signature needs QA.FLOOR_APPROVE). A
+  QC-unit signature for this gate would need a new signature meaning in the kernel catalogue; default kept: QA.
+- TB-18 and TB-20 sample weights are keyed by hand with a second person; balance capture is not wired (slice 6).
+- A G-23 destruction entry in a test run cannot name a plant container label (sandbox identifier rule), so the
+  destroyed-for-every-reject rule is proven on a forged state only (revisit with the GMP demo in slice 6).
+- TB-06: ribbon checks keyed by hand (no instrument), FEED names no container charge, no stoppage handling (a long stop
+  shows as a missed check), no roller-compactor simulator (slice 6).
+- The new entry kinds of 3d are not in the api-contract (screens, slice 6).
