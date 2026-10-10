@@ -214,7 +214,7 @@ describe('the exception register (recipe-core 0440)', () => {
       }),
     );
     expect(verdict).not.toBe('accepted');
-    expect(database).toMatch(/is dispositioned only by QA, and the row holds no QA role of the batch.*\(PR-08, PR-13\)\. \[EBMR-EXE-162\]$/);
+    expect(database).toMatch(/is dispositioned only by QA, and the row holds no quality-unit role.*\(PR-08, PR-13\)\. \[EBMR-EXE-162\]$/);
     expect(await entry(d.runId, breach)).toMatchObject({ status: 'OPEN', dispositionedBy: null });
 
     await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: breach, outcome: 'DEVIATION_RAISED', justification });
@@ -297,5 +297,44 @@ describe('the exception register (recipe-core 0440)', () => {
     const next = await d.command('supervisor1', { type: 'RAISE_EXCEPTION', description: 'Blender room door found open', severity: 'ALERT' });
     expect(JSON.stringify(next.ok ? 'ok' : next.error)).toMatch(/EBMR-EXE-161/);
     expect((await register(d.runId)).map((x) => x.exceptionType)).not.toContain('OPERATOR_RAISED');
+  }, 300_000);
+  it('[PR-08][PR-13] review finding 3: the QA roles of a QA-only disposition are the fixed quality-unit roles, not whatever the batch policy names: a policy naming the supervisor as QA does not let a supervisor disposition a registered-tier breach (EBMR-EXE-162)', async () => {
+    const { d, breach } = await blendRun('25');
+    await d.ok('qa1', { type: 'ATTACH_DEVIATION', exception: breach, deviationRef: 'TEST-DEV-0444' });
+    // The application chose the batch policy at issue: here it counts the production supervisor as QA (policy and its
+    // hash rewritten as the issuer could have pinned them), and the supervisor's kernel role holds a QA permission.
+    const client = await sbx.db.admin.connect();
+    try {
+      await client.query('begin');
+      await client.query('set local session_replication_role = replica');
+      await client.query(
+        `update recipe.batch_execution set policy = jsonb_set(policy, '{qaRoles}', '["QA", "PRODUCTION_SUPERVISOR"]'::jsonb),
+                policy_hash = recipe.canonical_hash(jsonb_set(policy, '{qaRoles}', '["QA", "PRODUCTION_SUPERVISOR"]'::jsonb)) where id = $1`,
+        [d.runId],
+      );
+      await client.query("insert into iam.role_permission (role_code, permission_code) values ('SHIFT_SUPERVISOR', 'QA.FLOOR_APPROVE') on conflict do nothing");
+      await client.query('commit');
+    } finally {
+      client.release();
+    }
+    const justification = 'Registration-relevant deviation TEST-DEV-0444 raised';
+    const sup = d.browser('supervisor1');
+    await withCommand(sbx.db.app, await actorOf(sbx, sup, 'supervisor1'), (c) => execution.proposeDisposition(c, d.runId, breach, { outcome: 'DEVIATION_RAISED', justification, deviationRef: 'TEST-DEV-0444' }));
+    const p = await prepareSignature(sbx, sup, 'supervisor1', 'batch_exception', `${d.runId}:${breach}`, 'EXCEPTION_DISPOSITIONED');
+    const who = personaIn(sbx, 'supervisor1').personId;
+    const run = await runContext(sbx.db.admin, d.runId);
+    const database = await messageOf(
+      withCommand(sbx.db.app, await p.actor(), async (c) => {
+        const id = await p.sign(c);
+        // The engine under the batch's pinned policy accepts it: the supervisor is one of that policy's QA roles.
+        const pinned = { ...run.def, policy: { ...run.def.policy, qaRoles: ['QA', 'PRODUCTION_SUPERVISOR'] } };
+        const tx = await execution.ExecutionTx.open(c, pinned, d.runId);
+        const roles = await engineRoles(c);
+        const command: engine.Command = { type: 'DISPOSITION_EXCEPTION', commandId: randomUUID(), actor: engineActor(who, roles), exception: breach, outcome: 'DEVIATION_RAISED', justification, signature: { id, meaning: 'EXCEPTION_DISPOSITIONED', signer: who } };
+        return appendAs(tx, command, engineResult(tx, command), roles);
+      }),
+    );
+    expect(database).toMatch(/is dispositioned only by QA.*\[EBMR-EXE-162\]$/);
+    expect(await entry(d.runId, breach)).toMatchObject({ status: 'OPEN', dispositionedBy: null });
   }, 300_000);
 });
