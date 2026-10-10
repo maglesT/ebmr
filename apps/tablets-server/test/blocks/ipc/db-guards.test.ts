@@ -372,13 +372,22 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
       ['p-tb11@', 'R', 'WEIGHT', (startUs + 2_000_000n).toString()],
     ]);
     const c1 = await asOperator(x, async (c) => (await c.query<{ r: Json }>("select plant.open_container($1, 'COMPRESSION', 'kg', 'TEST-PRESS-01', 'R') as r", [x.d.runId])).rows[0]?.r ?? {});
+    const c2 = await asOperator(x, async (c) => (await c.query<{ r: Json }>("select plant.open_container($1, 'COMPRESSION', 'kg', 'TEST-PRESS-01', 'L') as r", [x.d.runId])).rows[0]?.r ?? {});
+    await asOperator(x, (c) => c.query('select plant.close_container($1, 12.5, $2)', [c2['container_id'], c2['version']]));
     await wait(3_500);
     // The server's sweeper job records the alarms at database time without any operator entry, once each.
     const sweeper = { ...(await openServiceSession(sbx.db, sbx.seed, 'sweeper')), correlationId: randomUUID() };
     const alarms = (await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === x.d.runId);
     expect(alarms.map((m) => [m.stepKey, m.stream, m.test])).toEqual([['p-tb11@', 'L', 'WEIGHT'], ['p-tb11@', 'R', 'WEIGHT']]);
-    expect(alarms.map((m) => m.held)).toEqual([false, false]);
-    expect(await checks(x)).not.toContainEqual(['R', 'MISSED']);
+    // Review 3c finding 4 (lead decision): the sweeper's alarm holds at once through plant.record_missed_ipc_check
+    // (recipe-core 0541, EXECUTION.SWEEP only): MISSED per stream, the open container held at its close, the closed one
+    // out of use before any entry of the run (its state moves to HELD with the next person's check).
+    expect(alarms.map((m) => m.held)).toEqual([true, true]);
+    expect((await checks(x)).slice(-2)).toEqual([['L', 'MISSED'], ['R', 'MISSED']]);
+    // The press discharges both streams together (the stricter default): each stream's MISSED holds it.
+    expect(await sql<number>('select count(*)::int as r from plant.container_hold where container_id = $1', [c1['container_id']])).toBe(2);
+    expect(await sql<string>('select plant.container_usable_problem($1) as r', [c2['container_id']])).toMatch(/under a hold/);
+    expect(await codeOfQuery(x, 'select plant.record_missed_ipc_check($1, \'TEST-PRESS-01\', \'L\', \'operator\')', [x.d.runId])).toBe('EBMR-IAM-040');
     expect((await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === x.d.runId)).toEqual([]);
     expect(await sql<number>('select count(*)::int as r from tab.ipc_overdue_alarm where batch_id = $1', [x.d.runId])).toBe(2);
     expect(await asOperator(x, async (c) => (await c.query<{ r: Json[] }>('select tab.record_ipc_overdue($1) as r', [x.d.runId])).rows[0]?.r)).toEqual([]);

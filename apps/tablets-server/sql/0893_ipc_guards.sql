@@ -36,10 +36,10 @@
 -- The missed-check timer at database time between entries: tab.ipc_overdue_at(batch, at) lists the overdue checks of the
 -- batch's running TB-11 steps at an instant, and tab.record_ipc_overdue(batch) records each newly overdue check once as an
 -- alarm (tab.ipc_overdue_alarm) at the database's clock, for the screens and the server's sweeper job (EBMR-TAB-303).
--- Called by a person who executes steps, it records the MISSED hold for the stream at that moment (review 3c finding 4);
--- the sweeper's service identity holds EXECUTION.SWEEP only and the container command needs STEP.EXECUTE, so its alarm
--- leaves the hold to the step's next entry (held false). That entry must list the missed check and records the MISSED
--- first; a container filled meanwhile is not vouched for until a passing check is recorded after it.
+-- With the alarm it records the MISSED hold for the stream at that moment (review 3c finding 4): a person who executes
+-- steps through plant.record_ipc_check, the sweeper (EXECUTION.SWEEP only) through plant.record_missed_ipc_check
+-- (recipe-core 0541; a closed container is out of use at once and moves to HELD with the next person's check). The
+-- step's next entry must still list the missed check, with IPC_CHECK_MISSED.
 --
 -- New functions are owned by ebmr_owner; the trigger functions and the alarm functions are SECURITY DEFINER; every
 -- function pins its search_path with pg_temp last (ADR 0016). Applied as a new migration because applied migrations are
@@ -490,7 +490,7 @@ create table tab.ipc_overdue_alarm (
   stream       text not null,
   test         text not null check (test in ('WEIGHT', 'PHYSICAL', 'FRIABILITY', 'DISINTEGRATION', 'SWEEP')),
   due_us       bigint not null,
-  -- Whether the MISSED hold was recorded with the alarm (review 3c finding 4): by a caller who may execute steps.
+  -- The MISSED hold was recorded with the alarm (review 3c finding 4; always, since recipe-core 0541).
   held         boolean not null,
   person_id    uuid not null,
   account_id   uuid not null,
@@ -553,26 +553,28 @@ begin
   end if;
   v_exec := (iam.evaluate_authority((v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, 'STEP.EXECUTE', plant.batch_scope(p_batch), clock_timestamp(),
                                     v_actor ->> 'role_code') ->> 'allowed')::boolean;
-  if not v_exec then
-    v_eval := iam.evaluate_authority((v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, 'EXECUTION.SWEEP', '{}'::jsonb, clock_timestamp(), v_actor ->> 'role_code');
-    if not (v_eval ->> 'allowed')::boolean then
-      perform iam.require_permission('STEP.EXECUTE', plant.batch_scope(p_batch));
-    end if;
+  v_eval := iam.evaluate_authority((v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, 'EXECUTION.SWEEP', '{}'::jsonb, clock_timestamp(), v_actor ->> 'role_code');
+  if not v_exec and not (v_eval ->> 'allowed')::boolean then
+    perform iam.require_permission('STEP.EXECUTE', plant.batch_scope(p_batch));
   end if;
   select st.state into v_state from recipe.execution_state st where st.batch_id = p_batch;
   for m in select x from jsonb_array_elements(tab.ipc_overdue_at(p_batch, clock_timestamp())) x loop
     insert into tab.ipc_overdue_alarm (batch_id, step_key, stream, test, due_us, held, person_id, account_id)
-    values (p_batch, m ->> 'stepKey', m ->> 'stream', m ->> 'test', (m ->> 'dueUs')::bigint, v_exec, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
+    values (p_batch, m ->> 'stepKey', m ->> 'stream', m ->> 'test', (m ->> 'dueUs')::bigint, true, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
     on conflict (batch_id, step_key, stream, test, due_us) do nothing
     returning id into v_id;
     if v_id is not null then
-      -- Review 3c finding 4: the MISSED hold at the moment of the alarm, through the slice 1 container command, which
-      -- needs a person who executes steps; the sweeper's alarm leaves it to the run's next entry (held false).
+      -- Review 3c finding 4: the MISSED hold at the moment of the alarm, through the slice 1 container command: a person
+      -- who executes steps records it with plant.record_ipc_check; the sweeper (EXECUTION.SWEEP only) with
+      -- plant.record_missed_ipc_check (recipe-core 0541: the same hold window and hold rows; a closed container is out of
+      -- use at once and moves to HELD with the next person's check).
+      select tab.ipc_d(x) ->> 'press' into v_press from jsonb_array_elements(tab.gran_prior(v_state, m ->> 'stepKey', 'Infinity'::numeric, 'RUN_START')) x limit 1;
       if v_exec then
-        select tab.ipc_d(x) ->> 'press' into v_press from jsonb_array_elements(tab.gran_prior(v_state, m ->> 'stepKey', 'Infinity'::numeric, 'RUN_START')) x limit 1;
         perform plant.record_ipc_check(p_batch, v_press, m ->> 'stream', 'MISSED', format('TB11:%s:OVERDUE:%s', m ->> 'stepKey', m ->> 'dueUs'));
+      else
+        perform plant.record_missed_ipc_check(p_batch, v_press, m ->> 'stream', format('TB11:%s:OVERDUE:%s', m ->> 'stepKey', m ->> 'dueUs'));
       end if;
-      v_out := v_out || (m || jsonb_build_object('held', v_exec));
+      v_out := v_out || (m || jsonb_build_object('held', true));
     end if;
     v_id := null;
   end loop;

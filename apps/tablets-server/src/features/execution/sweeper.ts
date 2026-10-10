@@ -133,16 +133,16 @@ export interface IpcOverdue {
   stream: string;
   test: string;
   dueUs: string;
-  /** Whether the MISSED hold was recorded with the alarm (never for the sweeper, which holds no STEP.EXECUTE). */
+  /** Whether the MISSED hold was recorded with the alarm (recipe-core 0541 plant.record_missed_ipc_check for the sweeper). */
   held: boolean;
 }
 
 /**
  * Phase 3 slice 3c (TB-11, IN-35 (c)): records, as `actor` (the sweeper's SYSTEM service session, EXECUTION.SWEEP), an
  * alarm for every periodic IPC check of a running batch's TB-11 run that is overdue beyond its grace at database time
- * (tablets 0893, tab.record_ipc_overdue; once per check and due time), without waiting for an operator's entry. The hold
- * (the container command needs STEP.EXECUTE, which the sweeper never holds) and IPC_CHECK_MISSED follow with the run's next
- * entry, which the database makes list the missed check, or with a person's call of the same function. Returns the
+ * (tablets 0893, tab.record_ipc_overdue; once per check and due time), without waiting for an operator's entry, and with each
+ * alarm the MISSED hold of the stream's containers (recipe-core 0541, EXECUTION.SWEEP only). IPC_CHECK_MISSED follows with
+ * the run's next entry, which the database makes list the missed check. Returns the
  * alarms recorded now.
  */
 export async function recordIpcOverdue(app: AppContext, actor: ActorContext): Promise<IpcOverdue[]> {
