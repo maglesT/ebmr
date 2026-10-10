@@ -126,3 +126,14 @@ Fixed in 3b: 1 (TB-01's tolerance, adjustment-cap and FEFO exceptions were raise
 requires them), 2 (a weighing re-verifies that each calculation lot's assay is still current), 3 (TB-01 to TB-07 cannot
 be skipped), 4 (a filter bag last used for another product cannot skip its wash record), 5 (duplicate lots and loose
 compensation configuration refused), 6 (a null unit no longer bypasses the granulation unit check).
+
+## Slice 3c open items (builder reports, 10 October 2026)
+
+- **For the owner and the expert:** the compendial rule-set values in `tab.compendial_rule_set` (tablets 0890; weight
+  variation, friability, disintegration, by pharmacopoeia) were taken from secondary sources and must be checked against
+  the current official texts before validation. Each row carries its source and a confidence field for that review.
+  The QA verification record of a rule set (design doc E.1) is not modelled yet (Phase 4, with review and release).
+- Device-backed IPC values are proven for the balance only; there is no hardness, friability or disintegration tester
+  simulator (slice 6 demo).
+- The IPC and compression entry kinds are not in the api-contract (screens, slice 6).
+- Tooling, detector and plant units are set up directly in the test databases (master-data screens, slice 6).
