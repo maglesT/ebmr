@@ -13,6 +13,7 @@ import { asTimeTraveller, challengeFor, expectPermissionDenied, run, signatureAu
 import { seedActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as oc from '../../src/containers/index.ts';
+import * as plant from '../../src/plant/index.ts';
 
 let db: TestDatabase;
 let operator: SeededActor;
@@ -106,7 +107,15 @@ async function sign(signer: SeededActor, ref: oc.ContainerRef, expectedState: st
   return (await signWith(db, signer, ch.challengeId, ev, { expectedState })).signatureId;
 }
 let pressSerial = 0;
-const press = (): string => `PRESS-${pressSerial++}-${randomUUID().slice(0, 6)}`;
+/** A press: a PROCESS unit of the plant equipment list (recipe-core 0540: a container's press is plant equipment). */
+async function press(): Promise<string> {
+  const n = `${pressSerial++}-${randomUUID().slice(0, 6).toUpperCase()}`;
+  const classCode = `CL-PRESS-${n}`;
+  await run(db, steward, (c) => plant.defineEquipmentClass(c, { code: classCode, kind: 'PROCESS', description: 'Rotary tablet press', cleanHold: '72 hours', dirtyHold: '48 hours', calibrationRequired: false }));
+  const code = `PRESS-${n}`;
+  await run(db, steward, (c) => plant.defineEquipment(c, { code, name: `Press ${code}`, classCode }));
+  return code;
+}
 
 // ---------------------------------------------------------------------------------------------
 // Identification
@@ -115,8 +124,9 @@ const press = (): string => `PRESS-${pressSerial++}-${randomUUID().slice(0, 6)}`
 describe('identification', () => {
   it('[IN-21] a container carries product, strength, batch and stage from the batch, under a generated unique label', async () => {
     const b = await newBatch({ code: 'MET-500', name: 'Metformin tablets', strength: '500 mg' });
-    const a = await open(b, 'P-ID', undefined, 'GRANULATION');
-    const a2 = await open(b, 'P-ID', undefined, 'GRANULATION');
+    const p = await press();
+    const a = await open(b, p, undefined, 'GRANULATION');
+    const a2 = await open(b, p, undefined, 'GRANULATION');
     const s = await status(a);
     expect(s).toMatchObject({ productCode: 'MET-500', strength: '500 mg', batchNumber: b.number, stage: 'GRANULATION', state: 'OPEN', netQuantity: null });
     expect(s.labelCode).toBe(`OC-${b.number}-0001`);
@@ -145,7 +155,7 @@ describe('IPC hold over (last passing check, failing check]', () => {
   it('holds containers across and inside the interval and the open one at its close; not those before or after, nor another batch', async () => {
     const b = await newBatch();
     const other = await newBatch();
-    const p = press();
+    const p = await press();
     const before = await close(await open(b, p)); // closed before the last pass
     const across = await open(b, p); // open across the last pass
     const pass = await check(b, p, 'PASS');
@@ -172,7 +182,7 @@ describe('IPC hold over (last passing check, failing check]', () => {
 
   it('a missed check with no passing check yet holds every container of the batch and press since the first', async () => {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const first = await close(await open(b, p));
     const second = await close(await open(b, p));
     const missed = await check(b, p, 'MISSED');
@@ -182,7 +192,7 @@ describe('IPC hold over (last passing check, failing check]', () => {
 
   it('the last passing check is derived in the database: a later pass moves the start of the next interval', async () => {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const early = await close(await open(b, p));
     await check(b, p, 'PASS');
     await check(b, p, 'PASS');
@@ -194,7 +204,7 @@ describe('IPC hold over (last passing check, failing check]', () => {
 
   it('boundary: a container closed at the instant of the last passing check is outside the interval; one closed 1 microsecond later is held', async () => {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const atPass = await close(await open(b, p));
     const justAfter = await close(await open(b, p));
     const pass = await check(b, p, 'PASS');
@@ -209,8 +219,8 @@ describe('IPC hold over (last passing check, failing check]', () => {
   });
 
   it('per stream only where the press discharges streams into separate containers; otherwise the whole press', async () => {
-    const separate = press();
-    const shared = press();
+    const separate = await press();
+    const shared = await press();
     await run(db, steward, (c) => oc.configurePressDischarge(c, separate, true));
     const b = await newBatch();
     const sA = await close(await open(b, separate, 'A'));
@@ -225,13 +235,15 @@ describe('IPC hold over (last passing check, failing check]', () => {
   });
 
   it('only a master-data steward configures a press, and an unconfigured press holds its whole output', async () => {
-    await expectRefused(run(db, operator, (c) => oc.configurePressDischarge(c, press(), true)), 'EBMR-IAM-040');
-    expect(await run(db, steward, (c) => oc.configurePressDischarge(c, 'P-CONF', true))).toEqual({ version: 1 });
-    expect(await run(db, steward, (c) => oc.configurePressDischarge(c, 'P-CONF', false))).toEqual({ version: 2 });
+    const conf = await press();
+    const other = await press();
+    await expectRefused(run(db, operator, (c) => oc.configurePressDischarge(c, other, true)), 'EBMR-IAM-040');
+    expect(await run(db, steward, (c) => oc.configurePressDischarge(c, conf, true))).toEqual({ version: 1 });
+    expect(await run(db, steward, (c) => oc.configurePressDischarge(c, conf, false))).toEqual({ version: 2 });
     const b = await newBatch();
-    const a = await close(await open(b, 'P-CONF', 'A'));
-    const bb = await close(await open(b, 'P-CONF', 'B'));
-    expect(new Set((await check(b, 'P-CONF', 'FAIL', 'A')).held)).toEqual(new Set([a.labelCode, bb.labelCode]));
+    const a = await close(await open(b, conf, 'A'));
+    const bb = await close(await open(b, conf, 'B'));
+    expect(new Set((await check(b, conf, 'FAIL', 'A')).held)).toEqual(new Set([a.labelCode, bb.labelCode]));
   });
 });
 
@@ -242,7 +254,7 @@ describe('IPC hold over (last passing check, failing check]', () => {
 describe('dispositions of a held container', () => {
   async function held(): Promise<{ b: Batch; ref: oc.ContainerRef }> {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const ref = await close(await open(b, p));
     await check(b, p, 'FAIL');
     const s = await status(ref);
@@ -285,7 +297,7 @@ describe('dispositions of a held container', () => {
 describe('held containers are never merged, charged or packed', () => {
   it('a held container is refused at the charge and pack scan and as a merge source', async () => {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const h = await close(await open(b, p));
     await check(b, p, 'FAIL');
     const target = await open(b, p, undefined, 'COMPRESSION');
@@ -296,7 +308,7 @@ describe('held containers are never merged, charged or packed', () => {
 
   it('an open container under a pending hold is refused as a merge target and, once closed, held', async () => {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const pending = await open(b, p);
     await check(b, p, 'FAIL');
     const good = await close(await open(b, p));
@@ -307,7 +319,7 @@ describe('held containers are never merged, charged or packed', () => {
 
   it('a closed container is usable only once a passing check after its close brackets it (its stream and every stream checked)', async () => {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const c1 = await close(await open(b, p, 'A'));
     await expectRefused(charge(b, c1.labelCode), 'EBMR-CNT-042', /no passing in-process check/);
     await check(b, p, 'PASS', 'B');
@@ -342,7 +354,7 @@ describe('held containers are never merged, charged or packed', () => {
 
   it('a hold reaches the containers a released source was merged into, and holds the released source again', async () => {
     const b = await newBatch();
-    const p = press();
+    const p = await press();
     const src = await close(await open(b, p));
     await check(b, p, 'FAIL');
     const s = await status(src);
@@ -366,7 +378,7 @@ describe('held containers are never merged, charged or packed', () => {
 describe('direct writes are refused', () => {
   it('the application role cannot write the container tables', async () => {
     const b = await newBatch();
-    const c1 = await open(b, 'P-BYPASS');
+    const c1 = await open(b, await press());
     await expectPermissionDenied(
       db.app.query(`insert into plant.output_container (label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account)
                     values ('OC-X-0001', $1, 'X', 'P', 'S', 'COMPRESSION', 'kg', gen_random_uuid(), gen_random_uuid())`, [b.id]),
@@ -380,7 +392,7 @@ describe('direct writes are refused', () => {
 
   it('the state engine called directly cannot close a container without its close record, nor hold one without a failing check', async () => {
     const b = await newBatch();
-    const c1 = await open(b, 'P-ENGINE');
+    const c1 = await open(b, await press());
     await expectRefused(
       run(db, operator, (c) => c.query(`select platform.transition('output_container', 'output_container', $1, 'CLOSE', $2, '{}'::jsonb)`, [c1.containerId, c1.version])),
       'EBMR-PLAT-068',
@@ -392,5 +404,81 @@ describe('direct writes are refused', () => {
       'EBMR-PLAT-068',
       /output_container.hold_recorded/,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Phase 3 slice 3c (recipe-core 0540): press codes, the open and hold race, the unit transition scope
+// ---------------------------------------------------------------------------------------------
+
+describe('press codes are plant equipment; a check and an open never race (recipe-core 0540)', () => {
+  it('[PR-22][IN-21] a container, an in-process check and a discharge configuration name a PROCESS unit of the plant: an unknown code or an instrument is refused', async () => {
+    const b = await newBatch();
+    await expectRefused(open(b, 'PRESS-NOT-IN-PLANT'), 'EBMR-CNT-023', /no unit of the plant equipment list/);
+    await expectRefused(check(b, 'PRESS-NOT-IN-PLANT', 'PASS'), 'EBMR-CNT-023');
+    await expectRefused(run(db, steward, (c) => oc.configurePressDischarge(c, 'PRESS-NOT-IN-PLANT', true)), 'EBMR-CNT-023');
+    const n = randomUUID().slice(0, 6).toUpperCase();
+    await run(db, steward, (c) => plant.defineEquipmentClass(c, { code: `CL-BAL-${n}`, kind: 'INSTRUMENT', description: 'Balance', calibrationRequired: true, checkRegime: 'DAILY' }));
+    await run(db, steward, (c) => plant.defineEquipment(c, { code: `BAL-${n}`, name: 'Balance', classCode: `CL-BAL-${n}` }));
+    await expectRefused(open(b, `BAL-${n}`), 'EBMR-CNT-023', /INSTRUMENT equipment, not a press/);
+    const p = await press();
+    expect((await open(b, p)).labelCode).toMatch(/^OC-/);
+  });
+
+  it('[INV-12][IN-26] review backlog #8: a container being opened while a failing check is recorded is held (the check waits for the open); the hold reads the state it acts on under lock', async () => {
+    const b = await newBatch();
+    const p = await press();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let opened: oc.ContainerRef | undefined;
+    // The open holds its transaction until the check has been sent.
+    const opening = run(db, operator, async (c) => {
+      const ref = await oc.openContainer(c, { batchId: b.id, stage: 'COMPRESSION', unit: 'kg', pressCode: p });
+      opened = ref;
+      await gate;
+      return ref;
+    });
+    while (!opened) await new Promise((r) => setTimeout(r, 20));
+    const checking = check(b, p, 'FAIL');
+    await new Promise((r) => setTimeout(r, 300));
+    release();
+    const ref = await opening;
+    const outcome = await checking;
+    expect(outcome.pending).toEqual([ref.labelCode]);
+    expect((await close(ref)).state).toBe('HELD');
+  });
+
+  it('[DI-17] review backlog #6 (slice 3a): a step.execute transition of a unit is evaluated for the product of the use the transaction starts or ends, never for the product of an earlier use', async () => {
+    const p = await press();
+    const unit = (await db.admin.query<{ id: string }>('select id from plant.equipment where code = $1', [p])).rows[0]?.id ?? '';
+    const scope = async (c: { query: typeof db.admin.query }) =>
+      (await c.query<{ s: unknown }>("select plant.transition_scope('step.execute', 'plant_equipment', $1) as s", [unit])).rows[0]?.s;
+    // A use of product ATV-40 recorded and ended earlier (arranged as superuser, triggers off: setup only).
+    const b = await newBatch();
+    await asTimeTraveller(db, `insert into plant.product (code, name, highly_potent, recorded_by) values ('ATV-40', 'Atorvastatin', false, gen_random_uuid()) on conflict do nothing`);
+    await asTimeTraveller(db, `insert into plant.cleaning (id, equipment_id, level, method, dirty_hold_exceeded, started_by) values ($1, $2, 'MAJOR', 'MANUAL', false, gen_random_uuid())`, [b.id, unit]);
+    await asTimeTraveller(db, `insert into plant.cleaning_completion (cleaning_id, completed_by) values ($1, gen_random_uuid())`, [b.id]);
+    await asTimeTraveller(db, `insert into plant.cleaning_verification (cleaning_id, verified_by, signature_id) values ($1, gen_random_uuid(), gen_random_uuid())`, [b.id]);
+    const use = randomUUID();
+    await asTimeTraveller(db, `insert into plant.equipment_use (id, equipment_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by, started_at)
+                               values ($1, $2, $3, 'B', 'ATV-40', clock_timestamp() + interval '1 hour', $3, gen_random_uuid(), clock_timestamp() - interval '2 hours')`, [use, unit, b.id]);
+    await asTimeTraveller(db, `insert into plant.equipment_use_end (use_id, equipment_id, started_at, ended_by, ended_at, clean_hold_crossed, calibration_crossed, campaign_crossed, overran_plan)
+                               values ($1, $2, clock_timestamp() - interval '2 hours', gen_random_uuid(), clock_timestamp() - interval '1 hour', false, false, false, false)`, [use, unit]);
+    // Outside the start or end of a use: no product (0523 answered ATV-40, the earlier use's).
+    expect(await scope(db.admin)).toEqual({});
+    // Inside a transaction that starts a use: that use's product.
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query(`insert into plant.equipment_use (equipment_id, previous_use_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
+                     values ($1, $2, $3, 'B2', 'ATV-40', clock_timestamp() + interval '1 hour', $3, gen_random_uuid())`, [unit, use, b.id]);
+      expect(await scope(c as never)).toEqual({ product: 'ATV-40' });
+      await c.query('rollback');
+    } finally {
+      c.release();
+    }
   });
 });

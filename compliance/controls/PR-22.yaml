@@ -21,7 +21,12 @@ behaviour: |-
   - Colour coding is optional.
 catalog_test: A step with a unit the master does not allow is rejected. The batch report shows unit IDs. The status display matches the system state after each transition.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/blocks/compression/blocks.test.ts > TB-10 compression set-up and first-off > [PR-23][PR-22] a set-up step names the press it uses; setting ranges are listed once with their minimum not above their maximum"
+  - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [PR-22][PR-23][INV-12][DI-31] review backlog #5 (slice 3a): a step runs on the process device of the plant unit of its equipment use: a device linked to no unit, a unit without an open use of the batch, or a unit of another class than the MBR binds is refused; a device is linked to a PROCESS unit once, by the system administrator only"
+  - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [INV-24][IN-36][PR-27][PR-22] the tooling register: a set is issued only for its own product, after a passing inspection before use with every checklist item, never twice at once; the strokes of a use come from the press counter; a set at or past its stroke limit may not compress and is never issued again; nobody writes the register directly"
+  - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [IN-36][INV-24][PR-22] TB-09 return: the strokes of the use come from the press counter; a missing die and a failed after-use inspection hold the press output since the issue and are stored only with their exceptions; a set past its limit is never issued again; the step closes only with every returned set inspected after use (IN-36 catalogue test); the set-up step can no longer close on returned tooling"
+  - "packages/recipe-core/test/containers/containers.test.ts > press codes are plant equipment; a check and an open never race (recipe-core 0540) > [PR-22][IN-21] a container, an in-process check and a discharge configuration name a PROCESS unit of the plant: an unknown code or an instrument is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

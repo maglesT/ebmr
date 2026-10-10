@@ -126,3 +126,30 @@ Fixed in 3b: 1 (TB-01's tolerance, adjustment-cap and FEFO exceptions were raise
 requires them), 2 (a weighing re-verifies that each calculation lot's assay is still current), 3 (TB-01 to TB-07 cannot
 be skipped), 4 (a filter bag last used for another product cannot skip its wash record), 5 (duplicate lots and loose
 compensation configuration refused), 6 (a null unit no longer bypasses the granulation unit check).
+
+## Slice 3c open items (builder reports, 10 October 2026)
+
+- **For the owner and the expert:** the compendial rule-set values in `tab.compendial_rule_set` (tablets 0890; weight
+  variation, friability, disintegration, by pharmacopoeia) were taken from secondary sources and must be checked against
+  the current official texts before validation. Each row carries its source and a confidence field for that review.
+  The QA verification record of a rule set (design doc E.1) is not modelled yet (Phase 4, with review and release).
+- Device-backed IPC values are proven for the balance only; there is no hardness, friability or disintegration tester
+  simulator (slice 6 demo).
+- The IPC and compression entry kinds are not in the api-contract (screens, slice 6).
+- Tooling, detector and plant units are set up directly in the test databases (master-data screens, slice 6).
+
+## Slice 3c quick review (10 October 2026)
+
+No critical or high findings. The replaced functions (record_ipc_check, apply_hold, configure_press_discharge,
+open_container, transition_scope, skip_problem, reading_use_purpose_check) were diffed against their previous
+definitions: only the intended changes. The 0540 close and hold race fix was walked through every lock ordering.
+Fixed in 3c: 1 (the tooling stroke limit was not enforced during the run and a returned set could still start a run;
+output past the limit is now held), 2 (strokes could be undercounted without a baseline reading), 3 (standalone
+TB-12 to TB-15 checks held nothing), 4 (a missed check now holds at once instead of at the next entry), 5 (a batch
+market without a rule set fails closed; counts and sample sizes taken across all sets; friability repeats reuse the
+first run's sets).
+- **For the owner and the expert:** weight mode e (subdivision of scored tablets) has no Indian Pharmacopoeia rule set
+  in `tab.compendial_rule_set`, so with the fail-closed rule (review 5) it cannot be used until the expert adds the IP
+  rule set or records it as not applicable in `tab.compendial_not_applicable`. Likewise a sugar-coated batch that opts
+  into the legacy in-house table is refused until its rule set is confirmed. Default until then: refused.
+- A missed check recorded by the sweeper makes closed containers unusable at once (under a hold), but their status moves to HELD only at the next person's check, because the HOLD transition needs STEP.EXECUTE, which the sweeper deliberately lacks (least privilege). Accepted: unusable is the safety property.

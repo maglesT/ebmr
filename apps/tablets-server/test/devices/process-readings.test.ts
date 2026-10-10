@@ -15,6 +15,7 @@ import { runContext } from '../../src/features/execution/runs.ts';
 import { codeOf, appendAs, engineResult } from '../execution/db-guards-support.ts';
 import { dcMiniVariant, importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../execution/support.ts';
 import { adminActor, enrol, fakeGateway, type FakeGateway } from './support.ts';
+import { pressInUse } from '../blocks/compression/plant-support.ts';
 
 let sbx: ExecServer;
 let gw: FakeGateway;
@@ -103,6 +104,8 @@ beforeAll(async () => {
   const runId = await importAndIssue(sbx, issuer, writePackage(sbx, withPress()));
   d = new RunDriver(sbx, runId, { issuer, operator1: await sbx.asPersona('operator1') });
   d.beforeTap = () => vi.advanceTimersByTime(7_000);
+  // Slice 3c (tablets 0870): the press is the plant unit of the batch's open use, and the device is linked to it.
+  await pressInUse(sbx, operator, d.runId, { deviceCode: DEVICE });
   await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-press@' });
 }, 300_000);
 

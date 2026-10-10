@@ -139,12 +139,14 @@ describe('review backlog #5: plant transitions evaluate the batch product (recip
     const foreign = await w.batch('SCOPE-B', otherProduct);
     await expect(w.run(scoped, (c) => plant.startEquipmentUse(c, press2.code, foreign.id, end))).rejects.toThrow(/EBMR-IAM-040/);
     await expect(w.run(scoped, (c) => containers.openContainer(c, { batchId: foreign.id, stage: 'COMPRESSION', unit: 'kg' }))).rejects.toThrow(/EBMR-IAM-040/);
-    // The scope a transition adds: the product, only for step.execute on a plant unit or a container.
+    // The scope a transition adds: the product, only for step.execute on a plant unit or a container. Since recipe-core
+    // 0540 (slice 3a review backlog #6) a unit's product is that of the use the transaction starts or ends (the starts and
+    // ends above); read outside such a transaction, a unit has none, never the product of its latest use.
     const { rows } = await db.admin.query<{ a: unknown; b: unknown; c: unknown }>(
       "select plant.transition_scope('step.execute', 'plant_equipment', $1) as a, plant.transition_scope('logbook.entry', 'plant_equipment', $1) as b, plant.transition_scope('step.execute', 'plant_area', $1) as c",
       [(await db.admin.query<{ id: string }>('select id from plant.equipment where code = $1', [press.code])).rows[0]?.id],
     );
-    expect(rows[0]).toEqual({ a: { product }, b: {}, c: {} });
+    expect(rows[0]).toEqual({ a: {}, b: {}, c: {} });
   });
 });
 
