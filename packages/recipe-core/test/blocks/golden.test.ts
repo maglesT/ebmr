@@ -20,13 +20,13 @@ import { runFixture, sameTo } from './support.ts';
 const PHASE_BLOCKS = GENERIC_BLOCK_VERSIONS.filter((b) => b.level === 'PHASE');
 
 describe('block registry and contract', () => {
-  it('[DI-34][DI-10] the generic block versions are registered: G-01..G-20 (G-09@1 and G-10@1 sandbox only, G-09@2 and G-10@2 from site services, G-06 since slice 3a), G-22..G-24', () => {
+  it('[DI-34][DI-10] the generic block versions are registered: G-01..G-20 (G-09@1 and G-10@1 sandbox only, G-09@2 and G-10@2 from site services, G-06 since slice 3a), G-21 since slice 4a, G-22..G-24', () => {
     const reg = genericBlockRegistry();
     expect(reg.all().map((b) => `${b.type}@${b.version}`)).toEqual([
-      'G-01@1', 'G-02@1', 'G-03@1', 'G-04@1', 'G-05@1', 'G-06@1', 'G-07@1', 'G-08@1', 'G-09@1', 'G-09@2', 'G-10@1', 'G-10@2', 'G-11@1', 'G-12@1', 'G-13@1', 'G-14@1', 'G-15@1', 'G-16@1', 'G-17@1', 'G-18@1', 'G-19@1', 'G-20@1', 'G-22@1', 'G-23@1', 'G-24@1',
+      'G-01@1', 'G-02@1', 'G-03@1', 'G-04@1', 'G-05@1', 'G-06@1', 'G-07@1', 'G-08@1', 'G-09@1', 'G-09@2', 'G-10@1', 'G-10@2', 'G-11@1', 'G-12@1', 'G-13@1', 'G-14@1', 'G-15@1', 'G-16@1', 'G-17@1', 'G-18@1', 'G-19@1', 'G-20@1', 'G-21@1', 'G-22@1', 'G-23@1', 'G-24@1',
     ]);
     // The validator's catalogue types without a registered execution version (Phase 3 and 4).
-    expect(reg.unregistered(genericBlockCatalog)).toEqual(['G-21@1', 'G-25@1']);
+    expect(reg.unregistered(genericBlockCatalog)).toEqual(['G-25@1']);
     // Only the manual-attestation stand-ins are limited to the sandbox (decision D3).
     expect(reg.sandboxOnly()).toEqual(['G-09@1', 'G-10@1']);
   });
@@ -49,14 +49,15 @@ describe('block registry and contract', () => {
 
   it('[DI-34][DI-10] an MBR using a block version the registry cannot execute, or a configuration outside its schema, cannot be defined for execution', () => {
     const reg = genericBlockRegistry();
-    // G-21 has no execution version yet, even in the sandbox (G-06 has had one since slice 3a).
+    // G-25 has no execution version yet, even in the sandbox (G-06 has had one since slice 3a, G-21 since slice 4a).
+    const blister = loadFixture('tablet-blister-packaging');
+    expect(() => defineBatch(blister, { registry: reg, expressions: expr, installation: 'SANDBOX' })).not.toThrow();
     try {
-      defineBatch(loadFixture('tablet-blister-packaging'), { registry: reg, expressions: expr, installation: 'SANDBOX' });
+      defineBatch(mbrWith(phase('p', { block: { type: 'G-25', version: '1' } })), { registry: reg, expressions: expr, installation: 'SANDBOX' });
       expect.unreachable();
     } catch (e) {
       expect([...new Set((e as EngineDefinitionError).problems.map((p) => p.code))]).toEqual(['ENG-DEF-BLOCK']);
-      expect((e as EngineDefinitionError).problems.map((p) => p.message).join(' ')).toMatch(/G-21@1/);
-      expect((e as EngineDefinitionError).problems.map((p) => p.message).join(' ')).not.toMatch(/G-06@1/);
+      expect((e as EngineDefinitionError).problems.map((p) => p.message).join(' ')).toMatch(/G-25@1/);
     }
     try {
       defineBatch(mbrWith(phase('p', { config: { colour: 'blue' } })), { registry: reg, expressions: expr, installation: 'SANDBOX' });

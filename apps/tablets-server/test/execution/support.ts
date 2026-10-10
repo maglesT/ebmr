@@ -115,11 +115,12 @@ export async function importAndIssue(
   pkg: execution.TestPackageV1,
   inputs: Record<string, { kind: 'COUNT'; value: string }> = { tabletsPerBatch: { kind: 'COUNT', value: '100000' } },
   variants: Record<string, string> = {},
+  markets: string[] = ['IN'],
 ): Promise<string> {
   const listed = valueOf(await issuer.call(routes.execution.testPackages));
   if (!listed.packages.some((p) => p.packageHash === pkg.packageHash && p.imported)) valueOf(await issuer.call(routes.execution.importPackage, { params: { packageId: pkg.packageHash }, body: {} }));
   const size = pkg.content.header.batchSizes[0]?.id ?? '';
-  const run = valueOf(await issuer.call(routes.execution.issue, { body: { packageId: pkg.packageHash, batchSize: size, markets: ['IN'], variants, inputs } }));
+  const run = valueOf(await issuer.call(routes.execution.issue, { body: { packageId: pkg.packageHash, batchSize: size, markets, variants, inputs } }));
   return run.header.runId;
 }
 
