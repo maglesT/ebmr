@@ -38,6 +38,7 @@ tests:
   - "apps/tablets-server/test/mutation/signed-content.test.ts > a stage sign-off is read as signed off, on the text with its summary (recipe-core 0319) > [DI-37][IN-15][PR-16][DI-23] once signed off, the stage reads SIGNED_OFF and its text keeps its summary, also when other sign-offs are listed as made before 0319; its signature stays VALID"
   - "packages/recipe-core/test/mutation/signed-content.test.ts > the summary a stage sign-off signs (recipe-core 0319) > [DI-37][IN-15][PR-16] a stage frame that names no stage has no summary; an exception raised at a step instance of the stage, named by its key alone, is part of the stage's summary as the engine derives it"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
+  - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [PR-13][PR-16] the database never lets a Tablets edition step be skipped (TB-09, TB-10, TB-17 and every later TB block), even one the MBR marks skippable that moves no material"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

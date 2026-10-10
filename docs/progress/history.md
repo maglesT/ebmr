@@ -2318,3 +2318,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   diffed clean; TB-01's exceptions now required by the database, superseded assays refused at weighing, TB-01 to TB-07
   never skipped, bag history and null units closed. 131 tagged tests synced. Full suite (4,612 of 4,615; the three
   failures fixed and re-run), register and E2E (23) green locally.
+- 2026-10-10: PHASE 3 SLICE 3C (branch phase-3/slice-3c, built on 3b). Compression: TB-09 tooling register with
+  inspections and stroke counts from the press counter (INV-24), TB-10 press set-up with first-off and the operator's
+  hopper scan, TB-17 detector challenges with certified test pieces; TB-11 IPC scheduler (streams, due by time or count,
+  missed-check timer at db time held through the container hold, run start only after the press's first-off), TB-12 to
+  TB-15 weight, hardness and thickness, friability, disintegration with compendial rule sets by market as data (the
+  stricter wins; missing sets fail closed); device linked to its plant unit, press codes checked, close-hold race fixed,
+  interface-loss job (tablets 0870-0894, recipe-core 0540-0541). Quick review: no critical or high; INV-24 run-time
+  limit and stroke undercount fixed; standalone and missed checks hold at once; the sweeper's MISSED hold through a narrow
+  EXECUTION.SWEEP function (least privilege kept). Rule-set values and weight mode e left for the expert. Full suite
+  (4,675 of 4,677; README row and register sync fixed), trace and E2E (23) green locally.

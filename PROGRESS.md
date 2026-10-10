@@ -57,7 +57,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   module, press and coater simulators, the gateway's process driver and uplink; process readings, setpoint downloads and
   alarms on the server (tablets 0820); G-06@1, G-09@2 and G-10@2 (recipe-core 0520 to 0523); the tablets block
   registry; the kernel SCOPE hook (kernel 1150, ADR 0018); merged (PR #10). 3b (TB-01 dispensing and the granulation
-  blocks TB-02 to TB-05 and TB-07, tablets sql 0840 to 0852) is built on `phase-3/slice-3b`. Next: 3c (compression).
+  blocks TB-02 to TB-05 and TB-07, tablets sql 0840 to 0852) merged (PR #11). 3c (compression: TB-09 tooling,
+  TB-10 press set-up, TB-17 detectors, TB-11 IPC scheduler, TB-12 to TB-15 compendial checks; tablets sql 0870 to 0894,
+  recipe-core 0540, 0541) is built on `phase-3/slice-3c`. The compendial rule-set values await the expert's check
+  (review backlog). Next: 3d (coating and finishing).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
