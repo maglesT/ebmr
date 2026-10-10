@@ -40,3 +40,18 @@ abandoning a cleaning reset the dirty-hold clock; the clearance signature did no
 - Slice 2 (0720, stricter default): a lot with a passing identity result can be released only on IDENTITY_TESTED, and a
   person who consumed from a lot is a performer of it, so cannot witness its destruction. Existing lot signatures are
   superseded by the new content and must be signed again (no effect on a fresh database).
+
+## Slice 2 quick review (10 October 2026)
+
+No critical or high findings. Fixed in slice 2 because they touch core rules (signatures bound to what they approve,
+segregation): 1 (skip, void and invalidation approvals not bound to the act they approve), 2 (VOID_ATTEMPT without
+`point` not refused after a result exists), 3 (QA-only disposition read QA roles from the batch's own policy), 4 (the
+abort requester could sign one of the two approvals), 5 (the QA approver of a fail-to-pass correction was not checked
+for involvement), 7 (every consumption superseded the lot release signature; the witness exclusion the 0720 header
+promised was not built).
+
+| # | Severity | Finding | Where | For |
+|---|---|---|---|---|
+| 1b | Medium | The deviation or investigation an invalidation cites is free text; the database does not check it exists (D-S2-2) | recipe-core 0452 | Slice 5 (deviation-lite) |
+| 6 | Low | The evidence of a fail-to-pass correction is not tied to a stored document | recipe-core 0452 | Slice 5 |
+| 8 | Low | `plant.equipment_repair` has no unique index on the failure event; only the repair matching the open failure can be verified | recipe-core 0460 | Slice 3 |
