@@ -268,8 +268,9 @@ describe('every row of the engine keeps what the state recorded, as the database
     const governing = Object.values(run.state.points).find((p) => p.status === 'VALID')?.id ?? '';
     run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: governing, investigationRef: 'OOS-5', assignableCause: 'The investigation found an assignable cause', reason: 'sample mix-up (assignable cause)', approval: { approver: QA2, signature: sig('INVALIDATION_APPROVED', QA2) } });
     expect(run.status('t')).toBe('IN_PROGRESS');
-    run.record('t', 'h', { kind: 'DECIMAL', value: '95', unit: 'N' });
+    // A re-test attempt abandoned before its reading (a void only before a result exists), then the re-test.
     run.ok({ type: 'VOID_ATTEMPT', actor: OP1, step: 't', item: 'h', reason: 'sample dropped before reading', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } });
+    run.record('t', 'h', { kind: 'DECIMAL', value: '95', unit: 'N' });
     const rows = rowsOf(run, start);
     expect(await objections(rows)).toEqual({});
     expect(rows.filter((r) => r.label.includes('INVALIDATE_RESULT') && r.accepted).map((r) => changed(r, 'points'))).toEqual([1, 1]);

@@ -48,6 +48,7 @@ import { flowNodeHash } from '../flow/canonical.ts';
 import { instanceNumber, numberMbr, type MbrNumbering } from '../flow/numbering.ts';
 import type { Frame } from '../flow/tokens.ts';
 import type { BatchDefinition } from './definition.ts';
+import { encodeCommand, hashJson, type JsonValue } from './codec.ts';
 import { replicateCompatible } from './exceptions.ts';
 import { stepKey as stepKeyOf } from './tx.ts';
 import type { BatchState, Command, DataPoint, DataSource, DataValue, DerivedValue, EntryRecord, ExceptionRecord, SignatureRef, SignatureTarget, StageFrameState, StepInstance, StoredEvaluation } from './types.ts';
@@ -463,23 +464,42 @@ export const BATCH_RECORD_AGGREGATE = 'batch_record';
 /** The key of the batch record as it stands in state `s` (one record per state version, recipe-core sql 0450). */
 export const batchRecordKey = (s: Pick<BatchState, 'version'>): string => `record@${s.version}`;
 
+/**
+ * The act a person asks another to approve, as its approver signs it (recipe-core sql 0470, `batch_act`): the command as
+ * recorded without its id, actor, signatures and expected version, with its requester. The approval of a skip, a void,
+ * an invalidation, an abort and a hand-over signs this act at the state version it is given in, so it approves this
+ * act only: another step, item, point, reason, investigation, cause, checklist, performer or requester is another act.
+ */
+export const BATCH_ACT_AGGREGATE = 'batch_act';
+const NOT_IN_ACT = new Set(['commandId', 'actor', 'approval', 'approvals', 'signature', 'expectedVersion']);
+
+export function approvedAct(cmd: Command): { [key: string]: JsonValue } {
+  const encoded = encodeCommand(cmd) as { [key: string]: JsonValue };
+  const out: { [key: string]: JsonValue } = {};
+  for (const [k, v] of Object.entries(encoded)) if (!NOT_IN_ACT.has(k)) out[k] = v;
+  out['requestedBy'] = cmd.actor.id;
+  return out;
+}
+
+/** The key of the act `cmd` asks to approve, in state `s` (`act@<state version>:<hash of the act>`, recipe-core sql 0470). */
+export const approvedActKey = (s: Pick<BatchState, 'version'>, cmd: Command): string => `act@${s.version}:${hashJson(approvedAct(cmd))}`;
+
 export interface SignatureSubject {
   signatureId: string;
   meaning: string;
   signer: string;
-  type: AggregateType | typeof BATCH_RECORD_AGGREGATE;
+  type: AggregateType | typeof BATCH_RECORD_AGGREGATE | typeof BATCH_ACT_AGGREGATE;
   key: string;
 }
 
 /**
  * The aggregates the e-signatures of a command sign: the step for PERFORMED, VERIFIED, WITNESSED and
  * hold-point signatures; the stage frame for a sign-off; the exception for its disposition; the data point for a
- * correction and its approval, and for the approval of its invalidation; the batch record (`batch_record`,
- * `<batch id>:record@<state version>`, whose content the database provides: recipe-core sql 0450) for the approval of a skip or of a
- * void, the approvals of an abort, the signature of a cancellation and the two signatures of a hand-over. Each subject's content is one its own command
- * leaves unchanged and one that exists before the act: a void adds the voided attempt to its step's content (an
- * approval on the step would be superseded by the very act it approved), and a step about to be skipped has no stored
- * content yet (a phase's first version is stored when a person first works on it, storedOnCreation).
+ * correction and its approval; the batch record (`batch_record`, `<batch id>:record@<state version>`, whose content the
+ * database provides: recipe-core sql 0450) for the signature of a cancellation; the approved act (`batch_act`,
+ * `<batch id>:act@<state version>:<hash>`, recipe-core sql 0470) for the approval of a skip, a void, an invalidation and
+ * an abort and the two signatures of a hand-over, so an approval binds the very act it approves. Each subject's content
+ * is one its own command leaves unchanged and one that exists before the act.
  */
 export function signatureSubjects(s: BatchState, cmd: Command): SignatureSubject[] {
   const sub = (sig: SignatureRef, type: SignatureSubject['type'], key: string): SignatureSubject => ({ signatureId: sig.id, meaning: sig.meaning, signer: sig.signer, type, key });
@@ -496,17 +516,17 @@ export function signatureSubjects(s: BatchState, cmd: Command): SignatureSubject
     case 'CORRECT_ENTRY':
       return s.points[cmd.point] ? [sub(cmd.signature, 'batch_point', cmd.point), ...(cmd.approval ? [sub(cmd.approval.signature, 'batch_point', cmd.point)] : [])] : [];
     case 'REQUEST_SKIP':
-      return [sub(cmd.approval.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))];
+      return [sub(cmd.approval.signature, BATCH_ACT_AGGREGATE, approvedActKey(s, cmd))];
     case 'VOID_ATTEMPT':
-      return cmd.approval ? [sub(cmd.approval.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))] : [];
+      return cmd.approval ? [sub(cmd.approval.signature, BATCH_ACT_AGGREGATE, approvedActKey(s, cmd))] : [];
     case 'INVALIDATE_RESULT':
-      return s.points[cmd.point] ? [sub(cmd.approval.signature, 'batch_point', cmd.point)] : [];
+      return [sub(cmd.approval.signature, BATCH_ACT_AGGREGATE, approvedActKey(s, cmd))];
     case 'ABORT_BATCH':
-      return cmd.approvals.map((a) => sub(a.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s)));
+      return cmd.approvals.map((a) => sub(a.signature, BATCH_ACT_AGGREGATE, approvedActKey(s, cmd)));
     case 'CANCEL_BATCH':
       return [sub(cmd.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))];
     case 'HAND_OVER_STEP':
-      return [sub(cmd.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s)), sub(cmd.approval.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))];
+      return [sub(cmd.signature, BATCH_ACT_AGGREGATE, approvedActKey(s, cmd)), sub(cmd.approval.signature, BATCH_ACT_AGGREGATE, approvedActKey(s, cmd))];
     default:
       return [];
   }

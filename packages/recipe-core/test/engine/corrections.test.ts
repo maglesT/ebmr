@@ -213,6 +213,8 @@ describe('paths (b) void and (c) invalidation; repeats (DI-29, INV-41)', () => {
     expect(pts.map((p) => `${p.attempt}:${p.kind}`)).toEqual(['1:ABORTED', '2:VALUE']);
     expect(run.exceptions('ABORTED_ATTEMPT')).toHaveLength(1);
     run.refused({ type: 'VOID_ATTEMPT', actor: OP1, step: 't', item: 'h', point: pts[1]?.id ?? '', reason: 'wrong', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } }, 'ENG-VOID-RESULT');
+    // Without naming the result either (slice 2 review 2): the item holds a valid result in this step.
+    run.refused({ type: 'VOID_ATTEMPT', actor: OP1, step: 't', item: 'h', reason: 'wrong', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } }, 'ENG-VOID-RESULT');
   });
 
   it('[DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible', () => {

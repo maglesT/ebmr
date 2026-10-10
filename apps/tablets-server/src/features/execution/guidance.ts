@@ -447,6 +447,14 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [SUPERVISOR],
     controls: ['PR-10', 'DI-34'],
   },
+  'EBMR-EXE-179': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The act asked for approval is not a skip, void, invalidation, abort or hand-over as it will be recorded by you. Nothing was saved.',
+    whatYouCanDo: ['Ask for the approval from the screen of the act, then record that same act.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['DI-24', 'DI-35'],
+  },
   'EBMR-EXE-178': {
     status: 409,
     kind: 'NOT_ALLOWED',

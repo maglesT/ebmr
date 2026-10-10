@@ -258,6 +258,10 @@ export function voidAttempt(tx: Tx, cmd: VoidAttemptCommand): void {
   if (step.node.kind !== 'phase' || (!step.node.records.includes(cmd.item) && !step.computedItems.has(cmd.item))) refuse('ENG-NOT-RECORDED-HERE', `Step ${step.id} does not capture ${cmd.item}`, ['DI-29']);
   const inst = requireInstance(tx, step, cmd.context ?? []);
   requireStepStatus(inst, ['IN_PROGRESS'], 'voiding an attempt');
+  // Only before a result exists (outline 5.2.3 (b)): not once the item holds a valid result in this step instance,
+  // whether or not the command names it (slice 2 review 2).
+  const result = Object.values(tx.s.points).find((p) => p.stepKey === inst.key && p.item === cmd.item && p.kind === 'VALUE' && p.status === 'VALID');
+  if (result) refuse('ENG-VOID-RESULT', `${cmd.item} already has a result (${result.id}) in ${inst.key}; once a result exists it cannot be voided: correct an entry error (path a) or invalidate it with an investigation (path c)`, ['DI-29', 'DI-24', 'INV-41']);
   const a = requirePerson(tx);
   requireRole(a, step.performRoles, `void an attempt in ${step.id}`);
   requireNotHandedOver(inst, a.id, 'voiding an attempt');

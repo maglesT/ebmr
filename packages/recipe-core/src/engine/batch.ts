@@ -134,13 +134,13 @@ export function releaseHold(tx: Tx, cmd: ReleaseHoldCommand): void {
 
 export function abortBatch(tx: Tx, cmd: AbortBatchCommand): void {
   requireBatchStatus(tx, ['ISSUED', 'IN_PROGRESS', 'ON_HOLD', 'EXECUTION_COMPLETE'], 'aborting the batch');
-  requirePerson(tx);
+  const requester = requirePerson(tx);
   const reason = requireReason(cmd.reason, 'An abort');
   const persons = new Set(cmd.approvals.map((x) => x.approver.id));
   const head = cmd.approvals.find((x) => x.approver.kind === 'PERSON' && hasRole(x.approver, tx.def.policy.productionHeadRoles));
   const qa = cmd.approvals.find((x) => x.approver.kind === 'PERSON' && hasRole(x.approver, qualityUnitRoles(tx.def.policy)) && x !== head);
-  if (!head || !qa || persons.size < 2 || head.approver.id === qa.approver.id || cmd.approvals.length !== 2) {
-    refuse('ENG-ABORT-APPROVALS', 'An abort needs exactly two signatures by different persons: the head of production and QA', ['DI-34', 'PR-13']);
+  if (!head || !qa || persons.size < 2 || head.approver.id === qa.approver.id || cmd.approvals.length !== 2 || persons.has(requester.id)) {
+    refuse('ENG-ABORT-APPROVALS', 'An abort needs exactly two signatures by different persons, neither of them the one who records it: the head of production and QA', ['DI-34', 'PR-13']);
   }
   const unconfirmed = ABORT_CHECKLIST_ITEMS.filter((k) => cmd.checklist?.[k] !== true);
   if (unconfirmed.length > 0) refuse('ENG-ABORT-CHECKLIST', `An abort needs its checklist confirmed: ${unconfirmed.join(', ')} not confirmed`, ['DI-34', 'PR-13']);

@@ -18,7 +18,7 @@ import { withCommand } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { actorOf, appendAs, codeOf, messageOf, prepareSignature, signatureAlone, unmatched } from './db-guards-support.ts';
+import { actorOf, appendAs, codeOf, proposeAct, messageOf, prepareSignature, signatureAlone, unmatched } from './db-guards-support.ts';
 import { importAndIssue, personaIn, rowsOf, RunDriver, startExecServer, violations, withEarlyParameter, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
@@ -52,13 +52,16 @@ const stateOf = async (d: RunDriver): Promise<engine.BatchState> => {
   if (!st) throw new Error('SETUP: no state');
   return st.state;
 };
-const onRecord = async (d: RunDriver): Promise<[string, string]> => ['batch_record', `${d.runId}:record@${(await stateOf(d)).version}`];
 const accepted = async (d: RunDriver, type: string) => (await rowsOf(sbx, d.runId)).filter((r) => r.command_type === type && r.accepted);
 const id = (persona: string): string => personaIn(sbx, persona).personId;
 
-/** `persona`'s HANDOVER_APPROVED on the batch record as it stands now, signed in a command of its own. */
-async function approval(d: RunDriver, persona: string): Promise<engine.Approval> {
-  const sig = await signatureAlone(sbx, d.browser(persona), persona, ...(await onRecord(d)), 'HANDOVER_APPROVED');
+/** The approved act (recipe-core 0470) of supervisor1's hand-over with `over`, recorded by supervisor1: its aggregate id. */
+const handOverAct = (d: RunDriver, over: HandOverChange = {}, requester = 'supervisor1'): Promise<string> =>
+  proposeAct(sbx, d.browser(requester), requester, d.runId, handOver(PLACEHOLDER, over)({ id: id(requester), kind: 'PERSON', roles: [] }));
+
+/** `persona`'s HANDOVER_APPROVED of the hand-over with `over` as it stands now (the approved act), signed in a command of its own. */
+async function approval(d: RunDriver, persona: string, over: HandOverChange = {}): Promise<engine.Approval> {
+  const sig = await signatureAlone(sbx, d.browser(persona), persona, 'batch_act', await handOverAct(d, over), 'HANDOVER_APPROVED');
   return { approver: { id: id(persona), kind: 'PERSON', roles: [ENGINE_ROLE[persona] ?? 'QA'] }, signature: { id: sig, meaning: 'HANDOVER_APPROVED', signer: id(persona) } };
 }
 
@@ -75,7 +78,10 @@ interface Act {
 /** As db-guards-change-paths.test.ts: the engine's verdict ('ok', 'refused <code>') or, forged, the database's. */
 async function act(d: RunDriver, persona: string, build: (actor: engine.Actor, signature?: engine.SignatureRef) => engine.Command, a: Act = {}): Promise<string> {
   const run = await runContext(sbx.db.admin, d.runId);
-  const pending = a.own ? await prepareSignature(sbx, d.browser(persona), persona, ...(await onRecord(d)), 'HANDOVER_APPROVED') : undefined;
+  // The supervisor signs the hand-over they record (the approved act of the command as recorded, 0470).
+  const pending = a.own
+    ? await prepareSignature(sbx, d.browser(persona), persona, 'batch_act', await proposeAct(sbx, d.browser(persona), persona, d.runId, build({ id: id(persona), kind: 'PERSON', roles: [] })), 'HANDOVER_APPROVED')
+    : undefined;
   return messageOf(
     withCommand(sbx.db.app, pending ? await pending.actor() : await actorOf(sbx, d.browser(persona), persona, a.roleCode ? { roleCode: a.roleCode } : {}), async (c) => {
       const sig = pending ? { id: await pending.sign(c), meaning: 'HANDOVER_APPROVED', signer: id(persona) } : undefined;
@@ -98,7 +104,9 @@ async function act(d: RunDriver, persona: string, build: (actor: engine.Actor, s
   );
 }
 
-const handOver = (qa: engine.Approval, over: Partial<{ outgoing: string; incoming: string; reason: string }> = {}) => (actor: engine.Actor, signature?: engine.SignatureRef): engine.Command => ({
+type HandOverChange = Partial<{ outgoing: string; incoming: string; reason: string }>;
+const PLACEHOLDER: engine.Approval = { approver: { id: 'nobody', kind: 'PERSON', roles: [] }, signature: { id: randomUUID(), meaning: 'HANDOVER_APPROVED', signer: 'nobody' } };
+const handOver = (qa: engine.Approval, over: HandOverChange = {}) => (actor: engine.Actor, signature?: engine.SignatureRef): engine.Command => ({
   type: 'HAND_OVER_STEP',
   commandId: randomUUID(),
   actor,
@@ -133,8 +141,8 @@ describe('HAND_OVER_STEP: signed by a supervisor and approved by QA, neither of 
     const honest = handOver(qa);
     const outcomes = {
       noApproval: await act(d, 'supervisor1', honest, { own: true, recorded: without }),
-      outgoingNotOnStep: await act(d, 'supervisor1', handOver(qa, { outgoing: id('verifier1') }), { own: true, twin: honest, forge: (s) => void (s.steps[EARLY]!.handOvers![0]!.outgoing = id('verifier1')) }),
-      approvedByIncoming: await act(d, 'supervisor1', handOver(qa, { incoming: id('qa1') }), { own: true, twin: honest, forge: (s) => void (s.steps[EARLY]!.handOvers![0]!.incoming = id('qa1')) }),
+      outgoingNotOnStep: await act(d, 'supervisor1', handOver(await approval(d, 'qa1', { outgoing: id('verifier1') }), { outgoing: id('verifier1') }), { own: true, twin: honest, forge: (s) => void (s.steps[EARLY]!.handOvers![0]!.outgoing = id('verifier1')) }),
+      approvedByIncoming: await act(d, 'supervisor1', handOver(await approval(d, 'qa1', { incoming: id('qa1') }), { incoming: id('qa1') }), { own: true, twin: honest, forge: (s) => void (s.steps[EARLY]!.handOvers![0]!.incoming = id('qa1')) }),
       noException: await act(d, 'supervisor1', honest, {
         own: true,
         forge: (s) => {

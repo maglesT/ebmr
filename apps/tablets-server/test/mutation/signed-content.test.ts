@@ -479,7 +479,7 @@ describe('a signed command type the release checks since Phase 3 slice 2 (recipe
         recorded: { type: 'ABORT_BATCH', commandId: placeholder.commandId, actor, reason: 'Test run abandoned', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [] },
       };
     });
-    expect(outcome).toBe('An abort carries exactly two approvals, each signed by its approver, two different persons: the head of production and QA (PR-13, DI-35). [EBMR-EXE-052]');
+    expect(outcome).toBe('An abort carries exactly two approvals, each signed by its approver, two different persons other than the one who records the abort: the head of production and QA (PR-13, DI-35). [EBMR-EXE-052]');
     expect((await rowsOf(sbx, d.runId)).filter((r) => r.kind === 'COMMAND')).toEqual([]);
   }, 240_000);
 });

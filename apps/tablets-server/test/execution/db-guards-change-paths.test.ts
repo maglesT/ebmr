@@ -23,7 +23,7 @@ import { withCommand } from '@ebmr/kernel';
 import { engine, execution, type flow } from '@ebmr/recipe-core';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
-import { actorOf, appendAs, codeOf, engineResult, messageOf, prepareSignature, signatureAlone, unmatched } from './db-guards-support.ts';
+import { actorOf, appendAs, codeOf, proposeAct, engineResult, messageOf, prepareSignature, signatureAlone, unmatched } from './db-guards-support.ts';
 import { dcMini, dcMiniVariant, importAndIssue, personaIn, rowsOf, RunDriver, startExecServer, violations, withEarlyParameter, writePackage, type ExecServer } from './support.ts';
 
 let sbx: ExecServer;
@@ -138,16 +138,26 @@ const pointOf = async (d: RunDriver, item: string, status = 'VALID'): Promise<en
 };
 /** The batch record as it stands now (recipe-core 0450: one record per state version). */
 const onRecord = async (d: RunDriver): Promise<[string, string]> => ['batch_record', `${d.runId}:record@${(await stateOf(d)).version}`];
+const PLACEHOLDER: engine.Approval = { approver: { id: 'nobody', kind: 'PERSON', roles: [] }, signature: { id: randomUUID(), meaning: 'NONE', signer: 'nobody' } };
+/**
+ * `approver`'s approval with `meaning` of the act `build` makes for `requester` (recipe-core 0470): the requester records
+ * the act, the approver signs it in a command of their own. It approves that act only, at the state version it is given in.
+ */
+async function actApproval(d: RunDriver, requester: string, approver: string, build: (actor: engine.Actor, ap: engine.Approval) => engine.Command, meaning: string): Promise<engine.Approval> {
+  const agg = await proposeAct(sbx, d.browser(requester), requester, d.runId, build({ id: personaIn(sbx, requester).personId, kind: 'PERSON', roles: [] }, PLACEHOLDER));
+  return approval(d, approver, 'batch_act', agg, meaning);
+}
 const accepted = async (d: RunDriver, type: string) => (await rowsOf(sbx, d.runId)).filter((r) => r.command_type === type && r.accepted);
 
-const voidCmd = (point?: string) => (actor: engine.Actor, ap?: engine.Approval): engine.Command => ({
+const VOID_REASON = 'The timer was stopped before the blend ended; the attempt is abandoned';
+const voidCmd = (point?: string, reason = VOID_REASON) => (actor: engine.Actor, ap?: engine.Approval): engine.Command => ({
   type: 'VOID_ATTEMPT',
   commandId: randomUUID(),
   actor,
   step: 'p-early-time',
   context: [],
   item: 'blendTime',
-  reason: 'The timer was stopped before the blend ended; the attempt is abandoned',
+  reason,
   ...(point !== undefined ? { point } : {}),
   ...(ap ? { approval: ap } : {}),
 });
@@ -156,8 +166,10 @@ describe('VOID_ATTEMPT: a void only before a result exists, approved by QA (S28)
   it('[DI-29][DI-24] a void approved by QA is recorded and the voided attempt kept; without the approval, approved by the requester or a supervisor, naming a result or storing another attempt, it is refused', async () => {
     const d = await newRun(withEarlyParameter());
     await d.ok('operator1', { type: 'START_STEP', stepKey: EARLY });
-    const qa = await approval(d, 'qa1', ...(await onRecord(d)), 'VOID_AUTHORISED');
-    const sup = await approval(d, 'supervisor1', ...(await onRecord(d)), 'VOID_AUTHORISED');
+    const qa = await actApproval(d, 'operator1', 'qa1', voidCmd(), 'VOID_AUTHORISED');
+    const sup = await actApproval(d, 'operator1', 'supervisor1', voidCmd(), 'VOID_AUTHORISED');
+    // QA's approval of a void with another reason (another act).
+    const qaOther = await actApproval(d, 'operator1', 'qa1', voidCmd(undefined, 'Another attempt, for another reason'), 'VOID_AUTHORISED');
     const me = personaIn(sbx, 'operator1');
     const without = (x: Json): Json => {
       const rest = { ...x };
@@ -171,6 +183,8 @@ describe('VOID_ATTEMPT: a void only before a result exists, approved by QA (S28)
       // VOID_AUTHORISED may be signed by a supervisor (kernel 0210); the engine asks QA, and so does the database.
       bySupervisor: await act(d, 'operator1', (actor) => voidCmd()(actor, { ...sup, approver: { ...sup.approver, roles: [] } }), { twin: (actor) => voidCmd()(actor, qa) }),
       // The voided attempt is stored as the command says: one ABORTED point with the reason given.
+      // Review finding 1: an approval approves its own act only.
+      approvalOfAnotherAct: await act(d, 'operator1', (actor) => voidCmd()(actor, qaOther), { twin: (actor) => voidCmd()(actor, qa) }),
       anotherReason: await act(d, 'operator1', (actor) => voidCmd()(actor, qa), { forge: (s) => void Object.values(s.points).forEach((p) => (p.voidReason = 'something else')) }),
     };
     expect(
@@ -178,6 +192,7 @@ describe('VOID_ATTEMPT: a void only before a result exists, approved by QA (S28)
         noApproval: /A void of an attempt needs the signed approval of QA \(S28, DI-29\)\. \[EBMR-EXE-051\]/,
         byRequester: /A void is approved by another person than the one who asks for it.*\[EBMR-EXE-052\]/,
         bySupervisor: /The approval of this VOID_ATTEMPT is signed by .* who held PRODUCTION_SUPERVISOR when signing; it is approved only by QA, as S25 and S28 ask.*\[EBMR-EXE-171\]/,
+        approvalOfAnotherAct: /EBMR-ESIG-070 signature .* belongs to batch_act:.*, not to batch_act:/,
         anotherReason: /accepted VOID_ATTEMPT row cannot be recorded: it adds 1 data point\(s\) where a void adds exactly one: the voided attempt.*\[EBMR-EXE-173\]/,
       }),
     ).toEqual({});
@@ -193,11 +208,25 @@ describe('VOID_ATTEMPT: a void only before a result exists, approved by QA (S28)
     // Once a result exists it is never voided: the engine refuses; a row recorded as accepted is refused.
     await d.ok('operator1', { type: 'RECORD_DATA', stepKey: EARLY, item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
     const result = await pointOf(d, 'blendTime');
-    const qa2 = await approval(d, 'qa1', ...(await onRecord(d)), 'VOID_AUTHORISED');
-    expect(await act(d, 'operator1', (actor) => voidCmd(result.id)(actor, qa2), { twin: (actor) => voidCmd()(actor, qa2) })).toMatch(
+    // A row recorded as accepted that adds a voided attempt by hand (the engine refuses it, as below), naming the result
+    // or not (review finding 2), is refused.
+    const voidedByHand = (st: engine.BatchState) => {
+      const v = Object.values(st.points).find((p) => p.kind === 'ABORTED');
+      if (!v) throw new Error('SETUP: no voided attempt');
+      const n = (st.counters['DP'] ?? 0) + 1;
+      st.counters['DP'] = n;
+      st.points[`DP-${n}`] = { ...structuredClone(v), id: `DP-${n}`, attempt: 3, recordedAt: st.lastRecordedUs, recordedSeq: st.seq, exceptions: [] };
+    };
+    const qa2 = await actApproval(d, 'operator1', 'qa1', voidCmd(result.id), 'VOID_AUTHORISED');
+    const qa3 = await actApproval(d, 'operator1', 'qa1', voidCmd(), 'VOID_AUTHORISED');
+    expect(await act(d, 'operator1', (actor) => voidCmd(result.id)(actor, qa2), { manual: voidedByHand })).toMatch(
       new RegExp(`it voids ${result.id}, which holds a result; once a result exists it is never voided.*\\[EBMR-EXE-173\\]`),
     );
+    expect(await act(d, 'operator1', (actor) => voidCmd()(actor, qa3), { manual: voidedByHand })).toMatch(
+      new RegExp(`it voids an attempt of blendTime in ${EARLY}, which already holds the result ${result.id}; once a result exists it is never voided.*\\[EBMR-EXE-173\\]`),
+    );
     expect(await act(d, 'operator1', (actor) => voidCmd(result.id)(actor, qa2))).toBe('refused ENG-VOID-RESULT');
+    expect(await act(d, 'operator1', (actor) => voidCmd()(actor, qa3))).toBe('refused ENG-VOID-RESULT');
     expect(await accepted(d, 'VOID_ATTEMPT')).toHaveLength(1);
     expect(await violations(sbx)).toEqual([]);
   }, 300_000);
@@ -227,22 +256,29 @@ describe('INVALIDATE_RESULT: only with a linked investigation and its assignable
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: EARLY });
     await d.signed('verifier1', { type: 'VERIFY', stepKey: EARLY, meaning: 'VERIFIED' });
     const point = await pointOf(d, 'blendTime');
-    const qar = await approval(d, 'qareviewer1', 'batch_point', `${d.runId}:${point.id}`, 'INVALIDATION_APPROVED');
+    const qar = await actApproval(d, 'supervisor1', 'qareviewer1', invalidateCmd(point.id), 'INVALIDATION_APPROVED');
     const sup = personaIn(sbx, 'supervisor1');
     // INVALIDATION_APPROVED is the QA reviewer's (RECORD.QA_REVIEW, kernel 0930): shop-floor QA cannot sign it.
-    expect(await codeOf(signatureAlone(sbx, d.browser('qa1'), 'qa1', 'batch_point', `${d.runId}:${point.id}`, 'INVALIDATION_APPROVED'))).toMatch(/^EBMR-ESIG-/);
+    const act0 = await proposeAct(sbx, d.browser('supervisor1'), 'supervisor1', d.runId, invalidateCmd(point.id)({ id: sup.personId, kind: 'PERSON', roles: [] }, PLACEHOLDER));
+    expect(await codeOf(signatureAlone(sbx, d.browser('qa1'), 'qa1', 'batch_act', act0, 'INVALIDATION_APPROVED'))).toMatch(/^EBMR-ESIG-/);
+    // The approvals of the blank-cause, blank-reference and other-reference acts (each approves its own act only).
+    const qarBlankCause = await actApproval(d, 'supervisor1', 'qareviewer1', invalidateCmd(point.id, ' \t '), 'INVALIDATION_APPROVED');
+    const qarBlankRef = await actApproval(d, 'supervisor1', 'qareviewer1', invalidateCmd(point.id, undefined, '\u200b'), 'INVALIDATION_APPROVED');
 
     const outcomes = {
       // The engine refuses a blank cause; a row recorded as accepted is refused by the database.
-      blankCause: await act(d, 'supervisor1', (actor) => invalidateCmd(point.id, ' \t ')(actor, qar), { twin: (actor) => invalidateCmd(point.id)(actor, qar) }),
-      blankRef: await act(d, 'supervisor1', (actor) => invalidateCmd(point.id, undefined, '​')(actor, qar), { twin: (actor) => invalidateCmd(point.id)(actor, qar) }),
+      blankCause: await act(d, 'supervisor1', (actor) => invalidateCmd(point.id, ' \t ')(actor, qarBlankCause), { twin: (actor) => invalidateCmd(point.id)(actor, qarBlankCause) }),
+      blankRef: await act(d, 'supervisor1', (actor) => invalidateCmd(point.id, undefined, '​')(actor, qarBlankRef), { twin: (actor) => invalidateCmd(point.id)(actor, qarBlankRef) }),
       byRequester: await act(d, 'supervisor1', (actor) => invalidateCmd(point.id)(actor, { ...qar, approver: { id: sup.personId, kind: 'PERSON', roles: ['QA_REVIEWER'] } }), { twin: (actor) => invalidateCmd(point.id)(actor, qar) }),
       anotherCause: await act(d, 'supervisor1', (actor) => invalidateCmd(point.id)(actor, qar), { forge: (s) => void (s.points[point.id]!.invalidation!.assignableCause = 'none') }),
+      // Review finding 1: the approval of one investigation does not approve the invalidation with another.
+      anotherReference: await act(d, 'supervisor1', (actor) => invalidateCmd(point.id, undefined, 'TEST-OOS-0002')(actor, qar), { twin: (actor) => invalidateCmd(point.id)(actor, qar) }),
     };
     expect(
       unmatched(outcomes, {
         blankCause: /it names no investigation or no assignable cause.*\[EBMR-EXE-174\]/,
         blankRef: /it names no investigation or no assignable cause.*\[EBMR-EXE-174\]/,
+        anotherReference: /EBMR-ESIG-070 signature .* belongs to batch_act:.*, not to batch_act:/,
         byRequester: /An invalidation is approved by another person than the one who asks for it.*\[EBMR-EXE-052\]/,
         anotherCause: new RegExp(`it does not keep ${point.id} in the record as invalidated with the investigation and the assignable cause the command gives.*\\[EBMR-EXE-174\\]`),
       }),
@@ -310,7 +346,18 @@ describe('CORRECT_ENTRY from fail to pass (INV-41)', () => {
 
     // With the printout and QA's approval (the invalidation record) it is recorded; the exception the failing value
     // raised is not closed by the change.
+    const stored = async () => (await sbx.db.admin.query<{ state: Record<string, unknown> }>('select state from recipe.execution_state where batch_id = $1', [d.runId])).rows[0]?.state;
+    const before = await stored();
     expect(await correctTo({})).toBe('ok');
+    // Review finding 5: the QA approval that is the invalidation record is independent of the original entry. The same
+    // row, judged on a state before it where qa1 had entered data in the step, is refused (recipe.change_path_problem).
+    const row = await sbx.db.admin.query<{ command: unknown }>("select command from recipe.execution_command where batch_id = $1 and command_type = 'CORRECT_ENTRY' and accepted", [d.runId]);
+    const judge = async (old: unknown) =>
+      (await sbx.db.admin.query<{ p: string | null }>("select recipe.change_path_problem($1::jsonb, $2::jsonb, 'COMMAND', $3::jsonb, true, $4, null) as p", [JSON.stringify(old), JSON.stringify(await stored()), JSON.stringify(row.rows[0]?.command), personaIn(sbx, 'operator1').personId])).rows[0]?.p ?? null;
+    const involved = structuredClone(before) as { steps: Record<string, { dataEnterers: string[] }> };
+    involved.steps[EARLY]!.dataEnterers.push(personaIn(sbx, 'qa1').personId);
+    expect(await judge(before)).toBeNull();
+    expect(await judge(involved)).toMatch(/^\[175\] makes .*, which failed its limits, pass with the approval of .*, who took part in the original entry of step p-early-time@/);
     const st = await stateOf(d);
     expect(st.points[failing.id]).toMatchObject({ status: 'SUPERSEDED', failed: true });
     for (const id of openBefore) expect(st.exceptions[id]?.status).toBe('OPEN');
@@ -325,20 +372,24 @@ const sopFirst = (skippable: boolean): flow.MbrContent =>
     return [{ ...sop, config: { ...(sop['config'] as object), ...(skippable ? { skippable: true } : {}) } }, ...prep.filter((n) => n !== sop)];
   });
 
-const skipCmd = (step = 'p-disp-sop') => (actor: engine.Actor, ap: engine.Approval): engine.Command => ({ type: 'REQUEST_SKIP', commandId: randomUUID(), actor, step, context: [], reason: 'The SOP was read at the shift briefing', approval: ap });
+const skipCmd = (step = 'p-disp-sop', reason = 'The SOP was read at the shift briefing') => (actor: engine.Actor, ap: engine.Approval): engine.Command => ({ type: 'REQUEST_SKIP', commandId: randomUUID(), actor, step, context: [], reason, approval: ap });
 
 describe('REQUEST_SKIP: only where the MBR allows it, approved by another person', () => {
   it('[PR-13][DI-34] a skip of a skippable step approved by a supervisor is recorded; by the requester, of a step the MBR does not declare skippable, or without its skip record it is refused', async () => {
     const d = await newRun(sopFirst(true));
-    const sup = await approval(d, 'supervisor1', ...(await onRecord(d)), 'SKIP_APPROVED');
+    const sup = await actApproval(d, 'operator1', 'supervisor1', skipCmd(), 'SKIP_APPROVED');
+    const supOther = await actApproval(d, 'operator1', 'supervisor1', skipCmd(undefined, 'Another reason'), 'SKIP_APPROVED');
     const me = personaIn(sbx, 'operator1');
     const outcomes = {
       byRequester: await act(d, 'operator1', (actor) => skipCmd()(actor, { ...sup, approver: { id: me.personId, kind: 'PERSON', roles: ['PRODUCTION_SUPERVISOR'] } }), { twin: (actor) => skipCmd()(actor, sup) }),
       noSkipRecord: await act(d, 'operator1', (actor) => skipCmd()(actor, sup), { forge: (s) => void delete s.steps['p-disp-sop@']!.skip }),
+      // Review finding 1: the approval of a skip with one reason does not approve a skip with another.
+      approvalOfAnotherAct: await act(d, 'operator1', (actor) => skipCmd()(actor, supOther), { twin: (actor) => skipCmd()(actor, sup) }),
     };
     expect(
       unmatched(outcomes, {
         byRequester: /A skip is approved by another person than the one who asks for it.*\[EBMR-EXE-052\]/,
+        approvalOfAnotherAct: /EBMR-ESIG-070 signature .* belongs to batch_act:.*, not to batch_act:/,
         noSkipRecord: /it leaves step p-disp-sop@ without the skip the command records.*\[EBMR-EXE-172\]/,
       }),
     ).toEqual({});
@@ -355,7 +406,7 @@ describe('REQUEST_SKIP: only where the MBR allows it, approved by another person
       inst.skip = { reason: 'The SOP was read at the shift briefing', requestedBy: personaIn(sbx, 'operator1').personId, approvedBy: ap.approver.id, signature: ap.signature.id, at: st.lastRecordedUs };
     };
     const n = await newRun(sopFirst(false));
-    const nsup = await approval(n, 'supervisor1', ...(await onRecord(n)), 'SKIP_APPROVED');
+    const nsup = await actApproval(n, 'operator1', 'supervisor1', skipCmd(), 'SKIP_APPROVED');
     expect(await act(n, 'operator1', (actor) => skipCmd()(actor, nsup), { manual: skippedByHand('p-disp-sop@', nsup) })).toMatch(
       /it skips step p-disp-sop, which cannot be skipped: the MBR does not declare it skippable.*\[EBMR-EXE-172\]/,
     );
@@ -379,18 +430,35 @@ describe('ABORT_BATCH: two signatures by the head of production and QA, the chec
     // The engine refuses an abort whose checklist is not confirmed (recorded as refused; its approvals are not checked).
     const fake = (persona: string): engine.Approval => ({ approver: { id: personaIn(sbx, persona).personId, kind: 'PERSON', roles: [ENGINE_ROLE[persona] ?? ''] }, signature: { id: randomUUID(), meaning: 'BATCH_ABORT_APPROVED', signer: personaIn(sbx, persona).personId } });
     expect(await act(d, 'supervisor1', abortCmd([fake('head1'), fake('qareviewer1')], { ...CHECKLIST, outputsHeld: false }))).toBe('refused ENG-ABORT-CHECKLIST');
-    const head = await approval(d, 'head1', ...(await onRecord(d)), 'BATCH_ABORT_APPROVED');
-    const qar = await approval(d, 'qareviewer1', ...(await onRecord(d)), 'BATCH_ABORT_APPROVED');
-    // One approval per person, meaning and record: the head of production cannot sign a second one (esig).
-    expect(await codeOf(signatureAlone(sbx, d.browser('head1'), 'head1', ...(await onRecord(d)), 'BATCH_ABORT_APPROVED'))).toBe('EBMR-ESIG-042');
+    // Nor may the one who records the abort approve it (review finding 4).
+    expect(await act(d, 'head1', abortCmd([fake('head1'), fake('qareviewer1')]))).toBe('refused ENG-ABORT-APPROVALS');
+    const head = await actApproval(d, 'supervisor1', 'head1', abortCmd([]), 'BATCH_ABORT_APPROVED');
+    const qar = await actApproval(d, 'supervisor1', 'qareviewer1', abortCmd([]), 'BATCH_ABORT_APPROVED');
+    const unconfirmedChecklist = { ...CHECKLIST, materialsSecured: false };
+    const headU = await actApproval(d, 'supervisor1', 'head1', abortCmd([], unconfirmedChecklist), 'BATCH_ABORT_APPROVED');
+    const qarU = await actApproval(d, 'supervisor1', 'qareviewer1', abortCmd([], unconfirmedChecklist), 'BATCH_ABORT_APPROVED');
+    // Review finding 4: the head of production records the abort and approves it too (the act they ask for).
+    const headSelf = await actApproval(d, 'head1', 'head1', abortCmd([]), 'BATCH_ABORT_APPROVED');
+    const qarSelf = await actApproval(d, 'head1', 'qareviewer1', abortCmd([]), 'BATCH_ABORT_APPROVED');
+    const anAct = await proposeAct(sbx, d.browser('supervisor1'), 'supervisor1', d.runId, abortCmd([])({ id: personaIn(sbx, 'supervisor1').personId, kind: 'PERSON', roles: [] }));
+    // One approval per person, meaning and act: the head of production cannot sign a second one (esig).
+    expect(await codeOf(signatureAlone(sbx, d.browser('head1'), 'head1', 'batch_act', anAct, 'BATCH_ABORT_APPROVED'))).toBe('EBMR-ESIG-042');
     // Shop-floor QA and a supervisor cannot sign an abort approval (kernel 0930).
-    expect(await codeOf(signatureAlone(sbx, d.browser('qa1'), 'qa1', ...(await onRecord(d)), 'BATCH_ABORT_APPROVED'))).toMatch(/^EBMR-ESIG-/);
-    expect(await codeOf(signatureAlone(sbx, d.browser('supervisor1'), 'supervisor1', ...(await onRecord(d)), 'BATCH_ABORT_APPROVED'))).toMatch(/^EBMR-ESIG-/);
+    expect(await codeOf(signatureAlone(sbx, d.browser('qa1'), 'qa1', 'batch_act', anAct, 'BATCH_ABORT_APPROVED'))).toMatch(/^EBMR-ESIG-/);
+    expect(await codeOf(signatureAlone(sbx, d.browser('supervisor1'), 'supervisor1', 'batch_act', anAct, 'BATCH_ABORT_APPROVED'))).toMatch(/^EBMR-ESIG-/);
     const honest = abortCmd([head, qar]);
     const outcomes = {
       oneApproval: await act(d, 'supervisor1', abortCmd([head]), { twin: honest }),
       onePersonTwice: await act(d, 'supervisor1', abortCmd([head, head]), { twin: honest }),
-      unconfirmed: await act(d, 'supervisor1', abortCmd([head, qar], { ...CHECKLIST, materialsSecured: false }), { twin: honest, forge: (s) => void (s.abort!.checklist = { ...CHECKLIST, materialsSecured: false }) }),
+      unconfirmed: await act(d, 'supervisor1', abortCmd([headU, qarU], unconfirmedChecklist), { twin: honest, forge: (s) => void (s.abort!.checklist = { ...CHECKLIST, materialsSecured: false }) }),
+      // The approval of the confirmed checklist does not approve the abort with an unconfirmed one (finding 1).
+      approvalOfAnotherAct: await act(d, 'supervisor1', abortCmd([head, qar], unconfirmedChecklist), { twin: honest }),
+      requesterApproves: await act(d, 'head1', abortCmd([headSelf, qarSelf]), {
+        manual: (s) => {
+          s.status = 'ABORTED';
+          s.abort = { reason: 'Contamination found in the blender; the batch cannot continue', checklist: CHECKLIST, approvals: [headSelf.approver.id, qarSelf.approver.id], at: s.lastRecordedUs };
+        },
+      }),
       // A HOLD_BATCH row whose state aborts the batch.
       byAHold: await act(d, 'supervisor1', (actor) => ({ type: 'HOLD_BATCH', commandId: randomUUID(), actor, holdType: 'SUPERVISOR', reason: 'Blender inspection' }), { forge: (s) => void (s.status = 'ABORTED') }),
     };
@@ -398,6 +466,8 @@ describe('ABORT_BATCH: two signatures by the head of production and QA, the chec
       unmatched(outcomes, {
         oneApproval: /An abort carries exactly two approvals.*\[EBMR-EXE-052\]/,
         onePersonTwice: /An abort carries exactly two approvals.*two different persons.*\[EBMR-EXE-052\]/,
+        approvalOfAnotherAct: /EBMR-ESIG-070 signature .* belongs to batch_act:.*, not to batch_act:/,
+        requesterApproves: /An abort carries exactly two approvals.*other than the one who records the abort.*\[EBMR-EXE-052\]/,
         unconfirmed: /it does not confirm every item of the abort checklist.*\[EBMR-EXE-176\]/,
         byAHold: /accepted HOLD_BATCH row cannot be recorded: it aborts the batch; only an accepted ABORT_BATCH with its two approvals does.*\[EBMR-EXE-178\]/,
       }),
