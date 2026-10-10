@@ -1,18 +1,29 @@
 /**
  * Process tags of the tablet press and the film coater (Phase 3 slice 3a, G-06; the tag names are the 3a interface
- * of docs/build-plan/phase-3/slice-3-plan.md and never change once released).
+ * of docs/build-plan/phase-3/slice-3-plan.md and never change once released), and of the granulation-side equipment
+ * the TB-04, TB-05 and TB-07 blocks run on (Phase 3 slice 3b: high-shear granulator, fluid-bed dryer, blender; no
+ * simulator speaks them yet, the gateway forwards their readings like the press's).
  *
  * Each tag has its engineering unit, the number of fraction digits its values carry on the wire (a value with more
  * is refused, never rounded), whether it is a counter (whole and never negative) and whether the equipment takes a
  * setpoint for it (downloaded by the server and read back by the gateway).
  */
 
+/** The kinds the process simulators and the gateway's simulator driver speak (slice 3a). */
 export const EQUIPMENT_KINDS = ['PRESS', 'COATER'] as const;
 export type EquipmentKind = (typeof EQUIPMENT_KINDS)[number];
 
+/** Granulation-side process equipment (slice 3b): high-shear granulator, fluid-bed dryer, blender. */
+export const GRANULATION_EQUIPMENT_KINDS = ['GRANULATOR', 'DRYER', 'BLENDER'] as const;
+export type GranulationEquipmentKind = (typeof GRANULATION_EQUIPMENT_KINDS)[number];
+
+/** Every kind of process equipment whose readings the server takes (tab.process_tag, tab.process_device). */
+export const PROCESS_EQUIPMENT_KINDS = [...EQUIPMENT_KINDS, ...GRANULATION_EQUIPMENT_KINDS] as const;
+export type ProcessEquipmentKind = (typeof PROCESS_EQUIPMENT_KINDS)[number];
+
 export interface TagSpec {
   readonly tag: string;
-  readonly equipment: EquipmentKind;
+  readonly equipment: ProcessEquipmentKind;
   readonly unit: string;
   /** Fraction digits of a value on the wire. */
   readonly scale: number;
@@ -22,7 +33,7 @@ export interface TagSpec {
   readonly setpoint: boolean;
 }
 
-const spec = <T extends string>(tag: T, equipment: EquipmentKind, unit: string, scale: number, setpoint: boolean, counter = false): TagSpec & { readonly tag: T } => ({
+const spec = <T extends string>(tag: T, equipment: ProcessEquipmentKind, unit: string, scale: number, setpoint: boolean, counter = false): TagSpec & { readonly tag: T } => ({
   tag,
   equipment,
   unit,
@@ -51,11 +62,28 @@ export const COATER_TAGS = [
   spec('airflow.m3_h', 'COATER', 'm3/h', 0, true),
 ] as const satisfies readonly TagSpec[];
 
+/** Slice 3b: the granulation-side tags (tablets 0850 ships the same rows in tab.process_tag). */
+export const GRANULATION_TAGS = [
+  spec('granulator.impeller_rpm', 'GRANULATOR', 'rpm', 0, true),
+  spec('granulator.chopper_rpm', 'GRANULATOR', 'rpm', 0, true),
+  spec('granulator.power_kW', 'GRANULATOR', 'kW', 2, false),
+  spec('granulator.torque_Nm', 'GRANULATOR', 'N.m', 1, false),
+  spec('granulator.product_temp_C', 'GRANULATOR', 'degC', 1, false),
+  spec('granulator.binder_kg', 'GRANULATOR', 'kg', 3, false),
+  spec('dryer.inlet_temp_C', 'DRYER', 'degC', 1, true),
+  spec('dryer.bed_temp_C', 'DRYER', 'degC', 1, false),
+  spec('dryer.exhaust_temp_C', 'DRYER', 'degC', 1, false),
+  spec('dryer.airflow_m3_h', 'DRYER', 'm3/h', 0, true),
+  spec('blender.speed_rpm', 'BLENDER', 'rpm', 1, true),
+  spec('blender.revolutions', 'BLENDER', 'count', 0, false, true),
+] as const satisfies readonly TagSpec[];
+
 export type PressTag = (typeof PRESS_TAGS)[number]['tag'];
 export type CoaterTag = (typeof COATER_TAGS)[number]['tag'];
-export type ProcessTag = PressTag | CoaterTag;
+export type GranulationTag = (typeof GRANULATION_TAGS)[number]['tag'];
+export type ProcessTag = PressTag | CoaterTag | GranulationTag;
 
-export const PROCESS_TAGS: readonly TagSpec[] = [...PRESS_TAGS, ...COATER_TAGS];
+export const PROCESS_TAGS: readonly TagSpec[] = [...PRESS_TAGS, ...COATER_TAGS, ...GRANULATION_TAGS];
 export const PROCESS_TAG_NAMES = PROCESS_TAGS.map((t) => t.tag) as readonly ProcessTag[];
 
 const BY_TAG = new Map(PROCESS_TAGS.map((t) => [t.tag, t]));
@@ -68,4 +96,9 @@ export function tagSpec(tag: string): TagSpec | null {
 /** The tags of one kind of equipment. */
 export function tagsOf(kind: EquipmentKind): readonly TagSpec[] {
   return kind === 'PRESS' ? PRESS_TAGS : COATER_TAGS;
+}
+
+/** The tags of any kind of process equipment (the simulators use tagsOf). */
+export function processTagsOf(kind: ProcessEquipmentKind): readonly TagSpec[] {
+  return PROCESS_TAGS.filter((t) => t.equipment === kind);
 }

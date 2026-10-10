@@ -42,6 +42,9 @@ tests:
   - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] outside the campaign's maximum days from its first batch a MAJOR cleaning is required, however short the planned end"
   - "packages/recipe-core/test/plant/equipment.test.ts > product change and campaigns (IN-26 (a), PR-27) > [IN-26][PR-27] a campaign batch that runs past the campaign window and its planned end is recorded as crossing both when it ends (D-S1-5)"
   - "packages/recipe-core/test/plant/equipment.test.ts > the batch, not the caller, names the product (IN-26, PR-27) > [IN-26][PR-27] a unit last used for product X refuses a batch of product Y after a MINOR cleaning, whatever product the caller has in mind: the product is read from the batch record"
+  - "apps/tablets-server/test/blocks/granulation/blocks.test.ts > TB-05 drying with the LOD loop > [IN-36][PR-27] review 3b finding 4: a bag check before use states the bag's history (the product it was last used for, or a new bag): leaving it out never skips the wash rule; only product-dedicated bags need no history"
+  - "apps/tablets-server/test/blocks/granulation/blocks.test.ts > TB-05 drying with the LOD loop > [IN-36][PR-27] a filter bag last used for another product is refused without its wash record (IN-36 catalogue test); a product-dedicated bag where the MBR asks for one; drying only after the bag check; the step closes only with the bag checked after use"
+  - "apps/tablets-server/test/blocks/granulation/db-guards.test.ts > the granulation blocks in the database (tablets 0850, 0851) > [IN-36][PR-27] TB-05: a filter bag last used for another product is refused without its wash record (IN-36 catalogue test), drying starts only after the bag check, the drying time is measured; the drying loop never runs beyond its maximum iterations"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

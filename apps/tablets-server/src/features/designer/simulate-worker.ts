@@ -6,6 +6,7 @@
  */
 import { parentPort, workerData } from 'node:worker_threads';
 import { flow, simulator, type validator } from '@ebmr/recipe-core/pure';
+import { tabletsBlockCatalog } from '../edition-blocks.ts';
 import { marketMinimaPortFrom } from './adapters/minima-port.ts';
 import { referencePortFrom, type ReferenceRow } from './adapters/references.ts';
 
@@ -28,7 +29,7 @@ export function runSimulationJob(job: SimulationJob): SimulationResult {
   if (!parsed.ok) return { ok: false, message: `the content does not parse: ${parsed.problems.map((p) => `${p.path}: ${p.message}`).join('; ')}` };
   const context: validator.ValidationContext = {
     expressions: flow.createExprService(),
-    blocks: flow.genericBlockCatalog,
+    blocks: tabletsBlockCatalog,
     references: referencePortFrom(job.references, job.asOf),
     market: marketMinimaPortFrom(job.minimaRequest, job.minima),
     roles: { engineRoles: job.engineRoles, checkers: job.checkers },
