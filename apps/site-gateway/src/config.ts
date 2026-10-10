@@ -4,7 +4,8 @@
  * listener), the DEMO-ONLY Ed25519 key file, the service keys file (its SERVICE_KEY login), the journal
  * directory, and the instruments with driver, address, expected serial (I4), resolution, unit and room; optionally
  * the process equipment (Phase 3 slice 3a: presses and coaters behind the ebmr.sim-process.v1 driver) with its
- * polling, staleness and setpoint polling periods.
+ * polling, staleness and setpoint polling periods; optionally the line printers (Phase 3 slice 4a, ebmr.sim-printer.v1)
+ * with their polling, staleness and print-job polling periods.
  */
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
@@ -37,6 +38,16 @@ export const ProcessDeviceConfig = z.object({
 });
 export type ProcessDeviceConfig = z.infer<typeof ProcessDeviceConfig>;
 
+/** A line printer (Phase 3 slice 4a, G-21): the serial its hello must report (DI-20). */
+export const PrinterDeviceConfig = z.object({
+  code: DeviceCode,
+  driver: z.literal('printer-sim'),
+  host: z.string().min(1),
+  port: z.number().int().min(1).max(65535),
+  expectedSerial: DeviceSerial,
+});
+export type PrinterDeviceConfig = z.infer<typeof PrinterDeviceConfig>;
+
 export const GatewayConfigFile = z.object({
   gatewayCode: DeviceCode,
   installation: InstallationKind,
@@ -65,6 +76,14 @@ export const GatewayConfigFile = z.object({
   processStaleAfterMs: z.number().int().min(500).max(300_000).optional(),
   /** How often the gateway asks the server for setpoint downloads (default 2 s). */
   setpointPollMs: z.number().int().min(200).max(60_000).optional(),
+  /** Line printers (default none). */
+  printers: z.array(PrinterDeviceConfig).optional(),
+  /** How often each printer is read (default 1 s). */
+  printerPollMs: z.number().int().min(200).max(60_000).optional(),
+  /** A printer whose scan counter has not moved for this long is reported STALE (default 5 s). */
+  printerStaleAfterMs: z.number().int().min(500).max(300_000).optional(),
+  /** How often the gateway asks the server for print jobs (default 2 s). */
+  printJobPollMs: z.number().int().min(200).max(60_000).optional(),
 });
 export type GatewayConfigFile = z.infer<typeof GatewayConfigFile>;
 
@@ -89,6 +108,10 @@ export interface GatewayConfig {
   processPollMs: number;
   processStaleAfterMs: number;
   setpointPollMs: number;
+  printers: PrinterDeviceConfig[];
+  printerPollMs: number;
+  printerStaleAfterMs: number;
+  printJobPollMs: number;
   /** DEMO-ONLY Ed25519 key (a KMS or HSM in production). */
   privateKey: KeyObject;
   publicKey: KeyObject;
@@ -109,8 +132,10 @@ export function parseGatewayConfig(file: GatewayConfigFile, keyFileText: string,
   const service = services.services.find((s) => s.terminal === file.gatewayCode);
   if (!service) throw new Error(`the service keys file has no service identity on terminal ${file.gatewayCode}`);
   const processDevices = file.processDevices ?? [];
-  const codes = new Set([...file.devices, ...processDevices].map((d) => d.code));
-  if (codes.size !== file.devices.length + processDevices.length) throw new Error('a device code appears twice in the gateway configuration');
+  const printers = file.printers ?? [];
+  const codes = new Set([...file.devices, ...processDevices, ...printers].map((d) => d.code));
+  if (codes.size !== file.devices.length + processDevices.length + printers.length) throw new Error('a device code appears twice in the gateway configuration');
+  if (new Set(printers.map((d) => d.expectedSerial)).size !== printers.length) throw new Error('a printer serial appears twice in the gateway configuration');
   if (new Set(processDevices.map((d) => d.expectedSerial)).size !== processDevices.length) throw new Error('a process device serial appears twice in the gateway configuration');
   return {
     gatewayCode: file.gatewayCode,
@@ -127,6 +152,10 @@ export function parseGatewayConfig(file: GatewayConfigFile, keyFileText: string,
     processPollMs: file.processPollMs ?? 1000,
     processStaleAfterMs: file.processStaleAfterMs ?? 5000,
     setpointPollMs: file.setpointPollMs ?? 2000,
+    printers,
+    printerPollMs: file.printerPollMs ?? 1000,
+    printerStaleAfterMs: file.printerStaleAfterMs ?? 5000,
+    printJobPollMs: file.printJobPollMs ?? 2000,
     privateKey: ed25519PrivateKey(key.privateKeyPkcs8),
     publicKey: ed25519PublicKey(key.publicKeySpki),
     publicKeySpki: key.publicKeySpki,

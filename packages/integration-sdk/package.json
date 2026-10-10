@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./scale": "./src/scale/index.ts",
-    "./process": "./src/process/index.ts"
+    "./process": "./src/process/index.ts",
+    "./printer": "./src/printer/index.ts",
+    "./serialisation": "./src/serialisation/index.ts"
   },
   "dependencies": {
     "@ebmr/kernel": "workspace:0.1.0",

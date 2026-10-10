@@ -43,6 +43,7 @@ import { systemClock, type GatewayClock } from './clock.ts';
 import type { DeviceConfig, GatewayConfig } from './config.ts';
 import { MtSicsDriver, type CommandResult } from './drivers/mt-sics.ts';
 import { Journal } from './journal.ts';
+import { PrinterGateway } from './printer-uplink.ts';
 import { ProcessGateway } from './process-uplink.ts';
 import { Uplink, newApiToken } from './uplink.ts';
 
@@ -56,7 +57,7 @@ export const CAPTURE_ACK_WAIT_MS = 5000;
 
 export interface GatewayAlarmRecord {
   atUs: string;
-  source: 'driver' | 'journal' | 'uplink' | 'capture' | 'process';
+  source: 'driver' | 'journal' | 'uplink' | 'capture' | 'process' | 'printer';
   kind: string;
   deviceCode: string | null;
   message: string;
@@ -89,6 +90,8 @@ export class SiteGateway {
   uplink!: Uplink;
   /** The presses and coaters, when configured (Phase 3 slice 3a). */
   process: ProcessGateway | null = null;
+  /** The line printers, when configured (Phase 3 slice 4a). */
+  printer: PrinterGateway | null = null;
   private readonly live = new Map<string, { listeners: Set<LiveListener>; timer: NodeJS.Timeout; busy: boolean }>();
   private installationMismatch = false;
   private readonly log: (message: string) => void;
@@ -166,6 +169,24 @@ export class SiteGateway {
         log: g.log,
       });
     }
+    if (config.printers.length > 0) {
+      // Line printers (Phase 3 slice 4a): their own journal and uplink, under this gateway's session.
+      g.printer = await PrinterGateway.start({
+        uplink: config.uplink,
+        journalDir: config.journalDir,
+        printers: config.printers,
+        session: g.uplink,
+        clock: g.clock,
+        pollMs: config.printerPollMs,
+        staleAfterMs: config.printerStaleAfterMs,
+        jobPollMs: config.printJobPollMs,
+        manual: options.manualUplink ?? false,
+        ...(options.driver ? { driver: { ...options.driver, ...(options.driver.commandTimeoutMs ? { requestTimeoutMs: options.driver.commandTimeoutMs } : {}) } } : {}),
+        onAlarm: (a) => g.alarm('printer', a.kind, a.deviceCode, a.message, a.details),
+        onDriverAlarm: (a) => g.alarm('driver', a.kind, a.deviceCode, a.message, a.details),
+        log: g.log,
+      });
+    }
     if (!options.manualUplink) g.uplink.start();
     return g;
   }
@@ -174,6 +195,7 @@ export class SiteGateway {
     for (const l of this.live.values()) clearInterval(l.timer);
     this.live.clear();
     await this.process?.stop();
+    await this.printer?.stop();
     await this.uplink.stop();
     for (const i of this.instruments.values()) await i.driver.stop();
     await this.journal.close();

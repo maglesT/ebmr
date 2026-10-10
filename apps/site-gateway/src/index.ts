@@ -5,19 +5,22 @@
  *
  * It never imports the kernel or a database driver (.dependency-cruiser.cjs rule gateway-and-simulators-no-db):
  * it depends on the zod-only scale and process contracts of the integration SDK. Presses and coaters (process-uplink.ts)
- * arrive with Phase 3 slice 3a; printers and OPC UA in later phases.
+ * arrive with Phase 3 slice 3a; line printers (printer-uplink.ts) with slice 4a; OPC UA in later phases.
  */
+import { PRINTER_CONTRACT } from '@ebmr/integration-sdk/printer';
 import { PROCESS_CONTRACT } from '@ebmr/integration-sdk/process';
 import { SCALE_CONTRACT } from '@ebmr/integration-sdk/scale';
 
 export const PACKAGE = { name: '@ebmr/site-gateway', version: '0.1.0' } as const;
 
 /** Exact versions of the shared contracts this module was built against (ADR 0015). */
-export const BUILT_AGAINST = [SCALE_CONTRACT, PROCESS_CONTRACT] as const;
+export const BUILT_AGAINST = [SCALE_CONTRACT, PROCESS_CONTRACT, PRINTER_CONTRACT] as const;
 
 export { startGatewayApi } from './api.ts';
 export { loadGatewayConfig, parseGatewayConfig, type GatewayConfig } from './config.ts';
 export { SiteGateway, type GatewayAlarmRecord } from './gateway.ts';
 export { Journal, JournalIntegrityError } from './journal.ts';
+export { PrintJournal, PrintJournalIntegrityError } from './print-journal.ts';
+export { PrinterGateway, type PrinterAlarm } from './printer-uplink.ts';
 export { ProcessJournal, ProcessJournalIntegrityError } from './process-journal.ts';
 export { ProcessGateway, type GatewaySession, type ProcessAlarm } from './process-uplink.ts';
