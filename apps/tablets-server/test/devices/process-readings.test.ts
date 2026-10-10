@@ -76,7 +76,7 @@ async function record(entry: Json & { kind: string }, opts: { claim?: string; ac
   return codeOf(
     withCommand(sbx.db.app, await operator(), async (c) => {
       if (opts.claim) await c.query('select tab.claim_process_reading($1, $2, $3)', [opts.claim, d.runId, 'p-press']);
-      if (opts.ack) await c.query('select tab.acknowledge_process_alarm($1, $2)', [opts.ack.reading, opts.ack.comment]);
+      if (opts.ack) await c.query('select tab.acknowledge_process_alarm($1, $2, $3, $4)', [opts.ack.reading, d.runId, 'p-press', opts.ack.comment]);
       const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
       const roles = await engineRoles(c);
       const command: engine.Command = { type: 'RECORD_ENTRY', commandId: randomUUID(), actor: engineActor(me.personId, roles), step: 'p-press', context: [], entry };
@@ -155,8 +155,13 @@ describe('process readings over the gateway uplink (tablets 0820)', () => {
     expect(await codeOf(withCommand(sbx.db.app, await operator(), (c) => c.query('select tab.bind_step_device($1, $2, $3)', [d.runId, 'p-press', DEVICE])))).toBe('EBMR-DEV-131');
     expect(await codeOf(withCommand(sbx.db.app, await operator(), (c) => c.query('select tab.request_setpoint_download($1, $2, $3)', [d.runId, 'p-press', 'fill.depth_mm'])))).toBe('EBMR-DEV-132');
     const id = await withCommand(sbx.db.app, await operator(), async (c) => (await c.query<{ id: string }>('select tab.request_setpoint_download($1, $2, $3) as id', [d.runId, 'p-press', 'force.main_kN'])).rows[0]?.id ?? '');
+    // Review 3a finding 2: a read-back received before the gateway fetched the download does not confirm it.
+    const early = reading('force.main_kN', '12.52', 'kN', 'SETPOINT_READBACK');
+    expect((await send([early])).status).toBe(200);
     const res = await fetch(`${gw.base}/gw/v1/setpoint-downloads`, { headers: { authorization: `Bearer ${gw.token}` } });
     expect(await res.json()).toEqual({ downloads: [{ id, deviceSerial: SERIAL, tag: 'force.main_kN', value: '12.50', unit: 'kN' }] });
+    const stale = await gw.post(`/gw/v1/setpoint-downloads/${id}/ack`, { sessionId: RUN_SESSION, outcome: 'MISMATCH', readback: { value: '12.52', unit: 'kN', sourceTime: early.sourceTime, sequence: early.sequence }, message: null });
+    expect([stale.status, (stale.body as { error: { code: string } }).error.code]).toEqual([422, 'EBMR-DEV-146']);
     const rb = reading('force.main_kN', '12.52', 'kN', 'SETPOINT_READBACK');
     expect((await send([rb])).status).toBe(200);
     const ack = { sessionId: RUN_SESSION, outcome: 'APPLIED', readback: { value: '12.52', unit: 'kN', sourceTime: rb.sourceTime, sequence: rb.sequence }, message: null };
@@ -168,10 +173,14 @@ describe('process readings over the gateway uplink (tablets 0820)', () => {
   });
 
   it('[DI-31][DI-32][PR-14] a G-06 value captured from the equipment is recorded only on the reading of the step device claimed for it in its command, exactly as received; the read-back only as the acknowledged read-back of a step download', async () => {
+    const before = (await stored()).find((r) => r.tag === 'turret.speed_rpm') as Awaited<ReturnType<typeof stored>>[number];
+    expect((await send([reading('turret.speed_rpm', '45.0', 'rpm'), reading('force.main_kN', '12.48', 'kN')])).status).toBe(200);
     const rows = await stored();
-    const speed = rows.find((r) => r.tag === 'turret.speed_rpm') as (typeof rows)[number];
-    const rb = rows.find((r) => r.kind === 'SETPOINT_READBACK') as (typeof rows)[number];
-    const force = rows.find((r) => r.tag === 'force.main_kN' && r.kind === 'ACTUAL') as (typeof rows)[number];
+    const speed = rows.filter((r) => r.tag === 'turret.speed_rpm').at(-1) as (typeof rows)[number];
+    const rb = rows.filter((r) => r.kind === 'SETPOINT_READBACK').at(-1) as (typeof rows)[number];
+    const force = rows.filter((r) => r.tag === 'force.main_kN' && r.kind === 'ACTUAL').at(-1) as (typeof rows)[number];
+    // Review 3a finding 3: a reading the device sent before the step was bound to it is not the step's.
+    expect(await record(asEntry(before, 'ACTUAL', 'rpm'), { claim: before.id })).toBe('EBMR-DEV-144');
     const outcomes = {
       unclaimed: await record(asEntry(speed, 'ACTUAL', 'rpm')),
       forgedValue: await record({ ...asEntry(speed, 'ACTUAL', 'rpm'), value: '30.0' }, { claim: speed.id }),
@@ -192,12 +201,16 @@ describe('process readings over the gateway uplink (tablets 0820)', () => {
     expect(await record(asEntry(alarm, 'ALARM', 'kN'), { claim: alarm.id })).toBe('ok');
     const { rows } = await sbx.db.admin.query<{ k: string }>("select k from recipe.execution_state s, jsonb_each(s.state -> 'entries') e(k, v) where s.batch_id = $1 and v ->> 'kind' = 'ALARM'", [d.runId]);
     const entryId = rows[0]?.k ?? '';
-    expect(await codeOf(withCommand(sbx.db.app, await operator(), (c) => c.query('select tab.acknowledge_process_alarm($1, $2)', [alarm.id, '  '])))).toBe('EBMR-DEV-142');
+    const ackAlone = async (comment: string) => codeOf(withCommand(sbx.db.app, await operator(), (c) => c.query('select tab.acknowledge_process_alarm($1, $2, $3, $4)', [alarm.id, d.runId, 'p-press', comment])));
+    expect(await ackAlone('  ')).toBe('EBMR-DEV-142');
+    // Review 3a finding 3: an acknowledgement outside the step's ALARM_ACK entry is refused at commit.
+    expect(await ackAlone('Seen on the HMI')).toBe('EBMR-DEV-148');
+    expect(await codeOf(withCommand(sbx.db.app, await operator(), (c) => c.query('select tab.acknowledge_process_alarm($1, $2, $3, $4)', [alarm.id, d.runId, 'p-press-watch', 'x'])))).toBe('EBMR-DEV-141');
     const comment = 'Force spike on one station; punch inspected, no defect';
     expect(await record({ kind: 'ALARM_ACK', alarm: entryId, comment })).toBe('EBMR-EXE-211');
     expect(await record({ kind: 'ALARM_ACK', alarm: entryId, comment: 'another text' }, { ack: { reading: alarm.id, comment } })).toBe('EBMR-EXE-211');
     expect(await record({ kind: 'ALARM_ACK', alarm: entryId, comment }, { ack: { reading: alarm.id, comment } })).toBe('ok');
-    expect(await codeOf(withCommand(sbx.db.app, await operator(), (c) => c.query('select tab.acknowledge_process_alarm($1, $2)', [alarm.id, comment])))).toBe('EBMR-DEV-143');
+    expect(await ackAlone(comment)).toBe('EBMR-DEV-143');
     await expect(sbx.db.app.query('delete from tab.process_reading')).rejects.toThrow(/permission denied/);
     await expect(sbx.db.admin.query('delete from tab.process_reading where id = $1', [alarm.id])).rejects.toThrow(/EBMR-AUDIT-004/);
     await expect(sbx.db.admin.query('update tab.process_alarm_ack set comment = $1', ['x'])).rejects.toThrow(/EBMR-AUDIT-004/);

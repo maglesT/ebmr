@@ -15,8 +15,10 @@
 --                                approved G-06 configuration), never from the caller (STEP.EXECUTE)
 --   tab.setpoint_download_pickup the first time the gateway fetched a download
 --   tab.setpoint_download_ack    the gateway's acknowledgement: APPLIED (read back equal), MISMATCH (read back other) or
---                                FAILED (not written, with why); a read-back names the SETPOINT_READBACK reading it sent
---   tab.process_alarm_ack        a person's acknowledgement of an ALARM reading, with a comment (DI-49)
+--                                FAILED (not written, with why); a read-back names the SETPOINT_READBACK reading it sent,
+--                                received after the gateway fetched the download, and confirms that download only
+--   tab.process_alarm_ack        a person's acknowledgement of an ALARM reading of a step, with a comment, written with the
+--                                step's ALARM_ACK entry in the same command (DI-49)
 --   tab.process_reading_use      a reading is used by one entry at most, claimed in the command that records it
 --
 -- Ingestion (DI-31): a request is taken whole or refused whole (one INTEGRATION command, SITE_GATEWAY only). Each
@@ -389,7 +391,7 @@ select kernel.register_audited_table('tab.setpoint_download_pickup', 'process_re
 create table tab.setpoint_download_ack (
   download_id        uuid primary key references tab.setpoint_download (id),
   outcome            text not null check (outcome in ('APPLIED', 'MISMATCH', 'FAILED')),
-  readback_reading   uuid references tab.process_reading (id),
+  readback_reading   uuid unique references tab.process_reading (id),
   message            text check (message is null or btrim(message) <> ''),
   gateway_run_id     uuid not null,
   ingest_session_id  uuid not null,
@@ -504,6 +506,14 @@ begin
       raise exception using errcode = 'P0001',
         message = format('EBMR-DEV-137 DI-31: the read-back of download %s is not a SETPOINT_READBACK of %s on %s the server holds as stated (send the readings first)', p_id, d.tag, v_dev.device_code);
     end if;
+    -- Review 3a finding 2: the read-back was received after the gateway fetched this download, and confirms no other.
+    if v_rb.received_at < coalesce((select k.picked_up_at from tab.setpoint_download_pickup k where k.download_id = p_id), 'infinity'::timestamptz) then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-DEV-146 DI-31: the read-back of download %s was received before the gateway fetched the download, so it does not show the download was written', p_id);
+    end if;
+    if exists (select 1 from tab.setpoint_download_ack k where k.readback_reading = v_rb.id and k.download_id <> p_id) then
+      raise exception using errcode = 'P0001', message = format('EBMR-DEV-147 DI-31: the read-back of download %s already confirms another download', p_id);
+    end if;
     if (v_out = 'APPLIED') <> (v_rb.unit = d.unit and v_rb.value::numeric = d.value::numeric) then
       raise exception using errcode = 'P0001',
         message = format('EBMR-DEV-138 DI-31: download %s of %s %s read back %s %s, which is %s, not %s', p_id, d.value, d.unit, v_rb.value, v_rb.unit,
@@ -528,6 +538,8 @@ $$;
 
 create table tab.process_alarm_ack (
   reading_id      uuid primary key references tab.process_reading (id),
+  batch_id        uuid not null references recipe.batch_execution (id),
+  step            text not null,
   comment         text not null check (btrim(comment) <> ''),
   person_id       uuid not null,
   account_id      uuid not null,
@@ -537,21 +549,39 @@ create table tab.process_alarm_ack (
 );
 select kernel.register_audited_table('tab.process_alarm_ack', 'process_reading', 'reading_id', true);
 
--- DI-49 (STEP.EXECUTE, a person's command): acknowledges ALARM reading p_reading once, with a comment and the action taken.
-create function tab.acknowledge_process_alarm(p_reading uuid, p_comment text) returns void
-language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, pg_temp as $$
+-- Whether reading r was received while binding b held its device for its step: at or after the binding, and before any
+-- later binding of the device by another batch (review 3a finding 3: a step never takes another batch's readings).
+create function tab.reading_in_step(r tab.process_reading, b tab.step_device) returns boolean
+language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
+  select r.id is not null and b.batch_id is not null and r.process_device_id = b.process_device_id and r.received_at >= b.bound_at
+     and not exists (select 1 from tab.step_device s where s.process_device_id = b.process_device_id and s.batch_id <> b.batch_id
+                        and s.bound_at > b.bound_at and s.bound_at <= r.received_at)
+$$;
+
+-- DI-49 (STEP.EXECUTE in the batch's scope, a person's command): acknowledges ALARM reading p_reading of step p_step of
+-- batch p_batch once, with a comment and the action taken. The reading is an alarm of the step's device in the step's
+-- window that an ALARM entry of the step recorded, and the acknowledgement is written with the step's ALARM_ACK entry in
+-- the same command (deferred check below), so nobody acknowledges an alarm outside its batch record or ahead of it.
+create function tab.acknowledge_process_alarm(p_reading uuid, p_batch uuid, p_step text, p_comment text) returns void
+language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, plant, recipe, pg_temp as $$
 declare
   v_actor jsonb;
   r       tab.process_reading%rowtype;
+  v_bind  tab.step_device%rowtype;
 begin
   perform iam.assert_not_administrator();
-  v_actor := iam.require_permission('STEP.EXECUTE', '{}'::jsonb);
+  v_actor := iam.require_permission('STEP.EXECUTE', plant.batch_scope(p_batch));
   if v_actor ->> 'source' not in ('UI', 'API') then
     raise exception using errcode = 'P0001', message = 'EBMR-DEV-140 DI-49: an alarm is acknowledged by a person';
   end if;
   select * into r from tab.process_reading where id = p_reading;
-  if r.id is null or r.kind <> 'ALARM' then
-    raise exception using errcode = 'P0001', message = format('EBMR-DEV-141 DI-49: %s is no alarm reading', coalesce(p_reading::text, 'NULL'));
+  select * into v_bind from tab.step_device where batch_id = p_batch and step = p_step;
+  if r.id is null or r.kind <> 'ALARM' or not tab.reading_in_step(r, v_bind)
+     or not exists (select 1 from recipe.execution_command c
+                     where c.batch_id = p_batch and c.kind = 'COMMAND' and c.accepted and c.command_type = 'RECORD_ENTRY' and c.command ->> 'step' = p_step
+                       and c.command -> 'entry' ->> 'kind' = 'ALARM' and c.command -> 'entry' ->> 'readingId' = p_reading::text) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-DEV-141 DI-49: %s is no alarm of the device of step %s that an ALARM entry of the step recorded', coalesce(p_reading::text, 'NULL'), coalesce(p_step, 'NULL'));
   end if;
   if coalesce(btrim(p_comment), '') = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-DEV-142 DI-49: an alarm is acknowledged with a comment and the action taken';
@@ -559,11 +589,27 @@ begin
   if exists (select 1 from tab.process_alarm_ack where reading_id = p_reading) then
     raise exception using errcode = 'P0001', message = format('EBMR-DEV-143 DI-49: alarm %s is already acknowledged', p_reading);
   end if;
-  insert into tab.process_alarm_ack (reading_id, comment, person_id, account_id, session_id, correlation_id)
-  values (p_reading, p_comment, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'session_id')::uuid,
+  insert into tab.process_alarm_ack (reading_id, batch_id, step, comment, person_id, account_id, session_id, correlation_id)
+  values (p_reading, p_batch, p_step, p_comment, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'session_id')::uuid,
           (v_actor ->> 'correlation_id')::uuid);
 end
 $$;
+
+-- DI-49: at commit, an acknowledgement stands with the accepted ALARM_ACK entry of its step in the same command.
+create function tab.process_alarm_ack_entry_check() returns trigger
+language plpgsql security definer set search_path = pg_catalog, tab, recipe, pg_temp as $$
+begin
+  if not exists (select 1 from recipe.execution_command c
+                  where c.batch_id = new.batch_id and c.correlation_id = new.correlation_id and c.kind = 'COMMAND' and c.accepted
+                    and c.command_type = 'RECORD_ENTRY' and c.command ->> 'step' = new.step and c.command -> 'entry' ->> 'kind' = 'ALARM_ACK') then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-DEV-148 DI-49: alarm %s is acknowledged only with the ALARM_ACK entry of step %s in the same command', new.reading_id, new.step);
+  end if;
+  return null;
+end
+$$;
+create constraint trigger zz_process_alarm_ack_entry after insert on tab.process_alarm_ack deferrable initially deferred
+  for each row execute function tab.process_alarm_ack_entry_check();
 
 create table tab.process_reading_use (
   reading_id      uuid primary key references tab.process_reading (id),
@@ -578,7 +624,7 @@ create table tab.process_reading_use (
 select kernel.register_audited_table('tab.process_reading_use', 'process_reading', 'reading_id', true);
 
 -- DI-31, DI-32 (STEP.EXECUTE, a person's command): claims reading p_reading for an entry of step p_step of batch
--- p_batch: a reading of the device the step is bound to, used by no other entry. Returns the facts the entry states.
+-- p_batch: a reading the device sent while bound to the step (tab.reading_in_step), used by no other entry. Returns the facts the entry states.
 create function tab.claim_process_reading(p_reading uuid, p_batch uuid, p_step text) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, plant, pg_temp as $$
 declare
@@ -590,9 +636,9 @@ begin
   v_actor := iam.require_permission('STEP.EXECUTE', plant.batch_scope(p_batch));
   select * into r from tab.process_reading where id = p_reading;
   select * into v_bind from tab.step_device where batch_id = p_batch and step = p_step;
-  if r.id is null or v_bind.batch_id is null or r.process_device_id <> v_bind.process_device_id then
+  if not coalesce(tab.reading_in_step(r, v_bind), false) then
     raise exception using errcode = 'P0001',
-      message = format('EBMR-DEV-144 DI-32: %s is no reading of the process device step %s of this batch is bound to', coalesce(p_reading::text, 'NULL'), p_step);
+      message = format('EBMR-DEV-144 DI-32: %s is no reading the process device of step %s of this batch sent while bound to it', coalesce(p_reading::text, 'NULL'), p_step);
   end if;
   begin
     insert into tab.process_reading_use (reading_id, batch_id, step, person_id, account_id, session_id, correlation_id)
@@ -628,7 +674,8 @@ begin
       return null;
     end if;
     select * into a from tab.process_alarm_ack where reading_id::text = v_alarm -> 'data' ->> 'readingId';
-    if a.reading_id is null or a.correlation_id <> p_row.correlation_id or a.person_id <> p_row.actor_person or a.acked_at < transaction_timestamp() then
+    if a.reading_id is null or a.correlation_id <> p_row.correlation_id or a.person_id <> p_row.actor_person or a.acked_at < transaction_timestamp()
+       or a.batch_id <> p_row.batch_id or a.step <> v_step then
       return format('the alarm reading %s was not acknowledged by this person in this command', coalesce(v_alarm -> 'data' ->> 'readingId', '(none)'));
     end if;
     if (v_entry ->> 'comment') is distinct from a.comment then
@@ -651,8 +698,8 @@ begin
     when u.reading_id is null or u.batch_id <> p_row.batch_id or u.step <> v_step or u.person_id <> p_row.actor_person or u.account_id <> p_row.actor_account
          or u.session_id <> p_row.session_id or u.correlation_id <> p_row.correlation_id or u.claimed_at < transaction_timestamp()
       then format('reading %s was not claimed for step %s by this person''s session in this command', v_id, coalesce(v_step, '(none)'))
-    when v_bind.batch_id is null or r.process_device_id <> v_bind.process_device_id
-      then format('reading %s is not of the process device step %s is bound to', v_id, coalesce(v_step, '(none)'))
+    when not coalesce(tab.reading_in_step(r, v_bind), false)
+      then format('reading %s is not one the process device of step %s sent while bound to it', v_id, coalesce(v_step, '(none)'))
     when r.kind <> v_kind then format('reading %s is %s, not %s', v_id, r.kind, v_kind)
     when (r.tag, r.value, r.unit, r.quality, r.received_us::text)
          is distinct from (v_entry ->> 'tag', v_entry ->> 'value', v_entry ->> 'unit', v_entry ->> 'quality', v_entry ->> 'receivedAtUs')
@@ -691,11 +738,11 @@ create trigger ac_tab_process_entry_readings before insert on recipe.execution_c
 revoke all on function tab.process_device_guard(), tab.bind_process_device(uuid, text, text, text), tab.end_process_device(uuid, text, text),
   tab.process_head(uuid, text), tab.ingest_process_readings(jsonb), tab.g06_step_node(uuid, text), tab.bind_step_device(uuid, text, text),
   tab.request_setpoint_download(uuid, text, text), tab.pending_setpoint_downloads(), tab.ack_setpoint_download(uuid, jsonb),
-  tab.acknowledge_process_alarm(uuid, text), tab.claim_process_reading(uuid, uuid, text), tab.process_entry_problem(recipe.execution_command), tab.step_link_status(uuid, text),
-  tab.process_entry_readings_check() from public;
+  tab.acknowledge_process_alarm(uuid, uuid, text, text), tab.claim_process_reading(uuid, uuid, text), tab.process_entry_problem(recipe.execution_command), tab.step_link_status(uuid, text),
+  tab.process_entry_readings_check(), tab.reading_in_step(tab.process_reading, tab.step_device), tab.process_alarm_ack_entry_check() from public;
 grant execute on function tab.bind_process_device(uuid, text, text, text), tab.end_process_device(uuid, text, text), tab.process_head(uuid, text),
   tab.ingest_process_readings(jsonb), tab.bind_step_device(uuid, text, text), tab.request_setpoint_download(uuid, text, text),
-  tab.pending_setpoint_downloads(), tab.ack_setpoint_download(uuid, jsonb), tab.acknowledge_process_alarm(uuid, text),
+  tab.pending_setpoint_downloads(), tab.ack_setpoint_download(uuid, jsonb), tab.acknowledge_process_alarm(uuid, uuid, text, text),
   tab.claim_process_reading(uuid, uuid, text), tab.step_link_status(uuid, text) to ebmr_app;
 revoke all on tab.process_tag, tab.process_device, tab.process_reading, tab.step_device, tab.setpoint_download, tab.setpoint_download_pickup,
   tab.setpoint_download_ack, tab.process_alarm_ack, tab.process_reading_use from public;

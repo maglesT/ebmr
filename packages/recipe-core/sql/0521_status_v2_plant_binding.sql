@@ -9,7 +9,8 @@
 -- verify_clearance, start_area_occupancy, 0404: IN-21, PR-34, INV-15). This migration binds the entry to them: a row
 -- trigger on recipe.execution_command (ad_plant_status_entry, before insert) refuses a person's accepted RECORD_ENTRY
 -- of kind EQUIPMENT_USE unless its useId names an open use (no use end) of this batch, of the unit equipmentCode,
--- started by the row's person, and one no other entry of the batch names; and one of kind AREA_OCCUPANCY unless its
+-- started by the row's person, of the plant class the MBR binds for equipmentRef in the step's stage, and one no other
+-- entry of the batch names; and one of kind AREA_OCCUPANCY unless its
 -- occupancyId names an open occupancy of this batch, of the room or line areaCode, started by the row's person, whose
 -- clearance passed, and one no other entry of the batch names. EBMR-EXE-210.
 --
@@ -19,9 +20,9 @@
 
 set local role ebmr_owner;
 
--- INV-12, INV-15, IN-21, IN-25, PR-23, PR-34: why entry p_entry of an accepted RECORD_ENTRY of batch p_batch by person
--- p_person does not stand on the open plant use or occupancy it names (header); NULL when it does or is of another kind.
-create function recipe.plant_status_entry_problem(p_batch uuid, p_person uuid, p_entry jsonb) returns text
+-- INV-12, INV-15, IN-21, IN-25, PR-23, PR-34: why entry p_entry of an accepted RECORD_ENTRY at step p_step of batch
+-- p_batch by person p_person does not stand on the open plant use or occupancy it names (header); NULL when it does or is of another kind.
+create function recipe.plant_status_entry_problem(p_batch uuid, p_person uuid, p_step text, p_entry jsonb) returns text
 language plpgsql stable security definer set search_path = pg_catalog, recipe, plant, pg_temp as $$
 declare
   v_entry   jsonb := case when jsonb_typeof(p_entry) = 'object' then p_entry end;
@@ -32,6 +33,9 @@ declare
   v_code    text;
   v_result  text;
   v_member  text;
+  v_content jsonb;
+  v_class   jsonb;
+  v_ref     text;
 begin
   if v_kind is null or v_kind not in ('EQUIPMENT_USE', 'AREA_OCCUPANCY') then
     return null;
@@ -48,13 +52,34 @@ begin
   if v_kind = 'EQUIPMENT_USE' then
     select * into u from plant.equipment_use_status where id = (v_entry ->> 'useId')::uuid;
     select e.code into v_code from plant.equipment e where e.id = u.equipment_id;
-    return case
+    v_member := case
       when u.id is null then format('use %s does not exist in site services', v_entry ->> 'useId')
       when u.batch_id is distinct from p_batch then format('use %s is of batch %s, not of this batch', u.id, u.batch_ref)
       when v_code is distinct from v_entry ->> 'equipmentCode' then format('use %s is of unit %s, not of %s', u.id, v_code, coalesce(v_entry ->> 'equipmentCode', '(none)'))
       when u.ended_at is not null then format('use %s of %s has ended', u.id, v_code)
       when u.started_by is distinct from p_person then format('use %s was started by another person', u.id)
     end;
+    if v_member is not null then
+      return v_member;
+    end if;
+    -- The unit is of the class the MBR binds for equipmentRef in the step's stage (the reference's code is the plant
+    -- class code), so a balance's use is never recorded as the press's.
+    v_content := recipe.batch_mbr_content(p_batch);
+    select e into v_class
+      from jsonb_path_query(coalesce(v_content -> 'procedure', '{}'::jsonb), 'strict $.** ? (@.kind == "stage")') st,
+           jsonb_array_elements(case when jsonb_typeof(st -> 'binding' -> 'equipment') = 'array' then st -> 'binding' -> 'equipment' else '[]'::jsonb end) e
+     where jsonb_path_exists(st, 'strict $.** ? (@.id == $id)', jsonb_build_object('id', p_step)) and e ->> 'ref' = v_entry ->> 'equipmentRef'
+     limit 1;
+    select r ->> 'code' into v_ref from jsonb_array_elements(case when jsonb_typeof(v_content -> 'references') = 'array' then v_content -> 'references' else '[]'::jsonb end) r
+     where r ->> 'id' = v_class ->> 'equipmentClass' limit 1;
+    if v_class is null then
+      return format('%s is not equipment the stage of step %s binds', coalesce(v_entry ->> 'equipmentRef', '(none)'), coalesce(p_step, '(none)'));
+    end if;
+    if v_ref is distinct from (select e.class_code from plant.equipment e where e.id = u.equipment_id) then
+      return format('unit %s is of class %s, not of class %s that the MBR binds for %s', v_code,
+                    (select e.class_code from plant.equipment e where e.id = u.equipment_id), coalesce(v_ref, '(none)'), v_entry ->> 'equipmentRef');
+    end if;
+    return null;
   end if;
   select * into o from plant.area_occupancy_status where id = (v_entry ->> 'occupancyId')::uuid;
   select a.code into v_code from plant.area a where a.id = o.area_id;
@@ -81,7 +106,7 @@ begin
      or v_kind not in ('EQUIPMENT_USE', 'AREA_OCCUPANCY') then
     return new;
   end if;
-  v_problem := recipe.plant_status_entry_problem(new.batch_id, new.actor_person, new.command -> 'entry');
+  v_problem := recipe.plant_status_entry_problem(new.batch_id, new.actor_person, new.command ->> 'step', new.command -> 'entry');
   if v_problem is not null then
     raise exception using errcode = 'P0001',
       message = format('A %s entry stands on the open %s of this batch that site services started for the person recording it: %s (INV-12, INV-15, IN-21, IN-25, PR-23, PR-34). [EBMR-EXE-210]',
@@ -94,6 +119,6 @@ $$;
 create trigger ad_plant_status_entry before insert on recipe.execution_command
   for each row execute function recipe.plant_status_entry_check();
 
-revoke all on function recipe.plant_status_entry_problem(uuid, uuid, jsonb), recipe.plant_status_entry_check() from public;
+revoke all on function recipe.plant_status_entry_problem(uuid, uuid, text, jsonb), recipe.plant_status_entry_check() from public;
 
 reset role;
