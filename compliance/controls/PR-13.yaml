@@ -108,6 +108,7 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-exception-register.test.ts > the exception register (recipe-core 0440) > [INV-03][PR-13][DI-26] a disposition by a person who worked in the raising step is refused and the register records none; one by QA outside the step is registered"
   - "apps/tablets-server/test/execution/db-guards-exception-register.test.ts > the exception register (recipe-core 0440) > [PR-08][PR-13] review finding 3: the QA roles of a QA-only disposition are the fixed quality-unit roles, not whatever the batch policy names: a policy naming the supervisor as QA does not let a supervisor disposition a registered-tier breach (EBMR-EXE-162)"
   - "apps/tablets-server/test/execution/db-guards-hand-over.test.ts > TAKE_OVER_STEP and after: the incoming performer completes the step; the verifier is neither performer > [PR-14][DI-34][PR-13][PR-49] review findings 1, 2, 4: a hand-over to a person without the step's perform role is refused; a step waiting for its incoming performer is handed over again, only from that person; nobody named in a hand-over signs the disposition of its exception; the outgoing performer raises no exception at the step"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

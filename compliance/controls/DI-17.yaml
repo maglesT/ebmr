@@ -334,6 +334,7 @@ tests:
   - "packages/kernel/test/platform/scope-hook.test.ts > the platform SCOPE hook (kernel 1150, ADR-0018) > [DI-17] with no SCOPE hook registered (a kernel-only installation) a platform transition is checked in the location scope as before, and the hook adds nothing"
   - "packages/kernel/test/platform/scope-hook.test.ts > the platform SCOPE hook (kernel 1150, ADR-0018) > [DI-17] a registered SCOPE hook adds its members to the evaluated scope: a grant limited to that product now matches, another product is refused, an unlimited grant still matches; a hook of another signature is refused"
   - "packages/recipe-core/test/plant/status-blocks.test.ts > review backlog #5: plant transitions evaluate the batch product (recipe-core 0522) > [DI-17][IN-21] an operator whose STEP.EXECUTE is limited to a product starts and ends a press use and opens a container for a batch of that product, and is refused for another product"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 in the database: registers and the lot assay register (tablets 0840, 0841) > [DI-17][DI-18] the new functions pin their search path with pg_temp last, are private to the owner, and the application role executes only the two register functions and the two readers the server needs"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

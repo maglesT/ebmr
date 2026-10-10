@@ -2309,3 +2309,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   kernel SCOPE hook (kernel 1150, ADR 0018) after the quick review found recipe-core re-creating a kernel function.
   Review mediums fixed (read-back tied to its download, alarm acknowledgement with its entry, equipment use tied to the
   unit class). Full suite, register, trace and E2E (23) green locally.
+- 2026-10-10: PHASE 3 SLICE 3B (branch phase-3/slice-3b, built on 3a). TB-01 potency, assay and LOD dispensing with
+  the compensating excipient (exact calculations recomputed by the database, lot assay results, FEFO reason, site lots
+  consumed in the same command, balance instrument use) and the granulation blocks TB-02 (screen integrity with hold),
+  TB-03 (solutions with use-by), TB-04 (wet granulation end point on G-06, extra fluid only in the branch), TB-05 (drying
+  loop to LOD, bounded, filter bags), TB-07 (blending, lubricant after the blend, blend uniformity), all with database
+  guards (tablets 0840-0845, 0850-0852). Quick review: no critical or high; the four replaced recipe-core functions
+  diffed clean; TB-01's exceptions now required by the database, superseded assays refused at weighing, TB-01 to TB-07
+  never skipped, bag history and null units closed. 131 tagged tests synced. Full suite (4,612 of 4,615; the three
+  failures fixed and re-run), register and E2E (23) green locally.

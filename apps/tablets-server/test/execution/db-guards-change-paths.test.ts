@@ -417,7 +417,7 @@ describe('REQUEST_SKIP: only where the MBR allows it, approved by another person
     const { rows } = await sbx.db.admin.query<{ problem: string }>(
       `select recipe.skip_problem('{"parameters": [], "procedure": {}}'::jsonb, '{"kind": "phase", "id": "c", "block": {"type": "G-10", "version": "1"}, "config": {"skippable": true}, "records": [], "consumes": [], "produces": [], "uses": []}'::jsonb) as problem`,
     );
-    expect(rows[0]?.problem).toMatch(/it is a step of block G-10: line clearance, dispensing, charge-in, reconciliation, reprocessing and sign-off steps are never skipped/);
+    expect(rows[0]?.problem).toMatch(/it is a step of block G-10: line clearance, dispensing, charge-in, reconciliation, reprocessing, sign-off and the tablet material-processing steps are never skipped/);
   }, 300_000);
 });
 

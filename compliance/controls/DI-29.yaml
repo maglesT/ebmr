@@ -64,6 +64,8 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > INVALIDATE_RESULT: only with a linked investigation and its assignable cause, approved by the quality unit > [DI-29][INV-41][DI-37] an invalidation approved by the QA reviewer keeps the original and reopens the step, invalidating its signatures; without a cause, by the requester, or storing another cause, it is refused"
   - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > a direct write of the execution tables is refused (ADR 0012) > [DI-24][DI-29] the application role cannot update the stored state or insert a row: every write goes through the guarded writer"
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][INV-41] an invalidation records the assignable cause its investigation concluded; a blank cause is refused; the QA reviewer approves it"
+  - "apps/tablets-server/test/blocks/granulation/blocks.test.ts > TB-05 drying with the LOD loop > [IN-36][PR-29][DI-29][DI-34] every drying iteration is its own step instance kept in order; the loop repeats while the LOD is out of range and exits on it; at its maximum an unmet LOD exhausts the loop (an exception, never more iterations); over-drying is a limit breach"
+  - "apps/tablets-server/test/blocks/granulation/blocks.test.ts > TB-07 blending, lubrication and blend uniformity > [PR-29][DI-29] blend-uniformity samples only of the sampling plan, after blending is finished, once each, in the unit-dose unit, 1 to 3 unit doses unless a justification is recorded; locations not sampled are flagged at PERFORMED"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
