@@ -118,6 +118,21 @@ declare
   v_tn       numeric;
   v_td       numeric;
 begin
+  -- Fail closed on a configuration the block's schema and checks refuse (review item 5).
+  if (v_active ->> 'standardIs') is null or (v_active ->> 'standardIs') not in ('BASE', 'FORM') or (v_active ->> 'basis') is null then
+    return jsonb_build_object('problem', 'is made at a step whose configuration states no standard basis (BASE or FORM) or assay basis');
+  end if;
+  if (v_comp ->> 'mode') is distinct from 'NONE' and ((v_comp ->> 'mode') is distinct from 'EXCIPIENT' or jsonb_typeof(v_comp -> 'min') is distinct from 'string'
+     or jsonb_typeof(v_comp -> 'max') is distinct from 'string' or jsonb_typeof(v_comp -> 'bomLine') is distinct from 'string') then
+    return jsonb_build_object('problem', 'is made at a step whose compensation states no mode NONE, or no excipient line with its approved range (TB01-EXCIPIENT-RANGE)');
+  end if;
+  if (v_active ->> 'standardIs') = 'BASE' and jsonb_typeof(v_active -> 'form') is distinct from 'object' then
+    return jsonb_build_object('problem', 'is made on a base standard without the declared form (TB01-FORM)');
+  end if;
+  if (select count(distinct z -> 'lot' ->> 'id') from jsonb_array_elements(case when jsonb_typeof(p_lots) = 'array' then p_lots else '[]'::jsonb end) z)
+     is distinct from v_n::bigint then
+    return jsonb_build_object('problem', 'names a lot twice, or a lot without an id (TB01-LOTS)');
+  end if;
   select b into v_line from jsonb_array_elements(v_bom) b where b ->> 'id' = v_active ->> 'bomLine' limit 1;
   if v_line is null then
     return jsonb_build_object('problem', format('names the active %s, which is no BOM line of the MBR', coalesce(v_active ->> 'bomLine', '(none)')));

@@ -25,7 +25,12 @@
 --     (plant.record_instrument_use, recipe-core 0403: calibrated, its per-use or daily check passed; IN-25 (b)); on GMP
 --     it names the consumption of the lot made in this transaction for this batch, of exactly its net in the lot's
 --     unit, which no other entry names (recipe.consume_lot, recipe-core 0430: genealogy INV-13, INV-14), and in the
---     sandbox it names none (test lots have no stock).
+--     sandbox it names none (test lots have no stock); each lot of the governing calculation still has the approved
+--     result the calculation used (a result QC superseded since stops the step's dispensing, TB01-RESULT-SUPERSEDED);
+--     a lot out of rotation raises FEFO_OVERRIDE in the same row;
+--   * a calculation beyond the MBR's adjustment cap raises POTENCY_ADJUSTMENT_CAP in the same row, holding the steps
+--     after it until a deviation; and the step closes with a line outside its tolerance only with
+--     DISPENSE_OUT_OF_TOLERANCE raised at the step, holding the steps after it (tab.tb01_close_problem).
 --
 -- New functions are owned by ebmr_owner; the trigger function is SECURITY DEFINER; every function pins its search_path
 -- with pg_temp last. tab.tb01_first_expiring is granted to the application (the server proposes the lot from it).
@@ -163,6 +168,68 @@ language sql immutable set search_path = pg_catalog, recipe, pg_temp as $$
   select p_value * power(10::numeric, recipe.metric_mass_exponent(p_from) - recipe.metric_mass_exponent(p_to))
 $$;
 
+-- PR-18, PR-19, DI-26: whether row p_new raised (newly against p_old) an exception of type p_type at step instance p_key
+-- of severity p_severity; with p_held, one that holds the steps after it until a deviation is linked (as tb-01.ts raises
+-- POTENCY_ADJUSTMENT_CAP and DISPENSE_OUT_OF_TOLERANCE). With p_old NULL, raised at any time.
+create function tab.tb01_raised(p_old jsonb, p_new jsonb, p_key text, p_type text, p_severity text, p_held boolean) returns boolean
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select exists (
+    select 1 from jsonb_each(case when jsonb_typeof(p_new -> 'exceptions') = 'object' then p_new -> 'exceptions' else '{}'::jsonb end) x
+     where (p_old is null or not coalesce((p_old -> 'exceptions') ? x.key, false))
+       and x.value ->> 'type' = p_type and x.value -> 'source' ->> 'stepKey' = p_key and x.value ->> 'severity' = p_severity
+       and (not p_held or ((x.value -> 'deviationRequired') = 'true'::jsonb and x.value -> 'block' ->> 'until' = 'DEVIATION'
+                           and jsonb_typeof(x.value -> 'block' -> 'downstream') = 'object')))
+$$;
+
+-- PR-19 (header, review item 1): why a TB-01 step instance row p_new closes (IN_PROGRESS to AWAITING_VERIFICATION or
+-- COMPLETED) does not stand: a line whose dispensed total is outside the MBR's tolerance of its governing target closes
+-- only with DISPENSE_OUT_OF_TOLERANCE raised at the step, holding the steps after it until a deviation is linked.
+create function tab.tb01_close_problem(p_content jsonb, p_old jsonb, p_new jsonb) returns text
+language plpgsql immutable set search_path = pg_catalog, tab, recipe, pg_temp as $$
+declare
+  k       text;
+  s       jsonb;
+  v_node  jsonb;
+  v_cfg   jsonb;
+  v_calc  jsonb;
+  v_unit  text;
+  v_line  text;
+  v_tgt   numeric;
+  v_tol   numeric;
+  v_total numeric;
+begin
+  for k, s in select x.key, x.value from jsonb_each(case when jsonb_typeof(p_new -> 'steps') = 'object' then p_new -> 'steps' else '{}'::jsonb end) x
+               where x.value ->> 'status' in ('AWAITING_VERIFICATION', 'COMPLETED') and p_old -> 'steps' -> x.key ->> 'status' = 'IN_PROGRESS' order by x.key loop
+    v_node := recipe.step_node(p_content, s ->> 'step');
+    continue when (v_node -> 'block' ->> 'type') is distinct from 'TB-01';
+    v_cfg := case when jsonb_typeof(v_node -> 'config') = 'object' then v_node -> 'config' else '{}'::jsonb end;
+    select y.value -> 'data' into v_calc from jsonb_each(p_new -> 'entries') y
+     where y.value ->> 'stepKey' = k and y.value ->> 'kind' = 'POTENCY_CALCULATION' order by (y.value ->> 'recordedSeq')::numeric desc limit 1;
+    if v_calc is null then
+      return format('closes TB-01 step %s without a potency calculation (TB01-NO-CALCULATION; PR-19)', k);
+    end if;
+    v_unit := v_calc -> 'active' ->> 'unit';
+    for v_line, v_tgt, v_tol in
+      select v_calc -> 'active' ->> 'bomLine', (select sum((r ->> 'target')::numeric) from jsonb_array_elements(v_calc -> 'results') r), (v_cfg -> 'tolerancePercent' ->> 'active')::numeric
+      union all
+      select v_calc -> 'excipient' ->> 'bomLine', (v_calc -> 'excipient' ->> 'target')::numeric, (v_cfg -> 'tolerancePercent' ->> 'excipient')::numeric
+       where jsonb_typeof(v_calc -> 'excipient') = 'object'
+    loop
+      select sum(tab.tb01_mass_in((y.value -> 'data' ->> 'net')::numeric, y.value -> 'data' ->> 'unit', v_unit)) into v_total
+        from jsonb_each(p_new -> 'entries') y
+       where y.value ->> 'stepKey' = k and y.value ->> 'kind' = 'CONTAINER_WEIGHING' and y.value -> 'data' ->> 'bomLine' = v_line;
+      if v_total is null or v_tgt is null or v_tol is null or abs(v_total - v_tgt) > abs(v_tgt) * v_tol / 100 then
+        if not tab.tb01_raised(null, p_new, k, 'DISPENSE_OUT_OF_TOLERANCE', 'ACTION', true) then
+          return format('closes TB-01 step %s with %s %s of %s dispensed against its target %s (tolerance %s %%) and no DISPENSE_OUT_OF_TOLERANCE raised (PR-19)',
+                        k, coalesce(trim_scale(v_total)::text, '(nothing)'), v_unit, v_line, coalesce(v_tgt::text, '(none)'), coalesce(v_tol::text, '(none)'));
+        end if;
+      end if;
+    end loop;
+  end loop;
+  return null;
+end
+$$;
+
 -- PR-18, PR-19, PR-20, IN-23, IN-24, IN-25, DI-33, INV-13, INV-14 (header): why the entries a row adds at TB-01 steps of
 -- batch p_batch (MBR content p_content; state p_old -> p_new; command p_command) do not stand; NULL when they do.
 create function tab.tb01_entry_problem(p_batch uuid, p_content jsonb, p_old jsonb, p_new jsonb, p_command jsonb) returns text
@@ -244,6 +311,12 @@ begin
         return format('%s stores %s %s, where the calculation from its inputs gives %s (TB01-RECOMPUTE; PR-19, DI-33)', v_what, v_member,
                       left(coalesce((d -> v_member)::text, '(no such member)'), 400), left(coalesce((v_want -> v_member)::text, '(no such member)'), 400));
       end if;
+      -- Beyond the MBR's adjustment cap the row raises POTENCY_ADJUSTMENT_CAP, holding the steps after it (review item 1).
+      if jsonb_typeof(v_cfg -> 'adjustmentCapPercent') = 'string' and (d ->> 'adjustmentPercent')::numeric > (v_cfg ->> 'adjustmentCapPercent')::numeric
+         and not tab.tb01_raised(p_old, p_new, e ->> 'stepKey', 'POTENCY_ADJUSTMENT_CAP', 'ACTION', true) then
+        return format('%s adjusts the active by %s %%, beyond the MBR''s cap of %s %%, and the row raises no POTENCY_ADJUSTMENT_CAP holding the steps after it (PR-19, PR-04)',
+                      v_what, d ->> 'adjustmentPercent', v_cfg ->> 'adjustmentCapPercent');
+      end if;
       continue;
     end if;
     -- CONTAINER_WEIGHING
@@ -263,6 +336,15 @@ begin
                         where z -> 'lot' -> 'id' = c -> 'lot' -> 'id') then
       return format('%s dispenses the active from lot %s, which is not a lot of the governing calculation (TB01-LOT-NOT-CALCULATED; PR-19)', v_what, c -> 'lot' ->> 'id');
     end if;
+    -- Each lot's approved result is still the one the calculation used (review item 2): a result QC superseded since
+    -- stops the dispensing of the step.
+    select z -> 'lot' ->> 'id' into v_member
+      from jsonb_array_elements(case when jsonb_typeof(v_calc -> 'lots') = 'array' then v_calc -> 'lots' else '[]'::jsonb end) z
+     where (z -> 'assay') is distinct from tab.lot_assay_of(z -> 'lot' ->> 'id', p_batch) limit 1;
+    if v_member is not null then
+      return format('%s is dispensed against a calculation whose approved result of lot %s has been superseded since; the targets no longer stand on the current result (TB01-RESULT-SUPERSEDED; PR-19, DI-33)',
+                    v_what, v_member);
+    end if;
     -- FEFO (PR-18).
     select coalesce(array_agg(distinct y.value -> 'data' -> 'lot' ->> 'id'), '{}') into v_used from jsonb_each(e0) y
      where y.value ->> 'stepKey' = e ->> 'stepKey' and y.value ->> 'kind' = 'CONTAINER_WEIGHING' and y.value -> 'data' ->> 'bomLine' = v_line;
@@ -275,6 +357,9 @@ begin
     if not v_need and c ? 'fefoReason' then
       return format('%s gives a reason for lot %s, which is the first-expiring usable lot or one already dispensed here: a reason is recorded only for another lot (TB01-FEFO; PR-18)',
                     v_what, c -> 'lot' ->> 'id');
+    end if;
+    if v_need and not tab.tb01_raised(p_old, p_new, e ->> 'stepKey', 'FEFO_OVERRIDE', 'ALERT', false) then
+      return format('%s dispenses lot %s out of stock rotation and the row raises no FEFO_OVERRIDE for the rotation report (TB01-FEFO; PR-18)', v_what, c -> 'lot' ->> 'id');
     end if;
     -- The balance (IN-25 (b)).
     if not exists (select 1 from plant.instrument_use u join plant.equipment q on q.id = u.equipment_id
@@ -348,14 +433,19 @@ language plpgsql security definer set search_path = pg_catalog, tab, recipe, pg_
 declare
   r         recipe.execution_command;
   v_problem text;
+  v_content jsonb;
 begin
   if not exists (select 1
                    from jsonb_object_keys(case when jsonb_typeof(new.state -> 'entries') = 'object' then new.state -> 'entries' else '{}'::jsonb end) k
-                  where not coalesce((old.state -> 'entries') ? k, false)) then
+                  where not coalesce((old.state -> 'entries') ? k, false))
+     and not exists (select 1 from jsonb_each(case when jsonb_typeof(new.state -> 'steps') = 'object' then new.state -> 'steps' else '{}'::jsonb end) x
+                      where x.value ->> 'status' in ('AWAITING_VERIFICATION', 'COMPLETED') and old.state -> 'steps' -> x.key ->> 'status' = 'IN_PROGRESS') then
     return null;
   end if;
   select * into r from recipe.execution_command c where c.batch_id = new.batch_id and c.seq = new.last_seq;
-  v_problem := tab.tb01_entry_problem(new.batch_id, recipe.batch_mbr_content(new.batch_id), old.state, new.state, case when r.kind = 'COMMAND' then r.command else '{}'::jsonb end);
+  v_content := recipe.batch_mbr_content(new.batch_id);
+  v_problem := coalesce(tab.tb01_entry_problem(new.batch_id, v_content, old.state, new.state, case when r.kind = 'COMMAND' then r.command else '{}'::jsonb end),
+                        tab.tb01_close_problem(v_content, old.state, new.state));
   if v_problem is not null then
     raise exception using errcode = 'P0001',
       message = format('This %s row is refused: %s. [EBMR-EXE-240]', coalesce(r.command_type, r.kind, 'unknown'), v_problem);
@@ -367,6 +457,7 @@ $$;
 create trigger ab_tb01_entry_guard after update on recipe.execution_state
   for each row execute function tab.tb01_entry_check();
 
+revoke all on function tab.tb01_raised(jsonb, jsonb, text, text, text, boolean), tab.tb01_close_problem(jsonb, jsonb, jsonb) from public;
 revoke all on function tab.tb01_first_expiring(uuid, text, text[], timestamptz), tab.tb01_mass_in(numeric, text, text),
                        tab.tb01_entry_problem(uuid, jsonb, jsonb, jsonb, jsonb), tab.tb01_entry_check() from public;
 revoke all on function tab.tb01_reservation_for(uuid, text, numeric, text) from public;
