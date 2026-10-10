@@ -171,7 +171,7 @@ describe('engine commands are classified exhaustively', () => {
     const signed = SignedIntent.options.map((o) => o.shape.type.value).sort();
     expect(plain).toEqual([...CLIENT_PLAIN_TYPES].sort());
     expect(signed).toEqual([...CLIENT_SIGNED_TYPES].sort());
-    expect(Object.keys(ENGINE_COMMAND_CLASSES)).toHaveLength(21);
+    expect(Object.keys(ENGINE_COMMAND_CLASSES)).toHaveLength(23);
   });
 });
 

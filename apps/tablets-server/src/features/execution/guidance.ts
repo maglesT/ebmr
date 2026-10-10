@@ -394,10 +394,10 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-EXE-171': {
     status: 403,
     kind: 'NOT_ALLOWED',
-    whatHappened: 'The approval was signed by a person who may not approve this action (a skip or a correction by a supervisor or QA, a void by QA, an invalidation by the quality unit, an abort by the head of production and QA). Nothing was saved.',
+    whatHappened: 'The approval was signed by a person who may not approve this action (a skip or a correction by a supervisor or QA, a void by QA, an invalidation by the quality unit, an abort by the head of production and QA, a hand-over by a supervisor and QA). Nothing was saved.',
     whatYouCanDo: ['Ask a person with the approving role to sign the approval.'],
     whoCanHelp: [SUPERVISOR, QA],
-    controls: ['DI-17', 'DI-24', 'DI-29', 'PR-13', 'DI-35'],
+    controls: ['DI-17', 'DI-24', 'DI-29', 'PR-13', 'DI-35', 'PR-14'],
   },
   'EBMR-EXE-172': {
     status: 422,
@@ -454,6 +454,15 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whatYouCanDo: ['Stop and report it.'],
     whoCanHelp: [QA, ADMIN],
     controls: ['DI-34', 'DI-24'],
+  },
+  // The hand-over of a step in progress (recipe-core 0461-0463; outline 5.2.3, L-07; PR-14, INV-03, INV-31).
+  'EBMR-EXE-185': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The hand-over could not be recorded as sent: a step in progress is handed over by a supervisor with QA approval, neither of them on the step, to another performer, who alone takes it over; the person who left the step no longer acts in it, and its verifier is none of them. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and follow its hand-over as shown.'],
+    whoCanHelp: [SUPERVISOR, QA],
+    controls: ['PR-14', 'INV-03', 'DI-14', 'DI-24'],
   },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   // A command from a screen that shows another version of the run: recorded as a refused row, with no scale reading

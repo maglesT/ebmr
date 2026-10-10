@@ -72,7 +72,7 @@ export interface AggregateContent {
 }
 
 /** Exception types raised by acts about a step (signing, deciding, a person's report), not by its data. */
-export const ACT_EXCEPTION_TYPES: ReadonlySet<string> = new Set(['WITNESS_LATE', 'OPERATOR_RAISED', 'HOLD_POINT_NOT_APPROVED', 'STEP_SKIPPED', 'EXECUTED_TARGET_CHANGED']);
+export const ACT_EXCEPTION_TYPES: ReadonlySet<string> = new Set(['WITNESS_LATE', 'OPERATOR_RAISED', 'HOLD_POINT_NOT_APPROVED', 'STEP_SKIPPED', 'EXECUTED_TARGET_CHANGED', 'STEP_HANDED_OVER']);
 
 /**
  * True when a data point is the endpoint of a repeat-until loop recorded inside that loop: its limits are
@@ -476,7 +476,7 @@ export interface SignatureSubject {
  * hold-point signatures; the stage frame for a sign-off; the exception for its disposition; the data point for a
  * correction and its approval, and for the approval of its invalidation; the batch record (`batch_record`,
  * `<batch id>:record@<state version>`, whose content the database provides: recipe-core sql 0450) for the approval of a skip or of a
- * void, the approvals of an abort and the signature of a cancellation. Each subject's content is one its own command
+ * void, the approvals of an abort, the signature of a cancellation and the two signatures of a hand-over. Each subject's content is one its own command
  * leaves unchanged and one that exists before the act: a void adds the voided attempt to its step's content (an
  * approval on the step would be superseded by the very act it approved), and a step about to be skipped has no stored
  * content yet (a phase's first version is stored when a person first works on it, storedOnCreation).
@@ -505,6 +505,8 @@ export function signatureSubjects(s: BatchState, cmd: Command): SignatureSubject
       return cmd.approvals.map((a) => sub(a.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s)));
     case 'CANCEL_BATCH':
       return [sub(cmd.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))];
+    case 'HAND_OVER_STEP':
+      return [sub(cmd.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s)), sub(cmd.approval.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))];
     default:
       return [];
   }

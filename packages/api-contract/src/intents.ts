@@ -154,6 +154,9 @@ export const ENGINE_COMMAND_CLASSES = {
   INVALIDATE_RESULT: 'LATER',
   ABORT_BATCH: 'LATER',
   CANCEL_BATCH: 'LATER',
+  // Phase 3 slice 2: hand-over of a step in progress and its take-over (L-07); screens in slice 6.
+  HAND_OVER_STEP: 'LATER',
+  TAKE_OVER_STEP: 'LATER',
 } as const satisfies Record<engine.CommandType, CommandClass>;
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;

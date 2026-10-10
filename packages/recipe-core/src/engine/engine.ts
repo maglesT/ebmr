@@ -27,12 +27,14 @@ import {
   completeLoopIteration,
   dispositionHoldPoint,
   finalisePerform,
+  handOverStep,
   recordData,
   recordEntry,
   requestSkip,
   signOffStage,
   signPerformed,
   startStep,
+  takeOverStep,
   verify,
 } from './steps.ts';
 import { stepSigningContent } from './signing-content.ts';
@@ -99,6 +101,10 @@ function dispatch(tx: Tx, cmd: Command): void {
       return abortBatch(tx, cmd);
     case 'CANCEL_BATCH':
       return cancelBatch(tx, cmd);
+    case 'HAND_OVER_STEP':
+      return handOverStep(tx, cmd);
+    case 'TAKE_OVER_STEP':
+      return takeOverStep(tx, cmd);
   }
 }
 
@@ -133,7 +139,7 @@ function finalisePhase(base: Tx, target: SignatureTarget): void {
  */
 function resignAfterChange(before: BatchState, tx: Tx): void {
   for (const inst of Object.values(tx.s.steps)) {
-    if (inst.status !== 'IN_PROGRESS') continue;
+    if (inst.status !== 'IN_PROGRESS' && inst.status !== 'ATTEMPT_HANDED_OVER') continue;
     const prior = before.steps[inst.key];
     if (!prior) continue;
     const priorIds = new Set(prior.signatures.filter((g) => g.valid && g.role === 'PERFORMED').map((g) => g.id));

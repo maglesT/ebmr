@@ -23,7 +23,7 @@ import type { GraphNode } from '../flow/graph.ts';
 import { evaluateCondition } from './advance.ts';
 import { computeCalculations, evaluateValue, missingData, storePoint, validateValue } from './data.ts';
 import { engineDraft } from './exceptions.ts';
-import { addUnique, isBlankText, hasRole, MEANINGS, qualityUnitRoles, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, requireStep, requireInstance, requireStepStatus, useSignature } from './guards.ts';
+import { addUnique, isBlankText, requireNotHandedOver, hasRole, MEANINGS, qualityUnitRoles, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, requireStep, requireInstance, requireStepStatus, useSignature } from './guards.ts';
 import { ctxKey, refuse, type Tx } from './tx.ts';
 import type { CorrectEntryCommand, DataPoint, InvalidateResultCommand, StepInstance, VoidAttemptCommand } from './types.ts';
 import { makeView } from './view.ts';
@@ -35,6 +35,11 @@ function requirePoint(tx: Tx, id: string): DataPoint {
   const p = tx.s.points[id];
   if (!p) refuse('ENG-UNKNOWN-POINT', `There is no data point ${id} in this batch`, ['DI-24']);
   return p;
+}
+
+/** A step being handed over (L-07) waits for the incoming performer before its data is changed. */
+function requireNotBeingHandedOver(inst: StepInstance, action: string): void {
+  if (inst.status === 'ATTEMPT_HANDED_OVER') refuse('ENG-STEP-STATUS', `Step ${inst.key} is being handed over: ${action} waits until the incoming performer has taken it over`, ['DI-34', 'DI-24']);
 }
 
 /** A step that was signed must be re-verified by an uninvolved person; its stage sign-off becomes invalid. */
@@ -197,6 +202,7 @@ export function correctEntry(tx: Tx, cmd: CorrectEntryCommand): void {
   const step = tx.def.steps.get(old.step);
   const param = tx.def.analysis.parameters.get(old.item);
   if (!inst || !step || !param) refuse('ENG-UNKNOWN-POINT', `Data point ${old.id} has no step`, ['DI-24']);
+  requireNotBeingHandedOver(inst, 'correcting its data');
   const a = requirePerson(tx);
   requireRole(a, [...step.performRoles, ...tx.def.policy.supervisorRoles, ...tx.def.policy.qaRoles], `correct data of ${step.id}`);
   const reason = requireReason(cmd.reason, 'A correction');
@@ -254,6 +260,7 @@ export function voidAttempt(tx: Tx, cmd: VoidAttemptCommand): void {
   requireStepStatus(inst, ['IN_PROGRESS'], 'voiding an attempt');
   const a = requirePerson(tx);
   requireRole(a, step.performRoles, `void an attempt in ${step.id}`);
+  requireNotHandedOver(inst, a.id, 'voiding an attempt');
   const reason = requireReason(cmd.reason, 'A void');
   let approvedBy: string | undefined;
   if (tx.def.policy.voidNeedsQaApproval || cmd.approval) {
@@ -302,6 +309,7 @@ export function invalidateResult(tx: Tx, cmd: InvalidateResultCommand): void {
   const inst = tx.s.steps[p.stepKey];
   const step = tx.def.steps.get(p.step);
   if (!inst || !step) refuse('ENG-UNKNOWN-POINT', `Data point ${p.id} has no step`, ['DI-29']);
+  requireNotBeingHandedOver(inst, 'invalidating its result');
   const a = requirePerson(tx);
   const reason = requireReason(cmd.reason, 'An invalidation');
   if (typeof cmd.investigationRef !== 'string' || isBlankText(cmd.investigationRef)) {

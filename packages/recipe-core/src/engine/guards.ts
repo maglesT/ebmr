@@ -36,6 +36,8 @@ export const MEANINGS = {
   /** NEW: a supervisor cancels an issued batch before anything started. */
   CANCELLED: 'BATCH_CANCELLED',
   REPROCESSING_AUTHORISED: 'DEVIATION_AUTHORISED',
+  /** NEW: a supervisor and QA approve the hand-over of a step in progress (L-07). */
+  HANDOVER_APPROVED: 'HANDOVER_APPROVED',
 } as const;
 
 /**
@@ -240,6 +242,18 @@ export function requireNotBlocked(tx: Tx, inst: StepInstance, phase: 'START' | '
 /** Persons involved in a step (performed, entered data, corrected): never its verifier (INV-03). */
 export function involvedIn(inst: StepInstance): Set<string> {
   return new Set([...inst.performers, ...inst.dataEnterers, ...inst.correctors, ...inst.performedSigners]);
+}
+
+/** The performers who handed the step over and left it (L-07): their entries stay theirs; they no longer act in it. */
+export function handedOverFrom(inst: Pick<StepInstance, 'handOvers'>): Set<string> {
+  return new Set((inst.handOvers ?? []).map((h) => h.outgoing));
+}
+
+/** A performer who handed the step over does not act in it again (L-07; DI-14): the incoming performer completes it. */
+export function requireNotHandedOver(inst: StepInstance, person: string | undefined, action: string): void {
+  if (person !== undefined && handedOverFrom(inst).has(person)) {
+    refuse('ENG-HANDED-OVER', `${person} handed step ${inst.key} over and no longer acts in it: ${action} is for the performer who took it over`, ['DI-14', 'PR-14']);
+  }
 }
 
 export function addUnique(list: string[], value: string): void {

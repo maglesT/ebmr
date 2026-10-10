@@ -21,6 +21,19 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  * version (EBMR-EXE-061), because replay compares every stored row's events and state with the engine's. Any change
  * of what `issue`, `step`, `sweep` or `prepareForSignature` answer for the same input needs a new version, recorded
  * with its output fingerprint in test/engine/engine-version.test.ts. Semantic changes:
+ *  - 1.6.0 (Phase 3 slice 2): the change paths and the hand-over. INVALIDATE_RESULT needs the assignable cause its
+ *    investigation concluded (assignableCause, kept in the invalidation record and named in the RESULT_INVALIDATED title;
+ *    ENG-INVALIDATE-INVESTIGATION), a reference with a visible character (as ENG-REASON reads it) and the quality unit's
+ *    approval (QA or QA_REVIEWER); ABORT_BATCH needs its checklist confirmed (outputs held, equipment set
+ *    dirty, materials secured; ENG-ABORT-CHECKLIST), exactly two approvals, and accepts the QA reviewer as the quality
+ *    unit's approver, the abort record holding the checklist (recipe-core 0450-0453). New: HAND_OVER_STEP and
+ *    TAKE_OVER_STEP with the step status ATTEMPT_HANDED_OVER (L-07): a step in progress is handed over by a production
+ *    supervisor (HANDOVER_APPROVED) with QA's approval, neither of them the outgoing or incoming performer nor involved,
+ *    with a reason; it raises STEP_HANDED_OVER (an act, not data of the step) and requires the step's check by a second
+ *    person; the named incoming performer takes it over; the outgoing performer no longer acts in it and is not asked to
+ *    sign it performed (ENG-HANDED-OVER), their entries staying theirs and valid; no correction or invalidation changes
+ *    a step waiting for its incoming performer, and a PERFORMED signature on it is made invalid when its data changes, as
+ *    on a step in progress. The database requires the same (recipe-core 0461-0463).
  *  - 1.5.0: once a witness is no longer possible (the witness window after the act has passed, or the run moved on: the
  *    kernel refuses a witness signature then, EBMR-ESIG-051/052), a step whose check is a witness (the MBR's WITNESSED,
  *    or a critical value typed by hand without the photo or printout its MBR names, 1.4.0) is checked by its later review
@@ -50,7 +63,7 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  *    database's blank test (kernel.is_blank) refuses it.
  *  - 1.0.0: Phase 2 first release.
  */
-export const ENGINE_VERSION = '1.5.0';
+export const ENGINE_VERSION = '1.6.0';
 export const STATE_SCHEMA = 'ebmr.batch-execution-state';
 
 /** Trusted server time of the command's transaction (kernel clock; `recorded_at`), UTC epoch microseconds. */
@@ -315,6 +328,33 @@ export interface CancelBatchCommand extends CommandBase {
   readonly signature: SignatureRef;
 }
 
+/**
+ * Hand-over of a step in progress (outline 5.2.3, L-07): a performer leaves the step (end of shift, a lost
+ * qualification) and another performer completes it. Recorded by a production supervisor, who signs HANDOVER_APPROVED
+ * in this command, with QA's approval (HANDOVER_APPROVED, signed in its own ceremony): two different persons, neither of
+ * them the outgoing or the incoming performer nor involved in the step. The step becomes ATTEMPT_HANDED_OVER until the
+ * named incoming performer takes it over (TAKE_OVER_STEP). The outgoing performer's entries stay attributed to them and
+ * valid; they no longer act in the step and are not asked to sign it performed; the incoming performer signs for their
+ * own entries; the step's check by a second person becomes mandatory, and the verifier covers every entry (INV-03).
+ */
+export interface HandOverStepCommand extends CommandBase, StepTarget {
+  readonly type: 'HAND_OVER_STEP';
+  /** Person id of the performer who leaves the step: one who started it, entered data in it or signed it. */
+  readonly outgoing: string;
+  /** Person id of the performer who takes the step over (TAKE_OVER_STEP). */
+  readonly incoming: string;
+  readonly reason: string;
+  /** The supervisor's own HANDOVER_APPROVED signature, made in this command. */
+  readonly signature: SignatureRef;
+  /** QA's HANDOVER_APPROVED approval. */
+  readonly approval: Approval;
+}
+
+/** The incoming performer named by the step's last hand-over takes the step over: ATTEMPT_HANDED_OVER -> IN_PROGRESS. */
+export interface TakeOverStepCommand extends CommandBase, StepTarget {
+  readonly type: 'TAKE_OVER_STEP';
+}
+
 export type Command =
   | StartStepCommand
   | RecordDataCommand
@@ -336,7 +376,9 @@ export type Command =
   | VoidAttemptCommand
   | InvalidateResultCommand
   | AbortBatchCommand
-  | CancelBatchCommand;
+  | CancelBatchCommand
+  | HandOverStepCommand
+  | TakeOverStepCommand;
 
 export type CommandType = Command['type'];
 
@@ -356,7 +398,7 @@ export interface SignatureTarget {
 
 export type BatchStatus = 'ISSUED' | 'IN_PROGRESS' | 'ON_HOLD' | 'EXECUTION_COMPLETE' | 'ABORTED' | 'CANCELLED';
 
-export type StepStatus = 'PENDING' | 'ENABLED' | 'IN_PROGRESS' | 'AWAITING_VERIFICATION' | 'COMPLETED' | 'NOT_APPLICABLE' | 'SKIPPED';
+export type StepStatus = 'PENDING' | 'ENABLED' | 'IN_PROGRESS' | 'ATTEMPT_HANDED_OVER' | 'AWAITING_VERIFICATION' | 'COMPLETED' | 'NOT_APPLICABLE' | 'SKIPPED';
 
 export const TERMINAL_STEP_STATUSES: readonly StepStatus[] = ['COMPLETED', 'NOT_APPLICABLE', 'SKIPPED'];
 
@@ -401,10 +443,28 @@ export interface StepInstance {
   /** Snapshot of the values the phase reads (targets shown to the operator), with provenance. */
   targets: Record<string, { value: DataValue; points: string[]; derived: string[] }>;
   skip?: { reason: string; requestedBy: string; approvedBy: string; signature: string; at: bigint };
+  /** The hand-overs of the step (L-07), in order; present once the step was handed over. */
+  handOvers?: HandOverRecord[];
   notApplicable?: { reason: 'BRANCH_NOT_TAKEN'; construct: string };
   disposition?: { value: string; positive: boolean; by: string; signature: string; at: bigint; comment?: string };
   /** Block-computed items materialised at the PERFORMED transition, by item: the entry-set fingerprint used. */
   blockComputed: Record<string, string>;
+}
+
+/** One hand-over of a step in progress (HAND_OVER_STEP; L-07). */
+export interface HandOverRecord {
+  outgoing: string;
+  incoming: string;
+  reason: string;
+  /** The supervisor who recorded it, and their HANDOVER_APPROVED signature. */
+  supervisor: string;
+  supervisorSignature: string;
+  /** QA's approval and its HANDOVER_APPROVED signature. */
+  qaApprover: string;
+  qaSignature: string;
+  at: bigint;
+  /** When the incoming performer took the step over (TAKE_OVER_STEP). */
+  takenOverAt?: bigint;
 }
 
 export interface StoredEvaluation {
@@ -694,6 +754,7 @@ export type EngineEvent = EventBase &
     | { type: 'SUBLOT_CREATED'; subLot: string; construct: string; index: number; context: string }
     | { type: 'DATA_RECORDED'; point: string; stepKey: string; item: string; attempt: number; version: number; by: string; failed: boolean; flags: string[] }
     | { type: 'DATA_CORRECTED'; point: string; supersedes: string; by: string; reason: string }
+    | { type: 'STEP_HANDED_OVER'; stepKey: string; outgoing: string; incoming: string; by: string; approvedBy: string; reason: string }
     | { type: 'ATTEMPT_VOIDED'; point: string; stepKey: string; item: string; by: string; reason: string }
     | { type: 'RESULT_INVALIDATED'; point: string; by: string; investigationRef: string }
     | { type: 'ENTRY_RECORDED'; entry: string; stepKey: string; kind: string; by: string }
@@ -703,7 +764,7 @@ export type EngineEvent = EventBase &
     | { type: 'EXCEPTION_RAISED'; exception: string; exceptionType: string; severity: ExceptionSeverity; tier?: LimitTier; title: string; controls: string[] }
     | { type: 'DEVIATION_LINKED'; exception: string; deviationRef: string; by: string }
     | { type: 'EXCEPTION_DISPOSITIONED'; exception: string; outcome: string; by: string }
-    | { type: 'INVOLVEMENT'; stepKey: string; person: string; involvement: 'STARTED' | 'ENTERED_DATA' | 'PERFORMED' | 'CORRECTED' | 'VOIDED' | 'VERIFIED' | 'WITNESSED' | 'APPROVED_SKIP' | 'SIGNED_HOLD_POINT' | 'DISPOSITIONED_EXCEPTION' }
+    | { type: 'INVOLVEMENT'; stepKey: string; person: string; involvement: 'STARTED' | 'ENTERED_DATA' | 'PERFORMED' | 'CORRECTED' | 'VOIDED' | 'VERIFIED' | 'WITNESSED' | 'APPROVED_SKIP' | 'SIGNED_HOLD_POINT' | 'DISPOSITIONED_EXCEPTION' | 'TOOK_OVER' }
     | { type: 'SIGNATURE_APPLIED'; signature: string; meaning: string; signer: string; stepKey?: string; subject: string }
     | { type: 'SIGNATURES_INVALIDATED'; signatures: string[]; stepKey: string; reason: string }
     | { type: 'STAGE_SIGNED_OFF'; stageKey: string; by: string; statement: StageSummary['statement'] }

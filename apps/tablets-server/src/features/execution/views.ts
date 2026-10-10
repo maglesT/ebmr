@@ -71,6 +71,7 @@ export const STEP_STATUS_TEXT: Readonly<Record<engine.StepStatus, string>> = {
   PENDING: 'Not yet available',
   ENABLED: 'Ready to start',
   IN_PROGRESS: 'In progress',
+  ATTEMPT_HANDED_OVER: 'Handed over, waiting for the incoming performer',
   AWAITING_VERIFICATION: 'Performed, waiting for verification',
   COMPLETED: 'Completed',
   NOT_APPLICABLE: 'Not applicable',

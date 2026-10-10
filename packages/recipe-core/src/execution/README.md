@@ -648,6 +648,18 @@ one plain-language business entry on the chain `batch:<id>`.
   invalidation only with its investigation and assignable cause and the original kept, a correction from fail to pass
   only with evidence and QA approval (INV-41), an abort with its checklist and two approvers, a cancellation only before
   anything started, and no other row aborts, cancels or revives a batch (EBMR-EXE-172 to 178).
+- The hand-over of a step in progress (sql 0461-0463; outline 5.2.3, L-07; PR-14, INV-03, INV-31, DI-24, DI-26;
+  engine 1.6.0): HAND_OVER_STEP (STEP.SUPERVISE, signed HANDOVER_APPROVED by the recording supervisor and approved
+  HANDOVER_APPROVED by QA, both on the batch record) and TAKE_OVER_STEP (the named incoming performer, unsigned) have
+  their permission rows; `check_approver_roles` reads the supervisor's and QA's engine roles from their signatures
+  (EBMR-EXE-171). `hand_over_problem` (trigger `zzo_execution_hand_over`) holds what a row may store: a hand-over of a
+  step in progress from a person involved in it to another person, by a supervisor and QA neither of them nor involved,
+  with a reason, recorded exactly in the step's `handOvers`, with the second person's check required and exactly one
+  STEP_HANDED_OVER exception (the register entry); the take-over only by the incoming performer the last hand-over
+  names; no act of the outgoing performer in the step afterwards; no correction or invalidation while the step waits;
+  and no VERIFY by a person the accepted rows name as involved, outgoing or incoming performer included (EBMR-EXE-185).
+  `step_status_problem`, `command_step_key`, `execution_state_binding_check` and `signature_invalidation_problem` know
+  the status ATTEMPT_HANDED_OVER and the two commands.
 
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 
@@ -669,6 +681,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347, 0348; kernel migrations 1030, 1040; tablets sql 0640 for the manual-weighing basis): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them (a number in a compound only in the engine's shapes), in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
 | 160-165 | the exception register (sql 0440): the state's exceptions and the register disagree, an exception changed from as raised or removed (160); a deviation link or a closing other than the exception's own ATTACH_DEVIATION or signed DISPOSITION_EXCEPTION (161); a QA-only exception dispositioned without a QA role of the batch policy (162); a disposition by its raiser or a person involved in the raising step (163); a QA review act out of order or without its text or deviation reference (164), or by a person who took part in the exception (165) |
 | 170-178 | the change paths (sql 0450-0453; Phase 3 slice 2): a frozen identity column of an issued batch changed (170); an approval signed by a person without the approving role, read from the authority behind the signature (171); a skip of a step the MBR does not allow to skip or that is never skipped (172); a void of an attempt that holds a result, or that stores another attempt (173); an invalidation without its investigation or assignable cause, or that does not keep the original (174); a correction from fail to pass without evidence or QA approval (175, INV-41); an abort without its reason, checklist or abort record (176); a cancellation after a step started (177); a batch aborted, cancelled or revived by any other row (178) |
+| 185-189 | the hand-over of a step in progress (sql 0461-0463; Phase 3 slice 2, L-07): a hand-over, take-over, act of an outgoing performer, change of a step waiting for its incoming performer, or verification by an involved person otherwise than the engine allows (185) |
 
 ## TypeScript
 
@@ -1101,6 +1114,11 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
+- `db-guards-hand-over.test.ts` (Phase 3 slice 2; sql 0461-0463): the hand-over of a step in progress recorded with
+  a supervisor's signature and QA's approval and registered as STEP_HANDED_OVER, refused forged (without the approval,
+  from a person not on the step, approved by the incoming performer, without its exception, with another reason); the
+  take-over only by the named incoming performer; the outgoing performer's later act refused; the verifier none of the
+  persons involved (INV-31, PR-14); a direct write refused.
 - `db-guards-change-paths.test.ts` (Phase 3 slice 2; sql 0450-0453): each change path recorded when its conditions hold
   and refused otherwise, honestly and forged through the store: a void only before a result and QA-approved, an
   invalidation with its investigation and cause keeping the original and invalidating the step's signatures on the

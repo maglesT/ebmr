@@ -15,7 +15,7 @@ import { ManifestationView } from './esig.ts';
 import { ProductRef } from './designer.ts';
 
 export const BatchStatus = z.enum(['ISSUED', 'IN_PROGRESS', 'ON_HOLD', 'EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED']);
-export const StepStatus = z.enum(['PENDING', 'ENABLED', 'IN_PROGRESS', 'AWAITING_VERIFICATION', 'COMPLETED', 'NOT_APPLICABLE', 'SKIPPED']);
+export const StepStatus = z.enum(['PENDING', 'ENABLED', 'IN_PROGRESS', 'ATTEMPT_HANDED_OVER', 'AWAITING_VERIFICATION', 'COMPLETED', 'NOT_APPLICABLE', 'SKIPPED']);
 export const LimitTierWire = z.enum(['REGISTERED', 'VALIDATED', 'INTERNAL_ACTION', 'ALERT']);
 
 /** What the person can do now, as the server's dry-run of the engine decided it. */

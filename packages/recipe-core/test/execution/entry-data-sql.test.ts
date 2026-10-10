@@ -1412,6 +1412,8 @@ const COMMAND_MEMBERS = {
   INVALIDATE_RESULT: membersOf<Of<'INVALIDATE_RESULT'>>()([...BASE, 'point', 'investigationRef', 'assignableCause', 'reason', 'approval']),
   ABORT_BATCH: membersOf<Of<'ABORT_BATCH'>>()([...BASE, 'reason', 'checklist', 'approvals']),
   CANCEL_BATCH: membersOf<Of<'CANCEL_BATCH'>>()([...BASE, 'reason', 'signature']),
+  HAND_OVER_STEP: membersOf<Of<'HAND_OVER_STEP'>>()([...BASE, 'step', 'context', 'outgoing', 'incoming', 'reason', 'signature', 'approval']),
+  TAKE_OVER_STEP: membersOf<Of<'TAKE_OVER_STEP'>>()([...BASE, 'step', 'context']),
 } satisfies Record<CommandType, readonly string[]>;
 const VALUE_MEMBERS = {
   DECIMAL: membersOf<Extract<DataValue, { kind: 'DECIMAL' }>>()(['kind', 'value', 'unit']),
@@ -1534,6 +1536,8 @@ const TYPED_COMMANDS: Command[] = (() => {
     { ...b, type: 'INVALIDATE_RESULT', point: 'DP-1', investigationRef: 'INV-1', assignableCause: 'The investigation found an assignable cause', reason: 'r', approval },
     { ...b, type: 'ABORT_BATCH', reason: 'r', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [approval, approval] },
     { ...b, type: 'CANCEL_BATCH', reason: 'r', signature },
+    { ...b, type: 'HAND_OVER_STEP', step: 's', context, outgoing: 'p1', incoming: 'p2', reason: 'r', signature, approval },
+    { ...b, type: 'TAKE_OVER_STEP', step: 's', context },
   ];
 })();
 
