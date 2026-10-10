@@ -33,6 +33,8 @@ tests:
   - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-21][INV-15] an area out of service is never started; a direct transition to CLEARED_FOR_BATCH or IN_USE without the command's rows is refused; direct writes are refused"
   - "packages/recipe-core/test/plant/machine.test.ts > the generated plant machine seeds > [IN-21][INV-15] the machines have the states of outline 5.2.8: cleanliness CLEAN -> IN_PRODUCT -> DIRTY -> CLEANING -> CLEAN; rooms DIRTY -> CLEANING -> CLEAN -> CLEARED_FOR_BATCH -> IN_USE -> DIRTY and OUT_OF_SERVICE"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > plant and output containers on a GMP batch (DI-17, IN-21, IN-25; slice 2b review findings 1 and 2) > [DI-17][IN-25][IN-21] a press is started and a container opened for a GMP batch, and an operator whose grant is limited to its product records an IPC check on it; one limited to another product, or to another site, is refused (the scope is the batch's product and site, never empty)"
+  - "packages/recipe-core/test/plant/status-blocks.test.ts > G-10@2: the room occupancy an entry names is the plant record (recipe-core 0521, EBMR-EXE-210) > [INV-15][IN-21][PR-34] an AREA_OCCUPANCY entry stands only on an open occupancy of its room by this batch on a passed, verified clearance, started by the person recording it"
+  - "packages/recipe-core/test/plant/status-blocks.test.ts > review backlog #5: plant transitions evaluate the batch product (recipe-core 0522) > [DI-17][IN-21] an operator whose STEP.EXECUTE is limited to a product starts and ends a press use and opens a container for a batch of that product, and is refused for another product"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

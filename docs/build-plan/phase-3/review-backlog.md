@@ -89,3 +89,15 @@ command evidence must not carry a package hash; the server sends none).
 - The running-batch routes keep their `/api/test-runs/*` paths on GMP; renaming them is screen work (slice 6).
 - GMP batch planning needs `EBMR_NUMBER_LEDGER_FILE` for the protected number ledger; without it planning is refused
   with NUMBERING_NOT_CONFIGURED (deployment configuration, documented with the server settings).
+
+## Slice 3a quick review (10 October 2026)
+
+One high (recipe-core re-created the kernel's platform authority function; replaced by a kernel SCOPE hook, ADR 0018)
+and three mediums (a setpoint read-back not tied to its download; alarm acknowledgement outside any step; a G-09@2 entry
+not tied to the unit class of its equipment reference), all fixed in 3a.
+
+| # | Severity | Finding | Where | For |
+|---|---|---|---|---|
+| 5 | Medium | A process device bound to a step is not linked to the `plant.equipment` unit of the step's equipment use | tablets 0820, recipe-core 0403 | Slice 3c (with container press codes) |
+| 6 | Low | The plant transition scope of a unit uses the product of its latest use; a step.execute transition other than START_USE and END_USE on a unit last used for another product is refused for a product-limited grant (fails closed) | recipe-core 0522 | Slice 3c |
+| 7 | Low | No server job records INTERFACE_LOSS automatically; G-06 is not yet wired into the client intents and screens; the demo gateway configuration has no press or coater | tablets server | Slice 3c (job), slice 6 (screens, demo) |

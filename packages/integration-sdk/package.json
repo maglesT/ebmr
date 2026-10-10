@@ -6,7 +6,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./scale": "./src/scale/index.ts"
+    "./scale": "./src/scale/index.ts",
+    "./process": "./src/process/index.ts"
   },
   "dependencies": {
     "@ebmr/kernel": "workspace:0.1.0",

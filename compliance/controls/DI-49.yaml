@@ -27,7 +27,10 @@ behaviour: |-
   - Tablets: examples are compression-force excursions and checkweigher reject bursts.
 catalog_test: Simulate an excursion. It appears with raise and acknowledgment times, acknowledger identity and comment. Try to acknowledge without a comment. Refused. Try to delete the alarm log. Impossible.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-49] an alarm reading is acknowledged once, by a person, with a comment; the G-06 acknowledgement of a device alarm stands on that acknowledgement in its own command; the alarm log cannot be changed"
+  - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-49] a GMP-critical alarm raises GMP_CRITICAL_ALARM; it is acknowledged only with a comment, once, and the step cannot be signed performed while any alarm is unacknowledged"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-14][DI-31][DI-32][DI-49] G-06 Automated equipment phase: A press step: the main force setpoint read back equal, the turret speed collected; a GMP-critical force alarm acknowledged with a comment; the link lost and the tablet count keyed by hand under the MBR fallback (flagged, two persons); the recipe checked; performed and verified"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

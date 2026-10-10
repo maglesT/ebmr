@@ -81,7 +81,7 @@ describe('listed tests exist (review F15)', () => {
     const at = (id: string, file: string): string[] => control(id).tests.filter((e) => e.startsWith(file));
     expect(at('DI-17', 'packages/kernel/test/integration/authorization.test.ts').some((e) => e.endsWith('every function of market, records, continuity, site services and the platform that the application may call and that can write checks a known permission'))).toBe(true);
     expect(at('DI-19', 'apps/tablets-server/test/access/attribution.test.ts')).toContain('apps/tablets-server/test/access/attribution.test.ts > [DI-19][INV-40] taps are limited per minute per terminal and badge (TAP_LIMIT)');
-    for (const id of ['DI-10', 'DI-34']) expect(at(id, 'packages/recipe-core/test/blocks/golden.test.ts').some((e) => e.endsWith('G-01..G-05, G-07..G-20 (G-09@1 and G-10@1 sandbox only), G-22..G-24'))).toBe(true);
+    for (const id of ['DI-10', 'DI-34']) expect(at(id, 'packages/recipe-core/test/blocks/golden.test.ts').some((e) => e.endsWith('G-01..G-20 (G-09@1 and G-10@1 sandbox only, G-09@2 and G-10@2 from site services, G-06 since slice 3a), G-22..G-24'))).toBe(true);
     expect(validateRegister().filter((e) => e.includes('lists a test that does not exist'))).toEqual([]);
   });
 

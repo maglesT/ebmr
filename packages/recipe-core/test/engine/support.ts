@@ -65,10 +65,8 @@ function standIn(type: string, title: string): BlockVersion {
   };
 }
 
-export const PHASE3_STAND_INS: readonly BlockVersion[] = [
-  standIn('G-06', 'Automated equipment phase'),
-  standIn('G-21', 'Printed materials, coding, challenges, serialisation'),
-];
+/** G-06 has its real version since Phase 3 slice 3a (blocks/generic/automated.ts); G-21 is still a stand-in. */
+export const PHASE3_STAND_INS: readonly BlockVersion[] = [standIn('G-21', 'Printed materials, coding, challenges, serialisation')];
 
 export function testRegistry(): BlockRegistry {
   return genericBlockRegistry().extend(...PHASE3_STAND_INS);

@@ -58,6 +58,15 @@
  *                          (DevicesRuntime.startWatch). While the database counts the gateway's API unreachable (a
  *                          capture could not reach it), each heartbeat received has the server probe that API
  *                          (DevicesRuntime.probeApi; tablets 0320, DI-30)
+ *   POST /gw/v1/process-readings   process values of the presses and coaters (integration-sdk/process, Phase 3 slice
+ *                          3a, D-S3-1): checked here against the wire contract (schema, known tag, unit, fraction
+ *                          digits, sequence order within the request), then taken whole or refused whole by
+ *                          tab.ingest_process_readings in one INTEGRATION command (device by serial of this gateway's
+ *                          enrolment, tag of its kind, unit, digits, per-device sequence without gap, duplicates taken
+ *                          once; tablets 0820). A refusal raises a device alarm (DI-31) and nothing of the request is kept
+ *   GET  /gw/v1/setpoint-downloads  the setpoints waiting for this gateway's devices (tab.pending_setpoint_downloads;
+ *                          their values are the MBR's, requested by a G-06 step; the first fetch is recorded)
+ *   POST /gw/v1/setpoint-downloads/:id/ack  the gateway's acknowledgement with its read-back (tab.ack_setpoint_download)
  *   POST /gw/v1/logout
  * Integration identities never sign: the kernel refuses SERVICE_KEY authentication for anything but LOGIN, and
  * iam.can_sign refuses non-human accounts.
@@ -90,6 +99,7 @@ import {
   type UplinkItem,
   type UplinkResponse,
 } from '@ebmr/integration-sdk/scale';
+import { PROCESS_READINGS_PATH, processReadingsProblems, SETPOINT_DOWNLOADS_PATH, SetpointAckRequest, type ProcessReadingsRequest, type SetpointDownloadsResponse } from '@ebmr/integration-sdk/process';
 import { consumeNonce, mintNonce } from '../../platform/auth/nonces.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
@@ -568,6 +578,64 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       throw error;
     } finally {
       deadline.clear();
+    }
+  });
+
+  // DI-31 (D-S3-1, tablets 0820): process readings, taken whole or refused whole; a refusal is alarmed.
+  server.post(PROCESS_READINGS_PATH, async (request) => {
+    const gw = await resolveBearer(app, request);
+    const problems = processReadingsProblems(request.body);
+    if (problems) {
+      const message = `DI-31: the process readings are not in the expected form: ${problems.slice(0, 5).map((p) => `${p.path} ${p.message}`).join('; ')}`;
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code: 'SCHEMA', readingId: null, message: message.slice(0, 500) });
+      throw new GwError(400, 'SCHEMA', message.slice(0, 500));
+    }
+    const body = request.body as ProcessReadingsRequest;
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+    try {
+      return await withActorCommand(app.pools.app, actor, async (client) => {
+        const { rows } = await client.query<{ r: Record<string, unknown> }>('select tab.ingest_process_readings($1::jsonb) as r', [JSON.stringify(body)]);
+        if (!rows[0]) throw new Error('tab.ingest_process_readings returned nothing');
+        return rows[0].r;
+      });
+    } catch (error) {
+      const code = commands.errorCode(error) ?? 'INTERNAL';
+      const message = error instanceof Error ? error.message : String(error);
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: null, message, details: { sessionId: body.sessionId, readings: body.readings.length } });
+      throw error;
+    }
+  });
+
+  // Setpoint downloads for this gateway's devices (tablets 0820); the values are the MBR's, never the gateway's.
+  server.get(SETPOINT_DOWNLOADS_PATH, async (request) => {
+    const gw = await resolveBearer(app, request);
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+    return withActorCommand(app.pools.app, actor, async (client) => {
+      const { rows } = await client.query<{ r: SetpointDownloadsResponse }>('select tab.pending_setpoint_downloads() as r');
+      if (!rows[0]) throw new Error('tab.pending_setpoint_downloads returned nothing');
+      return rows[0].r;
+    });
+  });
+
+  server.post(`${SETPOINT_DOWNLOADS_PATH}/:id/ack`, async (request) => {
+    const gw = await resolveBearer(app, request);
+    const id = (request.params as { id?: unknown }).id;
+    const parsed = SetpointAckRequest.safeParse(request.body);
+    if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id) || !parsed.success) {
+      throw new GwError(400, 'SCHEMA', 'DI-31: the setpoint acknowledgement is not in the expected form');
+    }
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+    try {
+      return await withActorCommand(app.pools.app, actor, async (client) => {
+        const { rows } = await client.query<{ r: Record<string, unknown> }>('select tab.ack_setpoint_download($1::uuid, $2::jsonb) as r', [id, JSON.stringify(parsed.data)]);
+        if (!rows[0]) throw new Error('tab.ack_setpoint_download returned nothing');
+        return rows[0].r;
+      });
+    } catch (error) {
+      const code = commands.errorCode(error) ?? 'INTERNAL';
+      const message = error instanceof Error ? error.message : String(error);
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: null, message, details: { downloadId: id } });
+      throw error;
     }
   });
 

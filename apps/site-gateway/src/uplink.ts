@@ -337,6 +337,22 @@ export class Uplink {
   }
 
   /**
+   * The bearer token of the gateway session, logging in first when there is none (one login at a time), or null when
+   * no session can be had now. The process uplink (process-uplink.ts) sends under the same session as the scales.
+   */
+  async sessionToken(): Promise<string | null> {
+    if (!(await this.ensureLogin())) return null;
+    return this.token;
+  }
+
+  /** The server answered a request made with `token` asking for a new login: the session ends and a login starts. */
+  sessionEnded(token: string): void {
+    if (this.token !== token) return;
+    this.dropToken();
+    void this.ensureLogin();
+  }
+
+  /**
    * Whether the server holds reading `seq` of chain `chainId` (the current chain unless named), answered at most `ms`
    * after the call. True once the server has acknowledged it (an upload's answer, or a login whose head covers it);
    * the answer then waits for the watermark write that records the acknowledgement to finish (written, or failed and

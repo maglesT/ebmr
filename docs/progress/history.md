@@ -2300,3 +2300,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   installations and fail closed (0504). The tablets server plans, signs and issues GMP batches, reads site lots on GMP,
   shows no watermark there (tablets 0800, 0801); new GMP personas issuer and operator1. Full suite, register and the
   E2E suite (23) green locally.
+- 2026-10-10: PHASE 3 SLICE 3A (branch phase-3/slice-3a). Slice 3 split into 3a to 3d (docs/build-plan/phase-3/slice-3-
+  plan.md) with the gateway-server wire contract fixed first. Device side: integration-sdk process module, press and
+  coater simulators (seeded, six faults), gateway process driver and fsync'd store-and-forward uplink with setpoint
+  read-back. Server side: process readings, setpoint downloads and alarm acknowledgement (tablets 0820), G-06@1 with
+  read-back, limits, stale data, interface loss, flagged manual fallback and alarm acknowledgement; G-09@2 and G-10@2 on
+  the slice 1 plant schema; tablets block registry; utility feed age; product-scoped plant transitions through a new
+  kernel SCOPE hook (kernel 1150, ADR 0018) after the quick review found recipe-core re-creating a kernel function.
+  Review mediums fixed (read-back tied to its download, alarm acknowledgement with its entry, equipment use tied to the
+  unit class). Full suite, register, trace and E2E (23) green locally.
