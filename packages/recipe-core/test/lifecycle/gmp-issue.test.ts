@@ -17,9 +17,12 @@ import { seedActor, seedAdministration, type SeededActor } from '../../../kernel
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { stepKey, type Command } from '../../src/engine/index.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
+import * as oc from '../../src/containers/index.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
+import * as plantApi from '../../src/plant/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
+import { dbIn, PlantWorld, seedPlantCast } from '../plant/support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from './support.ts';
 
 let db: TestDatabase;
@@ -388,5 +391,41 @@ describe('writer authority on the GMP installation (DI-17, DI-18)', () => {
     });
     expect(result).toMatchObject({ accepted: true, status: 'IN_PROGRESS' });
     expect((await violations()).filter((v) => v.batch_id === done.batchId)).toEqual([]);
+  });
+});
+
+describe('plant and output containers on a GMP batch (DI-17, IN-21, IN-25; slice 2b review findings 1 and 2)', () => {
+  it('[DI-17][IN-25][IN-21] a press is started and a container opened for a GMP batch, and an operator whose grant is limited to its product records an IPC check on it; one limited to another product, or to another site, is refused (the scope is the batch\'s product and site, never empty)', async () => {
+    const m = await effectiveMaster(['IN']);
+    const done = await issued(m.familyId);
+    const pw = new PlantWorld(db, await seedPlantCast(db));
+    await pw.run(pw.cast.steward, (c) => plantApi.defineProduct(c, { code: m.product, name: m.content.header.product.name, highlyPotent: false }));
+    const press = await pw.press();
+    await pw.clean('EQUIPMENT', press.code, 'MAJOR');
+    const own = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Oma Own-product', scope: { product: m.product } });
+    const other = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Otto Other-product', scope: { product: 'OTHER-PRODUCT' } });
+    const elsewhere = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Eli Elsewhere', scope: { site: 'SITE-9', product: m.product } });
+    const end = await dbIn(db, 8 * 3600);
+    const startUse = (who: SeededActor) => w.run(who, (c) => plantApi.startEquipmentUse(c, press.code, done.batchId, end));
+    const open = (who: SeededActor) => w.run(who, (c) => oc.openContainer(c, { batchId: done.batchId, stage: 'COMPRESSION', unit: 'kg', pressCode: press.code }));
+    const ipc = (who: SeededActor) => w.run(who, (c) => oc.recordIpcCheck(c, { batchId: done.batchId, pressCode: press.code, result: 'PASS', reference: `IPC-${randomUUID().slice(0, 8)}` }));
+    expect({ startUse: await codeOf(startUse(other)), open: await codeOf(open(other)), ipc: await codeOf(ipc(other)) }).toEqual({
+      startUse: 'EBMR-IAM-040', open: 'EBMR-IAM-040', ipc: 'EBMR-IAM-040',
+    });
+    // The press's own transition checks STEP.EXECUTE at the unit's site only, which a product-limited grant does not cover
+    // (fail closed, plant 0403): an operator with an unlimited grant starts it; the batch is accepted as a GMP batch.
+    await startUse(pw.cast.operator);
+    // The container's own state, like the press's, is checked at the site only, which a product-limited grant does not
+    // cover (plant 0420): an operator with an unlimited grant opens it.
+    const container = await open(pw.cast.operator);
+    expect(container.labelCode).toBe(`OC-${done.planned.batchNumber}-0001`);
+    expect(await q<Json>('select product_code, strength from plant.output_container where batch_id = $1', [done.batchId])).toEqual([
+      { product_code: m.product, strength: m.content.header.product.strength },
+    ]);
+    expect(await codeOf(ipc(own))).toBe('ok');
+    expect(await codeOf(ipc(elsewhere))).toBe('EBMR-IAM-040');
+    // The scope fails closed: a batch that does not exist gives none.
+    expect(await codeOf(ipc(own).then(() => w.run(own, (c) => oc.recordIpcCheck(c, { batchId: randomUUID(), pressCode: press.code, result: 'PASS', reference: 'IPC-X' }))))).toBe('EBMR-CNT-020');
+    expect((await q<{ s: Json }>('select plant.batch_scope($1) as s', [done.batchId]))[0]?.s).toEqual({ product: m.product, site: SITE });
   });
 });

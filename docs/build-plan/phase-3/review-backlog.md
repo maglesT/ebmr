@@ -79,3 +79,4 @@ command evidence must not carry a package hash; the server sends none).
 | # | Severity | Finding | Where | For |
 |---|---|---|---|---|
 | 4 | Low | prepare_gmp_issue accepts an allocation made earlier by another person and checks only BATCH.ISSUE there; the TEST- check on the number runs at issue, not at planning (harmless: issue re-checks both) | recipe-core 0501 | Phase 4 (planning screens) |
+| 5 | Medium | An operator whose STEP.EXECUTE grant is limited to a product cannot start a press or open a container: the equipment and container state transitions check the permission at site scope only (fails closed). Default: those transitions also evaluate the batch's product scope | recipe-core 0403, 0422 transitions | Slice 3 (press blocks) |

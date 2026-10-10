@@ -47,12 +47,12 @@ describe('example fixtures', () => {
     expect(Object.keys(STEP_EXAMPLES_BY_BLOCK).sort()).toEqual(['G-03@1', 'G-04@1', 'G-07@1', 'G-08@1', 'G-09@1', 'G-10@1', 'G-17@1', 'G-20@1', 'G-22@1']);
     for (const [block, name] of Object.entries(STEP_EXAMPLES_BY_BLOCK)) {
       const view = StepScreenView.parse(EXAMPLES[name].data);
-      expect(view.run.watermark.text, name).toBe('TEST, NOT GMP');
+      expect(view.run.watermark?.text, name).toBe('TEST, NOT GMP');
       expect(view.run.batchNumber, name).toMatch(/^TEST-/);
       if (block !== 'G-17@1') expect(view.step.block, name).toBe(block);
       expect(view.actions.filter((a) => a.primary).length, name).toBeLessThanOrEqual(1);
     }
-    expect(example('run').header.watermark.source).toBe('SANDBOX_TEST_RUN');
+    expect(example('run').header.watermark?.source).toBe('SANDBOX_TEST_RUN');
   });
 });
 
@@ -197,10 +197,13 @@ describe('route table', () => {
     }
   });
 
-  it('[DI-05] designer routes are GMP only, execution and device routes sandbox only, the rest serve both', () => {
+  it('[DI-05][INV-18] designer routes and the GMP batch plan are GMP only, test packages and test batches sandbox only; running batches, devices and the rest serve both', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
-    for (const r of [...Object.values(routes.execution), ...Object.values(routes.devices)]) expect(r.installation, r.id).toBe('SANDBOX');
-    for (const r of [...Object.values(routes.meta), ...Object.values(routes.session), ...Object.values(routes.access), ...Object.values(routes.esig), ...Object.values(routes.audit)]) {
+    expect(routes.execution.planBatch.installation).toBe('GMP');
+    for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
+    const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue'];
+    for (const r of Object.values(routes.execution).filter((x) => !installationBound.includes(x.id))) expect(r.installation, r.id).toBe('ANY');
+    for (const r of [...Object.values(routes.devices), ...Object.values(routes.meta), ...Object.values(routes.session), ...Object.values(routes.access), ...Object.values(routes.esig), ...Object.values(routes.audit)]) {
       expect(r.installation, r.id).toBe('ANY');
     }
   });
