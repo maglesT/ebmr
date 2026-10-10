@@ -6,6 +6,7 @@
  */
 import type pg from 'pg';
 import { flow, validator } from '@ebmr/recipe-core/pure';
+import { tabletsBlockCatalog } from '../../edition-blocks.ts';
 import { loadMarketMinimaPort } from './market-minima.ts';
 import { loadReferencePort, type ReferenceRow } from './references.ts';
 
@@ -14,8 +15,8 @@ type Db = pg.Pool | pg.PoolClient;
 /** One expression service per process: pure, deterministic, and costly enough to build that it is shared. */
 export const EXPRESSIONS: flow.ExpressionService = flow.createExprService();
 
-/** The block catalogue the validator reads (editions extend it in Phase 3 with the tablets blocks). */
-export const BLOCK_CATALOG: flow.BlockCatalog = flow.genericBlockCatalog;
+/** The block catalogue the validator reads: the generic blocks and the Tablets edition's own (Phase 3 slice 3b on). */
+export const BLOCK_CATALOG: flow.BlockCatalog = tabletsBlockCatalog;
 
 /** The site calendar date now (YYYY-MM-DD), from the database clock and the site zone policy. */
 export async function siteToday(db: Db): Promise<string> {

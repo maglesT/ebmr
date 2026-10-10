@@ -18,7 +18,7 @@ import type pg from 'pg';
 import { engine, execution, flow } from '@ebmr/recipe-core';
 import type { PersonRef } from '@ebmr/api-contract';
 import { refusal } from '../../platform/http/refusal.ts';
-import { tabletsBlockRegistry } from '../edition-blocks.ts';
+import { tabletsBlockCatalog, tabletsBlockRegistry } from '../edition-blocks.ts';
 
 export type Db = pg.Pool | pg.PoolClient;
 
@@ -159,7 +159,7 @@ function defineCached(source: string, content: unknown, installation: 'GMP' | 'S
   if (hit) return hit;
   const parsed = flow.parseMbr(content);
   if (!parsed.ok) throw new engine.EngineDefinitionError(parsed.problems.map((p) => ({ code: 'ENG-DEF-PARSE', severity: 'ERROR' as const, subject: p.path, message: `${p.path}: ${p.message}`, controls: ['DI-34'], key: `ENG-DEF-PARSE@${p.path}` })));
-  const def = engine.defineBatch(parsed.mbr, { registry: REGISTRY, installation, justifications });
+  const def = engine.defineBatch(parsed.mbr, { registry: REGISTRY, catalog: tabletsBlockCatalog, installation, justifications });
   definitions.set(key, def);
   return def;
 }

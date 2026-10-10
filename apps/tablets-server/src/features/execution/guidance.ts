@@ -538,6 +538,40 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [],
     controls: ['DI-34'],
   },
+  // TB-01 potency-adjusted dispensing (Phase 3 slice 3b; tablets 0841 to 0843; intents.ts).
+  'EBMR-EXE-240': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The dispensing entry does not stand on the lot register, the potency calculation, the balance or the stock it names. Nothing was saved.',
+    whatYouCanDo: ['Reload the step and record the entry again from the screen.'],
+    whoCanHelp: [SUPERVISOR, QA],
+    controls: ['PR-18', 'PR-19', 'PR-20', 'IN-23', 'IN-24', 'IN-25', 'DI-33', 'INV-13', 'INV-14'],
+  },
+  'EBMR-EXE-242': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The assay result was not recorded.', whatYouCanDo: ['State the basis, the values that basis needs and the certificate reference.'], whoCanHelp: ['QC'], controls: ['PR-19', 'DI-33'] },
+  'EBMR-EXE-243': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The lot has no approved assay result, so its target cannot be calculated. Nothing was saved.',
+    whatYouCanDo: ['Choose a lot with an approved result, or ask QC to record the result of this lot.'],
+    whoCanHelp: ['QC', SUPERVISOR],
+    controls: ['PR-19'],
+  },
+  'EBMR-EXE-244': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'Another lot expires first. Nothing was saved.',
+    whatYouCanDo: ['Dispense from the first-expiring lot, or give your reason for this lot.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['PR-18'],
+  },
+  'EBMR-EXE-245': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The lot has no reservation for this batch with enough quantity left. Nothing was saved.',
+    whatYouCanDo: ['Ask stores to reserve the lot for this batch.'],
+    whoCanHelp: ['Stores', SUPERVISOR],
+    controls: ['INV-13', 'INV-14'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   // A command from a screen that shows another version of the run: recorded as a refused row, with no scale reading
   // used (the readings it names stay usable; Phase 2 exit review F58, F58.1). The signing dry run adds that nothing was

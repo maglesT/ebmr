@@ -101,3 +101,19 @@ not tied to the unit class of its equipment reference), all fixed in 3a.
 | 5 | Medium | A process device bound to a step is not linked to the `plant.equipment` unit of the step's equipment use | tablets 0820, recipe-core 0403 | Slice 3c (with container press codes) |
 | 6 | Low | The plant transition scope of a unit uses the product of its latest use; a step.execute transition other than START_USE and END_USE on a unit last used for another product is refused for a product-limited grant (fails closed) | recipe-core 0522 | Slice 3c |
 | 7 | Low | No server job records INTERFACE_LOSS automatically; G-06 is not yet wired into the client intents and screens; the demo gateway configuration has no press or coater | tablets server | Slice 3c (job), slice 6 (screens, demo) |
+
+## Slice 3b open items (builder reports, 10 October 2026)
+
+- GMP weighing through gateway device readings and GMP verification are not exercised: the GMP seed has no gateway
+  identity or verifier persona (slice 6, demo seed). GMP manual weighing on a room balance is exercised.
+- The lot assay approval workflow waits for LIMS-lite (slice 5); `tab.lot_assay_result` takes approved results now.
+- TB-01: batch-size scaling, the balance minimum-weight rule, TB-01's computed items in the validator, TB-01 in the
+  designer palette (slice 3c or 6).
+- Granulation entry kinds are not in the api-contract `ClientEntry` yet (screens, slice 6); the tests write past the
+  server as 3a did.
+- No screen or filter-bag register in the plant schema: bag and screen data are the operator's declaration (slice 3c
+  with tooling custody).
+- No granulator, dryer or blender simulator; the gateway's device configuration accepts press and coater only (slice 6
+  demo).
+- Not modelled: TB-03 flameproof-area and stirring checks; the link from the TB-05 moisture analyser to its instrument
+  check (slice 3c).

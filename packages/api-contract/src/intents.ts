@@ -50,6 +50,14 @@ export const ClientEntry = z.discriminatedUnion('kind', [
     tareReadingId: Uuid.optional(),
     grossReadingId: Uuid.optional(),
     manual: ManualWeighing.optional(),
+    /** TB-01 only: why a lot other than the first-expiring usable one is dispensed (PR-18). */
+    fefoReason: z.string().min(1).max(2000).optional(),
+  }),
+  // TB-01 Potency calculation: the lots of the active by code, in allocation order; with more than one lot, each lot's
+  // base-equivalent share. The server reads each lot's status and its approved assay result from the lot register.
+  z.strictObject({
+    kind: z.literal('POTENCY_CALCULATION'),
+    lots: z.array(z.strictObject({ lotCode: z.string().min(1), baseEquivalent: DecimalString.optional() })).min(1).max(3),
   }),
   // G-08 Identification and charge-in: the scanned container label.
   z.strictObject({ kind: z.literal('CHARGE_CONTAINER'), containerCode: z.string().min(1) }),

@@ -38,6 +38,7 @@ import type { AppContext } from '../../platform/context.ts';
 import type { ClaimedReading } from '../../platform/ports.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import { lotForEngine, resolveLot } from './lots.ts';
+import { tb01Consumption, tb01FefoCheck, tb01Lots } from './tb01.ts';
 
 /**
  * Maximum age of a scale reading at database time the server asks for (plan section 10, default 120 s). The database
@@ -294,7 +295,18 @@ async function manualWeights(ctx: IntentContext, room: string | null, manual: Ma
     throw refuse('EBMR-EXE-074', 'A scale of this room is online, so the weights are captured from it. Nothing was saved.', `${online.deviceCode} is online in room ${room}; keying by hand is the fallback only when no scale of the room is online (PR-20).`, ['DI-30', 'PR-20'], ['Capture tare and gross from the scale.']);
   }
   const declared = manual.deviceCode;
-  if (declared !== undefined && !scales.some((s) => s.deviceCode === declared)) {
+  // The balance read is a scale of the room behind the gateway, or a balance of the room the gateway does not serve (an
+  // active instrument of the room in the device registry, as the database's gate reads it: tablets 0310, 0710).
+  const unserved =
+    declared !== undefined &&
+    !scales.some((s) => s.deviceCode === declared) &&
+    (
+      await ctx.client.query<{ ok: boolean }>(
+        "select exists (select 1 from iam.device d where d.code = $1 and d.device_class = 'INSTRUMENT' and d.status = 'ACTIVE' and d.room_code = $2) as ok",
+        [declared, room],
+      )
+    ).rows[0]?.ok === true;
+  if (declared !== undefined && !scales.some((s) => s.deviceCode === declared) && !unserved) {
     throw refuse(
       'EBMR-EXE-074',
       `${declared.slice(0, 64)} is not a scale of room ${room}. Nothing was saved.`,
@@ -419,8 +431,15 @@ export function labelBatch(code: string): string {
   return i > 0 ? code.slice(0, i) : code;
 }
 
-async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
+async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry, target?: { step: string; context: flow.Frame[] }): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
+  const tb01 = target !== undefined && ctx.def.steps.get(target.step)?.block?.type === 'TB-01';
   switch (e.kind) {
+    case 'POTENCY_CALCULATION': {
+      if (ctx.app.installation === 'GMP') for (const l of e.lots) requireOwnIdentifier('GMP', 'LOT_NUMBER', l.lotCode, 'lot');
+      const lots = await tb01Lots(ctx.client, ctx.state.header.batchId, e.lots, ctx.app.installation);
+      // The lots and the result ids are in the entry itself (resultId); the row's evidence keeps nothing more.
+      return { entry: { kind: 'POTENCY_CALCULATION', lots: lots.entry }, evidence: {} };
+    }
     case 'CONTAINER_WEIGHING': {
       const installation = ctx.app.installation;
       // GMP: a TEST- lot is named as such before the register is read (the sandbox answers an unknown lot below).
@@ -437,10 +456,21 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
           ['Scan the lot label again, or ask for the lot to be registered.'],
         );
       }
+      if (e.fefoReason !== undefined && !tb01) {
+        throw refuse('EBMR-EXE-244', 'A stock-rotation reason is recorded only at a potency-adjusted dispensing step. Nothing was saved.', 'This step does not record a reason for the lot it dispenses.', ['PR-18'], ['Leave the reason empty.']);
+      }
+      if (tb01 && target) await tb01FefoCheck(ctx, target, e.bomLine, lot, e.fefoReason);
       const w = await weights(ctx, room, e);
       const container = containerId(ctx.state, e.container, installation);
+      const entry: JsonRecord & { kind: string } = {
+        kind: 'CONTAINER_WEIGHING', item: e.item, bomLine: e.bomLine, container, lot: lotForEngine(lot), gross: w.gross, tare: w.tare, unit: w.unit, balance: w.balance, source: w.source,
+        ...(e.fefoReason !== undefined ? { fefoReason: e.fefoReason } : {}),
+      };
+      // GMP: the dispensed net is consumed from the batch's reservation of the lot in this command (INV-13, INV-14),
+      // once the engine is known to accept the entry (a refused entry is recorded and must consume nothing).
+      const consumption = tb01 && target && installation === 'GMP' && ctx.useReadings ? await tb01Consumption(ctx, target, entry, lot) : undefined;
       return {
-        entry: { kind: 'CONTAINER_WEIGHING', item: e.item, bomLine: e.bomLine, container, lot: lotForEngine(lot), gross: w.gross, tare: w.tare, unit: w.unit, balance: w.balance, source: w.source },
+        entry: consumption ? { ...entry, consumption: consumption.id } : entry,
         ...(w.occurredAt ? { occurredAt: w.occurredAt } : {}),
         evidence: { ...w.evidence, lot: { code: lot.lotCode, material: lot.materialCode, status: lot.status } },
       };
@@ -490,7 +520,7 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
     }
     case 'RECORD_ENTRY': {
       const t = stepTarget(ctx.state, intent.stepKey);
-      const r = await resolveEntry(ctx, roomOfStep(ctx, t.step), intent.entry);
+      const r = await resolveEntry(ctx, roomOfStep(ctx, t.step), intent.entry, t);
       return { command: { ...base, type: 'RECORD_ENTRY', step: t.step, context: t.context, entry: r.entry, ...(r.occurredAt ? { occurredAt: r.occurredAt } : {}) }, evidence: r.evidence };
     }
     case 'RAISE_EXCEPTION': {

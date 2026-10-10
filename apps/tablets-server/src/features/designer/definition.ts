@@ -11,7 +11,7 @@
 import { engine, type validator } from '@ebmr/recipe-core/pure';
 import type { flow , blocks} from '@ebmr/recipe-core/pure';
 import { EXPRESSIONS } from './adapters/expressions.ts';
-import { tabletsBlockRegistry } from '../edition-blocks.ts';
+import { tabletsBlockCatalog, tabletsBlockRegistry } from '../edition-blocks.ts';
 
 export const BLOCK_REGISTRY: blocks.BlockRegistry = tabletsBlockRegistry();
 
@@ -23,7 +23,7 @@ export interface DefinitionFinding extends Omit<validator.Finding, 'severity'> {
 
 function problemsOf(mbr: flow.MbrContent, installation: 'SANDBOX' | 'GMP'): engine.DefinitionProblem[] {
   try {
-    engine.defineBatch(mbr, { registry: BLOCK_REGISTRY, expressions: EXPRESSIONS, installation, justifications: [] });
+    engine.defineBatch(mbr, { registry: BLOCK_REGISTRY, catalog: tabletsBlockCatalog, expressions: EXPRESSIONS, installation, justifications: [] });
     return [];
   } catch (error) {
     if (error instanceof engine.EngineDefinitionError) return error.problems;
