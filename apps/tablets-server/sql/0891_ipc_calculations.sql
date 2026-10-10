@@ -112,6 +112,58 @@ language sql stable security definer set search_path = pg_catalog, tab, pg_temp 
            order by c.code, c.version desc) r
 $$;
 
+-- Review 3c finding 5: the batch's markets (IN always) that neither a rule set bound for the test and tablet type nor a
+-- not-applicable record covers, sorted (rule-sets.ts uncoveredMarkets).
+create function tab.ipc_uncovered(p_test text, p_markets jsonb, p_type text, p_date date) returns text[]
+language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
+  select coalesce(array_agg(m order by m collate "C"), '{}')
+    from (select distinct m from unnest(array(select jsonb_array_elements_text(case when jsonb_typeof(p_markets) = 'array' then p_markets else '[]'::jsonb end)) || array['IN']) m) x
+   where not exists (select 1 from jsonb_array_elements(tab.ipc_rule_sets(p_test, jsonb_build_array(x.m), p_type, p_date, false)) s
+                      join tab.compendial_rule_set r on r.code = s ->> 'code' and r.version = (s ->> 'version')::integer where x.m = any (r.markets))
+     and not exists (select 1 from tab.compendial_not_applicable n where n.test = p_test and n.market = x.m and n.effective_from <= p_date)
+$$;
+
+-- The procedure keys the bound rule sets of a test must agree on (rule-sets.ts PROCEDURE_KEYS).
+create function tab.ipc_procedure_keys(p_test text) returns text[]
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select case p_test
+    when 'UNIFORMITY_OF_WEIGHT' then array['units']
+    when 'WEIGHT_VARIATION' then array['firstUnits', 'totalUnits']
+    when 'SUBDIVISION' then array['units']
+    when 'FRIABILITY' then array['rotations', 'rpmMin', 'rpmMax', 'targetSampleGrams', 'heavyUnitMg', 'heavyUnitCount', 'repeatRuns', 'lossDecimals']
+    when 'DISINTEGRATION' then array['units', 'staging']
+  end
+$$;
+
+-- Why rule sets p_sets cannot be used for a check (common.ts ruleSetRefusal): {problem} naming <code>-NO-RULE-SET or
+-- <code>-RULE-SETS-DIFFER; NULL when they can.
+create function tab.ipc_rule_set_problem(p_test text, p_sets jsonb, p_markets jsonb, p_type text, p_date date, p_code text) returns jsonb
+language plpgsql stable set search_path = pg_catalog, tab, pg_temp as $$
+declare
+  v_open   text[] := tab.ipc_uncovered(p_test, p_markets, p_type, p_date);
+  v_differ text[];
+begin
+  if jsonb_array_length(p_sets) = 0 or cardinality(v_open) > 0 then
+    return jsonb_build_object('problem', format('no compendial rule set covers %s tablets for market %s of the batch, and no record says none applies (%s-NO-RULE-SET)',
+                                                coalesce(p_type, '(none)'), coalesce(nullif(array_to_string(v_open, ', '), ''), 'IN'), p_code));
+  end if;
+  v_differ := array(select k from unnest(tab.ipc_procedure_keys(p_test)) with ordinality u (k, i)
+                     where (select count(distinct coalesce(s -> 'params' -> k, 'null'::jsonb)) from jsonb_array_elements(p_sets) s) > 1 order by u.i);
+  if cardinality(v_differ) > 0 then
+    return jsonb_build_object('problem', format('the rule sets bound for this check give different procedures (%s) (%s-RULE-SETS-DIFFER)', array_to_string(v_differ, ', '), p_code));
+  end if;
+  return null;
+end
+$$;
+
+-- The rule sets an earlier entry recorded ([{code, version}]) with their parameters, in order.
+create function tab.ipc_recorded(p_refs jsonb) returns jsonb
+language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
+  select coalesce(jsonb_agg(jsonb_build_object('code', r.code, 'version', r.version, 'params', r.params) order by x.i), '[]'::jsonb)
+    from jsonb_array_elements(case when jsonb_typeof(p_refs) = 'array' then p_refs else '[]'::jsonb end) with ordinality x (v, i)
+    join tab.compendial_rule_set r on r.code = x.v ->> 'code' and r.version = (x.v ->> 'version')::integer
+$$;
+
 -- [{code, version}] of rule sets.
 create function tab.ipc_refs(p_sets jsonb) returns jsonb
 language sql immutable set search_path = pg_catalog, pg_temp as $$
@@ -271,7 +323,8 @@ $$;
 
 revoke all on function tab.ipc_nums(jsonb), tab.ipc_stats(numeric[]), tab.ipc_relative(numeric, numeric), tab.ipc_relative_tiers(numeric, jsonb),
   tab.ipc_beyond(numeric, jsonb), tab.ipc_judge(numeric, jsonb), tab.ipc_worst(text[]), tab.ipc_tiers(jsonb),
-  tab.ipc_rule_sets(text, jsonb, text, date, boolean), tab.ipc_refs(jsonb), tab.ipc_band(jsonb, numeric, numeric),
+  tab.ipc_rule_sets(text, jsonb, text, date, boolean), tab.ipc_refs(jsonb), tab.ipc_uncovered(text, jsonb, text, date), tab.ipc_procedure_keys(text),
+  tab.ipc_rule_set_problem(text, jsonb, jsonb, text, date, text), tab.ipc_recorded(jsonb), tab.ipc_band(jsonb, numeric, numeric),
   tab.ipc_outside(numeric[], numeric, numeric), tab.ipc_uniformity(numeric[], jsonb), tab.ipc_reference(jsonb, numeric, numeric),
   tab.ipc_av(numeric[], numeric, numeric, jsonb, boolean), tab.ipc_subdivision(numeric[], jsonb),
   tab.ipc_friability_sample_problem(jsonb, numeric, numeric), tab.ipc_dt_limits(jsonb, text, numeric, numeric) from public;

@@ -24,6 +24,7 @@ import {
   problem,
   refuse,
   resolve,
+  ruleSetRefusal,
   TABLET_TYPE,
   TEST_EXCEPTION_RULES,
   TEST_EXCEPTION_TYPES,
@@ -39,7 +40,7 @@ import {
   type ObjectSchema,
   type Outcome,
 } from './ipc/common.ts';
-import { resolveRuleSets, type FriabilityParams, type TabletType } from './ipc/rule-sets.ts';
+import { recorded, resolveRuleSets, uncoveredMarkets, type FriabilityParams, type TabletType } from './ipc/rule-sets.ts';
 import { resultOf, type TestOutcome } from './tb-12.ts';
 
 const CONTROLS = ['IN-35', 'PR-29', 'DI-29'];
@@ -84,19 +85,6 @@ export function pendingFriability(view: HandlerView): string[] {
 /** A FRIABILITY_RUN, evaluated (shared by TB-14 and TB-11). */
 export function acceptFriabilityRun(view: HandlerView, entry: Entry): { ok: true; t: TestOutcome } | { ok: false; problems: HandlerProblem[] } {
   const cfg = testConfig(view, 'friability');
-  const sets = resolve(view, 'FRIABILITY', text(cfg['tabletType']));
-  if (sets.length === 0) return refuse('TB14-NO-RULE-SET', `No friability rule set covers ${String(cfg['tabletType'])} tablets for this batch`, ['PR-29', 'DI-10']);
-  const p = sets[0]?.params as FriabilityParams;
-  const limit = friabilityLimit(sets, text(cfg['limitPercent'])) ?? dec(p.maxLossPercent);
-  const tablets = Number(entry['tablets']);
-  const initial = dec(String(entry['initialMass']));
-  const final = dec(String(entry['finalMass']));
-  if (final.isNegative() || final.gt(initial)) return refuse('TB14-MASS', 'The mass after the test lies between zero and the mass before it', ['PR-29']);
-  const sample = friabilitySampleProblem(p, tablets, initial);
-  if (sample) return refuse('TB14-SAMPLE', `The sample does not follow the rule set: ${sample}`, ['PR-29', 'IN-35']);
-  if (Number(entry['rotations']) !== p.rotations) return refuse('TB14-ROTATIONS', `The drum turns ${p.rotations} times, not ${String(entry['rotations'])}`, ['PR-29']);
-  const rpm = dec(String(entry['rpm']));
-  if (rpm.lt(dec(p.rpmMin)) || rpm.gt(dec(p.rpmMax))) return refuse('TB14-RATE', `The drum turns at ${p.rpmMin} to ${p.rpmMax} rpm, not ${rpm.toString()}`, ['PR-29']);
   const runs = view.entries('FRIABILITY_RUN');
   const repeatOf = text(entry['repeatOf']);
   let run = 1;
@@ -115,6 +103,23 @@ export function acceptFriabilityRun(view: HandlerView, entry: Entry): { ok: true
     if (entry['doubtful'] !== undefined) return refuse('TB14-DOUBTFUL', 'Only the first run is found doubtful', ['DI-29']);
     run = 1 + runs.filter((r) => r.data['repeatOf'] === first?.id).length + 1;
   }
+  // A repeat run is part of its first run's test: it uses the rule sets the first run recorded (review 3c finding 5).
+  const sets = first ? recorded(first.data['ruleSets']) : resolve(view, 'FRIABILITY', text(cfg['tabletType']));
+  if (!first) {
+    const bad = ruleSetRefusal(view, 'FRIABILITY', text(cfg['tabletType']), sets, 'TB14');
+    if (bad) return bad;
+  }
+  const p = sets[0]?.params as FriabilityParams;
+  const limit = friabilityLimit(sets, text(cfg['limitPercent'])) ?? dec(p.maxLossPercent);
+  const tablets = Number(entry['tablets']);
+  const initial = dec(String(entry['initialMass']));
+  const final = dec(String(entry['finalMass']));
+  if (final.isNegative() || final.gt(initial)) return refuse('TB14-MASS', 'The mass after the test lies between zero and the mass before it', ['PR-29']);
+  const sample = friabilitySampleProblem(p, tablets, initial);
+  if (sample) return refuse('TB14-SAMPLE', `The sample does not follow the rule set: ${sample}`, ['PR-29', 'IN-35']);
+  if (Number(entry['rotations']) !== p.rotations) return refuse('TB14-ROTATIONS', `The drum turns ${p.rotations} times, not ${String(entry['rotations'])}`, ['PR-29']);
+  const rpm = dec(String(entry['rpm']));
+  if (rpm.lt(dec(p.rpmMin)) || rpm.gt(dec(p.rpmMax))) return refuse('TB14-RATE', `The drum turns at ${p.rpmMin} to ${p.rpmMax} rpm, not ${rpm.toString()}`, ['PR-29']);
   const c = commonOf(view, entry, 2, 'TB14');
   if (!c.ok) return c;
   const loss = friabilityLoss(initial, final);
@@ -169,7 +174,7 @@ function beforePerform(view: HandlerView): HandlerProblem[] {
 /** Definition checks of a friability configuration (TB-14 and TB-11's `friability`): never looser than a rule set. */
 export function friabilityConfigProblems(where: string, cfg: Readonly<Record<string, unknown>>, markets: readonly string[]): ConfigProblem[] {
   const sets = resolveRuleSets('FRIABILITY', markets, text(cfg['tabletType']) as TabletType | undefined, '9999-12-31');
-  if (sets.length === 0) return [configError('TB14-NO-RULE-SET', `${where}: no friability rule set covers ${String(cfg['tabletType'])} tablets`, ['PR-29', 'DI-10'])];
+  if (sets.length === 0 || uncoveredMarkets('FRIABILITY', markets, text(cfg['tabletType']) as TabletType | undefined, '9999-12-31').length > 0) return [configError('TB14-NO-RULE-SET', `${where}: no friability rule set covers ${String(cfg['tabletType'])} tablets`, ['PR-29', 'DI-10'])];
   const lim = text(cfg['limitPercent']);
   const tightest = friabilityLimit(sets, undefined);
   if (lim !== undefined && tightest && dec(lim).gt(tightest)) {

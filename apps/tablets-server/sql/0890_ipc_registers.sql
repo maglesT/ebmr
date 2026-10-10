@@ -71,7 +71,7 @@ insert into recipe.engine_name (name, kind) values
   ('TB12-DEVICE', 'RULE_CODE'), ('TB12-ENTRY', 'RULE_CODE'), ('TB12-INSTRUMENT', 'RULE_CODE'),
   ('TB12-LOOSER', 'RULE_CODE'), ('TB12-NO-CHECK', 'RULE_CODE'), ('TB12-NO-FIRST-STAGE', 'RULE_CODE'),
   ('TB12-NO-RULE-SET', 'RULE_CODE'), ('TB12-READINGS', 'RULE_CODE'), ('TB12-SAMPLED-EARLY', 'RULE_CODE'),
-  ('TB12-SAMPLED-LATER', 'RULE_CODE'), ('TB12-SECOND-STAGE-PENDING', 'RULE_CODE'),
+  ('TB12-SAMPLED-LATER', 'RULE_CODE'), ('TB12-SECOND-STAGE-PENDING', 'RULE_CODE'), ('TB12-RULE-SETS-DIFFER', 'RULE_CODE'), ('TB14-RULE-SETS-DIFFER', 'RULE_CODE'), ('TB15-RULE-SETS-DIFFER', 'RULE_CODE'),
   ('TB12-SECOND-STAGE-STREAM', 'RULE_CODE'), ('TB12-SECOND-STAGE-TWICE', 'RULE_CODE'), ('TB12-STREAM', 'RULE_CODE'),
   ('TB12-WEIGHTS', 'RULE_CODE'), ('TB13-APPEARANCE', 'RULE_CODE'), ('TB13-COUNT', 'RULE_CODE'),
   ('TB13-DEVICE', 'RULE_CODE'), ('TB13-ENTRY', 'RULE_CODE'), ('TB13-INSTRUMENT', 'RULE_CODE'),
@@ -132,6 +132,26 @@ insert into tab.compendial_rule_set (code, version, test, pharmacopoeia, markets
   ('PHEUR-DISINTEGRATION', 1, 'DISINTEGRATION', 'PH_EUR', '{EU}', '{UNCOATED,FILM_COATED,SUGAR_COATED,OTHER_COATED,GASTRO_RESISTANT,EFFERVESCENT,SOLUBLE,DISPERSIBLE,ORODISPERSIBLE}', '{"units":6,"staging":{"failMin":1,"failMax":2,"retestUnits":12,"passMin":16},"types":{"UNCOATED":{"minutes":"15","tempMin":"35","tempMax":"39"},"FILM_COATED":{"minutes":"30","tempMin":"35","tempMax":"39"},"SUGAR_COATED":{"minutes":"60","tempMin":"35","tempMax":"39"},"OTHER_COATED":{"minutes":"60","tempMin":"35","tempMax":"39"},"GASTRO_RESISTANT":{"minutes":"60","acidMinutes":"120","tempMin":"35","tempMax":"39"},"EFFERVESCENT":{"minutes":"5","tempMin":"15","tempMax":"25"},"SOLUBLE":{"minutes":"3","tempMin":"15","tempMax":"25"},"DISPERSIBLE":{"minutes":"3","tempMin":"15","tempMax":"25"},"ORODISPERSIBLE":{"minutes":"3","tempMin":"35","tempMax":"39"}}}', 'MEDIUM', 'Ph. Eur. disintegration of tablets and the monograph Tablets (tablets spec E.5)', '2023-12-28', null, 'Uncoated 15 min high confidence; the other types medium or lower; retest staging as harmonised wording.'),
   ('USP-DISINTEGRATION', 1, 'DISINTEGRATION', 'USP', '{US}', '{UNCOATED,FILM_COATED,SUGAR_COATED,OTHER_COATED,GASTRO_RESISTANT,EFFERVESCENT,SOLUBLE,DISPERSIBLE,ORODISPERSIBLE}', '{"units":6,"staging":{"failMin":1,"failMax":2,"retestUnits":12,"passMin":16},"types":{"UNCOATED":{"tempMin":"35","tempMax":"39"},"FILM_COATED":{"tempMin":"35","tempMax":"39"},"SUGAR_COATED":{"tempMin":"35","tempMax":"39"},"OTHER_COATED":{"tempMin":"35","tempMax":"39"},"GASTRO_RESISTANT":{"tempMin":"35","tempMax":"39"},"EFFERVESCENT":{"tempMin":"35","tempMax":"39"},"SOLUBLE":{"tempMin":"35","tempMax":"39"},"DISPERSIBLE":{"tempMin":"35","tempMax":"39"},"ORODISPERSIBLE":{"tempMin":"35","tempMax":"39"}}}', 'HIGH', 'USP disintegration (harmonised apparatus and staging; the time is the monograph''s, tablets spec E.5)', '2023-12-28', null, null);
 
+-- Review 3c finding 5: a batch market whose pharmacopoeia has, by decision recorded here, no in-process rule set for a
+-- test. Any other batch market without a rule set for the test and tablet type fails the check closed (0892). The rows
+-- equal src/blocks/ipc/rule-sets.ts NOT_APPLICABLE (a parity test). Insert-only and audited.
+create table tab.compendial_not_applicable (
+  test            text not null check (test in ('UNIFORMITY_OF_WEIGHT', 'WEIGHT_VARIATION', 'SUBDIVISION', 'FRIABILITY', 'DISINTEGRATION')),
+  market          text not null references market.market (code),
+  reason          text not null check (btrim(reason) <> ''),
+  source          text not null check (btrim(source) <> ''),
+  effective_from  date not null,
+  primary key (test, market)
+);
+revoke all on tab.compendial_not_applicable from public;
+create trigger aa_compendial_not_applicable_insert_only before update or delete on tab.compendial_not_applicable for each row execute function kernel.reject_mutation();
+create trigger aa_compendial_not_applicable_no_truncate before truncate on tab.compendial_not_applicable for each statement execute function kernel.reject_mutation();
+select kernel.register_audited_table('tab.compendial_not_applicable', 'compendial_not_applicable', 'test', true);
+
+insert into tab.compendial_not_applicable (test, market, reason, source, effective_from) values
+  ('UNIFORMITY_OF_WEIGHT', 'US', 'USP-NF sets no compendial in-process weight band for drug tablets; in-process limits are in-house, derived from process data, and uniformity is judged at release by uniformity of dosage units',
+   '21 CFR 211.110(b); tablets spec E.2 (USP-NF row)', '2023-12-28');
+
 create table tab.ipc_rule (
   key             text primary key check (key ~ '^[a-z][a-zA-Z0-9.]{1,127}$'),
   value           text not null check (value ~ '^(0|[1-9][0-9]*)(\.[0-9]*[1-9])?$'),
@@ -149,6 +169,6 @@ insert into tab.ipc_rule (key, value, unit, source, effective_from) values
 
 select kernel.set_actor_context(null);
 
-grant select on tab.compendial_rule_set, tab.ipc_rule to ebmr_app;
+grant select on tab.compendial_rule_set, tab.compendial_not_applicable, tab.ipc_rule to ebmr_app;
 
 reset role;

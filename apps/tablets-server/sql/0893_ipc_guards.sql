@@ -35,9 +35,11 @@
 --
 -- The missed-check timer at database time between entries: tab.ipc_overdue_at(batch, at) lists the overdue checks of the
 -- batch's running TB-11 steps at an instant, and tab.record_ipc_overdue(batch) records each newly overdue check once as an
--- alarm (tab.ipc_overdue_alarm) at the database's clock, for the screens and a server job (EBMR-TAB-303). The hold and the
--- exception follow with the step's next entry, which must list the missed check; a container filled meanwhile is not
--- vouched for until a passing check is recorded after it, and that entry records the MISSED first.
+-- alarm (tab.ipc_overdue_alarm) at the database's clock, for the screens and the server's sweeper job (EBMR-TAB-303).
+-- Called by a person who executes steps, it records the MISSED hold for the stream at that moment (review 3c finding 4);
+-- the sweeper's service identity holds EXECUTION.SWEEP only and the container command needs STEP.EXECUTE, so its alarm
+-- leaves the hold to the step's next entry (held false). That entry must list the missed check and records the MISSED
+-- first; a container filled meanwhile is not vouched for until a passing check is recorded after it.
 --
 -- New functions are owned by ebmr_owner; the trigger functions and the alarm functions are SECURITY DEFINER; every
 -- function pins its search_path with pg_temp last (ADR 0016). Applied as a new migration because applied migrations are
@@ -274,6 +276,13 @@ begin
       if v_problem is not null then
         return format('starts the run of %s, but %s', v_key, v_problem);
       end if;
+      -- Review 3c finding 1 (builder A, tablets 0874): the press's set-up tooling is unreturned and within its limit.
+      if coalesce(v_cfg ->> 'process', 'COMPRESSION') = 'COMPRESSION' then
+        v_problem := tab.press_tooling_problem(p_content, p_new, d ->> 'press');
+        if v_problem is not null then
+          return format('starts the run of %s, but %s', v_key, v_problem);
+        end if;
+      end if;
       v_problem := tab.ipc_plan_problem(v_cfg);
       if v_problem is not null then
         return format('starts the run of %s, but %s', v_key, v_problem);
@@ -347,7 +356,8 @@ begin
 end
 $$;
 
--- TB-11's bracketing hold for the new entries of row p_new (header): MISSED per missed stream, then FAIL or PASS.
+-- TB-11's bracketing hold for the new entries of row p_new (header): MISSED per missed stream, then FAIL or PASS; and the
+-- hold of a failing TB-12..TB-15 step of its own (review 3c finding 3).
 create function tab.ipc_apply_holds(p_batch uuid, p_content jsonb, p_old jsonb, p_new jsonb) returns void
 language plpgsql volatile security definer set search_path = pg_catalog, tab, recipe, plant, pg_temp as $$
 declare
@@ -358,14 +368,27 @@ declare
   v_key    text;
   v_press  text;
   v_stream text;
+  v_type   text;
 begin
   for k, e in select x.key, x.value from jsonb_each(case when jsonb_typeof(p_new -> 'entries') = 'object' then p_new -> 'entries' else '{}'::jsonb end) x
                where not (e0 ? x.key) order by (x.value ->> 'recordedSeq')::numeric, x.key loop
     v_key := e ->> 'stepKey';
-    if recipe.step_node(p_content, p_new -> 'steps' -> v_key ->> 'step') -> 'block' ->> 'type' is distinct from 'TB-11' then
+    v_type := recipe.step_node(p_content, p_new -> 'steps' -> v_key ->> 'step') -> 'block' ->> 'type';
+    d := tab.ipc_d(e);
+    -- Review 3c finding 3: a failing final result of a TB-12..TB-15 step of its own (no stream) holds the output of every
+    -- press of the batch since that press's last whole-press passing check (tablets spec TB-12 to TB-15: a failure holds
+    -- output since the last passing check; with no stream known, the whole press, the stricter side).
+    if v_type in ('TB-12', 'TB-13', 'TB-14', 'TB-15') then
+      if e ->> 'kind' in ('WEIGHT_CHECK', 'WEIGHT_SECOND_STAGE', 'PHYSICAL_CHECK', 'FRIABILITY_RUN', 'DT_END') and d ->> 'result' = 'FAIL' then
+        for v_press in select distinct o.press_code from plant.output_container o where o.batch_id = p_batch and o.press_code is not null order by 1 loop
+          perform plant.record_ipc_check(p_batch, v_press, null, 'FAIL', format('%s:%s:%s', replace(v_type, '-', ''), v_key, k));
+        end loop;
+      end if;
       continue;
     end if;
-    d := tab.ipc_d(e);
+    if v_type is distinct from 'TB-11' then
+      continue;
+    end if;
     select tab.ipc_d(x) ->> 'press' into v_press from jsonb_array_elements(tab.gran_prior(p_new, v_key, 'Infinity'::numeric, 'RUN_START')) x limit 1;
     for v_stream in select m.v ->> 'stream' from jsonb_array_elements(case when jsonb_typeof(d -> 'missed') = 'array' then d -> 'missed' else '[]'::jsonb end) with ordinality m (v, i)
                      group by m.v ->> 'stream' order by min(m.i) loop
@@ -411,9 +434,7 @@ begin
                        case when r.kind = 'COMMAND' and r.accepted then 'accepted' when r.kind = 'COMMAND' then 'refused' else lower(coalesce(r.kind, 'unknown')) end,
                        coalesce(r.command_type, r.kind, 'unknown'), v_problem, v_code);
   end if;
-  if tab.ipc_batch_has(v_content, true) then
-    perform tab.ipc_apply_holds(new.batch_id, v_content, old.state, new.state);
-  end if;
+  perform tab.ipc_apply_holds(new.batch_id, v_content, old.state, new.state);
   return null;
 end
 $$;
@@ -469,6 +490,8 @@ create table tab.ipc_overdue_alarm (
   stream       text not null,
   test         text not null check (test in ('WEIGHT', 'PHYSICAL', 'FRIABILITY', 'DISINTEGRATION', 'SWEEP')),
   due_us       bigint not null,
+  -- Whether the MISSED hold was recorded with the alarm (review 3c finding 4): by a caller who may execute steps.
+  held         boolean not null,
   person_id    uuid not null,
   account_id   uuid not null,
   detected_at  timestamptz not null default clock_timestamp(),
@@ -520,22 +543,36 @@ declare
   m       jsonb;
   v_out   jsonb := '[]'::jsonb;
   v_id    uuid;
+  v_exec  boolean;
+  v_state jsonb;
+  v_press text;
 begin
   perform iam.assert_not_administrator();
   if not exists (select 1 from recipe.batch_execution where id = p_batch) then
     raise exception using errcode = 'P0001', message = format('Unknown batch %s (EBMR-TAB-303)', p_batch);
   end if;
-  v_eval := iam.evaluate_authority((v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, 'EXECUTION.SWEEP', '{}'::jsonb, clock_timestamp(), v_actor ->> 'role_code');
-  if not (v_eval ->> 'allowed')::boolean then
-    perform iam.require_permission('STEP.EXECUTE', plant.batch_scope(p_batch));
+  v_exec := (iam.evaluate_authority((v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, 'STEP.EXECUTE', plant.batch_scope(p_batch), clock_timestamp(),
+                                    v_actor ->> 'role_code') ->> 'allowed')::boolean;
+  if not v_exec then
+    v_eval := iam.evaluate_authority((v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, 'EXECUTION.SWEEP', '{}'::jsonb, clock_timestamp(), v_actor ->> 'role_code');
+    if not (v_eval ->> 'allowed')::boolean then
+      perform iam.require_permission('STEP.EXECUTE', plant.batch_scope(p_batch));
+    end if;
   end if;
+  select st.state into v_state from recipe.execution_state st where st.batch_id = p_batch;
   for m in select x from jsonb_array_elements(tab.ipc_overdue_at(p_batch, clock_timestamp())) x loop
-    insert into tab.ipc_overdue_alarm (batch_id, step_key, stream, test, due_us, person_id, account_id)
-    values (p_batch, m ->> 'stepKey', m ->> 'stream', m ->> 'test', (m ->> 'dueUs')::bigint, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
+    insert into tab.ipc_overdue_alarm (batch_id, step_key, stream, test, due_us, held, person_id, account_id)
+    values (p_batch, m ->> 'stepKey', m ->> 'stream', m ->> 'test', (m ->> 'dueUs')::bigint, v_exec, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
     on conflict (batch_id, step_key, stream, test, due_us) do nothing
     returning id into v_id;
     if v_id is not null then
-      v_out := v_out || m;
+      -- Review 3c finding 4: the MISSED hold at the moment of the alarm, through the slice 1 container command, which
+      -- needs a person who executes steps; the sweeper's alarm leaves it to the run's next entry (held false).
+      if v_exec then
+        select tab.ipc_d(x) ->> 'press' into v_press from jsonb_array_elements(tab.gran_prior(v_state, m ->> 'stepKey', 'Infinity'::numeric, 'RUN_START')) x limit 1;
+        perform plant.record_ipc_check(p_batch, v_press, m ->> 'stream', 'MISSED', format('TB11:%s:OVERDUE:%s', m ->> 'stepKey', m ->> 'dueUs'));
+      end if;
+      v_out := v_out || (m || jsonb_build_object('held', v_exec));
     end if;
     v_id := null;
   end loop;

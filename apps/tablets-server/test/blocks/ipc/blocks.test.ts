@@ -9,7 +9,7 @@ import { blocks, type flow } from '@ebmr/recipe-core/pure';
 import { Dec } from '@ebmr/expr';
 import { IPC_BLOCK_VERSIONS, TB11, TB12, TB13, TB14, TB15 } from '../../../src/blocks/ipc/index.ts';
 import { bandOf, statistics, acceptanceValue } from '../../../src/blocks/ipc/calc.ts';
-import { RULE_SETS, resolveRuleSets, utcDate, type UniformityParams } from '../../../src/blocks/ipc/rule-sets.ts';
+import { NOT_APPLICABLE, RULE_SETS, resolveRuleSets, ruleSetProblem, shared, uncoveredMarkets, utcDate, type UniformityParams } from '../../../src/blocks/ipc/rule-sets.ts';
 import { overdue } from '../../../src/blocks/tb-11.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../../../src/features/edition-blocks.ts';
 import { blockMbr, definitionCodes, defineFor, fixturePhase, MIN, OP1, Run, runGolden, sig, T0, VER1 } from '../granulation/support.ts';
@@ -130,6 +130,23 @@ describe('compendial rule sets (D-S3-2)', () => {
   });
 });
 
+describe('rule-set coverage and agreement (review 3c finding 5)', () => {
+  it('[IN-34][DI-10] every batch market needs a rule set for the test and tablet type or a recorded not-applicable decision (fail closed); bound rule sets must give one procedure', () => {
+    expect(uncoveredMarkets('UNIFORMITY_OF_WEIGHT', ['IN', 'US'], 'UNCOATED', '2026-10-10')).toEqual([]);
+    expect(NOT_APPLICABLE.map((n) => [n.test, n.market])).toEqual([['UNIFORMITY_OF_WEIGHT', 'US']]);
+    expect(uncoveredMarkets('UNIFORMITY_OF_WEIGHT', ['IN', 'EU'], 'SUGAR_COATED', '2026-10-10')).toEqual(['EU', 'IN']);
+    expect(uncoveredMarkets('SUBDIVISION', ['IN', 'EU', 'US'], 'UNCOATED', '2026-10-10')).toEqual(['IN', 'US']);
+    expect(uncoveredMarkets('FRIABILITY', ['IN', 'EU', 'US'], 'UNCOATED', '2026-10-10')).toEqual([]);
+    const ip = RULE_SETS.find((r) => r.code === 'IP-FRIABILITY');
+    if (!ip) throw new Error('SETUP');
+    const other = { ...ip, code: 'OTHER-FRIABILITY', params: { ...(ip.params as unknown as Record<string, unknown>), rotations: 150 } } as typeof ip;
+    expect(shared([ip, other], 'rotations')).toBeUndefined();
+    expect(shared([ip, other], 'rpmMin')).toBe('24');
+    expect(ruleSetProblem('FRIABILITY', [ip, other], ['IN'], 'UNCOATED', '2026-10-10')).toMatch(/different procedures \(rotations\)/);
+    expect(ruleSetProblem('FRIABILITY', [ip], ['IN'], 'UNCOATED', '2026-10-10')).toBeUndefined();
+  });
+});
+
 describe('TB-12 weight', () => {
   it('[IN-34][PR-29] uniformity is refused where no rule set covers the tablet type (sugar-coated, India only) when the MBR is defined and when a check is recorded; the in-house individual limit is never looser than the band at the target', () => {
     const mbr = (config: Json, markets = ['IN']) => {
@@ -138,13 +155,14 @@ describe('TB-12 weight', () => {
       return m;
     };
     expect(definitionCodes(mbr({ mode: 'UNIFORMITY', tabletType: 'SUGAR_COATED' }))).toEqual(['TB12-NO-RULE-SET']);
-    expect(definitionCodes(mbr({ mode: 'UNIFORMITY', tabletType: 'SUGAR_COATED', legacyTable: true }))).toEqual([]);
+    // Review 3c finding 5: the legacy table is no market's rule set; India stays uncovered for sugar-coated tablets.
+    expect(definitionCodes(mbr({ mode: 'UNIFORMITY', tabletType: 'SUGAR_COATED', legacyTable: true }))).toEqual(['TB12-NO-RULE-SET']);
     expect(definitionCodes(mbr({ mode: 'INDIVIDUAL', tabletType: 'UNCOATED', targetWeightMg: '300.0', n: 10, individual: { action: '6' } }))).toEqual(['TB12-LOOSER']);
     expect(definitionCodes(mbr({ mode: 'INDIVIDUAL', tabletType: 'UNCOATED', targetWeightMg: '300.0', n: 10, individual: { action: '5', alert: '6' } }))).toEqual(['TB12-CONFIG']);
     expect(definitionCodes(mbr({ mode: 'INDIVIDUAL', tabletType: 'UNCOATED', targetWeightMg: '300.0', n: 10, individual: { action: '4', alert: '3' } }))).toEqual([]);
     expect(definitionCodes(mbr({ mode: 'GROUP', tabletType: 'UNCOATED', targetWeightMg: '250.0', n: 20 }))).toEqual(['TB12-CONFIG', 'TB12-CONFIG']);
     expect(definitionCodes(mbr({ mode: 'SUBDIVISION', tabletType: 'UNCOATED' }))).toEqual(['TB12-NO-RULE-SET']);
-    expect(definitionCodes(mbr({ mode: 'SUBDIVISION', tabletType: 'UNCOATED' }, ['IN', 'EU']))).toEqual([]);
+    expect(definitionCodes(mbr({ mode: 'SUBDIVISION', tabletType: 'UNCOATED' }, ['IN', 'EU']))).toEqual(['TB12-NO-RULE-SET']);
   });
 
   it('[PR-29][DI-29] group weight (a): the total against n x target with action and alert tiers; one tablet count only; every weight kept; an alert-limit breach warns, an action-limit breach fails', () => {

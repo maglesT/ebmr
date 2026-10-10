@@ -142,8 +142,12 @@ begin
     when 'CONTENT' then tab.ipc_rule_sets('WEIGHT_VARIATION', p_markets, p_tcfg ->> 'tabletType', p_date, false)
     when 'SUBDIVISION' then tab.ipc_rule_sets('SUBDIVISION', p_markets, p_tcfg ->> 'tabletType', p_date, false)
     else '[]'::jsonb end;
-  if v_mode in ('UNIFORMITY', 'CONTENT', 'SUBDIVISION') and jsonb_array_length(v_sets) = 0 then
-    return tab.ipc_p('TB12-NO-RULE-SET', format('no compendial rule set for this mode covers %s tablets for the batch''s markets', coalesce(p_tcfg ->> 'tabletType', '(none)')));
+  if v_mode in ('UNIFORMITY', 'CONTENT', 'SUBDIVISION') then
+    v_common := tab.ipc_rule_set_problem(case v_mode when 'UNIFORMITY' then 'UNIFORMITY_OF_WEIGHT' when 'CONTENT' then 'WEIGHT_VARIATION' else 'SUBDIVISION' end,
+                                         v_sets, p_markets, p_tcfg ->> 'tabletType', p_date, 'TB12');
+    if v_common is not null then
+      return v_common;
+    end if;
   end if;
   v_n := case
     when v_mode in ('GROUP', 'INDIVIDUAL') then coalesce((p_tcfg ->> 'n')::integer, 0)
@@ -339,8 +343,8 @@ $$;
 create function tab.ipc_friability_run(p_tcfg jsonb, p_cfg jsonb, p_sched boolean, p_prior jsonb, c jsonb, p_markets jsonb, p_date date, p_now numeric, p_by jsonb) returns jsonb
 language plpgsql stable set search_path = pg_catalog, tab, recipe, pg_temp as $$
 declare
-  v_sets    jsonb := tab.ipc_rule_sets('FRIABILITY', p_markets, p_tcfg ->> 'tabletType', p_date, false);
-  p         jsonb := v_sets -> 0 -> 'params';
+  v_sets    jsonb;
+  p         jsonb;
   v_limit   numeric;
   v_tablets numeric := (c ->> 'tablets')::numeric;
   v_initial numeric := (c ->> 'initialMass')::numeric;
@@ -356,23 +360,6 @@ declare
   v_out     text;
   v_broken  boolean := (c -> 'broken') = 'true'::jsonb;
 begin
-  if jsonb_array_length(v_sets) = 0 then
-    return tab.ipc_p('TB14-NO-RULE-SET', format('no friability rule set covers %s tablets for this batch', coalesce(p_tcfg ->> 'tabletType', '(none)')));
-  end if;
-  select min(x) into v_limit from (select (s -> 'params' ->> 'maxLossPercent')::numeric x from jsonb_array_elements(v_sets) s
-                                    union all select (p_tcfg ->> 'limitPercent')::numeric where jsonb_typeof(p_tcfg -> 'limitPercent') = 'string') z;
-  if v_final < 0 or v_final > v_initial then
-    return tab.ipc_p('TB14-MASS', 'the mass after the test lies between zero and the mass before it');
-  end if;
-  if tab.ipc_friability_sample_problem(p, v_tablets, v_initial) is not null then
-    return tab.ipc_p('TB14-SAMPLE', 'the sample does not follow the rule set: ' || tab.ipc_friability_sample_problem(p, v_tablets, v_initial));
-  end if;
-  if (c ->> 'rotations')::numeric <> (p ->> 'rotations')::numeric then
-    return tab.ipc_p('TB14-ROTATIONS', format('the drum turns %s times', p ->> 'rotations'));
-  end if;
-  if v_rpm < (p ->> 'rpmMin')::numeric or v_rpm > (p ->> 'rpmMax')::numeric then
-    return tab.ipc_p('TB14-RATE', format('the drum turns at %s to %s rpm', p ->> 'rpmMin', p ->> 'rpmMax'));
-  end if;
   if v_repeat is null then
     if exists (select 1 from jsonb_array_elements(tab.ipc_pending_friability(p_prior)) x where tab.ipc_d(x) -> 'stream' is not distinct from c -> 'stream') then
       return tab.ipc_p('TB14-REPEAT-PENDING', 'the step waits for the repeat runs of its friability test; a new first run never replaces them');
@@ -392,6 +379,31 @@ begin
       return tab.ipc_p('TB14-DOUBTFUL', 'only the first run is found doubtful');
     end if;
     v_run := 1 + (select count(*) from jsonb_array_elements(tab.ipc_of(p_prior, 'FRIABILITY_RUN')) x where tab.ipc_d(x) ->> 'repeatOf' = v_repeat)::integer + 1;
+  end if;
+  -- A repeat run is part of its first run's test: the rule sets the first run recorded (review 3c finding 5).
+  if v_first is not null then
+    v_sets := tab.ipc_recorded(tab.ipc_d(v_first) -> 'ruleSets');
+  else
+    v_sets := tab.ipc_rule_sets('FRIABILITY', p_markets, p_tcfg ->> 'tabletType', p_date, false);
+    v_common := tab.ipc_rule_set_problem('FRIABILITY', v_sets, p_markets, p_tcfg ->> 'tabletType', p_date, 'TB14');
+    if v_common is not null then
+      return v_common;
+    end if;
+  end if;
+  p := v_sets -> 0 -> 'params';
+  select min(x) into v_limit from (select (s -> 'params' ->> 'maxLossPercent')::numeric x from jsonb_array_elements(v_sets) s
+                                    union all select (p_tcfg ->> 'limitPercent')::numeric where jsonb_typeof(p_tcfg -> 'limitPercent') = 'string') z;
+  if v_final < 0 or v_final > v_initial then
+    return tab.ipc_p('TB14-MASS', 'the mass after the test lies between zero and the mass before it');
+  end if;
+  if tab.ipc_friability_sample_problem(p, v_tablets, v_initial) is not null then
+    return tab.ipc_p('TB14-SAMPLE', 'the sample does not follow the rule set: ' || tab.ipc_friability_sample_problem(p, v_tablets, v_initial));
+  end if;
+  if (c ->> 'rotations')::numeric <> (p ->> 'rotations')::numeric then
+    return tab.ipc_p('TB14-ROTATIONS', format('the drum turns %s times', p ->> 'rotations'));
+  end if;
+  if v_rpm < (p ->> 'rpmMin')::numeric or v_rpm > (p ->> 'rpmMax')::numeric then
+    return tab.ipc_p('TB14-RATE', format('the drum turns at %s to %s rpm', p ->> 'rpmMin', p ->> 'rpmMax'));
   end if;
   v_common := tab.ipc_common(p_cfg, p_sched, p_prior, c, 2, 'TB14', p_now, p_by);
   if v_common ? 'problem' then
@@ -428,6 +440,20 @@ $$;
 -- ---------------------------------------------------------------------------------------------
 -- TB-15
 
+-- The disintegration limits of test configuration p_tcfg with rule sets p_sets.
+create function tab.ipc_dt_limits_with(p_tcfg jsonb, p_sets jsonb) returns jsonb
+language sql immutable set search_path = pg_catalog, tab, recipe, pg_temp as $$
+  select tab.ipc_dt_limits(p_sets, p_tcfg ->> 'tabletType', recipe.duration_us(p_tcfg -> 'timeLimit')::numeric / 1000000, recipe.duration_us(p_tcfg -> 'acidTime')::numeric / 1000000)
+$$;
+
+-- The rule sets the start of the run that DT_END p_end ended recorded (a retest and a buffer stage reuse them).
+create function tab.ipc_start_sets(p_prior jsonb, p_end text) returns jsonb
+language sql stable set search_path = pg_catalog, tab, pg_temp as $$
+  select tab.ipc_recorded(tab.ipc_d(s) -> 'ruleSets')
+    from jsonb_array_elements(tab.ipc_of(p_prior, 'DT_END')) x, jsonb_array_elements(tab.ipc_of(p_prior, 'DT_START')) s
+   where x ->> 'id' = p_end and s ->> 'id' = tab.ipc_d(x) ->> 'start'
+$$;
+
 create function tab.ipc_dt_limits_of(p_tcfg jsonb, p_markets jsonb, p_date date) returns jsonb
 language sql stable set search_path = pg_catalog, tab, recipe, pg_temp as $$
   select tab.ipc_dt_limits(tab.ipc_rule_sets('DISINTEGRATION', p_markets, p_tcfg ->> 'tabletType', p_date, false), p_tcfg ->> 'tabletType',
@@ -455,7 +481,8 @@ $$;
 create function tab.ipc_dt_start(p_tcfg jsonb, p_cfg jsonb, p_sched boolean, p_prior jsonb, c jsonb, p_markets jsonb, p_date date, p_now numeric, p_by jsonb) returns jsonb
 language plpgsql stable set search_path = pg_catalog, tab, recipe, pg_temp as $$
 declare
-  v_lim     jsonb := tab.ipc_dt_limits_of(p_tcfg, p_markets, p_date);
+  v_lim     jsonb;
+  v_sets    jsonb;
   v_stage   text := c ->> 'stage';
   v_gastro  boolean := p_tcfg ->> 'tabletType' = 'GASTRO_RESISTANT';
   v_retest  text := tab.ipc_str(c -> 'retestOf');
@@ -465,9 +492,6 @@ declare
   v_t       numeric := (c ->> 'bathTemperature')::numeric;
   v_common  jsonb;
 begin
-  if v_lim is null then
-    return tab.ipc_p('TB15-NO-RULE-SET', format('no disintegration rule set covers %s tablets for this batch', coalesce(p_tcfg ->> 'tabletType', '(none)')));
-  end if;
   if v_gastro <> (v_stage <> 'MAIN') then
     return tab.ipc_p('TB15-STAGE', 'gastro-resistant tablets run an acid stage and then a buffer stage; other tablets the main stage');
   end if;
@@ -491,6 +515,18 @@ begin
   elsif v_stage = 'ACID' and exists (select 1 from jsonb_array_elements(tab.ipc_pending_dt(p_prior, 'BUFFER')) x where tab.ipc_d(x) -> 'stream' is not distinct from c -> 'stream') then
     return tab.ipc_p('TB15-BUFFER-PENDING', 'the acid stage passed: the buffer stage comes next');
   end if;
+  v_sets := case when v_retest is not null then tab.ipc_start_sets(p_prior, v_retest) when v_after is not null then tab.ipc_start_sets(p_prior, v_after)
+                 else tab.ipc_rule_sets('DISINTEGRATION', p_markets, p_tcfg ->> 'tabletType', p_date, false) end;
+  if v_retest is null and v_after is null then
+    v_common := tab.ipc_rule_set_problem('DISINTEGRATION', v_sets, p_markets, p_tcfg ->> 'tabletType', p_date, 'TB15');
+    if v_common is not null then
+      return v_common;
+    end if;
+  end if;
+  v_lim := tab.ipc_dt_limits_with(p_tcfg, coalesce(v_sets, '[]'::jsonb));
+  if v_lim is null then
+    return tab.ipc_p('TB15-NO-RULE-SET', format('no disintegration rule set covers %s tablets for this batch', coalesce(p_tcfg ->> 'tabletType', '(none)')));
+  end if;
   v_limit := case when v_stage = 'ACID' then v_lim ->> 'acidSeconds' else v_lim ->> 'seconds' end;
   if v_limit is null then
     return tab.ipc_p('TB15-NO-LIMIT', 'neither a rule set nor the MBR gives this stage a time limit');
@@ -506,7 +542,7 @@ begin
     'data', (v_common -> 'base') || jsonb_build_object('bathTemperature', c -> 'bathTemperature', 'stage', v_stage)
             || case when v_retest is not null then jsonb_build_object('retestOf', v_retest) else '{}'::jsonb end
             || case when v_after is not null then jsonb_build_object('afterAcid', v_after) else '{}'::jsonb end
-            || jsonb_build_object('ruleSets', tab.ipc_refs(tab.ipc_rule_sets('DISINTEGRATION', p_markets, p_tcfg ->> 'tabletType', p_date, false)),
+            || jsonb_build_object('ruleSets', tab.ipc_refs(v_sets),
                                   'limitSeconds', v_limit, 'temperature', jsonb_build_object('min', v_lim -> 'tempMin', 'max', v_lim -> 'tempMax'),
                                   'units', case when v_retest is not null then v_lim -> 'staging' -> 'retestUnits' else v_lim -> 'units' end),
     'outcome', 'RETEST', 'manual', v_common -> 'manual', 'late', v_common -> 'late');
@@ -562,7 +598,7 @@ begin
   else
     select count(*)::integer into v_passed from jsonb_array_elements(v_units) u
      where (u -> 'disintegrated') = 'true'::jsonb and case when u ? 'seconds' then (u ->> 'seconds')::numeric <= v_limit else v_el <= v_limit end;
-    v_staging := coalesce(tab.ipc_dt_limits_of(p_tcfg, p_markets, p_date) -> 'staging', '{"failMin": 1, "failMax": 2, "retestUnits": 12, "passMin": 16}'::jsonb);
+    v_staging := coalesce(tab.ipc_dt_limits_with(p_tcfg, tab.ipc_recorded(sd -> 'ruleSets')) -> 'staging', '{"failMin": 1, "failMax": 2, "retestUnits": 12, "passMin": 16}'::jsonb);
     if sd ? 'retestOf' then
       select coalesce((tab.ipc_d(x) ->> 'passed')::integer, 0) + v_passed into v_total from jsonb_array_elements(tab.ipc_of(p_prior, 'DT_END')) x where x ->> 'id' = sd ->> 'retestOf';
       v_total := coalesce(v_total, v_passed);
@@ -873,7 +909,7 @@ revoke all on function tab.ipc_p(text, text), tab.ipc_str(jsonb), tab.ipc_d(json
   tab.ipc_common(jsonb, boolean, jsonb, jsonb, integer, text, numeric, jsonb), tab.ipc_of(jsonb, text), tab.ipc_pending_first(jsonb),
   tab.ipc_weight_check(jsonb, jsonb, boolean, jsonb, jsonb, jsonb, date, numeric, jsonb), tab.ipc_second_stage(jsonb, boolean, jsonb, jsonb, numeric, jsonb),
   tab.ipc_physical_check(jsonb, jsonb, boolean, jsonb, jsonb, numeric, jsonb), tab.ipc_pending_friability(jsonb), tab.ipc_loss(numeric, numeric),
-  tab.ipc_friability_run(jsonb, jsonb, boolean, jsonb, jsonb, jsonb, date, numeric, jsonb), tab.ipc_dt_limits_of(jsonb, jsonb, date), tab.ipc_open_starts(jsonb),
+  tab.ipc_friability_run(jsonb, jsonb, boolean, jsonb, jsonb, jsonb, date, numeric, jsonb), tab.ipc_dt_limits_of(jsonb, jsonb, date), tab.ipc_dt_limits_with(jsonb, jsonb), tab.ipc_start_sets(jsonb, text), tab.ipc_open_starts(jsonb),
   tab.ipc_pending_dt(jsonb, text), tab.ipc_dt_start(jsonb, jsonb, boolean, jsonb, jsonb, jsonb, date, numeric, jsonb),
   tab.ipc_dt_end(jsonb, jsonb, jsonb, jsonb, date, numeric, jsonb), tab.ipc_check_test(text, jsonb), tab.ipc_due(jsonb, jsonb, text, text),
   tab.ipc_overdue(jsonb, jsonb, numeric), tab.ipc_sweep(jsonb, jsonb, jsonb, numeric, jsonb),

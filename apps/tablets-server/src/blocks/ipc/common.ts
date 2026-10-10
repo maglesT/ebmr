@@ -29,7 +29,7 @@ import {
   type HandlerView,
   type ObjectSchema,
 } from '../granulation/common.ts';
-import { resolveRuleSets, TABLET_TYPES, utcDate, type RuleSet, type RuleTest, type TabletType } from './rule-sets.ts';
+import { PROCEDURE_KEYS, resolveRuleSets, shared, TABLET_TYPES, uncoveredMarkets, utcDate, type RuleSet, type RuleTest, type TabletType } from './rule-sets.ts';
 import type { Bounds, Tiers, Verdict } from './calc.ts';
 
 export * from '../granulation/common.ts';
@@ -146,6 +146,21 @@ export function testConfig(view: HandlerView, key: string): Readonly<Record<stri
 }
 
 /** The markets of the batch (IN always) and the UTC date of the entry, for rule-set resolution. */
+/**
+ * Why the rule sets bound for a check cannot be used (review 3c finding 5), as a refusal: a batch market neither a set
+ * nor a not-applicable record covers (`<code>-NO-RULE-SET`), or sets whose procedures differ (`<code>-RULE-SETS-DIFFER`).
+ */
+export function ruleSetRefusal(view: HandlerView, test: RuleTest, type: string | undefined, sets: readonly RuleSet[], code: string): { ok: false; problems: HandlerProblem[] } | undefined {
+  const date = utcDate(view.nowUs);
+  const open = uncoveredMarkets(test, view.batch.marketSet, type as TabletType | undefined, date);
+  if (sets.length === 0 || open.length > 0) {
+    return refuse(`${code}-NO-RULE-SET`, `No compendial rule set covers ${String(type)} tablets for market ${open.join(', ') || 'IN'} of this batch, and no record says none applies`, ['IN-34', 'DI-10']);
+  }
+  const differ = PROCEDURE_KEYS[test].filter((k) => shared(sets, k) === undefined);
+  if (differ.length > 0) return refuse(`${code}-RULE-SETS-DIFFER`, `The rule sets bound for this check give different procedures (${differ.join(', ')})`, ['IN-34', 'DI-10']);
+  return undefined;
+}
+
 export function resolve(view: HandlerView, test: RuleTest, type: string | undefined, optIn = false): RuleSet[] {
   return resolveRuleSets(test, view.batch.marketSet, type as TabletType | undefined, utcDate(view.nowUs), optIn);
 }

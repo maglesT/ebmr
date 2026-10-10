@@ -399,4 +399,73 @@ export function resolveRuleSets(test: RuleTest, markets: readonly string[], type
   return [...out.values()].sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
 }
 
+/**
+ * Markets whose pharmacopoeia has, by decision recorded here, no in-process rule set for a test (review 3c finding 5):
+ * the batch's market is covered by this record instead of a rule set. Any other batch market without a rule set for the
+ * test and tablet type fails the check closed. The database holds the same rows (tablets 0890,
+ * tab.compendial_not_applicable).
+ */
+export interface NotApplicable {
+  test: RuleTest;
+  market: string;
+  reason: string;
+  source: string;
+  effectiveFrom: string;
+}
+
+export const NOT_APPLICABLE: readonly NotApplicable[] = [
+  {
+    test: 'UNIFORMITY_OF_WEIGHT',
+    market: 'US',
+    reason: 'USP-NF sets no compendial in-process weight band for drug tablets; in-process limits are in-house, derived from process data, and uniformity is judged at release by uniformity of dosage units',
+    source: '21 CFR 211.110(b); tablets spec E.2 (USP-NF row)',
+    effectiveFrom: '2023-12-28',
+  },
+];
+
+/**
+ * The batch's markets (IN always) that neither a rule set bound for `test` and `type` on `date` nor a not-applicable
+ * record covers (sorted): a check is refused while any remains (fail closed).
+ */
+export function uncoveredMarkets(test: RuleTest, markets: readonly string[], type: TabletType | undefined, date: string): string[] {
+  const bound = resolveRuleSets(test, markets, type, date);
+  return [...new Set([...markets, 'IN'])]
+    .filter((m) => !bound.some((r) => r.markets.includes(m)))
+    .filter((m) => !NOT_APPLICABLE.some((n) => n.test === test && n.market === m && n.effectiveFrom <= date))
+    .sort();
+}
+
+/**
+ * The procedure parameter `key` the bound rule sets share (sample size, rotations, staging, ...): the value when every set
+ * gives the same, undefined when they differ (a check is then refused: the sets do not say one procedure).
+ */
+export function shared<T = unknown>(sets: readonly RuleSet[], key: string): T | undefined {
+  const vs = sets.map((r) => JSON.stringify((r.params as unknown as Record<string, unknown>)[key]));
+  return vs.length > 0 && vs.every((v) => v === vs[0]) ? ((sets[0]?.params as unknown as Record<string, unknown>)[key] as T) : undefined;
+}
+
+/** The procedure keys each test's bound rule sets must agree on. */
+export const PROCEDURE_KEYS: Record<RuleTest, readonly string[]> = {
+  UNIFORMITY_OF_WEIGHT: ['units'],
+  WEIGHT_VARIATION: ['firstUnits', 'totalUnits'],
+  SUBDIVISION: ['units'],
+  FRIABILITY: ['rotations', 'rpmMin', 'rpmMax', 'targetSampleGrams', 'heavyUnitMg', 'heavyUnitCount', 'repeatRuns', 'lossDecimals'],
+  DISINTEGRATION: ['units', 'staging'],
+};
+
+/** Why the bound rule sets cannot be used for a check: a market not covered, or procedures that differ; else undefined. */
+export function ruleSetProblem(test: RuleTest, sets: readonly RuleSet[], markets: readonly string[], type: TabletType | undefined, date: string): string | undefined {
+  const open = uncoveredMarkets(test, markets, type, date);
+  if (open.length > 0) return `no rule set covers ${String(type)} tablets for market ${open.join(', ')}, and no record says none applies`;
+  const differ = PROCEDURE_KEYS[test].filter((k) => shared(sets, k) === undefined);
+  if (sets.length > 0 && differ.length > 0) return `the bound rule sets give different procedures (${differ.join(', ')})`;
+  return undefined;
+}
+
+/** The rule sets an earlier entry recorded ([{code, version}]), as shipped. */
+export function recorded(refs: unknown): RuleSet[] {
+  const list = Array.isArray(refs) ? (refs as { code?: unknown; version?: unknown }[]) : [];
+  return list.map((x) => RULE_SETS.find((r) => r.code === x.code && r.version === x.version)).filter((r): r is RuleSet => r !== undefined);
+}
+
 export const ref = (r: RuleSet): { code: string; version: number } => ({ code: r.code, version: r.version });

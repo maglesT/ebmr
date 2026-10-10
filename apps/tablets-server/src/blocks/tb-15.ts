@@ -29,6 +29,7 @@ import {
   problem,
   refuse,
   resolve,
+  ruleSetRefusal,
   secondsText,
   TABLET_TYPE,
   TEST_EXCEPTION_RULES,
@@ -47,7 +48,7 @@ import {
   type ObjectSchema,
   type Outcome,
 } from './ipc/common.ts';
-import { resolveRuleSets, type TabletType } from './ipc/rule-sets.ts';
+import { recorded, resolveRuleSets, uncoveredMarkets, type RuleSet, type TabletType } from './ipc/rule-sets.ts';
 import { resultOf, type TestOutcome } from './tb-12.ts';
 
 const CONTROLS = ['IN-35', 'PR-29', 'DI-29'];
@@ -104,9 +105,16 @@ const secondsOf = (q: unknown): string | undefined => {
   return us === undefined ? undefined : Dec.fromScaled(us, -6).toString();
 };
 
-/** The limits a disintegration of `cfg` runs under for this batch (undefined: no rule set covers the type). */
-export function dtLimits(view: HandlerView, cfg: Readonly<Record<string, unknown>>): DtLimits | undefined {
-  return disintegrationLimits(resolve(view, 'DISINTEGRATION', text(cfg['tabletType'])), String(cfg['tabletType']), secondsOf(cfg['timeLimit']), secondsOf(cfg['acidTime']));
+/** The limits a disintegration of `cfg` runs under with rule sets `sets` (undefined: none covers the type). */
+export function dtLimits(sets: readonly RuleSet[], cfg: Readonly<Record<string, unknown>>): DtLimits | undefined {
+  return disintegrationLimits(sets, String(cfg['tabletType']), secondsOf(cfg['timeLimit']), secondsOf(cfg['acidTime']));
+}
+
+/** The rule sets the run's start recorded (a retest, a buffer stage and the run's end reuse them: review 3c finding 5). */
+function startSets(view: HandlerView, endId: unknown): RuleSet[] {
+  const end = view.entries('DT_END').find((e) => e.id === endId);
+  const start = view.entries('DT_START').find((s) => s.id === end?.data['start']);
+  return recorded(start?.data['ruleSets']);
 }
 
 /** DT_START entries of the step not yet ended. */
@@ -130,8 +138,6 @@ export function pendingBuffers(view: HandlerView): EntryRecord[] {
 /** A DT_START (shared by TB-15 and TB-11); it has no result of its own. */
 export function acceptDtStart(view: HandlerView, entry: Entry): { ok: true; t: TestOutcome } | { ok: false; problems: HandlerProblem[] } {
   const cfg = testConfig(view, 'disintegration');
-  const lim = dtLimits(view, cfg);
-  if (!lim) return refuse('TB15-NO-RULE-SET', `No disintegration rule set covers ${String(cfg['tabletType'])} tablets for this batch`, ['PR-29', 'DI-10']);
   const stage = String(entry['stage']);
   const gastro = cfg['tabletType'] === 'GASTRO_RESISTANT';
   if (gastro !== (stage !== 'MAIN')) return refuse('TB15-STAGE', gastro ? 'Gastro-resistant tablets run an acid stage and then a buffer stage' : 'Only gastro-resistant tablets run acid and buffer stages', ['PR-29']);
@@ -150,6 +156,13 @@ export function acceptDtStart(view: HandlerView, entry: Entry): { ok: true; t: T
   } else if (stage === 'ACID' && pendingBuffers(view).some((e) => e.data['stream'] === entry['stream'])) {
     return refuse('TB15-BUFFER-PENDING', 'The acid stage passed: the buffer stage comes next', ['PR-29', 'INV-41']);
   }
+  const sets = retestOf !== undefined ? startSets(view, retestOf) : afterAcid !== undefined ? startSets(view, afterAcid) : resolve(view, 'DISINTEGRATION', text(cfg['tabletType']));
+  if (retestOf === undefined && afterAcid === undefined) {
+    const bad = ruleSetRefusal(view, 'DISINTEGRATION', text(cfg['tabletType']), sets, 'TB15');
+    if (bad) return bad;
+  }
+  const lim = dtLimits(sets, cfg);
+  if (!lim) return refuse('TB15-NO-RULE-SET', `No disintegration rule set covers ${String(cfg['tabletType'])} tablets for this batch`, ['PR-29', 'DI-10']);
   const limit = stage === 'ACID' ? lim.acidSeconds : lim.seconds;
   if (limit === undefined) return refuse('TB15-NO-LIMIT', 'Neither a rule set nor the MBR gives this stage a time limit', ['PR-29']);
   const t = dec(String(entry['bathTemperature']));
@@ -165,7 +178,7 @@ export function acceptDtStart(view: HandlerView, entry: Entry): { ok: true; t: T
     stage,
     ...(retestOf !== undefined ? { retestOf } : {}),
     ...(afterAcid !== undefined ? { afterAcid } : {}),
-    ruleSets: resolve(view, 'DISINTEGRATION', text(cfg['tabletType'])).map((r) => ({ code: r.code, version: r.version })),
+    ruleSets: sets.map((r) => ({ code: r.code, version: r.version })),
     limitSeconds: limit,
     temperature: { min: lim.tempMin, max: lim.tempMax },
     units,
@@ -204,7 +217,7 @@ export function acceptDtEnd(view: HandlerView, entry: Entry): { ok: true; t: Tes
   } else {
     passed = units.filter((u) => u['disintegrated'] === true && (u['seconds'] !== undefined ? dec(text(u['seconds']) ?? '0').lte(limit) : elapsed.lte(limit))).length;
     const failed = units.length - passed;
-    const lim = dtLimits(view, cfg);
+    const lim = dtLimits(recorded(sd['ruleSets']), cfg);
     const staging = lim?.staging ?? { failMin: 1, failMax: 2, retestUnits: 12, passMin: 16 };
     if (sd['retestOf'] !== undefined) {
       const firstEnd = view.entries('DT_END').find((e) => e.id === sd['retestOf']);
@@ -262,7 +275,7 @@ function beforePerform(view: HandlerView): HandlerProblem[] {
 export function dtConfigProblems(where: string, cfg: Readonly<Record<string, unknown>>, markets: readonly string[]): ConfigProblem[] {
   const type = String(cfg['tabletType']);
   const lim = disintegrationLimits(resolveRuleSets('DISINTEGRATION', markets, type as TabletType, '9999-12-31'), type, secondsOf(cfg['timeLimit']), secondsOf(cfg['acidTime']));
-  if (!lim) return [configError('TB15-NO-RULE-SET', `${where}: no disintegration rule set covers ${type} tablets`, ['PR-29', 'DI-10'])];
+  if (!lim || uncoveredMarkets('DISINTEGRATION', markets, type as TabletType, '9999-12-31').length > 0) return [configError('TB15-NO-RULE-SET', `${where}: no disintegration rule set covers ${type} tablets`, ['PR-29', 'DI-10'])];
   const out: ConfigProblem[] = [];
   if (lim.seconds === undefined) out.push(configError('TB15-NO-LIMIT', `${where}: the rule sets give ${type} tablets no time limit; the MBR states one`, ['PR-29']));
   if (type !== 'GASTRO_RESISTANT' && cfg['acidTime'] !== undefined) out.push(configError('TB15-STAGE', `${where}: only gastro-resistant tablets have an acid stage`, ['PR-29']));

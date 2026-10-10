@@ -66,6 +66,7 @@ create table tab.tooling_issue (
   upper_issued           integer not null check (upper_issued >= 1),
   lower_issued           integer not null check (lower_issued >= 1),
   dies_issued            integer not null check (dies_issued >= 1),
+  baseline_reading_id    uuid references tab.process_reading (id),
   person_id              uuid not null,
   account_id             uuid not null,
   issued_at              timestamptz not null default clock_timestamp()
@@ -107,7 +108,7 @@ create table tab.tooling_return (
   person_id           uuid not null,
   account_id          uuid not null,
   returned_at         timestamptz not null default clock_timestamp(),
-  check ((stroke_source = 'PRESS_COUNTER') = (counter_readings > 0))
+  check (stroke_source = 'MANUAL' or counter_readings > 0)
 );
 
 select platform.enforce_db_time('tab.tooling_set', array['recorded_at']);
@@ -179,29 +180,53 @@ $$;
 -- ---------------------------------------------------------------------------------------------
 -- Strokes from the press counter
 
--- The strokes press p_press counted in (p_from, p_to]: the increments of the stroke.count readings (GOOD actuals of a
--- process device linked to the press, tablets 0871) received in that window, each device's last reading before the
--- window taken as its starting point; a counter that went down restarted, so its new value is the increment. Returns
--- {strokes, readings} (readings: the counter readings received in the window).
-create function tab.press_strokes(p_press uuid, p_from timestamptz, p_to timestamptz) returns jsonb
+-- Review 3c finding 2: the counter reading a use starts from. At issue the press's latest GOOD stroke.count actual of a
+-- process device linked to it, received within the last 60 s (G-06's default stale age), is the baseline of the use; a
+-- press that sent none then has no baseline, and its use is counted only as a lower bound (tab.issue_strokes) that a
+-- keyed count must cover at the return.
+create function tab.press_counter_baseline(p_press uuid) returns uuid
 language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
-  with devices as (
-    select u.process_device_id from tab.process_device_unit u where u.equipment_id = p_press
-  ), readings as (
-    select r.process_device_id, r.seq, r.value::numeric as v, r.received_at > p_from as inside
-      from tab.process_reading r join devices d on d.process_device_id = r.process_device_id
-     where r.tag = 'stroke.count' and r.kind = 'ACTUAL' and r.quality = 'GOOD' and r.received_at > p_from and r.received_at <= p_to
+  select r.id from tab.process_reading r join tab.process_device_unit u on u.process_device_id = r.process_device_id
+    join tab.process_device d on d.id = r.process_device_id
+   where u.equipment_id = p_press and d.ended_at is null and r.tag = 'stroke.count' and r.kind = 'ACTUAL' and r.quality = 'GOOD'
+     and r.received_at >= clock_timestamp() - interval '60 seconds'
+   order by r.received_at desc, r.seq desc limit 1
+$$;
+
+-- The strokes of the use of issue p_issue up to p_to, from the press counter: with a baseline, the increments of the
+-- baseline device's stroke.count readings from the baseline on; without one, the increments of the readings of the
+-- press's devices received after the issue (the first one only a starting point: a lower bound). A counter that went
+-- down restarted, so its new value is the increment. Returns {strokes, readings (received after the issue), baselined,
+-- lastAt (the latest counter reading), crossedAt (the reception of the first reading at which the strokes of the use
+-- passed p_remaining, when given)}.
+create function tab.issue_strokes(p_issue uuid, p_to timestamptz, p_remaining bigint default null) returns jsonb
+language sql stable security definer set search_path = pg_catalog, tab, pg_temp as $$
+  with u as (select * from tab.tooling_issue where id = p_issue),
+  b as (select r.* from tab.process_reading r join u on r.id = u.baseline_reading_id),
+  chain as (
+    select r.process_device_id as dev, r.seq, r.value::numeric as v, r.received_at, r.id = (select id from b) as base
+      from tab.process_reading r, u
+     where u.baseline_reading_id is not null and r.process_device_id = (select process_device_id from b) and r.seq >= (select seq from b)
+       and r.tag = 'stroke.count' and r.kind = 'ACTUAL' and r.quality = 'GOOD' and r.received_at <= p_to
     union all
-    select b.process_device_id, b.seq, b.v, false from devices d
-      cross join lateral (select r.process_device_id, r.seq, r.value::numeric as v from tab.process_reading r
-                           where r.process_device_id = d.process_device_id and r.tag = 'stroke.count' and r.kind = 'ACTUAL' and r.quality = 'GOOD'
-                             and r.received_at <= p_from order by r.seq desc limit 1) b
-  ), steps as (
-    select inside, v, lag(v) over (partition by process_device_id order by seq) as prev from readings
+    select r.process_device_id, r.seq, r.value::numeric, r.received_at, false
+      from tab.process_reading r join tab.process_device_unit d on d.process_device_id = r.process_device_id, u
+     where u.baseline_reading_id is null and d.equipment_id = u.press_equipment_id and r.received_at > u.issued_at and r.received_at <= p_to
+       and r.tag = 'stroke.count' and r.kind = 'ACTUAL' and r.quality = 'GOOD'
+  ),
+  steps as (
+    select dev, seq, received_at, base,
+           case when lag(v) over w is null then 0 when v >= lag(v) over w then v - lag(v) over w else v end as inc
+      from chain window w as (partition by dev order by seq)
+  ),
+  running as (
+    select received_at, base, inc, sum(inc) over (order by received_at, dev, seq) as total from steps
   )
-  select jsonb_build_object('strokes', coalesce(sum(case when not inside or prev is null then 0 when v >= prev then v - prev else v end), 0)::bigint,
-                            'readings', count(*) filter (where inside))
-    from steps
+  select jsonb_build_object('strokes', coalesce((select sum(inc) from running), 0)::bigint,
+                            'readings', (select count(*) from running where not base),
+                            'baselined', (select baseline_reading_id is not null from u),
+                            'lastAt', (select max(received_at) from running),
+                            'crossedAt', (select min(received_at) from running where p_remaining is not null and total > p_remaining))
 $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -309,7 +334,7 @@ begin
   if not exists (select 1 from tab.tooling_inspection i where i.id = u.pre_use_inspection_id and i.result = 'PASS') then
     return format('set %s has no passing inspection before this use', s.code);
   end if;
-  v_live := (tab.press_strokes(u.press_equipment_id, u.issued_at, clock_timestamp()) ->> 'strokes')::bigint;
+  v_live := (tab.issue_strokes(u.id, clock_timestamp()) ->> 'strokes')::bigint;
   v_cum := tab.tooling_cumulative(u.set_id) + v_live;
   if v_cum >= s.stroke_limit then
     return format('set %s has %s strokes with this use, at or past its limit of %s (INV-24)', s.code, v_cum, s.stroke_limit);
@@ -457,9 +482,10 @@ begin
                        s.lower_punches, s.dies);
   end if;
   select * into i from tab.tooling_inspection x where x.set_id = s.id order by x.inspected_at desc, x.id desc limit 1;
-  insert into tab.tooling_issue (set_id, batch_id, press_equipment_id, pre_use_inspection_id, upper_issued, lower_issued, dies_issued, person_id, account_id)
+  insert into tab.tooling_issue (set_id, batch_id, press_equipment_id, pre_use_inspection_id, upper_issued, lower_issued, dies_issued, baseline_reading_id,
+                                 person_id, account_id)
   values (s.id, p_batch, e.id, i.id, (p_counts ->> 'upper')::integer, (p_counts ->> 'lower')::integer, (p_counts ->> 'dies')::integer,
-          (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
+          tab.press_counter_baseline(e.id), (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
   returning id into v_id;
   return jsonb_build_object('issueId', v_id, 'set', s.code, 'press', e.code, 'preUseInspectionId', i.id);
 end
@@ -481,6 +507,7 @@ declare
   v_cum      bigint;
   v_mismatch boolean;
   v_hold     jsonb;
+  v_prior    bigint;
 begin
   perform iam.assert_not_administrator();
   select * into u from tab.tooling_issue where id = p_issue;
@@ -496,8 +523,12 @@ begin
      or exists (select 1 from unnest(array['upper', 'lower', 'dies']) k where coalesce(p_counts ->> k, '') !~ '^[0-9]{1,4}$') then
     raise exception using errcode = 'P0001', message = 'The punches and dies returned are counted as whole numbers (EBMR-TOOL-031)';
   end if;
-  v_count := tab.press_strokes(u.press_equipment_id, u.issued_at, clock_timestamp());
-  if (v_count ->> 'readings')::integer > 0 then
+  v_prior := tab.tooling_cumulative(s.id);
+  v_count := tab.issue_strokes(p_issue, clock_timestamp(), s.stroke_limit - v_prior);
+  -- Review 3c finding 2: the counter decides only from a baseline at issue to a reading at most 60 s old now; otherwise
+  -- the strokes after its last reading (or before its first) are unseen, and the count is keyed, flagged MANUAL, never
+  -- below what the counter saw.
+  if (v_count -> 'baselined') = 'true'::jsonb and (v_count ->> 'lastAt')::timestamptz >= clock_timestamp() - interval '60 seconds' then
     if p_manual_strokes is not null then
       raise exception using errcode = 'P0001', message = format('The press counted the strokes of this use; a keyed count is refused (DI-31; EBMR-TOOL-032)');
     end if;
@@ -506,17 +537,25 @@ begin
   else
     if coalesce(p_manual_strokes, '') !~ '^[0-9]{1,18}$' then
       raise exception using errcode = 'P0001',
-        message = 'The press sent no stroke count during this use: key the count read from the press (flagged MANUAL) (DI-31; EBMR-TOOL-032)';
+        message = 'The press counter did not see the whole use (no baseline at issue, or no reading in the last 60 s): key the count read from the press (flagged MANUAL) (DI-31; EBMR-TOOL-032)';
+    end if;
+    if p_manual_strokes::bigint < (v_count ->> 'strokes')::bigint then
+      raise exception using errcode = 'P0001',
+        message = format('The keyed count %s is below the %s strokes the press counter saw in this use (DI-31; EBMR-TOOL-033)', p_manual_strokes, v_count ->> 'strokes');
     end if;
     v_strokes := p_manual_strokes::bigint;
     v_source := 'MANUAL';
   end if;
-  v_cum := tab.tooling_cumulative(s.id) + v_strokes;
+  v_cum := v_prior + v_strokes;
   v_mismatch := (p_counts ->> 'upper')::integer <> u.upper_issued or (p_counts ->> 'lower')::integer <> u.lower_issued
                 or (p_counts ->> 'dies')::integer <> u.dies_issued;
-  if v_mismatch then
-    v_hold := tab.hold_press_output(u.batch_id, (select e.code from plant.equipment e where e.id = u.press_equipment_id), u.issued_at,
-                                    format('TOOLING %s returned incomplete', s.code));
+  -- Fragment risk: the output since the issue; review 3c finding 1: past the limit, the output since the counter crossed
+  -- it (since the issue when the crossing is not known from the counter).
+  if v_mismatch or v_cum > s.stroke_limit then
+    v_hold := tab.hold_press_output(u.batch_id, (select e.code from plant.equipment e where e.id = u.press_equipment_id),
+                                    case when not v_mismatch and v_source = 'PRESS_COUNTER' and v_count ->> 'crossedAt' is not null
+                                         then (v_count ->> 'crossedAt')::timestamptz - interval '1 microsecond' else u.issued_at end,
+                                    format('TOOLING %s %s', s.code, case when v_mismatch then 'returned incomplete' else 'past its stroke limit' end));
   end if;
   insert into tab.tooling_return (issue_id, set_id, upper_returned, lower_returned, dies_returned, count_mismatch, strokes, stroke_source, counter_readings,
                                   cumulative_strokes, limit_exceeded, hold, person_id, account_id)
@@ -527,12 +566,12 @@ begin
 end
 $$;
 
-revoke all on function tab.tooling_checklist_items(), tab.hold_press_output(uuid, text, timestamptz, text), tab.press_strokes(uuid, timestamptz, timestamptz),
+revoke all on function tab.tooling_checklist_items(), tab.hold_press_output(uuid, text, timestamptz, text), tab.press_counter_baseline(uuid), tab.issue_strokes(uuid, timestamptz, bigint),
   tab.tooling_cumulative(uuid), tab.tooling_fit_problem(uuid), tab.tooling_issue_problem(uuid, text), tab.tooling_use_problem(uuid),
   tab.define_tooling_set(jsonb), tab.tooling_set_by_code(text, boolean), tab.inspect_tooling(text, text, uuid, jsonb, text),
   tab.issue_tooling(text, uuid, text, jsonb), tab.return_tooling(uuid, jsonb, text) from public;
 grant execute on function tab.define_tooling_set(jsonb), tab.inspect_tooling(text, text, uuid, jsonb, text), tab.issue_tooling(text, uuid, text, jsonb),
-  tab.return_tooling(uuid, jsonb, text), tab.tooling_issue_problem(uuid, text), tab.tooling_use_problem(uuid), tab.press_strokes(uuid, timestamptz, timestamptz),
+  tab.return_tooling(uuid, jsonb, text), tab.tooling_issue_problem(uuid, text), tab.tooling_use_problem(uuid), tab.issue_strokes(uuid, timestamptz, bigint),
   tab.tooling_checklist_items() to ebmr_app;
 
 reset role;

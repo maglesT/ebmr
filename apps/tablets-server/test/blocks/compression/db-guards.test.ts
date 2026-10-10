@@ -37,7 +37,7 @@ let me: string;
 let gw: FakeGateway | undefined;
 let product: string;
 let press: PressUnit;
-let seq = 0;
+let other: { id: string; code: string; classCode: string };
 const ids: Record<string, string> = {};
 
 const advance = (): void => {
@@ -84,9 +84,10 @@ async function registerDevice(code: string, serial: string, chain: string): Prom
   });
 }
 
-async function strokes(value: string): Promise<void> {
-  seq += 1;
-  const r = await gw?.post('/gw/v1/process-readings', { sessionId: randomUUID(), readings: [{ deviceSerial: SERIAL, tag: 'stroke.count', value, unit: 'count', quality: 'GOOD', sourceTime: '1790584618000000', sequence: String(seq), kind: 'ACTUAL' }] });
+const seqs: Record<string, number> = {};
+async function strokes(value: string, serial = SERIAL): Promise<void> {
+  seqs[serial] = (seqs[serial] ?? 0) + 1;
+  const r = await gw?.post('/gw/v1/process-readings', { sessionId: randomUUID(), readings: [{ deviceSerial: serial, tag: 'stroke.count', value, unit: 'count', quality: 'GOOD', sourceTime: '1790584618000000', sequence: String(seqs[serial]), kind: 'ACTUAL' }] });
   expect(r?.status).toBe(200);
 }
 
@@ -154,7 +155,7 @@ describe('the compression blocks in the database (tablets 0870 to 0874)', () => 
   it('[PR-22][PR-23][INV-12][DI-31] review backlog #5 (slice 3a): a step runs on the process device of the plant unit of its equipment use: a device linked to no unit, a unit without an open use of the batch, or a unit of another class than the MBR binds is refused; a device is linked to a PROCESS unit once, by the system administrator only', async () => {
     expect(await bind('p-tb10', DEVICE)).toBe('EBMR-DEV-134');
     // A unit of another class, in use by the batch, with device B linked: refused (the stage binds PRESS to PRESS_CLASS).
-    const other = await cleanUnit(sbx, d.runId);
+    other = await cleanUnit(sbx, d.runId);
     await startUse(sbx, await op(), other.code, d.runId);
     await linkDevice(sbx, DEVICE_B, other.code);
     expect(await bind('p-tb10', DEVICE_B)).toBe('EBMR-DEV-134');
@@ -188,6 +189,8 @@ describe('the compression blocks in the database (tablets 0870 to 0874)', () => 
     expect(await codeOf(issue('TEST-SET-3C-01'))).toBe('EBMR-TOOL-020');
     const pre1 = await inspect('TEST-SET-3C-01', 'PRE_USE', null, findings(), null);
     ids['pre1'] = pre1.inspectionId;
+    // Review 3c finding 2: the press counter's reading at issue is the baseline of the use.
+    await strokes('5000');
     expect(await codeOf(issue('TEST-SET-3C-01', { upper: '28', lower: '27', dies: '27' }))).toBe('EBMR-TOOL-022');
     ids['issue1'] = (await issue('TEST-SET-3C-01')).issueId;
     expect(await codeOf(issue('TEST-SET-3C-01'))).toBe('EBMR-TOOL-020');
@@ -200,9 +203,8 @@ describe('the compression blocks in the database (tablets 0870 to 0874)', () => 
     await withCommand(sbx.db.app, await op(), (c) => c.query('select tab.inspect_tooling($1, $2, $3, $4, $5)', ['TEST-SET-3C-OTHER', 'PRE_USE', null, findings(), null])).catch(() => undefined);
     expect(await sql('select tab.tooling_issue_problem(id, $1) as r from tab.tooling_set where code = $2', [product, 'TEST-SET-3C-OTHER'])).toMatch(/assigned to product TEST-OTHER-3C/);
     // The press counts 150 strokes after both issues: set 02 (limit 100) may no longer compress, set 01 may.
-    await strokes('5000');
     await strokes('5150');
-    expect(await sql('select tab.press_strokes($1, i.issued_at, clock_timestamp()) as r from tab.tooling_issue i where i.id = $2', [press.id, ids['issue2']])).toEqual({ strokes: 150, readings: 2 });
+    expect(await sql('select tab.issue_strokes($1, clock_timestamp()) as r', [ids['issue2']])).toMatchObject({ strokes: 150, readings: 1, baselined: true });
     expect(await sql('select tab.tooling_use_problem($1) as r', [ids['issue2']])).toMatch(/150 strokes with this use, at or past its limit of 100 \(INV-24\)/);
     expect(await sql('select tab.tooling_use_problem($1) as r', [ids['issue1']])).toBeNull();
     // Bypass: the register is never written by the application role, never changed by owner-level code.
@@ -329,9 +331,12 @@ describe('the compression blocks in the database (tablets 0870 to 0874)', () => 
 
   it('[IN-36][INV-24][PR-22] TB-09 return: the strokes of the use come from the press counter; a missing die and a failed after-use inspection hold the press output since the issue and are stored only with their exceptions; a set past its limit is never issued again; the step closes only with every returned set inspected after use (IN-36 catalogue test); the set-up step can no longer close on returned tooling', async () => {
     const opened = await asOp<{ container_id: string; label_code: string; version: number }>('select plant.open_container($1, $2, $3, $4) as r', [d.runId, 'COMPRESSION', 'kg', press.code]);
-    // Set 02: 150 strokes from the counter, past its limit of 100.
+    await strokes('5150');
+    // Set 02: 150 strokes from the counter, past its limit of 100; review 3c finding 1: the output made since the
+    // counter crossed the limit is held (the container opened after it).
     const r2 = await asOp<Json>('select tab.return_tooling($1, $2) as r', [ids['issue2'], COUNTS]);
     expect([r2['strokes'], r2['strokeSource'], r2['limitExceeded'], r2['countMismatch']]).toEqual(['150', 'PRESS_COUNTER', true, false]);
+    expect((r2['hold'] as Json | null)?.['pending']).toEqual([opened.label_code]);
     expect(await codeOf(asOp('select tab.return_tooling($1, $2, $3) as r', [ids['issue1'], COUNTS, '10']))).toBe('EBMR-TOOL-032');
     const returned = (issueId: string, set: string, r: Json): Entry => ({ kind: 'TOOLING_RETURNED', set, issueId, strokes: r['strokes'], strokeSource: r['strokeSource'], countMismatch: r['countMismatch'], limitExceeded: r['limitExceeded'] });
     const e2 = returned(ids['issue2'] ?? '', 'TEST-SET-3C-02', r2);
@@ -354,6 +359,8 @@ describe('the compression blocks in the database (tablets 0870 to 0874)', () => 
     const closing = structuredClone(s);
     (closing.steps['p-tb10@'] as Json)['status'] = 'AWAITING_VERIFICATION';
     expect(await sql('select tab.compression_close_problem($1, $2, $3, $4) as r', [d.runId, c, s, closing])).toMatch(/set TEST-SET-3C-01 was returned \(TB10-TOOLING; INV-24\)/);
+    // Review 3c finding 1: a compression run (TB-11 RUN_START, tablets 0893) never starts on the returned set.
+    expect(await sql('select tab.press_tooling_problem($1, $2, $3) as r', [c, s, press.code])).toMatch(/TEST-SET-3C-01 was returned \(TB10-TOOLING; INV-24\)/);
     // Closing the return step without the after-use inspection of set 01 (IN-36 catalogue test).
     const closeReturn = structuredClone(s);
     (closeReturn.steps['p-tb09r@'] as Json)['status'] = 'AWAITING_VERIFICATION';
@@ -368,6 +375,21 @@ describe('the compression blocks in the database (tablets 0870 to 0874)', () => 
     expect(await sql("select tab.tooling_fit_problem(id) as r from tab.tooling_set where code = 'TEST-SET-3C-01'", [])).toMatch(/retired/);
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-tb09r@' });
     expect((await stateOf(sbx, d.runId)).steps['p-tb09r@']?.['status']).toBe('AWAITING_VERIFICATION');
+  });
+
+  it('[INV-24][DI-31] review 3c finding 2: without a counter baseline at issue the press counter never decides a use\'s strokes: one reading counts no strokes, so the count is keyed (flagged MANUAL) and never below what the counter saw', async () => {
+    await asSteward('select tab.define_tooling_set($1) as r', [toolingSet('TEST-SET-3C-04')]);
+    await inspect('TEST-SET-3C-04', 'PRE_USE', null, findings(), null);
+    // The second press (device B) has sent nothing: no baseline.
+    const issued = await asOp<{ issueId: string }>('select tab.issue_tooling($1, $2, $3, $4) as r', ['TEST-SET-3C-04', d.runId, other.code, COUNTS]);
+    expect(await sql('select baseline_reading_id as r from tab.tooling_issue where id = $1', [issued.issueId])).toBeNull();
+    await strokes('900', SERIAL_B);
+    await strokes('950', SERIAL_B);
+    expect(await sql('select tab.issue_strokes($1, clock_timestamp()) as r', [issued.issueId])).toMatchObject({ strokes: 50, readings: 2, baselined: false });
+    expect(await codeOf(asOp('select tab.return_tooling($1, $2) as r', [issued.issueId, COUNTS]))).toBe('EBMR-TOOL-032');
+    expect(await codeOf(asOp('select tab.return_tooling($1, $2, $3) as r', [issued.issueId, COUNTS, '40']))).toBe('EBMR-TOOL-033');
+    const r = await asOp<Json>('select tab.return_tooling($1, $2, $3) as r', [issued.issueId, COUNTS, '1200']);
+    expect([r['strokes'], r['strokeSource']]).toEqual(['1200', 'MANUAL']);
   });
 
   it('[DI-31] review backlog #7 (slice 3a): the sweeper\'s service identity records an interface loss when a bound step\'s device sent nothing for longer than its stale age (database time), once per loss; nobody else may; the step closes only after an INTERFACE_LOSS entry answers it', async () => {

@@ -17,7 +17,7 @@ import { recordIpcOverdue } from '../../../src/features/execution/sweeper.ts';
 import type { flow } from '@ebmr/recipe-core';
 import { DEMO_GATEWAY, DEMO_INSTRUMENTS, enrolGateway } from '../../../src/features/devices/enrol.ts';
 import { IPC_BLOCK_VERSIONS } from '../../../src/blocks/ipc/index.ts';
-import { RULE_SETS } from '../../../src/blocks/ipc/rule-sets.ts';
+import { NOT_APPLICABLE, RULE_SETS } from '../../../src/blocks/ipc/rule-sets.ts';
 import { COMPRESSION_SAMPLE_CEILING } from '../../../src/blocks/tb-11.ts';
 import { actorOfBrowser } from '../../esig/support.ts';
 import { adminActor, fakeGateway, gatewayKey, type FakeGateway } from '../../devices/support.ts';
@@ -205,6 +205,8 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
         confidence: r.confidence, source: r.source, effective_from: r.effectiveFrom, effective_to: r.effectiveTo ?? null, note: r.note ?? null,
       })),
     );
+    const na = await sbx.db.admin.query("select test, market, reason, source, to_char(effective_from, 'YYYY-MM-DD') as f from tab.compendial_not_applicable order by test, market");
+    expect(na.rows).toEqual(NOT_APPLICABLE.map((n) => ({ test: n.test, market: n.market, reason: n.reason, source: n.source, f: n.effectiveFrom })));
     expect((await sbx.db.admin.query("select key, value, unit, source, to_char(effective_from, 'YYYY-MM-DD') as f from tab.ipc_rule")).rows).toEqual([
       { key: COMPRESSION_SAMPLE_CEILING.key, value: COMPRESSION_SAMPLE_CEILING.value, unit: COMPRESSION_SAMPLE_CEILING.unit, source: COMPRESSION_SAMPLE_CEILING.source, f: COMPRESSION_SAMPLE_CEILING.effectiveFrom },
     ]);
@@ -224,8 +226,13 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
     expect(await verdict(x, 'p-tb12', { ...check, instrument: 'TEST-BAL-09' })).toBe('EBMR-TAB-300 TB12-INSTRUMENT');
     // Captured from the instrument with readings never claimed.
     expect(await verdict(x, 'p-tb12', { ...check, capture: 'DEVICE', readings: Array.from({ length: 20 }, () => randomUUID()) })).toBe('EBMR-TAB-300 TB12-DEVICE');
+    // A container of the press, closed before the check (review 3c finding 3: a step of its own holds the press output).
+    const box = await asOperator(x, async (cl) => (await cl.query<{ r: Json }>("select plant.open_container($1, 'COMPRESSION', 'kg', 'TEST-PRESS-01') as r", [x.d.runId])).rows[0]?.r ?? {});
+    await asOperator(x, (cl) => cl.query('select plant.close_container($1, 12.5, $2)', [box['container_id'], box['version']]));
     // The honest check: 6 tablets outside the 5 % band of a 250 mg average: it fails, with its exception.
     expect(await verdict(x, 'p-tb12', check)).toBe('ok');
+    expect(await sql<string>("select state as r from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [box['container_id']])).toBe('HELD');
+    expect(await checks(x)).toEqual([['-', 'FAIL']]);
     const d = await entryData(x, 'p-tb12@', 'WEIGHT_CHECK');
     expect([d['result'], d['ruleSets'], ((d['evaluation'] as Json)['criteria'] as Json[])[0]]).toEqual([
       'FAIL', [{ code: 'IP-UOW', version: 1 }], { ruleSet: 'IP-UOW', version: 1, percent: '5', outside: 6, outsideDouble: 0, pass: false },
@@ -370,6 +377,8 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
     const sweeper = { ...(await openServiceSession(sbx.db, sbx.seed, 'sweeper')), correlationId: randomUUID() };
     const alarms = (await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === x.d.runId);
     expect(alarms.map((m) => [m.stepKey, m.stream, m.test])).toEqual([['p-tb11@', 'L', 'WEIGHT'], ['p-tb11@', 'R', 'WEIGHT']]);
+    expect(alarms.map((m) => m.held)).toEqual([false, false]);
+    expect(await checks(x)).not.toContainEqual(['R', 'MISSED']);
     expect((await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === x.d.runId)).toEqual([]);
     expect(await sql<number>('select count(*)::int as r from tab.ipc_overdue_alarm where batch_id = $1', [x.d.runId])).toBe(2);
     expect(await asOperator(x, async (c) => (await c.query<{ r: Json[] }>('select tab.record_ipc_overdue($1) as r', [x.d.runId])).rows[0]?.r)).toEqual([]);
@@ -392,6 +401,22 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
     expect(await types(x, 'p-tb11@')).toContain('IPC_CHECK_MISSED');
     expect((await checks(x)).slice(-3)).toEqual([['L', 'MISSED'], ['R', 'MISSED'], ['L', 'PASS']]);
     expect(await sql<number>('select count(*)::int as r from plant.container_hold where container_id = $1', [c1['container_id']])).toBeGreaterThanOrEqual(1);
+  });
+
+  it('[IN-35][PR-29] review 3c finding 4: a person who records the overdue alarm holds the stream\'s containers at that moment (MISSED through the container command), before any entry of the run', async () => {
+    const x = await newRun({ value: '2', unit: 's' }, { value: '1', unit: 's' });
+    await x.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb11@' });
+    expect(await verdict(x, 'p-tb11', { kind: 'RUN_START', press: 'TEST-PRESS-01' })).toBe('ok');
+    expect(await verdict(x, 'p-tb11', sweep('L'))).toBe('ok');
+    expect(await verdict(x, 'p-tb11', sweep('R'))).toBe('ok');
+    const box = await asOperator(x, async (c) => (await c.query<{ r: Json }>("select plant.open_container($1, 'COMPRESSION', 'kg', 'TEST-PRESS-01', 'L') as r", [x.d.runId])).rows[0]?.r ?? {});
+    await asOperator(x, (c) => c.query('select plant.close_container($1, 12.5, $2)', [box['container_id'], box['version']]));
+    await wait(3_500);
+    const alarms = await asOperator(x, async (c) => (await c.query<{ r: Json[] }>('select tab.record_ipc_overdue($1) as r', [x.d.runId])).rows[0]?.r ?? []);
+    expect(alarms.map((m) => [m['stream'], m['held']])).toEqual([['L', true], ['R', true]]);
+    expect((await checks(x)).slice(-2)).toEqual([['L', 'MISSED'], ['R', 'MISSED']]);
+    expect(await sql<string>("select state as r from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [box['container_id']])).toBe('HELD');
+    expect(await sql<boolean>('select bool_and(held) as r from tab.ipc_overdue_alarm where batch_id = $1', [x.d.runId])).toBe(true);
   });
 
   it('[IN-35][PR-29][INV-41] TB-11 closes only after the run ended, with an end-of-run check of every stream and the sweeps done; the run\'s plan is held to the 30-min ceiling and its QRM references when it starts', async () => {
@@ -448,7 +473,50 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
     expect(await problem(forged, 'TEST-PRESS-01')).toMatch(/TB11-FIRST-OFF/);
     expect(await sql('select tab.ipc_first_off_problem($1, $2, $3, $4) as r', [withTb10, s, { process: 'OTHER' }, 'TEST-PRESS-01'])).toBeNull();
   });
+
+  // Kept last: it adds rule sets to this database.
+  it('[IN-34][DI-10][INV-41] review 3c finding 5: a batch market without a rule set or a recorded not-applicable decision fails closed; rule sets that give different procedures are refused; a repeat run keeps the rule sets its first run recorded', async () => {
+    const at = '2026-10-10';
+    expect(await sql<string[]>("select tab.ipc_uncovered('UNIFORMITY_OF_WEIGHT', '[\"IN\", \"US\"]', 'UNCOATED', $1) as r", [at])).toEqual([]);
+    expect(await sql<string[]>("select tab.ipc_uncovered('UNIFORMITY_OF_WEIGHT', '[\"IN\", \"EU\"]', 'SUGAR_COATED', $1) as r", [at])).toEqual(['EU', 'IN']);
+    expect(await sql<string[]>("select tab.ipc_uncovered('SUBDIVISION', '[\"EU\"]', 'UNCOATED', $1) as r", [at])).toEqual(['IN']);
+    expect(await sql<Json>("select tab.ipc_rule_set_problem('SUBDIVISION', tab.ipc_rule_sets('SUBDIVISION', '[\"EU\"]', 'UNCOATED', $1, false), '[\"EU\"]', 'UNCOATED', $1, 'TB12') as r", [at])).toEqual({
+      problem: expect.stringMatching(/market IN .*TB12-NO-RULE-SET/) as unknown,
+    });
+    const x = await newRun();
+    await x.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb14@' });
+    const run = (initial: string, final: string, extra: Json = {}): Entry => ({ kind: 'FRIABILITY_RUN', instrument: 'TEST-FRB-01', capture: 'MANUAL', tablets: 26, initialMass: initial, finalMass: final, rotations: 100, rpm: '25.0', broken: false, ...extra });
+    expect(await verdict(x, 'p-tb14', run('6.500', '6.420'))).toBe('ok');
+    const first = await lastEntry(sbx, x.d.runId, 'p-tb14@', 'FRIABILITY_RUN');
+    // A new version of the IP rule set becomes effective between the runs: the repeat keeps version 1.
+    await arranged(
+      `insert into tab.compendial_rule_set (code, version, test, pharmacopoeia, markets, tablet_types, params, confidence, source, effective_from)
+       select code, 2, test, pharmacopoeia, markets, tablet_types, params, confidence, source, '2026-01-01' from tab.compendial_rule_set where code = 'IP-FRIABILITY' and version = 1`,
+    );
+    expect(await verdict(x, 'p-tb14', run('6.500', '6.480', { repeatOf: first }))).toBe('ok');
+    expect((await entryData(x, 'p-tb14@', 'FRIABILITY_RUN'))['ruleSets']).toEqual([{ code: 'IP-FRIABILITY', version: 1 }]);
+    // A second rule set bound for India with another procedure (150 rotations): a new first run is refused.
+    await arranged(
+      `insert into tab.compendial_rule_set (code, version, test, pharmacopoeia, markets, tablet_types, params, confidence, source, effective_from)
+       select 'TESTX-FRIABILITY', 1, test, pharmacopoeia, markets, tablet_types, params || '{"rotations": 150}', 'LOW', 'test row', '2026-01-01' from tab.compendial_rule_set where code = 'IP-FRIABILITY' and version = 1`,
+    );
+    expect(await verdict(x, 'p-tb14', run('6.500', '6.490', { repeatOf: first }))).toBe('ok');
+    expect(await verdict(x, 'p-tb14', run('6.500', '6.495'), { tamper: laxEntry('p-tb14', {}) })).toBe('EBMR-TAB-300 TB14-RULE-SETS-DIFFER');
+  });
 });
+
+/** A statement of master data arranged by the superuser outside any command (replica role: no audit or guard triggers). */
+async function arranged(text: string): Promise<void> {
+  const c = await sbx.db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('set local session_replication_role = replica');
+    await c.query(text);
+    await c.query('commit');
+  } finally {
+    c.release();
+  }
+}
 
 async function codeOfQuery(x: Ctx, text: string, params: unknown[]): Promise<string> {
   try {

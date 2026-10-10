@@ -503,6 +503,31 @@ begin
 end
 $$;
 
+-- Review 3c finding 1 (INV-24): why the tooling press p_press was set up with in state p_state (the latest PRESS_SETUP of a
+-- TB-10 step of the batch on that press) may not compress now: returned, retired, failed, or its strokes with this use at
+-- or past its limit (tab.tooling_use_problem); NULL when it may, or when no TB-10 step set the press up. TB-11's RUN_START
+-- (tablets 0893) and every other start of compression call it, so a run never starts on tooling past its limit or
+-- already returned.
+create function tab.press_tooling_problem(p_content jsonb, p_state jsonb, p_press text) returns text
+language plpgsql stable security definer set search_path = pg_catalog, tab, recipe, pg_temp as $$
+declare
+  v_issue uuid;
+  v_text  text;
+begin
+  select tab.comp_uuid(e.value -> 'data' ->> 'issueId') into v_issue
+    from jsonb_each(case when jsonb_typeof(p_state -> 'entries') = 'object' then p_state -> 'entries' else '{}'::jsonb end) e
+   where e.value ->> 'kind' = 'PRESS_SETUP' and e.value -> 'data' ->> 'press' = p_press
+     and recipe.step_node(p_content, p_state -> 'steps' -> (e.value ->> 'stepKey') ->> 'step') -> 'block' ->> 'type' = 'TB-10'
+   order by (e.value ->> 'recordedSeq')::numeric desc limit 1;
+  if v_issue is null then
+    return null;
+  end if;
+  v_text := tab.tooling_use_problem(v_issue);
+  return case when v_text is not null then format('the tooling press %s was set up with may not compress: %s (TB10-TOOLING; INV-24)', p_press, v_text) end;
+end
+$$;
+revoke all on function tab.press_tooling_problem(jsonb, jsonb, text) from public;
+
 -- The row trigger (header).
 create function tab.compression_state_check() returns trigger
 language plpgsql security definer set search_path = pg_catalog, tab, recipe, pg_temp as $$

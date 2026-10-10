@@ -41,6 +41,7 @@ import {
   configError,
   decimals,
   ENTRY_ID,
+  ruleSetRefusal,
   LATE_ENTRY,
   percentTierProblems,
   percentTiersOf,
@@ -65,7 +66,7 @@ import {
   type ObjectSchema,
   type Outcome,
 } from './ipc/common.ts';
-import { resolveRuleSets, RULE_SETS, type RuleSet, type TabletType, type SubdivisionParams, type UniformityParams, type WeightVariationParams } from './ipc/rule-sets.ts';
+import { resolveRuleSets, RULE_SETS, uncoveredMarkets, type RuleSet, type TabletType, type SubdivisionParams, type UniformityParams, type WeightVariationParams } from './ipc/rule-sets.ts';
 
 const CONTROLS = ['IN-34', 'IN-35', 'PR-29', 'DI-10', 'DI-29', 'DI-32'];
 export const WEIGHT_MODES = ['GROUP', 'UNIFORMITY', 'INDIVIDUAL', 'CONTENT', 'SUBDIVISION'] as const;
@@ -151,8 +152,10 @@ export function acceptWeightCheck(view: HandlerView, entry: Entry): Accepted {
   }
   if (mode !== 'CONTENT' && (entry['assay'] !== undefined || entry['assayRef'] !== undefined)) return refuse('TB12-ASSAY', 'Only a weight variation (CONTENT) takes an assay', ['PR-29']);
   const sets = setsFor(view, cfg);
-  if (['UNIFORMITY', 'CONTENT', 'SUBDIVISION'].includes(mode) && sets.length === 0) {
-    return refuse('TB12-NO-RULE-SET', `No compendial rule set for ${mode.toLowerCase()} covers ${String(cfg['tabletType'])} tablets for this batch's markets; this mode cannot be used`, ['IN-34', 'DI-10']);
+  const ruleTest = mode === 'UNIFORMITY' ? 'UNIFORMITY_OF_WEIGHT' : mode === 'CONTENT' ? 'WEIGHT_VARIATION' : mode === 'SUBDIVISION' ? 'SUBDIVISION' : undefined;
+  if (ruleTest) {
+    const bad = ruleSetRefusal(view, ruleTest, text(cfg['tabletType']), sets, 'TB12');
+    if (bad) return bad;
   }
   const want =
     mode === 'GROUP' || mode === 'INDIVIDUAL'
@@ -303,7 +306,7 @@ export function weightConfigProblems(where: string, cfg: Readonly<Record<string,
   // the latest effective versions (the run re-resolves at the entry's date).
   const date = '9999-12-31';
   const test = mode === 'UNIFORMITY' ? 'UNIFORMITY_OF_WEIGHT' : mode === 'CONTENT' ? 'WEIGHT_VARIATION' : mode === 'SUBDIVISION' ? 'SUBDIVISION' : undefined;
-  if (test && resolveRuleSets(test, markets, type, date, cfg['legacyTable'] === true).length === 0) {
+  if (test && (resolveRuleSets(test, markets, type, date, cfg['legacyTable'] === true).length === 0 || uncoveredMarkets(test, markets, type, date).length > 0)) {
     out.push(configError('TB12-NO-RULE-SET', `${where}: no compendial rule set for this mode covers ${String(type)} tablets for the markets ${[...new Set([...markets, 'IN'])].join(', ')}`, ['IN-34', 'DI-10']));
   }
   const ind = percentTiersOf(cfg['individual']);
