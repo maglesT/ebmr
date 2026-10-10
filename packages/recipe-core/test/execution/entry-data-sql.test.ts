@@ -1536,7 +1536,7 @@ const TYPED_COMMANDS: Command[] = (() => {
     { ...b, type: 'INVALIDATE_RESULT', point: 'DP-1', investigationRef: 'INV-1', assignableCause: 'The investigation found an assignable cause', reason: 'r', approval },
     { ...b, type: 'ABORT_BATCH', reason: 'r', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [approval, approval] },
     { ...b, type: 'CANCEL_BATCH', reason: 'r', signature },
-    { ...b, type: 'HAND_OVER_STEP', step: 's', context, outgoing: 'p1', incoming: 'p2', reason: 'r', signature, approval },
+    { ...b, type: 'HAND_OVER_STEP', step: 's', context, outgoing: 'p1', incoming: actor, reason: 'r', signature, approval },
     { ...b, type: 'TAKE_OVER_STEP', step: 's', context },
   ];
 })();

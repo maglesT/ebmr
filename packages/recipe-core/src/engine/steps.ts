@@ -15,6 +15,7 @@ import { deriveStageSummary } from './stage-summary.ts';
 import {
   addUnique,
   checkMeanings,
+  excludedFromReview,
   handedOverFrom,
   handEntriesWithoutDeclaredEvidence,
   isBlankText,
@@ -346,9 +347,10 @@ export function verify(tx: Tx, cmd: VerifyCommand): void {
   const unevidenced = handEntriesWithoutDeclaredEvidence(tx.def, tx.s, inst);
   const late = inst.reverification !== true && (step.checkMeaning === 'WITNESSED' || unevidenced.length > 0) && !witnessPossible(tx.def, tx.s, inst, tx.now);
   const meanings = checkMeanings(step, inst, unevidenced, !late);
-  // INV-03: the verifier or witness never performed, entered data in or corrected the step.
-  if (involvedIn(inst).has(a.id)) {
-    refuse('ENG-SEGREGATION', `${a.id} performed, entered data in or corrected step ${inst.key} and so cannot verify or witness it`, ['INV-03', 'PR-14', 'DI-30']);
+  // INV-03: the verifier or witness never performed, entered data in or corrected the step, nor took part in its
+  // hand-over (outgoing or incoming performer, the supervisor who signed it, QA who approved it; L-07).
+  if (excludedFromReview(inst).has(a.id)) {
+    refuse('ENG-SEGREGATION', `${a.id} performed, entered data in or corrected step ${inst.key}, or took part in its hand-over, and so cannot verify or witness it`, ['INV-03', 'PR-14', 'DI-30']);
   }
   const sig = requireSignature(tx, cmd.signature, a.id, meanings, `Verification of ${inst.key}`);
   requireNotBlocked(tx, inst, 'COMPLETE');
@@ -416,22 +418,30 @@ export function handOverStep(tx: Tx, cmd: HandOverStepCommand): void {
   const step = requireStep(tx, cmd.step);
   phaseOf(step);
   const inst = requireInstance(tx, step, cmd.context ?? []);
-  requireStepStatus(inst, ['IN_PROGRESS'], 'handing it over');
+  // A step waiting for its incoming performer is handed over again to another when they do not come (never frozen).
+  requireStepStatus(inst, ['IN_PROGRESS', 'ATTEMPT_HANDED_OVER'], 'handing it over');
   const a = requirePerson(tx);
   requireRole(a, tx.def.policy.supervisorRoles, `record the hand-over of ${step.id}`);
   const reason = requireReason(cmd.reason, 'A hand-over');
   const involved = involvedIn(inst);
   const gone = handedOverFrom(inst);
-  if (typeof cmd.outgoing !== 'string' || !involved.has(cmd.outgoing) || gone.has(cmd.outgoing)) {
+  const waiting = inst.status === 'ATTEMPT_HANDED_OVER' ? inst.handOvers?.[inst.handOvers.length - 1] : undefined;
+  if (waiting) {
+    if (cmd.outgoing !== waiting.incoming) {
+      refuse('ENG-HANDOVER-PERSON', `Step ${inst.key} waits for ${waiting.incoming}, who has not taken it over: a new hand-over hands it over from that person`, ['DI-14', 'PR-14']);
+    }
+  } else if (typeof cmd.outgoing !== 'string' || !involved.has(cmd.outgoing) || gone.has(cmd.outgoing)) {
     refuse('ENG-HANDOVER-PERSON', `${String(cmd.outgoing)} is not a performer of step ${inst.key} who is still on it: only a person who started it, entered data in it or signed it hands it over`, ['DI-14', 'PR-14']);
   }
-  if (typeof cmd.incoming !== 'string' || isBlankText(cmd.incoming) || cmd.incoming === cmd.outgoing || gone.has(cmd.incoming)) {
-    refuse('ENG-HANDOVER-PERSON', `Step ${inst.key} is handed over to another performer than the one who leaves it, and never back to one who handed it over`, ['DI-14', 'PR-14']);
+  const incoming = cmd.incoming;
+  if (incoming?.kind !== 'PERSON' || typeof incoming.id !== 'string' || isBlankText(incoming.id) || incoming.id === cmd.outgoing || gone.has(incoming.id)) {
+    refuse('ENG-HANDOVER-PERSON', `Step ${inst.key} is handed over to another person than the one who leaves it, and never back to one who handed it over`, ['DI-14', 'PR-14']);
   }
+  requireRole(incoming, step.performRoles, `take over ${step.id} (the incoming performer holds one of its perform roles)`);
   const ap = cmd.approval;
   if (ap.approver.kind !== 'PERSON' || ap.approver.id === a.id) refuse('ENG-SEGREGATION', 'A hand-over is signed by a supervisor and approved by QA, two different persons', ['PR-14', 'DI-17']);
   for (const p of [a.id, ap.approver.id]) {
-    if (p === cmd.outgoing || p === cmd.incoming || involved.has(p)) {
+    if (p === cmd.outgoing || p === incoming.id || involved.has(p)) {
       refuse('ENG-SEGREGATION', `${p} is a performer of step ${inst.key} or named in its hand-over, and so cannot sign or approve the hand-over`, ['PR-14', 'DI-17', 'INV-03']);
     }
   }
@@ -440,11 +450,11 @@ export function handOverStep(tx: Tx, cmd: HandOverStepCommand): void {
   const qa = requireSignature(tx, ap.signature, ap.approver.id, [MEANINGS.HANDOVER_APPROVED], `Approval of the hand-over of ${inst.key}`);
   useSignature(tx, sig, `hand-over of ${inst.key}`, inst.key);
   useSignature(tx, qa, `approval of the hand-over of ${inst.key}`, inst.key);
-  (inst.handOvers ??= []).push({ outgoing: cmd.outgoing, incoming: cmd.incoming, reason, supervisor: a.id, supervisorSignature: sig.id, qaApprover: ap.approver.id, qaSignature: qa.id, at: tx.now });
+  (inst.handOvers ??= []).push({ outgoing: cmd.outgoing, incoming: incoming.id, reason, supervisor: a.id, supervisorSignature: sig.id, qaApprover: ap.approver.id, qaSignature: qa.id, at: tx.now });
   inst.verificationRequired = true;
-  setStatus(tx, inst, 'ATTEMPT_HANDED_OVER', reason);
-  tx.emit({ type: 'STEP_HANDED_OVER', stepKey: inst.key, outgoing: cmd.outgoing, incoming: cmd.incoming, by: a.id, approvedBy: ap.approver.id, reason });
-  tx.raise(engineDraft('STEP_HANDED_OVER', `${inst.key} was handed over by ${cmd.outgoing} to ${cmd.incoming}: ${reason} (signed by ${a.id}, approved by ${ap.approver.id}); the entries made before stay attributed and valid`), {
+  if (inst.status !== 'ATTEMPT_HANDED_OVER') setStatus(tx, inst, 'ATTEMPT_HANDED_OVER', reason);
+  tx.emit({ type: 'STEP_HANDED_OVER', stepKey: inst.key, outgoing: cmd.outgoing, incoming: incoming.id, by: a.id, approvedBy: ap.approver.id, reason });
+  tx.raise(engineDraft('STEP_HANDED_OVER', `${inst.key} was handed over by ${cmd.outgoing} to ${incoming.id}: ${reason} (signed by ${a.id}, approved by ${ap.approver.id}); the entries made before stay attributed and valid`), {
     stepKey: inst.key,
     step: inst.step,
     frames: inst.frames,

@@ -204,6 +204,7 @@ export function correctEntry(tx: Tx, cmd: CorrectEntryCommand): void {
   if (!inst || !step || !param) refuse('ENG-UNKNOWN-POINT', `Data point ${old.id} has no step`, ['DI-24']);
   requireNotBeingHandedOver(inst, 'correcting its data');
   const a = requirePerson(tx);
+  requireNotHandedOver(inst, a.id, 'correcting its data');
   requireRole(a, [...step.performRoles, ...tx.def.policy.supervisorRoles, ...tx.def.policy.qaRoles], `correct data of ${step.id}`);
   const reason = requireReason(cmd.reason, 'A correction');
   const sig = requireSignature(tx, cmd.signature, a.id, [MEANINGS.CORRECTED], `Correction of ${old.item}`);

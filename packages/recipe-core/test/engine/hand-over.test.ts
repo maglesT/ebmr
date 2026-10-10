@@ -18,6 +18,7 @@ const seq = (id: string, ...children: FlowNode[]): FlowNode => ({ kind: 'sequenc
 const kg = (value: string) => ({ kind: 'DECIMAL' as const, value, unit: 'kg' });
 /** Holds QA and a performer role: may take part in a step, and then may not approve its hand-over. */
 const QAOP: Actor = { id: 'QAOP', kind: 'PERSON', roles: ['QA', 'PRODUCTION_OPERATOR', 'OPERATOR'] };
+const OP3: Actor = { id: 'OP3', kind: 'PERSON', roles: ['PRODUCTION_OPERATOR', 'OPERATOR'] };
 
 /** One step w recording a and b, with no check of its own in the MBR, then z. */
 function mbr() {
@@ -33,7 +34,7 @@ const handOver = (over: Partial<Omit<HandOver, 'type' | 'commandId'>> = {}): Omi
   step: 'w',
   context: [],
   outgoing: OP1.id,
-  incoming: OP2.id,
+  incoming: OP2,
   reason: 'OP1 went off shift',
   signature: sig('HANDOVER_APPROVED', over.actor ?? SUP1),
   approval: { approver: QA1, signature: sig('HANDOVER_APPROVED', QA1) },
@@ -95,7 +96,9 @@ describe('hand-over of a step in progress (L-07)', () => {
     run.refused(handOver({ actor: OP2 }), 'ENG-ROLE');
     run.refused(handOver({ actor: QA2 }), 'ENG-ROLE');
     run.refused(handOver({ outgoing: VER1.id }), 'ENG-HANDOVER-PERSON');
-    run.refused(handOver({ incoming: OP1.id }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ incoming: OP1 }), 'ENG-HANDOVER-PERSON');
+    // The incoming performer holds one of the step's perform roles (review finding 1): a verifier cannot take it over.
+    run.refused(handOver({ incoming: VER1 }), 'ENG-ROLE');
     run.refused(handOver({ reason: ' ​ ' }), 'ENG-REASON');
     run.refused(handOver({ signature: sig('SKIP_APPROVED', SUP1) }), 'ENG-SIGNATURE-MEANING');
     run.refused(handOver({ approval: { approver: QA1, signature: sig('HANDOVER_APPROVED', QA2) } }), 'ENG-SIGNATURE');
@@ -105,7 +108,7 @@ describe('hand-over of a step in progress (L-07)', () => {
     expect(run.status('w')).toBe('ATTEMPT_HANDED_OVER');
   });
 
-  it('[DI-24][DI-34] only a step in progress is handed over, never back to a performer who left it, and its data is not changed while it waits for the incoming performer', () => {
+  it('[DI-24][DI-34] only a step in progress or waiting for its incoming performer is handed over, never back to a performer who left it, and its data is not changed while it waits', () => {
     const run = Run.issue(define(mbr()));
     run.refused(handOver(), 'ENG-BATCH-STATUS');
     run.start('w');
@@ -113,17 +116,51 @@ describe('hand-over of a step in progress (L-07)', () => {
     run.record('w', 'a', kg('1.00'), { source: { mode: 'MANUAL' } });
     const a = Object.values(run.state.points).find((p) => p.item === 'a');
     run.ok(handOver());
-    run.refused(handOver({ outgoing: OP2.id, incoming: VER1.id }), 'ENG-STEP-STATUS');
     run.refused({ type: 'CORRECT_ENTRY', actor: SUP1, point: a?.id ?? '', value: kg('1.10'), reason: 'typo', signature: sig('CORRECTED', SUP1), approval: { approver: QA1, signature: sig('CORRECTION_APPROVED', QA1) } }, 'ENG-STEP-STATUS');
     run.ok({ type: 'TAKE_OVER_STEP', actor: OP2, step: 'w' });
-    run.refused(handOver({ outgoing: OP2.id, incoming: OP1.id }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ outgoing: OP2.id, incoming: OP1 }), 'ENG-HANDOVER-PERSON');
     // A second hand-over, from the incoming performer to a third, is a hand-over like the first.
-    const op3: Actor = { id: 'OP3', kind: 'PERSON', roles: ['PRODUCTION_OPERATOR', 'OPERATOR'] };
-    run.ok(handOver({ outgoing: OP2.id, incoming: op3.id }));
-    run.ok({ type: 'TAKE_OVER_STEP', actor: op3, step: 'w' });
-    run.record('w', 'b', kg('2.00'), { who: op3 });
-    run.perform('w', [], op3);
+    run.ok(handOver({ outgoing: OP2.id, incoming: OP3 }));
+    run.ok({ type: 'TAKE_OVER_STEP', actor: OP3, step: 'w' });
+    run.record('w', 'b', kg('2.00'), { who: OP3 });
+    run.perform('w', [], OP3);
     expect(run.status('w')).toBe('AWAITING_VERIFICATION');
     expect(run.exceptions('STEP_HANDED_OVER')).toHaveLength(2);
+  });
+
+  it('[PR-14][DI-34] a step whose incoming performer does not come is handed over again, from that person, so it is never frozen (review finding 1)', () => {
+    const run = started();
+    run.ok(handOver());
+    // From ATTEMPT_HANDED_OVER the outgoing person is the one who did not come, never the one who left first.
+    run.refused(handOver({ incoming: OP3 }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ outgoing: OP2.id, incoming: OP1 }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ outgoing: OP2.id, incoming: VER1 }), 'ENG-ROLE');
+    run.ok(handOver({ outgoing: OP2.id, incoming: OP3, reason: 'OP2 called in sick' }));
+    expect(run.status('w')).toBe('ATTEMPT_HANDED_OVER');
+    expect(run.inst('w')?.handOvers?.map((h) => [h.outgoing, h.incoming])).toEqual([[OP1.id, OP2.id], [OP2.id, OP3.id]]);
+    run.refused({ type: 'TAKE_OVER_STEP', actor: OP2, step: 'w' }, 'ENG-HANDOVER-PERSON');
+    run.ok({ type: 'TAKE_OVER_STEP', actor: OP3, step: 'w' });
+    expect(run.status('w')).toBe('IN_PROGRESS');
+  });
+
+  it('[PR-14][INV-03][DI-24] nobody named in a hand-over checks the step or dispositions its exception, and the outgoing performer neither corrects nor raises at it (review findings 2, 4, 6)', () => {
+    const run = Run.issue(define(mbr()));
+    run.start('w');
+    run.record('w', 'a', kg('1.00'), { source: { mode: 'MANUAL' } });
+    const a = Object.values(run.state.points).find((p) => p.item === 'a');
+    run.ok(handOver());
+    run.ok({ type: 'TAKE_OVER_STEP', actor: OP2, step: 'w' });
+    run.refused({ type: 'CORRECT_ENTRY', actor: OP1, point: a?.id ?? '', value: kg('1.10'), reason: 'typo', signature: sig('CORRECTED', OP1), approval: { approver: QA2, signature: sig('CORRECTION_APPROVED', QA2) } }, 'ENG-HANDED-OVER');
+    run.refused({ type: 'RAISE_EXCEPTION', actor: OP1, step: 'w', description: 'left a note', severity: 'ALERT' }, 'ENG-HANDED-OVER');
+    run.record('w', 'b', kg('2.00'), { who: OP2 });
+    run.perform('w', [], OP2);
+    const ex = run.exceptions('STEP_HANDED_OVER')[0]?.id ?? '';
+    for (const who of [SUP1, QA1, { ...OP1, roles: ['QA'] }, { ...OP2, roles: ['QA'] }]) {
+      run.refused({ type: 'VERIFY', actor: { ...who, roles: [...who.roles, 'PRODUCTION_VERIFIER'] }, step: 'w', signature: sig('VERIFIED', who) }, 'ENG-SEGREGATION');
+      run.refused({ type: 'DISPOSITION_EXCEPTION', actor: { ...who, roles: [...who.roles, 'QA'] }, exception: ex, outcome: 'NO_IMPACT', justification: 'covered', signature: sig('EXCEPTION_DISPOSITIONED', who) }, 'ENG-SEGREGATION');
+    }
+    run.ok({ type: 'DISPOSITION_EXCEPTION', actor: QA2, exception: ex, outcome: 'NO_IMPACT', justification: 'hand-over at shift change, entries complete', signature: sig('EXCEPTION_DISPOSITIONED', QA2) });
+    run.verify('w', [], VER1);
+    expect(run.status('w')).toBe('COMPLETED');
   });
 });

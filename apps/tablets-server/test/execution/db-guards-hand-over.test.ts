@@ -104,7 +104,9 @@ async function act(d: RunDriver, persona: string, build: (actor: engine.Actor, s
   );
 }
 
-type HandOverChange = Partial<{ outgoing: string; incoming: string; reason: string }>;
+type HandOverChange = Partial<{ outgoing: string; incoming: engine.Actor; reason: string }>;
+/** `persona` as an incoming performer, naming the step's perform role (dc-mini's PRODUCTION_OPERATOR). */
+const performer = (persona: string, roles: string[] = ['PRODUCTION_OPERATOR']): engine.Actor => ({ id: id(persona), kind: 'PERSON', roles });
 const PLACEHOLDER: engine.Approval = { approver: { id: 'nobody', kind: 'PERSON', roles: [] }, signature: { id: randomUUID(), meaning: 'HANDOVER_APPROVED', signer: 'nobody' } };
 const handOver = (qa: engine.Approval, over: HandOverChange = {}) => (actor: engine.Actor, signature?: engine.SignatureRef): engine.Command => ({
   type: 'HAND_OVER_STEP',
@@ -113,7 +115,7 @@ const handOver = (qa: engine.Approval, over: HandOverChange = {}) => (actor: eng
   step: 'p-early-time',
   context: [],
   outgoing: over.outgoing ?? id('operatorVerifier1'),
-  incoming: over.incoming ?? id('operator1'),
+  incoming: over.incoming ?? performer('operator1'),
   reason: over.reason ?? REASON,
   signature: signature ?? { id: randomUUID(), meaning: 'HANDOVER_APPROVED', signer: actor.id },
   approval: qa,
@@ -142,7 +144,7 @@ describe('HAND_OVER_STEP: signed by a supervisor and approved by QA, neither of 
     const outcomes = {
       noApproval: await act(d, 'supervisor1', honest, { own: true, recorded: without }),
       outgoingNotOnStep: await act(d, 'supervisor1', handOver(await approval(d, 'qa1', { outgoing: id('verifier1') }), { outgoing: id('verifier1') }), { own: true, twin: honest, forge: (s) => void (s.steps[EARLY]!.handOvers![0]!.outgoing = id('verifier1')) }),
-      approvedByIncoming: await act(d, 'supervisor1', handOver(await approval(d, 'qa1', { incoming: id('qa1') }), { incoming: id('qa1') }), { own: true, twin: honest, forge: (s) => void (s.steps[EARLY]!.handOvers![0]!.incoming = id('qa1')) }),
+      approvedByIncoming: await act(d, 'supervisor1', handOver(await approval(d, 'qa1', { incoming: performer('qa1') }), { incoming: performer('qa1') }), { own: true, twin: honest, forge: (s) => void (s.steps[EARLY]!.handOvers![0]!.incoming = id('qa1')) }),
       noException: await act(d, 'supervisor1', honest, {
         own: true,
         forge: (s) => {
@@ -162,7 +164,7 @@ describe('HAND_OVER_STEP: signed by a supervisor and approved by QA, neither of 
     ).toEqual({});
     expect(await accepted(d, 'HAND_OVER_STEP')).toEqual([]);
     // The engine refuses a hand-over to the outgoing performer and one with a blank reason.
-    expect(await act(d, 'supervisor1', handOver(qa, { incoming: id('operatorVerifier1') }), { own: true })).toBe('refused ENG-HANDOVER-PERSON');
+    expect(await act(d, 'supervisor1', handOver(qa, { incoming: performer('operatorVerifier1') }), { own: true })).toBe('refused ENG-HANDOVER-PERSON');
     expect(await act(d, 'supervisor1', handOver(qa, { reason: ' ​ ' }), { own: true })).toBe('refused ENG-REASON');
 
     // The honest hand-over: the step waits for the incoming performer, needs a second person's check, the entry stays the
@@ -227,16 +229,73 @@ describe('TAKE_OVER_STEP and after: the incoming performer completes the step; t
     const { rows: before } = await sbx.db.admin.query<{ state: engine.JsonValue }>('select state from recipe.execution_state where batch_id = $1', [d.runId]);
     const stripped = JSON.parse(JSON.stringify(before[0]?.state)) as { steps: Record<string, Record<string, unknown>> };
     for (const m of ['performers', 'dataEnterers', 'correctors', 'performedSigners']) stripped.steps[EARLY]![m] = [];
-    const problem = async (persona: string): Promise<string | null> => {
+    const problem = async (persona: string, command: Json = { type: 'VERIFY', step: 'p-early-time', context: [] }): Promise<string | null> => {
       const { rows: r } = await sbx.db.admin.query<{ p: string | null }>(
-        `select recipe.hand_over_problem($1, $2::jsonb, $2::jsonb, 'COMMAND', true, jsonb_build_object('type', 'VERIFY', 'step', 'p-early-time', 'context', '[]'::jsonb), $3, $4) as p`,
-        [d.runId, JSON.stringify(stripped), id(persona), Number(verifyRow?.seq ?? 0) + 1000],
+        `select recipe.hand_over_problem($1, $2::jsonb, $2::jsonb, 'COMMAND', true, $5::jsonb, $3, $4) as p`,
+        [d.runId, JSON.stringify(stripped), id(persona), Number(verifyRow?.seq ?? 0) + 1000, JSON.stringify(command)],
       );
       return r[0]?.p ?? null;
     };
     expect(await problem('operatorVerifier1')).toMatch(/verifies step p-early-time@ by .* the verifier is always another person/);
     expect(await problem('operator1')).toMatch(/verifies step p-early-time@ by .* the verifier is always another person/);
     expect(await problem('verifier1')).toBeNull();
+    // Review finding 6: the supervisor who signed the hand-over and QA who approved it do not verify the step either.
+    expect(await problem('supervisor1')).toMatch(/verifies step p-early-time@ by .*signed or approved its hand-over; the verifier is always another person/);
+    expect(await problem('qa1')).toMatch(/verifies step p-early-time@ by .*signed or approved its hand-over; the verifier is always another person/);
+    // Review finding 4: the outgoing performer does not correct the step's data.
+    const point = Object.values((await stateOf(d)).points).find((p) => p.item === 'blendTime')?.id ?? '';
+    expect(await problem('operatorVerifier1', { type: 'CORRECT_ENTRY', point })).toMatch(/is .*'s correction in step p-early-time@, which they handed over/);
+    expect(await problem('operator1', { type: 'CORRECT_ENTRY', point })).toBeNull();
+  }, 300_000);
+
+  it('[PR-14][DI-34][PR-13][PR-49] review findings 1, 2, 4: a hand-over to a person without the step\'s perform role is refused; a step waiting for its incoming performer is handed over again, only from that person; nobody named in a hand-over signs the disposition of its exception; the outgoing performer raises no exception at the step', async () => {
+    const d = await startedByOutgoing();
+    // 1: the engine trusts the roles the command names; the database reads them from the person's grants.
+    const qaV = await approval(d, 'qa1', { incoming: performer('verifier1') });
+    expect(await act(d, 'supervisor1', handOver(qaV, { incoming: performer('verifier1') }), { own: true })).toMatch(
+      /it hands step p-early-time@ over to .*, who is not an active person with an active account holding the step's perform role PRODUCTION_OPERATOR now \(holds PRODUCTION_VERIFIER\).*\[EBMR-EXE-185\]/,
+    );
+    expect(await accepted(d, 'HAND_OVER_STEP')).toEqual([]);
+    expect(await act(d, 'supervisor1', handOver(await approval(d, 'qa1')), { own: true })).toBe('ok');
+
+    // 2: QA, who approved the hand-over, cannot sign the disposition of its exception (the kernel reads the involvement).
+    const ex = Object.values((await stateOf(d)).exceptions).find((e) => e.type === 'STEP_HANDED_OVER')?.id ?? '';
+    expect(await codeOf(signatureAlone(sbx, d.browser('qa1'), 'qa1', 'batch_exception', `${d.runId}:${ex}`, 'EXCEPTION_DISPOSITIONED'))).toBe('EBMR-ESIG-044');
+    const { rows: inv } = await sbx.db.admin.query<{ i: string[] }>('select recipe.exception_step_involvement($1, s.state, $2, null) as i from recipe.execution_state s where s.batch_id = $1', [d.runId, ex]);
+    expect(inv[0]?.i).toEqual(expect.arrayContaining([id('supervisor1'), id('qa1'), id('operatorVerifier1'), id('operator1')]) as unknown);
+
+    // 1: operator1 does not come: the step is handed over again, from operator1, to operator2 (not from the first outgoing).
+    const wrong = { outgoing: id('operatorVerifier1'), incoming: performer('operator2') };
+    const qaWrong = await approval(d, 'qa1', wrong);
+    expect(await act(d, 'supervisor1', handOver(qaWrong, wrong), { own: true })).toBe('refused ENG-HANDOVER-PERSON');
+    expect(
+      await act(d, 'supervisor1', handOver(qaWrong, wrong), {
+        own: true,
+        twin: handOver(await approval(d, 'qa1', { outgoing: id('operator1'), incoming: performer('operator2') }), { outgoing: id('operator1'), incoming: performer('operator2') }),
+        forge: (s) => void (s.steps[EARLY]!.handOvers![1]!.outgoing = id('operatorVerifier1')),
+      }),
+    ).toMatch(/it hands step p-early-time@, which waits for .*, over from .*; a step waiting for its incoming performer is handed over again from that person.*\[EBMR-EXE-185\]/);
+    const again = { outgoing: id('operator1'), incoming: performer('operator2'), reason: 'The incoming operator called in sick' };
+    expect(await act(d, 'supervisor1', handOver(await approval(d, 'qa1', again), again), { own: true })).toBe('ok');
+    expect((await stateOf(d)).steps[EARLY]).toMatchObject({ status: 'ATTEMPT_HANDED_OVER', handOvers: [{ incoming: id('operator1') }, { outgoing: id('operator1'), incoming: id('operator2') }] });
+    expect(await act(d, 'operator1', takeOver)).toBe('refused ENG-HANDOVER-PERSON');
+    expect(await act(d, 'operator2', takeOver)).toBe('ok');
+
+    // 4: the outgoing performer raises no exception at the step (engine and database).
+    const raise = (actor: engine.Actor): engine.Command => ({ type: 'RAISE_EXCEPTION', commandId: randomUUID(), actor, step: 'p-early-time', context: [], description: 'A note on leaving', severity: 'ALERT' });
+    expect(await act(d, 'operatorVerifier1', raise)).toBe('refused ENG-HANDED-OVER');
+    expect(
+      await act(d, 'operatorVerifier1', raise, {
+        twin: (actor) => raise({ ...actor, id: id('operator2') }),
+        forge: (s) => {
+          for (const e of Object.values(s.exceptions)) if (e.raisedBy === id('operator2')) {
+            e.raisedBy = id('operatorVerifier1');
+            e.title = e.title.replace(id('operator2'), id('operatorVerifier1'));
+          }
+        },
+      }),
+    ).toMatch(/is .*'s act in step p-early-time@, which they handed over.*\[EBMR-EXE-185\]/);
+    expect(await violations(sbx)).toEqual([]);
   }, 300_000);
 
   it('[DI-24][DI-34] a direct write of the stored state that hands a step over is refused by the privileges', async () => {

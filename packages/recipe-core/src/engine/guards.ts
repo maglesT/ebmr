@@ -249,6 +249,16 @@ export function handedOverFrom(inst: Pick<StepInstance, 'handOvers'>): Set<strin
   return new Set((inst.handOvers ?? []).map((h) => h.outgoing));
 }
 
+/**
+ * The persons who may not check a step or disposition an exception it raised: its involved persons (involvedIn) and
+ * every person its hand-overs name (outgoing, incoming, the supervisor who signed and QA who approved it; L-07).
+ */
+export function excludedFromReview(inst: StepInstance): Set<string> {
+  const out = involvedIn(inst);
+  for (const h of inst.handOvers ?? []) for (const p of [h.outgoing, h.incoming, h.supervisor, h.qaApprover]) out.add(p);
+  return out;
+}
+
 /** A performer who handed the step over does not act in it again (L-07; DI-14): the incoming performer completes it. */
 export function requireNotHandedOver(inst: StepInstance, person: string | undefined, action: string): void {
   if (person !== undefined && handedOverFrom(inst).has(person)) {

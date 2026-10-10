@@ -30,8 +30,11 @@ import type { BreachRequirement, LimitTier } from '../limits/model.ts';
  *    TAKE_OVER_STEP with the step status ATTEMPT_HANDED_OVER (L-07): a step in progress is handed over by a production
  *    supervisor (HANDOVER_APPROVED) with QA's approval, neither of them the outgoing or incoming performer nor involved,
  *    with a reason; it raises STEP_HANDED_OVER (an act, not data of the step) and requires the step's check by a second
- *    person; the named incoming performer takes it over; the outgoing performer no longer acts in it and is not asked to
- *    sign it performed (ENG-HANDED-OVER), their entries staying theirs and valid; no correction or invalidation changes
+ *    person; the incoming performer is named with their roles and holds one of the step's perform roles; the named incoming
+ *    performer takes it over, and a step waiting for one who does not come is handed over again from that person; the
+ *    outgoing performer no longer records, signs, voids, corrects or raises an exception in it and is not asked to sign
+ *    it performed (ENG-HANDED-OVER), their entries staying theirs and valid; nobody named in a hand-over (outgoing,
+ *    incoming, its supervisor or QA) verifies the step or dispositions an exception it raised; no correction or invalidation changes
  *    a step waiting for its incoming performer, and a PERFORMED signature on it is made invalid when its data changes, as
  *    on a step in progress. The database requires the same (recipe-core 0461-0463).
  *  - 1.5.0: once a witness is no longer possible (the witness window after the act has passed, or the run moved on: the
@@ -341,8 +344,12 @@ export interface HandOverStepCommand extends CommandBase, StepTarget {
   readonly type: 'HAND_OVER_STEP';
   /** Person id of the performer who leaves the step: one who started it, entered data in it or signed it. */
   readonly outgoing: string;
-  /** Person id of the performer who takes the step over (TAKE_OVER_STEP). */
-  readonly incoming: string;
+  /**
+   * The performer who takes the step over (TAKE_OVER_STEP), with the engine roles they hold now as the kernel evaluated
+   * them: one of the step's perform roles. The database checks that the person is active, has an active account and
+   * holds the roles named (recipe-core 0480).
+   */
+  readonly incoming: Actor;
   readonly reason: string;
   /** The supervisor's own HANDOVER_APPROVED signature, made in this command. */
   readonly signature: SignatureRef;
@@ -350,7 +357,11 @@ export interface HandOverStepCommand extends CommandBase, StepTarget {
   readonly approval: Approval;
 }
 
-/** The incoming performer named by the step's last hand-over takes the step over: ATTEMPT_HANDED_OVER -> IN_PROGRESS. */
+/**
+ * The incoming performer named by the step's last hand-over takes the step over: ATTEMPT_HANDED_OVER -> IN_PROGRESS. A
+ * step waiting for an incoming performer who does not come is handed over again (HAND_OVER_STEP from
+ * ATTEMPT_HANDED_OVER, its outgoing performer the one who did not come), so it is never frozen.
+ */
 export interface TakeOverStepCommand extends CommandBase, StepTarget {
   readonly type: 'TAKE_OVER_STEP';
 }

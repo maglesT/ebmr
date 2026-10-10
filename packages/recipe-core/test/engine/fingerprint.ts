@@ -260,7 +260,7 @@ function rows(): Row[] {
     // outgoing performer no longer signs it, the incoming one takes it over and signs, a third person verifies (1.6.0).
     c(55, { type: 'START_STEP', actor: OP1, step: 'hand', context: [] }, 35),
     c(56, { type: 'RECORD_DATA', actor: OP1, step: 'hand', context: [], item: 'handTime', value: { kind: 'DECIMAL', value: '56', unit: 'min' }, source: { mode: 'MANUAL' } }, 36),
-    c(57, { type: 'HAND_OVER_STEP', actor: SUP1, step: 'hand', context: [], outgoing: OP1.id, incoming: OP2.id, reason: 'end of shift', signature: signed('FP-S19', 'HANDOVER_APPROVED', SUP1), approval: { approver: QA1, signature: signed('FP-S20', 'HANDOVER_APPROVED', QA1) } }, 37),
+    c(57, { type: 'HAND_OVER_STEP', actor: SUP1, step: 'hand', context: [], outgoing: OP1.id, incoming: OP2, reason: 'end of shift', signature: signed('FP-S19', 'HANDOVER_APPROVED', SUP1), approval: { approver: QA1, signature: signed('FP-S20', 'HANDOVER_APPROVED', QA1) } }, 37),
     c(58, { type: 'TAKE_OVER_STEP', actor: OP2, step: 'hand', context: [] }, 38),
     c(59, { type: 'SIGN_PERFORMED', actor: OP1, step: 'hand', context: [], signature: signed('FP-S21', 'PERFORMED', OP1) }, 39),
     c(59, { type: 'SIGN_PERFORMED', actor: OP2, step: 'hand', context: [], signature: signed('FP-S22', 'PERFORMED', OP2) }, 40),

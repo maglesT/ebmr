@@ -666,6 +666,12 @@ one plain-language business entry on the chain `batch:<id>`.
   and no VERIFY by a person the accepted rows name as involved, outgoing or incoming performer included (EBMR-EXE-185).
   `step_status_problem`, `command_step_key`, `execution_state_binding_check` and `signature_invalidation_problem` know
   the status ATTEMPT_HANDED_OVER and the two commands.
+  The quick review fixes (sql 0480): the incoming performer is named as an actor with their engine roles, and the
+  database refuses one who is not active, has no active account or does not hold now (`person_engine_roles`) the roles
+  named, the step's perform role among them; a step waiting for its incoming performer is handed over again from that
+  person; the outgoing performer neither corrects nor raises an exception at the step; the hand-over's supervisor and
+  QA approver do not verify it; and `exception_step_involvement` holds every person a step's hand-overs name
+  (`hand_over_involvement`), so none of them dispositions its exceptions (EBMR-ESIG-044, EBMR-EXE-163).
 
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 

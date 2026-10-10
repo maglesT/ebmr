@@ -6,7 +6,7 @@ import { isDecimalLiteral } from '../flow/decimal.ts';
 import type { Frame } from '../flow/tokens.ts';
 import type { BatchDefinition } from './definition.ts';
 import { engineDraft } from './exceptions.ts';
-import { hasRole, MEANINGS, qualityUnitRoles, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, useSignature } from './guards.ts';
+import { excludedFromReview, hasRole, MEANINGS, requireNotHandedOver, qualityUnitRoles, requireBatchStatus, requirePerson, requireReason, requireRole, requireSignature, useSignature } from './guards.ts';
 import { refuse, stepKey, type Tx } from './tx.ts';
 import {
   ABORT_CHECKLIST_ITEMS,
@@ -178,6 +178,7 @@ export function raiseException(tx: Tx, cmd: RaiseExceptionCommand): void {
     const step = tx.def.steps.get(cmd.step);
     const key = stepKey(cmd.step, frames);
     if (!step || !tx.s.steps[key]) refuse('ENG-UNKNOWN-STEP', `Step ${key} has not been reached in this batch`, ['PR-13']);
+    requireNotHandedOver(tx.s.steps[key], a.id, 'raising an exception at it');
     source = { stepKey: key, step: cmd.step, frames: [...frames] };
     anchor = { node: step.graphNode, frames: [...frames] };
   }
@@ -212,8 +213,8 @@ export function dispositionException(tx: Tx, cmd: DispositionExceptionCommand): 
   const a = requirePerson(tx);
   requireRole(a, e.qaOnly ? tx.def.policy.qaRoles : [...tx.def.policy.supervisorRoles, ...tx.def.policy.qaRoles], `disposition exception ${e.id}${e.qaOnly ? ' (QA only)' : ''}`);
   const inst = e.source.stepKey !== undefined ? tx.s.steps[e.source.stepKey] : undefined;
-  if (inst && [...inst.performers, ...inst.dataEnterers, ...inst.correctors, ...inst.performedSigners].includes(a.id)) {
-    refuse('ENG-SEGREGATION', `${a.id} is involved in step ${inst.key}, which raised ${e.id}, and cannot disposition it`, ['PR-13', 'PR-49', 'INV-03']);
+  if (inst && excludedFromReview(inst).has(a.id)) {
+    refuse('ENG-SEGREGATION', `${a.id} is involved in step ${inst.key}, which raised ${e.id}, or took part in its hand-over, and cannot disposition it`, ['PR-13', 'PR-49', 'INV-03']);
   }
   const justification = requireReason(cmd.justification, 'A disposition');
   if (e.deviationRequired && cmd.outcome !== 'DEVIATION_RAISED') {
