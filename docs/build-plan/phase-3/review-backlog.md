@@ -55,3 +55,15 @@ promised was not built).
 | 1b | Medium | The deviation or investigation an invalidation cites is free text; the database does not check it exists (D-S2-2) | recipe-core 0452 | Slice 5 (deviation-lite) |
 | 6 | Low | The evidence of a fail-to-pass correction is not tied to a stored document | recipe-core 0452 | Slice 5 |
 | 8 | Low | `plant.equipment_repair` has no unique index on the failure event; only the repair matching the open failure can be verified | recipe-core 0460 | Slice 3 |
+
+## Slice 2 hand-over review (10 October 2026)
+
+No critical or high findings. Fixed in slice 2: 1 (a step stayed stuck in ATTEMPT_HANDED_OVER when the incoming person
+never came; the incoming person was not checked for being active and holding the performer role), 2 (the hand-over's
+supervisor, QA approver, outgoing and incoming persons could disposition its STEP_HANDED_OVER exception), 3 (the QA
+approval was not bound to the step, persons and reason; with review finding 1 above), 4 (the outgoing person could still
+correct entries), 6 (the hand-over's supervisor and QA approver could verify the step; stricter default: refused).
+
+Design note for the owner (5): the incoming performer's PERFORMED signature covers the step content including the
+outgoing performer's entries, which the outgoing person does not sign; the verifier covers them all. This follows the
+outline (5.2.3, L-07).
