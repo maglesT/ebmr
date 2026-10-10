@@ -44,7 +44,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   (site-services 0710 to 0712, recipe-core 0430); equipment kinds, cleaning, campaigns, rooms and lines, clearance types
   (recipe-core 0400 to 0405, schema `plant`); output containers with the IPC hold window (recipe-core 0420 to 0422).
   One quick review: 2 high and 2 medium fixed, the rest in `docs/build-plan/phase-3/review-backlog.md`.
-- Phase 3 slice 2 (execution paths) is in progress on `phase-3/slice-2` (plan: `docs/build-plan/phase-3/slice-2-plan.md`).
+- Phase 3 slice 2 (execution paths) is built on `phase-3/slice-2` (plan and defaults D-S2-1 to D-S2-3:
+  `docs/build-plan/phase-3/slice-2-plan.md`): the exception register in the database (0440, 0441), void, invalidation,
+  skip, abort and cancel guarded with approvals bound to the act (0450 to 0453, 0470 to 0472), step hand-over (0461 to
+  0463, 0480), engine 1.6.0; slice 1 backlog #6 and #10 (site-services 0720, 0721; recipe-core 0460). Next: slice 2b
+  (execution on the GMP installation), then slice 3.
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)

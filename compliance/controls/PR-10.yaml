@@ -32,6 +32,7 @@ tests:
   - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-10][DI-10] header and master-data inputs are typed at issue with their source; the MBR hash is pinned; nothing is issued without them"
   - "apps/tablets-server/test/execution/commands.test.ts > test packages and issue (DI-05, INV-18) > [DI-05][PR-10][PR-01] issue: every header input is required (a count is positive); the TEST- number, the engine version, the block registry and the policy are pinned"
   - "apps/tablets-server/test/execution/db-guards-values.test.ts > P33: TEST- batch numbers past serial 9999 > [INV-27][DI-05][PR-10] serials 10000 and 10001 are written in full and give two distinct TEST- numbers"
+  - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > CANCEL_BATCH: only before anything started, signed by a supervisor > [PR-10][DI-35] an issued batch is cancelled with the supervisor's signature; once a step started it is refused, and nothing else cancels a batch"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

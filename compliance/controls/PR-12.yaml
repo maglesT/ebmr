@@ -17,7 +17,8 @@ sources: "US: 11.10(e); 211.100(b) | EU: Ch.4 4.9; Annex 11 section 9 | ICH/EMA/
 behaviour: A correction keeps the original value visible in the record and in review views. The audit trail captures the old and new values, the user, the server time and the reason (mandatory). A correction after step sign-off requires re-signature. Corrections to critical data (quantities, CPP values, IPC results, yields) need the configured approval. Every correction appears in the exception report.
 catalog_test: Correct a signed weight. The original stays visible, a reason is required, the step must be re-signed, and the correction is listed in the exception report. A correction without a reason is refused.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > CORRECT_ENTRY from fail to pass (INV-41) > [INV-41][PR-12][IN-06][DI-24] a failing value corrected to a passing one needs objective evidence and the approval of QA; its exception stays open"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

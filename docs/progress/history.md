@@ -2281,3 +2281,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   builders' open items in docs/build-plan/phase-3/review-backlog.md. 73 tagged tests synced (IN-21, IN-24 to IN-26,
   PR-18, PR-23 to PR-27, PR-34, PR-35, DI-17, DI-18). CI split into four test shards with merged reports (the single
   job had reached 58 of 60 minutes on main, run 37980059094).
+- 2026-10-10: PHASE 3 SLICE 2 (branch phase-3/slice-2). Owner decisions 0009 (Phase 3 exit: Opus mutation run on
+  Phase 3 code and changed Phase 1-2 code, one Opus review, fixes with tests, one final full run) and 0010 (Tablets to
+  v1.0 first, Injectables after Phase 7). Built: exception register written with the raising row, QA-only and
+  independent disposition, review acts (recipe-core 0440, 0441); void, invalidation, skip, abort and cancel catalogued
+  and guarded, approvals signed on the act they approve (batch_act, propose_act), fail-to-pass only with QA approval
+  (0450-0453, 0470-0472); step hand-over and take-over with supervisor and QA approval, re-hand-over, its persons kept
+  out of disposition and verification (0461-0463, 0480); engine 1.6.0; exception-register act ids protected (0490);
+  slice 1 backlog #6 (release signature covers route and received quantity; consumption no longer supersedes it) and
+  #10 (two-person repair). Two quick reviews (no critical or high; mediums on approvals and hand-over fixed). Renamed
+  tests replaced their stale register entries (DI-10, DI-17, DI-34, DI-35).

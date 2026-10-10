@@ -41,6 +41,10 @@ tests:
   - "packages/site-services/test/lots/machine.test.ts > the material lot machine > [IN-24][INV-13] the committed seed equals the generator output"
   - "packages/site-services/test/lots/machine.test.ts > the material lot machine > [IN-24] the states and signatures of outline 5.2.9: every status decision is signed, a finished lot cannot leave quarantine, RETEST_DUE and EXPIRED are not stored"
   - "packages/site-services/test/lots/machine.test.ts > the material lot machine > [IN-24] the transition table holds exactly the XState transitions, with the same sealed hash, and XState's next state equals the table's for every pair"
+  - "packages/site-services/test/lots/lots.test.ts > what the release signature covers (review backlog item 6; sql/0720) > [IN-24][DI-37] the signed content shows the release route and the received quantity; a signature over IDENTITY_TESTED content cannot release on VENDOR_HISTORY"
+  - "packages/site-services/test/lots/lots.test.ts > what the release signature covers (review backlog item 6; sql/0720) > [IN-24][DI-37] a signature over VENDOR_HISTORY content cannot release on IDENTITY_TESTED: the identity result that would allow it supersedes the signature"
+  - "packages/site-services/test/lots/lots.test.ts > what the release signature covers (review backlog item 6; sql/0720) > [IN-24][DI-37][INV-13] the release signature covers the received quantity; consuming from the released lot does not supersede it"
+  - "packages/site-services/test/lots/lots.test.ts > witnessed destruction (IN-24 (a)) > [IN-24] a person who consumed from a lot does not witness its destruction (stricter default, sql/0721)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

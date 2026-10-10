@@ -16,7 +16,8 @@ sources: Schedule M Part I 17.2 (design, approval, signature and dating of docum
 behaviour: "(a) MBRs, packaging instructions and SOP references have approval e-signatures, an effective date and a periodic-review date. (b) Once superseded, a version can no longer issue new batches but stays retrievable for a configured period (never shorter than the retention of batches made with it). (c) Every master version needs two signatures from different users: prepared by one, independently checked by another (applied in all profiles; required for US). (d) A correction to a recorded value never overwrites it: original value, new value, user, timestamp and a reason are kept and shown in the rendered record. The reason is mandatory in all profiles."
 catalog_test: supersede MBR v1; new batches cannot start on it; v1 still opens. Correct a weight; the rendered BMR shows old and new values, who, when, why.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > CORRECT_ENTRY from fail to pass (INV-41) > [INV-41][PR-12][IN-06][DI-24] a failing value corrected to a passing one needs objective evidence and the approval of QA; its exception stays open"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
