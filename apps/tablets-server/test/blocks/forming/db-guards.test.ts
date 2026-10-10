@@ -261,7 +261,8 @@ describe('the forming blocks in the database (tablets 0930 to 0932)', () => {
     expect(await verdict('p-tb06', { kind: 'RUN_START', press: compactor })).toBe('ok');
     // A value keyed by hand under the MBR's fallback, outside its limits: forged without its exception, then honestly.
     const gap: Entry = { kind: 'ACTUAL', tag: 'roller.gap_mm', value: '3.80', unit: 'mm', source: 'MANUAL' };
-    expect(await verdict('p-tb06', gap, { tamper: quiet('p-tb06', TB06, ['PROCESS_VALUE_OUT_OF_LIMITS']) })).toBe('EBMR-TAB-340 TB06-PROCESS-LIMITS');
+    // The G-06 exception rule is tablets 0913's, shared by every step on a process device (slice 3d review 1).
+    expect(await verdict('p-tb06', gap, { tamper: quiet('p-tb06', TB06, ['PROCESS_VALUE_OUT_OF_LIMITS']) })).toMatch(/^EBMR-EXE-275 .*PROCESS_VALUE_OUT_OF_LIMITS/s);
     expect(await verdict('p-tb06', gap)).toBe('ok');
     expect(await entryData('p-tb06@', 'ACTUAL')).toMatchObject({ withinLimits: false, manualFallback: true });
     expect(await types('p-tb06@')).toEqual(['PROCESS_MANUAL_FALLBACK', 'PROCESS_VALUE_OUT_OF_LIMITS']);

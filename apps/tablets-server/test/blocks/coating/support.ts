@@ -86,6 +86,11 @@ export function blockMbr(b: blocks.BlockVersion, p: flow.PhaseNode = fixturePhas
   return mbrWith({ kind: 'sequence', id: 'ops', children: [p, ...after, phase('after')] }, { parameters: b.goldenFixture?.parameters ?? [] });
 }
 
+/** A minimal MBR whose operation runs `children` in sequence (no parameters). */
+export function mbrWithChildren(children: flow.FlowNode[]): flow.MbrContent {
+  return mbrWith({ kind: 'sequence', id: 'ops', children });
+}
+
 export function defineFor(mbr: flow.MbrContent): engine.BatchDefinition {
   return define(mbr, { registry: tabletsBlockRegistry(), catalog: tabletsBlockCatalog });
 }

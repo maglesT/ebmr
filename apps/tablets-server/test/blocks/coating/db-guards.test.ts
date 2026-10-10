@@ -14,7 +14,7 @@ import { codeOf } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { COATING_BLOCK_VERSIONS } from '../../../src/blocks/coating/index.ts';
 import { AQL_SCHEME, expandedPlans, LETTERS, SAMPLE_CODE_ROWS } from '../../../src/blocks/coating/aql.ts';
-import { fakeTimers, lastEntry, laxEntry, recorder, stateOf, type Entry } from '../granulation/db-support.ts';
+import { fakeTimers, lastEntry, laxEntry, recorder, stateOf, tamperHandler, type Entry } from '../granulation/db-support.ts';
 import { asSetup, cleanUnit } from '../compression/plant-support.ts';
 import { coatingDbMbr, DEFECTS } from './db-support.ts';
 
@@ -282,6 +282,25 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await sql('select tab.coating_loop_problem($1, $2) as r', [c, third])).toMatch(/iteration 3 of loop L-COAT, beyond its maximum of 2 iterations \(TB18-LOOP-BOUND\)/);
   });
 
+  it('[PR-08][PR-14][DI-32] review 3d finding 1: a value of automated equipment outside its limits is stored only with PROCESS_VALUE_OUT_OF_LIMITS at every step on a process device: a coating iteration (TB-18) and a granulation step (TB-04)', async () => {
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb04@' });
+    const cases: [string, string, { frames?: { construct: string; index: number }[] }, Entry][] = [
+      ['p-coat', 'p-coat@L-COAT=1', { frames: COAT1 }, { kind: 'ACTUAL', tag: 'inlet.temp_C', value: '58.0', unit: 'degC', source: 'MANUAL' }],
+      ['p-tb04', 'p-tb04@', {}, { kind: 'ACTUAL', tag: 'granulator.power_kW', value: '7.10', unit: 'kW', source: 'MANUAL' }],
+    ];
+    for (const [step, key, at, entry] of cases) {
+      const data = { ...strip(entry), manualFallback: true, withinLimits: false, usable: true, recordedBy: me };
+      const manual = { type: 'PROCESS_MANUAL_FALLBACK', title: 'keyed by hand', controls: ['PR-14', 'DI-32'], severity: 'ALERT' as const, category: 'MANUAL_ENTRY' as const, blocks: 'NONE' as const, item: String(entry['tag']) };
+      const forged = tamperHandler(step, { acceptEntry: () => ({ ok: true, data, verificationRequired: true, exceptions: [manual] }) });
+      expect(await rec.message(step, entry, { ...at, tamper: forged })).toMatch(/PROCESS_VALUE_OUT_OF_LIMITS .*\[EBMR-EXE-275\]/s);
+      const silent = tamperHandler(step, { acceptEntry: () => ({ ok: true, data, verificationRequired: true }) });
+      expect(await rec.message(step, entry, { ...at, tamper: silent })).toMatch(/EBMR-EXE-275/);
+      expect(await verdict(step, entry, at)).toBe('ok');
+      const ex = Object.values((await stateOf(sbx, d.runId)).exceptions).filter((e) => (e['source'] as Json)['stepKey'] === key).map((e) => e['type']);
+      expect(ex).toEqual(expect.arrayContaining(['PROCESS_VALUE_OUT_OF_LIMITS', 'PROCESS_MANUAL_FALLBACK']));
+    }
+  });
+
   it('[PR-46][PR-47][PR-50][IN-35][PR-29][INV-41][DI-10] TB-20: the sort reconciled into reject containers of this batch, a foreign tablet only with its exception, the AQL plan and the severity of the switching rule decided by the database, a rejected lot never sampled again; reject containers never charged; the destruction step closes only with every reject container destroyed under witness', async () => {
     const r1 = await container('INSPECTION');
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb20@' });
@@ -322,6 +341,18 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     };
     expect(await verdict('p-tb20', rejected, { tamper: laxEntry('p-tb20', { ...evaluation, result: 'ACCEPTED' }) })).toMatch(/^EBMR-EXE-270 .*result/s);
     expect(await verdict('p-tb20', rejected, { tamper: laxEntry('p-tb20', evaluation) })).toMatch(/^EBMR-EXE-270 .*AQL_REJECTED/s);
+    // Review 3d finding 3: lots of one product are judged one at a time: while another lot of the product is being
+    // recorded (its lock held), this one waits (here: gives up after 500 ms); afterwards it is recorded.
+    const product = (await sql<string>("select recipe.batch_product($1) ->> 'code' as r", [d.runId])) ?? '';
+    const holder = await sbx.db.admin.connect();
+    try {
+      await holder.query('begin');
+      await holder.query('select pg_advisory_xact_lock(hashtext($1))', [`tab.aql_lot_result:${product}:SANDBOX`]);
+      expect(await verdict('p-tb20', rejected, { before: async (cl) => { await cl.query("set local lock_timeout = '500ms'"); } })).toMatch(/lock timeout/);
+    } finally {
+      await holder.query('rollback');
+      holder.release();
+    }
     expect(await verdict('p-tb20', rejected)).toBe('ok');
     expect(await dataOf('p-tb20@', 'AQL_RESULT')).toEqual(evaluation);
     const lot = await sql<Json>("select jsonb_build_object('severity', severity, 'accepted', accepted, 'installation', installation) as r from tab.aql_lot_result where batch_id = $1", [d.runId]);
@@ -330,8 +361,10 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await verdict('p-tb20', aql('NORMAL', {}), { tamper: laxEntry('p-tb20', { ...evaluation, result: 'ACCEPTED' }) })).toBe('EBMR-EXE-270 TB20-AQL-TWICE');
     // Destruction: the G-23 step closes only with every container for destruction destroyed, quantity for quantity.
     const c = await content();
-    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-destroy@' });
-    const s0 = await stateOf(sbx, d.runId);
+    // The step waits behind the AQL rejection (QA decides first); its close is read on the run's state with the step in
+    // progress, then closed.
+    const s0 = structuredClone(await stateOf(sbx, d.runId));
+    s0.steps['p-destroy@'] = { key: 'p-destroy@', step: 'p-destroy', frames: [], status: 'IN_PROGRESS' };
     const closing = structuredClone(s0);
     (closing.steps['p-destroy@'] as Json)['status'] = 'AWAITING_VERIFICATION';
     expect(await sql('select tab.coating_close_problem($1, $2, $3) as r', [c, s0, closing])).toMatch(/TB20-NOT-DESTROYED/);
@@ -351,6 +384,32 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     // The MBR's destruction step is witnessed.
     const unwitnessed = JSON.parse(JSON.stringify(c).replace('"meaning":"WITNESSED"', '"meaning":"VERIFIED"')) as Json;
     expect(await sql('select tab.coating_mbr_problem($1) as r', [unwitnessed])).toMatch(/TB20-DESTRUCTION/);
+    // Review 3d finding 2: the destruction step comes after the inspection in its sequence and is never skippable.
+    const seq = (x: Json): Json => JSON.parse(JSON.stringify(x)) as Json;
+    const swap = (x: Json): Json => {
+      const y = seq(x);
+      const visit = (n: unknown): void => {
+        if (n && typeof n === 'object') {
+          const o = n as Json;
+          if (o['id'] === 'seq-insp') (o['children'] as Json[]).reverse();
+          Object.values(o).forEach(visit);
+        }
+      };
+      visit(y);
+      return y;
+    };
+    expect(await sql('select tab.coating_mbr_problem($1) as r', [c])).toBeNull();
+    expect(await sql('select tab.coating_mbr_problem($1) as r', [swap(c ?? {})])).toMatch(/TB20-DESTRUCTION/);
+    const skippable = seq(c ?? {});
+    const mark = (n: unknown): void => {
+      if (n && typeof n === 'object') {
+        const o = n as Json;
+        if (o['id'] === 'p-destroy') o['config'] = { skippable: true };
+        Object.values(o).forEach(mark);
+      }
+    };
+    mark(skippable);
+    expect(await sql('select tab.coating_mbr_problem($1) as r', [skippable])).toMatch(/TB20-DESTRUCTION/);
     expect(DEFECTS.find((x) => x.code === 'FOREIGN')?.class).toBe('CRITICAL');
   });
 

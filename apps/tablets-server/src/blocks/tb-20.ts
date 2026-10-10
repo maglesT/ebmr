@@ -5,7 +5,8 @@
  * The MBR sets the mode (manual belt, or a vision sorter with its recipe), the defect catalogue with each defect's class
  * (critical, major, minor; a foreign or other-product tablet is critical and flagged `foreign`), the AQL plan (the
  * inspection level and the AQL of the major and minor classes: company values, no regulatory numbers; critical defects
- * are always accepted at zero) and the G-23 step that destroys the rejects (destructionStep: witnessed). Rejects are for
+ * are always accepted at zero) and the G-23 step that destroys the rejects (destructionStep: witnessed, never skippable,
+ * a later step of the inspection's own sequence). Rejects are for
  * destruction; a reusable-residue category exists only where the MBR has a TB-08 step to use it (none yet).
  *
  * Entries:
@@ -29,6 +30,7 @@
  * closes only with every container for destruction destroyed in its witnessed G-23 step, quantity for quantity.
  */
 import {
+  ancestorsOf,
   CODE,
   configError,
   UUID,
@@ -253,12 +255,20 @@ function beforePerform(view: HandlerView): HandlerProblem[] {
   return out;
 }
 
-/** The witnessed G-23 step that destroys the rejects of inspection step `phase` (undefined when absent or not witnessed). */
-export function destructionProblem(mbr: MbrContent, config: Config): string | undefined {
+/**
+ * Why the G-23 step that destroys the rejects of inspection step `phaseId` is missing or wrong: it is a later step of the
+ * same sequence (it runs after the inspection, on every path that runs the inspection), witnessed, never skippable
+ * (review 3d finding 2). Undefined when it is in place.
+ */
+export function destructionProblem(mbr: MbrContent, phaseId: string, config: Config): string | undefined {
   const id = text(config['destructionStep']);
   const g = phasesOf(mbr).find((p) => p.id === id);
   if (!g || g.block.type !== 'G-23') return `${id ?? '(none)'} is not a G-23 step of the MBR`;
   if (g.config['witness'] === false || g.signatures.check?.meaning !== 'WITNESSED') return `G-23 step ${g.id} does not destroy under a witness`;
+  if (g.config['skippable'] === true) return `G-23 step ${g.id} is declared skippable`;
+  const parent = ancestorsOf(mbr, phaseId).at(-1);
+  const at = parent?.kind === 'sequence' ? parent.children.findIndex((c) => c.id === phaseId) : -1;
+  if (parent?.kind !== 'sequence' || !parent.children.slice(at + 1).some((c) => c.id === g.id)) return `G-23 step ${g.id} is not a later step of the inspection's sequence`;
   return undefined;
 }
 
@@ -274,7 +284,7 @@ function checkConfig(phase: PhaseNode, config: Readonly<Record<string, JsonValue
   if (residueAllowed(config) && !phasesOf(mbr).some((p) => p.block.type === 'TB-08')) {
     out.push(configError('TB20-RESIDUE', `Reusable residue of ${phase.id} needs a recovery step (TB-08) in the MBR`, ['PR-46', 'PR-47']));
   }
-  const d = destructionProblem(mbr, config);
+  const d = destructionProblem(mbr, phase.id, config);
   if (d) out.push(configError('TB20-DESTRUCTION', `The rejects of ${phase.id} are destroyed in a witnessed G-23 step: ${d}`, ['PR-46', 'IN-35']));
   return out;
 }

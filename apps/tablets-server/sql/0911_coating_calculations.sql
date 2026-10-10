@@ -169,9 +169,20 @@ begin
 end
 $$;
 
+-- Review 3d finding 3: tab.aql_severity under a transaction lock per product and installation, so that two lots of one
+-- product judged at the same time are judged one after the other, the second seeing the first (a fresh snapshot after
+-- the lock: this function is volatile).
+create function tab.aql_severity_locked(p_product text, p_installation text) returns text
+language plpgsql volatile security definer set search_path = pg_catalog, tab, pg_temp as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('tab.aql_lot_result:' || coalesce(p_product, '') || ':' || coalesce(p_installation, '')));
+  return tab.aql_severity(p_product, p_installation);
+end
+$$;
+
 revoke all on function tab.coat_fixed(numeric, integer), tab.coat_round(numeric, numeric), tab.coat_plain(numeric), tab.coat_sample(jsonb, text),
   tab.coat_gain(numeric, numeric, numeric), tab.coat_gain_cmp(numeric, numeric, numeric, numeric), tab.aql_letter_for(numeric, text),
-  tab.aql_evaluate(jsonb, text, numeric, jsonb), tab.aql_severity(text, text) from public;
+  tab.aql_evaluate(jsonb, text, numeric, jsonb), tab.aql_severity(text, text), tab.aql_severity_locked(text, text) from public;
 -- The screens show the severity the next lot will be inspected at (display; the guard decides).
 grant execute on function tab.aql_severity(text, text) to ebmr_app;
 

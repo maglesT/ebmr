@@ -38,7 +38,7 @@
 --      20, the block's bound): continued coating is bounded, never rework (DI-34) (EBMR-EXE-273);
 --   5. the batch's MBR places, after every printing step, a QA hold point of the step's gate role that can reject (the QC
 --      approval of printed tablets, IN-37, Sched M VIII 6.2), and every inspection step names a witnessed G-23 step for
---      its rejects (EBMR-EXE-274).
+--      its rejects, a later step of its own sequence and never skippable (EBMR-EXE-274).
 -- With an accepted row the trigger then records (the slice 1 container commands, never a copy): for a print check, PASS
 -- or FAIL of the printer through plant.record_ipc_check (a FAIL holds every printed container since the printer's last
 -- passing check, PR-29); for an AQL result, the lot's original inspection result in tab.aql_lot_result.
@@ -130,7 +130,7 @@ $$;
 -- IN-37, PR-29, PR-46, IN-35, DI-10, DI-29, INV-41: why a new entry of a coating step in row p_new (after p_old, command
 -- p_command, MBR p_content, batch p_batch) is not what its block builds or accepts (header, item 1); NULL when every one is.
 create function tab.coating_entry_problem(p_batch uuid, p_content jsonb, p_old jsonb, p_new jsonb, p_command jsonb) returns text
-language plpgsql stable security definer set search_path = pg_catalog, tab, recipe, plant, pg_temp as $$
+language plpgsql volatile security definer set search_path = pg_catalog, tab, recipe, plant, pg_temp as $$
 declare
   e0        jsonb := case when jsonb_typeof(p_old -> 'entries') = 'object' then p_old -> 'entries' else '{}'::jsonb end;
   e1        jsonb := case when jsonb_typeof(p_new -> 'entries') = 'object' then p_new -> 'entries' else '{}'::jsonb end;
@@ -402,7 +402,9 @@ begin
         if jsonb_array_length(tab.gran_prior(p_new, v_key, v_seq, 'AQL_RESULT')) > 0 then
           return format('stores %s a second time: a rejected lot is re-inspected only through an approved reprocessing (TB20-AQL-TWICE; INV-41)', v_what);
         end if;
-        v_text := tab.aql_severity(recipe.batch_product(p_batch) ->> 'code', (select b.installation from recipe.batch_execution b where b.id = p_batch));
+        -- Review 3d finding 3: the product's lots are judged one at a time, so the history the switching rule reads is
+        -- every lot recorded before this one (tab.aql_severity_locked; the lock is held until the row commits).
+        v_text := tab.aql_severity_locked(recipe.batch_product(p_batch) ->> 'code', (select b.installation from recipe.batch_execution b where b.id = p_batch));
         if c ->> 'severity' is distinct from v_text then
           return format('stores %s at %s inspection; the switching rule gives %s for the product''s next lot (TB20-SEVERITY)', v_what, coalesce(c ->> 'severity', '(none)'), v_text);
         end if;
@@ -673,6 +675,17 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
    limit 1
 $$;
 
+-- Whether node p_later is a later child than node p_id in the sequence that holds p_id in MBR content p_content.
+create function tab.coat_later_in_sequence(p_content jsonb, p_id text, p_later text) returns boolean
+language sql immutable set search_path = pg_catalog, pg_temp as $$
+  select exists (
+    select 1
+      from jsonb_path_query(coalesce(p_content -> 'procedure', '{}'::jsonb), 'strict $.** ? (@.kind == "sequence")') q (v),
+           jsonb_array_elements(q.v -> 'children') with ordinality a (x, i),
+           jsonb_array_elements(q.v -> 'children') with ordinality b (y, j)
+     where a.x ->> 'id' = p_id and b.y ->> 'id' = p_later and b.j > a.i)
+$$;
+
 -- IN-37, PR-46: why the batch's MBR p_content lacks the QC gate after a printing step or the witnessed destruction step of
 -- an inspection step (header, item 5); NULL when it has both everywhere.
 create function tab.coating_mbr_problem(p_content jsonb) returns text
@@ -694,9 +707,12 @@ begin
     else
       select x into v_g from jsonb_path_query(coalesce(p_content -> 'procedure', '{}'::jsonb), 'strict $.** ? (@.kind == "phase" && @.id == $id)',
                                               jsonb_build_object('id', tab.coat_cfg(p) ->> 'destructionStep')) x limit 1;
+      -- Review 3d finding 2: the destruction step runs after the inspection on every path that runs it (a later step of
+      -- the inspection's own sequence) and is never skipped.
       if v_g -> 'block' ->> 'type' is distinct from 'G-23' or (tab.coat_cfg(v_g) -> 'witness') = 'false'::jsonb
-         or v_g -> 'signatures' -> 'check' ->> 'meaning' is distinct from 'WITNESSED' then
-        return format('inspection step %s names no witnessed G-23 step for its rejects (TB20-DESTRUCTION)', p ->> 'id');
+         or v_g -> 'signatures' -> 'check' ->> 'meaning' is distinct from 'WITNESSED' or (tab.coat_cfg(v_g) -> 'skippable') = 'true'::jsonb
+         or not tab.coat_later_in_sequence(p_content, p ->> 'id', v_g ->> 'id') then
+        return format('inspection step %s names no witnessed, unskippable G-23 step after it in its sequence for its rejects (TB20-DESTRUCTION)', p ->> 'id');
       end if;
     end if;
   end loop;
@@ -918,7 +934,7 @@ $$;
 revoke all on function tab.coat_raised(jsonb, jsonb, text, text, text, text), tab.coat_cfg(jsonb), tab.coat_point(jsonb, text), tab.coat_log_gaps(jsonb, jsonb, numeric, numeric),
   tab.coat_used(jsonb, jsonb, jsonb, text, text), tab.coat_rejects(jsonb, jsonb), tab.coating_entry_problem(uuid, jsonb, jsonb, jsonb, jsonb),
   tab.coat_sort_problem(uuid, jsonb, jsonb, text, numeric, jsonb, jsonb, text), tab.coat_sort_data(jsonb, jsonb), tab.coating_computed_problem(jsonb, jsonb, jsonb),
-  tab.coating_close_problem(jsonb, jsonb, jsonb), tab.coating_loop_problem(jsonb, jsonb), tab.coat_next_node(jsonb, text), tab.coating_mbr_problem(jsonb),
+  tab.coating_close_problem(jsonb, jsonb, jsonb), tab.coating_loop_problem(jsonb, jsonb), tab.coat_next_node(jsonb, text), tab.coat_later_in_sequence(jsonb, text, text), tab.coating_mbr_problem(jsonb),
   tab.coating_record(uuid, jsonb, jsonb, jsonb), tab.coat_batch_has(jsonb), tab.coating_state_check(), tab.coat_container_problem(uuid),
   tab.coat_charge_check(), tab.coat_pass_check(), tab.coat_print_pass(uuid, text, text, text) from public;
 

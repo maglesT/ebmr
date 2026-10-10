@@ -42,7 +42,7 @@ const gate = (id: string): Json => ({ kind: 'holdPoint', id, name: `Printed tabl
  * dc-mini with the finishing blocks first in its dispensing preparation, each in a branch of one parallel node:
  * cores then loop L-COAT (2 iterations) of p-coat (film coat, max gain 3.5 %, manual fallback, log interval 1 s);
  * p-tb03f (film coat, use-by 3 s), p-tb03c (film coat, use-by 1 h), p-tb03b (binder, use-by 1 h); p-tb19 then gate
- * H-PRINT; p-tb19b then gate H-PRINT-B; p-tb20 and, in a branch of its own, its witnessed destruction step p-destroy; a TB-11 run p-tb11 (never started).
+ * H-PRINT; p-tb19b then gate H-PRINT-B; p-tb20 then its witnessed destruction step p-destroy; a TB-11 run p-tb11 (never started); a granulation step p-tb04 (time end point, manual fallback).
  */
 export function coatingDbMbr(): flow.MbrContent {
   return dcMiniVariant((prep, content) => {
@@ -71,14 +71,23 @@ export function coatingDbMbr(): flow.MbrContent {
       phaseOf('p-tb03b', 'TB-03', { solutionType: 'BINDER', solvent: 'PURIFIED_WATER', useBy: { value: '1', unit: 'h' } }),
       { kind: 'sequence', id: 'seq-print', children: [print('p-tb19'), gate('H-PRINT')] },
       { kind: 'sequence', id: 'seq-print-b', children: [print('p-tb19b'), gate('H-PRINT-B')] },
-      phaseOf('p-tb20', 'TB-20', { mode: 'MANUAL_BELT', defects: DEFECTS, aql: { level: 'II', major: '0.65', minor: '2.5' }, destructionStep: 'p-destroy' }),
+      {
+        kind: 'sequence', id: 'seq-insp', children: [
+          phaseOf('p-tb20', 'TB-20', { mode: 'MANUAL_BELT', defects: DEFECTS, aql: { level: 'II', major: '0.65', minor: '2.5' }, destructionStep: 'p-destroy' }),
+          phaseOf('p-destroy', 'G-23', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } }),
+        ],
+      },
+      // A granulation step on a process device (review 3d finding 1: the G-06 exceptions are required at every such step).
+      phaseOf('p-tb04', 'TB-04', {
+        granulator: 'HIGH_SHEAR', endPoint: { criterion: 'TIME', minTime: { value: '1', unit: 's' }, maxTime: { value: '60', unit: 'min' } },
+        actuals: [{ tag: 'granulator.power_kW', unit: 'kW', min: '1.00', max: '6.00' }], manualFallback: true,
+      }, { system: { kind: 'PLC', ref: 'SYS-COATER', recipe: 'RCP-GRAN', recipeVersion: '1' } }),
       // A TB-11 run that is never started: its presence makes tablets 0932's PASS rule apply to the batch.
       phaseOf('p-tb11', 'TB-11', {
         process: 'OTHER', streams: [{ id: 'L' }], plan: [{ test: 'WEIGHT', every: { value: '15', unit: 'min' }, qrmRef: 'QRM-IPC-07' }], grace: { value: '5', unit: 'min' },
         sweep: { stations: 3, weight: { individual: { action: { min: '237.5', max: '262.5' } } } },
         weight: { mode: 'GROUP', tabletType: 'UNCOATED', targetWeightMg: '250.0', n: 20, weighing: 'GROUP', tolerance: { action: '2', alert: '1' } },
       }),
-      phaseOf('p-destroy', 'G-23', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } }),
     ];
     const par = { kind: 'parallel', id: 'par-coat', branches: branches.map((b, i) => ({ id: `br-coat-${i + 1}`, name: `Finishing ${i + 1}`, body: b })) };
     return [par, ...prep];

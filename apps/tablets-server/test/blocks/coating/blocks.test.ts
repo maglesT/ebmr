@@ -9,7 +9,7 @@ import { blocks, engine } from '@ebmr/recipe-core/pure';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { COATING_BLOCK_VERSIONS, TB18, TB19, TB20 } from '../../../src/blocks/coating/index.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../../../src/features/edition-blocks.ts';
-import { blockMbr, coatingMbr, RECIPE_CHECK, DESTROY, definitionCodes, fixturePhase, iteration, LOOP, OP1, phase, QA1, QC_GATE, Run, runGolden, SUP1, sig, startRun, T0, VER1, defineFor } from './support.ts';
+import { blockMbr, mbrWithChildren, coatingMbr, RECIPE_CHECK, DESTROY, definitionCodes, fixturePhase, iteration, LOOP, OP1, phase, QA1, QC_GATE, Run, runGolden, SUP1, sig, startRun, T0, VER1, defineFor } from './support.ts';
 
 type Json = Record<string, unknown>;
 type Entry = Json & { kind: string };
@@ -275,6 +275,10 @@ describe('TB-20 inspection, sorting and AQL', () => {
     expect(definitionCodes(blockMbr(TB20, fixturePhase(TB20, { config: { defects: [{ code: 'FOREIGN', class: 'MAJOR', foreign: true }] } })))).toContain('TB20-CATALOGUE');
     expect(definitionCodes(blockMbr(TB20, fixturePhase(TB20, { config: { reusableResidue: true } })))).toContain('TB20-RESIDUE');
     expect(definitionCodes(blockMbr(TB20, fixturePhase(TB20, { config: { mode: 'VISION' } })))).toContain('TB20-VISION');
+    // Review 3d finding 2: the destruction step is a later step of the inspection's sequence and never skippable.
+    const before = mbrWithChildren([DESTROY, fixturePhase(TB20), phase('after')]);
+    expect(definitionCodes(before)).toContain('TB20-DESTRUCTION');
+    expect(definitionCodes(blockMbr(TB20, fixturePhase(TB20), [{ ...DESTROY, config: { skippable: true } }]))).toContain('TB20-DESTRUCTION');
   });
 
   it('[PR-46][IN-35] the sort result is reconciled exactly: inspected = accepted + rejects, one defect code per reject, masses without a negative remainder; rejects are for destruction in identified containers', () => {

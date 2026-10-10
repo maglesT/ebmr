@@ -8,9 +8,8 @@
 --   1. every new entry of a TB-06 or TB-16 step holds exactly what its block builds (0931, the twins of tb-06.ts and
 --      tb-16.ts) from what was entered, the batch's MBR and markets, the step's earlier entries, the person and the row's
 --      database time, and only what the block accepts (EBMR-TAB-340); and with it:
---        * the exceptions its block raises, in the same row: for a value of G-06 outside its acceptance limits
---          PROCESS_VALUE_OUT_OF_LIMITS (the steps after it wait for a deviation; PR-08) and for a read-back that does not
---          match SETPOINT_MISMATCH (G-06's data itself is recipe-core 0520's and tablets 0820's); TB-06's
+--        * the exceptions its block raises, in the same row (those of G-06's values are tablets 0913's, shared by every
+--          step on a process device: PROCESS_VALUE_OUT_OF_LIMITS, SETPOINT_MISMATCH and the others); TB-06's
 --          RIBBON_CHECK_FAILED, RIBBON_CHECK_MISSED, SCREEN_INTEGRITY_FAILED and COMPACTION_YIELD_OUT_OF_RANGE (severity ACTION, a
 --          deviation required, the steps after it blocked until one is linked), RIBBON_CHECK_ALERT and SCREEN_DAMAGED;
 --          TB-16's as TB-11's (tablets 0893): IPC_CHECK_FAILED, IPC_CHECK_MISSED, IPC_CHECK_ALERT, IPC_MANUAL_ENTRY with
@@ -137,15 +136,9 @@ begin
     v_seq := (e ->> 'recordedSeq')::numeric;
     v_by := e -> 'enteredBy';
     v_prior := tab.gran_prior(p_new, v_key, v_seq, null);
-    -- G-06's values (their data are recipe-core 0520's and tablets 0820's): the exceptions their block raises (PR-08).
+    -- G-06's values (their data are recipe-core 0520's and tablets 0820's): the exceptions their block raises are required
+    -- at every step on a process device by tablets 0913 (tab.g06_exception_problem, EBMR-EXE-275; slice 3d review 1).
     if v_kind in ('SETPOINT_READBACK', 'ACTUAL', 'ALARM', 'ALARM_ACK', 'INTERFACE_LOSS', 'RECIPE_CHECK') then
-      if v_kind = 'ACTUAL' and (d -> 'withinLimits') = 'false'::jsonb and not tab.gran_held(p_old, p_new, v_key, 'PROCESS_VALUE_OUT_OF_LIMITS') then
-        return format('stores %s, a value outside its acceptance limits, without the PROCESS_VALUE_OUT_OF_LIMITS exception, holding the steps after it until a deviation is linked (%s-PROCESS-LIMITS; PR-08)',
-                      v_what, replace(v_type, '-', ''));
-      end if;
-      if v_kind = 'SETPOINT_READBACK' and (d -> 'matches') = 'false'::jsonb and not tab.ipc_raised(p_old, p_new, v_key, 'SETPOINT_MISMATCH', 'ACTION') then
-        return format('stores %s, a read-back that does not match its setpoint, without the SETPOINT_MISMATCH exception (%s-PROCESS-LIMITS; PR-08)', v_what, replace(v_type, '-', ''));
-      end if;
       continue;
     end if;
     -- ------------------------------------------------------------------------------------------- TB-06
