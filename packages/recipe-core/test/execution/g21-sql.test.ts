@@ -44,4 +44,18 @@ describe('G-21 entry data in the database (recipe-core 0580)', () => {
     expect(((await build(cfg, ch(T + 29n * MIN), 'CHALLENGE', prior, ['IN'], T + 41n * MIN))['data'] as Json)['missed']).toBe(false);
     expect((await build(cfg, ch(T + 50n * MIN), 'CHALLENGE', prior, ['IN'], T + 41n * MIN))['problem']).toMatch(/G21-EVENT/);
   });
+
+  it('[IN-22][PR-37] a G-21 step does not close while a gateway device is due for a challenge by the device\'s time: a pass the device took 31 minutes ago is due though recorded a minute ago (recipe.g21_close_problem)', async () => {
+    const content = { procedure: { id: 'P', name: 'P', body: { kind: 'sequence', id: 's', children: [{ kind: 'phase', id: 'pk', block: { type: 'G-21', version: '1' },
+      config: { devices: [{ id: 'CAM', kind: 'VISION', serial: 'PRN-1', every: { value: '30', unit: 'min' }, triggers: ['START'] }], unit: 'U' } }] } } };
+    const pass = (at: bigint) => ({ 'EN-1': { id: 'EN-1', kind: 'CHALLENGE', stepKey: 'pk@', recordedAt: { $u: (T + 30n * MIN).toString() }, recordedSeq: 1,
+      data: { device: 'CAM', trigger: 'START', result: 'PASS', event: 'e', at: at.toString(), missed: false } } });
+    const close = async (at: bigint): Promise<string | null> => {
+      const old = { header: { marketSet: ['IN'] }, steps: { 'pk@': { key: 'pk@', step: 'pk', status: 'IN_PROGRESS' } }, entries: pass(at), lastRecordedUs: { $u: (T + 31n * MIN).toString() } };
+      const nw = { ...old, steps: { 'pk@': { key: 'pk@', step: 'pk', status: 'AWAITING_VERIFICATION' } } };
+      return (await db.admin.query<{ r: string | null }>('select recipe.g21_close_problem($1::jsonb, $2::jsonb, $3::jsonb) as r', [JSON.stringify(content), JSON.stringify(old), JSON.stringify(nw)])).rows[0]?.r ?? null;
+    };
+    expect(await close(T)).toMatch(/CAM is due for a challenge \(G21-CHALLENGE-DUE/);
+    expect(await close(T + 2n * MIN)).toBeNull();
+  });
 });

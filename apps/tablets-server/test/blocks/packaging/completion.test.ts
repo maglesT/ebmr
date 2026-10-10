@@ -16,10 +16,11 @@ import { adminActor, enrol, fakeGateway, type FakeGateway } from '../../devices/
 import type { PoolReport } from '@ebmr/integration-sdk/serialisation';
 import { actorOfBrowser } from '../../esig/support.ts';
 import { codeOf } from '../../execution/db-guards-support.ts';
-import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
+import { asPersonaInRole, importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { configuredL3Client, fetchSerialReport, requestSerialPool, sendSerialEvents, type L3Client, type SerialChange } from '../../../src/features/execution/serialisation.ts';
 import { parseConfig } from '../../../src/config.ts';
 import { fakeTimers, laxEntry, recorder, stateOf, type Entry } from '../granulation/db-support.ts';
+import { asSetup } from '../compression/plant-support.ts';
 import { ARTWORK, CARTON_MATERIAL, GTIN, LINE_UNIT, lineUnit, minimalMbr, occupyLine, packPhase } from './db-support.ts';
 
 type Json = Record<string, unknown>;
@@ -218,22 +219,47 @@ describe('G-21 when time passes and steps and the batch close (recipe-core 0581,
     expect((await stateOf(sbx, r.d.runId)).steps['p-g21@']?.['status']).toBe('IN_PROGRESS');
   });
 
-  it('[IN-31] an MRP a person gives is checked by a second person before a print job carries it, and its giver does not release the job', async () => {
+  it('[IN-31] an MRP a person gives is checked by a second person before a print job carries it, and its giver, though holding the rights to check and release, neither checks nor releases', async () => {
     const r = await run([packPhase('p-g21', 'G-21', {
       devices: [{ id: 'CODER', kind: 'PRINTER', serial: SERIAL }], unit: LINE_UNIT, shelfLifeMonths: 24, markets: { IN: { gtin: GTIN, mrp: true } },
-    })], ['operator1', 'operator2', 'verifier1']);
+    })], ['operator1', 'operator2', 'verifier1', 'operatorVerifier1']);
     await lineUnit(sbx, r.d.runId);
     await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
     await occupyLine(sbx, r.d.runId, (await r.sql<string>('select batch_number as r from recipe.batch_execution where id = $1', [r.d.runId])) ?? '');
-    const op = async (persona: string, text: string, params: unknown[]): Promise<string> => codeOf(withCommand(sbx.db.app, await r.as(persona), (c) => c.query(text, params)));
+    // The MRP's giver acts in the role each act needs (one session at a time: a new one supersedes the last).
+    const giverIn: Record<string, Awaited<ReturnType<typeof asPersonaInRole>>> = {};
+    const actorOf = async (persona: string): Promise<ActorContext> => {
+      const role = /^giverAs(VERIFIER|OPERATOR)$/.exec(persona)?.[1];
+      if (!role) return r.as(persona);
+      advance();
+      return actorOfBrowser(sbx, giverIn[role] ?? (giverIn[role] = await asPersonaInRole(sbx, 'operatorVerifier1', role, 'TEST-KIOSK-DISP-1')), 'operatorVerifier1');
+    };
+    const op = async (persona: string, text: string, params: unknown[]): Promise<string> => {
+      try {
+        await withCommand(sbx.db.app, await actorOf(persona), (c) => c.query(text, params));
+        return 'ok';
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    };
     const release = (persona: string) => op(persona, 'select tab.release_print_job($1, $2, $3, $4)', [r.d.runId, 'p-g21@', 'CODER', 'LAYOUT-IN-1']);
-    expect(await op('operator1', 'select tab.record_packaging_batch_data($1, $2, null)', [r.d.runId, 'p-g21@'])).toBe('EBMR-EXE-296');
-    expect(await op('operator1', 'select tab.record_packaging_batch_data($1, $2, $3)', [r.d.runId, 'p-g21@', '45.50'])).toBe('ok');
-    expect(await release('operator2')).toBe('EBMR-EXE-296');
-    expect(await op('operator1', 'select tab.check_packaging_batch_data($1, $2, 1)', [r.d.runId, 'p-g21@'])).toMatch(/EBMR-EXE-296|EBMR-IAM/);
-    expect(await op('verifier1', 'select tab.check_packaging_batch_data($1, $2, 1)', [r.d.runId, 'p-g21@'])).toBe('ok');
-    expect(await release('operator1')).toBe('EBMR-EXE-296');
+    const check = (persona: string) => op(persona, 'select tab.check_packaging_batch_data($1, $2, 1)', [r.d.runId, 'p-g21@']);
+    expect(await op('operatorVerifier1', 'select tab.record_packaging_batch_data($1, $2, null)', [r.d.runId, 'p-g21@'])).toMatch(/An MRP is given exactly for a pack that shows it.*EBMR-EXE-296/);
+    // The giver holds STEP.EXECUTE and STEP.VERIFY (operator and verifier), so each refusal below is the person rule.
+    expect(await op('operatorVerifier1', 'select tab.record_packaging_batch_data($1, $2, $3)', [r.d.runId, 'p-g21@', '45.50'])).toBe('ok');
+    expect(await release('operator2')).toMatch(/The MRP of batch data version 1 is not checked by a second person yet \(IN-31\)\. \[EBMR-EXE-296\]/);
+    expect(await check('giverAsVERIFIER')).toMatch(/The MRP is checked by a second person, not the one who gave it \(IN-31\)\. \[EBMR-EXE-296\]/);
+    expect(await check('verifier1')).toBe('ok');
+    expect(await release('giverAsOPERATOR')).toMatch(/The person who gave the MRP does not release the print job that carries it \(IN-31\)\. \[EBMR-EXE-296\]/);
     expect(await release('operator2')).toBe('ok');
+  });
+
+  it('[L-29][PR-36] the database refuses a print job on a G-21 step whose stored configuration names no plant unit of the line (arranged past the engine, which refuses such a master), so a batch-data change can always hold', async () => {
+    const r = await run([packPhase('p-g21', 'G-21', { devices: [{ id: 'CODER', kind: 'PRINTER', serial: SERIAL }], unit: LINE_UNIT, shelfLifeMonths: 24, markets: { US: { gtin: GTIN } } })], ['operator1']);
+    await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
+    await asSetup(sbx, "update recipe.test_package set content = content #- '{procedure,body,children,0,body,children,0,body,children,0,config,unit}' where package_hash = (select package_hash from recipe.batch_execution where id = $1)", [r.d.runId]);
+    expect((await r.sql<Json>("select recipe.step_node(recipe.batch_mbr_content($1), 'p-g21') -> 'config' as r", [r.d.runId]))?.['unit']).toBeUndefined();
+    await expect(withCommand(sbx.db.app, await r.as('operator1'), (c) => c.query('select tab.release_print_job($1, $2, $3, $4)', [r.d.runId, 'p-g21@', 'CODER', 'LAYOUT-US-1']))).rejects.toThrow(/The step names no plant unit of the line, so a batch-data change could hold nothing \(L-29\)\. \[EBMR-EXE-296\]/);
   });
 
   it('[PR-42] without a configured L3 system (EBMR_L3_URL unset) serialisation is off: a pool request is refused with a clear reason and nothing is recorded; the URL is read from the environment, https only in production', async () => {

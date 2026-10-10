@@ -199,6 +199,13 @@ describe('G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952)'
     const late = await gw.post(printJobAckPath(String(job3['id'])), { sessionId: RUN_SESSION, outcome: 'LOADED', echoedFields: job3['fields'], sourceTime: '1790584618000003', message: null });
     expect((late.body as Json)['state']).toBe('VOIDED');
     expect(await sql<boolean>('select exists (select 1 from plant.container_hold where container_id = $1) as r', [box2['container_id']])).toBe(true);
+    // The voided job is not offered again, and the gateway's FAULT JOB_VOIDED (it cleared the printer) is recorded as a
+    // fault of that job: never a print and never a challenge.
+    expect((await jobs()).map((j) => j['id'])).not.toContain(job3['id']);
+    const printedBefore = await sql<string>("select tab.g21_printed($1, 'p-g21')::text as r", [d.runId]);
+    expect((await event(PRINTER_SERIAL, 'FAULT', 'JOB_VOIDED', String(job3['id']))).status).toBe(200);
+    expect(await sql<Json>("select jsonb_build_object('kind', kind, 'value', value) as r from tab.print_event where job_id = $1 order by seq desc limit 1", [job3['id']])).toEqual({ kind: 'FAULT', value: 'JOB_VOIDED' });
+    expect(await sql<string>("select tab.g21_printed($1, 'p-g21')::text as r", [d.runId])).toBe(printedBefore);
     // Review 4a LOW 7: a device's first event is sequence 1; an event names a job of its own device.
     const other = (jobId: string | null, sequence: string) => gw.post(PRINT_EVENTS_PATH, { sessionId: RUN_SESSION, events: [{ deviceSerial: 'PRN-T2', jobId, kind: jobId ? 'PRINTED_COUNT' : 'FAULT', value: jobId ? '0' : 'OFFLINE', sourceTime: '1790584618000000', sequence }] });
     expect((await other(null, '5')).status).toBeGreaterThanOrEqual(400);
