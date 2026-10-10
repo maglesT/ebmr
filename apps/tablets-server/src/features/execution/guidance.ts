@@ -330,6 +330,57 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whoCanHelp: [SUPERVISOR],
     controls: ['DI-05', 'DI-30'],
   },
+  // The exception register (recipe-core 0440; DI-26, PR-08, PR-13, INV-41, INV-03): the state and the register are kept
+  // together on every row, an exception closes only by its own signed disposition, QA-only exceptions by QA, and the QA
+  // review acts follow their order.
+  'EBMR-EXE-160': {
+    status: 409,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The test run\'s exceptions no longer match the exception register (an exception was changed or removed). Nothing was saved.',
+    whatYouCanDo: ['Stop and report it: an exception is never changed or removed.'],
+    whoCanHelp: [QA, ADMIN],
+    controls: ['DI-26', 'INV-41'],
+  },
+  'EBMR-EXE-161': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'An exception can be linked to a deviation only by its own link action, and closed only by its own signed disposition, never by a correction or any other change. Nothing was saved.',
+    whatYouCanDo: ['Link the deviation or disposition the exception with its own action.'],
+    whoCanHelp: [QA],
+    controls: ['DI-26', 'INV-41', 'PR-08'],
+  },
+  'EBMR-EXE-162': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'Only QA dispositions this exception (a registered or validated limit, or a correction that would have changed a decision). Nothing was signed.',
+    whatYouCanDo: ['Ask QA to disposition the exception.'],
+    whoCanHelp: [QA],
+    controls: ['PR-08', 'PR-13'],
+  },
+  'EBMR-EXE-163': {
+    status: 403,
+    kind: 'INDEPENDENCE',
+    whatHappened: 'You raised this exception or worked in the step that raised it, so you cannot disposition it. Nothing was signed.',
+    whatYouCanDo: ['Ask a QA person who did not work in that step to disposition the exception.'],
+    whoCanHelp: [QA],
+    controls: ['INV-03', 'PR-13'],
+  },
+  'EBMR-EXE-164': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'This review action is not possible on the exception now (it is still open, a query is waiting for its answer, the review is concluded, or the text or deviation reference is missing). Nothing was saved.',
+    whatYouCanDo: ['Read the reason, then do what the review needs first.'],
+    whoCanHelp: [QA],
+    controls: ['DI-26', 'INV-41', 'PR-49'],
+  },
+  'EBMR-EXE-165': {
+    status: 403,
+    kind: 'INDEPENDENCE',
+    whatHappened: 'You took part in this exception (you raised it, worked in its step, dispositioned it or asked the query), so you cannot do this review action. Nothing was saved.',
+    whatYouCanDo: ['Ask another QA reviewer.'],
+    whoCanHelp: [QA],
+    controls: ['DI-26', 'INV-03'],
+  },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   // A command from a screen that shows another version of the run: recorded as a refused row, with no scale reading
   // used (the readings it names stay usable; Phase 2 exit review F58, F58.1). The signing dry run adds that nothing was

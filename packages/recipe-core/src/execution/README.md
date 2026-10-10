@@ -630,6 +630,15 @@ one plain-language business entry on the chain `batch:<id>`.
     it, measured from the events of its constraint instance recorded before it (INV-20, PR-30). A block cannot be
     re-judged from the stored rows (only the last state is kept); the write-time refusal is its enforcement.
 
+- The exception register (sql 0440; outline 5.2.4; DI-26, PR-08, PR-13, INV-41): `exception_register` holds one
+  insert-only row per exception (type, review category and its mandatory flag, severity, limit tier or none, raising
+  step, the raising row's database and engine time, the raiser, the QA-only, deviation and release flags, what lifts its
+  block, the record as raised), `exception_register_act` one row per act (DEVIATION_LINKED and DISPOSITIONED with the
+  engine row that does them; QUERIED, RESPONDED, ACCEPTED_BY_QA and ESCALATED through `review_exception`). The trigger
+  `zzr_exception_register` (`exception_register_sync`) writes them with the row and keeps the state and the register
+  together on every row (EBMR-EXE-160 to 163); `exception_register_review` is the read view for review by exception.
+  Every review category is mandatory (`exception_review_category`, insert-only). A review never closes an exception.
+
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 
 | Codes | Area |
@@ -648,6 +657,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 141-141 | the late check: an accepted VERIFY that checks a step by its later review because the witness it required is no longer possible, recorded without exactly the WITNESS_LATE the engine raises for it, or a WITNESS_LATE added by any other row (sql 0333; engine 1.5.0, T12.LATE) |
 | 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
 | 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347, 0348; kernel migrations 1030, 1040; tablets sql 0640 for the manual-weighing basis): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them (a number in a compound only in the engine's shapes), in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
+| 160-165 | the exception register (sql 0440): the state's exceptions and the register disagree, an exception changed from as raised or removed (160); a deviation link or a closing other than the exception's own ATTACH_DEVIATION or signed DISPOSITION_EXCEPTION (161); a QA-only exception dispositioned without a QA role of the batch policy (162); a disposition by its raiser or a person involved in the raising step (163); a QA review act out of order or without its text or deviation reference (164), or by a person who took part in the exception (165) |
 
 ## TypeScript
 
@@ -665,6 +675,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
   - `issueBatch` issues a batch.
   - `assertDefinitionFits` refuses a definition that is not the batch's own: content, engine version,
     block registry, pinned policy and installation (ADR 0010).
+- `register.ts`: `loadExceptionRegister` reads the register view, `reviewException` records a QA review act.
 - `verify.ts`: `replayExecution` replays the stored rows with the pure engine, at their stored clocks.
   - Row by row, the result must equal what is stored: the accepted flag, the events hash and the state
     hash.
@@ -1079,6 +1090,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
+- `db-guards-exception-register.test.ts` (Phase 3 slice 2; sql 0440): every exception is registered with the row that
+  raises it (tier, step, raiser, database time, mandatory flag) and the register and the state agree; the action tier
+  blocks until the deviation is linked; a correction never closes an exception; a registered-tier breach is
+  dispositioned only by a QA role of the batch policy (EBMR-EXE-162), never by a person involved in the raising step;
+  the QA review acts and their order; the application role writes nothing, and a register act removed behind the
+  triggers' back stops the next row (EBMR-EXE-161).
 - `db-guards-proposal-race.test.ts` (Phase 2 exit review F37; sql 0309, 0329, 0331): a second QA user's disposition, and a
   hold-point decision, proposed through the store while the first QA user's signed decision commits wait for it and
   are refused; the signature stays VALID over the decision it was made on. A disposition proposed on a content
