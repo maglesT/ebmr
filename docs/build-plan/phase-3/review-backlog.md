@@ -137,3 +137,14 @@ compensation configuration refused), 6 (a null unit no longer bypasses the granu
   simulator (slice 6 demo).
 - The IPC and compression entry kinds are not in the api-contract (screens, slice 6).
 - Tooling, detector and plant units are set up directly in the test databases (master-data screens, slice 6).
+
+## Slice 3c quick review (10 October 2026)
+
+No critical or high findings. The replaced functions (record_ipc_check, apply_hold, configure_press_discharge,
+open_container, transition_scope, skip_problem, reading_use_purpose_check) were diffed against their previous
+definitions: only the intended changes. The 0540 close and hold race fix was walked through every lock ordering.
+Fixed in 3c: 1 (the tooling stroke limit was not enforced during the run and a returned set could still start a run;
+output past the limit is now held), 2 (strokes could be undercounted without a baseline reading), 3 (standalone
+TB-12 to TB-15 checks held nothing), 4 (a missed check now holds at once instead of at the next entry), 5 (a batch
+market without a rule set fails closed; counts and sample sizes taken across all sets; friability repeats reuse the
+first run's sets).
