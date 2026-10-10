@@ -7,13 +7,25 @@
  */
 import { blocks, flow } from '@ebmr/recipe-core/pure';
 import { DISPENSING_BLOCK_DESCRIPTORS, DISPENSING_BLOCK_VERSIONS } from '../blocks/dispensing/index.ts';
+import { COMPRESSION_BLOCK_DESCRIPTORS, COMPRESSION_BLOCK_VERSIONS } from '../blocks/compression/index.ts';
 import { GRANULATION_BLOCK_DESCRIPTORS, GRANULATION_BLOCK_VERSIONS } from '../blocks/granulation/index.ts';
+import { IPC_BLOCK_DESCRIPTORS, IPC_BLOCK_VERSIONS } from '../blocks/ipc/index.ts';
 
 /** The Tablets edition's own block versions (TB-01 to TB-24, from slice 3b on). */
-export const TABLETS_BLOCK_VERSIONS: readonly blocks.BlockVersion[] = [...DISPENSING_BLOCK_VERSIONS, ...GRANULATION_BLOCK_VERSIONS];
+export const TABLETS_BLOCK_VERSIONS: readonly blocks.BlockVersion[] = [
+  ...DISPENSING_BLOCK_VERSIONS,
+  ...GRANULATION_BLOCK_VERSIONS,
+  ...COMPRESSION_BLOCK_VERSIONS,
+  ...IPC_BLOCK_VERSIONS,
+];
 
 /** The validator's descriptors of the edition's own block types (roles, significance), one per TB type. */
-export const TABLETS_BLOCK_DESCRIPTORS: readonly flow.BlockDescriptor[] = [...DISPENSING_BLOCK_DESCRIPTORS, ...GRANULATION_BLOCK_DESCRIPTORS];
+export const TABLETS_BLOCK_DESCRIPTORS: readonly flow.BlockDescriptor[] = [
+  ...DISPENSING_BLOCK_DESCRIPTORS,
+  ...GRANULATION_BLOCK_DESCRIPTORS,
+  ...COMPRESSION_BLOCK_DESCRIPTORS,
+  ...IPC_BLOCK_DESCRIPTORS,
+];
 
 /** The generic registry extended with the edition's versions. */
 export function tabletsBlockRegistry(): blocks.BlockRegistry {
