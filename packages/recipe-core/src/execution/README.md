@@ -1149,6 +1149,11 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
+- `gmp-batch.test.ts` (Phase 3 slice 2b; recipe-core sql 0500-0504, tablets sql 0800-0801): a GMP batch planned, signed
+  ISSUED and issued on the GMP server from an effective MBR, with no watermark; its first step run by an operator with
+  no package hash in the evidence, replayed identically, with no invariant violation; a dry run signs nothing; TEST- lots
+  refused on GMP and real lots absent from the sandbox; test-package routes absent on GMP and GMP planning absent in the
+  sandbox (DI-05, INV-18).
 - `db-guards-hand-over.test.ts` (Phase 3 slice 2; sql 0461-0463): the hand-over of a step in progress recorded with
   a supervisor's signature and QA's approval and registered as STEP_HANDED_OVER, refused forged (without the approval,
   from a person not on the step, approved by the incoming performer, without its exception, with another reason); the

@@ -32,6 +32,7 @@ tests:
   - "packages/recipe-core/test/plant/area.test.ts > a clearance follows the cleaning it checks (INV-15) > [INV-15][IN-21] a clearance recorded before the area was dirtied and cleaned again does not clear it"
   - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-21][INV-15] an area out of service is never started; a direct transition to CLEARED_FOR_BATCH or IN_USE without the command's rows is refused; direct writes are refused"
   - "packages/recipe-core/test/plant/machine.test.ts > the generated plant machine seeds > [IN-21][INV-15] the machines have the states of outline 5.2.8: cleanliness CLEAN -> IN_PRODUCT -> DIRTY -> CLEANING -> CLEAN; rooms DIRTY -> CLEANING -> CLEAN -> CLEARED_FOR_BATCH -> IN_USE -> DIRTY and OUT_OF_SERVICE"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > plant and output containers on a GMP batch (DI-17, IN-21, IN-25; slice 2b review findings 1 and 2) > [DI-17][IN-25][IN-21] a press is started and a container opened for a GMP batch, and an operator whose grant is limited to its product records an IPC check on it; one limited to another product, or to another site, is refused (the scope is the batch's product and site, never empty)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

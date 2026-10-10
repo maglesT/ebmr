@@ -63,7 +63,7 @@ describe('the definitions the harness mutates', () => {
     // One from each directory.
     expect(fileOf('kernel.begin_command(jsonb)')).toMatch(/^packages\/kernel\/sql\//);
     expect(fileOf('site.site_zone_row_guard()')).toBe('packages/site-services/sql/0700_batch_number_site_zone.sql');
-    expect(fileOf('recipe.execution_weighing_item_check()')).toBe('packages/recipe-core/sql/0323_weighing_counted_item.sql');
+    expect(fileOf('recipe.execution_weighing_item_check()')).toBe('packages/recipe-core/sql/0502_gmp_batch_content_readers.sql');
     expect(fileOf('tab.bind_session(uuid, text, text)')).toBe('apps/tablets-server/sql/0480_bind_session_needs_live_role.sql');
     // A function redefined later is taken from its last definition: kernel.is_blank from kernel 0960 (first 0010),
     // recipe.check_signatures from recipe-core 0471 (seven definitions), tab.record_heartbeat from tablets 0350.

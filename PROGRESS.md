@@ -48,8 +48,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   `docs/build-plan/phase-3/slice-2-plan.md`): the exception register in the database (0440, 0441), void, invalidation,
   skip, abort and cancel guarded with approvals bound to the act (0450 to 0453, 0470 to 0472), step hand-over (0461 to
   0463, 0480), engine 1.6.0; slice 1 backlog #6 and #10 (site-services 0720, 0721; recipe-core 0460).
-- Phase 3 slice 2b (execution on the GMP installation) is in progress on `phase-3/slice-2b` (plan:
-  `docs/build-plan/phase-3/slice-2b-plan.md`).
+- Phase 3 slice 2b (execution on the GMP installation) is built on `phase-3/slice-2b` (plan and defaults D-S2b-1 to
+  D-S2b-3: `docs/build-plan/phase-3/slice-2b-plan.md`): GMP batches issued from an effective MBR with a register number
+  and an ISSUED signature (recipe-core 0500 to 0504); the tablets server plans, signs, issues and runs GMP batches with
+  site lots and no watermark (tablets 0800, 0801). Next: slice 3 (tablet blocks TB-01 to TB-24, press and coater
+  simulators).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
