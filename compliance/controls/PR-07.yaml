@@ -37,6 +37,7 @@ tests:
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > a command on one version never waits for a command on another (decision 0003) > [PR-07][PR-06] a risk link of one version is recorded while another version's content revision is still open"
   - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [IN-35][PR-07][PR-29] a compression plan whose most frequent test plus the grace exceeds 30 min is refused, as is a plan without its QRM reference or a compression run without its station sweep"
   - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29][PR-07] TB-11: the run starts only on a plant press in use for the batch; a passing check is recorded for its stream and vouches for the containers closed before it; a failing check holds every container of the press since the last passing check (the slice 1 hold), and a passing check cannot be recorded past the scheduler"
+  - "apps/tablets-server/test/blocks/forming/blocks.test.ts > TB-06 roller compaction > [PR-29][PR-07] the MBR names the compactor, a ribbon interval and grace with its risk assessment and at least one ribbon parameter, a sane recycle limit and yield range"
 clauses:
   - clause: "Submitting a master with a critical parameter and no linked assessment is blocked."
     tests:
