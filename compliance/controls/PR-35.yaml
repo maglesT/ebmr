@@ -18,6 +18,7 @@ catalog_test: Starting product Y on an unsegregated adjacent line while product 
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/plant/area.test.ts > lines: a clearance for every packaging order (L-29, PR-34, PR-35) > [PR-34][PR-35][INV-15] a change of packaging order on a line needs a PACKAGING_ORDER clearance keyed on the order and the artwork set, even for the same bulk batch; one active order per line"
+  - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-36][IN-31][PR-35][IN-16][PR-42] a print job carries only the record's data, bound to the packaging order and artwork set the line runs; the gateway's echo must equal it or the load is refused; the first print is approved by another person than the one who released the job; a batch-data change voids the job and holds the output since the last good check (L-29)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

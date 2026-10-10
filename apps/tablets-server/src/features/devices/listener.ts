@@ -67,6 +67,12 @@
  *   GET  /gw/v1/setpoint-downloads  the setpoints waiting for this gateway's devices (tab.pending_setpoint_downloads;
  *                          their values are the MBR's, requested by a G-06 step; the first fetch is recorded)
  *   POST /gw/v1/setpoint-downloads/:id/ack  the gateway's acknowledgement with its read-back (tab.ack_setpoint_download)
+ *   GET  /gw/v1/print-jobs  the print jobs released for this gateway's printers, not yet acknowledged nor voided
+ *                          (tab.pending_print_jobs, tablets 0951; their variable data is the record's, G-21, PR-36)
+ *   POST /gw/v1/print-jobs/:id/ack  the printer's echo (integration-sdk printJobAckProblems, then tab.ack_print_job): a
+ *                          LOADED echo that differs from the job is refused (REFUSED); an identical repeat is taken again
+ *   POST /gw/v1/print-events  printed counts, reader, vision and challenge results and faults (printEventsProblems, then
+ *                          tab.ingest_print_events: taken whole or refused whole, a refusal recorded as a device alarm)
  *   POST /gw/v1/logout
  * Integration identities never sign: the kernel refuses SERVICE_KEY authentication for anything but LOGIN, and
  * iam.can_sign refuses non-human accounts.
@@ -100,6 +106,7 @@ import {
   type UplinkResponse,
 } from '@ebmr/integration-sdk/scale';
 import { PROCESS_READINGS_PATH, processReadingsProblems, SETPOINT_DOWNLOADS_PATH, SetpointAckRequest, type ProcessReadingsRequest, type SetpointDownloadsResponse } from '@ebmr/integration-sdk/process';
+import { PRINT_EVENTS_PATH, PRINT_JOBS_PATH, printEventsProblems, printJobAckProblems, type PrintEventsRequest, type PrintJobsResponse } from '@ebmr/integration-sdk/printer';
 import { consumeNonce, mintNonce } from '../../platform/auth/nonces.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand } from '../../platform/db/commands.ts';
@@ -635,6 +642,65 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
       const code = commands.errorCode(error) ?? 'INTERNAL';
       const message = error instanceof Error ? error.message : String(error);
       await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: null, message, details: { downloadId: id } });
+      throw error;
+    }
+  });
+
+  // Print jobs, their acknowledgement and print events (G-21, tablets 0951; integration-sdk printer).
+  server.get(PRINT_JOBS_PATH, async (request) => {
+    const gw = await resolveBearer(app, request);
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+    return withActorCommand(app.pools.app, actor, async (client) => {
+      const { rows } = await client.query<{ r: PrintJobsResponse }>('select tab.pending_print_jobs() as r');
+      if (!rows[0]) throw new Error('tab.pending_print_jobs returned nothing');
+      return rows[0].r;
+    });
+  });
+
+  server.post(`${PRINT_JOBS_PATH}/:id/ack`, async (request) => {
+    const gw = await resolveBearer(app, request);
+    const id = (request.params as { id?: unknown }).id;
+    const problems = printJobAckProblems(request.body);
+    if (typeof id !== 'string' || !/^[\x21-\x7E]{1,64}$/.test(id) || problems) {
+      const message = `DI-31: the print job acknowledgement is not in the expected form${problems ? `: ${problems.slice(0, 5).map((p) => `${p.path} ${p.message}`).join('; ')}` : ''}`;
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code: 'SCHEMA', readingId: null, message: message.slice(0, 500) });
+      throw new GwError(400, 'SCHEMA', message.slice(0, 500));
+    }
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+    try {
+      return await withActorCommand(app.pools.app, actor, async (client) => {
+        const { rows } = await client.query<{ r: Record<string, unknown> }>('select tab.ack_print_job($1, $2::jsonb) as r', [id, JSON.stringify(request.body)]);
+        if (!rows[0]) throw new Error('tab.ack_print_job returned nothing');
+        return rows[0].r;
+      });
+    } catch (error) {
+      const code = commands.errorCode(error) ?? 'INTERNAL';
+      const message = error instanceof Error ? error.message : String(error);
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: null, message, details: { printJobId: id } });
+      throw error;
+    }
+  });
+
+  server.post(PRINT_EVENTS_PATH, async (request) => {
+    const gw = await resolveBearer(app, request);
+    const problems = printEventsProblems(request.body);
+    if (problems) {
+      const message = `DI-31: the print events are not in the expected form: ${problems.slice(0, 5).map((p) => `${p.path} ${p.message}`).join('; ')}`;
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code: 'SCHEMA', readingId: null, message: message.slice(0, 500) });
+      throw new GwError(400, 'SCHEMA', message.slice(0, 500));
+    }
+    const body = request.body as PrintEventsRequest;
+    const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
+    try {
+      return await withActorCommand(app.pools.app, actor, async (client) => {
+        const { rows } = await client.query<{ r: Record<string, unknown> }>('select tab.ingest_print_events($1::jsonb) as r', [JSON.stringify(body)]);
+        if (!rows[0]) throw new Error('tab.ingest_print_events returned nothing');
+        return rows[0].r;
+      });
+    } catch (error) {
+      const code = commands.errorCode(error) ?? 'INTERNAL';
+      const message = error instanceof Error ? error.message : String(error);
+      await recordRefusal(app, { tokenHash: gw.tokenHash, gatewayCode: null, kind: 'READING_REFUSED', code, readingId: null, message, details: { sessionId: body.sessionId, events: body.events.length } });
       throw error;
     }
   });

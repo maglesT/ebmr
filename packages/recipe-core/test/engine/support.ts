@@ -44,29 +44,11 @@ export const DUAL1 = person('DUAL1', ['PRODUCTION_OPERATOR', 'OPERATOR', 'PRODUC
 export const PEOPLE: readonly Actor[] = [OP1, OP2, VER1, VER2, VER3, SUP1, HEAD1, QA1, QA2, DUAL1];
 
 // ---------------------------------------------------------------------------------------------
-// TEST STAND-INS for block versions that arrive with Phase 3 persistence (automated equipment phases,
-// printed materials). They carry no block rules at all: the golden runs exercise the engine core on
-// these phases. They are NOT registered in src and must never be. G-09 and G-10 are real versions now.
+// TEST STAND-INS for block versions that arrive with Phase 3 persistence: none any more. G-06 (slice 3a) and G-21
+// (slice 4a) are real versions now, as are G-09 and G-10.
 
-function standIn(type: string, title: string): BlockVersion {
-  return {
-    type,
-    version: '1',
-    title: `${title} (TEST STAND-IN, Phase 3)`,
-    edition: 'generic',
-    aliases: {},
-    level: 'PHASE',
-    controls: [],
-    configSchema: { type: 'object', description: 'test stand-in', fields: {} },
-    dataSchema: { entries: {} },
-    handler: {},
-    exceptionRules: [],
-    simulatorModel: { exceptionTypes: () => [], nominalEntries: () => [] },
-  };
-}
-
-/** G-06 has its real version since Phase 3 slice 3a (blocks/generic/automated.ts); G-21 is still a stand-in. */
-export const PHASE3_STAND_INS: readonly BlockVersion[] = [standIn('G-21', 'Printed materials, coding, challenges, serialisation')];
+/** G-06 has its real version since Phase 3 slice 3a (blocks/generic/automated.ts), G-21 since slice 4a (printed.ts). */
+export const PHASE3_STAND_INS: readonly BlockVersion[] = [];
 
 export function testRegistry(): BlockRegistry {
   return genericBlockRegistry().extend(...PHASE3_STAND_INS);

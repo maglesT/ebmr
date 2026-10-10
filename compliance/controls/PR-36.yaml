@@ -35,7 +35,14 @@ behaviour: |-
   - US barcode: at least the NDC, in a linear or 2D symbology to a recognised standard. The NDC master holds 10- and 12-digit formats with effective dates, and the NDC recorded on a historical lot is never rewritten.
 catalog_test: Changing batch data after print set-up invalidates the job. A wrong expiry printed on a test unit is rejected by vision and stops the line. A packaging master using cut labels with no 211.122(g) option cannot be approved.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/site-gateway/test/printer.test.ts > printer uplink (print jobs, POST /gw/v1/print-events) under the gateway session > [PR-36] loads a released job exactly as the record gives it and acknowledges LOADED with the echo in the exact wire shape"
+  - "apps/site-gateway/test/printer.test.ts > printer uplink (print jobs, POST /gw/v1/print-events) under the gateway session > [PR-36] a printer that echoes another value is refused (MISMATCH) and cleared; a job it cannot take is acknowledged FAILED"
+  - "apps/site-gateway/test/printer.test.ts > printer uplink (print jobs, POST /gw/v1/print-events) under the gateway session > [PR-36] a job the server voided is cleared from the printer and journalled, whether the ack answer says VOIDED or the job drops from the list unacknowledged"
+  - "apps/tablets-server/test/blocks/packaging/completion.test.ts > G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [L-29][PR-36] the database refuses a print job on a G-21 step whose stored configuration names no plant unit of the line (arranged past the engine, which refuses such a master), so a batch-data change can always hold"
+  - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-36][IN-31][PR-35][IN-16][PR-42] a print job carries only the record's data, bound to the packaging order and artwork set the line runs; the gateway's echo must equal it or the load is refused; the first print is approved by another person than the one who released the job; a batch-data change voids the job and holds the output since the last good check (L-29)"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-33][PR-36][PR-37][PR-39][PR-42][IN-17][IN-22][INV-32] G-21 Printed materials, coding, challenges, serialisation: Cartons issued by manual count (two persons) from a released lot with the master artwork and reconciled with 12 unexplained against a limit of 0 (release-blocking exception); the printer's first print approved; the vision system challenged at start and end; a serial pool reconciled with zero unexplained"
+  - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printing and challenges (K-20) > [PR-36][IN-16][IN-22] the step is performed only with each printer's first print approved by its role, each inspection device passed at start and end and not due"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

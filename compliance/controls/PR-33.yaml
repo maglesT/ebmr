@@ -21,7 +21,11 @@ behaviour: |-
   - At line start, every packaging component and bulk container is scanned against the packaging master BOM (quantity, identity, conformity). The result is recorded in the packaging record before packaging can start.
 catalog_test: Scanning a wrong carton code is blocked. Packaging cannot start until the issued quantity is recorded.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-32][PR-33] printed material is issued only from a printed lot of the register with its recorded artwork, released and of the master's artwork version for the market; the artwork of a lot is recorded once by its holder of the right; a forged engine is refused"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-33][PR-36][PR-37][PR-39][PR-42][IN-17][IN-22][INV-32] G-21 Printed materials, coding, challenges, serialisation: Cartons issued by manual count (two persons) from a released lot with the master artwork and reconciled with 12 unexplained against a limit of 0 (release-blocking exception); the printer's first print approved; the vision system challenged at start and end; a serial pool reconciled with zero unexplained"
+  - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-32][PR-33] printed material is issued only from a released, unexpired lot of the item's material carrying the master's artwork for the market, scanned at the line, within the issue rule"
+  - "packages/recipe-core/test/execution/g21-sql.test.ts > G-21 entry data in the database (recipe-core 0580) > [PR-32][PR-33] an issue is refused unless every market of the batch names the artwork the lot carries"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

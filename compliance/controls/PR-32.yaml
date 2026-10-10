@@ -26,7 +26,10 @@ behaviour: |-
   - Gang printing: gang-printed labeling for different products, strengths or net contents is refused unless it is differentiated by size, shape or colour.
 catalog_test: Issuing a label lot with obsolete artwork is blocked. An unauthorised user cannot open a label-store transaction.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-32][PR-33] printed material is issued only from a printed lot of the register with its recorded artwork, released and of the master's artwork version for the market; the artwork of a lot is recorded once by its holder of the right; a forged engine is refused"
+  - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-32][PR-33] printed material is issued only from a released, unexpired lot of the item's material carrying the master's artwork for the market, scanned at the line, within the issue rule"
+  - "packages/recipe-core/test/execution/g21-sql.test.ts > G-21 entry data in the database (recipe-core 0580) > [PR-32][PR-33] an issue is refused unless every market of the batch names the artwork the lot carries"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

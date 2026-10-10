@@ -31,6 +31,10 @@ catalog_test: 12 labels unaccounted for against a limit of 0 creates a deviation
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/mutation/limit-exceptions.test.ts > a computed value and the exception a value names (recipe.limit_verdicts, recipe.limit_exceptions_problem) > [PR-08][PR-31][PR-39][IN-17] a computed value outside the limits of its calculation and of its yield checkpoint is marked failed: one that is not is refused"
+  - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-42][INV-32][IN-17][PR-39][PR-40][IN-22] serial pools and reports are the L3 system's as recorded; the release gate and the step close fail closed until the pool closes with zero unexplained; the reconciliation always runs, outside its limits only with its exception; coded surplus is destroyed, never returned"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-33][PR-36][PR-37][PR-39][PR-42][IN-17][IN-22][INV-32] G-21 Printed materials, coding, challenges, serialisation: Cartons issued by manual count (two persons) from a released lot with the master artwork and reconciled with 12 unexplained against a limit of 0 (release-blocking exception); the printer's first print approved; the vision system challenged at start and end; a serial pool reconciled with zero unexplained"
+  - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-39][IN-17][INV-32] the reconciliation is computed from what was issued, judged against the item's limits (absolute or percent), raises a release-blocking exception that waits for a deviation when outside, runs once per item and always: the step is not performed without it"
+  - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-39][INV-32] a packaging master without reconciliation limits, without artwork for a market, coding without a destruction step, or challenging without a plant unit cannot be defined"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

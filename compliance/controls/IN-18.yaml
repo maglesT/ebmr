@@ -58,6 +58,8 @@ tests:
   - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18] a void names an allocation in the register: an unknown one is refused (EBMR-SITE-015) and nothing is voided"
   - "packages/kernel/test/mutation/batch-number-register.test.ts > re-entering a number lost by a restore (INV-27, IN-18) > [INV-27][IN-18] a number already in the register is refused (EBMR-SITE-013) even with a free serial in the skipped range"
   - "packages/kernel/test/mutation/batch-number-register.test.ts > re-entering a number lost by a restore (INV-27, IN-18) > [INV-27][IN-18] a recovered packaging number needs its processing number in the register (EBMR-SITE-014)"
+  - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [INV-27][IN-18][IN-16] a packaging order is planned with the issued processing batch it packs: its number is the register's PACKAGING number of that batch, linked once, and it is issued like any GMP batch"
+  - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [INV-27][IN-18] a packaging order without its processing batch, of a batch not issued or cancelled, of another product, or a processing batch naming a parent, is refused; a packaging number of another batch is never taken; the role cannot link a number directly"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

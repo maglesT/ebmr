@@ -180,3 +180,18 @@ under concurrent batches.
 |---|---|---|---|---|
 | 3 | Low | A lot with fewer than 2 accepted tablets gives no AQL plan (TB20-NO-PLAN) and can only leave through a deviation path | tablets 0911 | Slice 5 (deviation-lite) |
 | 4 | Low | Not verified: whether a container opened on the printer before PRINT_SETUP is gated (the gate keys on the setup's printer) | tablets 0912 | Slice 6 (GB-T-01 run) |
+
+## Slice 4a quick review (10 October 2026)
+
+Two high (a gateway FAIL challenge could be dropped and a stale PASS reused; an export pack could be issued without
+artwork for its own market), four medium (the serial report not checked against the recorded events; the L-29 hold
+skipped without a unit and on a late acknowledgement; reconciliation counts not compared with the printer's counts; MRP
+typed without a second person) and two low (print event sequence and job ownership; a parent batch aborted or rejected).
+All fixed in 4a. Verified sound: limits computed by the database, coded surplus only destroyed, variable data from the
+record, gateway scoping and idempotent acknowledgements, entry_block_problem diffed clean.
+
+Decision recorded: the record keeps the L3 report hash as a reference and the counts, never unit serials (L-53); the
+hash itself cannot be recomputed by the server, so the database checks the counts against the recorded serial events.
+
+Open for the owner and the expert: the India Schedule H2 QR payload layout is a stub (`KEY=value;...`) until its data
+elements are confirmed; it must be checked before validation.

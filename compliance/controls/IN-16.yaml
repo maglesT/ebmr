@@ -15,7 +15,10 @@ sources: Schedule M Part I 17.3.9 (batch packaging records).
 behaviour: "A separate packaging record per packaging batch or part-batch, linked to the bulk batch, built from the approved packaging master. Before packaging: recorded line clearance. Captured at the time of action, with the responsible person identified by signature or electronic password: product name, bulk batch number and quantity to be packed, finished batch number, planned and actual quantity and reconciliation; date and time of operations; responsible person; operator IDs for significant steps; identity and conformity checks against the instructions including IPC results; operations, equipment and lines; handling of unpacked product returned to store; specimens (image capture) of printed materials including coded batch/expiry/manufacturing date/MRP at start and at intervals; notes on problems and deviations with authorisation; quantities and reference numbers of printed materials and bulk issued, used, destroyed or returned."
 catalog_test: run two part-batches; two linked packaging records exist, each with start/mid/end coding specimens.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-36][IN-31][PR-35][IN-16][PR-42] a print job carries only the record's data, bound to the packaging order and artwork set the line runs; the gateway's echo must equal it or the load is refused; the first print is approved by another person than the one who released the job; a batch-data change voids the job and holds the output since the last good check (L-29)"
+  - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printing and challenges (K-20) > [PR-36][IN-16][IN-22] the step is performed only with each printer's first print approved by its role, each inspection device passed at start and end and not due"
+  - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [INV-27][IN-18][IN-16] a packaging order is planned with the issued processing batch it packs: its number is the register's PACKAGING number of that batch, linked once, and it is issued like any GMP batch"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

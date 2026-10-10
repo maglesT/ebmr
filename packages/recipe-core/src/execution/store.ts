@@ -254,6 +254,8 @@ export interface GmpBatchPlan {
   batchSize: string;
   /** A number the site's register already holds for this batch (otherwise one is allocated now). */
   allocationId?: string;
+  /** A packaging order (record kind PACKAGING): the issued processing batch it packs (D-S4-2; recipe-core 0582). */
+  parentBatch?: string;
 }
 
 export interface PlannedGmpBatch {

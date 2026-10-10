@@ -2338,3 +2338,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   destruction ordered and complete, AQL severity serialised per product, yield compared exactly. AQL tables and the QC
   gate role left for the owner and expert. Full suite (4,731 of 4,733; README rows and register sync fixed), trace and
   E2E (23) green locally. Slice 3 (TB-01 to TB-20 less TB-08) complete.
+- 2026-10-10: PHASE 3 SLICE 4A (branch phase-3/slice-4a). Packaging block G-21 and its devices: integration-sdk printer
+  and serialisation modules, printer simulator and L3 serialisation stub, gateway printer driver with an fsync'd
+  journal; on the server, printed-material issue against each market's artwork, a reconciliation that always runs and is
+  compared with the printer's counts (INV-32, IN-17), print jobs from the record with an echo check and MRP checked by a
+  second person, first-print approval, challenges in device order with holds, the L-29 void and hold on a batch-data
+  change, serial pools per packaging order reconciled to zero unexplained against the recorded events before the order
+  completes (L-53: the record keeps the L3 report hash, never unit serials), packaging orders from the register with
+  their parent batch (recipe-core 0580-0582, tablets 0950-0952). Quick review: two high and four medium, all fixed with
+  regression tests. India Schedule H2 QR layout left for the expert. Full suite (4,796 of 4,798; renderer row and
+  register sync fixed), trace and E2E (23) green locally.
