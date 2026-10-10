@@ -8,7 +8,8 @@ import { seedAdministration } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
 import { dbIn, DAY, PlantWorld, seedPlantCast, sleep, tag } from './support.ts';
-import { asTimeTraveller } from '../../../kernel/test/esig/helpers.ts';
+import { asTimeTraveller, run } from '../../../kernel/test/esig/helpers.ts';
+import { withSecondRole } from '../lifecycle/support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
@@ -412,10 +413,77 @@ describe('fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d
     await w.run(w.cast.operator, (c) => plant.signalFailure(c, press.code, 'B-F0', 'turret vibration above limit'));
     expect(await plant.equipmentFitness(db.app, press.id)).toBe('OUT_OF_SERVICE');
     await expect(w.startUse(press.code, 'B-F1', product)).rejects.toThrow(/the unit is OUT_OF_SERVICE/);
-    // The operator cannot declare it repaired; maintenance does, with a reference.
-    await expect(w.run(w.cast.operator, (c) => plant.recordEquipmentEvent(c, press.code, 'REPAIRED', 'fixed', 'WO-1'))).rejects.toThrow(/EBMR-IAM-040/);
-    await w.run(w.cast.tech, (c) => plant.recordEquipmentEvent(c, press.code, 'REPAIRED', 'bearing replaced', 'WO-7781'));
+    // The operator cannot record the repair; maintenance does, with a reference, and a second person verifies it (sql/0460).
+    await expect(w.run(w.cast.operator, (c) => plant.recordRepair(c, press.code, 'fixed', 'WO-1'))).rejects.toThrow(/EBMR-IAM-040/);
+    const repair = await w.run(w.cast.tech, (c) => plant.recordRepair(c, press.code, 'bearing replaced', 'WO-7781'));
+    await expect(w.startUse(press.code, 'B-F1', product)).rejects.toThrow(/the unit is OUT_OF_SERVICE/);
+    const sig = await w.sign(w.cast.tech2, 'plant_equipment_repair', repair, 'LOGBOOK_DOUBLE_CHECKED', 'RECORDED');
+    await w.run(w.cast.tech2, (c) => plant.verifyRepair(c, repair, sig));
     await expect(w.startUse(press.code, 'B-F1', product)).resolves.toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[IN-25][PR-23] clearing a signalled failure needs a second person: the repairer and the person who signalled it cannot verify; a signed second person can', async () => {
+    const press = await w.press();
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    // The operator who signals the failure also holds the maintenance role, so only the rule (not the permission) refuses him.
+    const signaller = await withSecondRole(db, w.cast.operator2, 'MAINTENANCE_TECHNICIAN');
+    await w.run(w.cast.operator2, (c) => plant.signalFailure(c, press.code, 'B-R0', 'punch breakage'));
+    // One person can no longer clear the failure with a REPAIRED event.
+    await expect(w.run(w.cast.tech, (c) => plant.recordEquipmentEvent(c, press.code, 'REPAIRED', 'punch replaced', 'WO-1'))).rejects.toThrow(/EBMR-PLANT-030/);
+    const repair = await w.run(w.cast.tech, (c) => plant.recordRepair(c, press.code, 'punch set replaced', 'WO-9001'));
+    expect(await plant.equipmentFitness(db.app, press.id)).toBe('OUT_OF_SERVICE');
+    // The repairer cannot sign the check (a performer of the signed content), nor verify with another's signature.
+    await expect(w.sign(w.cast.tech, 'plant_equipment_repair', repair, 'LOGBOOK_DOUBLE_CHECKED', 'RECORDED')).rejects.toThrow(/EBMR-ESIG/);
+    const sig = await w.sign(w.cast.tech2, 'plant_equipment_repair', repair, 'LOGBOOK_DOUBLE_CHECKED', 'RECORDED');
+    await expect(w.run(w.cast.tech, (c) => plant.verifyRepair(c, repair, sig))).rejects.toThrow(/EBMR-PLANT-032/);
+    // The person who signalled the failure cannot sign or verify it either.
+    await expect(w.sign(signaller, 'plant_equipment_repair', repair, 'LOGBOOK_DOUBLE_CHECKED', 'RECORDED')).rejects.toThrow(/EBMR-ESIG/);
+    await expect(w.run(signaller, (c) => plant.verifyRepair(c, repair, sig))).rejects.toThrow(/EBMR-PLANT-032/);
+    // Without a valid signature of the meaning on this repair, nothing is cleared.
+    await expect(w.run(w.cast.tech2, (c) => plant.verifyRepair(c, repair, '00000000-0000-4000-8000-000000000009'))).rejects.toThrow(/EBMR-PLAT-008/);
+    expect(await plant.equipmentFitness(db.app, press.id)).toBe('OUT_OF_SERVICE');
+    // The signed second person clears it.
+    const event = await w.run(w.cast.tech2, (c) => plant.verifyRepair(c, repair, sig));
+    expect(event).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await plant.equipmentFitness(db.app, press.id)).toBe('QUALIFIED');
+    const { rows } = await db.admin.query<{ verified_by: string; person_id: string }>(
+      'select v.verified_by, e.person_id from plant.equipment_repair_verification v join plant.equipment_event e on e.id = v.repaired_event_id where v.repair_id = $1',
+      [repair],
+    );
+    expect(rows).toEqual([{ verified_by: w.cast.tech2.personId, person_id: w.cast.tech2.personId }]);
+    // The same repair is not verified twice.
+    await expect(w.run(w.cast.tech2, (c) => plant.verifyRepair(c, repair, sig))).rejects.toThrow(/EBMR-PLANT-033/);
+  });
+
+  it('[IN-25] a repair cannot be cleared around the commands: no direct writes by the application, and the table refuses a lone REPAIRED event or a verification by the repairer even for owner-level writes', async () => {
+    const press = await w.press();
+    await w.run(w.cast.operator, (c) => plant.signalFailure(c, press.code, 'B-R1', 'feeder jam'));
+    const repair = await w.run(w.cast.tech, (c) => plant.recordRepair(c, press.code, 'feeder cleared', 'WO-9002'));
+    const event = "insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id) values ($1, 'REPAIRED', 'WO-X', 'x', $2, $3)";
+    // The application role writes none of the tables.
+    await expect(db.app.query(event, [press.id, w.cast.tech.personId, w.cast.tech.accountId])).rejects.toThrow(/permission denied/);
+    await expect(
+      db.app.query(
+        'insert into plant.equipment_repair_verification (repair_id, repaired_event_id, verified_by, signature_id) values ($1, gen_random_uuid(), $2, gen_random_uuid())',
+        [repair, w.cast.tech2.personId],
+      ),
+    ).rejects.toThrow(/permission denied/);
+    // Owner-level (superuser inside a validated command, triggers on): a REPAIRED event without its verification is refused at commit.
+    const asOwner = { ...db, app: db.admin };
+    await expect(run(asOwner, w.cast.tech, (c) => c.query(event, [press.id, w.cast.tech.personId, w.cast.tech.accountId]))).rejects.toThrow(/EBMR-PLANT-030/);
+    // Owner-level: a verification by the repairer is refused by its row guard.
+    await expect(
+      run(asOwner, w.cast.tech, (c) =>
+        c.query(
+          `with e as (insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id)
+                      values ($1, 'REPAIRED', 'WO-X', 'x', $2, $3) returning id)
+           insert into plant.equipment_repair_verification (repair_id, repaired_event_id, verified_by, signature_id)
+           select $4, e.id, $2, gen_random_uuid() from e`,
+          [press.id, w.cast.tech.personId, w.cast.tech.accountId, repair],
+        ),
+      ),
+    ).rejects.toThrow(/EBMR-PLANT-032/);
+    expect(await plant.equipmentFitness(db.app, press.id)).toBe('OUT_OF_SERVICE');
   });
 
   it('[IN-25] a utility is usable only while the latest feed status is OK', async () => {

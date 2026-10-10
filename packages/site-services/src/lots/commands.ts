@@ -84,7 +84,8 @@ export async function disableVendorRoute(client: Queryable, routeId: string, rea
 }
 
 /**
- * A status decision on a lot. RELEASE needs `route` and the releaser's own MATERIAL_LOT_RELEASED signature; the
+ * A status decision on a lot. RELEASE needs `route` and the releaser's own MATERIAL_LOT_RELEASED signature, and the
+ * route must be the one the lot's signed content shows (sql/0720: IDENTITY_TESTED once a passing identity result exists); the
  * QA decisions need a MATERIAL_LOT_STATUS_DECIDED (or MATERIAL_LOT_REJECTED) signature and a reason in the command.
  */
 export async function changeLotStatus(

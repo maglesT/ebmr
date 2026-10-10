@@ -100,6 +100,19 @@ export const recordEquipmentEvent = (
 export const signalFailure = (db: Db, equipmentCode: string, batchRef: string, detail: string): Promise<string> =>
   recordEquipmentEvent(db, equipmentCode, 'FAILURE_SIGNALLED', detail, undefined, batchRef);
 
+/**
+ * IN-25 (d): the repairer records the repair of the unit's open failure (work-order reference); the unit stays out of use
+ * until a second person verifies it. 'REPAIRED' is no longer accepted by recordEquipmentEvent (sql/0460).
+ */
+export const recordRepair = (db: Db, equipmentCode: string, detail: string, reference: string): Promise<string> =>
+  one(db, 'select plant.record_repair($1, $2, $3) as r', [equipmentCode, detail, reference]);
+/**
+ * The verifier's LOGBOOK_DOUBLE_CHECKED signature on aggregate plant_equipment_repair, applied in their own session
+ * first; the verifier is neither who signalled the failure nor who repaired it. Returns the REPAIRED event id.
+ */
+export const verifyRepair = (db: Db, repairId: string, signatureId: string): Promise<string> =>
+  one(db, 'select plant.verify_repair($1, $2) as r', [repairId, signatureId]);
+
 export const recordCalibration = (
   db: Db,
   equipmentCode: string,
