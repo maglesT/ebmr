@@ -2,10 +2,13 @@
  * Site gateway configuration (EBMR_GW_CONFIG, a JSON file written by tools/demo for the demo and E2E stacks):
  * gateway code (its registered SERVER device), installation kind, listen address, uplink (the server's gateway
  * listener), the DEMO-ONLY Ed25519 key file, the service keys file (its SERVICE_KEY login), the journal
- * directory, and the instruments with driver, address, expected serial (I4), resolution, unit and room.
+ * directory, and the instruments with driver, address, expected serial (I4), resolution, unit and room; optionally
+ * the process equipment (Phase 3 slice 3a: presses and coaters behind the ebmr.sim-process.v1 driver) with its
+ * polling, staleness and setpoint polling periods.
  */
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+import { DeviceSerial, EQUIPMENT_KINDS } from '@ebmr/integration-sdk/process';
 import { DecimalText, DeviceCode, InstallationKind, SERIAL_PATTERN, UNIT_PATTERN, ed25519PrivateKey, ed25519PublicKey } from '@ebmr/integration-sdk/scale';
 import type { KeyObject } from 'node:crypto';
 
@@ -22,6 +25,17 @@ export const DeviceConfig = z.object({
   room: z.string().nullable().optional(),
 });
 export type DeviceConfig = z.infer<typeof DeviceConfig>;
+
+/** A press or coater (Phase 3 slice 3a, G-06): the serial and kind its hello must report (DI-20). */
+export const ProcessDeviceConfig = z.object({
+  code: DeviceCode,
+  driver: z.literal('process-sim'),
+  equipment: z.enum(EQUIPMENT_KINDS),
+  host: z.string().min(1),
+  port: z.number().int().min(1).max(65535),
+  expectedSerial: DeviceSerial,
+});
+export type ProcessDeviceConfig = z.infer<typeof ProcessDeviceConfig>;
 
 export const GatewayConfigFile = z.object({
   gatewayCode: DeviceCode,
@@ -43,6 +57,14 @@ export const GatewayConfigFile = z.object({
   livePollMs: z.number().int().min(100).max(5000).optional(),
   /** True only when the host clock is known to be synchronised to the site time source (default false). */
   clockSynchronised: z.boolean().optional(),
+  /** Process equipment (default none). */
+  processDevices: z.array(ProcessDeviceConfig).optional(),
+  /** How often each press and coater is read (default 1 s). */
+  processPollMs: z.number().int().min(200).max(60_000).optional(),
+  /** A device whose scan counter has not moved for this long reports its values STALE (default 5 s). */
+  processStaleAfterMs: z.number().int().min(500).max(300_000).optional(),
+  /** How often the gateway asks the server for setpoint downloads (default 2 s). */
+  setpointPollMs: z.number().int().min(200).max(60_000).optional(),
 });
 export type GatewayConfigFile = z.infer<typeof GatewayConfigFile>;
 
@@ -63,6 +85,10 @@ export interface GatewayConfig {
   captureTimeoutMs: number;
   livePollMs: number;
   clockSynchronised: boolean;
+  processDevices: ProcessDeviceConfig[];
+  processPollMs: number;
+  processStaleAfterMs: number;
+  setpointPollMs: number;
   /** DEMO-ONLY Ed25519 key (a KMS or HSM in production). */
   privateKey: KeyObject;
   publicKey: KeyObject;
@@ -82,8 +108,10 @@ export function parseGatewayConfig(file: GatewayConfigFile, keyFileText: string,
   const services = ServiceKeysFile.parse(JSON.parse(serviceKeysText));
   const service = services.services.find((s) => s.terminal === file.gatewayCode);
   if (!service) throw new Error(`the service keys file has no service identity on terminal ${file.gatewayCode}`);
-  const codes = new Set(file.devices.map((d) => d.code));
-  if (codes.size !== file.devices.length) throw new Error('a device code appears twice in the gateway configuration');
+  const processDevices = file.processDevices ?? [];
+  const codes = new Set([...file.devices, ...processDevices].map((d) => d.code));
+  if (codes.size !== file.devices.length + processDevices.length) throw new Error('a device code appears twice in the gateway configuration');
+  if (new Set(processDevices.map((d) => d.expectedSerial)).size !== processDevices.length) throw new Error('a process device serial appears twice in the gateway configuration');
   return {
     gatewayCode: file.gatewayCode,
     installation: file.installation,
@@ -95,6 +123,10 @@ export function parseGatewayConfig(file: GatewayConfigFile, keyFileText: string,
     captureTimeoutMs: file.captureTimeoutMs ?? 10_000,
     livePollMs: file.livePollMs ?? 250,
     clockSynchronised: file.clockSynchronised ?? false,
+    processDevices,
+    processPollMs: file.processPollMs ?? 1000,
+    processStaleAfterMs: file.processStaleAfterMs ?? 5000,
+    setpointPollMs: file.setpointPollMs ?? 2000,
     privateKey: ed25519PrivateKey(key.privateKeyPkcs8),
     publicKey: ed25519PublicKey(key.publicKeySpki),
     publicKeySpki: key.publicKeySpki,

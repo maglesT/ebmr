@@ -35,10 +35,10 @@ export interface SimProcess {
   stop(): Promise<void>;
 }
 
-/** Starts apps/simulators/src/scale/main.ts on ephemeral loopback ports. */
-export function startSimulator(env: Record<string, string> = {}): Promise<SimProcess> {
+/** Starts apps/simulators/src/scale/main.ts (or another simulator entry, e.g. src/process/main.ts) on ephemeral loopback ports. */
+export function startSimulator(env: Record<string, string> = {}, main = 'apps/simulators/src/scale/main.ts'): Promise<SimProcess> {
   return new Promise((resolvePromise, reject) => {
-    const child: ChildProcess = spawn(process.execPath, ['--import', 'tsx', join(REPO, 'apps/simulators/src/scale/main.ts')], {
+    const child: ChildProcess = spawn(process.execPath, ['--import', 'tsx', join(REPO, main)], {
       cwd: REPO,
       env: { ...process.env, EBMR_SIM_TCP: '127.0.0.1:0', EBMR_SIM_HTTP: '127.0.0.1:0', EBMR_SIM_SERIAL: 'SIM-0001', EBMR_SIM_SEED: '42', EBMR_SIM_SETTLE_MS: '300', EBMR_SIM_STABILITY_TIMEOUT_MS: '600', EBMR_SIM_SLOW_MS: '3000', ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -147,6 +147,11 @@ export class FakeServer {
   cutLogins = false;
   /** While true, every login is refused (401 AUTH). */
   refuseLogins = false;
+  /**
+   * Routes this fake does not know (e.g. the process uplink, Phase 3 slice 3a): asked with the method, path, body,
+   * whether the bearer token is a live session, and the request; null falls through to 404.
+   */
+  extra: ((method: string, path: string, body: unknown, live: boolean, req: IncomingMessage) => Promise<{ status: number; body: unknown } | null> | { status: number; body: unknown } | null) | null = null;
   /** Every heartbeat that reached the server, accepted or not: the SHA-256 of its token and when (performance.now()). */
   readonly heartbeatsReceived: { tokenHash: string; at: number }[] = [];
   /** The challenges issued (id to the time of issue, performance.now()). */
@@ -319,8 +324,11 @@ export class FakeServer {
         if (this.heartbeatGate) await this.heartbeatGate;
         return this.send(res, 200, { serverTimeUs: '1790584618000000', head: heartbeatHead });
       }
-      default:
+      default: {
+        const answer = this.extra ? await this.extra(req.method ?? 'GET', req.url ?? '/', body, this.tokens.has(hash), req) : null;
+        if (answer) return this.send(res, answer.status, answer.body);
         return this.send(res, 404, { error: { code: 'NOT_FOUND', message: 'not found', relogin: false } });
+      }
     }
   }
 }

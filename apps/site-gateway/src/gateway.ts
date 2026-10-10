@@ -43,6 +43,7 @@ import { systemClock, type GatewayClock } from './clock.ts';
 import type { DeviceConfig, GatewayConfig } from './config.ts';
 import { MtSicsDriver, type CommandResult } from './drivers/mt-sics.ts';
 import { Journal } from './journal.ts';
+import { ProcessGateway } from './process-uplink.ts';
 import { Uplink, newApiToken } from './uplink.ts';
 
 /**
@@ -55,7 +56,7 @@ export const CAPTURE_ACK_WAIT_MS = 5000;
 
 export interface GatewayAlarmRecord {
   atUs: string;
-  source: 'driver' | 'journal' | 'uplink' | 'capture';
+  source: 'driver' | 'journal' | 'uplink' | 'capture' | 'process';
   kind: string;
   deviceCode: string | null;
   message: string;
@@ -86,6 +87,8 @@ export class SiteGateway {
   readonly clock: GatewayClock;
   journal!: Journal;
   uplink!: Uplink;
+  /** The presses and coaters, when configured (Phase 3 slice 3a). */
+  process: ProcessGateway | null = null;
   private readonly live = new Map<string, { listeners: Set<LiveListener>; timer: NodeJS.Timeout; busy: boolean }>();
   private installationMismatch = false;
   private readonly log: (message: string) => void;
@@ -145,6 +148,24 @@ export class SiteGateway {
       }),
     });
     for (const i of g.instruments.values()) i.driver.start();
+    if (config.processDevices.length > 0) {
+      // Presses and coaters (Phase 3 slice 3a): their own journal and uplink, under this gateway's session.
+      g.process = await ProcessGateway.start({
+        uplink: config.uplink,
+        journalDir: config.journalDir,
+        devices: config.processDevices,
+        session: g.uplink,
+        clock: g.clock,
+        pollMs: config.processPollMs,
+        staleAfterMs: config.processStaleAfterMs,
+        setpointPollMs: config.setpointPollMs,
+        manual: options.manualUplink ?? false,
+        ...(options.driver ? { driver: { ...options.driver, ...(options.driver.commandTimeoutMs ? { requestTimeoutMs: options.driver.commandTimeoutMs } : {}) } } : {}),
+        onAlarm: (a) => g.alarm('process', a.kind, a.deviceCode, a.message, a.details),
+        onDriverAlarm: (a) => g.alarm('driver', a.kind, a.deviceCode, a.message, a.details),
+        log: g.log,
+      });
+    }
     if (!options.manualUplink) g.uplink.start();
     return g;
   }
@@ -152,6 +173,7 @@ export class SiteGateway {
   async stop(): Promise<void> {
     for (const l of this.live.values()) clearInterval(l.timer);
     this.live.clear();
+    await this.process?.stop();
     await this.uplink.stop();
     for (const i of this.instruments.values()) await i.driver.stop();
     await this.journal.close();
