@@ -137,7 +137,7 @@ describe('F66 round 2: a step changes its status only by the act that moves it, 
     done(invalidated, 't', { h: '5.00' });
     expect(invalidated.status('t')).toBe('COMPLETED');
     const only = Object.values(invalidated.state.points)[0]?.id ?? '';
-    invalidated.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: only, investigationRef: 'OOS-7', reason: 'balance out of calibration (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
+    invalidated.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: only, investigationRef: 'OOS-7', assignableCause: 'The investigation found an assignable cause', reason: 'balance out of calibration (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
     expect(invalidated.status('t')).toBe('IN_PROGRESS');
     done(invalidated, 't', { h: '5.10' });
     expect(invalidated.status('z')).toBe('ENABLED');

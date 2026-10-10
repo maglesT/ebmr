@@ -1409,8 +1409,8 @@ const COMMAND_MEMBERS = {
   RELEASE_HOLD: membersOf<Of<'RELEASE_HOLD'>>()([...BASE, 'hold', 'reason']),
   CORRECT_ENTRY: membersOf<Of<'CORRECT_ENTRY'>>()([...BASE, 'point', 'value', 'reason', 'signature', 'evidence', 'approval']),
   VOID_ATTEMPT: membersOf<Of<'VOID_ATTEMPT'>>()([...BASE, 'step', 'context', 'item', 'reason', 'point', 'approval']),
-  INVALIDATE_RESULT: membersOf<Of<'INVALIDATE_RESULT'>>()([...BASE, 'point', 'investigationRef', 'reason', 'approval']),
-  ABORT_BATCH: membersOf<Of<'ABORT_BATCH'>>()([...BASE, 'reason', 'approvals']),
+  INVALIDATE_RESULT: membersOf<Of<'INVALIDATE_RESULT'>>()([...BASE, 'point', 'investigationRef', 'assignableCause', 'reason', 'approval']),
+  ABORT_BATCH: membersOf<Of<'ABORT_BATCH'>>()([...BASE, 'reason', 'checklist', 'approvals']),
   CANCEL_BATCH: membersOf<Of<'CANCEL_BATCH'>>()([...BASE, 'reason', 'signature']),
 } satisfies Record<CommandType, readonly string[]>;
 const VALUE_MEMBERS = {
@@ -1531,8 +1531,8 @@ const TYPED_COMMANDS: Command[] = (() => {
     { ...b, type: 'RELEASE_HOLD', hold: 'H-1', reason: 'r' },
     { ...b, type: 'CORRECT_ENTRY', point: 'DP-1', value: { kind: 'DECIMAL', value: '2', unit: 'kg' }, reason: 'r', signature, evidence: { kind: 'DEVICE_RAW', sha256: 'd'.repeat(64) }, approval },
     { ...b, type: 'VOID_ATTEMPT', step: 's', context, item: 'x', reason: 'r', point: 'DP-1', approval },
-    { ...b, type: 'INVALIDATE_RESULT', point: 'DP-1', investigationRef: 'INV-1', reason: 'r', approval },
-    { ...b, type: 'ABORT_BATCH', reason: 'r', approvals: [approval, approval] },
+    { ...b, type: 'INVALIDATE_RESULT', point: 'DP-1', investigationRef: 'INV-1', assignableCause: 'The investigation found an assignable cause', reason: 'r', approval },
+    { ...b, type: 'ABORT_BATCH', reason: 'r', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [approval, approval] },
     { ...b, type: 'CANCEL_BATCH', reason: 'r', signature },
   ];
 })();

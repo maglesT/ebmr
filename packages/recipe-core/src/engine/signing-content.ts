@@ -458,22 +458,31 @@ export function nextStepStarted(s: BatchState, key: string): boolean {
 // ---------------------------------------------------------------------------------------------
 // Which aggregate each signature is about (the engine's side of "esig valid set = engine valid set")
 
+/** The batch record as a whole (recipe-core sql 0450): signed by the approvals of an abort and by a cancellation. */
+export const BATCH_RECORD_AGGREGATE = 'batch_record';
+/** The key of the batch record as it stands in state `s` (one record per state version, recipe-core sql 0450). */
+export const batchRecordKey = (s: Pick<BatchState, 'version'>): string => `record@${s.version}`;
+
 export interface SignatureSubject {
   signatureId: string;
   meaning: string;
   signer: string;
-  type: AggregateType;
+  type: AggregateType | typeof BATCH_RECORD_AGGREGATE;
   key: string;
 }
 
 /**
  * The aggregates the e-signatures of a command sign: the step for PERFORMED, VERIFIED, WITNESSED and
- * hold-point signatures; the stage frame for a sign-off; the exception for its disposition; the corrected
- * data point for a correction and its approval. Other signed commands (skip, void, invalidation, abort,
- * cancel) arrive with A2 and name no aggregate yet (empty list).
+ * hold-point signatures; the stage frame for a sign-off; the exception for its disposition; the data point for a
+ * correction and its approval, and for the approval of its invalidation; the batch record (`batch_record`,
+ * `<batch id>:record@<state version>`, whose content the database provides: recipe-core sql 0450) for the approval of a skip or of a
+ * void, the approvals of an abort and the signature of a cancellation. Each subject's content is one its own command
+ * leaves unchanged and one that exists before the act: a void adds the voided attempt to its step's content (an
+ * approval on the step would be superseded by the very act it approved), and a step about to be skipped has no stored
+ * content yet (a phase's first version is stored when a person first works on it, storedOnCreation).
  */
 export function signatureSubjects(s: BatchState, cmd: Command): SignatureSubject[] {
-  const sub = (sig: SignatureRef, type: AggregateType, key: string): SignatureSubject => ({ signatureId: sig.id, meaning: sig.meaning, signer: sig.signer, type, key });
+  const sub = (sig: SignatureRef, type: SignatureSubject['type'], key: string): SignatureSubject => ({ signatureId: sig.id, meaning: sig.meaning, signer: sig.signer, type, key });
   switch (cmd.type) {
     case 'SIGN_PERFORMED':
       return cmd.signature ? [sub(cmd.signature, 'batch_step', stepKeyOf(cmd.step, cmd.context ?? []))] : [];
@@ -486,6 +495,16 @@ export function signatureSubjects(s: BatchState, cmd: Command): SignatureSubject
       return [sub(cmd.signature, 'batch_exception', cmd.exception)];
     case 'CORRECT_ENTRY':
       return s.points[cmd.point] ? [sub(cmd.signature, 'batch_point', cmd.point), ...(cmd.approval ? [sub(cmd.approval.signature, 'batch_point', cmd.point)] : [])] : [];
+    case 'REQUEST_SKIP':
+      return [sub(cmd.approval.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))];
+    case 'VOID_ATTEMPT':
+      return cmd.approval ? [sub(cmd.approval.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))] : [];
+    case 'INVALIDATE_RESULT':
+      return s.points[cmd.point] ? [sub(cmd.approval.signature, 'batch_point', cmd.point)] : [];
+    case 'ABORT_BATCH':
+      return cmd.approvals.map((a) => sub(a.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s)));
+    case 'CANCEL_BATCH':
+      return [sub(cmd.signature, BATCH_RECORD_AGGREGATE, batchRecordKey(s))];
     default:
       return [];
   }

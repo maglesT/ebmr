@@ -132,10 +132,22 @@ describe('sequencing (DI-34)', () => {
     const run = Run.issue(define(linear()));
     run.start('p1');
     run.refused({ type: 'CANCEL_BATCH', actor: SUP1, reason: 'x', signature: sig('BATCH_CANCELLED', SUP1) }, 'ENG-BATCH-STATUS');
-    run.refused({ type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', approvals: [{ approver: HEAD1, signature: sig('BATCH_ABORT_APPROVED', HEAD1) }] }, 'ENG-ABORT-APPROVALS');
-    run.ok({ type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', approvals: [{ approver: HEAD1, signature: sig('BATCH_ABORT_APPROVED', HEAD1) }, { approver: QA1, signature: sig('BATCH_ABORT_APPROVED', QA1) }] });
+    run.refused({ type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [{ approver: HEAD1, signature: sig('BATCH_ABORT_APPROVED', HEAD1) }] }, 'ENG-ABORT-APPROVALS');
+    run.ok({ type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [{ approver: HEAD1, signature: sig('BATCH_ABORT_APPROVED', HEAD1) }, { approver: QA1, signature: sig('BATCH_ABORT_APPROVED', QA1) }] });
     expect(run.state.status).toBe('ABORTED');
     run.refused({ type: 'START_STEP', actor: OP2, step: 'p2' }, 'ENG-BATCH-STATUS');
+  });
+
+  it('[DI-34][DI-35] an abort needs every checklist item confirmed and exactly two approvals; the QA reviewer approves as QA', () => {
+    const run = Run.issue(define(linear()));
+    run.start('p1');
+    const QAR = { id: 'QAR1', kind: 'PERSON' as const, roles: ['QA_REVIEWER'] };
+    const approvals = [{ approver: HEAD1, signature: sig('BATCH_ABORT_APPROVED', HEAD1) }, { approver: QAR, signature: sig('BATCH_ABORT_APPROVED', QAR) }];
+    const checklist = { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true };
+    run.refused({ type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', checklist: { ...checklist, equipmentSetDirty: false }, approvals }, 'ENG-ABORT-CHECKLIST');
+    run.refused({ type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', checklist, approvals: [...approvals, { approver: QA1, signature: sig('BATCH_ABORT_APPROVED', QA1) }] }, 'ENG-ABORT-APPROVALS');
+    run.ok({ type: 'ABORT_BATCH', actor: SUP1, reason: 'contamination', checklist, approvals });
+    expect(run.state.abort).toMatchObject({ reason: 'contamination', checklist, approvals: ['HEAD1', 'QAR1'] });
   });
 
   it('[DI-34] an issued batch where nothing started can be cancelled by a supervisor with a reason', () => {

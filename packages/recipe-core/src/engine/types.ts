@@ -85,7 +85,7 @@ export interface SignatureRef {
   readonly signer: string;
 }
 
-/** A second person's approval given in the same transaction (skip, void, correction, invalidation, abort). */
+/** A second person's approval (skip, void, correction, invalidation, abort), signed by the approver in their own ceremony. */
 export interface Approval {
   readonly approver: Actor;
   readonly signature: SignatureRef;
@@ -277,14 +277,34 @@ export interface VoidAttemptCommand extends CommandBase, StepTarget {
 export interface InvalidateResultCommand extends CommandBase {
   readonly type: 'INVALIDATE_RESULT';
   readonly point: string;
+  /** The linked OOS or deviation investigation (by reference until deviation-lite, decision D-S2-2). */
   readonly investigationRef: string;
+  /** The assignable cause the investigation concluded, recorded with the invalidation (outline 5.2.3 (c); INV-41). */
+  readonly assignableCause: string;
   readonly reason: string;
+  /** QA approval (INVALIDATION_APPROVED): the quality unit's QA or QA reviewer, another person than the requester. */
   readonly approval: Approval;
 }
+
+/**
+ * What the two signers confirm when a batch is aborted (outline 5.2.2: outputs held for QA, equipment set dirty;
+ * materials secured for the accounting the abort review closes). Every item must be confirmed. The closing checklist
+ * of the aborted record (materials accounted for, outputs dispositioned, genealogy closed, contingency forms
+ * reconciled; L-20) belongs to ABORTED -> PRODUCTION_APPROVED, which arrives with review and release (decision D-S2-3).
+ */
+export interface AbortChecklist {
+  readonly outputsHeld: boolean;
+  readonly equipmentSetDirty: boolean;
+  readonly materialsSecured: boolean;
+}
+
+export const ABORT_CHECKLIST_ITEMS: readonly (keyof AbortChecklist)[] = ['outputsHeld', 'equipmentSetDirty', 'materialsSecured'];
 
 export interface AbortBatchCommand extends CommandBase {
   readonly type: 'ABORT_BATCH';
   readonly reason: string;
+  /** Every item confirmed (true). */
+  readonly checklist: AbortChecklist;
   /** Head of production and QA: two different persons (outline 5.2.2). */
   readonly approvals: readonly Approval[];
 }
@@ -421,7 +441,7 @@ export interface DataPoint {
   supersedes?: string;
   supersededBy?: string;
   correction?: { reason: string; signature: string; evidence?: string; approvedBy?: string };
-  invalidation?: { investigationRef: string; reason: string; approvedBy: string; signature: string; at: bigint };
+  invalidation?: { investigationRef: string; assignableCause: string; reason: string; approvedBy: string; signature: string; at: bigint };
   voidReason?: string;
   evaluation?: StoredEvaluation;
   /** The value failed its limits (or an expected answer); a later passing attempt never replaces it (INV-41). */
@@ -651,7 +671,7 @@ export interface BatchState {
   /** Status to return to when the last hold is released. */
   statusBeforeHold?: 'ISSUED' | 'IN_PROGRESS';
   counters: Record<string, number>;
-  abort?: { reason: string; approvals: string[]; at: bigint };
+  abort?: { reason: string; checklist: AbortChecklist; approvals: string[]; at: bigint };
 }
 
 // ---------------------------------------------------------------------------------------------

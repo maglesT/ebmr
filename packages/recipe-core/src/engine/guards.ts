@@ -144,6 +144,18 @@ export function hasRole(actor: Actor, roles: readonly string[]): boolean {
   return actor.roles.some((r) => roles.includes(r));
 }
 
+/**
+ * The quality unit's roles that approve an invalidation of a result and an abort (outline 5.2.2, 5.2.3 (c)): the
+ * policy's QA roles and the QA reviewer, who alone holds the authority the kernel asks for those meanings
+ * (INVALIDATION_APPROVED: RECORD.QA_REVIEW; BATCH_ABORT_APPROVED for QA: RECORD.QA_REVIEW; kernel 0930). The database
+ * asks the same (recipe-core sql 0452).
+ */
+export const QA_REVIEWER_ROLE = 'QA_REVIEWER';
+
+export function qualityUnitRoles(policy: { readonly qaRoles: readonly string[] }): readonly string[] {
+  return policy.qaRoles.includes(QA_REVIEWER_ROLE) ? policy.qaRoles : [...policy.qaRoles, QA_REVIEWER_ROLE];
+}
+
 export function requireRole(actor: Actor, roles: readonly string[], action: string): void {
   if (roles.length === 0 || !hasRole(actor, roles)) refuse('ENG-ROLE', `${actor.id} does not hold a role that may ${action} (needs one of ${roles.join(', ') || 'no role is configured'})`, ['DI-17', 'PR-15']);
 }

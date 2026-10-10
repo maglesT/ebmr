@@ -465,29 +465,21 @@ describe('a decision is signed on a hold point that lists it (recipe-core 0296)'
   }, 240_000);
 });
 
-describe('a signed command type the release cannot check (recipe-core 0297)', () => {
-  it('[DI-35][INV-10] a command type listed as signed by a later release, for which this release has no signature check, is refused (EBMR-EXE-050)', async () => {
+describe('a signed command type the release checks since Phase 3 slice 2 (recipe-core 0297, 0451)', () => {
+  it('[DI-35][INV-10] ABORT_BATCH, listed as signed by recipe-core 0450, is checked: recorded without its two approvals it is refused (EBMR-EXE-052), where 0297 refused it as a signed act it could not check (EBMR-EXE-050)', async () => {
     const d = await driver(dcMini(), ['supervisor1']);
-    // ABORT_BATCH arrives with a later increment as a signed command type (A2); its row is added as a migration would
-    // add it (the table is insert-only), before this release checks its signatures.
-    const c = await sbx.db.admin.connect();
-    try {
-      await c.query('begin');
-      await asSoftwareRelease(c, 'a later signed command type');
-      await c.query("insert into recipe.execution_command_permission (command_type, permissions, signed) values ('ABORT_BATCH', array['STEP.SUPERVISE'], true)");
-      await c.query('commit');
-    } catch (e) {
-      await c.query('rollback');
-      throw e;
-    } finally {
-      c.release();
-    }
+    const { rows } = await sbx.db.admin.query<{ signed: boolean }>("select signed from recipe.execution_command_permission where command_type = 'ABORT_BATCH'");
+    expect(rows).toEqual([{ signed: true }]);
     const outcome = await record(d, 'supervisor1', (who, roles) => {
       const placeholder: engine.Command = { type: 'START_STEP', commandId: randomUUID(), actor: engineActor(who.personId, roles), step: 'p-disp-clear', context: [] };
       const actor = (engine.encodeCommand(placeholder) as Json)['actor'] as engine.JsonValue;
-      return { command: placeholder, forged: true, recorded: { type: 'ABORT_BATCH', commandId: placeholder.commandId, actor, reason: 'Test run abandoned' } };
+      return {
+        command: placeholder,
+        forged: true,
+        recorded: { type: 'ABORT_BATCH', commandId: placeholder.commandId, actor, reason: 'Test run abandoned', checklist: { outputsHeld: true, equipmentSetDirty: true, materialsSecured: true }, approvals: [] },
+      };
     });
-    expect(outcome).toBe('ABORT_BATCH is a signed act whose signature test runs cannot check in this release (DI-35). [EBMR-EXE-050]');
+    expect(outcome).toBe('An abort carries exactly two approvals, each signed by its approver, two different persons: the head of production and QA (PR-13, DI-35). [EBMR-EXE-052]');
     expect((await rowsOf(sbx, d.runId)).filter((r) => r.kind === 'COMMAND')).toEqual([]);
   }, 240_000);
 });

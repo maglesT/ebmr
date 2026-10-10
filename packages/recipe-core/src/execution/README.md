@@ -638,6 +638,16 @@ one plain-language business entry on the chain `batch:<id>`.
   `zzr_exception_register` (`exception_register_sync`) writes them with the row and keeps the state and the register
   together on every row (EBMR-EXE-160 to 163); `exception_register_review` is the read view for review by exception.
   Every review category is mandatory (`exception_review_category`, insert-only). A review never closes an exception.
+- The change paths (sql 0450-0453; outline 5.2.2, 5.2.3; DI-24, DI-29, PR-12, PR-13, INV-41): REQUEST_SKIP,
+  VOID_ATTEMPT, INVALIDATE_RESULT, ABORT_BATCH and CANCEL_BATCH have their permission rows and signature meanings (no
+  longer EBMR-EXE-003). Approvals of a skip, a void and an abort and the cancellation are signed on the batch record at
+  one state version (`batch_record_content`, `<batch>:record@<version>`); `check_signatures` checks them and
+  `check_approver_roles` reads each approver's engine role from the authority behind their signature (EBMR-EXE-171).
+  `change_path_problem` (trigger `zzn_execution_change_paths`) holds what an accepted row may store: a skip only of a
+  phase the MBR declares skippable (`skip_problem`), a void only before a result exists and always QA-approved (S28), an
+  invalidation only with its investigation and assignable cause and the original kept, a correction from fail to pass
+  only with evidence and QA approval (INV-41), an abort with its checklist and two approvers, a cancellation only before
+  anything started, and no other row aborts, cancels or revives a batch (EBMR-EXE-172 to 178).
 
 Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 
@@ -658,6 +668,7 @@ Error codes are `EBMR-EXE-NNN`, in brackets at the end of each message:
 | 142-146 | the times the late check is measured from, and its window (sql 0334, T12.LATE round 2): a step's recorded start or end time changed or removed (142); a start time recorded otherwise than by the step's own accepted START_STEP at the row's trusted database time (143); an end time recorded otherwise than by the step's own accepted PERFORMED signature or hold-point release at the row's trusted database time (144); a value a row adds recorded at another time than the row's (145); a batch pinned with a witness window shorter than the site's, longer than the kernel allows, or not a whole number of microseconds (146) |
 | 147-147 | the identifier rule over a test run's whole record (sql 0344, 0346, 0347, 0348; kernel migrations 1030, 1040; tablets sql 0640 for the manual-weighing basis): a word the rule reads as a real batch or lot number that the run does not have from its MBR, batch number, site and room, the engine's registers, its state's record ids, its MBR's flow edges or a compound the engine builds of them (a number in a compound only in the engine's shapes), in any text of a row, the state, an event, a content version, a proposal or an audit entry of the run's chains or a scale reading's chain |
 | 160-165 | the exception register (sql 0440): the state's exceptions and the register disagree, an exception changed from as raised or removed (160); a deviation link or a closing other than the exception's own ATTACH_DEVIATION or signed DISPOSITION_EXCEPTION (161); a QA-only exception dispositioned without a QA role of the batch policy (162); a disposition by its raiser or a person involved in the raising step (163); a QA review act out of order or without its text or deviation reference (164), or by a person who took part in the exception (165) |
+| 170-178 | the change paths (sql 0450-0453; Phase 3 slice 2): a frozen identity column of an issued batch changed (170); an approval signed by a person without the approving role, read from the authority behind the signature (171); a skip of a step the MBR does not allow to skip or that is never skipped (172); a void of an attempt that holds a result, or that stores another attempt (173); an invalidation without its investigation or assignable cause, or that does not keep the original (174); a correction from fail to pass without evidence or QA approval (175, INV-41); an abort without its reason, checklist or abort record (176); a cancellation after a step started (177); a batch aborted, cancelled or revived by any other row (178) |
 
 ## TypeScript
 
@@ -1090,6 +1101,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   (sql 0316): the SIGN_PERFORMED that finishes operation O-ALT in the branch an issue variant chose, stored without
   O-ALT's END and with the engine result of a definition without its 1 h minimum, is refused (EBMR-EXE-133); the
   honest signature records the END and its TIME_MIN_BREACH.
+- `db-guards-change-paths.test.ts` (Phase 3 slice 2; sql 0450-0453): each change path recorded when its conditions hold
+  and refused otherwise, honestly and forged through the store: a void only before a result and QA-approved, an
+  invalidation with its investigation and cause keeping the original and invalidating the step's signatures on the
+  engine's path, a correction from fail to pass only with evidence and QA approval (its exception stays open), a skip
+  only where the MBR allows it, an abort with two approvers and the checklist, a cancellation before anything started,
+  no other row aborting, cancelling or reviving a batch, and no direct write of the tables.
 - `db-guards-exception-register.test.ts` (Phase 3 slice 2; sql 0440): every exception is registered with the row that
   raises it (tier, step, raiser, database time, mandatory flag) and the register and the state agree; the action tier
   blocks until the deviation is linked; a correction never closes an exception; a registered-tier breach is

@@ -182,13 +182,25 @@ describe('paths (b) void and (c) invalidation; repeats (DI-29, INV-41)', () => {
     run.record('t', 'h', n('130'));
     run.record('t', 'h', n('90'));
     const first = Object.values(run.state.points)[0]?.id ?? '';
-    run.refused({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: '', reason: 'bad sample', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } }, 'ENG-INVALIDATE-INVESTIGATION');
-    run.refused({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', reason: 'bad sample', approval: { approver: SUP1, signature: sig('INVALIDATION_APPROVED', SUP1) } }, 'ENG-ROLE');
-    run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', reason: 'tester jaw misaligned (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
+    run.refused({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: '', assignableCause: 'The investigation found an assignable cause', reason: 'bad sample', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } }, 'ENG-INVALIDATE-INVESTIGATION');
+    run.refused({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', assignableCause: 'The investigation found an assignable cause', reason: 'bad sample', approval: { approver: SUP1, signature: sig('INVALIDATION_APPROVED', SUP1) } }, 'ENG-ROLE');
+    run.ok({ type: 'INVALIDATE_RESULT', actor: OP1, point: first, investigationRef: 'OOS-4', assignableCause: 'The investigation found an assignable cause', reason: 'tester jaw misaligned (assignable cause)', approval: { approver: QA1, signature: sig('INVALIDATION_APPROVED', QA1) } });
     expect(run.state.points[first]?.status).toBe('INVALIDATED');
     expect(run.value('h', 't')).toBe('90');
     expect(run.exceptions('LIMIT_BREACH')[0]?.status).toBe('OPEN');
     expect(run.exceptions('RESULT_INVALIDATED')).toHaveLength(1);
+  });
+
+  it('[DI-29][INV-41] an invalidation records the assignable cause its investigation concluded; a blank cause is refused; the QA reviewer approves it', () => {
+    const run = Run.issue(define(ipc()));
+    run.start('t');
+    run.record('t', 'h', n('130'));
+    const first = Object.values(run.state.points)[0]?.id ?? '';
+    const QAR = { id: 'QAR1', kind: 'PERSON' as const, roles: ['QA_REVIEWER'] };
+    const cmd = (cause: string) => ({ type: 'INVALIDATE_RESULT' as const, actor: OP1, point: first, investigationRef: 'OOS-4', assignableCause: cause, reason: 'bad sample', approval: { approver: QAR, signature: sig('INVALIDATION_APPROVED', QAR) } });
+    run.refused(cmd(' \u200b '), 'ENG-INVALIDATE-INVESTIGATION');
+    run.ok(cmd(' Tester jaw misaligned '));
+    expect(run.state.points[first]?.invalidation).toMatchObject({ investigationRef: 'OOS-4', assignableCause: 'Tester jaw misaligned', approvedBy: 'QAR1' });
   });
 
   it('[DI-29][DI-24] an attempt is voided only before a result exists, with a reason and QA approval; the attempt stays in the record', () => {
