@@ -166,3 +166,17 @@ first run's sets).
 - TB-06: ribbon checks keyed by hand (no instrument), FEED names no container charge, no stoppage handling (a long stop
   shows as a missed check), no roller-compactor simulator (slice 6).
 - The new entry kinds of 3d are not in the api-contract (screens, slice 6).
+
+## Slice 3d quick review (10 October 2026)
+
+No critical or high findings. The replaced shared functions (ipc_pass_check, ipc_overdue_at, record_ipc_overdue,
+granulation_block_item) keep every slice 3c fix; the AQL tables were cross-checked by hand at AQL 1.0 to 4.0.
+Fixed in 3d: 1 (the out-of-limits and setpoint-mismatch exceptions of G-06 values were not required by the database for
+TB-18; now one shared check for every block with G-06 entries), 2 (the reject destruction step's order and completion
+are enforced), and the lows on yield rounding before the limit test, the constraint rebuild pattern and AQL severity
+under concurrent batches.
+
+| # | Severity | Finding | Where | For |
+|---|---|---|---|---|
+| 3 | Low | A lot with fewer than 2 accepted tablets gives no AQL plan (TB20-NO-PLAN) and can only leave through a deviation path | tablets 0911 | Slice 5 (deviation-lite) |
+| 4 | Low | Not verified: whether a container opened on the printer before PRINT_SETUP is gated (the gate keys on the setup's printer) | tablets 0912 | Slice 6 (GB-T-01 run) |
