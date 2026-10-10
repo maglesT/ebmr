@@ -117,3 +117,12 @@ not tied to the unit class of its equipment reference), all fixed in 3a.
   demo).
 - Not modelled: TB-03 flameproof-area and stirring checks; the link from the TB-05 moisture analyser to its instrument
   check (slice 3c).
+
+## Slice 3b quick review (10 October 2026)
+
+No critical or high findings. The four replaced recipe-core functions (weighing_item_problem, new_container_problem,
+refusal_problem, weighing_totals_problem) were diffed against their previous definitions: only the intended changes.
+Fixed in 3b: 1 (TB-01's tolerance, adjustment-cap and FEFO exceptions were raised by the handler only; the database now
+requires them), 2 (a weighing re-verifies that each calculation lot's assay is still current), 3 (TB-01 to TB-07 cannot
+be skipped), 4 (a filter bag last used for another product cannot skip its wash record), 5 (duplicate lots and loose
+compensation configuration refused), 6 (a null unit no longer bypasses the granulation unit check).
