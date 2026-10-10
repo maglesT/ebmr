@@ -8,11 +8,12 @@
  * A GMP definition refuses the SANDBOX_ONLY block versions (G-09@1, G-10@1) until Phase 3; that is shown as
  * information on those steps, never hidden.
  */
-import { blocks, engine, type validator } from '@ebmr/recipe-core/pure';
-import type { flow } from '@ebmr/recipe-core/pure';
+import { engine, type validator } from '@ebmr/recipe-core/pure';
+import type { flow , blocks} from '@ebmr/recipe-core/pure';
 import { EXPRESSIONS } from './adapters/expressions.ts';
+import { tabletsBlockRegistry } from '../edition-blocks.ts';
 
-export const BLOCK_REGISTRY: blocks.BlockRegistry = blocks.genericBlockRegistry();
+export const BLOCK_REGISTRY: blocks.BlockRegistry = tabletsBlockRegistry();
 
 const NEEDS_JUSTIFICATION = '; this warning needs a recorded justification';
 

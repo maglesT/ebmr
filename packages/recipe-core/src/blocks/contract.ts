@@ -183,7 +183,16 @@ export interface SimulatorModel {
    * Block entries a nominal execution records, given the containers available in the batch. The
    * engine and the simulator run the same model, so a nominal path in one is a nominal path in the other.
    */
-  nominalEntries(input: { phase: PhaseNode; config: Readonly<Record<string, JsonValue>>; mbr: MbrContent; frames: readonly Frame[]; containers: readonly ContainerRecord[]; target: (item: string) => DataValue | undefined }): (Record<string, unknown> & { kind: string })[];
+  nominalEntries(input: {
+    phase: PhaseNode;
+    config: Readonly<Record<string, JsonValue>>;
+    mbr: MbrContent;
+    frames: readonly Frame[];
+    containers: readonly ContainerRecord[];
+    target: (item: string) => DataValue | undefined;
+    /** The run's time, when the driver has one (device values carry when they were received, G-06). */
+    nowUs?: bigint;
+  }): (Record<string, unknown> & { kind: string })[];
 }
 
 /** A golden fixture: a phase of this block, a scripted execution and what must come out. */

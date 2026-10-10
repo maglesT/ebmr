@@ -377,4 +377,129 @@ export const G10: BlockVersion = {
   tests: ['packages/recipe-core/test/blocks/golden.test.ts', 'packages/recipe-core/test/blocks/status.test.ts'],
 };
 
-export const STATUS_BLOCKS: readonly BlockVersion[] = [G09, G10];
+// ---------------------------------------------------------------------------------------------
+// Version 2 (Phase 3 slice 3a): database-backed. The status comes from the plant schema of slice 1 (recipe-core 0400 to
+// 0405), never from a person's word: the unit's use for the batch is started there (plant.start_equipment_use runs the
+// fitness, cleanliness, calibration and campaign guards: INV-12, IN-25, PR-23) and the room or line is cleared, verified
+// by a second person and occupied for the batch there (plant.record_clearance, verify_clearance, start_area_occupancy:
+// IN-21, PR-34, INV-15). The entry names the plant record; the database binds it (recipe-core 0521: the use or the
+// occupancy is open, of this batch and of the unit or area the entry names, started by the entry's person). Both run
+// in GMP and the sandbox; version 1 stays SANDBOX_ONLY.
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const PLANT_CODE: FieldSchema = { type: 'string', pattern: /^[A-Z0-9][A-Z0-9_-]{0,63}$/, description: 'Plant code of the unit, room or line (site services)' };
+
+export const G09V2: BlockVersion = {
+  type: 'G-09',
+  version: '2',
+  title: 'Equipment status and use (site services)',
+  edition: 'generic',
+  aliases: { tablets: 'K-09', injectables: 'KB-07' },
+  level: 'PHASE',
+  controls: ['PR-23', 'IN-25', 'INV-12', 'DI-05'],
+  configSchema: { type: 'object', description: 'The units are the phase STATUS_CHECK equipment; their status is read from site services when the use starts', fields: {} },
+  dataSchema: {
+    entries: {
+      EQUIPMENT_USE: {
+        type: 'object',
+        description: 'The use of a unit for this batch, started in site services after its status guards passed',
+        fields: {
+          equipmentRef: { type: 'string', description: 'Stage equipment reference the unit stands for' },
+          equipmentCode: PLANT_CODE,
+          useId: { type: 'string', pattern: UUID_PATTERN, description: 'The open equipment use (plant.equipment_use)' },
+        },
+      },
+    },
+  },
+  handler: {
+    acceptEntry: (view, entry) => {
+      const ref = String(entry['equipmentRef']);
+      const allowed = checkedEquipment(view.phase);
+      if (allowed.length > 0 && !allowed.includes(ref)) {
+        return { ok: false, problems: [problem('G09-EQUIPMENT', `${ref} is not equipment this step checks (${allowed.join(', ')})`, ['PR-23', 'PR-22'])] };
+      }
+      if (view.entries('EQUIPMENT_USE').some((e) => e.data['equipmentRef'] === ref)) {
+        return { ok: false, problems: [problem('G09-TWICE', `The unit for ${ref} is already recorded at ${view.stepKey}`, ['PR-23'])] };
+      }
+      return { ok: true, data: { equipmentRef: ref, equipmentCode: entry['equipmentCode'], useId: entry['useId'], recordedBy: view.actor.id } };
+    },
+    beforePerform: (view) => {
+      const recorded = new Set(view.entries('EQUIPMENT_USE').map((e) => String(e.data['equipmentRef'])));
+      const needed = checkedEquipment(view.phase);
+      if (needed.length === 0 && recorded.size === 0) return [problem('G09-INCOMPLETE', `Start the use of the equipment of ${view.phase.id} first`, ['PR-23'])];
+      const missing = needed.filter((r) => !recorded.has(r));
+      return missing.length > 0 ? [problem('G09-INCOMPLETE', `Start the use of ${missing.join(', ')} first`, ['PR-23'])] : [];
+    },
+  },
+  exceptionRules: [],
+  simulatorModel: {
+    exceptionTypes: () => [],
+    nominalEntries: ({ phase }) => {
+      const refs = checkedEquipment(phase);
+      return (refs.length > 0 ? refs : ['EQUIPMENT']).map((ref, i) => ({
+        kind: 'EQUIPMENT_USE',
+        equipmentRef: ref,
+        equipmentCode: `TEST-${ref.replace(/[^A-Z0-9_-]/g, '')}`.slice(0, 64),
+        useId: `00000000-0000-4000-9000-${(i + 1).toString(16).padStart(12, '0')}`,
+      }));
+    },
+  },
+  goldenFixture: {
+    description: 'The press whose use for the batch site services started (status guards passed) is recorded; the step completes',
+    controls: ['PR-23'],
+    phase: { block: { type: 'G-09', version: '2' }, config: {}, equipment: [{ ref: 'BAL', use: 'STATUS_CHECK' }] },
+    script: [{ entry: { kind: 'EQUIPMENT_USE', equipmentRef: 'BAL', equipmentCode: 'TEST-PRESS-01', useId: '00000000-0000-4000-9000-000000000001' } }],
+    expect: { exceptions: [], status: 'COMPLETED' },
+  },
+  tests: ['packages/recipe-core/test/blocks/golden.test.ts', 'packages/recipe-core/test/plant/status-blocks.test.ts'],
+};
+
+export const G10V2: BlockVersion = {
+  type: 'G-10',
+  version: '2',
+  title: 'Room/line status and clearance (site services)',
+  edition: 'generic',
+  aliases: { tablets: 'K-10', injectables: 'KB-08' },
+  level: 'PHASE',
+  controls: ['PR-26', 'PR-34', 'IN-21', 'INV-15', 'DI-05'],
+  configSchema: { type: 'object', description: 'The clearance is performed, verified by a second person and the area occupied for the batch in site services', fields: {} },
+  dataSchema: {
+    entries: {
+      AREA_OCCUPANCY: {
+        type: 'object',
+        description: 'The occupancy of the room or line by this batch, started in site services on a passed and verified clearance',
+        fields: {
+          areaCode: PLANT_CODE,
+          occupancyId: { type: 'string', pattern: UUID_PATTERN, description: 'The open area occupancy (plant.area_occupancy)' },
+        },
+      },
+    },
+  },
+  checkConfig: (phase) =>
+    phase.signatures.check
+      ? []
+      : [{ code: 'G10-NO-CHECKER', severity: 'ERROR', message: `Clearance step ${phase.id} names no checker: a clearance is a significant step with an independent checker`, controls: ['PR-14', 'PR-34'] }],
+  handler: {
+    acceptEntry: (view, entry) => {
+      if (view.entries('AREA_OCCUPANCY').length > 0) return { ok: false, problems: [problem('G10-TWICE', `The area of ${view.stepKey} is already recorded`, ['PR-34'])] };
+      return { ok: true, data: { areaCode: entry['areaCode'], occupancyId: entry['occupancyId'], recordedBy: view.actor.id } };
+    },
+    beforePerform: (view) => (view.entries('AREA_OCCUPANCY').length === 0 ? [problem('G10-INCOMPLETE', 'Record the cleared room or line the batch occupies first', ['PR-34', 'IN-21'])] : []),
+    meanings: { perform: ['LINE_CLEARANCE_PERFORMED'], check: ['LINE_CLEARANCE_VERIFIED'] },
+  },
+  exceptionRules: [],
+  simulatorModel: {
+    exceptionTypes: () => [],
+    nominalEntries: () => [{ kind: 'AREA_OCCUPANCY', areaCode: 'TEST-ROOM', occupancyId: '00000000-0000-4000-9000-000000000101' }],
+  },
+  goldenFixture: {
+    description: 'The compression room, cleared, verified and occupied for the batch in site services, is recorded; performed and verified, the step completes',
+    controls: ['PR-34'],
+    phase: { block: { type: 'G-10', version: '2' }, config: {}, significant: true },
+    script: [{ entry: { kind: 'AREA_OCCUPANCY', areaCode: 'TEST-COMP-1', occupancyId: '00000000-0000-4000-9000-000000000101' } }],
+    expect: { exceptions: [], status: 'COMPLETED' },
+  },
+  tests: ['packages/recipe-core/test/blocks/golden.test.ts', 'packages/recipe-core/test/plant/status-blocks.test.ts'],
+};
+
+export const STATUS_BLOCKS: readonly BlockVersion[] = [G09, G10, G09V2, G10V2];

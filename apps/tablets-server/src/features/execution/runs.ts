@@ -15,14 +15,15 @@
  * describe() leave the meaning to be checked there (fail closed, never guessed).
  */
 import type pg from 'pg';
-import { blocks, engine, execution, flow } from '@ebmr/recipe-core';
+import { engine, execution, flow } from '@ebmr/recipe-core';
 import type { PersonRef } from '@ebmr/api-contract';
 import { refusal } from '../../platform/http/refusal.ts';
+import { tabletsBlockRegistry } from '../edition-blocks.ts';
 
 export type Db = pg.Pool | pg.PoolClient;
 
 /** The block versions of this server (one registry: its fingerprint is pinned by every run). */
-export const REGISTRY = blocks.genericBlockRegistry();
+export const REGISTRY = tabletsBlockRegistry();
 
 export interface ProductRef {
   code: string;

@@ -280,6 +280,32 @@
       ]
     },
     {
+      "key": "G-09@2",
+      "type": "G-09",
+      "version": "2",
+      "title": "Equipment status and use (site services)",
+      "plainName": "Check equipment status",
+      "level": "PHASE",
+      "roles": [
+        "EQUIPMENT_STATUS_CHECK"
+      ],
+      "significant": false,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "The units are the phase STATUS_CHECK equipment; their status is read from site services when the use starts",
+        "fields": {}
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-23",
+        "IN-25",
+        "INV-12",
+        "DI-05"
+      ]
+    },
+    {
       "key": "G-10@1",
       "type": "G-10",
       "version": "1",
@@ -333,6 +359,33 @@
         "PR-26",
         "PR-34",
         "IN-21",
+        "DI-05"
+      ]
+    },
+    {
+      "key": "G-10@2",
+      "type": "G-10",
+      "version": "2",
+      "title": "Room/line status and clearance (site services)",
+      "plainName": "Clear the room or line",
+      "level": "PHASE",
+      "roles": [
+        "CLEARANCE"
+      ],
+      "significant": true,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "The clearance is performed, verified by a second person and the area occupied for the batch in site services",
+        "fields": {}
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-26",
+        "PR-34",
+        "IN-21",
+        "INV-15",
         "DI-05"
       ]
     },
