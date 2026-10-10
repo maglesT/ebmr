@@ -148,3 +148,7 @@ output past the limit is now held), 2 (strokes could be undercounted without a b
 TB-12 to TB-15 checks held nothing), 4 (a missed check now holds at once instead of at the next entry), 5 (a batch
 market without a rule set fails closed; counts and sample sizes taken across all sets; friability repeats reuse the
 first run's sets).
+- **For the owner and the expert:** weight mode e (subdivision of scored tablets) has no Indian Pharmacopoeia rule set
+  in `tab.compendial_rule_set`, so with the fail-closed rule (review 5) it cannot be used until the expert adds the IP
+  rule set or records it as not applicable in `tab.compendial_not_applicable`. Likewise a sugar-coated batch that opts
+  into the legacy in-house table is refused until its rule set is confirmed. Default until then: refused.
