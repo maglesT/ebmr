@@ -27,6 +27,7 @@
  * sweeper holds none of its permissions (INTERFACE.WRITE and the other service rights). The site gateway acts in
  * its own role SITE_GATEWAY (tablets 0290), which is only for INTEGRATION accounts and never holds EXECUTION.SWEEP.
  *
+ * With each sweep the same identity also records the overdue periodic IPC checks of TB-11 runs (recordIpcOverdue).
  * With each sweep the same identity records the interface losses of steps on process devices (recordInterfaceLosses,
  * slice 3a review backlog #7).
  *
@@ -126,6 +127,33 @@ export async function recordInterfaceLosses(app: AppContext, actor: ActorContext
   });
 }
 
+export interface IpcOverdue {
+  batchId: string;
+  stepKey: string;
+  stream: string;
+  test: string;
+  dueUs: string;
+}
+
+/**
+ * Phase 3 slice 3c (TB-11, IN-35 (c)): records, as `actor` (the sweeper's SYSTEM service session, EXECUTION.SWEEP), an
+ * alarm for every periodic IPC check of a running batch's TB-11 run that is overdue beyond its grace at database time
+ * (tablets 0893, tab.record_ipc_overdue; once per check and due time), without waiting for an operator's entry. The hold
+ * and IPC_CHECK_MISSED follow with the run's next entry, which the database makes list the missed check. Returns the
+ * alarms recorded now.
+ */
+export async function recordIpcOverdue(app: AppContext, actor: ActorContext): Promise<IpcOverdue[]> {
+  return withActorCommand(app.pools.app, { ...actor, correlationId: randomUUID() }, async (client) => {
+    const { rows } = await client.query<{ id: string }>("select b.id from recipe.batch_execution b join recipe.execution_state s on s.batch_id = b.id where s.status = 'IN_PROGRESS' order by b.issued_at");
+    const out: IpcOverdue[] = [];
+    for (const r of rows) {
+      const res = await client.query<{ a: Omit<IpcOverdue, 'batchId'>[] }>('select tab.record_ipc_overdue($1) as a', [r.id]);
+      for (const a of res.rows[0]?.a ?? []) out.push({ batchId: r.id, stepKey: a.stepKey, stream: a.stream, test: a.test, dueUs: a.dueUs });
+    }
+    return out;
+  });
+}
+
 /**
  * Opens a SERVICE_KEY session of the sweeper identity on its SERVER terminal and returns its SYSTEM actor in the
  * sweeper's own role (SWEEPER_ROLE; the kernel refuses the context unless the account holds it, EBMR-IAM-108). The
@@ -183,6 +211,8 @@ export function startSweeper(
         const r = await sweepAll(app, await session());
         const losses = await recordInterfaceLosses(app, await session());
         if (losses.length > 0) log.warn({ losses: losses.length, first: losses[0] }, 'the link to a process device was lost; recorded as interface loss');
+        const overdue = await recordIpcOverdue(app, await session());
+        if (overdue.length > 0) log.warn({ overdue: overdue.length, first: overdue[0] }, 'a periodic in-process check is overdue; recorded as an alarm');
         if (r.failures.length > 0) {
           log.warn({ failures: r.failures.length, first: r.failures[0]?.error }, 'the sweeper could not sweep every test run');
           actor = null; // a lapsed session is reopened next time

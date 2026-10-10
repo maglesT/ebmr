@@ -12,6 +12,8 @@ import { readFileSync } from 'node:fs';
 import type { PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
+import { openServiceSession } from '@ebmr/test-kit';
+import { recordIpcOverdue } from '../../../src/features/execution/sweeper.ts';
 import type { flow } from '@ebmr/recipe-core';
 import { DEMO_GATEWAY, DEMO_INSTRUMENTS, enrolGateway } from '../../../src/features/devices/enrol.ts';
 import { IPC_BLOCK_VERSIONS } from '../../../src/blocks/ipc/index.ts';
@@ -348,7 +350,7 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
     expect(await direct('FAIL')).toBe('ok');
   });
 
-  it('[IN-35][PR-29][DI-28] TB-11 missed check at database time: the overdue checks are read at an instant (catalogue test: the alarm fires once the interval and grace have passed), recorded once as an alarm, and the next entry must list them with IPC_CHECK_MISSED, the database recording MISSED for each stream and holding its containers', async () => {
+  it('[IN-35][PR-29][DI-28] TB-11 missed check at database time: the overdue checks are read at an instant (catalogue test: the alarm fires once the interval and grace have passed), recorded once as an alarm by the server sweeper job without any operator entry, and the next entry must list them with IPC_CHECK_MISSED, the database recording MISSED for each stream and holding its containers', async () => {
     const x = await newRun({ value: '2', unit: 's' }, { value: '1', unit: 's' });
     await x.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb11@' });
     expect(await verdict(x, 'p-tb11', { kind: 'RUN_START', press: 'TEST-PRESS-01' })).toBe('ok');
@@ -364,8 +366,12 @@ describe('the IPC blocks in the database (tablets 0890 to 0893)', () => {
     ]);
     const c1 = await asOperator(x, async (c) => (await c.query<{ r: Json }>("select plant.open_container($1, 'COMPRESSION', 'kg', 'TEST-PRESS-01', 'R') as r", [x.d.runId])).rows[0]?.r ?? {});
     await wait(3_500);
-    const alarms = await asOperator(x, async (c) => (await c.query<{ r: Json[] }>('select tab.record_ipc_overdue($1) as r', [x.d.runId])).rows[0]?.r ?? []);
-    expect(alarms.map((m) => [m['stream'], m['test']])).toEqual([['L', 'WEIGHT'], ['R', 'WEIGHT']]);
+    // The server's sweeper job records the alarms at database time without any operator entry, once each.
+    const sweeper = { ...(await openServiceSession(sbx.db, sbx.seed, 'sweeper')), correlationId: randomUUID() };
+    const alarms = (await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === x.d.runId);
+    expect(alarms.map((m) => [m.stepKey, m.stream, m.test])).toEqual([['p-tb11@', 'L', 'WEIGHT'], ['p-tb11@', 'R', 'WEIGHT']]);
+    expect((await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === x.d.runId)).toEqual([]);
+    expect(await sql<number>('select count(*)::int as r from tab.ipc_overdue_alarm where batch_id = $1', [x.d.runId])).toBe(2);
     expect(await asOperator(x, async (c) => (await c.query<{ r: Json[] }>('select tab.record_ipc_overdue($1) as r', [x.d.runId])).rows[0]?.r)).toEqual([]);
     // The next entry without the missed checks (a forged engine) is refused; the honest one lists them.
     const late = manualGroup('L', '5000.0');
