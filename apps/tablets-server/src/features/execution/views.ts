@@ -85,7 +85,12 @@ function stepStatusText(inst: engine.StepInstance | undefined, def: engine.Batch
   return STEP_STATUS_TEXT[inst.status];
 }
 
-export function watermark(): Watermark {
+/**
+ * The watermark of a run's views (DI-05): TEST, NOT GMP on every view of a sandbox test run; none on a GMP batch. It
+ * follows the installation the server runs (the batch's own installation is the same: recipe-core 0500, EBMR-EXE-190).
+ */
+export function watermark(installation: 'GMP' | 'SANDBOX'): Watermark | null {
+  if (installation === 'GMP') return null;
   const w = sandbox.watermarkFor('SANDBOX_TEST_RUN');
   if (!w) throw new Error('the sandbox test-run watermark is missing (DI-05)');
   return { text: 'TEST, NOT GMP', source: 'SANDBOX_TEST_RUN', notice: w.notice, control: 'DI-05' };
@@ -772,9 +777,9 @@ async function header(ctx: ViewContext, stageId: string | undefined, withScale: 
     markets: [...ctx.state.header.marketSet],
     status: ctx.state.status,
     statusText: BATCH_STATUS_TEXT[ctx.state.status],
-    watermark: watermark(),
+    watermark: watermark(ctx.app.installation),
     version: ctx.state.version,
-    mbr: { familyCode: ctx.run.def.mbr.header.family, versionNumber: ctx.run.pkg.versionNumber, revision: ctx.run.pkg.revision, contentHash: ctx.run.def.contentHash },
+    mbr: { familyCode: ctx.run.def.mbr.header.family, versionNumber: ctx.run.mbr.versionNumber, revision: ctx.run.mbr.revision, contentHash: ctx.run.def.contentHash },
     stage: stageRef(ctx, stageId),
     room,
     equipment: (stage?.binding.equipment ?? []).map((e) => {

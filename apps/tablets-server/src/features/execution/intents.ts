@@ -3,7 +3,8 @@
  * commands are not engine commands"; section 7, "Command flow"). The browser says what the person did; the
  * server supplies every fact the browser must not:
  *  - the actor and the engine roles (stored authority evaluations, INV-26);
- *  - lot facts from tab.sandbox_lot (PR-18), by code;
+ *  - lot facts from the lot register of this installation (PR-18), by code: tab.sandbox_lot's TEST- lots in the
+ *    sandbox, the site's material lots (site.material_lot, at the batch's site) in GMP (tablets 0801);
  *  - weights from the scale readings claimed by id through the DeviceReadingPort (source DEVICE with the
  *    raw line and time trust set here, DI-32), or, when no scale of the step's room is online, the values keyed
  *    by hand at a terminal of that room (source MANUAL: the block flags the entry and forces a second person,
@@ -12,8 +13,8 @@
  *    that shows another version of the run, which the engine refuses (ENG-STALE), the readings are named with every
  *    check of the command's claims, made together, but not used, so the refusal is recorded and they stay usable for
  *    the resend (F58, F58.1);
- *  - container ids (TEST- lot-number pattern, prefixed by the batch number) and the batch read from a
- *    scanned container label;
+ *  - container ids (prefixed by the batch number, under this installation's lot-number rule: TEST- in the sandbox, never
+ *    TEST- in GMP) and the batch read from a scanned container label;
  *  - the source of a recorded value: the server cannot attest a scan made on the terminal, so a value is a
  *    hand entry (MANUAL, with the hand-entry rules of DI-30) unless the server captured it itself; a SCAN claim
  *    for a parameter the MBR does not scan, and a photo or printout hash that names no stored attachment, are
@@ -363,16 +364,19 @@ async function weights(ctx: IntentContext, room: string | null, e: { tareReading
   };
 }
 
-/** A container id of this batch: `<batch number>/C<n>` (TEST- lot-number pattern), or a requested one of that form. */
-export function containerId(state: engine.BatchState, requested: string | undefined): string {
+/**
+ * A container id of this batch: `<batch number>/C<n>`, or a requested one of that form, under the lot-number rule of the
+ * installation (TEST- in the sandbox, never TEST- in GMP; DI-05).
+ */
+export function containerId(state: engine.BatchState, requested: string | undefined, installation: 'GMP' | 'SANDBOX' = 'SANDBOX'): string {
   const batch = state.header.batchNumber;
   if (requested !== undefined) {
-    const problem = sandbox.identifierProblem('SANDBOX', 'LOT_NUMBER', requested);
+    const problem = sandbox.identifierProblem(installation, 'LOT_NUMBER', requested);
     if (!requested.startsWith(`${batch}/`) || problem !== null || state.containers[requested] !== undefined) {
       throw refuse(
         'EBMR-EXE-077',
         'This container id cannot be used. Nothing was saved.',
-        `${requested.slice(0, 64)} ${state.containers[requested] !== undefined ? 'is already a container of this batch' : `is not a container id of batch ${batch} (<batch number>/<id>, TEST- lot-number rules)`}.`,
+        `${requested.slice(0, 64)} ${state.containers[requested] !== undefined ? 'is already a container of this batch' : `is not a container id of batch ${batch} (<batch number>/<id>, ${installation === 'SANDBOX' ? 'TEST- lot-number rules' : 'the lot-number rules of this installation'})`}.`,
         ['DI-05', 'PR-21'],
         ['Leave the container id empty: the system gives the next one.'],
       );
@@ -388,15 +392,24 @@ export function containerId(state: engine.BatchState, requested: string | undefi
 export const NO_PREVIOUS_BATCH = 'NONE';
 
 /**
- * DI-05: an identifier an entry records in a test run is a test identifier (TEST-...), never a real GMP one; refused
- * before anything is written (the database refuses the row too: tablets 0370, EBMR-EXE-078).
+ * DI-05: an identifier an entry records is one of this installation: a test identifier (TEST-...) in a test run, never a
+ * real GMP one, and a real one in a GMP batch, never a TEST- one; refused before anything is written (the database
+ * refuses the row too: tablets 0370 and 0801, EBMR-EXE-078).
  */
-function requireTestIdentifier(kind: 'BATCH_NUMBER' | 'LOT_NUMBER', value: string, what: string): void {
-  const problem = sandbox.identifierProblem('SANDBOX', kind, value);
+function requireOwnIdentifier(installation: 'GMP' | 'SANDBOX', kind: 'BATCH_NUMBER' | 'LOT_NUMBER', value: string, what: string): void {
+  const problem = sandbox.identifierProblem(installation, kind, value);
   if (problem !== null) {
-    throw refuse(problem.code, `This ${what} cannot be recorded in a test run. Nothing was saved.`, problem.message, ['DI-05'], [
-      `Enter the test ${kind === 'BATCH_NUMBER' ? 'batch number' : 'lot or container'} shown on the test record (it starts with TEST-).`,
-    ]);
+    throw refuse(
+      problem.code,
+      `This ${what} cannot be recorded in ${installation === 'SANDBOX' ? 'a test run' : 'a GMP batch'}. Nothing was saved.`,
+      problem.message,
+      ['DI-05'],
+      [
+        installation === 'SANDBOX'
+          ? `Enter the test ${kind === 'BATCH_NUMBER' ? 'batch number' : 'lot or container'} shown on the test record (it starts with TEST-).`
+          : `Enter the ${kind === 'BATCH_NUMBER' ? 'batch number' : 'lot or container'} shown on the GMP label; test identifiers (TEST-) belong to the sandbox only.`,
+      ],
+    );
   }
 }
 
@@ -409,12 +422,23 @@ export function labelBatch(code: string): string {
 async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
   switch (e.kind) {
     case 'CONTAINER_WEIGHING': {
-      const lot = await resolveLot(ctx.client, e.lotCode);
+      const installation = ctx.app.installation;
+      // GMP: a TEST- lot is named as such before the register is read (the sandbox answers an unknown lot below).
+      if (installation === 'GMP') requireOwnIdentifier(installation, 'LOT_NUMBER', e.lotCode, 'lot');
+      const lot = await resolveLot(ctx.client, e.lotCode, ctx.state.header.batchId);
       if (!lot) {
-        throw refuse('EBMR-EXE-072', `Lot ${e.lotCode.slice(0, 64)} is not known on this installation. Nothing was saved.`, 'Only registered TEST- lots can be dispensed in a test run; the lot status comes from the lot register, never from the terminal (PR-18).', ['PR-18', 'DI-05'], ['Scan the lot label again, or ask for the lot to be registered.']);
+        throw refuse(
+          'EBMR-EXE-072',
+          `Lot ${e.lotCode.slice(0, 64)} is not known on this installation. Nothing was saved.`,
+          installation === 'SANDBOX'
+            ? 'Only registered TEST- lots can be dispensed in a test run; the lot status comes from the lot register, never from the terminal (PR-18).'
+            : "Only material lots received into this site's lot register can be dispensed in a GMP batch; the lot status comes from the register, never from the terminal (PR-18).",
+          ['PR-18', 'DI-05'],
+          ['Scan the lot label again, or ask for the lot to be registered.'],
+        );
       }
       const w = await weights(ctx, room, e);
-      const container = containerId(ctx.state, e.container);
+      const container = containerId(ctx.state, e.container, installation);
       return {
         entry: { kind: 'CONTAINER_WEIGHING', item: e.item, bomLine: e.bomLine, container, lot: lotForEngine(lot), gross: w.gross, tare: w.tare, unit: w.unit, balance: w.balance, source: w.source },
         ...(w.occurredAt ? { occurredAt: w.occurredAt } : {}),
@@ -423,7 +447,7 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
     }
     case 'OUTPUT_CONTAINER': {
       const w = await weights(ctx, room, e);
-      const container = containerId(ctx.state, e.container);
+      const container = containerId(ctx.state, e.container, ctx.app.installation);
       return {
         entry: { kind: 'OUTPUT_CONTAINER', intermediate: e.intermediate, container, gross: w.gross, tare: w.tare, unit: w.unit, balance: w.balance, source: w.source },
         ...(w.occurredAt ? { occurredAt: w.occurredAt } : {}),
@@ -431,13 +455,13 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       };
     }
     case 'CHARGE_CONTAINER':
-      requireTestIdentifier('LOT_NUMBER', e.containerCode, 'container label');
-      requireTestIdentifier('BATCH_NUMBER', labelBatch(e.containerCode), 'container label');
+      requireOwnIdentifier(ctx.app.installation, 'LOT_NUMBER', e.containerCode, 'container label');
+      requireOwnIdentifier(ctx.app.installation, 'BATCH_NUMBER', labelBatch(e.containerCode), 'container label');
       return { entry: { kind: 'CHARGE_CONTAINER', container: e.containerCode, scannedBatch: labelBatch(e.containerCode) }, evidence: { scanned: e.containerCode } };
     case 'CLEARANCE_CHECK':
       return { entry: { kind: 'CLEARANCE_CHECK', answers: e.answers.map((a) => ({ id: a.id, answer: a.answer })) }, evidence: {} };
     case 'PREVIOUS_BATCH':
-      if (e.batchNumber !== NO_PREVIOUS_BATCH) requireTestIdentifier('BATCH_NUMBER', e.batchNumber, 'previous batch number');
+      if (e.batchNumber !== NO_PREVIOUS_BATCH) requireOwnIdentifier(ctx.app.installation, 'BATCH_NUMBER', e.batchNumber, 'previous batch number');
       return { entry: { kind: 'PREVIOUS_BATCH', product: e.product, batchNumber: e.batchNumber }, evidence: {} };
     case 'EQUIPMENT_STATUS':
       return { entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: e.equipmentRef, labelId: e.labelId, answers: e.answers.map((a) => ({ id: a.id, answer: a.answer })) }, evidence: {} };

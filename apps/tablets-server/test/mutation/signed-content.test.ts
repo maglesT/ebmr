@@ -418,7 +418,7 @@ describe('a decision is signed on a hold point that lists it (recipe-core 0296)'
     const d = await driver(withEarlyHoldPoint(), ['operator1']);
     const run = await runContext(sbx.db.admin, d.runId);
     const state = (await execution.loadState(sbx.db.admin, d.runId))?.state;
-    const content = JSON.parse(JSON.stringify(run.pkg.content)) as Json;
+    const content = JSON.parse(JSON.stringify(run.pkg?.content)) as Json;
     // procedure -> sequence -> S-DISP -> its sequence -> O-DISP-PREP -> its sequence: the children of the preparation.
     const nodes = (c: Json): Json[] => {
       const stage = (((c['procedure'] as Json)['body'] as Json)['children'] as Json[])[0] as Json;
@@ -447,7 +447,7 @@ describe('a decision is signed on a hold point that lists it (recipe-core 0296)'
         await c.query('begin');
         try {
           await c.query('set local session_replication_role = replica');
-          await c.query('update recipe.test_package set content = $1::jsonb where package_hash = $2', [JSON.stringify(mbr), run.pkg.packageHash]);
+          await c.query('update recipe.test_package set content = $1::jsonb where package_hash = $2', [JSON.stringify(mbr), run.pkg?.packageHash]);
           const { rows } = await c.query<{ m: string[] | null }>('select recipe.step_signature_meanings($1, $2::jsonb, $3::jsonb) as m', [
             d.runId,
             JSON.stringify(engine.encodeState(state as engine.BatchState)),

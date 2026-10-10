@@ -321,7 +321,8 @@ export interface GatewayListener {
 }
 
 export async function startGatewayListener(app: AppContext, listen: { host: string; port: number }): Promise<GatewayListener> {
-  if (app.installation !== 'SANDBOX') throw new Error('the gateway listener runs on the sandbox installation in Phase 2');
+  // Both installations since Phase 3 slice 2b: a gateway is enrolled in one installation and its login is checked
+  // against that installation in SQL (chain, sequence, serial, installation), so a sandbox gateway never feeds GMP.
   const runtime = runtimeOf(app);
   const server = Fastify({ logger: false, bodyLimit: 1024 * 1024, trustProxy: false });
   // Review F33, round 2: a JSON body is read as strict UTF-8, never through Fastify's replacing decoder, which made

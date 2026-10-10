@@ -80,3 +80,12 @@ command evidence must not carry a package hash; the server sends none).
 |---|---|---|---|---|
 | 4 | Low | prepare_gmp_issue accepts an allocation made earlier by another person and checks only BATCH.ISSUE there; the TEST- check on the number runs at issue, not at planning (harmless: issue re-checks both) | recipe-core 0501 | Phase 4 (planning screens) |
 | 5 | Medium | An operator whose STEP.EXECUTE grant is limited to a product cannot start a press or open a container: the equipment and container state transitions check the permission at site scope only (fails closed). Default: those transitions also evaluate the batch's product scope | recipe-core 0403, 0422 transitions | Slice 3 (press blocks) |
+
+## Slice 2b open items (builder report, 10 October 2026)
+
+- A released site lot is not yet exercised on GMP: no seeded GMP persona receives or releases lots (slice 5, ERP stub
+  and LIMS-lite seed them).
+- Weighing on GMP (devices, readings) is not exercised end to end (slice 3, dispensing blocks).
+- The running-batch routes keep their `/api/test-runs/*` paths on GMP; renaming them is screen work (slice 6).
+- GMP batch planning needs `EBMR_NUMBER_LEDGER_FILE` for the protected number ledger; without it planning is refused
+  with NUMBERING_NOT_CONFIGURED (deployment configuration, documented with the server settings).

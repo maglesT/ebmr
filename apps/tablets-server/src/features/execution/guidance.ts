@@ -1,5 +1,5 @@
 /**
- * Guidance for the refusals of the sandbox test runs (module C3): EBMR-EXE-NNN from the execution store and
+ * Guidance for the refusals of batch execution (module C3; sandbox test runs and GMP batches): EBMR-EXE-NNN from the execution store and
  * the tablets SQL, and ENG-* from the engine. `why` is always the database's or the engine's own message;
  * these entries add what happened, what to do and who can help (Phase 2 apps plan section 4).
  */
@@ -40,7 +40,7 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-EXE-061': { status: 409, kind: 'NOT_ENABLED', whatHappened: 'This test run was issued with another engine version and is never run or replayed with this one.', whatYouCanDo: ['Open it on a server with its engine version.'], whoCanHelp: [ADMIN], controls: ['DI-34'] },
   'EBMR-EXE-062': { status: 409, kind: 'NOT_ENABLED', whatHappened: 'This test run was issued with other block versions and is never run or replayed with these.', whatYouCanDo: ['Open it on a server with its block versions.'], whoCanHelp: [ADMIN], controls: ['DI-34'] },
   'EBMR-EXE-063': { status: 409, kind: 'NOT_ENABLED', whatHappened: 'The engine policy differs from the one pinned when the test run was issued.', whatYouCanDo: ['Stop and report it.'], whoCanHelp: [ADMIN], controls: ['DI-34'] },
-  'EBMR-EXE-064': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'Test runs execute only in the sandbox.', whatYouCanDo: ['Use the sandbox installation.'], whoCanHelp: [], controls: ['DI-05', 'INV-18'] },
+  'EBMR-EXE-064': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'A batch executes only a definition made for its own installation: test runs in the sandbox, GMP batches in GMP.', whatYouCanDo: ['Open the batch on its own installation.'], whoCanHelp: [ADMIN], controls: ['DI-05', 'INV-18'] },
   'EBMR-EXE-070': { status: 422, kind: 'INVALID_INPUT', whatHappened: 'The test lot is incomplete. Nothing was saved.', whatYouCanDo: ['Give the lot code, material, status and whether it is identity-tested.'], whoCanHelp: [], controls: ['PR-18'] },
   'EBMR-EXE-071': { status: 409, kind: 'STALE', whatHappened: 'This test lot is registered already; a lot is never changed.', whatYouCanDo: ['Register a new lot.'], whoCanHelp: [], controls: ['PR-18'] },
   // Raised by the database too (tablets 0310): a hand-keyed weighing beside an online scale of the room, from a
@@ -471,6 +471,72 @@ export const EXECUTION_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     whatYouCanDo: ['Reload the step and follow its hand-over as shown.'],
     whoCanHelp: [SUPERVISOR, QA],
     controls: ['PR-14', 'INV-03', 'DI-14', 'DI-24'],
+  },
+  // The GMP batch issue (recipe-core 0500, 0501; Phase 3 slice 2b): planned from an effective MBR version with a number
+  // from the site's register, then issued under the issuer's ISSUED signature in the command that signs it.
+  'EBMR-EXE-190': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'A batch of the other installation is never written here: a sandbox record never becomes a GMP record, and a GMP batch is never written in the sandbox. Nothing was saved.',
+    whatYouCanDo: ['Issue GMP batches on the GMP installation and test runs in the sandbox.'],
+    whoCanHelp: [ADMIN],
+    controls: ['DI-05', 'INV-18'],
+  },
+  'EBMR-EXE-191': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: "The batch number is not one the site's batch-number register gave for this batch, or it was given to a batch already; a batch number is never reused. Nothing was saved.",
+    whatYouCanDo: ['Plan the batch again: the register gives it a new number.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['DI-05', 'IN-18', 'INV-27'],
+  },
+  'EBMR-EXE-192': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The batch cannot be planned or issued: a GMP batch is issued only from the MBR version effective for its markets, site, line and batch size, with India in every market set and every market approved. Nothing was saved.',
+    whatYouCanDo: ['Read the reason: choose another market set, line or batch size, or ask QA which MBR version is effective.'],
+    whoCanHelp: ['QA (MBR approval)', 'Regulatory affairs'],
+    controls: ['DI-05', 'INV-01', 'INV-02', 'INV-28', 'PR-04'],
+  },
+  'EBMR-EXE-193': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The batch is issued only under the issuer\'s own valid ISSUED signature of its issue content. Nothing was issued.',
+    whatYouCanDo: ['Sign the issue yourself, from the batch you planned.'],
+    whoCanHelp: [],
+    controls: ['DI-14', 'DI-35', 'INV-10'],
+  },
+  'EBMR-EXE-194': {
+    status: 422,
+    kind: 'INVALID_INPUT',
+    whatHappened: 'The issue does not match the planned batch (its markets, batch size or site). Nothing was issued.',
+    whatYouCanDo: ['Reload the planned batch and issue it as planned.'],
+    whoCanHelp: [SUPERVISOR],
+    controls: ['INV-01', 'INV-28', 'PR-04'],
+  },
+  'EBMR-EXE-195': {
+    status: 422,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'The MBR version holds a block that runs only in the sandbox, so no GMP batch is issued from it. Nothing was saved.',
+    whatYouCanDo: ['Ask the MBR author for a version without sandbox-only blocks.'],
+    whoCanHelp: ['The MBR author'],
+    controls: ['DI-05', 'INV-18'],
+  },
+  'EBMR-EXE-196': {
+    status: 409,
+    kind: 'STALE',
+    whatHappened: 'The MBR version this batch was planned on is no longer the one its markets and scope may use now. Nothing was issued.',
+    whatYouCanDo: ['Plan the batch again: it is planned on the version effective now.'],
+    whoCanHelp: ['QA (MBR approval)'],
+    controls: ['INV-01', 'PR-05'],
+  },
+  'EBMR-EXE-197': {
+    status: 409,
+    kind: 'STALE',
+    whatHappened: 'This batch is planned or issued already; a batch is planned and issued once. Nothing was saved.',
+    whatYouCanDo: ['Reload the list of batches.'],
+    whoCanHelp: [],
+    controls: ['DI-34'],
   },
   'ENG-*': { status: 422, kind: 'NOT_ALLOWED', whatHappened: 'The batch rules do not allow this now. The refusal is recorded in the test run; nothing else changed.', whatYouCanDo: ['Read the reason, then do what the step asks first.'], whoCanHelp: [SUPERVISOR], controls: ['DI-34'] },
   // A command from a screen that shows another version of the run: recorded as a refused row, with no scale reading

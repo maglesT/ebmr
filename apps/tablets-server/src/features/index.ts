@@ -1,6 +1,8 @@
 /**
  * The fixed list of feature modules (plan section 3). Owners: meta and session C0; access, esig and audit C1;
- * designer C2 (GMP); execution C3 (sandbox); devices C5 (sandbox). A module replaces only its own index.ts.
+ * designer C2 (GMP); execution C3 and devices C5 on both installations since Phase 3 slice 2b (test packages and test
+ * batches stay sandbox-only, the GMP batch issue GMP-only, by the contract's route installations; each installation has its
+ * own gateways and scales). A module replaces only its own index.ts.
  */
 import * as access from './access/index.ts';
 import * as audit from './audit/index.ts';
@@ -19,8 +21,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'esig', installations: ['GMP', 'SANDBOX'], module: esig satisfies FeatureModule },
   { name: 'audit', installations: ['GMP', 'SANDBOX'], module: audit satisfies FeatureModule },
   { name: 'designer', installations: ['GMP'], module: designer satisfies FeatureModule },
-  { name: 'execution', installations: ['SANDBOX'], module: execution satisfies FeatureModule },
-  { name: 'devices', installations: ['SANDBOX'], module: devices satisfies FeatureModule },
+  { name: 'execution', installations: ['GMP', 'SANDBOX'], module: execution satisfies FeatureModule },
+  { name: 'devices', installations: ['GMP', 'SANDBOX'], module: devices satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

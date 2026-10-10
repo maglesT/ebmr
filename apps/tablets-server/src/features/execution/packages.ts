@@ -188,9 +188,9 @@ export function issueForm(pkg: PackageRecord, def: engine.BatchDefinition): z.in
 /**
  * Checks the header facts before anything is allocated: every BATCH_HEADER and MASTER_DATA input is given (a
  * COUNT header input is a positive whole number), India is in the market set; then a pure engine issue at
- * `nowUs` with a placeholder number, so a refusal never consumes a TEST- number.
+ * `nowUs` with a placeholder number (a GMP batch's own planned number), so a refusal never consumes a TEST- number.
  */
-export function checkIssue(def: engine.BatchDefinition, request: Omit<engine.IssueRequest, 'batchId' | 'batchNumber'>, nowUs: bigint): void {
+export function checkIssue(def: engine.BatchDefinition, request: Omit<engine.IssueRequest, 'batchId' | 'batchNumber'>, nowUs: bigint, placeholderNumber = 'TEST-CHECK'): void {
   const missing = def.mbr.inputs.filter((i) => request.inputs[i.id] === undefined).map((i) => `${i.name} (${i.id})`);
   if (missing.length > 0) {
     throw refusal(422, { code: 'EBMR-EXE-085', kind: 'INVALID_INPUT', whatHappened: 'Every batch-header and master-data value must be given at issue. Nothing was issued.', why: `Missing: ${missing.join(', ')}.`, controls: ['PR-10', 'DI-10'], whatYouCanDo: ['Enter the missing values.'] });
@@ -200,7 +200,7 @@ export function checkIssue(def: engine.BatchDefinition, request: Omit<engine.Iss
     throw refusal(422, { code: 'EBMR-EXE-085', kind: 'INVALID_INPUT', whatHappened: 'A count at issue must be a positive whole number. Nothing was issued.', why: `Zero given for ${zero.join(', ')}.`, controls: ['PR-10', 'DI-30'], whatYouCanDo: ['Enter the count from the batch header.'] });
   }
   try {
-    engine.issue(def, { ...request, batchId: '00000000-0000-4000-8000-000000000000', batchNumber: 'TEST-CHECK' }, { nowUs });
+    engine.issue(def, { ...request, batchId: '00000000-0000-4000-8000-000000000000', batchNumber: placeholderNumber }, { nowUs });
   } catch (e) {
     if (e instanceof engine.IssueRefusedError) {
       throw refusal(422, { code: e.code, kind: 'INVALID_INPUT', whatHappened: 'The batch cannot be issued with these values. Nothing was issued.', why: e.message, controls: ['PR-01', 'PR-10'], whatYouCanDo: ['Correct the values and issue again.'] });

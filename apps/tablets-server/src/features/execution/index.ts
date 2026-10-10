@@ -1,7 +1,10 @@
 /**
- * Feature `execution` (module C3; sandbox only; Phase 2 apps plan sections 7 and 9): test packages, TEST-
- * batches, the step screen, the work queue, commands, the timeline, replay and lots, plus the ENGINE_COMMAND
- * signable action, the time sweeper and the demo seed of test lots.
+ * Feature `execution` (module C3; Phase 2 apps plan sections 7 and 9; Phase 3 slice 2b): on both installations the step
+ * screen, the work queue, commands, the timeline, replay and lots, the ENGINE_COMMAND signable action and the time
+ * sweeper; in the sandbox test packages, TEST- batches and the demo seed of test lots; in GMP the batch planned from an
+ * effective MBR version and its issue under the issuer's ISSUED signature (gmp-issue.ts, signable action
+ * GMP_BATCH_ISSUE). Which routes exist is the contract's (routes of the other installation are not bound: DI-05, INV-18);
+ * what a batch runs and how its views are watermarked follow the installation (runs.ts, views.ts).
  *
  * Every write is one kernel command (withIdempotentActorCommand, the badge tap consumed on shared terminals,
  * INV-40): the batch is locked and the trusted time taken (INV-16), engine roles come from stored authority
@@ -14,15 +17,16 @@
 import { randomUUID } from 'node:crypto';
 import { routes, type ClientIntent, type Refusal, type ReplayReportView } from '@ebmr/api-contract';
 import type { z } from 'zod';
-import type { commands } from '@ebmr/kernel';
+import { sandbox, type commands } from '@ebmr/kernel';
 import { execution, type engine } from '@ebmr/recipe-core';
 import type { FastifyInstance } from 'fastify';
 import type { ResolvedSession } from '../../platform/auth/session.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { HttpRefusal } from '../../platform/http/refusal.ts';
+import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
+import { gmpIssueHandler, planGmpBatch } from './gmp-issue.ts';
 import { EXECUTION_GUIDANCE, engineRefusal } from './guidance.ts';
 import { dataValueOf, resolveClientIntent } from './intents.ts';
 import { peopleText } from './people-text.ts';
@@ -40,6 +44,7 @@ export { seed } from './seed.ts';
 
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
   registry.register(engineCommandHandler(app));
+  if (app.installation === 'GMP') registry.register(gmpIssueHandler(app));
 }
 
 function viewerOf(s: ResolvedSession | null): ViewerInfo | null {
@@ -165,6 +170,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       return runView(await viewContextFor(app, pool, out.result.runId, s));
     },
 
+    planBatch: async ({ body, requireSession, actor, idempotencyKey, requestHash }) => {
+      requireSession();
+      return planGmpBatch(app, actor(), idempotencyKey ?? '', requestHash, { familyId: body.familyId, markets: [...new Set(body.markets)], site: body.site, line: body.line, batchSize: body.batchSize });
+    },
+
     runs: async ({ requireSession }) => {
       requireSession();
       const { rows } = await pool.query<{ id: string }>('select id from recipe.batch_execution order by issued_at desc limit 200');
@@ -216,6 +226,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
     lot: async ({ params, requireSession }) => {
       requireSession();
+      // GMP: a TEST- lot is named as one of the sandbox, never looked up (DI-05); the sandbox knows only TEST- lots.
+      const problem = app.installation === 'GMP' ? sandbox.identifierProblem('GMP', 'LOT_NUMBER', params.code) : null;
+      if (problem) {
+        throw refusal(422, { code: problem.code, kind: 'NOT_ALLOWED', whatHappened: 'This lot cannot be used in a GMP batch.', why: problem.message, controls: ['DI-05'], whatYouCanDo: ['Scan the lot label of a material lot of this site; test lots (TEST-) belong to the sandbox only.'] });
+      }
       const l = await resolveLot(pool, params.code);
       if (!l) throw notFound('lot');
       return lotView(l, (us) => app.formatInstant(us));

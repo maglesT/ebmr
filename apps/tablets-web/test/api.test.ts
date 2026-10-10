@@ -18,7 +18,7 @@ describe('fixture fetch (C4 works against it before the sandbox server exists)',
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.step.block).toBe('G-07@1');
-      expect(r.value.run.watermark.text).toBe('TEST, NOT GMP');
+      expect(r.value.run.watermark?.text).toBe('TEST, NOT GMP');
     }
     const meta = await client.call(routes.meta.get);
     expect(meta.ok && meta.value.installation).toBe('SANDBOX');

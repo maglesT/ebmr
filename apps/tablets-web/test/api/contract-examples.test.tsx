@@ -197,7 +197,7 @@ describe('the sandbox examples (lead TODO T7)', () => {
     expect(result.step.run.runId).toBe(run.header.runId);
     expect(result.step.run.batchNumber).toBe(run.header.batchNumber);
     expect(result.step.run.batchNumber).toMatch(/^TEST-B\d{2}-\d{4}$/);
-    expect(result.step.run.watermark.text).toBe('TEST, NOT GMP');
+    expect(result.step.run.watermark?.text).toBe('TEST, NOT GMP');
     expect(result.step.run.mbr).toEqual(run.header.mbr);
     expect(EXAMPLES.replay.data.runId).toBe(run.header.runId);
     expect(EXAMPLES.replay.data).toMatchObject({ identical: true, firstDifference: null, invariantViolations: [] });

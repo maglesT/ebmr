@@ -1,5 +1,5 @@
 /**
- * Feature `devices` (module C5, sandbox): scales behind the site gateway (Phase 2 apps plan section 10).
+ * Feature `devices` (module C5; both installations since Phase 3 slice 2b, each with its own enrolled gateways): scales behind the site gateway (Phase 2 apps plan section 10).
  *
  *  - plugin: the browser routes (scale status, capture trigger, live display relay);
  *  - deviceReadingPort: claims of readings by id inside the committing entry's command (port.ts);
@@ -28,7 +28,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   bindDeviceRoutes(scope, app);
   const runtime = runtimeOf(app);
   // DI-30 (tablets 0340): whether the server reaches a gateway's API is recorded only by its gateway API monitor.
-  if (app.installation === 'SANDBOX' && !runtime.monitorConfigured()) {
+  if (!runtime.monitorConfigured()) {
     scope.log.warn(
       { terminal: MONITOR_TERMINAL },
       'no gateway API monitor identity in the service-keys file: a gateway API the server cannot reach is not recorded, so its scales keep the status their heartbeats give',
