@@ -12,6 +12,11 @@
   `expert_decision` changes. What changes is when the heavy checks run and how deep the work goes beyond what a control
   and its regulation ask.
 
+> **Amended for the Phase 3 exit** by decision 0009 (10 October 2026): the Phase 3 exit row of section 1 is replaced by
+> the plan in `0009-phase-3-exit-mutation-and-full-testing.md` (an Opus mutation run on the Phase 3 code and on Phase 1
+> and 2 code changed since their exit runs, one Opus review pass, fixes each with a test, one final full run). The rest
+> of this decision stands.
+
 ## 1. Testing cadence
 
 | Item | Before | Now |

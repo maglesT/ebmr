@@ -17,9 +17,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0009).
   pass, the full suite, the golden batches and the browser suite. At most 2 fix rounds per finding. Validation-grade
   testing (mutation targets, multi-round adversarial review, IQ/OQ/PQ) belongs to deployment. Database enforcement for
   the regulation-required core only. The F12 sandbox identifier rule is frozen at kernel 1140 / recipe-core 0350.
-- Decision 0009 (10 October): the Phase 3 exit adds a mutation run by the top model (Stryker and the SQL harness,
-  Phases 1 to 3) and full testing of Phases 1 to 3 (suite, E2E, trace, GB-T-01); major issues only, no re-test loops;
-  the 0008 compliance relief stands.
+- Decision 0009 (10 October, approved; amends 0008 for the Phase 3 exit): an Opus mutation run on all Phase 3 code and
+  on Phase 1 and 2 code changed since their exit runs; one Opus review pass (design, serious defects); critical and high
+  fixed, each with its own test; then one final run of the suite, E2E, trace and GB-T-01. The 0008 relief stands.
 - Token economy (owner, 9 October): see CLAUDE.md. Top model for building, design and security fixes; Sonnet for
   quick reviews; Haiku for mechanical jobs. Few agents (2 to 3 at a time), short reports, short command output.
 - Defaults: take the default for any open question (decision 0004) and record it.
@@ -58,8 +58,8 @@ allowed), using the control's sources and outline section 9.2.
 5. Reprocessing and recovery; ERP stub, LIMS-lite, deviation-lite.
 6. Shop-floor, planning and master-data screens; the GB-T-01 golden batch demo.
 
-Exit (decision 0009): GB-T-01 matches its expected outputs exactly, the Phase 3 controls have passing tests, a mutation
-run and full testing of Phases 1 to 3, major issues fixed.
+Exit (decision 0009): the Phase 3 controls have passing tests; the Opus mutation run and review pass; critical and high
+fixed with tests; one final run of the suite, E2E, trace and GB-T-01 (exact outputs).
 
 ## How to work here
 
