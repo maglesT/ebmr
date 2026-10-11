@@ -134,6 +134,8 @@ beforeAll(async () => {
   runs.O = new RunDriver(sbx, await importAndIssue(sbx, issuer, writePackage(sbx, reprocessingDbMbr({ code: 'PCM650', strength: '650 mg' }))), browsers);
   for (const d of Object.values(runs)) d.beforeTap = advance;
   qa = personaIn(sbx, 'qa1').personId;
+  // The ERP product master of the test product (5a's register, arranged): 24 months' shelf life.
+  await asSetup(sbx, "insert into site.erp_product (product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, correlation_id) values ('PCM500', '500 mg', 'Paracetamol tablets', true, false, 24, 'TEST-ERP-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())");
   op1 = personaIn(sbx, 'operator1').personId;
   sResidue = await residue(runs.S);
   tResidue = await residue(runs.T);
@@ -235,6 +237,11 @@ describe('reprocessing and recovery additions in the database (recipe-core 0620 
     const sNumber = await sql<string>('select batch_number as r from recipe.batch_execution where id = $1', [runs.S.runId]);
     expect(row).toMatchObject({ container_id: sResidue, net_quantity: 0.25, unit: 'kg', source_batch_id: runs.S.runId, source_batch_number: sNumber, case_code: 'REPROCESSING_ADDITION', authorisation_id: a1, added_by_person: op1, block: 'TB-08@1' });
     expect((await facts(sResidue, R.runId))?.['remaining']).toBe('0.15');
+    // IN-19 (b): the source's expiry month (its manufacturing month plus the master's 24 months, less one) is recorded with
+    // the addition, and caps the receiving batch's expiry.
+    const expiry = await sql<string>("select to_char((date_trunc('month', (issued_at at time zone kernel.site_zone())::date) + interval '23 months')::date, 'YYYY-MM') as r from recipe.batch_execution where id = $1", [runs.S.runId]);
+    expect((e1['source'] as Json)['expiry']).toBe(expiry);
+    expect(await sql<string>("select to_char(recipe.recovered_expiry_cap($1) at time zone 'UTC', 'YYYY-MM-DD') as r", [R.runId])).toBe(`${expiry}-01`);
     expect(await sql<Json[]>('select recipe.batches_receiving_from($1) as r', [runs.S.runId])).toEqual([expect.objectContaining({ batchId: R.runId, quantity: '0.25', unit: 'kg', container: sResidue })]);
     expect(await sql<string>('select recipe.batch_reprocessing_basis($1) as r', [R.runId])).toBe('REPROCESSING_ADDITION');
     // The same authorisation again: the engine sees it at the step, a forged engine is refused by the database.
@@ -299,5 +306,18 @@ describe('reprocessing and recovery additions in the database (recipe-core 0620 
     expect(await refusal(w.message('operator1', entryCommand('p-g24', e)))).toBe('ok');
     expect((await facts(released, R.runId))?.['remaining']).toBe('4');
     expect(await sql<string>("select block as r from recipe.source_addition where container_id = $1", [released])).toBe('G-24@2');
+  });
+
+  it('[PR-47] the release reader reports a batch with reprocessed or recovered material added and no QC decision on additional testing, and nothing once QC has decided; a batch without additions has no reprocessing basis', async () => {
+    const R = runs.R;
+    expect(await sql<string>('select recipe.batch_reprocessing_basis($1) as r', [R.runId])).toBe('REPROCESSING_ADDITION');
+    expect(await sql<string>('select recipe.reprocessing_release_problem($1) as r', [R.runId])).toMatch(/reprocessed material added and QC has recorded no decision on additional testing/);
+    expect(await sql<string>('select recipe.reprocessing_release_problem($1) as r', [runs.O.runId])).toBeNull();
+    expect(await sql<string>('select recipe.batch_reprocessing_basis($1) as r', [runs.O.runId])).toBeNull();
+    // QC's decision (5a's register; arranged here, its command and signature are 5a's tests).
+    const number = await sql<string>('select batch_number as r from recipe.batch_execution where id = $1', [R.runId]);
+    await asSetup(sbx, "insert into site.qc_extra_testing_decision (batch_id, batch_number, edition, site_code, decision, tests, signature_id, decided_by_person, decided_by_account) values ($1, $2, 'TABLETS', 'SITE-1', 'EXTRA_TESTS', '{ASSAY}', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [R.runId, number]);
+    expect(await sql<string>('select recipe.reprocessing_release_problem($1) as r', [R.runId])).toBeNull();
+    await expect(sbx.db.app.query('select recipe.reprocessing_release_problem($1)', [R.runId])).resolves.toBeDefined();
   });
 });

@@ -71,7 +71,7 @@ export type ResolvedMinimum =
 
 export interface MinimaRequest {
   edition: Edition;
-  recordKind: 'PROCESSING' | 'PACKAGING';
+  recordKind: 'PROCESSING' | 'PACKAGING' | 'REPROCESSING';
   marketSet: readonly string[];
   predicates: Readonly<Record<string, string | boolean>>;
   /** Site-calendar date YYYY-MM-DD the rules are resolved for. */
