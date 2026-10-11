@@ -27,6 +27,8 @@ export { G01, G02, G17, G18, G19 } from './engine-level.ts';
 export { G03, G04, G05, G11, G13, G14, G16, G20 } from './recording.ts';
 export { computedItemsOf, G07, G08, G22, G23, MATERIAL_BLOCKS } from './material.ts';
 export { G12, G15, G24, samplingPlan } from './process.ts';
+export * as reprocessing from './reprocessing.ts';
+export { G24V2 } from './reprocessing.ts';
 export { G06, actualsOf, setpointsOf, criticalAlarmTags, interfaceConfigured, maxAgeMicros, DEFAULT_MAX_AGE_SECONDS } from './automated.ts';
 export { G09, G10, G09V2, G10V2, DEFAULT_CLEARANCE_CHECKLIST, DEFAULT_STATUS_CHECKS, checkedEquipment, clearanceChecklist, statusChecks, type ClearanceItem, type StatusCheck } from './status.ts';
 export { expectedAnswer, isMassUnit, massItems, netOf } from './common.ts';
