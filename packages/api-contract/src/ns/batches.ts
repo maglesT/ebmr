@@ -163,9 +163,10 @@ export const batches = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Propose a void of an attempt for QA\'s approval (the approval is signed on the act; the void is then sent as a command)',
     params: batchParams,
-    body: z.strictObject({
+    body: withAttribution({
       intent: z.strictObject({
         type: z.literal('VOID_ATTEMPT'),
         stepKey: StepKey,
@@ -194,9 +195,10 @@ export const batches = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Issue the next SSCC for a TB-24 step of the batch (number and check digit from the database, PR-42)',
     params: stepParams,
-    body: z.strictObject({}),
+    body: withAttribution({}),
     response: SsccView,
   }),
   additionSources: defineRoute({
