@@ -49,6 +49,8 @@ export interface BlendingPlan {
   /** The reserved residue container and the quality unit's authorisation of its use, or null (no addition). */
   addition: { container: string; authorisation: string; gross: string; tare: string } | null;
   blend: string;
+  /** Outline 9.1: an addition without its approval is tried first and refused (recorded in g.notes). */
+  tryUnapproved?: boolean;
 }
 
 /** Stage 3: blending in BLEND-1: the case 2 addition of milled rejects (or none), blending and lubrication, the blend. */
@@ -67,13 +69,25 @@ export async function blending(g: GoldenBatch, plan: BlendingPlan): Promise<{ bl
     ],
   });
   const a = plan.addition;
+  if (plan.tryUnapproved) {
+    // DI-34, PR-13: the choice is the supervisor's; the operator's is refused.
+    const r = await g.d.command('operator1', { type: 'CHOOSE_ALTERNATIVE', construct: 'A-RPR', branch: 'B-RPR-ADD', reason: 'Operator tries to choose' });
+    g.notes['choiceByOperator'] = r.ok ? 'ok' : r.error.kind === 'REFUSAL' ? r.error.envelope.refusal.code : r.error.kind;
+  }
   await g.d.ok('supervisor1', {
     type: 'CHOOSE_ALTERNATIVE',
     construct: 'A-RPR',
     branch: a ? 'B-RPR-ADD' : 'B-RPR-NONE',
     reason: a ? 'Reserved milled rejects of the same product, authorised by the quality unit' : 'No reserved rejects of this product to add',
   });
-  if (a) {
+  if (a && plan.tryUnapproved) {
+    await g.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-rework@' });
+    const r = await g.d.command('operator1', entry('p-rework@', 'ADDITION', { container: a.container, gross: a.gross, tare: a.tare, unit: 'kg' }));
+    g.notes['additionWithoutApproval'] = r.ok ? 'ok' : r.error.kind === 'REFUSAL' ? r.error.envelope.refusal : r.error.kind;
+    await g.d.ok('operator1', entry('p-rework@', 'ADDITION', { container: a.container, gross: a.gross, tare: a.tare, unit: 'kg', authorisation: a.authorisation }));
+    await g.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-rework@' });
+    await g.signed('verifier1', { type: 'VERIFY', stepKey: 'p-rework@', meaning: 'VERIFIED' });
+  } else if (a) {
     await g.step('p-rework@', { entries: [entry('p-rework@', 'ADDITION', { container: a.container, gross: a.gross, tare: a.tare, unit: 'kg', authorisation: a.authorisation })] });
   } else {
     await g.step('p-rework-none@', { entries: [data('p-rework-none@', 'recAdded', '0.000', 'kg')] });

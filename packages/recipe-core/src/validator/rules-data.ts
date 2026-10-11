@@ -12,6 +12,7 @@ import { calculationOptions, CONDITION, GLOBAL_SCOPE, type Analysis, type Checke
 import { analyseGuards, describePoint, type GuardBranch } from './guards.ts';
 import { defineRule, error, label, warning, type Rule } from './rule-kit.ts';
 import type { RuleFinding } from './types.ts';
+import { LEGACY_HARDNESS_ALIAS, resolveParameterUnit } from '@ebmr/expr';
 
 
 /** A replicate count: a derived plain number (converted to a count). */
@@ -327,6 +328,14 @@ const parallel = defineRule('DATA-PARALLEL', 'Parallel work never writes or clai
   return out;
 });
 
+/** The semantic tag of a breaking-force (hardness) parameter. */
+export const BREAKING_FORCE_TAG = 'breaking_force';
+
+function isForceParameter(unit: string, tag: string | undefined): boolean {
+  const u = unit.trim().replace(/\s+/g, ' ');
+  return tag === BREAKING_FORCE_TAG || u === LEGACY_HARDNESS_ALIAS || u === 'kg/cm2 (as kgf/kp)' || u === 'kp';
+}
+
 const units = defineRule('DATA-UNITS', 'Units are valid and limits are in commensurable units', ['PR-08', 'PR-03'], (a) => {
   const out: RuleFinding[] = [];
   const valid = (subject: string, unit: string | undefined, what: string): boolean => {
@@ -339,6 +348,18 @@ const units = defineRule('DATA-UNITS', 'Units are valid and limits are in commen
     if (a.ctx.expressions.convert('1', from, to) === undefined) out.push(error(subject, `${what}: ${from} cannot be converted to ${to}`));
   };
   for (const p of a.mbr.parameters) {
+    // Outline 6.3 (L-39), 9.1: tablet hardness is a force. A parameter tagged as breaking force, or written in the
+    // controlled legacy alias or in kp, has its unit resolved as a force: the alias is accepted with a warning that needs
+    // a justification, a pressure (or a mass per area such as kg/cm2) is refused (Phase 3 slice 6d, GB-T-01).
+    if (p.valueType === 'DECIMAL' && p.unit !== undefined && isForceParameter(p.unit, p.semanticTag)) {
+      const r = resolveParameterUnit(p.unit, 'force');
+      for (const d of r.diagnostics) {
+        if (d.severity === 'ERROR') out.push(error(p.id, `Parameter ${label(a, p.id)} has the unit ${JSON.stringify(p.unit)}: ${d.message}`));
+        else if (d.severity === 'WARNING') out.push(warning(p.id, `Parameter ${label(a, p.id)}: ${d.message}`));
+      }
+      if (r.ok && p.limits && !resolveParameterUnit(p.limits.unit, 'force').ok) out.push(error(p.id, `The limits of ${label(a, p.id)} are not in a force unit (${p.limits.unit})`));
+      continue;
+    }
     if (p.valueType === 'DECIMAL' && valid(p.id, p.unit, `Parameter ${label(a, p.id)}`) && p.limits && valid(p.id, p.limits.unit, `The limits of ${label(a, p.id)}`)) {
       commensurable(p.id, p.limits.unit, p.unit as string, `The limits of ${label(a, p.id)} are in another dimension than the parameter`);
     }

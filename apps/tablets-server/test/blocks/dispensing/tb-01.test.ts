@@ -76,6 +76,24 @@ describe('TB-01@1 potency-adjusted dispensing (engine)', () => {
     expect(run.exceptions().map((e) => e.type)).toEqual([]);
   });
 
+  it('[PR-19][DI-33] a trihydrate label on an anhydrous molar mass is flagged (outline 9.1): a form named as a hydrate declares its waters, and a hydrate\'s molar mass holds them', () => {
+    const codes = (m: flow.MbrContent): string[] => {
+      try {
+        definition(m);
+        return [];
+      } catch (e) {
+        return [...new Set((e as engine.EngineDefinitionError).problems.map((p) => p.code))].sort();
+      }
+    };
+    const active = baseConfig['active'] as Json;
+    const form = active['form'] as Json;
+    const asIs = (f: Json) => mbr({ ...baseConfig, active: { ...active, basis: 'AS_IS', form: { ...form, ...f } } });
+    expect(codes(asIs({ name: 'atorvastatin calcium trihydrate', hydrateWaters: 0 }))).toEqual(['TB01-HYDRATE-LABEL']);
+    expect(codes(asIs({ name: 'atorvastatin calcium trihydrate', hydrateWaters: 3 }))).toEqual(['TB01-HYDRATE-MASS']);
+    expect(codes(asIs({ name: 'atorvastatin calcium trihydrate', hydrateWaters: 3, molarMassForm: '1209.40' }))).toEqual([]);
+    expect(codes(asIs({ name: 'atorvastatin calcium, anhydrous', hydrateWaters: 0 }))).toEqual([]);
+  });
+
   it('[PR-19][DI-33][PR-20] the configuration is refused when a hydrate molar mass meets a water-corrected assay, when the step is not performed by the designated dispenser or not checked by a second person, or an overage has no registration reference', () => {
     const codes = (m: flow.MbrContent): string[] => {
       try {
@@ -87,7 +105,9 @@ describe('TB-01@1 potency-adjusted dispensing (engine)', () => {
     };
     const active = baseConfig['active'] as Json;
     expect(codes(mbr())).toEqual([]);
-    expect(codes(mbr({ ...baseConfig, active: { ...active, form: { ...(active['form'] as Json), hydrateWaters: 3 } } }))).toEqual(['TB01-BASIS-CONSISTENCY']);
+    // A hydrate's molar mass with the water-corrected assay; the anhydrous molar mass under three waters is flagged too (6d).
+    expect(codes(mbr({ ...baseConfig, active: { ...active, form: { ...(active['form'] as Json), hydrateWaters: 3 } } }))).toEqual(['TB01-BASIS-CONSISTENCY', 'TB01-HYDRATE-MASS']);
+    expect(codes(mbr({ ...baseConfig, active: { ...active, basis: 'AS_IS', form: { ...(active['form'] as Json), hydrateWaters: 3, molarMassForm: '1209.40' } } }))).toEqual([]);
     expect(codes(mbr(baseConfig, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } }))).toEqual(['TB01-PERFORMER']);
     expect(codes(mbr(baseConfig, { signatures: { perform: { role: 'DISPENSER' } } }))).toEqual(['TB01-NO-CHECK']);
     expect(codes(mbr({ ...baseConfig, active: { ...active, overagePercent: '2' } }))).toEqual(['TB01-OVERAGE']);

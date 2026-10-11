@@ -52,6 +52,10 @@ export function describeIntent(intent: ClientIntent, view?: StepScreenView): str
       return `Release hold ${intent.hold}: ${intent.reason}`;
     case 'VOID_ATTEMPT':
       return `Void the attempt at ${fieldName(view?.fields, intent.item)}: ${intent.reason}`;
+    case 'COMPLETE_LOOP_ITERATION':
+      return 'End this iteration of the loop';
+    case 'CHOOSE_ALTERNATIVE':
+      return `Choose branch ${intent.branch} of ${intent.construct}: ${intent.reason}`;
   }
 }
 

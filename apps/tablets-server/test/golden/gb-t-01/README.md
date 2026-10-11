@@ -43,21 +43,49 @@ The (A + B)/T yield is shown beside the good-output yield (outline 9.1, sample d
 
 ## Variants (to the "release for packing" gate)
 
-- **Happy:** every check in limits; the "approved for coating" and "release for packing" QA gates signed; no exception.
-- **Exception-rich:** the extra-IPA branch taken (within its maximum); a failing right-side weight IPC at compression
-  that holds the containers overlapping it (IPC_CHECK_FAILED, a deviation linked, QA disposition); an LOD loop of two
-  iterations; inspection rejects destroyed with a witness; the recovery addition with its case and its approval.
-- **Sample-data negatives (9.1):** hardness in kg/cm² only through the declared legacy alias with a warning, a genuine
-  pressure unit refused; a trihydrate label on an anhydrous molar mass flagged; an addition without its case and its
-  approval refused.
+- **Source batch** (PO-GBT01-0003, posted through the ERP route): run to inspection, where 4.520 kg of milled cores are
+  kept as reusable residue (TB-20) and reserved by the QC unit (RESERVE_RESIDUE); the clock then moves 41 days on.
+- **Happy** (PO-GBT01-0001): every check in limits; the QC unit authorises the case-2 addition of 2.000 kg (TB-08,
+  REPROCESSING_ACT AUTHORISE_ADDITION) before blending; the "approved for coating" (H-COAT) and "release for packing"
+  (H-PACK) QA gates signed. The only exceptions are ALERTs the design itself raises, each dispositioned NO_IMPACT by QA at
+  the stage sign-off: the manual-entry fallbacks (the driver keys the press, coater and balance values by hand: there is
+  no HTTP path from a gateway reading to an entry in Phase 3) and the QC decision on extra testing that a reprocessing
+  addition always needs (PR-47; the QC approver decides NONE_REQUIRED).
+- **Exception-rich** (PO-GBT01-0002): as the happy variant, plus the extra-IPA branch (0.300 kg, within its 0.480 kg
+  maximum); an LOD loop of two iterations on sub-lot 2 (4.1 % then 2.9 %); a failing right-side weight IPC at
+  compression (8480.0 mg for 20 tablets) that holds the right-side container made since the last passing check
+  (IPC_CHECK_FAILED, ACTION; a deviation raised by QA, linked by the supervisor, dispositioned DEVIATION_RAISED; QA
+  releases the container after the investigation); inspection rejects destroyed with a witness (G-23).
+- **Negatives (9.1)**, each refused or flagged on the master (designer validate route) or on the batch: hardness in the
+  legacy alias kg/cm² (as kgf/kp) accepted with a DATA-UNITS warning, kg/cm2 and kPa refused (DATA-UNITS errors); a
+  trihydrate label on the anhydrous molar mass flagged (TB01-HYDRATE-MASS); the addition step without its declared case
+  refused; an addition without the QC unit's approval refused; the (A + B)/T yield recorded beside A/T (compYieldAB,
+  compYield); a correction of the failing LOD to a passing value without objective evidence refused by the engine; the
+  MBR approval refused before its check, to its author, and on a stale revision.
+
+## How the run is driven
+
+`gb-t-01.test.ts` builds a GMP installation on the golden cluster (`world.ts`: the 6a formula and `createFamily` with
+it, the life-cycle signatures through the signable action MBR_TRANSITION), the plant (`plant.ts`), and runs the three
+batches through `/api/batches/*` as the seeded personas (`driver.ts`, `stages.ts`, `scenario.ts`). Each batch's outputs
+are read back by `results.ts` and compared with `expected.json`: states, exceptions, the decimal values and yields, the
+dispensing calculation, genealogy, the number of batch-record signatures and the SHA-256 of the normalised true copy.
 
 ## Time (D-S6-6)
 
-The golden test's PostgreSQL runs under libfaketime with an offset file the driver only moves forward
-(`FAKETIME_TIMESTAMP_FILE`, `FAKETIME_NO_CACHE=1`); nothing in the GMP code reads a test clock. The simulators read time
-from the database. CI runs it in the `golden` job on its own cluster (`.github/workflows/ci.yml`).
+The golden test's PostgreSQL runs under libfaketime with a timestamp file the driver only moves forward
+(`FAKETIME_TIMESTAMP_FILE`, `FAKETIME_NO_CACHE=1`); nothing in the GMP code reads a test clock. GB-T-01 freezes the
+clock and ticks it one second before each act, so every time and duration the server measures is the same on each run
+(blend 601 s, lubrication 181 s). CI runs it in the `golden` job on its own cluster, one file at a time
+(`.github/workflows/ci.yml`); a run takes about 20 minutes.
 
-## Status
+## Residuals (Phase 3; for the owner)
 
-Formula, worksheet and expected quantities: done before the run. The MBR template (`gb-t-01.mbr.json`), the HTTP
-driver over `/api/batches/*` and the normalised hash wait for builder 6a's routes (slice 6 plan, order of work).
+Steps the driver takes through the database as the right persona because no route exists yet: the change record, risk
+assessment, draft attributes, sandbox-run evidence and verification record of the MBR; the market authorisation and the
+batch-number rule; lot reservations; equipment and instrument uses, area occupancy, output containers and the tooling
+register; the reprocessing authorisation proposal; the release of a held container (signed by the kernel ceremony
+directly). Also: no HTTP path from gateway readings to G-06 entries (simulators unused; values keyed under the manual
+fallback); G-07 on a GMP batch consumes no lot (the driver consumes each weighing with recipe.consume_lot); CORRECT_ENTRY
+has no HTTP intent (the negative asks the engine directly); a refusal text says "test run" on a GMP batch; the coating
+pan load does not check for held compression containers.

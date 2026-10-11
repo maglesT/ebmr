@@ -27,7 +27,7 @@ import { recordContentForSigning } from '../../../src/features/esig/content.ts';
 import { loadValidationContext } from '../../../src/features/designer/adapters/expressions.ts';
 import { GBT01_PRODUCT } from '../../../src/features/execution/seed-gb-t-01.ts';
 import { startServer, type TestBrowser, type TestServer } from '../../support/harness.ts';
-import { actorOfBrowser, refusalOf, valueOf } from '../../esig/support.ts';
+import { actorOfBrowser, refusalOf } from '../../esig/support.ts';
 
 export const SITE = 'SITE-1';
 export const LINE = 'L1';
@@ -57,6 +57,8 @@ export interface GoldenWorld {
   versionId: string;
   /** Signatures made while the master record was prepared (the formula and the MBR life cycle). */
   masterSignatures: number;
+  /** Refused MBR_TRANSITION attempts (status and code), for the assertions. */
+  masterChecks: Record<string, string>;
   close(): Promise<void>;
 }
 
@@ -64,14 +66,17 @@ const password = (seed: SiteSeed, key: string): SignatureCredentials => ({ kind:
 
 /** The ceremony of a signable action by an office persona (describe, preview, challenge on the text shown, sign). */
 export async function signOffice(seed: SiteSeed, b: TestBrowser, key: string, action: SignableAction) {
-  const d = valueOf(await b.call(routes.esig.describe, { body: { action } }));
-  const preview = valueOf(await b.call(routes.esig.content, { query: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, intent: d.meaning ?? '' } }));
-  const challenge = valueOf(
-    await b.call(routes.esig.createChallenge, {
-      body: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, contentVersion: preview.contentVersion, meaning: d.meaning ?? '', clientContentHash: sha256Hex(preview.canonicalText), action },
-    }),
-  );
-  const body = { challengeId: challenge.challengeId, credentials: password(seed, key), action };
+  const described = await b.call(routes.esig.describe, { body: { action } });
+  if (!described.ok) return described;
+  const d = described.value;
+  const shown = await b.call(routes.esig.content, { query: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, intent: d.meaning ?? '' } });
+  if (!shown.ok) return shown;
+  const preview = shown.value;
+  const challenge = await b.call(routes.esig.createChallenge, {
+    body: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, contentVersion: preview.contentVersion, meaning: d.meaning ?? '', clientContentHash: sha256Hex(preview.canonicalText), action },
+  });
+  if (!challenge.ok) return challenge;
+  const body = { challengeId: challenge.value.challengeId, credentials: password(seed, key), action };
   return b.call(routes.esig.sign, { body: { ...body, proof: await b.proof('POST', '/api/esig/sign', body) } });
 }
 
@@ -188,9 +193,20 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
   const verification = lifecycle.createVerificationPort(context).verify(content, []);
   await asPersona(server, s('author'), 'author', (c) => lifecycle.recordVerification(c, versionId, verification, [], personaOf(seed, 'author').personId));
   const t = (transition: 'SUBMIT' | 'CHECK' | 'APPROVE' | 'REGULATORY_CONFIRM') => ({ kind: 'MBR_TRANSITION' as const, versionId, transition, baseRevision: started.revision });
+  const outcome = (r: { ok: true } | { ok: false; error: unknown }): string => {
+    if (r.ok) return 'ok';
+    const x = refusalOf(r as never) as { status: number; code: string };
+    return `${String(x.status)} ${x.code}`;
+  };
+  const checks: Record<string, string> = {};
   await sign('author', t('SUBMIT'), 'PREPARED');
+  // Before the check: the approval is not due (the database refuses it in this state), and nothing is signed.
+  checks['approveBeforeCheck'] = outcome(await signOffice(seed, s('approver'), 'approver', t('APPROVE')));
   await sign('checker', t('CHECK'), 'CHECKED');
   await sign('regulatory', t('REGULATORY_CONFIRM'), 'REGULATORY_CONFIRMED');
+  // The author does not approve their own master; a revision other than the one reviewed answers 409.
+  checks['approveByAuthor'] = outcome(await signOffice(seed, s('author'), 'author', t('APPROVE')));
+  checks['approveStale'] = outcome(await signOffice(seed, s('approver'), 'approver', { ...t('APPROVE'), baseRevision: started.revision + 1 }));
   await sign('approver', t('APPROVE'), 'APPROVED');
 
   // The market authorisation for India at SITE-1, line L1, BS-200K; the batch-number rule of the product.
@@ -220,6 +236,7 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
     familyId,
     versionId,
     masterSignatures: signatures,
+    masterChecks: checks,
     async close() {
       await server.close();
       rmSync(keysDir, { recursive: true, force: true });

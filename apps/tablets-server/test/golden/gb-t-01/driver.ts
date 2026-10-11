@@ -16,7 +16,7 @@ import { GBT01_LOTS } from '../../../src/features/execution/seed-gb-t-01.ts';
 import { actorOfBrowser, refusalOf, tapFor, valueOf } from '../../esig/support.ts';
 import { asPersonaInRole, RunDriver, type ExecServer } from '../../execution/support.ts';
 import type { TestBrowser } from '../../support/harness.ts';
-import { advanceMinutes } from '../clock.ts';
+import { advanceMinutes, advanceSeconds, frozenSeconds } from '../clock.ts';
 import { BALANCE, UNITS, type Room, type UnitRef } from './plant.ts';
 import { BATCH_SIZE_ID, LINE, SITE, type GoldenWorld } from './world.ts';
 
@@ -28,7 +28,13 @@ const kiosk = (b: TestBrowser): boolean => b.terminal.includes('KIOSK');
 /** The tap limiter runs on the monotonic clock: a long run advances it before every badge tap (as the block tests do). */
 export const tapAdvance = (): void => {
   vi.advanceTimersByTime(7_000);
+  tick();
 };
+
+/** On the frozen golden clock, each act happens one second after the one before (the driver's own sequence). */
+export function tick(): void {
+  if (frozenSeconds() !== null) advanceSeconds(1);
+}
 
 export function ok<T>(r: { ok: true; value: T } | { ok: false; error: unknown }, what: string): T {
   if (!r.ok) throw new Error(`${what} was refused: ${JSON.stringify(refusalOf(r as never))}`);
@@ -42,6 +48,7 @@ const credentials = (w: GoldenWorld, b: TestBrowser, key: string): SignatureCred
 
 /** The ceremony of a signable action at any terminal (a badge tap on the challenge at a kiosk, the PIN there). */
 export async function signAct(w: GoldenWorld, b: TestBrowser, key: string, action: SignableAction) {
+  tick();
   const d = valueOf(await b.call(routes.esig.describe, { body: { action } }));
   const preview = valueOf(await b.call(routes.esig.content, { query: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, intent: d.meaning ?? '' } }));
   const body = { aggregateType: d.aggregateType, aggregateId: d.aggregateId, contentVersion: preview.contentVersion, meaning: d.meaning ?? '', clientContentHash: sha256Hex(preview.canonicalText), action };
@@ -57,6 +64,7 @@ export async function signAct(w: GoldenWorld, b: TestBrowser, key: string, actio
 /** A database command of persona `key` in its browser's session (a fresh tap at a kiosk). */
 export async function dbAs<T = Json>(w: GoldenWorld, b: TestBrowser, key: string, sql: string, params: unknown[], reason?: { reasonCode: string; reasonText: string }): Promise<T> {
   if (kiosk(b)) tapAdvance();
+  else tick();
   const actor = await actorOfBrowser(w.server, b, key, reason ?? {});
   return withCommand(w.server.db.app, actor, async (c) => (await c.query<{ r: T }>(sql, params)).rows[0]?.r as T);
 }
@@ -82,6 +90,8 @@ export class GoldenBatch {
   /** Equipment uses and room occupancies started for the batch, by unit or room code. */
   readonly uses = new Map<string, string>();
   readonly occupancies = new Map<string, string>();
+  /** What the negatives saw on this batch (refusals), for the assertions. */
+  readonly notes: Record<string, unknown> = {};
 
   private constructor(
     readonly w: GoldenWorld,
@@ -297,6 +307,15 @@ export async function dispensing(g: GoldenBatch): Promise<void> {
       weigh('p-disp-exc@', 'dispFcs', 'BOM-FCS', 'GBT-FCS-001', W.fcs, bal),
     ],
   });
+  // G-07@1 on GMP takes no lot consumption with its weighing (its entry schema has no consumption member; TB-01's has):
+  // the designated dispenser (DISPENSE.EXECUTE) consumes each dispensed net from the batch's reservation in the database
+  // (recipe.consume_lot, the function TB-01's weighing calls), so the genealogy holds every lot. A residual: G-07 needs a
+  // version that does it.
+  const disp = g.b('operator1');
+  for (const [lot, net] of [['GBT-LAC-001', W.lac], ['GBT-PVP-001', W.pvp], ['GBT-IPA-001', W.ipa], ['GBT-CCS-001', W.ccs], ['GBT-SIO-001', W.sio], ['GBT-MGS-001', W.mgs], ['GBT-FCS-001', W.fcs]] as const) {
+    const res = await dbAs<Json>(g.w, disp, 'operator1', "select tab.tb01_reservation_for($1::uuid, $2, $3::numeric, 'kg') as r", [g.batchId, lot, net]);
+    await dbAs(g.w, disp, 'operator1', 'select recipe.consume_lot($1::uuid, $2::uuid, $3, $4::numeric, $5) as r', [g.batchId, res['reservationId'], res['materialCode'], res['quantity'], res['unit']]);
+  }
   await g.step('p-disp-recon@', { performer: 'operator2' });
   await g.closeStage('S-DISP@');
   await g.release(['DISP-1'], 'operator2');
@@ -315,6 +334,8 @@ export interface GranulationPlan {
   lods: [string[], string[]];
   /** Extra isopropyl alcohol per sub-lot (kg), or null for none. */
   extraIpa: [string | null, string | null];
+  /** Called after each drying iteration is performed (the step key), before the loop's iteration ends. */
+  afterDrying?: (g: GoldenBatch, stepKey: string) => Promise<void>;
 }
 
 /** Stage 2: granulation in GRAN-1, in two sub-lots (replicate R-GRAN), each binder, wet massing, LOD loop and output. */
@@ -367,6 +388,7 @@ export async function granulation(g: GoldenBatch, plan: GranulationPlan): Promis
           entry(dk, 'BAG_CHECK', { bag: 'FBD-01-BAG-1', when: 'AFTER', result: 'INTACT' }),
         ],
       });
+      if (plan.afterDrying) await plan.afterDrying(g, dk);
       await g.d.ok('operator1', { type: 'COMPLETE_LOOP_ITERATION', stepKey: dk });
     }
     await g.step(k('p-gran-out'), { entries: [output(k('p-gran-out'), 'I-GRAN', plan.granules[n - 1] ?? '', bal)] });

@@ -21,6 +21,7 @@ let steward: TestBrowser;
 let approver: TestBrowser;
 let author: TestBrowser;
 let versionId: string;
+let mbr: { versionId: string; content: unknown };
 
 beforeAll(async () => {
   gmp = await startSigningServer('GMP', { stub: false });
@@ -48,17 +49,19 @@ const family = (code: string) => ({
 });
 
 async function problem(mbr: string, content: unknown): Promise<string | null> {
-  return withCommand(gmp.db.app, await actorOfBrowser(gmp, author, 'author', { reasonCode: 'TEST', reasonText: 'content of the test' }), async (c) => {
+  await withCommand(gmp.db.app, await actorOfBrowser(gmp, author, 'author', { reasonCode: 'TEST', reasonText: 'content of the test' }), async (c) => {
     const parsed = flow.parseMbr(content);
     if (!parsed.ok) throw new Error('the edited content does not parse');
     await lifecycle.saveContent(c, mbr, parsed.mbr, 'edited for the test');
-    return (await c.query<{ r: string | null }>('select recipe.formula_mbr_problem($1, $2) as r', [mbr, versionId])).rows[0]?.r ?? null;
   });
+  // The check the pin and the approval run (recipe.formula_mbr_problem executes for the owner only), read as the superuser.
+  return (await gmp.db.admin.query<{ r: string | null }>('select recipe.formula_mbr_problem($1, $2) as r', [mbr, versionId])).rows[0]?.r ?? null;
 }
 
 describe('a salt-factor active on the base of a base-stated TB-01 step (recipe-core 0690)', () => {
   it('[INV-25] "Choose a product" writes the base (50 kg) into the BOM of the active a TB-01 step dispenses on the base, the formula\'s computed batch quantities elsewhere, and the database pins it; the batch mass counts the salt', async () => {
     const v = valueOf(await author.call(routes.designer.createFamily, { body: family('GBT01-F-BASE') }));
+    mbr = v;
     const bom = Object.fromEntries((v.content as unknown as { bom: { material: string; quantity: { value: string } }[] }).bom.map((b) => [b.material, b.quantity.value]));
     expect(bom).toEqual({ 'MAT-EXZ-NA': '50', 'MAT-MCC-101': '8', 'MAT-LAC-MH': '14', 'MAT-PVP-K30': '2.4', 'MAT-IPA': '2.4', 'MAT-CCS': '2.4', 'MAT-SIO2': '0.4', 'MAT-MGST': '0.8', 'MAT-FCS-W': '2.45' });
     const { rows } = await gmp.db.admin.query<{ f: string }>('select formula_version_id::text as f from recipe.mbr_formula_pin where mbr_version_id = $1', [v.versionId]);
@@ -69,7 +72,7 @@ describe('a salt-factor active on the base of a base-stated TB-01 step (recipe-c
   });
 
   it('[INV-25] the database refuses the active with a typed quantity, and with the base when the TB-01 step states its standard on the form', async () => {
-    const v = valueOf(await author.call(routes.designer.createFamily, { body: family('GBT01-F-FORM') }));
+    const v = mbr;
     const typed = JSON.parse(JSON.stringify(v.content)) as { bom: { material: string; quantity: { value: string } }[] };
     for (const b of typed.bom) if (b.material === 'MAT-EXZ-NA') b.quantity.value = '50.100';
     expect(await problem(v.versionId, typed)).toMatch(/BOM line BOM-API \(MAT-EXZ-NA\) is 50.100 kg; the formula computes 50 kg \(INV-25\)/);

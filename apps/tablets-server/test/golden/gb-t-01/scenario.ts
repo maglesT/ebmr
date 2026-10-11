@@ -7,13 +7,14 @@
  */
 import { randomUUID } from 'node:crypto';
 import { routes } from '@ebmr/api-contract';
-import { terminalOf } from '@ebmr/test-kit';
+import { engine, execution } from '@ebmr/recipe-core';
+import { personaOf, terminalOf } from '@ebmr/test-kit';
+import { runContext } from '../../../src/features/execution/runs.ts';
 import { GBT01_ORDERS } from '../../../src/features/execution/seed-gb-t-01.ts';
-import { advanceMinutes } from '../clock.ts';
 import { dbAs, dispensing, GoldenBatch, granulation, ok, signAct, type GranulationPlan } from './driver.ts';
 import { clean, ROOMS, UNITS } from './plant.ts';
 import { blending, coating, compression, inspection, type CompressionPlan } from './stages.ts';
-import type { GoldenWorld } from './world.ts';
+import { signDirect, type GoldenWorld } from './world.ts';
 
 /** The reservations of each lot for one batch (kg): what dispensing takes, with room for the extra IPA. */
 const RESERVE = { 'MAT-EXZ-NA': '55.000', 'MAT-MCC-101': '8.000', 'MAT-LAC-MH': '14.000', 'MAT-PVP-K30': '2.400', 'MAT-IPA': '3.000', 'MAT-CCS': '2.400', 'MAT-SIO2': '0.400', 'MAT-MGST': '0.800', 'MAT-FCS-W': '2.450' };
@@ -111,9 +112,19 @@ export async function runVariant(w: GoldenWorld, g: GoldenBatch, variant: Varian
   const gran: GranulationPlan =
     variant === 'HAPPY'
       ? { granules: DISPENSED_GRANULES, lods: [['2.8'], ['2.9']], extraIpa: [null, null] }
-      : { granules: DISPENSED_GRANULES, lods: [['2.8'], ['4.1', '2.9']], extraIpa: [null, '0.300'] };
+      : {
+          granules: DISPENSED_GRANULES,
+          lods: [['2.8'], ['4.1', '2.9']],
+          extraIpa: [null, '0.300'],
+          async afterDrying(batch, stepKey) {
+            if (stepKey !== 'p-dry@R-GRAN=2/L-DRY=1') return;
+            batch.notes['correctionWithoutEvidence'] = await correctionWithoutEvidence(w, batch, stepKey);
+            // INV-19: an iteration is ended only by a step of a loop (the granulation step runs in none).
+            batch.notes['loopOutsideLoop'] = refusalCode(await batch.d.command('operator1', { type: 'COMPLETE_LOOP_ITERATION', stepKey: 'p-gran@R-GRAN=2' }));
+          },
+        };
   await granulation(g, gran);
-  const { blendLabel } = await blending(g, { addition: { container: residue, authorisation: proposed.id, gross: '3.000', tare: '1.000' }, blend: '82.310' });
+  const { blendLabel } = await blending(g, { addition: { container: residue, authorisation: proposed.id, gross: '3.000', tare: '1.000' }, blend: '82.310', tryUnapproved: variant === 'EXCEPTION_RICH' });
   let deviation: string | null = null;
   await compression(g, {
     blendLabel,
@@ -154,9 +165,46 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
   if (!ex) throw new Error('no IPC_CHECK_FAILED exception was raised');
   await g.d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: ex.exceptionId, deviationRef: dev.ref });
   await g.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: ex.exceptionId, outcome: 'DEVIATION_RAISED', justification: `Deviation ${dev.ref}: the held containers stay held until QA decides on them` });
-  advanceMinutes(30);
-  await g.floor('COMP-1');
-  void randomUUID;
-  void held;
+  // The investigation re-weighed the retained sample of the failing check on a checked balance: within limits (an
+  // instrument reading error). QA releases the held container (OUTPUT_CONTAINER_RELEASED: no signable action covers it
+  // in Phase 3, so the kernel's ceremony is used directly, a residual) before the approval for coating.
+  for (const c of held) {
+    const sig = await signDirect(w.server, w.seed, 'qa1', 'output_container', c.id, 'OUTPUT_CONTAINER_RELEASED', 'HELD');
+    const v = (await w.server.db.app.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [c.id])).rows[0]?.v;
+    await dbAs(w, g.b('qa1'), 'qa1', 'select plant.release_container($1, $2::bigint, $3) as r', [c.id, v, sig], { reasonCode: 'IPC_INVESTIGATED', reasonText: `Deviation ${dev.ref}: retained sample re-weighed within limits` });
+  }
   return dev.ref;
+}
+
+function refusalCode(r: { ok: true } | { ok: false; error: { kind: string; envelope?: { refusal: { code: string } } } }): string {
+  return r.ok ? 'ok' : (r.error.envelope?.refusal.code ?? r.error.kind);
+}
+
+/**
+ * Outline 9.1: a correction that would make a failing in-process result pass, without objective evidence of the true
+ * value, is refused. CORRECT_ENTRY has no HTTP intent in Phase 3 (contract class LATER: a residual), so the engine the
+ * server runs is asked directly, on the batch's stored record, with the operator's correction and QA's approval
+ * signatures: it refuses before anything could be stored. The LOD of 4.1 % of the first drying of sub-lot 2 failed its
+ * validated range of 2.0 to 3.5 %; a correction to 3.0 % without evidence is refused.
+ */
+async function correctionWithoutEvidence(w: GoldenWorld, g: GoldenBatch, stepKey: string): Promise<string> {
+  const run = await runContext(w.server.db.admin, g.batchId);
+  const stored = await execution.loadState(w.server.db.admin, g.batchId);
+  if (!stored) throw new Error('no record');
+  const point = Object.values(stored.state.points).find((p) => p.stepKey === stepKey && p.item === 'lod' && p.status === 'VALID');
+  if (!point) throw new Error(`no LOD at ${stepKey}`);
+  const op = personaOf(w.seed, 'operator1').personId;
+  const qa = personaOf(w.seed, 'qa1').personId;
+  const command = {
+    type: 'CORRECT_ENTRY' as const,
+    commandId: randomUUID(),
+    actor: { id: op, kind: 'PERSON' as const, roles: ['PRODUCTION_OPERATOR'] },
+    point: point.id,
+    value: { kind: 'DECIMAL' as const, value: '3.0', unit: '%' },
+    reason: 'Transcription error: the analyser printout reads 3.0 %',
+    signature: { id: randomUUID(), meaning: 'CORRECTED', signer: op },
+    approval: { approver: { id: qa, kind: 'PERSON' as const, roles: [...run.def.policy.qaRoles] }, signature: { id: randomUUID(), meaning: 'CORRECTION_APPROVED', signer: qa } },
+  };
+  const r = engine.step(run.def, stored.state, command, { nowUs: stored.state.lastRecordedUs });
+  return r.accepted ? 'accepted' : `${r.refusal?.code ?? '?'}: ${r.refusal?.message ?? ''}`;
 }
