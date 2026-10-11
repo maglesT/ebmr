@@ -326,6 +326,8 @@ tests:
   - "packages/site-services/test/lots/lots.test.ts > what the release signature covers (review backlog item 6; sql/0720) > [IN-24][DI-37] a signature over VENDOR_HISTORY content cannot release on IDENTITY_TESTED: the identity result that would allow it supersedes the signature"
   - "packages/site-services/test/lots/lots.test.ts > what the release signature covers (review backlog item 6; sql/0720) > [IN-24][DI-37][INV-13] the release signature covers the received quantity; consuming from the released lot does not supersede it"
   - "packages/recipe-core/test/lifecycle/authorization.test.ts > privilege separation of the recipe schema (ADR 0012) > [DI-37][INV-09] every table holding signed content of an MBR version, market authorisation, GMP batch issue or test-run aggregate is registered with the e-signature module"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > TB-01 on the GMP installation (site lots, reservations, consumption) > [PR-19][DI-33][DI-37] on GMP the lot assay comes only from approved LIMS-lite results of that lot, copied, never typed; a revision of the result drops it"
+  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][DI-33][DI-37] the verdict is computed by the database; approval is by a second QC person under QC_RESULT_APPROVED; a revision drops the approval"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

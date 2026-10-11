@@ -70,6 +70,8 @@ tests:
   - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [IN-19][PR-47] chained recovery is blocked: a source batch that itself received recovered material cannot be a source, past a forged engine"
   - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47][IN-19] G-24@2: a recovery step starts only under the quality unit's signed authorisation of that step; its addition of QA-released material stands on the database's facts and is recorded"
   - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47] the release reader reports a batch with reprocessed or recovered material added and no QC decision on additional testing, and nothing once QC has decided; a batch without additions has no reprocessing basis"
+  - "packages/site-services/test/quality/interfaces.test.ts > ERP product master > [PR-47] the ERP interface posts versions, the latest wins; reprocessing defaults to not permitted; unknown products read NULL; only the interface writes"
+  - "packages/site-services/test/quality/interfaces.test.ts > QC decision on extra testing (D-S5-9) > [PR-47] the decision needs QC.RESULT_APPROVE and its own QC_EXTRA_TESTING_DECIDED signature binding the batch, decision and tests; the reader returns the latest"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

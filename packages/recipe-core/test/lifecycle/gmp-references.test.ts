@@ -286,7 +286,7 @@ describe('a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 
     const parentMaster = await effective();
     const parents = [await issuedBatch(parentMaster), await issuedBatch(parentMaster)];
     // The reprocessing master: the same product and strength, record kind REPROCESSING (the numbering rule is the product's).
-    const rc = structuredClone(parentMaster.content) as MbrContent;
+    const rc = structuredClone(parentMaster.content);
     (rc.header as { recordKind: string }).recordKind = 'REPROCESSING';
     rc.header.family = `${rc.header.family}-RP`.slice(0, 60);
     rc.header.title = `${rc.header.title} (reprocessing)`;
