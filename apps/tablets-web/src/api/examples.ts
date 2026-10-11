@@ -85,8 +85,13 @@ function gmpSlice6(steps: { step: { stepKey: string } }[]): FixtureMap {
   }
   const tb08 = EXAMPLES['batches-step-tb08'].data as { step: { stepKey: string } };
   const gmpSteps = [tb08, ...steps];
+  // Deviation-lite (slice 5a routes) answer with the deviation of the list example; a lot has no result yet.
+  const deviation = (EXAMPLES['quality-deviations'].data as { deviations: unknown[] }).deviations[0];
+  const deviationRoutes = ['quality.deviation', 'quality.raiseDeviation', 'quality.linkDeviation', 'quality.startInvestigation', 'quality.recordFinding', 'quality.cancelDeviation'];
   return {
     ...firstExamples,
+    ...Object.fromEntries(deviationRoutes.map((id) => [id, deviation])),
+    'quality.lotResults': { results: [] },
     'batches.step': ({ params }: { params: Record<string, string> }) => gmpSteps.find((s) => s.step.stepKey === params['stepKey']) ?? EXAMPLES['batches-step'].data,
     'batches.command': ({ body }: { body: unknown }) => {
       const b = body as { expectedVersion: number; viewStepKey?: string; intent: { stepKey?: string } };
