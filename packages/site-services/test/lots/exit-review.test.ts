@@ -1,8 +1,11 @@
 /**
- * Phase 3 exit review HIGH-2 (site-services 0800): a MATERIAL_LOT_STATUS_DECIDED signature names the decision it was
- * given for. The meaning covers HOLD, UNHOLD, RETURN, RECALL and RELEASE_FOR_FURTHER_PROCESSING, so the lot's signed
- * content shows the decision QA proposed at the lot's current state, and change_lot_status refuses any other event.
- * Proven as the application role.
+ * Phase 3 exit review fixes on material lots, proven as the application role:
+ *  - HIGH-2 (site-services 0800): a MATERIAL_LOT_STATUS_DECIDED signature names the decision it was given for. The
+ *    meaning covers HOLD, UNHOLD, RETURN, RECALL and RELEASE_FOR_FURTHER_PROCESSING, so the lot's signed content shows
+ *    the decision QA proposed at the lot's current state, and any other event is refused.
+ *  - HIGH-4 (recipe-core 0700): material is consumed only into a running batch. The other HIGH-4 rules (an entry of the
+ *    command names every GMP consumption; reservations end with the batch) need a GMP batch record: tablets-server
+ *    test/blocks/dispensing/tb-01-gmp.test.ts.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { changeLotStatus, proposeLotDecision } from '../../src/index.ts';
@@ -60,5 +63,19 @@ describe('a lot status decision signature binds its event (HIGH-2; sql/0800)', (
         db.app.query("insert into site.lot_decision_intent (lot_id, event, from_state, state_version, proposed_by_person, proposed_by_account) values ($1, 'HOLD', 'RELEASED', 2, gen_random_uuid(), gen_random_uuid())", [lot.lotId]),
       ),
     ).toMatch(/permission denied/);
+  });
+});
+
+describe('consumption only into a running batch (HIGH-4; recipe-core 0700)', () => {
+  it('[INV-13][INV-14] material is consumed only into a running batch: a batch EXECUTION_COMPLETE, ABORTED or CANCELLED (or never started) consumes nothing (HIGH-4; recipe-core 0700)', async () => {
+    const lot = await w.releasedLot('API');
+    for (const status of ['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED', 'ON_HOLD']) {
+      const ended = await w.batch(['IN'], status);
+      const res = await w.reserve(lot.lotId, ended, '1');
+      expect(await refusal(w.consume(ended, res, lot.materialCode, '1')), status).toMatch(/EBMR-RCP-432/);
+    }
+    const running = await w.batch(['IN']);
+    const res = await w.reserve(lot.lotId, running, '1');
+    expect(await w.consume(running, res, lot.materialCode, '1')).toMatchObject({ batch_id: running.id });
   });
 });

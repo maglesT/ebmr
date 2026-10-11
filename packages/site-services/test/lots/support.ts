@@ -197,15 +197,18 @@ export class World {
     }
   }
 
-  async batch(markets: string[]): Promise<Batch> {
+  /** A batch record and its stored execution state in `status` (recipe.consume_lot consumes only into a running batch). */
+  async batch(markets: string[], status = 'IN_PROGRESS'): Promise<Batch> {
     const b: Batch = { id: randomUUID(), number: unique('B'), markets };
     const hex = (ch: string) => ch.repeat(64);
     await this.timeTravel(
-      `insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint,
+      `with x as (insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint,
                                            policy, policy_hash, issue_request, market_set, batch_size, site_code, site_zone, issued_at_us,
                                            issued_by_person, issued_by_account, correlation_id)
-       values ($1, $2, $3, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', 'fixture', $3, '{}', $3, '{}', $4, 'BS-1', 'SITE-1', 'Asia/Kolkata', 0, $5, $5, $5)`,
-      [b.id, b.number, hex('a'), markets, randomUUID()],
+       values ($1, $2, $3, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', 'fixture', $3, '{}', $3, '{}', $4, 'BS-1', 'SITE-1', 'Asia/Kolkata', 0, $5, $5, $5) returning id)
+       insert into recipe.execution_state (batch_id, state, state_version, state_hash, last_seq, last_row_hash, status)
+       select x.id, jsonb_build_object('status', $6::text), 1, $3, 1, $3, $6 from x`,
+      [b.id, b.number, hex('a'), markets, randomUUID(), status],
     );
     return b;
   }
