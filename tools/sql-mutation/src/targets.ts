@@ -12,6 +12,11 @@
  * added where the group's tests did not reach it (execution-state-binding, evidence-source-and-entries, signed-content),
  * and a follow-up's new function that belongs to an existing group's subject joined it (kernel 1020 to signing, tablets
  * 0530 and 0560 to read-authorisation).
+ * The Phase 3 exit (decision 0009) added the last 21 groups, by area: every function added or replaced since dd66b59 in
+ * kernel, site-services, recipe-core and tablets that is a guard, a limit, a signature or state check, a writer of GMP
+ * data, or a helper whose result one of those decides on (recipe.planning_orders, a planning view, is left out). A
+ * Phase 3 redefinition of a function already in a Phase 2 group left it there, with the Phase 3 test files that reach
+ * the new definition added to the group.
  * Each group names the narrowest test files that test its functions at database level; a file under
  * apps/tablets-server/test runs in the Vitest `server` project, any other in `db`. Functions that only read or format
  * (no refusal, check or decision) are left out: recipe.json_pick and recipe.checklist_answers of recipe-core 0330 too.
@@ -122,7 +127,9 @@ export const TARGETS: Target[] = [
                 'recipe.record_evidence', 'recipe.return_to_draft', 'recipe.record_change_record', 'recipe.inv04_violations',
                 'recipe.approved_content_violations'],
     tests: [r('lifecycle/approval.test.ts'), r('lifecycle/change-control.test.ts'), r('lifecycle/audit-reason.test.ts'),
-            r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts')],
+            r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('master-data/formula.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, market authorisation, batch issue, periodic review (sql 0160-0180, 0250, 0290) --------
@@ -153,7 +160,9 @@ export const TARGETS: Target[] = [
                 'recipe.issue_execution', 'recipe.check_engine_roles', 'recipe.role_evaluation_problem',
                 'recipe.execution_attribution_check', 'recipe.insert_contents', 'tab.engine_roles'],
     tests: [s('execution/store.test.ts'), s('execution/db-guards-roles.test.ts'), s('execution/db-guards-issuer.test.ts'),
-            s('execution/db-guards-values.test.ts'), r('execution/sql-guards.test.ts'), r('lifecycle/authorization.test.ts')],
+            s('execution/db-guards-values.test.ts'), r('execution/sql-guards.test.ts'), r('lifecycle/authorization.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/gmp-batch.test.ts'), r('lifecycle/gmp-issue.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, execution store: what a row's state may hold (sql 0300, 0303; recipe.row_step_key's
@@ -165,7 +174,9 @@ export const TARGETS: Target[] = [
                 'recipe.kept_records_problem', 'recipe.members_changed',
                 // recipe-core 0382 (defect D9): a recorded signature made invalid only where the engine does.
                 'recipe.step_facts_changed', 'recipe.signature_invalidation_problem', 'recipe.execution_signature_invalidation_check'],
-    tests: [r('execution/kept-records-sql.test.ts'), s('execution/evidence-source.test.ts'), r('execution/exception-source-sql.test.ts')],
+    tests: [r('execution/kept-records-sql.test.ts'), s('execution/evidence-source.test.ts'), r('execution/exception-source-sql.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/db-guards-change-paths.test.ts'), s('execution/db-guards-hand-over.test.ts'), s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: evidence source, room, entries and identifiers (recipe-core 0300, 0313, 0317; tablets 0300-0390;
@@ -178,7 +189,9 @@ export const TARGETS: Target[] = [
                 'tab.device_entry_readings_check', 'tab.entry_identifier_problem', 'tab.entry_identifiers_check',
                 'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/evidence-source.test.ts'), s('execution/evidence-source-room.test.ts'),
-            s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts')],
+            s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-stale-row.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('blocks/dispensing/tb-01-gmp.test.ts'), s('execution/block-entries.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, execution store: step order, acts, status, own node events (sql 0307, 0308, 0311, 0312,
@@ -194,7 +207,9 @@ export const TARGETS: Target[] = [
                 'recipe.execution_stage_summary_check', 'recipe.stage_sign_off_shape_problem'],
     tests: [r('execution/step-order-sql.test.ts'), r('execution/step-acts-sql.test.ts'), r('execution/step-status-sql.test.ts'),
             r('execution/own-node-events-sql.test.ts'), r('execution/stage-summary-sql.test.ts'), s('execution/db-guards-step-order.test.ts'),
-            s('execution/db-guards-step-acts.test.ts'), s('execution/db-guards-stage-sign-off.test.ts')],
+            s('execution/db-guards-step-acts.test.ts'), s('execution/db-guards-stage-sign-off.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/db-guards-hand-over.test.ts'), s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, execution store: the system's own facts and time (sql 0280, 0299, 0304) ---------------
@@ -203,7 +218,9 @@ export const TARGETS: Target[] = [
     functions: ['recipe.execution_system_fact_check', 'recipe.time_fact_problem', 'recipe.node_event_problem', 'recipe.time_constraint_of',
                 'recipe.time_ends', 'recipe.time_start_us', 'recipe.time_blocked_steps', 'recipe.flow_anchor', 'recipe.flow_node_of',
                 'recipe.duration_us', 'recipe.clock_regression_record', 'recipe.created_by_system', 'recipe.is_system_fact'],
-    tests: [r('execution/system-facts-sql.test.ts'), s('execution/system-facts.test.ts'), s('execution/system-facts-bookkeeping.test.ts')],
+    tests: [r('execution/system-facts-sql.test.ts'), s('execution/system-facts.test.ts'), s('execution/system-facts-bookkeeping.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, exceptions, dispositions and hold-point decisions (sql 0270, 0295, 0298, 0305, 0306,
@@ -215,7 +232,9 @@ export const TARGETS: Target[] = [
                 'recipe.propose_disposition', 'recipe.propose_hold_point_decision', 'recipe.correction_needs_approval'],
     tests: [r('execution/sql-guards.test.ts'), s('execution/db-guards-dispositions.test.ts'), s('execution/db-guards-values.test.ts'),
             s('execution/db-guards-proposal-race.test.ts'), s('execution/signed-content-hold-point.test.ts'),
-            s('execution/db-guards-corrections.test.ts')],
+            s('execution/db-guards-corrections.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, limit verdicts and the limit exceptions they raise (sql 0305) --------------------------
@@ -236,7 +255,9 @@ export const TARGETS: Target[] = [
                 'recipe.command_step_key', 'recipe.execution_disposition_involvement_check', 'recipe.execution_rule_violations',
                 'recipe.execution_violations', 'recipe.next_step_started'],
     tests: [s('execution/db-guards-disposition-involvement.test.ts'), s('execution/store.test.ts'), s('execution/signing.test.ts'),
-            r('execution/sql-guards.test.ts')],
+            r('execution/sql-guards.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/db-guards-hand-over.test.ts'), s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, weighing net, label, total and counted item (sql 0321-0323) ----------------------------
@@ -245,7 +266,9 @@ export const TARGETS: Target[] = [
     functions: ['recipe.weighing_net_problem', 'recipe.execution_weighing_net_check', 'recipe.weighing_label_problem',
                 'recipe.block_total_problem', 'recipe.weighing_totals_problem', 'recipe.execution_weighing_record_check',
                 'recipe.mass_unit_class', 'recipe.phase_records', 'recipe.weighing_item_problem', 'recipe.execution_weighing_item_check'],
-    tests: [s('execution/db-guards-weighing-net.test.ts'), s('execution/db-guards-weighing-record.test.ts'), r('execution/weighing-item-sql.test.ts')],
+    tests: [s('execution/db-guards-weighing-net.test.ts'), s('execution/db-guards-weighing-record.test.ts'), r('execution/weighing-item-sql.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('blocks/dispensing/tb-01-db.test.ts'), s('blocks/granulation/db-guards.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: what a signature covers: the signed-content providers and the signatures a row needs (recipe-core
@@ -261,7 +284,9 @@ export const TARGETS: Target[] = [
             s('execution/signed-content-stage-summary.test.ts'), s('execution/db-guards-signatures.test.ts'),
             s('execution/db-guards-signature-freshness.test.ts'), s('execution/db-guards-corrections.test.ts'),
             s('execution/db-guards-stage-summary.test.ts'), r('execution/stage-summary-sql.test.ts'), r('execution/system-facts-sql.test.ts'),
-            s('execution/witness-without-printout.test.ts')],
+            s('execution/witness-without-printout.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/db-guards-change-paths.test.ts'), s('execution/db-guards-hand-over.test.ts'), s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: sandbox installation, TEST- labels, test packages and test batches (kernel 0800, 0810, 1000;
@@ -278,7 +303,9 @@ export const TARGETS: Target[] = [
     tests: [k('sandbox/installation.test.ts'), k('sandbox/identifiers.test.ts'), k('sandbox/bypass.test.ts'), k('sandbox/bootstrap.test.ts'),
             k('sandbox/provision.test.ts'), k('sandbox/watermark.test.ts'), s('execution/import-db-guard.test.ts'),
             s('execution/db-guards-package-header.test.ts'), s('execution/store.test.ts'), s('execution/commands.test.ts'),
-            s('designer/package-publish.test.ts')],
+            s('designer/package-publish.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            r('lifecycle/gmp-issue.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: tablets, gateway keys, instruments and readings: ingest, proof, age, claim (sql 0250-0330, 0360; 0702:
@@ -327,7 +354,9 @@ export const TARGETS: Target[] = [
                 'tab.chain_is_about', 'tab.entry_withheld', 'tab.chain_listed', 'tab.chain_read_problem', 'tab.audit_chains',
                 'tab.audit_events', 'tab.audit_registry_chains', 'tab.audit_headless_chains', 'tab.audit_chain_length',
                 'tab.record_withheld', 'tab.registry_chains_of', 'tab.audit_verify_chain', 'tab.partly_withheld_chains'],
-    tests: [s('audit/read-authorisation.test.ts'), s('esig/read-authorisation.test.ts'), s('audit/view-integrity.test.ts')],
+    tests: [s('audit/read-authorisation.test.ts'), s('esig/read-authorisation.test.ts'), s('audit/view-integrity.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('master-data/formula.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: tablets, sessions, roles bound to them and attribution (sql 0001, 0100, 0400, 0480) ------------------
@@ -407,7 +436,9 @@ export const TARGETS: Target[] = [
     functions: ['recipe.exception_at_construct', 'recipe.exception_at_step', 'recipe.source_names_instance', 'recipe.provenance_names_any',
                 'recipe.step_computes', 'recipe.change_reaches_step', 'recipe.exception_source_problem',
                 'recipe.execution_exception_source_check'],
-    tests: [r('execution/exception-source-sql.test.ts'), s('execution/db-guards-disposition-involvement.test.ts')],
+    tests: [r('execution/exception-source-sql.test.ts'), s('execution/db-guards-disposition-involvement.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit follow-ups: an entry names only what its step's MBR node names, holds what its block builds and
@@ -419,7 +450,9 @@ export const TARGETS: Target[] = [
                 'recipe.entry_block_problem', 'recipe.execution_entry_block_check', 'recipe.block_schema_problem',
                 'recipe.block_data_schema_of', 'recipe.block_schema_unknown_member', 'recipe.entry_schema_problem',
                 'recipe.execution_entry_schema_check'],
-    tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-entry-identifiers.test.ts')],
+    tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('blocks/reprocessing/db-guards.test.ts'), s('blocks/packaging/db-guards.test.ts'), s('blocks/granulation/db-guards.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit follow-ups: once a witness is no longer possible, the later review and its WITNESS_LATE; the
@@ -429,7 +462,9 @@ export const TARGETS: Target[] = [
     group: 'late-witness-and-step-times',
     functions: ['recipe.witness_possible', 'recipe.late_check_record', 'recipe.execution_late_check', 'recipe.step_time_problem',
                 'recipe.execution_step_times_check', 'recipe.witness_window_problem', 'recipe.execution_witness_window_check'],
-    tests: [r('execution/late-witness-sql.test.ts'), r('execution/step-times-sql.test.ts'), s('execution/witness-without-printout.test.ts')],
+    tests: [r('execution/late-witness-sql.test.ts'), r('execution/step-times-sql.test.ts'), s('execution/witness-without-printout.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit follow-ups: a row records its command, evidence and refusal as the engine and the server build
@@ -441,7 +476,9 @@ export const TARGETS: Target[] = [
                 'recipe.row_evidence_problem', 'recipe.execution_row_problem', 'recipe.execution_row_shape_check',
                 'recipe.engine_policy_problem', 'recipe.execution_policy_shape_check', 'recipe.refusal_problem',
                 'recipe.execution_row_refusal_check', 'recipe.issue_request_problem', 'recipe.execution_issue_request_check'],
-    tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts')],
+    tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts'),
+            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
+            s('execution/db-guards-hand-over.test.ts'), s('execution/db-guards-change-paths.test.ts'), s('execution/block-entries.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2 exit, SQL mutation defects (D11): the state engine's rows, whoever writes them: a history row is a
@@ -451,6 +488,314 @@ export const TARGETS: Target[] = [
     group: 'state-engine-rows',
     functions: ['platform.guard_state_row', 'platform.state_row_history_check'],
     tests: [k('platform/state-machine.test.ts')],
+    threshold: 90,
+  },
+
+  // ---- Phase 3: plant equipment and areas: cleaning, calibration, instrument checks and use, utilities, campaigns,
+  //     repair, area clearance and occupancy (recipe-core 0400, 0403, 0404, 0460, 0522) ----
+  {
+    group: 'plant-equipment-and-areas',
+    functions: ['plant.is_blank', 'plant.cleaning_verification_guard', 'plant.cleaning_abandonment_guard',
+                'plant.cleaning_method_guard', 'plant.clearance_verification_guard', 'plant.equipment_use_chain_guard',
+                'plant.equipment_use_end_guard', 'plant.area_occupancy_chain_guard', 'plant.latest_cleaning',
+                'plant.guard_cleaning_open', 'plant.guard_cleaning_verified', 'plant.guard_cleaning_abandoned',
+                'plant.guard_equipment_use_open', 'plant.guard_equipment_no_use_open', 'plant.area_last_occupancy_event',
+                'plant.guard_clearance_passed', 'plant.guard_area_occupancy_open', 'plant.guard_area_no_occupancy_open',
+                'plant.fail', 'plant.move', 'plant.state_of', 'plant.equipment_by_code', 'plant.area_by_code',
+                'plant.require_product', 'plant.dirty_since', 'plant.define_equipment_class', 'plant.define_area',
+                'plant.define_equipment', 'plant.latest_event_of', 'plant.latest_calibration',
+                'plant.calibration_valid_until', 'plant.equipment_fitness', 'plant.fitness_problems',
+                'plant.record_calibration', 'plant.calibration_affected_batches', 'plant.record_instrument_check',
+                'plant.instrument_use_assessment', 'plant.record_instrument_use', 'plant.record_utility_reading',
+                'plant.assert_utility_usable', 'plant.open_campaign', 'plant.close_campaign', 'plant.campaign_check',
+                'plant.lock_cleaning_target', 'plant.start_cleaning', 'plant.complete_cleaning', 'plant.verify_cleaning',
+                'plant.abandon_cleaning', 'plant.cleaning_content', 'plant.equipment_use_assessment',
+                'plant.start_equipment_use', 'plant.end_equipment_use', 'plant.latest_occupancy',
+                'plant.required_clearance', 'plant.record_clearance', 'plant.verify_clearance',
+                'plant.clearance_content', 'plant.start_area_occupancy', 'plant.end_area_occupancy',
+                'plant.record_equipment_event', 'plant.repair_verification_guard', 'plant.repaired_event_verified_guard',
+                'plant.open_failure', 'plant.record_repair', 'plant.verify_repair', 'plant.repair_content',
+                'plant.utility_problem', 'plant.set_utility_feed_age', 'plant.utility_feed_max_age'],
+    tests: [r('plant/equipment.test.ts'), r('plant/area.test.ts'), r('plant/machine.test.ts'), r('plant/status-blocks.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: output containers: closing, holds, bracketing, disposal, merge and the press discharge codes
+  //     (recipe-core 0420, 0422, 0540; plant.charge_container of 0624) ----
+  {
+    group: 'output-containers',
+    functions: ['plant.container_state', 'plant.container_closed_at', 'plant.press_streams_separate',
+                'plant.bracketing_problem', 'plant.container_usable_problem', 'plant.guard_container_closed',
+                'plant.guard_hold_recorded', 'plant.output_container_content', 'plant.close_container',
+                'plant.container_scope', 'plant.dispose_container', 'plant.merge_container',
+                'plant.configure_press_discharge', 'plant.open_container', 'plant.apply_hold',
+                'plant.press_unit_problem', 'plant.charge_container'],
+    tests: [r('containers/containers.test.ts'), r('plant/equipment.test.ts'), s('blocks/compression/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: change paths, the exception register, hand-over and approved acts (recipe-core 0440-0480;
+  //     recipe.hand_over_problem of 0502; recipe.review_exception and recipe.execution_change_path_check of 0601;
+  //     recipe.skip_problem as tablets 0874 redefined it) ----
+  {
+    group: 'change-paths-and-hand-over',
+    functions: ['recipe.exception_qa_only', 'recipe.json_text', 'recipe.register_exception',
+                'recipe.exception_register_sync', 'recipe.batch_record_content', 'recipe.approval_refs',
+                'recipe.signer_engine_roles', 'recipe.skip_problem', 'recipe.member_blank',
+                'recipe.check_approver_roles', 'recipe.is_person_id', 'recipe.execution_hand_over_check',
+                'recipe.propose_act', 'recipe.batch_act_content', 'recipe.change_path_problem',
+                'recipe.hand_over_persons', 'recipe.person_engine_roles', 'recipe.hand_over_involvement',
+                'recipe.hand_over_problem', 'recipe.review_exception', 'recipe.execution_change_path_check'],
+    tests: [s('execution/db-guards-change-paths.test.ts'), s('execution/db-guards-exception-register.test.ts'), s('execution/db-guards-hand-over.test.ts'), r('lifecycle/gmp-references.test.ts'), s('blocks/compression/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: GMP batch issue and its record: allocation, ERP order link, packaging parent, product scope,
+  //     deviation references (recipe-core 0500-0504, 0582, 0601, 0603) ----
+  {
+    group: 'gmp-batch-issue',
+    functions: ['recipe.batch_record_identity_guard', 'recipe.execution_mbr_content', 'recipe.batch_mbr_content',
+                'recipe.content_for_mbr_hash', 'recipe.sandbox_only_blocks_in', 'recipe.batch_allocation_link_guard',
+                'recipe.control_recipe_sandbox_only_guard', 'recipe.batch_issue_content', 'recipe.gmp_batch_problem',
+                'recipe.batch_execution_origin_check', 'recipe.gmp_issue_problem', 'recipe.begin_gmp_issue',
+                'recipe.issue_gmp_execution', 'recipe.execution_content_version_check',
+                'recipe.execution_row_context_check', 'recipe.execution_state_records_check',
+                'recipe.execution_status_equipment_check', 'plant.batch_facts', 'plant.batch_scope',
+                'recipe.batch_product', 'recipe.packaging_parent_problem', 'recipe.packaging_link_guard',
+                'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue'],
+    tests: [r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: material lots and LIMS: status, release route, reservation and consumption, identity, destruction,
+  //     test results, retest, assay, the lot a GMP entry uses (site-services 0710-0762; recipe-core 0430; tablets
+  //     0801, 1001, 1093) ----
+  {
+    group: 'lots-and-lims',
+    functions: ['tab.entry_lot_material_problem', 'tab.record_lot_assay', 'tab.lot_assay_of',
+                'tab.g07_consumption_problem', 'tab.g07_consumption_check', 'recipe.consume_lot', 'site.actor_site',
+                'site.lot_quantity', 'site.lot_release_route', 'site.lot_consumption_stamp', 'site.lot_state',
+                'site.reservation_remaining', 'site.reservation_is_open', 'site.lot_available',
+                'site.vendor_route_enabled', 'site.identity_rule_problem', 'site.vendor_route_content',
+                'site.guard_command_recorded', 'site.guard_not_finished', 'site.guard_not_intermediate',
+                'site.guard_within_dates', 'site.guard_signer_is_actor', 'site.guard_quantity_zero', 'site.lock_lot',
+                'site.revoke_open_reservations', 'site.record_identity_result', 'site.propose_vendor_route',
+                'site.enable_vendor_route', 'site.disable_vendor_route', 'site.lot_transition', 'site.change_lot_status',
+                'site.record_lot_destruction', 'site.destroy_lot', 'site.cancel_reservation', 'site.consume_reservation',
+                'site.lot_signed_release_route', 'site.material_lot_content', 'site.guard_destruction_witnessed',
+                'site.guard_intermediate_only', 'site.guard_release_route_satisfied', 'site.lot_test_is_current',
+                'site.lot_test_state', 'site.lot_test_result_content', 'site.record_lot_test_result',
+                'site.approve_lot_test_result', 'site.link_lot_test_oos', 'site.lot_dates_problem', 'site.reserve_lot',
+                'site.lot_retest_at', 'site.record_lot_retest', 'site.lot_test_failure_resolved',
+                'site.lot_lims_release_problem', 'site.record_signed_lot_retest', 'site.lot_retest_content'],
+    tests: [site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: deviations: raise, link, investigate, conclude, close; QA signature; evidence documents;
+  //     extra-testing decision (site-services 0730, 0731, 0733, 0753; recipe-core 0600) ----
+  {
+    group: 'deviations',
+    functions: ['recipe.site_subject_identity', 'site.register_subject_resolver', 'site.subject_identity',
+                'site.deviation_state', 'site.deviation_latest_finding', 'site.deviation_content', 'site.lock_deviation',
+                'site.raise_deviation', 'site.link_deviation', 'site.start_deviation_investigation',
+                'site.record_deviation_finding', 'site.conclude_deviation', 'site.close_deviation',
+                'site.cancel_deviation', 'site.register_evidence_document', 'site.evidence_document_problem',
+                'site.qc_test_codes', 'site.qc_extra_testing_content', 'site.record_qc_extra_testing_decision',
+                'site.qc_extra_testing_decision_of', 'site.assert_deviation_qa_signature', 'site.deviation_ref_problem'],
+    tests: [site('quality/deviation.test.ts'), site('quality/lims.test.ts'), r('lifecycle/gmp-references.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: ERP masters and production orders as received (site-services 0732, 0750, 0751; recipe-core 0602)
+  //     ----
+  {
+    group: 'erp-interfaces',
+    functions: ['recipe.erp_order_problem', 'recipe.open_erp_order_for', 'site.erp_receive_product',
+                'site.product_master_of', 'site.receive_lot', 'site.erp_receive_material', 'site.erp_material_current',
+                'site.material_master_of', 'site.erp_receive_order', 'site.erp_order_of'],
+    tests: [site('quality/interfaces.test.ts'), site('lots/lots.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/gmp-issue.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: reprocessing: residue sources, authorisation, source additions, whole-batch requests, recovered
+  //     expiry (recipe-core 0620-0625; tab.residue_source_problem of tablets 1021) ----
+  {
+    group: 'reprocessing',
+    functions: ['recipe.g24_v1_gmp_problem', 'recipe.g24_v1_gmp_check', 'recipe.residue_source_problem',
+                'recipe.container_remaining', 'recipe.source_container_facts', 'recipe.reprocessing_authorisation_facts',
+                'recipe.source_addition_remaining_check', 'recipe.reprocessing_authorisation_content',
+                'recipe.reserve_residue', 'recipe.propose_reprocessing_authorisation', 'recipe.authorise_reprocessing',
+                'recipe.rpr_mass', 'recipe.addition_problem', 'recipe.record_source_addition',
+                'recipe.reprocessing_start_problem', 'recipe.source_batch_expiry', 'recipe.batch_contains_recovered',
+                'recipe.batch_reprocessing_basis', 'recipe.reprocessing_request_content',
+                'recipe.propose_reprocessing_request', 'recipe.authorise_reprocessing_request',
+                'recipe.prepare_reprocessing_issue', 'recipe.reprocessing_parents_check', 'recipe.recovered_expiry_cap',
+                'recipe.batches_receiving_from', 'recipe.g24v2_check', 'recipe.source_container_charge_check',
+                'recipe.reprocessing_request_problem', 'recipe.reprocessing_start_take'],
+    tests: [site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: the formulation library: versions, approval, MBR pin, base standard, who reads a composition
+  //     (recipe-core 0640, 0642, 0690; tablets 1042) ----
+  {
+    group: 'formulas',
+    functions: ['tab.formula_read', 'tab.formula_reader_refusal', 'tab.mbr_composition_check', 'tab.formula_reader_may',
+                'tab.composition_product', 'tab.planning_orders', 'recipe.formula_fail', 'recipe.formula_version_state',
+                'recipe.formula_reader', 'recipe.formula_lines_json', 'recipe.formula_batch_mass',
+                'recipe.formula_create', 'recipe.formula_add_version', 'recipe.formula_approve',
+                'recipe.formula_version_content', 'recipe.formula_read', 'recipe.formula_choice',
+                'recipe.formula_version_for_mbr', 'recipe.formula_pin_mbr', 'recipe.mbr_formula_of',
+                'recipe.formula_listing', 'recipe.formula_choice_of', 'recipe.formula_mbr_problem',
+                'recipe.formula_bom_line_on_base'],
+    tests: [s('master-data/formula.test.ts'), s('master-data/formula-base.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: process devices, readings, setpoint downloads, alarms, device units, G-06 values and exceptions,
+  //     status blocks v2 (tablets 0820, 0870, 0894, 0913; recipe-core 0520, 0521, 0691) ----
+  {
+    group: 'process-devices-and-status',
+    functions: ['tab.process_device_guard', 'tab.bind_process_device', 'tab.end_process_device', 'tab.process_head',
+                'tab.ingest_process_readings', 'tab.step_link_status', 'tab.request_setpoint_download',
+                'tab.pending_setpoint_downloads', 'tab.ack_setpoint_download', 'tab.reading_in_step',
+                'tab.acknowledge_process_alarm', 'tab.process_alarm_ack_entry_check', 'tab.claim_process_reading',
+                'tab.process_entry_problem', 'tab.process_entry_readings_check', 'tab.g06_step_node',
+                'tab.bind_step_device', 'tab.link_process_device_unit', 'tab.step_unit_problem',
+                'tab.record_interface_losses', 'tab.reading_use_purpose_check', 'tab.g06_exception_problem',
+                'tab.g06_exception_check', 'recipe.g06_max_age_us', 'recipe.g06_value_data',
+                'recipe.plant_status_entry_check', 'recipe.plant_status_entry_problem'],
+    tests: [s('devices/process-readings.test.ts'), s('blocks/granulation/db-guards.test.ts'), s('blocks/compression/db-guards.test.ts'), r('plant/status-blocks.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: TB-01 dispensing: the potency calculation, the entry and close guards, first-expiring lot (tablets
+  //     0842, 0843, 1000) ----
+  {
+    group: 'tablets-dispensing',
+    functions: ['tab.tb01_round', 'tab.tb01_as_is', 'tab.tb01_calculation', 'tab.tb01_raised', 'tab.tb01_close_problem',
+                'tab.tb01_entry_problem', 'tab.tb01_reservation_for', 'tab.tb01_entry_check', 'tab.lot_facts',
+                'tab.tb01_first_expiring'],
+    tests: [s('blocks/dispensing/tb-01-db.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: granulation and TB-08 (tablets 0851, 1021) ----
+  {
+    group: 'tablets-granulation',
+    functions: ['tab.gran_qty', 'tab.gran_prior', 'tab.gran_held', 'tab.gran_raised', 'tab.gran_sum',
+                'tab.gran_batch_entries', 'tab.granulation_entry_problem', 'tab.granulation_computed_problem',
+                'tab.granulation_close_problem', 'tab.granulation_loop_problem', 'tab.granulation_state_check',
+                'recipe.granulation_block_item', 'tab.tb08_entry_problem', 'tab.tb08_computed_problem',
+                'tab.tb08_state_check'],
+    tests: [s('blocks/granulation/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: compression, tooling and detector challenges (tablets 0871, 0872, 0874, 1040) ----
+  {
+    group: 'tablets-compression',
+    functions: ['tab.hold_press_output', 'tab.press_counter_baseline', 'tab.issue_strokes', 'tab.tooling_cumulative',
+                'tab.tooling_fit_problem', 'tab.tooling_issue_problem', 'tab.tooling_use_problem',
+                'tab.define_tooling_set', 'tab.tooling_set_by_code', 'tab.inspect_tooling', 'tab.issue_tooling',
+                'tab.return_tooling', 'tab.define_test_piece', 'tab.record_detector_challenge', 'tab.comp_raised_new',
+                'tab.comp_named', 'tab.comp_checklist', 'tab.comp_device', 'tab.compression_entry_problem',
+                'tab.compression_close_problem', 'tab.interface_loss_close_problem', 'tab.press_tooling_problem',
+                'tab.compression_state_check', 'tab.define_detector'],
+    tests: [s('blocks/compression/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: in-process checks: calculations, entry rules, scheduler and guards (tablets 0891-0893, 0989;
+  //     recipe-core 0541) ----
+  {
+    group: 'tablets-ipc',
+    functions: ['tab.ipc_nums', 'tab.ipc_stats', 'tab.ipc_relative_tiers', 'tab.ipc_beyond', 'tab.ipc_worst',
+                'tab.ipc_tiers', 'tab.ipc_rule_sets', 'tab.ipc_uncovered', 'tab.ipc_rule_set_problem',
+                'tab.ipc_recorded', 'tab.ipc_band', 'tab.ipc_outside', 'tab.ipc_uniformity', 'tab.ipc_reference',
+                'tab.ipc_av', 'tab.ipc_subdivision', 'tab.ipc_friability_sample_problem', 'tab.ipc_dt_limits',
+                'tab.ipc_str', 'tab.ipc_d', 'tab.ipc_tcfg', 'tab.ipc_common', 'tab.ipc_of', 'tab.ipc_pending_first',
+                'tab.ipc_weight_check', 'tab.ipc_second_stage', 'tab.ipc_physical_check', 'tab.ipc_pending_friability',
+                'tab.ipc_friability_run', 'tab.ipc_start_sets', 'tab.ipc_dt_limits_of', 'tab.ipc_open_starts',
+                'tab.ipc_pending_dt', 'tab.ipc_dt_start', 'tab.ipc_dt_end', 'tab.ipc_check_test', 'tab.ipc_due',
+                'tab.ipc_overdue', 'tab.ipc_sweep', 'tab.ipc_scheduler_entry', 'tab.ipc_entry', 'tab.ipc_raised',
+                'tab.ipc_values', 'tab.ipc_in_unit', 'tab.ipc_readings_problem', 'tab.ipc_plan_problem',
+                'tab.ipc_first_off_problem', 'tab.ipc_entry_problem', 'tab.ipc_close_problem', 'tab.ipc_apply_holds',
+                'tab.ipc_batch_has', 'tab.ipc_state_check', 'tab.ipc_overdue_at', 'tab.record_ipc_overdue',
+                'plant.record_ipc_check', 'plant.ipc_check_record', 'plant.record_missed_ipc_check'],
+    tests: [s('blocks/ipc/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: coating, AQL sorting and held cores (tablets 0911, 0912, 1021, 1092) ----
+  {
+    group: 'tablets-coating',
+    functions: ['tab.coat_sample', 'tab.aql_letter_for', 'tab.aql_evaluate', 'tab.aql_severity', 'tab.coat_raised',
+                'tab.coat_cfg', 'tab.coat_point', 'tab.coat_log_gaps', 'tab.coat_used', 'tab.coat_rejects',
+                'tab.coating_entry_problem', 'tab.coat_sort_problem', 'tab.coat_sort_data',
+                'tab.coating_computed_problem', 'tab.coating_close_problem', 'tab.coating_loop_problem',
+                'tab.coat_next_node', 'tab.coat_later_in_sequence', 'tab.coating_record', 'tab.coating_state_check',
+                'tab.coat_container_problem', 'tab.coat_charge_check', 'tab.coat_print_pass', 'tab.coat_pass_check',
+                'tab.coating_mbr_problem', 'tab.held_compression_containers', 'tab.held_cores_check'],
+    tests: [s('blocks/coating/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: roller compaction and bilayer forming (tablets 0930-0932) ----
+  {
+    group: 'tablets-forming',
+    functions: ['tab.forming_constraint_values', 'tab.forming_ribbon_due', 'tab.forming_ribbon_overdue',
+                'tab.forming_total', 'tab.compaction_entry', 'tab.bilayer_layer_cfg', 'tab.bilayer_layers',
+                'tab.bilayer_entry', 'tab.bilayer_plan_problem', 'tab.forming_unit_problem', 'tab.forming_entry_problem',
+                'tab.forming_close_problem', 'tab.forming_apply_holds', 'tab.forming_state_check'],
+    tests: [s('blocks/forming/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: G-21 printed material and coding rules (recipe-core 0580, 0581) ----
+  {
+    group: 'packaging-g21-rules',
+    functions: ['recipe.g21_dec', 'recipe.g21_challenge_time', 'recipe.g21_cfg_member', 'recipe.g21_entry_data',
+                'recipe.g21_cfg', 'recipe.g21_nodes', 'recipe.g21_step_entries', 'recipe.g21_raised',
+                'recipe.g21_mbr_problem', 'recipe.g21_exception_problem', 'recipe.g21_counted',
+                'recipe.g21_close_problem', 'recipe.g21_skip_problem', 'recipe.g21_return_problem', 'recipe.g21_record',
+                'recipe.g21_state_check'],
+    tests: [s('blocks/packaging/db-guards.test.ts'), s('blocks/packaging/completion.test.ts'), r('execution/g21-sql.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: printed lots, print jobs and serialisation; packaging batch data (tablets 0950-0952, 1022) ----
+  {
+    group: 'packaging-printing-and-serialisation',
+    functions: ['tab.record_lot_artwork', 'tab.printed_lot_facts', 'tab.g21_command_node', 'tab.g21_issue_lot_check',
+                'tab.print_device_guard', 'tab.bind_print_device', 'tab.end_print_device', 'tab.g21_open_step',
+                'tab.g21_job_market', 'tab.current_batch_data', 'tab.check_packaging_batch_data',
+                'tab.release_print_job', 'tab.print_job_state', 'tab.pending_print_jobs', 'tab.ack_print_job',
+                'tab.ingest_print_events', 'tab.g21_printed', 'tab.g21_printed_count_problem',
+                'tab.g21_print_entry_problem', 'tab.g21_print_entry_check', 'tab.g21_unrecorded_fail_check',
+                'tab.g21_job_pool', 'tab.latest_serial_report', 'tab.serialised_market', 'tab.serial_pool_request',
+                'tab.record_serial_pool', 'tab.acting_pool', 'tab.record_serial_events', 'tab.serial_states_of',
+                'tab.record_serial_report', 'tab.serial_entry_of', 'tab.serialisation_release_problem',
+                'tab.g21_serial_entry_problem', 'tab.g21_serial_entry_check', 'tab.serial_completion_check',
+                'tab.record_packaging_batch_data'],
+    tests: [s('blocks/packaging/db-guards.test.ts'), s('blocks/packaging/completion.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: blister lines (tablets 0970-0972, 1002) ----
+  {
+    group: 'packaging-blister',
+    functions: ['tab.record_line_isolation', 'tab.line_isolated', 'tab.blister_n', 'tab.blister_reel',
+                'tab.blister_check_entry', 'tab.blister_run_entry', 'tab.leak_tracks', 'tab.leak_due',
+                'tab.leak_overdue', 'tab.leak_entry', 'tab.ipc_pass_check', 'tab.blister_line_problem',
+                'tab.blister_lot_problem', 'tab.blister_line_check_problem', 'tab.blister_hold',
+                'tab.blister_entry_problem', 'tab.blister_close_problem', 'tab.blister_apply_holds',
+                'tab.blister_state_check', 'tab.g21_pass_ok', 'tab.blister_isolation_problem'],
+    tests: [s('blocks/blister/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: bottle lines, SSCC, line clearance and overdue checks (tablets 0985-0989) ----
+  {
+    group: 'packaging-bottle',
+    functions: ['tab.gs1_check_ok', 'tab.issue_sscc', 'tab.packline_n', 'tab.packline_dec', 'tab.packline_last_check',
+                'tab.packline_missed', 'tab.packline_stopped', 'tab.packline_check', 'tab.packline_challenge',
+                'tab.packline_within', 'tab.packline_sum', 'tab.bottle_entry', 'tab.pack_balance', 'tab.pack_entry',
+                'tab.packline_g21', 'tab.packline_mbr_problem', 'tab.packline_raised', 'tab.packline_entry_problem',
+                'tab.packline_close_problem', 'tab.packline_apply_holds', 'tab.packline_state_check',
+                'tab.packline_pass_check', 'tab.packline_artwork_set', 'tab.packline_line_problem',
+                'tab.packline_line_check', 'tab.packline_overdue'],
+    tests: [s('blocks/bottle/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: the platform scope hook: who may run a transition in which scope (kernel 1150; recipe-core 0523)
+  //     ----
+  {
+    group: 'platform-scope',
+    functions: ['platform.register_hook', 'platform.scope_of', 'iam.platform_authority', 'plant.transition_scope'],
+    tests: [k('platform/scope-hook.test.ts'), k('platform/state-machine.test.ts'), k('esig/platform-hook.test.ts'), k('integration/authorization.test.ts'), r('plant/equipment.test.ts')],
     threshold: 90,
   },
 ];
