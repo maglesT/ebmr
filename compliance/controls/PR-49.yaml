@@ -147,6 +147,7 @@ tests:
   - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49][IN-20] a deviation is raised with a generated reference and linked to a batch; the application role cannot write the tables"
   - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49] a link names a GMP batch, lot or container of the record's site; an unknown subject, another site's batch or a closed record is refused"
   - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49] the administrator cannot raise a record, and a person without DEVIATION.RAISE cannot either"
+  - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [PR-49][PR-17] a QA person raises and investigates a deviation-lite record with a generated reference; the ERP interface imports its catalogue and nobody else can"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

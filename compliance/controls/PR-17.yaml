@@ -49,6 +49,7 @@ implemented_by:
     - "A lot is received only for a material of the ERP material master, which gives its kind, name and unit; a receipt stating another kind, name or unit is refused (EBMR-SITE-171, 172)"
 tests:
   - "packages/site-services/test/quality/lims.test.ts > receipt from the material master (PR-17) > [PR-17][IN-24] receipt takes kind, name and unit from the master; an unknown material is refused; a purchased material cannot arrive as INTERMEDIATE; only the ERP interface writes the master"
+  - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [PR-49][PR-17] a QA person raises and investigates a deviation-lite record with a generated reference; the ERP interface imports its catalogue and nobody else can"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
