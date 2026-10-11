@@ -192,3 +192,137 @@ describe('a whole-batch reprocessing request (recipe-core 0624)', () => {
     expect(await plan({ ...base, reprocessingRequest: randomUUID() })).not.toMatch(named);
   });
 });
+
+describe('the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem)', () => {
+  type Json = Record<string, unknown>;
+  const DAY_US = 86_400_000_000n;
+  const LIMITS = { case: 'REPROCESSING_ADDITION', maxAge: { value: '30', unit: 'd' }, maxSourceBatches: 1, maxPercent: '1' };
+  const contentWith = (rp: Json = {}, size: Json = { value: '100', unit: 'kg' }): Json => ({
+    header: { product: { code: PRODUCT, strength: STRENGTH }, batchSizes: [{ id: 'BS-1', quantity: size }] },
+    procedure: {
+      kind: 'sequence', id: 'ops', children: [
+        { ...phase('add', 'TB-08', '1'), reprocessing: { ...LIMITS, ...rp } },
+        { ...phase('addr', 'G-24', '2'), reprocessing: { ...LIMITS, case: 'RECOVERY' } },
+      ],
+    },
+  });
+  let R: GmpBatch;
+  let A: GmpBatch;
+  let S1: string;
+  let facts: Json;
+  let generated: bigint;
+  const signer = randomUUID();
+  const op = randomUUID();
+  const auths: Record<string, string> = {};
+
+  /** A closed container of `b`, CLOSED in its state machine, reserved as residue. */
+  async function source(b: GmpBatch, strength = STRENGTH): Promise<string> {
+    const id = await container(b);
+    if (strength !== STRENGTH) await w.fixture('update plant.output_container set strength = $2 where id = $1', [id, strength]);
+    await w.fixture("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('output_container', $1, 'X', 1, 'CLOSED', 1)", [id]);
+    await w.fixture('insert into recipe.residue_reservation (container_id, signature_id, reserved_by_person, reserved_by_account, correlation_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
+    return id;
+  }
+  /** An authorisation of batch, step, container (a USE; a STEP when null) and case, signed by `signer` unless not `signed`. */
+  async function authorisation(batchId: string, step: string, c: string | null, kase: string, signed = true): Promise<string> {
+    const id = randomUUID();
+    await w.fixture(
+      `insert into recipe.reprocessing_authorisation (id, batch_id, step_id, scope, container_id, case_code, investigation_ref, risk_evaluation_ref, proposed_by_person, proposed_by_account, correlation_id)
+       values ($1, $2, $3, $4, $5, $6, 'INV-1', 'RA-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      [id, batchId, step, c ? 'USE' : 'STEP', c, kase],
+    );
+    if (signed) await w.fixture('insert into recipe.reprocessing_authorisation_signature (authorisation_id, signature_id, signer_person, recorded_by_account) values ($1, gen_random_uuid(), $2, gen_random_uuid())', [id, signer]);
+    return id;
+  }
+  const factsOf = async (c: string): Promise<Json> => (await db.admin.query<{ r: Json }>('select recipe.source_container_facts($1, $2) as r', [c, R.id])).rows[0]?.r ?? {};
+
+  beforeAll(async () => {
+    R = await batch();
+    A = await batch('EXECUTION_COMPLETE');
+    S1 = await source(A);
+    facts = await factsOf(S1);
+    generated = BigInt(String(facts['generatedAtUs']));
+    const other = await batch('EXECUTION_COMPLETE');
+    auths['ok'] = await authorisation(R.id, 'add', S1, 'REPROCESSING_ADDITION');
+    auths['unsigned'] = await authorisation(R.id, 'add', S1, 'REPROCESSING_ADDITION', false);
+    auths['batch'] = await authorisation(other.id, 'add', S1, 'REPROCESSING_ADDITION');
+    auths['step'] = await authorisation(R.id, 'addr', S1, 'REPROCESSING_ADDITION');
+    auths['container'] = await authorisation(R.id, 'add', await source(A), 'REPROCESSING_ADDITION');
+    auths['case'] = await authorisation(R.id, 'add', S1, 'RECOVERY');
+    auths['scope'] = await authorisation(R.id, 'add', null, 'REPROCESSING_ADDITION');
+  });
+
+  type Case = { content?: Json; others?: Record<string, Json>; now?: bigint | null; net?: string | null; ageFrom?: string; required?: boolean; c?: Json; entryNet?: Json; facts?: Json };
+  /** The problem of addition EN-9 (of S1 unless other facts are given) at step add@ of R; NULL when none. */
+  async function problem(k: Case = {}): Promise<string | null> {
+    const src = k.facts ?? facts;
+    const c = { container: src['container'], source: src, ...k.c };
+    const e = { stepKey: 'add@', kind: 'ADDITION', enteredBy: op, data: { ...c, net: k.entryNet ?? { value: '0.4', unit: 'kg' } } };
+    const now = k.now === undefined ? generated + DAY_US : k.now;
+    const state = { steps: { 'add@': { step: 'add' }, 'addr@': { step: 'addr' } }, entries: { ...k.others, 'EN-9': e }, ...(now === null ? {} : { lastRecordedUs: { $u: now.toString() } }) };
+    const { rows } = await db.admin.query<{ r: string | null }>(
+      'select recipe.addition_problem($1, $2::jsonb, $3::jsonb, $4, $5::jsonb, $6::jsonb, $7::numeric, $8, $9, $10, $11) as r',
+      [R.id, JSON.stringify(k.content ?? contentWith()), JSON.stringify(state), 'EN-9', JSON.stringify(e), JSON.stringify(c), k.net === undefined ? '0.4' : k.net, 'kg', k.ageFrom ?? 'GENERATION', k.required ?? false, 'TB08'],
+    );
+    return rows[0]?.r ?? null;
+  }
+  const entry = (stepKey: string, kind: string, batchId: string, net?: Json, auth?: string): Json => ({
+    stepKey, kind, data: { source: { sourceBatchId: batchId }, ...(net ? { net } : {}), ...(auth ? { authorisation: auth } : {}) },
+  });
+
+  it('[PR-47][IN-19] material of another strength of the product is refused', async () => {
+    expect(await problem()).toBeNull();
+    expect(await problem({ facts: await factsOf(await source(A, '650 mg')) })).toMatch(/TB08-OTHER-PRODUCT/);
+  });
+
+  it('[PR-47][IN-19] the age: counted from generation or manufacture as the block says, the MBR maximum included, no maximum or no row time refused', async () => {
+    const max = 30n * DAY_US;
+    expect(await problem({ now: generated + max })).toBeNull();
+    expect(await problem({ now: generated + max + 1n })).toMatch(/TB08-TOO-OLD/);
+    // The source batch was issued at the epoch (fixture): counted from manufacture it is far too old.
+    expect(await problem({ ageFrom: 'MANUFACTURE' })).toMatch(/TB08-TOO-OLD/);
+    expect(await problem({ content: contentWith({ maxAge: null }) })).toMatch(/TB08-TOO-OLD/);
+    expect(await problem({ now: null })).toMatch(/TB08-TOO-OLD/);
+  });
+
+  it('[PR-47][IN-19] the source batches counted are the additions of this step only; the MBR maximum is a number', async () => {
+    const B1 = randomUUID();
+    const B2 = randomUUID();
+    const others = {
+      'EN-1': entry('addr@', 'ADDITION', B1), 'EN-2': entry('addr@', 'ADDITION', B2),
+      'EN-3': entry('add@', 'NOTE', B1), 'EN-4': entry('add@', 'NOTE', B2),
+    };
+    expect(await problem({ others })).toBeNull();
+    expect(await problem({ others: { ...others, 'EN-5': entry('add@', 'ADDITION', B1) } })).toMatch(/TB08-TOO-MANY-SOURCES/);
+    expect(await problem({ content: contentWith({ maxSourceBatches: '2' }) })).toMatch(/TB08-TOO-MANY-SOURCES/);
+  });
+
+  it('[PR-47][INV-33] the net: positive and at most what the container still holds', async () => {
+    expect(await problem({ net: '0.4' })).toBeNull();
+    expect(await problem({ net: '0.41' })).toMatch(/TB08-OVER-REMAINING/);
+    expect(await problem({ net: '0' })).toMatch(/TB08-OVER-REMAINING/);
+    expect(await problem({ net: null })).toMatch(/TB08-OVER-REMAINING/);
+  });
+
+  it('[PR-47][IN-19] the total added at the step against the MBR percentage of the batch size: the limit included, g and kg converted, other steps not counted', async () => {
+    // 1 % of 100 kg is 1 kg: 0.4 kg here, 600 g at this step from the same source batch, 5 kg at another step.
+    const at = (net: Json): Record<string, Json> => ({ 'EN-1': entry('add@', 'ADDITION', A.id, net), 'EN-2': entry('addr@', 'ADDITION', A.id, { value: '5', unit: 'kg' }) });
+    expect(await problem({ others: at({ value: '600', unit: 'g' }) })).toBeNull();
+    expect(await problem({ others: at({ value: '600.1', unit: 'g' }) })).toMatch(/TB08-TOO-MUCH/);
+    expect(await problem({ others: at({ value: '0.6001', unit: 'kg' }) })).toMatch(/TB08-TOO-MUCH/);
+    // A batch size in g: 1 % of 100000 g is 1000 g; the kg entries convert to g.
+    const inG = contentWith({}, { value: '100000', unit: 'g' });
+    expect(await problem({ content: inG, others: at({ value: '0.6', unit: 'kg' }) })).toBeNull();
+    expect(await problem({ content: inG, others: at({ value: '0.61', unit: 'kg' }) })).toMatch(/TB08-TOO-MUCH/);
+    // A unit that does not convert, or a percentage that is no decimal string.
+    expect(await problem({ entryNet: { value: '0.4', unit: 'units' } })).toMatch(/TB08-TOO-MUCH/);
+    expect(await problem({ content: contentWith({ maxPercent: 1 }) })).toMatch(/TB08-TOO-MUCH/);
+  });
+
+  it('[PR-47][IN-19] the authorisation: signed, of this batch, use, step, container and case; used once', async () => {
+    const under = (key: string, others?: Record<string, Json>) => problem({ required: true, c: { authorisation: auths[key], authorisedBy: signer }, ...(others ? { others } : {}) });
+    expect(await under('ok')).toBeNull();
+    for (const key of ['unsigned', 'batch', 'step', 'container', 'case', 'scope']) expect(await under(key)).toMatch(/no signed authorisation of this use .*TB08-NOT-AUTHORISED/);
+    expect(await under('ok', { 'EN-1': entry('add@', 'ADDITION', A.id, { value: '0.1', unit: 'kg' }, auths['ok']) })).toMatch(/TB08-AUTHORISATION-USED/);
+  });
+});
