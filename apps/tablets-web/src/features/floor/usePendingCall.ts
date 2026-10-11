@@ -25,7 +25,6 @@ import { useMachine } from '@xstate/react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   buildPath,
-  routes,
   type AnyRoute,
   type Attribution,
   type CallInput,
@@ -41,6 +40,7 @@ import { callWithDeadline, SEND_DEADLINE_MS } from '../../api/deadline.ts';
 import { useBadgeTap } from '../../app/ports.tsx';
 import { describeChanges, describeIntent } from './describe.ts';
 import { answersForEntry, classifyOutcome, type CommandOutcome } from './outcome.ts';
+import { commandRoute } from './family.ts';
 import { applyStepView, refreshRun, runQueryKey, stepQueryKey } from './queries.ts';
 import { useFloorSession, useSessionChange, useSignedInNow } from './session.tsx';
 import { markUnsettled } from './unsettled.ts';
@@ -330,7 +330,8 @@ export function useRunCommand(
   });
   /** The run version the last saved command produced. */
   const [savedVersion, setSavedVersion] = useState<number | null>(null);
-  const call = usePendingCall(routes.execution.command, { runId }, {
+  const target = commandRoute(runId);
+  const call = usePendingCall(target.route, target.params, {
     reason,
     // POST /api/test-runs/:runId/commands: the engine runs inside the command, after the key is claimed.
     engineAfterClaim: true,

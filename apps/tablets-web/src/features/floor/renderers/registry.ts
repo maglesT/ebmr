@@ -13,10 +13,15 @@ import { G10Renderer } from './G-10@1.tsx';
 import { G20Renderer } from './G-20@1.tsx';
 import { G22Renderer } from './G-22@1.tsx';
 import { HoldPointRenderer } from './HoldPoint.tsx';
+import { TABLET_RENDERERS } from './tablets.tsx';
 import type { BlockRenderer } from './types.ts';
 
-/** Dedicated renderers of the A1 block versions (G-17 hold points are steps of kind HOLD, without a block). */
+/**
+ * Dedicated renderers of the A1 block versions (G-17 hold points are steps of kind HOLD, without a block), and from
+ * Phase 3 slice 6 those of the tablet blocks TB-01 to TB-24, G-06@1, G-21@1 and G-24@2 (tablets.tsx).
+ */
 export const RENDERERS: Readonly<Record<string, BlockRenderer>> = {
+  ...TABLET_RENDERERS,
   'G-03@1': G03Renderer,
   'G-04@1': G04Renderer,
   'G-07@1': G07Renderer,

@@ -6,7 +6,7 @@
 import { useId, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { routes, type CallError } from '@ebmr/api-contract';
+import { routes, type CallError, type FormulaChoiceView } from '@ebmr/api-contract';
 import { Button, DecimalField, Field } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
 import { useApiQuery } from '../../api/hooks.ts';
@@ -14,6 +14,7 @@ import { RefusalMessage } from '../../app/refusal.tsx';
 import { dcls } from './classes.ts';
 import { Check } from './components/common.tsx';
 import { KNOWN_MARKETS } from './model/ops.ts';
+import { ChooseProduct, createFamilyTakesFormula } from './ChooseProduct.tsx';
 
 interface SizeRow {
   quantity: string;
@@ -36,6 +37,7 @@ export function NewFromTemplate() {
   const [error, setError] = useState<CallError | null>(null);
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState(() => crypto.randomUUID());
+  const [formula, setFormula] = useState<FormulaChoiceView | null>(null);
 
   // Defaults come from the chosen template (the first one until the author picks another) until edited.
   const list = templates.data?.templates ?? [];
@@ -55,7 +57,15 @@ export function NewFromTemplate() {
     setBusy(true);
     setError(null);
     const r = await api.call(routes.designer.createFamily, {
-      body: { templateId: chosen.templateId, familyCode: code.trim(), product: { code: product.code.trim(), name: product.name.trim(), strength: product.strength.trim() }, batchSizes: sizes, markets },
+      body: {
+        templateId: chosen.templateId,
+        familyCode: code.trim(),
+        product: { code: product.code.trim(), name: product.name.trim(), strength: product.strength.trim() },
+        batchSizes: sizes,
+        markets,
+        // "Choose a product": the server writes the BOM from the approved formula version and pins it (never the browser's quantities).
+        ...(formula && createFamilyTakesFormula() ? { formulaVersionId: formula.versionId } : {}),
+      },
       idempotencyKey: key,
     });
     setBusy(false);
@@ -98,6 +108,12 @@ export function NewFromTemplate() {
           </div>
         ))}
       </fieldset>
+      <ChooseProduct
+        onChosen={(c) => {
+          setFormula(c);
+          if (c) setProductEdit({ ...product, code: c.productCode, strength: c.strength });
+        }}
+      />
       <Field label="Family code" name="familyCode" value={code} onChange={setFamilyCode} description="Letters, digits, dots, dashes; one family per product, strength, dosage form and batch-size set." />
       <Field label="Product code" name="productCode" value={product.code} onChange={(v) => setProduct({ code: v })} />
       <Field label="Product name" name="productName" value={product.name} onChange={(v) => setProduct({ name: v })} />

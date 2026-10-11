@@ -9,6 +9,7 @@ import type { ActionView, RunView, SignedIntent, StepScreenView } from '@ebmr/ap
 import { Banner, floor } from '@ebmr/ui-kit';
 import { HoldBatchDialog, LinkDeviationDialog, RaiseExceptionDialog, ReleaseHoldDialog } from '../dialogs/CommandDialogs.tsx';
 import { DispositionDialog, HoldPointDialog, StageSignOffDialog } from '../dialogs/SignDialogs.tsx';
+import { VoidAttemptDialog } from '../dialogs/VoidAttemptDialog.tsx';
 import { st, actionLabel } from '../text.ts';
 import { useRunCommand } from '../usePendingCall.ts';
 import type { useSignedAction } from '../useSignedAction.ts';
@@ -30,6 +31,7 @@ type Open =
   | { kind: 'DISPOSITION_HOLD_POINT' }
   | { kind: 'SIGN_OFF_STAGE'; action: ActionView }
   | { kind: 'DISPOSITION_EXCEPTION'; action: ActionView }
+  | { kind: 'VOID_ATTEMPT' }
   | null;
 
 export function useStepActions(view: StepScreenView, runView: RunView | undefined, signed: Signed) {
@@ -78,6 +80,9 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
         return;
       case 'RELEASE_HOLD':
         if (a.target) setOpen({ kind: 'RELEASE_HOLD', hold: a.target });
+        return;
+      case 'VOID_ATTEMPT':
+        setOpen({ kind: 'VOID_ATTEMPT' });
         return;
       default:
         return;
@@ -159,11 +164,15 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
           }}
         />
       ) : null}
+      {open?.kind === 'VOID_ATTEMPT' ? <VoidAttemptDialog isOpen onClose={close} view={view} /> : null}
       <EntryStatus call={start} />
     </>
   );
 
-  return { perform, dialogs, busy: start.busy || start.state === 'notSaved' || signed.busy };
+  /** The void of an attempt, offered whenever the step holds a recorded attempt (DI-24); the server decides. */
+  const openVoid = () => setOpen({ kind: 'VOID_ATTEMPT' });
+
+  return { perform, dialogs, openVoid, busy: start.busy || start.state === 'notSaved' || signed.busy };
 }
 
 /** The hold-point decisions the server offers now: one action per disposition (target), each with its own meaning. */
