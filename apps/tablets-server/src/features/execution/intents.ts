@@ -508,6 +508,27 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
   }
 }
 
+/**
+ * The approval of an act proposed on batch `batchId` (aggregate batch_act): the latest valid signature of `meaning` on it,
+ * with the engine roles of the role its signer signed in. Refused when there is none (nothing is written).
+ */
+export async function actApproval(client: pg.PoolClient, batchId: string, actId: string, meaning: string): Promise<engine.Approval> {
+  if (!actId.startsWith(`${batchId}:act@`)) {
+    throw refuse('EBMR-API-ACT-OTHER-BATCH', 'The approval named belongs to another batch. Nothing was saved.', `Act ${actId} was not proposed on this batch.`, ['DI-24', 'DI-29'], ['Ask for the approval on this batch.']);
+  }
+  const { rows } = await client.query<{ signature_id: string; signer_person: string; manifestation: Record<string, unknown>; valid: boolean }>(
+    'select * from tab.signatures_of($1, $2)',
+    ['batch_act', actId],
+  );
+  const sig = [...rows].reverse().find((r) => r.valid && (r.manifestation['meaning_code'] ?? r.manifestation['meaning']) === meaning);
+  if (!sig) {
+    throw refuse('EBMR-API-ACT-NOT-APPROVED', `The act has no ${meaning} approval yet. Nothing was saved.`, `A void needs QA's approval of the act as proposed (S28).`, ['DI-24', 'DI-29'], ['Ask QA to approve the act, then send it again.']);
+  }
+  const role = typeof sig.manifestation['role_code'] === 'string' ? sig.manifestation['role_code'] : '';
+  const { rows: map } = await client.query<{ engine_role: string }>('select engine_role from tab.engine_role_map where kernel_role = $1 order by engine_role', [role]);
+  return { approver: { id: sig.signer_person, kind: 'PERSON', roles: map.map((m) => m.engine_role) }, signature: { id: sig.signature_id, meaning, signer: sig.signer_person } };
+}
+
 /** The engine command of a plain client intent (claims readings and reads lots in the command's transaction). */
 export async function resolveClientIntent(ctx: IntentContext, intent: ClientIntent): Promise<ResolvedCommand> {
   const base = { commandId: ctx.commandId, actor: ctx.actor, expectedVersion: ctx.expectedVersion };
@@ -541,14 +562,27 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
       return { command: { ...base, type: 'HOLD_BATCH', holdType: intent.holdType, reason: intent.reason }, evidence: {} };
     case 'RELEASE_HOLD':
       return { command: { ...base, type: 'RELEASE_HOLD', hold: intent.hold, reason: intent.reason }, evidence: {} };
-    case 'VOID_ATTEMPT':
-      throw refusal(501, {
-        code: 'NOT_IMPLEMENTED',
-        kind: 'NOT_ENABLED',
-        whatHappened: 'Voiding an attempt is not available yet.',
-        why: 'It arrives with Phase 3 slice 6a.',
-        whatYouCanDo: ['Use another path for now.'],
-      });
+    case 'VOID_ATTEMPT': {
+      // DI-24, DI-29: a void keeps the attempt and carries the person's own reason; QA's approval (S28) is QA's
+      // VOID_AUTHORISED signature on the act proposed first (POST /api/batches/:batchId/acts). The engine and the
+      // database decide (EBMR-EXE-051, 052, 171, ESIG-070); the server only reads the approval's signature.
+      const t = stepTarget(ctx.state, intent.stepKey);
+      roomOfStep(ctx, t.step);
+      const approval = intent.approvalActId ? await actApproval(ctx.client, ctx.state.header.batchId, intent.approvalActId, 'VOID_AUTHORISED') : undefined;
+      return {
+        command: {
+          ...base,
+          type: 'VOID_ATTEMPT',
+          step: t.step,
+          context: t.context,
+          item: intent.item,
+          reason: intent.reason,
+          ...(intent.point !== undefined ? { point: intent.point } : {}),
+          ...(approval ? { approval } : {}),
+        },
+        evidence: {},
+      };
+    }
   }
 }
 

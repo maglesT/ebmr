@@ -13,22 +13,25 @@ import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
+import { createHash, randomUUID } from 'node:crypto';
 import { refusal } from '../../platform/http/refusal.ts';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { SignableActionRegistry } from '../../platform/ports.ts';
+import { peopleOf, personRef, usOf } from '../common/people.ts';
+import { deviationIds, erpMaterials, erpOrders, erpProducts, extraTesting, lots } from './reads.ts';
 import { reprocessingAuthorisations, reprocessingRequests, residueContainers } from './reprocessing.ts';
+import { lotDecisionHandler, qualityActHandler, reprocessingActHandler } from './signables.ts';
+
+export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
+  if (app.installation !== 'GMP') return;
+  registry.register(qualityActHandler(app));
+  registry.register(lotDecisionHandler(app));
+  registry.register(reprocessingActHandler(app));
+}
 
 type Db = Pick<pg.Pool, 'query'>;
 
-/** Phase 3 slice 6a-0: routes fixed in the contract whose handlers arrive with slice 6a (501 until then). */
-const notYet = (): Promise<never> =>
-  Promise.reject(
-    refusal(501, {
-      code: 'NOT_IMPLEMENTED',
-      kind: 'NOT_ENABLED',
-      whatHappened: 'This function is not available yet.',
-      why: 'It arrives with Phase 3 slice 6a.',
-      whatYouCanDo: ['Use another path for now.'],
-    }),
-  );
 
 async function deviationView(db: Db, deviationId: string): Promise<DeviationView> {
   const { rows } = await db.query<{ id: string; ref: string; kind: DeviationView['kind']; title: string; classification: DeviationView['classification']; state: DeviationView['state'] }>(
@@ -152,14 +155,71 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       },
       lotResults: async ({ params }) => ({ results: await lotResults(pool, params.lotId) }),
       erpImport: async ({ body }) => asErp(app, body, (c) => importCatalogue(c, body.catalogue)),
-      deviations: notYet,
-      registerEvidenceDocument: notYet,
-      extraTesting: notYet,
-      erpOrders: notYet,
-      erpProducts: notYet,
-      erpMaterials: notYet,
-      lots: notYet,
-      receiveLot: notYet,
+      deviations: async ({ query, requireSession }) => {
+        requireSession();
+        const out = [];
+        for (const id of await deviationIds(pool, query)) out.push(await deviationView(pool, id));
+        return { deviations: out };
+      },
+      registerEvidenceDocument: async ({ body, requireSession, actor, idempotencyKey, requestHash }) => {
+        requireSession();
+        const bytes = Buffer.from(body.contentBase64, 'base64');
+        if (bytes.length === 0 || bytes.length > 4_194_304) {
+          throw refusal(422, { code: 'EBMR-API-DOCUMENT-SIZE', kind: 'INVALID_INPUT', whatHappened: 'The document is empty or larger than 4 MB. Nothing was stored.', why: `It has ${String(bytes.length)} bytes.`, whatYouCanDo: ['Attach a document of at most 4 MB.'] });
+        }
+        const sha256 = createHash('sha256').update(bytes).digest('hex');
+        // Content-addressed and written once, before the record names it (a refused record leaves an unnamed file only).
+        const storageKey = `evidence/${sha256.slice(0, 2)}/${sha256}-${randomUUID()}`;
+        const path = join(app.config.exchangeDir, storageKey);
+        mkdirSync(join(path, '..'), { recursive: true });
+        writeFileSync(path, bytes, { flag: 'wx', mode: 0o440 });
+        const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+          const { rows } = await c.query<{ r: string }>('select site.register_evidence_document($1::jsonb)::text as r', [
+            JSON.stringify({ sha256, mediaType: body.mediaType, sizeBytes: String(bytes.length), storageKey, title: body.title }),
+          ]);
+          return rows[0]?.r ?? '';
+        });
+        const { rows } = await pool.query<{ id: string; title: string; media_type: string; size_bytes: string; sha256: string; by: string; us: string }>(
+          `select d.id, d.title, d.media_type, d.size_bytes::text as size_bytes, d.sha256, d.uploaded_by_person as by, ${usOf('d.uploaded_at')} as us from site.evidence_document d where d.id = $1`,
+          [out.result],
+        );
+        const d = rows[0];
+        if (!d) throw new Error('the registered document was not found');
+        const people = await peopleOf(pool, [d.by]);
+        return { documentId: d.id, title: d.title, mediaType: d.media_type, sizeBytes: d.size_bytes, sha256: d.sha256, uploadedBy: personRef(people, d.by, 'UPLOADER'), uploadedAt: app.formatInstant(d.us) };
+      },
+      extraTesting: async ({ params, requireSession }) => {
+        requireSession();
+        return extraTesting(app, pool, params.batchId);
+      },
+      erpOrders: async ({ requireSession }) => {
+        requireSession();
+        return { orders: await erpOrders(app, pool) };
+      },
+      erpProducts: async ({ requireSession }) => {
+        requireSession();
+        return { products: await erpProducts(pool) };
+      },
+      erpMaterials: async ({ requireSession }) => {
+        requireSession();
+        return { materials: await erpMaterials(pool) };
+      },
+      lots: async ({ query, requireSession }) => {
+        requireSession();
+        return { lots: await lots(app, pool, query) };
+      },
+      receiveLot: async ({ body, requireSession, actor, idempotencyKey, requestHash }) => {
+        requireSession();
+        const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+          const { rows } = await c.query<{ r: { lot_id: string } }>('select site.receive_lot($1::jsonb) as r', [
+            JSON.stringify({ materialCode: body.materialCode, lotCode: body.lotCode, supplier: body.supplier, supplierLot: body.supplierLot, quantity: body.quantity, expiresAt: body.expiresAt, ...(body.retestAt ? { retestAt: body.retestAt } : {}) }),
+          ]);
+          return rows[0]?.r.lot_id ?? '';
+        });
+        const view = (await lots(app, pool, { lotId: out.result }))[0];
+        if (!view) throw new Error('the received lot was not found');
+        return view;
+      },
       reprocessingRequests: async ({ requireSession }) => {
         requireSession();
         return { requests: await reprocessingRequests(app, pool) };

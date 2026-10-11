@@ -39,3 +39,6 @@ export * as containers from './containers/index.ts';
 
 // ---- Phase 3 slice 1: equipment, rooms and lines, campaigns, clearances (schema plant, sql/0400-0405; node-only) --
 export * as plant from './plant/index.ts';
+
+// ---- Phase 3 slice 6a: the company formulation library (sql/0640; node-only) ----------------------------
+export * as formula from './formula/index.ts';
