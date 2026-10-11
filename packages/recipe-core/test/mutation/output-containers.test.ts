@@ -79,7 +79,7 @@ async function refusal(p: Promise<unknown>): Promise<string> {
 }
 
 const why = (text: string) => ({ reasonCode: 'TEST', reasonText: text });
-function open(batch: Batch, press?: string, stream?: string, stage = 'COMPRESSION', unit = 'kg'): Promise<oc.ContainerRef> {
+function open(batch: Batch, press?: string, stream?: string, stage = 'COMPRESSION', unit: oc.QuantityUnit = 'kg'): Promise<oc.ContainerRef> {
   return run(db, operator, (c) => oc.openContainer(c, { batchId: batch.id, stage, unit, ...(press ? { pressCode: press } : {}), ...(stream ? { stream } : {}) }));
 }
 function close(ref: oc.ContainerRef, qty = '12.500'): Promise<oc.ContainerRef> {
