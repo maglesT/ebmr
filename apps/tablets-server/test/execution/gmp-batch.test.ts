@@ -287,6 +287,19 @@ describe('GMP batches on the GMP installation (slice 2b)', () => {
     expect(await status()).toBe('ISSUED');
   }, 300_000);
 
+  it('[INV-01][INV-27][IN-18] a GMP batch is planned with its id and an existing MBR family, and a batch number only from an allocation of the register', async () => {
+    const prepare = (batch: string | null, def: unknown): Promise<string> =>
+      messageOf(world.run(world.cast.issuer, (c) => c.query('select recipe.prepare_gmp_issue($1, $2::jsonb) as r', [batch, JSON.stringify(def)]), reason('planning for the test')));
+    const scope = { markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE };
+    const named = /planned with its id and its MBR family, market set and scope .*\[EBMR-EXE-192\]/;
+    expect(await prepare(null, { familyId, ...scope })).toMatch(named);
+    expect(await prepare(randomUUID(), [familyId])).toMatch(named);
+    expect(await prepare(randomUUID(), { familyId: 'FAM-1', ...scope })).toMatch(named);
+    expect(await prepare(randomUUID(), { familyId: randomUUID(), ...scope })).toMatch(/There is no MBR family .*\[EBMR-EXE-192\]/);
+    expect(await prepare(randomUUID(), { familyId, ...scope, allocationId: 'ALLOC-1' })).toMatch(/names no allocation of the site's register .*\[EBMR-EXE-191\]/);
+    expect(await prepare(randomUUID(), { familyId, ...scope, allocationId: randomUUID() })).toMatch(/is not in the site's batch-number register .*\[EBMR-EXE-191\]/);
+  }, 120_000);
+
   it('[DI-05][INV-18] TEST- lots are refused on GMP and real lots in the sandbox; a lot of the site register is read with its register status on GMP', async () => {
     const issuer = await gmp.asPersona('issuer');
     const onGmp = await issuer.call(routes.execution.lot, { params: { code: 'TEST-L26-0101' } });
