@@ -65,7 +65,7 @@ describe('a failed challenge or tooling check holds the press output since the l
       let n = 0;
       const tag = randomUUID().slice(0, 8);
       /** A container opened `opened` ago, closed `closed` ago (or at `since`, or still open). */
-      const container = async (b: string, p: string, opened: string, closed: string | 'SINCE' | null): Promise<string> => {
+      const container = async (b: string, p: string, opened: string, closed: string | null): Promise<string> => {
         const id = randomUUID();
         await c.query(
           `insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, press_code, quantity_unit, opened_at, opened_by_person, opened_by_account)
