@@ -15,10 +15,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
-import { flow } from '@ebmr/recipe-core';
+import { engine, execution, flow } from '@ebmr/recipe-core';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
 import { openPersonaSession, openServiceSession } from '@ebmr/test-kit';
-import { esig, withCommand } from '@ebmr/kernel';
+import { esig, toDbContext, withCommand } from '@ebmr/kernel';
 import { cmd, signatureAuth } from '../../../../packages/kernel/test/esig/helpers.ts';
 import type { SeededActor } from '../../../../packages/kernel/test/identity/seed.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
@@ -26,6 +26,9 @@ import { cell, reason, World, type Cast } from '../../../../packages/recipe-core
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { recordContentForSigning } from '../../src/features/esig/content.ts';
+import { engineActor } from '../../src/features/execution/roles.ts';
+import { defineForGmp, loadControlRecipe } from '../../src/features/execution/runs.ts';
+import { messageOf } from './db-guards-support.ts';
 import { personaIn, startSigningServer } from '../esig/support.ts';
 import { dcMini, importAndIssue, refusalOf, RunDriver, startExecServer, valueOf, writePackage, type ExecServer } from './support.ts';
 
@@ -216,6 +219,116 @@ describe('GMP batches on the GMP installation (slice 2b)', () => {
     const blank = await signIssue(issuer, plan.batchId, { reason: { code: 'PRODUCTION_PLAN', text: '   ' } }).catch((e: unknown) => ({ result: { ok: false as const, error: e } }));
     expect(blank.result.ok).toBe(false);
   }, 300_000);
+
+  it('[DI-14][DI-35][INV-26][INV-01][DI-34] the database refuses a forged GMP issue, each with its own refusal: another number, a policy that does not hash as stated, a request of another person, another market set, a signature that is none, role evidence that is malformed or not behind a stored evaluation, a state that is not the initial one; the honest issue then succeeds', async () => {
+    const plan = await planned(await gmp.asPersona('issuer'));
+    const issuer = world.cast.issuer;
+    const sig = await world.sign(issuer, 'batch_issue', plan.batchId, 'ISSUED', 'PLANNED');
+    const source = await loadControlRecipe(gmp.db.admin, plan.controlRecipeId);
+    if (!source) throw new Error('SETUP: the control recipe cannot be read');
+    const def = defineForGmp(source);
+    const other = personaIn(gmp, 'operator1').personId;
+    const json = (p: unknown[], i: number): Json => JSON.parse(String(p[i])) as Json;
+    /** The issue through the server's own code, the parameters of recipe.issue_gmp_execution changed by `forge`. */
+    const issueAs = (forge?: (p: unknown[]) => void, signatureId = sig): Promise<string> =>
+      messageOf(
+        world.run(
+          issuer,
+          async (c) => {
+            const client = {
+              query: (text: string, params?: unknown[]) => {
+                const p = params ? [...params] : [];
+                if (forge && text.includes('recipe.issue_gmp_execution')) forge(p);
+                return c.query(text, p);
+              },
+            };
+            await execution.issueGmpBatch(client as unknown as typeof c, {
+              batchId: plan.batchId,
+              signatureId,
+              define: () => def,
+              request: { variants: {}, inputs: { tabletsPerBatch: { value: { kind: 'COUNT', value: '100000' }, source: 'kill test' } }, issuedBy: engineActor(issuer.personId, []) },
+            });
+          },
+          reason('a forged issue for the test'),
+        ),
+      );
+    const request = (edit: (r: Json) => void) => (p: unknown[]) => {
+      const r = json(p, 3);
+      edit(r);
+      p[3] = JSON.stringify(r);
+    };
+    const state = (edit: (s: Json) => void) => (p: unknown[]) => {
+      const s = json(p, 9);
+      edit(s);
+      p[9] = JSON.stringify(s);
+      p[10] = engine.hashJson(s as engine.JsonValue);
+    };
+    const outcomes = {
+      number: await issueAs((p) => void (p[2] = 'G2699999')),
+      policyHash: await issueAs((p) => void (p[5] = 'e'.repeat(64))),
+      person: await issueAs(request((r) => void ((r['issuedBy'] as Json)['id'] = other))),
+      markets: await issueAs(request((r) => void (r['marketSet'] = ['IN', 'US']))),
+      signature: await issueAs(undefined, randomUUID()),
+      rolesNotAList: await issueAs(request((r) => void ((r['issuedBy'] as Json)['roles'] = 'QA'))),
+      roleWithoutEvaluation: await issueAs(request((r) => void ((r['issuedBy'] as Json)['roles'] = ['QA']))),
+      stateMovedOn: await issueAs(state((s) => void (s['version'] = 1))),
+    };
+    expect(outcomes.number).toMatch(/\[EBMR-EXE-012\]/);
+    expect(outcomes.policyHash).toMatch(/does not hash to its stated hash .*\[EBMR-EXE-014\]/);
+    expect(outcomes.person).toMatch(/names another person, batch or number .*\[EBMR-EXE-015\]/);
+    expect(outcomes.markets).toMatch(/\[EBMR-EXE-194\]/);
+    expect(outcomes.signature).toMatch(/is issued only under the issuer's valid ISSUED signature .*\[EBMR-EXE-193\]/);
+    expect(outcomes.rolesNotAList).toMatch(/role evidence of the command is malformed .*\[EBMR-EXE-035\]/);
+    expect(outcomes.roleWithoutEvaluation).toMatch(/without a stored authority evaluation .*\[EBMR-EXE-037\]/);
+    expect(outcomes.stateMovedOn).toMatch(/not the engine's initial state of this request .*\[EBMR-EXE-030\]/);
+    const status = async () => (await gmp.db.admin.query<{ s: string }>('select status as s from recipe.stub_batch where id = $1', [plan.batchId])).rows[0]?.s;
+    expect(await status()).toBe('PLANNED');
+    expect(await issueAs()).toBe('ok');
+    expect(await status()).toBe('ISSUED');
+
+    // Past every command, as the owner in the issuer's command (rolled back): the issued record is never updated; a GMP
+    // record without its control recipe is never inserted; a number is linked only to a planned batch not yet pinned.
+    const owner = async (text: string, params: unknown[]): Promise<string> => {
+      const c = await gmp.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext({ ...(await cmd(world.db, issuer)), ...reason('a write past the commands') }))]);
+        return await messageOf(c.query(text, params));
+      } finally {
+        await c.query('rollback');
+        c.release();
+      }
+    };
+    expect(await owner('update recipe.batch_execution set issue_signature_id = gen_random_uuid() where id = $1', [plan.batchId])).toMatch(/EBMR-AUDIT-004 recipe.batch_execution is insert-only/);
+    expect(
+      await owner(
+        `insert into recipe.batch_execution (id, batch_number, content_hash, installation, purpose, engine_version, registry_fingerprint, policy, policy_hash, issue_request,
+                                             market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person, issued_by_account, correlation_id)
+         values (gen_random_uuid(), 'G2600001', repeat('a', 64), 'GMP', 'GMP_BATCH', '1', repeat('c', 64), '{}', repeat('d', 64), '{}', '{IN}', $1, $2, 'Asia/Kolkata', 0,
+                 gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+        [BATCH_SIZE, SITE],
+      ),
+    ).toMatch(/GMP batch G2600001 cannot be recorded: .*\[EBMR-EXE-19\d\]/);
+    expect(
+      await owner(
+        'insert into recipe.batch_allocation_link (batch_id, allocation_id, batch_number, person_id, account_id, correlation_id) values ($1, gen_random_uuid(), $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())',
+        [plan.batchId, 'G2600002'],
+      ),
+    ).toMatch(/linked to a planned batch before it is pinned, once .*\[EBMR-EXE-191\]/);
+  }, 300_000);
+
+  it('[INV-01][INV-27][IN-18] a GMP batch is planned with its id and an existing MBR family, and a batch number only from an allocation of the register', async () => {
+    const prepare = (batch: string | null, def: unknown): Promise<string> =>
+      messageOf(world.run(world.cast.issuer, (c) => c.query('select recipe.prepare_gmp_issue($1, $2::jsonb) as r', [batch, JSON.stringify(def)]), reason('planning for the test')));
+    const scope = { markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE };
+    const named = /planned with its id and its MBR family, market set and scope .*\[EBMR-EXE-192\]/;
+    expect(await prepare(null, { familyId, ...scope })).toMatch(named);
+    expect(await prepare(randomUUID(), [familyId])).toMatch(named);
+    expect(await prepare(randomUUID(), { familyId: 'FAM-1', ...scope })).toMatch(named);
+    expect(await prepare(randomUUID(), { familyId: randomUUID(), ...scope })).toMatch(/There is no MBR family .*\[EBMR-EXE-192\]/);
+    expect(await prepare(randomUUID(), { familyId, ...scope, allocationId: 'ALLOC-1' })).toMatch(/names no allocation of the site's register .*\[EBMR-EXE-191\]/);
+    expect(await prepare(randomUUID(), { familyId, ...scope, allocationId: randomUUID() })).toMatch(/is not in the site's batch-number register .*\[EBMR-EXE-191\]/);
+  }, 120_000);
 
   it('[DI-05][INV-18] TEST- lots are refused on GMP and real lots in the sandbox; a lot of the site register is read with its register status on GMP', async () => {
     const issuer = await gmp.asPersona('issuer');

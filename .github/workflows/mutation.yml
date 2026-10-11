@@ -81,7 +81,12 @@ jobs:
                 device-readings, evidence-listener, manual-weighing-gate, read-authorisation, tablets-sessions,
                 designer-guards, site-zone, signing-failure-and-reasons, connection-roles, batch-number-register,
                 stale-commands-and-readings, exception-source, entry-references-and-schema, late-witness-and-step-times,
-                execution-row-shape, state-engine-rows]
+                execution-row-shape, state-engine-rows,
+                plant-equipment-and-areas, output-containers, change-paths-and-hand-over, gmp-batch-issue, lots-and-lims,
+                deviations, erp-interfaces, reprocessing, formulas, process-devices-and-status, tablets-dispensing,
+                tablets-granulation, tablets-compression, tablets-ipc, tablets-coating, tablets-forming,
+                packaging-g21-rules, packaging-printing-and-serialisation, packaging-blister, packaging-bottle,
+                platform-scope, tablets-core-checks]
     services:
       postgres:
         image: postgres:16
