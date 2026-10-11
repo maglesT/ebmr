@@ -201,6 +201,8 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     // the server names it, and the status meaning is refused. The hold itself is QA's signed decision in the database.
     const world = await gmpLifecycleWorld(gmp);
     const qaHold = await actorOf(gmp, 'qaApprover2');
+    // The decision is proposed first, so the signed content names it (site-services 0800).
+    await world.run(qaHold, (c) => c.query("select site.propose_lot_decision($1, 'HOLD')", [lot.lotId]));
     const holdSig = await world.sign(qaHold, 'material_lot', lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
     const lotVersion = (await gmp.db.admin.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId])).rows[0]?.v;
     await world.run(qaHold, (c) => c.query("select site.change_lot_status($1, 'HOLD', $2::bigint, $3)", [lot.lotId, lotVersion, holdSig]), reason('Customer complaint on the supplier lot under investigation'));

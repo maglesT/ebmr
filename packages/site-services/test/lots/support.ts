@@ -13,10 +13,12 @@ import { seedAdministration, seedServiceActor, withReason, type SeededActor } fr
 import {
   changeLotStatus,
   enableVendorRoute,
+  proposeLotDecision,
   proposeVendorRoute,
   receiveLot,
   recordIdentityResult,
   reserveLot,
+  type LotQaDecision,
   type LotReceipt,
   type MaterialKind,
   type ReceivedLot,
@@ -133,6 +135,12 @@ export class World {
 
   sign(signer: SeededActor, lotId: string, meaning: string, expectedState: string): Promise<string> {
     return signFor(this.db, signer, { type: 'material_lot', id: lotId }, meaning, expectedState);
+  }
+
+  /** QA proposes `event` (sql/0800) and `signer` signs MATERIAL_LOT_STATUS_DECIDED over the content that names it. */
+  async decide(signer: SeededActor, lotId: string, event: LotQaDecision, expectedState: string): Promise<string> {
+    await this.run(signer, (c) => proposeLotDecision(c, lotId, event));
+    return this.sign(signer, lotId, 'MATERIAL_LOT_STATUS_DECIDED', expectedState);
   }
 
   async identity(lotId: string, result: 'PASS' | 'FAIL' = 'PASS'): Promise<string> {

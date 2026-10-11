@@ -101,7 +101,7 @@ describe('receipt and release', () => {
     );
     const rej = await w.sign(w.cast.qa, finished.lotId, 'MATERIAL_LOT_REJECTED', 'QUARANTINE');
     expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, finished.lotId, 'REJECT', await w.version(finished.lotId), rej), 'finished'))).toMatch(/not_finished/);
-    const qd = await w.sign(w.cast.qa, finished.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'QUARANTINE');
+    const qd = await w.decide(w.cast.qa, finished.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', 'QUARANTINE');
     expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, finished.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', await w.version(finished.lotId), qd), 'x'))).toMatch(
       /not_finished/,
     );
@@ -116,11 +116,11 @@ describe('receipt and release', () => {
       /not_intermediate/,
     );
     const excipient = await w.receive('EXCIPIENT');
-    const esig = await w.sign(w.cast.qa, excipient.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'QUARANTINE');
+    const esig = await w.decide(w.cast.qa, excipient.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', 'QUARANTINE');
     expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, excipient.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', await w.version(excipient.lotId), esig), 'x'))).toMatch(
       /intermediate_only/,
     );
-    const rffp = await w.sign(w.cast.qa, intermediate.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'QUARANTINE');
+    const rffp = await w.decide(w.cast.qa, intermediate.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', 'QUARANTINE');
     expect(await w.run(w.cast.qa, async (c) => changeLotStatus(c, intermediate.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', await w.version(intermediate.lotId), rffp), 'granulate for compression')).toMatchObject({
       to: 'RELEASED_FOR_FURTHER_PROCESSING',
     });
@@ -271,7 +271,7 @@ describe('consumption guard (INV-13, INV-14, PR-18)', () => {
     const batch = await w.batch(['IN']);
     const res = await w.reserve(lot.lotId, batch, '3');
     await w.consume(batch, res, lot.materialCode, '1');
-    let sig = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
+    let sig = await w.decide(w.cast.qa, lot.lotId, 'HOLD', 'RELEASED');
     // A QA decision states its reason.
     expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'HOLD', await w.version(lot.lotId), sig)))).toMatch(/platform\.reason_given/);
     const hold = await w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'HOLD', await w.version(lot.lotId), sig), 'supplier complaint under investigation');
@@ -285,7 +285,7 @@ describe('consumption guard (INV-13, INV-14, PR-18)', () => {
     expect(rows[0]?.cause).toMatch(/RELEASED -> ON_HOLD/);
     expect(await refusal(w.consume(batch, res, lot.materialCode, '1'))).toMatch(/EBMR-SITE-163 the reservation was revoked/);
     expect(await refusal(w.reserve(lot.lotId, batch, '1'))).toMatch(/EBMR-SITE-141 .*ON_HOLD/);
-    sig = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'ON_HOLD');
+    sig = await w.decide(w.cast.qa, lot.lotId, 'UNHOLD', 'ON_HOLD');
     await w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'UNHOLD', await w.version(lot.lotId), sig), 'investigation closed, no impact');
     expect(await refusal(w.consume(batch, res, lot.materialCode, '1'))).toMatch(/EBMR-SITE-163/);
     const again = await w.reserve(lot.lotId, batch, '2');
@@ -354,7 +354,7 @@ describe('what the release signature covers (review backlog item 6; sql/0720)', 
     const { rows: changes } = await db.admin.query("select 1 from esig.content_change where aggregate_ref = $1 and table_name = 'site.lot_consumption'", [`material_lot:${lot.lotId}`]);
     expect(changes).toEqual([]);
     // A QA decision signed before a consumption still applies after it.
-    const hold = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
+    const hold = await w.decide(w.cast.qa, lot.lotId, 'HOLD', 'RELEASED');
     await w.consume(batch, res, lot.materialCode, '1');
     expect(await w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'HOLD', await w.version(lot.lotId), hold), 'complaint')).toMatchObject({ to: 'ON_HOLD' });
     const { rows } = await db.admin.query('select * from esig.verify_signatures() where signature_id = any($1::uuid[])', [[sig, hold]]);
@@ -388,7 +388,7 @@ describe('witnessed destruction (IN-24 (a))', () => {
     const batch = await w.batch(['IN']);
     const res = await w.reserve(lot.lotId, batch, '2');
     await w.consume(batch, res, lot.materialCode, '1');
-    const recall = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
+    const recall = await w.decide(w.cast.qa, lot.lotId, 'RECALL', 'RELEASED');
     await w.run(w.cast.qa, async (c) => changeLotStatus(c, lot.lotId, 'RECALL', await w.version(lot.lotId), recall), 'supplier recall notice');
     await w.run(w.cast.warehouse, (c) => recordLotDestruction(c, lot.lotId, 'incineration by approved contractor', 'recalled lot'));
     // The dispenser also holds the verifier role, so only the rule refuses him.
@@ -423,7 +423,7 @@ describe('no bypass (INV-13; ADR 0012)', () => {
       /permission denied for function consume_reservation/,
     );
     // A direct transition, even with a valid QA signature, is refused: it would skip the reservation revocation.
-    const sig = await w.sign(w.cast.qa, lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
+    const sig = await w.decide(w.cast.qa, lot.lotId, 'HOLD', 'RELEASED');
     expect(await refusal(w.run(w.cast.qa, async (c) => c.query("select platform.transition('material_lot', 'material_lot', $1, 'HOLD', $2::bigint, jsonb_build_object('signature_id', $3::text))", [lot.lotId, await w.version(lot.lotId), sig]), 'bypass'))).toMatch(
       /EBMR-PLAT-068 .*command_recorded/,
     );
