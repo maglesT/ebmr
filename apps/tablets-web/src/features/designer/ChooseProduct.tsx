@@ -38,9 +38,9 @@ export function ChooseProduct({ onChosen }: { onChosen: (choice: FormulaChoiceVi
     <fieldset className={dcls('fieldset')} data-testid="choose-product">
       <legend className={dcls('legend')}>Choose a product</legend>
       <p className={dcls('small')}>The bill of materials comes from the product&apos;s approved formula; its quantities are computed, never typed.</p>
-      <Field label="Product" name="choiceProduct" value={product} onChange={setProduct} />
-      <Field label="Strength" name="choiceStrength" value={strength} onChange={setStrength} />
-      <Field label="Batch size (tablets)" name="choiceBatchSize" value={batchSize} onChange={setBatchSize} inputMode="numeric" />
+      <Field label="Formula product" name="choiceProduct" value={product} onChange={setProduct} />
+      <Field label="Formula strength" name="choiceStrength" value={strength} onChange={setStrength} />
+      <Field label="Formula batch size (tablets)" name="choiceBatchSize" value={batchSize} onChange={setBatchSize} inputMode="numeric" />
       <Button onPress={() => void choose()} isDisabled={!ready || busy}>
         Choose this product
       </Button>

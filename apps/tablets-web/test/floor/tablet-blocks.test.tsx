@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { StepScreenView } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
+import { actVersion } from '../../src/features/floor/dialogs/VoidAttemptDialog.tsx';
 import { buildBlockEntry, toWire, type BlockEntryFormDef } from '../../src/features/floor/renderers/block-entry.tsx';
 import { fakeCeremony, renderFloor, RUN_ID, stepFixtures, stepPath, stepVariant } from './support.tsx';
 
@@ -134,5 +135,8 @@ describe('an attempt is voided with a reason, never deleted (DI-24 screen)', () 
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Send' }));
     await waitFor(() => expect(ui.commands()).toHaveLength(1));
     expect(ui.commands()[0]?.body?.['intent']).toMatchObject({ type: 'VOID_ATTEMPT', reason: 'Typed into the wrong field', approvalActId: act.actId });
+    // Sent at the state version the act was proposed at (its id names it).
+    expect(ui.commands()[0]?.body?.['expectedVersion']).toBe(actVersion(act.actId));
+    expect(actVersion(act.actId)).not.toBeNull();
   });
 });

@@ -21,6 +21,12 @@ import { st } from '../text.ts';
 import { CommandBody, CommandDialog } from './CommandDialog.tsx';
 import { describeSignable } from '../../../api/signables.ts';
 
+/** The batch state version an act was proposed at (`<batch>:act@<version>:<hash>`): the void is sent at that version. */
+export function actVersion(actId: string): number | null {
+  const m = /:act@([0-9]{1,10}):/.exec(actId);
+  return m?.[1] !== undefined ? Number(m[1]) : null;
+}
+
 /** Recorded attempts of the step that can be named in a void (valid ones only). */
 export function voidableAttempts(view: StepScreenView): { item: string; point: string; label: string }[] {
   return view.fields.flatMap((f) =>
@@ -96,7 +102,7 @@ function VoidAttemptForm({ onClose, view }: { onClose: () => void; view: StepScr
   }
   const locked = act !== null;
   return (
-    <CommandBody onClose={onClose} runId={view.run.runId} viewStepKey={view.step.stepKey} reason={st('void.tap')} intent={intent} expectedVersion={view.run.version} view={view} draft={choice !== null || reason !== ''}>
+    <CommandBody onClose={onClose} runId={view.run.runId} viewStepKey={view.step.stepKey} reason={st('void.tap')} intent={intent} expectedVersion={act ? actVersion(act.actId) ?? view.run.version : view.run.version} view={view} draft={choice !== null || reason !== ''}>
       <p>{st('void.intro')}</p>
       <floor.ChoiceGroup label={st('void.attempt')} options={attempts.map((a) => ({ value: a.point, label: a.label }))} value={choice} onChange={setChoice} isDisabled={locked} />
       <Field name="void-reason" label={st('void.reason')} value={reason} onChange={setReason} isDisabled={locked} autoComplete="off" isRequired />

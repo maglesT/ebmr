@@ -108,7 +108,8 @@ export function RunOverviewPage() {
   const verify = async () => {
     setReplaying(true);
     try {
-      setReplay(await api.call(routes.execution.verifyReplay, { params: { runId }, body: {} }));
+      // The replay check of this installation's family (D-S6-1): /api/batches/:batchId/verify-replay on GMP.
+      setReplay(isGmpFloor() ? await api.call(routes.batches.verifyReplay, { params: { batchId: runId }, body: {} }) : await api.call(routes.execution.verifyReplay, { params: { runId }, body: {} }));
     } finally {
       setReplaying(false);
     }
@@ -130,12 +131,9 @@ export function RunOverviewPage() {
       <h1>{st('run.title', { batch: view.header.batchNumber })}</h1>
       {held ? <Banner tone="warning" title={st('leave.held')} /> : null}
       <div className={wcls('row')}>
-        {/* The replay check is a sandbox route (/api/test-runs/:runId/replay); GMP has no such route. */}
-        {isGmpFloor() ? null : (
-          <Button variant="primary" onPress={() => void verify()} isDisabled={replaying}>
-            {st('run.verify')}
-          </Button>
-        )}
+        <Button variant="primary" onPress={() => void verify()} isDisabled={replaying}>
+          {st('run.verify')}
+        </Button>
         <a href={auditHref(view.auditChain)} className={wcls('link')}>
           {st('run.audit')}
         </a>

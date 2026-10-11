@@ -57,9 +57,9 @@ test('master data: a formula is written, approved by a second person, and chosen
   await evidence.step('Choose the product in the designer', 'The approved bill of materials with its computed quantity, read only', async () => {
     await designer.goto(`${base}/mbr/new`);
     const panel = designer.getByTestId('choose-product');
-    await panel.getByRole('textbox', { name: 'Product' }).fill(erp.productCode);
-    await panel.getByRole('textbox', { name: 'Strength' }).fill(erp.strength);
-    await panel.getByRole('textbox', { name: 'Batch size (tablets)' }).fill('100000');
+    await panel.getByRole('textbox', { name: 'Formula product' }).fill(erp.productCode);
+    await panel.getByRole('textbox', { name: 'Formula strength' }).fill(erp.strength);
+    await panel.getByRole('textbox', { name: 'Formula batch size (tablets)' }).fill('100000');
     await panel.getByRole('button', { name: 'Choose this product' }).click();
     const bom = panel.getByTestId('formula-bom');
     await expect(bom).toContainText(erp.materials.api);

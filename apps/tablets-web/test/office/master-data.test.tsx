@@ -103,9 +103,9 @@ describe('"Choose a product" in the designer\'s create flow', () => {
   it('shows the approved formula\'s BOM with computed quantities (read only) and fills the product', async () => {
     const ui = renderOffice('/mbr/new', { role: 'MBR_AUTHOR' });
     const panel = await screen.findByTestId('choose-product');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Product' }), 'GBT01');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Strength' }), '500 mg');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Batch size (tablets)' }), '200000');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula product' }), 'GBT01');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula strength' }), '500 mg');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (tablets)' }), '200000');
     await userEvent.click(within(panel).getByRole('button', { name: 'Choose this product' }));
     const bom = await within(panel).findByTestId('formula-bom');
     const choice = example('designer-formula-choice');
@@ -118,9 +118,9 @@ describe('"Choose a product" in the designer\'s create flow', () => {
   it('a refusal (no FORMULA.READ, no approved version) is shown with the server\'s words', async () => {
     renderOffice('/mbr/new', { role: 'MBR_AUTHOR', fixtures: { 'designer.formulaChoice': refusal('EBMR-FORM-003', 'No approved formula for GBT01 250 mg.') } });
     const panel = await screen.findByTestId('choose-product');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Product' }), 'GBT01');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Strength' }), '250 mg');
-    await userEvent.type(within(panel).getByRole('textbox', { name: 'Batch size (tablets)' }), '100000');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula product' }), 'GBT01');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula strength' }), '250 mg');
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Formula batch size (tablets)' }), '100000');
     await userEvent.click(within(panel).getByRole('button', { name: 'Choose this product' }));
     expect(await within(panel).findByText('No approved formula for GBT01 250 mg.')).toBeTruthy();
     expect(within(panel).queryByTestId('formula-bom')).toBeNull();
