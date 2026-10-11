@@ -67,7 +67,7 @@ describe('G-24@2 reprocessing and recovery gate on the database facts', () => {
   it('[PR-47] G-24@2 takes no start data (the database starts it on the signed authorisation), records ADDITION entries only, and names its codes in its source', () => {
     expect(G24V2.dataSchema?.startData).toBeUndefined();
     expect(Object.keys(G24V2.dataSchema?.entries ?? {})).toEqual(['ADDITION']);
-    expect(Object.values(G24_ADDITION_CODES).every((c) => c.startsWith('G24-'))).toBe(true);
+    expect(Object.values(G24_ADDITION_CODES as unknown as Record<string, string>).every((c) => c.startsWith('G24-'))).toBe(true);
     expect(validateSchema(SOURCE_FACTS_SCHEMA, src())).toEqual([]);
     expect(validateSchema(SOURCE_FACTS_SCHEMA, { ...src(), remaining: '5.0' }).length).toBeGreaterThan(0);
     const run = Run.issue(define(recovery()));

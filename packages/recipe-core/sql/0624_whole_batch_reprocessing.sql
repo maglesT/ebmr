@@ -268,6 +268,8 @@ begin
      or coalesce(p_def ->> 'familyId', '') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
     raise exception using errcode = 'P0001', message = 'A reprocessing batch is planned on its master with the authorised request (reprocessingRequest) (PR-47, IN-18). [EBMR-RPR-052]';
   end if;
+  perform iam.require_permission('BATCH.ISSUE', jsonb_strip_nulls(jsonb_build_object('site', p_def ->> 'site',
+                                                                                    'product', (select f.product_code from recipe.mbr_family f where f.id = (p_def ->> 'familyId')::uuid))));
   v_req := (p_def ->> 'reprocessingRequest')::uuid;
   perform pg_advisory_xact_lock(hashtext('recipe.reprocessing_request:' || v_req::text));
   v_problem := recipe.reprocessing_request_problem(v_req, (p_def ->> 'familyId')::uuid, p_def ->> 'site', (v_actor ->> 'person_id')::uuid);
