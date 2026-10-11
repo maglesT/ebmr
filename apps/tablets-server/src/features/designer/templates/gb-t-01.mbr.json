@@ -545,41 +545,6 @@
       "capture": "DEVICE"
     },
     {
-      "id": "ipaExtra",
-      "name": "Extra isopropyl alcohol added (optional branch)",
-      "valueType": "DECIMAL",
-      "unit": "kg",
-      "precision": {
-        "kind": "DECIMALS",
-        "digits": 3
-      },
-      "role": "QUANTITY",
-      "criticality": "CRITICAL",
-      "riskClass": "HIGH",
-      "capture": "DEVICE",
-      "limits": {
-        "unit": "kg",
-        "ranges": [
-          {
-            "tier": "VALIDATED",
-            "rounding": "USP_HALF_UP_AT_LIMIT_DECIMALS",
-            "source": {
-              "kind": "VALIDATION_REPORT",
-              "ref": "VR-GBT01"
-            },
-            "low": {
-              "value": "0.001",
-              "inclusive": true
-            },
-            "high": {
-              "value": "0.480",
-              "inclusive": true
-            }
-          }
-        ]
-      }
-    },
-    {
       "id": "lod",
       "name": "Loss on drying of the granules",
       "valueType": "DECIMAL",
@@ -591,7 +556,7 @@
       "role": "PROCESS_ENDPOINT",
       "criticality": "CRITICAL",
       "riskClass": "HIGH",
-      "capture": "DEVICE",
+      "capture": "MANUAL",
       "semanticTag": "lod",
       "limits": {
         "unit": "%",
@@ -613,7 +578,9 @@
             }
           }
         ]
-      }
+      },
+      "evidence": "PRINTOUT",
+      "accuracyCheck": "SECOND_PERSON"
     },
     {
       "id": "granNet",
@@ -1946,29 +1913,32 @@
                                 "body": {
                                   "kind": "phase",
                                   "id": "p-ipa-extra",
-                                  "name": "Extra isopropyl alcohol added to the binder",
+                                  "name": "Extra isopropyl alcohol to the wet mass (the supervisor chose it)",
                                   "block": {
-                                    "type": "G-07",
+                                    "type": "TB-04",
                                     "version": "1"
                                   },
                                   "config": {
-                                    "tolerance": {
-                                      "percent": "1.0"
+                                    "granulator": "HIGH_SHEAR",
+                                    "extraFluid": {
+                                      "max": {
+                                        "value": "0.480",
+                                        "unit": "kg"
+                                      },
+                                      "roles": [
+                                        "PRODUCTION_OPERATOR"
+                                      ]
                                     }
                                   },
-                                  "records": [
-                                    "ipaExtra"
-                                  ],
+                                  "records": [],
                                   "computes": [],
                                   "reads": [],
-                                  "consumes": [
-                                    "BOM-IPA"
-                                  ],
+                                  "consumes": [],
                                   "produces": [],
                                   "uses": [],
                                   "equipment": [
                                     {
-                                      "ref": "BAL",
+                                      "ref": "RMG",
                                       "use": "USE"
                                     }
                                   ],
@@ -1977,16 +1947,12 @@
                                       "role": "PRODUCTION_OPERATOR"
                                     },
                                     "check": {
-                                      "meaning": "VERIFIED",
+                                      "meaning": "WITNESSED",
                                       "role": "PRODUCTION_VERIFIER"
                                     }
                                   },
                                   "significant": true,
-                                  "riskClass": "HIGH",
-                                  "system": {
-                                    "kind": "WEIGHING",
-                                    "ref": "SYS-WEIGH-01"
-                                  }
+                                  "riskClass": "HIGH"
                                 }
                               }
                             ]
@@ -2082,16 +2048,12 @@
                                   "role": "PRODUCTION_OPERATOR"
                                 },
                                 "check": {
-                                  "meaning": "VERIFIED",
+                                  "meaning": "WITNESSED",
                                   "role": "PRODUCTION_VERIFIER"
                                 }
                               },
                               "significant": true,
-                              "riskClass": "HIGH",
-                              "system": {
-                                "kind": "OTHER",
-                                "ref": "SYS-MA-01"
-                              }
+                              "riskClass": "HIGH"
                             }
                           },
                           {
@@ -2138,10 +2100,10 @@
                         ]
                       },
                       "count": {
-                        "mode": "RUNTIME",
+                        "mode": "EXPRESSION",
+                        "expression": "tabletsPerBatch / 100000",
                         "min": 2,
-                        "max": 2,
-                        "reasonRequired": true
+                        "max": 2
                       },
                       "instances": "SEQUENTIAL",
                       "subLotPrefix": "G"

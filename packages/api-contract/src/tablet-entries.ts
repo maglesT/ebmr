@@ -1,6 +1,6 @@
 /**
  * The block entry kinds the browser may send as a BLOCK_ENTRY (Phase 3 slice 6, D-S6-2): every entry kind of the
- * tablet blocks TB-01 to TB-24 and of G-06@1, G-21@1 and G-24@2, as the edition's block registry declares them
+ * tablet blocks TB-01 to TB-24 and of G-06@1, G-09@2, G-10@2, G-21@1, G-23@1 and G-24@2, as the edition's block registry declares them
  * (apps/tablets-server/test/execution/gmp-batch-routes.test.ts proves both lists equal the registry's).
  *
  * One generic variant with a closed kind instead of one typed variant per kind: the engine's block schemas stay the
@@ -14,6 +14,11 @@ export const TABLET_ENTRY_KINDS_BY_BLOCK = {
   'G-06@1': ['SETPOINT_READBACK', 'ACTUAL', 'ALARM', 'ALARM_ACK', 'INTERFACE_LOSS', 'RECIPE_CHECK'],
   'G-21@1': ['ISSUE', 'RECONCILIATION', 'FIRST_PRINT', 'CHALLENGE', 'SERIAL_POOL', 'SERIAL_RECONCILIATION'],
   'G-24@2': ['ADDITION'],
+  // Phase 3 slice 6d (GB-T-01): the GMP status and clearance steps (the plant use or occupancy they stand on) and the
+  // witnessed destruction step of an inspection; without them no GMP master the validator passes could run over HTTP.
+  'G-09@2': ['EQUIPMENT_USE'],
+  'G-10@2': ['AREA_OCCUPANCY'],
+  'G-23@1': ['DISPOSAL'],
   'TB-01@1': ['POTENCY_CALCULATION', 'CONTAINER_WEIGHING'],
   'TB-02@1': ['SCREEN_CHECK', 'MATERIAL_PASS'],
   'TB-03@1': ['PREPARED', 'DISCARD'],

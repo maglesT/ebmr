@@ -33,6 +33,11 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'KIOSK-DISP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1 (GMP batches)', key: 'BROWSER' },
   // Phase 3 slice 6c (demo seed, backlog 3b): a second GMP kiosk and the GMP site gateway's server terminal.
   { code: 'KIOSK-GRAN-1', installation: 'GMP', deviceClass: 'SHARED', room: 'GRAN-1', description: 'Shop-floor kiosk, granulation suite GRAN-1 (GMP batches)', key: 'BROWSER' },
+  // Phase 3 slice 6d (GB-T-01): a kiosk in each room of the golden batch's later stages.
+  { code: 'KIOSK-BLEND-1', installation: 'GMP', deviceClass: 'SHARED', room: 'BLEND-1', description: 'Shop-floor kiosk, blending room BLEND-1 (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-COMP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'COMP-1', description: 'Shop-floor kiosk, compression room COMP-1 (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-COAT-1', installation: 'GMP', deviceClass: 'SHARED', room: 'COAT-1', description: 'Shop-floor kiosk, coating room COAT-1 (GMP batches)', key: 'BROWSER' },
+  { code: 'KIOSK-INSP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'INSP-1', description: 'Shop-floor kiosk, inspection room INSP-1 (GMP batches)', key: 'BROWSER' },
   { code: 'GW-01', installation: 'GMP', deviceClass: 'SERVER', description: 'Site gateway (scales, instruments and process equipment), GMP installation', key: 'SERVICE' },
   { code: 'TEST-PC-01', installation: 'SANDBOX', deviceClass: 'PERSONAL', description: 'Sandbox office PC (batch issue, package import)', key: 'BROWSER' },
   { code: 'TEST-KIOSK-DISP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1', key: 'BROWSER' },

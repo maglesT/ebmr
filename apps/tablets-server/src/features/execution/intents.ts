@@ -562,6 +562,19 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
       return { command: { ...base, type: 'HOLD_BATCH', holdType: intent.holdType, reason: intent.reason }, evidence: {} };
     case 'RELEASE_HOLD':
       return { command: { ...base, type: 'RELEASE_HOLD', hold: intent.hold, reason: intent.reason }, evidence: {} };
+    case 'COMPLETE_LOOP_ITERATION': {
+      // INV-19 (Phase 3 slice 6d): the iteration of the innermost loop the step instance runs in; the engine decides the
+      // outcome from the exit condition (ENG-LOOP-CONTEXT when the step runs in no loop).
+      const t = stepTarget(ctx.state, intent.stepKey);
+      roomOfStep(ctx, t.step);
+      const last = t.context[t.context.length - 1];
+      return { command: { ...base, type: 'COMPLETE_LOOP_ITERATION', construct: last?.construct ?? '', context: t.context }, evidence: {} };
+    }
+    case 'CHOOSE_ALTERNATIVE': {
+      // DI-34, PR-13 (Phase 3 slice 6d): the context is read with the step-key grammar; the engine decides the rest.
+      const context = intent.context ? parseStepKey(`${intent.construct}@${intent.context}`).context : [];
+      return { command: { ...base, type: 'CHOOSE_ALTERNATIVE', construct: intent.construct, context, branch: intent.branch, reason: intent.reason }, evidence: {} };
+    }
     case 'VOID_ATTEMPT': {
       // DI-24, DI-29: a void keeps the attempt and carries the person's own reason; QA's approval (S28) is QA's
       // VOID_AUTHORISED signature on the act proposed first (POST /api/batches/:batchId/acts). The engine and the

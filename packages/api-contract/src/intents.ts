@@ -150,6 +150,20 @@ export const ClientIntent = z.discriminatedUnion('type', [
     point: z.string().min(1).max(128).optional(),
     approvalActId: ActId.optional(),
   }),
+  // Phase 3 slice 6d (GB-T-01, INV-19): the end of an iteration of a bounded loop (the LOD re-dry, continued coating), named
+  // by a step instance of the iteration; the engine evaluates the loop's exit condition on the recorded end point and
+  // decides EXIT, CONTINUE or EXHAUSTED (never the person).
+  z.strictObject({ type: z.literal('COMPLETE_LOOP_ITERATION'), stepKey: StepKey }),
+  // Phase 3 slice 6d (GB-T-01, DI-34, PR-13): the person's choice at an operator-choice branch (the optional extra
+  // granulating fluid), with the reason; `context` is the iteration or sub-lot the choice is made in, as a step key's
+  // context ('R-GRAN=1'; empty outside them). The engine checks the decision mode, the roles and that the choice is due.
+  z.strictObject({
+    type: z.literal('CHOOSE_ALTERNATIVE'),
+    construct: z.string().min(1).max(128),
+    context: z.string().max(512).optional(),
+    branch: z.string().min(1).max(128),
+    reason: z.string().trim().min(1).max(2000),
+  }),
 ]);
 export type ClientIntent = z.infer<typeof ClientIntent>;
 
@@ -192,9 +206,9 @@ export const ENGINE_COMMAND_CLASSES = {
   SIGN_OFF_STAGE: 'CLIENT_SIGNED',
   DISPOSITION_EXCEPTION: 'CLIENT_SIGNED',
   // A2: loop, alternative and replicate intents; corrections, voids, invalidations; skip, abort, cancel.
-  CHOOSE_ALTERNATIVE: 'LATER',
+  CHOOSE_ALTERNATIVE: 'CLIENT_PLAIN',
   CHOOSE_REPLICATE_COUNT: 'LATER',
-  COMPLETE_LOOP_ITERATION: 'LATER',
+  COMPLETE_LOOP_ITERATION: 'CLIENT_PLAIN',
   REQUEST_SKIP: 'LATER',
   CORRECT_ENTRY: 'LATER',
   // Phase 3 slice 6: the void of an attempt, with its reason and the QA approval of the proposed act.
