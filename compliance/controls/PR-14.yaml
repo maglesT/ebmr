@@ -151,6 +151,7 @@ tests:
   - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-04][PR-14] the equipment running another recipe or version than the MBR names raises RECIPE_MISMATCH, which stops the step until QA decides; a configured step cannot be performed before the recipe is checked"
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-14][DI-31][DI-32][DI-49] G-06 Automated equipment phase: A press step: the main force setpoint read back equal, the turret speed collected; a GMP-critical force alarm acknowledged with a comment; the link lost and the tablet count keyed by hand under the MBR fallback (flagged, two persons); the recipe checked; performed and verified"
   - "apps/tablets-server/test/blocks/coating/db-guards.test.ts > the coating and finishing blocks in the database (tablets 0910 to 0912) > [PR-08][PR-14][DI-32] review 3d finding 1: a value of automated equipment outside its limits is stored only with PROCESS_VALUE_OUT_OF_LIMITS at every step on a process device: a coating iteration (TB-18) and a granulation step (TB-04)"
+  - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-04][PR-14] the equipment reports another recipe version than the MBR names: the RECIPE_CHECK is stored only with matches false and RECIPE_MISMATCH, which stops the step for QA; a forged match or a dropped exception is refused by the database"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -134,6 +134,7 @@ tests:
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][DI-33][DI-37] the verdict is computed by the database; approval is by a second QC person under QC_RESULT_APPROVED; a revision drops the approval"
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; only a confirmed laboratory error with an approved passing replacement resolves it"
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result"
+  - "apps/tablets-server/test/seed/gmp-seed.test.ts > the GMP demo seed (slice 6c) > [PR-19][IN-24] the GB-T-01 lots are released on the identity-tested route after a QC-approved, passing result; the active's assay comes from its LIMS results; the ERP orders are open"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

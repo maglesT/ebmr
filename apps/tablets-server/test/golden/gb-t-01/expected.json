@@ -1,0 +1,28 @@
+{
+  "goldenBatch": "GB-T-01",
+  "decision": "D-S6-5, D-S6-7: quantities and yields computed by hand before the first run (worksheet.py, README.md); the normalised true-copy hash is taken from the first reviewed run only",
+  "product": { "code": "GBT01-250", "name": "Exemplazine tablets 250 mg (invented formula, decision 0006 part 3)", "strength": "250 mg", "batchSize": "BS-200K", "units": "200000" },
+  "dispensing": {
+    "api": { "material": "MAT-EXZ-NA", "lot": "GBT-API-001", "standardIs": "BASE", "standardQuantity": "50.000", "molarMassForm": "322.33", "molarMassBase": "300.35", "assayBasis": "ANHYDROUS_WATER", "assay": "99.20", "water": "0.80" },
+    "saltFactor": "1.073181",
+    "apiStandardForm": "53.659064",
+    "apiAsIsAssay": "98.4064",
+    "apiCalculated": "54.528023",
+    "apiTarget": "54.529",
+    "compensatingExcipient": { "material": "MAT-MCC-101", "standard": "8.000", "min": "6.000", "max": "10.000", "calculated": "7.131041", "target": "7.131" },
+    "adjustmentPercent": "1.619407",
+    "fixed": { "MAT-LAC-MH": "14.000", "MAT-PVP-K30": "2.400", "MAT-CCS": "2.400", "MAT-SIO2": "0.400", "MAT-MGST": "0.800" },
+    "lostInProcessing": { "MAT-WATER": "9.600", "MAT-IPA": "2.400" }
+  },
+  "theoretical": { "intragranularSolids": "78.060", "extragranular": "3.600", "coreBatch": "81.660" },
+  "granulation": { "subLots": 2, "driedGranules": ["38.600", "38.550"], "yieldPercent": "98.83" },
+  "recovery": { "case": 2, "source": "milled cores of batch GBT-REC-01 (same product, 41 days old)", "added": "2.000", "capThreePercent": "2.450", "percentOfBatch": "2.45" },
+  "blending": { "input": "82.750", "output": "82.310", "yieldPercent": "99.47" },
+  "compression": { "goodCores": "80.920", "reusableResidue": "0.620", "rejects": "0.390", "theoretical": "83.660", "goodOutputYieldPercent": "96.72", "yieldWithResidueAplusBoverT": "97.47", "accountabilityPercent": "99.54" },
+  "coating": { "targetWeightGainPercent": "3.0", "coatSolidsTheoretical": "2.428", "coatedTablets": "83.290", "weightGainPercent": "2.93" },
+  "inspection": { "accepted": "83.110", "rejectsDestroyed": "0.180", "destructionWitnessed": true },
+  "fromTheRun": {
+    "states": "batch, step, stage and container states: written from the design of the variants before the run (README.md, Variants)",
+    "normalisedTrueCopySha256": null
+  }
+}

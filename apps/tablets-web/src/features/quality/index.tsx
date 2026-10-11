@@ -1,0 +1,61 @@
+/**
+ * Web feature `quality` (Phase 3 slice 6, GMP): deviation-lite (list, raise, link, investigate, finding, conclude,
+ * close, cancel), material lots (receive, LIMS-lite results, approve, OOS link, retest, release and reject), the QC
+ * extra-testing decision of a batch, the ERP import status, and reprocessing (authorisations, residue reservation).
+ */
+import { createRoute, Link, type AnyRootRoute, type AnyRoute } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
+import type { HomeTile } from '../../app/feature.ts';
+import { BatchQualityPage } from './BatchQualityPage.tsx';
+import { DeviationPage } from './DeviationPage.tsx';
+import { DeviationsPage } from './DeviationsPage.tsx';
+import { ErpStatusPage } from './ErpStatusPage.tsx';
+import { LotPage } from './LotPage.tsx';
+import { LotsPage } from './LotsPage.tsx';
+import { ReprocessingPage } from './ReprocessingPage.tsx';
+
+function QualityHome() {
+  return (
+    <>
+      <h1>Quality</h1>
+      <ul>
+        <li>
+          <Link to="/quality/deviations">Deviations</Link>
+        </li>
+        <li>
+          <Link to="/quality/lots">Material lots</Link>
+        </li>
+        <li>
+          <Link to="/quality/extra-testing">Extra testing of a batch</Link>
+        </li>
+        <li>
+          <Link to="/quality/reprocessing">Reprocessing</Link>
+        </li>
+        <li>
+          <Link to="/quality/erp">ERP import status</Link>
+        </li>
+      </ul>
+    </>
+  );
+}
+
+export function routes(root: AnyRootRoute): AnyRoute[] {
+  return [
+    createRoute({ getParentRoute: () => root, path: '/quality', component: QualityHome }),
+    createRoute({ getParentRoute: () => root, path: '/quality/deviations', component: DeviationsPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/deviations/$deviationId', component: DeviationPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/lots', component: LotsPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId', component: LotPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/extra-testing', component: BatchQualityPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/reprocessing', component: ReprocessingPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/erp', component: ErpStatusPage }),
+  ];
+}
+
+export const homeTiles: readonly HomeTile[] = [
+  { id: 'quality', title: 'Quality', description: 'Deviations, lots and results, extra testing, reprocessing, ERP status.', to: '/quality', installations: ['GMP'], available: true },
+];
+
+export function Provider({ children }: { children: ReactNode }) {
+  return children;
+}

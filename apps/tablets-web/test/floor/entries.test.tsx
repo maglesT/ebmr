@@ -6,7 +6,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { ClientEntry } from '@ebmr/api-contract';
+import { ClientEntry, TABLET_ENTRY_KINDS_BY_BLOCK } from '@ebmr/api-contract';
 import { example } from '@ebmr/api-contract/examples';
 import { blocks } from '@ebmr/recipe-core/pure';
 import type { ScaleCaptureSlotProps } from '../../src/app/ports.tsx';
@@ -273,8 +273,9 @@ describe('checklists, scans and acknowledgements', () => {
 describe('renderer registry', () => {
   it('lists each executable block version with its dedicated renderer or the schema-driven fallback (strict in A2)', () => {
     const phase = blocks.GENERIC_BLOCK_VERSIONS.filter((b) => b.level === 'PHASE' || b.level === 'HOLD_POINT').map((b) => `${b.type}@${b.version}`);
-    // G-09@1 and G-10@1 are the SANDBOX_ONLY manual-attestation versions registered by the execution module (C3).
-    const executable = [...new Set([...phase, 'G-09@1', 'G-10@1'])].sort();
+    // G-09@1 and G-10@1 are the SANDBOX_ONLY manual-attestation versions registered by the execution module (C3); the
+    // tablet blocks TB-01 to TB-24 are the edition's (Phase 3 slice 6: the contract's BLOCK_ENTRY list names them all).
+    const executable = [...new Set([...phase, 'G-09@1', 'G-10@1', ...Object.keys(TABLET_ENTRY_KINDS_BY_BLOCK)])].sort();
     const table = Object.fromEntries(
       executable.map((key) => {
         const view = key === 'G-17@1' ? { ...example('step-g17-hold-point') } : { ...example('step-g04-parameters'), step: { ...example('step-g04-parameters').step, block: key } };
@@ -286,9 +287,10 @@ describe('renderer registry', () => {
       'G-03@1': 'dedicated',
       'G-04@1': 'dedicated',
       'G-05@1': 'fallback',
-      // Phase 3 slice 3a: G-06@1 and the plant-backed G-09@2 and G-10@2 use the schema-driven fallback until their
-      // shop-floor screens (slice 6).
-      'G-06@1': 'fallback',
+      // Phase 3 slice 6: G-06@1 (process values, setpoints, alarms), G-21@1 (printed materials) and G-24@2 (additions
+      // from the database's sources) have their screens. The plant-backed G-09@2 and G-10@2 stay on the fallback: their
+      // entries (equipment use, area occupancy) are recorded by the server from the plant bindings, not sent from a form.
+      'G-06@1': 'dedicated',
       'G-07@1': 'dedicated',
       'G-08@1': 'dedicated',
       'G-09@1': 'dedicated',
@@ -303,14 +305,15 @@ describe('renderer registry', () => {
       'G-16@1': 'fallback',
       'G-17@1': 'dedicated',
       'G-20@1': 'dedicated',
-      // Phase 3 slice 4a: G-21@1 uses the schema-driven fallback until its packaging screens (slice 6).
-      'G-21@1': 'fallback',
+      'G-21@1': 'dedicated',
       'G-22@1': 'dedicated',
       'G-23@1': 'fallback',
       'G-24@1': 'fallback',
-      // Phase 3 slice 5b: G-24@2 uses the schema-driven fallback until the reprocessing screens (slice 6).
-      'G-24@2': 'fallback',
+      'G-24@2': 'dedicated',
+      ...Object.fromEntries(Object.keys(TABLET_ENTRY_KINDS_BY_BLOCK).filter((k) => k.startsWith('TB-')).map((k) => [k, 'dedicated'])),
     });
+    // No tablet block, G-06, G-21 or G-24@2 on the fallback (slice 6 brief).
+    expect(Object.keys(TABLET_ENTRY_KINDS_BY_BLOCK).filter((k) => table[k] !== 'dedicated')).toEqual([]);
     expect(Object.keys(RENDERERS).every((k) => executable.includes(k))).toBe(true);
   });
 

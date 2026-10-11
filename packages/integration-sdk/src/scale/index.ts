@@ -10,6 +10,7 @@
 export const SCALE_CONTRACT = { name: '@ebmr/integration-sdk/scale', version: '0.1.0' } as const;
 
 export * from './decimal.ts';
+export * from './instruments.ts';
 export * from './mt-sics.ts';
 export * from './reading.ts';
 export * from './wire.ts';

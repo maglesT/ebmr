@@ -27,6 +27,10 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-34][PR-29][DI-10][DI-29] TB-12 uniformity of weight: the honest evaluation against the IP rule set is stored; a forged evaluation, a forged result without its exception, a check on an instrument without a use, a hand-keyed check without its second person are refused by the database alone"
   - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [INV-41][IN-34][PR-29] TB-12 weight variation: a first stage that fails its acceptance value waits for its second stage; a new first stage forged past the engine is refused; the second stage is evaluated by the database on every unit of both stages; the step closes only after it"
   - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-34][DI-10][INV-41] review 3c finding 5: a batch market without a rule set or a recorded not-applicable decision fails closed; rule sets that give different procedures are refused; a repeat run keeps the rule sets its first run recorded"
+clauses:
+  - clause: "300 mg tablet: India or India+US gives plus/minus 5%; US-only legacy table gives 7.5%."
+    tests:
+      - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > compendial rule sets (D-S3-2) > [IN-34] catalogue test: a 300 mg tablet gets plus or minus 5 % for India and for India with the US; the legacy in-house table alone would give 7.5 %; bands are chosen from the average with exact boundaries"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -25,6 +25,11 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 end to end in a test run (sandbox) > [PR-18][IN-23] a quarantined lot and a lot past its retest date are refused in the calculation; a lot without an approved result blocks it"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > TB-01 on the GMP installation (site lots, reservations, consumption) > [PR-18][IN-23] a quarantined lot of the site register is refused in the calculation; the released lot's approved result raises the active target and lowers the filler"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-18][IN-23][IN-24] a quarantined lot, a lot past its retest date, an expired lot and the wrong material are hard-blocked in the calculation and at the balance, with no override; without an identity result a batch for the US is refused"
+clauses:
+  - clause: "scan a quarantined lot, an expired lot and a lot past retest; all refused."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-18][IN-23] a quarantined lot, an expired lot, a lot past retest and the wrong material are hard-blocked with no override"
+      - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-18][IN-23][IN-24] a quarantined lot, a lot past its retest date, an expired lot and the wrong material are hard-blocked in the calculation and at the balance, with no override; without an identity result a batch for the US is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

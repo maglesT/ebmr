@@ -125,6 +125,7 @@ tests:
   - "packages/recipe-core/test/lifecycle/gmp-references.test.ts > GMP deviation references (D-S2-2, D-S5-2) > [IN-20][DI-24] a GMP invalidation citing an unknown, cancelled, unlinked or not concluded reference is refused and the concluded one accepted; a fail-to-pass correction needs a stored document of the batch's site with the evidence's hash"
   - "packages/site-services/test/quality/deviation.test.ts > the reference check site.deviation_ref_problem (D-S2-2) > [IN-20][DI-24] an invalidation citing an unknown, cancelled, unlinked, not concluded or not assignable reference is refused; the concluded OOS with an assignable cause is accepted"
   - "packages/site-services/test/quality/interfaces.test.ts > evidence documents > [DI-24] a stored document is named by its id at its site; an unknown id, another site or a malformed hash is refused; the app role cannot write the table"
+  - "packages/api-contract/test/contract.test.ts > route table > [DI-24] no route of the contract deletes anything, and the void of an attempt carries the person's reason"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
     deferred:
