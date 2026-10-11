@@ -104,7 +104,7 @@
       ],
       "signatures": 131,
       "notes": {},
-      "normalisedTrueCopySha256": "e392f4c0b48d941f12e26c3da44717c15ace0f4009bd36daaaa18aef8e8cb95d"
+      "normalisedTrueCopySha256": "cc6ce5786eec33afdd324834d09de368530254f033b13f0cc427337183538614"
     },
     "exceptionRich": {
       "states": {
@@ -167,7 +167,7 @@
         "choiceByOperator": "EBMR-IAM-040",
         "additionWithoutApproval": "TB08-NOT-AUTHORISED"
       },
-      "normalisedTrueCopySha256": "118bc85e583cb4a7207b4c5da733ab20502d1565bea71cc0f039d366cc2acbaf"
+      "normalisedTrueCopySha256": "472d4e872f90a6fc45d28d7e14abb75745d75fc555fce93081865c15b6a6a18d"
     }
   }
 }
