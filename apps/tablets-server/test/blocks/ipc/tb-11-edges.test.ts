@@ -245,6 +245,39 @@ describe('TB-11 entries', () => {
     expect(none.rec(sweep('L', ok)).refused).toBe('p@ has no station sweep in its MBR (TB11-NO-SWEEP; IN-35)');
   });
 
+  it('[IN-35][PR-29] by count: from the slot\'s latest check with a counter (else the run start); a slot missed by time elsewhere does not hide it; entries other than checks carry the missed exception (mutation follow-up)', () => {
+    const w = new World({ ...runCfg, streams: [{ id: 'L' }] });
+    w.rec({ kind: 'RUN_START', press: 'P-1', counter: 0 });
+    expect(w.rec(group('L', 600)).data).not.toHaveProperty('missed');
+    expect(w.rec(group('L', 1500)).data).not.toHaveProperty('missed');
+    w.now = at(6n);
+    const r = w.rec(group('L', 2600));
+    expect(r.data?.['missed']).toEqual([
+      { stream: 'L', test: 'SWEEP', by: 'TIME', dueUs: T.toString() },
+      { stream: 'L', test: 'WEIGHT', by: 'COUNT' },
+    ]);
+    const c = new World({ ...runCfg, streams: [{ id: 'L' }], sweep: undefined, process: 'OTHER' });
+    c.rec({ kind: 'RUN_START', press: 'P-1', counter: 0 });
+    expect(c.rec({ kind: 'CHANGE', change: 'TOOLING' })).toStrictEqual({ data: { change: 'TOOLING', recordedBy: 'OP1' } });
+    c.now = at(31n);
+    const late = c.rec({ kind: 'CHANGE', change: 'SETTING' });
+    expect(late.data?.['missed']).toHaveLength(1);
+    expect(late.exceptions?.map((x) => x.type)).toEqual(['IPC_CHECK_MISSED']);
+  });
+
+  it('[INV-41][PR-29] PERFORMED waits while a disintegration run of the step is still running (mutation follow-up)', () => {
+    const before = TB11.handler?.beforePerform as (v: blocks.HandlerView) => { code: string }[];
+    const w = new World({ streams: [{ id: 'L' }], process: 'OTHER', plan: [{ test: 'DISINTEGRATION', every: { value: '60', unit: 'min' }, qrmRef: 'Q' }], grace: { value: '5', unit: 'min' }, disintegration: { tabletType: 'UNCOATED' } });
+    w.rec({ kind: 'RUN_START', press: 'P-1' });
+    w.rec({ kind: 'RUN_END' });
+    const s = w.rec({ kind: 'DT_START', instrument: 'DT-1', capture: 'MANUAL', bathTemperature: '37.0', stage: 'MAIN', stream: 'L' });
+    expect(s.refused).toBeUndefined();
+    expect(before(w.view()).map((p) => p.code)).toEqual(['TB11-PENDING']);
+    w.now = at(1n);
+    w.rec({ kind: 'DT_END', capture: 'MANUAL', units: Array.from({ length: 6 }, () => ({ disintegrated: true })) });
+    expect(before(w.view())).toEqual([]);
+  });
+
   it('[PR-29][IN-35][INV-41] PERFORMED waits for the run\'s end, each stream\'s sweep, an end-of-run check of every planned slot, and every compendial stage', () => {
     const before = TB11.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[];
     const w = new World({ ...runCfg, plan: [{ test: 'WEIGHT', every: { value: '25', unit: 'min' }, qrmRef: 'Q' }] });
