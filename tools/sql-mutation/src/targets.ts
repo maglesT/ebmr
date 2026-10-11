@@ -12,7 +12,7 @@
  * added where the group's tests did not reach it (execution-state-binding, evidence-source-and-entries, signed-content),
  * and a follow-up's new function that belongs to an existing group's subject joined it (kernel 1020 to signing, tablets
  * 0530 and 0560 to read-authorisation).
- * The Phase 3 exit (decision 0009) added the last 21 groups, by area: every function added or replaced since dd66b59 in
+ * The Phase 3 exit (decision 0009) added the last 22 groups, by area: every function added or replaced since dd66b59 in
  * kernel, site-services, recipe-core and tablets that is a guard, a limit, a signature or state check, a writer of GMP
  * data, or a helper whose result one of those decides on (recipe.planning_orders, a planning view, is left out). A
  * Phase 3 redefinition of a function already in a Phase 2 group left it there, with the Phase 3 test files that reach
@@ -185,7 +185,7 @@ export const TARGETS: Target[] = [
   {
     group: 'evidence-source-and-entries',
     functions: ['recipe.execution_source_room_check', 'recipe.step_room_problem', 'recipe.execution_entry_data_check',
-                'recipe.entry_data_problem', 'recipe.execution_container_entry_check', 'recipe.new_container_problem',
+                'recipe.entry_data_problem', 'recipe.execution_container_entry_check',
                 'tab.device_entry_readings_check', 'tab.entry_identifier_problem', 'tab.entry_identifiers_check',
                 'tab.state_entry_identifier_problem', 'tab.state_container_identifier_problem', 'tab.state_entry_identifiers_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/evidence-source.test.ts'), s('execution/evidence-source-room.test.ts'),
@@ -264,11 +264,9 @@ export const TARGETS: Target[] = [
   {
     group: 'weighing',
     functions: ['recipe.weighing_net_problem', 'recipe.execution_weighing_net_check', 'recipe.weighing_label_problem',
-                'recipe.block_total_problem', 'recipe.weighing_totals_problem', 'recipe.execution_weighing_record_check',
-                'recipe.mass_unit_class', 'recipe.phase_records', 'recipe.weighing_item_problem', 'recipe.execution_weighing_item_check'],
-    tests: [s('execution/db-guards-weighing-net.test.ts'), s('execution/db-guards-weighing-record.test.ts'), r('execution/weighing-item-sql.test.ts'),
-            // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('blocks/dispensing/tb-01-db.test.ts'), s('blocks/granulation/db-guards.test.ts')],
+                'recipe.block_total_problem', 'recipe.execution_weighing_record_check',
+                'recipe.mass_unit_class', 'recipe.phase_records', 'recipe.execution_weighing_item_check'],
+    tests: [s('execution/db-guards-weighing-net.test.ts'), s('execution/db-guards-weighing-record.test.ts'), r('execution/weighing-item-sql.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: what a signature covers: the signed-content providers and the signatures a row needs (recipe-core
@@ -474,7 +472,7 @@ export const TARGETS: Target[] = [
     group: 'execution-row-shape',
     functions: ['recipe.command_shape', 'recipe.block_schema_container_problem', 'recipe.command_member_problem',
                 'recipe.row_evidence_problem', 'recipe.execution_row_problem', 'recipe.execution_row_shape_check',
-                'recipe.engine_policy_problem', 'recipe.execution_policy_shape_check', 'recipe.refusal_problem',
+                'recipe.engine_policy_problem', 'recipe.execution_policy_shape_check',
                 'recipe.execution_row_refusal_check', 'recipe.issue_request_problem', 'recipe.execution_issue_request_check'],
     tests: [r('execution/entry-data-sql.test.ts'), s('execution/db-guards-row-shape.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
@@ -539,7 +537,7 @@ export const TARGETS: Target[] = [
     group: 'change-paths-and-hand-over',
     functions: ['recipe.exception_qa_only', 'recipe.json_text', 'recipe.register_exception',
                 'recipe.exception_register_sync', 'recipe.batch_record_content', 'recipe.approval_refs',
-                'recipe.signer_engine_roles', 'recipe.skip_problem', 'recipe.member_blank',
+                'recipe.signer_engine_roles', 'recipe.member_blank',
                 'recipe.check_approver_roles', 'recipe.is_person_id', 'recipe.execution_hand_over_check',
                 'recipe.propose_act', 'recipe.batch_act_content', 'recipe.change_path_problem',
                 'recipe.hand_over_persons', 'recipe.person_engine_roles', 'recipe.hand_over_involvement',
@@ -615,7 +613,8 @@ export const TARGETS: Target[] = [
   //     expiry (recipe-core 0620-0625; tab.residue_source_problem of tablets 1021) ----
   {
     group: 'reprocessing',
-    functions: ['recipe.g24_v1_gmp_problem', 'recipe.g24_v1_gmp_check', 'recipe.residue_source_problem',
+    functions: ['tab.tb08_entry_problem', 'tab.tb08_computed_problem', 'tab.tb08_state_check',
+                'recipe.g24_v1_gmp_problem', 'recipe.g24_v1_gmp_check',
                 'recipe.container_remaining', 'recipe.source_container_facts', 'recipe.reprocessing_authorisation_facts',
                 'recipe.source_addition_remaining_check', 'recipe.reprocessing_authorisation_content',
                 'recipe.reserve_residue', 'recipe.propose_reprocessing_authorisation', 'recipe.authorise_reprocessing',
@@ -676,8 +675,7 @@ export const TARGETS: Target[] = [
     functions: ['tab.gran_qty', 'tab.gran_prior', 'tab.gran_held', 'tab.gran_raised', 'tab.gran_sum',
                 'tab.gran_batch_entries', 'tab.granulation_entry_problem', 'tab.granulation_computed_problem',
                 'tab.granulation_close_problem', 'tab.granulation_loop_problem', 'tab.granulation_state_check',
-                'recipe.granulation_block_item', 'tab.tb08_entry_problem', 'tab.tb08_computed_problem',
-                'tab.tb08_state_check'],
+                'recipe.granulation_block_item'],
     tests: [s('blocks/granulation/db-guards.test.ts')],
     threshold: 90,
   },
@@ -796,6 +794,22 @@ export const TARGETS: Target[] = [
     group: 'platform-scope',
     functions: ['platform.register_hook', 'platform.scope_of', 'iam.platform_authority', 'plant.transition_scope'],
     tests: [k('platform/scope-hook.test.ts'), k('platform/state-machine.test.ts'), k('esig/platform-hook.test.ts'), k('integration/authorization.test.ts'), r('plant/equipment.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 3: recipe-core checks the Tablets edition redefines (tablets 0843, 0844, 0845, 0852, 0874, 1021): the
+  //     refusal codes and the dispensed container of the Tablets blocks, the TB-01 weighing item, the granulation
+  //     totals, the steps never skipped, the reusable residue of TB-20. Their live definition exists only in the server
+  //     set-up's databases, so the group runs server tests alone (the db project's copies hold recipe-core's own). ----
+  {
+    group: 'tablets-core-checks',
+    functions: ['recipe.refusal_problem', 'recipe.new_container_problem', 'recipe.weighing_item_problem',
+                'recipe.weighing_totals_problem', 'recipe.skip_problem', 'recipe.residue_source_problem'],
+    tests: [s('execution/db-guards-row-shape.test.ts'), s('execution/evidence-source.test.ts'),
+            s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-weighing-record.test.ts'),
+            s('mutation/weighing.test.ts'), s('mutation/evidence-source-and-entries.test.ts'),
+            s('blocks/dispensing/tb-01-db.test.ts'), s('blocks/granulation/db-guards.test.ts'),
+            s('execution/db-guards-change-paths.test.ts'), s('blocks/compression/db-guards.test.ts'),
+            s('blocks/reprocessing/db-guards.test.ts'), s('blocks/coating/db-guards.test.ts')],
     threshold: 90,
   },
 ];
