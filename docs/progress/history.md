@@ -2348,3 +2348,13 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   their parent batch (recipe-core 0580-0582, tablets 0950-0952). Quick review: two high and four medium, all fixed with
   regression tests. India Schedule H2 QR layout left for the expert. Full suite (4,796 of 4,798; renderer row and
   register sync fixed), trace and E2E (23) green locally.
+- 2026-10-11: PHASE 3 SLICE 4B (branch phase-3/slice-4b). TB-21 blister set-up, independent line check and sealing with
+  per-stream holds; TB-22 leak tests with holds and the sweeper; TB-23 bottle line (counting, desiccant, torque, seal,
+  device challenges); TB-24 secondary packaging with bright stock, SSCC register, aggregation equal to the reconciled
+  serial pools and re-entry only after a dispositioned event with a second person (tablets 0970-0972, 0985-0989).
+  Pass checks delegated per block prefix through an insert-only table and a G-21 pass guard. Quick review: no critical
+  or high; two core mediums fixed with regression tests (line clearance, occupancy, artwork and isolation for TB-23 and
+  TB-24 in the database; the sweeper covers their missed line checks and challenges); three lows to the backlog.
+  Defaults: bottle and carton steps treat any potent product as needing isolation; beta-lactam from an MBR header flag
+  until product master data has one. Full suite (4,846 of 4,849 before the fixes; the 3 then pass), register sync, E2E
+  (23) green locally.

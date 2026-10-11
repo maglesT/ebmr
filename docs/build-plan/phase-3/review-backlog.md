@@ -195,3 +195,26 @@ hash itself cannot be recomputed by the server, so the database checks the count
 
 Open for the owner and the expert: the India Schedule H2 QR payload layout is a stub (`KEY=value;...`) until its data
 elements are confirmed; it must be checked before validation.
+
+## Slice 4b open items (builder reports, 10 October 2026)
+
+- TB-21 pocket rejects feed TB-21's own blister count, not G-21's foil reconciliation; linking them needs a G-21 change
+  beyond its configuration (slice 6, with the GB-T-01 packaging run).
+- TB-21 defect checks are not scheduled (only the last must pass); TB-21 and TB-22 reel changes are not cross-checked.
+- TB-23/TB-24 devices and the TB-22 leak tester are manual with two persons; no gateway link (slice 6 demo devices).
+- No HTTP route for the SSCC register and the 4b entry kinds are not in the api-contract (screens, slice 6).
+- Not done: the G-21 label "used" count against TB-23 good output; a maximum hold time for bright stock; bright stock
+  across orders; refusing a PACKAGING order whose MBR has no TB-24 (Phase 4, with the release model).
+
+## Slice 4b quick review (10 October 2026)
+
+No critical or high findings. Two core mediums were fixed in this slice, each with a regression test: TB-23/TB-24 now
+check line clearance, occupancy, artwork and isolation in the database; the sweeper now holds output for missed
+TB-23/TB-24 line checks and device challenges.
+
+Backlog (low):
+- TB-21 isolation takes the beta-lactam flag from the MBR step config only, and coated products are exempt; take
+  beta-lactam from product master data when it exists (slice 5 master data).
+- "One part shipper" is enforced per TB-24 step, not per batch; a batch with two TB-24 steps could carry two.
+- Reel release and expiry are checked at entry only; a reel quarantined mid-run is not caught (Phase 4, lot status
+  events).

@@ -12,6 +12,8 @@ import { GRANULATION_BLOCK_DESCRIPTORS, GRANULATION_BLOCK_VERSIONS } from '../bl
 import { IPC_BLOCK_DESCRIPTORS, IPC_BLOCK_VERSIONS } from '../blocks/ipc/index.ts';
 import { COATING_BLOCK_DESCRIPTORS, COATING_BLOCK_VERSIONS } from '../blocks/coating/index.ts';
 import { FORMING_BLOCK_DESCRIPTORS, FORMING_BLOCK_VERSIONS } from '../blocks/forming/index.ts';
+import { BOTTLE_BLOCK_DESCRIPTORS, BOTTLE_BLOCK_VERSIONS } from '../blocks/bottle/index.ts';
+import { BLISTER_BLOCK_DESCRIPTORS, BLISTER_BLOCK_VERSIONS } from '../blocks/blister/index.ts';
 
 /** The Tablets edition's own block versions (TB-01 to TB-24, from slice 3b on). */
 export const TABLETS_BLOCK_VERSIONS: readonly blocks.BlockVersion[] = [
@@ -21,6 +23,8 @@ export const TABLETS_BLOCK_VERSIONS: readonly blocks.BlockVersion[] = [
   ...IPC_BLOCK_VERSIONS,
   ...COATING_BLOCK_VERSIONS,
   ...FORMING_BLOCK_VERSIONS,
+  ...BOTTLE_BLOCK_VERSIONS,
+  ...BLISTER_BLOCK_VERSIONS,
 ];
 
 /** The validator's descriptors of the edition's own block types (roles, significance), one per TB type. */
@@ -31,6 +35,8 @@ export const TABLETS_BLOCK_DESCRIPTORS: readonly flow.BlockDescriptor[] = [
   ...IPC_BLOCK_DESCRIPTORS,
   ...COATING_BLOCK_DESCRIPTORS,
   ...FORMING_BLOCK_DESCRIPTORS,
+  ...BOTTLE_BLOCK_DESCRIPTORS,
+  ...BLISTER_BLOCK_DESCRIPTORS,
 ];
 
 /** The generic registry extended with the edition's versions. */

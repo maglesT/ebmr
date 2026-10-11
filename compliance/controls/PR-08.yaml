@@ -145,6 +145,7 @@ tests:
   - "apps/tablets-server/test/blocks/coating/db-guards.test.ts > the coating and finishing blocks in the database (tablets 0910 to 0912) > [PR-08][PR-14][DI-32] review 3d finding 1: a value of automated equipment outside its limits is stored only with PROCESS_VALUE_OUT_OF_LIMITS at every step on a process device: a coating iteration (TB-18) and a granulation step (TB-04)"
   - "apps/tablets-server/test/blocks/forming/blocks.test.ts > TB-06 roller compaction > [PR-08] a roll gap outside its acceptance limits raises PROCESS_VALUE_OUT_OF_LIMITS through G-06 (the steps after it wait for a deviation)"
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [PR-08][PR-29] TB-06: the run starts on a plant PROCESS unit in use for the batch; a roll gap outside its limits is stored only with PROCESS_VALUE_OUT_OF_LIMITS; a ribbon check is judged by the database (a forged pass is refused), a failing one holds every container of the compactor since its last passing check, and a passing check is recorded only from the step"
+  - "apps/tablets-server/test/blocks/blister/blocks.test.ts > TB-21 run (engine) > [PR-37][PR-08] nothing is recorded before the run starts; a sealing value outside its validated range raises PROCESS_VALUE_OUT_OF_LIMITS; a failing defect check raises DEFECT_CHECK_FAILED and the step closes only after a passing one, the run's end and its count"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

@@ -17,7 +17,11 @@ sources: "US: 211.130(b); 211.94(c) | EU: Ch.5 5.53; 5.54 | ICH/EMA/draft: EU An
 behaviour: Filled, unlabelled containers held for later labelling are tracked as quarantined intermediates at tray or container level. Their identification must be enough to determine name, strength, quantity and lot; each unit does not need its own label. Location and hold start are also recorded. A labelling order can consume only bright stock of the matching batch, verified by scan, and reconciles it at labelling. Containers must be clean before filling, and foreign-matter checks run where the master defines them.
 catalog_test: Labelling trays of batch A under an order for batch B is rejected. The unlabelled inventory reconciles to the labelling run.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > golden fixtures of the packaging-line blocks > [DI-34][PR-37][PR-38][IN-22] TB-23 Bottle line: count, desiccant, closure torque, induction seal: A 30-count bottle line: a count check finds a bottle of 29 (LINE_CHECK_FAILED), the next passes; desiccant, torque and seal checks pass; bright stock set aside and labelled back by the scan of its batch and product; the seal detector challenged at start and end (two persons); good output recorded; performed and verified"
+  - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > TB-23 bottle line (checks, challenges, bright stock) > [PR-38] bright stock: set aside only where the MBR allows it, identified by the record (product, strength, batch, bottles); labelled back only by the scan of this batch and product and never more than is left; the step is not performed with bright stock left"
+  - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-38] bright stock is identified by the record (product, strength, batch, bottles) and labelled back only by the scan of this batch and product, never more than is left: a forged engine is refused"
+  - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-17][PR-38] a TB-23 step closes only with every stream's last check passing and none due, its devices' START and END challenges, its good output and no bright stock left (read on the run's state)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
