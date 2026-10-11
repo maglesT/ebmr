@@ -83,7 +83,7 @@ function VoidAttemptForm({ onClose, view }: { onClose: () => void; view: StepScr
     }
     const o = await ceremony.sign({ ...described.subject, action, title: st('void.signTitle', { item: chosen?.label ?? base.item, reason: base.reason }) });
     if (o.status === 'SIGNED') setApproved(true);
-    if (o.status === 'REFUSED') setError({ kind: 'REFUSAL', status: 409, envelope: o.refusal } as CallErr);
+    if (o.status === 'REFUSED') setError({ kind: 'REFUSAL', status: 409, envelope: o.refusal });
   };
 
   if (attempts.length === 0) {

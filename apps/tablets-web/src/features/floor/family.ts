@@ -38,7 +38,7 @@ export async function callRead<R extends AnyRoute>(route: R, input: Pick<CallInp
   const target = readRoute(route);
   if (target === route) return api.call(route, input as CallInput<R>);
   const params = gmpParams(input.params as Record<string, string> | undefined);
-  return api.call(target, { ...input, ...(params ? { params } : {}) } as unknown as CallInput<R>) as unknown as Promise<Result<RouteResponse<R>>>;
+  return api.call(target, { ...input, ...(params ? { params } : {}) }) as unknown as Promise<Result<RouteResponse<R>>>;
 }
 
 /** The command route of a run on this installation and its path parameters. */

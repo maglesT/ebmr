@@ -115,7 +115,7 @@ export function Section({ title, children, testId }: { title: string; children: 
 }
 
 /** A primary button that runs an async act (never twice at once). */
-export function ActButton({ label, onPress, disabled = false, primary = true }: { label: string; onPress: () => void | Promise<unknown>; disabled?: boolean; primary?: boolean }) {
+export function ActButton({ label, onPress, disabled = false, primary = true }: { label: string; onPress: () => unknown; disabled?: boolean; primary?: boolean }) {
   return (
     <Button variant={primary ? 'primary' : 'secondary'} onPress={() => void onPress()} isDisabled={disabled}>
       {label}

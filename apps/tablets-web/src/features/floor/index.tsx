@@ -77,6 +77,8 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
 export const homeTiles: readonly HomeTile[] = [
   { id: 'packages', title: 'Test-run packages', description: 'Import MBR test packages sent from GMP and issue TEST- batches.', to: '/packages', installations: ['SANDBOX'], available: true },
   { id: 'runs', title: 'Test runs', description: 'Runs, their record and the replay check.', to: '/runs', installations: ['SANDBOX'], available: true },
+  // Phase 3 slice 6 (D-S6-1): on GMP the same screens show the GMP batches, read from /api/batches.
+  { id: 'gmp-runs', title: 'Shop floor', description: 'GMP batches: the batch overview and the step screens.', to: '/runs', installations: ['GMP'], available: true },
   { id: 'cockpit', title: 'What you can do now', description: 'The work queue of the room of this terminal.', to: '/cockpit', installations: ['SANDBOX'], available: true },
 ];
 
