@@ -306,3 +306,20 @@ Residuals (Phase 4 unless noted):
 - Fixed in slice 6: a TB-18 pan load is refused while a compression container of the batch is on hold (tablets
   1092); a GMP G-07 weighing consumes its lot, and a row without it is refused (tablets 1093).
 - Low: a TB-08 refusal repeats its code; a refusal says "test run" on GMP.
+
+## Phase 3 exit review (Opus, 11 October 2026)
+
+No critical findings. Five high: HIGH-1 (ERP master data writable by any interface identity, no QA confirmation),
+HIGH-2 (a lot decision signature does not bind the event), HIGH-3 (a packaging order skips "release for packing" and
+the container holds: no bulk issue), HIGH-4 (orphan consumption: `recipe.consume_lot` checks no batch state or entry)
+are fixed on the exit branch with their tests. HIGH-5 (generic-block guards in the Tablets edition) is decided by
+ADR-0019: moved to recipe-core before Phase 5. The press counter compared as a JavaScript number (tb-11) is fixed.
+
+Backlog (medium):
+- `plant.close_container` takes a typed net quantity with no weighing or second person; no route calls it yet
+  (Phase 4, with container routes).
+- The output container release is not tied to the state of its hold's exception or deviation; the Phase 4 release
+  gate checks it.
+- The GMP sweeper does not run (already listed): missed-check holds on GMP depend on the next manual entry.
+- Performance: each `recipe.execution_state` change runs about 50 triggers, many re-parsing the MBR JSON (GB-T-01 takes
+  about 20 minutes); measure before the Phase 4 golden batches.
