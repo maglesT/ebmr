@@ -805,6 +805,32 @@
         "IN-18",
         "IN-19"
       ]
+    },
+    {
+      "key": "G-24@2",
+      "type": "G-24",
+      "version": "2",
+      "title": "Reprocessing / rework gate (database facts)",
+      "plainName": "Reprocessing or rework gate",
+      "level": "PHASE",
+      "roles": [
+        "REPROCESSING"
+      ],
+      "significant": true,
+      "availability": "ALL",
+      "badge": null,
+      "configSchema": {
+        "type": "object",
+        "description": "Case and limits come from the phase reprocessing declaration (outline 5.2.9)",
+        "fields": {}
+      },
+      "defaultConfig": {},
+      "controls": [
+        "PR-47",
+        "IN-18",
+        "IN-19",
+        "PR-57"
+      ]
     }
   ]
 }
