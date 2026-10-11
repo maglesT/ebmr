@@ -64,7 +64,7 @@ describe('a salt-factor active on the base of a base-stated TB-01 step (recipe-c
     mbr = v;
     const bom = Object.fromEntries((v.content as unknown as { bom: { material: string; quantity: { value: string } }[] }).bom.map((b) => [b.material, b.quantity.value]));
     expect(bom).toEqual({ 'MAT-EXZ-NA': '50', 'MAT-MCC-101': '8', 'MAT-LAC-MH': '14', 'MAT-PVP-K30': '2.4', 'MAT-IPA': '2.4', 'MAT-CCS': '2.4', 'MAT-SIO2': '0.4', 'MAT-MGST': '0.8', 'MAT-FCS-W': '2.45' });
-    const { rows } = await gmp.db.admin.query<{ f: string }>('select formula_version_id::text as f from recipe.mbr_formula_pin where mbr_version_id = $1', [v.versionId]);
+    const { rows } = await gmp.db.admin.query<{ f: string }>('select formula_version_id::text as f from formulary.mbr_formula_pin where mbr_version_id = $1', [v.versionId]);
     expect(rows[0]?.f).toBe(versionId);
     const mass = (await gmp.db.admin.query<{ m: string }>('select trim_scale(recipe.formula_batch_mass($1))::text as m', [versionId])).rows[0]?.m;
     expect(mass).toBe('81.659');

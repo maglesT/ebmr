@@ -27,8 +27,8 @@ create or replace function recipe.formula_mbr_problem(p_mbr uuid, p_formula uuid
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
   c        jsonb := (recipe.current_content(p_mbr)).content;
-  v        recipe.formula_version;
-  f        recipe.formula;
+  v        formulary.formula_version;
+  f        formulary.formula;
   v_ref    jsonb;
   v_mass   numeric;
   v_lines  jsonb := '{}'::jsonb;
@@ -36,10 +36,10 @@ declare
   v_code   text;
   v_kg     numeric;
   v_want   numeric;
-  l        recipe.formula_line;
+  l        formulary.formula_line;
 begin
-  select * into v from recipe.formula_version where id = p_formula;
-  select * into f from recipe.formula where id = v.formula_id;
+  select * into v from formulary.formula_version where id = p_formula;
+  select * into f from formulary.formula where id = v.formula_id;
   if c is null or v.id is null then
     return 'the MBR version or the formula version does not exist';
   end if;
@@ -55,7 +55,7 @@ begin
   end if;
   for b in select * from jsonb_array_elements(coalesce(c -> 'bom', '[]'::jsonb)) loop
     select r ->> 'code' into v_code from jsonb_array_elements(coalesce(c -> 'references', '[]'::jsonb)) r where r ->> 'id' = b ->> 'material' limit 1;
-    select * into l from recipe.formula_line x where x.version_id = v.id and x.material_code = v_code;
+    select * into l from formulary.formula_line x where x.version_id = v.id and x.material_code = v_code;
     if l.version_id is null then
       if b ->> 'role' in ('ACTIVE', 'EXCIPIENT', 'PROCESSING_AID') then
         return format('BOM line %s (%s) is not a line of the formula', b ->> 'id', coalesce(v_code, b ->> 'material'));
@@ -75,7 +75,7 @@ begin
     end if;
     v_lines := v_lines || jsonb_build_object(l.line_id, true);
   end loop;
-  for l in select * from recipe.formula_line x where x.version_id = v.id order by x.ordinal loop
+  for l in select * from formulary.formula_line x where x.version_id = v.id order by x.ordinal loop
     if not v_lines ? l.line_id then
       return format('formula line %s (%s) is not in the BOM', l.line_id, l.material_code);
     end if;
