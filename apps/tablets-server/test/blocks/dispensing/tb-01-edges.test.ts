@@ -230,6 +230,20 @@ describe('TB-01 weighings', () => {
     expect(refusal(run, weigh('BOM-API', l, '8.742', { fefoReason: '  ' }))).toMatch(/^A reason is words, not blanks \(TB01-FEFO-REASON; PR-18\)/);
   });
 
+  it('[PR-19][PR-13][DI-30] a BOM line the step does not consume, or consumes as neither the active nor the excipient, is refused; only metric masses are mass units here (mutation follow-up)', () => {
+    const lac: flow.BomLine = { id: 'BOM-LAC', material: 'MAT-LAC', role: 'EXCIPIENT', quantity: { value: '1.000', unit: 'kg' } } as flow.BomLine;
+    const l = lot('AR-LAC-1', 'MAT-LAC');
+    const notConsumed = started(mbr(baseConfig, {}, { bom: [...BOM, lac] }));
+    notConsumed.entry('p', calc(), [], DISP1);
+    expect(refusal(notConsumed, weigh('BOM-LAC', l, '1.000'))).toMatch(/^BOM-LAC is neither the active nor the compensating excipient of this step \(TB01-BOM-LINE; PR-19, PR-13\)/);
+    const consumed = started(mbr(baseConfig, { consumes: ['BOM-API', 'BOM-MCC', 'BOM-LAC'] }, { bom: [...BOM, lac] }));
+    consumed.entry('p', calc(), [], DISP1);
+    expect(refusal(consumed, weigh('BOM-LAC', l, '1.000'))).toMatch(/TB01-BOM-LINE/);
+    const run = started();
+    run.entry('p', calc(), [], DISP1);
+    expect(refusal(run, weigh('BOM-API', lot('AR-ATV-1', 'MAT-ATV'), '8.742', { unit: '[lb_av]' }))).toBe('[lb_av] is not a mass unit (TB01-UNIT; DI-30) (TB01-UNIT; DI-30)');
+  });
+
   it("[INV-25][DI-30] a weighing in g counts into a quantity in kg at the resolution it was weighed at, and into the line's total at PERFORMED", () => {
     const run = started();
     run.entry('p', calc(), [], DISP1);
