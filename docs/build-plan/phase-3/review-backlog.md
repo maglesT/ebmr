@@ -262,3 +262,23 @@ Backlog (medium and low):
 - `db-guards-free-text-shown` failed once under load and passed alone (suspected chance match of '2409' in generated
   text); root cause to find before the Phase 3 exit run.
 - IN-17 "release is blocked" and IN-39 "both departments notified" re-deferred to Phase 4 (D-S6-10).
+
+## Slice 6 quick review (11 October 2026)
+
+Three high findings, fixed in this slice with regression tests: the formula composition was readable through the
+e-signature content route by a role without FORMULA.READ (DI-13), also for a pinned MBR's BOM; the signed lot retest
+did not bind its date and results, could reuse one signature, and the unsigned writer stayed granted to the app role;
+FRESH_ON_SHARED (INV-40) was missing on lot receipt, evidence registration, formula creation and plant definitions.
+Core mediums fixed: nested server-filled members, the product scope of formula reads, the lot REJECT meaning from
+ON_HOLD, the MBR pin guard as the app role, a permission check on planning orders.
+
+Open items from the builders (slice 6a and 6b):
+- The success paths of the reprocessing acts and of an approved void are tested in the database but not over HTTP
+  (GMP residue data needed); the refusals are tested over HTTP.
+- No routes for the plant product list, a planned batch, or cleanings in progress (the screens accept a scanned id).
+- The DI-24 browser test serves the step's reads from the contract example; the session and the no-delete check are
+  the real server's.
+- Display-only role hiding in the web (`app/roles.ts`); the server decides every act.
+- A duplicate formula (same product, strength and batch size) answers 500 instead of a plain refusal (low).
+- Default (6a review fix): REGULATORY_SIGNER holds FORMULA.READ, so the regulatory signer can read the MBR content it
+  confirms.
