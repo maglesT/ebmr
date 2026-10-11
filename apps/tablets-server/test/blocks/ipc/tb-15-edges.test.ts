@@ -152,6 +152,51 @@ describe('TB-15 ending a run', () => {
   });
 });
 
+describe('TB-15 runs per stream (TB-11 streams; mutation follow-up)', () => {
+  it('[INV-41][PR-29] a retest or a buffer stage pending on one stream holds that stream only; a retest names a run of its own stage and stream', () => {
+    const w = new World({ streams: [{ id: 'S1' }, { id: 'S2' }], disintegration: { tabletType: 'UNCOATED' } }, 'TB-11');
+    w.rec(start({ stream: 'S1' }));
+    w.now = T0 + 60n * S;
+    w.rec(end([...all(5), false]));
+    const s1 = w.last().id;
+    expect(w.rec(start({ stream: 'S2', retestOf: s1 }))).toBe(`${s1} is not a run of this stage and stream that asks for a retest (TB15-NOT-RETESTED; PR-29, INV-41)`);
+    expect(w.rec(start({ stream: 'S2' }))).toMatchObject({ stream: 'S2', units: 6 });
+    expect(w.rec(start({ stream: 'S1', retestOf: s1 }))).toMatchObject({ retestOf: s1, units: 12 });
+
+    const g = new World({ streams: [{ id: 'S1' }, { id: 'S2' }], disintegration: { tabletType: 'GASTRO_RESISTANT' } }, 'TB-11');
+    g.rec(start({ stream: 'S1', stage: 'ACID' }));
+    g.rec(start({ stream: 'S2', stage: 'ACID' }));
+    g.now = T0 + 7200n * S;
+    g.rec(end(all(6, false), { start: 'E1' }));
+    const acid1 = g.last().id;
+    expect(g.rec(start({ stream: 'S2', stage: 'BUFFER' }))).toBe('A disintegration run of this stream is still running; end it first (TB15-RUNNING; PR-29, DI-29)');
+    g.rec(end(all(6, false), { start: 'E2' }));
+    const acid2 = g.last().id;
+    expect(g.rec(start({ stream: 'S2', stage: 'BUFFER' }))).toMatchObject({ afterAcid: acid2 });
+    expect(pendingBuffers(g.view()).map((e) => e.id)).toEqual([acid1]);
+    const h = new World({ streams: [{ id: 'S1' }, { id: 'S2' }], disintegration: { tabletType: 'GASTRO_RESISTANT' } }, 'TB-11');
+    h.rec(start({ stream: 'S1', stage: 'ACID' }));
+    h.now = T0 + 7200n * S;
+    h.rec(end(all(6, false)));
+    expect(h.rec(start({ stream: 'S2', stage: 'BUFFER' }))).toBe('The buffer stage follows an acid stage that passed (TB15-NO-ACID; PR-29)');
+    expect(h.rec(start({ stream: 'S2', stage: 'ACID' }))).toMatchObject({ stage: 'ACID', stream: 'S2' });
+  });
+
+  it('[INV-41][PR-29] a retest is of the stage that asked for it', () => {
+    const w = new World({ tabletType: 'GASTRO_RESISTANT' });
+    w.rec(start({ stage: 'ACID' }));
+    w.now = T0 + 7200n * S;
+    w.rec(end(all(6, false)));
+    w.rec(start({ stage: 'BUFFER' }));
+    w.now += 60n * S;
+    w.rec(end([...all(5), false]));
+    const buffer = w.last().id;
+    expect(w.last().data['result']).toBe('RETEST');
+    expect(w.rec(start({ stage: 'ACID', retestOf: buffer }))).toBe(`${buffer} is not a run of this stage and stream that asks for a retest (TB15-NOT-RETESTED; PR-29, INV-41)`);
+    expect(w.rec(start({ stage: 'BUFFER', retestOf: buffer }))).toMatchObject({ stage: 'BUFFER', retestOf: buffer, units: 12 });
+  });
+});
+
 describe('TB-15 the step and its definition', () => {
   it('[IN-35][PR-29][INV-41] an entry of another kind is refused; PERFORMED needs a run and nothing pending', () => {
     const accept = TB15.handler?.acceptEntry as (v: blocks.HandlerView, e: Json & { kind: string }) => { problems?: { message: string }[] };
