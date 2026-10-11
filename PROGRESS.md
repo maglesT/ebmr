@@ -63,8 +63,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   compaction, TB-16 bilayer; tablets sql 0910 to 0913, 0930 to 0932) is built on `phase-3/slice-3d`. The compendial
   rule-set values and the AQL tables await the expert's check (review backlog); merged (PR #13). Slice 3 complete.
 - Phase 3 slice 4 (packaging, `docs/build-plan/phase-3/slice-4-plan.md`): 4a (G-21 with the printer simulator and the
-  serialisation stub; recipe-core 0580 to 0582, tablets 0950 to 0952) is built on `phase-3/slice-4a`. Next: 4b
-  (TB-21 to TB-24).
+  serialisation stub; recipe-core 0580 to 0582, tablets 0950 to 0952) merged (PR #14). 4b (TB-21 blister, TB-22 leak
+  test, TB-23 bottle line, TB-24 secondary packaging and SSCC aggregation; tablets 0970 to 0972, 0985 to 0989) is built
+  on `phase-3/slice-4b`. Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
