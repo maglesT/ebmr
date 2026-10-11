@@ -37,6 +37,7 @@ tests:
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50][IN-20] a conclusion or closure by the initiator is refused; another QA person concludes and closes"
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] a conclusion signed before a new finding is refused: the new finding supersedes it"
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] a cancellation is by QA other than the initiator, with a reason, while OPEN or UNDER_INVESTIGATION only"
+  - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] the QA person who recorded the investigation's finding neither concludes nor closes the record"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

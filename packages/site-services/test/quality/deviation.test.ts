@@ -43,12 +43,17 @@ async function raise(kind: NewDeviation['kind'] = 'DEVIATION', by: SeededActor =
 }
 
 /** A record linked to `b`, investigated by qa and concluded by qa2 with the finding given. */
-async function concluded(b: GmpBatch, kind: NewDeviation['kind'], assignableCause: boolean): Promise<{ deviationId: string; ref: string }> {
+async function concluded(
+  b: GmpBatch,
+  kind: NewDeviation['kind'],
+  assignableCause: boolean,
+  category: 'LABORATORY_ERROR' | 'EQUIPMENT' = 'LABORATORY_ERROR',
+): Promise<{ deviationId: string; ref: string }> {
   const d = await raise(kind);
   await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'BATCH', b.id));
   await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
   await w.run(w.cast.qa, (c) =>
-    recordDeviationFinding(c, d.deviationId, { assignableCause, cause: 'Balance drift found at the calibration check', rootCauseCategory: assignableCause ? 'EQUIPMENT' : 'NOT_DETERMINED' }),
+    recordDeviationFinding(c, d.deviationId, { assignableCause, cause: 'Balance drift found at the calibration check', rootCauseCategory: assignableCause ? category : 'NOT_DETERMINED' }),
   );
   const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
   await w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig));
@@ -152,6 +157,24 @@ describe('life cycle (S7)', () => {
     ).toMatch(/EBMR-SITE-306/);
   });
 
+  it('[PR-50] the QA person who recorded the investigation\'s finding neither concludes nor closes the record', async () => {
+    const d = await raise('INVESTIGATION');
+    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
+    await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Wrong sieve size fitted after cleaning', rootCauseCategory: 'HUMAN_ERROR' }));
+    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION'))).not.toBe('');
+    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
+    expect(await refusal(w.run(w.cast.qa, (c) => concludeDeviation(c, d.deviationId, sig)))).toMatch(/EBMR-SITE-30[78]|EBMR-SITE-312/);
+    await w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig));
+    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'CONCLUDED'))).not.toBe('');
+    const close = await w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'CONCLUDED');
+    expect(await refusal(w.run(w.cast.qa, (c) => closeDeviation(c, d.deviationId, close)))).not.toBe('');
+    await w.run(w.cast.qa3, (c) => closeDeviation(c, d.deviationId, close));
+    expect(await w.run(w.cast.qa3, (c) => deviationState(c, d.deviationId))).toBe('CLOSED');
+    // The command's own check, past the signature service: the investigator's row is found by the definer.
+    const { rows } = await db.admin.query<{ n: string }>('select count(*)::text as n from site.deviation_finding where deviation_id = $1 and recorded_by_person = $2', [d.deviationId, w.cast.qa.personId]);
+    expect(rows[0]?.n).toBe('1');
+  });
+
   it('[PR-50] a cancellation is by QA other than the initiator, with a reason, while OPEN or UNDER_INVESTIGATION only', async () => {
     const d = await raise('DEVIATION', w.cast.qa);
     expect(await refusal(w.run(w.cast.qa, (c) => cancelDeviation(c, d.deviationId, 'raised by mistake')))).toMatch(/EBMR-SITE-307/);
@@ -190,6 +213,10 @@ describe('the reference check site.deviation_ref_problem (D-S2-2)', () => {
     expect(await problem(noCause.ref, 'REPROCESSING')).toBeNull();
     const plainDeviation = await concluded(b, 'DEVIATION', true);
     expect(await problem(plainDeviation.ref)).toMatch(/is a DEVIATION record/);
+    // An assignable cause other than a confirmed laboratory error never invalidates a result (slice 5 review, HIGH 1).
+    const equipment = await concluded(b, 'OOS', true, 'EQUIPMENT');
+    expect(await problem(equipment.ref)).toMatch(/with an assignable cause of category EQUIPMENT; a result is invalidated only on a concluded, confirmed laboratory error/);
+    expect(await problem(equipment.ref, 'REPROCESSING')).toBeNull();
     const good = await concluded(b, 'OOS', true);
     expect(await problem(good.ref)).toBeNull();
     expect(await problem(` ${good.ref} `)).toBeNull();

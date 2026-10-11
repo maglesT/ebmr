@@ -40,7 +40,8 @@ tests:
   - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49][IN-20] a deviation is raised with a generated reference and linked to a batch; the application role cannot write the tables"
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50][IN-20] a conclusion or closure by the initiator is refused; another QA person concludes and closes"
   - "packages/site-services/test/quality/deviation.test.ts > the reference check site.deviation_ref_problem (D-S2-2) > [IN-20][DI-24] an invalidation citing an unknown, cancelled, unlinked, not concluded or not assignable reference is refused; the concluded OOS with an assignable cause is accepted"
-  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; the OOS record concluded with an assignable cause resolves it"
+  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; only a confirmed laboratory error with an approved passing replacement resolves it"
+  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -98,14 +98,14 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     }
   });
 
-  it('[PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; the OOS record concluded with an assignable cause resolves it', async () => {
+  it('[PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; only a confirmed laboratory error with an approved passing replacement resolves it', async () => {
     const lot = await w.lot({ materialKind: 'API' });
     const r1 = await result(lot.lotId, assay('99.0'));
     expect(await refusal(release(lot.lotId))).toMatch(/not approved by QC/);
     await approve(r1.resultId);
     const fail = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.9', unit: '%', upperLimit: '0.5' });
     await approve(fail.resultId);
-    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits and has no OOS record concluded/);
+    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
 
     // The OOS record: kind OOS, linked to the lot, not cancelled.
     const oos = await w.sql<{ deviationId: string }>(w.cast.analyst, 'select site.raise_deviation($1::jsonb) as r', [
@@ -115,15 +115,39 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     await w.sql(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2)", [oos.deviationId, lot.lotId]);
     expect(await refusal(w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [r1.resultId, oos.deviationId]))).toMatch(/EBMR-SITE-205 only a current approved failing result/);
     await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
-    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits/);
+    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
     // Concluded with an assignable cause (laboratory error): resolved.
     await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1)', [oos.deviationId]);
     await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Titrant not standardised before the run', rootCauseCategory: 'LABORATORY_ERROR' })]);
     const sig = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
     await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, sig]);
+    // A confirmed laboratory error invalidates the result, but the lot still needs an approved passing replacement.
+    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
+    const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%', upperLimit: '0.5' });
+    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless|not approved by QC/);
+    await approve(replacement.resultId);
     await release(lot.lotId);
     const { rows } = await db.app.query<{ state: string }>("select state from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId]);
     expect(rows[0]?.state).toBe('RELEASED');
+  });
+
+  it('[IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result', async () => {
+    const lot = await w.lot({ materialKind: 'API' });
+    const fail = await result(lot.lotId, assay('96.0'));
+    await approve(fail.resultId);
+    const oos = await w.sql<{ deviationId: string }>(w.cast.analyst, 'select site.raise_deviation($1::jsonb) as r', [
+      JSON.stringify({ kind: 'OOS', title: 'Assay below limit', classification: 'MAJOR', riskRationale: 'Assay below specification affects potency' }),
+    ]);
+    await w.sql(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2)", [oos.deviationId, lot.lotId]);
+    await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
+    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1)', [oos.deviationId]);
+    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Supplier crystallisation step out of control', rootCauseCategory: 'MATERIAL' })]);
+    const sig = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
+    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, sig]);
+    const again = await result(lot.lotId, assay('99.0'));
+    await approve(again.resultId);
+    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
+    expect((await db.app.query<{ r: boolean }>('select site.lot_lims_release_problem($1) is null as r', [lot.lotId])).rows[0]?.r).toBe(false);
   });
 });
 
