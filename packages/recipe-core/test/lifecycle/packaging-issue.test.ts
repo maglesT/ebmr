@@ -8,17 +8,19 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withProtectedNumbers } from '../../../kernel/src/continuity/numbers.ts';
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
-import { seedActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
+import { familyOrder } from './gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from './support.ts';
 
 let db: TestDatabase;
 let w: World;
 let steward: SeededActor;
+let erp: SeededActor;
 const dir = tempDir('packaging-issue');
 const ledger = tempLedger('packaging-issue', dir.path);
 
@@ -26,6 +28,7 @@ beforeAll(async () => {
   db = await createTestDatabase();
   w = new World(db, await seedCast(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
+  erp = await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' });
 }, 300_000);
 
 afterAll(async () => {
@@ -78,7 +81,8 @@ async function master(name: Fixture, product?: string): Promise<{ familyId: stri
 }
 
 async function plan(batchId: string, def: Partial<execution.GmpBatchPlan> & { familyId: string; batchSize: string }): Promise<execution.PlannedGmpBatch> {
-  return withProtectedNumbers(db.app, await cmd(db, w.cast.issuer), ledger, (c) => execution.prepareGmpIssue(c, batchId, { markets: ['IN'], site: SITE, line: 'L1', ...def }));
+  const erpOrder = def.erpOrder ?? (await familyOrder(db, erp, def.familyId, def.batchSize));
+  return withProtectedNumbers(db.app, await cmd(db, w.cast.issuer), ledger, (c) => execution.prepareGmpIssue(c, batchId, { markets: ['IN'], site: SITE, line: 'L1', ...def, erpOrder }));
 }
 
 async function issue(batchId: string, name: Fixture): Promise<void> {

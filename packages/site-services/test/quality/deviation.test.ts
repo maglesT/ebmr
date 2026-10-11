@@ -12,14 +12,13 @@ import {
   deviationState,
   linkDeviation,
   raiseDeviation,
-  receiveLot,
   recordDeviationFinding,
   startDeviationInvestigation,
   type NewDeviation,
 } from '../../src/index.ts';
 import { createTestDatabase, type TestDatabase } from '../helpers.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
-import { QualityWorld, refusal, seedQualityCast, unique, type GmpBatch } from './support.ts';
+import { QualityWorld, refusal, seedQualityCast, type GmpBatch } from './support.ts';
 
 let db: TestDatabase;
 let w: QualityWorld;
@@ -91,9 +90,7 @@ describe('raising and linking', () => {
     const b = await w.gmpBatch();
     const oc = await w.container(b);
     await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'CONTAINER', oc.id));
-    const lot = await w.run(w.cast.warehouse, (c) =>
-      receiveLot(c, { lotCode: unique('L'), materialCode: unique('M'), materialName: 'Lactose', materialKind: 'EXCIPIENT', quantity: '5', unit: 'kg', expiresAt: '2030-01-01T00:00:00Z' }),
-    );
+    const lot = await w.lot();
     await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'LOT', lot.lotId));
     const { rows } = await db.app.query<{ subject_kind: string; subject_ref: string; batch_number: string | null }>(
       'select subject_kind, subject_ref, batch_number from site.deviation_link where deviation_id = $1 order by subject_kind',

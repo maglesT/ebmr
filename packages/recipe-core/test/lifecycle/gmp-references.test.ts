@@ -9,6 +9,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withProtectedNumbers } from '../../../kernel/src/continuity/numbers.ts';
+import { withCommand } from '../../../kernel/src/db/command.ts';
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
@@ -19,7 +20,7 @@ import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
-import { gmpOrderFor } from './gmp-support.ts';
+import { bomFor, gmpOrderFor } from './gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from './support.ts';
 
 let db: TestDatabase;
@@ -74,8 +75,8 @@ function without(content: unknown, types: readonly string[]): unknown {
   return content;
 }
 
-/** An effective master for India at SITE-1/L1/BS-200K, a numbering rule, and an issued GMP batch of it. */
-async function issuedBatch(): Promise<{ batchId: string; content: MbrContent }> {
+/** An effective master for India at SITE-1/L1/BS-200K with a numbering rule. */
+async function effective(): Promise<{ familyId: string; content: MbrContent }> {
   const m = uniqueContent(FIXTURE);
   m.header.product = { ...m.header.product, code: m.header.product.code.toUpperCase() };
   const content = without(m, ['G-09', 'G-10']) as MbrContent;
@@ -88,11 +89,23 @@ async function issuedBatch(): Promise<{ batchId: string; content: MbrContent }> 
       JSON.stringify({ rule_code: `G-${randomUUID().slice(0, 8).toUpperCase()}`, site_code: SITE, product_code: product, batch_kind: 'PROCESSING', format: 'G{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' }),
     ]),
   );
+  return { familyId: v.familyId, content };
+}
+
+/** Plans a GMP batch of family `familyId` against ERP order `erpOrder`. */
+function plan(batchId: string, familyId: string, erpOrder: string): Promise<execution.PlannedGmpBatch> {
+  return cmd(db, w.cast.issuer).then((ctx) =>
+    withProtectedNumbers(db.app, ctx, ledger, (c) => execution.prepareGmpIssue(c, batchId, { familyId, markets: ['IN'], site: SITE, line: 'L1', batchSize: BS, erpOrder })),
+  );
+}
+
+/** An effective master and an issued GMP batch of it. */
+async function issuedBatch(): Promise<{ batchId: string; content: MbrContent }> {
+  const { familyId, content } = await effective();
+  const v = { familyId };
   const batchId = randomUUID();
   const erpOrder = await gmpOrderFor(db, erp, content, BS);
-  await withProtectedNumbers(db.app, await cmd(db, w.cast.issuer), ledger, (c) =>
-    execution.prepareGmpIssue(c, batchId, { familyId: v.familyId, markets: ['IN'], site: SITE, line: 'L1', batchSize: BS, ...(erpOrder ? { erpOrder } : {}) }),
-  );
+  await plan(batchId, v.familyId, erpOrder);
   const signatureId = await w.sign(w.cast.issuer, 'batch_issue', batchId, 'ISSUED', 'PLANNED');
   await w.run(
     w.cast.issuer,
@@ -224,5 +237,43 @@ describe('GMP deviation references (D-S2-2, D-S5-2)', () => {
     expect(await problem({ type: 'CORRECT_ENTRY', point: 'P1' }, { points: { P1: { failed: false } } }, { points: { P1: { supersededBy: 'P2' }, P2: { failed: false } } })).toBeNull();
     // The application role cannot call the check itself, nor write a reference past it.
     expect(await codeOf(db.app.query("select recipe.gmp_reference_problem($1, '{}', '{}', 'COMMAND', '{}', true)", [b.batchId]))).toMatch(/permission denied/);
+  });
+});
+
+describe('the ERP order at GMP issue (outline 5.2.2; D-S5-4)', () => {
+  it('a GMP batch is planned only against an ERP order whose product, strength, site, size and BOM match the pinned MBR; a missing, unknown, other-product, other-size or mismatched order is refused; an order plans one batch', async () => {
+    const { familyId, content } = await effective();
+    const bom = bomFor(content, BS);
+    const refused = async (erpOrder: string): Promise<string> => codeOf(plan(randomUUID(), familyId, erpOrder));
+    expect(await refused('')).toBe('EBMR-EXE-605');
+    expect(await refused('PO-NEVER-POSTED')).toBe('EBMR-EXE-605');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { productCode: 'OTHER-PRODUCT' }))).toBe('EBMR-EXE-605');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { strength: '999 mg' }))).toBe('EBMR-EXE-605');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { siteCode: 'SITE-2' }))).toBe('EBMR-EXE-605');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { batchSize: '102.4' }))).toBe('EBMR-EXE-605');
+    const first = bom[0];
+    if (!first) throw new Error('the fixture has a BOM');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { bom: bom.slice(1) }))).toBe('EBMR-EXE-605');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { bom: [{ ...first, quantity: `${first.quantity}1` }, ...bom.slice(1)] }))).toBe('EBMR-EXE-605');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { bom: [{ ...first, unit: 'g' }, ...bom.slice(1)] }))).toBe('EBMR-EXE-605');
+    expect(await refused(await gmpOrderFor(db, erp, content, BS, { bom: [...bom, { materialCode: 'MAT-EXTRA', quantity: '1', unit: 'kg' }] }))).toBe('EBMR-EXE-605');
+    // A later version of an order replaces the earlier (latest wins): a corrected order plans the batch.
+    const orderNo = await gmpOrderFor(db, erp, content, BS, { bom: bom.slice(1) });
+    expect(await refused(orderNo)).toBe('EBMR-EXE-605');
+    await gmpOrderFor(db, erp, content, BS, { orderNo, bom: [{ ...first, quantity: `${first.quantity}000` }, ...bom.slice(1)] });
+    const planned = await plan(randomUUID(), familyId, orderNo);
+    expect(planned.erpOrder).toBe(orderNo);
+    // An order plans one batch; nothing was planned or numbered by the refused attempts.
+    expect(await refused(orderNo)).toBe('EBMR-EXE-605');
+    const { rows } = await db.app.query<{ n: string }>('select count(*)::text as n from recipe.batch_erp_order o join recipe.stub_batch b on b.id = o.batch_id where b.family_id = $1', [familyId]);
+    expect(rows[0]?.n).toBe('1');
+    // The server's reader names the oldest open order of the product, strength, site and size (its BOM is matched when it
+    // plans), never one that planned a batch; the application role writes neither table.
+    const open = (await db.app.query<{ o: string }>("select recipe.open_erp_order_for($1, 'SITE-1', $2) as o", [familyId, BS])).rows[0]?.o;
+    expect(open).toMatch(/^PO-/);
+    expect(open).not.toBe(orderNo);
+    expect(await codeOf(db.app.query("insert into recipe.batch_erp_order (batch_id, order_id, order_no) values (gen_random_uuid(), gen_random_uuid(), 'X')"))).toMatch(/permission denied/);
+    expect(await codeOf(db.app.query("update site.erp_production_order set bom = '[]'"))).toMatch(/permission denied/);
+    expect(await codeOf(withCommand(db.app, { ...w.cast.issuer, correlationId: randomUUID() }, (c) => c.query('select site.erp_receive_order($1::jsonb)', [JSON.stringify({ orderNo: 'PO-X', siteCode: SITE, productCode: 'P', strength: '1', batchSize: '1', batchSizeUnit: 'kg', bom: bom, erpReference: 'E' })])))).toBe('EBMR-IAM-040');
   });
 });

@@ -113,6 +113,26 @@ export class QualityWorld {
     return { id, number, site, productCode, strength };
   }
 
+  /** Posts a material master version as the ERP interface (the latest version wins). */
+  async material(materialCode: string, materialKind = 'EXCIPIENT', unit = 'kg', maxRetestMonths: number | null = 24, materialName = `Material ${materialCode}`): Promise<void> {
+    await this.run(this.cast.erp, (c) =>
+      c.query('select site.erp_receive_material($1::jsonb)', [
+        JSON.stringify({ materialCode, materialName, materialKind, unit, ...(maxRetestMonths ? { maxRetestMonths } : {}), erpReference: `ERP-${materialCode}` }),
+      ]),
+    );
+  }
+
+  /** A lot received in QUARANTINE at SITE-1 (the material master posted first). */
+  async lot(over: { materialCode?: string; materialKind?: string; quantity?: string; retestAt?: string; expiresAt?: string; maxRetestMonths?: number | null } = {}): Promise<{ lotId: string; lotCode: string; materialCode: string }> {
+    const materialCode = over.materialCode ?? unique('M');
+    const lotCode = unique('L');
+    await this.material(materialCode, over.materialKind ?? 'EXCIPIENT', 'kg', over.maxRetestMonths === undefined ? 24 : over.maxRetestMonths);
+    const r = await this.sql<{ lot_id: string }>(this.cast.warehouse, 'select site.receive_lot($1::jsonb) as r', [
+      JSON.stringify({ lotCode, materialCode, quantity: over.quantity ?? '5', expiresAt: over.expiresAt ?? '2030-01-01T00:00:00Z', ...(over.retestAt ? { retestAt: over.retestAt } : {}) }),
+    ]);
+    return { lotId: r.lot_id, lotCode, materialCode };
+  }
+
   /** An output container of batch `b` (what the resolver reads for a CONTAINER). */
   async container(b: GmpBatch): Promise<{ id: string; label: string }> {
     const id = randomUUID();
