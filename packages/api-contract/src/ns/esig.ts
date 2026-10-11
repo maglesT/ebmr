@@ -86,6 +86,21 @@ export const SignOutcomeView = z.strictObject({
 });
 export type SignOutcomeView = z.infer<typeof SignOutcomeView>;
 
+/**
+ * Phase 3 slice 6: the record a signable action signs and the meaning, as the server computes them (the browser never
+ * derives an aggregate id, e.g. qc_extra_testing:<batch>/<decision>/<tests>, or a meaning that depends on the record's
+ * state, e.g. a lot rejected from quarantine). `meaning` null: the person chooses it (the challenge names it). The
+ * signature still binds through the preview, challenge and sign ceremony.
+ */
+export const SignableDescriptorView = z.strictObject({
+  kind: z.string(),
+  aggregateType: z.string(),
+  aggregateId: z.string(),
+  meaning: z.string().nullable(),
+  expectedState: z.string().nullable(),
+});
+export type SignableDescriptorView = z.infer<typeof SignableDescriptorView>;
+
 export const esig = {
   content: defineRoute({
     id: 'esig.content',
@@ -127,6 +142,17 @@ export const esig = {
     summary: 'Authenticate the signer for the challenge, then dry-run, seal and apply in one command',
     body: z.strictObject({ challengeId: Uuid, credentials: SignatureCredentials, proof: DeviceProof, action: SignableAction }),
     response: SignOutcomeView,
+  }),
+  describe: defineRoute({
+    id: 'esig.describe',
+    method: 'POST',
+    path: '/api/esig/describe',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'What a signable action signs (aggregate, meaning, expected state), computed by the server for the action as the person would send it (one call per choice)',
+    body: z.strictObject({ action: SignableAction }),
+    response: SignableDescriptorView,
   }),
   signatures: defineRoute({
     id: 'esig.signatures',

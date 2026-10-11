@@ -14,6 +14,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
+import { reprocessingAuthorisations, reprocessingRequests, residueContainers } from './reprocessing.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
 
@@ -159,6 +160,18 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       erpMaterials: notYet,
       lots: notYet,
       receiveLot: notYet,
+      reprocessingRequests: async ({ requireSession }) => {
+        requireSession();
+        return { requests: await reprocessingRequests(app, pool) };
+      },
+      reprocessingAuthorisations: async ({ query, requireSession }) => {
+        requireSession();
+        return { authorisations: await reprocessingAuthorisations(app, pool, query.batchId) };
+      },
+      residues: async ({ query, requireSession }) => {
+        requireSession();
+        return { containers: await residueContainers(app, pool, query.product) };
+      },
     },
     { rateLimits: { erpImport: { max: 30, timeWindow: '1 minute' } } },
   );

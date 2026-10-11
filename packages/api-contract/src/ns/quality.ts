@@ -131,6 +131,58 @@ export const LotSummaryView = z.strictObject({
 });
 export type LotSummaryView = z.infer<typeof LotSummaryView>;
 
+/** A whole-batch reprocessing request (recipe-core 0624) and whether the quality unit authorised it. */
+export const ReprocessingRequestView = z.strictObject({
+  requestId: Uuid,
+  familyId: Uuid,
+  familyCode: z.string().nullable(),
+  siteCode: z.string(),
+  parents: z.array(z.strictObject({ batchId: Uuid, batchNumber: z.string() })),
+  investigationRef: z.string(),
+  riskEvaluationId: Uuid,
+  proposedBy: PersonRef,
+  proposedAt: Instant,
+  authorisedBy: PersonRef.nullable(),
+  authorisedAt: Instant.nullable(),
+});
+export type ReprocessingRequestView = z.infer<typeof ReprocessingRequestView>;
+
+/** A reprocessing authorisation of a step (or of one container's use) of a batch (recipe-core 0621). */
+export const ReprocessingAuthorisationView = z.strictObject({
+  authorisationId: Uuid,
+  batchId: Uuid,
+  batchNumber: z.string(),
+  stepId: z.string(),
+  scope: z.enum(['STEP', 'USE']),
+  containerId: Uuid.nullable(),
+  caseCode: z.enum(['WHOLE_BATCH_REPROCESSING', 'REPROCESSING_ADDITION', 'RECOVERY']),
+  investigationRef: z.string(),
+  riskEvaluationRef: z.string(),
+  proposedBy: PersonRef,
+  proposedAt: Instant,
+  authorisedBy: PersonRef.nullable(),
+  authorisedAt: Instant.nullable(),
+});
+export type ReprocessingAuthorisationView = z.infer<typeof ReprocessingAuthorisationView>;
+
+/** A closed output container the quality unit may reserve as reusable residue (or has reserved). */
+export const ResidueContainerView = z.strictObject({
+  containerId: Uuid,
+  label: z.string(),
+  batchId: Uuid,
+  batchNumber: z.string(),
+  product: z.string(),
+  strength: z.string(),
+  stage: z.string(),
+  net: DecimalString,
+  remaining: DecimalString,
+  unit: z.string(),
+  state: z.string(),
+  closedAt: Instant,
+  reservedAt: Instant.nullable(),
+});
+export type ResidueContainerView = z.infer<typeof ResidueContainerView>;
+
 const ErpProductView = ErpCatalogue.shape.products.element;
 const ErpMaterialView = ErpCatalogue.shape.materials.element;
 
@@ -345,6 +397,38 @@ export const quality = {
       retestAt: z.iso.datetime({ offset: true }).optional(),
     }),
     response: LotSummaryView,
+  }),
+  reprocessingRequests: defineRoute({
+    id: 'quality.reprocessingRequests',
+    method: 'GET',
+    path: '/api/quality/reprocessing/requests',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Whole-batch reprocessing requests of the site, newest first, with their authorisation',
+    response: z.strictObject({ requests: z.array(ReprocessingRequestView) }),
+  }),
+  reprocessingAuthorisations: defineRoute({
+    id: 'quality.reprocessingAuthorisations',
+    method: 'GET',
+    path: '/api/quality/reprocessing/authorisations',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Reprocessing authorisations of steps and container uses, newest first, filtered by batch',
+    query: z.strictObject({ batchId: Uuid.optional() }),
+    response: z.strictObject({ authorisations: z.array(ReprocessingAuthorisationView) }),
+  }),
+  residues: defineRoute({
+    id: 'quality.residues',
+    method: 'GET',
+    path: '/api/quality/reprocessing/residues',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Closed output containers not charged or merged, with whether the quality unit reserved them as reusable residue',
+    query: z.strictObject({ product: z.string().min(1).max(64).optional() }),
+    response: z.strictObject({ containers: z.array(ResidueContainerView) }),
   }),
   erpImport: defineRoute({
     id: 'quality.erpImport',

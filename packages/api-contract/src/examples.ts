@@ -160,6 +160,10 @@ export const EXAMPLES = {
   'quality-erp-products': { schema: r.quality.erpProducts.response, data: s6.quality.erpProducts, routeId: r.quality.erpProducts.id },
   'quality-erp-materials': { schema: r.quality.erpMaterials.response, data: s6.quality.erpMaterials, routeId: r.quality.erpMaterials.id },
   'quality-lots': { schema: r.quality.lots.response, data: s6.quality.lots, routeId: r.quality.lots.id },
+  'esig-describe': { schema: r.esig.describe.response, data: s6.describe, routeId: r.esig.describe.id },
+  'quality-reprocessing-requests': { schema: r.quality.reprocessingRequests.response, data: s6.reprocessing.requests, routeId: r.quality.reprocessingRequests.id },
+  'quality-reprocessing-authorisations': { schema: r.quality.reprocessingAuthorisations.response, data: s6.reprocessing.authorisations, routeId: r.quality.reprocessingAuthorisations.id },
+  'quality-residues': { schema: r.quality.residues.response, data: s6.reprocessing.residues, routeId: r.quality.residues.id },
   'quality-receive-lot': { schema: r.quality.receiveLot.response, data: s6.quality.lots.lots[0], routeId: r.quality.receiveLot.id },
 } as const satisfies Record<string, Example>;
 
@@ -178,6 +182,9 @@ export const SLICE_6_ROUTE_IDS: readonly string[] = [
   r.quality.erpMaterials,
   r.quality.lots,
   r.quality.receiveLot,
+  r.quality.reprocessingRequests,
+  r.quality.reprocessingAuthorisations,
+  r.quality.residues,
 ].map((route) => route.id);
 
 export type ExampleName = keyof typeof EXAMPLES;
