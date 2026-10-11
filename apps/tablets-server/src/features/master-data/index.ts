@@ -2,11 +2,10 @@
  * Feature `master-data` (Phase 3 slice 6a, GMP): the company formulation library (decision 0006 part 1; D-S6-3, D-S6-4)
  * over recipe-core 0640. A steward records a formula and writes DRAFT versions of its per-unit composition; the database
  * computes every batch quantity (INV-25); a second person approves a version with FORMULA_APPROVED (signable action
- * MASTER_DATA_APPROVE). Reads run as the person's own command: the database serves a composition only to a reader holding
- * FORMULA.READ and stores the evaluation (DI-13, INV-26).
+ * MASTER_DATA_APPROVE). Reads are the session's (tablets 1041, no command, so a shop-floor terminal needs no tap): the
+ * database serves a composition only to a reader whose role holds FORMULA.READ (DI-13).
  */
 import { routes, type FormulaSummaryView, type FormulaVersionView, type SignableAction } from '@ebmr/api-contract';
-import { withCommand } from '@ebmr/kernel';
 import { formula } from '@ebmr/recipe-core';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
@@ -76,35 +75,40 @@ export async function formulaViews(app: AppContext, db: Pick<pg.Pool, 'query'>, 
   });
 }
 
+/** The formulas (or one) as the session behind the request reads them (tablets 1041: no command; FORMULA.READ by its role). */
+async function readFor(pool: pg.Pool, tokenHash: string, formulaId?: string): Promise<formula.FormulaRead[]> {
+  const { rows } = await pool.query<{ r: formula.FormulaRead[] }>('select tab.formula_read($1, $2) as r', [tokenHash, formulaId ?? null]);
+  return rows[0]?.r ?? [];
+}
+
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
-  const readAs = <T>(actor: Parameters<typeof withCommand>[1], work: (c: pg.PoolClient) => Promise<T>) => withCommand(pool, actor, work);
-  const one = async (actor: Parameters<typeof withCommand>[1], formulaId: string) => {
-    const f = (await formulaViews(app, pool, await readAs(actor, (c) => formula.readFormulas(c, formulaId))))[0];
+  const one = async (tokenHash: string, formulaId: string) => {
+    const f = (await formulaViews(app, pool, await readFor(pool, tokenHash, formulaId)))[0];
     if (!f) throw new Error(`formula ${formulaId} was not read back`);
     return f;
   };
   bindRoutes(scope, app, routes.masterData, {
-    formulas: async ({ requireSession, actor }) => {
-      requireSession();
-      return { formulas: (await formulaViews(app, pool, await readAs(actor(), (c) => formula.readFormulas(c)))).map((f) => f.summary) };
+    formulas: async ({ requireSession }) => {
+      const s = requireSession();
+      return { formulas: (await formulaViews(app, pool, await readFor(pool, s.tokenHash))).map((f) => f.summary) };
     },
     createFormula: async ({ body, requireSession, actor, idempotencyKey, requestHash }) => {
-      requireSession();
+      const s = requireSession();
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => formula.createFormula(c, body));
-      return (await one(actor(), out.result)).summary;
+      return (await one(s.tokenHash, out.result)).summary;
     },
-    formula: async ({ params, requireSession, actor }) => {
-      requireSession();
-      const f = await one(actor(), params.formulaId);
+    formula: async ({ params, requireSession }) => {
+      const s = requireSession();
+      const f = await one(s.tokenHash, params.formulaId);
       return { formula: f.summary, versions: f.versions, compositionReadable: f.readable };
     },
     addFormulaVersion: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
-      requireSession();
+      const s = requireSession();
       const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
         formula.addFormulaVersion(c, params.formulaId, { changeReason: body.changeReason, lines: body.lines.map((l) => compact(l) as formula.FormulaLineInput) }),
       );
-      const v = (await one(actor(), params.formulaId)).versions.find((x) => x.versionId === out.result);
+      const v = (await one(s.tokenHash, params.formulaId)).versions.find((x) => x.versionId === out.result);
       if (!v) throw new Error('the new formula version was not read back');
       return v;
     },

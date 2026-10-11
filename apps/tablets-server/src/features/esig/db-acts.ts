@@ -25,6 +25,8 @@ export interface DbActSpec<A extends SignableAction> {
   target(action: A): ActTarget;
   /** What the action signs, read now (the meaning when it depends on the record's state). */
   targetNow?(db: pg.Pool | pg.PoolClient, action: A): Promise<ActTarget>;
+  /** The person's own reason the signing command carries, when the act's record change needs one (EBMR-AUDIT-002). */
+  reasonOf?(action: A): { reasonCode: string; reasonText: string } | undefined;
   /** Checks the server makes before anything is signed (the database checks them again). */
   precheck?(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<DryRunOutcome | null>;
   /** The database command, with the signature just made. */
@@ -40,7 +42,13 @@ export function dbActHandler<A extends SignableAction>(app: AppContext, spec: Db
     kind: spec.kind,
     aggregateTypes: spec.aggregateTypes,
     describe: (a) => spec.target(a),
+    ...(spec.reasonOf ? { reasonOf: (a: A) => (spec.reasonOf as NonNullable<typeof spec.reasonOf>)(a) } : {}),
     ...(spec.targetNow ? { describeNow: (db: pg.Pool | pg.PoolClient, a: A) => (spec.targetNow as NonNullable<typeof spec.targetNow>)(db, a) } : {}),
+    async expectedStateNow(client, a) {
+      const t = spec.target(a);
+      if (t.expectedState !== undefined) return t.expectedState;
+      return (await recordContentForSigning(client, t.aggregateType, t.aggregateId)).state ?? null;
+    },
     previewContent: (ctx, query) => kernelContent(app.pools.app, (ctx as Partial<EsigSignableContext>).tokenHash ?? '', query),
     async prepareForChallenge(client, _ctx, a) {
       const t = spec.target(a);

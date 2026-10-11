@@ -24,7 +24,7 @@ export async function signAction(
   b: TestBrowser,
   personaKey: string,
   action: SignableAction,
-  opts: { meaning?: string; tamper?: boolean } = {},
+  opts: { meaning?: string; tamper?: boolean; credentials?: SignatureCredentials } = {},
 ): Promise<Result<unknown>> {
   const d = await describeAction(b, action);
   const meaning = opts.meaning ?? d.meaning ?? '';
@@ -35,6 +35,6 @@ export async function signAction(
     body: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, contentVersion: preview.value.contentVersion, meaning, clientContentHash: hash, action },
   });
   if (!challenge.ok) return challenge;
-  const body = { challengeId: challenge.value.challengeId, credentials: credentialsOf(server, personaKey), action };
+  const body = { challengeId: challenge.value.challengeId, credentials: opts.credentials ?? credentialsOf(server, personaKey), action };
   return b.call(routes.esig.sign, { body: { ...body, proof: await b.proof('POST', '/api/esig/sign', body) } });
 }

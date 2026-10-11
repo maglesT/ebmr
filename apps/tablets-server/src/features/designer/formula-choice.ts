@@ -5,7 +5,6 @@
  * recipe.formula_pin_mbr (the content carries exactly the formula's composition) and recipe.mbr_composition.
  */
 import type pg from 'pg';
-import { commands, withCommand, type ActorContext } from '@ebmr/kernel';
 import type { formula } from '@ebmr/recipe-core';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { refusal } from '../../platform/http/refusal.ts';
@@ -47,24 +46,7 @@ export function withFormulaBom(content: flow.MbrContent, chosen: formula.Formula
   return out;
 }
 
-/** DI-13: refuses (403) a reader without FORMULA.READ an MBR version whose composition comes from the formulation library. */
-export async function compositionGate(pool: pg.Pool, actor: ActorContext, versionId: string): Promise<void> {
-  const { rows } = await pool.query<{ f: string | null }>('select recipe.mbr_formula_of($1)::text as f', [versionId]);
-  if (!rows[0]?.f) return;
-  try {
-    await withCommand(pool, actor, (c) => c.query('select recipe.mbr_composition($1)', [versionId]));
-  } catch (error) {
-    const k = commands.asKernelError(error);
-    if (k instanceof commands.KernelError && k.code === 'EBMR-IAM-040') {
-      throw refusal(403, {
-        code: 'EBMR-IAM-040',
-        kind: 'NOT_ALLOWED',
-        whatHappened: 'This MBR\'s composition is confidential; it is not shown to you.',
-        why: 'Its bill of materials comes from the company formulation library, which is read only with FORMULA.READ (DI-13).',
-        controls: ['DI-13'],
-        whatYouCanDo: ['Ask QA, QC, the production head or the formulation steward.'],
-      });
-    }
-    throw error;
-  }
+/** DI-13: refuses a reader without FORMULA.READ an MBR version whose composition comes from the library (tablets 1041). */
+export async function compositionGate(pool: pg.Pool, tokenHash: string, versionId: string): Promise<void> {
+  await pool.query('select tab.mbr_composition_check($1, $2)', [tokenHash, versionId]);
 }

@@ -437,7 +437,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
                 const result: SignWork = { refused };
                 return result as unknown as commands.JsonValue;
               }
-              const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState: d.expectedState ?? null }, sealKey);
+              const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action) : null);
+              const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState }, sealKey);
               const applied = await handler.apply(client, ctx, body.action, { signatureId: sig.signatureId, meaning: ch.meaning, signer: ch.signerPerson });
               const result: SignWork = { signed: { manifestation: manifestationView(sig.manifestation, ch.signerPerson, true), result: applied } };
               return result as unknown as commands.JsonValue;

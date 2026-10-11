@@ -78,6 +78,8 @@ export const SignableAction = z.discriminatedUnion('kind', [
     decision: z.enum(['RELEASE', 'REJECT']),
     /** A RELEASE names its route, and only a RELEASE does (IN-24 (c)). */
     route: z.enum(['IDENTITY_TESTED', 'VENDOR_HISTORY']).optional(),
+    /** The person's own reason, both halves (a status decision such as a rejection carries one: DI-22, EBMR-AUDIT-002). */
+    reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
   }),
   z.strictObject({
     kind: z.literal('REPROCESSING_ACT'),

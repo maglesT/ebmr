@@ -24,7 +24,7 @@
  * (MBR.AUTHOR in the product scope) and refuses administrators (DI-17, DI-18). A2 registers MBR_TRANSITION.
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
-import { sandbox, withCommand } from '@ebmr/kernel';
+import { sandbox } from '@ebmr/kernel';
 import { routes } from '@ebmr/api-contract';
 import { formula, lifecycle } from '@ebmr/recipe-core';
 import { flow } from '@ebmr/recipe-core/pure';
@@ -360,9 +360,12 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     // Phase 3 slice 6a-0: "Choose a product" arrives with slice 6a.
     // "Choose a product" (decision 0006): the approved formula's BOM with its computed quantities (FORMULA.READ, DI-13).
     formulaChoice: async (ctx) => {
-      ctx.requireSession();
+      const s = ctx.requireSession();
       const q = ctx.query;
-      const c = await withCommand(pool, ctx.actor(), (client) => formula.formulaChoice(client, q.product, q.strength, q.batchSize));
+      // The session's read (tablets 1041): FORMULA.READ by its role, no command (a shop-floor terminal needs no tap).
+      const { rows } = await pool.query<{ r: formula.FormulaChoice }>('select tab.formula_choice($1, $2, $3, $4::numeric) as r', [s.tokenHash, q.product, q.strength, q.batchSize]);
+      const c = rows[0]?.r;
+      if (!c) throw new Error('no formula choice was read');
       return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines };
     },
     templates: () => Promise.resolve({ templates: templateViews }),
@@ -415,7 +418,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
     version: async (ctx) => {
       // DI-13: an MBR whose composition comes from the formulation library opens only for a reader holding FORMULA.READ.
-      await compositionGate(pool, ctx.actor(), ctx.params.versionId);
+      await compositionGate(pool, ctx.requireSession().tokenHash, ctx.params.versionId);
       return versionView(pool, app, ctx.params.versionId);
     },
 

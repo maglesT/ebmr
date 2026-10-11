@@ -111,6 +111,7 @@ export function lotDecisionHandler(app: AppContext): SignableActionHandler<LotDe
   return dbActHandler<LotDecision>(app, {
     kind: 'LOT_DECISION',
     aggregateTypes: ['material_lot'],
+    reasonOf: (a) => (a.reason ? { reasonCode: a.reason.code, reasonText: a.reason.text } : undefined),
     // A rejection's meaning depends on the lot's state: '' here (the challenge names it), read now by targetNow.
     target: (a) => ({ aggregateType: 'material_lot', aggregateId: a.lotId, meaning: lotMeaning(a, null) }),
     async targetNow(db, a) {

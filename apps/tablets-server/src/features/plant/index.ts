@@ -258,10 +258,20 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     equipmentEvent: async (ctx) => {
       ctx.requireSession();
       const b = ctx.body;
+      if (b.event === 'REPAIR' ? b.reference === undefined || b.kind !== undefined : b.kind === undefined) {
+        throw refusal(422, {
+          code: 'EBMR-API-EVENT-INPUT',
+          kind: 'INVALID_INPUT',
+          whatHappened: 'The logbook entry is incomplete. Nothing was saved.',
+          why: 'An EVENT names its kind; a REPAIR names its work-order reference and no kind.',
+          whatYouCanDo: ['Complete the entry and save it again.'],
+        });
+      }
+      const kind = b.kind;
       const out = await write(ctx, (c) =>
-        b.event === 'REPAIR' ? plant.recordRepair(c, ctx.params.code, b.detail, b.reference) : plant.recordEquipmentEvent(c, ctx.params.code, b.kind, b.detail, b.reference),
+        b.event === 'REPAIR' || kind === undefined ? plant.recordRepair(c, ctx.params.code, b.detail, b.reference ?? '') : plant.recordEquipmentEvent(c, ctx.params.code, kind, b.detail, b.reference, b.batchNumber),
       );
-      return { id: out, equipmentCode: ctx.params.code, recorded: b.event === 'REPAIR' ? ('REPAIR_RECORDED' as const) : b.kind };
+      return { id: out, equipmentCode: ctx.params.code, recorded: b.event === 'REPAIR' || kind === undefined ? ('REPAIR_RECORDED' as const) : kind };
     },
     pendingVerifications: async ({ requireSession }) => {
       requireSession();
