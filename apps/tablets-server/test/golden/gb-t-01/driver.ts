@@ -221,7 +221,15 @@ export class GoldenBatch {
     for (const e of (await this.view()).exceptions.filter((x) => x.status === 'OPEN' && x.severity === 'ALERT')) {
       // The signing attempts of one person at one terminal are rate-limited (DI-19): QA works through them at a human pace.
       if (n > 0 && n % 4 === 0) await this.wait(1);
-      await this.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: why });
+      if (e.type === 'QC_ADDITIONAL_TESTING_DECISION') {
+        // PR-47: QC decides on additional testing of a batch that received an addition (the signed act over HTTP); QA
+        // then dispositions the alert with that decision.
+        const qc = await this.office('qcApprover');
+        ok(await signAct(this.w, qc, 'qcApprover', { kind: 'QUALITY_ACT', act: 'QC_EXTRA_TESTING_DECISION', subjectId: this.batchId, input: { decision: 'NONE_REQUIRED' } }), 'the QC decision on additional testing');
+        await this.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: 'QC decided that no additional testing is required: 2.000 kg of milled rejects of the same product, reserved and authorised, 2.45 % of the batch.' });
+      } else {
+        await this.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: why });
+      }
       n += 1;
     }
     await this.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey });
