@@ -141,6 +141,9 @@ describe('privilege separation of the recipe schema (ADR 0012)', () => {
       { t: 'recipe.mbr_evidence_void', type: 'mbr_version' },
       { t: 'recipe.mbr_risk_link', type: 'mbr_version' },
       { t: 'recipe.mbr_version', type: 'mbr_version' },
+      // The quality unit's authorisations of a reprocessing (REPROCESSING_AUTHORISED; recipe-core 0621, 0624).
+      { t: 'recipe.reprocessing_authorisation', type: 'reprocessing_authorisation' },
+      { t: 'recipe.reprocessing_request', type: 'reprocessing_request' },
     ]);
     expect((await db.app.query<{ ok: boolean }>('select esig.change_triggers_ok() as ok')).rows[0]?.ok).toBe(true);
   });

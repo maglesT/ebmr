@@ -252,7 +252,7 @@ function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
   const family = r.id(o, 'family', path);
   const title = r.string(o, 'title', path);
   const edition = r.literal(o, 'edition', path, ['tablets', 'injectables'] as const);
-  const recordKind = r.literal(o, 'recordKind', path, ['PROCESSING', 'PACKAGING'] as const);
+  const recordKind = r.literal(o, 'recordKind', path, ['PROCESSING', 'PACKAGING', 'REPROCESSING'] as const);
   let product: MbrHeader['product'] | undefined;
   const p = r.object(o['product'], `${path}.product`, ['code', 'name', 'strength', 'dosageForm']);
   if (p) {

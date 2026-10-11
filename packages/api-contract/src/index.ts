@@ -63,3 +63,4 @@ export {
   WorkQueueItem,
 } from './ns/execution.ts';
 export { LiveReadingEvent, ReadingView, ScaleStatusView } from './ns/devices.ts';
+export { DeviationView, ErpCatalogue, ErpImportView, LotResultView } from './ns/quality.ts';

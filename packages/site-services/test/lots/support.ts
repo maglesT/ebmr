@@ -9,7 +9,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { withCommand, type ActorContext } from '../../../kernel/src/db/command.ts';
 import { decideRoleGrant, requestRoleGrant } from '../../../kernel/src/identity/admin.ts';
-import { seedAdministration, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import {
   changeLotStatus,
   enableVendorRoute,
@@ -35,6 +35,8 @@ export interface Cast {
   witness: SeededActor;
   admin: SeededActor;
   operator: SeededActor;
+  /** The ERP interface: posts the material master a receipt takes the kind, name and unit from (site services 0750). */
+  erp: SeededActor;
 }
 
 export async function seedCast(db: TestDatabase): Promise<Cast> {
@@ -47,6 +49,7 @@ export async function seedCast(db: TestDatabase): Promise<Cast> {
     witness: await signerActor(db, 'VERIFIER'),
     admin: await signerActor(db, 'SYSTEM_ADMINISTRATOR'),
     operator: await signerActor(db, 'OPERATOR'),
+    erp: await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' }),
   };
 }
 
@@ -92,6 +95,8 @@ export class World {
   async receive(kind: MaterialKind, overrides: Partial<LotReceipt> = {}): Promise<ReceivedLot & { materialCode: string; lotCode: string }> {
     const materialCode = overrides.materialCode ?? unique(`M${kind.slice(0, 3)}`);
     const lotCode = overrides.lotCode ?? unique('L');
+    // The ERP's material master first (a receipt takes the kind, name and unit from it; site services 0750).
+    await this.material(materialCode, overrides.materialName ?? `Material ${materialCode}`, overrides.materialKind ?? kind, overrides.unit ?? 'kg');
     const lot = await this.run(this.cast.warehouse, (c) =>
       receiveLot(c, {
         lotCode,
@@ -105,6 +110,15 @@ export class World {
       }),
     );
     return { ...lot, materialCode, lotCode };
+  }
+
+  /** Posts a material master version as the ERP interface (the latest version wins). */
+  async material(materialCode: string, materialName: string, materialKind: MaterialKind, unit = 'kg', maxRetestMonths: number | null = 24): Promise<void> {
+    await this.run(this.cast.erp, (c) =>
+      c.query('select site.erp_receive_material($1::jsonb)', [
+        JSON.stringify({ materialCode, materialName, materialKind, unit, ...(maxRetestMonths ? { maxRetestMonths } : {}), erpReference: `ERP-${materialCode}` }),
+      ]),
+    );
   }
 
   async version(lotId: string): Promise<string> {

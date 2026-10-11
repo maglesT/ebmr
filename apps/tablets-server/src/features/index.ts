@@ -11,6 +11,7 @@ import * as devices from './devices/index.ts';
 import * as esig from './esig/index.ts';
 import * as execution from './execution/index.ts';
 import * as meta from './meta/index.ts';
+import * as quality from './quality/index.ts';
 import * as session from './session/index.ts';
 import type { FeatureEntry, FeatureModule } from './types.ts';
 
@@ -23,6 +24,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'designer', installations: ['GMP'], module: designer satisfies FeatureModule },
   { name: 'execution', installations: ['GMP', 'SANDBOX'], module: execution satisfies FeatureModule },
   { name: 'devices', installations: ['GMP', 'SANDBOX'], module: devices satisfies FeatureModule },
+  { name: 'quality', installations: ['GMP'], module: quality satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

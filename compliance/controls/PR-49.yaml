@@ -33,8 +33,12 @@ catalog_test: A failure of a registered limit creates a deviation with the MA fl
 implemented_by:
   modules:
     - "packages/recipe-core/src/engine/exceptions.ts, packages/recipe-core/src/engine/batch.ts (dispositionException)"
+    - "packages/site-services/sql/0730_deviation_lite.sql"
+    - "packages/recipe-core/sql/0601_gmp_deviation_references.sql"
+    - "packages/site-services/src/quality"
   guards:
     - "A registered-limit breach raises a registration-relevant deviation requirement that only QA dispositions; the operator cannot clear it"
+    - "Deviation-lite (slice 5a): a DEVIATION, OOS or INVESTIGATION record with a database-generated reference, classification and risk rationale, insert-only links to GMP batches, lots and containers of its site; on a GMP batch ATTACH_DEVIATION, a DEVIATION_RAISED disposition and an ESCALATED review cite only a valid record linked to the batch (site.deviation_ref_problem; EBMR-EXE-600, 601, 604)"
 tests:
   - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"
   - "apps/tablets-server/test/execution/db-guards-disposition-involvement.test.ts > F11: a person involved in the step that raised an exception never dispositions it (INV-03, PR-13, PR-49) > [INV-03][PR-13][PR-49][DI-17] a person who entered data in the raising step, also holding QA_SHOP_FLOOR, cannot disposition the exception through the store directly: the kernel refuses the signature, nothing is recorded"
@@ -139,6 +143,11 @@ tests:
   - "packages/recipe-core/test/mutation/limit-exceptions.test.ts > the helpers' own contracts where the guard never reaches a branch (NULL: the database cannot judge as the engine does) > [PR-08][PR-49] recipe.limit_exception_record: a verdict that breaches no tier, a rank outside 1-3, or a kind other than PARAMETER, CALCULATION or YIELD raises nothing (NULL)"
   - "apps/tablets-server/test/mutation/signed-content.test.ts > the disposition an exception's signature covers is the one proposed for that exception (recipe-core 0210, 0295) > [PR-49][DI-37][INV-10] with proposals made for two exceptions, each exception's signable text holds its own proposal; the honest disposition of the first is signed and stays VALID"
   - "apps/tablets-server/test/execution/db-guards-hand-over.test.ts > TAKE_OVER_STEP and after: the incoming performer completes the step; the verifier is neither performer > [PR-14][DI-34][PR-13][PR-49] review findings 1, 2, 4: a hand-over to a person without the step's perform role is refused; a step waiting for its incoming performer is handed over again, only from that person; nobody named in a hand-over signs the disposition of its exception; the outgoing performer raises no exception at the step"
+  - "packages/recipe-core/test/lifecycle/gmp-references.test.ts > GMP deviation references (D-S2-2, D-S5-2) > [PR-13][PR-49] ATTACH_DEVIATION on a GMP batch with an unknown, unlinked or cancelled reference is refused; a linked deviation-lite record is accepted; an escalation in review is checked the same way"
+  - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49][IN-20] a deviation is raised with a generated reference and linked to a batch; the application role cannot write the tables"
+  - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49] a link names a GMP batch, lot or container of the record's site; an unknown subject, another site's batch or a closed record is refused"
+  - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49] the administrator cannot raise a record, and a person without DEVIATION.RAISE cannot either"
+  - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [PR-49][PR-17] a QA person raises and investigates a deviation-lite record with a generated reference; the ERP interface imports its catalogue and nobody else can"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

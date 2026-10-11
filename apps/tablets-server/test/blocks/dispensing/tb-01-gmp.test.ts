@@ -20,12 +20,13 @@ import { sha256Hex } from '@ebmr/expr';
 import { execution, flow, type engine } from '@ebmr/recipe-core';
 import type pg from 'pg';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
-import { openPersonaSession, passwordActor } from '@ebmr/test-kit';
+import { openPersonaSession, openServiceSession, passwordActor } from '@ebmr/test-kit';
 import { esig, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { cmd, signatureAuth } from '../../../../../packages/kernel/test/esig/helpers.ts';
 import type { SeededActor } from '../../../../../packages/kernel/test/identity/seed.ts';
 import type { TestDatabase } from '../../../../../packages/kernel/test/support/db.ts';
 import { cell, reason, World, type Cast } from '../../../../../packages/recipe-core/test/lifecycle/support.ts';
+import { postOrder } from '../../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import type { TestServer } from '../../support/harness.ts';
 import { recordContentForSigning } from '../../../src/features/esig/content.ts';
 import { engineActor, engineRoles } from '../../../src/features/execution/roles.ts';
@@ -45,6 +46,7 @@ const BALANCE = 'BAL-07';
 let gmp: ExecServer;
 let world: World;
 let familyId: string;
+let gmpMbr: flow.MbrContent;
 let product: string;
 
 class GmpWorld extends World {
@@ -148,6 +150,8 @@ const passwordOf = (key: string): SignatureCredentials => ({ kind: 'PASSWORD', l
 /** A GMP batch planned and issued by the issuer (ceremony with ISSUED); its id and number. */
 async function issued(): Promise<{ batchId: string; batchNumber: string }> {
   const issuer = await gmp.asPersona('issuer');
+  // The ERP order the server plans the batch against (D-S5-4; recipe-core 0602).
+  await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), gmpMbr, BATCH_SIZE);
   const plan = valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE } }));
   const content = valueOf(await issuer.call(routes.esig.content, { query: { aggregateType: 'batch_issue', aggregateId: plan.batchId, intent: 'ISSUED' } }));
   const action = { kind: 'GMP_BATCH_ISSUE' as const, batchId: plan.batchId, reason: { code: 'PRODUCTION_PLAN', text: 'Issued for the TB-01 tests' }, variants: {}, inputs: { tabletsPerBatch: { kind: 'COUNT' as const, value: '100000' } } };
@@ -217,6 +221,7 @@ beforeAll(async () => {
     reason('numbering rule for the test'),
   );
   familyId = v.familyId;
+  gmpMbr = content;
   // The dispenser designation for operator1 (requested by the administrator, approved by the process owner).
   const grantId = await withCommand(gmp.db.app, await admin(), (c) => identity.requestRoleGrant(c, { accountId: personaIn(gmp, 'operator1').accountId, roleCode: 'DISPENSER', reason: 'TB-01 tests' }));
   await withCommand(gmp.db.app, await owner(), (c) => identity.decideRoleGrant(c, grantId, true, 'approved for the TB-01 tests'));
@@ -236,10 +241,17 @@ beforeAll(async () => {
       await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, $2, 1)", [id, l.state]);
       await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'IR-01', 'T-01', gen_random_uuid(), gen_random_uuid())", [id]);
       if (l.assay) {
-        await c.query(
-          "insert into tab.lot_assay_result (material_lot_id, basis, assay, certificate_ref, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'AS_IS', $2::numeric, $3, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
+        // On GMP the assay is copied from an approved LIMS-lite result and names it (slice 5a; tablets 1001).
+        const { rows: lims } = await c.query<{ id: string }>(
+          "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'ASSAY', 'STP-AS-01', 'RELEASE', $2::numeric, '%', 98.0, 102.0, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
+          [id, l.assay],
+        );
+        await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [lims[0]?.id]);
+        const { rows: assay } = await c.query<{ id: string }>(
+          "insert into tab.lot_assay_result (material_lot_id, basis, assay, certificate_ref, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'AS_IS', $2::numeric, $3, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
           [id, l.assay, `COA-${l.code}`],
         );
+        await c.query("insert into tab.lot_assay_source (assay_result_id, value_kind, lims_result_id) values ($1, 'assay', $2)", [assay[0]?.id, lims[0]?.id]);
       }
     }
     await c.query('insert into plant.product (code, name, highly_potent, recorded_by) values ($1, $1, false, gen_random_uuid())', [product]);
@@ -327,5 +339,45 @@ describe('TB-01 on the GMP installation (site lots, reservations, consumption)',
     expect(await attempt(1, false, '0.100')).toMatch(/names no consumption of lot L26-0201.*TB01-CONSUMPTION.*EBMR-EXE-240/s);
     expect(await attempt(2, true, '0.200')).toMatch(/names a consumption of 0\.200 kg, not of its net 0\.100 kg.*EBMR-EXE-240/s);
     expect(await attempt(3, true, '0.100')).toBe('ok');
+  });
+
+  it('[PR-19][DI-33][DI-37] on GMP the lot assay comes only from approved LIMS-lite results of that lot, copied, never typed; a revision of the result drops it', async () => {
+    const lot = lotIds.get('L26-0202') ?? '';
+    const qc = async () => ({ ...(await openPersonaSession(gmp.db, gmp.seed, 'qcAnalyst')), correlationId: randomUUID() });
+    const record = async (result: Record<string, unknown>, why: string | null = 'Assay result reissued from LIMS') =>
+      withCommand(gmp.db.app, await qc(), (c) => c.query('select tab.record_lot_assay($1, $2, $3::jsonb, $4) as id', ['L26-0202', SITE, JSON.stringify(result), why]));
+    const codeOf = async (p: Promise<unknown>): Promise<string> => p.then(() => 'ok', (e: unknown) => /\[(EBMR-[A-Z]+-\d{3})\]|^(EBMR-[A-Z]+-\d{3})/.exec(e instanceof Error ? e.message : String(e))?.slice(1).find(Boolean) ?? String(e));
+    // A typed value is refused on GMP.
+    expect(await codeOf(record({ basis: 'AS_IS', assay: '99.9', certificateRef: 'COA-TYPED' }))).toBe('EBMR-EXE-606');
+    // LIMS results: one not approved, one failing, one of another test, one of another lot; then an approved passing one.
+    const lims = async (lotId: string, test: string, value: string, approved: boolean): Promise<string> => {
+      let id = '';
+      await arrange(async (c) => {
+        const { rows } = await c.query<{ id: string }>(
+          "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, recorded_by_person, recorded_by_account, correlation_id) values ($1, $2, 'STP-01', 'RELEASE', $3::numeric, '%', 98.0, 102.0, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id",
+          [lotId, test, value],
+        );
+        id = rows[0]?.id ?? '';
+        if (approved) await c.query('insert into site.lot_test_approval (result_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
+      });
+      return id;
+    };
+    for (const id of [await lims(lot, 'ASSAY', '99.6', false), await lims(lot, 'ASSAY', '97.0', true), await lims(lot, 'WATER', '99.6', true), await lims(lotIds.get('L26-0201') ?? '', 'ASSAY', '99.6', true)]) {
+      expect(await codeOf(record({ basis: 'AS_IS', assayResultId: id, certificateRef: 'LIMS-0202' }))).toBe('EBMR-EXE-606');
+    }
+    const good = await lims(lot, 'ASSAY', '99.60', true);
+    expect(await codeOf(record({ basis: 'AS_IS', assayResultId: good, certificateRef: 'LIMS-0202' }))).toBe('ok');
+    const batch = await issued();
+    const readFor = async () => (await gmp.db.app.query<{ r: Record<string, string> | null }>('select tab.lot_assay_of($1, $2) as r', ['L26-0202', batch.batchId])).rows[0]?.r ?? null;
+    expect(await readFor()).toMatchObject({ basis: 'AS_IS', assay: '99.6' });
+    // A revision of the LIMS result drops its approval, and the assay is no longer read until QC records it again.
+    await arrange(async (c) => {
+      await c.query(
+        "insert into site.lot_test_result (lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, upper_limit, revises, revision_reason, recorded_by_person, recorded_by_account, correlation_id) values ($1, 'ASSAY', 'STP-01', 'RELEASE', 99.1, '%', 98.0, 102.0, $2, 'integration corrected', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
+        [lot, good],
+      );
+    });
+    expect(await readFor()).toBeNull();
+    expect(await gmp.db.app.query("insert into tab.lot_assay_source (assay_result_id, value_kind, lims_result_id) values (gen_random_uuid(), 'assay', $1)", [good]).then(() => 'ok', (e: unknown) => String(e))).toMatch(/permission denied/);
   });
 });

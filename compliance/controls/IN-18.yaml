@@ -16,7 +16,14 @@ requirement_rows:
 sources: Schedule M Part I 17.3.10.8-17.3.10.11 (numbering SOP, relation of processing and packaging numbers, no reuse, immediate recording of allocation); 14.32 (reworked batch gets a new number).
 behaviour: "A configurable batch-number generator with a site-wide uniqueness constraint: a number is never reissued, including after cancellation or reprocessing; manual entry of an existing number is rejected. Processing and packaging batch numbers are linked by a defined rule. Every allocation writes immediately to an allocation register with at least allocation date, product identity and batch size. A reworked batch always receives a new batch number (IN-19)."
 catalog_test: cancel a batch; its number is never offered again. Export the register; the three fields are present.
-implemented_by: {}
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/reprocessing.ts (G-24@2 and the addition rules)"
+    - "apps/tablets-server/src/blocks/tb-08.ts (TB-08)"
+    - "packages/recipe-core/sql/0620_g24_database_path.sql to 0624_whole_batch_reprocessing.sql"
+    - "apps/tablets-server/sql/1020_tb08_registers.sql to 1022_recovered_expiry_cap.sql"
+  guards:
+    - "recipe-core 0624: a reprocessed batch takes a new register number through recipe.prepare_reprocessing_issue and is linked to its parents (recipe.batch_parent_link, deferred check EBMR-RPR-053)"
 tests:
   - "packages/kernel/test/review/f58.test.ts > F58 counter reservation writes to the ledger before authorisation > [INV-27][IN-18][DI-17] a reservation refused by the database leaves no ceiling in the external ledger, burns no serials and raises no LEDGER_AHEAD alarm"
   - "packages/kernel/test/review/f75.test.ts > F75 retention purge of a kernel control register > [INV-27][IN-18][DI-47][INV-22] a QA reviewer plus the retention job cannot erase the batch-number register and reissue a batch number"
@@ -60,6 +67,9 @@ tests:
   - "packages/kernel/test/mutation/batch-number-register.test.ts > re-entering a number lost by a restore (INV-27, IN-18) > [INV-27][IN-18] a recovered packaging number needs its processing number in the register (EBMR-SITE-014)"
   - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [INV-27][IN-18][IN-16] a packaging order is planned with the issued processing batch it packs: its number is the register's PACKAGING number of that batch, linked once, and it is issued like any GMP batch"
   - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [INV-27][IN-18] a packaging order without its processing batch, of a batch not issued or cancelled, of another product, or a processing batch naming a parent, is refused; a packaging number of another batch is never taken; the role cannot link a number directly"
+  - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][IN-18][IN-19][PR-47] a reworked batch is planned only on a QCU-authorised request: refused without the authorisation, a concluded investigation, a stored risk evaluation, the product's permission, or when authorised by the issuer; a request is used once"
+  - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][IN-18] a planned batch of a reprocessing master without its parents is refused at commit; the registers are written only through their commands"
+  - "packages/recipe-core/test/lifecycle/gmp-references.test.ts > a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 0603) > [INV-33][IN-18] a reprocessing batch of a REPROCESSING master is planned, signed and issued end to end with a PROCESSING number from the register, linked to its parents"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

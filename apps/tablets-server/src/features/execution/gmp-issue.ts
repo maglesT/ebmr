@@ -39,6 +39,12 @@ export interface PlanInput {
   site: string;
   line: string;
   batchSize: string;
+  /**
+   * The ERP production order the batch is planned against (D-S5-4). When the request names none, the oldest open order
+   * of the family's product and strength for this site and batch size is taken; the database matches its BOM with the
+   * pinned MBR either way (recipe-core 0602).
+   */
+  erpOrder?: string;
 }
 
 /** The external ledger of protected numbers (EBMR_NUMBER_LEDGER_FILE; DEMO-ONLY file, write-once storage in production). */
@@ -90,7 +96,8 @@ export async function planGmpBatch(app: AppContext, actor: ActorContext, key: st
   for (let attempt = 1; ; attempt += 1) {
     try {
       const out = await withIdempotentActorCommand(pool, actor, key, requestHash, async (client) => {
-        const planned = await execution.prepareGmpIssue(client, batchId, plan);
+        const erpOrder = plan.erpOrder ?? (await openErpOrder(client, plan));
+        const planned = await execution.prepareGmpIssue(client, batchId, { ...plan, erpOrder });
         return planned as unknown as commands.JsonValue;
       });
       const planned = out.result as unknown as execution.PlannedGmpBatch;
@@ -103,6 +110,12 @@ export async function planGmpBatch(app: AppContext, actor: ActorContext, key: st
       await continuity.reserveCounterBlock(pool, actor, ledgerOf(app), counter);
     }
   }
+}
+
+/** The oldest open ERP order for the plan's family, site and batch size ('' when there is none: the database refuses). */
+async function openErpOrder(client: Db, plan: PlanInput): Promise<string> {
+  const { rows } = await client.query<{ o: string | null }>('select recipe.open_erp_order_for($1, $2, $3) as o', [plan.familyId, plan.site, plan.batchSize]);
+  return rows[0]?.o ?? '';
 }
 
 function refused(status: number, code: string, whatHappened: string, why: string, controls: string[], whatYouCanDo: string[]): DryRunOutcome {

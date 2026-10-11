@@ -197,6 +197,28 @@ describe('the blister blocks in the database (tablets 0970 to 0972)', () => {
     expect(await sql<string>('select tab.blister_isolation_problem($1, $2, $3) as r', [d.runId, cfg, machine])).toBeNull();
     expect(await sql<string>('select tab.blister_isolation_problem($1, $2, $3) as r', [d.runId, { product: { uncoated: true, potent: true, betaLactam: false } }, machine])).toMatch(/TB21-ISOLATION/);
     expect(await sql<string>('select tab.blister_isolation_problem($1, $2, $3) as r', [d.runId, { product: { uncoated: false, potent: true, betaLactam: true } }, machine])).toBeNull();
+    // The ERP product master adds beta-lactam to the step's flag (never removes it): an uncoated product the master
+    // calls beta-lactam needs the isolated line even when the MBR step does not say so (slice 5a, D-S5-5; tablets 1002).
+    const product = (await sql<{ code: string; strength: string }>('select recipe.batch_product($1) as r', [d.runId])) ?? { code: '', strength: '' };
+    const master = async (betaLactam: boolean): Promise<void> => {
+      const c = await sbx.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query('set local session_replication_role = replica');
+        await c.query(
+          "insert into site.erp_product (product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, correlation_id) values ($1, $2, 'fixture', false, $3, 24, 'ERP-FIXTURE', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
+          [product.code, product.strength, betaLactam],
+        );
+        await c.query('commit');
+      } finally {
+        c.release();
+      }
+    };
+    await master(true);
+    expect(await sql<string>('select tab.blister_isolation_problem($1, $2, $3) as r', [d.runId, cfg, machine])).toMatch(/uncoated beta-lactam product.*TB21-ISOLATION/);
+    expect(await sql<string>('select tab.blister_isolation_problem($1, $2, $3) as r', [d.runId, { product: { uncoated: false, potent: false, betaLactam: false } }, machine])).toBeNull();
+    await master(false); // the later version wins: the other tests of this product run on its non-isolated lines
+    expect(await sql<string>('select tab.blister_isolation_problem($1, $2, $3) as r', [d.runId, cfg, machine])).toBeNull();
   });
 
   it('[IN-38][PR-34][PR-35] the run and the leak test start only after a completed independent line check of the same machine (performed, then verified by another person), on the line the order still occupies', async () => {

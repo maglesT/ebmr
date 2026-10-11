@@ -187,7 +187,7 @@ describe('installation (DI-05, INV-18)', () => {
     const issuer = await sbx.asPersona('issuer');
     const as = async () => ({ ...(await actorOfBrowser(sbx, issuer, 'issuer')), correlationId: randomUUID() });
     const batchId = randomUUID();
-    const plan = { familyId: randomUUID(), markets: ['IN'], site: 'TEST-SITE', line: 'L1', batchSize: 'BS-100K' };
+    const plan = { familyId: randomUUID(), markets: ['IN'], site: 'TEST-SITE', line: 'L1', batchSize: 'BS-100K', erpOrder: 'TEST-PO-0001' };
     expect(await codeOf(withCommand(sbx.db.app, await as(), (c) => execution.prepareGmpIssue(c, batchId, plan)))).toBe('EBMR-SBX-010');
     expect(await codeOf(withCommand(sbx.db.app, await as(), (c) => execution.beginGmpIssue(c, batchId)))).toBe('EBMR-SBX-010');
     expect(await codeOf(withCommand(sbx.db.app, await as(), (c) => c.query('select recipe.issue_gmp_execution($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)', [batchId, randomUUID(), 'B26-0001', {}, {}, 'x', 'x', 'x', 0, {}, 'x', [], 'x', [], {}])))).toBe('EBMR-SBX-010');

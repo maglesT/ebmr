@@ -17,12 +17,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sha256Hex } from '@ebmr/expr';
 import { flow } from '@ebmr/recipe-core';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
-import { openPersonaSession } from '@ebmr/test-kit';
+import { openPersonaSession, openServiceSession } from '@ebmr/test-kit';
 import { esig, withCommand } from '@ebmr/kernel';
 import { cmd, signatureAuth } from '../../../../packages/kernel/test/esig/helpers.ts';
 import type { SeededActor } from '../../../../packages/kernel/test/identity/seed.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { cell, reason, World, type Cast } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
+import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { recordContentForSigning } from '../../src/features/esig/content.ts';
 import { personaIn, startSigningServer } from '../esig/support.ts';
@@ -39,6 +40,7 @@ let gmp: ExecServer;
 let sbx: ExecServer;
 let world: World;
 let familyId: string;
+let gmpMbr: flow.MbrContent;
 
 /** The life-cycle helpers, with their signatures sealed by the server's own seal key (the installation is bootstrapped). */
 class GmpWorld extends World {
@@ -117,6 +119,7 @@ beforeAll(async () => {
     reason('numbering rule for the test'),
   );
   familyId = v.familyId;
+  gmpMbr = content;
 }, 600_000);
 
 afterAll(async () => {
@@ -137,6 +140,8 @@ async function signIssue(issuer: TestBrowser, batchId: string, opts: { reason?: 
 }
 
 async function planned(issuer: TestBrowser) {
+  // The ERP order the server plans the batch against (D-S5-4; recipe-core 0602).
+  await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), gmpMbr, BATCH_SIZE);
   return valueOf(await issuer.call(routes.execution.planBatch, { body: { familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE } }));
 }
 
