@@ -19,9 +19,9 @@ import {
   recordDeviationFinding,
   registerEvidenceDocument,
   startDeviationInvestigation,
-} from '../../../site-services/src/index.ts';
-import { createTestDatabase, signerActor, type TestDatabase } from '../../../site-services/test/helpers.ts';
-import { QualityWorld, refusal, seedQualityCast, unique, type GmpBatch } from '../../../site-services/test/quality/support.ts';
+} from '../../src/index.ts';
+import { createTestDatabase, signerActor, type TestDatabase } from '../helpers.ts';
+import { QualityWorld, refusal, seedQualityCast, unique, type GmpBatch } from './support.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 
 let db: TestDatabase;
