@@ -118,7 +118,7 @@ describe('G-24 reprocessing and recovery gate', () => {
     run.start('x', [], OP1, auth);
   });
 
-  it('[PR-47][IN-19] only the same product, within the MBR age, percentage and source-batch limits; chained recovery is blocked; QC must decide on extra testing', () => {
+  it('[PR-47][IN-19][DI-33] only the same product, within the MBR age, percentage and source-batch limits; chained recovery is blocked; QC must decide on extra testing', () => {
     const run = Run.issue(define(recovery()));
     run.start('x', [], OP1, auth);
     const code = (e: Record<string, unknown>) => run.exec({ type: 'RECORD_ENTRY', actor: OP1, step: 'x', entry: add(e) }).refusal?.code;
