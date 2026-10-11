@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import type { blocks, flow } from '@ebmr/recipe-core/pure';
 import { DEFAULT_LOG_INTERVAL_US, gainLoopOf, logGaps, logIntervalUs, TB18 } from '../../../src/blocks/tb-18.ts';
-import { blockMbr, coatingConfig, coatingMbr, fixturePhase } from './support.ts';
+import { blockMbr, COATER_ACTUALS, coatingConfig, coatingMbr, fixturePhase } from './support.ts';
 
 type Json = Record<string, unknown>;
 type E = { id: string; kind: string; data: Json; recordedAt: bigint };
@@ -158,6 +158,9 @@ describe('TB-18 coating', () => {
     expect(logGaps(view([...every(T + 15n * MIN)]), T, T + 30n * MIN + 1n)).toEqual(tags);
     expect(logGaps(view([...every(T + 15n * MIN + 1n)]), T, T + 20n * MIN)).toEqual(tags);
     expect(logGaps(view([...every(T + 10n * MIN), { tag: 'inlet.temp_C', at: T + 20n * MIN, usable: false }]), T, T + 26n * MIN)).toEqual(tags);
+    // A value after the window never opens a gap inside it (mutation follow-up).
+    expect(logGaps(view([...every(T + 10n * MIN), ...every(T + 40n * MIN)]), T, T + 20n * MIN)).toEqual([]);
+    expect(logGaps(view([...every(T - 20n * MIN), ...every(T + 10n * MIN)]), T, T + 20n * MIN)).toEqual([]);
     // Values outside the spraying window do not count.
     expect(logGaps(view([...every(T - MIN), ...every(T + 40n * MIN)]), T, T + 20n * MIN)).toEqual(tags);
     expect(logGaps(view([], { ...COAT, actuals: undefined }), T, T + 99n * MIN)).toEqual([]);
@@ -280,6 +283,30 @@ describe('TB-18 definition checks', () => {
       'TB18-PART: room belongs to the cores part, not the coating part of p',
       'TB18-PART: loadRange belongs to the cores part, not the coating part of p',
     ]);
+    // Mutation follow-up: the step itself must read the core item and record the gain item; every tag with both
+    // limits as text; any range with an upper (and for FC_F a lower) limit; the maximum gain as text; a log interval in
+    // a unit; G-06's own problems are passed on.
+    const patch = (over: Partial<flow.PhaseNode>, config: Json = {}): flow.MbrContent => {
+      const m = coatingMbr({ config: config as never });
+      const map = (n: flow.FlowNode): flow.FlowNode =>
+        n.kind === 'phase' ? (n.id === 'p' ? { ...n, ...over } : n) : n.kind === 'loop' ? { ...n, body: map(n.body) } : 'children' in n ? ({ ...n, children: n.children.map(map) } as flow.FlowNode) : 'body' in n ? ({ ...n, body: map(n.body as flow.FlowNode) } as flow.FlowNode) : n;
+      return { ...m, procedure: { ...m.procedure, body: map(m.procedure.body) } };
+    };
+    expect(P(patch({ reads: [] }))).toEqual(['TB18-CORE-ITEM: Coating step p reads the core mean weight (coreItem) the cores step records']);
+    expect(P(patch({ records: [] }))).toEqual(['TB18-GAIN-ITEM: Coating step p records the weight gain as a decimal process end point in % (gainItem, 4 decimals or more)']);
+    const acts = (f: (a: Json) => Json) => P(coatingMbr({ config: { actuals: COATER_ACTUALS.map((a) => f(a)) as never } }));
+    expect(acts((a) => (a['tag'] === 'pan.speed_rpm' ? { ...a, min: 1 } : a))).toEqual(['TB18-PARAMETERS: Coating step p collects pan.speed_rpm with lower and upper limits']);
+    expect(acts((a) => (a['tag'] === 'bed.temp_C' ? { ...a, max: 44 } : a))).toEqual(['TB18-PARAMETERS: Coating step p collects bed.temp_C with lower and upper limits']);
+    const range = (low?: string, high?: string) => ({ tier: 'VALIDATED', ...(low ? { low: { value: low, inclusive: true } } : {}), ...(high ? { high: { value: high, inclusive: true } } : {}), rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'VR' } });
+    expect(gainMbr({ limits: { unit: '%', ranges: [range('2.5'), range(undefined, '3.5')] } })).toEqual([]);
+    expect(gainMbr({ limits: { unit: '%', ranges: [range(undefined, '3.6'), range('2.5', '3.5')] } }, { coatingType: 'FC_F', minGain: '2.5' })).toEqual([]);
+    expect(P(coatingMbr({ config: { maxGain: 3.5 as never } }))).toEqual(['TB18-MAX-GAIN: Coating step p sets the maximum weight gain']);
+    expect(P(coatingMbr({ config: { logInterval: { value: '5' } as never } }))).toEqual(['TB18-LOG-INTERVAL: The parameter log interval of p is a positive whole number of microseconds']);
+    const dup = coatingMbr({ config: { actuals: [...COATER_ACTUALS, COATER_ACTUALS[0]] as never } });
+    const findP = (n: flow.FlowNode): flow.PhaseNode | undefined =>
+      n.kind === 'phase' ? (n.id === 'p' ? n : undefined) : 'children' in n ? n.children.map(findP).find(Boolean) : 'body' in n ? findP(n.body as flow.FlowNode) : undefined;
+    const p = findP(dup.procedure.body) as flow.PhaseNode;
+    expect((TB18.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string }[])(p, p.config as Json, dup).map((x) => x.code)).toContain('G06-DUPLICATE-TAG');
     const m = coatingMbr();
     expect(gainLoopOf(m, 'p', 'gain')?.id).toBe('L-COAT');
     expect(gainLoopOf(m, 'p', 'other')).toBeUndefined();
