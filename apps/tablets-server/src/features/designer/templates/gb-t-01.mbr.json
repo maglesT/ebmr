@@ -1187,7 +1187,7 @@
               "ref": "VR-GBT01"
             },
             "low": {
-              "value": "99.0",
+              "value": "92.0",
               "inclusive": true
             },
             "high": {
@@ -2255,58 +2255,113 @@
                   "id": "O-BLEND-seq",
                   "children": [
                     {
-                      "kind": "phase",
-                      "id": "p-rework",
-                      "name": "Reprocessing addition of milled rejects (case 2)",
-                      "block": {
-                        "type": "TB-08",
-                        "version": "1"
-                      },
-                      "config": {
-                        "ageFrom": "GENERATION",
-                        "sourceStages": [
-                          "INSPECTION"
+                      "kind": "alternative",
+                      "id": "A-RPR",
+                      "decision": {
+                        "mode": "OPERATOR_CHOICE",
+                        "roles": [
+                          "PRODUCTION_SUPERVISOR"
                         ],
-                        "addedItem": "recAdded"
+                        "reasonRequired": true
                       },
-                      "records": [
-                        "recAdded"
-                      ],
-                      "computes": [],
-                      "reads": [],
-                      "consumes": [],
-                      "produces": [],
-                      "uses": [],
-                      "equipment": [
+                      "branches": [
                         {
-                          "ref": "BAL",
-                          "use": "USE"
-                        }
-                      ],
-                      "signatures": {
-                        "perform": {
-                          "role": "PRODUCTION_OPERATOR"
+                          "id": "B-RPR-NONE",
+                          "name": "No reserved rejects to add",
+                          "body": {
+                            "kind": "phase",
+                            "id": "p-rework-none",
+                            "name": "No milled rejects added (0.000 kg recorded)",
+                            "block": {
+                              "type": "G-04",
+                              "version": "1"
+                            },
+                            "config": {},
+                            "records": [
+                              "recAdded"
+                            ],
+                            "computes": [],
+                            "reads": [],
+                            "consumes": [],
+                            "produces": [],
+                            "uses": [],
+                            "equipment": [],
+                            "signatures": {
+                              "perform": {
+                                "role": "PRODUCTION_OPERATOR"
+                              },
+                              "check": {
+                                "meaning": "VERIFIED",
+                                "role": "PRODUCTION_VERIFIER"
+                              }
+                            },
+                            "significant": true,
+                            "riskClass": "HIGH",
+                            "system": {
+                              "kind": "WEIGHING",
+                              "ref": "SYS-WEIGH-01"
+                            }
+                          }
                         },
-                        "check": {
-                          "meaning": "VERIFIED",
-                          "role": "PRODUCTION_VERIFIER"
+                        {
+                          "id": "B-RPR-ADD",
+                          "name": "Add reserved, authorised milled rejects (case 2)",
+                          "body": {
+                            "kind": "phase",
+                            "id": "p-rework",
+                            "name": "Reprocessing addition of milled rejects (case 2)",
+                            "block": {
+                              "type": "TB-08",
+                              "version": "1"
+                            },
+                            "config": {
+                              "ageFrom": "GENERATION",
+                              "sourceStages": [
+                                "INSPECTION"
+                              ],
+                              "addedItem": "recAdded"
+                            },
+                            "records": [
+                              "recAdded"
+                            ],
+                            "computes": [],
+                            "reads": [],
+                            "consumes": [],
+                            "produces": [],
+                            "uses": [],
+                            "equipment": [
+                              {
+                                "ref": "BAL",
+                                "use": "USE"
+                              }
+                            ],
+                            "signatures": {
+                              "perform": {
+                                "role": "PRODUCTION_OPERATOR"
+                              },
+                              "check": {
+                                "meaning": "VERIFIED",
+                                "role": "PRODUCTION_VERIFIER"
+                              }
+                            },
+                            "significant": true,
+                            "riskClass": "HIGH",
+                            "system": {
+                              "kind": "WEIGHING",
+                              "ref": "SYS-WEIGH-01"
+                            },
+                            "reprocessing": {
+                              "case": "REPROCESSING_ADDITION",
+                              "maxPercent": "3",
+                              "maxAge": {
+                                "value": "90",
+                                "unit": "d"
+                              },
+                              "maxSourceBatches": 1
+                            }
+                          }
                         }
-                      },
-                      "significant": true,
-                      "riskClass": "HIGH",
-                      "system": {
-                        "kind": "WEIGHING",
-                        "ref": "SYS-WEIGH-01"
-                      },
-                      "reprocessing": {
-                        "case": "REPROCESSING_ADDITION",
-                        "maxPercent": "3",
-                        "maxAge": {
-                          "value": "90",
-                          "unit": "d"
-                        },
-                        "maxSourceBatches": 1
-                      }
+                      ]
                     },
                     {
                       "kind": "phase",
@@ -2642,13 +2697,7 @@
                         }
                       },
                       "significant": true,
-                      "riskClass": "HIGH",
-                      "system": {
-                        "kind": "PLC",
-                        "ref": "SYS-PRS",
-                        "recipe": "RCP-GBT01-COMP",
-                        "recipeVersion": "1"
-                      }
+                      "riskClass": "HIGH"
                     },
                     {
                       "kind": "phase",
@@ -3034,7 +3083,7 @@
                           "targetGain": "3.0",
                           "maxGain": "3.5",
                           "logInterval": {
-                            "value": "15",
+                            "value": "30",
                             "unit": "min"
                           },
                           "actuals": [
@@ -3069,6 +3118,7 @@
                               "max": "8.0"
                             }
                           ],
+                          "manualFallback": true,
                           "maxAgeSeconds": 600
                         },
                         "records": [

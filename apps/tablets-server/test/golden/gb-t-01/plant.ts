@@ -58,6 +58,15 @@ export async function setUpPlant(w: GoldenWorld): Promise<void> {
   for (const room of ROOMS) ok(await st.call(p.defineEquipment, { body: { code: BALANCE[room], name: `Balance of ${room}`, classCode: 'EQC-BAL', areaCode: room } }), `unit ${BALANCE[room]}`);
   for (const u of Object.values(UNITS)) ok(await st.call(p.defineEquipment, { body: { code: u.code, name: u.name, classCode: u.classCode, areaCode: u.room } }), `unit ${u.code}`);
 
+  // The tooling set of the product (the MBR's approved specification) and the press discharging each side separately.
+  ok(
+    await st.call(p.defineToolingSet, {
+      body: { code: 'TS-GBT01-01', product: GBT01_PRODUCT.productCode, type: 'B', shape: 'Round 10 mm biconvex', upperEmbossing: 'X250', lowerEmbossing: 'PLAIN', score: 'NONE', tips: 1, upperPunches: 45, lowerPunches: 45, dies: 45, strokeLimit: '5000000' },
+    }),
+    'the tooling set',
+  );
+  await asPersona(w.server, st, 'steward', (c) => c.query('select plant.configure_press_discharge($1, true)', [UNITS.PRESS.code]), { reasonCode: 'PRESS_SET_UP', reasonText: 'Each side of PRESS-01 discharges into its own containers' });
+
   const tech = w.b['technician1'] as TestBrowser;
   const all = [...ROOMS.map((r) => BALANCE[r]), ...Object.values(UNITS).map((u) => u.code)];
   for (const code of all) ok(await st.call(p.equipmentEvent, { params: { code }, body: { event: 'EVENT', kind: 'QUALIFIED', detail: 'IQ/OQ/PQ approved', reference: `QUAL-${code}` } }), `the qualification of ${code}`);

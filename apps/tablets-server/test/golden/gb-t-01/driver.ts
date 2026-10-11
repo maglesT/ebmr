@@ -217,8 +217,12 @@ export class GoldenBatch {
 
   /** QA dispositions the open alerts (NO_IMPACT, `why`); the supervisor signs the stage off. */
   async closeStage(stageKey: string, why = 'Second person checked each value keyed by hand at the time; no impact on the batch.'): Promise<void> {
+    let n = 0;
     for (const e of (await this.view()).exceptions.filter((x) => x.status === 'OPEN' && x.severity === 'ALERT')) {
+      // The signing attempts of one person at one terminal are rate-limited (DI-19): QA works through them at a human pace.
+      if (n > 0 && n % 4 === 0) await this.wait(1);
       await this.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'NO_IMPACT', justification: why });
+      n += 1;
     }
     await this.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey });
   }
