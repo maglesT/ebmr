@@ -179,6 +179,8 @@ tests:
   - "apps/site-gateway/test/device-config.test.ts > gateway device configuration (slice 6c, D-S6-8) > [DI-31] every kind of process equipment is accepted behind the simulator driver; an unknown kind is refused"
   - "apps/site-gateway/test/device-config.test.ts > gateway device configuration (slice 6c, D-S6-8) > [DI-31][PR-20] the IPC and packaging instruments are accepted on the scale protocol in a unit of their kind; another unit is refused, naming the device"
   - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-31] slice 6c (D-S6-8): the database takes the tags of every process kind exactly as the integration SDK names them; a bottle line is bound and sends its counter; a tag of another kind is refused whole"
+  - "apps/tablets-server/test/execution/block-entries.test.ts > BLOCK_ENTRY forms and server-filled members (slice 6) > [DI-32][DI-31] the members the blocks mark serverFilled are exactly those the server fills, and a BLOCK_ENTRY that names one is refused before anything is read"
+  - "apps/tablets-server/test/execution/block-entries.test.ts > BLOCK_ENTRY forms and server-filled members (slice 6) > [DI-32][DI-31] a server-filled member nested in an object, an array item or a record value is refused too, before anything is read"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

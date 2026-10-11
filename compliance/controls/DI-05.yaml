@@ -412,6 +412,7 @@ tests:
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [DI-30][DI-05] the database holds the data schemas of TB-23 and TB-24 as the block registry declares them (CHALLENGE as G-21's), their block types and rule codes; nothing can change them, and the application role writes no register row directly"
   - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [DI-30][DI-05] the database holds the data schema of TB-08@1 as the registry declares it and its rule codes; nothing can change them"
   - "packages/api-contract/test/contract.test.ts > route table > [DI-05] the slice 6 namespaces (GMP batches, planning, master data, plant) and the new quality routes are GMP only, each with an example"
+  - "apps/tablets-server/test/execution/gmp-batch-routes.test.ts > GMP batch routes (slice 6a, D-S6-1) > [DI-05][INV-18] GMP routes answer 404 on the sandbox and test-run routes 404 on GMP"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:

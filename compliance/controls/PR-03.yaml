@@ -145,6 +145,7 @@ tests:
   - "packages/recipe-core/test/validator/content.test.ts > GMP content gates > [PR-03][DI-30][PR-14][DI-35][INV-26] T12.DOC round 4: the warning names the people the run accepts, the roles the check names narrowed to those whose role holds the permission each check is signed with (a witness STEP.WITNESS, the later review STEP.VERIFY): a production verifier or QA witnesses and only a production verifier reviews later where the MBR names no check, never a production supervisor; where no role may give one, it says so"
   - "apps/tablets-server/test/mutation/designer-guards.test.ts > the reference-document register (tab.reference_document; DI-04, PR-03) > [DI-04][PR-03] a body that is not ebmr.reference-document version 1 with known members only is refused by the steward's writer, each rule on its own (EBMR-TAB-151)"
   - "apps/tablets-web/test/designer/config-form.test.tsx > optional yes/no members (review F52) > [PR-02][PR-03] G-06 manualFallback: absent, yes and no are each recorded as chosen, and shown as recorded"
+  - "apps/tablets-server/test/designer/template-gb-t-01.test.ts > the gb-t-01 template against the real adapters > [PR-03][DI-04] passes every validator gate with no finding, and defines as a GMP batch with the tablets blocks"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

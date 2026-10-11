@@ -168,6 +168,9 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > tab.bind_session: which kernel session a cookie is bound to (tablets 0001, 0480) > [DI-13][DI-38] only a session opened in the last 10 seconds is bound (EBMR-TAB-011); one opened 11 seconds ago is not, and nothing is written"
   - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > signing out and ending a withdrawn session act on the one token given (tablets 0001, 0400) > [DI-13][DI-38] tab.unbind_session unbinds that cookie only, once; the other session stays bound"
   - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] a user without FORMULA.READ cannot open a formula or the composition of an MBR, by route or in the database"
+  - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] the e-signature preview of a formula version, or of an MBR version pinning one, is refused to a session without FORMULA.READ, even on a shop-floor kiosk"
+  - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] FORMULA.READ is judged in the grant's product scope: an MBR author granted for one product reads that product's composition only"
+  - "tools/e2e/specs/master-data/composition.spec.ts > [DI-13] an operator cannot open the composition @office"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:
