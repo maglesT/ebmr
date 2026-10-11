@@ -13,7 +13,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { toDbContext } from '@ebmr/kernel';
+import { freshTap, openPersonaSession } from '@ebmr/test-kit';
 import { startServer, type TestServer } from '../support/harness.ts';
+import { holdFixtures } from './hold-fixtures.ts';
 
 let gmp: TestServer;
 beforeAll(async () => {
@@ -141,5 +144,51 @@ describe('a passing in-process check rests on a passing check entry of its step,
     await withBatch(async (c, b) => {
       expect(await check(c, b, 'PR-1', 'L', 'PASS', 'operator says so')).toBe('');
     }, { procedure: { kind: 'sequence', id: 'root', children: [phase('P1', 'G-07')] } });
+  });
+});
+
+describe('a failed or missed check of a blister series holds the output since the last pass of that series (tablets 0972, tab.blister_hold)', () => {
+  it('[IN-38][PR-29][IN-35] the last PASS of this batch, machine and series only; every container of the machine open into (that pass, the check], and the containers they were merged into', async () => {
+    const session = await openPersonaSession(gmp.db, gmp.seed, 'operator1');
+    const actor = { ...session, authEventId: await freshTap(gmp.db, gmp.seed, 'operator1'), reasonCode: 'TEST', reasonText: 'blister hold kill test' };
+    const c = await gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(actor))]);
+      await c.query("set local session_replication_role = 'replica'");
+      const f = holdFixtures(c, gmp.seed.siteCode);
+      const B = await f.batch();
+      const B2 = await f.batch();
+      const M = `BLI-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const M2 = `${M}-2`;
+      await f.unit(M);
+      await f.unit(M2);
+      // The series' last pass an hour ago; later passes that are not of this batch, machine and series, and a later failure.
+      const lp = await f.ago('1 hour');
+      await f.check(B, M, 'T1', 'PASS', { at: lp });
+      await f.check(B, M, null, 'PASS', '10 minutes');
+      await f.check(B, M, 'T2', 'PASS', '20 minutes');
+      await f.check(B, M2, 'T1', 'PASS', '5 minutes');
+      await f.check(B2, M, 'T1', 'PASS', '5 minutes');
+      await f.check(B, M, 'T1', 'FAIL', '15 minutes');
+      const before = await f.container(B, M, '3 hours', '2 hours');
+      const atPass = await f.container(B, M, '3 hours', { at: lp });
+      const mid = await f.container(B, M, '3 hours', '30 minutes');
+      const open = await f.container(B, M, '50 minutes', null);
+      const otherMachine = await f.container(B, M2, '3 hours', '30 minutes');
+      const otherBatch = await f.container(B2, M, '3 hours', '30 minutes');
+      const target = await f.container(B, M2, '3 hours', '2 hours');
+      await f.merge(mid, target);
+
+      await c.query("select tab.blister_hold($1, $2, 'T1', 'FAIL', 'leak test failed', true)", [B, M]);
+      const k = (await c.query<{ id: string }>("select id::text from plant.ipc_check where batch_id = $1 and press_code = $2 and reference = 'leak test failed'", [B, M])).rows[0]?.id;
+      const held = (await c.query<{ id: string; via: string | null }>('select container_id::text as id, via_container_id::text as via from plant.container_hold where ipc_check_id = $1', [k])).rows;
+      expect(held.map((h) => h.id).sort()).toEqual([mid, open, target].sort());
+      expect(held.find((h) => h.id === target)?.via).toBe(mid);
+      for (const id of [before, atPass, otherMachine, otherBatch]) expect(held.map((h) => h.id)).not.toContain(id);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
   });
 });
