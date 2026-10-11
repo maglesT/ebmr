@@ -249,3 +249,5 @@ Backlog (medium and low):
 - Low: the container lock assumes READ COMMITTED; raw unique-violation text on a concurrent ERP order reuse; ERP
   order_no not unique on the ERP side; an order stays consumed if its batch is cancelled; a RETEST-purpose result is
   accepted as an assay source.
+- Whole-batch parents are checked by execution status (EXECUTION_COMPLETE or ABORTED) only; a REJECTED disposition
+  check waits for the Phase 4 disposition model.
