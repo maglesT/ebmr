@@ -101,15 +101,17 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
 
   it('runs the source batch, then 41 days later the happy and exception-rich variants to the release for packing', async () => {
     const p = await planAll(w);
-    // The clock is frozen on the hour after next: each act then happens at an instant fixed by the driver's sequence.
-    freezeAt(BigInt(Math.floor(Date.now() / 1000 / 3600) + 2) * 3600n);
+    // The clock is frozen at the next midnight UTC (the same time of day on every run): each act then happens at an
+    // instant fixed by the driver's sequence.
+    const start = BigInt(Math.floor(Date.now() / 1000 / 86_400) + 1) * 86_400n;
+    freezeAt(start);
     const { residue } = await runSource(w, p.source);
     advanceMinutes(SOURCE_AGE_MINUTES);
     await runVariant(w, p.happy, 'HAPPY', residue);
     await runVariant(w, p.exception, 'EXCEPTION_RICH', residue);
     const numbers = [p.happy.batchNumber, p.exception.batchNumber, p.source.batchNumber];
-    run.happy = await resultsOf(w, p.happy.batchId, numbers);
-    run.exception = await resultsOf(w, p.exception.batchId, numbers);
+    run.happy = await resultsOf(w, p.happy.batchId, numbers, start * 1_000_000n);
+    run.exception = await resultsOf(w, p.exception.batchId, numbers, start * 1_000_000n);
     run.notes = { happy: p.happy.notes, exception: p.exception.notes };
     const dump = process.env['EBMR_GOLDEN_DUMP'];
     if (dump) writeFileSync(dump, JSON.stringify({ notes: run.notes, happy: run.happy, exception: run.exception, negatives, masterChecks: w.masterChecks }, null, 1));

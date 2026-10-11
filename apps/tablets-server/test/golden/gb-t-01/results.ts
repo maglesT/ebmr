@@ -7,8 +7,9 @@
  *  - the signatures of the batch record (the engine's set: aggregates batch_issue, batch_step, batch_stage,
  *    batch_exception of the batch);
  *  - the SHA-256 of the normalised true copy: the batch's stored record head (recipe.execution_state), canonical JSON,
- *    with each UUID replaced by its ordinal of first appearance, each batch number by its ordinal, and each instant in
- *    epoch microseconds by its offset from the batch's issue in whole minutes.
+ *    with each UUID replaced by its ordinal of first appearance, each batch number by its ordinal, each instant of the
+ *    run in epoch microseconds by its offset from the batch's issue in whole minutes, and each expiry month by a
+ *    placeholder (see normalise).
  */
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import type { GoldenWorld } from './world.ts';
@@ -35,8 +36,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const UUID_IN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
 const MICROS = /^1[6-9][0-9]{14}$/;
 
-/** The normalised true copy of a record head: UUIDs and batch numbers by ordinal, instants as minutes from the issue. */
-export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly string[]): string {
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/**
+ * The normalised true copy of a record head: UUIDs and batch numbers by ordinal, the instants of the run (at or after
+ * `sinceUs`, the scenario's start) as minutes from the issue, and an expiry month (derived from the run's dates) as a
+ * placeholder. Instants before the scenario (the seeded lots' fixed retest and expiry dates) stay as they are.
+ */
+export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly string[], sinceUs: bigint): string {
   const ids = new Map<string, string>();
   const idOf = (u: string): string => {
     let x = ids.get(u);
@@ -51,7 +58,7 @@ export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly
     batchNumbers.forEach((b, i) => {
       out = out.split(b).join(`<batch-${String(i + 1)}>`);
     });
-    if (MICROS.test(out)) out = `<t+${String((BigInt(out) - issueUs) / 60_000_000n)}m>`;
+    if (MICROS.test(out) && BigInt(out) >= sinceUs) out = `<t+${String((BigInt(out) - issueUs) / 60_000_000n)}m>`;
     return out;
   };
   const walk = (v: unknown): unknown => {
@@ -59,7 +66,7 @@ export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly
     if (Array.isArray(v)) return v.map(walk);
     // The record codec writes a bigint (an instant or a duration in microseconds) as {"$u": "<digits>"}.
     if (v && typeof v === 'object' && Object.keys(v).length === 1 && typeof (v as Json)['$u'] === 'string') return { $u: text(String((v as Json)['$u'])) };
-    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v as Json).map(([k, x]) => [text(k), walk(x)]));
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v as Json).map(([k, x]) => [text(k), k === 'expiry' && typeof x === 'string' && MONTH.test(x) ? '<expiry-month>' : walk(x)]));
     return v;
   };
   // Keys are walked in canonical (sorted) order so the first appearance of an id is the same on every run.
@@ -69,8 +76,8 @@ export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly
 /** A stored value as text: its decimal or text value, or its list of values as JSON. */
 const textOf = (v: Json): string => (typeof v['value'] === 'string' ? v['value'] : JSON.stringify(v['value'] ?? v['values'] ?? ''));
 
-/** The outputs of batch `batchId` (`batchNumbers`: every batch of the scenario, in order, for the normalisation). */
-export async function resultsOf(w: GoldenWorld, batchId: string, batchNumbers: readonly string[]): Promise<BatchResults> {
+/** The outputs of batch `batchId` (`batchNumbers`: every batch of the scenario, in order; `sinceUs`: its start). */
+export async function resultsOf(w: GoldenWorld, batchId: string, batchNumbers: readonly string[], sinceUs: bigint): Promise<BatchResults> {
   const state = await one<Json & { status: string; header: Json & { batchNumber: string; issuedAt: { $u: string } }; steps: Record<string, Json>; stages: Record<string, Json>; exceptions: Record<string, Json>; points: Record<string, Json>; derived: Record<string, Json>; entries: Record<string, Json> }>(
     w,
     'select state as r from recipe.execution_state where batch_id = $1',
@@ -135,7 +142,7 @@ export async function resultsOf(w: GoldenWorld, batchId: string, batchNumbers: r
     [batchId],
   );
   const issueUs = BigInt(state.header.issuedAt.$u);
-  const normalised = normalise(state, issueUs, batchNumbers);
+  const normalised = normalise(state, issueUs, batchNumbers, sinceUs);
   return {
     batchNumber: state.header.batchNumber,
     states: { batch: state.status, stages, steps, containers },

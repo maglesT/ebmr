@@ -90,8 +90,10 @@ dispensing calculation, genealogy, the number of batch-record signatures and the
 
 The golden test's PostgreSQL runs under libfaketime with a timestamp file the driver only moves forward
 (`FAKETIME_TIMESTAMP_FILE`, `FAKETIME_NO_CACHE=1`); nothing in the GMP code reads a test clock. GB-T-01 freezes the
-clock and ticks it one second before each act, so every time and duration the server measures is the same on each run
-(blend 601 s, lubrication 181 s). CI runs it in the `golden` job on its own cluster, one file at a time
+clock at the next midnight UTC and ticks it one second before each act, so every time and duration the server measures
+is the same on each run (blend 601 s, lubrication 181 s). The hash's normalisation (`results.ts`) turns the run's
+instants into minutes from the batch's issue and an expiry month into a placeholder; the seeded lots' fixed retest and
+expiry instants, which precede the run, stay as they are. CI runs it in the `golden` job on its own cluster, one file at a time
 (`.github/workflows/ci.yml`); a run takes about 20 minutes.
 
 ## Residuals (Phase 3; for the owner)
