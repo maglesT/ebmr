@@ -38,7 +38,7 @@ let risk: string;
 const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 /** A GMP parent batch: 5a's planned batch with its allocation, issued (batch record and control recipe) as a fixture. */
-async function parent(): Promise<GmpBatch> {
+async function parent(status = 'EXECUTION_COMPLETE'): Promise<GmpBatch> {
   const b = await w.gmpBatch('SITE-1', PRODUCT, STRENGTH);
   const cr = randomUUID();
   await w.fixture(
@@ -53,6 +53,10 @@ async function parent(): Promise<GmpBatch> {
      values ($1, $2, repeat('a', 64), 'GMP', 'GMP_BATCH', '1', repeat('c', 64), '{}', repeat('d', 64), '{}', '{IN}', 'BS-1', 'SITE-1', 'Asia/Kolkata', 0,
              gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), $3, gen_random_uuid())`,
     [b.id, b.number, cr],
+  );
+  await w.fixture(
+    "insert into recipe.execution_state (batch_id, state, state_version, state_hash, last_seq, last_row_hash, status) values ($1, '{}', 1, repeat('e', 64), 1, 'x', $2)",
+    [b.id, status],
   );
   return b;
 }
@@ -125,19 +129,25 @@ describe('whole-batch reprocessing (recipe-core 0624)', () => {
     // Every check of the request passes: the plan reaches 5a's GMP issue (this fixture master has no effective version).
     expect(await plan(req)).toMatch(/EBMR-EXE-192/);
     // An investigation not concluded, or not linked to every parent.
-    const open = await request(family, parents, await investigation(parents, false), risk);
+    // From here each case runs on parents of its own: a parent named by an authorised request is refused for any other.
+    const fresh = async (): Promise<GmpBatch[]> => [await parent(), await parent()];
+    const p1 = await fresh();
+    const open = await request(family, p1, await investigation(p1, false), risk);
     await authorise(open);
     expect(await plan(open)).toMatch(/does not stand for parent.*\[EBMR-RPR-052\]/);
-    const partial = await request(family, parents, await investigation([parents[0] as GmpBatch]), risk);
+    const p2 = await fresh();
+    const partial = await request(family, p2, await investigation([p2[0] as GmpBatch]), risk);
     await authorise(partial);
     expect(await plan(partial)).toMatch(/not linked to batch.*\[EBMR-RPR-052\]/);
     // A risk evaluation that is no stored document.
-    const noDoc = await request(family, parents, ref, randomUUID());
+    const p3 = await fresh();
+    const noDoc = await request(family, p3, await investigation(p3), randomUUID());
     await authorise(noDoc);
     expect(await plan(noDoc)).toMatch(/risk evaluation .*not a stored evidence document.*\[EBMR-RPR-052\]/);
     // Authorised by the person who plans the batch (an authorised person who also issues, arranged for this test).
     await w.fixture("insert into iam.role_permission (role_code, permission_code) values ('AUTHORISED_PERSON', 'BATCH.ISSUE') on conflict do nothing", []);
-    const self = await request(family, parents, ref, risk, qcu);
+    const p4 = await fresh();
+    const self = await request(family, p4, await investigation(p4), risk, qcu);
     await authorise(self);
     expect(await plan(self, qcu)).toMatch(/authorised by the person who plans the batch.*\[EBMR-RPR-052\]/);
     await w.fixture("delete from iam.role_permission where role_code = 'AUTHORISED_PERSON' and permission_code = 'BATCH.ISSUE'", []);
@@ -182,6 +192,44 @@ describe('whole-batch reprocessing (recipe-core 0624)', () => {
     expect(await problem(randomUUID())).toBeNull();
     // The application role cannot call the check or bypass its trigger (it writes no execution row directly).
     await expect(db.app.query('select recipe.g24_v1_gmp_problem($1, $2, $3, $4)', [gmp.id, content, state({}), after])).rejects.toThrow(/permission denied/);
+  });
+
+  it('[INV-33][IN-18][PR-47] a parent is a finished batch, never one still running, never itself a reprocessing child, and never named by another authorised request', async () => {
+    const plan2 = (req: string) => plan(req);
+    const running = [await parent('IN_PROGRESS')];
+    const r1 = await request(family, running, await investigation(running), risk);
+    await authorise(r1);
+    expect(await plan2(r1)).toMatch(/parent .* is IN_PROGRESS: only a batch whose execution is complete or aborted.*\[EBMR-RPR-052\]/);
+    // A parent named by an authorised request (r2) is refused for another request (r3).
+    const twice = [await parent('ABORTED')];
+    const ref = await investigation(twice);
+    const r2 = await request(family, twice, ref, risk);
+    await authorise(r2);
+    const r3 = await request(family, twice, ref, risk);
+    await authorise(r3);
+    expect(await plan2(r3)).toMatch(/named by another authorised reprocessing request.*\[EBMR-RPR-052\]/);
+    // A reprocessing child as parent (its link arranged; planning one is 5a's issue path): chaining is blocked.
+    const child = await parent();
+    await w.fixture('insert into recipe.batch_parent_link (child_batch_id, parent_batch_id, parent_batch_number, parent_containers, request_id) values ($1, $2, $3, $4::uuid[], $5)', [child.id, (twice[0] as GmpBatch).id, (twice[0] as GmpBatch).number, [], r2]);
+    const r4 = await request(family, [child], await investigation([child]), risk);
+    await authorise(r4);
+    expect(await plan2(r4)).toMatch(/parent .* is itself a reprocessed batch.*\[EBMR-RPR-052\]/);
+  });
+
+  it('[INV-33][PR-57][IN-19] the forward trace of a parent finds its whole-batch child, and the child\'s expiry is capped at the parent\'s (manufacturing month plus the master\'s shelf life, less one), read as the application role', async () => {
+    const par = await parent();
+    await w.fixture("update recipe.batch_execution set issued_at = timestamptz '2026-03-15 10:00:00+00' where id = $1", [par.id]);
+    const ref = await investigation([par]);
+    const req = await request(family, [par], ref, risk);
+    await authorise(req);
+    const child = await parent();
+    await w.fixture('insert into recipe.batch_parent_link (child_batch_id, parent_batch_id, parent_batch_number, parent_containers, request_id) values ($1, $2, $3, $4::uuid[], $5)', [child.id, par.id, par.number, [], req]);
+    const trace = (await db.app.query<{ r: { batchId: string; case: string }[] }>('select recipe.batches_receiving_from($1) as r', [par.id])).rows[0]?.r;
+    expect(trace).toEqual([expect.objectContaining({ batchId: child.id, batchNumber: child.number, case: 'WHOLE_BATCH' })]);
+    // The product master says 24 months (first test): March 2026 + 24 - 1 = February 2028.
+    const cap = (await db.app.query<{ c: string | null }>("select to_char(recipe.recovered_expiry_cap($1) at time zone 'UTC', 'YYYY-MM-DD') as c", [child.id])).rows[0]?.c;
+    expect(cap).toBe('2028-02-01');
+    expect((await db.app.query<{ b: string }>('select recipe.batch_reprocessing_basis($1) as b', [child.id])).rows[0]?.b).toBe('WHOLE_BATCH');
   });
 });
 

@@ -308,6 +308,37 @@ describe('reprocessing and recovery additions in the database (recipe-core 0620 
     expect(await sql<string>("select block as r from recipe.source_addition where container_id = $1", [released])).toBe('G-24@2');
   });
 
+  it('[PR-47] a STEP authorisation allows one start: the start records the authorisation it took, and a second start of the step on it is refused; the application role cannot record a start itself', async () => {
+    const R = runs.R;
+    const used = await sql<{ step_key: string; started_by: string }>('select to_jsonb(u) as r from recipe.reprocessing_step_start u where u.batch_id = $1', [R.runId]);
+    expect(used).toMatchObject({ step_key: 'p-g24@', started_by: op1 });
+    // The step's only signed authorisation is used: another start on it is refused.
+    expect(await sql<string>("select recipe.reprocessing_start_take($1, 'p-g24', 'RECOVERY', $2, 'p-g24@') as r", [R.runId, op1])).toMatch(/every one was used \(G24-AUTHORISATION-USED\)/);
+    await expect(sbx.db.app.query("insert into recipe.reprocessing_step_start (authorisation_id, batch_id, step_key, started_by) select authorisation_id, batch_id, 'x@', 'x' from recipe.reprocessing_step_start limit 1")).rejects.toThrow(/permission denied/);
+    await expect(sbx.db.app.query("select recipe.reprocessing_start_take($1, 'p-g24', 'RECOVERY', 'x', 'p-g24@')", [R.runId])).rejects.toThrow(/permission denied/);
+  });
+
+  it('[PR-47][INV-33] a charge of a container an addition took from waits for the lock a partial take holds, then is refused', async () => {
+    const T = runs.T;
+    const released = await sql<string>("select container_id::text as r from recipe.source_addition where block = 'G-24@2' limit 1", []);
+    const label = await sql<string>('select label_code as r from plant.output_container where id = $1', [released]);
+    const holder = await sbx.db.admin.connect();
+    try {
+      await holder.query('begin');
+      await holder.query("select pg_advisory_xact_lock(hashtext('recipe.source_container:' || $1))", [released]);
+      const actor = await actorFor(T, 'operator1');
+      const blocked = withCommand(sbx.db.app, actor, async (c) => {
+        await c.query("set local lock_timeout = '800ms'");
+        return c.query('select plant.charge_container($1, $2, $3)', [T.runId, 'COATING', label]);
+      });
+      await expect(blocked).rejects.toThrow(/lock timeout/);
+    } finally {
+      await holder.query('rollback');
+      holder.release();
+    }
+    await expect(as(T, 'operator1', 'select plant.charge_container($1, $2, $3) as r', [T.runId, 'COATING', label])).rejects.toThrow(/EBMR-RPR-041/);
+  });
+
   it('[PR-47] the release reader reports a batch with reprocessed or recovered material added and no QC decision on additional testing, and nothing once QC has decided; a batch without additions has no reprocessing basis', async () => {
     const R = runs.R;
     expect(await sql<string>('select recipe.batch_reprocessing_basis($1) as r', [R.runId])).toBe('REPROCESSING_ADDITION');
