@@ -108,8 +108,11 @@ describe('test-kit installations', () => {
   it('[DI-14] seeds the persona catalogue, one set per E2E worker plus the demo set', async () => {
     expect(gmpSeed.personas.map((p) => `${p.legalName}:${p.roleCode}`)).toEqual([
       'Asha Rao:MBR_AUTHOR', 'Vikram Shah:MBR_CHECKER', 'Meera Iyer:QA_MBR_APPROVER', 'Rahul Menon:REGULATORY_SIGNER', 'Neha Joshi:MASTER_DATA_STEWARD',
-      'Rohan Gupta:BATCH_ISSUER', 'Priya Nair:OPERATOR',
+      'Rohan Gupta:BATCH_ISSUER', 'Priya Nair:OPERATOR', 'Sunita Bose:QC_ANALYST', 'Karan Malhotra:HEAD_OF_QC', 'Divya Menon:QA_REVIEWER',
+      'Arvind Rao:QA_REVIEWER', 'Shalini Kapoor:AUTHORISED_PERSON',
     ]);
+    // The GMP installation's one service identity: the ERP interface, INTEGRATION, in its own role only (slice 5a, DI-17).
+    expect(gmpSeed.services.map((s) => `${s.loginName}:${s.roleCode}`)).toEqual(['erp.interface:ERP_INTERFACE']);
     const roles = sbxSeed.personas.filter((p) => p.set === 0).map((p) => `${p.loginName}:${p.roleCode}`);
     expect(roles).toEqual([
       'test-issuer:BATCH_ISSUER', 'test-steward:MASTER_DATA_STEWARD', 'test-operator-1:OPERATOR', 'test-operator-2:OPERATOR', 'test-verifier-1:VERIFIER',

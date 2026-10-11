@@ -28,6 +28,8 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'PC-DESIGN-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'MBR design office PC', key: 'BROWSER' },
   { code: 'PC-QA-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QA office PC', key: 'BROWSER' },
   { code: 'PC-PLAN-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Production planning office PC (GMP batch issue)', key: 'BROWSER' },
+  { code: 'PC-QC-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QC laboratory office PC (results, approvals, deviation-lite)', key: 'BROWSER' },
+  { code: 'SRV-ERP-01', installation: 'GMP', deviceClass: 'SERVER', description: 'ERP interface host (product and material masters, production orders)', key: 'SERVICE' },
   { code: 'KIOSK-DISP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1 (GMP batches)', key: 'BROWSER' },
   { code: 'TEST-PC-01', installation: 'SANDBOX', deviceClass: 'PERSONAL', description: 'Sandbox office PC (batch issue, package import)', key: 'BROWSER' },
   { code: 'TEST-KIOSK-DISP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1', key: 'BROWSER' },
@@ -71,6 +73,13 @@ export const PERSONAS: readonly PersonaSpec[] = [
   // GMP (batch issue and execution; Phase 3 slice 2b)
   { key: 'issuer', installation: 'GMP', legalName: 'Rohan Gupta', loginName: 'rohan.gupta', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Batch issuer', demo: { password: 'Demo-GmpIssuer-2026!' } },
   { key: 'operator1', installation: 'GMP', legalName: 'Priya Nair', loginName: 'priya.nair', roleCode: 'OPERATOR', kiosk: true, homeTerminal: 'KIOSK-DISP-1', title: 'Operator', demo: { password: 'Demo-GmpOperator1-2026!', pin: '482917', badgeUid: '04B10000000001' } },
+  // GMP (quality and master data; Phase 3 slice 5a): LIMS-lite results and their approval, deviation-lite investigation
+  // and its QA conclusion by a second QA person (S7), the quality-unit authorisation of reprocessing.
+  { key: 'qcAnalyst', installation: 'GMP', legalName: 'Sunita Bose', loginName: 'sunita.bose', roleCode: 'QC_ANALYST', kiosk: false, homeTerminal: 'PC-QC-01', title: 'QC analyst', demo: { password: 'Demo-QcAnalyst-2026!' } },
+  { key: 'qcApprover', installation: 'GMP', legalName: 'Karan Malhotra', loginName: 'karan.malhotra', roleCode: 'HEAD_OF_QC', kiosk: false, homeTerminal: 'PC-QC-01', title: 'Head of QC (result approver)', demo: { password: 'Demo-QcApprover-2026!' } },
+  { key: 'qaInvestigator', installation: 'GMP', legalName: 'Divya Menon', loginName: 'divya.menon', roleCode: 'QA_REVIEWER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'QA investigator', demo: { password: 'Demo-QaInvestigator-2026!' } },
+  { key: 'qaApprover2', installation: 'GMP', legalName: 'Arvind Rao', loginName: 'arvind.rao', roleCode: 'QA_REVIEWER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'QA approver (second QA person)', demo: { password: 'Demo-QaApprover2-2026!' } },
+  { key: 'qcuAuthoriser', installation: 'GMP', legalName: 'Shalini Kapoor', loginName: 'shalini.kapoor', roleCode: 'AUTHORISED_PERSON', kiosk: false, homeTerminal: 'PC-QA-01', title: 'Quality-unit authoriser (reprocessing)', demo: { password: 'Demo-QcuAuthoriser-2026!' } },
   // Sandbox (test runs on the shop floor)
   { key: 'issuer', installation: 'SANDBOX', legalName: 'TEST-Rohan Gupta', loginName: 'test-issuer', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Batch issuer', demo: { password: 'Demo-Issuer-2026!' } },
   { key: 'steward', installation: 'SANDBOX', legalName: 'TEST-Neha Joshi', loginName: 'test-steward', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Master-data steward (test lots)', demo: { password: 'Demo-Steward-2026!' } },
@@ -89,11 +98,13 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'operatorVerifier1', installation: 'SANDBOX', legalName: 'TEST-Deepa Pillai', loginName: 'test-operator-verifier-1', roleCode: 'OPERATOR', alsoRoles: ['VERIFIER'], kiosk: true, homeTerminal: 'TEST-KIOSK-DISP-1', title: 'Operator and verifier (two roles)', demo: { password: 'Demo-OpVerifier1-2026!', pin: '358264', badgeUid: '04A10000000041' } },
 ];
 
-/** The sandbox's service identities (SERVICES). */
-export type ServiceKey = 'sweeper' | 'gateway' | 'monitor';
+/** The service identities (SERVICES): the sandbox's three, and the GMP installation's ERP interface. */
+export type ServiceKey = 'sweeper' | 'gateway' | 'monitor' | 'erpInterface';
 
 export interface ServiceSpec {
   key: ServiceKey;
+  /** The installation the identity is seeded in. */
+  installation: InstallationKind;
   legalName: string;
   loginName: string;
   accountKind: 'SERVICE' | 'INTEGRATION';
@@ -103,7 +114,7 @@ export interface ServiceSpec {
 }
 
 /**
- * Service identities of the sandbox (plan section 2): the in-process sweeper, the site gateway and the server's
+ * Service identities. Of the sandbox (plan section 2): the in-process sweeper, the site gateway and the server's
  * in-process gateway API monitor. Each holds only the role its work needs, and that role only the permission its work
  * uses (DI-17 least privilege; INV-20):
  *  - the sweeper holds EXECUTION_SWEEPER (recipe-core 0260: EXECUTION.SWEEP and nothing else; SERVICE accounts only);
@@ -118,9 +129,12 @@ export interface ServiceSpec {
  * (editionMigrationSources with the tablets SQL, as the server, the demo and the E2E runs build it).
  */
 export const SERVICES: readonly ServiceSpec[] = [
-  { key: 'sweeper', legalName: 'TEST-sweeper', loginName: 'test-sweeper', accountKind: 'SERVICE', roleCode: 'EXECUTION_SWEEPER', terminal: 'TEST-SRV-SWEEPER' },
-  { key: 'gateway', legalName: 'TEST-gw', loginName: 'test-gw', accountKind: 'INTEGRATION', roleCode: 'SITE_GATEWAY', terminal: 'TEST-GW-01' },
-  { key: 'monitor', legalName: 'TEST-gw-monitor', loginName: 'test-gw-monitor', accountKind: 'SERVICE', roleCode: 'GATEWAY_API_MONITOR', terminal: 'TEST-SRV-MONITOR' },
+  { key: 'sweeper', installation: 'SANDBOX', legalName: 'TEST-sweeper', loginName: 'test-sweeper', accountKind: 'SERVICE', roleCode: 'EXECUTION_SWEEPER', terminal: 'TEST-SRV-SWEEPER' },
+  { key: 'gateway', installation: 'SANDBOX', legalName: 'TEST-gw', loginName: 'test-gw', accountKind: 'INTEGRATION', roleCode: 'SITE_GATEWAY', terminal: 'TEST-GW-01' },
+  { key: 'monitor', installation: 'SANDBOX', legalName: 'TEST-gw-monitor', loginName: 'test-gw-monitor', accountKind: 'SERVICE', roleCode: 'GATEWAY_API_MONITOR', terminal: 'TEST-SRV-MONITOR' },
+  // GMP: the ERP interface (site services 0732: ERP_INTERFACE, INTERFACE.WRITE and nothing else; INTEGRATION accounts
+  // only), which posts the product and material masters and the production orders (slice 5a, D-S5-4).
+  { key: 'erpInterface', installation: 'GMP', legalName: 'ERP interface', loginName: 'erp.interface', accountKind: 'INTEGRATION', roleCode: 'ERP_INTERFACE', terminal: 'SRV-ERP-01' },
 ];
 
 /** Names of the installation's first administrator and process owner (sandbox names carry TEST-). */

@@ -187,7 +187,7 @@ export interface SeedOptions {
  * missing, rather than seeded with a gateway in some other role.
  */
 async function assertServiceRoles(db: Pick<DatabaseHandle, 'app'>): Promise<void> {
-  const wanted = SERVICES.map((s) => s.roleCode);
+  const wanted = SERVICES.filter((s) => s.installation === 'SANDBOX').map((s) => s.roleCode);
   const { rows } = await db.app.query<{ code: string }>('select code from iam.role where code = any($1::text[])', [wanted]);
   const missing = wanted.filter((code) => !rows.some((r) => r.code === code));
   if (missing.length > 0) {
@@ -250,23 +250,22 @@ export async function seedDemoSite(db: DatabaseHandle, kind: InstallationKind, b
     }
   }
 
-  // Service identities (sandbox): the sweeper and the gateway API monitor (source SYSTEM) and the gateway
-  // (INTEGRATION), each granted only its own role (DI-17): the sweeper EXECUTION_SWEEPER, the gateway SITE_GATEWAY,
-  // the monitor GATEWAY_API_MONITOR (personas.ts SERVICES).
+  // Service identities of the installation: in the sandbox the sweeper and the gateway API monitor (source SYSTEM) and
+  // the gateway (INTEGRATION), in the GMP installation the ERP interface (INTEGRATION), each granted only its own role
+  // (DI-17): the sweeper EXECUTION_SWEEPER, the gateway SITE_GATEWAY, the monitor GATEWAY_API_MONITOR, the ERP interface
+  // ERP_INTERFACE (personas.ts SERVICES).
   const services: SeededService[] = [];
-  if (kind === 'SANDBOX') {
-    for (const s of SERVICES) {
-      const created = await withCommand(db.app, withReason(adminCtx), async (c) => {
-        const personId = await identity.createPerson(c, 'SYSTEM', s.legalName);
-        const accountId = await identity.createAccount(c, { personId, loginName: s.loginName, kind: s.accountKind });
-        const { secret } = await identity.issueInitialSecret(c, accountId, 'SERVICE_KEY');
-        await identity.activateAccount(c, accountId);
-        const grantId = await identity.requestRoleGrant(c, { accountId, roleCode: s.roleCode, reason: `demo ${s.key} identity` });
-        return { personId, accountId, secret, grantId };
-      });
-      await withCommand(db.app, withReason(ownerCtx), (c) => identity.decideRoleGrant(c, created.grantId, true, `demo ${s.key} identity`));
-      services.push({ key: s.key, legalName: s.legalName, loginName: s.loginName, personId: created.personId, accountId: created.accountId, roleCode: s.roleCode, terminal: s.terminal, serviceKey: created.secret });
-    }
+  for (const s of SERVICES.filter((x) => x.installation === kind)) {
+    const created = await withCommand(db.app, withReason(adminCtx), async (c) => {
+      const personId = await identity.createPerson(c, 'SYSTEM', s.legalName);
+      const accountId = await identity.createAccount(c, { personId, loginName: s.loginName, kind: s.accountKind });
+      const { secret } = await identity.issueInitialSecret(c, accountId, 'SERVICE_KEY');
+      await identity.activateAccount(c, accountId);
+      const grantId = await identity.requestRoleGrant(c, { accountId, roleCode: s.roleCode, reason: `demo ${s.key} identity` });
+      return { personId, accountId, secret, grantId };
+    });
+    await withCommand(db.app, withReason(ownerCtx), (c) => identity.decideRoleGrant(c, created.grantId, true, `demo ${s.key} identity`));
+    services.push({ key: s.key, legalName: s.legalName, loginName: s.loginName, personId: created.personId, accountId: created.accountId, roleCode: s.roleCode, terminal: s.terminal, serviceKey: created.secret });
   }
 
   await identity.endSession(db.app, adminCtx.sessionId);
@@ -393,6 +392,6 @@ export async function openServiceSession(db: Pick<DatabaseHandle, 'app' | 'authn
   const session = await identity.openSession(db.app, ev.authEventId, t.fingerprint);
   return {
     personId: s.personId, accountId: s.accountId, roleCode: s.roleCode, sessionId: session.sessionId, deviceId: session.deviceId,
-    source: key === 'gateway' ? 'INTEGRATION' : 'SYSTEM', siteZone: await siteZoneOf(db.app), legalName: s.legalName,
+    source: key === 'gateway' || key === 'erpInterface' ? 'INTEGRATION' : 'SYSTEM', siteZone: await siteZoneOf(db.app), legalName: s.legalName,
   };
 }
