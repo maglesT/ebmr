@@ -21,7 +21,8 @@
  * database requires MBR.AUTHOR for each), take one of the validation slots and have a rate per session, all before
  * any analysis runs (review P18).
  * Every write runs as one idempotent command under the session's actor; the database checks permissions
- * (MBR.AUTHOR in the product scope) and refuses administrators (DI-17, DI-18). A2 registers MBR_TRANSITION.
+ * (MBR.AUTHOR in the product scope) and refuses administrators (DI-17, DI-18). MBR_TRANSITION is registered in
+ * signables.ts (Phase 3 slice 6d).
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { sandbox } from '@ebmr/kernel';
@@ -38,6 +39,8 @@ import { contentFromTemplate, FamilyInputError, KNOWN_MARKETS } from './family.t
 import { compositionGate, withFormulaBom } from './formula-choice.ts';
 import { DESIGNER_GUIDANCE } from './guidance.ts';
 import { slotPool } from './limits.ts';
+
+export { registerSignableActions } from './signables.ts';
 import {
   buildTestPackage,
   discardStaged,

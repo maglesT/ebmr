@@ -5,6 +5,7 @@
  * recipe.formula_pin_mbr (the content carries exactly the formula's composition) and recipe.mbr_composition.
  */
 import type pg from 'pg';
+import { Dec } from '@ebmr/expr';
 import type { formula } from '@ebmr/recipe-core';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { refusal } from '../../platform/http/refusal.ts';
@@ -20,6 +21,33 @@ function mismatch(why: string): Error {
     controls: ['INV-25', 'PR-01'],
     whatYouCanDo: ['Choose a template whose materials are the formula\'s, or the formula of this template\'s product.'],
   });
+}
+
+/** Whether a TB-01 step of `content` dispenses BOM line `bomLine` as its active with the standard stated on the base. */
+function dispensedOnBase(content: flow.MbrContent, bomLine: string): boolean {
+  const walk = (n: unknown): boolean => {
+    if (Array.isArray(n)) return n.some(walk);
+    if (!n || typeof n !== 'object') return false;
+    const o = n as Record<string, unknown>;
+    if (o['kind'] === 'phase') {
+      const block = o['block'] as { type?: string } | undefined;
+      const active = (o['config'] as { active?: { bomLine?: unknown; standardIs?: unknown } } | undefined)?.active;
+      if (block?.type === 'TB-01' && active?.bomLine === bomLine && active.standardIs === 'BASE' && Array.isArray(o['consumes']) && o['consumes'].includes(bomLine)) return true;
+    }
+    return Object.values(o).some(walk);
+  };
+  return walk(content.procedure);
+}
+
+/**
+ * The batch quantity (kg) a BOM line takes from formula line `f`: the computed batch quantity, or, for an active with a
+ * salt-to-base factor that a TB-01 step dispenses on the base, the base (the unit quantity times the units and the
+ * overage, without the factor: TB-01 converts the base to the salt at dispensing; recipe-core 0690). Exact decimals.
+ */
+function bomQuantity(content: flow.MbrContent, line: flow.BomLine, f: formula.FormulaLine, units: string): string {
+  if (f.saltFactor === null || f.role !== 'ACTIVE' || f.basis !== 'PER_UNIT' || !dispensedOnBase(content, line.id)) return f.batchQuantity;
+  const over = Dec.parse(f.overagePercent ?? '0');
+  return Dec.parse(f.quantity).times(Dec.parse(units)).times(Dec.parse('100').plus(over)).div(Dec.parse('100000000')).toString();
 }
 
 /**
@@ -38,7 +66,7 @@ export function withFormulaBom(content: flow.MbrContent, chosen: formula.Formula
     const code = out.references.find((r) => r.id === line.material)?.code ?? line.material;
     const f = chosen.lines.find((l) => l.materialCode === code);
     if (!f) throw mismatch(`BOM line ${line.id} (${code}) is not a material of the formula.`);
-    line.quantity = { value: f.batchQuantity, unit: 'kg' };
+    line.quantity = { value: bomQuantity(out, line, f, chosen.batchSizeUnits), unit: 'kg' };
     used.add(f.lineId);
   }
   const missing = chosen.lines.filter((l) => !used.has(l.lineId));
