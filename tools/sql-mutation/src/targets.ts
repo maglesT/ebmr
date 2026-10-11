@@ -586,7 +586,7 @@ export const TARGETS: Target[] = [
                 'site.lot_lims_release_problem', 'site.record_signed_lot_retest', 'site.lot_retest_content',
                 // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
                 'site.lot_signed_decision', 'site.lot_event_meaning', 'site.propose_lot_decision', 'site.revoke_batch_reservations', 'recipe.claim_consumption', 'recipe.consumption_entries_record', 'recipe.consumption_named_check', 'recipe.batch_end_reservations', 'tab.g07_consumption_pairs'],
-    tests: [site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts'), site('lots/exit-review.test.ts'), s('blocks/dispensing/tb-01-db.test.ts')],
+    tests: [site('mutation/lots-and-lims.test.ts'), site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts'), site('lots/exit-review.test.ts'), s('blocks/dispensing/tb-01-db.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: deviations: raise, link, investigate, conclude, close; QA signature; evidence documents;
