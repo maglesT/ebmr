@@ -20,9 +20,9 @@
 --         (NOT-AUTHORISED, SELF-AUTHORISED, AUTHORISATION-USED);
 --   * recipe.record_source_addition: the recipe.source_addition row of an accepted entry (the remaining-quantity guard of
 --     0621 runs on it);
---   * recipe.g24v2_check (trigger zr_g24v2 after update on recipe.execution_state): every new G-24@2 entry: its start
---     data names a signed STEP authorisation of this batch, step and case, signed by the authorisedBy it carries and not
---     by the person who starts; an ADDITION holds exactly what the block builds (container, net, source, case,
+--   * recipe.g24v2_check (trigger zr_g24v2 after update on recipe.execution_state): a G-24@2 step other than a validated
+--     re-treatment starts only on a signed STEP authorisation of this batch, step and case given by someone other than
+--     the person who starts it (it takes no start data, 0623); every new G-24@2 ADDITION holds exactly what the block builds (container, net, source, case,
 --     authorisation, authorisedBy, addedBy), leaves its step needing the second person, meets recipe.addition_problem,
 --     and is recorded. Refused rows: EBMR-RPR-030;
 --   * recipe.source_container_charge_check (triggers ab_rpr_charge, ab_rpr_merge before insert on plant.container_charge
@@ -161,26 +161,18 @@ begin
 end
 $$;
 
--- PR-47 (header): why new G-24@2 start data p_e (command start data p_c) of row p_new of batch p_batch is not the
--- quality unit's signed authorisation of this reprocessing step, or NULL.
-create function recipe.reprocessing_start_problem(p_batch uuid, p_content jsonb, p_new jsonb, p_e jsonb, p_c jsonb) returns text
+-- PR-47 (header): why the start of reprocessing step p_step (MBR node id, case p_case) of batch p_batch by person
+-- p_starter has no signed authorisation of the quality unit for it, or NULL.
+create function recipe.reprocessing_start_problem(p_batch uuid, p_step text, p_case text, p_starter text) returns text
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
-declare
-  v_node jsonb := recipe.step_node(p_content, p_new -> 'steps' -> (p_e ->> 'stepKey') ->> 'step');
-  v_auth jsonb;
 begin
-  v_auth := case when coalesce(p_c ->> 'authorisation', '') ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-                 then recipe.reprocessing_authorisation_facts((p_c ->> 'authorisation')::uuid) end;
-  if v_auth is null or (v_auth ->> 'batchId')::uuid is distinct from p_batch or v_auth ->> 'scope' is distinct from 'STEP'
-     or v_auth ->> 'step' is distinct from v_node ->> 'id' or v_auth ->> 'case' is distinct from v_node -> 'reprocessing' ->> 'case' then
-    return format('starts reprocessing step %s under %s, which is no signed authorisation of this step of this batch and its case (G24-NOT-AUTHORISED)',
-                  p_e ->> 'stepKey', coalesce(p_c ->> 'authorisation', '(none)'));
+  if not exists (select 1 from recipe.reprocessing_authorisation a join recipe.reprocessing_authorisation_signature s on s.authorisation_id = a.id
+                  where a.batch_id = p_batch and a.step_id = p_step and a.scope = 'STEP' and a.case_code = p_case) then
+    return format('starts reprocessing step %s without the quality unit''s signed authorisation of this step of this batch and its case (G24-NOT-AUTHORISED)', p_step);
   end if;
-  if (p_c -> 'authorisedBy') is distinct from (v_auth -> 'signedBy') then
-    return format('starts reprocessing step %s naming %s as its authoriser, where %s signed (G24-NOT-AUTHORISED)', p_e ->> 'stepKey', coalesce(p_c ->> 'authorisedBy', '(none)'), v_auth ->> 'signedBy');
-  end if;
-  if (v_auth -> 'signedBy') = (p_e -> 'enteredBy') then
-    return format('starts reprocessing step %s authorised by the person who starts it (G24-SELF-AUTHORISED)', p_e ->> 'stepKey');
+  if not exists (select 1 from recipe.reprocessing_authorisation a join recipe.reprocessing_authorisation_signature s on s.authorisation_id = a.id
+                  where a.batch_id = p_batch and a.step_id = p_step and a.scope = 'STEP' and a.case_code = p_case and s.signer_person::text is distinct from p_starter) then
+    return format('starts reprocessing step %s authorised only by the person who starts it (G24-SELF-AUTHORISED)', p_step);
   end if;
   return null;
 end
@@ -196,28 +188,35 @@ declare
   v_node    jsonb;
   v_c       jsonb;
   v_want    jsonb;
+  v_inst    jsonb;
   v_problem text;
   k         text;
   e         jsonb;
 begin
-  if not exists (select 1 from jsonb_each(case when jsonb_typeof(new.state -> 'entries') = 'object' then new.state -> 'entries' else '{}'::jsonb end) x
-                  where not (e0 ? x.key) and x.value ->> 'kind' in ('ADDITION', 'START_DATA')) then
+  v_content := recipe.batch_mbr_content(new.batch_id);
+  if not exists (select 1 from jsonb_path_query(coalesce(v_content -> 'procedure', '{}'::jsonb), 'strict $.** ? (@.kind == "phase")') p
+                  where p -> 'block' ->> 'type' = 'G-24' and p -> 'block' ->> 'version' = '2') then
     return null;
   end if;
-  v_content := recipe.batch_mbr_content(new.batch_id);
   select * into r from recipe.execution_command c where c.batch_id = new.batch_id and c.seq = new.last_seq;
-  for k, e in select x.key, x.value from jsonb_each(new.state -> 'entries') x
+  -- The start of a G-24@2 step (other than a validated re-treatment) stands on a signed STEP authorisation.
+  if r.command ->> 'type' = 'START_STEP' then
+    v_inst := recipe.step_instance_of(new.state, r.command);
+    v_node := recipe.step_node(v_content, r.command ->> 'step');
+    if v_inst ->> 'status' = 'IN_PROGRESS' and (recipe.step_instance_of(old.state, r.command) ->> 'status') is distinct from 'IN_PROGRESS'
+       and v_node -> 'block' ->> 'type' = 'G-24' and v_node -> 'block' ->> 'version' = '2'
+       and (v_node -> 'reprocessing' ->> 'case') is distinct from 'VALIDATED_RETREATMENT' then
+      v_problem := recipe.reprocessing_start_problem(new.batch_id, v_node ->> 'id', v_node -> 'reprocessing' ->> 'case', r.command -> 'actor' ->> 'id');
+    end if;
+  end if;
+  for k, e in select x.key, x.value from jsonb_each(case when v_problem is null and jsonb_typeof(new.state -> 'entries') = 'object' then new.state -> 'entries' else '{}'::jsonb end) x
                where not (e0 ? x.key) and x.value ->> 'kind' in ('ADDITION', 'START_DATA') order by (x.value ->> 'recordedSeq')::numeric, x.key loop
-    v_problem := null;
     v_node := recipe.step_node(v_content, new.state -> 'steps' -> (e ->> 'stepKey') ->> 'step');
     if v_node -> 'block' ->> 'type' is distinct from 'G-24' or v_node -> 'block' ->> 'version' is distinct from '2' then
       continue;
     end if;
     if e ->> 'kind' = 'START_DATA' then
-      v_c := case when jsonb_typeof(r.command -> 'blockData') = 'object' then r.command -> 'blockData' else '{}'::jsonb end;
-      if (v_node -> 'reprocessing' ->> 'case') is distinct from 'VALIDATED_RETREATMENT' then
-        v_problem := recipe.reprocessing_start_problem(new.batch_id, v_content, new.state, e, v_c);
-      end if;
+      v_problem := format('stores start data %s at G-24@2 step %s, which takes none: it starts on the quality unit''s signed authorisation (G24-NOT-AUTHORISED)', k, e ->> 'stepKey');
     else
       v_c := case when jsonb_typeof(r.command -> 'entry') = 'object' then r.command -> 'entry' else '{}'::jsonb end;
       v_want := jsonb_strip_nulls(jsonb_build_object('container', v_c -> 'container',
@@ -237,13 +236,14 @@ begin
         perform recipe.record_source_addition(new.batch_id, k, e, 'G-24@2', (v_c -> 'quantity' ->> 'value')::numeric);
       end if;
     end if;
-    if v_problem is not null then
-      raise exception using errcode = 'P0001',
-        message = format('This %s %s row %s: a reprocessing step adds only material its records allow, from the database''s facts, under the quality unit''s prior authorisation (PR-47, IN-19, INV-33). [EBMR-RPR-030]',
-                         case when r.kind = 'COMMAND' and r.accepted then 'accepted' when r.kind = 'COMMAND' then 'refused' else lower(coalesce(r.kind, 'unknown')) end,
-                         coalesce(r.command_type, r.kind, 'unknown'), v_problem);
-    end if;
+    exit when v_problem is not null;
   end loop;
+  if v_problem is not null then
+    raise exception using errcode = 'P0001',
+      message = format('This %s %s row %s: a reprocessing step adds only material its records allow, from the database''s facts, under the quality unit''s prior authorisation (PR-47, IN-19, INV-33). [EBMR-RPR-030]',
+                       case when r.kind = 'COMMAND' and r.accepted then 'accepted' when r.kind = 'COMMAND' then 'refused' else lower(coalesce(r.kind, 'unknown')) end,
+                       coalesce(r.command_type, r.kind, 'unknown'), v_problem);
+  end if;
   return null;
 end
 $$;
@@ -274,7 +274,7 @@ create trigger ab_rpr_merge before insert on plant.container_merge for each row 
 
 revoke all on function recipe.rpr_mass(numeric, text, text),
   recipe.addition_problem(uuid, jsonb, jsonb, text, jsonb, jsonb, numeric, text, text, boolean, text),
-  recipe.record_source_addition(uuid, text, jsonb, text, numeric), recipe.reprocessing_start_problem(uuid, jsonb, jsonb, jsonb, jsonb),
+  recipe.record_source_addition(uuid, text, jsonb, text, numeric), recipe.reprocessing_start_problem(uuid, text, text, text),
   recipe.g24v2_check(), recipe.source_container_charge_check() from public;
 
 reset role;

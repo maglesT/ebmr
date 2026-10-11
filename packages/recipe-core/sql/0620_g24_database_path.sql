@@ -12,7 +12,7 @@
 --
 --   * recipe.g24_v1_gmp_check (trigger zr_g24_v1_gmp after update on recipe.execution_state): a row of a GMP batch that
 --     adds a SOURCE_ADDITION entry at a step whose MBR node runs G-24 version 1 is refused;
---   * recipe.block_data_schema: the start data and the ADDITION entry of G-24@2 as blocks/generic/reprocessing.ts
+--   * recipe.block_data_schema: the ADDITION entry of G-24@2 (it takes no start data: 0623) as blocks/generic/reprocessing.ts
 --     declares them (the parity test of recipe-core test execution/entry-data-sql compares them; a version's schemas
 --     never change);
 --   * recipe.engine_name: the rule codes G-24@2 gives that G-24@1 did not (a test run's record may hold them, 0346).
@@ -31,7 +31,6 @@ select kernel.set_actor_context(jsonb_build_object(
   'reason_text', 'the block version G-24@2 in the registers every entry is checked against (DI-30, PR-47, IN-19)'));
 
 insert into recipe.block_data_schema (block_type, block_version, part, entry_kind, schema) values
-  ('G-24', '2', 'START', 'START_DATA', '{"type":"object","fields":{"authorisation":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},"authorisedBy":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$","optional":true}}}'),
   ('G-24', '2', 'ENTRY', 'ADDITION', '{"type":"object","fields":{"container":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},"quantity":{"type":"object","fields":{"value":{"type":"decimal","min":"0","minExclusive":true},"unit":{"type":"string","enum":["kg","g","units"]}}},"authorisation":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},"authorisedBy":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$","optional":true},"source":{"type":"object","fields":{"container":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},"sourceBatchId":{"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},"product":{"type":"string"},"strength":{"type":"string"},"stage":{"type":"string"},"unit":{"type":"string","enum":["kg","g","units"]},"case":{"type":"string","enum":["REPROCESSING_ADDITION","RECOVERY"],"optional":true},"generatedAtUs":{"type":"string","pattern":"^[0-9]{1,20}$"},"manufacturedAtUs":{"type":"string","pattern":"^[0-9]{1,20}$"},"containsRecovered":{"type":"boolean"},"remaining":{"type":"string","pattern":"^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$"},"expiry":{"type":"string","pattern":"^[0-9]{4}-(0[1-9]|1[0-2])$","optional":true}}}}}');
 
 insert into recipe.engine_name (name, kind) values

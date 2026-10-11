@@ -2,6 +2,9 @@
  * Reprocessing and recovery additions on the database path (outline 5.2.9 cases 2 and 3; tablets spec K-24, TB-08;
  * Phase 3 slice 5b; D-S5-7, D-S5-8). Controls PR-47, IN-18, IN-19, PR-57; invariant INV-33.
  *
+ * G-24@2 takes no start data: the database starts it only on the quality unit's signed authorisation of the step
+ * (recipe-core 0622, 0623), since an accepted start never records start data (recipe-core 0345).
+ *
  * G-24@1 takes the facts of a source addition (source batch, product, manufacture instant, recovered flag) from the
  * caller; the database refuses its SOURCE_ADDITION on GMP (recipe-core 0620). G-24@2 and the Tablets edition's TB-08@1
  * take them from the database instead: an ADDITION entry names a closed output container of an executed batch record
@@ -255,14 +258,6 @@ export const G24V2: BlockVersion = {
   controls: ['PR-47', 'IN-18', 'IN-19', 'PR-57'],
   configSchema: { type: 'object', description: 'Case and limits come from the phase reprocessing declaration (outline 5.2.9)', fields: {} },
   dataSchema: {
-    startData: {
-      type: 'object',
-      description: "The quality unit's signed authorisation of the reprocessing step (recipe.reprocessing_authorisation), read by the server",
-      fields: {
-        authorisation: { type: 'string', pattern: UUID_PATTERN, description: 'The authorisation record' },
-        authorisedBy: { type: 'string', pattern: UUID_PATTERN, optional: true, description: 'Its signer, read from the database (filled by the server)' },
-      },
-    },
     entries: {
       ADDITION: {
         type: 'object',
@@ -280,14 +275,6 @@ export const G24V2: BlockVersion = {
   checkConfig: (phase) =>
     phase.reprocessing === undefined ? [{ code: 'G24-NO-CASE', severity: 'ERROR', message: `Reprocessing step ${phase.id} declares no case (whole-batch reprocessing, reprocessing addition, recovery)`, controls: ['PR-47', 'IN-19'] }] : [],
   handler: {
-    beforeStart: (view, data) => {
-      if (view.phase.reprocessing?.case === 'VALIDATED_RETREATMENT') return [];
-      if (!data || text(data['authorisation']) === undefined || text(data['authorisedBy']) === undefined) {
-        return [problem('G24-NOT-AUTHORISED', `${view.phase.id} needs the quality unit's signed authorisation before it starts`, ['PR-47', 'IN-19'])];
-      }
-      if (data['authorisedBy'] === view.actor.id) return [problem('G24-SELF-AUTHORISED', 'The reprocessing is authorised by the quality unit, not by the person who performs it', ['PR-47'])];
-      return [];
-    },
     acceptEntry: (view, entry): EntryResult => {
       if (entry.kind !== 'ADDITION') return { ok: false, problems: [problem('G24-ENTRY', `${entry.kind} is not an entry of a reprocessing step`, ['PR-47'])] };
       const q = entry['quantity'] as { value: string; unit: string };
@@ -322,11 +309,10 @@ export const G24V2: BlockVersion = {
   simulatorModel: { exceptionTypes: () => ['QC_ADDITIONAL_TESTING_DECISION'], nominalEntries: () => [] },
   goldenFixture: {
     description:
-      'A recovery addition of 0.02 kg from a QA-released container of an earlier batch of the same product (facts read from the database), authorised beforehand by the quality unit; QC is flagged to decide on extra testing',
+      'A recovery addition of 0.02 kg from a QA-released container of an earlier batch of the same product (facts read from the database), each use authorised beforehand by the quality unit (the step itself starts on its signed authorisation, which the database holds); QC is flagged to decide on extra testing',
     controls: ['PR-47', 'IN-19'],
     phase: { block: { type: 'G-24', version: '2' }, config: {}, reprocessing: { case: 'RECOVERY', maxPercent: '3', maxAge: { value: '90', unit: 'd' }, maxSourceBatches: 2 } },
     script: [
-      { startData: { authorisation: '00000000-0000-4000-8000-0000000000c1', authorisedBy: '00000000-0000-4000-8000-0000000000d1' } },
       {
         entry: {
           kind: 'ADDITION',
