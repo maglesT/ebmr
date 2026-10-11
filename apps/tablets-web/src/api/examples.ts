@@ -68,5 +68,30 @@ export function fixturesFromExamples(installation: 'GMP' | 'SANDBOX'): FixtureMa
     'designer.validate': EXAMPLES['validation-report'].data,
     'designer.simulate': EXAMPLES['simulation-report'].data,
     'audit.events': EXAMPLES['audit-events'].data,
+    ...(installation === 'GMP' ? gmpSlice6(steps) : {}),
+  };
+}
+
+/**
+ * Phase 3 slice 6 (GMP): the GMP batch routes answer as the execution ones do (same views), the TB-08 step example by
+ * its key; every other new route answers with its first contract example (planning, master data, plant, quality).
+ */
+function gmpSlice6(steps: { step: { stepKey: string } }[]): FixtureMap {
+  const firstExamples: Record<string, unknown> = {};
+  for (const e of Object.values(EXAMPLES)) {
+    if (!('routeId' in e) || typeof e.routeId !== 'string') continue;
+    if (!/^(batches|planning|masterData|plant|quality|designer\.formulaChoice)/.test(e.routeId)) continue;
+    if (!(e.routeId in firstExamples)) firstExamples[e.routeId] = e.data;
+  }
+  const tb08 = EXAMPLES['batches-step-tb08'].data as { step: { stepKey: string } };
+  const gmpSteps = [tb08, ...steps];
+  return {
+    ...firstExamples,
+    'batches.step': ({ params }: { params: Record<string, string> }) => gmpSteps.find((s) => s.step.stepKey === params['stepKey']) ?? EXAMPLES['batches-step'].data,
+    'batches.command': ({ body }: { body: unknown }) => {
+      const b = body as { expectedVersion: number; viewStepKey?: string; intent: { stepKey?: string } };
+      const key = b.viewStepKey ?? b.intent.stepKey;
+      return { accepted: true, version: b.expectedVersion + 1, step: gmpSteps.find((s) => s.step.stepKey === key) ?? null };
+    },
   };
 }

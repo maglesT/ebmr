@@ -4,13 +4,8 @@
  * `{kind: 'BLOCK_ENTRY', entryKind, data}`. The engine validates the data against that same schema and the database's
  * guards decide the rest; the form only says what is still missing before Save can be pressed.
  *
- * Where the schema comes from:
- *  - the step view's `blockEntries` (the server's description of the block's entry schemas, one per kind the step
- *    offers), when the server sends it;
- *  - otherwise, for the generic blocks the browser can read itself (recipe-core/pure: G-06@1, G-21@1, G-24@2), the
- *    block registry's own `dataSchema`.
- * The tablet blocks' schemas live in the server; without `blockEntries` their forms are not offered and the screen says
- * so (never a guessed form).
+ * The schema is the step view's `blockEntries`: the server's description of the block's entry schemas, one per kind the
+ * step offers (members the server fills are marked `serverFilled`).
  *
  * Values travel as the block schema takes them: decimals as decimal text (never JavaScript numbers), whole numbers as
  * safe integers, yes/no as booleans, lists and objects as such. Members the server fills (its own time, the facts it
@@ -18,8 +13,7 @@
  * identifiers a person chose by tapping (e.g. an addition's source container).
  */
 import { useState, type ReactNode } from 'react';
-import { blocks } from '@ebmr/recipe-core/pure';
-import { ClientEntry, TabletEntryKind, TYPED_ENTRY_KINDS, type BlockFieldWire, type StepScreenView } from '@ebmr/api-contract';
+import { ClientEntry, type BlockEntryFormView, type BlockFieldSchemaWire, type BlockFieldWire, type StepScreenView } from '@ebmr/api-contract';
 import { Button, decimalProblem, Field, floor } from '@ebmr/ui-kit';
 import { wcls } from '../classes.ts';
 import { EntryStatus } from '../components/EntryStatus.tsx';
@@ -30,55 +24,14 @@ import { useRunCommand } from '../usePendingCall.ts';
 import { availability } from './parts.tsx';
 
 // ---------------------------------------------------------------------------------------------
-// The schema as it travels (recipe-core blocks/schema.ts FieldSchema, with a pattern as its source text)
+// The schema as it travels (contract BlockFieldSchemaWire: recipe-core's FieldSchema, a pattern as its source text)
 
-interface Common {
-  description: string;
-  optional?: boolean;
-  /** The server fills this member; the form never asks for it. */
-  serverFilled?: boolean;
-}
-export type EntryFieldSchema =
-  | (Common & { type: 'string'; enum?: readonly string[]; pattern?: string })
-  | (Common & { type: 'decimal'; min?: string; minExclusive?: boolean })
-  | (Common & { type: 'integer'; min?: number; max?: number })
-  | (Common & { type: 'boolean'; default?: boolean; defaultText?: string })
-  | (Common & { type: 'object'; fields: Readonly<Record<string, EntryFieldSchema>> })
-  | (Common & { type: 'array'; items: EntryFieldSchema; minItems?: number; maxItems?: number })
-  | (Common & { type: 'record'; values: EntryFieldSchema });
-export type EntryObjectSchema = Extract<EntryFieldSchema, { type: 'object' }>;
+export type EntryFieldSchema = BlockFieldSchemaWire;
+export type BlockEntryFormDef = BlockEntryFormView;
 
-export interface BlockEntryFormDef {
-  kind: TabletEntryKind;
-  title: string;
-  description: string;
-  schema: EntryObjectSchema;
-}
-
-/** recipe-core's FieldSchema (RegExp patterns) as the wire shape (pattern source text). */
-export function schemaToWire(s: unknown): EntryFieldSchema {
-  const o = s as Record<string, unknown> & { type: EntryFieldSchema['type'] };
-  const base = { ...o } as Record<string, unknown>;
-  if (o['pattern'] instanceof RegExp) base['pattern'] = o['pattern'].source;
-  if (o.type === 'object') base['fields'] = Object.fromEntries(Object.entries(o['fields'] as Record<string, unknown>).map(([k, v]) => [k, schemaToWire(v)]));
-  if (o.type === 'array') base['items'] = schemaToWire(o['items']);
-  if (o.type === 'record') base['values'] = schemaToWire(o['values']);
-  return base as unknown as EntryFieldSchema;
-}
-
-/**
- * Members the server fills (review with 6a: `serverFilled` on the server's description). Until every description
- * carries the flag, a member whose own description says the server or the database supplies it is left out too.
- */
-const SERVER_FILLED = /\(server time\)|filled by the server|time the server received|the server made|released by the server|read from the database/i;
+/** A member the server fills (a fact it reads from the database or a device): never asked for, never sent. */
 export function isServerFilled(s: EntryFieldSchema): boolean {
-  return s.serverFilled === true || SERVER_FILLED.test(s.description);
-}
-
-/** "SETPOINT_READBACK" -> "Setpoint readback". */
-export function kindTitle(kind: string): string {
-  const words = kind.toLowerCase().replace(/_/g, ' ');
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  return s.serverFilled === true;
 }
 
 /** "groupWeight" -> "Group weight". */
@@ -87,43 +40,9 @@ function memberTitle(name: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-const GENERIC_SCHEMAS: Readonly<Record<string, blocks.BlockVersion>> = {
-  'G-06@1': blocks.G06,
-  'G-21@1': blocks.G21,
-  'G-24@2': blocks.G24V2,
-};
-
-const TYPED = new Set<string>(TYPED_ENTRY_KINDS);
-
-/** What the server may add to the step view: the block's entry schemas for the kinds the step offers. */
-interface WithBlockEntries {
-  blockEntries?: readonly { kind: string; title: string; description: string; schema: unknown }[];
-}
-
-/** The BLOCK_ENTRY forms of the step: from the server's description, else from the generic block registry. */
-export function blockEntryForms(view: StepScreenView): BlockEntryFormDef[] | null {
-  const sent = (view as StepScreenView & WithBlockEntries).blockEntries;
-  const out: BlockEntryFormDef[] = [];
-  if (Array.isArray(sent)) {
-    for (const e of sent) {
-      const kind = TabletEntryKind.safeParse(e.kind);
-      if (!kind.success || TYPED.has(kind.data)) continue;
-      const schema = schemaToWire(e.schema);
-      if (schema.type !== 'object') continue;
-      out.push({ kind: kind.data, title: e.title, description: e.description, schema });
-    }
-    return out;
-  }
-  const block = view.step.block ? GENERIC_SCHEMAS[view.step.block] : undefined;
-  if (!block?.dataSchema) return null;
-  for (const [k, s] of Object.entries(block.dataSchema.entries)) {
-    const kind = TabletEntryKind.safeParse(k);
-    if (!kind.success || TYPED.has(kind.data)) continue;
-    const schema = schemaToWire(s);
-    if (schema.type !== 'object') continue;
-    out.push({ kind: kind.data, title: kindTitle(k), description: s.description, schema });
-  }
-  return out;
+/** The BLOCK_ENTRY forms the step offers, each with the block's own schema, as the server sent them. */
+export function blockEntryForms(view: StepScreenView): BlockEntryFormDef[] {
+  return view.blockEntries;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -427,13 +346,6 @@ export const PROCESS_VALUE_KINDS = ['SETPOINT_READBACK', 'ACTUAL', 'ALARM', 'ALA
 export function BlockEntrySections({ view, sections, chosen }: { view: StepScreenView; sections: readonly EntrySection[]; chosen?: Readonly<Record<string, string>> }) {
   const forms = blockEntryForms(view);
   const [open, setOpen] = useState<string | null>(null);
-  if (forms === null) {
-    return (
-      <p className={wcls('muted')} data-testid="block-forms-unavailable">
-        {st('block.noSchema', { block: view.step.block ?? '' })}
-      </p>
-    );
-  }
   const byKind = new Map(forms.map((f) => [f.kind as string, f]));
   const placed = new Set(sections.flatMap((s) => s.kinds));
   const all: EntrySection[] = [...sections, { title: st('block.other'), kinds: forms.map((f) => f.kind).filter((k) => !placed.has(k)) }];

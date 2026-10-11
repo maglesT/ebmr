@@ -102,7 +102,7 @@ export const BLOCK_LAYOUTS: Readonly<Record<string, readonly EntrySection[]>> = 
  * already offer (the typed kinds, e.g. TB-01's weighing, stay the server's forms).
  */
 function OwnBody({ view, weighing = false }: RendererProps & { weighing?: boolean }) {
-  const blockKinds = new Set((blockEntryForms(view) ?? []).map((f) => f.kind as string));
+  const blockKinds = new Set(blockEntryForms(view).map((f) => f.kind as string));
   const own = { ...view, entryForms: view.entryForms.filter((f) => !blockKinds.has(f.kind)) };
   return <GenericBody view={own} {...(weighing ? { forms: () => ({ weighing: true }) } : {})} />;
 }

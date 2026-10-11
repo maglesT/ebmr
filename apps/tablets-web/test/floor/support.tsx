@@ -17,7 +17,7 @@ import type { ComponentType } from 'react';
 import { vi } from 'vitest';
 import { IDEMPOTENCY_HEADER, type Attribution, type FetchLike, type ReadingView, type RefusalEnvelope, type StepScreenView } from '@ebmr/api-contract';
 import { EXAMPLES, example } from '@ebmr/api-contract/examples';
-import { setTransport } from '../../src/api/client.ts';
+import { apiState, setTransport } from '../../src/api/client.ts';
 import { NotFoundPage } from '../../src/app/not-found.tsx';
 import { ResetReadsOnPersonChange } from '../../src/app/session-reads.tsx';
 import { fixturesFromExamples } from '../../src/api/examples.ts';
@@ -118,13 +118,16 @@ export interface RenderOptions {
    * survive a switch, to check that a component does not rely on that reset.
    */
   resetReadsOnPersonChange?: boolean;
+  /** The installation the screens run on (default the sandbox; GMP sends the floor to /api/batches/*, D-S6-1). */
+  installation?: 'GMP' | 'SANDBOX';
 }
-
-const headers = { get: (n: string) => (n.toLowerCase() === 'x-ebmr-installation' ? 'SANDBOX' : null) };
 
 export function renderFloor(path: string, opts: RenderOptions = {}) {
   const requests: Recorded[] = [];
-  const fixtures = createFixtureFetch({ ...fixturesFromExamples('SANDBOX'), 'execution.lot': { status: 404, body: envelope('NOT_ALLOWED', 'LOT-UNKNOWN') }, ...(opts.fixtures ?? {}) }, { installation: 'SANDBOX' });
+  const installation = opts.installation ?? 'SANDBOX';
+  apiState.installation = installation;
+  const headers = { get: (n: string) => (n.toLowerCase() === 'x-ebmr-installation' ? installation : null) };
+  const fixtures = createFixtureFetch({ ...fixturesFromExamples(installation), 'execution.lot': { status: 404, body: envelope('NOT_ALLOWED', 'LOT-UNKNOWN') }, ...(opts.fixtures ?? {}) }, { installation });
   const transport: FetchLike = async (url, init) => {
     const u = new URL(url, 'http://fixture.local');
     const rec: Recorded = { method: init.method, path: u.pathname, idempotencyKey: init.headers[IDEMPOTENCY_HEADER] ?? null, body: init.body ? (JSON.parse(init.body) as Record<string, unknown>) : undefined };

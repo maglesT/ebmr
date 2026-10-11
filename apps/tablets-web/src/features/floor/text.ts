@@ -195,7 +195,6 @@ export const SCREEN_EN = {
   'block.optional': 'optional',
   'block.remove': 'Remove {label}',
   'block.add': 'Add to {label}',
-  'block.noSchema': 'The entry forms of {block} come from the server, which has not sent them for this step; nothing can be recorded here until it does.',
   'block.other': 'Other entries',
   'block.record': 'Record: {title}',
   'block.processValues': 'Process values, setpoints and alarms',
