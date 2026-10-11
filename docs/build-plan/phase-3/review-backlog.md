@@ -332,3 +332,21 @@ needs an ISSUED or IN_PROGRESS batch and an entry of the same command, and reser
 Residuals: no screen for the bulk issue and no HTTP route to plan a packaging order (Phase 4); packing steps inside a
 GMP processing batch are refused (stricter default); over HTTP a lot decision is still RELEASE or REJECT only, and
 HOLD, UNHOLD, RETURN and RECALL need the propose step on that path when they are exposed (Phase 4).
+
+## Phase 3 exit, TypeScript mutation (Opus, 11 October 2026)
+
+Calculations (potency, IPC, coating, AQL), block entries, G-06, the status blocks, signing content and data rules meet
+90 %; the other tablet blocks meet 80 %. Five high-risk blocks end between 84 and 90 % (TB-15 89.6, TB-11 88.0, TB-12
+86.3, TB-18 86.0, TB-01 84.5), G-21 at 88.4; their remaining survivors are listed by file in the exit branch's commits
+(mostly simulator nominal entries and refusal texts). No critical or high defect.
+
+Backlog:
+- Medium: TB-11, a start sweep marked missed stays due, so every later entry raises IPC_CHECK_MISSED again.
+- Medium, for the owner and the expert: TB-12 subdivision can never be recorded, because India is in every market set
+  and has no rule set (or not-applicable record) for subdivision; decide the India rule before validation.
+- Medium: site-services 0733 sorts test codes without `collate "C"` (0762 uses it); on another database collation the
+  QC extra-testing decision can become unsignable (fails safe).
+- Low: the TB-15 MBR acid time is not bounded by the rule set; the TB-06 recycle message says "above zero" but zero
+  passes; an anhydrous molar mass is not checked against the base.
+- Residuals (lower risk, listed not tested): simulator nominal entries, refusal texts, route wiring and views, thin
+  TypeScript wrappers over SQL (covered by the SQL stream).
