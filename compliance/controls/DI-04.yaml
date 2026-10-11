@@ -194,6 +194,8 @@ tests:
   - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-04][PR-14] the equipment running another recipe or version than the MBR names raises RECIPE_MISMATCH, which stops the step until QA decides; a configured step cannot be performed before the recipe is checked"
   - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-31][DI-04] the configuration: duplicate tags, inverted limits and a configured step without an equipment recipe are errors; config {} defines as before"
   - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-04][PR-14] the equipment reports another recipe version than the MBR names: the RECIPE_CHECK is stored only with matches false and RECIPE_MISMATCH, which stops the step for QA; a forged match or a dropped exception is refused by the database"
+  - "apps/tablets-server/test/designer/template-gb-t-01.test.ts > the gb-t-01 template against the real adapters > [PR-03][DI-04] passes every validator gate with no finding, and defines as a GMP batch with the tablets blocks"
+  - "apps/tablets-server/test/designer/template-gb-t-01.test.ts > the gb-t-01 template against the real adapters > [DI-04][INV-19] simulates with full coverage; every golden case (the hand worksheet) matches its calculation"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:

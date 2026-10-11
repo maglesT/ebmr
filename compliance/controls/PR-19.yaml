@@ -135,6 +135,8 @@ tests:
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; only a confirmed laboratory error with an approved passing replacement resolves it"
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result"
   - "apps/tablets-server/test/seed/gmp-seed.test.ts > the GMP demo seed (slice 6c) > [PR-19][IN-24] the GB-T-01 lots are released on the identity-tested route after a QC-approved, passing result; the active's assay comes from its LIMS results; the ERP orders are open"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][DI-33] a trihydrate label on an anhydrous molar mass is flagged (outline 9.1): a form named as a hydrate declares its waters, and a hydrate's molar mass holds them"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > [PR-08][PR-19][PR-47] the sample data problems are caught on the master (9.1): hardness units, a hydrate label, an addition without its case"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

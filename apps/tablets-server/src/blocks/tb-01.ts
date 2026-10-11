@@ -232,6 +232,24 @@ function checkConfig(phase: PhaseNode, config: Readonly<Record<string, flow.Json
   if (c.active.form && c.active.form.hydrateWaters > 0 && c.active.basis !== 'AS_IS') {
     err('TB01-BASIS-CONSISTENCY', `the declared form is a hydrate, but the assay is on the ${c.active.basis.toLowerCase().replaceAll('_', ' ')} basis: its molar mass would count the water twice; declare the anhydrous form`, ['PR-19', 'DI-33']);
   }
+  // Outline 9.1 (the sample's data problem): the form's label, its waters of hydration and its molar mass agree. A form
+  // named as a hydrate declares its waters, and a hydrate's molar mass holds them (at least the base moieties and the
+  // waters at 18.015 g/mol): a hydrate label on an anhydrous molar mass would scale the salt factor wrongly (C-02).
+  const form = isRecord(config['active']) && isRecord(config['active']['form']) ? config['active']['form'] : undefined;
+  if (c.active.form && form) {
+    const formName = typeof form['name'] === 'string' ? form['name'] : '';
+    const name = formName.toLowerCase();
+    const labelled = /(mono|di|tri|tetra|penta|hexa|sesqui|hemi|\b)hydrate\b/.test(name) && !/anhydr/.test(name);
+    if (labelled && c.active.form.hydrateWaters === 0) {
+      err('TB01-HYDRATE-LABEL', `the form is named "${formName}", a hydrate, but declares no waters of hydration; declare its waters and its hydrate molar mass, or name the anhydrous form`, ['PR-19', 'DI-33']);
+    }
+    if (c.active.form.hydrateWaters > 0) {
+      const least = Dec.parse(c.active.form.molarMassBase).times(Dec.parse(String(c.active.form.baseMoieties))).plus(Dec.parse('18.015').times(Dec.parse(String(c.active.form.hydrateWaters))));
+      if (Dec.parse(c.active.form.molarMassForm).lt(least)) {
+        err('TB01-HYDRATE-MASS', `the form declares ${String(c.active.form.hydrateWaters)} waters of hydration, but its molar mass ${c.active.form.molarMassForm} is below the base's and the waters' ${least.toString()}: an anhydrous molar mass under a hydrate label`, ['PR-19', 'DI-33']);
+      }
+    }
+  }
   if (Dec.parse(c.active.overagePercent).isPositive() && typeof (isRecord(config['active']) ? config['active'] : {})['registrationRef'] !== 'string') {
     err('TB01-OVERAGE', 'an overage above 0 % needs its registration reference', ['PR-04']);
   }

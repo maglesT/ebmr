@@ -23,6 +23,26 @@
         "IN"
       ],
       "steps": 14
+    },
+    {
+      "templateId": "gb-t-01",
+      "title": "Exemplazine tablets 250 mg, film-coated: wet granulation to release for packing (golden batch GB-T-01, invented formula)",
+      "description": "Six stages from dispensing to the release for packing: salt-to-base dispensing with a compensating excipient, split granulation in two sub-lots with fluid-bed drying to the LOD range and an optional extra-IPA branch, a case 2 reprocessing addition of milled rejects (at most 3 % and 90 days), blending, compression with left and right weight checks, the approval for coating, film coating to the weight gain, inspection with witnessed destruction and the release for packing. Reference batch 81.659 kg (2,00,000 tablets).",
+      "product": {
+        "code": "GBT01-250",
+        "name": "Exemplazine tablets",
+        "strength": "250 mg"
+      },
+      "batchSizes": [
+        {
+          "quantity": "81.659",
+          "unit": "kg"
+        }
+      ],
+      "markets": [
+        "IN"
+      ],
+      "steps": 41
     }
   ]
 }

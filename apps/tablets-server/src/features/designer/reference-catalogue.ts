@@ -95,7 +95,41 @@ export const DEMO_REFERENCE_DOCUMENTS: readonly ReferenceDocumentSeed[] = [
   { kind: 'EQUIPMENT_CLASS', code: 'EQC-BAL', version: '1', title: 'Balance, platform, calibrated', effectiveFrom: '2024-01-01', summary: 'Equipment class of the dispensing and floor balances.' },
   { kind: 'EQUIPMENT_CLASS', code: 'EQC-BLENDER', version: '1', title: 'Octagonal blender', effectiveFrom: '2024-01-01', summary: 'Equipment class of the blender (process equipment).' },
   { kind: 'HOLD_STUDY', code: 'HS-PCM-01', version: '1', title: 'Hold-time study: dispensed materials and final blend', effectiveFrom: '2024-01-01', summary: 'Maximum hold of dispensed materials before charging and of the final blend before compression.' },
+  // The golden batch GB-T-01 (Phase 3 slice 6d; an invented formula, decision 0006 part 3; template gb-t-01).
+  ...gbt01ReferenceDocuments(),
 ];
+
+/** The DEMO-ONLY documents the GB-T-01 template pins besides the dc-mini ones (all invented). */
+function gbt01ReferenceDocuments(): ReferenceDocumentSeed[] {
+  const doc = (kind: ReferenceDocumentKind, code: string, title: string, summary: string): ReferenceDocumentSeed => ({ kind, code, version: '1', title, effectiveFrom: '2024-01-01', summary });
+  return [
+    doc('SOP', 'SOP-GBT01-GRAN', 'GB-T-01 split wet granulation and fluid-bed drying', 'Binder preparation, high-shear granulation in two sub-lots, fluid-bed drying to the LOD range.'),
+    doc('SOP', 'SOP-GBT01-COMP', 'GB-T-01 compression and in-process checks', 'Tooling, press set-up and first-off, left and right weight checks, holds of overlapping containers.'),
+    doc('SOP', 'SOP-GBT01-COAT', 'GB-T-01 film coating and inspection', 'Suspension preparation, coating to the weight gain, visual inspection, witnessed destruction of rejects.'),
+    doc('SOP', 'SOP-GBT01-RPR', 'GB-T-01 reprocessing addition of milled rejects', 'Case 2 addition: reserved, quality-unit authorised rejects of the same product, at most 3 % and 90 days old.'),
+    doc('MATERIAL', 'MAT-EXZ-NA', 'Exemplazine sodium (invented active)', 'Active substance specification (invented): identity, assay on the anhydrous basis, water.'),
+    doc('MATERIAL', 'MAT-MCC-101', 'Microcrystalline cellulose PH 101', 'Excipient specification (compensating excipient).'),
+    doc('MATERIAL', 'MAT-LAC-MH', 'Lactose monohydrate', 'Excipient specification (diluent).'),
+    doc('MATERIAL', 'MAT-PVP-K30', 'Povidone K30', 'Excipient specification (binder).'),
+    doc('MATERIAL', 'MAT-IPA', 'Isopropyl alcohol', 'Granulation solvent specification (processing aid).'),
+    doc('MATERIAL', 'MAT-CCS', 'Croscarmellose sodium', 'Excipient specification (disintegrant).'),
+    doc('MATERIAL', 'MAT-SIO2', 'Colloidal silicon dioxide', 'Excipient specification (glidant).'),
+    doc('MATERIAL', 'MAT-MGST', 'Magnesium stearate', 'Excipient specification (lubricant).'),
+    doc('MATERIAL', 'MAT-FCS-W', 'Film-coating system, white', 'Coating material specification.'),
+    doc('COMPUTERISED_SYSTEM', 'SYS-PRS', 'Tablet press control system', 'Validated configuration of the press controller behind the site gateway.'),
+    doc('COMPUTERISED_SYSTEM', 'SYS-COATER', 'Coater control system', 'Validated configuration of the coater controller behind the site gateway.'),
+    doc('COMPUTERISED_SYSTEM', 'SYS-MA-01', 'Moisture analysers (LOD)', 'Validated configuration of the halogen moisture analysers of the granulation area.'),
+    doc('COMPUTERISED_SYSTEM', 'SYS-EBMR-TIME', 'eBMR execution server: times between entries', 'Blend and lubrication times measured by the execution server between the recorded starts and ends.'),
+    doc('REGISTRATION', 'REG-GBT01', 'Exemplazine tablets 250 mg: registered process and specification (invented)', 'Registered process ranges and specification of the invented golden-batch product.'),
+    doc('VALIDATION_REPORT', 'VR-GBT01', 'Process validation report: GB-T-01 (invented)', 'Proven acceptable ranges of LOD, blend and lubrication times, weight gain and the stage yields.'),
+    doc('RISK_ASSESSMENT', 'QRM-GBT01-IPC', 'Risk assessment of the GB-T-01 in-process check frequency', 'Weight checks of each press side every 30 minutes.'),
+    doc('EQUIPMENT_CLASS', 'EQC-RMG', 'Rapid mixer granulator', 'Equipment class of the high-shear granulator (process equipment).'),
+    doc('EQUIPMENT_CLASS', 'EQC-FBD', 'Fluid-bed dryer', 'Equipment class of the fluid-bed dryer (process equipment).'),
+    doc('EQUIPMENT_CLASS', 'EQC-PRESS-GBT', 'Double-rotary tablet press', 'Equipment class of the tablet press (process equipment).'),
+    doc('EQUIPMENT_CLASS', 'EQC-COATER', 'Perforated coating pan', 'Equipment class of the coater (process equipment).'),
+    doc('HOLD_STUDY', 'HS-GBT01', 'Hold-time study: GB-T-01 intermediates', 'Maximum hold of the dried granules, the lubricated blend and the coated tablets.'),
+  ];
+}
 
 /** The catalogue with bodies and hashes, by code. */
 export function demoReferenceIndex(): Map<string, { seed: ReferenceDocumentSeed; content: ReferenceDocumentContent; hash: string }> {

@@ -263,6 +263,7 @@ tests:
   - "apps/tablets-server/test/blocks/reprocessing/blocks.test.ts > TB-08@1 rework or recovered-material addition > [INV-25][DI-33] the computed net is exact decimal text in the item unit"
   - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19][DI-33] only the same product, within the MBR age, percentage and source-batch limits; chained recovery is blocked; QC must decide on extra testing"
   - "packages/recipe-core/test/blocks/reprocessing.test.ts > G-24@2 reprocessing and recovery gate on the database facts > [PR-47][IN-19][DI-33] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][DI-33] a trihydrate label on an anhydrous molar mass is flagged (outline 9.1): a form named as a hydrate declares its waters, and a hydrate's molar mass holds them"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

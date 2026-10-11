@@ -88,10 +88,10 @@ const excipient = (lotCode: string, materialCode: string, quantity: string, lod:
   results: [{ testCode: 'LOD', methodReference: 'STP-LOD-01', value: lod, unit: '%', upperLimit: lodMax }],
 });
 
-/** The lots GB-T-01 dispenses from (quantities with room for both orders). */
+/** The lots GB-T-01 dispenses from (quantities with room for the two variants and the source batch of their addition). */
 export const GBT01_LOTS: readonly SeedMaterialLot[] = [
   {
-    lotCode: 'GBT-API-001', materialCode: 'MAT-EXZ-NA', quantity: '120.000', expiresAt: '2028-12-31T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
+    lotCode: 'GBT-API-001', materialCode: 'MAT-EXZ-NA', quantity: '180.000', expiresAt: '2028-12-31T00:00:00Z', retestAt: '2027-12-31T00:00:00Z', identityMethod: 'IR-EXZ-01',
     results: [
       { testCode: 'ASSAY', methodReference: 'STP-EXZ-AS-01', value: '99.20', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
       { testCode: 'WATER', methodReference: 'STP-KF-01', value: '0.80', unit: '%', upperLimit: '1.5' },
@@ -99,11 +99,11 @@ export const GBT01_LOTS: readonly SeedMaterialLot[] = [
     assay: { basis: 'ANHYDROUS_WATER', assayTest: 'ASSAY', waterTest: 'WATER' },
   },
   excipient('GBT-MCC-001', 'MAT-MCC-101', '25.000', '3.10', '5.0'),
-  excipient('GBT-LAC-001', 'MAT-LAC-MH', '30.000', '0.40', '1.0'),
-  excipient('GBT-PVP-001', 'MAT-PVP-K30', '6.000', '3.50', '5.0'),
+  excipient('GBT-LAC-001', 'MAT-LAC-MH', '45.000', '0.40', '1.0'),
+  excipient('GBT-PVP-001', 'MAT-PVP-K30', '9.000', '3.50', '5.0'),
   excipient('GBT-IPA-001', 'MAT-IPA', '10.000', '0.05', '0.1'),
-  excipient('GBT-CCS-001', 'MAT-CCS', '6.000', '6.20', '10.0'),
-  excipient('GBT-SIO-001', 'MAT-SIO2', '1.000', '1.10', '2.5'),
-  excipient('GBT-MGS-001', 'MAT-MGST', '2.000', '3.00', '6.0'),
-  excipient('GBT-FCS-001', 'MAT-FCS-W', '6.000', '2.50', '5.0'),
+  excipient('GBT-CCS-001', 'MAT-CCS', '9.000', '6.20', '10.0'),
+  excipient('GBT-SIO-001', 'MAT-SIO2', '1.500', '1.10', '2.5'),
+  excipient('GBT-MGS-001', 'MAT-MGST', '3.000', '3.00', '6.0'),
+  excipient('GBT-FCS-001', 'MAT-FCS-W', '9.000', '2.50', '5.0'),
 ];

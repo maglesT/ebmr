@@ -102,7 +102,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm vitest run apps/tablets-server/test/golden --reporter=default
+      # One file at a time: the clock file is shared, and GB-T-01 (slice 6d) freezes it while the clock test reads it as
+      # an offset. GB-T-01 runs about 20 minutes.
+      - run: pnpm vitest run apps/tablets-server/test/golden --reporter=default --no-file-parallelism
 
   # Keeps the name of the single Phase 2 job, so a required status check still finds it; it passes only when the
   # static checks and every test shard passed and the trace accepts the merged report.
