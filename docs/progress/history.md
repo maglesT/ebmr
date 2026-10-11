@@ -2358,3 +2358,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Defaults: bottle and carton steps treat any potent product as needing isolation; beta-lactam from an MBR header flag
   until product master data has one. Full suite (4,846 of 4,849 before the fixes; the 3 then pass), register sync, E2E
   (23) green locally.
+- 2026-10-11: PHASE 3 SLICE 5 (branch phase-3/slice-5, builders on slice-5a and slice-5b). 5a: deviation-lite
+  (generated references, QA conclusion by another person, GMP references checked in the database), evidence documents,
+  LIMS-lite (verdicts by the database, second-person approval, revision drops approval, a failure resolved only by a
+  confirmed laboratory error with an approved passing replacement), retest from approved results, ERP stub (material
+  and product master, an unused order with an exact BOM at every GMP issue), the assay copied from approved results,
+  beta-lactam from the master. 5b: TB-08 additions and G-24@2 (source facts re-read by the database, case, age,
+  percentage and source-batch limits, partial takes never below zero, per-use authorisation, genealogy), G-24@1
+  addition refused on GMP, whole-batch reprocessing (QCU-signed request, investigation, risk evaluation, product
+  permission, new PROCESSING number linked to its parents, INV-33), the expiry cap including whole-batch parents.
+  Quick review: three high and five core medium, all fixed with regression tests; the rest to the backlog. Full suite
+  (4,894 of 4,896; one test fixture and the register fixed), lint, typecheck, E2E (23) green locally.

@@ -218,3 +218,36 @@ Backlog (low):
 - "One part shipper" is enforced per TB-24 step, not per batch; a batch with two TB-24 steps could carry two.
 - Reel release and expiry are checked at entry only; a reel quarantined mid-run is not caught (Phase 4, lot status
   events).
+
+## Slice 5b open items (builder report, 11 October 2026)
+
+- TB-20 NO-PLAN through a deviation (slice 3d #3) is not built: TB-20@1 needs an AQL result before it is performed,
+  so the path needs a change-path extension; it stays fail-safe (the lot cannot leave) until then (slice 6).
+- No HTTP routes or api-contract entries for TB-08 and G-24@2, and no server-side resolution of TB-08 source facts
+  (the database re-reads them; screens in slice 6).
+- The G-24@1 GMP refusal is proven on the function only; on GMP a G-24@1 step cannot start at all (0330, 0345).
+- Defaults: per-use QA authorisation is the QA confirmation of the expiry cap (IN-19 (b)); the addition percentage is
+  of the MBR's first batch size; REPROCESSING.AUTHORISE goes to QA_SHOP_FLOOR and AUTHORISED_PERSON.
+
+## Slice 5 quick review (11 October 2026)
+
+Every replaced function was rebuilt from its latest definition with no guard lost. Three high findings, fixed with
+regression tests in this slice: the forward trace now includes whole-batch children (INV-33, PR-57); the printed
+expiry cap now covers whole-batch parents (IN-19 (b)); a failing lot is resolved only by a confirmed laboratory error
+with an approved passing replacement (IN-20). Core mediums fixed in this slice: whole-batch parent state, no chaining
+and one request per parent; the charge lock on source containers; a STEP authorisation used once; the person who
+records a deviation finding cannot conclude or close it (PR-50).
+
+Backlog (medium and low):
+- Evidence documents are self-attested (hash and storage key typed by the storer); tie them to stored bytes with a
+  document service (Phase 4, document control).
+- A LIMS revision can turn FAIL into PASS with a reason only; the recorder types the limits. Limits should come from
+  an approved specification and a revision of a RELEASE result should require an OOS link (Phase 4, specifications).
+- A lot with no LIMS results passes the LIMS release check (Phase 4, release model with required tests per material).
+- The latest QC extra-testing decision wins, and nothing checks that the extra tests were run (Phase 4 release gate,
+  which also wires `recipe.reprocessing_release_problem`).
+- Low: the container lock assumes READ COMMITTED; raw unique-violation text on a concurrent ERP order reuse; ERP
+  order_no not unique on the ERP side; an order stays consumed if its batch is cancelled; a RETEST-purpose result is
+  accepted as an assay source.
+- Whole-batch parents are checked by execution status (EXECUTION_COMPLETE or ABORTED) only; a REJECTED disposition
+  check waits for the Phase 4 disposition model.

@@ -35,9 +35,12 @@ implemented_by:
   modules:
     - "packages/recipe-core/src/blocks/generic/material.ts (G-07)"
     - "packages/recipe-core/src/engine/corrections.ts (executed targets)"
+    - "packages/site-services/sql/0740_lims_lite.sql"
+    - "apps/tablets-server/sql/1001_lot_assay_from_lims.sql"
   guards:
     - "G-07: net = gross - tare computed; the dispensed total is compared with its target within the MBR tolerance (DISPENSE_OUT_OF_TOLERANCE); every BOM line is dispensed before PERFORMED (G07-BOM-INCOMPLETE); a target without tolerance is a warning that needs a justification (G07-TOLERANCE-MISSING)"
     - "A corrected input that moves an executed target outside tolerance raises EXECUTED_TARGET_CHANGED; the dispensed quantity is never recomputed"
+    - "LIMS-lite: verdicts computed by the database from decimal limits; approval by a QC person other than the recorder (QC_RESULT_APPROVED); a revision drops the approval; on GMP the lot assay is copied from approved results named by id, never typed, and is read only while they stay approved (EBMR-SITE-200 to 205, EBMR-EXE-606)"
   invariants:
     - "INV-25"
 tests:
@@ -127,6 +130,10 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][DI-33] the assay must be on the MBR's basis and complete; the active is dispensed only from the lots of the calculation, after it; a new calculation once material is dispensed is refused"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19] PERFORMED waits for every line and lot of the calculation, and a total outside its tolerance raises DISPENSE_OUT_OF_TOLERANCE"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][PR-04] an adjustment beyond the MBR's cap raises POTENCY_ADJUSTMENT_CAP; a negative compensating excipient is refused"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > TB-01 on the GMP installation (site lots, reservations, consumption) > [PR-19][DI-33][DI-37] on GMP the lot assay comes only from approved LIMS-lite results of that lot, copied, never typed; a revision of the result drops it"
+  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][DI-33][DI-37] the verdict is computed by the database; approval is by a second QC person under QC_RESULT_APPROVED; a revision drops the approval"
+  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; only a confirmed laboratory error with an approved passing replacement resolves it"
+  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

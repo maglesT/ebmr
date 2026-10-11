@@ -308,6 +308,8 @@ describe('renderer registry', () => {
       'G-22@1': 'dedicated',
       'G-23@1': 'fallback',
       'G-24@1': 'fallback',
+      // Phase 3 slice 5b: G-24@2 uses the schema-driven fallback until the reprocessing screens (slice 6).
+      'G-24@2': 'fallback',
     });
     expect(Object.keys(RENDERERS).every((k) => executable.includes(k))).toBe(true);
   });

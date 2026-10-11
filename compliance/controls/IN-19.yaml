@@ -18,11 +18,28 @@ catalog_test: add recovered material without prior authorisation; the step is bl
 implemented_by:
   modules:
     - "packages/recipe-core/src/blocks/generic/process.ts (G-24)"
+    - "packages/recipe-core/src/blocks/generic/reprocessing.ts (G-24@2 and the addition rules)"
+    - "apps/tablets-server/src/blocks/tb-08.ts (TB-08)"
+    - "packages/recipe-core/sql/0620_g24_database_path.sql to 0624_whole_batch_reprocessing.sql"
+    - "apps/tablets-server/sql/1020_tb08_registers.sql to 1022_recovered_expiry_cap.sql"
   guards:
     - "G-24: start needs a prior QA authorisation by another person citing an investigation and a risk evaluation (G24-NOT-AUTHORISED, G24-SELF-AUTHORISED); same product, MBR age, percentage and source-batch limits; chained recovery blocked; the QC decision on extra testing is a release-blocking exception"
+    - "recipe-core 0622, tablets 1021: addition limits, chained recovery and authorisation enforced in the database"
+    - "recipe-core 0624, tablets 1022: source expiry from the product master; the printed expiry is capped at the earliest recovered input (recipe.recovered_expiry_cap)"
 tests:
   - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19] recovered material cannot be added without prior authorisation citing an investigation and a risk evaluation"
   - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19] only the same product, within the MBR age, percentage and source-batch limits; chained recovery is blocked; QC must decide on extra testing"
+  - "packages/recipe-core/test/blocks/reprocessing.test.ts > G-24@2 reprocessing and recovery gate on the database facts > [PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused"
+  - "packages/recipe-core/test/blocks/reprocessing.test.ts > G-24@2 reprocessing and recovery gate on the database facts > [PR-47][IN-19] the step's source batches, cumulative percentage and authorisations are judged together; a performed step that added material raises the QC decision on extra testing (release-blocking), and the entry needs the second person"
+  - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][IN-18][IN-19][PR-47] a reworked batch is planned only on a QCU-authorised request: refused without the authorisation, a concluded investigation, a stored risk evaluation, the product's permission, or when authorised by the issuer; a request is used once"
+  - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [PR-47][IN-19] G-24@1 SOURCE_ADDITION is refused on GMP: its facts are the caller's (D-S5-8); a batch of another installation is left to the sandbox rules"
+  - "apps/tablets-server/test/blocks/reprocessing/blocks.test.ts > TB-08@1 rework or recovered-material addition > [PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused"
+  - "apps/tablets-server/test/blocks/reprocessing/blocks.test.ts > TB-08@1 rework or recovered-material addition > [PR-47][IN-19] the source-batch count, the cumulative percentage and a used authorisation are judged over the step's earlier additions"
+  - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused by the database, past a forged engine"
+  - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [IN-19][PR-47] chained recovery is blocked: a source batch that itself received recovered material cannot be a source, past a forged engine"
+  - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47][IN-19] G-24@2: a recovery step starts only under the quality unit's signed authorisation of that step; its addition of QA-released material stands on the database's facts and is recorded"
+  - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-47][IN-19] G-24 Reprocessing / rework gate (database facts): A recovery addition of 0.02 kg from a QA-released container of an earlier batch of the same product (facts read from the database), each use authorised beforehand by the quality unit (the step itself starts on its signed authorisation, which the database holds); QC is flagged to decide on extra testing"
+  - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][PR-57][IN-19] the forward trace of a parent finds its whole-batch child, and the child's expiry is capped at the parent's (manufacturing month plus the master's shelf life, less one), read as the application role"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

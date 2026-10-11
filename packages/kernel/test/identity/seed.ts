@@ -246,6 +246,8 @@ export interface SeedServiceOptions {
   kind?: 'SERVICE' | 'INTEGRATION';
   source?: Extract<CommandSource, 'SYSTEM' | 'INTEGRATION'>;
   name?: string;
+  /** The identity's role (default SERVICE_ACCOUNT); for an edition's own interface role, e.g. ERP_INTERFACE. */
+  roleCode?: string;
 }
 
 /** A SERVICE (or INTEGRATION) account of a system identity with a session on a SERVER device, for source SYSTEM. */
@@ -260,7 +262,7 @@ export async function seedServiceActor(db: TestDatabase, opts: SeedServiceOption
     const accountId = await createAccount(c, { personId, loginName: lg, kind });
     const { secret } = await issueInitialSecret(c, accountId, 'SERVICE_KEY');
     await activateAccount(c, accountId);
-    const grantId = await requestRoleGrant(c, { accountId, roleCode: 'SERVICE_ACCOUNT', reason: 'test service identity' });
+    const grantId = await requestRoleGrant(c, { accountId, roleCode: opts.roleCode ?? 'SERVICE_ACCOUNT', reason: 'test service identity' });
     await registerDevice(c, { code: `SRV-${randomBytes(5).toString('hex')}`, deviceClass: 'SERVER', site: SEED_SITE, fingerprint: fp, description: 'test server' });
     return { personId, accountId, secret, grantId };
   });
@@ -268,7 +270,7 @@ export async function seedServiceActor(db: TestDatabase, opts: SeedServiceOption
   const ev = await authenticate(seedAuthn(db), { method: 'SERVICE_KEY', identifier: lg, secret: created.secret, deviceFingerprint: fp, purpose: 'LOGIN' });
   const s = await openSession(db.app, ev.authEventId, fp);
   return {
-    personId: created.personId, accountId: created.accountId, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId,
+    personId: created.personId, accountId: created.accountId, roleCode: opts.roleCode ?? 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId,
     source: opts.source ?? (kind === 'INTEGRATION' ? 'INTEGRATION' : 'SYSTEM'), siteZone: SEED_ZONE, legalName: name,
     seed: { loginName: lg, password: created.secret, deviceFingerprint: fp, deviceClass: 'SERVER', grantId: created.grantId },
   };

@@ -257,6 +257,8 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][DI-33] golden fixture: the C-06 lot raises the active to 8.742 kg and lowers the filler to 19.531 kg; both dispensed, the totals computed, performed by the dispenser and checked"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][DI-33][PR-20] the configuration is refused when a hydrate molar mass meets a water-corrected assay, when the step is not performed by the designated dispenser or not checked by a second person, or an overage has no registration reference"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][DI-33] the assay must be on the MBR's basis and complete; the active is dispensed only from the lots of the calculation, after it; a new calculation once material is dispensed is refused"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > TB-01 on the GMP installation (site lots, reservations, consumption) > [PR-19][DI-33][DI-37] on GMP the lot assay comes only from approved LIMS-lite results of that lot, copied, never typed; a revision of the result drops it"
+  - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][DI-33][DI-37] the verdict is computed by the database; approval is by a second QC person under QC_RESULT_APPROVED; a revision drops the approval"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

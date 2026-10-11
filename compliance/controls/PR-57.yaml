@@ -34,9 +34,18 @@ behaviour: |-
   - Distribution records, linked from ERP, hold product name and strength, dosage form, consignee name and address, date, quantity and lot.
   - Lookups: a complaint-to-lot lookup opens the record, genealogy, deviations and shipments. An API supply-chain traceability report can be produced for each finished batch.
 catalog_test: A seeded split/merge/rework scenario returns exactly the expected nodes. A forward trace from a component lot lists every consignee, matching an ERP extract.
-implemented_by: {}
+implemented_by:
+  modules:
+    - "packages/recipe-core/src/blocks/generic/reprocessing.ts (G-24@2 and the addition rules)"
+    - "apps/tablets-server/src/blocks/tb-08.ts (TB-08)"
+    - "packages/recipe-core/sql/0620_g24_database_path.sql to 0624_whole_batch_reprocessing.sql"
+    - "apps/tablets-server/sql/1020_tb08_registers.sql to 1022_recovered_expiry_cap.sql"
+  guards:
+    - "recipe-core 0621/0622, tablets 1021: each addition writes recipe.source_addition (source container, batch, quantity) in the entry's transaction; recipe.batches_receiving_from traces forward; remaining quantity never below zero (EBMR-RPR-040)"
 tests:
   - "packages/recipe-core/test/execution/kept-records-sql.test.ts > every row of the engine keeps what the state recorded, as the database checks it (P34, P58, P36 round 2) > [INV-25][DI-33][PR-57] a block value recomputed when its step is signed performed supersedes the earlier one: in the preparation, the accepted signature and a refused one"
+  - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [INV-33][PR-57][PR-47] an authorised addition writes its genealogy edge with the source batch number and the quantity taken in the same transaction; the remaining quantity is reduced and never goes below zero; the authorisation serves once; a forward trace from the source finds the receiving batch; the computed item is the net added (C-07)"
+  - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][PR-57][IN-19] the forward trace of a parent finds its whole-batch child, and the child's expiry is capped at the parent's (manufacturing month plus the master's shelf life, less one), read as the application role"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

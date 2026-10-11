@@ -256,6 +256,11 @@ export interface GmpBatchPlan {
   allocationId?: string;
   /** A packaging order (record kind PACKAGING): the issued processing batch it packs (D-S4-2; recipe-core 0582). */
   parentBatch?: string;
+  /**
+   * The ERP production order the batch is planned against: its product, strength, site, batch size and BOM must match
+   * the pinned MBR (D-S5-4; recipe-core 0602, EBMR-EXE-605).
+   */
+  erpOrder: string;
 }
 
 export interface PlannedGmpBatch {
@@ -270,6 +275,8 @@ export interface PlannedGmpBatch {
   markets: string[];
   controlRecipeId: string;
   snapshotHash: string;
+  /** The ERP order the batch was planned against. */
+  erpOrder: string;
 }
 
 /**
@@ -291,6 +298,7 @@ export async function prepareGmpIssue(client: Queryable, batchId: string, plan: 
     markets: Array.isArray(r['markets']) ? (r['markets'] as unknown[]).map(String) : [],
     controlRecipeId: str(r['control_recipe_id']),
     snapshotHash: str(r['snapshot_hash']),
+    erpOrder: str(r['erp_order']),
   };
 }
 

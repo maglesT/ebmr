@@ -97,7 +97,7 @@ export const GENERIC_BLOCKS: readonly BlockDescriptor[] = [
   g('G-21', 'Printed materials, coding, challenges, serialisation', ['PRINTED_MATERIALS'], { significant: true }),
   g('G-22', 'Output containers, holds, split/merge', ['OUTPUT_CONTAINER']),
   g('G-23', 'Returns, rejects, destruction', ['RETURNS_DESTRUCTION']),
-  g('G-24', 'Reprocessing / rework gate', ['REPROCESSING'], { significant: true }),
+  g('G-24', 'Reprocessing / rework gate', ['REPROCESSING'], { significant: true, versions: ['1', '2'] }),
   g('G-25', 'Sign-off, review, release and market disposition', ['SIGN_OFF']),
 ];
 

@@ -2,7 +2,7 @@
  * Site services shared by both editions at one site: persons, qualifications, lots and reservations, batch numbers, devices.
  *
  * Phase 1: the batch-number allocation register (src/batch-numbers/README.md). Phase 3: material lots, release
- * routes and reservations (src/lots). The other site data
+ * routes and reservations (src/lots); deviation-lite, evidence documents, the ERP stub and LIMS-lite (src/quality). The other site data
  * arrive in the phase that owns them (see docs/outline/build-outline.md section 11).
  */
 import { PACKAGE as KernelPackage } from '@ebmr/kernel';
@@ -14,3 +14,4 @@ export const BUILT_AGAINST = [KernelPackage] as const;
 
 export * from './batch-numbers/index.ts';
 export * from './lots/index.ts';
+export * from './quality/index.ts';

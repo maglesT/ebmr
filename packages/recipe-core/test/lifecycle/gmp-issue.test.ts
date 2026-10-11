@@ -13,7 +13,7 @@ import { withProtectedNumbers } from '../../../kernel/src/continuity/numbers.ts'
 import { withCommand } from '../../../kernel/src/db/command.ts';
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
-import { seedActor, seedAdministration, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedActor, seedAdministration, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { stepKey, type Command } from '../../src/engine/index.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
@@ -23,11 +23,13 @@ import type * as lc from '../../src/lifecycle/index.ts';
 import * as plantApi from '../../src/plant/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { dbIn, PlantWorld, seedPlantCast } from '../plant/support.ts';
+import { familyOrder } from './gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from './support.ts';
 
 let db: TestDatabase;
 let w: World;
 let steward: SeededActor;
+let erp: SeededActor;
 let issuer2: SeededActor;
 let operator: SeededActor;
 const dir = tempDir('gmp-issue');
@@ -37,6 +39,7 @@ beforeAll(async () => {
   db = await createTestDatabase();
   w = new World(db, await seedCast(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
+  erp = await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' });
   issuer2 = await seedActor(db, { roleCode: 'BATCH_ISSUER', legalName: 'Isha Issuer' });
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator', roomCode: 'DISP-01' });
 }, 300_000);
@@ -107,8 +110,9 @@ async function effectiveMaster(markets: string[] = ['IN', 'US'], sandboxOnly = f
 
 /** Plans a GMP batch as `who` (the register's counter is write-ahead: withProtectedNumbers, kernel continuity). */
 async function plan(who: SeededActor, batchId: string, def: Partial<execution.GmpBatchPlan> & { familyId: string }): Promise<execution.PlannedGmpBatch> {
+  const erpOrder = def.erpOrder ?? (await familyOrder(db, erp, def.familyId, def.batchSize ?? BS));
   return withProtectedNumbers(db.app, await cmd(db, who), ledger, (c) =>
-    execution.prepareGmpIssue(c, batchId, { markets: ['IN', 'US'], site: SITE, line: 'L1', batchSize: BS, ...def }),
+    execution.prepareGmpIssue(c, batchId, { markets: ['IN', 'US'], site: SITE, line: 'L1', batchSize: BS, ...def, erpOrder }),
   );
 }
 
