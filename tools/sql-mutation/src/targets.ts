@@ -631,7 +631,7 @@ export const TARGETS: Target[] = [
                 'recipe.prepare_reprocessing_issue', 'recipe.reprocessing_parents_check', 'recipe.recovered_expiry_cap',
                 'recipe.batches_receiving_from', 'recipe.g24v2_check', 'recipe.source_container_charge_check',
                 'recipe.reprocessing_request_problem', 'recipe.reprocessing_start_take'],
-    tests: [site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts')],
+    tests: [site('mutation/reprocessing.test.ts'), site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: the formulation library: versions, approval, MBR pin, base standard, who reads a composition
