@@ -13,8 +13,21 @@ import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
+import { refusal } from '../../platform/http/refusal.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
+
+/** Phase 3 slice 6a-0: routes fixed in the contract whose handlers arrive with slice 6a (501 until then). */
+const notYet = (): Promise<never> =>
+  Promise.reject(
+    refusal(501, {
+      code: 'NOT_IMPLEMENTED',
+      kind: 'NOT_ENABLED',
+      whatHappened: 'This function is not available yet.',
+      why: 'It arrives with Phase 3 slice 6a.',
+      whatYouCanDo: ['Use another path for now.'],
+    }),
+  );
 
 async function deviationView(db: Db, deviationId: string): Promise<DeviationView> {
   const { rows } = await db.query<{ id: string; ref: string; kind: DeviationView['kind']; title: string; classification: DeviationView['classification']; state: DeviationView['state'] }>(
@@ -138,6 +151,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       },
       lotResults: async ({ params }) => ({ results: await lotResults(pool, params.lotId) }),
       erpImport: async ({ body }) => asErp(app, body, (c) => importCatalogue(c, body.catalogue)),
+      deviations: notYet,
+      registerEvidenceDocument: notYet,
+      extraTesting: notYet,
+      erpOrders: notYet,
+      erpProducts: notYet,
+      erpMaterials: notYet,
+      lots: notYet,
+      receiveLot: notYet,
     },
     { rateLimits: { erpImport: { max: 30, timeWindow: '1 minute' } } },
   );

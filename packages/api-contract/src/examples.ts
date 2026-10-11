@@ -42,6 +42,8 @@ import validation from '../fixtures/validation-report.json' with { type: 'json' 
 import versionInVerification from '../fixtures/version-in-verification.json' with { type: 'json' };
 import version from '../fixtures/version.json' with { type: 'json' };
 import workQueue from '../fixtures/work-queue.json' with { type: 'json' };
+import gmpBatch from '../fixtures/gmp-batch.json' with { type: 'json' };
+import s6 from '../fixtures/slice-6.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -95,7 +97,86 @@ export const EXAMPLES = {
   'validation-report-findings': { schema: r.designer.validate.response, data: validationFindings, routeId: r.designer.validate.id },
   'simulation-report': { schema: r.designer.simulate.response, data: simulation, routeId: r.designer.simulate.id },
   'audit-events': { schema: r.audit.events.response, data: audit, routeId: r.audit.events.id },
+  // Phase 3 slice 6 (6a-0): one example per new route, written for the screens (6b) before the handlers exist. The GMP
+  // batch examples are the sandbox run examples without the TEST watermark and identifiers (gmp-batch.json).
+  'batches-list': { schema: r.batches.list.response, data: gmpBatch.list, routeId: r.batches.list.id },
+  'batches-batch': { schema: r.batches.batch.response, data: gmpBatch.batch, routeId: r.batches.batch.id },
+  'batches-step': { schema: r.batches.step.response, data: gmpBatch.step, routeId: r.batches.step.id },
+  'batches-work-queue': { schema: r.batches.workQueue.response, data: gmpBatch.workQueue, routeId: r.batches.workQueue.id },
+  'batches-timeline': { schema: r.batches.timeline.response, data: gmpBatch.timeline, routeId: r.batches.timeline.id },
+  'batches-command': { schema: r.batches.command.response, data: gmpBatch.commandResult, routeId: r.batches.command.id },
+  'batches-propose-act': { schema: r.batches.proposeAct.response, data: s6.proposedAct, routeId: r.batches.proposeAct.id },
+  'batches-sscc': { schema: r.batches.sscc.response, data: s6.sscc, routeId: r.batches.sscc.id },
+  'batches-issue-sscc': { schema: r.batches.issueSscc.response, data: s6.sscc.ssccs[1], routeId: r.batches.issueSscc.id },
+  'batches-addition-sources': { schema: r.batches.additionSources.response, data: s6.additionSources, routeId: r.batches.additionSources.id },
+  'planning-orders': { schema: r.planning.orders.response, data: s6.planning, routeId: r.planning.orders.id },
+  'master-data-formulas': { schema: r.masterData.formulas.response, data: { formulas: [s6.formulaSummary] }, routeId: r.masterData.formulas.id },
+  'master-data-create-formula': { schema: r.masterData.createFormula.response, data: s6.formulaSummary, routeId: r.masterData.createFormula.id },
+  'master-data-formula': {
+    schema: r.masterData.formula.response,
+    data: { formula: s6.formulaSummary, versions: [s6.formulaVersion], compositionReadable: true },
+    routeId: r.masterData.formula.id,
+  },
+  'master-data-formula-no-read': {
+    schema: r.masterData.formula.response,
+    data: { formula: s6.formulaSummary, versions: [{ ...s6.formulaVersion, lines: null }], compositionReadable: false },
+    routeId: r.masterData.formula.id,
+  },
+  'master-data-add-formula-version': {
+    schema: r.masterData.addFormulaVersion.response,
+    data: { ...s6.formulaVersion, versionId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d', versionNumber: 2, state: 'DRAFT', changeReason: 'Coating level changed', approvedBy: null, approvedAt: null, signable: { aggregateType: 'formula_version', aggregateId: 'f2a3b4c5-d6e7-4f8a-8b9c-0d1e2f3a4b5d' } },
+    routeId: r.masterData.addFormulaVersion.id,
+  },
+  'designer-formula-choice': {
+    schema: r.designer.formulaChoice.response,
+    data: { formulaId: s6.formulaSummary.formulaId, versionId: s6.formulaVersion.versionId, versionNumber: 1, productCode: 'GBT01', strength: '500 mg', batchSizeUnits: '200000', bom: s6.formulaVersion.lines },
+    routeId: r.designer.formulaChoice.id,
+  },
+  'plant-areas': { schema: r.plant.areas.response, data: { areas: s6.plant.areas }, routeId: r.plant.areas.id },
+  'plant-define-area': { schema: r.plant.defineArea.response, data: s6.plant.areas[0], routeId: r.plant.defineArea.id },
+  'plant-equipment-classes': { schema: r.plant.equipmentClasses.response, data: { classes: s6.plant.classes }, routeId: r.plant.equipmentClasses.id },
+  'plant-define-equipment-class': { schema: r.plant.defineEquipmentClass.response, data: s6.plant.classes[0], routeId: r.plant.defineEquipmentClass.id },
+  'plant-equipment': { schema: r.plant.equipment.response, data: { equipment: s6.plant.equipment }, routeId: r.plant.equipment.id },
+  'plant-define-equipment': { schema: r.plant.defineEquipment.response, data: s6.plant.equipment[0], routeId: r.plant.defineEquipment.id },
+  'plant-tooling-sets': { schema: r.plant.toolingSets.response, data: { toolingSets: s6.plant.toolingSets }, routeId: r.plant.toolingSets.id },
+  'plant-define-tooling-set': { schema: r.plant.defineToolingSet.response, data: s6.plant.toolingSets[0], routeId: r.plant.defineToolingSet.id },
+  'plant-detectors': { schema: r.plant.detectors.response, data: { detectors: s6.plant.detectors }, routeId: r.plant.detectors.id },
+  'plant-define-detector': { schema: r.plant.defineDetector.response, data: s6.plant.detectors[0], routeId: r.plant.defineDetector.id },
+  'plant-test-pieces': { schema: r.plant.testPieces.response, data: { testPieces: s6.plant.testPieces }, routeId: r.plant.testPieces.id },
+  'plant-define-test-piece': { schema: r.plant.defineTestPiece.response, data: s6.plant.testPieces[0], routeId: r.plant.defineTestPiece.id },
+  'plant-utilities': { schema: r.plant.utilities.response, data: { utilities: s6.plant.utilities }, routeId: r.plant.utilities.id },
+  'plant-define-utility': { schema: r.plant.defineUtility.response, data: s6.plant.utilities[0], routeId: r.plant.defineUtility.id },
+  'plant-start-cleaning': { schema: r.plant.startCleaning.response, data: { ...s6.plant.cleaning, state: 'IN_PROGRESS' }, routeId: r.plant.startCleaning.id },
+  'plant-complete-cleaning': { schema: r.plant.completeCleaning.response, data: s6.plant.cleaning, routeId: r.plant.completeCleaning.id },
+  'plant-record-clearance': { schema: r.plant.recordClearance.response, data: s6.plant.clearance, routeId: r.plant.recordClearance.id },
+  'plant-equipment-event': { schema: r.plant.equipmentEvent.response, data: s6.plant.equipmentEvent, routeId: r.plant.equipmentEvent.id },
+  'plant-pending-verifications': { schema: r.plant.pendingVerifications.response, data: s6.plant.pending, routeId: r.plant.pendingVerifications.id },
+  'quality-deviations': { schema: r.quality.deviations.response, data: s6.quality.deviations, routeId: r.quality.deviations.id },
+  'quality-evidence-document': { schema: r.quality.registerEvidenceDocument.response, data: s6.quality.evidenceDocument, routeId: r.quality.registerEvidenceDocument.id },
+  'quality-extra-testing': { schema: r.quality.extraTesting.response, data: s6.quality.extraTesting, routeId: r.quality.extraTesting.id },
+  'quality-erp-orders': { schema: r.quality.erpOrders.response, data: s6.quality.erpOrders, routeId: r.quality.erpOrders.id },
+  'quality-erp-products': { schema: r.quality.erpProducts.response, data: s6.quality.erpProducts, routeId: r.quality.erpProducts.id },
+  'quality-erp-materials': { schema: r.quality.erpMaterials.response, data: s6.quality.erpMaterials, routeId: r.quality.erpMaterials.id },
+  'quality-lots': { schema: r.quality.lots.response, data: s6.quality.lots, routeId: r.quality.lots.id },
+  'quality-receive-lot': { schema: r.quality.receiveLot.response, data: s6.quality.lots.lots[0], routeId: r.quality.receiveLot.id },
 } as const satisfies Record<string, Example>;
+
+/** Phase 3 slice 6: the routes added by slice 6a-0, each with at least one example above (checked by the contract test). */
+export const SLICE_6_ROUTE_IDS: readonly string[] = [
+  ...Object.values(r.batches),
+  ...Object.values(r.planning),
+  ...Object.values(r.masterData),
+  ...Object.values(r.plant),
+  r.designer.formulaChoice,
+  r.quality.deviations,
+  r.quality.registerEvidenceDocument,
+  r.quality.extraTesting,
+  r.quality.erpOrders,
+  r.quality.erpProducts,
+  r.quality.erpMaterials,
+  r.quality.lots,
+  r.quality.receiveLot,
+].map((route) => route.id);
 
 export type ExampleName = keyof typeof EXAMPLES;
 

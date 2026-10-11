@@ -356,6 +356,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
   }));
 
   bindRoutes(scope, app, routes.designer, {
+    // Phase 3 slice 6a-0: "Choose a product" arrives with slice 6a.
+    formulaChoice: () =>
+      Promise.reject(
+        refusal(501, { code: 'NOT_IMPLEMENTED', kind: 'NOT_ENABLED', whatHappened: 'This function is not available yet.', why: 'It arrives with Phase 3 slice 6a.', whatYouCanDo: ['Use another path for now.'] }),
+      ),
     templates: () => Promise.resolve({ templates: templateViews }),
 
     families: async () => ({ families: await familyViews(pool, app) }),

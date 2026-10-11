@@ -6,6 +6,7 @@
 import type pg from 'pg';
 import { withCommand, type ActorContext } from '@ebmr/kernel';
 import type { FeatureSeedContext } from '../types.ts';
+import { seedGmp } from './seed-gmp.ts';
 
 const DAY_US = 86_400_000_000n;
 
@@ -49,6 +50,8 @@ export async function registerLots(pool: pg.Pool, actor: ActorContext, lots: rea
 }
 
 export async function seed(ctx: FeatureSeedContext): Promise<void> {
+  // Phase 3 slice 6: the GMP demo seed (slice 6c).
+  if (ctx.installation === 'GMP') return seedGmp(ctx);
   if (ctx.installation !== 'SANDBOX') return;
   ctx.log(`registering ${DEMO_LOTS.length} TEST- lots`);
   await registerLots(ctx.pools.app, await ctx.actorFor('steward'), DEMO_LOTS);
